@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { t } from '@/locales'
 import { type Key } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
+import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 import SSIconScriptsP2pkh from './icons/SSIconScriptsP2pkh'
 import SSCollapsible from './SSCollapsible'
@@ -10,7 +11,6 @@ import SSLink from './SSLink'
 import SSRadioButton from './SSRadioButton'
 import SSSelectModal from './SSSelectModal'
 import SSText from './SSText'
-import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 type ScriptVersion = NonNullable<Key['scriptVersion']>
 
