@@ -40,6 +40,9 @@ export default function Security() {
       state.setSkipSeedConfirmation
     ])
   )
+  const setFirstTime = useAuthStore(
+    ((state) => state.setFirstTime)
+  )
 
   const [localPinMaxTries, setLocalPinMaxTries] = useState(pinMaxTries)
   const [localSkipSeedWordConfirmation, setLocalSkipSeedWordConfirmation] =
@@ -97,8 +100,8 @@ export default function Security() {
               </SSVStack>
               <SSVStack>
                 <SSButton
-                  label="CHANGE PIN"
-                  onPress={() => router.navigate('/')}
+                  label={tn('changePin')}
+                  onPress={() => setFirstTime(true)}
                 />
               </SSVStack>
             </SSVStack>
