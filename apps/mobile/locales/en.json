@@ -1237,6 +1237,7 @@
       "missingFields": "Please fill in all required fields"
     },
     "fingerprint.label": "Master Fingerprint",
+    "fingerprint.scanQR": "Scan Fingerprint QR Code",
     "fingerprint.text": "Fingerprint",
     "importAddress.label": "Address",
     "importAddress.text": "A single bitcoin address",

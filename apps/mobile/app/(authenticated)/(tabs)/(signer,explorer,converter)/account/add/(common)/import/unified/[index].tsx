@@ -71,6 +71,7 @@ export default function UnifiedImport() {
   const { isAvailable, isReading, readNFCTag, cancelNFCScan } = useNFCReader()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
+  const [scanningFor, setScanningFor] = useState<'main' | 'fingerprint'>('main')
 
   const [xpub, setXpub] = useState('')
   const [localFingerprint, setLocalFingerprint] = useState(fingerprint)
@@ -356,6 +357,22 @@ export default function UnifiedImport() {
     }
   }
 
+  async function pasteFingerprintFromClipboard() {
+    try {
+      const clipboardContent = await Clipboard.getStringAsync()
+      if (!clipboardContent) {
+        toast.error(t('watchonly.error.emptyClipboard'))
+        return
+      }
+
+      const finalContent = clipboardContent.trim()
+      updateMasterFingerprint(finalContent)
+      toast.success(t('watchonly.success.clipboardPasted'))
+    } catch (_error) {
+      toast.error(t('watchonly.error.clipboardPaste'))
+    }
+  }
+
   async function handleNFCRead() {
     if (!isAvailable) {
       toast.error(t('watchonly.read.nfcNotAvailable'))
@@ -461,6 +478,14 @@ export default function UnifiedImport() {
   async function handleQRCodeScanned(scanningResult: any) {
     const data = scanningResult?.data
     if (!data) return
+
+    // Handle fingerprint scanning
+    if (scanningFor === 'fingerprint') {
+      updateMasterFingerprint(data)
+      setCameraModalVisible(false)
+      toast.success(t('watchonly.success.qrScanned'))
+      return
+    }
 
     // Handle regular QR codes
     if (importType === 'descriptor') {
@@ -616,6 +641,23 @@ export default function UnifiedImport() {
                       onChangeText={updateMasterFingerprint}
                       placeholder={t('watchonly.fingerprint.text')}
                     />
+                    <SSHStack gap="sm" style={{ marginTop: 8 }}>
+                      <SSButton
+                        label={t('watchonly.read.clipboard')}
+                        variant="subtle"
+                        onPress={pasteFingerprintFromClipboard}
+                        style={{ flex: 1 }}
+                      />
+                      <SSButton
+                        label={t('watchonly.read.qrcode')}
+                        variant="subtle"
+                        onPress={() => {
+                          setScanningFor('fingerprint')
+                          setCameraModalVisible(true)
+                        }}
+                        style={{ flex: 1 }}
+                      />
+                    </SSHStack>
                   </SSFormLayout.Item>
                 </>
               )}
@@ -678,13 +720,16 @@ export default function UnifiedImport() {
           <SSVStack>
             <SSButton
               label={t('watchonly.read.clipboard')}
-              variant="ghost"
+              variant="subtle"
               onPress={pasteFromClipboard}
             />
             <SSButton
               label={t('watchonly.read.computerVision')}
-              variant="ghost"
-              onPress={() => setCameraModalVisible(true)}
+              variant="subtle"
+              onPress={() => {
+                setScanningFor('main')
+                setCameraModalVisible(true)
+              }}
             />
             {isAvailable && (
               <SSButton
@@ -712,7 +757,10 @@ export default function UnifiedImport() {
 
       <SSModal
         visible={cameraModalVisible}
-        onClose={() => setCameraModalVisible(false)}
+        onClose={() => {
+          setCameraModalVisible(false)
+          setScanningFor('main')
+        }}
       >
         <SSVStack style={styles.cameraContainer}>
           <SSHStack justifyBetween style={styles.cameraHeader}>
@@ -720,7 +768,10 @@ export default function UnifiedImport() {
             <SSButton
               label={t('common.close')}
               variant="ghost"
-              onPress={() => setCameraModalVisible(false)}
+              onPress={() => {
+                setCameraModalVisible(false)
+                setScanningFor('main')
+              }}
             />
           </SSHStack>
           {permission?.granted ? (
