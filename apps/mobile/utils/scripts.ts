@@ -1,4 +1,5 @@
 import { type OP_CODE, OP_CODE_WORD } from '@/types/logic/opcode'
+import { type ScriptVersionType } from '@/types/models/Account'
 
 function isOpPush(word: string) {
   return word.match(/^\d{1,2}$/)
@@ -30,6 +31,25 @@ export function getOpcodeDetails(word: string): OP_CODE {
 
 export function bytesToHex(bytes: number[]) {
   return bytes.map((byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+/**
+ * Get user-friendly display names for script versions
+ */
+export function getScriptVersionDisplayName(
+  scriptVersion: ScriptVersionType
+): string {
+  const displayNames: Record<ScriptVersionType, string> = {
+    P2PKH: 'Legacy (P2PKH)',
+    'P2SH-P2WPKH': 'Nested Segwit (P2SH-P2WPKH)',
+    P2WPKH: 'Native Segwit (P2WPKH)',
+    P2TR: 'Taproot (P2TR)',
+    P2SH: 'Legacy (P2SH)',
+    'P2SH-P2WSH': 'Nested Segwit (P2SH-P2WSH)',
+    P2WSH: 'Native Segwit (P2WSH)'
+  }
+
+  return displayNames[scriptVersion] || scriptVersion
 }
 
 const OP_CODES: Record<OP_CODE_WORD, OP_CODE> = {

@@ -10,6 +10,7 @@ import SSLink from './SSLink'
 import SSRadioButton from './SSRadioButton'
 import SSSelectModal from './SSSelectModal'
 import SSText from './SSText'
+import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 type ScriptVersion = NonNullable<Key['scriptVersion']>
 
@@ -23,28 +24,6 @@ const singleSigScriptVersions: ScriptVersion[] = [
 
 // Multisig script versions
 const multiSigScriptVersions: ScriptVersion[] = ['P2SH', 'P2SH-P2WSH', 'P2WSH']
-
-// Function to get user-friendly display names for script versions
-function getScriptVersionDisplayName(scriptVersion: ScriptVersion): string {
-  switch (scriptVersion) {
-    case 'P2PKH':
-      return 'Legacy (P2PKH)'
-    case 'P2SH-P2WPKH':
-      return 'Nested Segwit (P2SH-P2WPKH)'
-    case 'P2WPKH':
-      return 'Native Segwit (P2WPKH)'
-    case 'P2TR':
-      return 'Taproot (P2TR)'
-    case 'P2SH':
-      return 'Legacy (P2SH)'
-    case 'P2SH-P2WSH':
-      return 'Nested Segwit (P2SH-P2WSH)'
-    case 'P2WSH':
-      return 'Native Segwit (P2WSH)'
-    default:
-      return scriptVersion
-  }
-}
 
 type SSScriptVersionModalProps = {
   visible: boolean

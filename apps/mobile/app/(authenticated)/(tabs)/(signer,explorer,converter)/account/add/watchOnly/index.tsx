@@ -36,6 +36,7 @@ import {
 } from '@/types/models/Account'
 import { isBBQRFragment } from '@/utils/bbqr'
 import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
+import { getScriptVersionDisplayName } from '@/utils/scripts'
 import {
   isCombinedDescriptor,
   validateAddress,
@@ -51,23 +52,6 @@ const WATCH_ONLY_OPTIONS: CreationType[] = [
   'importDescriptor',
   'importAddress'
 ]
-
-/**
- * Get user-friendly display names for script versions
- */
-function getScriptVersionDisplayName(scriptVersion: string): string {
-  const displayNames: Record<string, string> = {
-    P2PKH: 'Legacy (P2PKH)',
-    'P2SH-P2WPKH': 'Nested Segwit (P2SH-P2WPKH)',
-    P2WPKH: 'Native Segwit (P2WPKH)',
-    P2TR: 'Taproot (P2TR)',
-    P2SH: 'Legacy (P2SH)',
-    'P2SH-P2WSH': 'Nested Segwit (P2SH-P2WSH)',
-    P2WSH: 'Native Segwit (P2WSH)'
-  }
-
-  return displayNames[scriptVersion] || scriptVersion
-}
 
 const DescriptorUtils = {
   /**

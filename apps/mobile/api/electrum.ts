@@ -214,9 +214,7 @@ class BaseElectrumClient {
           if (client.client && client.client.socket) {
             client.client.socket.destroy()
           }
-        } catch (_closeError) {
-          // Ignore cleanup errors
-        }
+        } catch {}
       }
     }
   }
