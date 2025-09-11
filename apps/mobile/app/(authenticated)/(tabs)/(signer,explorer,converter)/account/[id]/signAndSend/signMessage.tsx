@@ -23,7 +23,6 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
-import { formatAddress } from '@/utils/format'
 import { bytesToHex } from '@/utils/scripts'
 import { estimateTransactionSize } from '@/utils/transaction'
 

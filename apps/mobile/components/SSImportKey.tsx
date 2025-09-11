@@ -813,12 +813,12 @@ export default function SSImportKey({
             </SSVStack>
             <SSVStack>
               <SSButton
-                label={'Paste'}
+                label="Paste"
                 onPress={pasteFromClipboard}
                 variant="subtle"
               />
               <SSButton
-                label={'Scan QR'}
+                label="Scan QR"
                 onPress={() => {
                   setScanningFor('main')
                   setCameraModalVisible(true)

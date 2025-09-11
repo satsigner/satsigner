@@ -835,13 +835,13 @@ export default function ImportExtendedPub() {
                 <SSHStack gap="sm">
                   <SSButton
                     style={{ flex: 1 }}
-                    label={'Paste'}
+                    label="Paste"
                     variant="subtle"
                     onPress={pasteFingerprintFromClipboard}
                   />
                   <SSButton
                     style={{ flex: 1 }}
-                    label={'Scan QR'}
+                    label="Scan QR"
                     variant="subtle"
                     onPress={() => {
                       setScanningFor('fingerprint')
