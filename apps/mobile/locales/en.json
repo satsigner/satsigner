@@ -899,7 +899,7 @@
     "security.description": "Change app wide security settings to protect access in case of a compromised device",
     "security.duressPin": "Set duress pin",
     "security.duressPinEnabled": "Enable duress pin",
-    "security.duressPinText1": "Upon inserting your duress pin:",
+    "security.duressPinText1": "Upon unlocking the app using duress pin:",
     "security.duressPinText2": "All account data is deleted.",
     "security.duressPinText3": "Your duress pin becomes your new pin.",
     "security.duressPinText4": "Duress pin is deleted and disabled.",
