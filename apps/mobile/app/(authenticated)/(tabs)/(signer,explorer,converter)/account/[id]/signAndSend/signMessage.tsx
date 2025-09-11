@@ -33,17 +33,27 @@ export default function SignMessage() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const [txBuilderResult, psbt, setPsbt, signedTx, inputs, outputs] =
-    useTransactionBuilderStore(
-      useShallow((state) => [
-        state.txBuilderResult,
-        state.psbt,
-        state.setPsbt,
-        state.signedTx,
-        state.inputs,
-        state.outputs
-      ])
-    )
+  const [
+    txBuilderResult,
+    psbt,
+    setPsbt,
+    signedTx,
+    inputs,
+    outputs,
+    broadcasted,
+    setBroadcasted
+  ] = useTransactionBuilderStore(
+    useShallow((state) => [
+      state.txBuilderResult,
+      state.psbt,
+      state.setPsbt,
+      state.signedTx,
+      state.inputs,
+      state.outputs,
+      state.broadcasted,
+      state.setBroadcasted
+    ])
+  )
   const account = useAccountsStore(
     useShallow((state) => state.accounts.find((account) => account.id === id))
   )
@@ -56,7 +66,6 @@ export default function SignMessage() {
 
   const [signed, setSigned] = useState(false)
   const [broadcasting, setBroadcasting] = useState(false)
-  const [broadcasted, setBroadcasted] = useState(false)
 
   const [rawTx, setRawTx] = useState('')
 
@@ -88,6 +97,15 @@ export default function SignMessage() {
 
   async function handleBroadcastTransaction() {
     if (!psbt && !signedTx) return
+
+    // Prevent double broadcasting
+    if (broadcasted) {
+      toast.error(
+        'This transaction has already been broadcasted to the network'
+      )
+      return
+    }
+
     setBroadcasting(true)
 
     const opts = {
@@ -106,7 +124,7 @@ export default function SignMessage() {
     )
 
     try {
-      let broadcasted = false
+      let broadcastSuccess = false
       if (signedTx) {
         // For multisig wallets, broadcast the finalized transaction hex directly
 
@@ -139,13 +157,13 @@ export default function SignMessage() {
           )
           await electrumClient.broadcastTransactionHex(signedTx)
           electrumClient.close()
-          broadcasted = true
+          broadcastSuccess = true
         } else if (currentConfig.server.backend === 'esplora') {
           // Use Esplora client for esplora backends
           const { default: Esplora } = await import('@/api/esplora')
           const esploraClient = new Esplora(currentConfig.server.url)
           await esploraClient.broadcastTransaction(signedTx)
-          broadcasted = true
+          broadcastSuccess = true
         } else {
           throw new Error(
             `Unsupported backend: ${currentConfig.server.backend}`
@@ -153,10 +171,10 @@ export default function SignMessage() {
         }
       } else if (psbt) {
         // For singlesig wallets, broadcast the PSBT
-        broadcasted = await broadcastTransaction(psbt, blockchain)
+        broadcastSuccess = await broadcastTransaction(psbt, blockchain)
       }
 
-      if (broadcasted) {
+      if (broadcastSuccess) {
         setBroadcasted(true)
         router.navigate(`/account/${id}/signAndSend/messageConfirmation`)
       }
@@ -212,9 +230,11 @@ export default function SignMessage() {
           <SSVStack justifyBetween style={{ minHeight: '100%' }}>
             <SSVStack itemsCenter>
               <SSText size="lg" weight="bold">
-                {account?.policyType === 'multisig' && signedTx
-                  ? tn('readyToBroadcast')
-                  : tn(signed ? 'signed' : 'signing')}
+                {broadcasted
+                  ? t('sent.broadcasted')
+                  : account?.policyType === 'multisig' && signedTx
+                    ? tn('readyToBroadcast')
+                    : tn(signed ? 'signed' : 'signing')}
               </SSText>
 
               {signed && !broadcasted && (
@@ -306,8 +326,8 @@ export default function SignMessage() {
 
             <SSButton
               variant="secondary"
-              label={t('send.broadcast')}
-              disabled={!signed || (!psbt && !signedTx)}
+              label={broadcasted ? t('sent.broadcasted') : t('send.broadcast')}
+              disabled={!signed || (!psbt && !signedTx) || broadcasted}
               loading={broadcasting}
               onPress={() => {
                 handleBroadcastTransaction()
