@@ -4,10 +4,10 @@ import { toast } from 'sonner-native'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 
 import { getFingerprint, validateMnemonic } from '@/api/bdk'
+import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSFingerprint from '@/components/SSFingerprint'
 import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
-import SSButton from '@/components/SSButton'
 import SSTextInput from '@/components/SSTextInput'
 import SSWordInput from '@/components/SSWordInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
@@ -114,7 +114,7 @@ export default function SSSeedWordsInput({
     } catch (_error) {
       toast.error('Failed to read clipboard')
     }
-  }, [])
+  }, [checkClipboardForSeed, fillOutSeedWords])
 
   // Check clipboard when component mounts if autoCheckClipboard is enabled
   useEffect(() => {
@@ -124,7 +124,7 @@ export default function SSSeedWordsInput({
   }, [autoCheckClipboard, readSeedFromClipboard])
 
   // Check if clipboard contains valid seed
-  const checkClipboardForSeed = async (text: string): Promise<string[]> => {
+  const checkClipboardForSeed = useCallback(async (text: string): Promise<string[]> => {
     if (!text || text === '') return []
     const delimiters = [' ', '\n', ',', ', ']
     for (const delimiter of delimiters) {
@@ -137,10 +137,10 @@ export default function SSSeedWordsInput({
       return seedCandidate
     }
     return []
-  }
+  }, [wordCount, wordList])
 
   // Fill out seed words from clipboard
-  const fillOutSeedWords = async (seed: string[]) => {
+  const fillOutSeedWords = useCallback(async (seed: string[]) => {
     const newSeedWordsInfo = seed.map((value) => ({
       value,
       valid: true,
@@ -164,7 +164,7 @@ export default function SSSeedWordsInput({
     } else {
       onMnemonicInvalid?.()
     }
-  }
+  }, [passphrase, network, onMnemonicValid, onMnemonicInvalid])
 
   // Handle seed word input change
   const handleSeedWordChange = async (index: number, value: string) => {
