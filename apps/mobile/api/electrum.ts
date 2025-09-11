@@ -1,5 +1,5 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
-// @ts-ignore @eslint-disable-next-line
+// @eslint-disable-next-line
 import BlueWalletElectrumClient from 'electrum-client'
 import TcpSocket from 'react-native-tcp-socket'
 
@@ -87,21 +87,27 @@ type AddressInfo = {
 }
 
 class ModifiedClient extends BlueWalletElectrumClient {
+  constructor(
+    net: any,
+    tls: any,
+    port: number,
+    host: string,
+    protocol: string,
+    options: any
+  ) {
+    super(net, tls, port, host, protocol, options)
+  }
+
   // INFO: Override the default timeout for keeping client alive
   keepAlive() {
-    // @ts-ignore
     if (this.timeout != null) clearTimeout(this.timeout)
     const now = new Date().getTime()
-    // @ts-ignore
     this.timeout = setTimeout(() => {
-      // @ts-ignore
       if (this.timeLastCall !== 0 && now > this.timeLastCall + 500_000) {
         const pingTimer = setTimeout(() => {
-          // @ts-ignore
           this.onError(new Error('keepalive ping timeout'))
         }, 900_000)
 
-        // @ts-ignore
         this.server_ping()
           .catch(() => {
             clearTimeout(pingTimer)
@@ -113,7 +119,7 @@ class ModifiedClient extends BlueWalletElectrumClient {
 }
 
 class BaseElectrumClient {
-  client: any
+  client: ModifiedClient
   network: bitcoinjs.networks.Network
 
   constructor({
@@ -126,7 +132,6 @@ class BaseElectrumClient {
     const tls = TcpSocket
     const options = {}
 
-    // @ts-ignore
     this.client = new ModifiedClient(net, tls, port, host, protocol, options)
     this.network = bitcoinjsNetwork(network)
   }
@@ -177,7 +182,6 @@ class BaseElectrumClient {
       client = ElectrumClient.fromUrl(url, network)
 
       // Disable reconnection for the test
-      // @ts-ignore
       client.client.reconnect = () => {}
 
       const pingPromise = client.client.initElectrum({
@@ -210,7 +214,7 @@ class BaseElectrumClient {
       if (client) {
         try {
           client.close()
-          // @ts-ignore - Force close the underlying socket
+          // Force close the underlying socket
           if (client.client && client.client.socket) {
             client.client.socket.destroy()
           }
