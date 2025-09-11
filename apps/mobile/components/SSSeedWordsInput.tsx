@@ -100,6 +100,55 @@ export default function SSSeedWordsInput({
     setSeedWordsInfo(initialSeedWordsInfo)
   }, [wordCount])
 
+  // Check if clipboard contains valid seed
+  const checkClipboardForSeed = useCallback(
+    async (text: string): Promise<string[]> => {
+      if (!text || text === '') return []
+      const delimiters = [' ', '\n', ',', ', ']
+      for (const delimiter of delimiters) {
+        const seedCandidate = text.split(delimiter)
+        if (seedCandidate.length !== wordCount) continue
+        const validWords = seedCandidate.every((x) => wordList.includes(x))
+        if (!validWords) continue
+        const checksum = await validateMnemonic(seedCandidate.join(' '))
+        if (!checksum) continue
+        return seedCandidate
+      }
+      return []
+    },
+    [wordCount, wordList]
+  )
+
+  // Fill out seed words from clipboard
+  const fillOutSeedWords = useCallback(
+    async (seed: string[]) => {
+      const newSeedWordsInfo = seed.map((value) => ({
+        value,
+        valid: true,
+        dirty: false
+      }))
+
+      setSeedWordsInfo(newSeedWordsInfo)
+
+      const mnemonic = seed.join(' ')
+      const checksumValid = await validateMnemonic(mnemonic)
+      setChecksumValid(checksumValid)
+
+      if (checksumValid) {
+        const fingerprintResult = await getFingerprint(
+          mnemonic,
+          passphrase,
+          network
+        )
+        setFingerprint(fingerprintResult)
+        onMnemonicValid?.(mnemonic, fingerprintResult)
+      } else {
+        onMnemonicInvalid?.()
+      }
+    },
+    [passphrase, network, onMnemonicValid, onMnemonicInvalid]
+  )
+
   // Handle paste from clipboard
   const readSeedFromClipboard = useCallback(async () => {
     try {
@@ -122,49 +171,6 @@ export default function SSSeedWordsInput({
       readSeedFromClipboard()
     }
   }, [autoCheckClipboard, readSeedFromClipboard])
-
-  // Check if clipboard contains valid seed
-  const checkClipboardForSeed = useCallback(async (text: string): Promise<string[]> => {
-    if (!text || text === '') return []
-    const delimiters = [' ', '\n', ',', ', ']
-    for (const delimiter of delimiters) {
-      const seedCandidate = text.split(delimiter)
-      if (seedCandidate.length !== wordCount) continue
-      const validWords = seedCandidate.every((x) => wordList.includes(x))
-      if (!validWords) continue
-      const checksum = await validateMnemonic(seedCandidate.join(' '))
-      if (!checksum) continue
-      return seedCandidate
-    }
-    return []
-  }, [wordCount, wordList])
-
-  // Fill out seed words from clipboard
-  const fillOutSeedWords = useCallback(async (seed: string[]) => {
-    const newSeedWordsInfo = seed.map((value) => ({
-      value,
-      valid: true,
-      dirty: false
-    }))
-
-    setSeedWordsInfo(newSeedWordsInfo)
-
-    const mnemonic = seed.join(' ')
-    const checksumValid = await validateMnemonic(mnemonic)
-    setChecksumValid(checksumValid)
-
-    if (checksumValid) {
-      const fingerprintResult = await getFingerprint(
-        mnemonic,
-        passphrase,
-        network
-      )
-      setFingerprint(fingerprintResult)
-      onMnemonicValid?.(mnemonic, fingerprintResult)
-    } else {
-      onMnemonicInvalid?.()
-    }
-  }, [passphrase, network, onMnemonicValid, onMnemonicInvalid])
 
   // Handle seed word input change
   const handleSeedWordChange = async (index: number, value: string) => {
