@@ -76,8 +76,8 @@ export default function Security() {
           <SSVStack gap="md">
             <SSVStack>
               <SSVStack>
-                <SSText size="xl" weight="bold" center>
-                  APP PIN
+                <SSText size="xl" weight="bold" center uppercase>
+                  {tn('appPin')}
                 </SSText>
                 <SSText uppercase>
                   {tn('maxPinTries')}: {localPinMaxTries}
@@ -107,8 +107,8 @@ export default function Security() {
             </SSVStack>
             <SSSeparator />
             <SSVStack>
-              <SSText size="xl" weight="bold" center>
-                DURESS PIN
+              <SSText size="xl" weight="bold" center uppercase>
+                {tn('duressPin')}
               </SSText>
               <SSVStack>
                 <SSCheckbox
@@ -121,15 +121,15 @@ export default function Security() {
               </SSVStack>
               <SSVStack>
                 <SSButton
-                  label={tn('duressPin')}
+                  label={tn('duressPinSet')}
                   onPress={() => setDuressPinModalVisible(true)}
                 />
               </SSVStack>
             </SSVStack>
             <SSSeparator />
             <SSVStack>
-              <SSText size="xl" weight="bold" center>
-                SEED
+              <SSText size="xl" weight="bold" center uppercase>
+                {tn('seed')}
               </SSText>
               <SSCheckbox
                 label={tn('skipSeedConfirmation')}
