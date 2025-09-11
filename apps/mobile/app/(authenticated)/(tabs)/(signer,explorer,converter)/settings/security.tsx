@@ -40,9 +40,7 @@ export default function Security() {
       state.setSkipSeedConfirmation
     ])
   )
-  const setFirstTime = useAuthStore(
-    ((state) => state.setFirstTime)
-  )
+  const setFirstTime = useAuthStore((state) => state.setFirstTime)
 
   const [localPinMaxTries, setLocalPinMaxTries] = useState(pinMaxTries)
   const [localSkipSeedWordConfirmation, setLocalSkipSeedWordConfirmation] =
