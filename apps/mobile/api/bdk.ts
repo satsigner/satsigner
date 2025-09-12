@@ -87,6 +87,9 @@ async function extractFingerprintFromExtendedPublicKey(
     // Create a descriptor from the extended public key to extract fingerprint
     const descriptorString = `pkh(${extendedPublicKey})`
     const descriptor = await new Descriptor().create(descriptorString, network)
+    if (!descriptor) {
+      return ''
+    }
     const parsedDescriptor = await parseDescriptor(descriptor)
     return parsedDescriptor.fingerprint
   } catch (_error) {
@@ -145,6 +148,9 @@ async function getWalletData(
                   key.secret.externalDescriptor,
                   network
                 )
+                if (!descriptor) {
+                  return null
+                }
                 const extendedKey =
                   await extractExtendedKeyFromDescriptor(descriptor)
                 return extendedKey
@@ -182,6 +188,9 @@ async function getWalletData(
         multisigDescriptorString,
         network
       )
+      if (!multisigDescriptor) {
+        throw new Error('Failed to create multisig descriptor')
+      }
 
       const parsedDescriptor = await parseDescriptor(multisigDescriptor)
       const wallet = await getWalletFromDescriptor(
@@ -213,12 +222,18 @@ async function getWalletData(
           key.secret.externalDescriptor,
           network
         )
+        if (!externalDescriptor) {
+          throw new Error('Failed to create external descriptor')
+        }
         const internalDescriptor = key.secret.internalDescriptor
           ? await new Descriptor().create(
               key.secret.internalDescriptor,
               network
             )
           : null
+        if (key.secret.internalDescriptor && !internalDescriptor) {
+          throw new Error('Failed to create internal descriptor')
+        }
 
         const parsedDescriptor = await parseDescriptor(externalDescriptor)
         const wallet = await getWalletFromDescriptor(

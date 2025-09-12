@@ -230,8 +230,7 @@ class BaseElectrumClient {
       // Add error handler to prevent crashes
       if (client.client && typeof client.client.onError === 'function') {
         client.client.onError = (error: Error) => {
-          // Log error but don't crash
-          console.warn('Electrum client error:', error.message)
+          // Silently handle errors to prevent console noise
         }
       }
 
@@ -256,11 +255,7 @@ class BaseElectrumClient {
 
       return true
     } catch (error) {
-      // Log the error for debugging
-      console.warn(
-        'Electrum connection test failed:',
-        error instanceof Error ? error.message : 'Unknown error'
-      )
+      // Silently handle connection test failures
       return false
     } finally {
       // Clean up resources

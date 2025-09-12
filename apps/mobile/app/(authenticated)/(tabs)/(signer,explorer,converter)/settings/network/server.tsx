@@ -1,6 +1,7 @@
 import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ScrollView, TouchableOpacity } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconCloseThin } from '@/components/icons'
@@ -10,6 +11,7 @@ import SSCheckbox from '@/components/SSCheckbox'
 import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
 import { servers } from '@/constants/servers'
+import { useConnectionTest } from '@/hooks/useConnectionTest'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -17,7 +19,11 @@ import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type Network, type Server } from '@/types/settings/blockchain'
+import {
+  type Backend,
+  type Network,
+  type Server
+} from '@/types/settings/blockchain'
 
 const tn = _tn('settings.network.server')
 
@@ -40,6 +46,7 @@ export default function NetworkSettings() {
   )
 
   const [connectionState] = useVerifyConnection()
+  const { testing, nodeInfo, testConnection, resetTest } = useConnectionTest()
 
   const [selectedServers, setSelectedServers] = useState<
     Record<Network, Server>
@@ -49,7 +56,35 @@ export default function NetworkSettings() {
     signet: configs.signet.server
   })
 
+  const [testingServer, setTestingServer] = useState<string | null>(null)
+  const [currentTestBlockHeight, setCurrentTestBlockHeight] = useState<
+    number | null
+  >(null)
+
   const networks: Network[] = ['bitcoin', 'testnet', 'signet']
+
+  // Capture block height when nodeInfo changes during testing
+  useEffect(() => {
+    if (testing && testingServer && nodeInfo?.blockHeight) {
+      setCurrentTestBlockHeight(nodeInfo.blockHeight)
+    }
+  }, [testing, testingServer, nodeInfo])
+
+  // Show toast when block height is captured
+  useEffect(() => {
+    if (currentTestBlockHeight && testingServer) {
+      // Find the server being tested
+      const server = Object.values(selectedServers).find(
+        (s) => s.url === testingServer
+      )
+      if (server) {
+        toast.success(`${server.name} (${server.url})`, {
+          description: `${tn('tester.success')} - Block ${currentTestBlockHeight.toLocaleString()}`
+        })
+        setTestingServer(null)
+      }
+    }
+  }, [currentTestBlockHeight, testingServer, selectedServers])
 
   function handleSelectServer(network: Network, server: Server) {
     setSelectedServers((prev) => ({
@@ -60,6 +95,33 @@ export default function NetworkSettings() {
 
   function handleRemove(server: Server) {
     removeCustomServer(server)
+  }
+
+  async function handleTestConnection(server: Server) {
+    setTestingServer(server.url)
+    setCurrentTestBlockHeight(null)
+    resetTest()
+
+    try {
+      const result = await testConnection(
+        server.url,
+        server.backend,
+        server.network
+      )
+
+      if (!result) {
+        toast.error(`${server.name} (${server.url})`, {
+          description: tn('tester.failed')
+        })
+        setTestingServer(null)
+      }
+      // Success toast will be shown by useEffect when block height is captured
+    } catch (error) {
+      toast.error(`${server.name} (${server.url})`, {
+        description: tn('tester.error')
+      })
+      setTestingServer(null)
+    }
   }
 
   function handleOnSave() {
@@ -193,10 +255,30 @@ export default function NetworkSettings() {
                         </SSHStack>
                       ))}
                   </SSVStack>
-                  <SSButton
-                    label={tn('custom.add').toUpperCase()}
-                    onPress={() => router.push(`./${network}`)}
-                  />
+                  <SSHStack gap="sm">
+                    <SSButton
+                      label={tn('custom.add').toUpperCase()}
+                      onPress={() => router.push(`./${network}`)}
+                      style={{ flex: 1 }}
+                      variant="subtle"
+                    />
+                    <SSButton
+                      variant="subtle"
+                      label={t('settings.network.server.test').toUpperCase()}
+                      onPress={() =>
+                        handleTestConnection(selectedServers[network])
+                      }
+                      loading={
+                        testing &&
+                        testingServer === selectedServers[network].url
+                      }
+                      disabled={
+                        testing &&
+                        testingServer === selectedServers[network].url
+                      }
+                      style={{ flex: 1 }}
+                    />
+                  </SSHStack>
                 </SSVStack>
               </SSVStack>
             ))}

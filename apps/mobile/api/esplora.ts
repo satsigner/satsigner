@@ -82,7 +82,7 @@ export default class Esplora {
     } catch (error: any) {
       // Handle TLS certificate errors gracefully
       if (error.message && error.message.includes('InvalidCertificate')) {
-        console.warn('Esplora TLS certificate error:', error.message)
+        // Silently handle TLS certificate errors
         throw new Error(
           'TLS certificate validation failed. Please check the server configuration.'
         )
@@ -90,7 +90,7 @@ export default class Esplora {
 
       // Handle connection failures
       if (error.message && error.message.includes('ConnectionFailed')) {
-        console.warn('Esplora connection failed:', error.message)
+        // Silently handle connection failures
         throw new Error(
           'Connection failed. Please check your internet connection and server URL.'
         )
@@ -102,7 +102,7 @@ export default class Esplora {
         (error.message.includes('NetworkError') ||
           error.message.includes('fetch'))
       ) {
-        console.warn('Esplora network error:', error.message)
+        // Silently handle network errors
         throw new Error('Network error. Please check your internet connection.')
       }
 
@@ -249,10 +249,7 @@ export default class Esplora {
       return false
     } catch (error) {
       // Log the error for debugging but don't crash
-      console.warn(
-        'Esplora connection test failed:',
-        error instanceof Error ? error.message : 'Unknown error'
-      )
+      // Silently handle connection test failures
       return false
     }
   }

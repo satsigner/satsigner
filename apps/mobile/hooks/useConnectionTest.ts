@@ -36,10 +36,7 @@ export function useConnectionTest() {
         // Add error handler to prevent crashes
         if (client.client && typeof client.client.onError === 'function') {
           client.client.onError = (error: Error) => {
-            console.warn(
-              'Electrum client error in connection test:',
-              error.message
-            )
+            // Silently handle errors to prevent console noise
           }
         }
 
@@ -79,7 +76,7 @@ export function useConnectionTest() {
         try {
           client.close()
         } catch (closeError) {
-          console.warn('Error closing connection test client:', closeError)
+          // Silently handle close errors
         }
         return true
       } else if (backend === 'esplora') {
