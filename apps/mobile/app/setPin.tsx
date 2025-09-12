@@ -51,7 +51,7 @@ export default function SetPin() {
 
     // use default pin if none is set
     const currentPin = await getItem(PIN_KEY)
-    if (currentPin === null || currentPin === undefined) {
+    if (!currentPin) {
       await setPin(DEFAULT_PIN)
     }
 
