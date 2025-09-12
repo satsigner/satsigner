@@ -14,7 +14,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
-import type { DM } from '@/types/models/Account'
+import type { NostrDM } from '@/types/models/Nostr'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
 // Cache for npub colors
@@ -175,7 +175,7 @@ function SSDevicesGroupChat() {
   }
 
   const renderMessage = useCallback(
-    ({ item: msg }: { item: DM }) => {
+    ({ item: msg }: { item: NostrDM }) => {
       try {
         // Ensure we have a valid hex string
         const hexString = msg.author.startsWith('npub')
