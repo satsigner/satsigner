@@ -172,7 +172,7 @@ class BaseElectrumClient {
 
       // Add error handler to prevent crashes
       if (this.client && typeof this.client.onError === 'function') {
-        this.client.onError = (_error: Error) => {
+        this.client.onError = () => {
           // Silently handle errors to prevent console noise
         }
       }
@@ -228,7 +228,7 @@ class BaseElectrumClient {
 
       // Add error handler to prevent crashes
       if (client.client && typeof client.client.onError === 'function') {
-        client.client.onError = (_error: Error) => {
+        client.client.onError = () => {
           // Silently handle errors to prevent console noise
         }
       }
