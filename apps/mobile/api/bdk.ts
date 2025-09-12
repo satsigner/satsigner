@@ -51,7 +51,7 @@ async function generateMnemonic(
   mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
 ) {
   const mnemonic = await new Mnemonic().create(mnemonicWordCount)
-  return mnemonic.asString()
+  return mnemonic ? mnemonic.asString() : ''
 }
 
 async function generateMnemonicFromEntropy(entropy: string) {
@@ -67,7 +67,7 @@ async function generateMnemonicFromEntropy(entropy: string) {
 
   const numbers = Array.from(new Uint8Array(bytes))
   const mnemonic = await new Mnemonic().fromEntropy(numbers)
-  return mnemonic.asString()
+  return mnemonic ? mnemonic.asString() : ''
 }
 
 async function validateMnemonic(mnemonic: NonNullable<Secret['mnemonic']>) {
@@ -230,7 +230,9 @@ async function getWalletData(
         return {
           fingerprint: parsedDescriptor.fingerprint,
           derivationPath: parsedDescriptor.derivationPath,
-          externalDescriptor: await externalDescriptor.asString(),
+          externalDescriptor: externalDescriptor
+            ? await externalDescriptor.asString()
+            : '',
           internalDescriptor: internalDescriptor
             ? await internalDescriptor.asString()
             : '',
@@ -342,8 +344,12 @@ async function getWalletData(
         return {
           fingerprint: parsedDescriptor.fingerprint,
           derivationPath: parsedDescriptor.derivationPath,
-          externalDescriptor: await externalDescriptor.asString(),
-          internalDescriptor: await internalDescriptor.asString(),
+          externalDescriptor: externalDescriptor
+            ? await externalDescriptor.asString()
+            : '',
+          internalDescriptor: internalDescriptor
+            ? await internalDescriptor.asString()
+            : '',
           wallet
         }
       } else if (key.creationType === 'importAddress') {
@@ -408,8 +414,12 @@ async function getWalletFromMnemonic(
       )
 
       // Get the base descriptor strings
-      const baseExternalString = await baseExternalDescriptor.asString()
-      const baseInternalString = await baseInternalDescriptor.asString()
+      const baseExternalString = baseExternalDescriptor
+        ? await baseExternalDescriptor.asString()
+        : ''
+      const baseInternalString = baseInternalDescriptor
+        ? await baseInternalDescriptor.asString()
+        : ''
 
       // Extract the key part (everything after the script function)
       const externalKeyPart = baseExternalString
@@ -468,8 +478,12 @@ async function getWalletFromMnemonic(
   return {
     fingerprint,
     derivationPath,
-    externalDescriptor: await externalDescriptor.asString(),
-    internalDescriptor: await internalDescriptor.asString(),
+    externalDescriptor: externalDescriptor
+      ? await externalDescriptor.asString()
+      : '',
+    internalDescriptor: internalDescriptor
+      ? await internalDescriptor.asString()
+      : '',
     wallet
   }
 }
@@ -510,6 +524,9 @@ async function getDescriptor(
 }
 
 async function parseDescriptor(descriptor: Descriptor) {
+  if (!descriptor) {
+    return { fingerprint: '', derivationPath: '' }
+  }
   const descriptorString = await descriptor.asString()
   const match = descriptorString.match(/\[([0-9a-f]+)([0-9'/]+)\]/)
   return match

@@ -142,7 +142,9 @@ export default function DescriptorPage() {
                   descriptorString,
                   network as Network
                 )
-                descriptorString = await descriptor.asString()
+                if (descriptor) {
+                  descriptorString = await descriptor.asString()
+                }
               } catch (_error) {
                 // Keep the original descriptor if BDK fails
               }
@@ -203,7 +205,9 @@ export default function DescriptorPage() {
                 )
             }
 
-            descriptorString = await externalDescriptor.asString()
+            if (externalDescriptor) {
+              descriptorString = await externalDescriptor.asString()
+            }
           }
         } else if (key.creationType === 'importDescriptor') {
           // For descriptor-based keys, use the stored descriptor and ensure it has checksum
@@ -216,7 +220,9 @@ export default function DescriptorPage() {
                 descriptorString,
                 network as Network
               )
-              descriptorString = await descriptor.asString()
+              if (descriptor) {
+                descriptorString = await descriptor.asString()
+              }
             } catch (_error) {
               // Keep the original descriptor if BDK fails
             }
@@ -270,7 +276,9 @@ export default function DescriptorPage() {
                 descriptorString,
                 network as Network
               )
-              descriptorString = await descriptor.asString()
+              if (descriptor) {
+                descriptorString = await descriptor.asString()
+              }
             } catch (_error) {
               // Keep the descriptor without checksum if BDK fails
             }
@@ -339,7 +347,9 @@ export default function DescriptorPage() {
                     descriptorString,
                     network as Network
                   )
-                  descriptorString = await descriptor.asString()
+                  if (descriptor) {
+                    descriptorString = await descriptor.asString()
+                  }
                 } catch (_error) {
                   // Keep the descriptor without checksum if BDK fails
                 }
@@ -380,7 +390,9 @@ export default function DescriptorPage() {
                   descriptorString,
                   network as Network
                 )
-                descriptorString = await descriptor.asString()
+                if (descriptor) {
+                  descriptorString = await descriptor.asString()
+                }
               } catch (_error) {
                 // Keep the descriptor without checksum if BDK fails
               }
