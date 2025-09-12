@@ -7,6 +7,7 @@ import { SSIconWarning } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSModal from '@/components/SSModal'
+import SSSeparator from '@/components/SSSeparator'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import {
@@ -39,6 +40,7 @@ export default function Security() {
       state.setSkipSeedConfirmation
     ])
   )
+  const setFirstTime = useAuthStore((state) => state.setFirstTime)
 
   const [localPinMaxTries, setLocalPinMaxTries] = useState(pinMaxTries)
   const [localSkipSeedWordConfirmation, setLocalSkipSeedWordConfirmation] =
@@ -60,7 +62,7 @@ export default function Security() {
   }
 
   return (
-    <SSMainLayout>
+    <SSMainLayout style={{ paddingTop: 0 }}>
       <Stack.Screen
         options={{
           headerTitle: () => <SSText uppercase>{tn('title')}</SSText>,
@@ -69,28 +71,64 @@ export default function Security() {
       />
       <SSVStack justifyBetween>
         <ScrollView>
-          <SSVStack gap="lg">
+          <SSVStack gap="md">
             <SSVStack>
-              <SSText uppercase>
-                {tn('maxPinTries')}: {localPinMaxTries}
-              </SSText>
-              <SSHStack justifyBetween gap="none">
-                <SSText center style={{ width: '5%' }}>
-                  {SETTINGS_PIN_MIN_POSSIBLE_TRIES}
+              <SSVStack>
+                <SSText size="xl" weight="bold" center uppercase>
+                  {tn('appPin')}
                 </SSText>
-                <SSSlider
-                  min={SETTINGS_PIN_MIN_POSSIBLE_TRIES}
-                  max={SETTINGS_PIN_MAX_POSSIBLE_TRIES}
-                  value={pinMaxTries}
-                  step={1}
-                  onValueChange={(value) => setLocalPinMaxTries(value)}
+                <SSText uppercase>
+                  {tn('maxPinTries')}: {localPinMaxTries}
+                </SSText>
+                <SSHStack justifyBetween gap="none">
+                  <SSText center style={{ width: '5%' }}>
+                    {SETTINGS_PIN_MIN_POSSIBLE_TRIES}
+                  </SSText>
+                  <SSSlider
+                    min={SETTINGS_PIN_MIN_POSSIBLE_TRIES}
+                    max={SETTINGS_PIN_MAX_POSSIBLE_TRIES}
+                    value={pinMaxTries}
+                    step={1}
+                    onValueChange={(value) => setLocalPinMaxTries(value)}
+                  />
+                  <SSText center style={{ width: '5%' }}>
+                    {SETTINGS_PIN_MAX_POSSIBLE_TRIES}
+                  </SSText>
+                </SSHStack>
+              </SSVStack>
+              <SSVStack>
+                <SSButton
+                  label={tn('changePin')}
+                  onPress={() => setFirstTime(true)}
                 />
-                <SSText center style={{ width: '5%' }}>
-                  {SETTINGS_PIN_MAX_POSSIBLE_TRIES}
-                </SSText>
-              </SSHStack>
+              </SSVStack>
             </SSVStack>
+            <SSSeparator />
             <SSVStack>
+              <SSText size="xl" weight="bold" center uppercase>
+                {tn('duressPin')}
+              </SSText>
+              <SSVStack>
+                <SSCheckbox
+                  label={tn('duressPinEnabled')}
+                  selected={localDuressPinEnabled}
+                  onPress={() => {
+                    setLocalDuressPinEnabled(!localDuressPinEnabled)
+                  }}
+                />
+              </SSVStack>
+              <SSVStack>
+                <SSButton
+                  label={tn('duressPinSet')}
+                  onPress={() => setDuressPinModalVisible(true)}
+                />
+              </SSVStack>
+            </SSVStack>
+            <SSSeparator />
+            <SSVStack>
+              <SSText size="xl" weight="bold" center uppercase>
+                {tn('seed')}
+              </SSText>
               <SSCheckbox
                 label={tn('skipSeedConfirmation')}
                 selected={localSkipSeedWordConfirmation}
@@ -101,35 +139,21 @@ export default function Security() {
                 }}
               />
             </SSVStack>
-            <SSVStack>
-              <SSCheckbox
-                label={tn('duressPinEnabled')}
-                selected={localDuressPinEnabled}
-                onPress={() => {
-                  setLocalDuressPinEnabled(!localDuressPinEnabled)
-                }}
-              />
-            </SSVStack>
+            <SSSeparator />
             <SSVStack>
               <SSButton
-                label={tn('duressPin')}
-                onPress={() => setDuressPinModalVisible(true)}
+                label={t('common.save')}
+                variant="secondary"
+                onPress={() => handleOnSave()}
+              />
+              <SSButton
+                label={t('common.cancel')}
+                variant="ghost"
+                onPress={() => router.back()}
               />
             </SSVStack>
           </SSVStack>
         </ScrollView>
-        <SSVStack>
-          <SSButton
-            label={t('common.save')}
-            variant="secondary"
-            onPress={() => handleOnSave()}
-          />
-          <SSButton
-            label={t('common.cancel')}
-            variant="ghost"
-            onPress={() => router.back()}
-          />
-        </SSVStack>
       </SSVStack>
       <SSModal
         visible={duressPinModalVisible}
