@@ -172,12 +172,11 @@ class BaseElectrumClient {
 
       // Add error handler to prevent crashes
       if (this.client && typeof this.client.onError === 'function') {
-        this.client.onError = (error: Error) => {
-          console.warn('Electrum client error:', error.message)
+        this.client.onError = (_error: Error) => {
+          // Silently handle errors to prevent console noise
         }
       }
-    } catch (error) {
-      console.error('Failed to create Electrum client:', error)
+    } catch (_error) {
       throw new Error('Failed to initialize Electrum client')
     }
   }
@@ -229,7 +228,7 @@ class BaseElectrumClient {
 
       // Add error handler to prevent crashes
       if (client.client && typeof client.client.onError === 'function') {
-        client.client.onError = (error: Error) => {
+        client.client.onError = (_error: Error) => {
           // Silently handle errors to prevent console noise
         }
       }
@@ -254,7 +253,7 @@ class BaseElectrumClient {
       }
 
       return true
-    } catch (error) {
+    } catch (_error) {
       // Silently handle connection test failures
       return false
     } finally {
@@ -276,9 +275,8 @@ class BaseElectrumClient {
               socket.destroy()
             }
           }
-        } catch (cleanupError) {
-          // Ignore cleanup errors
-          console.warn('Error during client cleanup:', cleanupError)
+        } catch (_cleanupError) {
+          // Silently handle cleanup errors
         }
       }
     }
@@ -304,8 +302,8 @@ class BaseElectrumClient {
           }
         }
       }
-    } catch (error) {
-      console.warn('Error closing Electrum client:', error)
+    } catch (_error) {
+      // Silently handle close errors
     }
   }
 
@@ -314,8 +312,8 @@ class BaseElectrumClient {
       if (this.client && typeof this.client.reconnect === 'function') {
         this.client.reconnect()
       }
-    } catch (error) {
-      console.warn('Error reconnecting Electrum client:', error)
+    } catch (_error) {
+      // Silently handle reconnect errors
     }
   }
 

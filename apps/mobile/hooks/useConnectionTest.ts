@@ -35,7 +35,7 @@ export function useConnectionTest() {
 
         // Add error handler to prevent crashes
         if (client.client && typeof client.client.onError === 'function') {
-          client.client.onError = (error: Error) => {
+          client.client.onError = (_error: Error) => {
             // Silently handle errors to prevent console noise
           }
         }
@@ -75,7 +75,7 @@ export function useConnectionTest() {
 
         try {
           client.close()
-        } catch (closeError) {
+        } catch (_closeError) {
           // Silently handle close errors
         }
         return true

@@ -19,11 +19,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import {
-  type Backend,
-  type Network,
-  type Server
-} from '@/types/settings/blockchain'
+import { type Network, type Server } from '@/types/settings/blockchain'
 
 const tn = _tn('settings.network.server')
 
@@ -116,7 +112,7 @@ export default function NetworkSettings() {
         setTestingServer(null)
       }
       // Success toast will be shown by useEffect when block height is captured
-    } catch (error) {
+    } catch (_error) {
       toast.error(`${server.name} (${server.url})`, {
         description: tn('tester.error')
       })

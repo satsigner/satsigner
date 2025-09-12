@@ -247,8 +247,7 @@ export default class Esplora {
         return true
       }
       return false
-    } catch (error) {
-      // Log the error for debugging but don't crash
+    } catch (_error) {
       // Silently handle connection test failures
       return false
     }
