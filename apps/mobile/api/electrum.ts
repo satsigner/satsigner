@@ -14,7 +14,7 @@ import { TxDecoded } from '@/utils/txDecoded'
 import { validateElectrumUrl } from '@/utils/urlValidation'
 
 // Extended interface for the electrum client with additional properties
-interface ExtendedElectrumClient {
+interface _ExtendedElectrumClient {
   timeout?: NodeJS.Timeout | null
   timeLastCall: number
   onError: (error: Error) => void
@@ -28,14 +28,14 @@ interface ExtendedElectrumClient {
   blockchainScripthash_listunspent: (
     scripthash: string
   ) => Promise<
-    Array<{ height: number; tx_hash: string; tx_pos: number; value: number }>
+    { height: number; tx_hash: string; tx_pos: number; value: number }[]
   >
   blockchainScripthash_getHistory: (
     scripthash: string
-  ) => Promise<Array<{ height: number; tx_hash: string }>>
+  ) => Promise<{ height: number; tx_hash: string }[]>
   blockchainScripthash_getMempool: (
     scripthash: string
-  ) => Promise<Array<{ height: number; tx_hash: string; fee: number }>>
+  ) => Promise<{ height: number; tx_hash: string; fee: number }[]>
   blockchainTransaction_get: (
     txid: string,
     verbose?: boolean
@@ -123,6 +123,7 @@ class ModifiedClient extends BlueWalletElectrumClient {
   timeout?: NodeJS.Timeout | null
   timeLastCall: number = 0
 
+  // eslint-disable-next-line @typescript-eslint/no-useless-constructor
   constructor(...args: any[]) {
     super(...args)
   }

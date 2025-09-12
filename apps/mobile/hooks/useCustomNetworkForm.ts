@@ -10,7 +10,7 @@ type CustomNetworkFormData = {
   port: string
 }
 
-export const useCustomNetworkForm = (network: Network) => {
+export const useCustomNetworkForm = (_network: Network) => {
   const [formData, setFormData] = useState<CustomNetworkFormData>({
     backend: 'electrum',
     name: '',
