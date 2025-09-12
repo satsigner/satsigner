@@ -26,6 +26,7 @@ import {
   type Network,
   type Server
 } from '@/types/settings/blockchain'
+import { validateElectrumUrl, validateEsploraUrl } from '@/utils/urlValidation'
 
 export default function CustomNetwork() {
   const { network } = useLocalSearchParams()
@@ -92,12 +93,35 @@ export default function CustomNetwork() {
       return false
     }
 
-    if (backend === 'esplora' && !url.startsWith('https://')) {
-      toast.warning(t('error.invalid.url'))
-      return false
+    // Use the validation utilities for comprehensive URL validation
+    if (backend === 'electrum') {
+      const validation = validateElectrumUrl(url)
+      if (!validation.isValid) {
+        toast.warning(validation.error || t('error.invalid.url'))
+        return false
+      }
+    } else if (backend === 'esplora') {
+      const validation = validateEsploraUrl(url)
+      if (!validation.isValid) {
+        toast.warning(validation.error || t('error.invalid.url'))
+        return false
+      }
     }
 
     return true
+  }
+
+  // Computed property to check if all fields are valid (without showing toasts)
+  function isFormValid() {
+    return (
+      name.trim() !== '' &&
+      host.trim() !== '' &&
+      port.trim() !== '' &&
+      port.match(/^[0-9]+$/) !== null &&
+      (backend === 'electrum'
+        ? validateElectrumUrl(url).isValid
+        : validateEsploraUrl(url).isValid)
+    )
   }
 
   async function handleTest() {
@@ -347,11 +371,13 @@ export default function CustomNetwork() {
             <SSButton
               label={t('settings.network.server.test')}
               onPress={() => handleTest()}
+              disabled={!isFormValid()}
             />
             <SSButton
               variant="secondary"
               label={t('common.add')}
               onPress={() => handleAdd()}
+              disabled={!isFormValid()}
             />
             <SSButton
               variant="ghost"
