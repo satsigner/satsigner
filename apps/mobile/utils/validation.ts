@@ -442,6 +442,10 @@ export function validateDescriptorDerivationPath(descriptor: string): {
   return { isValid: true }
 }
 
+export function validateMnemonic(mnemonic: string) {
+  //
+}
+
 // Function to detect if a descriptor is a combined descriptor
 export function isCombinedDescriptor(descriptor: string): boolean {
   return /<0[,;]1>/.test(descriptor)

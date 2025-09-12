@@ -8,8 +8,8 @@ import { ScrollView, View } from 'react-native'
 import { captureRef } from 'react-native-view-shot'
 
 import {
-  extractExtendedKeyFromDescriptor,
-  extractFingerprintFromExtendedPublicKey,
+  getExtendedKeyFromDescriptor,
+  getFingerprintFromExtendedPublicKey,
   getExtendedPublicKeyFromAccountKey,
   getWalletData
 } from '@/api/bdk'
@@ -155,7 +155,7 @@ export default function ExportDescriptors() {
                       network as Network
                     )
                     extendedPublicKey =
-                      await extractExtendedKeyFromDescriptor(descriptor)
+                      await getExtendedKeyFromDescriptor(descriptor)
                   } catch (_error) {
                     // Failed to extract extended public key from descriptor for key ${index}
                   }
@@ -185,7 +185,7 @@ export default function ExportDescriptors() {
               // If we still don't have a fingerprint, try to extract it from the extended public key
               if (!fingerprint && extendedPublicKey) {
                 try {
-                  fingerprint = await extractFingerprintFromExtendedPublicKey(
+                  fingerprint = await getFingerprintFromExtendedPublicKey(
                     extendedPublicKey,
                     network as Network
                   )
@@ -209,7 +209,7 @@ export default function ExportDescriptors() {
                       network as Network
                     )
                     extendedPublicKey =
-                      await extractExtendedKeyFromDescriptor(descriptor)
+                      await getExtendedKeyFromDescriptor(descriptor)
                   } catch (_error) {
                     // Failed to extract extended public key from externalDescriptor for key ${index}
                   }

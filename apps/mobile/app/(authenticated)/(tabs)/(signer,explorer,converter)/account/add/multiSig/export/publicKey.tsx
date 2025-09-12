@@ -6,7 +6,7 @@ import { ScrollView, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
+import { getExtendedKeyFromDescriptor } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
@@ -226,7 +226,7 @@ export default function PublicKeyPage() {
               secret.externalDescriptor,
               network as BdkNetwork
             )
-            publicKeyString = await extractExtendedKeyFromDescriptor(descriptor)
+            publicKeyString = await getExtendedKeyFromDescriptor(descriptor)
           }
         }
 
