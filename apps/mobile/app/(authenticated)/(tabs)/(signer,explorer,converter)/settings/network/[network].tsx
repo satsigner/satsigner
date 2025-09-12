@@ -26,7 +26,6 @@ import {
   type Network,
   type Server
 } from '@/types/settings/blockchain'
-import { validateElectrumUrl, validateEsploraUrl } from '@/utils/urlValidation'
 
 export default function CustomNetwork() {
   const { network } = useLocalSearchParams()
