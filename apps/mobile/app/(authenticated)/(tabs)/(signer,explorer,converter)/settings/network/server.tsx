@@ -95,63 +95,70 @@ export default function NetworkSettings() {
                       .concat(customServers)
                       .filter((server) => server.network === network)
                       .map((server, index) => (
-                        <SSHStack key={index}>
-                          <SSCheckbox
-                            onPress={() => handleSelectServer(network, server)}
-                            selected={
-                              selectedServers[network].url === server.url &&
-                              selectedServers[network].network ===
-                                server.network
-                            }
-                          />
-                          <TouchableOpacity
-                            onPress={() => handleSelectServer(network, server)}
-                          >
-                            <SSVStack gap="none" style={{ flexGrow: 1 }}>
-                              <SSText
-                                style={{
-                                  lineHeight: 16,
-                                  textTransform: 'capitalize'
-                                }}
-                                size="md"
-                              >
-                                {`${server.name} (${server.backend})`}
-                              </SSText>
-                              <SSHStack gap="xs">
-                                {selectedServers[network].url === server.url &&
-                                  selectedServers[network].network ===
-                                    server.network &&
-                                  server.network === selectedNetwork && (
-                                    <SSText
-                                      style={{
-                                        lineHeight: 14,
-                                        color: Colors.mainGreen,
-                                        opacity: 0.6
-                                      }}
-                                    >
-                                      {t('common.connected')}
-                                    </SSText>
-                                  )}
+                        <SSHStack key={index} justifyBetween>
+                          <SSHStack>
+                            <SSCheckbox
+                              onPress={() =>
+                                handleSelectServer(network, server)
+                              }
+                              selected={
+                                selectedServers[network].url === server.url &&
+                                selectedServers[network].network ===
+                                  server.network
+                              }
+                            />
+                            <TouchableOpacity
+                              onPress={() =>
+                                handleSelectServer(network, server)
+                              }
+                            >
+                              <SSVStack gap="none" style={{ flexGrow: 1 }}>
                                 <SSText
-                                  style={{ lineHeight: 14 }}
-                                  color="muted"
+                                  style={{
+                                    lineHeight: 16,
+                                    textTransform: 'capitalize'
+                                  }}
+                                  size="md"
                                 >
-                                  {server.url}
+                                  {`${server.name} (${server.backend})`}
                                 </SSText>
-                              </SSHStack>
-                            </SSVStack>
-                          </TouchableOpacity>
+                                <SSHStack gap="xs">
+                                  {selectedServers[network].url ===
+                                    server.url &&
+                                    selectedServers[network].network ===
+                                      server.network &&
+                                    server.network === selectedNetwork && (
+                                      <SSText
+                                        style={{
+                                          lineHeight: 14,
+                                          color: Colors.mainGreen,
+                                          opacity: 0.6
+                                        }}
+                                      >
+                                        {t('common.connected')}
+                                      </SSText>
+                                    )}
+                                  <SSText
+                                    style={{ lineHeight: 14 }}
+                                    color="muted"
+                                  >
+                                    {server.url}
+                                  </SSText>
+                                </SSHStack>
+                              </SSVStack>
+                            </TouchableOpacity>
+                          </SSHStack>
                           {customServers.includes(server) && (
                             <SSIconButton
                               style={{
-                                padding: 6,
+                                padding: 10,
                                 borderWidth: 1,
-                                borderRadius: 4,
-                                borderColor: Colors.gray[200]
+                                borderRadius: 400,
+                                borderColor: Colors.gray[600]
                               }}
                               onPress={() => handleRemove(server)}
                             >
-                              <SSIconCloseThin color={Colors.white} />
+                              <SSIconCloseThin color={Colors.gray[200]} />
                             </SSIconButton>
                           )}
                         </SSHStack>
