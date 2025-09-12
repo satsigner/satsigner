@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import { type Backend, type Network } from '@/types/settings/blockchain'
+import { type Backend } from '@/types/settings/blockchain'
 
 type CustomNetworkFormData = {
   backend: Backend
@@ -10,7 +10,7 @@ type CustomNetworkFormData = {
   port: string
 }
 
-export const useCustomNetworkForm = (_network: Network) => {
+export const useCustomNetworkForm = () => {
   const [formData, setFormData] = useState<CustomNetworkFormData>({
     backend: 'electrum',
     name: '',

@@ -47,9 +47,7 @@ export default function CustomNetwork() {
   const [oldNetwork] = useState<Network>(selectedNetwork)
   const [oldServer] = useState<Server>(configs[network as Network].server)
 
-  const { formData, updateField, constructUrl } = useCustomNetworkForm(
-    network as Network
-  )
+  const { formData, updateField, constructUrl } = useCustomNetworkForm()
 
   const url = constructUrl()
 
