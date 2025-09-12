@@ -13,6 +13,7 @@ import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { useConnectionTest } from '@/hooks/useConnectionTest'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -25,6 +26,7 @@ import {
   type Network,
   type Server
 } from '@/types/settings/blockchain'
+import { validateElectrumUrl, validateEsploraUrl } from '@/utils/urlValidation'
 
 export default function CustomNetwork() {
   const { network } = useLocalSearchParams()
@@ -54,19 +56,7 @@ export default function CustomNetwork() {
   const [protocol, setProtocol] = useState<'tcp' | 'tls' | 'ssl'>('ssl')
   const [host, setHost] = useState('')
   const [port, setPort] = useState('')
-  const [testing, setTesting] = useState(false)
-  const [nodeInfo, setNodeInfo] = useState<{
-    version?: string
-    blockHeight?: number
-    responseTime?: number
-    network?: string
-    software?: string
-    mempoolSize?: number
-
-    chainWork?: string
-    medianFee?: number
-    hashRate?: string
-  } | null>(null)
+  const { testing, nodeInfo, testConnection, resetTest } = useConnectionTest()
   const [oldNetwork] = useState<Network>(selectedNetwork)
   const [oldServer] = useState<Server>(configs[network as Network].server)
 
@@ -103,108 +93,23 @@ export default function CustomNetwork() {
       return false
     }
 
+    if (backend === 'esplora' && !url.startsWith('https://')) {
+      toast.warning(t('error.invalid.url'))
+      return false
+    }
+
     return true
   }
 
   async function handleTest() {
-    setTesting(false)
-    setNodeInfo(null)
+    resetTest()
 
     if (!isValid()) return
 
     setSelectedNetwork(network as Network)
     updateServer(network as Network, { name, backend, network, url } as Server)
 
-    setTesting(true)
-
-    // Enhanced connection test with node information
-    const startTime = Date.now()
-    try {
-      if (backend === 'electrum') {
-        // Test Electrum connection and get server info
-        const ElectrumClient = (await import('@/api/electrum')).default
-        const client = ElectrumClient.fromUrl(url, network as Network)
-
-        const serverInfo = await client.client.initElectrum({
-          client: 'satsigner',
-          version: '1.4'
-        })
-
-        const blockHeight = await client.client.blockchainHeaders_subscribe()
-        const responseTime = Date.now() - startTime
-
-        // Try to get additional blockchain info with available methods
-        let mempoolSize
-        try {
-          // Try to get mempool info using available methods
-          const mempoolInfo = await client.client
-            .mempool_get_fee_histogram?.()
-            .catch(() => null)
-          if (mempoolInfo && Array.isArray(mempoolInfo)) {
-            mempoolSize = mempoolInfo.reduce((sum: number, item: any) => {
-              return sum + (Array.isArray(item) && item[1] ? item[1] : 0)
-            }, 0)
-          }
-        } catch (_e) {
-          // Mempool info not available
-        }
-
-        // Skip difficulty calculation - focus on reliably available information
-
-        setNodeInfo({
-          version: serverInfo[1] || 'Unknown',
-          software: serverInfo[0] || 'Electrum',
-          blockHeight: blockHeight?.height || 0,
-          responseTime,
-          network: network as string,
-          mempoolSize
-        })
-
-        client.close()
-      } else if (backend === 'esplora') {
-        // Test Esplora connection and get server info
-        const Esplora = (await import('@/api/esplora')).default
-        const client = new Esplora(url)
-
-        // Get basic info first
-        const blockHeight = await client.getLatestBlockHeight()
-        const responseTime = Date.now() - startTime
-
-        // Try to get additional info with proper error handling
-        let mempoolSize, medianFee
-        try {
-          const mempoolInfo = await client._call('/mempool')
-          mempoolSize = mempoolInfo?.count || undefined
-        } catch (_e) {
-          // Esplora mempool info not available
-        }
-
-        try {
-          const feeEstimates = await client.getFeeEstimates()
-          medianFee = feeEstimates['6'] || feeEstimates['3'] || undefined
-        } catch (_e) {
-          // Esplora fee estimates not available
-        }
-
-        setNodeInfo({
-          software: 'Esplora',
-          blockHeight,
-          responseTime,
-          network: network as string,
-          mempoolSize,
-          medianFee
-        })
-      }
-    } catch (_error) {
-      // Failed to get node info
-      // Still set basic info even if enhanced info fails
-      const responseTime = Date.now() - startTime
-      setNodeInfo({
-        software: backend === 'electrum' ? 'Electrum' : 'Esplora',
-        responseTime,
-        network: network as string
-      })
-    }
+    await testConnection(url, backend, network as Network)
   }
 
   function handleAdd() {

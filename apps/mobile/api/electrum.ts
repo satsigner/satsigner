@@ -10,6 +10,7 @@ import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { parseHexToBytes } from '@/utils/parse'
 import { bytesToHex } from '@/utils/scripts'
 import { TxDecoded } from '@/utils/txDecoded'
+import { validateElectrumUrl } from '@/utils/urlValidation'
 
 type IElectrumClient = {
   props: {
@@ -132,29 +133,19 @@ class BaseElectrumClient {
   }
 
   static fromUrl(url: string, network: Network): ElectrumClient {
+    const validation = validateElectrumUrl(url)
+    if (!validation.isValid) {
+      throw new Error(validation.error || 'Invalid backend URL')
+    }
+
     const port = url.replace(/.*:/, '')
     const protocol = url.replace(/:\/\/.*/, '')
     const host = url.replace(`${protocol}://`, '').replace(`:${port}`, '')
 
-    // Validate host: allow domain names (starting with letter) or IP addresses
-    const isDomainName = /^[a-z][a-z0-9.-]*[a-z0-9]$/i.test(host)
-    const isIPAddress =
-      /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(
-        host
-      )
-
-    if (
-      !(isDomainName || isIPAddress) ||
-      !port.match(/^[0-9]+$/) ||
-      (protocol !== 'ssl' && protocol !== 'tls' && protocol !== 'tcp')
-    ) {
-      throw new Error('Invalid backend URL')
-    }
-
     const client = new ElectrumClient({
       host,
       port: Number(port),
-      protocol,
+      protocol: protocol as 'tcp' | 'tls' | 'ssl',
       network
     })
     return client
@@ -177,8 +168,9 @@ class BaseElectrumClient {
       client = ElectrumClient.fromUrl(url, network)
 
       // Disable reconnection for the test
-      // @ts-ignore
-      client.client.reconnect = () => {}
+      if (client.client && typeof client.client.reconnect === 'function') {
+        client.client.reconnect = () => {}
+      }
 
       const pingPromise = client.client.initElectrum({
         client: 'satsigner',
@@ -210,9 +202,16 @@ class BaseElectrumClient {
       if (client) {
         try {
           client.close()
-          // @ts-ignore - Force close the underlying socket
-          if (client.client && client.client.socket) {
-            client.client.socket.destroy()
+          // Force close the underlying socket if available
+          if (
+            client.client &&
+            'socket' in client.client &&
+            client.client.socket
+          ) {
+            const socket = client.client.socket as { destroy?: () => void }
+            if (typeof socket.destroy === 'function') {
+              socket.destroy()
+            }
           }
         } catch (_closeError) {
           // Ignore cleanup errors

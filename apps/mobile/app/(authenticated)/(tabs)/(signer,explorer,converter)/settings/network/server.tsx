@@ -39,7 +39,7 @@ export default function NetworkSettings() {
     ])
   )
 
-  const [_connectionState] = useVerifyConnection()
+  useVerifyConnection()
 
   const [selectedServers, setSelectedServers] = useState<
     Record<Network, Server>
