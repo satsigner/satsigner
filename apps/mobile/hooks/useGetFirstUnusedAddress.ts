@@ -31,7 +31,7 @@ function useGetFirstUnusedAddress(wallet: Wallet, account: Account) {
     do {
       index += 1
       addrInfo = await wallet.getAddress(index)
-      newAddress = await addrInfo.address.asString()
+      newAddress = addrInfo?.address ? await addrInfo.address.asString() : ''
     } while (seenAddresses[newAddress] !== undefined)
 
     setAddressIndex(index)

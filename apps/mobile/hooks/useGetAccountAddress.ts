@@ -76,7 +76,9 @@ const useGetAccountAddress = (id: Account['id']) => {
 
       // Get the first address from the wallet
       const addressInfo = await walletData.wallet.getAddress(0)
-      const firstAddress = await addressInfo.address.asString()
+      const firstAddress = addressInfo?.address
+        ? await addressInfo.address.asString()
+        : ''
 
       addAccountAddress(account.id, firstAddress)
     } catch (_error) {

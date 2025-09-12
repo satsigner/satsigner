@@ -125,17 +125,39 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
         })
       },
       getBlockchain: async (network = get().selectedNetwork) => {
-        const { server, config } = get().configs[network]
-        const blockchainConfig = getBlockchainConfig(
-          server.backend,
-          server.url,
-          config
-        )
-        return getBlockchain(server.backend, blockchainConfig)
+        try {
+          const { server, config } = get().configs[network]
+          const blockchainConfig = getBlockchainConfig(
+            server.backend,
+            server.url,
+            config
+          )
+          return getBlockchain(server.backend, blockchainConfig)
+        } catch (error) {
+          console.warn(
+            'Failed to get blockchain:',
+            error instanceof Error ? error.message : 'Unknown error'
+          )
+          throw new Error(
+            `Failed to connect to ${network} blockchain. Please check your network connection and server settings.`
+          )
+        }
       },
 
       getBlockchainHeight: async (network = get().selectedNetwork) => {
-        return (await get().getBlockchain(network)).getHeight()
+        try {
+          const blockchain = await get().getBlockchain(network)
+          return blockchain.getHeight()
+        } catch (error) {
+          console.warn(
+            'Failed to get blockchain height:',
+            error instanceof Error ? error.message : 'Unknown error'
+          )
+          // Return a default height or throw a more specific error
+          throw new Error(
+            'Failed to get blockchain height. Please check your network connection.'
+          )
+        }
       }
     }),
     {

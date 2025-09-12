@@ -551,6 +551,9 @@ async function getWalletFromDescriptor(
 }
 
 async function extractExtendedKeyFromDescriptor(descriptor: Descriptor) {
+  if (!descriptor) {
+    return ''
+  }
   const descriptorString = await descriptor.asString()
   const match = descriptorString.match(/(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/)
   return match ? match[0] : ''
@@ -644,8 +647,12 @@ async function getDescriptorsFromKeyData(
     )
 
     return {
-      externalDescriptor: await externalDesc.asString(),
-      internalDescriptor: await internalDesc.asString()
+      externalDescriptor: externalDesc
+        ? await externalDesc.asString()
+        : externalDescriptor,
+      internalDescriptor: internalDesc
+        ? await internalDesc.asString()
+        : internalDescriptor
     }
   } catch (_error) {
     // Return descriptors without checksum if BDK fails
@@ -685,7 +692,9 @@ async function getWalletAddresses(
 
   for (let i = 0; i < count; i += 1) {
     const receiveAddrInfo = await wallet.getAddress(i)
-    const receiveAddr = await receiveAddrInfo.address.asString()
+    const receiveAddr = receiveAddrInfo?.address
+      ? await receiveAddrInfo.address.asString()
+      : ''
     addresses.push({
       address: receiveAddr,
       keychain: 'external',
@@ -703,7 +712,9 @@ async function getWalletAddresses(
     })
 
     const changeAddrInfo = await wallet.getInternalAddress(i)
-    const changeAddr = await changeAddrInfo.address.asString()
+    const changeAddr = changeAddrInfo?.address
+      ? await changeAddrInfo.address.asString()
+      : ''
 
     addresses.push({
       address: changeAddr,
@@ -744,7 +755,9 @@ async function getWalletAddressesUsingStopGap(
 
   for (let i = 0; i < lastIndexWithFunds + stopGap; i += 1) {
     const receiveAddrInfo = await wallet.getAddress(i)
-    const receiveAddr = await receiveAddrInfo.address.asString()
+    const receiveAddr = receiveAddrInfo?.address
+      ? await receiveAddrInfo.address.asString()
+      : ''
     addresses.push({
       address: receiveAddr,
       keychain: 'external',
@@ -766,7 +779,9 @@ async function getWalletAddressesUsingStopGap(
     }
 
     const changeAddrInfo = await wallet.getInternalAddress(i)
-    const changeAddr = await changeAddrInfo.address.asString()
+    const changeAddr = changeAddrInfo?.address
+      ? await changeAddrInfo.address.asString()
+      : ''
 
     addresses.push({
       address: changeAddr,
@@ -935,7 +950,7 @@ async function parseTransactionDetailsToTransaction(
       const { value, script: scriptObj } = outputs[index]
       const script = await scriptObj.toBytes()
       const addressObj = await new Address().fromScript(scriptObj, network)
-      const address = await addressObj.asString()
+      const address = addressObj ? await addressObj.asString() : ''
       vout.push({ value, address, script })
     }
   }
@@ -994,7 +1009,7 @@ async function parseLocalUtxoToUtxo(
 async function getAddress(utxo: LocalUtxo, network: Network) {
   const script = utxo.txout.script
   const address = await new Address().fromScript(script, network)
-  return address.asString()
+  return address ? address.asString() : ''
 }
 
 async function getTransactionInputValues(

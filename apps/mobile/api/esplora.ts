@@ -80,7 +80,33 @@ export default class Esplora {
         throw new Error(`Unsupported Content-Type: ${contentType}`)
       }
     } catch (error: any) {
-      throw new Error(error.message)
+      // Handle TLS certificate errors gracefully
+      if (error.message && error.message.includes('InvalidCertificate')) {
+        console.warn('Esplora TLS certificate error:', error.message)
+        throw new Error(
+          'TLS certificate validation failed. Please check the server configuration.'
+        )
+      }
+
+      // Handle connection failures
+      if (error.message && error.message.includes('ConnectionFailed')) {
+        console.warn('Esplora connection failed:', error.message)
+        throw new Error(
+          'Connection failed. Please check your internet connection and server URL.'
+        )
+      }
+
+      // Handle other network errors
+      if (
+        error.message &&
+        (error.message.includes('NetworkError') ||
+          error.message.includes('fetch'))
+      ) {
+        console.warn('Esplora network error:', error.message)
+        throw new Error('Network error. Please check your internet connection.')
+      }
+
+      throw new Error(error.message || 'Unknown error occurred')
     }
   }
 
@@ -221,7 +247,12 @@ export default class Esplora {
         return true
       }
       return false
-    } catch {
+    } catch (error) {
+      // Log the error for debugging but don't crash
+      console.warn(
+        'Esplora connection test failed:',
+        error instanceof Error ? error.message : 'Unknown error'
+      )
       return false
     }
   }

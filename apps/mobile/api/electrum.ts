@@ -162,12 +162,24 @@ class BaseElectrumClient {
     protocol = 'ssl',
     network = 'signet'
   }: IElectrumClient['props']) {
-    const net = TcpSocket
-    const tls = TcpSocket
-    const options = {}
+    try {
+      const net = TcpSocket
+      const tls = TcpSocket
+      const options = {}
 
-    this.client = new ModifiedClient(net, tls, port, host, protocol, options)
-    this.network = bitcoinjsNetwork(network)
+      this.client = new ModifiedClient(net, tls, port, host, protocol, options)
+      this.network = bitcoinjsNetwork(network)
+
+      // Add error handler to prevent crashes
+      if (this.client && typeof this.client.onError === 'function') {
+        this.client.onError = (error: Error) => {
+          console.warn('Electrum client error:', error.message)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to create Electrum client:', error)
+      throw new Error('Failed to initialize Electrum client')
+    }
   }
 
   static fromUrl(url: string, network: Network): ElectrumClient {
@@ -205,9 +217,22 @@ class BaseElectrumClient {
     try {
       client = ElectrumClient.fromUrl(url, network)
 
+      // Validate client and socket before proceeding
+      if (!client || !client.client) {
+        throw new Error('Failed to create client')
+      }
+
       // Disable reconnection for the test
       if (client.client && typeof client.client.reconnect === 'function') {
         client.client.reconnect = () => {}
+      }
+
+      // Add error handler to prevent crashes
+      if (client.client && typeof client.client.onError === 'function') {
+        client.client.onError = (error: Error) => {
+          // Log error but don't crash
+          console.warn('Electrum client error:', error.message)
+        }
       }
 
       const pingPromise = client.client.initElectrum({
@@ -230,7 +255,12 @@ class BaseElectrumClient {
       }
 
       return true
-    } catch (_error) {
+    } catch (error) {
+      // Log the error for debugging
+      console.warn(
+        'Electrum connection test failed:',
+        error instanceof Error ? error.message : 'Unknown error'
+      )
       return false
     } finally {
       // Clean up resources
@@ -238,17 +268,22 @@ class BaseElectrumClient {
         clearTimeout(timeoutId)
       }
       if (client) {
-        client.close()
-        // Force close the underlying socket if available
-        if (
-          client.client &&
-          'socket' in client.client &&
-          client.client.socket
-        ) {
-          const socket = client.client.socket as { destroy?: () => void }
-          if (typeof socket.destroy === 'function') {
-            socket.destroy()
+        try {
+          client.close()
+          // Force close the underlying socket if available
+          if (
+            client.client &&
+            'socket' in client.client &&
+            client.client.socket
+          ) {
+            const socket = client.client.socket as { destroy?: () => void }
+            if (typeof socket.destroy === 'function') {
+              socket.destroy()
+            }
           }
+        } catch (cleanupError) {
+          // Ignore cleanup errors
+          console.warn('Error during client cleanup:', cleanupError)
         }
       }
     }
@@ -262,11 +297,31 @@ class BaseElectrumClient {
   }
 
   close() {
-    this.client.close()
+    try {
+      if (this.client) {
+        this.client.close()
+
+        // Force close the underlying socket if available
+        if ('socket' in this.client && this.client.socket) {
+          const socket = this.client.socket as { destroy?: () => void }
+          if (typeof socket.destroy === 'function') {
+            socket.destroy()
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Error closing Electrum client:', error)
+    }
   }
 
   reconnect() {
-    this.client.reconnect()
+    try {
+      if (this.client && typeof this.client.reconnect === 'function') {
+        this.client.reconnect()
+      }
+    } catch (error) {
+      console.warn('Error reconnecting Electrum client:', error)
+    }
   }
 
   addressToScriptHash(address: string) {

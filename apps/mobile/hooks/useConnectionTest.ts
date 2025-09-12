@@ -33,6 +33,16 @@ export function useConnectionTest() {
         const ElectrumClient = (await import('@/api/electrum')).default
         const client = ElectrumClient.fromUrl(url, network)
 
+        // Add error handler to prevent crashes
+        if (client.client && typeof client.client.onError === 'function') {
+          client.client.onError = (error: Error) => {
+            console.warn(
+              'Electrum client error in connection test:',
+              error.message
+            )
+          }
+        }
+
         const serverInfo = await client.client.initElectrum({
           client: 'satsigner',
           version: '1.4'
@@ -66,7 +76,11 @@ export function useConnectionTest() {
           mempoolSize
         })
 
-        client.close()
+        try {
+          client.close()
+        } catch (closeError) {
+          console.warn('Error closing connection test client:', closeError)
+        }
         return true
       } else if (backend === 'esplora') {
         // Test Esplora connection and get server info
