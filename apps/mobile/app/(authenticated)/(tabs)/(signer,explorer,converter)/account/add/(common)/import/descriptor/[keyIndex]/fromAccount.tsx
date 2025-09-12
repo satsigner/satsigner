@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react'
 import { ScrollView, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { extractExtendedKeyFromDescriptor, getDescriptor } from '@/api/bdk'
+import { getExtendedKeyFromDescriptor, getDescriptor } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
@@ -98,7 +98,7 @@ function ImportDescriptorFromAccount() {
 
     setExternalDescriptor(externalDescriptorString)
     const extendedPublicKey =
-      await extractExtendedKeyFromDescriptor(externalDescriptor)
+      await getExtendedKeyFromDescriptor(externalDescriptor)
     setExtendedPublicKey(extendedPublicKey)
     setKey(Number(keyIndex))
     updateKeyFingerprint(

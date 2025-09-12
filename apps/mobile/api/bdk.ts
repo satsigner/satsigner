@@ -79,7 +79,7 @@ async function validateMnemonic(mnemonic: NonNullable<Secret['mnemonic']>) {
   return true
 }
 
-async function extractFingerprintFromExtendedPublicKey(
+async function getFingerprintFromExtendedPublicKey(
   extendedPublicKey: string,
   network: Network
 ): Promise<string> {
@@ -146,7 +146,7 @@ async function getWalletData(
                   network
                 )
                 const extendedKey =
-                  await extractExtendedKeyFromDescriptor(descriptor)
+                  await getExtendedKeyFromDescriptor(descriptor)
                 return extendedKey
               } catch (_error) {
                 return null
@@ -168,7 +168,7 @@ async function getWalletData(
       // Extract fingerprints for each individual key
       const keyFingerprints = await Promise.all(
         validExtendedPublicKeys.map(async (extendedPublicKey) => {
-          return await extractFingerprintFromExtendedPublicKey(
+          return await getFingerprintFromExtendedPublicKey(
             extendedPublicKey,
             network
           )
@@ -533,7 +533,7 @@ async function getWalletFromDescriptor(
   return wallet
 }
 
-async function extractExtendedKeyFromDescriptor(descriptor: Descriptor) {
+async function getExtendedKeyFromDescriptor(descriptor: Descriptor) {
   const descriptorString = await descriptor.asString()
   const match = descriptorString.match(/(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/)
   return match ? match[0] : ''
@@ -550,7 +550,7 @@ async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
     key.secret.passphrase,
     network
   )
-  const extendedKey = await extractExtendedKeyFromDescriptor(externalDescriptor)
+  const extendedKey = await getExtendedKeyFromDescriptor(externalDescriptor)
 
   return extendedKey
 }
@@ -1086,15 +1086,15 @@ async function broadcastTransaction(
 export {
   broadcastTransaction,
   buildTransaction,
-  extractExtendedKeyFromDescriptor,
-  extractFingerprintFromExtendedPublicKey,
   generateMnemonic,
   generateMnemonicFromEntropy,
   getBlockchain,
   getDescriptor,
   getDescriptorsFromKeyData,
+  getExtendedKeyFromDescriptor,
   getExtendedPublicKeyFromAccountKey,
   getFingerprint,
+  getFingerprintFromExtendedPublicKey,
   getLastUnusedAddressFromWallet,
   getTransactionInputValues,
   getWalletAddresses,

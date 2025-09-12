@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, View } from 'react-native'
 import { toast } from 'sonner-native'
 
-import { extractExtendedKeyFromDescriptor, getWalletData } from '@/api/bdk'
+import { getExtendedKeyFromDescriptor, getWalletData } from '@/api/bdk'
 import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -101,8 +101,7 @@ export default function ExportPubkeys() {
                 walletData.externalDescriptor,
                 network as Network
               )
-              const extendedKey =
-                await extractExtendedKeyFromDescriptor(descriptor)
+              const extendedKey = await getExtendedKeyFromDescriptor(descriptor)
               return extendedKey || 'N/A'
             }
           })

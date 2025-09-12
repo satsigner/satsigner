@@ -6,7 +6,7 @@ import { TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
+import { getExtendedKeyFromDescriptor } from '@/api/bdk'
 import { SSIconAdd, SSIconGreen } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
@@ -98,7 +98,7 @@ function SSMultisigKeyControl({
             secret.externalDescriptor,
             network as Network
           )
-          const publicKey = await extractExtendedKeyFromDescriptor(descriptor)
+          const publicKey = await getExtendedKeyFromDescriptor(descriptor)
           setExtractedPublicKey(publicKey)
         } catch (_error) {
           setExtractedPublicKey('')
