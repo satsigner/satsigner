@@ -200,21 +200,17 @@ class BaseElectrumClient {
         clearTimeout(timeoutId)
       }
       if (client) {
-        try {
-          client.close()
-          // Force close the underlying socket if available
-          if (
-            client.client &&
-            'socket' in client.client &&
-            client.client.socket
-          ) {
-            const socket = client.client.socket as { destroy?: () => void }
-            if (typeof socket.destroy === 'function') {
-              socket.destroy()
-            }
+        client.close()
+        // Force close the underlying socket if available
+        if (
+          client.client &&
+          'socket' in client.client &&
+          client.client.socket
+        ) {
+          const socket = client.client.socket as { destroy?: () => void }
+          if (typeof socket.destroy === 'function') {
+            socket.destroy()
           }
-        } catch (_closeError) {
-          // Ignore cleanup errors
         }
       }
     }
