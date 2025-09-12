@@ -1,6 +1,7 @@
 .expo
 .next
 ios
+.android
 android
 shim.js
 storybook.requires.ts
