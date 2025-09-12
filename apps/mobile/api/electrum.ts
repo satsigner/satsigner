@@ -1,5 +1,6 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
-// @ts-ignore @eslint-disable-next-line
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - BlueWalletElectrumClient doesn't have proper TypeScript definitions
 import BlueWalletElectrumClient from 'electrum-client'
 import TcpSocket from 'react-native-tcp-socket'
 
@@ -11,6 +12,37 @@ import { parseHexToBytes } from '@/utils/parse'
 import { bytesToHex } from '@/utils/scripts'
 import { TxDecoded } from '@/utils/txDecoded'
 import { validateElectrumUrl } from '@/utils/urlValidation'
+
+// Extended interface for the electrum client with additional properties
+interface ExtendedElectrumClient {
+  timeout?: NodeJS.Timeout | null
+  timeLastCall: number
+  onError: (error: Error) => void
+  server_ping: () => Promise<void>
+  reconnect: () => void
+  initElectrum: (params: { client: string; version: string }) => Promise<void>
+  close: () => void
+  blockchainScripthash_getBalance: (
+    scripthash: string
+  ) => Promise<{ confirmed: number; unconfirmed: number }>
+  blockchainScripthash_listunspent: (
+    scripthash: string
+  ) => Promise<
+    Array<{ height: number; tx_hash: string; tx_pos: number; value: number }>
+  >
+  blockchainScripthash_getHistory: (
+    scripthash: string
+  ) => Promise<Array<{ height: number; tx_hash: string }>>
+  blockchainScripthash_getMempool: (
+    scripthash: string
+  ) => Promise<Array<{ height: number; tx_hash: string; fee: number }>>
+  blockchainTransaction_get: (
+    txid: string,
+    verbose?: boolean
+  ) => Promise<string>
+  blockchainBlock_header: (height: number) => Promise<string>
+  blockchainTransaction_broadcast: (tx: string) => Promise<string>
+}
 
 type IElectrumClient = {
   props: {
@@ -88,21 +120,25 @@ type AddressInfo = {
 }
 
 class ModifiedClient extends BlueWalletElectrumClient {
+  timeout?: NodeJS.Timeout | null
+  timeLastCall: number = 0
+
+  constructor(...args: any[]) {
+    super(...args)
+  }
+
   // INFO: Override the default timeout for keeping client alive
   keepAlive() {
-    // @ts-ignore
     if (this.timeout != null) clearTimeout(this.timeout)
     const now = new Date().getTime()
-    // @ts-ignore
     this.timeout = setTimeout(() => {
-      // @ts-ignore
       if (this.timeLastCall !== 0 && now > this.timeLastCall + 500_000) {
         const pingTimer = setTimeout(() => {
-          // @ts-ignore
+          // @ts-expect-error - onError method exists on the parent class but not in types
           this.onError(new Error('keepalive ping timeout'))
         }, 900_000)
 
-        // @ts-ignore
+        // @ts-expect-error - server_ping method exists on the parent class but not in types
         this.server_ping()
           .catch(() => {
             clearTimeout(pingTimer)
@@ -114,6 +150,8 @@ class ModifiedClient extends BlueWalletElectrumClient {
 }
 
 class BaseElectrumClient {
+  // Using any type because BlueWalletElectrumClient doesn't have proper TypeScript definitions
+  // The client has all the necessary methods but they're not typed
   client: any
   network: bitcoinjs.networks.Network
 
@@ -127,7 +165,6 @@ class BaseElectrumClient {
     const tls = TcpSocket
     const options = {}
 
-    // @ts-ignore
     this.client = new ModifiedClient(net, tls, port, host, protocol, options)
     this.network = bitcoinjsNetwork(network)
   }
