@@ -39,7 +39,7 @@ export default function NetworkSettings() {
     ])
   )
 
-  useVerifyConnection()
+  const [connectionState] = useVerifyConnection()
 
   const [selectedServers, setSelectedServers] = useState<
     Record<Network, Server>
@@ -80,11 +80,16 @@ export default function NetworkSettings() {
       <SSVStack gap="md" justifyBetween>
         <ScrollView showsVerticalScrollIndicator={false}>
           <SSBitcoinNetworkExplanationLink />
-          <SSVStack gap="lg" style={{ marginTop: 20 }}>
+          <SSVStack gap="xl" style={{ marginTop: 20 }}>
             {networks.map((network) => (
               <SSVStack gap="md" key={network}>
                 <SSVStack gap="none">
-                  <SSText uppercase weight="bold" size="xl">
+                  <SSText
+                    uppercase
+                    weight="light"
+                    size="xl"
+                    style={{ letterSpacing: 2.5 }}
+                  >
                     {t(`bitcoin.network.${network}`)}
                   </SSText>
                   <SSText color="muted">{tn(`type.${network}`)}</SSText>
@@ -123,21 +128,45 @@ export default function NetworkSettings() {
                                   {`${server.name} (${server.backend})`}
                                 </SSText>
                                 <SSHStack gap="xs">
-                                  {selectedServers[network].url ===
-                                    server.url &&
-                                    selectedServers[network].network ===
-                                      server.network &&
-                                    server.network === selectedNetwork && (
-                                      <SSText
-                                        style={{
-                                          lineHeight: 14,
-                                          color: Colors.mainGreen,
-                                          opacity: 0.6
-                                        }}
-                                      >
-                                        {t('common.connected')}
-                                      </SSText>
-                                    )}
+                                  {(() => {
+                                    const isSelected =
+                                      selectedServers[network].url ===
+                                        server.url &&
+                                      selectedServers[network].name ===
+                                        server.name &&
+                                      selectedServers[network].backend ===
+                                        server.backend
+                                    const isCurrentNetwork =
+                                      network === selectedNetwork
+                                    // Only show "Connected" if this is the currently selected server
+                                    // in the currently active network AND the connection is successful
+                                    const isCurrentlyActiveServer =
+                                      isSelected &&
+                                      isCurrentNetwork &&
+                                      selectedServers[network].url ===
+                                        configs[selectedNetwork].server.url &&
+                                      selectedServers[network].name ===
+                                        configs[selectedNetwork].server.name &&
+                                      selectedServers[network].backend ===
+                                        configs[selectedNetwork].server.backend
+
+                                    const shouldShowConnected =
+                                      isCurrentlyActiveServer && connectionState
+
+                                    return (
+                                      shouldShowConnected && (
+                                        <SSText
+                                          style={{
+                                            lineHeight: 14,
+                                            color: Colors.mainGreen,
+                                            opacity: 0.6
+                                          }}
+                                        >
+                                          {t('common.connected')}
+                                        </SSText>
+                                      )
+                                    )
+                                  })()}
                                   <SSText
                                     style={{ lineHeight: 14 }}
                                     color="muted"
@@ -178,6 +207,7 @@ export default function NetworkSettings() {
             variant="secondary"
             label={t('common.save')}
             onPress={() => handleOnSave()}
+            style={{ marginTop: 30 }}
           />
           <SSButton
             variant="ghost"
