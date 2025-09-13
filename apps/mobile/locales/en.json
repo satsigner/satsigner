@@ -822,7 +822,6 @@
     "developer.accountsDeleted": "Accounts deleted",
     "developer.deleteAccounts": "Delete accounts",
     "developer.description": "Available in dev mode only. Useful tools for developers for faster development",
-    "developer.setPinFirstTime": "Set PIN first time",
     "developer.skipPin": "Skip PIN",
     "developer.title": "Developer",
     "features.charts.historyChart.description": "Control the visible layers and navigation of the transaction history chart",
