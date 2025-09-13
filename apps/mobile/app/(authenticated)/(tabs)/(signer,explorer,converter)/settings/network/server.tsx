@@ -238,14 +238,18 @@ export default function NetworkSettings() {
                           {customServers.includes(server) && (
                             <SSIconButton
                               style={{
-                                padding: 10,
+                                padding: 6,
                                 borderWidth: 1,
                                 borderRadius: 400,
                                 borderColor: Colors.gray[600]
                               }}
                               onPress={() => handleRemove(server)}
                             >
-                              <SSIconCloseThin color={Colors.gray[200]} />
+                              <SSIconCloseThin
+                                color={Colors.gray[200]}
+                                width={10}
+                                height={10}
+                              />
                             </SSIconButton>
                           )}
                         </SSHStack>
