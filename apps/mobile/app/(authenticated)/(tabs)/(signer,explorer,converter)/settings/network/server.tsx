@@ -96,7 +96,7 @@ export default function NetworkSettings() {
   async function handleTestConnection(server: Server) {
     setTestingServer(server.url)
     setCurrentTestBlockHeight(null)
-    resetTest()
+    await resetTest()
 
     try {
       const result = await testConnection(
@@ -105,16 +105,19 @@ export default function NetworkSettings() {
         server.network
       )
 
-      if (!result) {
+      if (!result.success) {
+        const errorMessage = result.error || tn('tester.failed')
         toast.error(`${server.name} (${server.url})`, {
-          description: tn('tester.failed')
+          description: errorMessage
         })
         setTestingServer(null)
       }
       // Success toast will be shown by useEffect when block height is captured
-    } catch {
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : tn('tester.error')
       toast.error(`${server.name} (${server.url})`, {
-        description: tn('tester.error')
+        description: errorMessage
       })
       setTestingServer(null)
     }

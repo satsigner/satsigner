@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { type Backend, type Network } from '@/types/settings/blockchain'
 
@@ -17,12 +17,36 @@ export type NodeInfo = {
 export function useConnectionTest() {
   const [testing, setTesting] = useState(false)
   const [nodeInfo, setNodeInfo] = useState<NodeInfo | null>(null)
+  const [currentClient, setCurrentClient] = useState<any>(null)
+
+  async function cleanupPreviousConnection() {
+    if (currentClient) {
+      try {
+        if (currentClient.close && typeof currentClient.close === 'function') {
+          await currentClient.close()
+        }
+        if (
+          currentClient.client &&
+          currentClient.client.close &&
+          typeof currentClient.client.close === 'function'
+        ) {
+          await currentClient.client.close()
+        }
+      } catch (_error) {
+        // Silently handle cleanup errors
+      }
+      setCurrentClient(null)
+    }
+  }
 
   async function testConnection(
     url: string,
     backend: Backend,
     network: Network
-  ): Promise<boolean> {
+  ): Promise<{ success: boolean; error?: string }> {
+    // Clean up any previous connection first
+    await cleanupPreviousConnection()
+
     setTesting(true)
     setNodeInfo(null)
 
@@ -32,6 +56,9 @@ export function useConnectionTest() {
         // Test Electrum connection and get server info
         const ElectrumClient = (await import('@/api/electrum')).default
         const client = ElectrumClient.fromUrl(url, network)
+
+        // Store current client for cleanup
+        setCurrentClient(client)
 
         // Add error handler to prevent crashes
         if (client.client && typeof client.client.onError === 'function') {
@@ -78,11 +105,14 @@ export function useConnectionTest() {
         } catch (_closeError) {
           // Silently handle close errors
         }
-        return true
+        return { success: true }
       } else if (backend === 'esplora') {
         // Test Esplora connection and get server info
         const Esplora = (await import('@/api/esplora')).default
         const client = new Esplora(url)
+
+        // Store current client for cleanup
+        setCurrentClient(client)
 
         // Get basic info first
         const blockHeight = await client.getLatestBlockHeight()
@@ -113,10 +143,13 @@ export function useConnectionTest() {
           medianFee
         })
 
-        return true
+        return { success: true }
       }
-    } catch {
+    } catch (error) {
       // Failed to get node info
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown connection error'
+
       // Still set basic info even if enhanced info fails
       const responseTime = Date.now() - startTime
       setNodeInfo({
@@ -124,16 +157,24 @@ export function useConnectionTest() {
         responseTime,
         network: network as string
       })
-      return false
+      return { success: false, error: errorMessage }
     }
 
-    return false
+    return { success: false, error: 'Connection test failed' }
   }
 
-  function resetTest() {
+  async function resetTest() {
+    await cleanupPreviousConnection()
     setTesting(false)
     setNodeInfo(null)
   }
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      cleanupPreviousConnection()
+    }
+  }, [])
 
   return {
     testing,

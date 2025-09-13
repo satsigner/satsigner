@@ -222,9 +222,28 @@ class BaseElectrumClient {
       }
 
       return true
-    } catch {
-      // Silently handle connection test failures
-      return false
+    } catch (error) {
+      // Handle connection test failures with specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('timeout')) {
+          throw new Error(
+            'Connection timeout - server may be slow or unreachable'
+          )
+        } else if (error.message.includes('Unable to resolve host')) {
+          throw new Error(
+            'Unable to resolve host - check server URL and internet connection'
+          )
+        } else if (error.message.includes('ECONNREFUSED')) {
+          throw new Error(
+            'Connection refused - server may be down or port is closed'
+          )
+        } else if (error.message.includes('ENOTFOUND')) {
+          throw new Error('Server not found - check the server URL')
+        } else {
+          throw new Error(`Connection failed: ${error.message}`)
+        }
+      }
+      throw new Error('Unknown connection error')
     } finally {
       // Clean up resources
       if (timeoutId) {
