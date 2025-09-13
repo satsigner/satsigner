@@ -715,9 +715,8 @@ async function getWalletAddresses(
 
   for (let i = 0; i < count; i += 1) {
     const receiveAddrInfo = await wallet.getAddress(i)
-    const receiveAddr = receiveAddrInfo?.address
-      ? await receiveAddrInfo.address.asString()
-      : ''
+    const address = receiveAddrInfo?.address
+    const receiveAddr = address ? await address.asString() : ''
     addresses.push({
       address: receiveAddr,
       keychain: 'external',
