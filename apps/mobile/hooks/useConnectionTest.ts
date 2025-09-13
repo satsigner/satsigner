@@ -74,7 +74,9 @@ export function useConnectionTest() {
     // Suppress console warnings during connection tests
     const originalConsoleWarn = console.warn
     const originalConsoleError = console.error
+    // eslint-disable-next-line no-console
     console.warn = () => {} // Suppress warnings
+    // eslint-disable-next-line no-console
     console.error = () => {} // Suppress errors
 
     // Clean up any previous connection first
@@ -221,10 +223,14 @@ export function useConnectionTest() {
       return { success: false, error: errorMessage }
     } finally {
       // Restore console functions
+      // eslint-disable-next-line no-console
       console.warn = originalConsoleWarn
+      // eslint-disable-next-line no-console
       console.error = originalConsoleError
     }
 
+    // This line is unreachable due to the finally block above
+    // but kept for type safety
     return { success: false, error: 'Connection test failed' }
   }
 
@@ -239,7 +245,7 @@ export function useConnectionTest() {
     return () => {
       cleanupPreviousConnection()
     }
-  }, [])
+  }, [cleanupPreviousConnection])
 
   return {
     testing,

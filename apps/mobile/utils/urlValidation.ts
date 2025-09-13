@@ -125,6 +125,7 @@ export function validateEsploraUrl(url: string): ValidationResult {
   }
 
   try {
+    // eslint-disable-next-line no-new
     new URL(url)
     return { isValid: true }
   } catch {

@@ -231,7 +231,9 @@ export default class Esplora {
     // Suppress console warnings during test
     const originalConsoleWarn = console.warn
     const originalConsoleError = console.error
+    // eslint-disable-next-line no-console
     console.warn = () => {}
+    // eslint-disable-next-line no-console
     console.error = () => {}
 
     const esploraClient = new Esplora(url)
@@ -277,7 +279,9 @@ export default class Esplora {
       throw new Error('Unknown connection error')
     } finally {
       // Restore console functions
+      // eslint-disable-next-line no-console
       console.warn = originalConsoleWarn
+      // eslint-disable-next-line no-console
       console.error = originalConsoleError
     }
   }

@@ -185,7 +185,9 @@ class BaseElectrumClient {
     // Suppress console warnings during test
     const originalConsoleWarn = console.warn
     const originalConsoleError = console.error
+    // eslint-disable-next-line no-console
     console.warn = () => {}
+    // eslint-disable-next-line no-console
     console.error = () => {}
 
     try {
@@ -256,7 +258,9 @@ class BaseElectrumClient {
       throw new Error('Unknown connection error')
     } finally {
       // Restore console functions
+      // eslint-disable-next-line no-console
       console.warn = originalConsoleWarn
+      // eslint-disable-next-line no-console
       console.error = originalConsoleError
 
       // Restore original reconnect function
