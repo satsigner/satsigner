@@ -183,7 +183,9 @@ class BaseElectrumClient {
     let timeoutId: NodeJS.Timeout | null = null
 
     // Suppress console warnings during test
+    // eslint-disable-next-line no-console
     const originalConsoleWarn = console.warn
+    // eslint-disable-next-line no-console
     const originalConsoleError = console.error
     // eslint-disable-next-line no-console
     console.warn = () => {}

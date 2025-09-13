@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 
 import { type Backend, type Network } from '@/types/settings/blockchain'
 
@@ -20,7 +20,7 @@ export function useConnectionTest() {
   const [currentClient, setCurrentClient] = useState<any>(null)
   const [lastTestTime, setLastTestTime] = useState<number>(0)
 
-  async function cleanupPreviousConnection() {
+  const cleanupPreviousConnection = useCallback(async () => {
     if (currentClient) {
       try {
         // Force close any ongoing connections with timeout
@@ -53,7 +53,7 @@ export function useConnectionTest() {
         setCurrentClient(null)
       }
     }
-  }
+  }, [currentClient])
 
   async function testConnection(
     url: string,
@@ -72,7 +72,9 @@ export function useConnectionTest() {
     setLastTestTime(now)
 
     // Suppress console warnings during connection tests
+    // eslint-disable-next-line no-console
     const originalConsoleWarn = console.warn
+    // eslint-disable-next-line no-console
     const originalConsoleError = console.error
     // eslint-disable-next-line no-console
     console.warn = () => {} // Suppress warnings
@@ -231,6 +233,7 @@ export function useConnectionTest() {
 
     // This line is unreachable due to the finally block above
     // but kept for type safety
+    // eslint-disable-next-line no-unreachable
     return { success: false, error: 'Connection test failed' }
   }
 

@@ -229,7 +229,9 @@ export default class Esplora {
 
   static async test(url: string, timeout: number) {
     // Suppress console warnings during test
+    // eslint-disable-next-line no-console
     const originalConsoleWarn = console.warn
+    // eslint-disable-next-line no-console
     const originalConsoleError = console.error
     // eslint-disable-next-line no-console
     console.warn = () => {}
