@@ -51,7 +51,10 @@ async function generateMnemonic(
   mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
 ) {
   const mnemonic = await new Mnemonic().create(mnemonicWordCount)
-  return mnemonic ? mnemonic.asString() : ''
+  if (!mnemonic) {
+    throw new Error('Failed to generate mnemonic')
+  }
+  return mnemonic.asString()
 }
 
 async function generateMnemonicFromEntropy(entropy: string) {
@@ -67,7 +70,10 @@ async function generateMnemonicFromEntropy(entropy: string) {
 
   const numbers = Array.from(new Uint8Array(bytes))
   const mnemonic = await new Mnemonic().fromEntropy(numbers)
-  return mnemonic ? mnemonic.asString() : ''
+  if (!mnemonic) {
+    throw new Error('Failed to generate mnemonic from entropy')
+  }
+  return mnemonic.asString()
 }
 
 async function validateMnemonic(mnemonic: NonNullable<Secret['mnemonic']>) {
@@ -88,12 +94,14 @@ async function extractFingerprintFromExtendedPublicKey(
     const descriptorString = `pkh(${extendedPublicKey})`
     const descriptor = await new Descriptor().create(descriptorString, network)
     if (!descriptor) {
-      return ''
+      throw new Error('Failed to create descriptor from extended public key')
     }
     const parsedDescriptor = await parseDescriptor(descriptor)
     return parsedDescriptor.fingerprint
-  } catch (_error) {
-    return ''
+  } catch (error) {
+    throw new Error(
+      `Failed to extract fingerprint: ${error instanceof Error ? error.message : 'Unknown error'}`
+    )
   }
 }
 
@@ -567,7 +575,7 @@ async function getWalletFromDescriptor(
 
 async function extractExtendedKeyFromDescriptor(descriptor: Descriptor) {
   if (!descriptor) {
-    return ''
+    throw new Error('Descriptor is null or undefined')
   }
   const descriptorString = await descriptor.asString()
   const match = descriptorString.match(/(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/)
