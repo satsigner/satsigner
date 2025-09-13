@@ -669,7 +669,7 @@ async function getDescriptorsFromKeyData(
         ? await internalDesc.asString()
         : internalDescriptor
     }
-  } catch (_error) {
+  } catch {
     // Return descriptors without checksum if BDK fails
     return {
       externalDescriptor,

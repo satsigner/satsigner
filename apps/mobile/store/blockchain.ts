@@ -144,7 +144,7 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
         try {
           const blockchain = await get().getBlockchain(network)
           return blockchain.getHeight()
-        } catch (_error) {
+        } catch {
           // Return a default height or throw a more specific error
           throw new Error(
             'Failed to get blockchain height. Please check your network connection.'

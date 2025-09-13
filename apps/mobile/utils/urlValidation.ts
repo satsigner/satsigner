@@ -125,7 +125,7 @@ export function validateEsploraUrl(url: string): ValidationResult {
   }
 
   try {
-    const _url = new URL(url)
+    new URL(url)
     return { isValid: true }
   } catch {
     return {
