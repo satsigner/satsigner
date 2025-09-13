@@ -13,37 +13,6 @@ import { bytesToHex } from '@/utils/scripts'
 import { TxDecoded } from '@/utils/txDecoded'
 import { validateElectrumUrl } from '@/utils/urlValidation'
 
-// Extended interface for the electrum client with additional properties
-interface _ExtendedElectrumClient {
-  timeout?: NodeJS.Timeout | null
-  timeLastCall: number
-  onError: (error: Error) => void
-  server_ping: () => Promise<void>
-  reconnect: () => void
-  initElectrum: (params: { client: string; version: string }) => Promise<void>
-  close: () => void
-  blockchainScripthash_getBalance: (
-    scripthash: string
-  ) => Promise<{ confirmed: number; unconfirmed: number }>
-  blockchainScripthash_listunspent: (
-    scripthash: string
-  ) => Promise<
-    { height: number; tx_hash: string; tx_pos: number; value: number }[]
-  >
-  blockchainScripthash_getHistory: (
-    scripthash: string
-  ) => Promise<{ height: number; tx_hash: string }[]>
-  blockchainScripthash_getMempool: (
-    scripthash: string
-  ) => Promise<{ height: number; tx_hash: string; fee: number }[]>
-  blockchainTransaction_get: (
-    txid: string,
-    verbose?: boolean
-  ) => Promise<string>
-  blockchainBlock_header: (height: number) => Promise<string>
-  blockchainTransaction_broadcast: (tx: string) => Promise<string>
-}
-
 type IElectrumClient = {
   props: {
     host: string
