@@ -182,6 +182,12 @@ class BaseElectrumClient {
     let client: ElectrumClient | null = null
     let timeoutId: NodeJS.Timeout | null = null
 
+    // Suppress console warnings during test
+    const originalConsoleWarn = console.warn
+    const originalConsoleError = console.error
+    console.warn = () => {}
+    console.error = () => {}
+
     try {
       client = ElectrumClient.fromUrl(url, network)
 
@@ -190,9 +196,13 @@ class BaseElectrumClient {
         throw new Error('Failed to create client')
       }
 
-      // Disable reconnection for the test
+      // Store original reconnect function and disable reconnection for the test
+      const originalReconnect = client.client?.reconnect
       if (client.client && typeof client.client.reconnect === 'function') {
-        client.client.reconnect = () => {}
+        ;(client as any).originalReconnect = originalReconnect
+        client.client.reconnect = () => {
+          // Disable reconnection during tests to prevent console warnings
+        }
       }
 
       // Add error handler to prevent crashes
@@ -245,6 +255,15 @@ class BaseElectrumClient {
       }
       throw new Error('Unknown connection error')
     } finally {
+      // Restore console functions
+      console.warn = originalConsoleWarn
+      console.error = originalConsoleError
+
+      // Restore original reconnect function
+      if (client?.client && (client as any).originalReconnect) {
+        client.client.reconnect = (client as any).originalReconnect
+      }
+
       // Clean up resources
       if (timeoutId) {
         clearTimeout(timeoutId)

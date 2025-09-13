@@ -228,6 +228,12 @@ export default class Esplora {
   }
 
   static async test(url: string, timeout: number) {
+    // Suppress console warnings during test
+    const originalConsoleWarn = console.warn
+    const originalConsoleError = console.error
+    console.warn = () => {}
+    console.error = () => {}
+
     const esploraClient = new Esplora(url)
     const fetchPromise = esploraClient.getLatestBlockHeight()
     const timeoutPromise = new Promise((resolve, reject) =>
@@ -269,6 +275,10 @@ export default class Esplora {
         }
       }
       throw new Error('Unknown connection error')
+    } finally {
+      // Restore console functions
+      console.warn = originalConsoleWarn
+      console.error = originalConsoleError
     }
   }
 }
