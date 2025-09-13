@@ -268,7 +268,7 @@ const useAccountBuilderStore = create<
         deviceNpub: '',
         deviceNsec: '',
         trustedMemberDevices: [],
-        dms: [] as NostrDM[],
+        dms: [],
         lastUpdated: new Date(),
         syncStart: new Date()
       }
