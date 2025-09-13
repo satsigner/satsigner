@@ -145,7 +145,7 @@ class BaseElectrumClient {
           // Silently handle errors to prevent console noise
         }
       }
-    } catch (_error) {
+    } catch {
       throw new Error('Failed to initialize Electrum client')
     }
   }
@@ -222,7 +222,7 @@ class BaseElectrumClient {
       }
 
       return true
-    } catch (_error) {
+    } catch {
       // Silently handle connection test failures
       return false
     } finally {
@@ -271,7 +271,7 @@ class BaseElectrumClient {
           }
         }
       }
-    } catch (_error) {
+    } catch {
       // Silently handle close errors
     }
   }
@@ -281,7 +281,7 @@ class BaseElectrumClient {
       if (this.client && typeof this.client.reconnect === 'function') {
         this.client.reconnect()
       }
-    } catch (_error) {
+    } catch {
       // Silently handle reconnect errors
     }
   }

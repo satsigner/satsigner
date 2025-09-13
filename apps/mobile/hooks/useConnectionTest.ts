@@ -115,7 +115,7 @@ export function useConnectionTest() {
 
         return true
       }
-    } catch (_error) {
+    } catch {
       // Failed to get node info
       // Still set basic info even if enhanced info fails
       const responseTime = Date.now() - startTime

@@ -80,29 +80,23 @@ export default class Esplora {
         throw new Error(`Unsupported Content-Type: ${contentType}`)
       }
     } catch (error: any) {
-      // Handle TLS certificate errors gracefully
       if (error.message && error.message.includes('InvalidCertificate')) {
-        // Silently handle TLS certificate errors
         throw new Error(
           'TLS certificate validation failed. Please check the server configuration.'
         )
       }
 
-      // Handle connection failures
       if (error.message && error.message.includes('ConnectionFailed')) {
-        // Silently handle connection failures
         throw new Error(
           'Connection failed. Please check your internet connection and server URL.'
         )
       }
 
-      // Handle other network errors
       if (
         error.message &&
         (error.message.includes('NetworkError') ||
           error.message.includes('fetch'))
       ) {
-        // Silently handle network errors
         throw new Error('Network error. Please check your internet connection.')
       }
 
@@ -247,7 +241,7 @@ export default class Esplora {
         return true
       }
       return false
-    } catch (_error) {
+    } catch {
       // Silently handle connection test failures
       return false
     }

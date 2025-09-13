@@ -112,7 +112,7 @@ export default function NetworkSettings() {
         setTestingServer(null)
       }
       // Success toast will be shown by useEffect when block height is captured
-    } catch (_error) {
+    } catch {
       toast.error(`${server.name} (${server.url})`, {
         description: tn('tester.error')
       })
