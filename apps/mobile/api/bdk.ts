@@ -162,7 +162,7 @@ async function getWalletData(
                 const extendedKey =
                   await extractExtendedKeyFromDescriptor(descriptor)
                 return extendedKey
-              } catch (_error) {
+              } catch {
                 return null
               }
             }
