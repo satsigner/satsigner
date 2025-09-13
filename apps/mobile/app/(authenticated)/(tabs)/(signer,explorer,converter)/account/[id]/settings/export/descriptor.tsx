@@ -85,7 +85,7 @@ export default function DescriptorPage() {
         publicKey,
         checksum
       }
-    } catch (_error) {
+    } catch {
       return null
     }
   }
@@ -142,8 +142,10 @@ export default function DescriptorPage() {
                   descriptorString,
                   network as Network
                 )
-                descriptorString = await descriptor.asString()
-              } catch (_error) {
+                if (descriptor) {
+                  descriptorString = await descriptor.asString()
+                }
+              } catch {
                 // Keep the original descriptor if BDK fails
               }
             }
@@ -203,7 +205,9 @@ export default function DescriptorPage() {
                 )
             }
 
-            descriptorString = await externalDescriptor.asString()
+            if (externalDescriptor) {
+              descriptorString = await externalDescriptor.asString()
+            }
           }
         } else if (key.creationType === 'importDescriptor') {
           // For descriptor-based keys, use the stored descriptor and ensure it has checksum
@@ -216,8 +220,10 @@ export default function DescriptorPage() {
                 descriptorString,
                 network as Network
               )
-              descriptorString = await descriptor.asString()
-            } catch (_error) {
+              if (descriptor) {
+                descriptorString = await descriptor.asString()
+              }
+            } catch {
               // Keep the original descriptor if BDK fails
             }
           }
@@ -270,8 +276,10 @@ export default function DescriptorPage() {
                 descriptorString,
                 network as Network
               )
-              descriptorString = await descriptor.asString()
-            } catch (_error) {
+              if (descriptor) {
+                descriptorString = await descriptor.asString()
+              }
+            } catch {
               // Keep the descriptor without checksum if BDK fails
             }
           }
@@ -291,7 +299,7 @@ export default function DescriptorPage() {
                   network as Network
                 )
                 descriptorString = descriptors.externalDescriptor
-              } catch (_error) {
+              } catch {
                 // Fallback: try to construct descriptor manually
                 const derivationPath = getDerivationPathFromScriptVersion(
                   key.scriptVersion || 'P2WPKH',
@@ -339,8 +347,10 @@ export default function DescriptorPage() {
                     descriptorString,
                     network as Network
                   )
-                  descriptorString = await descriptor.asString()
-                } catch (_error) {
+                  if (descriptor) {
+                    descriptorString = await descriptor.asString()
+                  }
+                } catch {
                   // Keep the descriptor without checksum if BDK fails
                 }
               }
@@ -380,8 +390,10 @@ export default function DescriptorPage() {
                   descriptorString,
                   network as Network
                 )
-                descriptorString = await descriptor.asString()
-              } catch (_error) {
+                if (descriptor) {
+                  descriptorString = await descriptor.asString()
+                }
+              } catch {
                 // Keep the descriptor without checksum if BDK fails
               }
             }
@@ -398,7 +410,7 @@ export default function DescriptorPage() {
         // Parse descriptor components for display
         const components = parseDescriptorComponents(descriptorString)
         setDescriptorComponents(components)
-      } catch (_error) {
+      } catch {
         toast.error('Failed to get descriptor')
       } finally {
         setIsLoading(false)
