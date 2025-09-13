@@ -345,8 +345,12 @@ export default function ImportExtendedPub() {
           descriptorString,
           mapNetworkToBdkNetwork(network)
         )
-        const parsedDescriptor = await parseDescriptor(descriptor)
-        derivationPath = parsedDescriptor.derivationPath
+        if (!descriptor) {
+          derivationPath = ''
+        } else {
+          const parsedDescriptor = await parseDescriptor(descriptor)
+          derivationPath = parsedDescriptor.derivationPath
+        }
       } catch (_error) {
         // Use default derivation path if extraction fails
         derivationPath = `m/${getDerivationPathFromScriptVersion(

@@ -51,6 +51,9 @@ async function generateMnemonic(
   mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
 ) {
   const mnemonic = await new Mnemonic().create(mnemonicWordCount)
+  if (!mnemonic) {
+    throw new Error('Failed to generate mnemonic')
+  }
   return mnemonic.asString()
 }
 
@@ -67,6 +70,9 @@ async function generateMnemonicFromEntropy(entropy: string) {
 
   const numbers = Array.from(new Uint8Array(bytes))
   const mnemonic = await new Mnemonic().fromEntropy(numbers)
+  if (!mnemonic) {
+    throw new Error('Failed to generate mnemonic from entropy')
+  }
   return mnemonic.asString()
 }
 
@@ -87,10 +93,15 @@ async function extractFingerprintFromExtendedPublicKey(
     // Create a descriptor from the extended public key to extract fingerprint
     const descriptorString = `pkh(${extendedPublicKey})`
     const descriptor = await new Descriptor().create(descriptorString, network)
+    if (!descriptor) {
+      throw new Error('Failed to create descriptor from extended public key')
+    }
     const parsedDescriptor = await parseDescriptor(descriptor)
     return parsedDescriptor.fingerprint
-  } catch (_error) {
-    return ''
+  } catch (error) {
+    throw new Error(
+      `Failed to extract fingerprint: ${error instanceof Error ? error.message : 'Unknown error'}`
+    )
   }
 }
 
@@ -145,10 +156,13 @@ async function getWalletData(
                   key.secret.externalDescriptor,
                   network
                 )
+                if (!descriptor) {
+                  return null
+                }
                 const extendedKey =
                   await extractExtendedKeyFromDescriptor(descriptor)
                 return extendedKey
-              } catch (_error) {
+              } catch {
                 return null
               }
             }
@@ -182,6 +196,9 @@ async function getWalletData(
         multisigDescriptorString,
         network
       )
+      if (!multisigDescriptor) {
+        throw new Error('Failed to create multisig descriptor')
+      }
 
       const parsedDescriptor = await parseDescriptor(multisigDescriptor)
       const wallet = await getWalletFromDescriptor(
@@ -213,12 +230,18 @@ async function getWalletData(
           key.secret.externalDescriptor,
           network
         )
+        if (!externalDescriptor) {
+          throw new Error('Failed to create external descriptor')
+        }
         const internalDescriptor = key.secret.internalDescriptor
           ? await new Descriptor().create(
               key.secret.internalDescriptor,
               network
             )
           : null
+        if (key.secret.internalDescriptor && !internalDescriptor) {
+          throw new Error('Failed to create internal descriptor')
+        }
 
         const parsedDescriptor = await parseDescriptor(externalDescriptor)
         const wallet = await getWalletFromDescriptor(
@@ -230,7 +253,9 @@ async function getWalletData(
         return {
           fingerprint: parsedDescriptor.fingerprint,
           derivationPath: parsedDescriptor.derivationPath,
-          externalDescriptor: await externalDescriptor.asString(),
+          externalDescriptor: externalDescriptor
+            ? await externalDescriptor.asString()
+            : '',
           internalDescriptor: internalDescriptor
             ? await internalDescriptor.asString()
             : '',
@@ -342,8 +367,12 @@ async function getWalletData(
         return {
           fingerprint: parsedDescriptor.fingerprint,
           derivationPath: parsedDescriptor.derivationPath,
-          externalDescriptor: await externalDescriptor.asString(),
-          internalDescriptor: await internalDescriptor.asString(),
+          externalDescriptor: externalDescriptor
+            ? await externalDescriptor.asString()
+            : '',
+          internalDescriptor: internalDescriptor
+            ? await internalDescriptor.asString()
+            : '',
           wallet
         }
       } else if (key.creationType === 'importAddress') {
@@ -408,8 +437,12 @@ async function getWalletFromMnemonic(
       )
 
       // Get the base descriptor strings
-      const baseExternalString = await baseExternalDescriptor.asString()
-      const baseInternalString = await baseInternalDescriptor.asString()
+      const baseExternalString = baseExternalDescriptor
+        ? await baseExternalDescriptor.asString()
+        : ''
+      const baseInternalString = baseInternalDescriptor
+        ? await baseInternalDescriptor.asString()
+        : ''
 
       // Extract the key part (everything after the script function)
       const externalKeyPart = baseExternalString
@@ -468,8 +501,12 @@ async function getWalletFromMnemonic(
   return {
     fingerprint,
     derivationPath,
-    externalDescriptor: await externalDescriptor.asString(),
-    internalDescriptor: await internalDescriptor.asString(),
+    externalDescriptor: externalDescriptor
+      ? await externalDescriptor.asString()
+      : '',
+    internalDescriptor: internalDescriptor
+      ? await internalDescriptor.asString()
+      : '',
     wallet
   }
 }
@@ -510,6 +547,9 @@ async function getDescriptor(
 }
 
 async function parseDescriptor(descriptor: Descriptor) {
+  if (!descriptor) {
+    return { fingerprint: '', derivationPath: '' }
+  }
   const descriptorString = await descriptor.asString()
   const match = descriptorString.match(/\[([0-9a-f]+)([0-9'/]+)\]/)
   return match
@@ -534,6 +574,9 @@ async function getWalletFromDescriptor(
 }
 
 async function extractExtendedKeyFromDescriptor(descriptor: Descriptor) {
+  if (!descriptor) {
+    throw new Error('Descriptor is null or undefined')
+  }
   const descriptorString = await descriptor.asString()
   const match = descriptorString.match(/(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/)
   return match ? match[0] : ''
@@ -627,10 +670,14 @@ async function getDescriptorsFromKeyData(
     )
 
     return {
-      externalDescriptor: await externalDesc.asString(),
-      internalDescriptor: await internalDesc.asString()
+      externalDescriptor: externalDesc
+        ? await externalDesc.asString()
+        : externalDescriptor,
+      internalDescriptor: internalDesc
+        ? await internalDesc.asString()
+        : internalDescriptor
     }
-  } catch (_error) {
+  } catch {
     // Return descriptors without checksum if BDK fails
     return {
       externalDescriptor,
@@ -668,7 +715,8 @@ async function getWalletAddresses(
 
   for (let i = 0; i < count; i += 1) {
     const receiveAddrInfo = await wallet.getAddress(i)
-    const receiveAddr = await receiveAddrInfo.address.asString()
+    const address = receiveAddrInfo?.address
+    const receiveAddr = address ? await address.asString() : ''
     addresses.push({
       address: receiveAddr,
       keychain: 'external',
@@ -686,7 +734,9 @@ async function getWalletAddresses(
     })
 
     const changeAddrInfo = await wallet.getInternalAddress(i)
-    const changeAddr = await changeAddrInfo.address.asString()
+    const changeAddr = changeAddrInfo?.address
+      ? await changeAddrInfo.address.asString()
+      : ''
 
     addresses.push({
       address: changeAddr,
@@ -727,7 +777,9 @@ async function getWalletAddressesUsingStopGap(
 
   for (let i = 0; i < lastIndexWithFunds + stopGap; i += 1) {
     const receiveAddrInfo = await wallet.getAddress(i)
-    const receiveAddr = await receiveAddrInfo.address.asString()
+    const receiveAddr = receiveAddrInfo?.address
+      ? await receiveAddrInfo.address.asString()
+      : ''
     addresses.push({
       address: receiveAddr,
       keychain: 'external',
@@ -749,7 +801,9 @@ async function getWalletAddressesUsingStopGap(
     }
 
     const changeAddrInfo = await wallet.getInternalAddress(i)
-    const changeAddr = await changeAddrInfo.address.asString()
+    const changeAddr = changeAddrInfo?.address
+      ? await changeAddrInfo.address.asString()
+      : ''
 
     addresses.push({
       address: changeAddr,
@@ -918,7 +972,7 @@ async function parseTransactionDetailsToTransaction(
       const { value, script: scriptObj } = outputs[index]
       const script = await scriptObj.toBytes()
       const addressObj = await new Address().fromScript(scriptObj, network)
-      const address = await addressObj.asString()
+      const address = addressObj ? await addressObj.asString() : ''
       vout.push({ value, address, script })
     }
   }
@@ -977,7 +1031,7 @@ async function parseLocalUtxoToUtxo(
 async function getAddress(utxo: LocalUtxo, network: Network) {
   const script = utxo.txout.script
   const address = await new Address().fromScript(script, network)
-  return address.asString()
+  return address ? address.asString() : ''
 }
 
 async function getTransactionInputValues(

@@ -118,7 +118,7 @@ export default function DescriptorPage() {
                   externalDescriptor,
                   network as Network
                 )
-                foundDescriptor = await descriptor.asString()
+                foundDescriptor = descriptor ? await descriptor.asString() : ''
                 setDescriptor(foundDescriptor)
               } catch (_error) {
                 // Keep the descriptor without checksum if BDK fails

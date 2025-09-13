@@ -84,7 +84,9 @@ function ImportDescriptorFromAccount() {
         passphrase,
         network as Network
       )
-      externalDescriptorString = await externalDescriptor.asString()
+      externalDescriptorString = externalDescriptor
+        ? await externalDescriptor.asString()
+        : ''
     } else {
       if (!accountSecret.externalDescriptor) return
       externalDescriptorString = accountSecret.externalDescriptor

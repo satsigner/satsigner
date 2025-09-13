@@ -33,7 +33,8 @@ function useGetNumberOfUsedAddresses(wallet: Wallet, account: Account) {
 
     while (index < lastIndexWithFunds + stopGap) {
       const addrInfo = await wallet.getAddress(index)
-      const addr = await addrInfo.address.asString()
+      const address = addrInfo?.address
+      const addr = address ? await address.asString() : ''
       if (seenAddresses[addr] !== undefined) {
         lastIndexWithFunds = index
         localAddressCount += 1

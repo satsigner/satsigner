@@ -1059,7 +1059,7 @@ export default function AccountView() {
         </SSHStack>
       </TouchableOpacity>
       {!expand && (
-        <Animated.View>
+        <Animated.View style={{ paddingTop: 20 }}>
           <SSVStack itemsCenter gap="none">
             <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>

@@ -72,8 +72,8 @@ export default function Receive() {
       }
 
       const [address, qrUri] = await Promise.all([
-        addressInfo.address.asString(),
-        addressInfo.address.toQrUri()
+        addressInfo?.address ? addressInfo.address.asString() : '',
+        addressInfo?.address ? addressInfo.address.toQrUri() : ''
       ])
       setLocalAddress(address)
       setLocalAddressNumber(addressInfo.index)

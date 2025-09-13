@@ -98,6 +98,10 @@ function SSMultisigKeyControl({
             secret.externalDescriptor,
             network as Network
           )
+          if (!descriptor) {
+            setExtractedPublicKey('')
+            return
+          }
           const publicKey = await extractExtendedKeyFromDescriptor(descriptor)
           setExtractedPublicKey(publicKey)
         } catch (_error) {

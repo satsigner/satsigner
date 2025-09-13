@@ -65,7 +65,7 @@ function calculateDescriptorChecksum(descriptor: string): string {
     }
 
     return result
-  } catch (_error) {
+  } catch {
     return ''
   }
 }
@@ -156,7 +156,7 @@ export default function ExportDescriptors() {
                     )
                     extendedPublicKey =
                       await extractExtendedKeyFromDescriptor(descriptor)
-                  } catch (_error) {
+                  } catch {
                     // Failed to extract extended public key from descriptor for key ${index}
                   }
                 } else if (secret.mnemonic) {
@@ -176,7 +176,7 @@ export default function ExportDescriptors() {
                     if (extendedKey) {
                       extendedPublicKey = extendedKey
                     }
-                  } catch (_error) {
+                  } catch {
                     // Failed to generate extended public key from mnemonic for key ${index}
                   }
                 }
@@ -189,7 +189,7 @@ export default function ExportDescriptors() {
                     extendedPublicKey,
                     network as Network
                   )
-                } catch (_error) {
+                } catch {
                   // Failed to extract fingerprint from extended public key for key ${index}
                 }
               }
@@ -210,7 +210,7 @@ export default function ExportDescriptors() {
                     )
                     extendedPublicKey =
                       await extractExtendedKeyFromDescriptor(descriptor)
-                  } catch (_error) {
+                  } catch {
                     // Failed to extract extended public key from externalDescriptor for key ${index}
                   }
                 }
