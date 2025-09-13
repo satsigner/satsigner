@@ -75,7 +75,7 @@ export default function SetPin() {
         if (typeof key.secret === 'string') {
           const decryptedSecretString = await aesDecrypt(
             key.secret,
-            pin,
+            oldPin,
             key.iv
           )
           secret = JSON.parse(decryptedSecretString) as Secret
@@ -85,7 +85,7 @@ export default function SetPin() {
 
         // encrypt secret with new pin
         const serializedSecret = JSON.stringify(secret)
-        const newSecret = await aesEncrypt(serializedSecret, oldPin, key.iv)
+        const newSecret = await aesEncrypt(serializedSecret, pin, key.iv)
 
         // update secret while avoiding mutating nested objects in store
         updatedAccount.keys[k] = {
