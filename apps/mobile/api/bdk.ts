@@ -290,7 +290,7 @@ async function getWalletData(
         internalDescriptor,
         network
       )
-      if (!multisigDescriptor) {
+      if (!externalDesc) {
         throw new Error('Failed to create multisig descriptor')
       }
 
