@@ -156,11 +156,6 @@ const useAccountBuilderStore = create<
       extendedPublicKey
     } = get()
 
-    // Validate that the key has both fingerprint and public key/descriptor
-    if (!fingerprint) {
-      throw new Error('Fingerprint is required for all keys')
-    }
-
     // Check if we have either a public key or descriptor
     const hasPublicKey = extendedPublicKey || externalDescriptor || mnemonic
     if (!hasPublicKey) {
