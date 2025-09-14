@@ -458,6 +458,8 @@ export default function ExportDescriptors() {
                   } else {
                     descriptorString = finalDescriptor
                   }
+                }
+              }
             }
           } else {
             // For watchonly accounts, handle different creation types
