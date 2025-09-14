@@ -234,7 +234,12 @@ export default function PublicKeyPage() {
               secret.externalDescriptor,
               network as BdkNetwork
             )
-            publicKeyString = await extractExtendedKeyFromDescriptor(descriptor)
+            if (!descriptor) {
+              publicKeyString = ''
+            } else {
+              publicKeyString =
+                await extractExtendedKeyFromDescriptor(descriptor)
+            }
           }
         }
 

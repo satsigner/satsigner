@@ -6,7 +6,7 @@ import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
 import * as pako from 'pako'
 import crypto from 'react-native-aes-crypto'
 
-import type { NostrMessage } from '@/types/models/NostrMessage'
+import type { NostrMessage } from '@/types/models/Nostr'
 
 const POOL_SIZE = 1024 // 1KB of random values
 

@@ -66,7 +66,7 @@ function calculateDescriptorChecksum(descriptor: string): string {
     }
 
     return result
-  } catch (_error) {
+  } catch {
     return ''
   }
 }
@@ -160,6 +160,7 @@ export default function ExportDescriptors() {
                     )
                     extendedPublicKey =
                       await extractExtendedKeyFromDescriptor(descriptor)
+<<<<<<< HEAD
                   } catch (_error) {
                     // Failed to extract extended public key from descriptor
                   }
@@ -179,6 +180,7 @@ export default function ExportDescriptors() {
                     if (extendedKey) {
                       extendedPublicKey = extendedKey
                     }
+<<<<<<< HEAD
                   } catch (_error) {
                     // Failed to generate extended public key from mnemonic
                   }
@@ -192,6 +194,7 @@ export default function ExportDescriptors() {
                     extendedPublicKey,
                     network as Network
                   )
+<<<<<<< HEAD
                 } catch (_error) {
                   // Failed to extract fingerprint from extended public key
                 }
@@ -202,6 +205,7 @@ export default function ExportDescriptors() {
                 fingerprint = key.fingerprint
               }
 
+<<<<<<< HEAD
               if (fingerprint && extendedPublicKey) {
                 // Get the correct derivation path for the script version
                 const scriptVersion = key.scriptVersion || 'P2WPKH'
@@ -458,8 +462,6 @@ export default function ExportDescriptors() {
                   } else {
                     descriptorString = finalDescriptor
                   }
-                }
-              }
             }
           } else {
             // For watchonly accounts, handle different creation types
