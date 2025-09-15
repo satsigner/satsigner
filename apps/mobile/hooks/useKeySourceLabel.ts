@@ -1,11 +1,7 @@
 import { useMemo } from 'react'
 
 import { t } from '@/locales'
-import {
-  type Key,
-  type ScriptVersionType,
-  type Secret
-} from '@/types/models/Account'
+import { type Key, type ScriptVersionType } from '@/types/models/Account'
 import { type Network } from '@/types/settings/blockchain'
 import { getKeyFormatForScriptVersion } from '@/utils/bitcoin'
 
