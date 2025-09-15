@@ -381,7 +381,7 @@ export default function ExportDescriptors() {
                 )
 
                 // Sort keys by extended public key to ensure consistent ordering
-                const sortedKeyData = validKeyData.sort((a, b) => 
+                const sortedKeyData = validKeyData.sort((a, b) =>
                   a.extendedPublicKey.localeCompare(b.extendedPublicKey)
                 )
 
