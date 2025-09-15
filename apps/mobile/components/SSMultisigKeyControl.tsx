@@ -15,6 +15,8 @@ import SSRadioButton from '@/components/SSRadioButton'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { useKeySourceLabel } from '@/hooks/useKeySourceLabel'
+import { useMultisigKeyValidation } from '@/hooks/useKeyValidation'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -28,7 +30,6 @@ import {
   type ScriptVersionType,
   type Secret
 } from '@/types/models/Account'
-import { getKeyFormatForScriptVersion } from '@/utils/bitcoin'
 
 // Custom green icon with different color for keys with no secret
 function SSIconGreenNoSecret({
@@ -161,129 +162,19 @@ function SSMultisigKeyControl({
     }
   }, [keyDetails?.name])
 
-  function getSourceLabel() {
-    if (!keyDetails) {
-      return t('account.selectKeySource')
-    } else if (keyDetails.creationType === 'generateMnemonic') {
-      // Check if seed has been dropped
-      if (
-        seedDropped ||
-        (typeof keyDetails.secret === 'object' && !keyDetails.secret.mnemonic)
-      ) {
-        return t('account.seed.droppedSeed', {
-          name: keyDetails.scriptVersion
-        })
-      }
-      return t('account.seed.newSeed', {
-        name: keyDetails.scriptVersion
-      })
-    } else if (keyDetails.creationType === 'importMnemonic') {
-      // Check if seed has been dropped
-      if (
-        seedDropped ||
-        (typeof keyDetails.secret === 'object' && !keyDetails.secret.mnemonic)
-      ) {
-        return t('account.seed.droppedSeed', {
-          name: keyDetails.scriptVersion
-        })
-      }
-      return t('account.seed.importedSeed', { name: keyDetails.scriptVersion })
-    } else if (keyDetails.creationType === 'importDescriptor') {
-      return t('account.seed.external')
-    } else if (keyDetails.creationType === 'importExtendedPub') {
-      // Show the correct label according to the script version and network
-      const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
-      return t(`account.import.${keyFormat}`)
-    }
-  }
+  // Use custom hooks for label generation and validation
+  const { sourceLabel, importExtendedLabel, dropSeedLabel, shareXpubLabel } =
+    useKeySourceLabel({
+      keyDetails,
+      scriptVersion,
+      network,
+      seedDropped
+    })
 
-  // Always use the global scriptVersion from the store
-  function getImportExtendedLabel() {
-    const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
-    return t(`account.import.${keyFormat}`)
-  }
-
-  function getDropSeedLabel() {
-    // For multisig, generate dynamic labels based on script type and network
-    if (scriptVersion === 'P2SH') {
-      return network === 'bitcoin'
-        ? t('account.seed.dropAndKeep.xpub')
-        : t('account.seed.dropAndKeep.tpub')
-    } else if (scriptVersion === 'P2SH-P2WSH') {
-      return network === 'bitcoin'
-        ? t('account.seed.dropAndKeep.ypub')
-        : t('account.seed.dropAndKeep.upub')
-    } else if (scriptVersion === 'P2WSH') {
-      return network === 'bitcoin'
-        ? t('account.seed.dropAndKeep.zpub')
-        : t('account.seed.dropAndKeep.vpub')
-    } else if (scriptVersion === 'P2PKH') {
-      // P2PKH: Only xpub/tpub
-      return network === 'bitcoin'
-        ? t('account.seed.dropAndKeep.xpub')
-        : t('account.seed.dropAndKeep.tpub')
-    } else if (scriptVersion === 'P2SH-P2WPKH') {
-      // P2SH-P2WPKH: xpub/ypub or tpub/upub
-      return network === 'bitcoin'
-        ? t('account.seed.dropAndKeep.ypub')
-        : t('account.seed.dropAndKeep.upub')
-    } else if (scriptVersion === 'P2WPKH') {
-      // P2WPKH: xpub/zpub or tpub/vpub
-      return network === 'bitcoin'
-        ? t('account.seed.dropAndKeep.zpub')
-        : t('account.seed.dropAndKeep.vpub')
-    } else if (scriptVersion === 'P2TR') {
-      // P2TR: Only vpub (same for all networks)
-      return t('account.seed.dropAndKeep.vpub')
-    } else {
-      // Fallback for other script types
-      const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
-      return t(`account.seed.dropAndKeep.${keyFormat}`)
-    }
-  }
-
-  function getShareXpubLabel() {
-    // For multisig, generate dynamic labels based on script type and network
-    if (scriptVersion === 'P2SH') {
-      return network === 'bitcoin'
-        ? t('account.seed.shareXpub')
-        : t('account.seed.shareTpub')
-    } else if (scriptVersion === 'P2SH-P2WSH') {
-      return network === 'bitcoin'
-        ? t('account.seed.shareYpub')
-        : t('account.seed.shareUpub')
-    } else if (scriptVersion === 'P2WSH') {
-      return network === 'bitcoin'
-        ? t('account.seed.shareZpub')
-        : t('account.seed.shareVpub')
-    } else if (scriptVersion === 'P2PKH') {
-      // P2PKH: Only xpub/tpub
-      return network === 'bitcoin'
-        ? t('account.seed.shareXpub')
-        : t('account.seed.shareTpub')
-    } else if (scriptVersion === 'P2SH-P2WPKH') {
-      // P2SH-P2WPKH: xpub/ypub or tpub/upub
-      return network === 'bitcoin'
-        ? t('account.seed.shareYpub')
-        : t('account.seed.shareUpub')
-    } else if (scriptVersion === 'P2WPKH') {
-      // P2WPKH: xpub/zpub or tpub/vpub
-      return network === 'bitcoin'
-        ? t('account.seed.shareZpub')
-        : t('account.seed.shareVpub')
-    } else if (scriptVersion === 'P2TR') {
-      // P2TR: Only vpub
-      return t('account.seed.shareVpub')
-    } else {
-      // Fallback for other script types
-      const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
-      return t(
-        `account.seed.share${
-          keyFormat.charAt(0).toUpperCase() + keyFormat.slice(1)
-        }`
-      )
-    }
-  }
+  const { isKeyCompleted, hasSeed, hasNoSecret } = useMultisigKeyValidation({
+    keyDetails,
+    seedDropped
+  })
 
   function handleWordCountSelection() {
     setWordCountModalVisible(false)
@@ -478,33 +369,6 @@ function SSMultisigKeyControl({
     }
   }
 
-  // Check if the key is completed based on its data
-  const isKeyCompleted =
-    keyDetails &&
-    keyDetails.creationType &&
-    ((typeof keyDetails.secret === 'object' &&
-      keyDetails.secret.fingerprint &&
-      (keyDetails.secret.extendedPublicKey ||
-        keyDetails.secret.externalDescriptor ||
-        keyDetails.secret.mnemonic)) ||
-      (typeof keyDetails.secret === 'string' && keyDetails.secret.length > 0))
-
-  // Check if the key has a mnemonic (seed) that can be dropped
-  const hasSeed = Boolean(
-    !seedDropped &&
-      keyDetails &&
-      typeof keyDetails.secret === 'object' &&
-      keyDetails.secret.mnemonic
-  )
-
-  // Check if the key is completed but has no mnemonic (extended pub key or descriptor only)
-  const hasNoSecret = Boolean(
-    isKeyCompleted &&
-      keyDetails &&
-      typeof keyDetails.secret === 'object' &&
-      !keyDetails.secret.mnemonic
-  )
-
   function handleKeyNameChange(newName: string) {
     setLocalKeyName(newName)
     setHasUnsavedChanges(true)
@@ -578,7 +442,7 @@ function SSMultisigKeyControl({
               {t('common.key')} {index + 1}
             </SSText>
             <SSVStack gap="none">
-              <SSText color="muted">{getSourceLabel()}</SSText>
+              <SSText color="muted">{sourceLabel}</SSText>
               <SSText color={keyDetails?.name ? 'white' : 'muted'}>
                 {keyDetails?.name ?? t('account.seed.noLabel')}
               </SSText>
@@ -634,7 +498,7 @@ function SSMultisigKeyControl({
                 )}
                 {hasSeed && (
                   <SSButton
-                    label={getDropSeedLabel()}
+                    label={dropSeedLabel}
                     onPress={() => handleCompletedKeyAction('dropSeed')}
                     style={{
                       backgroundColor: 'black',
@@ -644,7 +508,7 @@ function SSMultisigKeyControl({
                   />
                 )}
                 <SSButton
-                  label={getShareXpubLabel()}
+                  label={shareXpubLabel}
                   onPress={() => handleCompletedKeyAction('shareXpub')}
                 />
                 <SSButton
@@ -680,7 +544,7 @@ function SSMultisigKeyControl({
                   onPress={() => handleAction('importDescriptor')}
                 />
                 <SSButton
-                  label={getImportExtendedLabel()}
+                  label={importExtendedLabel}
                   disabled={!localKeyName.trim()}
                   onPress={() => handleAction('importExtendedPub')}
                 />

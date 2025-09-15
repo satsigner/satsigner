@@ -9,13 +9,14 @@ import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
 import { SSIconGreen } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
+import { useKeySourceLabel } from '@/hooks/useKeySourceLabel'
+import { useSignatureDropdownValidation } from '@/hooks/useKeyValidation'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Typography } from '@/styles'
 import { type Account, type Key } from '@/types/models/Account'
-import { getKeyFormatForScriptVersion } from '@/utils/bitcoin'
 import {
   validateSignedPSBT,
   validateSignedPSBTForCosigner
@@ -72,18 +73,27 @@ function SSSignatureDropdown({
   const [extractedPublicKey, setExtractedPublicKey] = useState('')
   const [seedDropped, setSeedDropped] = useState(false)
 
-  // Check if this cosigner has a seed - show Sign with Local Key button at the end
-  const hasLocalSeed = Boolean(
-    decryptedKey?.secret &&
-      typeof decryptedKey.secret === 'object' &&
-      'mnemonic' in decryptedKey.secret &&
-      decryptedKey.secret.mnemonic
+  // Get network and script version for source label
+  const network = useBlockchainStore((state) => state.selectedNetwork)
+  const scriptVersion = keyDetails?.scriptVersion || 'P2WSH'
+
+  // Use custom hooks for validation and label generation
+  const { hasLocalSeed, isSignatureCompleted } = useSignatureDropdownValidation(
+    {
+      keyDetails,
+      seedDropped,
+      decryptedKey,
+      signedPsbt
+    }
   )
 
-  // Check if this cosigner has completed their signature
-  const isSignatureCompleted = Boolean(
-    signedPsbt && signedPsbt.trim().length > 0
-  )
+  const { sourceLabel } = useKeySourceLabel({
+    keyDetails,
+    scriptVersion,
+    network,
+    seedDropped,
+    decryptedKey
+  })
 
   // Extract public key from descriptor when key details change
   useEffect(() => {
@@ -198,52 +208,6 @@ function SSSignatureDropdown({
     )}...${extendedPublicKey.slice(-4)}`
   }
 
-  // Get network and script version for source label
-  const network = useBlockchainStore((state) => state.selectedNetwork)
-  const scriptVersion = keyDetails?.scriptVersion || 'P2WSH'
-
-  function getSourceLabel() {
-    if (!keyDetails) {
-      return t('account.selectKeySource')
-    } else if (keyDetails.creationType === 'generateMnemonic') {
-      // Check if seed has been dropped
-      if (
-        seedDropped ||
-        (decryptedKey &&
-          typeof decryptedKey.secret === 'object' &&
-          !decryptedKey.secret.mnemonic) ||
-        (typeof keyDetails.secret === 'object' && !keyDetails.secret.mnemonic)
-      ) {
-        return t('account.seed.droppedSeed', {
-          name: keyDetails.scriptVersion
-        })
-      }
-      return t('account.seed.newSeed', {
-        name: keyDetails.scriptVersion
-      })
-    } else if (keyDetails.creationType === 'importMnemonic') {
-      // Check if seed has been dropped
-      if (
-        seedDropped ||
-        (decryptedKey &&
-          typeof decryptedKey.secret === 'object' &&
-          !decryptedKey.secret.mnemonic) ||
-        (typeof keyDetails.secret === 'object' && !keyDetails.secret.mnemonic)
-      ) {
-        return t('account.seed.droppedSeed', {
-          name: keyDetails.scriptVersion
-        })
-      }
-      return t('account.seed.importedSeed', { name: keyDetails.scriptVersion })
-    } else if (keyDetails.creationType === 'importDescriptor') {
-      return t('account.seed.external')
-    } else if (keyDetails.creationType === 'importExtendedPub') {
-      // Show the correct label according to the script version and network
-      const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
-      return t(`account.import.${keyFormat}`)
-    }
-  }
-
   // Validate PSBT when signedPsbt changes
   useEffect(() => {
     if (signedPsbt && signedPsbt.trim().length > 0) {
@@ -322,7 +286,7 @@ function SSSignatureDropdown({
               {t('common.key')} {index + 1}
             </SSText>
             <SSVStack gap="none">
-              <SSText color="muted">{getSourceLabel()}</SSText>
+              <SSText color="muted">{sourceLabel}</SSText>
               <SSText color={keyDetails?.name ? 'white' : 'muted'}>
                 {keyDetails?.name ?? t('account.seed.noLabel')}
               </SSText>
