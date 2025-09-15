@@ -10,17 +10,17 @@ import SSModal from '@/components/SSModal'
 import SSPinEntry from '@/components/SSPinEntry'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSText from '@/components/SSText'
-import { PIN_KEY as _PIN_KEY } from '@/config/auth'
+import { PIN_KEY } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem as _getItem } from '@/storage/encrypted'
+import { getItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
-import { aesDecrypt, getPinForDecryption } from '@/utils/crypto'
+import { aesDecrypt } from '@/utils/crypto'
 
 export default function SeedWordsPage() {
   const { keyIndex } = useLocalSearchParams<{ keyIndex: string }>()
@@ -56,7 +56,8 @@ export default function SeedWordsPage() {
       }
 
       // For encrypted secrets (settings mode), we need PIN
-      const pinHash = await getPinForDecryption(skipPin)
+      // Always use the stored PIN for decryption, not the default PIN
+      const pinHash = await getItem(PIN_KEY)
       if (!pinHash) {
         toast.error(t('account.seed.unableToDecrypt'))
         return
