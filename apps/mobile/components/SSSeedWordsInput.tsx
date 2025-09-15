@@ -87,6 +87,7 @@ export default function SSSeedWordsInput({
 
   const wordList = getWordList()
   const passphraseRef = useRef<any>()
+  const clipboardCheckedRef = useRef(false)
 
   // Initialize seed words info
   useEffect(() => {
@@ -167,10 +168,11 @@ export default function SSSeedWordsInput({
 
   // Check clipboard when component mounts if autoCheckClipboard is enabled
   useEffect(() => {
-    if (autoCheckClipboard) {
+    if (autoCheckClipboard && !clipboardCheckedRef.current) {
+      clipboardCheckedRef.current = true
       readSeedFromClipboard()
     }
-  }, [autoCheckClipboard, readSeedFromClipboard])
+  }, [autoCheckClipboard]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle seed word input change
   const handleSeedWordChange = async (index: number, value: string) => {
