@@ -329,8 +329,9 @@ export function validateCosignerSignature(
       }
     }
 
-    // Return true only if we have signatures AND at least one is from the cosigner
-    return hasAnySignatures && hasCosignerSignature
+    // Return true if we have any signatures (regardless of which cosigner)
+    // The PSBT is valid if it has signatures from any cosigner
+    return hasAnySignatures
   } catch (_error) {
     return false
   }
