@@ -25,7 +25,12 @@ const KEY_CODE_BACKSPACE = 67
 const KEY_CODE_LEFT = 21
 const DELETE_DELAY = 50 // delay in miliseconds between consecutive deletions
 
-function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
+function SSPinInput({
+  pin,
+  setPin,
+  autoFocus = true,
+  onFillEnded
+}: SSPinInputProps) {
   const inputRefs = useRef<TextInput[]>([])
   const [isBackspace, setIsBackspace] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -55,10 +60,7 @@ function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
         pressedKey = 'Backspace'
       }
 
-      // The value of currentIndex has just been updated to the next PIN, which
-      // is empty. Therefore, we subtract 1 to get the index of the PIN input
-      // which has changed.
-      handleKeyPress(pressedKey, currentIndex - 1)
+      handleKeyPress(pressedKey)
     })
 
     return () => {
@@ -82,6 +84,8 @@ function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
     if (text === '') return
 
     if (index + 1 < PIN_SIZE) inputRefs.current[index + 1]?.focus()
+
+    if (index === PIN_SIZE - 1) handleLastPin(newPin)
   }
 
   function handleBackspace(index: number) {
@@ -117,20 +121,17 @@ function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
     }, DELETE_DELAY)
   }
 
-  function handleLastPin() {
-    const finalPin = pin.slice(0, PIN_SIZE)
+  function handleLastPin(pin: string[]) {
+    const finalPin = pin.join('')
+    if (finalPin.length !== PIN_SIZE) return
     setIsBackspace(false)
-    onFillEnded?.(finalPin.join(''))
-    setPin(finalPin)
+    onFillEnded?.(finalPin)
     Keyboard.dismiss()
   }
 
-  function handleKeyPress(key: string, index: number) {
+  function handleKeyPress(key: string) {
     if (key === 'Backspace') {
       handleBackspace(currentIndex)
-    }
-    if (index === PIN_SIZE - 1 && ALLOWED_KEYS.includes(key)) {
-      handleLastPin()
     }
   }
 
@@ -168,7 +169,7 @@ function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
           maxLength={1}
           secureTextEntry
           onChangeText={(text) => handleOnChangeText(text, index)}
-          onKeyPress={(event) => handleKeyPress(event.nativeEvent.key, index)}
+          onKeyPress={(event) => handleKeyPress(event.nativeEvent.key)}
           onFocus={() => handleOnFocus()}
         />
       ))}
