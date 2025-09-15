@@ -306,7 +306,7 @@ export function validateCosignerSignature(
 
     // Check if PSBT has any signatures
     let hasAnySignatures = false
-    let hasCosignerSignature = false
+    let _hasCosignerSignature = false
 
     // Check each input for signatures from the specific cosigner
     for (let i = 0; i < psbt.data.inputs.length; i++) {
@@ -322,7 +322,7 @@ export function validateCosignerSignature(
 
         for (const sig of signatures) {
           if (sig.pubkey && sig.pubkey.toString('hex') === cosignerPublicKey) {
-            hasCosignerSignature = true
+            _hasCosignerSignature = true
             break
           }
         }

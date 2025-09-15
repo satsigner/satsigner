@@ -90,7 +90,7 @@ export default function SeedWordsPage() {
     } catch (_error) {
       toast.error(t('account.seed.unableToDecrypt'))
     }
-  }, [accountData, key, skipPin])
+  }, [accountData, key])
 
   async function handlePinEntry() {
     await decryptMnemonic()

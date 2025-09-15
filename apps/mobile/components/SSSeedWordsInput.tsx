@@ -170,7 +170,7 @@ export default function SSSeedWordsInput({
     if (autoCheckClipboard) {
       readSeedFromClipboard()
     }
-  }, [autoCheckClipboard])
+  }, [autoCheckClipboard, readSeedFromClipboard])
 
   // Handle seed word input change
   const handleSeedWordChange = async (index: number, value: string) => {
