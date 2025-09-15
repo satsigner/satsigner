@@ -25,7 +25,12 @@ const KEY_CODE_BACKSPACE = 67
 const KEY_CODE_LEFT = 21
 const DELETE_DELAY = 50 // delay in miliseconds between consecutive deletions
 
-function SSPinInput({ pin, setPin, autoFocus = true, onFillEnded }: SSPinInputProps) {
+function SSPinInput({
+  pin,
+  setPin,
+  autoFocus = true,
+  onFillEnded
+}: SSPinInputProps) {
   const inputRefs = useRef<TextInput[]>([])
   const [isBackspace, setIsBackspace] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
