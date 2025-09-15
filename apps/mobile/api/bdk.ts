@@ -250,8 +250,13 @@ async function getWalletData(
       // Remove leading 'm' or 'M' from derivationPath if present
       const cleanPolicyPath = policyDerivationPath.replace(/^m\/?/i, '')
 
+      // Sort keys by extended public key to ensure consistent ordering
+      const sortedKeyData = validKeyData.sort((a, b) => 
+        a.extendedPublicKey.localeCompare(b.extendedPublicKey)
+      )
+
       // Build key section with policy-based derivation paths and fingerprints
-      const keySection = validKeyData
+      const keySection = sortedKeyData
         .map(({ fingerprint, extendedPublicKey }) => {
           // Format: [FINGERPRINT/POLICY_DERIVATION_PATH]XPUB/<0;1>/*
           return `[${fingerprint}/${cleanPolicyPath}]${extendedPublicKey}/<0;1>/*`
