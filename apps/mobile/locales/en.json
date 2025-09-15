@@ -151,6 +151,7 @@
     "nostrSync.tabs.manual": "Manual",
     "nostrSync.title": "Nostr Sync",
     "parentAccountActivity": "Parent Account Activity",
+    "participant.keyName": "Key Name",
     "participant.participant.keyName": "Key Name",
     "policy.multiSignature.description": "Add multiple signers",
     "policy.multiSignature.title": "Multi-Signature",
