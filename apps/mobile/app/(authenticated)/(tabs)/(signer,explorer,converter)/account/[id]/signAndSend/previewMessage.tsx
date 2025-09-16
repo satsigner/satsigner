@@ -88,7 +88,6 @@ function PreviewMessage() {
   const account = useAccountsStore((state) =>
     state.accounts.find((account) => account.id === id)
   )
-
   const wallet = useGetAccountWallet(id!)
   const network = useBlockchainStore((state) => state.selectedNetwork)
   const [messageId, setMessageId] = useState('')
