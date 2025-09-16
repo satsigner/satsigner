@@ -47,12 +47,10 @@ import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
+import { checkWalletNeedsSync } from '@/utils/account'
 import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
-
-// Maximum number of days without syncing the wallet before we show a warning
-const MAX_DAYS_WITHOUT_SYNCING = 3
 
 export default function IOPreview() {
   const router = useRouter()
@@ -445,59 +443,7 @@ export default function IOPreview() {
     }
 
     // Check if wallet needs syncing based on time since last sync
-    // Only show sync page if wallet hasn't been synced within the last 3 days
-    const needsSync = (() => {
-      // If no lastSyncedAt, definitely needs sync
-      if (account.lastSyncedAt === undefined) {
-        return true
-      }
-
-      // Safely convert lastSyncedAt to Date object
-      let lastSync: Date
-      try {
-        const lastSyncedAtValue = account.lastSyncedAt
-
-        // If it's already a Date object, use it
-        if (lastSyncedAtValue instanceof Date) {
-          lastSync = lastSyncedAtValue
-        } else {
-          // If it's a string or number, try to create a Date
-          lastSync = new Date(lastSyncedAtValue)
-
-          // Check if the date is valid
-          if (isNaN(lastSync.getTime())) {
-            // Invalid lastSyncedAt value, needs sync
-            return true
-          }
-        }
-      } catch {
-        // Error parsing lastSyncedAt, needs sync
-        return true
-      }
-
-      const now = new Date()
-
-      // Discard the time and time-zone information.
-      const currentUtc = Date.UTC(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate()
-      )
-
-      const lastSyncedUtc = Date.UTC(
-        lastSync.getFullYear(),
-        lastSync.getMonth(),
-        lastSync.getDate()
-      )
-
-      const MILISECONDS_PER_DAY = 1000 * 60 * 60 * 24
-      const daysSinceLastSync = Math.floor(
-        (currentUtc - lastSyncedUtc) / MILISECONDS_PER_DAY
-      )
-
-      // Account updated too long ago.
-      return daysSinceLastSync > MAX_DAYS_WITHOUT_SYNCING
-    })()
+    const needsSync = checkWalletNeedsSync(account)
 
     if (needsSync) {
       router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
