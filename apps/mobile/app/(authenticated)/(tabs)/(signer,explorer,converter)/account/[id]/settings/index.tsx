@@ -232,7 +232,7 @@ export default function AccountSettings() {
                       }
                       return formatDate(date)
                     }
-                  } catch (_error) {
+                  } catch {
                     // Error formatting createdAt in settings
                     return 'Invalid date'
                   }
