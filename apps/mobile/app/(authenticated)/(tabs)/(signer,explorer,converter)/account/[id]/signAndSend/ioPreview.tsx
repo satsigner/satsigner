@@ -470,7 +470,7 @@ export default function IOPreview() {
             return true
           }
         }
-      } catch (_error) {
+      } catch {
         // Error parsing lastSyncedAt, needs sync
         return true
       }
@@ -792,7 +792,7 @@ export default function IOPreview() {
                           } else {
                             toast.error(t('common.invalid'))
                           }
-                        } catch (_error) {
+                        } catch {
                           toast.error(t('common.invalid'))
                         }
                       }}
