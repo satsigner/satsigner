@@ -749,7 +749,7 @@ export default function UnifiedImport() {
             <SSButton
               label={t('common.cancel')}
               variant="ghost"
-              onPress={() => router.back()}
+              onPress={() => router.dismiss(1)}
             />
           </SSVStack>
         </SSVStack>

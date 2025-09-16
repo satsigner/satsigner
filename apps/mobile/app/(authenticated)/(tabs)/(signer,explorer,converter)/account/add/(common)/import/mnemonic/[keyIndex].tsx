@@ -209,7 +209,7 @@ export default function ImportMnemonic() {
 
   function handleOnPressCancel() {
     if (policyType === 'multisig') {
-      router.back()
+      router.dismiss(1)
     } else {
       router.dismiss(Number(keyIndex) + 3)
     }

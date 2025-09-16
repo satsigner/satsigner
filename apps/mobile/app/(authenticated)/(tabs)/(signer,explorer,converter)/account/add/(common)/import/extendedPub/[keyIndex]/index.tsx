@@ -859,7 +859,7 @@ export default function ImportExtendedPub() {
               <SSButton
                 label={t('common.cancel')}
                 variant="ghost"
-                onPress={() => router.dismiss(2)}
+                onPress={() => router.dismiss(1)}
               />
             </SSVStack>
           </SSVStack>
