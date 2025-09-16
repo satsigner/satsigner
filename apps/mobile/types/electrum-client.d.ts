@@ -24,14 +24,14 @@ declare module 'electrum-client' {
     blockchainScripthash_listunspent(
       scriptHash: string
     ): Promise<
-      Array<{ height: number; tx_hash: string; tx_pos: number; value: number }>
+      { height: number; tx_hash: string; tx_pos: number; value: number }[]
     >
     blockchainScripthash_getHistory(
       scriptHash: string
-    ): Promise<Array<{ height: number; tx_hash: string }>>
+    ): Promise<{ height: number; tx_hash: string }[]>
     blockchainScripthash_getMempool(
       scriptHash: string
-    ): Promise<Array<{ height: number; tx_hash: string; fee: number }>>
+    ): Promise<{ height: number; tx_hash: string; fee: number }[]>
     blockchainTransaction_get(txid: string, verbose?: boolean): Promise<string>
     blockchainBlock_header(height: number): Promise<string>
     blockchainTransaction_broadcast(rawTxHex: string): Promise<string>
