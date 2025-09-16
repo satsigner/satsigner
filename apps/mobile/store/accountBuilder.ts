@@ -5,12 +5,7 @@ import { create } from 'zustand'
 import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
 import { type EntropyType } from '@/types/logic/entropy'
-import {
-  type Account,
-  type DM,
-  type Key,
-  type Secret
-} from '@/types/models/Account'
+import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 
 type AccountBuilderState = {
@@ -161,11 +156,6 @@ const useAccountBuilderStore = create<
       extendedPublicKey
     } = get()
 
-    // Validate that the key has both fingerprint and public key/descriptor
-    if (!fingerprint) {
-      throw new Error('Fingerprint is required for all keys')
-    }
-
     // Check if we have either a public key or descriptor
     const hasPublicKey = extendedPublicKey || externalDescriptor || mnemonic
     if (!hasPublicKey) {
@@ -272,7 +262,7 @@ const useAccountBuilderStore = create<
         deviceNpub: '',
         deviceNsec: '',
         trustedMemberDevices: [],
-        dms: [] as DM[],
+        dms: [],
         lastUpdated: new Date(),
         syncStart: new Date()
       }
