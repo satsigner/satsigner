@@ -637,7 +637,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0
   },
   multiSigKeyControlCOntainer: {
-    marginHorizontal: 0
+    marginHorizontal: 0,
+    marginBottom: 50
   },
   mnemonicGrid: {
     flexDirection: 'row',

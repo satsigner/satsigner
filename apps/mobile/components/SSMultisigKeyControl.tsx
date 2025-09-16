@@ -1,8 +1,8 @@
 import { Descriptor } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
-import { TouchableOpacity, View } from 'react-native'
+import { useEffect, useRef, useState } from 'react'
+import { Animated, TouchableOpacity, View } from 'react-native'
 import Svg, { Ellipse } from 'react-native-svg'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -100,6 +100,45 @@ function SSMultisigKeyControl({
   const [wordCountModalVisible, setWordCountModalVisible] = useState(false)
   const [localMnemonicWordCount, setLocalMnemonicWordCount] = useState(24)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+
+  // Animation values
+  const animatedHeight = useRef(new Animated.Value(0)).current
+  const animatedOpacity = useRef(new Animated.Value(0)).current
+  const [contentHeight, setContentHeight] = useState(0)
+
+  // Animation logic for expansion/contraction
+  useEffect(() => {
+    if (isExpanded) {
+      // Expand animation - use measured height or fallback to a reasonable default
+      const targetHeight = contentHeight > 0 ? contentHeight : 300
+      Animated.parallel([
+        Animated.timing(animatedHeight, {
+          toValue: targetHeight + 50 - 16,
+          duration: 100,
+          useNativeDriver: false
+        }),
+        Animated.timing(animatedOpacity, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: false
+        })
+      ]).start()
+    } else {
+      // Collapse animation
+      Animated.parallel([
+        Animated.timing(animatedHeight, {
+          toValue: 0,
+          duration: 100,
+          useNativeDriver: false
+        }),
+        Animated.timing(animatedOpacity, {
+          toValue: 0,
+          duration: 100,
+          useNativeDriver: false
+        })
+      ]).start()
+    }
+  }, [isExpanded, contentHeight, animatedHeight, animatedOpacity])
 
   // Extract public key from descriptor when key details change
   useEffect(() => {
@@ -420,7 +459,9 @@ function SSMultisigKeyControl({
       ]}
     >
       <TouchableOpacity
-        onPress={() => setIsExpanded(!isExpanded)}
+        onPress={() => {
+          setIsExpanded(!isExpanded)
+        }}
         style={{
           //paddingHorizontal: 8,
           paddingBottom: 8,
@@ -464,7 +505,118 @@ function SSMultisigKeyControl({
         </SSHStack>
       </TouchableOpacity>
 
-      {isExpanded && (
+      <Animated.View
+        style={{
+          height: animatedHeight,
+          opacity: animatedOpacity,
+          overflow: 'hidden'
+        }}
+      >
+        {/* Hidden content for measurement - always rendered but invisible */}
+        <View
+          style={{
+            position: 'absolute',
+            top: -10000, // Move off-screen
+            left: 0,
+            right: 0,
+            opacity: 0
+          }}
+          onLayout={(event) => {
+            const { height } = event.nativeEvent.layout
+            setContentHeight(height)
+          }}
+        >
+          <SSVStack style={{ paddingBottom: 24, paddingTop: 16 }} gap="lg">
+            {(!isKeyCompleted || isSettingsMode) && (
+              <SSFormLayout>
+                <SSFormLayout.Item>
+                  <SSFormLayout.Label
+                    label={t('account.participant.keyName')}
+                  />
+                  <SSTextInput
+                    value={localKeyName}
+                    onChangeText={handleKeyNameChange}
+                  />
+                  {isSettingsMode && hasUnsavedChanges && (
+                    <SSButton
+                      label={t('common.save')}
+                      variant="secondary"
+                      onPress={handleSaveKeyName}
+                      style={{ marginTop: 8 }}
+                    />
+                  )}
+                </SSFormLayout.Item>
+              </SSFormLayout>
+            )}
+
+            <SSVStack gap="sm">
+              {isKeyCompleted ? (
+                <>
+                  {hasSeed && (
+                    <SSButton
+                      label={t('account.seed.viewSeedWords')}
+                      onPress={handleViewSeedWords}
+                      variant="secondary"
+                    />
+                  )}
+                  {hasSeed && (
+                    <SSButton
+                      label={dropSeedLabel}
+                      onPress={() => handleCompletedKeyAction('dropSeed')}
+                      style={{
+                        backgroundColor: 'black',
+                        borderWidth: 1,
+                        borderColor: 'white'
+                      }}
+                    />
+                  )}
+                  <SSButton
+                    label={shareXpubLabel}
+                    onPress={() => handleCompletedKeyAction('shareXpub')}
+                  />
+                  <SSButton
+                    label={t('account.seed.shareDescriptor')}
+                    onPress={() => handleCompletedKeyAction('shareDescriptor')}
+                  />
+                  <SSButton
+                    label="Reset Key"
+                    onPress={() => handleCompletedKeyAction('resetKey')}
+                    variant="ghost"
+                    style={{
+                      backgroundColor: 'transparent',
+                      borderWidth: 1,
+                      borderColor: '#666666'
+                    }}
+                  />
+                </>
+              ) : (
+                <>
+                  <SSButton
+                    label={t('account.generate.newSecretSeed')}
+                    disabled={!localKeyName.trim()}
+                    onPress={() => handleAction('generateMnemonic')}
+                  />
+                  <SSButton
+                    label={t('account.import.title2')}
+                    disabled={!localKeyName.trim()}
+                    onPress={() => handleAction('importMnemonic')}
+                  />
+                  <SSButton
+                    label={t('account.import.descriptor')}
+                    disabled={!localKeyName.trim()}
+                    onPress={() => handleAction('importDescriptor')}
+                  />
+                  <SSButton
+                    label={importExtendedLabel}
+                    disabled={!localKeyName.trim()}
+                    onPress={() => handleAction('importExtendedPub')}
+                  />
+                </>
+              )}
+            </SSVStack>
+          </SSVStack>
+        </View>
+        {/* Visible content - same as hidden measurement content */}
         <SSVStack style={{ paddingBottom: 24, paddingTop: 16 }} gap="lg">
           {(!isKeyCompleted || isSettingsMode) && (
             <SSFormLayout>
@@ -552,7 +704,7 @@ function SSMultisigKeyControl({
             )}
           </SSVStack>
         </SSVStack>
-      )}
+      </Animated.View>
 
       {/* Drop Seed Confirmation Modal */}
       <SSModal
