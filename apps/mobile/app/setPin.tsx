@@ -8,10 +8,11 @@ import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
 import { DEFAULT_PIN, PIN_KEY, PIN_SIZE, SALT_KEY } from '@/config/auth'
+import useReEncryptAccounts from '@/hooks/useReEncryptAccounts'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { setItem } from '@/storage/encrypted'
+import { getItem, setItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Layout } from '@/styles'
@@ -25,6 +26,7 @@ export default function SetPin() {
     useShallow((state) => [state.setFirstTime, state.setRequiresAuth])
   )
   const showWarning = useSettingsStore((state) => state.showWarning)
+  const reEncryptAccounts = useReEncryptAccounts()
 
   const [loading, setLoading] = useState(false)
   const [stage, setStage] = useState<Stage>('set')
@@ -39,16 +41,28 @@ export default function SetPin() {
     confirmationPinArray.findIndex((text) => text === '') === -1
   const pinsMatch = pinArray.join('') === confirmationPinArray.join('')
 
+  // for each account, update re-encrypt each of its secret with new PIN
   async function setPin(pin: string) {
     const salt = await generateSalt()
-    const encryptedPin = await pbkdf2Encrypt(pin, salt)
-    await setItem(PIN_KEY, encryptedPin)
+    const newPinEncrypted = await pbkdf2Encrypt(pin, salt)
+    const oldPinEncrypted = await getItem(PIN_KEY)
+
+    if (oldPinEncrypted) {
+      await reEncryptAccounts(oldPinEncrypted, newPinEncrypted)
+    }
+
+    await setItem(PIN_KEY, newPinEncrypted)
     await setItem(SALT_KEY, salt)
   }
 
   async function handleSetPinLater() {
     setFirstTime(false)
-    await setPin(DEFAULT_PIN)
+
+    // use default pin if none is set
+    const currentPin = await getItem(PIN_KEY)
+    if (!currentPin) {
+      await setPin(DEFAULT_PIN)
+    }
 
     // Let us clear the history to prevent the user from going back to Set Pin
     // screen by pressing 'back' button. Otherwise, pressing 'back' will show
