@@ -12,17 +12,11 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { getItem, setItem } from '@/storage/encrypted'
-import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Layout } from '@/styles'
-import { type Secret } from '@/types/models/Account'
-import {
-  aesDecrypt,
-  aesEncrypt,
-  generateSalt,
-  pbkdf2Encrypt
-} from '@/utils/crypto'
+import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
+import useReEncryptAccounts from '@/hooks/useReEncryptAccounts'
 
 type Stage = 'set' | 're-enter'
 
@@ -31,10 +25,8 @@ export default function SetPin() {
   const [setFirstTime, setRequiresAuth] = useAuthStore(
     useShallow((state) => [state.setFirstTime, state.setRequiresAuth])
   )
-  const [accounts, updateAccount] = useAccountsStore(
-    useShallow((state) => [state.accounts, state.updateAccount])
-  )
   const showWarning = useSettingsStore((state) => state.showWarning)
+  const reEncryptAccounts = useReEncryptAccounts()
 
   const [loading, setLoading] = useState(false)
   const [stage, setStage] = useState<Stage>('set')
@@ -50,51 +42,6 @@ export default function SetPin() {
   const pinsMatch = pinArray.join('') === confirmationPinArray.join('')
 
   // for each account, update re-encrypt each of its secret with new PIN
-  async function reEncryptAccounts(
-    oldPinEncrypted: string,
-    newPinEncrypted: string
-  ) {
-    for (const account of accounts) {
-      // make copy of objects and arrays to avoid directly mutation of store
-      const updatedAccount = { ...account }
-      updatedAccount.keys = [...account.keys]
-
-      for (let k = 0; k < account.keys.length; k += 1) {
-        const key = account.keys[k]
-
-        // get the secret currently encrypted using old PIN
-        let secret: Secret | undefined
-        if (typeof key.secret === 'string') {
-          const decryptedSecretString = await aesDecrypt(
-            key.secret,
-            oldPinEncrypted,
-            key.iv
-          )
-          secret = JSON.parse(decryptedSecretString) as Secret
-        } else {
-          secret = key.secret
-        }
-
-        // encrypt secret with new pin
-        const serializedSecret = JSON.stringify(secret)
-        const newSecret = await aesEncrypt(
-          serializedSecret,
-          newPinEncrypted,
-          key.iv
-        )
-
-        // update secret while avoiding mutating nested objects in store
-        updatedAccount.keys[k] = {
-          ...account.keys[k],
-          secret: newSecret
-        }
-      }
-
-      // update store
-      updateAccount(updatedAccount)
-    }
-  }
-
   async function setPin(pin: string) {
     const salt = await generateSalt()
     const newPinEncrypted = await pbkdf2Encrypt(pin, salt)
