@@ -66,7 +66,7 @@ function calculateDescriptorChecksum(descriptor: string): string {
     }
 
     return result
-  } catch (_error) {
+  } catch {
     return ''
   }
 }
@@ -126,7 +126,6 @@ export default function ExportDescriptors() {
 
         let descriptorString = ''
 
-        // Safety check: ensure account has keys
         if (!temporaryAccount.keys || temporaryAccount.keys.length === 0) {
           descriptorString = 'No keys available for account'
         } else if (!isImportAddress) {
@@ -159,7 +158,7 @@ export default function ExportDescriptors() {
                     )
                     extendedPublicKey =
                       await extractExtendedKeyFromDescriptor(descriptor)
-                  } catch (_error) {
+                  } catch {
                     // Failed to extract extended public key from descriptor
                   }
                 } else if (secret.mnemonic) {
@@ -178,7 +177,7 @@ export default function ExportDescriptors() {
                     if (extendedKey) {
                       extendedPublicKey = extendedKey
                     }
-                  } catch (_error) {
+                  } catch {
                     // Failed to generate extended public key from mnemonic
                   }
                 }
@@ -191,7 +190,7 @@ export default function ExportDescriptors() {
                     extendedPublicKey,
                     network as Network
                   )
-                } catch (_error) {
+                } catch {
                   // Failed to extract fingerprint from extended public key
                 }
               }
@@ -284,7 +283,7 @@ export default function ExportDescriptors() {
                         )
                         extendedPublicKey =
                           await extractExtendedKeyFromDescriptor(descriptor)
-                      } catch (_error) {
+                      } catch {
                         // Failed to extract extended public key from descriptor for key ${index}
                       }
                     } else if (secret.mnemonic) {
@@ -304,7 +303,7 @@ export default function ExportDescriptors() {
                         if (extendedKey) {
                           extendedPublicKey = extendedKey
                         }
-                      } catch (_error) {
+                      } catch {
                         // Failed to generate extended public key from mnemonic for key ${index}
                       }
                     }
@@ -318,7 +317,7 @@ export default function ExportDescriptors() {
                           extendedPublicKey,
                           network as Network
                         )
-                    } catch (_error) {
+                    } catch {
                       // Failed to extract fingerprint from extended public key for key ${index}
                     }
                   }
@@ -339,7 +338,7 @@ export default function ExportDescriptors() {
                         )
                         extendedPublicKey =
                           await extractExtendedKeyFromDescriptor(descriptor)
-                      } catch (_error) {
+                      } catch {
                         // Failed to extract extended public key from externalDescriptor for key ${index}
                       }
                     }
@@ -584,7 +583,7 @@ export default function ExportDescriptors() {
         // Compose export content - ensure it's always a string
         const exportString = descriptorString || 'No descriptor available'
         setExportContent(exportString)
-      } catch (_error) {
+      } catch {
         // Error generating descriptors
         setExportContent(
           'Error generating descriptors. Please check your account configuration.'
