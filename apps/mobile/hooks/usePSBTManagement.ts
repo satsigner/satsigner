@@ -1,12 +1,11 @@
+import { type TxBuilderResult } from 'bdk-rn/lib/classes/Bindings'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner-native'
 
 import { type Key, type Secret } from '@/types/models/Account'
-import { type TxBuilderResult } from 'bdk-rn/lib/classes/Bindings'
 import { getMultisigScriptTypeFromScriptVersion } from '@/utils/bitcoin'
 import { signPSBTWithSeed } from '@/utils/psbtSigner'
-import { t } from '@/locales'
 
 type UsePSBTManagementParams = {
   txBuilderResult: TxBuilderResult | null | undefined
@@ -168,7 +167,7 @@ export function usePSBTManagement({
         } catch (_extractError) {
           return psbtHex
         }
-      } catch (error) {
+      } catch (_error) {
         // If all else fails, return the original hex
         return psbtHex
       }

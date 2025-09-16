@@ -70,7 +70,7 @@ export function useClipboardPaste({
 
       // Call success callback
       onSuccess?.(finalContent)
-    } catch (error) {
+    } catch (_error) {
       const errorMessage = t('watchonly.error.clipboardPaste')
       if (showToast) {
         toast.error(errorMessage)
@@ -121,7 +121,7 @@ export function useClipboardPaste({
 
         // Call success callback
         onSuccess?.(finalContent)
-      } catch (error) {
+      } catch (_error) {
         const errorMessage = t('watchonly.error.clipboardPaste')
         if (showToast) {
           toast.error(errorMessage)
@@ -143,7 +143,7 @@ export function useClipboardPaste({
       }
 
       return trimContent ? clipboardContent.trim() : clipboardContent
-    } catch (error) {
+    } catch (_error) {
       return null
     }
   }, [trimContent])

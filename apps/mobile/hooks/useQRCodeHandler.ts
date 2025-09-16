@@ -1,19 +1,9 @@
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner-native'
 
-import { t } from '@/locales'
-import {
-  createBBQRChunks,
-  decodeBBQRChunks,
-  FileType,
-  isBBQRFragment
-} from '@/utils/bbqr'
+import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
-import {
-  decodeMultiPartURToPSBT,
-  decodeURToPSBT,
-  getURFragmentsFromPSBT
-} from '@/utils/ur'
+import { decodeMultiPartURToPSBT, decodeURToPSBT } from '@/utils/ur'
 
 type QRCodeType = 'raw' | 'ur' | 'bbqr' | 'single'
 

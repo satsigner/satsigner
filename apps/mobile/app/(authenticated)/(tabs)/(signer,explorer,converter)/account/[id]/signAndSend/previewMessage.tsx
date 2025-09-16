@@ -25,11 +25,11 @@ import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import { PIN_KEY } from '@/config/auth'
+import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { useNFCReader } from '@/hooks/useNFCReader'
 import { usePSBTManagement } from '@/hooks/usePSBTManagement'
-import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -54,13 +54,9 @@ import {
   FileType,
   isBBQRFragment
 } from '@/utils/bbqr'
-import {
-  bitcoinjsNetwork,
-  getMultisigScriptTypeFromScriptVersion
-} from '@/utils/bitcoin'
+import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { parseHexToBytes } from '@/utils/parse'
-import { signPSBTWithSeed } from '@/utils/psbtSigner'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import { estimateTransactionSize } from '@/utils/transaction'
 import {
@@ -159,7 +155,7 @@ function PreviewMessage() {
   } = psbtManagement
 
   // Clipboard paste hook
-  const { pasteFromClipboard } = useClipboardPaste({
+  useClipboardPaste({
     onPaste: (content: string) => {
       const processedData = processScannedData(content)
       updateSignedPsbt(-1, processedData) // -1 for watch-only mode
