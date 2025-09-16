@@ -50,14 +50,14 @@ export default function SetPin() {
   const pinsMatch = pinArray.join('') === confirmationPinArray.join('')
 
   async function setPin(pin: string) {
-    const oldPin = await getItem(PIN_KEY)
+    const oldEncryptedPin = await getItem(PIN_KEY)
     const salt = await generateSalt()
     const encryptedPin = await pbkdf2Encrypt(pin, salt)
-    await setItem(PIN_KEY, encryptedPin)
-    await setItem(SALT_KEY, salt)
 
     // there is no old pin, so re-encrypting account secrets is not required
-    if (!oldPin) {
+    if (!oldEncryptedPin) {
+      await setItem(PIN_KEY, encryptedPin)
+      await setItem(SALT_KEY, salt)
       return
     }
 
@@ -67,7 +67,7 @@ export default function SetPin() {
       const updatedAccount = { ...account }
       updatedAccount.keys = [...account.keys]
 
-      for (let k = 0; k < account.keyCount; k += 1) {
+      for (let k = 0; k < account.keys.length; k += 1) {
         const key = account.keys[k]
 
         // get the secret currently encrypted using old PIN
@@ -75,7 +75,7 @@ export default function SetPin() {
         if (typeof key.secret === 'string') {
           const decryptedSecretString = await aesDecrypt(
             key.secret,
-            oldPin,
+            oldEncryptedPin,
             key.iv
           )
           secret = JSON.parse(decryptedSecretString) as Secret
@@ -85,7 +85,11 @@ export default function SetPin() {
 
         // encrypt secret with new pin
         const serializedSecret = JSON.stringify(secret)
-        const newSecret = await aesEncrypt(serializedSecret, pin, key.iv)
+        const newSecret = await aesEncrypt(
+          serializedSecret,
+          encryptedPin,
+          key.iv
+        )
 
         // update secret while avoiding mutating nested objects in store
         updatedAccount.keys[k] = {
@@ -97,6 +101,10 @@ export default function SetPin() {
       // update store
       updateAccount(updatedAccount)
     }
+
+    // only update pin and salt after ensuring wallets were re-encrypted
+    await setItem(PIN_KEY, encryptedPin)
+    await setItem(SALT_KEY, salt)
   }
 
   async function handleSetPinLater() {
