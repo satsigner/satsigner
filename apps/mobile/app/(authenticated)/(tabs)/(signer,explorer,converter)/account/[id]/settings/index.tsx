@@ -31,7 +31,7 @@ import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { extractAccountFingerprint } from '@/utils/account'
 import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
-import { formatDate } from '@/utils/format'
+import { formatAccountCreationDate } from '@/utils/date'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 export default function AccountSettings() {
@@ -219,25 +219,7 @@ export default function AccountSettings() {
           <SSHStack gap="sm">
             <SSText color="muted">{t('account.createdOn')}</SSText>
             {account && account.createdAt && (
-              <SSText>
-                {(() => {
-                  try {
-                    if (account.createdAt instanceof Date) {
-                      return formatDate(account.createdAt)
-                    } else {
-                      const date = new Date(account.createdAt)
-                      if (isNaN(date.getTime())) {
-                        // Invalid createdAt value in settings
-                        return 'Invalid date'
-                      }
-                      return formatDate(date)
-                    }
-                  } catch {
-                    // Error formatting createdAt in settings
-                    return 'Invalid date'
-                  }
-                })()}
-              </SSText>
+              <SSText>{formatAccountCreationDate(account.createdAt)}</SSText>
             )}
           </SSHStack>
         </SSVStack>
