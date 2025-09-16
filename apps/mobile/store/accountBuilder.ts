@@ -13,9 +13,7 @@ import {
 } from '@/types/models/Account'
 import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 
-/**
- * State interface for account builder store
- */
+// State interface for account builder store
 type AccountBuilderState = {
   // Basic account information
   name: Account['name']
@@ -103,13 +101,7 @@ type AccountBuilderAction = {
   ) => Promise<{ success: boolean; message: string }>
 }
 
-// =============================================================================
-// INITIAL STATE
-// =============================================================================
-
-/**
- * Initial state for account builder store
- */
+// Initial state for account builder store
 const initialState: AccountBuilderState = {
   // Basic account information
   name: '',
@@ -137,21 +129,11 @@ const initialState: AccountBuilderState = {
   keysRequired: 0
 }
 
-// =============================================================================
-// STORE IMPLEMENTATION
-// =============================================================================
-
-/**
- * Account builder store using Zustand with Immer for immutable updates
- */
+// Account builder store using Zustand with Immer for immutable updates
 const useAccountBuilderStore = create<
   AccountBuilderState & AccountBuilderAction
 >()((set, get) => ({
   ...initialState,
-
-  // ===========================================================================
-  // ACCOUNT CONFIGURATION ACTIONS
-  // ===========================================================================
 
   setName: (name) => {
     set({ name })
@@ -193,10 +175,6 @@ const useAccountBuilderStore = create<
     set({ passphrase })
   },
 
-  // ===========================================================================
-  // DESCRIPTOR AND KEY ACTIONS
-  // ===========================================================================
-
   setExternalDescriptor: (externalDescriptor) => {
     set({ externalDescriptor })
   },
@@ -216,10 +194,6 @@ const useAccountBuilderStore = create<
   setScriptVersion: (scriptVersion) => {
     set({ scriptVersion })
   },
-
-  // ===========================================================================
-  // KEY MANAGEMENT ACTIONS
-  // ===========================================================================
 
   setKey: (index) => {
     const {
