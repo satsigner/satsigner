@@ -28,31 +28,6 @@ export default function WalletSyncedConfirmation() {
 
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
 
-  // Safely convert lastSyncedAt to Date object
-  const getLastSyncedDate = (): Date | null => {
-    if (!account?.lastSyncedAt) return null
-
-    try {
-      // If it's already a Date object, return it
-      if (account.lastSyncedAt instanceof Date) {
-        return account.lastSyncedAt
-      }
-
-      // If it's a string or number, try to create a Date
-      const date = new Date(account.lastSyncedAt)
-
-      // Check if the date is valid
-      if (isNaN(date.getTime())) {
-        // Invalid lastSyncedAt value
-        return null
-      }
-
-      return date
-    } catch (_error) {
-      // Error parsing lastSyncedAt
-      return null
-    }
-  }
 
   const goToNextStep = async () => {
     // TODO: add internal change address as an output
@@ -74,7 +49,7 @@ export default function WalletSyncedConfirmation() {
     goToNextStep()
   }
 
-  const lastSyncedDate = getLastSyncedDate()
+  const lastSyncedDate = account?.lastSyncedAt || null
 
   return (
     <>

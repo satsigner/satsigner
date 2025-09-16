@@ -79,25 +79,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
 
         if (date !== undefined) {
           const now = Math.floor(Date.now() / 1000)
-
-          // Safely convert date to Date object
-          let dateObj: Date
-          try {
-            if (date instanceof Date) {
-              dateObj = date
-            } else {
-              dateObj = new Date(date)
-              if (isNaN(dateObj.getTime())) {
-                // Invalid lastSyncedAt value in SSAccountCard
-                break
-              }
-            }
-          } catch (_error) {
-            // Error parsing lastSyncedAt in SSAccountCard
-            break
-          }
-
-          const diff = now - dateObj.getTime() / 1000
+          const diff = now - date.getTime() / 1000
 
           const hours = Math.floor(diff / 3600)
           const days = Math.floor(hours / 24)
