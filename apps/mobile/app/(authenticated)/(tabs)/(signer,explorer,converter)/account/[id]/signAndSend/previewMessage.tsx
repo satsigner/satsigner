@@ -273,12 +273,19 @@ function PreviewMessage() {
     try {
       // Check if data is a PSBT and convert to final transaction
       if (data.toLowerCase().startsWith('70736274ff')) {
-        const convertedResult = convertPsbtToFinalTransaction(data)
-        return convertedResult
+        // Only attempt conversion if we have the original PSBT context
+        if (txBuilderResult?.psbt?.base64) {
+          const convertedResult = convertPsbtToFinalTransaction(data)
+          return convertedResult
+        } else {
+          // If no original PSBT context, return as-is to avoid UTXO errors
+          return data
+        }
       }
 
       return data
     } catch (_error) {
+      // If conversion fails, return original data to prevent app crashes
       return data
     }
   }
@@ -508,7 +515,15 @@ function PreviewMessage() {
         setMessageId(transactionMessage.txDetails.txid)
         setTxBuilderResult(transactionMessage)
       } catch (err) {
-        toast.error(String(err))
+        // Handle specific UTXO errors
+        const errorMessage = String(err)
+        if (errorMessage.includes('UTXO not found')) {
+          toast.error(
+            'UTXO not found in wallet database. Please sync your wallet or check your inputs.'
+          )
+        } else {
+          toast.error(errorMessage)
+        }
       }
     }
 
@@ -516,23 +531,28 @@ function PreviewMessage() {
   }, [wallet, inputs, outputs, fee, rbf, network, setTxBuilderResult])
 
   // Separate effect to validate addresses and show errors
+  // Only validate when we have a complete transaction (not during editing)
   useEffect(() => {
-    if (!account || !outputs.length) return
+    if (!account || !outputs.length || !txBuilderResult) return
 
     const network = bitcoinjsNetwork(account.network)
 
     for (const output of outputs) {
       // Check if address is empty or invalid
       if (!output.to || output.to.trim() === '') {
-        toast.error(
-          'Invalid address format: Empty address. Please check your transaction configuration.'
-        )
-        break // Only show one error at a time
+        // Don't show error for empty addresses during editing
+        continue
       }
 
       try {
         bitcoinjs.address.toOutputScript(output.to, network)
       } catch (_error) {
+        // Only show error for clearly invalid addresses, not during editing
+        // Check if the address looks like it might be incomplete (too short)
+        if (output.to.length < 10) {
+          continue // Skip validation for very short addresses (likely incomplete)
+        }
+
         // Show error toast for invalid address
         toast.error(
           `Invalid address format: ${output.to}. Please check your transaction configuration.`
@@ -540,7 +560,7 @@ function PreviewMessage() {
         break // Only show one error at a time
       }
     }
-  }, [account, outputs])
+  }, [account, outputs, txBuilderResult])
 
   const getPsbtString = useCallback(async () => {
     if (!txBuilderResult?.psbt) {

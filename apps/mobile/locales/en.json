@@ -1237,7 +1237,9 @@
   },
   "watchonly": {
     "error": {
+      "clipboardPaste": "Failed to paste from clipboard",
       "creationFailed": "Failed to create watch-only account",
+      "emptyClipboard": "No data found in clipboard",
       "missingFields": "Please fill in all required fields"
     },
     "fingerprint.label": "Master Fingerprint",

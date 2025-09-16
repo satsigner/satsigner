@@ -28,6 +28,7 @@ import SSFeeRateChart, {
 } from '@/components/SSFeeRateChart'
 import SSModal from '@/components/SSModal'
 import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
+import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -189,6 +190,13 @@ export default function IOPreview() {
   const [outputAmount, setOutputAmount] = useState(DUST_LIMIT)
   const [originalOutputAmount, setOriginalOutputAmount] = useState(0)
   const [outputLabel, setOutputLabel] = useState('')
+
+  // Clipboard paste hook for address input
+  const { pasteFromClipboard } = useClipboardPaste({
+    onPaste: (content) => {
+      setOutputTo(content)
+    }
+  })
 
   const remainingSats = useMemo(
     () =>
@@ -594,7 +602,10 @@ export default function IOPreview() {
                 {t('bitcoin.sats').toLowerCase()}
               </SSText>
             </SSHStack>
-            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+            <SSHStack
+              gap="xs"
+              style={{ alignItems: 'baseline', marginTop: -5 }}
+            >
               <SSText size="md" color="muted">
                 {formatNumber(satsToFiat(utxosSelectedValue), 2)}
               </SSText>
@@ -775,7 +786,7 @@ export default function IOPreview() {
                       fontFamily: Typography.sfProMono,
                       fontSize: 22,
                       letterSpacing: 0.5,
-                      height: 100,
+                      height: 110,
                       textAlignVertical: 'top',
                       paddingTop: 12
                     }}
@@ -786,18 +797,7 @@ export default function IOPreview() {
                       variant="outline"
                       label={t('common.paste')}
                       style={{ flex: 1 }}
-                      onPress={async () => {
-                        try {
-                          const text = await Clipboard.getStringAsync()
-                          if (text && text.trim()) {
-                            setOutputTo(text.trim())
-                          } else {
-                            toast.error(t('common.invalid'))
-                          }
-                        } catch (_error) {
-                          toast.error(t('common.invalid'))
-                        }
-                      }}
+                      onPress={pasteFromClipboard}
                     />
                     <SSButton
                       variant="outline"
@@ -808,10 +808,18 @@ export default function IOPreview() {
                   </SSHStack>
                 </SSVStack>
                 <SSTextInput
+                  multiline
+                  numberOfLines={4}
                   placeholder={t('transaction.build.add.label.title')}
                   align="left"
                   value={outputLabel}
                   onChangeText={(text) => setOutputLabel(text)}
+                  style={{
+                    fontSize: 22,
+                    height: 110,
+                    textAlignVertical: 'top',
+                    paddingTop: 12
+                  }}
                 />
                 <SSHStack>
                   <SSButton

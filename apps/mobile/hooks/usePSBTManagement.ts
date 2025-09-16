@@ -71,10 +71,21 @@ export function usePSBTManagement({
               const finalTxHex = tx.toHex().toUpperCase()
 
               return finalTxHex
-            } catch (_finalizeError) {
-              // If finalization fails, return the combined PSBT as base64
-              const combinedBase64 = combinedPsbt.toBase64()
+            } catch (finalizeError) {
+              // If finalization fails, check for UTXO-related errors
+              if (
+                finalizeError instanceof Error &&
+                (finalizeError.message.includes('UTXO') ||
+                  finalizeError.message.includes('not found') ||
+                  finalizeError.message.includes('database'))
+              ) {
+                // Return the combined PSBT as base64 instead of trying to finalize
+                const combinedBase64 = combinedPsbt.toBase64()
+                return combinedBase64
+              }
 
+              // For other finalization errors, return the combined PSBT as base64
+              const combinedBase64 = combinedPsbt.toBase64()
               return combinedBase64
             }
           } catch (_combineError) {
@@ -123,6 +134,17 @@ export function usePSBTManagement({
               finalizeError.message.includes('No script found')
             ) {
               // For incomplete PSBTs, return the hex as-is since we can't finalize without the missing data
+              return psbtHex
+            }
+
+            // Check for UTXO-related errors
+            if (
+              finalizeError instanceof Error &&
+              (finalizeError.message.includes('UTXO') ||
+                finalizeError.message.includes('not found') ||
+                finalizeError.message.includes('database'))
+            ) {
+              // Return the PSBT hex as-is to avoid UTXO errors
               return psbtHex
             }
 
