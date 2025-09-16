@@ -28,6 +28,8 @@ import { PIN_KEY } from '@/config/auth'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { useNFCReader } from '@/hooks/useNFCReader'
+import { usePSBTManagement } from '@/hooks/usePSBTManagement'
+import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -112,8 +114,6 @@ function PreviewMessage() {
     QRDisplayMode.RAW
   )
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
-  const [signedPsbt, setSignedPsbt] = useState('')
-  const [signedPsbts, setSignedPsbts] = useState<Map<number, string>>(new Map())
   const [currentCosignerIndex, setCurrentCosignerIndex] = useState<
     number | null
   >(null)
@@ -140,6 +140,31 @@ function PreviewMessage() {
 
   // Animation for NFC pulsating effect
   const nfcPulseAnim = useRef(new Animated.Value(0)).current
+
+  // PSBT Management Hook
+  const psbtManagement = usePSBTManagement({
+    txBuilderResult,
+    account,
+    decryptedKeys
+  })
+
+  // Destructure hook values for easier access
+  const {
+    signedPsbt,
+    signedPsbts,
+    updateSignedPsbt,
+    convertPsbtToFinalTransaction,
+    handleSignWithLocalKey,
+    handleSignWithSeedQR
+  } = psbtManagement
+
+  // Clipboard paste hook
+  const { pasteFromClipboard } = useClipboardPaste({
+    onPaste: (content: string) => {
+      const processedData = processScannedData(content)
+      updateSignedPsbt(-1, processedData) // -1 for watch-only mode
+    }
+  })
 
   const [qrChunks, setQrChunks] = useState<string[]>([])
   const [qrError, setQrError] = useState<string | null>(null)
@@ -231,116 +256,6 @@ function PreviewMessage() {
       current: 0,
       total: 1,
       content: data
-    }
-  }
-
-  // Function to convert PSBT hex to final transaction hex
-  const convertPsbtToFinalTransaction = (psbtHex: string): string => {
-    try {
-      // First, try to combine with original PSBT if available
-      const originalPsbtBase64 = txBuilderResult?.psbt?.base64
-      if (originalPsbtBase64) {
-        try {
-          // Convert hex PSBT to base64 for combination
-          const signedPsbtBase64 = Buffer.from(psbtHex, 'hex').toString(
-            'base64'
-          )
-
-          // Combine the PSBTs using bitcoinjs-lib
-          const originalPsbt = bitcoinjs.Psbt.fromBase64(originalPsbtBase64)
-          const signedPsbt = bitcoinjs.Psbt.fromBase64(signedPsbtBase64)
-
-          // Combine the PSBTs - this merges the signatures from signed PSBT with the full data from original PSBT
-          const combinedPsbt = originalPsbt.combine(signedPsbt)
-
-          // Try to finalize the combined PSBT
-          try {
-            combinedPsbt.finalizeAllInputs()
-
-            // Extract the final transaction
-            const tx = combinedPsbt.extractTransaction()
-            const finalTxHex = tx.toHex().toUpperCase()
-
-            return finalTxHex
-          } catch (_finalizeError) {
-            // If finalization fails, return the combined PSBT as base64
-            const combinedBase64 = combinedPsbt.toBase64()
-
-            return combinedBase64
-          }
-        } catch (_combineError) {
-          // Fall back to direct PSBT processing
-        }
-      }
-
-      // Fallback: try direct PSBT processing without combination
-      const psbt = bitcoinjs.Psbt.fromHex(psbtHex)
-
-      // Check if inputs are already finalized
-      let needsFinalization = false
-      const inputDetails = []
-      for (let i = 0; i < psbt.data.inputs.length; i++) {
-        const input = psbt.data.inputs[i]
-        const hasFinalScriptSig = !!input.finalScriptSig
-        const hasFinalScriptWitness = !!input.finalScriptWitness
-        const hasWitnessScript = !!input.witnessScript
-        const hasRedeemScript = !!input.redeemScript
-        const hasPartialSigs = input.partialSig && input.partialSig.length > 0
-
-        inputDetails.push({
-          index: i,
-          hasFinalScriptSig,
-          hasFinalScriptWitness,
-          hasWitnessScript,
-          hasRedeemScript,
-          hasPartialSigs,
-          partialSigCount: input.partialSig?.length || 0
-        })
-
-        if (!hasFinalScriptSig && !hasFinalScriptWitness) {
-          needsFinalization = true
-        }
-      }
-
-      // Try to finalize all inputs if needed
-      if (needsFinalization) {
-        try {
-          psbt.finalizeAllInputs()
-        } catch (finalizeError) {
-          // Check if this is a "No script found" error - this means the PSBT is incomplete
-          if (
-            finalizeError instanceof Error &&
-            finalizeError.message &&
-            finalizeError.message.includes('No script found')
-          ) {
-            // For incomplete PSBTs, return the hex as-is since we can't finalize without the missing data
-            return psbtHex
-          }
-
-          // For other finalization errors, try to extract what we can
-          try {
-            const tx = psbt.extractTransaction()
-            const finalTxHex = tx.toHex().toUpperCase()
-            return finalTxHex
-          } catch (_extractError) {
-            return psbtHex
-          }
-        }
-      }
-
-      // Extract the final transaction
-      try {
-        const tx = psbt.extractTransaction()
-        const finalTxHex = tx.toHex().toUpperCase()
-
-        return finalTxHex
-      } catch (_extractError) {
-        // If extraction fails, return the PSBT hex as-is
-        return psbtHex
-      }
-    } catch (_error) {
-      // Return original PSBT hex as fallback
-      return psbtHex
     }
   }
 
@@ -935,17 +850,8 @@ function PreviewMessage() {
         // Keep original content if conversion fails
       }
 
-      if (index !== undefined) {
-        // Update the specific cosigner's signed PSBT
-        setSignedPsbts((prev) => {
-          const newMap = new Map(prev)
-          newMap.set(index, finalContent)
-          return newMap
-        })
-      } else {
-        // Fallback to old behavior for non-cosigner scans
-        setSignedPsbt(finalContent)
-      }
+      // Use hook's updateSignedPsbt function
+      updateSignedPsbt(index ?? -1, finalContent)
 
       setCameraModalVisible(false)
       resetScanProgress()
@@ -1018,17 +924,8 @@ function PreviewMessage() {
           // Process the assembled data (convert PSBT to final transaction if needed)
           const finalData = processScannedData(assembledData)
 
-          if (index !== undefined) {
-            // Update the specific cosigner's signed PSBT
-            setSignedPsbts((prev) => {
-              const newMap = new Map(prev)
-              newMap.set(index, finalData)
-              return newMap
-            })
-          } else {
-            // Fallback to old behavior for non-cosigner scans
-            setSignedPsbt(finalData)
-          }
+          // Use hook's updateSignedPsbt function
+          updateSignedPsbt(index ?? -1, finalData)
 
           setCameraModalVisible(false)
           resetScanProgress()
@@ -1068,17 +965,8 @@ function PreviewMessage() {
           // Process the assembled data (convert PSBT to final transaction if needed)
           const finalData = processScannedData(assembledData)
 
-          if (index !== undefined) {
-            // Update the specific cosigner's signed PSBT
-            setSignedPsbts((prev) => {
-              const newMap = new Map(prev)
-              newMap.set(index, finalData)
-              return newMap
-            })
-          } else {
-            // Fallback to old behavior for non-cosigner scans
-            setSignedPsbt(finalData)
-          }
+          // Use hook's updateSignedPsbt function
+          updateSignedPsbt(index ?? -1, finalData)
 
           setCameraModalVisible(false)
           resetScanProgress()
@@ -1141,7 +1029,8 @@ function PreviewMessage() {
     }
   }
 
-  async function handlePasteFromClipboard(index: number) {
+  // Create a wrapper function for cosigner-specific paste
+  const handlePasteFromClipboard = async (index: number) => {
     try {
       const text = await Clipboard.getStringAsync()
       if (!text) {
@@ -1152,17 +1041,8 @@ function PreviewMessage() {
       // Process the pasted data similar to scanned data
       const processedData = processScannedData(text)
 
-      if (index === -1) {
-        // Watch-only mode - use the old behavior
-        setSignedPsbt(processedData)
-      } else {
-        // Update the specific cosigner's signed PSBT
-        setSignedPsbts((prev) => {
-          const newMap = new Map(prev)
-          newMap.set(index, processedData)
-          return newMap
-        })
-      }
+      // Use hook's updateSignedPsbt function
+      updateSignedPsbt(index, processedData)
 
       toast.success('Data pasted successfully')
     } catch (error) {
@@ -1196,31 +1076,13 @@ function PreviewMessage() {
           .map((b) => b.toString(16).padStart(2, '0'))
           .join('')
 
-        if (index === -1) {
-          // Watch-only mode - use the old behavior
-          setSignedPsbt(txHex)
-        } else {
-          // Update the specific cosigner's signed PSBT
-          setSignedPsbts((prev) => {
-            const newMap = new Map(prev)
-            newMap.set(index, txHex)
-            return newMap
-          })
-        }
+        // Use hook's updateSignedPsbt function
+        updateSignedPsbt(index, txHex)
 
         toast.success(t('transaction.preview.nfcImported'))
       } else if (result.txId) {
-        if (index === -1) {
-          // Watch-only mode - use the old behavior
-          setSignedPsbt(result.txId || '')
-        } else {
-          // Update the specific cosigner's signed PSBT
-          setSignedPsbts((prev) => {
-            const newMap = new Map(prev)
-            newMap.set(index, result.txId || '')
-            return newMap
-          })
-        }
+        // Use hook's updateSignedPsbt function
+        updateSignedPsbt(index, result.txId || '')
 
         toast.success(t('transaction.preview.nfcImported'))
       } else {
@@ -1261,111 +1123,6 @@ function PreviewMessage() {
   const handleSeedWordsScanned = async (index: number) => {
     setCurrentCosignerIndex(index)
     setWordCountModalVisible(true)
-  }
-
-  // Handle signing with local key for a specific cosigner
-  const handleSignWithLocalKey = async (index: number) => {
-    try {
-      // Get the cosigner's decrypted key
-      const cosignerKey = decryptedKeys[index]
-      if (!cosignerKey?.secret) {
-        toast.error('No decrypted key found for this cosigner')
-        return
-      }
-
-      // Check if the key has a mnemonic
-      const secret = cosignerKey.secret as Secret
-      if (!secret.mnemonic) {
-        toast.error('No mnemonic found for this cosigner')
-        return
-      }
-
-      // Get the original PSBT from transaction builder result
-      const originalPsbtBase64 = txBuilderResult?.psbt?.base64
-      if (!originalPsbtBase64) {
-        toast.error('No original PSBT found')
-        return
-      }
-
-      // Get the script type from the cosigner's key
-      const scriptVersion = cosignerKey.scriptVersion || 'P2WSH'
-      const scriptType = getMultisigScriptTypeFromScriptVersion(
-        scriptVersion
-      ) as 'P2WSH' | 'P2SH' | 'P2SH-P2WSH'
-
-      // Sign the PSBT with the cosigner's seed
-      const signingResult = signPSBTWithSeed(
-        originalPsbtBase64,
-        secret.mnemonic,
-        scriptType
-      )
-
-      if (signingResult.success && signingResult.signedPSBT) {
-        // Update the signed PSBT for this cosigner
-        setSignedPsbts((prev) => {
-          const newMap = new Map(prev)
-          newMap.set(index, signingResult.signedPSBT!)
-          return newMap
-        })
-
-        toast.success(`PSBT signed successfully for cosigner ${index + 1}`)
-      } else {
-        toast.error(`Failed to sign PSBT: ${signingResult.error}`)
-      }
-    } catch (error) {
-      const errorMessage = (error as Error).message
-      toast.error(`Error signing with local key: ${errorMessage}`)
-    }
-  }
-
-  // Handle signing with scanned seed QR for dropped seeds
-  const handleSignWithSeedQR = async (index: number, mnemonic: string) => {
-    try {
-      // Get the cosigner's key details
-      const cosignerKey = account?.keys?.[index]
-      if (!cosignerKey) {
-        toast.error('No key found for this cosigner')
-        return
-      }
-
-      // Get the original PSBT from transaction builder result
-      const originalPsbtBase64 = txBuilderResult?.psbt?.base64
-      if (!originalPsbtBase64) {
-        toast.error('No original PSBT found')
-        return
-      }
-
-      // Get the script type from the cosigner's key
-      const scriptVersion = cosignerKey.scriptVersion || 'P2WSH'
-      const scriptType = getMultisigScriptTypeFromScriptVersion(
-        scriptVersion
-      ) as 'P2WSH' | 'P2SH' | 'P2SH-P2WSH'
-
-      // Sign the PSBT with the scanned seed
-      const signingResult = signPSBTWithSeed(
-        originalPsbtBase64,
-        mnemonic,
-        scriptType
-      )
-
-      if (signingResult.success && signingResult.signedPSBT) {
-        // Update the signed PSBT for this cosigner
-        setSignedPsbts((prev) => {
-          const newMap = new Map(prev)
-          newMap.set(index, signingResult.signedPSBT!)
-          return newMap
-        })
-
-        toast.success(
-          `PSBT signed successfully with scanned seed for cosigner ${index + 1}`
-        )
-      } else {
-        toast.error(`Failed to sign PSBT: ${signingResult.error}`)
-      }
-    } catch (error) {
-      const errorMessage = (error as Error).message
-      toast.error(`Error signing with scanned seed: ${errorMessage}`)
-    }
   }
 
   // Handle word count selection
@@ -1884,7 +1641,9 @@ function PreviewMessage() {
                           txBuilderResult={txBuilderResult}
                           serializedPsbt={serializedPsbt}
                           signedPsbt={signedPsbts.get(index) || ''}
-                          setSignedPsbt={setSignedPsbt}
+                          setSignedPsbt={(psbt: string) =>
+                            updateSignedPsbt(index, psbt)
+                          }
                           isAvailable={isAvailable}
                           isEmitting={isEmitting}
                           isReading={isReading}
