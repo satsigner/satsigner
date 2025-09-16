@@ -124,7 +124,6 @@ export default function ExportDescriptors() {
             )
           : undefined
 
-        // --- BEGIN: Descriptor Generation Logic ---
         let descriptorString = ''
 
         // Safety check: ensure account has keys
@@ -581,7 +580,6 @@ export default function ExportDescriptors() {
             }
           }
         }
-        // --- END: Descriptor Generation Logic ---
 
         // Compose export content - ensure it's always a string
         const exportString = descriptorString || 'No descriptor available'
