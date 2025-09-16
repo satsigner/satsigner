@@ -105,7 +105,7 @@ async function extractFingerprintFromExtendedPublicKey(
     const descriptor = await new Descriptor().create(descriptorString, network)
     const parsedDescriptor = await parseDescriptor(descriptor)
     return parsedDescriptor.fingerprint
-  } catch (_error) {
+  } catch {
     return ''
   }
 }
@@ -178,7 +178,7 @@ async function getWalletData(
                 if (extractedKey) {
                   extendedPublicKey = extractedKey
                 }
-              } catch (_error) {
+              } catch {
                 // Failed to extract extended public key
               }
             }
@@ -191,7 +191,7 @@ async function getWalletData(
                 extendedPublicKey,
                 network
               )
-            } catch (_error) {
+            } catch {
               // Failed to extract fingerprint
             }
           }
@@ -837,7 +837,7 @@ async function getDescriptorsFromKeyData(
       externalDescriptor: await externalDesc.asString(),
       internalDescriptor: await internalDesc.asString()
     }
-  } catch (_error) {
+  } catch {
     // Return descriptors without checksum if BDK fails
     return {
       externalDescriptor,
