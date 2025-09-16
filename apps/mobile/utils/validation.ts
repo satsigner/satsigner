@@ -27,6 +27,16 @@ export function validateExtendedKey(key: string, network?: AppNetwork) {
   return key.match(new RegExp('^[tuvxyz](pub|prv)[a-zA-Z0-9]+$')) !== null
 }
 
+export function isDomainName(host: string): boolean {
+  // Validate host: allow domain names (starting with letter) or IP addresses
+  return /^[a-z][a-z0-9.-]*[a-z0-9]$/i.test(host)
+}
+
+export function isIPAddress(host: string): boolean {
+  // Validate IP address format
+  return /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(host)
+}
+
 export function validateDerivationPath(path: string) {
   // Updated regex to better handle both h and ' formats
   // Supports: m/84h/0h/0h, m/84'/0'/0', 84h/0h/0h, 84'/0'/0', etc.
