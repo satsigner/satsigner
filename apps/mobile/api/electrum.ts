@@ -1,5 +1,4 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
-// @eslint-disable-next-line
 import BlueWalletElectrumClient from 'electrum-client'
 import TcpSocket from 'react-native-tcp-socket'
 
@@ -168,7 +167,6 @@ class BaseElectrumClient {
     try {
       client = ElectrumClient.fromUrl(url, network)
 
-      // Disable reconnection for the test
       client.client.reconnect = () => {}
 
       const pingPromise = client.client.initElectrum({
@@ -184,7 +182,6 @@ class BaseElectrumClient {
 
       await Promise.race([pingPromise, timeoutPromise])
 
-      // Clear timeout if successful
       if (timeoutId) {
         clearTimeout(timeoutId)
         timeoutId = null
@@ -194,14 +191,12 @@ class BaseElectrumClient {
     } catch (_error) {
       return false
     } finally {
-      // Clean up resources
       if (timeoutId) {
         clearTimeout(timeoutId)
       }
       if (client) {
         try {
           client.close()
-          // Force close the underlying socket
           if (client.client && client.client.socket) {
             client.client.socket.destroy()
           }
