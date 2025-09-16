@@ -49,19 +49,11 @@ export default function SetPin() {
     confirmationPinArray.findIndex((text) => text === '') === -1
   const pinsMatch = pinArray.join('') === confirmationPinArray.join('')
 
-  async function setPin(pin: string) {
-    const oldEncryptedPin = await getItem(PIN_KEY)
-    const salt = await generateSalt()
-    const encryptedPin = await pbkdf2Encrypt(pin, salt)
-
-    // there is no old pin, so re-encrypting account secrets is not required
-    if (!oldEncryptedPin) {
-      await setItem(PIN_KEY, encryptedPin)
-      await setItem(SALT_KEY, salt)
-      return
-    }
-
-    // for each account, update re-encrypt each of its secret with new PIN
+  // for each account, update re-encrypt each of its secret with new PIN
+  async function reEncryptAccounts(
+    oldPinEncrypted: string,
+    newPinEncrypted: string
+  ) {
     for (const account of accounts) {
       // make copy of objects and arrays to avoid directly mutation of store
       const updatedAccount = { ...account }
@@ -75,7 +67,7 @@ export default function SetPin() {
         if (typeof key.secret === 'string') {
           const decryptedSecretString = await aesDecrypt(
             key.secret,
-            oldEncryptedPin,
+            oldPinEncrypted,
             key.iv
           )
           secret = JSON.parse(decryptedSecretString) as Secret
@@ -87,7 +79,7 @@ export default function SetPin() {
         const serializedSecret = JSON.stringify(secret)
         const newSecret = await aesEncrypt(
           serializedSecret,
-          encryptedPin,
+          newPinEncrypted,
           key.iv
         )
 
@@ -101,9 +93,18 @@ export default function SetPin() {
       // update store
       updateAccount(updatedAccount)
     }
+  }
 
-    // only update pin and salt after ensuring wallets were re-encrypted
-    await setItem(PIN_KEY, encryptedPin)
+  async function setPin(pin: string) {
+    const salt = await generateSalt()
+    const newPinEncrypted = await pbkdf2Encrypt(pin, salt)
+    const oldPinEncrypted = await getItem(PIN_KEY)
+
+    if (oldPinEncrypted) {
+      await reEncryptAccounts(oldPinEncrypted, newPinEncrypted)
+    }
+
+    await setItem(PIN_KEY, newPinEncrypted)
     await setItem(SALT_KEY, salt)
   }
 
