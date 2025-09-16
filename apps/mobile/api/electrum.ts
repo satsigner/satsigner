@@ -88,17 +88,6 @@ type AddressInfo = {
 }
 
 class ModifiedClient extends BlueWalletElectrumClient {
-  constructor(
-    net: any,
-    tls: any,
-    port: number,
-    host: string,
-    protocol: string,
-    options: any
-  ) {
-    super(net, tls, port, host, protocol, options)
-  }
-
   // INFO: Override the default timeout for keeping client alive
   keepAlive() {
     if (this.timeout != null) clearTimeout(this.timeout)
