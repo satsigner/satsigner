@@ -16,8 +16,8 @@ import { useWalletsStore } from '@/store/wallets'
 export default function Developer() {
   const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
   const deleteWallets = useWalletsStore((state) => state.deleteWallets)
-  const [setFirstTime, skipPin, setSkipPin] = useAuthStore(
-    useShallow((state) => [state.setFirstTime, state.skipPin, state.setSkipPin])
+  const [skipPin, setSkipPin] = useAuthStore(
+    useShallow((state) => [state.skipPin, state.setSkipPin])
   )
 
   async function handleDeleteAccount() {
@@ -42,10 +42,6 @@ export default function Developer() {
             <SSButton
               label={t('settings.developer.deleteAccounts')}
               onPress={() => handleDeleteAccount()}
-            />
-            <SSButton
-              label={t('settings.developer.setPinFirstTime')}
-              onPress={() => setFirstTime(true)}
             />
           </SSVStack>
           <SSSeparator color="gradient" />

@@ -18,10 +18,10 @@ function useVerifyConnection() {
   const [connectionState, setConnectionState] = useState<boolean>(false)
   const connectionString = useMemo(() => {
     if (config.connectionMode === 'auto')
-      return `${server.network} - ${server.url}`
+      return `${server.network} - ${server.name} (${server.url})`
 
-    return `${server.network} - ${server.url} (${config.connectionMode})`
-  }, [server.network, server.url, config.connectionMode])
+    return `${server.network} - ${server.name} (${server.url}) [${config.connectionMode}]`
+  }, [server.network, server.name, server.url, config.connectionMode])
 
   const isPrivateConnection = useMemo(() => {
     if (servers.findIndex((val) => val.url === server.url) === -1) {
