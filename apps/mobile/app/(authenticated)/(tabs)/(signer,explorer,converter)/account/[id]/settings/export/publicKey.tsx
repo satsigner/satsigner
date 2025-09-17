@@ -54,9 +54,12 @@ export default function PublicKeyPage() {
   const keyIndexNum = account && keyIndex ? Number(keyIndex) : null
   const key = keyIndexNum !== null ? account?.keys[keyIndexNum] : null
   const scriptVersion = key?.scriptVersion || 'P2PKH'
-  
+
   // Derive the default format based on network and script version
-  const getDefaultFormat = (scriptVersion: string, network: Network): PublicKeyFormat => {
+  const getDefaultFormat = (
+    scriptVersion: string,
+    network: Network
+  ): PublicKeyFormat => {
     if (scriptVersion === 'P2SH-P2WSH') {
       // For P2SH-P2WSH, default to ypub/upub (more specific)
       return network === 'bitcoin' ? 'ypub' : 'upub'
@@ -68,7 +71,7 @@ export default function PublicKeyPage() {
       return network === 'bitcoin' ? 'xpub' : 'tpub'
     }
   }
-  
+
   const [selectedFormat, setSelectedFormat] = useState<PublicKeyFormat>('xpub')
 
   // Update selected format when script version or network changes

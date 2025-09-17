@@ -184,11 +184,7 @@ export function checkWalletNeedsSync(
   const now = new Date()
 
   // Discard the time and time-zone information.
-  const currentUtc = Date.UTC(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate()
-  )
+  const currentUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
 
   const lastSyncedUtc = Date.UTC(
     lastSync.getFullYear(),

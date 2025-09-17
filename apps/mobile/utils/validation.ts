@@ -34,7 +34,9 @@ export function isDomainName(host: string): boolean {
 
 export function isIPAddress(host: string): boolean {
   // Validate IP address format
-  return /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(host)
+  return /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(
+    host
+  )
 }
 
 export function validateDerivationPath(path: string) {

@@ -214,8 +214,16 @@ async function getWalletData(
 
       // Filter out keys that don't have both fingerprint and extended public key
       const validKeyData = keyData.filter(
-        (kd): kd is { fingerprint: string; extendedPublicKey: string; index: number } => 
-          kd !== null && kd.fingerprint !== undefined && kd.extendedPublicKey !== undefined
+        (
+          kd
+        ): kd is {
+          fingerprint: string
+          extendedPublicKey: string
+          index: number
+        } =>
+          kd !== null &&
+          kd.fingerprint !== undefined &&
+          kd.extendedPublicKey !== undefined
       )
 
       if (validKeyData.length !== account.keys.length) {
