@@ -214,7 +214,8 @@ async function getWalletData(
 
       // Filter out keys that don't have both fingerprint and extended public key
       const validKeyData = keyData.filter(
-        (kd) => kd.fingerprint && kd.extendedPublicKey
+        (kd): kd is { fingerprint: string; extendedPublicKey: string; index: number } => 
+          kd !== null && kd.fingerprint !== undefined && kd.extendedPublicKey !== undefined
       )
 
       if (validKeyData.length !== account.keys.length) {
@@ -273,8 +274,11 @@ async function getWalletData(
         internalDescriptor,
         network
       )
-      if (!multisigDescriptor) {
-        throw new Error('Failed to create multisig descriptor')
+      if (!externalDesc) {
+        throw new Error('Failed to create external descriptor')
+      }
+      if (!internalDesc) {
+        throw new Error('Failed to create internal descriptor')
       }
 
       const parsedDescriptor = await parseDescriptor(externalDesc)

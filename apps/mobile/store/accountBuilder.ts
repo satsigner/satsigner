@@ -7,7 +7,6 @@ import { getItem } from '@/storage/encrypted'
 import { type EntropyType } from '@/types/logic/entropy'
 import {
   type Account,
-  type DM,
   type Key,
   type Secret
 } from '@/types/models/Account'
@@ -330,7 +329,7 @@ const useAccountBuilderStore = create<
         deviceNpub: '',
         deviceNsec: '',
         trustedMemberDevices: [],
-        dms: [] as DM[],
+        dms: [],
         lastUpdated: new Date(),
         syncStart: new Date()
       }
