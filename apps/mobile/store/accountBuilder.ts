@@ -5,11 +5,7 @@ import { create } from 'zustand'
 import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
 import { type EntropyType } from '@/types/logic/entropy'
-import {
-  type Account,
-  type Key,
-  type Secret
-} from '@/types/models/Account'
+import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 
 // State interface for account builder store
