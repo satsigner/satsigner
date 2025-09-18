@@ -647,7 +647,6 @@ function SSMultisigKeyControl({
           </SSHStack>
         </SSVStack>
       </SSModal>
-
       <SSSelectModal
         visible={wordCountModalVisible}
         title={t('account.mnemonic.title')}

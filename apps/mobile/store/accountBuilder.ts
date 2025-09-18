@@ -127,7 +127,6 @@ const useAccountBuilderStore = create<
   setName: (name) => {
     set({ name })
   },
-
   setNetwork: (network) => {
     set({ network })
   },
@@ -137,7 +136,6 @@ const useAccountBuilderStore = create<
   setKeyName: (keyName) => {
     set({ keyName })
   },
-
   setCreationType: (creationType) => {
     set({ creationType })
   },
