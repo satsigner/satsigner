@@ -131,11 +131,9 @@ const useAccountBuilderStore = create<
   setNetwork: (network) => {
     set({ network })
   },
-
   setPolicyType: (policyType) => {
     set({ policyType })
   },
-
   setKeyName: (keyName) => {
     set({ keyName })
   },
@@ -163,19 +161,15 @@ const useAccountBuilderStore = create<
   setExternalDescriptor: (externalDescriptor) => {
     set({ externalDescriptor })
   },
-
   setInternalDescriptor: (internalDescriptor) => {
     set({ internalDescriptor })
   },
-
   setExtendedPublicKey: (extendedPublicKey) => {
     set({ extendedPublicKey })
   },
-
   setFingerprint: (fingerprint) => {
     set({ fingerprint })
   },
-
   setScriptVersion: (scriptVersion) => {
     set({ scriptVersion })
   },
@@ -251,9 +245,7 @@ const useAccountBuilderStore = create<
     set(
       produce((state: AccountBuilderState) => {
         if (state.keys[index]) {
-          // Set fingerprint at key level for easy access
           state.keys[index].fingerprint = fingerprint
-          // Also set in secret for consistency
           if (
             state.keys[index].secret &&
             typeof state.keys[index].secret === 'object'
