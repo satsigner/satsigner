@@ -188,7 +188,7 @@ class BaseElectrumClient {
       }
 
       return true
-    } catch (_error) {
+    } catch {
       return false
     } finally {
       if (timeoutId) {

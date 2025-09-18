@@ -97,7 +97,7 @@ export async function extractAccountFingerprintWithDecryption(
       if (decryptedSecret.fingerprint) {
         return decryptedSecret.fingerprint
       }
-    } catch (_error) {
+    } catch {
       // Decryption failed
       return ''
     }

@@ -506,7 +506,7 @@ function PreviewMessage() {
           network
         )
         transaction.addOutput(outputScript, output.amount)
-      } catch (_error) {
+      } catch {
         // Don't call toast during render - this will be handled by validation elsewhere
         // Just return empty string to indicate invalid transaction
         return ''
