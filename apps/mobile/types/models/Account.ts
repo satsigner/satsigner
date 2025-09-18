@@ -15,7 +15,7 @@ export type ScriptVersionType =
   | 'P2TR'
   | 'P2WSH'
   | 'P2SH-P2WSH'
-  | 'Legacy P2SH'
+  | 'P2SH'
 
 export type SyncStatus = 'unsynced' | 'synced' | 'syncing' | 'error' | 'timeout'
 

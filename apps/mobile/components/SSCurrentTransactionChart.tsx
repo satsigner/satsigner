@@ -86,10 +86,22 @@ function SSCurrentTransactionChart({
     outputArray.length + (hasChange ? 1 : 0)
   )
 
-  const minerFee = useMemo(
-    () => Math.round(feeRateProp * txVsize),
-    [feeRateProp, txVsize]
-  )
+  // Ensure transaction size values are valid
+  const safeTxSize = Number.isNaN(txSize) ? 0 : txSize
+  const safeTxVsize = Number.isNaN(txVsize) ? 0 : txVsize
+
+  const minerFee = useMemo(() => {
+    // Ensure feeRateProp and safeTxVsize are valid numbers
+    if (
+      Number.isNaN(feeRateProp) ||
+      Number.isNaN(safeTxVsize) ||
+      feeRateProp < 0 ||
+      safeTxVsize < 0
+    ) {
+      return 0
+    }
+    return Math.round(feeRateProp * safeTxVsize)
+  }, [feeRateProp, safeTxVsize])
 
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
 
@@ -156,8 +168,8 @@ function SSCurrentTransactionChart({
         type: 'block',
         depthH: 1,
         ioData: {
-          txSize,
-          vSize: txVsize,
+          txSize: safeTxSize,
+          vSize: safeTxVsize,
           value: 0
         },
         value: 0
@@ -221,8 +233,8 @@ function SSCurrentTransactionChart({
   }, [
     inputArray,
     outputArray,
-    txSize,
-    txVsize,
+    safeTxSize,
+    safeTxVsize,
     minerFee,
     feeRateProp,
     satsToFiat,
@@ -257,9 +269,28 @@ function SSCurrentTransactionChart({
     return [...inputToBlockLinks, ...blockToOutputLinks]
   }, [inputArray, outputArray, minerFee])
 
+  // Validate data before passing to sankey generator to prevent NaN values
+  const validSankeyNodes = sankeyNodes.filter(
+    (node) =>
+      node &&
+      typeof node.value === 'number' &&
+      !Number.isNaN(node.value) &&
+      node.value >= 0
+  )
+
+  const validSankeyLinks = sankeyLinks.filter(
+    (link) =>
+      link &&
+      typeof link.value === 'number' &&
+      !Number.isNaN(link.value) &&
+      link.value > 0 &&
+      link.source &&
+      link.target
+  )
+
   const { nodes, links } = sankeyGenerator({
-    nodes: sankeyNodes,
-    links: sankeyLinks
+    nodes: validSankeyNodes,
+    links: validSankeyLinks
   })
 
   // calculating the sankey node styles to match in skia
@@ -271,12 +302,14 @@ function SSCurrentTransactionChart({
           ? ((node as Node).ioData?.txSize ?? 0) * 0.1
           : 0
 
+      // Safely handle NaN values from sankey generator
+      const safeX0 = Number.isNaN(node.x0) ? 0 : node.x0 ?? 0
+      const safeY0 = Number.isNaN(node.y0) ? 0 : node.y0 ?? 0
+
       return {
         localId: (node as Node).localId,
-        x: isBlock
-          ? (node.x0 ?? 0) + (NODE_WIDTH - BLOCK_WIDTH) / 2
-          : node.x0 ?? 0,
-        y: node.y0 ?? 0,
+        x: isBlock ? safeX0 + (NODE_WIDTH - BLOCK_WIDTH) / 2 : safeX0,
+        y: safeY0,
         width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
         height: isBlock ? Math.max(blockNodeHeight, LINK_MAX_WIDTH) : 80
       }
@@ -295,7 +328,25 @@ function SSCurrentTransactionChart({
     return null
   }
 
+  // Check for invalid fee rate
+  if (Number.isNaN(feeRateProp) || feeRateProp < 0) {
+    return null
+  }
+
   if (!nodes?.length || !transformedLinks?.length) {
+    return null
+  }
+
+  // Additional safety check: ensure all nodes have valid positions
+  const hasInvalidNodes = nodes.some(
+    (node) =>
+      Number.isNaN(node.x0) ||
+      Number.isNaN(node.y0) ||
+      Number.isNaN(node.x1) ||
+      Number.isNaN(node.y1)
+  )
+
+  if (hasInvalidNodes) {
     return null
   }
 

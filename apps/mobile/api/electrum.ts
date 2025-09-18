@@ -1,6 +1,4 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore - BlueWalletElectrumClient doesn't have proper TypeScript definitions
 import BlueWalletElectrumClient from 'electrum-client'
 import TcpSocket from 'react-native-tcp-socket'
 
@@ -11,7 +9,7 @@ import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { parseHexToBytes } from '@/utils/parse'
 import { bytesToHex } from '@/utils/scripts'
 import { TxDecoded } from '@/utils/txDecoded'
-import { validateElectrumUrl } from '@/utils/urlValidation'
+import { isDomainName } from '@/utils/validation'
 
 type IElectrumClient = {
   props: {
@@ -89,14 +87,6 @@ type AddressInfo = {
 }
 
 class ModifiedClient extends BlueWalletElectrumClient {
-  timeout?: NodeJS.Timeout | null
-  timeLastCall: number = 0
-
-  // eslint-disable-next-line @typescript-eslint/no-useless-constructor
-  constructor(...args: any[]) {
-    super(...args)
-  }
-
   // INFO: Override the default timeout for keeping client alive
   keepAlive() {
     if (this.timeout != null) clearTimeout(this.timeout)
@@ -104,11 +94,9 @@ class ModifiedClient extends BlueWalletElectrumClient {
     this.timeout = setTimeout(() => {
       if (this.timeLastCall !== 0 && now > this.timeLastCall + 500_000) {
         const pingTimer = setTimeout(() => {
-          // @ts-expect-error - onError method exists on the parent class but not in types
           this.onError(new Error('keepalive ping timeout'))
         }, 900_000)
 
-        // @ts-expect-error - server_ping method exists on the parent class but not in types
         this.server_ping()
           .catch(() => {
             clearTimeout(pingTimer)
@@ -120,9 +108,7 @@ class ModifiedClient extends BlueWalletElectrumClient {
 }
 
 class BaseElectrumClient {
-  // Using any type because BlueWalletElectrumClient doesn't have proper TypeScript definitions
-  // The client has all the necessary methods but they're not typed
-  client: any
+  client: ModifiedClient
   network: bitcoinjs.networks.Network
 
   constructor({
@@ -131,39 +117,38 @@ class BaseElectrumClient {
     protocol = 'ssl',
     network = 'signet'
   }: IElectrumClient['props']) {
-    try {
-      const net = TcpSocket
-      const tls = TcpSocket
-      const options = {}
+    const net = TcpSocket
+    const tls = TcpSocket
+    const options = {}
 
-      this.client = new ModifiedClient(net, tls, port, host, protocol, options)
-      this.network = bitcoinjsNetwork(network)
-
-      // Add error handler to prevent crashes
-      if (this.client && typeof this.client.onError === 'function') {
-        this.client.onError = () => {
-          // Silently handle errors to prevent console noise
-        }
-      }
-    } catch {
-      throw new Error('Failed to initialize Electrum client')
-    }
+    this.client = new ModifiedClient(net, tls, port, host, protocol, options)
+    this.network = bitcoinjsNetwork(network)
   }
 
   static fromUrl(url: string, network: Network): ElectrumClient {
-    const validation = validateElectrumUrl(url)
-    if (!validation.isValid) {
-      throw new Error(validation.error || 'Invalid backend URL')
-    }
-
     const port = url.replace(/.*:/, '')
     const protocol = url.replace(/:\/\/.*/, '')
     const host = url.replace(`${protocol}://`, '').replace(`:${port}`, '')
 
+    // Validate host: allow domain names (starting with letter) or IP addresses
+    const isValidDomain = isDomainName(host)
+    const isValidIP =
+      /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(
+        host
+      )
+
+    if (
+      !(isValidDomain || isValidIP) ||
+      !port.match(/^[0-9]+$/) ||
+      (protocol !== 'ssl' && protocol !== 'tls' && protocol !== 'tcp')
+    ) {
+      throw new Error('Invalid backend URL')
+    }
+
     const client = new ElectrumClient({
       host,
       port: Number(port),
-      protocol: protocol as 'tcp' | 'tls' | 'ssl',
+      protocol,
       network
     })
     return client
@@ -182,39 +167,10 @@ class BaseElectrumClient {
     let client: ElectrumClient | null = null
     let timeoutId: NodeJS.Timeout | null = null
 
-    // Suppress console warnings during test
-    // eslint-disable-next-line no-console
-    const originalConsoleWarn = console.warn
-    // eslint-disable-next-line no-console
-    const originalConsoleError = console.error
-    // eslint-disable-next-line no-console
-    console.warn = () => {}
-    // eslint-disable-next-line no-console
-    console.error = () => {}
-
     try {
       client = ElectrumClient.fromUrl(url, network)
 
-      // Validate client and socket before proceeding
-      if (!client || !client.client) {
-        throw new Error('Failed to create client')
-      }
-
-      // Store original reconnect function and disable reconnection for the test
-      const originalReconnect = client.client?.reconnect
-      if (client.client && typeof client.client.reconnect === 'function') {
-        ;(client as any).originalReconnect = originalReconnect
-        client.client.reconnect = () => {
-          // Disable reconnection during tests to prevent console warnings
-        }
-      }
-
-      // Add error handler to prevent crashes
-      if (client.client && typeof client.client.onError === 'function') {
-        client.client.onError = () => {
-          // Silently handle errors to prevent console noise
-        }
-      }
+      client.client.reconnect = () => {}
 
       const pingPromise = client.client.initElectrum({
         client: 'satsigner',
@@ -229,68 +185,25 @@ class BaseElectrumClient {
 
       await Promise.race([pingPromise, timeoutPromise])
 
-      // Clear timeout if successful
       if (timeoutId) {
         clearTimeout(timeoutId)
         timeoutId = null
       }
 
       return true
-    } catch (error) {
-      // Handle connection test failures with specific error messages
-      if (error instanceof Error) {
-        if (error.message.includes('timeout')) {
-          throw new Error(
-            'Connection timeout - server may be slow or unreachable'
-          )
-        } else if (error.message.includes('Unable to resolve host')) {
-          throw new Error(
-            'Unable to resolve host - check server URL and internet connection'
-          )
-        } else if (error.message.includes('ECONNREFUSED')) {
-          throw new Error(
-            'Connection refused - server may be down or port is closed'
-          )
-        } else if (error.message.includes('ENOTFOUND')) {
-          throw new Error('Server not found - check the server URL')
-        } else {
-          throw new Error(`Connection failed: ${error.message}`)
-        }
-      }
-      throw new Error('Unknown connection error')
+    } catch {
+      return false
     } finally {
-      // Restore console functions
-      // eslint-disable-next-line no-console
-      console.warn = originalConsoleWarn
-      // eslint-disable-next-line no-console
-      console.error = originalConsoleError
-
-      // Restore original reconnect function
-      if (client?.client && (client as any).originalReconnect) {
-        client.client.reconnect = (client as any).originalReconnect
-      }
-
-      // Clean up resources
       if (timeoutId) {
         clearTimeout(timeoutId)
       }
       if (client) {
         try {
           client.close()
-          // Force close the underlying socket if available
-          if (
-            client.client &&
-            'socket' in client.client &&
-            client.client.socket
-          ) {
-            const socket = client.client.socket as { destroy?: () => void }
-            if (typeof socket.destroy === 'function') {
-              socket.destroy()
-            }
+          if (client.client && client.client.socket) {
+            client.client.socket.destroy()
           }
-        } catch (_cleanupError) {
-          // Silently handle cleanup errors
-        }
+        } catch {}
       }
     }
   }
@@ -303,31 +216,11 @@ class BaseElectrumClient {
   }
 
   close() {
-    try {
-      if (this.client) {
-        this.client.close()
-
-        // Force close the underlying socket if available
-        if ('socket' in this.client && this.client.socket) {
-          const socket = this.client.socket as { destroy?: () => void }
-          if (typeof socket.destroy === 'function') {
-            socket.destroy()
-          }
-        }
-      }
-    } catch {
-      // Silently handle close errors
-    }
+    this.client.close()
   }
 
   reconnect() {
-    try {
-      if (this.client && typeof this.client.reconnect === 'function') {
-        this.client.reconnect()
-      }
-    } catch {
-      // Silently handle reconnect errors
-    }
+    this.client.reconnect()
   }
 
   addressToScriptHash(address: string) {

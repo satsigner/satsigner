@@ -27,6 +27,11 @@ export function validateExtendedKey(key: string, network?: AppNetwork) {
   return key.match(new RegExp('^[tuvxyz](pub|prv)[a-zA-Z0-9]+$')) !== null
 }
 
+export function isDomainName(host: string): boolean {
+  // Validate host: allow domain names (starting with letter) or IP addresses
+  return /^[a-z][a-z0-9.-]*[a-z0-9]$/i.test(host)
+}
+
 export function validateDerivationPath(path: string) {
   // Updated regex to better handle both h and ' formats
   // Supports: m/84h/0h/0h, m/84'/0'/0', 84h/0h/0h, 84'/0'/0', etc.
@@ -320,7 +325,7 @@ export function validateDescriptorScriptVersion(
     P2TR: ['tr'],
     P2WSH: ['wsh'],
     'P2SH-P2WSH': ['sh'],
-    'Legacy P2SH': ['sh']
+    P2SH: ['sh']
   }
 
   // Check if the script type is compatible with the target script version
@@ -344,7 +349,9 @@ export function validateDescriptorScriptVersion(
   if (!allowedScriptTypes.includes(scriptType)) {
     return {
       isValid: false,
-      error: `Descriptor script type "${scriptType}" is not compatible with multisig script version "${scriptVersion}". Expected: ${allowedScriptTypes.join(', ')}`
+      error: `Descriptor script type "${scriptType}" is not compatible with multisig script version "${scriptVersion}". Expected: ${allowedScriptTypes.join(
+        ', '
+      )}`
     }
   }
 

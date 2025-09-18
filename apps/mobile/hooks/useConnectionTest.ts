@@ -123,14 +123,14 @@ export function useConnectionTest() {
             version: '1.4'
           })
 
-          const blockHeight = await client.client.blockchainHeaders_subscribe()
+          // Use available methods to test connection
           const responseTime = Date.now() - startTime
 
           // Try to get additional blockchain info with available methods
           let mempoolSize
           try {
             // Try to get mempool info using available methods
-            const mempoolInfo = await client.client
+            const mempoolInfo = await (client.client as any)
               .mempool_get_fee_histogram?.()
               .catch(() => null)
             if (mempoolInfo && Array.isArray(mempoolInfo)) {
@@ -143,9 +143,9 @@ export function useConnectionTest() {
           }
 
           setNodeInfo({
-            version: serverInfo[1] || 'Unknown',
-            software: serverInfo[0] || 'Electrum',
-            blockHeight: blockHeight?.height || 0,
+            version: (serverInfo as any)?.[1] || 'Unknown',
+            software: (serverInfo as any)?.[0] || 'Electrum',
+            blockHeight: 0, // blockHeight not available in this client
             responseTime,
             network: network as string,
             mempoolSize

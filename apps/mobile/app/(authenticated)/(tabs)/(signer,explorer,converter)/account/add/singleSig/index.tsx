@@ -19,6 +19,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { type EntropyType } from '@/types/logic/entropy'
 import { type Key } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
+import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 export default function SingleSig() {
   const router = useRouter()
@@ -109,13 +110,16 @@ export default function SingleSig() {
           break
         }
       }
-    } else if (type === 'importMnemonic')
+    } else if (type === 'importMnemonic') {
+      // For import, navigate to mnemonic input
       router.navigate('/account/add/import/mnemonic/0')
+    }
   }
 
   function handleOnSelectMnemonicWordCount() {
-    setLocalMnemonicWordCount(localMnemonicWordCount)
+    setMnemonicWordCount(localMnemonicWordCount)
     setMnemonicWordCountModalVisibile(false)
+    // Modal closes and user returns to options screen to select import/generate
   }
 
   function handleOnSelectEntropy() {
@@ -144,9 +148,7 @@ export default function SingleSig() {
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.script')} />
               <SSButton
-                label={`${t(
-                  `script.${localScriptVersion.toLocaleLowerCase()}.name`
-                )} (${localScriptVersion})`}
+                label={getScriptVersionDisplayName(localScriptVersion)}
                 withSelect
                 onPress={() => setScriptVersionModalVisible(true)}
               />

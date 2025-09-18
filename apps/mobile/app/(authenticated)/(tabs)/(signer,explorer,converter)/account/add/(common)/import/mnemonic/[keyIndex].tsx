@@ -8,7 +8,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import {
   getDescriptorsFromKeyData,
-  getExtendedPublicKeyFromAccountKey,
+  getExtendedPublicKeyFromMnemonic,
   getFingerprint,
   validateMnemonic
 } from '@/api/bdk'
@@ -38,6 +38,7 @@ import { type SeedWordInfo } from '@/types/logic/seedWord'
 import { type Account } from '@/types/models/Account'
 import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
 import { getWordList } from '@/utils/bip39'
+import { getScriptVersionDisplayName } from '@/utils/scripts'
 import { seedWordsPrefixOfAnother } from '@/utils/seed'
 
 const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
@@ -337,7 +338,6 @@ export default function ImportMnemonic() {
 
     if (policyType === 'singlesig') {
       const account = getAccountData()
-
       const data = await accountBuilderFinish(account)
       if (!data || !data.wallet) return
 
@@ -361,10 +361,27 @@ export default function ImportMnemonic() {
       }
     } else if (policyType === 'multisig') {
       try {
-        const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
-          currentKey,
-          network as Network
+        // Get the mnemonic from the current key
+        // const mnemonic = mnemonicWordsInfo.map((word) => word.value).join(' ')
+
+        if (!mnemonic || mnemonic.trim() === '') {
+          throw new Error('Mnemonic is required for multisig accounts')
+        }
+
+        const extendedPublicKey = await getExtendedPublicKeyFromMnemonic(
+          mnemonic,
+          passphrase,
+          network as Network,
+          scriptVersion,
+          undefined,
+          true // isMultisig
         )
+
+        if (!extendedPublicKey) {
+          throw new Error(
+            'Failed to generate extended public key from mnemonic'
+          )
+        }
 
         // Generate descriptors from the key data
         if (extendedPublicKey && currentKey.fingerprint) {
@@ -372,7 +389,8 @@ export default function ImportMnemonic() {
             extendedPublicKey,
             currentKey.fingerprint,
             scriptVersion,
-            network as Network
+            network as Network,
+            policyType === 'multisig' // Pass multisig flag
           )
 
           // Update the key with both descriptors and extended public key
@@ -389,11 +407,17 @@ export default function ImportMnemonic() {
             extendedPublicKey
           })
         }
-      } catch (_error) {}
+      } catch (error) {
+        toast.error(
+          (error as Error).message || 'Failed to import multisig account'
+        )
+        setLoadingAccount(false)
+        return
+      }
 
       setLoadingAccount(false)
       clearKeyState()
-      router.dismiss(2)
+      router.dismiss(1)
     }
   }
 
@@ -401,7 +425,17 @@ export default function ImportMnemonic() {
     setAccountAddedModalVisible(false)
     clearKeyState()
     clearAccount()
-    router.navigate('/')
+
+    // Navigate to the newly created account page if available and synced
+    // Use replace to clear navigation stack, then navigate to account
+    router.replace('/')
+
+    if (syncedAccount?.id) {
+      // Navigate to account after clearing stack
+      setTimeout(() => {
+        router.navigate(`/account/${syncedAccount.id}`)
+      }, 10)
+    }
   }
 
   function handleOnPressCancel() {
@@ -490,6 +524,11 @@ export default function ImportMnemonic() {
       </ScrollView>
       <SSGradientModal
         visible={accountAddedModalVisible}
+        closeText={
+          syncedAccount && !loadingAccount
+            ? t('account.gotoWallet')
+            : t('common.close')
+        }
         onClose={() => handleOnCloseAccountAddedModal()}
       >
         <SSVStack style={{ marginVertical: 32, width: '100%' }}>
@@ -508,9 +547,7 @@ export default function ImportMnemonic() {
                 {t('account.script')}
               </SSText>
               <SSText size="md" color="muted" center>
-                {t(`script.${scriptVersion.toLowerCase()}.name`)}
-                {'\n'}
-                {`(${scriptVersion})`}
+                {getScriptVersionDisplayName(scriptVersion)}
               </SSText>
             </SSVStack>
             <SSVStack itemsCenter>
@@ -518,7 +555,7 @@ export default function ImportMnemonic() {
                 {t('account.fingerprint')}
               </SSText>
               <SSText size="md" color="muted">
-                {keys[Number(keyIndex)]?.fingerprint}
+                {fingerprint}
               </SSText>
             </SSVStack>
           </SSHStack>
@@ -529,7 +566,9 @@ export default function ImportMnemonic() {
                 {t('account.derivationPath')}
               </SSText>
               <SSText size="md" color="muted">
-                {syncedAccount?.keys[Number(keyIndex)].derivationPath}
+                {syncedAccount?.keys[Number(keyIndex)].derivationPath ||
+                  keys[Number(keyIndex)]?.derivationPath ||
+                  '-'}
               </SSText>
             </SSVStack>
             <SSHStack justifyEvenly>
