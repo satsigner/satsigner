@@ -307,11 +307,6 @@ export default function WatchOnly() {
   const pulseAnim = useRef(new Animated.Value(0)).current
   const scaleAnim = useRef(new Animated.Value(1)).current
 
-  // Set policy type to watchonly when component mounts
-  useEffect(() => {
-    setPolicyType('watchonly')
-  }, [setPolicyType])
-
   // Handle NFC reading animations
   useEffect(() => {
     if (isReading) {
