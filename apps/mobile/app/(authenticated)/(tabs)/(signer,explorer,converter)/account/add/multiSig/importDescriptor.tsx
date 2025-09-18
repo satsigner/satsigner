@@ -25,7 +25,7 @@ import {
 
 export default function ImportDescriptor() {
   const router = useRouter()
-  const network = useBlockchainStore((state) => state.selectedNetwork)
+  const _network = useBlockchainStore((state) => state.selectedNetwork)
   const [
     scriptVersion,
     policyType,
@@ -55,7 +55,12 @@ export default function ImportDescriptor() {
       state.setExtendedPublicKey
     ])
   )
-  const { isAvailable, isReading, readNFCTag, cancelNFCScan } = useNFCReader()
+  const {
+    isAvailable,
+    isReading: _isReading,
+    readNFCTag,
+    cancelNFCScan: _cancelNFCScan
+  } = useNFCReader()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
 
@@ -114,7 +119,7 @@ export default function ImportDescriptor() {
 
       setIsValidDescriptor(true)
       setDescriptorError('')
-    } catch (error) {
+    } catch {
       setIsValidDescriptor(false)
       setDescriptorError(t('account.import.error.descriptorFormat'))
     } finally {
