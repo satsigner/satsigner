@@ -576,10 +576,7 @@ export default function WatchOnly() {
       }
     }
   }
-  /**
-   * Detect QR code type and format
-   */
-  const detectQRType = (data: string) => {
+  function detectQRType(data: string) {
     // Check for RAW format (pXofY header)
     if (/^p\d+of\d+\s/.test(data)) {
       const match = data.match(/^p(\d+)of(\d+)\s/)
