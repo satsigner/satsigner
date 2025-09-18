@@ -9,7 +9,7 @@ import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { parseHexToBytes } from '@/utils/parse'
 import { bytesToHex } from '@/utils/scripts'
 import { TxDecoded } from '@/utils/txDecoded'
-import { isDomainName, isIPAddress } from '@/utils/validation'
+import { isDomainName } from '@/utils/validation'
 
 type IElectrumClient = {
   props: {
@@ -132,7 +132,10 @@ class BaseElectrumClient {
 
     // Validate host: allow domain names (starting with letter) or IP addresses
     const isValidDomain = isDomainName(host)
-    const isValidIP = isIPAddress(host)
+    const isValidIP =
+      /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(
+        host
+      )
 
     if (
       !(isValidDomain || isValidIP) ||
