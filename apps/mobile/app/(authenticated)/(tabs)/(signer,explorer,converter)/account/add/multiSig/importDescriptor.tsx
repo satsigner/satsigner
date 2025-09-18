@@ -314,7 +314,7 @@ export default function ImportDescriptor() {
       />
       <ScrollView>
         <SSVStack justifyBetween gap="lg" style={{ paddingBottom: 20 }}>
-          <SSVStack gap="lg">
+          <SSVStack gap="xs">
             <SSVStack gap="md">
               <SSText center>{t('watchonly.importDescriptor.label')}</SSText>
               <SSTextInput
@@ -324,6 +324,7 @@ export default function ImportDescriptor() {
                 multiline
                 numberOfLines={3}
                 style={[
+                  { padding: 5, height: 'auto' },
                   styles.textArea,
                   !isValidDescriptor && descriptor.trim()
                     ? styles.invalid
@@ -332,7 +333,7 @@ export default function ImportDescriptor() {
               />
             </SSVStack>
 
-            <SSHStack gap="sm" style={{ marginTop: 20 }}>
+            <SSHStack gap="sm">
               <SSButton
                 label={t('common.paste')}
                 variant="subtle"
