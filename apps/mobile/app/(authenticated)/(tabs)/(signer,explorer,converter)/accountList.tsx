@@ -681,6 +681,12 @@ export default function AccountList() {
               loading={loadingWallet === 'segwit'}
             />
             <SSButton
+              label={t('account.load.sample.signet.multisig')}
+              variant="subtle"
+              onPress={() => loadSampleWallet('multisig')}
+              loading={loadingWallet === 'multisig'}
+            />
+            <SSButton
               label={t('account.load.sample.signet.legacy')}
               variant="subtle"
               onPress={() => loadSampleWallet('legacy')}
@@ -697,12 +703,6 @@ export default function AccountList() {
               variant="subtle"
               onPress={() => loadSampleWallet('watchonlyAddress')}
               loading={loadingWallet === 'watchonlyAddress'}
-            />
-            <SSButton
-              label={t('account.load.sample.signet.multisig')}
-              variant="subtle"
-              onPress={() => loadSampleWallet('multisig')}
-              loading={loadingWallet === 'multisig'}
             />
           </SSVStack>
         )
