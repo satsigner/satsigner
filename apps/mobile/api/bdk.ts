@@ -232,15 +232,6 @@ async function getWalletData(
         )
       }
 
-      // Extract fingerprints for each individual key
-      const keyFingerprints = await Promise.all(
-        validExtendedPublicKeys.map(async (extendedPublicKey) => {
-          return await getFingerprintFromExtendedPublicKey(
-            extendedPublicKey,
-            network
-          )
-        })
-
       // Get the policy-based derivation path according to the account type
       // Use the original scriptVersion for derivation path, not the mapped multisig script type
       const policyDerivationPath = getMultisigDerivationPathFromScriptVersion(
