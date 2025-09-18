@@ -105,7 +105,7 @@ export default function DescriptorPage() {
                 case 'P2SH-P2WSH':
                   externalDescriptor = `sh(wsh(${keyPart}))`
                   break
-                case 'Legacy P2SH':
+                case 'P2SH':
                   externalDescriptor = `sh(${keyPart})`
                   break
                 default:
@@ -118,7 +118,7 @@ export default function DescriptorPage() {
                   externalDescriptor,
                   network as Network
                 )
-                foundDescriptor = await descriptor.asString()
+                foundDescriptor = descriptor ? await descriptor.asString() : ''
                 setDescriptor(foundDescriptor)
               } catch (_error) {
                 // Keep the descriptor without checksum if BDK fails

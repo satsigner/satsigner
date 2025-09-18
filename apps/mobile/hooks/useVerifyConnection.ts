@@ -18,10 +18,10 @@ function useVerifyConnection() {
   const [connectionState, setConnectionState] = useState<boolean>(false)
   const connectionString = useMemo(() => {
     if (config.connectionMode === 'auto')
-      return `${server.network} - ${server.url}`
+      return `${server.network} - ${server.name} (${server.url})`
 
-    return `${server.network} - ${server.url} (${config.connectionMode})`
-  }, [server.network, server.url, config.connectionMode])
+    return `${server.network} - ${server.name} (${server.url}) [${config.connectionMode}]`
+  }, [server.network, server.name, server.url, config.connectionMode])
 
   const isPrivateConnection = useMemo(() => {
     if (servers.findIndex((val) => val.url === server.url) === -1) {
@@ -35,6 +35,7 @@ function useVerifyConnection() {
       setConnectionState(false)
       return
     }
+
     try {
       const result =
         server.backend === 'electrum'
@@ -44,6 +45,7 @@ function useVerifyConnection() {
               config.timeout * 1000
             )
           : await Esplora.test(server.url, config.timeout * 1000)
+
       setConnectionState(result)
     } catch {
       setConnectionState(false)

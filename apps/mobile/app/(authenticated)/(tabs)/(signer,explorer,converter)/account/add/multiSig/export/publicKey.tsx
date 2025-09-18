@@ -20,18 +20,8 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Secret } from '@/types/models/Account'
-import { type Network } from '@/types/settings/blockchain'
-import { convertKeyFormat, getKeyFormatForScriptVersion } from '@/utils/bitcoin'
+import { convertKeyFormat } from '@/utils/bitcoin'
 import { shareFile } from '@/utils/filesystem'
-
-// Helper function to get the appropriate translation key for key format buttons
-function _getKeyFormatTranslationKey(
-  scriptVersion: string,
-  network: Network
-): string {
-  const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
-  return `account.import.${keyFormat}`
-}
 
 type PublicKeyFormat = 'xpub' | 'ypub' | 'zpub' | 'vpub' | 'tpub' | 'upub'
 
@@ -49,86 +39,134 @@ export default function PublicKeyPage() {
   const [rawPublicKey, setRawPublicKey] = useState('')
   const [scriptVersion, setScriptVersion] = useState('P2WPKH')
 
-  // Get available formats based on script version and network
-  function getAvailableFormats(scriptVersion: string): PublicKeyFormat[] {
-    const baseFormats = (() => {
-      switch (scriptVersion) {
-        case 'P2PKH':
-          return ['xpub']
-        case 'P2SH-P2WPKH':
-          return ['xpub', 'ypub']
-        case 'P2WPKH':
-          return ['xpub', 'zpub']
-        case 'P2TR':
-          return ['xpub', 'vpub']
-        default:
-          return ['xpub']
+  // Initialize selectedFormat and scriptVersion based on network and account data
+  useEffect(() => {
+    const accountData = getAccountData()
+    if (accountData) {
+      const keyIndexNum = Number(keyIndex || 0)
+      const key = accountData.keys[keyIndexNum]
+      if (key?.scriptVersion) {
+        setScriptVersion(key.scriptVersion)
       }
-    })()
 
-    // Convert base formats to network-specific formats
-    return baseFormats.map((format) => {
-      if (format === 'xpub') {
-        return network === 'bitcoin' ? 'xpub' : 'tpub'
-      } else if (format === 'ypub') {
-        return network === 'bitcoin' ? 'ypub' : 'upub'
-      } else if (format === 'zpub') {
-        return network === 'bitcoin' ? 'zpub' : 'vpub'
-      } else if (format === 'vpub') {
-        return 'vpub' // vpub is the same for all networks
+      // Set the correct default format based on network and script version
+      if (key?.scriptVersion === 'P2SH-P2WSH') {
+        // For P2SH-P2WSH, default to ypub/upub (more specific)
+        setSelectedFormat(network === 'bitcoin' ? 'ypub' : 'upub')
+      } else if (key?.scriptVersion === 'P2WSH') {
+        // For P2WSH, default to zpub/vpub (more specific)
+        setSelectedFormat(network === 'bitcoin' ? 'zpub' : 'vpub')
+      } else {
+        // For P2SH and others, default to xpub/tpub
+        setSelectedFormat(network === 'bitcoin' ? 'xpub' : 'tpub')
       }
-      return format
-    }) as PublicKeyFormat[]
-  }
+    }
+  }, [getAccountData, network, keyIndex])
 
   // Get format button data based on script version and network
   function getFormatButtons(
     scriptVersion: string
   ): { format: PublicKeyFormat; label: string }[] {
-    const availableFormats = getAvailableFormats(scriptVersion)
-
-    // Create format buttons based on available formats
     const formatButtons: { format: PublicKeyFormat; label: string }[] = []
 
-    // Add P2PKH format (xpub/tpub)
-    if (
-      availableFormats.includes('xpub') ||
-      availableFormats.includes('tpub')
-    ) {
+    // Handle multisig script types specifically
+    if (scriptVersion === 'P2SH') {
+      // P2SH: Only show xpub/tpub
       formatButtons.push({
         format: network === 'bitcoin' ? 'xpub' : 'tpub',
-        label: (network === 'bitcoin' ? 'xpub' : 'tpub').toUpperCase()
+        label: t(
+          `account.seed.formatButtons.${
+            network === 'bitcoin' ? 'xpub' : 'tpub'
+          }`
+        )
       })
-    }
-
-    // Add P2SH-P2WPKH format (ypub/upub)
-    if (
-      availableFormats.includes('ypub') ||
-      availableFormats.includes('upub')
-    ) {
+    } else if (scriptVersion === 'P2SH-P2WSH') {
+      // P2SH-P2WSH: Show xpub/ypub or tpub/upub
+      formatButtons.push({
+        format: network === 'bitcoin' ? 'xpub' : 'tpub',
+        label: t(
+          `account.seed.formatButtons.${
+            network === 'bitcoin' ? 'xpub' : 'tpub'
+          }`
+        )
+      })
       formatButtons.push({
         format: network === 'bitcoin' ? 'ypub' : 'upub',
-        label: (network === 'bitcoin' ? 'ypub' : 'upub').toUpperCase()
+        label: t(
+          `account.seed.formatButtons.${
+            network === 'bitcoin' ? 'ypub' : 'upub'
+          }`
+        )
       })
-    }
-
-    // Add P2WPKH format (zpub/vpub) - only if not already added for P2TR
-    if (
-      (availableFormats.includes('zpub') ||
-        availableFormats.includes('vpub')) &&
-      scriptVersion !== 'P2TR'
-    ) {
+    } else if (scriptVersion === 'P2WSH') {
+      // P2WSH: Show xpub/zpub or tpub/vpub
+      formatButtons.push({
+        format: network === 'bitcoin' ? 'xpub' : 'tpub',
+        label: t(
+          `account.seed.formatButtons.${
+            network === 'bitcoin' ? 'xpub' : 'tpub'
+          }`
+        )
+      })
       formatButtons.push({
         format: network === 'bitcoin' ? 'zpub' : 'vpub',
-        label: (network === 'bitcoin' ? 'zpub' : 'vpub').toUpperCase()
+        label: t(
+          `account.seed.formatButtons.${
+            network === 'bitcoin' ? 'zpub' : 'vpub'
+          }`
+        )
       })
-    }
-
-    // Add P2TR format (vpub) - only for P2TR script version
-    if (scriptVersion === 'P2TR' && availableFormats.includes('vpub')) {
+    } else if (scriptVersion === 'P2PKH') {
+      // P2PKH: Only show xpub/tpub
+      formatButtons.push({
+        format: network === 'bitcoin' ? 'xpub' : 'tpub',
+        label: t(
+          `account.seed.formatButtons.${
+            network === 'bitcoin' ? 'xpub' : 'tpub'
+          }`
+        )
+      })
+    } else if (scriptVersion === 'P2SH-P2WPKH') {
+      // P2SH-P2WPKH: Show xpub/ypub or tpub/upub
+      formatButtons.push({
+        format: network === 'bitcoin' ? 'xpub' : 'tpub',
+        label: t(
+          `account.seed.formatButtons.${
+            network === 'bitcoin' ? 'xpub' : 'tpub'
+          }`
+        )
+      })
+      formatButtons.push({
+        format: network === 'bitcoin' ? 'ypub' : 'upub',
+        label: t(
+          `account.seed.formatButtons.${
+            network === 'bitcoin' ? 'ypub' : 'upub'
+          }`
+        )
+      })
+    } else if (scriptVersion === 'P2WPKH') {
+      // P2WPKH: Show xpub/zpub or tpub/vpub
+      formatButtons.push({
+        format: network === 'bitcoin' ? 'xpub' : 'tpub',
+        label: t(
+          `account.seed.formatButtons.${
+            network === 'bitcoin' ? 'xpub' : 'tpub'
+          }`
+        )
+      })
+      formatButtons.push({
+        format: network === 'bitcoin' ? 'zpub' : 'vpub',
+        label: t(
+          `account.seed.formatButtons.${
+            network === 'bitcoin' ? 'zpub' : 'vpub'
+          }`
+        )
+      })
+    } else if (scriptVersion === 'P2TR') {
+      // P2TR: Only show vpub (same for all networks)
       formatButtons.push({
         format: 'vpub',
-        label: 'VPUB'
+        label: t('account.seed.formatButtons.vpub')
       })
     }
 
@@ -184,36 +222,6 @@ export default function PublicKeyPage() {
         const keyScriptVersion = key.scriptVersion || 'P2WPKH'
         setScriptVersion(keyScriptVersion)
 
-        // Set initial selected format based on available formats
-        const availableFormats = getAvailableFormats(keyScriptVersion)
-        if (availableFormats.length > 0) {
-          // For P2PKH, default to xpub/tpub
-          // For P2SH-P2WPKH, default to ypub/upub (more specific)
-          // For P2WPKH, default to zpub/vpub (more specific)
-          // For P2TR, default to vpub (more specific)
-          let defaultFormat: PublicKeyFormat =
-            network === 'bitcoin' ? 'xpub' : 'tpub'
-          if (
-            keyScriptVersion === 'P2SH-P2WPKH' &&
-            (availableFormats.includes('ypub') ||
-              availableFormats.includes('upub'))
-          ) {
-            defaultFormat = network === 'bitcoin' ? 'ypub' : 'upub'
-          } else if (
-            keyScriptVersion === 'P2WPKH' &&
-            (availableFormats.includes('zpub') ||
-              availableFormats.includes('vpub'))
-          ) {
-            defaultFormat = network === 'bitcoin' ? 'zpub' : 'vpub'
-          } else if (
-            keyScriptVersion === 'P2TR' &&
-            availableFormats.includes('vpub')
-          ) {
-            defaultFormat = 'vpub'
-          }
-          setSelectedFormat(defaultFormat)
-        }
-
         // Get the public key from the key data
         let publicKeyString = ''
         if (typeof key.secret === 'object') {
@@ -226,7 +234,13 @@ export default function PublicKeyPage() {
               secret.externalDescriptor,
               network as BdkNetwork
             )
-            publicKeyString = await getExtendedKeyFromDescriptor(descriptor)
+
+            if (!descriptor) {
+              publicKeyString = ''
+            } else {
+              publicKeyString =
+                await getExtendedKeyFromDescriptor(descriptor)
+            }
           }
         }
 
@@ -245,7 +259,13 @@ export default function PublicKeyPage() {
     }
 
     getPublicKey()
-  }, [keyIndex]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [
+    keyIndex,
+    getAccountData,
+    network,
+    selectedFormat,
+    convertPublicKeyFormat
+  ])
 
   useEffect(() => {
     if (rawPublicKey) {

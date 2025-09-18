@@ -1,5 +1,6 @@
 import { type Network } from '../settings/blockchain'
 import { type Address } from './Address'
+import { type NostrAccount } from './Nostr'
 import { type Transaction } from './Transaction'
 import { type Utxo } from './Utxo'
 
@@ -14,7 +15,7 @@ export type ScriptVersionType =
   | 'P2TR'
   | 'P2WSH'
   | 'P2SH-P2WSH'
-  | 'Legacy P2SH'
+  | 'P2SH'
 
 export type SyncStatus = 'unsynced' | 'synced' | 'syncing' | 'error' | 'timeout'
 
@@ -60,20 +61,6 @@ export type Key = {
   derivationPath?: string
 }
 
-export type DM = {
-  id: string
-  author: string
-  created_at: number
-  description: string
-  event: string
-  label: number
-  content: {
-    description: string
-    created_at: number
-    pubkey?: string
-  }
-}
-
 export type Account = {
   id: string
   name: string
@@ -100,39 +87,5 @@ export type Account = {
   lastSyncedAt?: Date
   syncStatus: SyncStatus
   syncProgress?: SyncProgress
-  nostr: {
-    commonNpub: string
-    commonNsec: string
-    relays: string[]
-    autoSync: boolean
-    lastBackupFingerprint?: string
-    deviceNpub?: string
-    deviceNsec?: string
-    trustedMemberDevices: string[]
-    dms: DM[]
-    lastUpdated: Date
-    syncStart: Date
-  }
-}
-
-export type NostrAccount = {
-  commonNpub: string
-  commonNsec: string
-  relays: string[]
-  autoSync: boolean
-  lastBackupFingerprint?: string
-  deviceNpub?: string
-  deviceNsec?: string
-  dms?: DM[]
-  members?: NostrMember[]
-  syncStart: Date
-  lastProtocolEOSE?: number
-  lastDataExchangeEOSE?: number
-  lastUpdated: Date
-  trustedMemberDevices: string[]
-}
-
-export type NostrMember = {
-  npub: string
-  color?: string
+  nostr: NostrAccount
 }

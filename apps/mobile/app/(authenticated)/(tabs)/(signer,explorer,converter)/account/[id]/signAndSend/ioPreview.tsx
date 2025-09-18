@@ -46,13 +46,11 @@ import { type MempoolStatistics } from '@/types/models/Blockchain'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { checkWalletNeedsSync } from '@/utils/account'
 import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
 import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
-
-// Maximum number of days without syncing the wallet before we show a warning
-const MAX_DAYS_WITHOUT_SYNCING = 3
 
 export default function IOPreview() {
   const router = useRouter()
@@ -112,7 +110,9 @@ export default function IOPreview() {
 
       for (let i = 0; true; i += 1) {
         const addressObj = await wallet.getInternalAddress(i)
-        const address = await addressObj.address.asString()
+        const address = addressObj?.address
+          ? await addressObj.address.asString()
+          : ''
         if (outputAddresses[address] === true) continue
         setChangeAddress(address)
         return
@@ -420,6 +420,7 @@ export default function IOPreview() {
       (acc, output) => acc + output.amount,
       0
     )
+
     const totalRequired = totalOutputAmount + minerFee
 
     if (totalRequired > utxosSelectedValue) {
@@ -429,6 +430,12 @@ export default function IOPreview() {
 
     // Add change output if there's any remaining amount
     if (remainingBalance > 0) {
+      // Validate that changeAddress is available before adding change output
+      if (!changeAddress) {
+        toast.error(t('transaction.errorChangeAddressNotAvailable'))
+        return
+      }
+
       setShouldRemoveChange(false)
       addOutput({
         to: changeAddress,
@@ -437,33 +444,10 @@ export default function IOPreview() {
       })
     }
 
-    // Account not synced. Go to warning page to sync it.
-    if (account.syncStatus !== 'synced' || account.lastSyncedAt === undefined) {
-      router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
-      return
-    }
+    // Check if wallet needs syncing based on time since last sync
+    const needsSync = checkWalletNeedsSync(account)
 
-    const lastSync = new Date(account.lastSyncedAt as Date)
-    const now = new Date()
-
-    // Discard the time and time-zone information.
-    const currentUtc = Date.UTC(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate()
-    )
-    const lastSyncedUtc = Date.UTC(
-      lastSync.getFullYear(),
-      lastSync.getMonth(),
-      lastSync.getDate()
-    )
-    const MILISECONDS_PER_DAY = 1000 * 60 * 60 * 24
-    const daysSinceLastSync = Math.floor(
-      (currentUtc - lastSyncedUtc) / MILISECONDS_PER_DAY
-    )
-
-    // Account updated too long ago.
-    if (daysSinceLastSync > MAX_DAYS_WITHOUT_SYNCING) {
+    if (needsSync) {
       router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
       return
     }
@@ -756,7 +740,7 @@ export default function IOPreview() {
                           } else {
                             toast.error(t('common.invalid'))
                           }
-                        } catch (_error) {
+                        } catch {
                           toast.error(t('common.invalid'))
                         }
                       }}

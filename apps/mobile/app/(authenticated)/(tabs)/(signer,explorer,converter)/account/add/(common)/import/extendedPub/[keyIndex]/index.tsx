@@ -25,7 +25,8 @@ import { Colors } from '@/styles'
 import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import {
   convertKeyFormat,
-  getDerivationPathFromScriptVersion
+  getDerivationPathFromScriptVersion,
+  getMultisigDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
 import { validateExtendedKey, validateFingerprint } from '@/utils/validation'
 
@@ -53,23 +54,26 @@ export default function ImportExtendedPub() {
   const router = useRouter()
   const network = useBlockchainStore((state) => state.selectedNetwork)
 
-  const {
-    setKey,
+  const [
     setExtendedPublicKey,
     setFingerprint,
+    clearKeyState,
+    setKey,
     setKeyDerivationPath,
+    policyType,
     scriptVersion,
-    clearKeyState
-  } = useAccountBuilderStore(
-    useShallow((state) => ({
-      setKey: state.setKey,
-      setExtendedPublicKey: state.setExtendedPublicKey,
-      setFingerprint: state.setFingerprint,
-      setScriptVersion: state.setScriptVersion,
-      setKeyDerivationPath: state.setKeyDerivationPath,
-      scriptVersion: state.scriptVersion,
-      clearKeyState: state.clearKeyState
-    }))
+    builderNetwork
+  ] = useAccountBuilderStore(
+    useShallow((state) => [
+      state.setExtendedPublicKey,
+      state.setFingerprint,
+      state.clearKeyState,
+      state.setKey,
+      state.setKeyDerivationPath,
+      state.policyType,
+      state.scriptVersion,
+      state.network
+    ])
   )
 
   const { isAvailable, isReading, readNFCTag, cancelNFCScan } = useNFCReader()
@@ -338,21 +342,33 @@ export default function ImportExtendedPub() {
 
       // Extract derivation path from extended public key
       let derivationPath = ''
-      try {
-        // Create a descriptor from the extended public key to extract derivation path
-        const descriptorString = `pkh(${convertedXpub})`
-        const descriptor = await new Descriptor().create(
-          descriptorString,
-          mapNetworkToBdkNetwork(network)
-        )
-        const parsedDescriptor = await parseDescriptor(descriptor)
-        derivationPath = parsedDescriptor.derivationPath
-      } catch (_error) {
-        // Use default derivation path if extraction fails
-        derivationPath = `m/${getDerivationPathFromScriptVersion(
+
+      if (policyType === 'multisig') {
+        // For multisig accounts, always use our multisig derivation path logic
+        const rawDerivationPath = getMultisigDerivationPathFromScriptVersion(
           scriptVersion,
-          network
-        )}`
+          builderNetwork
+        )
+        derivationPath = `m/${rawDerivationPath}`
+      } else {
+        // For single-sig accounts, try to extract from descriptor first
+        try {
+          // Create a descriptor from the extended public key to extract derivation path
+          const descriptorString = `pkh(${convertedXpub})`
+          const descriptor = await new Descriptor().create(
+            descriptorString,
+            mapNetworkToBdkNetwork(network)
+          )
+          const parsedDescriptor = await parseDescriptor(descriptor)
+          derivationPath = parsedDescriptor.derivationPath
+        } catch {
+          // Use default derivation path if extraction fails
+          const rawDerivationPath = getDerivationPathFromScriptVersion(
+            scriptVersion,
+            builderNetwork
+          )
+          derivationPath = `m/${rawDerivationPath}`
+        }
       }
 
       // Set the data in the store

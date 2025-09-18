@@ -252,11 +252,15 @@ export function decodeMultiPartURToPSBT(urFragments: string[]): string {
     // If we get here, the decoder isn't ready yet
     if (progress < 0.3) {
       throw new Error(
-        `UR decoder needs more fragments: ${Math.round(progress * 100)}% complete`
+        `UR decoder needs more fragments: ${Math.round(
+          progress * 100
+        )}% complete`
       )
     } else if (progress < 0.8) {
       throw new Error(
-        `UR decoder needs more fragments: ${Math.round(progress * 100)}% complete (fountain encoding requires more fragments)`
+        `UR decoder needs more fragments: ${Math.round(
+          progress * 100
+        )}% complete (fountain encoding requires more fragments)`
       )
     } else {
       // Try to force extraction even if not 100% complete
@@ -283,7 +287,9 @@ export function decodeMultiPartURToPSBT(urFragments: string[]): string {
     }
   } catch (error) {
     throw new Error(
-      `UR decoding failed: ${error instanceof Error ? error.message : String(error)}`
+      `UR decoding failed: ${
+        error instanceof Error ? error.message : String(error)
+      }`
     )
   }
 }
@@ -453,7 +459,9 @@ function parseCBORByteString(cborData: Uint8Array): Uint8Array {
 
     if (offset + length > cborData.length) {
       throw new Error(
-        `CBOR length mismatch: expected ${length} bytes, got ${cborData.length - offset}`
+        `CBOR length mismatch: expected ${length} bytes, got ${
+          cborData.length - offset
+        }`
       )
     }
 
@@ -464,6 +472,8 @@ function parseCBORByteString(cborData: Uint8Array): Uint8Array {
 
   // Handle other CBOR types that might contain the PSBT
   throw new Error(
-    `Unsupported CBOR major type: ${(firstByte & 0xe0) >> 5} (byte: 0x${firstByte.toString(16)})`
+    `Unsupported CBOR major type: ${
+      (firstByte & 0xe0) >> 5
+    } (byte: 0x${firstByte.toString(16)})`
   )
 }

@@ -1,5 +1,4 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
-import { KeychainKind } from 'bdk-rn/lib/lib/enums'
+import { KeychainKind, type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
@@ -8,7 +7,7 @@ import { useShallow } from 'zustand/react/shallow'
 import {
   getDescriptor,
   getDescriptorsFromKeyData,
-  getExtendedPublicKeyFromAccountKey,
+  getExtendedPublicKeyFromMnemonic,
   getFingerprint,
   parseDescriptor,
   validateMnemonic
@@ -28,7 +27,10 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type GenerateMnemonicSearchParams } from '@/types/navigation/searchParams'
-import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
+import {
+  getDerivationPathFromScriptVersion,
+  getMultisigDerivationPathFromScriptVersion
+} from '@/utils/bitcoin'
 
 export default function GenerateMnemonic() {
   const { index } = useLocalSearchParams<GenerateMnemonicSearchParams>()
@@ -98,60 +100,62 @@ export default function GenerateMnemonic() {
     try {
       // Extract derivation path from mnemonic
       let derivationPath = ''
-      try {
-        const externalDescriptor = await getDescriptor(
-          mnemonic.join(' '),
-          scriptVersion, // Use the script version from store
-          KeychainKind.External,
-          passphrase || '', // Use passphrase from store
-          network as Network
-        )
-        const parsedDescriptor = await parseDescriptor(externalDescriptor)
-        derivationPath = parsedDescriptor.derivationPath
-      } catch (_error) {
-        // Use default derivation path if extraction fails
-        derivationPath = `m/${getDerivationPathFromScriptVersion(
+
+      if (policyType === 'multisig') {
+        // For multisig accounts, always use our multisig derivation path logic
+        // Don't try to extract from BDK descriptors as they use single-sig paths
+        const rawDerivationPath = getMultisigDerivationPathFromScriptVersion(
           scriptVersion,
           network
-        )}`
-      }
+        )
+        derivationPath = `m/${rawDerivationPath}`
+        // Generate extended public key first using the same method as import flow
+        const extendedPublicKey = await getExtendedPublicKeyFromMnemonic(
+          mnemonic.join(' '),
+          passphrase || '',
+          network as Network,
+          scriptVersion
+        )
 
-      // Generate extended public key first
-      const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
-        {
-          index: Number(index),
-          name: '',
-          creationType: 'generateMnemonic',
-          mnemonicWordCount,
-          secret: {
-            mnemonic: mnemonic.join(' '),
-            passphrase,
-            fingerprint
-          },
-          iv: '',
-          scriptVersion,
-          fingerprint
-        },
-        network as Network
-      )
+        // Generate descriptors from the key data
+        if (extendedPublicKey && fingerprint) {
+          try {
+            const descriptors = await getDescriptorsFromKeyData(
+              extendedPublicKey,
+              fingerprint,
+              scriptVersion,
+              network as Network,
+              policyType === 'multisig' // Pass multisig flag
+            )
 
-      // Generate descriptors from the key data
-      if (extendedPublicKey && fingerprint) {
+            // Set global state values so setKey includes them
+            setExtendedPublicKey(extendedPublicKey)
+            setExternalDescriptor(descriptors.externalDescriptor)
+            setInternalDescriptor(descriptors.internalDescriptor)
+          } catch {
+            // Continue without descriptors if generation fails
+            setExtendedPublicKey(extendedPublicKey)
+          }
+        }
+      } else {
+        // For single-sig accounts, try to extract from BDK descriptor first
         try {
-          const descriptors = await getDescriptorsFromKeyData(
-            extendedPublicKey,
-            fingerprint,
-            scriptVersion,
+          const externalDescriptor = await getDescriptor(
+            mnemonic.join(' '),
+            scriptVersion, // Use the script version from store
+            KeychainKind.External,
+            passphrase || '', // Use passphrase from store
             network as Network
           )
-
-          // Set global state values so setKey includes s
-          setExtendedPublicKey(extendedPublicKey)
-          setExternalDescriptor(descriptors.externalDescriptor)
-          setInternalDescriptor(descriptors.internalDescriptor)
+          const parsedDescriptor = await parseDescriptor(externalDescriptor)
+          derivationPath = parsedDescriptor.derivationPath
         } catch (_error) {
-          // Continue without descriptors if generation fails
-          setExtendedPublicKey(extendedPublicKey)
+          // Use default derivation path if extraction fails
+          const rawDerivationPath = getDerivationPathFromScriptVersion(
+            scriptVersion,
+            network
+          )
+          derivationPath = `m/${rawDerivationPath}`
         }
       }
 

@@ -48,6 +48,8 @@ export default function WalletSyncedConfirmation() {
     goToNextStep()
   }
 
+  const lastSyncedDate = account?.lastSyncedAt || null
+
   return (
     <>
       <SSMainLayout>
@@ -78,10 +80,9 @@ export default function WalletSyncedConfirmation() {
             <SSVStack gap="none">
               <SSText>
                 Wallet last synced at{' '}
-                {account?.lastSyncedAt ? (
+                {lastSyncedDate ? (
                   <SSText>
-                    {formatDate(account?.lastSyncedAt)}{' '}
-                    {formatTime(account?.lastSyncedAt)}
+                    {formatDate(lastSyncedDate)} {formatTime(lastSyncedDate)}
                   </SSText>
                 ) : (
                   <SSText>Never</SSText>
