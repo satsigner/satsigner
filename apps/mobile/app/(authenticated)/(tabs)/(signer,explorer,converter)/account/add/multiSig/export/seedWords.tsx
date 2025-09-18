@@ -269,7 +269,6 @@ export default function SeedWordsPage() {
           )}
         </SSVStack>
       </ScrollView>
-
       <SSModal visible={showPinEntry} onClose={() => setShowPinEntry(false)}>
         <SSPinEntry
           title={t('account.enter.pin')}
@@ -278,7 +277,6 @@ export default function SeedWordsPage() {
           onFillEnded={handlePinEntry}
         />
       </SSModal>
-
       <SSSeedQR
         mnemonic={mnemonic}
         visible={seedQRModalVisible}
