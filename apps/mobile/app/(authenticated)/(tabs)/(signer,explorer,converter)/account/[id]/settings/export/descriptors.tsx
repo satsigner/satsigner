@@ -378,8 +378,13 @@ export default function ExportDescriptors() {
                   ''
                 )
 
+                // Sort keys by extended public key to ensure consistent ordering with other Bitcoin wallets
+                const sortedKeyData = validKeyData.sort((a, b) =>
+                  a.extendedPublicKey.localeCompare(b.extendedPublicKey)
+                )
+
                 // Build key section with policy-based derivation paths
-                const keySection = validKeyData
+                const keySection = sortedKeyData
                   .map(({ fingerprint, extendedPublicKey }) => {
                     // Format: [FINGERPRINT/POLICY_DERIVATION_PATH]XPUB/<0;1>/*
                     return `[${fingerprint}/${cleanPolicyPath}]${extendedPublicKey}/<0;1>/*`

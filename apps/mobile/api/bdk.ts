@@ -242,8 +242,13 @@ async function getWalletData(
       // Remove leading 'm' or 'M' from derivationPath if present
       const cleanPolicyPath = policyDerivationPath.replace(/^m\/?/i, '')
 
+      // Sort keys by extended public key to ensure consistent ordering with other Bitcoin wallets
+      const sortedKeyData = validKeyData.sort((a, b) =>
+        a.extendedPublicKey.localeCompare(b.extendedPublicKey)
+      )
+
       // Build key section with policy-based derivation paths and fingerprints
-      const keySection = validKeyData
+      const keySection = sortedKeyData
         .map(({ fingerprint, extendedPublicKey }) => {
           // Format: [FINGERPRINT/POLICY_DERIVATION_PATH]XPUB/<0;1>/*
           return `[${fingerprint}/${cleanPolicyPath}]${extendedPublicKey}/<0;1>/*`
@@ -908,7 +913,8 @@ async function getExtendedPublicKeyFromMnemonic(
   passphrase: string = '',
   network: Network,
   scriptVersion?: ScriptVersionType,
-  path?: string
+  path?: string,
+  isMultisig: boolean = false
 ) {
   // Convert BDK Network to string for deriveXpubFromMnemonic
   const networkString = network === Network.Bitcoin ? 'mainnet' : 'testnet'
@@ -916,7 +922,16 @@ async function getExtendedPublicKeyFromMnemonic(
   // If script version is specified and it's a multisig type, use the specific function
   if (
     scriptVersion &&
-    ['P2SH', 'P2SH-P2WSH', 'P2WSH'].includes(scriptVersion)
+    isMultisig &&
+    [
+      'P2SH',
+      'P2SH-P2WSH',
+      'P2WSH',
+      'P2WPKH',
+      'P2PKH',
+      'P2SH-P2WPKH',
+      'P2TR'
+    ].includes(scriptVersion)
   ) {
     return getXpubForScriptVersion(
       mnemonic,
@@ -926,10 +941,31 @@ async function getExtendedPublicKeyFromMnemonic(
     )
   }
 
+  // For singlesig accounts, use the correct BIP derivation paths
+  let derivationPath = path
+  if (!path && !isMultisig) {
+    const coinType = networkString === 'mainnet' ? '0' : '1'
+    switch (scriptVersion) {
+      case 'P2PKH':
+        derivationPath = `m/44'/${coinType}'/0'` // BIP44
+        break
+      case 'P2SH-P2WPKH':
+        derivationPath = `m/49'/${coinType}'/0'` // BIP49
+        break
+      case 'P2WPKH':
+        derivationPath = `m/84'/${coinType}'/0'` // BIP84
+        break
+      case 'P2TR':
+        derivationPath = `m/86'/${coinType}'/0'` // BIP86
+        break
+      // P2WSH, P2SH-P2WSH, P2SH are typically multisig only
+    }
+  }
+
   // Otherwise, use the default deriveXpubFromMnemonic function
   const result = deriveXpubFromMnemonic(mnemonic, passphrase, {
     network: networkString,
-    path
+    path: derivationPath
   })
 
   return result.xpub
