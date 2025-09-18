@@ -94,23 +94,15 @@ export function getDescriptorFromMnemonic(
     throw new Error('Invalid mnemonic phrase')
   }
 
-  // Convert mnemonic to seed
   const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
-
-  // Get BIP32 root key
-  const root = bip32.fromSeed(seed, networkMap[network])
-
-  // Derive path based on script version and keychain kind
+  const masterKey = bip32.fromSeed(seed, networkMap[network])
   const purpose = getScriptVersionPurpose(scriptVersion)
-  const account = 0 // Using account 0
+  const account = 0 // INFO: change this? currently using account 0 as default
   const change = kind === KeychainKind.External ? 0 : 1
   const path = `m/${purpose}'/0'/${account}'/${change}/*`
+  const derivedKey = masterKey.derivePath(path.replace('*', '0'))
+  const pubkey = Buffer.from(derivedKey.publicKey).toString('hex')
 
-  // Get public key for descriptor (using first key in the path)
-  const derived = root.derivePath(path.replace('*', '0'))
-  const pubkey = Buffer.from(derived.publicKey).toString('hex')
-
-  // Generate descriptor based on script version
   switch (scriptVersion) {
     case 'P2PKH':
       return `pkh(${pubkey})[${path}]`
@@ -131,10 +123,9 @@ export function getDescriptorFromMnemonic(
   }
 }
 
-// Map Network enum to BIP32 network parameters
-
-// Helper function to get BIP44/49/84/86 purpose based on script version
-function getScriptVersionPurpose(scriptVersion: ScriptVersionType): number {
+export function getScriptVersionPurpose(
+  scriptVersion: ScriptVersionType
+): number {
   switch (scriptVersion) {
     case 'P2PKH':
       return 44 // Legacy
