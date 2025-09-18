@@ -3,8 +3,26 @@ import * as bip39 from 'bip39'
 
 import type { Key, Secret } from '@/types/models/Account'
 
-export function generateMnemonic(wordList = 'english') {
-  return bip39.generateMnemonic(undefined, undefined, bip39.wordlists[wordList])
+export type MnemonicWordCount = 12 | 15 | 18 | 21 | 24
+
+export type MnemonicEntropyBits = 128 | 160 | 192 | 224 | 256
+
+const wordCountToEntropyBits: Record<MnemonicWordCount, MnemonicEntropyBits> = {
+  12: 128,
+  15: 160,
+  18: 192,
+  21: 224,
+  24: 256
+}
+
+export function generateMnemonic(
+  wordCount: MnemonicWordCount = 12,
+  wordListName = 'english'
+) {
+  const entropyBits = wordCountToEntropyBits[wordCount]
+  const wordlist = bip39.wordlists[wordListName]
+  const mnemonic = bip39.generateMnemonic(entropyBits, undefined, wordlist)
+  return mnemonic
 }
 
 export function generateMnemonicFromEntropy(
