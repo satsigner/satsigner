@@ -41,7 +41,6 @@ import { getScriptVersionDisplayName } from '@/utils/scripts'
 import {
   isCombinedDescriptor,
   validateAddress,
-  validateCombinedDescriptor,
   validateDescriptor,
   validateDescriptorFormat,
   validateExtendedKey,
@@ -69,8 +68,7 @@ export default function WatchOnly() {
     setExtendedPublicKey,
     setScriptVersion,
     setKey,
-    setNetwork,
-    setPolicyType
+    setNetwork
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
@@ -85,8 +83,7 @@ export default function WatchOnly() {
       state.setExtendedPublicKey,
       state.setScriptVersion,
       state.setKey,
-      state.setNetwork,
-      state.setPolicyType
+      state.setNetwork
     ])
   )
 
