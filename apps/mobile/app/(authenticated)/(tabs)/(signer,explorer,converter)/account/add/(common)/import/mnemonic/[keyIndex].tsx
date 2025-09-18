@@ -23,24 +23,12 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
+import { getWordList } from '@/utils/bip39'
+import { getScriptVersionDisplayName } from '@/utils/scripts'
+import { seedWordsPrefixOfAnother } from '@/utils/seed'
 
-// Function to get user-friendly display names for script versions
-function getScriptVersionDisplayName(scriptVersion: string): string {
-  switch (scriptVersion) {
-    case 'P2PKH':
-      return 'Legacy (P2PKH)'
-    case 'P2SH-P2WPKH':
-      return 'Nested Segwit (P2SH-P2WPKH)'
-    case 'P2WPKH':
-      return 'Native Segwit (P2WPKH)'
-    case 'P2TR':
-      return 'Taproot (P2TR)'
-
-    default:
-      return scriptVersion
-  }
-}
-
+const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
+const wordList = getWordList()
 export default function ImportMnemonic() {
   const { keyIndex } = useLocalSearchParams<ImportMnemonicSearchParams>()
   const router = useRouter()
@@ -176,7 +164,9 @@ export default function ImportMnemonic() {
           currentMnemonic,
           passphrase || '',
           network as Network,
-          scriptVersion
+          scriptVersion,
+          undefined,
+          true // isMultisig
         )
 
         // Set the extended public key

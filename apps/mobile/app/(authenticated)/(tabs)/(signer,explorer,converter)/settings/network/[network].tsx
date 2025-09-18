@@ -1,24 +1,30 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView } from 'react-native'
+import { ScrollView, TouchableOpacity } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import SSBackendSelector from '@/components/SSBackendSelector'
+import {
+  SSIconBlackIndicator,
+  SSIconGreenIndicator,
+  SSIconYellowIndicator
+} from '@/components/icons'
 import SSButton from '@/components/SSButton'
-import SSConnectionTestResults from '@/components/SSConnectionTestResults'
-import SSProtocolSelector from '@/components/SSProtocolSelector'
-import SSServerFormFields from '@/components/SSServerFormFields'
+import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
-import { useConnectionTest } from '@/hooks/useConnectionTest'
-import { useCustomNetworkForm } from '@/hooks/useCustomNetworkForm'
-import { useCustomNetworkValidation } from '@/hooks/useCustomNetworkValidation'
+import SSTextInput from '@/components/SSTextInput'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
+import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type Network, type Server } from '@/types/settings/blockchain'
+import { Colors } from '@/styles'
+import {
+  type Backend,
+  type Network,
+  type Server
+} from '@/types/settings/blockchain'
 
 export default function CustomNetwork() {
   const { network } = useLocalSearchParams()
@@ -41,60 +47,69 @@ export default function CustomNetwork() {
   )
 
   const [connectionState, connectionString, isPrivateConnection] =
-    useVerifyConnection() as [boolean, string, boolean]
+    useVerifyConnection()
 
-  const { testing, nodeInfo, testConnection, resetTest } = useConnectionTest()
+  const [backend, setBackend] = useState<Backend>('electrum')
+  const [name, setName] = useState('')
+  const [url, setUrl] = useState('')
+  const [testing, setTesting] = useState(false)
   const [oldNetwork] = useState<Network>(selectedNetwork)
   const [oldServer] = useState<Server>(configs[network as Network].server)
 
-  const { formData, updateField, constructUrl } = useCustomNetworkForm()
-
-  const url = constructUrl()
-
-  const { validateWithToasts, isFormValid } = useCustomNetworkValidation(
-    formData.name,
-    formData.host,
-    formData.port,
-    url,
-    formData.backend
-  )
+  const backends: Backend[] = ['electrum', 'esplora']
 
   useEffect(() => {
     if (testing && !connectionState) toast.error(t('error.invalid.backend'))
   }, [testing, connectionState])
 
-  async function handleTest() {
-    resetTest()
+  function isValid() {
+    if (!name.trim()) {
+      toast.warning(t('error.require.name'))
+      return false
+    }
 
-    if (!validateWithToasts()) return
+    if (!url.trim()) {
+      toast.warning(t('error.require.url'))
+      return false
+    }
+
+    if (
+      backend === 'electrum' &&
+      !url.startsWith('ssl://') &&
+      !url.startsWith('tls://') &&
+      !url.startsWith('tcp://')
+    ) {
+      toast.warning(t('error.invalid.url'))
+      return false
+    }
+
+    if (backend === 'esplora' && !url.startsWith('https://')) {
+      toast.warning(t('error.invalid.url'))
+      return false
+    }
+
+    return true
+  }
+
+  function handleTest() {
+    setTesting(false)
+
+    if (!isValid()) return
 
     setSelectedNetwork(network as Network)
-    updateServer(
-      network as Network,
-      {
-        name: formData.name,
-        backend: formData.backend,
-        network,
-        url
-      } as Server
-    )
+    updateServer(network as Network, { name, backend, network, url } as Server)
 
-    await testConnection(url, formData.backend, network as Network)
+    setTesting(true)
   }
 
   function handleAdd() {
-    if (validateWithToasts()) {
+    if (isValid()) {
       if (!connectionState) {
         setSelectedNetwork(oldNetwork)
         updateServer(oldNetwork, oldServer)
       }
 
-      addCustomServer({
-        name: formData.name,
-        backend: formData.backend,
-        network,
-        url
-      } as Server)
+      addCustomServer({ name, backend, network, url } as Server)
       router.back()
     }
   }
@@ -123,58 +138,91 @@ export default function CustomNetwork() {
           showsVerticalScrollIndicator={false}
         >
           <SSVStack gap="xl">
-            <SSBackendSelector
-              backend={formData.backend}
-              onBackendChange={(backend) => updateField('backend', backend)}
-            />
-
+            <SSVStack>
+              <SSText uppercase>{t('settings.network.server.backend')}</SSText>
+              {backends.map((be) => (
+                <SSHStack key={be}>
+                  <SSCheckbox
+                    key={be}
+                    selected={be === backend}
+                    onPress={() => setBackend(be)}
+                  />
+                  <TouchableOpacity onPress={() => setBackend(be)}>
+                    <SSVStack gap="none" justifyBetween>
+                      <SSText
+                        style={{ lineHeight: 18, textTransform: 'capitalize' }}
+                        size="md"
+                      >
+                        {be}
+                      </SSText>
+                      <SSText style={{ lineHeight: 14 }} color="muted">
+                        {t(`settings.network.backend.${be}.description`)}
+                      </SSText>
+                    </SSVStack>
+                  </TouchableOpacity>
+                </SSHStack>
+              ))}
+            </SSVStack>
             <SSVStack gap="md">
-              <SSServerFormFields
-                backend={formData.backend}
-                name={formData.name}
-                host={formData.host}
-                port={formData.port}
-                onNameChange={(name) => updateField('name', name)}
-                onHostChange={(host) => updateField('host', host)}
-                onPortChange={(port) => updateField('port', port)}
-              />
-
-              <SSProtocolSelector
-                backend={formData.backend}
-                protocol={formData.protocol}
-                onProtocolChange={(protocol) =>
-                  updateField('protocol', protocol)
-                }
-              />
-
-              <SSConnectionTestResults
-                testing={testing}
-                connectionState={connectionState}
-                connectionString={connectionString}
-                isPrivateConnection={isPrivateConnection}
-                nodeInfo={nodeInfo || undefined}
-              />
+              <SSVStack gap="sm">
+                <SSText uppercase>{t('common.name')}</SSText>
+                <SSTextInput
+                  value={name}
+                  onChangeText={(value) => setName(value)}
+                />
+              </SSVStack>
+              <SSVStack gap="sm">
+                <SSText uppercase>{t('settings.network.server.url')}</SSText>
+                <SSTextInput
+                  value={url}
+                  onChangeText={(value) => setUrl(value)}
+                />
+              </SSVStack>
+              {testing && (
+                <SSHStack
+                  style={{ justifyContent: 'center', gap: 0, marginBottom: 24 }}
+                >
+                  {connectionState ? (
+                    isPrivateConnection ? (
+                      <SSIconYellowIndicator height={24} width={24} />
+                    ) : (
+                      <SSIconGreenIndicator height={24} width={24} />
+                    )
+                  ) : (
+                    <SSIconBlackIndicator height={24} width={24} />
+                  )}
+                  <SSText
+                    size="xxs"
+                    uppercase
+                    style={{
+                      color: connectionState
+                        ? Colors.gray['200']
+                        : Colors.gray['450']
+                    }}
+                  >
+                    {connectionString}
+                  </SSText>
+                </SSHStack>
+              )}
             </SSVStack>
           </SSVStack>
-          <SSVStack style={{ paddingTop: 32 }}>
-            <SSButton
-              label={t('settings.network.server.test')}
-              onPress={() => handleTest()}
-              disabled={!isFormValid}
-            />
-            <SSButton
-              variant="secondary"
-              label={t('common.add')}
-              onPress={() => handleAdd()}
-              disabled={!isFormValid}
-            />
-            <SSButton
-              variant="ghost"
-              label={t('common.cancel')}
-              onPress={() => handleCancel()}
-            />
-          </SSVStack>
         </ScrollView>
+        <SSVStack>
+          <SSButton
+            label={t('settings.network.server.test')}
+            onPress={() => handleTest()}
+          />
+          <SSButton
+            variant="secondary"
+            label={t('common.add')}
+            onPress={() => handleAdd()}
+          />
+          <SSButton
+            variant="ghost"
+            label={t('common.cancel')}
+            onPress={() => handleCancel()}
+          />
+        </SSVStack>
       </SSVStack>
     </SSMainLayout>
   )

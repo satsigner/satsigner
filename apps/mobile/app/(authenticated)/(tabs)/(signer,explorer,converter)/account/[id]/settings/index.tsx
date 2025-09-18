@@ -31,29 +31,8 @@ import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { extractAccountFingerprint } from '@/utils/account'
 import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
-import { formatDate } from '@/utils/format'
-
-// Function to get user-friendly display names for script versions
-function getScriptVersionDisplayName(scriptVersion: string): string {
-  switch (scriptVersion) {
-    case 'P2PKH':
-      return 'Legacy (P2PKH)'
-    case 'P2SH-P2WPKH':
-      return 'Nested Segwit (P2SH-P2WPKH)'
-    case 'P2WPKH':
-      return 'Native Segwit (P2WPKH)'
-    case 'P2TR':
-      return 'Taproot (P2TR)'
-    case 'P2SH':
-      return 'Legacy (P2SH)'
-    case 'P2SH-P2WSH':
-      return 'Nested Segwit (P2SH-P2WSH)'
-    case 'P2WSH':
-      return 'Native Segwit (P2WSH)'
-    default:
-      return scriptVersion
-  }
-}
+import { formatAccountCreationDate } from '@/utils/date'
+import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
@@ -243,25 +222,7 @@ export default function AccountSettings() {
           <SSHStack gap="sm">
             <SSText color="muted">{t('account.createdOn')}</SSText>
             {account && account.createdAt && (
-              <SSText>
-                {(() => {
-                  try {
-                    if (account.createdAt instanceof Date) {
-                      return formatDate(account.createdAt)
-                    } else {
-                      const date = new Date(account.createdAt)
-                      if (isNaN(date.getTime())) {
-                        // Invalid createdAt value in settings
-                        return 'Invalid date'
-                      }
-                      return formatDate(date)
-                    }
-                  } catch (_error) {
-                    // Error formatting createdAt in settings
-                    return 'Invalid date'
-                  }
-                })()}
-              </SSText>
+              <SSText>{formatAccountCreationDate(account.createdAt)}</SSText>
             )}
           </SSHStack>
         </SSVStack>

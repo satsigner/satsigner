@@ -8,20 +8,11 @@ import { type EntropyType } from '@/types/logic/entropy'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
-/**
- * State interface for account builder store
- */
 type AccountBuilderState = {
-  // Basic account information
   name: Account['name']
   network: Account['network']
   policyType: Account['policyType']
 
-  // Key information
   keyName: NonNullable<Key['name']>
   creationType: Key['creationType']
   entropy: EntropyType
@@ -51,7 +42,6 @@ type AccountBuilderAction = {
   setNetwork: (network: AccountBuilderState['network']) => void
   setPolicyType: (policyType: AccountBuilderState['policyType']) => void
 
-  // Key configuration setters
   setKeyName: (keyName: AccountBuilderState['keyName']) => void
   setCreationType: (creationType: Key['creationType']) => void
   setEntropy: (entropy: AccountBuilderState['entropy']) => void
@@ -61,7 +51,6 @@ type AccountBuilderAction = {
   setMnemonic: (mnemonic: AccountBuilderState['mnemonic']) => void
   setPassphrase: (passphrase: AccountBuilderState['passphrase']) => void
 
-  // Descriptor and key setters
   setExternalDescriptor: (
     externalDescriptor: NonNullable<Secret['externalDescriptor']>
   ) => void
@@ -77,8 +66,6 @@ type AccountBuilderAction = {
   setScriptVersion: (
     scriptVersion: AccountBuilderState['scriptVersion']
   ) => void
-
-  // Key management
   setKey: (index: Key['index']) => Key
   updateKeySecret: (index: Key['index'], newSecret: Key['secret']) => void
   updateKeyFingerprint: (
@@ -107,20 +94,13 @@ type AccountBuilderAction = {
   ) => Promise<{ success: boolean; message: string }>
 }
 
-// =============================================================================
-// INITIAL STATE
-// =============================================================================
-
-/**
- * Initial state for account builder store
- */
+// Initial state for account builder store
 const initialState: AccountBuilderState = {
   // Basic account information
   name: '',
   network: 'signet',
   policyType: 'singlesig',
 
-  // Key information
   keyName: '',
   creationType: 'importMnemonic',
   entropy: 'none',
@@ -141,90 +121,53 @@ const initialState: AccountBuilderState = {
   keysRequired: 0
 }
 
-// =============================================================================
-// STORE IMPLEMENTATION
-// =============================================================================
-
-/**
- * Account builder store using Zustand with Immer for immutable updates
- */
+// Account builder store using Zustand with Immer for immutable updates
 const useAccountBuilderStore = create<
   AccountBuilderState & AccountBuilderAction
 >()((set, get) => ({
   ...initialState,
-
-  // ===========================================================================
-  // ACCOUNT CONFIGURATION ACTIONS
-  // ===========================================================================
-
   setName: (name) => {
     set({ name })
   },
-
   setNetwork: (network) => {
     set({ network })
   },
-
   setPolicyType: (policyType) => {
     set({ policyType })
   },
-
-  // ===========================================================================
-  // KEY CONFIGURATION ACTIONS
-  // ===========================================================================
-
   setKeyName: (keyName) => {
     set({ keyName })
   },
-
   setCreationType: (creationType) => {
     set({ creationType })
   },
-
   setEntropy: (entropy) => {
     set({ entropy })
   },
-
   setMnemonicWordCount: (mnemonicWordCount) => {
     set({ mnemonicWordCount })
   },
-
   setMnemonic: (mnemonic) => {
     set({ mnemonic })
   },
-
   setPassphrase: (passphrase) => {
     set({ passphrase })
   },
-
-  // ===========================================================================
-  // DESCRIPTOR AND KEY ACTIONS
-  // ===========================================================================
-
   setExternalDescriptor: (externalDescriptor) => {
     set({ externalDescriptor })
   },
-
   setInternalDescriptor: (internalDescriptor) => {
     set({ internalDescriptor })
   },
-
   setExtendedPublicKey: (extendedPublicKey) => {
     set({ extendedPublicKey })
   },
-
   setFingerprint: (fingerprint) => {
     set({ fingerprint })
   },
-
   setScriptVersion: (scriptVersion) => {
     set({ scriptVersion })
   },
-
-  // ===========================================================================
-  // KEY MANAGEMENT ACTIONS
-  // ===========================================================================
-
   setKey: (index) => {
     const {
       keyName,
@@ -296,9 +239,7 @@ const useAccountBuilderStore = create<
     set(
       produce((state: AccountBuilderState) => {
         if (state.keys[index]) {
-          // Set fingerprint at key level for easy access
           state.keys[index].fingerprint = fingerprint
-          // Also set in secret for consistency
           if (
             state.keys[index].secret &&
             typeof state.keys[index].secret === 'object'

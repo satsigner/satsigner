@@ -114,10 +114,8 @@ async function extractFingerprintFromExtendedPublicKey(
     }
     const parsedDescriptor = await parseDescriptor(descriptor)
     return parsedDescriptor.fingerprint
-  } catch (error) {
-    throw new Error(
-      `Failed to extract fingerprint: ${error instanceof Error ? error.message : 'Unknown error'}`
-    )
+  } catch {
+    return ''
   }
 }
 
@@ -184,12 +182,15 @@ async function getWalletData(
                   key.secret.externalDescriptor,
                   network
                 )
+                if (!descriptor) {
+                  return null
+                }
                 const extractedKey =
                   await extractExtendedKeyFromDescriptor(descriptor)
                 if (extractedKey) {
                   extendedPublicKey = extractedKey
                 }
-              } catch (_error) {
+              } catch {
                 // Failed to extract extended public key
               }
             }
@@ -202,7 +203,7 @@ async function getWalletData(
                 extendedPublicKey,
                 network
               )
-            } catch (_error) {
+            } catch {
               // Failed to extract fingerprint
             }
           }
@@ -213,7 +214,16 @@ async function getWalletData(
 
       // Filter out keys that don't have both fingerprint and extended public key
       const validKeyData = keyData.filter(
-        (kd) => kd.fingerprint && kd.extendedPublicKey
+        (
+          kd
+        ): kd is {
+          fingerprint: string
+          extendedPublicKey: string
+          index: number
+        } =>
+          kd !== null &&
+          kd.fingerprint !== undefined &&
+          kd.extendedPublicKey !== undefined
       )
 
       if (validKeyData.length !== account.keys.length) {
@@ -250,7 +260,7 @@ async function getWalletData(
       // Remove leading 'm' or 'M' from derivationPath if present
       const cleanPolicyPath = policyDerivationPath.replace(/^m\/?/i, '')
 
-      // Sort keys by extended public key to ensure consistent ordering
+      // Sort keys by extended public key to ensure consistent ordering with other Bitcoin wallets
       const sortedKeyData = validKeyData.sort((a, b) =>
         a.extendedPublicKey.localeCompare(b.extendedPublicKey)
       )
@@ -296,7 +306,10 @@ async function getWalletData(
         network
       )
       if (!externalDesc) {
-        throw new Error('Failed to create multisig descriptor')
+        throw new Error('Failed to create external descriptor')
+      }
+      if (!internalDesc) {
+        throw new Error('Failed to create internal descriptor')
       }
 
       const parsedDescriptor = await parseDescriptor(externalDesc)
@@ -918,7 +931,8 @@ async function getExtendedPublicKeyFromMnemonic(
   passphrase: string = '',
   network: Network,
   scriptVersion?: ScriptVersionType,
-  path?: string
+  path?: string,
+  isMultisig: boolean = false
 ) {
   // Convert BDK Network to string for deriveXpubFromMnemonic
   const networkString = network === Network.Bitcoin ? 'mainnet' : 'testnet'
@@ -926,7 +940,16 @@ async function getExtendedPublicKeyFromMnemonic(
   // If script version is specified and it's a multisig type, use the specific function
   if (
     scriptVersion &&
-    ['P2SH', 'P2SH-P2WSH', 'P2WSH'].includes(scriptVersion)
+    isMultisig &&
+    [
+      'P2SH',
+      'P2SH-P2WSH',
+      'P2WSH',
+      'P2WPKH',
+      'P2PKH',
+      'P2SH-P2WPKH',
+      'P2TR'
+    ].includes(scriptVersion)
   ) {
     return getXpubForScriptVersion(
       mnemonic,
@@ -936,10 +959,31 @@ async function getExtendedPublicKeyFromMnemonic(
     )
   }
 
+  // For singlesig accounts, use the correct BIP derivation paths
+  let derivationPath = path
+  if (!path && !isMultisig) {
+    const coinType = networkString === 'mainnet' ? '0' : '1'
+    switch (scriptVersion) {
+      case 'P2PKH':
+        derivationPath = `m/44'/${coinType}'/0'` // BIP44
+        break
+      case 'P2SH-P2WPKH':
+        derivationPath = `m/49'/${coinType}'/0'` // BIP49
+        break
+      case 'P2WPKH':
+        derivationPath = `m/84'/${coinType}'/0'` // BIP84
+        break
+      case 'P2TR':
+        derivationPath = `m/86'/${coinType}'/0'` // BIP86
+        break
+      // P2WSH, P2SH-P2WSH, P2SH are typically multisig only
+    }
+  }
+
   // Otherwise, use the default deriveXpubFromMnemonic function
   const result = deriveXpubFromMnemonic(mnemonic, passphrase, {
     network: networkString,
-    path
+    path: derivationPath
   })
 
   return result.xpub

@@ -288,7 +288,6 @@ export function getMultisigDerivationPathFromScriptVersion(
       // Wrapped SegWit multisig (m/48'/0'/0'/1')
       return `48'/${coinType}'/0'/1'`
     case 'P2SH':
-      // P2SH multisig (m/45'/0'/0')
       return `45'/${coinType}'/0'`
     default:
       // Default to P2WSH for multisig (m/48'/0'/0'/2')
@@ -323,7 +322,6 @@ export function getMultisigScriptTypeFromScriptVersion(
       // Wrapped SegWit multisig
       return 'P2SH-P2WSH'
     case 'P2SH':
-      // P2SH multisig
       return 'P2SH'
     default:
       // Default to P2WSH for multisig
@@ -386,6 +384,62 @@ function getP2WSHXpub(
   return node.publicExtendedKey
 }
 
+function getP2WPKHXpub(
+  seed: Uint8Array,
+  network: 'mainnet' | 'testnet'
+): string {
+  // For multisig P2WPKH, use the same derivation path as P2WSH (BIP48)
+  return getP2WSHXpub(seed, network)
+}
+
+function getP2PKHXpub(
+  seed: Uint8Array,
+  network: 'mainnet' | 'testnet'
+): string {
+  const versions = getVersionsForNetwork(network)
+  const master = HDKey.fromMasterSeed(seed, versions)
+
+  // Derive m/44'/0'/0' for mainnet, m/44'/1'/0' for testnet
+  const coinType = network === 'mainnet' ? 0 : 1
+  const node = master
+    .deriveChild(0x80000000 + 44)
+    .deriveChild(0x80000000 + coinType)
+    .deriveChild(0x80000000)
+
+  return node.publicExtendedKey
+}
+
+function getP2SHP2WPKHXpub(
+  seed: Uint8Array,
+  network: 'mainnet' | 'testnet'
+): string {
+  const versions = getVersionsForNetwork(network)
+  const master = HDKey.fromMasterSeed(seed, versions)
+
+  // Derive m/49'/0'/0' for mainnet, m/49'/1'/0' for testnet
+  const coinType = network === 'mainnet' ? 0 : 1
+  const node = master
+    .deriveChild(0x80000000 + 49)
+    .deriveChild(0x80000000 + coinType)
+    .deriveChild(0x80000000)
+
+  return node.publicExtendedKey
+}
+
+function getP2TRXpub(seed: Uint8Array, network: 'mainnet' | 'testnet'): string {
+  const versions = getVersionsForNetwork(network)
+  const master = HDKey.fromMasterSeed(seed, versions)
+
+  // Derive m/86'/0'/0' for mainnet, m/86'/1'/0' for testnet
+  const coinType = network === 'mainnet' ? 0 : 1
+  const node = master
+    .deriveChild(0x80000000 + 86)
+    .deriveChild(0x80000000 + coinType)
+    .deriveChild(0x80000000)
+
+  return node.publicExtendedKey
+}
+
 /**
  * Convert a Uint8Array to hex string
  */
@@ -425,7 +479,11 @@ export function getXpubForScriptVersion(
   const supportedMultisigVersions: ScriptVersionType[] = [
     'P2SH',
     'P2SH-P2WSH',
-    'P2WSH'
+    'P2WSH',
+    'P2WPKH',
+    'P2PKH',
+    'P2SH-P2WPKH',
+    'P2TR'
   ]
 
   if (!supportedMultisigVersions.includes(scriptVersion)) {
@@ -445,18 +503,10 @@ export function getXpubForScriptVersion(
     P2SH: getP2SHXpub,
     'P2SH-P2WSH': getP2SHP2WSHXpub,
     P2WSH: getP2WSHXpub,
-    P2PKH: () => {
-      throw new Error('P2PKH not supported for multisig')
-    },
-    'P2SH-P2WPKH': () => {
-      throw new Error('P2SH-P2WPKH not supported for multisig')
-    },
-    P2WPKH: () => {
-      throw new Error('P2WPKH not supported for multisig')
-    },
-    P2TR: () => {
-      throw new Error('P2TR not supported for multisig')
-    }
+    P2WPKH: getP2WPKHXpub,
+    P2PKH: getP2PKHXpub,
+    'P2SH-P2WPKH': getP2SHP2WPKHXpub,
+    P2TR: getP2TRXpub
   }
 
   return xpubFunctions[scriptVersion](seed, network)

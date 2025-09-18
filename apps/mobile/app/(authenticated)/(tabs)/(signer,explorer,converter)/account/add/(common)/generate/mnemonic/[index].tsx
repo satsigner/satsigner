@@ -132,7 +132,7 @@ export default function GenerateMnemonic() {
             setExtendedPublicKey(extendedPublicKey)
             setExternalDescriptor(descriptors.externalDescriptor)
             setInternalDescriptor(descriptors.internalDescriptor)
-          } catch (_error) {
+          } catch {
             // Continue without descriptors if generation fails
             setExtendedPublicKey(extendedPublicKey)
           }

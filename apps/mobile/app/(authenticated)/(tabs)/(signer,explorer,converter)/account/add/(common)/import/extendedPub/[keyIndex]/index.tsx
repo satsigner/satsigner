@@ -362,7 +362,7 @@ export default function ImportExtendedPub() {
           )
           const parsedDescriptor = await parseDescriptor(descriptor)
           derivationPath = parsedDescriptor.derivationPath
-        } catch (_error) {
+        } catch {
           // Use default derivation path if extraction fails
           const rawDerivationPath = getDerivationPathFromScriptVersion(
             scriptVersion,

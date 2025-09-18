@@ -17,28 +17,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { type Key } from '@/types/models/Account'
-
-// Function to get user-friendly display names for script versions
-function getScriptVersionDisplayName(scriptVersion: string): string {
-  switch (scriptVersion) {
-    case 'P2PKH':
-      return 'Legacy (P2PKH)'
-    case 'P2SH-P2WPKH':
-      return 'Nested Segwit (P2SH-P2WPKH)'
-    case 'P2WPKH':
-      return 'Native Segwit (P2WPKH)'
-    case 'P2TR':
-      return 'Taproot (P2TR)'
-    case 'P2SH':
-      return 'Legacy (P2SH)'
-    case 'P2SH-P2WSH':
-      return 'Nested Segwit (P2SH-P2WSH)'
-    case 'P2WSH':
-      return 'Native Segwit (P2WSH)'
-    default:
-      return scriptVersion
-  }
-}
+import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 export default function MultiSig() {
   const router = useRouter()

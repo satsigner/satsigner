@@ -218,13 +218,10 @@ export default function AccountList() {
       setKeyCount(1)
       setKeysRequired(1)
 
-      // Ensure we're using the current tab's network
       const currentNetwork = tabs[tabIndex].key as Network
 
-      // Map to BDK network enum
       const bdkNetwork = mapNetworkToBdkNetwork(currentNetwork)
 
-      // Set the network for the account builder
       setNetwork(currentNetwork)
 
       // Also ensure the global blockchain network is set correctly

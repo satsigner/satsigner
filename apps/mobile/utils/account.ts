@@ -2,6 +2,8 @@ import { useAuthStore } from '@/store/auth'
 import { type Account, type Key } from '@/types/models/Account'
 import { aesDecrypt, getPinForDecryption } from '@/utils/crypto'
 
+const MAX_DAYS_WITHOUT_SYNCING = 3
+
 /**
  * Extract the fingerprint from an account's first key
  * This function handles both encrypted and decrypted secrets
@@ -95,8 +97,8 @@ export async function extractAccountFingerprintWithDecryption(
       if (decryptedSecret.fingerprint) {
         return decryptedSecret.fingerprint
       }
-    } catch (_error) {
-      // Decryption failed, return empty string
+    } catch {
+      // Decryption failed
       return ''
     }
   }
@@ -139,4 +141,62 @@ export function extractKeyFingerprint(key: Key, decryptedKey?: Key): string {
   }
 
   return ''
+}
+
+/**
+ * Check if a wallet needs syncing based on the time since last sync
+ * @param account The account to check
+ * @param maxDaysWithoutSyncing Maximum days without syncing (default: 3)
+ * @returns true if the wallet needs syncing, false otherwise
+ */
+export function checkWalletNeedsSync(
+  account: Account,
+  maxDaysWithoutSyncing: number = MAX_DAYS_WITHOUT_SYNCING
+): boolean {
+  // If no lastSyncedAt, definitely needs sync
+  if (account.lastSyncedAt === undefined) {
+    return true
+  }
+
+  // Safely convert lastSyncedAt to Date object
+  let lastSync: Date
+  try {
+    const lastSyncedAtValue = account.lastSyncedAt
+
+    // If it's already a Date object, use it
+    if (lastSyncedAtValue instanceof Date) {
+      lastSync = lastSyncedAtValue
+    } else {
+      // If it's a string or number, try to create a Date
+      lastSync = new Date(lastSyncedAtValue)
+
+      // Check if the date is valid
+      if (isNaN(lastSync.getTime())) {
+        // Invalid lastSyncedAt value, needs sync
+        return true
+      }
+    }
+  } catch {
+    // Error parsing lastSyncedAt, needs sync
+    return true
+  }
+
+  const now = new Date()
+
+  // Discard the time and time-zone information.
+  const currentUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+
+  const lastSyncedUtc = Date.UTC(
+    lastSync.getFullYear(),
+    lastSync.getMonth(),
+    lastSync.getDate()
+  )
+
+  const MILISECONDS_PER_DAY = 1000 * 60 * 60 * 24
+  const daysSinceLastSync = Math.floor(
+    (currentUtc - lastSyncedUtc) / MILISECONDS_PER_DAY
+  )
+
+  // Account updated too long ago.
+  return daysSinceLastSync > maxDaysWithoutSyncing
 }

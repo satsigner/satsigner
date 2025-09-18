@@ -48,32 +48,37 @@ export default function PublicKeyPage() {
 
   const [publicKey, setPublicKey] = useState('')
   const [isLoading, setIsLoading] = useState(true)
-  const [selectedFormat, setSelectedFormat] = useState<PublicKeyFormat>('xpub')
   const [rawPublicKey, setRawPublicKey] = useState('')
-  const [scriptVersion, setScriptVersion] = useState<string>('P2PKH')
 
-  // Initialize selectedFormat and scriptVersion based on account data and network
-  useEffect(() => {
-    if (account && keyIndex) {
-      const keyIndexNum = Number(keyIndex)
-      const key = account.keys[keyIndexNum]
-      if (key?.scriptVersion) {
-        setScriptVersion(key.scriptVersion)
-      }
+  // Derive scriptVersion and selectedFormat from account data and network
+  const keyIndexNum = account && keyIndex ? Number(keyIndex) : null
+  const key = keyIndexNum !== null ? account?.keys[keyIndexNum] : null
+  const scriptVersion = key?.scriptVersion || 'P2PKH'
 
-      // Set the correct default format based on network and script version
-      if (key?.scriptVersion === 'P2SH-P2WSH') {
-        // For P2SH-P2WSH, default to ypub/upub (more specific)
-        setSelectedFormat(network === 'bitcoin' ? 'ypub' : 'upub')
-      } else if (key?.scriptVersion === 'P2WSH') {
-        // For P2WSH, default to zpub/vpub (more specific)
-        setSelectedFormat(network === 'bitcoin' ? 'zpub' : 'vpub')
-      } else {
-        // For P2SH and others, default to xpub/tpub
-        setSelectedFormat(network === 'bitcoin' ? 'xpub' : 'tpub')
-      }
+  // Derive the default format based on network and script version
+  const getDefaultFormat = (
+    scriptVersion: string,
+    network: Network
+  ): PublicKeyFormat => {
+    if (scriptVersion === 'P2SH-P2WSH') {
+      // For P2SH-P2WSH, default to ypub/upub (more specific)
+      return network === 'bitcoin' ? 'ypub' : 'upub'
+    } else if (scriptVersion === 'P2WSH') {
+      // For P2WSH, default to zpub/vpub (more specific)
+      return network === 'bitcoin' ? 'zpub' : 'vpub'
+    } else {
+      // For P2SH and others, default to xpub/tpub
+      return network === 'bitcoin' ? 'xpub' : 'tpub'
     }
-  }, [account, keyIndex, network])
+  }
+
+  const [selectedFormat, setSelectedFormat] = useState<PublicKeyFormat>('xpub')
+
+  // Update selected format when script version or network changes
+  useEffect(() => {
+    const newFormat = getDefaultFormat(scriptVersion, network)
+    setSelectedFormat(newFormat)
+  }, [scriptVersion, network])
 
   // Get format button data based on script version and network
   function getFormatButtons(
@@ -214,63 +219,13 @@ export default function PublicKeyPage() {
 
   useEffect(() => {
     async function getPublicKey() {
-      if (!account || !keyIndex) return
+      if (!account || !keyIndex || !key) return
 
       setIsLoading(true)
       const pin = await getItem(PIN_KEY)
       if (!pin) return
 
       try {
-        const keyIndexNum = parseInt(keyIndex, 10)
-        const key = account.keys[keyIndexNum]
-
-        if (!key) {
-          toast.error('Key not found')
-          return
-        }
-
-        // Get script version from the key
-        const keyScriptVersion = key.scriptVersion || 'P2PKH'
-        setScriptVersion(keyScriptVersion)
-
-        // Set initial selected format based on available formats
-        const availableFormats = getFormatButtons(keyScriptVersion)
-        if (availableFormats.length > 0) {
-          // For P2PKH, default to xpub/tpub
-          // For P2SH-P2WPKH, default to ypub/upub (more specific)
-          // For P2WPKH, default to zpub/vpub (more specific)
-          // For P2TR, default to vpub (more specific)
-          let defaultFormat: PublicKeyFormat =
-            network === 'bitcoin' ? 'xpub' : 'tpub'
-          if (
-            keyScriptVersion === 'P2SH-P2WPKH' &&
-            (availableFormats.some(({ format }) => format === 'ypub') ||
-              availableFormats.some(({ format }) => format === 'upub'))
-          ) {
-            defaultFormat = network === 'bitcoin' ? 'ypub' : 'upub'
-          } else if (
-            keyScriptVersion === 'P2WPKH' &&
-            (availableFormats.some(({ format }) => format === 'zpub') ||
-              availableFormats.some(({ format }) => format === 'vpub'))
-          ) {
-            defaultFormat = network === 'bitcoin' ? 'zpub' : 'vpub'
-          } else if (
-            keyScriptVersion === 'P2TR' &&
-            availableFormats.some(({ format }) => format === 'vpub')
-          ) {
-            defaultFormat = 'vpub'
-          } else if (
-            (keyScriptVersion === 'P2WSH' ||
-              keyScriptVersion === 'P2SH-P2WSH' ||
-              keyScriptVersion === 'P2SH') &&
-            (availableFormats.some(({ format }) => format === 'xpub') ||
-              availableFormats.some(({ format }) => format === 'tpub'))
-          ) {
-            defaultFormat = network === 'bitcoin' ? 'xpub' : 'tpub'
-          }
-          setSelectedFormat(defaultFormat)
-        }
-
         // Decrypt the key's secret
         let decryptedSecret: Secret
         if (typeof key.secret === 'string') {
@@ -312,7 +267,7 @@ export default function PublicKeyPage() {
     }
 
     getPublicKey()
-  }, [account, keyIndex]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [account, keyIndex, key, network, selectedFormat, convertPublicKeyFormat]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (rawPublicKey) {
