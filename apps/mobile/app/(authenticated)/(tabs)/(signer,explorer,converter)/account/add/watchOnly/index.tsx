@@ -276,14 +276,12 @@ export default function WatchOnly() {
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
 
-  // Input state
   const [xpub, setXpub] = useState('')
   const [localFingerprint, setLocalFingerprint] = useState(fingerprint)
   const [externalDescriptor, setLocalExternalDescriptor] = useState('')
   const [internalDescriptor, setLocalInternalDescriptor] = useState('')
   const [address, setAddress] = useState('')
 
-  // Validation state
   const [disabled, setDisabled] = useState(true)
   const [validAddress, setValidAddress] = useState(true)
   const [validExternalDescriptor, setValidExternalDescriptor] = useState(true)
@@ -306,7 +304,6 @@ export default function WatchOnly() {
     chunks: new Map()
   })
 
-  // Animation refs
   const pulseAnim = useRef(new Animated.Value(0)).current
   const scaleAnim = useRef(new Animated.Value(1)).current
 
@@ -652,9 +649,6 @@ export default function WatchOnly() {
     }
   }
 
-  /**
-   * Reset scan progress state
-   */
   function resetScanProgress() {
     setScanProgress({
       type: null,
@@ -666,9 +660,6 @@ export default function WatchOnly() {
     urDecoderRef.current = new URDecoder()
   }
 
-  /**
-   * Handle QR code scanning
-   */
   async function handleQRCodeScanned(data: string | undefined) {
     if (!data) {
       toast.error(t('watchonly.read.qrError'))
@@ -686,9 +677,6 @@ export default function WatchOnly() {
     }
   }
 
-  /**
-   * Handle single QR code import
-   */
   async function handleSingleQRCode(data: string) {
     if (isCombinedDescriptor(data)) {
       await handleCombinedDescriptor(data, data)
@@ -788,9 +776,6 @@ export default function WatchOnly() {
     }
   }
 
-  /**
-   * Handle legacy descriptor import
-   */
   async function handleLegacyDescriptor(result: {
     external: string
     internal: string
@@ -815,9 +800,6 @@ export default function WatchOnly() {
     }
   }
 
-  /**
-   * Handle single descriptor import
-   */
   async function handleSingleDescriptor(descriptor: string) {
     if (isCombinedDescriptor(descriptor)) {
       await handleCombinedDescriptor(descriptor, descriptor)
@@ -836,9 +818,6 @@ export default function WatchOnly() {
     }
   }
 
-  /**
-   * Handle combined descriptor import
-   */
   async function handleCombinedDescriptor(
     descriptor: string,
     originalText: string

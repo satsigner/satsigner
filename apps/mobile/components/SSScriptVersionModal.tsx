@@ -14,7 +14,6 @@ import SSText from './SSText'
 
 type ScriptVersion = NonNullable<Key['scriptVersion']>
 
-// Single-sig script versions
 const singleSigScriptVersions: ScriptVersion[] = [
   'P2PKH',
   'P2SH-P2WPKH',
@@ -22,7 +21,6 @@ const singleSigScriptVersions: ScriptVersion[] = [
   'P2TR'
 ]
 
-// Multisig script versions
 const multiSigScriptVersions: ScriptVersion[] = ['P2SH', 'P2SH-P2WSH', 'P2WSH']
 
 type SSScriptVersionModalProps = {

@@ -8,14 +8,11 @@ import { type EntropyType } from '@/types/logic/entropy'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 
-// State interface for account builder store
 type AccountBuilderState = {
-  // Basic account information
   name: Account['name']
   network: Account['network']
   policyType: Account['policyType']
 
-  // Key information
   keyName: NonNullable<Key['name']>
   creationType: Key['creationType']
   entropy: EntropyType
@@ -45,7 +42,6 @@ type AccountBuilderAction = {
   setNetwork: (network: AccountBuilderState['network']) => void
   setPolicyType: (policyType: AccountBuilderState['policyType']) => void
 
-  // Key configuration setters
   setKeyName: (keyName: AccountBuilderState['keyName']) => void
   setCreationType: (creationType: Key['creationType']) => void
   setEntropy: (entropy: AccountBuilderState['entropy']) => void
@@ -55,7 +51,6 @@ type AccountBuilderAction = {
   setMnemonic: (mnemonic: AccountBuilderState['mnemonic']) => void
   setPassphrase: (passphrase: AccountBuilderState['passphrase']) => void
 
-  // Descriptor and key setters
   setExternalDescriptor: (
     externalDescriptor: NonNullable<Secret['externalDescriptor']>
   ) => void
@@ -103,7 +98,6 @@ const initialState: AccountBuilderState = {
   network: 'signet',
   policyType: 'singlesig',
 
-  // Key information
   keyName: '',
   creationType: 'importMnemonic',
   entropy: 'none',
@@ -141,10 +135,6 @@ const useAccountBuilderStore = create<
   setPolicyType: (policyType) => {
     set({ policyType })
   },
-
-  // ===========================================================================
-  // KEY CONFIGURATION ACTIONS
-  // ===========================================================================
 
   setKeyName: (keyName) => {
     set({ keyName })
