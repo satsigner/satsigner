@@ -8,7 +8,7 @@ import { useAnimatedShake } from '@/hooks/useAnimatedShake'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAuthStore } from '@/store/auth'
-import { warning, error, gray } from '@/styles/colors'
+import { error, gray, warning } from '@/styles/colors'
 
 type SSPinEntryProps = {
   pin: string[]
