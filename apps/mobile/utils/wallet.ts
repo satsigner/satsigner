@@ -1,11 +1,12 @@
 import type { KeychainKind, Network } from 'bdk-rn/lib/lib/enums'
 import * as bip39 from 'bip39'
 
-import type { Key, Secret } from '@/types/models/Account'
-
-export type MnemonicWordCount = 12 | 15 | 18 | 21 | 24
-
-export type MnemonicEntropyBits = 128 | 160 | 192 | 224 | 256
+import type {
+  Key,
+  MnemonicEntropyBits,
+  MnemonicWordCount,
+  Secret
+} from '@/types/models/Account'
 
 const wordCountToEntropyBits: Record<MnemonicWordCount, MnemonicEntropyBits> = {
   12: 128,
