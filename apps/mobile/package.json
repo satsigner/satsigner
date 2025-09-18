@@ -37,6 +37,7 @@
     "bdk-rn": "https://github.com/LtbLightning/bdk-rn#bc918a5f58b2fb4a1c50bd21ba9206300edff43d",
     "bech32": "^2.0.0",
     "bip21": "^3.0.0",
+    "bip32": "^5.0.0-rc.0",
     "bip39": "^3.1.0",
     "bitcoinjs-lib": "^6.1.7",
     "buffer": "6.0.3",
