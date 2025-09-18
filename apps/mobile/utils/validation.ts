@@ -263,6 +263,26 @@ async function validateDescriptorInternal(
       return { isValid: true }
     }
 
+    // Check if it's a multi descriptor with extended public keys
+    const multiExtendedKeyPattern = new RegExp(
+      `^${multiKind}\\([1-9][0-9]*,.*\\)$`
+    )
+    if (multiExtendedKeyPattern.test(currentItem)) {
+      // For multisig descriptors, be more lenient - just check for basic structure
+      // Look for at least 2 key patterns (fingerprint + extended key)
+      const keyPatterns = currentItem.match(/\[[a-fA-F0-9]{8}\/[^]]+\]/g)
+      if (keyPatterns && keyPatterns.length >= 2) {
+        return { isValid: true }
+      }
+      // Also accept if it contains tpub/xpub patterns (common extended key formats)
+      const extendedKeyPatterns = currentItem.match(
+        /(tpub|xpub|ypub|zpub|upub|vpub)[a-zA-Z0-9]+/g
+      )
+      if (extendedKeyPatterns && extendedKeyPatterns.length >= 2) {
+        return { isValid: true }
+      }
+    }
+
     // Check for specific issues
     if (currentItem.includes('[') && !currentItem.includes(']')) {
       return { isValid: false, error: 'derivationPathBracket' }
