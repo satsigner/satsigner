@@ -41,14 +41,14 @@ import {
   sampleSalvadorAddress,
   sampleSegwitAddress,
   sampleSignetAddress,
+  sampleSignetMultisigKey1,
+  sampleSignetMultisigKey2,
+  sampleSignetMultisigKey3Fingerprint,
+  sampleSignetMultisigKey3Xpub,
   sampleSignetWalletSeed,
   sampleSignetXpub,
   sampleSignetXpubFingerprint,
-  sampleTestnet4Address,
-  sampleSignetMultisigKey1,
-  sampleSignetMultisigKey2,
-  sampleSignetMultisigKey3Xpub,
-  sampleSignetMultisigKey3Fingerprint
+  sampleTestnet4Address
 } from '@/utils/samples'
 
 // Helper function to map local Network type to bdk-rn Network enum

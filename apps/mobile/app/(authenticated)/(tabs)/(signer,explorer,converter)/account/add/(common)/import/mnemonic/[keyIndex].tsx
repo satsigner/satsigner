@@ -23,12 +23,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
-import { getWordList } from '@/utils/bip39'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
-import { seedWordsPrefixOfAnother } from '@/utils/seed'
-
-const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
-const wordList = getWordList()
 export default function ImportMnemonic() {
   const { keyIndex } = useLocalSearchParams<ImportMnemonicSearchParams>()
   const router = useRouter()
