@@ -232,13 +232,23 @@ function NostrSync() {
   /**
    * Toggles member trust status
    */
-  const toggleMember = (npub: string) => {
-    if (!accountId || !account?.nostr) return
+  const toggleMember = useCallback(
+    (npub: string) => {
+      if (!accountId || !account?.nostr) return
 
-    setSelectedMembers((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(npub)) {
-        newSet.delete(npub)
+      const isCurrentlyTrusted = selectedMembers.has(npub)
+
+      setSelectedMembers((prev) => {
+        const newSet = new Set(prev)
+        if (isCurrentlyTrusted) {
+          newSet.delete(npub)
+        } else {
+          newSet.add(npub)
+        }
+        return newSet
+      })
+
+      if (isCurrentlyTrusted) {
         updateAccountNostr(accountId, {
           trustedMemberDevices: account.nostr.trustedMemberDevices.filter(
             (m) => m !== npub
@@ -246,15 +256,14 @@ function NostrSync() {
           lastUpdated: new Date()
         })
       } else {
-        newSet.add(npub)
         updateAccountNostr(accountId, {
           trustedMemberDevices: [...account.nostr.trustedMemberDevices, npub],
           lastUpdated: new Date()
         })
       }
-      return newSet
-    })
-  }
+    },
+    [accountId, account?.nostr, selectedMembers, updateAccountNostr]
+  )
 
   // Navigation functions
   const goToSelectRelaysPage = () => {
