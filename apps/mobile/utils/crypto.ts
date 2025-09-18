@@ -1,5 +1,8 @@
 import crypto from 'react-native-aes-crypto'
 
+import { DEFAULT_PIN, PIN_KEY } from '@/config/auth'
+import { getItem } from '@/storage/encrypted'
+
 function sha256(text: string) {
   return crypto.sha256(text)
 }
@@ -28,11 +31,24 @@ async function doubleShaEncrypt(text: string) {
   return crypto.sha256(first)
 }
 
+/**
+ * Gets the appropriate PIN for decryption based on user settings.
+ * If skipPin is true, returns the default PIN; otherwise returns the stored PIN.
+ */
+async function getPinForDecryption(skipPin = false): Promise<string | null> {
+  if (skipPin) {
+    return DEFAULT_PIN
+  }
+
+  return await getItem(PIN_KEY)
+}
+
 export {
   aesDecrypt,
   aesEncrypt,
   doubleShaEncrypt,
   generateSalt,
+  getPinForDecryption,
   pbkdf2Encrypt,
   sha256
 }

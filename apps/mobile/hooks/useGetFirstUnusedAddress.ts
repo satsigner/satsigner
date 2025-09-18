@@ -13,7 +13,9 @@ function useGetFirstUnusedAddress(wallet: Wallet, account: Account) {
   async function updateFirstAddress() {
     const seenAddresses: Record<string, boolean> = {}
 
-    if (!account) return
+    if (!account) {
+      return
+    }
 
     for (const tx of account.transactions) {
       for (const output of tx.vout) {
@@ -23,16 +25,26 @@ function useGetFirstUnusedAddress(wallet: Wallet, account: Account) {
       }
     }
 
-    if (!wallet) return
+    if (!wallet) {
+      return
+    }
 
     let addrInfo: AddressInfo | null = null
     let newAddress = ''
     let index = -1
     do {
       index += 1
-      addrInfo = await wallet.getAddress(index)
-      const address = addrInfo?.address
-      newAddress = address ? await address.asString() : ''
+
+      try {
+        addrInfo = await wallet.getAddress(index)
+        newAddress = await addrInfo.address.asString()
+
+        if (seenAddresses[newAddress] !== undefined) {
+          // Address already used, continue searching
+        }
+      } catch (_error) {
+        break
+      }
     } while (seenAddresses[newAddress] !== undefined)
 
     setAddressIndex(index)
