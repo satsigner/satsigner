@@ -44,7 +44,11 @@ import {
   sampleSignetWalletSeed,
   sampleSignetXpub,
   sampleSignetXpubFingerprint,
-  sampleTestnet4Address
+  sampleTestnet4Address,
+  sampleSignetMultisigKey1,
+  sampleSignetMultisigKey2,
+  sampleSignetMultisigKey3Xpub,
+  sampleSignetMultisigKey3Fingerprint
 } from '@/utils/samples'
 
 // Helper function to map local Network type to bdk-rn Network enum
@@ -131,6 +135,7 @@ export default function AccountList() {
     | 'watchonlySegwit'
     | 'watchonlyTestnet4'
     | 'watchonlyTether'
+    | 'multisig'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
 
   const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
@@ -368,9 +373,86 @@ export default function AccountList() {
             setExternalDescriptor(`addr(${address})`)
             setKey(index)
           })
+          break
+        case 'multisig': {
+          // Set up multisig configuration
+          setPolicyType('multisig')
+          setScriptVersion('P2WSH')
+          setKeyCount(3)
+          setKeysRequired(2)
+
+          // Key 1: Mnemonic
+          setMnemonic(sampleSignetMultisigKey1)
+          setMnemonicWordCount(12)
+          setCreationType('importMnemonic')
+
+          // Generate fingerprint and extended public key for key 1
+          try {
+            const { getFingerprint, getExtendedPublicKeyFromMnemonic } =
+              await import('@/api/bdk')
+            const fingerprint1 = await getFingerprint(
+              sampleSignetMultisigKey1,
+              '',
+              bdkNetwork
+            )
+            const extendedPublicKey1 = await getExtendedPublicKeyFromMnemonic(
+              sampleSignetMultisigKey1,
+              '',
+              bdkNetwork,
+              'P2WSH',
+              undefined,
+              true // isMultisig
+            )
+            setFingerprint(fingerprint1)
+            setExtendedPublicKey(extendedPublicKey1)
+            setKey(0)
+          } catch (error) {
+            throw new Error(
+              `Failed to process mnemonic 1: ${(error as Error).message}`
+            )
+          }
+
+          // Key 2: Mnemonic
+          setMnemonic(sampleSignetMultisigKey2)
+          setMnemonicWordCount(12)
+          setCreationType('importMnemonic')
+
+          // Generate fingerprint and extended public key for key 2
+          try {
+            const { getFingerprint, getExtendedPublicKeyFromMnemonic } =
+              await import('@/api/bdk')
+            const fingerprint2 = await getFingerprint(
+              sampleSignetMultisigKey2,
+              '',
+              bdkNetwork
+            )
+            const extendedPublicKey2 = await getExtendedPublicKeyFromMnemonic(
+              sampleSignetMultisigKey2,
+              '',
+              bdkNetwork,
+              'P2WSH',
+              undefined,
+              true // isMultisig
+            )
+            setFingerprint(fingerprint2)
+            setExtendedPublicKey(extendedPublicKey2)
+            setKey(1)
+          } catch (error) {
+            throw new Error(
+              `Failed to process mnemonic 2: ${(error as Error).message}`
+            )
+          }
+
+          // Key 3: Extended Public Key
+          setCreationType('importExtendedPub')
+          setExtendedPublicKey(sampleSignetMultisigKey3Xpub)
+          setFingerprint(sampleSignetMultisigKey3Fingerprint)
+          setKey(2)
+          break
+        }
       }
 
-      if (type !== 'watchonlyTether') setKey(0)
+      if (type !== 'watchonlyTether' && type !== 'multisig') setKey(0)
 
       const account = getAccountData()
 
@@ -406,6 +488,36 @@ export default function AccountList() {
         }
       }
 
+      // Additional validation for multisig wallets
+      if (type === 'multisig') {
+        if (account.keys.length !== 3) {
+          throw new Error('Multisig account must have exactly 3 keys')
+        }
+        if (account.keyCount !== 3 || account.keysRequired !== 2) {
+          throw new Error('Multisig configuration invalid')
+        }
+        // Validate that first two keys have mnemonic secrets
+        for (let i = 0; i < 2; i++) {
+          const key = account.keys[i]
+          if (
+            !key.secret ||
+            typeof key.secret !== 'object' ||
+            !key.secret.mnemonic
+          ) {
+            throw new Error(`Mnemonic not properly set in key ${i + 1}`)
+          }
+        }
+        // Validate that third key has extended public key
+        const key3 = account.keys[2]
+        if (
+          !key3.secret ||
+          typeof key3.secret !== 'object' ||
+          !key3.secret.extendedPublicKey
+        ) {
+          throw new Error('Extended public key not properly set in key 3')
+        }
+      }
+
       // Add timeout to prevent hanging
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(
@@ -425,9 +537,12 @@ export default function AccountList() {
       }
       try {
         if (connectionMode === 'auto') {
-          const updatedAccount = ['segwit', 'legacy', 'watchonlyXpub'].includes(
-            type
-          )
+          const updatedAccount = [
+            'segwit',
+            'legacy',
+            'watchonlyXpub',
+            'multisig'
+          ].includes(type)
             ? await syncAccountWithWallet(
                 data.accountWithEncryptedSecret,
                 data.wallet!
@@ -582,6 +697,12 @@ export default function AccountList() {
               variant="subtle"
               onPress={() => loadSampleWallet('watchonlyAddress')}
               loading={loadingWallet === 'watchonlyAddress'}
+            />
+            <SSButton
+              label={t('account.load.sample.signet.multisig')}
+              variant="subtle"
+              onPress={() => loadSampleWallet('multisig')}
+              loading={loadingWallet === 'multisig'}
             />
           </SSVStack>
         )

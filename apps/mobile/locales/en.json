@@ -116,6 +116,7 @@
     "load.sample.bitcoin.address.tether": "Load sample multi-address watch-only Tether",
     "load.sample.signet.address": "Load sample watch-only address",
     "load.sample.signet.legacy": "Load sample Legacy wallet",
+    "load.sample.signet.multisig": "Load sample SegWit Multisig",
     "load.sample.signet.segwit": "Load sample SegWit wallet",
     "load.sample.signet.xpub": "Load sample watch-only",
     "load.sample.testnet.address": "Load sample watch-only",
