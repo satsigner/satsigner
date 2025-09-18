@@ -123,7 +123,6 @@ const useAccountBuilderStore = create<
   AccountBuilderState & AccountBuilderAction
 >()((set, get) => ({
   ...initialState,
-
   setName: (name) => {
     set({ name })
   },
@@ -139,23 +138,18 @@ const useAccountBuilderStore = create<
   setCreationType: (creationType) => {
     set({ creationType })
   },
-
   setEntropy: (entropy) => {
     set({ entropy })
   },
-
   setMnemonicWordCount: (mnemonicWordCount) => {
     set({ mnemonicWordCount })
   },
-
   setMnemonic: (mnemonic) => {
     set({ mnemonic })
   },
-
   setPassphrase: (passphrase) => {
     set({ passphrase })
   },
-
   setExternalDescriptor: (externalDescriptor) => {
     set({ externalDescriptor })
   },
@@ -171,7 +165,6 @@ const useAccountBuilderStore = create<
   setScriptVersion: (scriptVersion) => {
     set({ scriptVersion })
   },
-
   setKey: (index) => {
     const {
       keyName,
