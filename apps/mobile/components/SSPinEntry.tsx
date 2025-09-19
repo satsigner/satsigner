@@ -8,6 +8,7 @@ import { useAnimatedShake } from '@/hooks/useAnimatedShake'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAuthStore } from '@/store/auth'
+import { error, gray, warning } from '@/styles/colors'
 
 type SSPinEntryProps = {
   pin: string[]
@@ -28,6 +29,13 @@ function SSPinEntry({
   const { shakeStyle } = useAnimatedShake()
   const triesLeft = pinMaxTries - pinTries
 
+  function getTextColor() {
+    if (triesLeft > 2) return gray[200]
+    if (triesLeft === 1) return error
+    if (triesLeft === 2) return warning
+    return undefined
+  }
+
   return (
     <SSVStack itemsCenter justifyBetween style={{ height: '100%' }}>
       <SSVStack gap="lg" itemsCenter style={{ marginTop: '25%' }}>
@@ -43,10 +51,27 @@ function SSPinEntry({
           />
         </Animated.View>
         {triesLeft !== pinMaxTries && (
-          <SSText uppercase color="muted" center>
-            {triesLeft}{' '}
-            {triesLeft > 1 ? t('auth.triesLeft') : t('auth.tryLeft')}
-          </SSText>
+          <SSVStack gap="xxs" itemsCenter>
+            <SSText
+              uppercase
+              center
+              color={triesLeft > 2 ? 'muted' : undefined}
+              style={{ color: getTextColor() }}
+            >
+              {triesLeft}{' '}
+              {triesLeft > 1 ? t('auth.triesLeft') : t('auth.tryLeft')}
+            </SSText>
+            {triesLeft <= 2 && (
+              <SSText
+                uppercase
+                center
+                size="sm"
+                style={{ color: getTextColor() }}
+              >
+                {t('auth.warningKeysErase')}
+              </SSText>
+            )}
+          </SSVStack>
         )}
       </SSVStack>
     </SSVStack>

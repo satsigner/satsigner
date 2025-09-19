@@ -293,7 +293,8 @@
     "setPinTitle": "Set pin number to\nenter the app",
     "triesLeft": "Tries left",
     "tryLeft": "Try left",
-    "unlock": "Unlock Satsigner"
+    "unlock": "Unlock Satsigner",
+    "warningKeysErase": "Too many wrong attempts\n will erase all keys"
   },
   "bitcoin": {
     "address": "Address",
