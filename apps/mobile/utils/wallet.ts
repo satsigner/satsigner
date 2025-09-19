@@ -63,6 +63,14 @@ const networkMap: Record<Network, BIP32Network> = {
   }
 }
 
+export function validateMnemonic(
+  mnemonic: string,
+  wordListName: string = 'english'
+) {
+  const wordlist = bip39.wordlists[wordListName]
+  return bip39.validateMnemonic(mnemonic, wordlist)
+}
+
 export function generateMnemonic(
   wordCount: MnemonicWordCount = 12,
   wordListName = 'english'
