@@ -4,6 +4,7 @@ import { BIP32Factory } from 'bip32'
 
 import type { ScriptVersionType } from '@/types/models/Account'
 
+// TODO: import this interface from bip32 package (currently gives error)
 type BIP32Network = {
   wif: number
   bip32: {

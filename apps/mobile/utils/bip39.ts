@@ -42,9 +42,10 @@ export function generateMnemonic(
 
 export function generateMnemonicFromEntropy(
   entropy: string,
-  wordList: string = 'english'
+  wordListName: string = 'english'
 ) {
-  return bip39.entropyToMnemonic(entropy, bip39.wordlists[wordList])
+  const wordlist = bip39.wordlists[wordListName]
+  return bip39.entropyToMnemonic(entropy, wordlist)
 }
 
 export function getDescriptorFromMnemonic(
