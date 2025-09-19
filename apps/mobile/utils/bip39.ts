@@ -44,6 +44,10 @@ export function generateMnemonicFromEntropy(
   entropy: string,
   wordListName: string = 'english'
 ) {
+  if (entropy.length < 128 || entropy.length > 256)
+    throw new Error('Invalid Entropy: it must be range of [128, 256]')
+  if (entropy.length % 32 !== 0)
+    throw new Error('Invalid Entropy: it must be divisible by 32')
   const wordlist = bip39.wordlists[wordListName]
   return bip39.entropyToMnemonic(entropy, wordlist)
 }
