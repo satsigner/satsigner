@@ -684,6 +684,7 @@ async function getDescriptorObject(
   }
 }
 
+// TODO: put it elsewhere
 async function parseDescriptor(descriptor: Descriptor) {
   if (!descriptor) {
     return { fingerprint: '', derivationPath: '' }
@@ -711,6 +712,7 @@ async function getWalletFromDescriptor(
   return wallet
 }
 
+// TODO: replace it with bip32 lib
 async function getExtendedKeyFromDescriptor(descriptor: Descriptor) {
   if (!descriptor) {
     throw new Error('Descriptor is null or undefined')
@@ -852,6 +854,7 @@ async function getDescriptorsFromKeyData(
   }
 }
 
+// TODO: replace it with bip32
 async function getExtendedPublicKeyFromMnemonic(
   mnemonic: NonNullable<Secret['mnemonic']>,
   passphrase: string = '',
@@ -1344,6 +1347,7 @@ async function broadcastTransaction(
   return result
 }
 
+// TODO: replace it with bip32
 // Get fingerprint for multisig accounts
 async function getMultisigFingerprint(
   mnemonic: string,
@@ -1381,6 +1385,7 @@ async function getMultisigFingerprint(
   return fingerprintToHex(node.fingerprint)
 }
 
+// TODO: put it elsewhere
 // Comprehensive example of how to use multisig functions
 async function createMultisigAccountExample(
   mnemonic: string,
