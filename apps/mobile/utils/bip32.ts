@@ -1,14 +1,8 @@
 import ecc from '@bitcoinerlab/secp256k1'
 import { KeychainKind, Network } from 'bdk-rn/lib/lib/enums'
 import { BIP32Factory } from 'bip32'
-import * as bip39 from 'bip39'
 
-import type {
-  MnemonicEntropyBits,
-  MnemonicWordCount,
-  ScriptVersionType,
-  Secret
-} from '@/types/models/Account'
+import type { ScriptVersionType } from '@/types/models/Account'
 
 type BIP32Network = {
   wif: number
@@ -23,14 +17,6 @@ type BIP32Network = {
 }
 
 const bip32 = BIP32Factory(ecc)
-
-const wordCountToEntropyBits: Record<MnemonicWordCount, MnemonicEntropyBits> = {
-  12: 128,
-  15: 160,
-  18: 192,
-  21: 224,
-  24: 256
-}
 
 const networkMap: Record<Network, BIP32Network> = {
   [Network.Bitcoin]: {
@@ -63,40 +49,13 @@ const networkMap: Record<Network, BIP32Network> = {
   }
 }
 
-export function validateMnemonic(
-  mnemonic: string,
-  wordListName: string = 'english'
-) {
-  const wordlist = bip39.wordlists[wordListName]
-  return bip39.validateMnemonic(mnemonic, wordlist)
-}
-
-export function generateMnemonic(
-  wordCount: MnemonicWordCount = 12,
-  wordListName = 'english'
-) {
-  const entropyBits = wordCountToEntropyBits[wordCount]
-  const wordlist = bip39.wordlists[wordListName]
-  const mnemonic = bip39.generateMnemonic(entropyBits, undefined, wordlist)
-  return mnemonic
-}
-
-export function generateMnemonicFromEntropy(
-  entropy: string,
-  wordList: string = 'english'
-) {
-  return bip39.entropyToMnemonic(entropy, bip39.wordlists[wordList])
-}
-
-export function getDescriptorFromMnemonic(
-  mnemonic: string,
+export function getDescriptorFromSeed(
+  seed: Buffer,
   scriptVersion: ScriptVersionType,
   kind: KeychainKind,
   network: Network,
-  passphrase: string | undefined,
   account = 0
 ): string {
-  const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
   const masterKey = bip32.fromSeed(seed, networkMap[network])
   const purpose = getScriptVersionPurpose(scriptVersion)
   const coinType = network === Network.Bitcoin ? 0 : 1
@@ -151,12 +110,7 @@ export function getScriptVersionPurpose(
   }
 }
 
-export function getFingerprintFromMnemonic(
-  mnemonic: NonNullable<Secret['mnemonic']>,
-  passphrase: Secret['passphrase'],
-  network: Network
-) {
-  const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
+export function getFingerprintFromSeed(seed: Buffer, network: Network) {
   const masterKey = bip32.fromSeed(seed, networkMap[network])
   const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
   return fingerprint
