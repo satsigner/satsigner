@@ -9,8 +9,7 @@ import { captureRef } from 'react-native-view-shot'
 
 import {
   getExtendedKeyFromDescriptor,
-  getExtendedPublicKeyFromAccountKey,
-  getFingerprintFromExtendedPublicKey
+  getExtendedPublicKeyFromAccountKey
 } from '@/api/bdk'
 import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
@@ -28,6 +27,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Account, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { getFingerprintFromExtendedPublicKey } from '@/utils/bip32'
 import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion,
@@ -179,7 +179,7 @@ export default function ExportDescriptors() {
               // If we still don't have a fingerprint, try to extract it from the extended public key
               if (!fingerprint && extendedPublicKey) {
                 try {
-                  fingerprint = await getFingerprintFromExtendedPublicKey(
+                  fingerprint = getFingerprintFromExtendedPublicKey(
                     extendedPublicKey,
                     network as Network
                   )
@@ -305,7 +305,7 @@ export default function ExportDescriptors() {
                   // If we still don't have a fingerprint, try to extract it from the extended public key
                   if (!fingerprint && extendedPublicKey) {
                     try {
-                      fingerprint = await getFingerprintFromExtendedPublicKey(
+                      fingerprint = getFingerprintFromExtendedPublicKey(
                         extendedPublicKey,
                         network as Network
                       )

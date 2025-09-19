@@ -39,6 +39,7 @@ import {
   type Backend,
   type Network as BlockchainNetwork
 } from '@/types/settings/blockchain'
+import { getFingerprintFromExtendedPublicKey } from '@/utils/bip32'
 import {
   fingerprintToHex,
   getAllXpubs,
@@ -61,24 +62,6 @@ type WalletData = {
   internalDescriptor: string
   wallet: Wallet
   keyFingerprints?: string[] // Optional for multisig accounts
-}
-
-async function getFingerprintFromExtendedPublicKey(
-  extendedPublicKey: string,
-  network: Network
-): Promise<string> {
-  try {
-    // Create a descriptor from the extended public key to extract fingerprint
-    const descriptorString = `pkh(${extendedPublicKey})`
-    const descriptor = await new Descriptor().create(descriptorString, network)
-    if (!descriptor) {
-      throw new Error('Failed to create descriptor from extended public key')
-    }
-    const parsedDescriptor = await parseDescriptor(descriptor)
-    return parsedDescriptor.fingerprint
-  } catch {
-    return ''
-  }
 }
 
 async function getWalletData(
@@ -161,7 +144,7 @@ async function getWalletData(
           // If we still don't have a fingerprint, try to extract it from the extended public key
           if (!fingerprint && extendedPublicKey) {
             try {
-              fingerprint = await getFingerprintFromExtendedPublicKey(
+              fingerprint = getFingerprintFromExtendedPublicKey(
                 extendedPublicKey,
                 network
               )
@@ -1464,7 +1447,6 @@ export {
   getExtendedKeyFromDescriptor,
   getExtendedPublicKeyFromAccountKey,
   getExtendedPublicKeyFromMnemonic,
-  getFingerprintFromExtendedPublicKey,
   getLastUnusedAddressFromWallet,
   getMultisigFingerprint,
   getTransactionInputValues,
