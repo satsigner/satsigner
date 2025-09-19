@@ -156,5 +156,8 @@ export function getFingerprintFromMnemonic(
   passphrase: Secret['passphrase'],
   network: Network
 ) {
-  // TODO: implement it
+  const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
+  const masterKey = bip32.fromSeed(seed, networkMap[network])
+  const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
+  return fingerprint
 }
