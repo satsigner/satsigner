@@ -30,6 +30,17 @@ function NostrSync() {
     ])
   )
 
+  const [isGeneratingKeys, setIsGeneratingKeys] = useState(false)
+
+  const [keysGenerated, setKeysGenerated] = useState(false)
+
+  const updateAccountNostrCallback = useCallback(
+    (accountId: string, nostrData: any) => {
+      updateAccountNostr(accountId, nostrData)
+    },
+    [updateAccountNostr]
+  )
+
   // Nostr store actions
   const clearNostrState = useNostrStore((state) => state.clearNostrState)
   const clearProcessedMessageIds = useNostrStore(
@@ -139,13 +150,13 @@ function NostrSync() {
       }
 
       if (accountId) {
-        updateAccountNostr(accountId, {
+        updateAccountNostrCallback(accountId, {
           relayStatuses: statuses,
           lastUpdated: new Date()
         })
       }
     },
-    [account?.nostr, accountId, updateAccountNostr]
+    [account?.nostr, accountId, updateAccountNostrCallback]
   )
 
   /**
@@ -176,7 +187,7 @@ function NostrSync() {
     try {
       setIsLoading(true)
       await clearStoredDMs(account)
-      updateAccountNostr(accountId, {
+      updateAccountNostrCallback(accountId, {
         ...account.nostr,
         dms: []
       })
@@ -201,7 +212,7 @@ function NostrSync() {
 
     // Initialize nostr object if it doesn't exist
     if (!account.nostr) {
-      updateAccountNostr(accountId, {
+      updateAccountNostrCallback(accountId, {
         autoSync: false,
         relays: [],
         dms: [],
@@ -220,7 +231,7 @@ function NostrSync() {
     if (account.nostr.relayStatuses) {
       setRelayStatuses(account.nostr.relayStatuses)
     }
-  }, [account, accountId, updateAccountNostr])
+  }, [account, accountId, updateAccountNostrCallback])
 
   /**
    * Toggles auto-sync functionality and manages subscriptions
@@ -231,7 +242,7 @@ function NostrSync() {
 
       // Initialize nostr object if it doesn't exist
       if (!account?.nostr) {
-        updateAccountNostr(accountId, {
+        updateAccountNostrCallback(accountId, {
           autoSync: false,
           relays: [],
           dms: [],
@@ -266,7 +277,7 @@ function NostrSync() {
           setRelayStatuses(allRelaysNotSynced)
 
           // Then update state
-          updateAccountNostr(accountId, {
+          updateAccountNostrCallback(accountId, {
             ...account.nostr,
             autoSync: false,
             relayStatuses: allRelaysNotSynced,
@@ -279,7 +290,7 @@ function NostrSync() {
         }
       } else {
         // Turn sync ON
-        updateAccountNostr(accountId, {
+        updateAccountNostrCallback(accountId, {
           ...account.nostr,
           autoSync: true,
           lastUpdated: new Date()
@@ -349,20 +360,20 @@ function NostrSync() {
       })
 
       if (isCurrentlyTrusted) {
-        updateAccountNostr(accountId, {
+        updateAccountNostrCallback(accountId, {
           trustedMemberDevices: account.nostr.trustedMemberDevices.filter(
             (m) => m !== npub
           ),
           lastUpdated: new Date()
         })
       } else {
-        updateAccountNostr(accountId, {
+        updateAccountNostrCallback(accountId, {
           trustedMemberDevices: [...account.nostr.trustedMemberDevices, npub],
           lastUpdated: new Date()
         })
       }
     },
-    [accountId, account?.nostr, selectedMembers, updateAccountNostr]
+    [accountId, account?.nostr, selectedMembers, updateAccountNostrCallback]
   )
 
   // Navigation functions
@@ -398,7 +409,7 @@ function NostrSync() {
     if (account && accountId) {
       // Initialize nostr object if it doesn't exist
       if (!account.nostr) {
-        updateAccountNostr(accountId, {
+        updateAccountNostrCallback(accountId, {
           autoSync: false,
           relays: [],
           dms: [],
@@ -419,7 +430,7 @@ function NostrSync() {
             .then((keys) => {
               if (keys) {
                 setCommonNsec(keys.commonNsec as string)
-                updateAccountNostr(accountId, {
+                updateAccountNostrCallback(accountId, {
                   ...account.nostr,
                   commonNsec: keys.commonNsec,
                   commonNpub: keys.commonNpub
@@ -436,15 +447,15 @@ function NostrSync() {
     account,
     accountId,
     generateCommonNostrKeys,
-    updateAccountNostr,
+    updateAccountNostrCallback,
     commonNsec
   ])
 
   useEffect(() => {
-    if (account && accountId) {
+    if (account && accountId && !isGeneratingKeys) {
       // Initialize nostr object if it doesn't exist
       if (!account.nostr) {
-        updateAccountNostr(accountId, {
+        updateAccountNostrCallback(accountId, {
           autoSync: false,
           relays: [],
           dms: [],
@@ -457,15 +468,20 @@ function NostrSync() {
         return // Return early as we'll re-run this effect after the update
       }
 
-      // Only try to load device keys if we don't have them yet
-      if (!account.nostr.deviceNsec || !account.nostr.deviceNpub) {
+      // Only try to load device keys if we don't have them yet and haven't generated them
+      if (
+        (!account.nostr.deviceNsec || !account.nostr.deviceNpub) &&
+        !keysGenerated
+      ) {
+        setIsGeneratingKeys(true)
+        setKeysGenerated(true)
         NostrAPI.generateNostrKeys()
           .then((keys) => {
             if (keys) {
               setDeviceNsec(keys.nsec)
               setDeviceNpub(keys.npub)
               generateColorFromNpub(keys.npub).then(setDeviceColor)
-              updateAccountNostr(accountId, {
+              updateAccountNostrCallback(accountId, {
                 ...account.nostr,
                 deviceNpub: keys.npub,
                 deviceNsec: keys.nsec
@@ -474,15 +490,29 @@ function NostrSync() {
           })
           .catch(() => {
             toast.error('Failed to generate device keys')
+            setKeysGenerated(false)
           })
-      } else {
+          .finally(() => {
+            setIsGeneratingKeys(false)
+          })
+      } else if (account.nostr.deviceNsec && account.nostr.deviceNpub) {
         // If we already have the keys, just set them
         setDeviceNsec(account.nostr.deviceNsec)
         setDeviceNpub(account.nostr.deviceNpub)
         generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
+        setKeysGenerated(true)
       }
     }
-  }, [account, accountId, updateAccountNostr])
+  }, [account, accountId, isGeneratingKeys, updateAccountNostrCallback])
+
+  // Reset key generation state when account changes
+  useEffect(() => {
+    if (account?.nostr?.deviceNsec && account?.nostr?.deviceNpub) {
+      setKeysGenerated(true)
+    } else {
+      setKeysGenerated(false)
+    }
+  }, [account?.id])
 
   useEffect(() => {
     if (deviceNpub && deviceColor === '#404040') {
