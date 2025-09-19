@@ -96,6 +96,7 @@
     "nostrSync.noRelaysWarning": "Please select at least one relay to sync labels",
     "nostrSync.npub": "npub",
     "nostrSync.nsec": "nsec",
+    "nostrSync.relayStatus": "Relay Status",
     "nostrSync.relays.addCustomRelay": "Add relay",
     "nostrSync.relays.custom": "Custom relays",
     "nostrSync.relays.inputPlaceholder": "your-relay.com",

@@ -4,7 +4,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { NostrAPI } from '@/api/nostr'
+import { NostrAPI, compressMessage } from '@/api/nostr'
 import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
 import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
@@ -80,6 +80,9 @@ function NostrSync() {
   const [deviceNpub, setDeviceNpub] = useState('')
   const [deviceColor, setDeviceColor] = useState('#404040')
   const [selectedRelays, setSelectedRelays] = useState<string[]>([])
+  const [relayStatuses, setRelayStatuses] = useState<
+    Record<string, 'synced' | 'syncing' | 'not synced'>
+  >({})
 
   // Add this useCallback near the top of the component, after other hooks
   const getUpdatedAccount = useCallback(() => {
@@ -87,6 +90,82 @@ function NostrSync() {
       .getState()
       .accounts.find((_account) => _account.id === accountId)
   }, [accountId])
+
+  /**
+   * Tests all relays to see if they can sync
+   */
+  const testRelaySync = useCallback(
+    async (relays: string[]) => {
+      const statuses: Record<string, 'synced' | 'syncing' | 'not synced'> = {}
+
+      relays.forEach((relay) => {
+        statuses[relay] = 'syncing'
+      })
+      setRelayStatuses(statuses)
+
+      for (const relay of relays) {
+        try {
+          const nostrApi = new NostrAPI([relay])
+          await nostrApi.connect()
+
+          if (
+            account?.nostr?.commonNsec &&
+            account.nostr.commonNpub &&
+            account.nostr.deviceNpub
+          ) {
+            try {
+              const testMessage = {
+                created_at: Math.floor(Date.now() / 1000),
+                public_key_bech32: account.nostr.deviceNpub
+              }
+              const compressedMessage = compressMessage(testMessage)
+              const testEvent = await nostrApi.createKind1059(
+                account.nostr.commonNsec,
+                account.nostr.commonNpub,
+                compressedMessage
+              )
+              await nostrApi.publishEvent(testEvent)
+              statuses[relay] = 'synced'
+            } catch (publishError) {
+              statuses[relay] = 'not synced'
+            }
+          } else {
+            statuses[relay] = 'synced'
+          }
+        } catch (connectionError) {
+          statuses[relay] = 'not synced'
+        }
+        setRelayStatuses({ ...statuses })
+      }
+
+      if (accountId) {
+        updateAccountNostr(accountId, {
+          relayStatuses: statuses,
+          lastUpdated: new Date()
+        })
+      }
+    },
+    [account?.nostr, accountId, updateAccountNostr]
+  )
+
+  /**
+   * Gets the display info for relay status
+   */
+  const getRelayStatusInfo = useCallback(
+    (status: 'synced' | 'syncing' | 'not synced') => {
+      switch (status) {
+        case 'synced':
+          return { color: '#22c55e', text: 'Synced' }
+        case 'syncing':
+          return { color: '#f59e0b', text: 'Syncing...' }
+        case 'not synced':
+          return { color: '#ef4444', text: 'Not Synced' }
+        default:
+          return { color: '#6b7280', text: 'Unknown' }
+      }
+    },
+    []
+  )
 
   /**
    * Clears all cached messages and processed events
@@ -137,6 +216,10 @@ function NostrSync() {
     }
 
     setSelectedRelays(account.nostr.relays || [])
+
+    if (account.nostr.relayStatuses) {
+      setRelayStatuses(account.nostr.relayStatuses)
+    }
   }, [account, accountId, updateAccountNostr])
 
   /**
@@ -170,10 +253,23 @@ function NostrSync() {
           // Cleanup all subscriptions first
           await cleanupSubscriptions()
 
+          // Set all relays to "not synced" when turning sync off
+          const allRelaysNotSynced: Record<
+            string,
+            'synced' | 'syncing' | 'not synced'
+          > = {}
+          if (account.nostr.relays) {
+            account.nostr.relays.forEach((relay) => {
+              allRelaysNotSynced[relay] = 'not synced'
+            })
+          }
+          setRelayStatuses(allRelaysNotSynced)
+
           // Then update state
           updateAccountNostr(accountId, {
             ...account.nostr,
             autoSync: false,
+            relayStatuses: allRelaysNotSynced,
             lastUpdated: new Date()
           })
         } catch {
@@ -201,6 +297,9 @@ function NostrSync() {
         ) {
           setIsSyncing(true)
           try {
+            // Test relay sync first
+            await testRelaySync(updatedAccount.nostr.relays)
+
             deviceAnnouncement(updatedAccount)
             // Start both subscriptions using the new function
             await nostrSyncSubscriptions(updatedAccount, (loading) => {
@@ -222,6 +321,7 @@ function NostrSync() {
   }, [
     account?.nostr,
     accountId,
+    testRelaySync,
     cleanupSubscriptions,
     deviceAnnouncement,
     getUpdatedAccount,
@@ -643,6 +743,60 @@ function NostrSync() {
                 </SSText>
               )}
             </SSVStack>
+
+            {/* Relay Status section */}
+            {selectedRelays.length > 0 && (
+              <SSVStack gap="sm">
+                <SSText center>{t('account.nostrSync.relayStatus')}</SSText>
+                <SSVStack gap="sm" style={styles.relayStatusContainer}>
+                  {selectedRelays.map((relay, index) => {
+                    const status = relayStatuses[relay] || 'not synced'
+                    const statusInfo = getRelayStatusInfo(status)
+
+                    return (
+                      <SSHStack
+                        key={index}
+                        gap="sm"
+                        style={styles.relayStatusItem}
+                      >
+                        <View
+                          style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: 4,
+                            backgroundColor: statusInfo.color,
+                            marginTop: 1,
+                            marginRight: 8
+                          }}
+                        />
+                        <SSText style={{ flex: 1 }} size="sm">
+                          {relay}
+                        </SSText>
+                        <SSText
+                          size="sm"
+                          color={
+                            status === 'synced'
+                              ? 'white'
+                              : status === 'not synced'
+                                ? 'white'
+                                : 'muted'
+                          }
+                          style={{ color: statusInfo.color }}
+                        >
+                          {statusInfo.text}
+                        </SSText>
+                        {status === 'syncing' && (
+                          <ActivityIndicator
+                            size="small"
+                            color={statusInfo.color}
+                          />
+                        )}
+                      </SSHStack>
+                    )
+                  })}
+                </SSVStack>
+              </SSVStack>
+            )}
           </SSVStack>
           {/* Debug buttons */}
           <SSHStack gap="xs" style={{ marginTop: 30 }}>
@@ -695,6 +849,17 @@ const styles = StyleSheet.create({
   },
   autoSyncContainer: {
     marginBottom: 10
+  },
+  relayStatusContainer: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 8,
+    borderColor: Colors.white,
+    padding: 12,
+    borderWidth: 1
+  },
+  relayStatusItem: {
+    alignItems: 'center',
+    paddingVertical: 4
   }
 })
 
