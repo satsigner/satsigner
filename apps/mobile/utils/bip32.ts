@@ -116,3 +116,10 @@ export function getFingerprintFromSeed(seed: Buffer, network: Network) {
   const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
   return fingerprint
 }
+
+export function getFingerprintFromExtendedPublicKey(
+  extendedPublicKey: string,
+  network: Network
+) {
+  // TODO: implement it
+}

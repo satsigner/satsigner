@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react'
 import { ScrollView, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getExtendedKeyFromDescriptor, getDescriptor } from '@/api/bdk'
+import { getDescriptorObject, getExtendedKeyFromDescriptor } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
@@ -77,7 +77,7 @@ function ImportDescriptorFromAccount() {
       const passphrase = accountSecret.passphrase
       if (!mnemonic || !scriptVersion) return
 
-      externalDescriptor = await getDescriptor(
+      externalDescriptor = await getDescriptorObject(
         mnemonic,
         scriptVersion,
         KeychainKind.External,

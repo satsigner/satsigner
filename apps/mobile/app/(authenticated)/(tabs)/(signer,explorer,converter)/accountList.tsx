@@ -7,6 +7,7 @@ import { TabView } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { getExtendedPublicKeyFromMnemonic } from '@/api/bdk'
 import {
   SSIconBlackIndicator,
   SSIconGreenIndicator,
@@ -35,6 +36,7 @@ import { usePriceStore } from '@/store/price'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Network } from '@/types/settings/blockchain'
+import { getFingerprintFromMnemonic } from '@/utils/bip39'
 import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
 import {
   sampleMultiAddressTether,
@@ -241,9 +243,7 @@ export default function AccountList() {
 
           // Generate fingerprint and extended public key from mnemonic
           try {
-            const { getFingerprint, getExtendedPublicKeyFromMnemonic } =
-              await import('@/api/bdk')
-            const fingerprint = await getFingerprint(
+            const fingerprint = getFingerprintFromMnemonic(
               sampleSignetWalletSeed,
               '',
               bdkNetwork
@@ -290,9 +290,7 @@ export default function AccountList() {
 
           // Generate fingerprint and extended public key from mnemonic
           try {
-            const { getFingerprint, getExtendedPublicKeyFromMnemonic } =
-              await import('@/api/bdk')
-            const fingerprint = await getFingerprint(
+            const fingerprint = getFingerprintFromMnemonic(
               sampleSignetWalletSeed,
               '',
               bdkNetwork

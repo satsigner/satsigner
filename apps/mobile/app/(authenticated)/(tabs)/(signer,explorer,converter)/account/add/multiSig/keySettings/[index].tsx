@@ -1,9 +1,9 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
+import { generateMnemonic } from 'bip39'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
-import { generateMnemonic, getFingerprint } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSSelectModal from '@/components/SSSelectModal'
@@ -19,6 +19,7 @@ import { type EntropyType } from '@/types/logic/entropy'
 import { type Key } from '@/types/models/Account'
 import { type MultiSigKeySettingsSearchParams } from '@/types/navigation/searchParams'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
+import { getFingerprintFromMnemonic } from '@/utils/bip39'
 
 export default function MultiSigKeySettings() {
   const { index } = useLocalSearchParams<MultiSigKeySettingsSearchParams>()
@@ -67,10 +68,10 @@ export default function MultiSigKeySettings() {
         case 'none': {
           setLoading(true)
 
-          const mnemonic = await generateMnemonic(localMnemonicWordCount)
+          const mnemonic = generateMnemonic(localMnemonicWordCount)
           setMnemonic(mnemonic)
 
-          const fingerprint = await getFingerprint(
+          const fingerprint = getFingerprintFromMnemonic(
             mnemonic,
             undefined,
             network as Network

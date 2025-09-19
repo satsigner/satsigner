@@ -56,8 +56,8 @@ export function getDescriptorFromMnemonic(
   mnemonic: string,
   scriptVersion: ScriptVersionType,
   kind: KeychainKind,
-  network: Network,
   passphrase: string | undefined,
+  network: Network,
   account = 0
 ): string {
   const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)

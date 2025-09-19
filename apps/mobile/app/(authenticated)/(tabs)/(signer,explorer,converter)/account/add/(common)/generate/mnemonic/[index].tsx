@@ -5,12 +5,10 @@ import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
-  getDescriptor,
+  getDescriptorObject,
   getDescriptorsFromKeyData,
   getExtendedPublicKeyFromMnemonic,
-  getFingerprint,
-  parseDescriptor,
-  validateMnemonic
+  parseDescriptor
 } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
@@ -27,6 +25,7 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type GenerateMnemonicSearchParams } from '@/types/navigation/searchParams'
+import { getFingerprintFromMnemonic, validateMnemonic } from '@/utils/bip39'
 import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion
@@ -78,11 +77,11 @@ export default function GenerateMnemonic() {
   async function handleUpdatePassphrase(passphrase: string) {
     setPassphrase(passphrase)
 
-    const validMnemonic = await validateMnemonic(mnemonic.join(' '))
+    const validMnemonic = validateMnemonic(mnemonic.join(' '))
     setChecksumValid(validMnemonic)
 
     if (checksumValid) {
-      const fingerprint = await getFingerprint(
+      const fingerprint = getFingerprintFromMnemonic(
         mnemonic.join(' '),
         passphrase,
         network as Network
@@ -140,7 +139,7 @@ export default function GenerateMnemonic() {
       } else {
         // For single-sig accounts, try to extract from BDK descriptor first
         try {
-          const externalDescriptor = await getDescriptor(
+          const externalDescriptor = await getDescriptorObject(
             mnemonic.join(' '),
             scriptVersion, // Use the script version from store
             KeychainKind.External,

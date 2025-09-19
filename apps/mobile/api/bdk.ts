@@ -63,44 +63,6 @@ type WalletData = {
   keyFingerprints?: string[] // Optional for multisig accounts
 }
 
-async function generateMnemonic(
-  mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
-) {
-  const mnemonic = await new Mnemonic().create(mnemonicWordCount)
-  if (!mnemonic) {
-    throw new Error('Failed to generate mnemonic')
-  }
-  return mnemonic.asString()
-}
-
-async function generateMnemonicFromEntropy(entropy: string) {
-  if (entropy.length < 128 || entropy.length > 256)
-    throw new Error(
-      'Invalid Entropy: Entropy length must be range of [128, 256]'
-    )
-
-  if (entropy.length % 32 !== 0)
-    throw new Error('Invalid Entropy: Entropy length must be divide by 32')
-
-  const bytes = entropy.match(/.{1,8}/g)?.map((b) => parseInt(b, 2)) ?? []
-
-  const numbers = Array.from(new Uint8Array(bytes))
-  const mnemonic = await new Mnemonic().fromEntropy(numbers)
-  if (!mnemonic) {
-    throw new Error('Failed to generate mnemonic from entropy')
-  }
-  return mnemonic.asString()
-}
-
-async function validateMnemonic(mnemonic: NonNullable<Secret['mnemonic']>) {
-  try {
-    await new Mnemonic().fromString(mnemonic)
-  } catch (_) {
-    return false
-  }
-  return true
-}
-
 async function getFingerprintFromExtendedPublicKey(
   extendedPublicKey: string,
   network: Network
@@ -492,7 +454,7 @@ async function getWalletFromMnemonic(
   let internalDescriptor: Descriptor
 
   try {
-    externalDescriptor = await getDescriptor(
+    externalDescriptor = await getDescriptorObject(
       mnemonic,
       scriptVersion,
       KeychainKind.External,
@@ -500,7 +462,7 @@ async function getWalletFromMnemonic(
       network
     )
 
-    internalDescriptor = await getDescriptor(
+    internalDescriptor = await getDescriptorObject(
       mnemonic,
       scriptVersion,
       KeychainKind.Internal,
@@ -703,7 +665,7 @@ function deriveXpubFromMnemonic(
   }
 }
 
-async function getDescriptor(
+async function getDescriptorObject(
   mnemonic: NonNullable<Secret['mnemonic']>,
   scriptVersion: NonNullable<Key['scriptVersion']>,
   kind: KeychainKind,
@@ -786,7 +748,7 @@ async function getExtendedPublicKeyFromAccountKey(
   if (isMultisig) {
     // For multisig accounts, we'll generate the extended public key using
     // standard BDK methods but then manually construct it with correct derivation path
-    const externalDescriptor = await getDescriptor(
+    const externalDescriptor = await getDescriptorObject(
       key.secret.mnemonic,
       key.scriptVersion,
       KeychainKind.External,
@@ -802,7 +764,7 @@ async function getExtendedPublicKeyFromAccountKey(
     return standardExtendedKey
   } else {
     // For single-sig accounts, use the existing logic
-    const externalDescriptor = await getDescriptor(
+    const externalDescriptor = await getDescriptorObject(
       key.secret.mnemonic,
       key.scriptVersion,
       KeychainKind.External,
@@ -1342,30 +1304,8 @@ async function getTransactionInputValues(
   return vin
 }
 
-async function getFingerprint(
-  mnemonic: NonNullable<Secret['mnemonic']>,
-  passphrase: Secret['passphrase'],
-  network: Network
-) {
-  const bdkMnemonic = await new Mnemonic().fromString(mnemonic)
-  const descriptorSecretKey = await new DescriptorSecretKey().create(
-    network,
-    bdkMnemonic,
-    passphrase
-  )
-  const descriptor = await new Descriptor().newBip84(
-    descriptorSecretKey,
-    KeychainKind.External,
-    network
-  )
-
-  const { fingerprint } = await parseDescriptor(descriptor)
-  return fingerprint
-}
-
 async function getLastUnusedAddressFromWallet(wallet: Wallet) {
   const newAddress = await wallet.getAddress(AddressIndex.New)
-
   return newAddress
 }
 
@@ -1518,15 +1458,12 @@ export {
   broadcastTransaction,
   buildTransaction,
   createMultisigAccountExample,
-  generateMnemonic,
-  generateMnemonicFromEntropy,
   getBlockchain,
-  getDescriptor,
+  getDescriptorObject,
   getDescriptorsFromKeyData,
   getExtendedKeyFromDescriptor,
   getExtendedPublicKeyFromAccountKey,
   getExtendedPublicKeyFromMnemonic,
-  getFingerprint,
   getFingerprintFromExtendedPublicKey,
   getLastUnusedAddressFromWallet,
   getMultisigFingerprint,
@@ -1538,6 +1475,5 @@ export {
   getWalletOverview,
   parseDescriptor,
   signTransaction,
-  syncWallet,
-  validateMnemonic
+  syncWallet
 }

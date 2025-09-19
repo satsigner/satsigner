@@ -8,9 +8,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import {
   getDescriptorsFromKeyData,
-  getExtendedPublicKeyFromMnemonic,
-  getFingerprint,
-  validateMnemonic
+  getExtendedPublicKeyFromMnemonic
 } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
@@ -37,7 +35,11 @@ import { Colors } from '@/styles'
 import { type SeedWordInfo } from '@/types/logic/seedWord'
 import { type Account } from '@/types/models/Account'
 import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
-import { getWordList } from '@/utils/bip39'
+import {
+  getFingerprintFromMnemonic,
+  getWordList,
+  validateMnemonic
+} from '@/utils/bip39'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 import { seedWordsPrefixOfAnother } from '@/utils/seed'
 
@@ -125,7 +127,7 @@ export default function ImportMnemonic() {
       if (seedCandidate.length !== mnemonicWordCount) continue
       const validWords = seedCandidate.every((x) => wordList.includes(x))
       if (!validWords) continue
-      const checksum = await validateMnemonic(seedCandidate.join(' '))
+      const checksum = validateMnemonic(seedCandidate.join(' '))
       if (!checksum) continue
       return seedCandidate
     }
@@ -143,12 +145,12 @@ export default function ImportMnemonic() {
 
     if (passphraseRef.current) passphraseRef.current.focus()
 
-    const checksumValid = await validateMnemonic(mnemonic)
+    const checksumValid = validateMnemonic(mnemonic)
     setChecksumValid(checksumValid)
 
     if (checksumValid) {
       setMnemonic(mnemonic)
-      const fingerprint = await getFingerprint(
+      const fingerprint = getFingerprintFromMnemonic(
         mnemonic,
         passphrase,
         network as Network
@@ -225,12 +227,12 @@ export default function ImportMnemonic() {
       .map((mnemonicWord) => mnemonicWord.value)
       .join(' ')
 
-    const checksumValid = await validateMnemonic(mnemonic)
+    const checksumValid = validateMnemonic(mnemonic)
     setChecksumValid(checksumValid)
 
     if (checksumValid) {
       setMnemonic(mnemonic)
-      const fingerprint = await getFingerprint(
+      const fingerprint = getFingerprintFromMnemonic(
         mnemonic,
         passphrase,
         network as Network
@@ -292,12 +294,12 @@ export default function ImportMnemonic() {
       .map((seedWord) => seedWord.value)
       .join(' ')
 
-    const checksumValid = await validateMnemonic(mnemonicSeedWords)
+    const checksumValid = validateMnemonic(mnemonicSeedWords)
     setChecksumValid(checksumValid)
 
     if (checksumValid) {
       setMnemonic(mnemonicSeedWords)
-      const fingerprint = await getFingerprint(
+      const fingerprint = getFingerprintFromMnemonic(
         mnemonicSeedWords,
         passphrase,
         network as Network
@@ -313,12 +315,12 @@ export default function ImportMnemonic() {
 
     const mnemonic = mnemonicWordsInfo.map((word) => word.value).join(' ')
 
-    const checksumValid = await validateMnemonic(mnemonic)
+    const checksumValid = validateMnemonic(mnemonic)
     setChecksumValid(checksumValid)
 
     if (checksumValid) {
       setMnemonic(mnemonic)
-      const fingerprint = await getFingerprint(
+      const fingerprint = getFingerprintFromMnemonic(
         mnemonic,
         passphrase,
         network as Network

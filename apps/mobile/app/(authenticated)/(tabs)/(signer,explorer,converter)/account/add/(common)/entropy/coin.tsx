@@ -10,7 +10,6 @@ import {
 } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { generateMnemonicFromEntropy, getFingerprint } from '@/api/bdk'
 import SSBinaryDisplay from '@/components/SSBinaryDisplay'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
@@ -20,6 +19,10 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
+import {
+  generateMnemonicFromEntropy,
+  getFingerprintFromMnemonic
+} from '@/utils/bip39'
 
 const screenWidth = Dimensions.get('window').width
 const coinSize = Math.min(screenWidth * 0.4, 160)
@@ -51,11 +54,11 @@ export default function CoinEntropy() {
       setStep(newStep)
 
       if (newStep === length) {
-        const mnemonic = await generateMnemonicFromEntropy(newBits)
+        const mnemonic = generateMnemonicFromEntropy(newBits)
 
         setMnemonic(mnemonic)
 
-        const fingerprint = await getFingerprint(
+        const fingerprint = getFingerprintFromMnemonic(
           mnemonic,
           undefined,
           network as Network
