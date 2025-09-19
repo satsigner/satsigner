@@ -121,5 +121,7 @@ export function getFingerprintFromExtendedPublicKey(
   extendedPublicKey: string,
   network: Network
 ) {
-  // TODO: implement it
+  const masterKey = bip32.fromBase58(extendedPublicKey, networkMap[network])
+  const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
+  return fingerprint
 }
