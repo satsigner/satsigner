@@ -10,8 +10,7 @@ import { captureRef } from 'react-native-view-shot'
 import {
   getExtendedKeyFromDescriptor,
   getExtendedPublicKeyFromAccountKey,
-  getFingerprintFromExtendedPublicKey,
-  getWalletData
+  getFingerprintFromExtendedPublicKey
 } from '@/api/bdk'
 import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
@@ -117,12 +116,6 @@ export default function ExportDescriptors() {
             key.derivationPath = key.derivationPath || ''
           }
         }
-
-        const _walletData = !isImportAddress
-          ? await getWalletData(temporaryAccount, network as Network).catch(
-              () => undefined
-            )
-          : undefined
 
         let descriptorString = ''
 
