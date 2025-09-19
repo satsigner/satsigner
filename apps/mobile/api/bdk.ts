@@ -199,7 +199,7 @@ async function getWalletData(
           // If we still don't have a fingerprint, try to extract it from the extended public key
           if (!fingerprint && extendedPublicKey) {
             try {
-              fingerprint = await extractFingerprintFromExtendedPublicKey(
+              fingerprint = await getFingerprintFromExtendedPublicKey(
                 extendedPublicKey,
                 network
               )
@@ -809,8 +809,7 @@ async function getExtendedPublicKeyFromAccountKey(
       key.secret.passphrase,
       network
     )
-    const extendedKey =
-      await getExtendedKeyFromDescriptor(externalDescriptor)
+    const extendedKey = await getExtendedKeyFromDescriptor(externalDescriptor)
 
     return extendedKey
   }

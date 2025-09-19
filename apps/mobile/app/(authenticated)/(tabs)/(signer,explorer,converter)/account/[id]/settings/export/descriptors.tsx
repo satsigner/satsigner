@@ -9,8 +9,8 @@ import { captureRef } from 'react-native-view-shot'
 
 import {
   getExtendedKeyFromDescriptor,
-  getFingerprintFromExtendedPublicKey,
   getExtendedPublicKeyFromAccountKey,
+  getFingerprintFromExtendedPublicKey,
   getWalletData
 } from '@/api/bdk'
 import { SSIconEyeOn } from '@/components/icons'
@@ -282,7 +282,7 @@ export default function ExportDescriptors() {
                           network as Network
                         )
                         extendedPublicKey =
-                          await extractExtendedKeyFromDescriptor(descriptor)
+                          await getExtendedKeyFromDescriptor(descriptor)
                       } catch {
                         // Failed to extract extended public key from descriptor for key ${index}
                       }
@@ -312,11 +312,10 @@ export default function ExportDescriptors() {
                   // If we still don't have a fingerprint, try to extract it from the extended public key
                   if (!fingerprint && extendedPublicKey) {
                     try {
-                      fingerprint =
-                        await extractFingerprintFromExtendedPublicKey(
-                          extendedPublicKey,
-                          network as Network
-                        )
+                      fingerprint = await getFingerprintFromExtendedPublicKey(
+                        extendedPublicKey,
+                        network as Network
+                      )
                     } catch {
                       // Failed to extract fingerprint from extended public key for key ${index}
                     }
@@ -337,7 +336,7 @@ export default function ExportDescriptors() {
                           network as Network
                         )
                         extendedPublicKey =
-                          await extractExtendedKeyFromDescriptor(descriptor)
+                          await getExtendedKeyFromDescriptor(descriptor)
                       } catch {
                         // Failed to extract extended public key from externalDescriptor for key ${index}
                       }
@@ -663,7 +662,7 @@ export default function ExportDescriptors() {
               margin: 1in;
               size: A4;
             }
-            
+
             body {
               font-family: 'Courier New', monospace;
               margin: 0;
@@ -672,20 +671,20 @@ export default function ExportDescriptors() {
               color: black;
               line-height: 1.4;
             }
-            
+
             .header {
               text-align: center;
               font-size: 24px;
               font-weight: bold;
               margin-bottom: 30px;
             }
-            
+
             .qr-section {
               text-align: center;
               margin: 30px 0;
               page-break-inside: avoid;
             }
-            
+
             .qr-code {
               max-width: 300px;
               max-height: 300px;
@@ -693,7 +692,7 @@ export default function ExportDescriptors() {
               margin: 0 auto;
               display: block;
             }
-            
+
             .descriptor-text {
               font-family: 'Courier New', monospace;
               font-size: 11px;
@@ -708,7 +707,7 @@ export default function ExportDescriptors() {
         </head>
         <body>
           <div class="header">${title}</div>
-          
+
           ${
             qrDataURL
               ? `
@@ -718,7 +717,7 @@ export default function ExportDescriptors() {
           `
               : ''
           }
-          
+
           <div class="descriptor-text">${exportContent}</div>
         </body>
       </html>

@@ -238,8 +238,7 @@ export default function PublicKeyPage() {
             if (!descriptor) {
               publicKeyString = ''
             } else {
-              publicKeyString =
-                await getExtendedKeyFromDescriptor(descriptor)
+              publicKeyString = await getExtendedKeyFromDescriptor(descriptor)
             }
           }
         }
