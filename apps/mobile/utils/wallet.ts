@@ -94,40 +94,39 @@ export function getDescriptorFromMnemonic(
   kind: KeychainKind,
   network: Network,
   passphrase: string | undefined,
-  wordListName = 'english'
+  account = 0
 ): string {
-  const wordlist = bip39.wordlists[wordListName]
-
-  if (!bip39.validateMnemonic(mnemonic, wordlist)) {
-    throw new Error('Invalid mnemonic phrase')
-  }
-
   const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
   const masterKey = bip32.fromSeed(seed, networkMap[network])
   const purpose = getScriptVersionPurpose(scriptVersion)
-  const account = 0 // INFO: change this? currently using account 0 as default
+  const coinType = network === Network.Bitcoin ? 0 : 1
   const change = kind === KeychainKind.External ? 0 : 1
-  const path = `m/${purpose}'/0'/${account}'/${change}/*`
+  const path = `m/${purpose}'/${coinType}'/${account}'/${change}/*`
   const derivedKey = masterKey.derivePath(path.replace('*', '0'))
   const pubkey = Buffer.from(derivedKey.publicKey).toString('hex')
+  const descriptor = getDescriptorFromPubkey(pubkey, scriptVersion)
+  return `${descriptor}[${path}]`
+}
 
+export function getDescriptorFromPubkey(
+  pubkey: string,
+  scriptVersion: ScriptVersionType
+) {
   switch (scriptVersion) {
     case 'P2PKH':
-      return `pkh(${pubkey})[${path}]`
+      return `pkh(${pubkey})`
     case 'P2WPKH':
-      return `wpkh(${pubkey})[${path}]`
+      return `wpkh(${pubkey})`
     case 'P2SH-P2WPKH':
-      return `sh(wpkh(${pubkey}))[${path}]`
+      return `sh(wpkh(${pubkey}))`
     case 'P2TR':
-      return `tr(${pubkey})[${path}]`
+      return `tr(${pubkey})`
     case 'P2WSH':
-      return `wsh(pk(${pubkey}))[${path}]`
+      return `wsh(pk(${pubkey}))`
     case 'P2SH-P2WSH':
-      return `sh(wsh(pk(${pubkey})))[${path}]`
+      return `sh(wsh(pk(${pubkey})))`
     case 'P2SH':
-      return `sh(pk(${pubkey}))[${path}]`
-    default:
-      throw new Error(`Unsupported script version: ${scriptVersion}`)
+      return `sh(pk(${pubkey}))`
   }
 }
 
