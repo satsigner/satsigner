@@ -5,7 +5,6 @@ import { ScrollView } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getExtendedPublicKeyFromMnemonic } from '@/api/bdk'
 import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
 import SSGradientModal from '@/components/SSGradientModal'
 import SSSeedWordsInput from '@/components/SSSeedWordsInput'
@@ -23,6 +22,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
+import { getExtendedPublicKeyFromMnemonic } from '@/utils/bip39'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 export default function ImportMnemonic() {
   const { keyIndex } = useLocalSearchParams<ImportMnemonicSearchParams>()
@@ -41,7 +41,6 @@ export default function ImportMnemonic() {
     setPassphrase: _setPassphrase,
     setFingerprint,
     setExtendedPublicKey,
-    setKey,
     getAccountData,
     updateKeySecret: _updateKeySecret,
     clearKeyState
@@ -59,7 +58,6 @@ export default function ImportMnemonic() {
       setPassphrase: state.setPassphrase,
       setFingerprint: state.setFingerprint,
       setExtendedPublicKey: state.setExtendedPublicKey,
-      setKey: state.setKey,
       getAccountData: state.getAccountData,
       updateKeySecret: state.updateKeySecret,
       clearKeyState: state.clearKeyState
@@ -107,7 +105,6 @@ export default function ImportMnemonic() {
 
     // Set the key with the current data
     try {
-      const _currentKey = setKey(Number(keyIndex))
     } catch (error) {
       setLoadingAccount(false)
       toast.error(`Failed to set key: ${(error as Error).message}`)
@@ -155,7 +152,7 @@ export default function ImportMnemonic() {
       // For multisig, we need to generate the extended public key from the mnemonic
       if (currentMnemonic && currentFingerprint) {
         // Generate the extended public key
-        const extendedPublicKey = await getExtendedPublicKeyFromMnemonic(
+        const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
           currentMnemonic,
           passphrase || '',
           network as Network,
@@ -167,7 +164,6 @@ export default function ImportMnemonic() {
       }
 
       // Set the key with the current data
-      const _currentKey = setKey(Number(keyIndex))
       setLoadingAccount(false)
       toast.success('Key imported successfully')
       // Navigate back to multisig setup (just one screen back)

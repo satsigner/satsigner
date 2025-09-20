@@ -7,7 +7,6 @@ import { useShallow } from 'zustand/react/shallow'
 import {
   getDescriptorObject,
   getDescriptorsFromKeyData,
-  getExtendedPublicKeyFromMnemonic,
   parseDescriptor
 } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
@@ -25,7 +24,11 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type GenerateMnemonicSearchParams } from '@/types/navigation/searchParams'
-import { getFingerprintFromMnemonic, validateMnemonic } from '@/utils/bip39'
+import {
+  getExtendedPublicKeyFromMnemonic,
+  getFingerprintFromMnemonic,
+  validateMnemonic
+} from '@/utils/bip39'
 import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion
@@ -109,7 +112,7 @@ export default function GenerateMnemonic() {
         )
         derivationPath = `m/${rawDerivationPath}`
         // Generate extended public key first using the same method as import flow
-        const extendedPublicKey = await getExtendedPublicKeyFromMnemonic(
+        const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
           mnemonic.join(' '),
           passphrase || '',
           network as Network,

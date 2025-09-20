@@ -7,7 +7,11 @@ import type {
   ScriptVersionType,
   Secret
 } from '@/types/models/Account'
-import { getDescriptorFromSeed, getExtendedPublicKeyFromSeed, getFingerprintFromSeed } from '@/utils/bip32'
+import {
+  getDescriptorFromSeed,
+  getExtendedPublicKeyFromSeed,
+  getFingerprintFromSeed
+} from '@/utils/bip32'
 
 const wordCountToEntropyBits: Record<MnemonicWordCount, MnemonicEntropyBits> = {
   12: 128,
@@ -78,7 +82,6 @@ export function getExtendedPublicKeyFromMnemonic(
   passphrase: string = '',
   network: Network,
   scriptVersion: ScriptVersionType
-
 ) {
   const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
   return getExtendedPublicKeyFromSeed(seed, network, scriptVersion)

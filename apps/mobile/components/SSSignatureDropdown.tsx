@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { ScrollView, TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
 
-import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
+import { getExtendedKeyFromDescriptor } from '@/api/bdk'
 import { SSIconGreen } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -120,8 +120,7 @@ function SSSignatureDropdown({
                 secret.externalDescriptor,
                 network as Network
               )
-              const publicKey =
-                await extractExtendedKeyFromDescriptor(descriptor)
+              const publicKey = await getExtendedKeyFromDescriptor(descriptor)
               setExtractedPublicKey(publicKey)
             } catch (_error) {
               setExtractedPublicKey('')
@@ -150,7 +149,7 @@ function SSSignatureDropdown({
               secret.externalDescriptor,
               network as Network
             )
-            const publicKey = await extractExtendedKeyFromDescriptor(descriptor)
+            const publicKey = await getExtendedKeyFromDescriptor(descriptor)
             setExtractedPublicKey(publicKey)
           } catch (_error) {
             setExtractedPublicKey('')
