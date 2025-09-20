@@ -50,6 +50,19 @@ const networkMap: Record<Network, BIP32Network> = {
   }
 }
 
+export function getStandardPath(
+  scriptVersion: ScriptVersionType,
+  kind: KeychainKind,
+  network: Network,
+  account = 0
+) {
+  const purpose = getScriptVersionPurpose(scriptVersion)
+  const coinType = network === Network.Bitcoin ? 0 : 1
+  const change = kind === KeychainKind.External ? 0 : 1
+  const path = `m/${purpose}'/${coinType}'/${account}'/${change}/*`
+  return path
+}
+
 export function getDescriptorFromSeed(
   seed: Buffer,
   scriptVersion: ScriptVersionType,
@@ -58,10 +71,7 @@ export function getDescriptorFromSeed(
   account = 0
 ): string {
   const masterKey = bip32.fromSeed(seed, networkMap[network])
-  const purpose = getScriptVersionPurpose(scriptVersion)
-  const coinType = network === Network.Bitcoin ? 0 : 1
-  const change = kind === KeychainKind.External ? 0 : 1
-  const path = `m/${purpose}'/${coinType}'/${account}'/${change}/*`
+  const path = getStandardPath(scriptVersion, kind, network, account)
   const derivedKey = masterKey.derivePath(path.replace('*', '0'))
   const pubkey = Buffer.from(derivedKey.publicKey).toString('hex')
   const descriptor = getDescriptorFromPubkey(pubkey, scriptVersion)
@@ -122,4 +132,16 @@ export function getFingerprintFromExtendedPublicKey(
   const masterKey = bip32.fromBase58(extendedPublicKey, networkMap[network])
   const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
   return fingerprint
+}
+
+export function getExtendedPublicKeyFromSeed(
+  seed: Buffer,
+  network: Network,
+  scriptVersion: ScriptVersionType
+) {
+  const masterKey = bip32.fromSeed(seed, networkMap[network])
+  // this assumes default account=0 and external address kind=0
+  const path = getStandardPath(scriptVersion, KeychainKind.External, network, 0)
+  const derivedKey = masterKey.derivePath(path.replace('*', '0'))
+  return derivedKey.toBase58()
 }
