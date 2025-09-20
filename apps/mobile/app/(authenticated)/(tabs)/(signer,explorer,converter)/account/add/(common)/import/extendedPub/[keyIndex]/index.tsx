@@ -780,7 +780,6 @@ export default function ImportExtendedPub() {
                   </Animated.View>
                 </SSVStack>
               </SSVStack>
-
               {/* Multi-part QR Scanning Progress */}
               {scanProgress.type && scanProgress.total > 1 && (
                 <SSVStack gap="sm">

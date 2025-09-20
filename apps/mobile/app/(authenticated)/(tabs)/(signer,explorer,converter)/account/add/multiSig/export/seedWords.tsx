@@ -176,11 +176,6 @@ export default function SeedWordsPage() {
                 <SSSeedLayout count={key.mnemonicWordCount || 24}>
                   <View style={styles.mnemonicGrid}>
                     {Array.from({ length: 3 }).map((_, colIndex) => {
-                      // Calculate rows needed based on total words
-                      // For 12 words: 4 rows per column
-                      // For 20 words: 7 rows per column
-                      // For 22 words: 8 rows per column
-                      // For 24 words: 8 rows per column
                       const totalWords = key.mnemonicWordCount || 24
                       const wordsPerColumn = Math.ceil(totalWords / 3)
                       const isLastColumn = colIndex === 2
@@ -233,7 +228,6 @@ export default function SeedWordsPage() {
                   </View>
                 </SSSeedLayout>
               </View>
-
               <SSVStack gap="sm" style={{ paddingTop: 32 }}>
                 <SSHStack gap="sm">
                   <SSClipboardCopy

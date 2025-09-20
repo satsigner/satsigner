@@ -226,11 +226,9 @@ export default function AccountSettings() {
             )}
           </SSHStack>
         </SSVStack>
-
         {account.policyType === 'multisig' && (
           <>
             <SSVStack gap="md" style={styles.multiSigContainer}>
-              {/* N of M Component */}
               <SSText
                 weight="light"
                 style={{
@@ -265,7 +263,6 @@ export default function AccountSettings() {
                   />
                 ))
               ) : (
-                // Show loading state while decrypting
                 <SSText center color="muted">
                   Loading keys...
                 </SSText>
@@ -296,7 +293,6 @@ export default function AccountSettings() {
             />
           </SSHStack>
         </SSVStack>
-
         <SSVStack>
           {(account.keys[0].creationType === 'generateMnemonic' ||
             account.keys[0].creationType === 'importMnemonic') &&
@@ -337,7 +333,6 @@ export default function AccountSettings() {
             }
           />
         </SSVStack>
-
         <SSFormLayout>
           <SSFormLayout.Item>
             <SSFormLayout.Label label={t('account.name')} />

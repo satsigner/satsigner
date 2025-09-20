@@ -337,7 +337,6 @@ export default function ImportDescriptor() {
                 ]}
               />
             </SSVStack>
-
             <SSHStack gap="sm">
               <SSButton
                 label={t('common.paste')}
@@ -360,7 +359,6 @@ export default function ImportDescriptor() {
               />
             </SSHStack>
           </SSVStack>
-
           <SSVStack>
             {descriptorError && (
               <SSText
@@ -374,7 +372,6 @@ export default function ImportDescriptor() {
                 {descriptorError}
               </SSText>
             )}
-
             {isValidating && (
               <SSText
                 style={{
@@ -387,7 +384,6 @@ export default function ImportDescriptor() {
                 {t('common.loading')}...
               </SSText>
             )}
-
             <SSButton
               label={t('account.import.descriptor')}
               variant="secondary"
@@ -404,8 +400,6 @@ export default function ImportDescriptor() {
           </SSVStack>
         </SSVStack>
       </ScrollView>
-
-      {/* Camera Modal for QR Scanning */}
       <SSModal
         visible={cameraModalVisible}
         onClose={() => setCameraModalVisible(false)}

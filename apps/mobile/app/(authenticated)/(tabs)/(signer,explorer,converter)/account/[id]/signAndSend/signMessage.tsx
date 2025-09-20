@@ -265,7 +265,6 @@ export default function SignMessage() {
                   </View>
                 )}
               </SSVStack>
-
               <SSVStack gap="xxs">
                 <SSText
                   color="muted"

@@ -89,7 +89,6 @@ export default function MultiSigManager() {
             style={{ backgroundColor: '#131313', paddingHorizontal: 16 }}
             gap="md"
           >
-            {/* N of M Header */}
             <SSText
               weight="light"
               style={{

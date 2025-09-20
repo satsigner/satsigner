@@ -285,7 +285,7 @@ export function validateSignatureThreshold(
     }
 
     return true
-  } catch (_error) {
+  } catch {
     return false
   }
 }
@@ -332,7 +332,7 @@ export function validateCosignerSignature(
     // Return true if we have any signatures (regardless of which cosigner)
     // The PSBT is valid if it has signatures from any cosigner
     return hasAnySignatures
-  } catch (_error) {
+  } catch {
     return false
   }
 }
@@ -438,7 +438,7 @@ export function validateSignedPSBTForCosigner(
 
     // For non-multisig or if we can't determine the public key, use basic validation
     return true
-  } catch (_error) {
+  } catch {
     return false
   }
 }

@@ -4,8 +4,8 @@ import Svg, { Circle, G, Rect, Text as SvgText } from 'react-native-svg'
 
 const RADIUS_INDICATOR = 8
 const RADIUS_OUTER_RECT = 16
-const MIN_CONTAINER_WIDTH = 80 // Reduced minimum width
-const MAX_CONTAINER_WIDTH = 140 // Reduced maximum width
+const MIN_CONTAINER_WIDTH = 80
+const MAX_CONTAINER_WIDTH = 140
 
 type SSSignatureRequiredDisplayProps = {
   requiredNumber: number
@@ -25,18 +25,15 @@ function SSSignatureRequiredDisplay({
     setContainersize({ width, height })
   }
 
-  // Calculate optimal spacing based on total number
   const sizeBetweenPoints = useMemo(() => {
     if (totalNumber <= 1) return 0
 
-    // Calculate spacing that adapts to the number of signatures
     const availableWidth = Math.max(
       MIN_CONTAINER_WIDTH,
       Math.min(containerSize.width, MAX_CONTAINER_WIDTH)
     )
     const spacing = (availableWidth - RADIUS_OUTER_RECT * 2) / (totalNumber - 1)
 
-    // Ensure minimum spacing for readability
     return Math.max(spacing, 15)
   }, [containerSize.width, totalNumber])
 
@@ -48,7 +45,6 @@ function SSSignatureRequiredDisplay({
     )
   }, [totalNumber, sizeBetweenPoints])
 
-  // Calculate the actual width needed for the SVG
   const svgWidth = useMemo(() => {
     if (totalNumber <= 1) return MIN_CONTAINER_WIDTH
 
@@ -81,7 +77,6 @@ function SSSignatureRequiredDisplay({
           pointerEvents="none"
           style={{ height: 100 }}
         >
-          {/* Number labels - always white */}
           <G>
             {Array.from({ length: totalNumber }, (_, i) => i).map((count) => (
               <SvgText
@@ -96,8 +91,6 @@ function SSSignatureRequiredDisplay({
               </SvgText>
             ))}
           </G>
-
-          {/* Black pill background */}
           <G>
             <Circle
               cx={RADIUS_OUTER_RECT}
@@ -119,8 +112,6 @@ function SSSignatureRequiredDisplay({
               fill="black"
             />
           </G>
-
-          {/* Circle indicators - only circles change color */}
           <G>
             {Array.from({ length: totalNumber }, (_, i) => i).map((count) => {
               const isCollected = collectedSignatures.includes(count)

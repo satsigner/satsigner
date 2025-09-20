@@ -143,7 +143,7 @@ export function useClipboardPaste({
       }
 
       return trimContent ? clipboardContent.trim() : clipboardContent
-    } catch (_error) {
+    } catch {
       return null
     }
   }, [trimContent])

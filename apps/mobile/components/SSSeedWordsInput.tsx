@@ -150,7 +150,6 @@ export default function SSSeedWordsInput({
     [passphrase, network, onMnemonicValid, onMnemonicInvalid]
   )
 
-  // Handle paste from clipboard
   const readSeedFromClipboard = useCallback(async () => {
     try {
       const text = (await Clipboard.getStringAsync()).trim()
@@ -166,7 +165,6 @@ export default function SSSeedWordsInput({
     }
   }, [checkClipboardForSeed, fillOutSeedWords])
 
-  // Check clipboard when component mounts if autoCheckClipboard is enabled
   useEffect(() => {
     if (autoCheckClipboard && !clipboardCheckedRef.current) {
       clipboardCheckedRef.current = true
@@ -258,7 +256,6 @@ export default function SSSeedWordsInput({
     }
   }
 
-  // Handle passphrase change
   const handlePassphraseChange = async (text: string) => {
     setPassphrase(text)
 
@@ -269,11 +266,6 @@ export default function SSSeedWordsInput({
       setFingerprint(fingerprintResult)
       onMnemonicValid?.(mnemonic, fingerprintResult)
     }
-  }
-
-  // Get current mnemonic
-  const _getCurrentMnemonic = () => {
-    return seedWordsInfo.map((info) => info.value).join(' ')
   }
 
   return (
@@ -293,13 +285,13 @@ export default function SSSeedWordsInput({
                 onSubmitEditing={() => {
                   if (index < wordCount - 1) {
                     // Focus next input (this would need refs to implement properly)
+                    // TODO: implement focus next input when word is valid
                   }
                 }}
               />
             ))}
           </SSSeedLayout>
         </SSFormLayout.Item>
-
         {showPassphrase && (
           <SSFormLayout.Item>
             <SSFormLayout.Label
@@ -312,7 +304,6 @@ export default function SSSeedWordsInput({
             />
           </SSFormLayout.Item>
         )}
-
         {(showChecksum || showFingerprint) && (
           <SSFormLayout.Item>
             <SSHStack gap="sm" justifyBetween>
@@ -324,16 +315,12 @@ export default function SSSeedWordsInput({
           </SSFormLayout.Item>
         )}
       </SSFormLayout>
-
-      {/* Keyboard Word Selector */}
       <SSKeyboardWordSelector
         visible={keyboardWordSelectorVisible}
         wordStart={currentWordText}
         onWordSelected={handleWordSelected}
         style={{ height: 60 }}
       />
-
-      {/* Action Buttons */}
       <SSVStack gap="sm">
         {showPasteButton && (
           <SSButton
@@ -342,7 +329,6 @@ export default function SSSeedWordsInput({
             onPress={readSeedFromClipboard}
           />
         )}
-
         {showActionButton && (
           <SSButton
             label={actionButtonLabel}
@@ -352,7 +338,6 @@ export default function SSSeedWordsInput({
             onPress={onActionButtonPress}
           />
         )}
-
         {showCancelButton && (
           <SSButton
             label={cancelButtonLabel}

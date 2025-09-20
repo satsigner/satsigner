@@ -339,8 +339,6 @@ function SSSignatureDropdown({
               />
             </SSVStack>
           )}
-
-          {/* Export for external signing */}
           <SSText
             center
             color="muted"
@@ -392,8 +390,6 @@ function SSSignatureDropdown({
               }}
             />
           </SSHStack>
-
-          {/* NIP-17 GROUP Export */}
           <SSButton
             label="NIP-17 GROUP"
             variant="outline"
@@ -403,8 +399,6 @@ function SSSignatureDropdown({
               toast.info('NIP-17 GROUP export coming soon')
             }}
           />
-
-          {/* Import signed PSBT */}
           <SSText
             center
             color="muted"

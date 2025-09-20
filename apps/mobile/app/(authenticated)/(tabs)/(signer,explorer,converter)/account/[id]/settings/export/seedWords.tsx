@@ -47,16 +47,12 @@ export default function SeedWordsPage() {
     if (!account || !key) return
 
     try {
-      // Always use the stored PIN for decryption, not the default PIN
       const pinHash = await getItem(PIN_KEY)
       if (!pinHash) {
         toast.error(t('account.seed.unableToDecrypt'))
         return
       }
-
-      // Check if the secret is encrypted (string) or already decrypted (object)
       if (typeof key.secret === 'string') {
-        // Decrypt the key's secret
         const decryptedSecretString = await aesDecrypt(
           key.secret,
           pinHash,
@@ -107,7 +103,6 @@ export default function SeedWordsPage() {
     if (account && key) {
       setIsLoading(false)
       if (skipPin) {
-        // Automatically decrypt when skip PIN is enabled
         decryptMnemonic()
       } else {
         // Show PIN entry when skip PIN is disabled
@@ -131,8 +126,6 @@ export default function SeedWordsPage() {
   if (!account || !key) {
     return <Redirect href="/" />
   }
-
-  // Always show PIN entry first - let the PIN entry function determine if there's a mnemonic
 
   return (
     <SSMainLayout>
@@ -182,11 +175,6 @@ export default function SeedWordsPage() {
                 <SSSeedLayout count={key.mnemonicWordCount || 24}>
                   <View style={styles.mnemonicGrid}>
                     {Array.from({ length: 3 }).map((_, colIndex) => {
-                      // Calculate rows needed based on total words
-                      // For 12 words: 4 rows per column
-                      // For 20 words: 7 rows per column
-                      // For 22 words: 8 rows per column
-                      // For 24 words: 8 rows per column
                       const totalWords = key.mnemonicWordCount || 24
                       const wordsPerColumn = Math.ceil(totalWords / 3)
                       const isLastColumn = colIndex === 2
@@ -275,7 +263,6 @@ export default function SeedWordsPage() {
           )}
         </SSVStack>
       </ScrollView>
-
       <SSModal visible={showPinEntry} onClose={() => setShowPinEntry(false)}>
         <SSPinEntry
           title={t('account.enter.pin')}
@@ -284,7 +271,6 @@ export default function SeedWordsPage() {
           onFillEnded={handlePinEntry}
         />
       </SSModal>
-
       <SSSeedQR
         mnemonic={mnemonic}
         visible={seedQRModalVisible}

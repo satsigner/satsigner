@@ -188,7 +188,6 @@ export default function IOPreview() {
   const [originalOutputAmount, setOriginalOutputAmount] = useState(0)
   const [outputLabel, setOutputLabel] = useState('')
 
-  // Clipboard paste hook for address input
   const { pasteFromClipboard } = useClipboardPaste({
     onPaste: (content) => {
       setOutputTo(content)
@@ -202,7 +201,6 @@ export default function IOPreview() {
     [utxosSelectedValue, outputs]
   )
 
-  // Now calculate final size including change if needed
   const transactionSize = useMemo(() => {
     const { size, vsize } = estimateTransactionSize(
       inputs.size,

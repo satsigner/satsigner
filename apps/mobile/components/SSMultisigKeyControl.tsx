@@ -31,7 +31,6 @@ import {
   type Secret
 } from '@/types/models/Account'
 
-// Custom green icon with different color for keys with no secret
 function SSIconGreenNoSecret({
   width,
   height
@@ -453,7 +452,6 @@ function SSMultisigKeyControl({
           paddingBottom: 16,
           paddingTop: 16,
           borderTopWidth: 1
-          //backgroundColor: isBlackBackground ? 'black' : '#111111'
         },
         index === keyCount - 1 && { borderBottomWidth: 1 }
       ]}
@@ -463,7 +461,6 @@ function SSMultisigKeyControl({
           setIsExpanded(!isExpanded)
         }}
         style={{
-          //paddingHorizontal: 8,
           paddingBottom: 8,
           paddingTop: 8
         }}
@@ -548,7 +545,6 @@ function SSMultisigKeyControl({
                 </SSFormLayout.Item>
               </SSFormLayout>
             )}
-
             <SSVStack gap="sm">
               {isKeyCompleted ? (
                 <>
@@ -781,8 +777,6 @@ function SSMultisigKeyControl({
           </SSHStack>
         </SSVStack>
       </SSModal>
-
-      {/* Reset Key Confirmation Modal */}
       <SSModal
         visible={resetKeyModalVisible}
         onClose={() => setResetKeyModalVisible(false)}
@@ -833,8 +827,6 @@ function SSMultisigKeyControl({
             data including the seed, name, and settings. This action cannot be
             undone.
           </SSText>
-
-          {/* Action Buttons */}
           <SSHStack gap="sm" style={{ width: '100%' }}>
             <SSButton
               label={t('common.cancel')}
@@ -859,8 +851,6 @@ function SSMultisigKeyControl({
           </SSHStack>
         </SSVStack>
       </SSModal>
-
-      {/* Word Count Selection Modal */}
       <SSSelectModal
         visible={wordCountModalVisible}
         title={t('account.mnemonic.title')}

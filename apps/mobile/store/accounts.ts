@@ -408,7 +408,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           )
 
           return { success: true, message: 'Seed dropped successfully' }
-        } catch (_error) {
+        } catch {
           return { success: false, message: 'Failed to drop seed' }
         }
       },

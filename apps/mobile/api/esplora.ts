@@ -129,7 +129,6 @@ export default class Esplora {
   }
 
   async broadcastTransaction(txHex: string): Promise<string> {
-    // Broadcast transaction using POST to /tx endpoint
     const result = await this._call('/tx', 'POST', txHex)
     return result as string
   }
