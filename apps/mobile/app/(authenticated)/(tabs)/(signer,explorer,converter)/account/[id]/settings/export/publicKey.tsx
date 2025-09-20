@@ -1,11 +1,8 @@
-import { Descriptor } from 'bdk-rn'
-import { type Network as BdkNetwork } from 'bdk-rn/lib/lib/enums'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { toast } from 'sonner-native'
 
-import { getExtendedKeyFromDescriptor } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
@@ -21,19 +18,12 @@ import { Colors } from '@/styles'
 import { type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type Network } from '@/types/settings/blockchain'
-import { convertKeyFormat, getKeyFormatForScriptVersion } from '@/utils/bitcoin'
+import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
+import { convertKeyFormat } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
 
 // Helper function to get the appropriate translation key for key format buttons
-function _getKeyFormatTranslationKey(
-  scriptVersion: string,
-  network: Network
-): string {
-  const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
-  return `account.import.${keyFormat}`
-}
-
 type PublicKeyFormat = 'xpub' | 'ypub' | 'zpub' | 'vpub' | 'tpub' | 'upub'
 
 export default function PublicKeyPage() {
@@ -244,12 +234,9 @@ export default function PublicKeyPage() {
         if (decryptedSecret.extendedPublicKey) {
           publicKey = decryptedSecret.extendedPublicKey
         } else if (decryptedSecret.externalDescriptor) {
-          // Extract public key from descriptor
-          const descriptor = await new Descriptor().create(
-            decryptedSecret.externalDescriptor,
-            network as BdkNetwork
+          publicKey = getExtendedKeyFromDescriptor(
+            decryptedSecret.externalDescriptor
           )
-          publicKey = await getExtendedKeyFromDescriptor(descriptor)
         }
 
         if (!publicKey) {
@@ -259,7 +246,7 @@ export default function PublicKeyPage() {
 
         setRawPublicKey(publicKey)
         setPublicKey(convertPublicKeyFormat(publicKey, selectedFormat))
-      } catch (_error) {
+      } catch {
         toast.error('Failed to get public key')
       } finally {
         setIsLoading(false)

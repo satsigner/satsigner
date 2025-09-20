@@ -1,4 +1,3 @@
-import { Descriptor } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as Print from 'expo-print'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
@@ -7,10 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { captureRef } from 'react-native-view-shot'
 
-import {
-  getExtendedKeyFromDescriptor,
-  getExtendedPublicKeyFromAccountKey
-} from '@/api/bdk'
+import { getExtendedPublicKeyFromAccountKey } from '@/api/bdk'
 import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -27,7 +23,10 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Account, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { getFingerprintFromExtendedPublicKey } from '@/utils/bip32'
+import {
+  getExtendedKeyFromDescriptor,
+  getFingerprintFromExtendedPublicKey
+} from '@/utils/bip32'
 import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion,
@@ -144,16 +143,9 @@ export default function ExportDescriptors() {
                 if (secret.extendedPublicKey) {
                   extendedPublicKey = secret.extendedPublicKey
                 } else if (secret.externalDescriptor) {
-                  try {
-                    const descriptor = await new Descriptor().create(
-                      secret.externalDescriptor,
-                      network as Network
-                    )
-                    extendedPublicKey =
-                      await getExtendedKeyFromDescriptor(descriptor)
-                  } catch (_error) {
-                    // Failed to extract extended public key from descriptor for key ${index}
-                  }
+                  extendedPublicKey = getExtendedKeyFromDescriptor(
+                    secret.externalDescriptor
+                  )
                 } else if (secret.mnemonic) {
                   try {
                     const extendedKey =
@@ -268,17 +260,9 @@ export default function ExportDescriptors() {
                     if (secret.extendedPublicKey) {
                       extendedPublicKey = secret.extendedPublicKey
                     } else if (secret.externalDescriptor) {
-                      // If we have a descriptor, extract the extended public key from it
-                      try {
-                        const descriptor = await new Descriptor().create(
-                          secret.externalDescriptor,
-                          network as Network
-                        )
-                        extendedPublicKey =
-                          await getExtendedKeyFromDescriptor(descriptor)
-                      } catch {
-                        // Failed to extract extended public key from descriptor for key ${index}
-                      }
+                      extendedPublicKey = getExtendedKeyFromDescriptor(
+                        secret.externalDescriptor
+                      )
                     } else if (secret.mnemonic) {
                       // If we have a mnemonic, generate the extended public key
                       try {
@@ -323,16 +307,9 @@ export default function ExportDescriptors() {
                   if (!extendedPublicKey && typeof secret === 'object') {
                     // Try to extract from externalDescriptor if available
                     if (secret.externalDescriptor) {
-                      try {
-                        const descriptor = await new Descriptor().create(
-                          secret.externalDescriptor,
-                          network as Network
-                        )
-                        extendedPublicKey =
-                          await getExtendedKeyFromDescriptor(descriptor)
-                      } catch {
-                        // Failed to extract extended public key from externalDescriptor for key ${index}
-                      }
+                      extendedPublicKey = getExtendedKeyFromDescriptor(
+                        secret.externalDescriptor
+                      )
                     }
                   }
 

@@ -32,7 +32,10 @@ import {
   type Backend,
   type Network as BlockchainNetwork
 } from '@/types/settings/blockchain'
-import { getFingerprintFromExtendedPublicKey } from '@/utils/bip32'
+import {
+  getExtendedKeyFromDescriptor,
+  getFingerprintFromExtendedPublicKey
+} from '@/utils/bip32'
 import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion,
@@ -111,15 +114,9 @@ async function getWalletData(
               extendedPublicKey = key.secret.extendedPublicKey
             } else if (key.secret.externalDescriptor) {
               try {
-                const descriptor = await new Descriptor().create(
-                  key.secret.externalDescriptor,
-                  network
+                const extractedKey = getExtendedKeyFromDescriptor(
+                  key.secret.externalDescriptor
                 )
-                if (!descriptor) {
-                  return null
-                }
-                const extractedKey =
-                  await getExtendedKeyFromDescriptor(descriptor)
                 if (extractedKey) {
                   extendedPublicKey = extractedKey
                 }
@@ -625,54 +622,26 @@ async function getWalletFromDescriptor(
   return wallet
 }
 
-// TODO: replace it with bip32 lib
-async function getExtendedKeyFromDescriptor(descriptor: Descriptor) {
-  if (!descriptor) {
-    throw new Error('Descriptor is null or undefined')
-  }
-  const descriptorString = await descriptor.asString()
-  const match = descriptorString.match(/(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/)
-  return match ? match[0] : ''
-}
+async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
+  if (
+    typeof key.secret === 'string' ||
+    !key.secret.mnemonic ||
+    !key.scriptVersion
+  )
+    return
 
-async function getExtendedPublicKeyFromAccountKey(
-  key: Key,
-  network: Network,
-  isMultisig = false
-) {
-  if (typeof key.secret === 'string') return
-  if (!key.secret.mnemonic || !key.scriptVersion) return
+  const externalDescriptor = await getDescriptorObject(
+    key.secret.mnemonic,
+    key.scriptVersion,
+    KeychainKind.External,
+    key.secret.passphrase,
+    network
+  )
+  const extendedKey = getExtendedKeyFromDescriptor(
+    await externalDescriptor.asString()
+  )
 
-  if (isMultisig) {
-    // For multisig accounts, we'll generate the extended public key using
-    // standard BDK methods but then manually construct it with correct derivation path
-    const externalDescriptor = await getDescriptorObject(
-      key.secret.mnemonic,
-      key.scriptVersion,
-      KeychainKind.External,
-      key.secret.passphrase,
-      network
-    )
-    const standardExtendedKey =
-      await getExtendedKeyFromDescriptor(externalDescriptor)
-
-    // The standardExtendedKey contains the wrong derivation path, but the actual key data is correct
-    // We need to return it as-is for now, and handle the derivation path correction in descriptor creation
-    // TODO: Implement proper key derivation with custom paths when BDK API allows it
-    return standardExtendedKey
-  } else {
-    // For single-sig accounts, use the existing logic
-    const externalDescriptor = await getDescriptorObject(
-      key.secret.mnemonic,
-      key.scriptVersion,
-      KeychainKind.External,
-      key.secret.passphrase,
-      network
-    )
-    const extendedKey = await getExtendedKeyFromDescriptor(externalDescriptor)
-
-    return extendedKey
-  }
+  return extendedKey
 }
 
 async function getDescriptorsFromKeyData(
@@ -1203,7 +1172,6 @@ export {
   getBlockchain,
   getDescriptorObject,
   getDescriptorsFromKeyData,
-  getExtendedKeyFromDescriptor,
   getExtendedPublicKeyFromAccountKey,
   getLastUnusedAddressFromWallet,
   getTransactionInputValues,

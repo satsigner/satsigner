@@ -145,3 +145,8 @@ export function getExtendedPublicKeyFromSeed(
   const derivedKey = masterKey.derivePath(path.replace('*', '0'))
   return derivedKey.toBase58()
 }
+
+export function getExtendedKeyFromDescriptor(descriptor: string) {
+  const match = descriptor.match(/(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/)
+  return match ? match[0] : ''
+}

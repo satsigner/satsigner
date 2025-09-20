@@ -1,12 +1,9 @@
-import { Descriptor } from 'bdk-rn'
-import { type Network as BdkNetwork } from 'bdk-rn/lib/lib/enums'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getExtendedKeyFromDescriptor } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
@@ -20,6 +17,7 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Secret } from '@/types/models/Account'
+import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { convertKeyFormat } from '@/utils/bitcoin'
 import { shareFile } from '@/utils/filesystem'
 
@@ -229,17 +227,9 @@ export default function PublicKeyPage() {
           if (secret.extendedPublicKey) {
             publicKeyString = secret.extendedPublicKey
           } else if (secret.externalDescriptor) {
-            // Extract public key from descriptor
-            const descriptor = await new Descriptor().create(
-              secret.externalDescriptor,
-              network as BdkNetwork
+            publicKeyString = getExtendedKeyFromDescriptor(
+              secret.externalDescriptor
             )
-
-            if (!descriptor) {
-              publicKeyString = ''
-            } else {
-              publicKeyString = await getExtendedKeyFromDescriptor(descriptor)
-            }
           }
         }
 
@@ -250,7 +240,7 @@ export default function PublicKeyPage() {
 
         setRawPublicKey(publicKeyString)
         setPublicKey(convertPublicKeyFormat(publicKeyString, selectedFormat))
-      } catch (_error) {
+      } catch {
         toast.error('Failed to get public key')
       } finally {
         setIsLoading(false)

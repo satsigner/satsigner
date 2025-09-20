@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react'
 import { ScrollView, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getDescriptorObject, getExtendedKeyFromDescriptor } from '@/api/bdk'
+import { getDescriptorObject } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
@@ -20,6 +20,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Account, type Secret } from '@/types/models/Account'
 import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
+import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { aesDecrypt } from '@/utils/crypto'
 
 function ImportDescriptorFromAccount() {
@@ -99,8 +100,9 @@ function ImportDescriptorFromAccount() {
     if (!externalDescriptorString) return
 
     setExternalDescriptor(externalDescriptorString)
-    const extendedPublicKey =
-      await getExtendedKeyFromDescriptor(externalDescriptor)
+    const extendedPublicKey = getExtendedKeyFromDescriptor(
+      externalDescriptorString
+    )
     setExtendedPublicKey(extendedPublicKey)
     setKey(Number(keyIndex))
     updateKeyFingerprint(
