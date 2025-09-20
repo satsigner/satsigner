@@ -3,12 +3,11 @@ import { type Network } from 'bdk-rn/lib/lib/enums'
 import { useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { Animated, TouchableOpacity, View } from 'react-native'
-import Svg, { Ellipse } from 'react-native-svg'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
-import { SSIconAdd, SSIconGreen } from '@/components/icons'
+import { SSIconAdd, SSIconGreen, SSIconGreenNoSecret } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSRadioButton from '@/components/SSRadioButton'
@@ -30,28 +29,6 @@ import {
   type ScriptVersionType,
   type Secret
 } from '@/types/models/Account'
-
-function SSIconGreenNoSecret({
-  width,
-  height
-}: {
-  width: number
-  height: number
-}) {
-  return (
-    <Svg width={width} height={height} viewBox="0 0 20 21" fill="none">
-      <Ellipse cx="10" cy="10.5078" rx="10" ry="10" fill="#4F4F4F" />
-      <Ellipse
-        cx="10"
-        cy="10.3842"
-        rx="5.73313"
-        ry="5.73313"
-        transform="rotate(45 10 10.3842)"
-        fill="#cccccc"
-      />
-    </Svg>
-  )
-}
 
 type SSMultisigKeyControlProps = {
   index: number
