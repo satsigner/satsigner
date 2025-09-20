@@ -374,9 +374,7 @@ export default function ImportMnemonic() {
           mnemonic,
           passphrase,
           network as Network,
-          scriptVersion,
-          undefined,
-          true // isMultisig
+          scriptVersion
         )
 
         if (!extendedPublicKey) {

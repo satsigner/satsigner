@@ -42,7 +42,6 @@ import {
 import { getFingerprintFromExtendedPublicKey } from '@/utils/bip32'
 import {
   fingerprintToHex,
-  getAllXpubs,
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion,
   getMultisigScriptTypeFromScriptVersion,
@@ -860,8 +859,7 @@ async function getExtendedPublicKeyFromMnemonic(
   passphrase: string = '',
   network: Network,
   scriptVersion?: ScriptVersionType,
-  path?: string,
-  isMultisig: boolean = false
+  path?: string
 ) {
   // Convert BDK Network to string for deriveXpubFromMnemonic
   const networkString = network === Network.Bitcoin ? 'mainnet' : 'testnet'
@@ -869,7 +867,6 @@ async function getExtendedPublicKeyFromMnemonic(
   // If script version is specified and it's a multisig type, use the specific function
   if (
     scriptVersion &&
-    isMultisig &&
     [
       'P2SH',
       'P2SH-P2WSH',
@@ -890,7 +887,7 @@ async function getExtendedPublicKeyFromMnemonic(
 
   // For singlesig accounts, use the correct BIP derivation paths
   let derivationPath = path
-  if (!path && !isMultisig) {
+  if (!path) {
     const coinType = networkString === 'mainnet' ? '0' : '1'
     switch (scriptVersion) {
       case 'P2PKH':
@@ -1347,105 +1344,10 @@ async function broadcastTransaction(
   return result
 }
 
-// TODO: replace it with bip32
-// Get fingerprint for multisig accounts
-async function getMultisigFingerprint(
-  mnemonic: string,
-  passphrase: string = '',
-  scriptVersion: ScriptVersionType,
-  network: Network
-) {
-  // Convert BDK Network to string
-  const networkString = network === Network.Bitcoin ? 'mainnet' : 'testnet'
-
-  // Get the appropriate derivation path for multisig
-  const blockchainNetwork = network === Network.Bitcoin ? 'bitcoin' : 'testnet'
-  const derivationPath = getDerivationPathFromScriptVersion(
-    scriptVersion,
-    blockchainNetwork
-  )
-
-  // Extract fingerprint from the extended public key
-  // The fingerprint is the first 4 bytes of the parent fingerprint
-  const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
-  const versions = getVersionsForNetwork(networkString)
-  const master = HDKey.fromMasterSeed(seed, versions)
-
-  // Derive to the account level to get the fingerprint
-  const pathParts = derivationPath.split('/').slice(1) // Remove 'm' prefix
-  let node = master
-
-  for (const part of pathParts) {
-    const hardened = part.endsWith("'")
-    const index = parseInt(part.replace("'", ''), 10)
-    const childIndex = hardened ? index + 0x80000000 : index
-    node = node.deriveChild(childIndex)
-  }
-
-  return fingerprintToHex(node.fingerprint)
-}
-
-// TODO: put it elsewhere
 // Comprehensive example of how to use multisig functions
-async function createMultisigAccountExample(
-  mnemonic: string,
-  passphrase: string = '',
-  scriptVersion: ScriptVersionType,
-  network: Network
-) {
-  try {
-    // Convert BDK Network to string
-    const networkString = network === Network.Bitcoin ? 'mainnet' : 'testnet'
-
-    // Get the extended public key for the specific script version
-    const xpub = await getExtendedPublicKeyFromMnemonic(
-      mnemonic,
-      passphrase,
-      network,
-      scriptVersion
-    )
-
-    // Get the fingerprint for the account
-    const fingerprint = await getMultisigFingerprint(
-      mnemonic,
-      passphrase,
-      scriptVersion,
-      network
-    )
-
-    // Get the derivation path
-    const blockchainNetwork =
-      network === Network.Bitcoin ? 'bitcoin' : 'testnet'
-    const derivationPath = getDerivationPathFromScriptVersion(
-      scriptVersion,
-      blockchainNetwork
-    )
-
-    // Get all possible extended public keys for comparison
-    const allXpubs = getAllXpubs(mnemonic, passphrase, networkString)
-
-    return {
-      scriptVersion,
-      network: networkString,
-      xpub,
-      fingerprint,
-      derivationPath: `m/${derivationPath}`,
-      allXpubs,
-      // Example of how to construct a multisig descriptor
-      // This would need to be combined with other cosigners' xpubs
-      exampleDescriptor: `wsh(multi(2,${xpub},<cosigner2_xpub>,<cosigner3_xpub>))`
-    }
-  } catch (error) {
-    throw new Error(
-      `Failed to create multisig account: ${(error as Error).message}`
-    )
-  }
-}
-
 export {
   broadcastTransaction,
   buildTransaction,
-  createMultisigAccountExample,
   getBlockchain,
   getDescriptorObject,
   getDescriptorsFromKeyData,
@@ -1453,7 +1355,6 @@ export {
   getExtendedPublicKeyFromAccountKey,
   getExtendedPublicKeyFromMnemonic,
   getLastUnusedAddressFromWallet,
-  getMultisigFingerprint,
   getTransactionInputValues,
   getWalletAddresses,
   getWalletData,

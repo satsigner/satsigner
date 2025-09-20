@@ -512,21 +512,4 @@ export function getXpubForScriptVersion(
   return xpubFunctions[scriptVersion](seed, network)
 }
 
-/**
- * Get all three extended public keys from mnemonic
- */
-export function getAllXpubs(
-  mnemonic: string,
-  passphrase: string = '',
-  network: 'mainnet' | 'testnet'
-) {
-  const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
-
-  return {
-    p2sh: getP2SHXpub(seed, network),
-    p2sh_p2wsh: getP2SHP2WSHXpub(seed, network),
-    p2wsh: getP2WSHXpub(seed, network)
-  }
-}
-
 export { bip21decode, bitcoinjsNetwork, isBip21, isBitcoinAddress }

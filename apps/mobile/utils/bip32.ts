@@ -106,8 +106,6 @@ export function getScriptVersionPurpose(
     case 'P2SH-P2WSH':
     case 'P2SH':
       return 44 // Use legacy for these
-    default:
-      throw new Error(`Unsupported script version: ${scriptVersion}`)
   }
 }
 
