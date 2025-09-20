@@ -304,8 +304,7 @@ export function validateCosignerSignature(
     // Parse PSBT
     const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
 
-    // Check if PSBT has any signatures
-    let hasAnySignatures = false
+    // Check if PSBT has signatures from the specific cosigner
     let hasCosignerSignature = false
 
     // Check each input for signatures from the specific cosigner
@@ -313,8 +312,6 @@ export function validateCosignerSignature(
       const input = psbt.data.inputs[i]
 
       if (input.partialSig && input.partialSig.length > 0) {
-        hasAnySignatures = true
-
         // Check if any signature is from the specific cosigner
         const signatures = Array.isArray(input.partialSig)
           ? input.partialSig
