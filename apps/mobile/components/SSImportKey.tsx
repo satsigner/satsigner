@@ -58,6 +58,7 @@ export default function SSImportKey({
   const { isAvailable, isReading, readNFCTag } = useNFCReader()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
+  const [scanningFor, setScanningFor] = useState<'main' | 'fingerprint'>('main')
 
   // State for import data
   const [xpub, setXpub] = useState('')
@@ -485,6 +486,22 @@ export default function SSImportKey({
     }
   }
 
+  async function pasteFingerprintFromClipboard() {
+    try {
+      const clipboardContent = await Clipboard.getStringAsync()
+      if (!clipboardContent) {
+        toast.error(t('watchonly.error.emptyClipboard'))
+        return
+      }
+
+      const finalContent = clipboardContent.trim()
+      updateMasterFingerprint(finalContent)
+      toast.success(t('watchonly.success.clipboardPasted'))
+    } catch {
+      toast.error(t('watchonly.error.clipboardPaste'))
+    }
+  }
+
   async function handleNFCRead() {
     if (!isAvailable) {
       toast.error(t('read.nfcNotAvailable'))
@@ -591,6 +608,14 @@ export default function SSImportKey({
 
     // Process QR code data similar to clipboard
     const finalContent = data.trim()
+
+    // Handle fingerprint scanning
+    if (scanningFor === 'fingerprint') {
+      updateMasterFingerprint(finalContent)
+      setCameraModalVisible(false)
+      toast.success(t('watchonly.success.qrScanned'))
+      return
+    }
 
     if (importType === 'descriptor') {
       let externalDescriptor = finalContent
@@ -742,7 +767,7 @@ export default function SSImportKey({
                 )}
               </SSVStack>
               {importType === 'extendedPub' && showFingerprint && (
-                <SSVStack gap="xxs">
+                <SSVStack gap="sm">
                   <SSText center>{t('watchonly.fingerprint.label')}</SSText>
                   <SSTextInput
                     value={localFingerprint}
@@ -751,6 +776,23 @@ export default function SSImportKey({
                       validMasterFingerprint ? styles.valid : styles.invalid
                     }
                   />
+                  <SSHStack gap="sm">
+                    <SSButton
+                      label={t('watchonly.read.clipboard')}
+                      variant="subtle"
+                      onPress={pasteFingerprintFromClipboard}
+                      style={{ flex: 1 }}
+                    />
+                    <SSButton
+                      label={t('watchonly.read.qrcode')}
+                      variant="subtle"
+                      onPress={() => {
+                        setScanningFor('fingerprint')
+                        setCameraModalVisible(true)
+                      }}
+                      style={{ flex: 1 }}
+                    />
+                  </SSHStack>
                 </SSVStack>
               )}
               {importType === 'descriptor' && (
@@ -771,12 +813,17 @@ export default function SSImportKey({
             </SSVStack>
             <SSVStack>
               <SSButton
-                label={t('watchonly.read.clipboard')}
+                label="Paste"
                 onPress={pasteFromClipboard}
+                variant="subtle"
               />
               <SSButton
-                label={t('watchonly.read.qrcode')}
-                onPress={() => setCameraModalVisible(true)}
+                label="Scan QR"
+                onPress={() => {
+                  setScanningFor('main')
+                  setCameraModalVisible(true)
+                }}
+                variant="subtle"
               />
               <Animated.View
                 style={{
@@ -820,14 +867,17 @@ export default function SSImportKey({
         fullOpacity
         onClose={() => {
           setCameraModalVisible(false)
+          setScanningFor('main')
           resetScanProgress()
         }}
       >
         <SSVStack itemsCenter gap="md">
           <SSText color="muted" uppercase>
-            {scanProgress.type
-              ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
-              : t('camera.scanQRCode')}
+            {scanningFor === 'fingerprint'
+              ? t('watchonly.fingerprint.scanQR')
+              : scanProgress.type
+                ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
+                : t('camera.scanQRCode')}
           </SSText>
 
           <CameraView

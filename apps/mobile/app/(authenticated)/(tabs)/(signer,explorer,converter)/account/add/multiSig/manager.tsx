@@ -4,10 +4,9 @@ import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
-import SSMultisigCountSelector from '@/components/SSMultisigCountSelector'
 import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
+import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
-import { MAX_MULTISIG_KEYS } from '@/config/keys'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -85,25 +84,39 @@ export default function MultiSigManager() {
         }}
       />
       <SSVStack style={{ flex: 1 }}>
-        <SSVStack
-          style={{ backgroundColor: '#131313', paddingHorizontal: 16 }}
-          gap="md"
-        >
-          <SSMultisigCountSelector
-            maxCount={MAX_MULTISIG_KEYS}
-            requiredNumber={keysRequired}
-            totalNumber={keyCount}
-            viewOnly
-          />
-          <SSText center>{t('account.addOrGenerateKeys')}</SSText>
-        </SSVStack>
         <ScrollView>
-          <SSVStack gap="none">
+          <SSVStack
+            style={{ backgroundColor: '#131313', paddingHorizontal: 16 }}
+            gap="md"
+          >
+            <SSText
+              weight="light"
+              style={{
+                alignSelf: 'center',
+                fontSize: 55,
+                textTransform: 'lowercase'
+              }}
+            >
+              {keysRequired} {t('common.of')} {keyCount}
+            </SSText>
+
+            <SSSignatureRequiredDisplay
+              requiredNumber={keysRequired}
+              totalNumber={keyCount}
+              collectedSignatures={[]}
+            />
+
+            <SSText center>{t('account.addOrGenerateKeys')}</SSText>
+          </SSVStack>
+
+          <SSVStack
+            gap="none"
+            style={{ paddingHorizontal: 16, paddingTop: 16 }}
+          >
             {Array.from({ length: keyCount }, (_, i) => i).map((index) => {
               return (
                 <SSMultisigKeyControl
                   key={index}
-                  isBlackBackground={index % 2 === 0}
                   index={index}
                   keyCount={keyCount}
                   keyDetails={keys[index]}

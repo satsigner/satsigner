@@ -89,6 +89,9 @@ type AccountBuilderAction = {
   dropSeedFromKey: (
     index: Key['index']
   ) => Promise<{ success: boolean; message: string }>
+  resetKey: (
+    index: Key['index']
+  ) => Promise<{ success: boolean; message: string }>
 }
 
 // Initial state for account builder store
@@ -308,13 +311,11 @@ const useAccountBuilderStore = create<
   },
   clearKeyState: () => {
     const { policyType, creationType, keys, scriptVersion } = get()
-    // Preserve the extendedPublicKey from the first key if it exists
     const extendedPublicKey =
       keys[0]?.secret && typeof keys[0].secret === 'object'
         ? keys[0].secret.extendedPublicKey
         : undefined
 
-    // Preserve the descriptors from the first key if they exist
     const externalDescriptor =
       keys[0]?.secret && typeof keys[0].secret === 'object'
         ? keys[0].secret.externalDescriptor
@@ -333,10 +334,10 @@ const useAccountBuilderStore = create<
       mnemonic: '',
       passphrase: undefined,
       fingerprint: undefined,
-      scriptVersion, // Preserve the script version
-      externalDescriptor, // Preserve the external descriptor
-      internalDescriptor, // Preserve the internal descriptor
-      extendedPublicKey, // Preserve the extendedPublicKey
+      scriptVersion,
+      externalDescriptor,
+      internalDescriptor,
+      extendedPublicKey,
       policyType
     })
   },
@@ -370,7 +371,6 @@ const useAccountBuilderStore = create<
     const state = get()
     if (state.keys[index] && state.keys[index].secret) {
       if (typeof state.keys[index].secret === 'object') {
-        // Handle unencrypted secret (during account creation)
         set(
           produce((state: AccountBuilderState) => {
             const secret = state.keys[index].secret as any
@@ -384,30 +384,23 @@ const useAccountBuilderStore = create<
         )
         return { success: true, message: 'Seed dropped successfully' }
       } else if (typeof state.keys[index].secret === 'string') {
-        // Handle encrypted secret
         try {
           const pin = await getItem(PIN_KEY)
           if (!pin) {
             return { success: false, message: 'PIN not found for decryption' }
           }
-
-          // Decrypt the secret
           const decryptedSecretString = await aesDecrypt(
             state.keys[index].secret as string,
             pin,
             state.keys[index].iv
           )
           const decryptedSecret = JSON.parse(decryptedSecretString) as Secret
-
-          // Remove mnemonic and passphrase, keep other fields
           const cleanedSecret: Secret = {
             extendedPublicKey: decryptedSecret.extendedPublicKey,
             externalDescriptor: decryptedSecret.externalDescriptor,
             internalDescriptor: decryptedSecret.internalDescriptor,
             fingerprint: decryptedSecret.fingerprint
           }
-
-          // Re-encrypt the cleaned secret
           const stringifiedSecret = JSON.stringify(cleanedSecret)
           const encryptedSecret = await aesEncrypt(
             stringifiedSecret,
@@ -415,7 +408,8 @@ const useAccountBuilderStore = create<
             state.keys[index].iv
           )
 
-          // Update the secret
+          stringifiedSecret.replace(/./g, '0')
+
           set(
             produce((state: AccountBuilderState) => {
               state.keys[index].secret = encryptedSecret
@@ -429,6 +423,27 @@ const useAccountBuilderStore = create<
       }
     }
     return { success: false, message: 'Key not found or invalid' }
+  },
+  resetKey: async (index) => {
+    const state = get()
+    if (state.keys[index]) {
+      set(
+        produce((state: AccountBuilderState) => {
+          state.keys[index] = {
+            index,
+            name: '',
+            creationType: undefined as any,
+            secret: undefined as any,
+            iv: undefined as any,
+            fingerprint: undefined as any,
+            scriptVersion: undefined as any,
+            mnemonicWordCount: undefined as any
+          }
+        })
+      )
+      return { success: true, message: 'Key reset successfully' }
+    }
+    return { success: false, message: 'Key not found' }
   }
 }))
 

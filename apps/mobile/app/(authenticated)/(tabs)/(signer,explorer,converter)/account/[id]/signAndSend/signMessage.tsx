@@ -1,6 +1,6 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
-import { ActivityIndicator, ScrollView } from 'react-native'
+import { useEffect, useMemo, useState } from 'react'
+import { ActivityIndicator, ScrollView, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -9,6 +9,7 @@ import ElectrumClient from '@/api/electrum'
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
+import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import { getBlockchainConfig } from '@/config/servers'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
@@ -18,9 +19,12 @@ import { t, tn as _tn } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
+import { type Output } from '@/types/models/Output'
+import { type Transaction } from '@/types/models/Transaction'
+import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatAddress } from '@/utils/format'
 import { bytesToHex } from '@/utils/scripts'
+import { estimateTransactionSize } from '@/utils/transaction'
 
 const tn = _tn('transaction.build.sign')
 
@@ -28,12 +32,25 @@ export default function SignMessage() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const [txBuilderResult, psbt, setPsbt, signedTx] = useTransactionBuilderStore(
+  const [
+    txBuilderResult,
+    psbt,
+    setPsbt,
+    signedTx,
+    inputs,
+    outputs,
+    broadcasted,
+    setBroadcasted
+  ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.txBuilderResult,
       state.psbt,
       state.setPsbt,
-      state.signedTx
+      state.signedTx,
+      state.inputs,
+      state.outputs,
+      state.broadcasted,
+      state.setBroadcasted
     ])
   )
   const account = useAccountsStore(
@@ -48,12 +65,46 @@ export default function SignMessage() {
 
   const [signed, setSigned] = useState(false)
   const [broadcasting, setBroadcasting] = useState(false)
-  const [broadcasted, setBroadcasted] = useState(false)
 
   const [rawTx, setRawTx] = useState('')
 
+  const transaction = useMemo(() => {
+    if (!txBuilderResult) return null
+
+    const { size, vsize } = estimateTransactionSize(inputs.size, outputs.length)
+
+    const vin = Array.from(inputs.values()).map((input: Utxo) => ({
+      previousOutput: { txid: input.txid, vout: input.vout },
+      value: input.value,
+      label: input.label || ''
+    }))
+
+    const vout = outputs.map((output: Output) => ({
+      address: output.to,
+      value: output.amount,
+      label: output.label || ''
+    }))
+
+    return {
+      id: txBuilderResult.txDetails.txid,
+      size,
+      vsize,
+      vin,
+      vout
+    } as never as Transaction
+  }, [inputs, outputs, txBuilderResult])
+
   async function handleBroadcastTransaction() {
     if (!psbt && !signedTx) return
+
+    // Prevent double broadcasting
+    if (broadcasted) {
+      toast.error(
+        'This transaction has already been broadcasted to the network'
+      )
+      return
+    }
+
     setBroadcasting(true)
 
     const opts = {
@@ -72,21 +123,57 @@ export default function SignMessage() {
     )
 
     try {
-      let broadcasted = false
+      let broadcastSuccess = false
       if (signedTx) {
-        // Broadcast raw hex directly to Electrum
-        const electrumClient = await ElectrumClient.initClientFromUrl(
-          currentConfig.server.url,
-          selectedNetwork
-        )
-        await electrumClient.broadcastTransactionHex(signedTx)
-        electrumClient.close()
-        broadcasted = true
+        // For multisig wallets, broadcast the finalized transaction hex directly
+
+        // Validate signedTx format
+        if (
+          !signedTx ||
+          typeof signedTx !== 'string' ||
+          signedTx.length === 0
+        ) {
+          throw new Error('Invalid signedTx: empty or invalid format')
+        }
+
+        // Basic hex validation
+        if (!/^[a-fA-F0-9]+$/.test(signedTx)) {
+          throw new Error('Invalid signedTx: not a valid hex string')
+        }
+
+        // Check minimum length for a valid Bitcoin transaction
+        if (signedTx.length < 100) {
+          throw new Error(
+            'Invalid signedTx: too short to be a valid transaction'
+          )
+        }
+
+        if (currentConfig.server.backend === 'electrum') {
+          // Use Electrum client for electrum backends
+          const electrumClient = await ElectrumClient.initClientFromUrl(
+            currentConfig.server.url,
+            selectedNetwork
+          )
+          await electrumClient.broadcastTransactionHex(signedTx)
+          electrumClient.close()
+          broadcastSuccess = true
+        } else if (currentConfig.server.backend === 'esplora') {
+          // Use Esplora client for esplora backends
+          const { default: Esplora } = await import('@/api/esplora')
+          const esploraClient = new Esplora(currentConfig.server.url)
+          await esploraClient.broadcastTransaction(signedTx)
+          broadcastSuccess = true
+        } else {
+          throw new Error(
+            `Unsupported backend: ${currentConfig.server.backend}`
+          )
+        }
       } else if (psbt) {
-        broadcasted = await broadcastTransaction(psbt, blockchain)
+        // For singlesig wallets, broadcast the PSBT
+        broadcastSuccess = await broadcastTransaction(psbt, blockchain)
       }
 
-      if (broadcasted) {
+      if (broadcastSuccess) {
         setBroadcasted(true)
         router.navigate(`/account/${id}/signAndSend/messageConfirmation`)
       }
@@ -107,12 +194,14 @@ export default function SignMessage() {
 
   useEffect(() => {
     async function signTransactionMessage() {
+      // For multisig wallets, if we already have a finalized transaction, use it directly
       if (signedTx) {
         setSigned(true)
         setRawTx(signedTx)
         return
       }
 
+      // For singlesig wallets, sign the transaction
       if (!wallet || !txBuilderResult) return
 
       const partiallySignedTransaction = await signTransaction(
@@ -137,17 +226,16 @@ export default function SignMessage() {
     <>
       <SSMainLayout style={{ paddingTop: 0, paddingBottom: 20 }}>
         <ScrollView>
-          <SSVStack itemsCenter justifyBetween style={{ minHeight: '100%' }}>
+          <SSVStack justifyBetween style={{ minHeight: '100%' }}>
             <SSVStack itemsCenter>
               <SSText size="lg" weight="bold">
-                {tn(signed ? 'signed' : 'signing')}
+                {broadcasted
+                  ? t('sent.broadcasted')
+                  : account?.policyType === 'multisig' && signedTx
+                    ? tn('readyToBroadcast')
+                    : tn(signed ? 'signed' : 'signing')}
               </SSText>
-              <SSText color="muted" size="sm" weight="bold" uppercase>
-                {tn('messageId')}
-              </SSText>
-              <SSText size="lg">
-                {formatAddress(txBuilderResult.txDetails.txid)}
-              </SSText>
+
               {signed && !broadcasted && (
                 <SSIconSuccess width={159} height={159} variant="outline" />
               )}
@@ -162,11 +250,21 @@ export default function SignMessage() {
             <SSVStack>
               <SSVStack gap="xxs">
                 <SSText color="muted" size="sm" uppercase>
-                  {tn('messageId')}
+                  {t('transaction.id')}
                 </SSText>
                 <SSText size="lg">{txBuilderResult.txDetails.txid}</SSText>
               </SSVStack>
 
+              <SSVStack gap="xxs">
+                <SSText color="muted" size="sm" uppercase>
+                  {t('transaction.build.preview.contents')}
+                </SSText>
+                {transaction && (
+                  <View style={{ width: '100%' }}>
+                    <SSTransactionChart transaction={transaction} />
+                  </View>
+                )}
+              </SSVStack>
               <SSVStack gap="xxs">
                 <SSText
                   color="muted"
@@ -226,8 +324,8 @@ export default function SignMessage() {
 
             <SSButton
               variant="secondary"
-              label={t('send.broadcast')}
-              disabled={!signed || (!psbt && !signedTx)}
+              label={broadcasted ? t('sent.broadcasted') : t('send.broadcast')}
+              disabled={!signed || (!psbt && !signedTx) || broadcasted}
               loading={broadcasting}
               onPress={() => {
                 handleBroadcastTransaction()

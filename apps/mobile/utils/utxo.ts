@@ -440,7 +440,10 @@ function selectStonewallUtxos(
     for (let i = 0; i < numInputs; i++) {
       const type = selectedTypes[0] // Always use the first available type
 
-      if (utxosByType[type].length === 0) continue
+      if (utxosByType[type].length === 0) {
+        // If we can't get enough inputs, this attempt fails
+        break
+      }
 
       // Select a random UTXO from this type
       const typeUtxos = utxosByType[type]
@@ -454,6 +457,13 @@ function selectStonewallUtxos(
       utxosByType[type] = typeUtxos.filter(
         (_: _Utxo, idx: number) => idx !== randomIndex
       )
+    }
+
+    // Ensure we have at least the minimum required inputs, but be flexible if we don't have enough UTXOs
+    const totalAvailableUtxos = utxos.length
+    const requiredMinInputs = Math.min(opts.minInputs, totalAvailableUtxos)
+    if (selectedInputs.length < requiredMinInputs) {
+      continue // Try another attempt
     }
 
     // Make sure we have enough funds with the selected inputs

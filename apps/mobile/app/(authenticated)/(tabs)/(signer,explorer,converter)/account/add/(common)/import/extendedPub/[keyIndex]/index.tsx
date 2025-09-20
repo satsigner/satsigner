@@ -79,6 +79,7 @@ export default function ImportExtendedPub() {
   const { isAvailable, isReading, readNFCTag, cancelNFCScan } = useNFCReader()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
+  const [scanningFor, setScanningFor] = useState<'main' | 'fingerprint'>('main')
 
   // State for import data
   const [xpub, setXpub] = useState('')
@@ -408,6 +409,22 @@ export default function ImportExtendedPub() {
     }
   }
 
+  async function pasteFingerprintFromClipboard() {
+    try {
+      const clipboardContent = await Clipboard.getStringAsync()
+      if (!clipboardContent) {
+        toast.error(t('watchonly.error.emptyClipboard'))
+        return
+      }
+
+      const finalContent = clipboardContent.trim()
+      updateMasterFingerprint(finalContent)
+      toast.success(t('watchonly.success.clipboardPasted'))
+    } catch (_error) {
+      toast.error(t('watchonly.error.clipboardPaste'))
+    }
+  }
+
   async function handleNFCRead() {
     if (isReading) {
       await cancelNFCScan()
@@ -445,6 +462,14 @@ export default function ImportExtendedPub() {
   function handleQRCodeScanned(data: string | undefined) {
     if (!data) {
       toast.error(t('watchonly.read.qrError'))
+      return
+    }
+
+    // Handle fingerprint scanning
+    if (scanningFor === 'fingerprint') {
+      updateMasterFingerprint(data)
+      setCameraModalVisible(false)
+      toast.success(t('watchonly.success.qrScanned'))
       return
     }
 
@@ -691,122 +716,151 @@ export default function ImportExtendedPub() {
       <ScrollView>
         <SSVStack justifyBetween gap="lg" style={{ paddingBottom: 20 }}>
           <SSVStack gap="lg">
-            <SSVStack gap="sm">
-              <SSVStack gap="xxs">
-                <SSText center>{t('common.extendedPublicKey')}</SSText>
-                <SSTextInput
-                  value={xpub}
-                  style={validXpub ? styles.valid : styles.invalid}
-                  onChangeText={updateXpub}
-                  multiline
-                />
-                {xpubError && (
-                  <SSText
+            <SSVStack gap="lg">
+              <SSVStack gap="sm">
+                <SSVStack gap="xxs">
+                  <SSText center>{t('common.extendedPublicKey')}</SSText>
+                  <SSTextInput
+                    value={xpub}
+                    style={validXpub ? styles.valid : styles.invalid}
+                    onChangeText={updateXpub}
+                    multiline
+                  />
+                  {xpubError && (
+                    <SSText
+                      style={{
+                        color: Colors.error,
+                        fontSize: 12,
+                        textAlign: 'center',
+                        marginTop: 4
+                      }}
+                    >
+                      {xpubError}
+                    </SSText>
+                  )}
+                </SSVStack>
+                <SSVStack gap="sm">
+                  <SSHStack gap="sm">
+                    <SSButton
+                      label="Paste"
+                      onPress={pasteFromClipboard}
+                      style={{ flex: 1 }}
+                      variant="subtle"
+                    />
+                    <SSButton
+                      label="Scan QR"
+                      onPress={() => {
+                        setScanningFor('main')
+                        setCameraModalVisible(true)
+                      }}
+                      style={{ flex: 1 }}
+                      variant="subtle"
+                    />
+                  </SSHStack>
+                  <Animated.View
                     style={{
-                      color: Colors.error,
-                      fontSize: 12,
-                      textAlign: 'center',
-                      marginTop: 4
+                      opacity: pulseAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [1, 0.7]
+                      }),
+                      transform: [{ scale: scaleAnim }],
+                      overflow: 'hidden'
                     }}
                   >
-                    {xpubError}
-                  </SSText>
-                )}
+                    <SSButton
+                      label={
+                        isReading
+                          ? t('watchonly.read.scanning')
+                          : t('watchonly.read.nfc')
+                      }
+                      variant="subtle"
+                      onPress={handleNFCRead}
+                      disabled={!isAvailable}
+                    />
+                  </Animated.View>
+                </SSVStack>
               </SSVStack>
-              <SSVStack gap="xxs">
+              {/* Multi-part QR Scanning Progress */}
+              {scanProgress.type && scanProgress.total > 1 && (
+                <SSVStack gap="sm">
+                  <SSText center size="sm" color="muted">
+                    {scanProgress.type.toUpperCase()} QR Code Scan Progress
+                  </SSText>
+                  <SSText center size="md">
+                    {scanProgress.scanned.size} / {scanProgress.total} parts
+                  </SSText>
+                  <View
+                    style={{
+                      width: '100%',
+                      height: 4,
+                      backgroundColor: Colors.gray[700],
+                      borderRadius: 2
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: `${
+                          (scanProgress.scanned.size / scanProgress.total) * 100
+                        }%`,
+                        height: 4,
+                        backgroundColor: Colors.white,
+                        borderRadius: 2
+                      }}
+                    />
+                  </View>
+                  <SSText color="muted" size="sm" center>
+                    {`Scanned parts: ${Array.from(scanProgress.scanned)
+                      .sort((a, b) => a - b)
+                      .map((n) => n + 1)
+                      .join(', ')}`}
+                  </SSText>
+                  <SSButton
+                    label="Reset Scan"
+                    variant="ghost"
+                    onPress={resetScanProgress}
+                  />
+                </SSVStack>
+              )}
+            </SSVStack>
+            <SSVStack gap="lg">
+              <SSVStack gap="sm">
                 <SSText center>{t('common.fingerprint')}</SSText>
                 <SSTextInput
                   value={localFingerprint}
                   onChangeText={updateMasterFingerprint}
                   style={validMasterFingerprint ? styles.valid : styles.invalid}
                 />
-              </SSVStack>
-            </SSVStack>
-            <SSVStack>
-              <SSButton
-                label={t('watchonly.read.clipboard')}
-                onPress={pasteFromClipboard}
-              />
-              <SSButton
-                label={t('watchonly.read.qrcode')}
-                onPress={() => setCameraModalVisible(true)}
-              />
-              <Animated.View
-                style={{
-                  opacity: pulseAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [1, 0.7]
-                  }),
-                  transform: [{ scale: scaleAnim }],
-                  overflow: 'hidden'
-                }}
-              >
-                <SSButton
-                  label={
-                    isReading
-                      ? t('watchonly.read.scanning')
-                      : t('watchonly.read.nfc')
-                  }
-                  onPress={handleNFCRead}
-                  disabled={!isAvailable}
-                />
-              </Animated.View>
-            </SSVStack>
 
-            {/* Multi-part QR Scanning Progress */}
-            {scanProgress.type && scanProgress.total > 1 && (
-              <SSVStack gap="sm">
-                <SSText center size="sm" color="muted">
-                  {scanProgress.type.toUpperCase()} QR Code Scan Progress
-                </SSText>
-                <SSText center size="md">
-                  {scanProgress.scanned.size} / {scanProgress.total} parts
-                </SSText>
-                <View
-                  style={{
-                    width: '100%',
-                    height: 4,
-                    backgroundColor: Colors.gray[700],
-                    borderRadius: 2
-                  }}
-                >
-                  <View
-                    style={{
-                      width: `${
-                        (scanProgress.scanned.size / scanProgress.total) * 100
-                      }%`,
-                      height: 4,
-                      backgroundColor: Colors.white,
-                      borderRadius: 2
+                <SSHStack gap="sm">
+                  <SSButton
+                    style={{ flex: 1 }}
+                    label="Paste"
+                    variant="subtle"
+                    onPress={pasteFingerprintFromClipboard}
+                  />
+                  <SSButton
+                    style={{ flex: 1 }}
+                    label="Scan QR"
+                    variant="subtle"
+                    onPress={() => {
+                      setScanningFor('fingerprint')
+                      setCameraModalVisible(true)
                     }}
                   />
-                </View>
-                <SSText color="muted" size="sm" center>
-                  {`Scanned parts: ${Array.from(scanProgress.scanned)
-                    .sort((a, b) => a - b)
-                    .map((n) => n + 1)
-                    .join(', ')}`}
-                </SSText>
-                <SSButton
-                  label="Reset Scan"
-                  variant="ghost"
-                  onPress={resetScanProgress}
-                />
+                </SSHStack>
               </SSVStack>
-            )}
-          </SSVStack>
-          <SSVStack>
-            <SSButton
-              label={t('common.confirm')}
-              variant="secondary"
-              disabled={disabled}
-              onPress={handleConfirm}
-            />
-            <SSButton
-              label={t('common.cancel')}
-              variant="ghost"
-              onPress={() => router.dismiss(2)}
-            />
+              <SSButton
+                label={t('common.confirm')}
+                variant="secondary"
+                disabled={disabled}
+                onPress={handleConfirm}
+              />
+              <SSButton
+                label={t('common.cancel')}
+                variant="ghost"
+                onPress={() => router.dismiss(1)}
+              />
+            </SSVStack>
           </SSVStack>
         </SSVStack>
       </ScrollView>
@@ -815,14 +869,17 @@ export default function ImportExtendedPub() {
         fullOpacity
         onClose={() => {
           setCameraModalVisible(false)
+          setScanningFor('main')
           resetScanProgress()
         }}
       >
         <SSVStack itemsCenter gap="md">
           <SSText color="muted" uppercase>
-            {scanProgress.type
-              ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
-              : t('camera.scanQRCode')}
+            {scanningFor === 'fingerprint'
+              ? t('watchonly.fingerprint.scanQR')
+              : scanProgress.type
+                ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
+                : t('camera.scanQRCode')}
           </SSText>
 
           <CameraView

@@ -1,8 +1,10 @@
 import { Modal, StyleSheet } from 'react-native'
+import { Toaster } from 'sonner-native'
 
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { Colors } from '@/styles'
 
 import SSButton, { type SSButtonProps } from './SSButton'
 
@@ -38,6 +40,18 @@ function SSModal({
             />
           )}
         </SSVStack>
+        <Toaster
+          theme="dark"
+          position="top-center"
+          style={{
+            borderRadius: 8,
+            backgroundColor: Colors.gray[950],
+            borderWidth: 1,
+            borderColor: Colors.gray[800],
+            zIndex: 10001,
+            width: '105%'
+          }}
+        />
       </SSMainLayout>
     </Modal>
   )
@@ -45,10 +59,12 @@ function SSModal({
 
 const styles = StyleSheet.create({
   containerBase: {
-    backgroundColor: 'rgba(0, 0, 0, 0.85)'
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    zIndex: 1000
   },
   containerFullOpacity: {
-    backgroundColor: 'rgba(0, 0, 0, 1)'
+    backgroundColor: 'rgba(0, 0, 0, 1)',
+    zIndex: 1000
   },
   innerContainer: {
     paddingVertical: 16

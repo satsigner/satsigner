@@ -7,13 +7,13 @@ import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
-import SSMultisigCountSelector from '@/components/SSMultisigCountSelector'
 import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
 import SSPinEntry from '@/components/SSPinEntry'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSSelectModal from '@/components/SSSelectModal'
+import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { PIN_KEY, SALT_KEY } from '@/config/auth'
@@ -210,12 +210,14 @@ export default function AccountSettings() {
           {t('account.settings.title')}
         </SSText>
         <SSVStack itemsCenter gap="none">
-          <SSHStack gap="sm">
-            <SSText color="muted">{t('account.fingerprint')}</SSText>
-            <SSText>
-              {extractAccountFingerprint(account, decryptedKeys) || '-'}
-            </SSText>
-          </SSHStack>
+          {account.policyType !== 'multisig' && (
+            <SSHStack gap="sm">
+              <SSText color="muted">{t('account.fingerprint')}</SSText>
+              <SSText>
+                {extractAccountFingerprint(account, decryptedKeys) || '-'}
+              </SSText>
+            </SSHStack>
+          )}
           <SSHStack gap="sm">
             <SSText color="muted">{t('account.createdOn')}</SSText>
             {account && account.createdAt && (
@@ -223,6 +225,51 @@ export default function AccountSettings() {
             )}
           </SSHStack>
         </SSVStack>
+        {account.policyType === 'multisig' && (
+          <>
+            <SSVStack gap="md" style={styles.multiSigContainer}>
+              <SSText
+                weight="light"
+                style={{
+                  alignSelf: 'center',
+                  fontSize: 55,
+                  textTransform: 'lowercase'
+                }}
+              >
+                {account.keysRequired || 1} {t('common.of')}{' '}
+                {account.keyCount || 1}
+              </SSText>
+
+              <SSSignatureRequiredDisplay
+                requiredNumber={account.keysRequired || 1}
+                totalNumber={account.keyCount || 1}
+                collectedSignatures={[]}
+              />
+              <SSText center uppercase>
+                {t('account.accountKeys')}
+              </SSText>
+            </SSVStack>
+            <SSVStack gap="none" style={styles.multiSigKeyControlCOntainer}>
+              {decryptedKeys.length > 0 ? (
+                decryptedKeys.map((key, index) => (
+                  <SSMultisigKeyControl
+                    key={index}
+                    index={index}
+                    keyCount={account.keyCount}
+                    keyDetails={key}
+                    isSettingsMode
+                    accountId={currentAccountId}
+                  />
+                ))
+              ) : (
+                <SSText center color="muted">
+                  Loading keys...
+                </SSText>
+              )}
+            </SSVStack>
+          </>
+        )}
+
         <SSVStack>
           <SSHStack>
             <SSButton
@@ -285,7 +332,6 @@ export default function AccountSettings() {
             }
           />
         </SSVStack>
-
         <SSFormLayout>
           <SSFormLayout.Item>
             <SSFormLayout.Label label={t('account.name')} />
@@ -314,39 +360,7 @@ export default function AccountSettings() {
             </SSFormLayout.Item>
           )}
         </SSFormLayout>
-        {account.policyType === 'multisig' && (
-          <>
-            <SSVStack gap="md" style={styles.multiSigContainer}>
-              <SSMultisigCountSelector
-                maxCount={12}
-                requiredNumber={account.keysRequired!}
-                totalNumber={account.keyCount!}
-                viewOnly
-              />
-              <SSText center>{t('account.addOrGenerateKeys')}</SSText>
-            </SSVStack>
-            <SSVStack gap="none" style={styles.multiSigKeyControlCOntainer}>
-              {decryptedKeys.length > 0 ? (
-                decryptedKeys.map((key, index) => (
-                  <SSMultisigKeyControl
-                    key={index}
-                    isBlackBackground={index % 2 === 1}
-                    index={index}
-                    keyCount={account.keyCount}
-                    keyDetails={key}
-                    isSettingsMode
-                    accountId={currentAccountId}
-                  />
-                ))
-              ) : (
-                // Show loading state while decrypting
-                <SSText center color="muted">
-                  Loading keys...
-                </SSText>
-              )}
-            </SSVStack>
-          </>
-        )}
+
         <SSVStack style={styles.actionsContainer}>
           <SSButton label={t('account.duplicate.title')} />
           <SSButton
@@ -578,7 +592,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0
   },
   multiSigKeyControlCOntainer: {
-    marginHorizontal: 0
+    marginHorizontal: 0,
+    marginBottom: 50
   },
   mnemonicGrid: {
     flexDirection: 'row',
