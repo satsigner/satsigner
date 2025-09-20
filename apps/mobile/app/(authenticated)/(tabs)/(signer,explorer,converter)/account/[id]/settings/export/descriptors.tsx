@@ -8,10 +8,8 @@ import { ScrollView, View } from 'react-native'
 import { captureRef } from 'react-native-view-shot'
 
 import {
-  extractExtendedKeyFromDescriptor,
-  extractFingerprintFromExtendedPublicKey,
-  getExtendedPublicKeyFromAccountKey,
-  getWalletData
+  getExtendedKeyFromDescriptor,
+  getExtendedPublicKeyFromAccountKey
 } from '@/api/bdk'
 import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
@@ -29,6 +27,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Account, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { getFingerprintFromExtendedPublicKey } from '@/utils/bip32'
 import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion,
@@ -118,12 +117,6 @@ export default function ExportDescriptors() {
           }
         }
 
-        const _walletData = !isImportAddress
-          ? await getWalletData(temporaryAccount, network as Network).catch(
-              () => undefined
-            )
-          : undefined
-
         let descriptorString = ''
 
         if (!temporaryAccount.keys || temporaryAccount.keys.length === 0) {
@@ -157,9 +150,9 @@ export default function ExportDescriptors() {
                       network as Network
                     )
                     extendedPublicKey =
-                      await extractExtendedKeyFromDescriptor(descriptor)
-                  } catch {
-                    // Failed to extract extended public key from descriptor
+                      await getExtendedKeyFromDescriptor(descriptor)
+                  } catch (_error) {
+                    // Failed to extract extended public key from descriptor for key ${index}
                   }
                 } else if (secret.mnemonic) {
                   try {
@@ -186,7 +179,7 @@ export default function ExportDescriptors() {
               // If we still don't have a fingerprint, try to extract it from the extended public key
               if (!fingerprint && extendedPublicKey) {
                 try {
-                  fingerprint = await extractFingerprintFromExtendedPublicKey(
+                  fingerprint = getFingerprintFromExtendedPublicKey(
                     extendedPublicKey,
                     network as Network
                   )
@@ -282,7 +275,7 @@ export default function ExportDescriptors() {
                           network as Network
                         )
                         extendedPublicKey =
-                          await extractExtendedKeyFromDescriptor(descriptor)
+                          await getExtendedKeyFromDescriptor(descriptor)
                       } catch {
                         // Failed to extract extended public key from descriptor for key ${index}
                       }
@@ -312,11 +305,10 @@ export default function ExportDescriptors() {
                   // If we still don't have a fingerprint, try to extract it from the extended public key
                   if (!fingerprint && extendedPublicKey) {
                     try {
-                      fingerprint =
-                        await extractFingerprintFromExtendedPublicKey(
-                          extendedPublicKey,
-                          network as Network
-                        )
+                      fingerprint = getFingerprintFromExtendedPublicKey(
+                        extendedPublicKey,
+                        network as Network
+                      )
                     } catch {
                       // Failed to extract fingerprint from extended public key for key ${index}
                     }
@@ -337,7 +329,7 @@ export default function ExportDescriptors() {
                           network as Network
                         )
                         extendedPublicKey =
-                          await extractExtendedKeyFromDescriptor(descriptor)
+                          await getExtendedKeyFromDescriptor(descriptor)
                       } catch {
                         // Failed to extract extended public key from externalDescriptor for key ${index}
                       }
@@ -663,7 +655,7 @@ export default function ExportDescriptors() {
               margin: 1in;
               size: A4;
             }
-            
+
             body {
               font-family: 'Courier New', monospace;
               margin: 0;
@@ -672,20 +664,20 @@ export default function ExportDescriptors() {
               color: black;
               line-height: 1.4;
             }
-            
+
             .header {
               text-align: center;
               font-size: 24px;
               font-weight: bold;
               margin-bottom: 30px;
             }
-            
+
             .qr-section {
               text-align: center;
               margin: 30px 0;
               page-break-inside: avoid;
             }
-            
+
             .qr-code {
               max-width: 300px;
               max-height: 300px;
@@ -693,7 +685,7 @@ export default function ExportDescriptors() {
               margin: 0 auto;
               display: block;
             }
-            
+
             .descriptor-text {
               font-family: 'Courier New', monospace;
               font-size: 11px;
@@ -708,7 +700,7 @@ export default function ExportDescriptors() {
         </head>
         <body>
           <div class="header">${title}</div>
-          
+
           ${
             qrDataURL
               ? `
@@ -718,7 +710,7 @@ export default function ExportDescriptors() {
           `
               : ''
           }
-          
+
           <div class="descriptor-text">${exportContent}</div>
         </body>
       </html>

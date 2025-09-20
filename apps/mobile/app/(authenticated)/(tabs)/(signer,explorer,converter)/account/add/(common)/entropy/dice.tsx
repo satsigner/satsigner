@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { Dimensions, ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { generateMnemonicFromEntropy, getFingerprint } from '@/api/bdk'
 import {
   SSIconDiceFive,
   SSIconDiceFour,
@@ -23,6 +22,10 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
+import {
+  generateMnemonicFromEntropy,
+  getFingerprintFromMnemonic
+} from '@/utils/bip39'
 
 const screenWidth = Dimensions.get('window').width
 const diceSize = Math.min(screenWidth * 0.25, 120)
@@ -76,13 +79,11 @@ export default function DiceEntropy() {
       setStep(newStep)
 
       if (newBits.length >= length) {
-        const mnemonic = await generateMnemonicFromEntropy(
-          newBits.slice(0, length)
-        )
+        const mnemonic = generateMnemonicFromEntropy(newBits.slice(0, length))
 
         setMnemonic(mnemonic)
 
-        const fingerprint = await getFingerprint(
+        const fingerprint = getFingerprintFromMnemonic(
           mnemonic,
           undefined,
           network as Network

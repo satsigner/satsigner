@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { toast } from 'sonner-native'
 
-import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
+import { getExtendedKeyFromDescriptor } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
@@ -249,7 +249,7 @@ export default function PublicKeyPage() {
             decryptedSecret.externalDescriptor,
             network as BdkNetwork
           )
-          publicKey = await extractExtendedKeyFromDescriptor(descriptor)
+          publicKey = await getExtendedKeyFromDescriptor(descriptor)
         }
 
         if (!publicKey) {

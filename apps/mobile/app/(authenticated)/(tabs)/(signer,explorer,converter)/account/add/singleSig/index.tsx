@@ -3,7 +3,6 @@ import { Redirect, Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
-import { generateMnemonic, getFingerprint } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSScriptVersionModal from '@/components/SSScriptVersionModal'
@@ -19,6 +18,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { type EntropyType } from '@/types/logic/entropy'
 import { type Key } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
+import { generateMnemonic, getFingerprintFromMnemonic } from '@/utils/bip39'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 export default function SingleSig() {
@@ -78,10 +78,10 @@ export default function SingleSig() {
         case 'none': {
           setLoading(true)
 
-          const mnemonic = await generateMnemonic(localMnemonicWordCount)
+          const mnemonic = generateMnemonic(localMnemonicWordCount)
           setMnemonic(mnemonic)
 
-          const fingerprint = await getFingerprint(
+          const fingerprint = getFingerprintFromMnemonic(
             mnemonic,
             undefined,
             network as Network

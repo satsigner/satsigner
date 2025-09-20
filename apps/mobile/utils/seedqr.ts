@@ -1,4 +1,4 @@
-import { getWordList } from './bip39'
+import { getWordList } from '@/utils/bip39'
 
 /**
  * Converts a mnemonic phrase to a standard SeedQR format

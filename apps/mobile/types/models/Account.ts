@@ -6,7 +6,9 @@ import { type Utxo } from './Utxo'
 
 export type PolicyType = 'singlesig' | 'multisig' | 'watchonly'
 
-export type MnemonicCount = 12 | 15 | 18 | 21 | 24
+export type MnemonicWordCount = 12 | 15 | 18 | 21 | 24
+
+export type MnemonicEntropyBits = 128 | 160 | 192 | 224 | 256
 
 export type ScriptVersionType =
   | 'P2PKH'
@@ -51,7 +53,7 @@ export type Key = {
   index: number
   name?: string
   creationType: CreationType
-  mnemonicWordCount?: MnemonicCount
+  mnemonicWordCount?: MnemonicWordCount
   /** Sensitive information that can be encrypted with PIN */
   secret: Secret | string
   /** Initialization vector for AES encryption */
