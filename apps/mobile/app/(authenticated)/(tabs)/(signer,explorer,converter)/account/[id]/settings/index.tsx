@@ -205,7 +205,6 @@ export default function AccountSettings() {
           headerRight: () => null
         }}
       />
-
       <SSVStack gap="lg" style={styles.mainLayout}>
         <SSText center uppercase color="muted">
           {t('account.settings.title')}
