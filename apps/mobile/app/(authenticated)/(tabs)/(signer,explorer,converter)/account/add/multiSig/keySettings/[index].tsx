@@ -166,7 +166,7 @@ export default function MultiSigKeySettings() {
           <SSButton
             label={t('common.cancel')}
             variant="ghost"
-            onPress={() => router.navigate('/')}
+            onPress={() => router.dismiss(1)}
           />
         </SSVStack>
       </SSVStack>

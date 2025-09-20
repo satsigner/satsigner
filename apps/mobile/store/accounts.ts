@@ -59,6 +59,10 @@ type AccountsAction = {
     accountId: Account['id'],
     keyIndex: number
   ) => Promise<{ success: boolean; message: string }>
+  resetKey: (
+    accountId: Account['id'],
+    keyIndex: number
+  ) => Promise<{ success: boolean; message: string }>
 }
 
 const useAccountsStore = create<AccountsState & AccountsAction>()(
@@ -404,9 +408,40 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           )
 
           return { success: true, message: 'Seed dropped successfully' }
-        } catch (_error) {
+        } catch {
           return { success: false, message: 'Failed to drop seed' }
         }
+      },
+      resetKey: async (accountId, keyIndex) => {
+        const state = get()
+        const account = state.accounts.find((acc) => acc.id === accountId)
+
+        if (!account || !account.keys[keyIndex]) {
+          return { success: false, message: 'Account or key not found' }
+        }
+
+        // Reset the key to its initial state
+        set(
+          produce((state) => {
+            const accountIndex = state.accounts.findIndex(
+              (acc: Account) => acc.id === accountId
+            )
+            if (accountIndex !== -1) {
+              state.accounts[accountIndex].keys[keyIndex] = {
+                index: keyIndex,
+                name: '',
+                creationType: undefined,
+                secret: undefined,
+                iv: undefined,
+                fingerprint: undefined,
+                scriptVersion: undefined,
+                mnemonicWordCount: undefined
+              }
+            }
+          })
+        )
+
+        return { success: true, message: 'Key reset successfully' }
       }
     }),
     {

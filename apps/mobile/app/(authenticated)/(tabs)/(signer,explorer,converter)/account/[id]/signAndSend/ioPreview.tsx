@@ -2,7 +2,6 @@ import type BottomSheet from '@gorhom/bottom-sheet'
 import { useIsFocused } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
-import * as Clipboard from 'expo-clipboard'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -32,6 +31,7 @@ import SSRadioButton from '@/components/SSRadioButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
+import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -188,6 +188,12 @@ export default function IOPreview() {
   const [originalOutputAmount, setOriginalOutputAmount] = useState(0)
   const [outputLabel, setOutputLabel] = useState('')
 
+  const { pasteFromClipboard } = useClipboardPaste({
+    onPaste: (content) => {
+      setOutputTo(content)
+    }
+  })
+
   const remainingSats = useMemo(
     () =>
       utxosSelectedValue -
@@ -195,7 +201,6 @@ export default function IOPreview() {
     [utxosSelectedValue, outputs]
   )
 
-  // Now calculate final size including change if needed
   const transactionSize = useMemo(() => {
     const { size, vsize } = estimateTransactionSize(
       inputs.size,
@@ -432,7 +437,7 @@ export default function IOPreview() {
     if (remainingBalance > 0) {
       // Validate that changeAddress is available before adding change output
       if (!changeAddress) {
-        toast.error(t('transaction.errorChangeAddressNotAvailable'))
+        toast.error(t('transaction.error.ChangeAddressNotAvailable'))
         return
       }
 
@@ -540,7 +545,10 @@ export default function IOPreview() {
                 {t('bitcoin.sats').toLowerCase()}
               </SSText>
             </SSHStack>
-            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+            <SSHStack
+              gap="xs"
+              style={{ alignItems: 'baseline', marginTop: -5 }}
+            >
               <SSText size="md" color="muted">
                 {formatNumber(satsToFiat(utxosSelectedValue), 2)}
               </SSText>
@@ -721,7 +729,7 @@ export default function IOPreview() {
                       fontFamily: Typography.sfProMono,
                       fontSize: 22,
                       letterSpacing: 0.5,
-                      height: 100,
+                      height: 110,
                       textAlignVertical: 'top',
                       paddingTop: 12
                     }}
@@ -732,18 +740,7 @@ export default function IOPreview() {
                       variant="outline"
                       label={t('common.paste')}
                       style={{ flex: 1 }}
-                      onPress={async () => {
-                        try {
-                          const text = await Clipboard.getStringAsync()
-                          if (text && text.trim()) {
-                            setOutputTo(text.trim())
-                          } else {
-                            toast.error(t('common.invalid'))
-                          }
-                        } catch {
-                          toast.error(t('common.invalid'))
-                        }
-                      }}
+                      onPress={pasteFromClipboard}
                     />
                     <SSButton
                       variant="outline"
@@ -754,10 +751,18 @@ export default function IOPreview() {
                   </SSHStack>
                 </SSVStack>
                 <SSTextInput
+                  multiline
+                  numberOfLines={4}
                   placeholder={t('transaction.build.add.label.title')}
                   align="left"
                   value={outputLabel}
                   onChangeText={(text) => setOutputLabel(text)}
+                  style={{
+                    fontSize: 22,
+                    height: 110,
+                    textAlignVertical: 'top',
+                    paddingTop: 12
+                  }}
                 />
                 <SSHStack>
                   <SSButton

@@ -99,6 +99,7 @@ export default function WatchOnly() {
 
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
+  const [scanningFor, setScanningFor] = useState<'main' | 'fingerprint'>('main')
   const [selectedOption, setSelectedOption] =
     useState<CreationType>('importExtendedPub')
   const [modalOptionsVisible, setModalOptionsVisible] = useState(true)
@@ -487,6 +488,14 @@ export default function WatchOnly() {
       return
     }
 
+    // Handle fingerprint scanning
+    if (scanningFor === 'fingerprint') {
+      updateMasterFingerprint(data)
+      setCameraModalVisible(false)
+      toast.success(t('watchonly.success.qrScanned'))
+      return
+    }
+
     const qrInfo = detectQRType(data)
 
     // Handle single QR codes (complete data in one scan)
@@ -566,6 +575,22 @@ export default function WatchOnly() {
       updateXpub(text)
     } else if (selectedOption === 'importAddress') {
       updateAddress(text)
+    }
+  }
+
+  async function pasteFingerprintFromClipboard() {
+    try {
+      const clipboardContent = await Clipboard.getStringAsync()
+      if (!clipboardContent) {
+        toast.error(t('watchonly.error.emptyClipboard'))
+        return
+      }
+
+      const finalContent = clipboardContent.trim()
+      updateMasterFingerprint(finalContent)
+      toast.success(t('watchonly.success.clipboardPasted'))
+    } catch (_error) {
+      toast.error(t('watchonly.error.clipboardPaste'))
     }
   }
 
@@ -995,61 +1020,92 @@ export default function WatchOnly() {
         {!modalOptionsVisible && (
           <SSVStack justifyBetween gap="lg" style={{ paddingBottom: 20 }}>
             <SSVStack gap="lg">
-              <SSVStack gap="sm">
-                <SSVStack gap="xxs">
-                  <SSText center>
-                    {t(`watchonly.${selectedOption}.label`)}
-                  </SSText>
-                  {selectedOption === 'importExtendedPub' && (
-                    <SSTextInput
-                      value={xpub}
-                      style={validXpub ? styles.valid : styles.invalid}
-                      onChangeText={updateXpub}
-                      multiline
-                    />
-                  )}
-                  {selectedOption === 'importDescriptor' && (
-                    <SSTextInput
-                      value={externalDescriptor}
-                      style={
-                        validExternalDescriptor ? styles.valid : styles.invalid
-                      }
-                      onChangeText={updateExternalDescriptor}
-                      multiline
-                    />
-                  )}
-                  {selectedOption === 'importAddress' && (
-                    <SSTextInput
-                      value={address}
-                      style={validAddress ? styles.valid : styles.invalid}
-                      onChangeText={updateAddress}
-                      multiline
-                    />
-                  )}
-                </SSVStack>
-                {selectedOption === 'importExtendedPub' && (
-                  <>
-                    <SSVStack gap="xxs">
-                      <SSFormLayout.Label
-                        label={t('account.script').toUpperCase()}
+              <SSVStack gap="lg">
+                <SSVStack gap="sm">
+                  <SSVStack gap="xxs">
+                    <SSText center>
+                      {t(`watchonly.${selectedOption}.label`)}
+                    </SSText>
+                    {selectedOption === 'importExtendedPub' && (
+                      <SSTextInput
+                        value={xpub}
+                        style={validXpub ? styles.valid : styles.invalid}
+                        onChangeText={updateXpub}
+                        multiline
+                      />
+                    )}
+                    {selectedOption === 'importDescriptor' && (
+                      <SSTextInput
+                        value={externalDescriptor}
+                        style={
+                          validExternalDescriptor
+                            ? styles.valid
+                            : styles.invalid
+                        }
+                        onChangeText={updateExternalDescriptor}
+                        multiline
+                      />
+                    )}
+                    {selectedOption === 'importAddress' && (
+                      <SSTextInput
+                        value={address}
+                        style={validAddress ? styles.valid : styles.invalid}
+                        onChangeText={updateAddress}
+                        multiline
+                      />
+                    )}
+                  </SSVStack>
+                  <SSVStack gap="sm">
+                    <SSHStack gap="sm">
+                      <SSButton
+                        label="Paste"
+                        variant="subtle"
+                        onPress={pasteFromClipboard}
+                        style={{ flex: 1 }}
                       />
                       <SSButton
-                        label={getScriptVersionDisplayName(scriptVersion)}
-                        withSelect
-                        onPress={() => setScriptVersionModalVisible(true)}
+                        label="Scan QR"
+                        variant="subtle"
+                        onPress={() => {
+                          setScanningFor('main')
+                          setCameraModalVisible(true)
+                        }}
+                        style={{ flex: 1 }}
                       />
-                    </SSVStack>
-                    <SSVStack gap="xxs">
-                      <SSText center>{t('watchonly.fingerprint.label')}</SSText>
-                      <SSTextInput
-                        value={localFingerprint}
-                        onChangeText={updateMasterFingerprint}
-                        style={
-                          validMasterFingerprint ? styles.valid : styles.invalid
+                    </SSHStack>
+                    <Animated.View
+                      style={{
+                        opacity: pulseAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [1, 0.7]
+                        }),
+                        transform: [{ scale: scaleAnim }],
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <SSButton
+                        label={
+                          isReading
+                            ? t('watchonly.read.scanning')
+                            : t('watchonly.read.nfc')
                         }
+                        onPress={handleNFCRead}
+                        disabled={!isAvailable}
                       />
-                    </SSVStack>
-                  </>
+                    </Animated.View>
+                  </SSVStack>
+                </SSVStack>
+                {selectedOption === 'importExtendedPub' && (
+                  <SSVStack gap="xxs">
+                    <SSFormLayout.Label
+                      label={t('account.script').toUpperCase()}
+                    />
+                    <SSButton
+                      label={getScriptVersionDisplayName(scriptVersion)}
+                      withSelect
+                      onPress={() => setScriptVersionModalVisible(true)}
+                    />
+                  </SSVStack>
                 )}
                 {selectedOption === 'importDescriptor' && (
                   <>
@@ -1071,36 +1127,6 @@ export default function WatchOnly() {
                   </>
                 )}
               </SSVStack>
-              <SSVStack>
-                <SSButton
-                  label={t('watchonly.read.clipboard')}
-                  onPress={pasteFromClipboard}
-                />
-                <SSButton
-                  label={t('watchonly.read.qrcode')}
-                  onPress={() => setCameraModalVisible(true)}
-                />
-                <Animated.View
-                  style={{
-                    opacity: pulseAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [1, 0.7]
-                    }),
-                    transform: [{ scale: scaleAnim }],
-                    overflow: 'hidden'
-                  }}
-                >
-                  <SSButton
-                    label={
-                      isReading
-                        ? t('watchonly.read.scanning')
-                        : t('watchonly.read.nfc')
-                    }
-                    onPress={handleNFCRead}
-                    disabled={!isAvailable}
-                  />
-                </Animated.View>
-              </SSVStack>
 
               {/* Multi-part QR Scanning Progress */}
               {scanProgress.type && scanProgress.total > 1 && (
@@ -1121,7 +1147,36 @@ export default function WatchOnly() {
                 </SSVStack>
               )}
             </SSVStack>
-            <SSVStack gap="sm">
+            <SSVStack gap="lg">
+              {selectedOption === 'importExtendedPub' && (
+                <SSVStack gap="sm">
+                  <SSText center>{t('watchonly.fingerprint.label')}</SSText>
+                  <SSTextInput
+                    value={localFingerprint}
+                    onChangeText={updateMasterFingerprint}
+                    style={
+                      validMasterFingerprint ? styles.valid : styles.invalid
+                    }
+                  />
+                  <SSHStack gap="sm">
+                    <SSButton
+                      label="Paste"
+                      variant="subtle"
+                      onPress={pasteFingerprintFromClipboard}
+                      style={{ flex: 1 }}
+                    />
+                    <SSButton
+                      label="Scan QR"
+                      variant="subtle"
+                      onPress={() => {
+                        setScanningFor('fingerprint')
+                        setCameraModalVisible(true)
+                      }}
+                      style={{ flex: 1 }}
+                    />
+                  </SSHStack>
+                </SSVStack>
+              )}
               <SSButton
                 label={t('common.confirm')}
                 variant="secondary"
@@ -1143,14 +1198,17 @@ export default function WatchOnly() {
         fullOpacity
         onClose={() => {
           setCameraModalVisible(false)
+          setScanningFor('main')
           resetScanProgress()
         }}
       >
         <SSVStack itemsCenter gap="md">
           <SSText color="muted" uppercase>
-            {scanProgress.type
-              ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
-              : t('camera.scanQRCode')}
+            {scanningFor === 'fingerprint'
+              ? t('watchonly.fingerprint.scanQR')
+              : scanProgress.type
+                ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
+                : t('camera.scanQRCode')}
           </SSText>
           <CameraView
             onBarcodeScanned={(res) => {

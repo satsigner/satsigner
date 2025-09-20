@@ -88,6 +88,13 @@ export default function MultiSig() {
         </SSVStack>
         <SSVStack>
           <SSButton
+            label={t('account.import.descriptor')}
+            variant="subtle"
+            onPress={() =>
+              router.navigate('/account/add/multiSig/importDescriptor')
+            }
+          />
+          <SSButton
             label={t('common.continue')}
             variant="secondary"
             onPress={handleOnPressContinue}
