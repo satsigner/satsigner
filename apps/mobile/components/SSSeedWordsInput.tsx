@@ -1,6 +1,7 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as Clipboard from 'expo-clipboard'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { type StyleProp, type ViewStyle } from 'react-native'
 import { toast } from 'sonner-native'
 
 import { getFingerprint, validateMnemonic } from '@/api/bdk'
@@ -50,7 +51,7 @@ type SSSeedWordsInputProps = {
   onCancelButtonPress?: () => void
   showCancelButton?: boolean
   autoCheckClipboard?: boolean
-  style?: any
+  style?: StyleProp<ViewStyle>
 }
 
 const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
