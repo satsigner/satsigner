@@ -8,7 +8,7 @@ import {
   getMultisigDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
 
-// TODO: import from bip32 instead of declaring it (currently giving error)
+// TODO: import  it from bip32 instead of declaring it (currently giving error)
 type BIP32Network = {
   wif: number
   bip32: {
@@ -162,23 +162,10 @@ export function getDescriptorsFromKey(
   network: Network,
   isMultisig = false
 ) {
-  // Convert BDK Network to blockchain Network type
-  const blockchainNetwork =
-    network === Network.Bitcoin
-      ? 'bitcoin'
-      : network === Network.Testnet
-        ? 'testnet'
-        : 'signet'
-
-  // Use the correct derivation path based on account type
+  const appNetwork = network === Network.Regtest ? 'testnet' : network
   const derivationPath = isMultisig
-    ? getMultisigDerivationPathFromScriptVersion(
-        scriptVersion,
-        blockchainNetwork
-      )
-    : getDerivationPathFromScriptVersion(scriptVersion, blockchainNetwork)
-
-  // Construct the key part with fingerprint and derivation path
+    ? getMultisigDerivationPathFromScriptVersion(scriptVersion, appNetwork)
+    : getDerivationPathFromScriptVersion(scriptVersion, appNetwork)
   const keyPart = `[${fingerprint}/${derivationPath}]${extendedPublicKey}`
 
   let externalDescriptor = ''
@@ -214,14 +201,10 @@ export function getDescriptorsFromKey(
       externalDescriptor = `sh(${keyPart}/0/*)`
       internalDescriptor = `sh(${keyPart}/1/*)`
       break
-    default:
-      externalDescriptor = `wpkh(${keyPart}/0/*)`
-      internalDescriptor = `wpkh(${keyPart}/1/*)`
   }
 
-  // TODO: add checksum
+  // TODO: add checksum while keeping it sinchronous
 
-  // Return descriptors without checksum if BDK fails
   return {
     externalDescriptor,
     internalDescriptor
