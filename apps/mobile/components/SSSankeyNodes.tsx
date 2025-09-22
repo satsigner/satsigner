@@ -597,6 +597,7 @@ function NodeText({
       {isUnspent &&
         labelIconSvg &&
         placeholderRectsUnspentIcon.length > 0 &&
+        placeholderRectsUnspentIcon[0] &&
         ioData?.label && (
           <ImageSVG
             svg={labelIconSvg}
@@ -609,6 +610,7 @@ function NodeText({
       {isUnspent &&
         changeIconSvg &&
         placeholderRectsUnspentIcon.length > 0 &&
+        placeholderRectsUnspentIcon[0] &&
         !ioData?.label &&
         isChange && (
           <ImageSVG
@@ -621,7 +623,8 @@ function NodeText({
         )}
       {isUnspent &&
         changeIconSvg &&
-        placeholderRectsUnspentIcon.length > 0 &&
+        placeholderRectsUnspentIcon.length > 1 &&
+        placeholderRectsUnspentIcon[1] &&
         isSelfSend && (
           <ImageSVG
             svg={changeIconSvg}
@@ -634,7 +637,8 @@ function NodeText({
       {isMiningFee &&
         minerFeeIconSvg &&
         pastTxMinerFeeIconSvg &&
-        placeholderRectsMinerIcon.length > 0 && (
+        placeholderRectsMinerIcon.length > 0 &&
+        placeholderRectsMinerIcon[0] && (
           <ImageSVG
             svg={isPastMinerFee ? pastTxMinerFeeIconSvg : minerFeeIconSvg}
             x={paragraphX + placeholderRectsMinerIcon[0].rect.x}
