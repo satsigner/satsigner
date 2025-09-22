@@ -189,6 +189,21 @@ function SSSignatureDropdown({
     }
   }, [keyDetails, decryptedKey])
 
+  // Helper function to get the inner fingerprint from secret
+  function getInnerFingerprint(): string | undefined {
+    // First try to get from decryptedKey (for signing context)
+    if (decryptedKey && typeof decryptedKey.secret === 'object') {
+      return decryptedKey.secret.fingerprint
+    }
+
+    // Fallback to keyDetails.secret if it's an object
+    if (typeof keyDetails?.secret === 'object') {
+      return keyDetails.secret.fingerprint
+    }
+
+    return undefined
+  }
+
   // Use the extracted public key from state, or fall back to direct access
   const extendedPublicKey =
     extractedPublicKey ||
@@ -236,7 +251,12 @@ function SSSignatureDropdown({
         // Use cosigner-specific validation for multisig accounts
         const isValid =
           account.policyType === 'multisig'
-            ? validateSignedPSBTForCosigner(psbtToValidate, account, index)
+            ? validateSignedPSBTForCosigner(
+                psbtToValidate,
+                account,
+                index,
+                decryptedKey
+              )
             : validateSignedPSBT(psbtToValidate, account)
         setIsPsbtValid(isValid)
       } catch (_error) {
@@ -245,7 +265,7 @@ function SSSignatureDropdown({
     } else {
       setIsPsbtValid(null)
     }
-  }, [signedPsbt, account, index])
+  }, [signedPsbt, account, index, decryptedKey])
 
   return (
     <View
@@ -293,8 +313,8 @@ function SSSignatureDropdown({
             </SSVStack>
           </SSHStack>
           <SSVStack gap="none" style={{ alignItems: 'flex-end' }}>
-            <SSText color={keyDetails?.fingerprint ? 'white' : 'muted'}>
-              {keyDetails?.fingerprint || t('account.fingerprint')}
+            <SSText color={getInnerFingerprint() ? 'white' : 'muted'}>
+              {getInnerFingerprint() || t('account.fingerprint')}
             </SSText>
             <SSText
               color={extendedPublicKey ? 'white' : 'muted'}
