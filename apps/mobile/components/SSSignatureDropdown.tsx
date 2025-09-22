@@ -6,7 +6,7 @@ import { ScrollView, TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
-import { SSIconGreen } from '@/components/icons'
+import { SSIconGreen, SSIconCircleX } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import { useKeySourceLabel } from '@/hooks/useKeySourceLabel'
@@ -44,6 +44,7 @@ type SSSignatureDropdownProps = {
   onSignWithLocalKey: () => void
   onSignWithSeedQR: () => void
   onSignWithSeedWords: () => void
+  validationResult?: boolean
 }
 
 function SSSignatureDropdown({
@@ -66,7 +67,8 @@ function SSSignatureDropdown({
   onNFCScan,
   onSignWithLocalKey,
   onSignWithSeedQR,
-  onSignWithSeedWords
+  onSignWithSeedWords,
+  validationResult
 }: SSSignatureDropdownProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isPsbtValid, setIsPsbtValid] = useState<boolean | null>(null)
@@ -291,7 +293,13 @@ function SSSignatureDropdown({
         <SSHStack justifyBetween>
           <SSHStack style={{ alignItems: 'center' }} gap="sm">
             {isSignatureCompleted ? (
-              <SSIconGreen width={24} height={24} />
+              validationResult === true ? (
+                <SSIconGreen width={24} height={24} />
+              ) : validationResult === false ? (
+                <SSIconCircleX width={24} height={24} stroke="#FF6B6B" />
+              ) : (
+                <SSIconGreen width={24} height={24} />
+              )
             ) : (
               <View
                 style={{

@@ -64,6 +64,7 @@ import {
   decodeURToPSBT,
   getURFragmentsFromPSBT
 } from '@/utils/ur'
+import { validateSignedPSBTForCosigner } from '@/utils/psbtValidator'
 
 const tn = _tn('transaction.build.preview')
 
@@ -152,6 +153,34 @@ function PreviewMessage() {
     handleSignWithLocalKey,
     handleSignWithSeedQR
   } = psbtManagement
+
+  // Calculate validation results for each cosigner
+  const validationResults = useMemo(() => {
+    const results = new Map<number, boolean>()
+
+    if (!account) {
+      return results
+    }
+
+    for (const [cosignerIndex, signedPsbt] of signedPsbts.entries()) {
+      if (signedPsbt && signedPsbt.trim()) {
+        try {
+          const isValid = validateSignedPSBTForCosigner(
+            signedPsbt,
+            account,
+            cosignerIndex,
+            decryptedKeys[cosignerIndex]
+          )
+          results.set(cosignerIndex, isValid)
+        } catch (error) {
+          // If validation fails, mark as invalid
+          results.set(cosignerIndex, false)
+        }
+      }
+    }
+
+    return results
+  }, [signedPsbts, account, decryptedKeys])
 
   // Clipboard paste hook
   useClipboardPaste({
@@ -1183,7 +1212,7 @@ function PreviewMessage() {
     handleNFCScan(-1) // Use -1 to indicate watch-only
   }
 
-  // Check if all required signatures have been collected
+  // Check if all required signatures have been collected and are valid
   const hasAllRequiredSignatures = () => {
     if (!account || account.policyType !== 'multisig' || !account.keys) {
       return false
@@ -1192,12 +1221,12 @@ function PreviewMessage() {
     // Get the required number of signatures from the account
     const requiredSignatures = account.keysRequired || account.keys.length
 
-    // Count how many signed PSBTs we have
-    const collectedSignatures = Array.from(signedPsbts.values()).filter(
-      (psbt) => psbt && psbt.trim().length > 0
+    // Count how many valid signed PSBTs we have
+    const validSignatures = Array.from(validationResults.values()).filter(
+      (isValid) => isValid === true
     ).length
 
-    const hasEnough = collectedSignatures >= requiredSignatures
+    const hasEnough = validSignatures >= requiredSignatures
     return hasEnough
   }
 
@@ -1642,6 +1671,7 @@ function PreviewMessage() {
                       collectedSignatures={Array.from(signedPsbts.entries())
                         .filter(([, psbt]) => psbt && psbt.trim().length > 0)
                         .map(([index]) => index)}
+                      validationResults={validationResults}
                     />
 
                     {/* Individual Signature Buttons - Dynamic based on number of cosigners */}
@@ -1678,6 +1708,7 @@ function PreviewMessage() {
                           onSignWithSeedWords={() =>
                             handleSeedWordsScanned(index)
                           }
+                          validationResult={validationResults.get(index)}
                         />
                       ))}
                     </SSVStack>
