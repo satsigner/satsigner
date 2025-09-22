@@ -4,12 +4,6 @@ import bs58check from 'bs58check'
 
 import { type Network } from '@/types/settings/blockchain'
 
-// HD key versions for different networks
-const VERSIONS = {
-  mainnet: { public: 0x0488b21e, private: 0x0488ade4 },
-  testnet: { public: 0x043587cf, private: 0x04358394 }
-}
-
 // from https://stackoverflow.com/questions/21683680/regex-to-match-bitcoin-addresses + slightly modified to support testnet addresses
 function isBitcoinAddress(address: string): boolean {
   return /^(?:[13]{1}[a-km-zA-HJ-NP-Z1-9]{25,34}|(bc1|tb1)[a-z0-9]{39,59})$/i.test(
@@ -184,47 +178,6 @@ export function detectNetworkFromKey(key: string): Network | null {
 }
 
 /**
- * Convert a key to be compatible with the target network
- */
-export function convertKeyForNetwork(
-  key: string,
-  targetNetwork: Network
-): string {
-  if (!key) return key
-
-  const sourceNetwork = detectNetworkFromKey(key)
-  if (!sourceNetwork || sourceNetwork === targetNetwork) return key
-
-  // Extract the script version from the key prefix
-  // Note: For testnet, tpub can be used for different script types
-  // The script type should be determined by the derivation path, not just the prefix
-  const scriptVersionMap: Record<string, string> = {
-    xpub: 'P2PKH',
-    ypub: 'P2SH-P2WPKH',
-    upub: 'P2SH-P2WPKH',
-    zpub: 'P2WPKH',
-    vpub: 'P2WPKH'
-    // Note: tpub is not included here because it can be used for different script types
-    // The script type should be determined by the derivation path, not just the prefix
-  }
-
-  const prefix = key.match(/^[tuvxyz](pub|prv)/)?.[0]
-  if (!prefix) return key
-
-  const scriptVersion = scriptVersionMap[prefix]
-  if (!scriptVersion) return key
-
-  // Get the appropriate format for the target network
-  const targetFormat = getKeyFormatForScriptVersion(
-    scriptVersion,
-    targetNetwork
-  )
-
-  // Convert the key
-  return convertKeyFormat(key, targetFormat, targetNetwork)
-}
-
-/**
  * Get the appropriate derivation path for a given script version and network
  */
 export function getDerivationPathFromScriptVersion(
@@ -324,10 +277,6 @@ export function getMultisigScriptTypeFromScriptVersion(
       // Default to P2WSH for multisig
       return 'P2WSH'
   }
-}
-
-export function getVersionsForNetwork(network: 'mainnet' | 'testnet') {
-  return VERSIONS[network]
 }
 
 export { bip21decode, bitcoinjsNetwork, isBip21, isBitcoinAddress }

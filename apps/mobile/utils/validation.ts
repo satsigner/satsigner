@@ -151,7 +151,6 @@ async function validateDescriptorInternal(
   const content = '[a-zA-Z0-9]+'
   // Updated to handle combined descriptor syntax: <0;1> or <0,1>
   const addressDerivationPath = '(/[0-9*]|<0[,;]1>)*'
-  const _checksum = '#[a-z0-9]{8}'
   const key = `(${fullFingerprint})?${content}${addressDerivationPath}`
   const singleKey = `^${kind}\\(${key}\\)$`
   const multiKey = `^${multiKind}\\([1-9][0-9]*,(${key},)+${key}\\)$`
@@ -292,21 +291,6 @@ async function validateDescriptorInternal(
       return { isValid: false, error: 'unexpectedBracket' }
     }
 
-    // Check for invalid script function
-    const _validScriptFunctions = [
-      'sh',
-      'wsh',
-      'pk',
-      'pkh',
-      'wpkh',
-      'combo',
-      'tr',
-      'addr',
-      'raw',
-      'rawtr',
-      'multi',
-      'sortedmulti'
-    ]
     const foundScriptFunction = currentItem.match(
       /^(sh|wsh|pk|pkh|wpkh|combo|tr|addr|raw|rawtr|multi|sortedmulti)\(/
     )
