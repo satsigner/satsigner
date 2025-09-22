@@ -6,7 +6,6 @@ import { ScrollView, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getDescriptorsFromKeyData } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
@@ -17,6 +16,7 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Secret } from '@/types/models/Account'
+import { getDescriptorsFromKey } from '@/utils/bip32'
 import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 import { shareFile } from '@/utils/filesystem'
 
@@ -68,7 +68,7 @@ export default function DescriptorPage() {
           } else if (secret.extendedPublicKey && secret.fingerprint) {
             // Generate descriptor from available data (fingerprint, script version, and public key)
             try {
-              const descriptors = await getDescriptorsFromKeyData(
+              const descriptors = getDescriptorsFromKey(
                 secret.extendedPublicKey,
                 secret.fingerprint,
                 key.scriptVersion || 'P2WPKH',

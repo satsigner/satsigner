@@ -3,8 +3,12 @@ import { KeychainKind, Network } from 'bdk-rn/lib/lib/enums'
 import { BIP32Factory } from 'bip32'
 
 import type { ScriptVersionType } from '@/types/models/Account'
+import {
+  getDerivationPathFromScriptVersion,
+  getMultisigDerivationPathFromScriptVersion
+} from '@/utils/bitcoin'
 
-// TODO: import this interface from bip32 package (currently gives error)
+// TODO: import from bip32 instead of declaring it (currently giving error)
 type BIP32Network = {
   wif: number
   bip32: {
@@ -149,4 +153,77 @@ export function getExtendedPublicKeyFromSeed(
 export function getExtendedKeyFromDescriptor(descriptor: string) {
   const match = descriptor.match(/(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/)
   return match ? match[0] : ''
+}
+
+export function getDescriptorsFromKey(
+  extendedPublicKey: string,
+  fingerprint: string,
+  scriptVersion: ScriptVersionType,
+  network: Network,
+  isMultisig = false
+) {
+  // Convert BDK Network to blockchain Network type
+  const blockchainNetwork =
+    network === Network.Bitcoin
+      ? 'bitcoin'
+      : network === Network.Testnet
+        ? 'testnet'
+        : 'signet'
+
+  // Use the correct derivation path based on account type
+  const derivationPath = isMultisig
+    ? getMultisigDerivationPathFromScriptVersion(
+        scriptVersion,
+        blockchainNetwork
+      )
+    : getDerivationPathFromScriptVersion(scriptVersion, blockchainNetwork)
+
+  // Construct the key part with fingerprint and derivation path
+  const keyPart = `[${fingerprint}/${derivationPath}]${extendedPublicKey}`
+
+  let externalDescriptor = ''
+  let internalDescriptor = ''
+
+  // Generate descriptors based on script version
+  switch (scriptVersion) {
+    case 'P2PKH':
+      externalDescriptor = `pkh(${keyPart}/0/*)`
+      internalDescriptor = `pkh(${keyPart}/1/*)`
+      break
+    case 'P2SH-P2WPKH':
+      externalDescriptor = `sh(wpkh(${keyPart}/0/*))`
+      internalDescriptor = `sh(wpkh(${keyPart}/1/*))`
+      break
+    case 'P2WPKH':
+      externalDescriptor = `wpkh(${keyPart}/0/*)`
+      internalDescriptor = `wpkh(${keyPart}/1/*)`
+      break
+    case 'P2TR':
+      externalDescriptor = `tr(${keyPart}/0/*)`
+      internalDescriptor = `tr(${keyPart}/1/*)`
+      break
+    case 'P2WSH':
+      externalDescriptor = `wsh(${keyPart}/0/*)`
+      internalDescriptor = `wsh(${keyPart}/1/*)`
+      break
+    case 'P2SH-P2WSH':
+      externalDescriptor = `sh(wsh(${keyPart}/0/*))`
+      internalDescriptor = `sh(wsh(${keyPart}/1/*))`
+      break
+    case 'P2SH':
+      externalDescriptor = `sh(${keyPart}/0/*)`
+      internalDescriptor = `sh(${keyPart}/1/*)`
+      break
+    default:
+      externalDescriptor = `wpkh(${keyPart}/0/*)`
+      internalDescriptor = `wpkh(${keyPart}/1/*)`
+  }
+
+  // TODO: add checksum
+
+  // Return descriptors without checksum if BDK fails
+  return {
+    externalDescriptor,
+    internalDescriptor
+  }
 }

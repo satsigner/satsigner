@@ -4,11 +4,7 @@ import { useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import {
-  getDescriptorObject,
-  getDescriptorsFromKeyData,
-  parseDescriptor
-} from '@/api/bdk'
+import { getDescriptorObject, parseDescriptor } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSFingerprint from '@/components/SSFingerprint'
@@ -24,6 +20,7 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type GenerateMnemonicSearchParams } from '@/types/navigation/searchParams'
+import { getDescriptorsFromKey } from '@/utils/bip32'
 import {
   getExtendedPublicKeyFromMnemonic,
   getFingerprintFromMnemonic,
@@ -122,7 +119,7 @@ export default function GenerateMnemonic() {
         // Generate descriptors from the key data
         if (extendedPublicKey && fingerprint) {
           try {
-            const descriptors = await getDescriptorsFromKeyData(
+            const descriptors = getDescriptorsFromKey(
               extendedPublicKey,
               fingerprint,
               scriptVersion,

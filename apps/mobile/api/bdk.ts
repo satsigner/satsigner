@@ -21,7 +21,7 @@ import {
   type BlockchainEsploraConfig,
   BlockChainNames,
   KeychainKind,
-  Network
+  type Network
 } from 'bdk-rn/lib/lib/enums'
 
 import { type Account, type Key, type Secret } from '@/types/models/Account'
@@ -37,7 +37,6 @@ import {
   getFingerprintFromExtendedPublicKey
 } from '@/utils/bip32'
 import {
-  getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion,
   getMultisigScriptTypeFromScriptVersion
 } from '@/utils/bitcoin'
@@ -644,98 +643,6 @@ async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
   return extendedKey
 }
 
-async function getDescriptorsFromKeyData(
-  extendedPublicKey: string,
-  fingerprint: string,
-  scriptVersion: NonNullable<Key['scriptVersion']>,
-  network: Network,
-  isMultisig = false
-) {
-  // Convert BDK Network to blockchain Network type
-  const blockchainNetwork =
-    network === Network.Bitcoin
-      ? 'bitcoin'
-      : network === Network.Testnet
-        ? 'testnet'
-        : 'signet'
-
-  // Use the correct derivation path based on account type
-  const derivationPath = isMultisig
-    ? getMultisigDerivationPathFromScriptVersion(
-        scriptVersion,
-        blockchainNetwork
-      )
-    : getDerivationPathFromScriptVersion(scriptVersion, blockchainNetwork)
-
-  // Construct the key part with fingerprint and derivation path
-  const keyPart = `[${fingerprint}/${derivationPath}]${extendedPublicKey}`
-
-  let externalDescriptor = ''
-  let internalDescriptor = ''
-
-  // Generate descriptors based on script version
-  switch (scriptVersion) {
-    case 'P2PKH':
-      externalDescriptor = `pkh(${keyPart}/0/*)`
-      internalDescriptor = `pkh(${keyPart}/1/*)`
-      break
-    case 'P2SH-P2WPKH':
-      externalDescriptor = `sh(wpkh(${keyPart}/0/*))`
-      internalDescriptor = `sh(wpkh(${keyPart}/1/*))`
-      break
-    case 'P2WPKH':
-      externalDescriptor = `wpkh(${keyPart}/0/*)`
-      internalDescriptor = `wpkh(${keyPart}/1/*)`
-      break
-    case 'P2TR':
-      externalDescriptor = `tr(${keyPart}/0/*)`
-      internalDescriptor = `tr(${keyPart}/1/*)`
-      break
-    case 'P2WSH':
-      externalDescriptor = `wsh(${keyPart}/0/*)`
-      internalDescriptor = `wsh(${keyPart}/1/*)`
-      break
-    case 'P2SH-P2WSH':
-      externalDescriptor = `sh(wsh(${keyPart}/0/*))`
-      internalDescriptor = `sh(wsh(${keyPart}/1/*))`
-      break
-    case 'P2SH':
-      externalDescriptor = `sh(${keyPart}/0/*)`
-      internalDescriptor = `sh(${keyPart}/1/*)`
-      break
-    default:
-      externalDescriptor = `wpkh(${keyPart}/0/*)`
-      internalDescriptor = `wpkh(${keyPart}/1/*)`
-  }
-
-  // Add checksum using BDK
-  try {
-    const externalDesc = await new Descriptor().create(
-      externalDescriptor,
-      network
-    )
-    const internalDesc = await new Descriptor().create(
-      internalDescriptor,
-      network
-    )
-
-    return {
-      externalDescriptor: externalDesc
-        ? await externalDesc.asString()
-        : externalDescriptor,
-      internalDescriptor: internalDesc
-        ? await internalDesc.asString()
-        : internalDescriptor
-    }
-  } catch {
-    // Return descriptors without checksum if BDK fails
-    return {
-      externalDescriptor,
-      internalDescriptor
-    }
-  }
-}
-
 async function syncWallet(
   wallet: Wallet,
   backend: Backend,
@@ -1171,7 +1078,6 @@ export {
   buildTransaction,
   getBlockchain,
   getDescriptorObject,
-  getDescriptorsFromKeyData,
   getExtendedPublicKeyFromAccountKey,
   getLastUnusedAddressFromWallet,
   getTransactionInputValues,
