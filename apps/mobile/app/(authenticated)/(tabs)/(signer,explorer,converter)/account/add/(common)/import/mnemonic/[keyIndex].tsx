@@ -170,6 +170,10 @@ export default function ImportMnemonic() {
 
       // Set the key with the current data
       const _currentKey = setKey(Number(keyIndex))
+
+      // Clear the key state to prevent the same mnemonic from being used for the next cosigner
+      clearKeyState()
+
       setLoadingAccount(false)
       toast.success('Key imported successfully')
       // Navigate back to multisig setup (just one screen back)
