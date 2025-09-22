@@ -6,7 +6,7 @@ import { ScrollView, TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
-import { SSIconGreen, SSIconCircleX } from '@/components/icons'
+import { SSIconCircleX, SSIconGreen } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import { useKeySourceLabel } from '@/hooks/useKeySourceLabel'

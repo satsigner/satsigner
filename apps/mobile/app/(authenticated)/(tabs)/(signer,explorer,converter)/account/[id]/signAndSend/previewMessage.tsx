@@ -57,6 +57,7 @@ import {
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { parseHexToBytes } from '@/utils/parse'
+import { validateSignedPSBTForCosigner } from '@/utils/psbtValidator'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import { estimateTransactionSize } from '@/utils/transaction'
 import {
@@ -64,7 +65,6 @@ import {
   decodeURToPSBT,
   getURFragmentsFromPSBT
 } from '@/utils/ur'
-import { validateSignedPSBTForCosigner } from '@/utils/psbtValidator'
 
 const tn = _tn('transaction.build.preview')
 
@@ -172,7 +172,7 @@ function PreviewMessage() {
             decryptedKeys[cosignerIndex]
           )
           results.set(cosignerIndex, isValid)
-        } catch (error) {
+        } catch (_error) {
           // If validation fails, mark as invalid
           results.set(cosignerIndex, false)
         }
