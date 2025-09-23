@@ -154,7 +154,7 @@ export function getExtendedPublicKeyFromSeed(
 
 // TODO: use @bitcoinerlab/descriptors and place it on utils/descriptors
 export function getExtendedKeyFromDescriptor(descriptor: string) {
-  const match = descriptor.match(/(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/)
+  const match = descriptor.match(/([xyztuv]pub)[A-Za-z0-9]+/)
   return match ? match[0] : ''
 }
 
