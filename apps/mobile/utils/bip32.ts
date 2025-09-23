@@ -1,6 +1,6 @@
 import ecc from '@bitcoinerlab/secp256k1'
 import { KeychainKind, Network } from 'bdk-rn/lib/lib/enums'
-import { BIP32Factory } from 'bip32'
+import { BIP32Factory, type BIP32Interface } from 'bip32'
 
 import type { ScriptVersionType } from '@/types/models/Account'
 import {
@@ -8,22 +8,9 @@ import {
   getMultisigDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
 
-// TODO: import  it from bip32 instead of declaring it (currently giving error)
-type BIP32Network = {
-  wif: number
-  bip32: {
-    public: number
-    private: number
-  }
-  messagePrefix?: string
-  bech32?: string
-  pubKeyHash?: number
-  scriptHash?: number
-}
-
 const bip32 = BIP32Factory(ecc)
 
-const networkMap: Record<Network, BIP32Network> = {
+const networkMap: Record<Network, BIP32Interface['network']> = {
   [Network.Bitcoin]: {
     bip32: {
       public: 0x0488b21e,
