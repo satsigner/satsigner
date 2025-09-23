@@ -1,5 +1,5 @@
 import ecc from '@bitcoinerlab/secp256k1'
-import { KeychainKind, Network } from 'bdk-rn/lib/lib/enums'
+import { KeychainKind, Network as BDKNetwork } from 'bdk-rn/lib/lib/enums'
 import { BIP32Factory, type BIP32Interface } from 'bip32'
 
 import type { ScriptVersionType } from '@/types/models/Account'
@@ -25,29 +25,29 @@ We need to convert BDK Network enum type to the type used by BIP32Interface.
 
 */
 
-const networkMap: Record<Network, BIP32Interface['network']> = {
-  [Network.Bitcoin]: {
+const BIP32Networks: Record<BDKNetwork, BIP32Interface['network']> = {
+  [BDKNetwork.Bitcoin]: {
     bip32: {
       public: 0x0488b21e,
       private: 0x0488ade4
     },
     wif: 0x80
   },
-  [Network.Testnet]: {
+  [BDKNetwork.Testnet]: {
     bip32: {
       public: 0x043587cf,
       private: 0x04358394
     },
     wif: 0xef
   },
-  [Network.Regtest]: {
+  [BDKNetwork.Regtest]: {
     bip32: {
       public: 0x043587cf,
       private: 0x04358394
     },
     wif: 0xef
   },
-  [Network.Signet]: {
+  [BDKNetwork.Signet]: {
     bip32: {
       public: 0x043587cf,
       private: 0x04358394
@@ -59,11 +59,11 @@ const networkMap: Record<Network, BIP32Interface['network']> = {
 export function getStandardPath(
   scriptVersion: ScriptVersionType,
   kind: KeychainKind,
-  network: Network,
+  network: BDKNetwork,
   account = 0
 ) {
   const purpose = getScriptVersionPurpose(scriptVersion)
-  const coinType = network === Network.Bitcoin ? 0 : 1
+  const coinType = network === BDKNetwork.Bitcoin ? 0 : 1
   const change = kind === KeychainKind.External ? 0 : 1
   const path = `m/${purpose}'/${coinType}'/${account}'/${change}/*`
   return path
@@ -73,10 +73,10 @@ export function getDescriptorFromSeed(
   seed: Buffer,
   scriptVersion: ScriptVersionType,
   kind: KeychainKind,
-  network: Network,
+  network: BDKNetwork,
   account = 0
 ): string {
-  const masterKey = bip32.fromSeed(seed, networkMap[network])
+  const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
   const path = getStandardPath(scriptVersion, kind, network, account)
   const derivedKey = masterKey.derivePath(path.replace('*', '0'))
   const pubkey = Buffer.from(derivedKey.publicKey).toString('hex')
@@ -125,27 +125,27 @@ export function getScriptVersionPurpose(
   }
 }
 
-export function getFingerprintFromSeed(seed: Buffer, network: Network) {
-  const masterKey = bip32.fromSeed(seed, networkMap[network])
+export function getFingerprintFromSeed(seed: Buffer, network: BDKNetwork) {
+  const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
   const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
   return fingerprint
 }
 
 export function getFingerprintFromExtendedPublicKey(
   extendedPublicKey: string,
-  network: Network
+  network: BDKNetwork
 ) {
-  const masterKey = bip32.fromBase58(extendedPublicKey, networkMap[network])
+  const masterKey = bip32.fromBase58(extendedPublicKey, BIP32Networks[network])
   const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
   return fingerprint
 }
 
 export function getExtendedPublicKeyFromSeed(
   seed: Buffer,
-  network: Network,
+  network: BDKNetwork,
   scriptVersion: ScriptVersionType
 ) {
-  const masterKey = bip32.fromSeed(seed, networkMap[network])
+  const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
   // this assumes default account=0 and external address kind=0
   const path = getStandardPath(scriptVersion, KeychainKind.External, network, 0)
   const derivedKey = masterKey.derivePath(path.replace('*', '0'))
@@ -163,10 +163,10 @@ export function getDescriptorsFromKey(
   extendedPublicKey: string,
   fingerprint: string,
   scriptVersion: ScriptVersionType,
-  network: Network,
+  network: BDKNetwork,
   isMultisig = false
 ) {
-  const appNetwork = network === Network.Regtest ? 'testnet' : network
+  const appNetwork = network === BDKNetwork.Regtest ? 'testnet' : network
   const derivationPath = isMultisig
     ? getMultisigDerivationPathFromScriptVersion(scriptVersion, appNetwork)
     : getDerivationPathFromScriptVersion(scriptVersion, appNetwork)
