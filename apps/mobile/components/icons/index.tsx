@@ -61,11 +61,13 @@ import SSIconMenu from './SSIconMenu'
 import SSIconMultiSignature from './SSIconMultiSignature'
 import SSIconNetwork from './SSIconNetwork'
 import SSIconOutgoing from './SSIconOutgoing'
+import SSIconPasteClipboard from './SSIconPasteClipboard'
 import SSIconPencil from './SSIconPencil'
 import SSIconPlus from './SSIconPlus'
 import SSIconRefresh from './SSIconRefresh'
 import SSIconRemove from './SSIconRemove'
 import SSIconScan from './SSIconScan'
+import SSIconScanNFC from './SSIconScanNFC'
 import SSIconScriptsP2pkh from './SSIconScriptsP2pkh'
 import SSIconServer from './SSIconServer'
 import SSIconServerOptions from './SSIconServerOptions'
@@ -145,11 +147,13 @@ export {
   SSIconMultiSignature,
   SSIconNetwork,
   SSIconOutgoing,
+  SSIconPasteClipboard,
   SSIconPencil,
   SSIconPlus,
   SSIconRefresh,
   SSIconRemove,
   SSIconScan,
+  SSIconScanNFC,
   SSIconScriptsP2pkh,
   SSIconServer,
   SSIconServerOptions,
