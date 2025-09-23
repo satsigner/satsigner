@@ -1106,7 +1106,9 @@ export default function AccountView() {
                       <SSText uppercase>{t('account.send')}</SSText>
                     </SSActionButton>
                     <SSActionButton
-                      onPress={() => router.navigate(`/account/${id}/camera`)}
+                      onPress={() =>
+                        router.navigate(`/account/${id}/pasteClipboard`)
+                      }
                       style={{
                         ...styles.actionButton,
                         width: '16.5%'
@@ -1124,7 +1126,7 @@ export default function AccountView() {
                       <SSIconCamera height={13} width={18} />
                     </SSActionButton>
                     <SSActionButton
-                      onPress={() => router.navigate(`/account/${id}/camera`)}
+                      onPress={() => router.navigate(`/account/${id}/nfcScan`)}
                       style={{
                         ...styles.actionButton,
                         width: '16.5%'

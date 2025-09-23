@@ -24,6 +24,15 @@ export async function getBitcoinAddressFromClipboard(): Promise<string | void> {
   } catch (_error) {}
 }
 
+export async function getAllClipboardContent(): Promise<string | void> {
+  try {
+    if (!(await Clipboard.hasStringAsync())) {
+      return
+    }
+    return await Clipboard.getStringAsync()
+  } catch (_error) {}
+}
+
 export async function clearClipboard(): Promise<void> {
   try {
     await Clipboard.setStringAsync('')
