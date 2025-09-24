@@ -37,6 +37,7 @@ export default function ImportMnemonic() {
     policyType,
     clearAccount,
     setMnemonic,
+    setKey,
     passphrase,
     setPassphrase: _setPassphrase,
     setFingerprint,
@@ -54,6 +55,7 @@ export default function ImportMnemonic() {
       policyType: state.policyType,
       clearAccount: state.clearAccount,
       setMnemonic: state.setMnemonic,
+      setKey: state.setKey,
       passphrase: state.passphrase,
       setPassphrase: state.setPassphrase,
       setFingerprint: state.setFingerprint,
@@ -102,14 +104,7 @@ export default function ImportMnemonic() {
     // Use the current mnemonic and fingerprint from the component
     setMnemonic(currentMnemonic)
     setFingerprint(currentFingerprint)
-
-    // Set the key with the current data
-    try {
-    } catch (error) {
-      setLoadingAccount(false)
-      toast.error(`Failed to set key: ${(error as Error).message}`)
-      return
-    }
+    setKey(Number(keyIndex))
 
     const account = getAccountData()
     const data = await accountBuilderFinish(account)
@@ -164,6 +159,7 @@ export default function ImportMnemonic() {
       }
 
       // Set the key with the current data
+      setKey(Number(keyIndex))
       setLoadingAccount(false)
       toast.success('Key imported successfully')
       // Navigate back to multisig setup (just one screen back)
