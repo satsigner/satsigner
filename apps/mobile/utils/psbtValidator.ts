@@ -1,4 +1,5 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
+import { toast } from 'sonner-native'
 
 import { type Account } from '@/types/models/Account'
 
@@ -344,7 +345,8 @@ function validateCosignerSignature(
     const hasSignature = checkSignatureForPublicKey(psbt, cosignerPublicKey)
 
     return hasSignature
-  } catch (_error) {
+  } catch (error) {
+    toast.error('Error validating cosigner signature')
     return false
   }
 }
