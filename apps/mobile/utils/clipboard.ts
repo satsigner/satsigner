@@ -5,7 +5,7 @@ import { isBip21, isBitcoinAddress } from './bitcoin'
 export async function setClipboard(value: string): Promise<void> {
   try {
     await Clipboard.setStringAsync(value)
-  } catch (_error) {
+  } catch {
     // TO DO: add error logger
   }
 }
@@ -21,7 +21,7 @@ export async function getBitcoinAddressFromClipboard(): Promise<string | void> {
       return
     }
     return value
-  } catch (_error) {}
+  } catch {}
 }
 
 export async function getAllClipboardContent(): Promise<string | void> {
@@ -30,11 +30,11 @@ export async function getAllClipboardContent(): Promise<string | void> {
       return
     }
     return await Clipboard.getStringAsync()
-  } catch (_error) {}
+  } catch {}
 }
 
 export async function clearClipboard(): Promise<void> {
   try {
     await Clipboard.setStringAsync('')
-  } catch (_error) {}
+  } catch {}
 }
