@@ -74,6 +74,40 @@ enum QRDisplayMode {
   BBQR = 'BBQR'
 }
 
+/**
+ * Check if a multisig input has enough signatures to finalize
+ */
+function hasEnoughSignatures(input: any): boolean {
+  // Early return if not a multisig input
+  if (!input.witnessScript) {
+    return true
+  }
+
+  try {
+    const script = bitcoinjs.script.decompile(input.witnessScript)
+
+    // Early return if script is invalid
+    if (!script || script.length < 3) {
+      return false
+    }
+
+    const op = script[0]
+
+    // Early return if op code is invalid
+    if (typeof op !== 'number' || op < 81 || op > 96) {
+      return false
+    }
+
+    const threshold = op - 80 // Convert OP_M to actual threshold (OP_2 = 82 -> threshold = 2)
+    const signatureCount = input.partialSig ? input.partialSig.length : 0
+
+    return signatureCount >= threshold
+  } catch (_error) {
+    toast.error('Error checking if input has enough signatures')
+    return false
+  }
+}
+
 function PreviewMessage() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
@@ -173,7 +207,7 @@ function PreviewMessage() {
           )
           results.set(cosignerIndex, isValid)
         } catch (_error) {
-          // If validation fails, mark as invalid
+          toast.error('Failed in validating cosigner signature')
           results.set(cosignerIndex, false)
         }
       }
@@ -1212,16 +1246,13 @@ function PreviewMessage() {
     handleNFCScan(-1) // Use -1 to indicate watch-only
   }
 
-  // Check if all required signatures have been collected and are valid
   const hasAllRequiredSignatures = () => {
     if (!account || account.policyType !== 'multisig' || !account.keys) {
       return false
     }
 
-    // Get the required number of signatures from the account
     const requiredSignatures = account.keysRequired || account.keys.length
 
-    // Count how many valid signed PSBTs we have
     const validSignatures = Array.from(validationResults.values()).filter(
       (isValid) => isValid === true
     ).length
@@ -1230,10 +1261,8 @@ function PreviewMessage() {
     return hasEnough
   }
 
-  // Combine and finalize all signed PSBTs for multisig
   const combineAndFinalizeMultisigPSBTs = async () => {
     try {
-      // Get the original PSBT from transaction builder result
       const originalPsbtBase64 = txBuilderResult?.psbt?.base64
       if (!originalPsbtBase64) {
         toast.error('No original PSBT found')
@@ -1270,63 +1299,10 @@ function PreviewMessage() {
         }
       }
 
-      // Step 3: Analyze the combined PSBT
-      for (let i = 0; i < combinedPsbt.data.inputs.length; i++) {
-        const input = combinedPsbt.data.inputs[i]
-
-        // Check if this is a multisig input
-        if (input.witnessScript) {
-          try {
-            const script = bitcoinjs.script.decompile(input.witnessScript)
-            if (script && script.length >= 3) {
-              const op = script[0]
-              if (typeof op === 'number' && op >= 81 && op <= 96) {
-                const threshold = op - 80 // Convert OP_M to actual threshold (OP_2 = 82 -> threshold = 2)
-                const _signatureCount = input.partialSig
-                  ? input.partialSig.length
-                  : 0
-                // Check if we have enough signatures to finalize
-                if (input.partialSig && input.partialSig.length >= threshold) {
-                  // Input has enough signatures
-                } else {
-                  // Input needs more signatures
-                }
-              } else {
-                // Invalid op code
-              }
-            } else {
-              // Script too short
-            }
-          } catch (_error) {
-            // Could not parse witness script - continue
-          }
-        } else {
-          // No witness script (not multisig)
-        }
-      }
-
-      // Step 4: Finalize the combined PSBT
+      // Step 3: Finalize the combined PSBT
 
       // Check if all inputs have enough signatures before attempting finalization
-      let allInputsReady = true
-      for (let i = 0; i < combinedPsbt.data.inputs.length; i++) {
-        const input = combinedPsbt.data.inputs[i]
-        if (input.witnessScript) {
-          const script = bitcoinjs.script.decompile(input.witnessScript)
-          if (script && script.length >= 3) {
-            const op = script[0]
-            if (typeof op === 'number' && op >= 81 && op <= 96) {
-              const threshold = op - 80
-              const signatureCount = input.partialSig
-                ? input.partialSig.length
-                : 0
-              if (signatureCount < threshold) {
-                allInputsReady = false
-              }
-            }
-          }
-        }
-      }
+      const allInputsReady = combinedPsbt.data.inputs.every(hasEnoughSignatures)
 
       if (!allInputsReady) {
         toast.error(
@@ -1337,12 +1313,11 @@ function PreviewMessage() {
       try {
         combinedPsbt.finalizeAllInputs()
       } catch (_finalizeError) {
-        // Try to finalize inputs individually to get more detailed error info
         for (let i = 0; i < combinedPsbt.data.inputs.length; i++) {
           try {
             combinedPsbt.finalizeInput(i)
           } catch (_inputError) {
-            // Input failed to finalize
+            toast.error('Failed to finalize input')
           }
         }
 
@@ -1350,12 +1325,11 @@ function PreviewMessage() {
         return null
       }
 
-      // Step 5: Extract the final transaction
+      // Step 4: Extract the final transaction
       try {
         const finalTransaction = combinedPsbt.extractTransaction()
         const transactionHex = finalTransaction.toHex()
 
-        // Update the signed transaction in the store
         setSignedTx(transactionHex)
 
         toast.success('Multisig transaction finalized successfully!')

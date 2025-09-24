@@ -345,7 +345,7 @@ function validateCosignerSignature(
     const hasSignature = checkSignatureForPublicKey(psbt, cosignerPublicKey)
 
     return hasSignature
-  } catch (error) {
+  } catch (_error) {
     toast.error('Error validating cosigner signature')
     return false
   }
