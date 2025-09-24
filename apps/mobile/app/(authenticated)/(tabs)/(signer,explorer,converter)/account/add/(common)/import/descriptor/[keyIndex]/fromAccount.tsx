@@ -113,6 +113,7 @@ function ImportDescriptorFromAccount() {
       Number(keyIndex),
       chosenAccount.keys[0].derivationPath as string
     )
+    setKey(Number(keyIndex))
     clearKeyState()
 
     setLoading(false)
