@@ -19,18 +19,21 @@ const ypub =
 const zpub =
   'zpub6rFRdN2Y3Z4A5B6C7D8E9F0G1H2I3J4K5L6M7N8O9P0Q1R2S3T4U5V6W7X8Y9Z0A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U1'
 
-const fingerprint = 'abcdef'
+const fingerprint = '12345678'
+const account = 0
+const coinTypeMainnet = 0
+const coinTypeTestnet = 1
 
 const sampleMainnetKeys = [xpub, ypub, zpub, xpub, ypub, zpub, zpub]
 
 const sampleMainnetExternalDescriptors = [
-  `pkh([${fingerprint}/44'/0'/]${xpub}0/*)`,
-  `sh(wpkh([${fingerprint}/49'/0']${ypub}/0/*))`,
-  `wpkh([${fingerprint}/84'/0'/]${zpub}/0/*)`,
-  `sh([${fingerprint}/45'/0']${xpub}/45'/0'/0/*)`,
-  `sh(wsh([${fingerprint}/48'/0']${ypub}/0/*))`,
-  `wsh([${fingerprint}/48'/0']${zpub}/0/*)`,
-  `tr([${fingerprint}/86'/0']${zpub}/0/*)`
+  `pkh([${fingerprint}/44'/${coinTypeMainnet}'/${account}']${xpub}/0/*)`,
+  `sh(wpkh([${fingerprint}/49'/${coinTypeMainnet}'/${account}']${ypub}/0/*))`,
+  `wpkh([${fingerprint}/84'/${coinTypeMainnet}'/${account}']${zpub}/0/*)`,
+  `sh([${fingerprint}/45'/${coinTypeMainnet}'/${account}']${xpub}/0/*)`,
+  `sh(wsh([${fingerprint}/48'/${coinTypeMainnet}'/${account}'/1']${ypub}/0/*))`,
+  `wsh([${fingerprint}/48'/${coinTypeMainnet}'/${account}'/2']${zpub}/0/*)`,
+  `tr([${fingerprint}/86'/${coinTypeMainnet}'/${account}']${zpub}/0/*)`
 ]
 
 const sampleMainnetInternalDescriptors = sampleMainnetExternalDescriptors.map(
@@ -40,16 +43,16 @@ const sampleMainnetInternalDescriptors = sampleMainnetExternalDescriptors.map(
 const sampleTestnetKeys = [tpub, upub, vpub, tpub, upub, vpub, vpub]
 
 const sampleTestnetExternalDescriptors = [
-  `pkh([${fingerprint}/44'/1'/]${tpub}0/*)`,
-  `sh(wpkh([${fingerprint}/49'/1']${upub}/0/*))`,
-  `wpkh([${fingerprint}/84'/1'/]${vpub}/0/*)`,
-  `sh([${fingerprint}/45'/1']${tpub}/45'/0'/0/*)`,
-  `sh(wsh([${fingerprint}/48'/1']${upub}/0/*))`,
-  `wsh([${fingerprint}/48'/1']${vpub}/0/*)`,
-  `tr([${fingerprint}/86'/1']${vpub}/0/*)`
+  `pkh([${fingerprint}/44'/${coinTypeTestnet}'/${account}']${tpub}/0/*)`,
+  `sh(wpkh([${fingerprint}/49'/${coinTypeTestnet}'/${account}']${upub}/0/*))`,
+  `wpkh([${fingerprint}/84'/${coinTypeTestnet}'/${account}']${vpub}/0/*)`,
+  `sh([${fingerprint}/45'/${coinTypeTestnet}'/${account}']${tpub}/0/*)`,
+  `sh(wsh([${fingerprint}/48'/${coinTypeTestnet}'/${account}'/1']${upub}/0/*))`,
+  `wsh([${fingerprint}/48'/${coinTypeTestnet}'/${account}'/2']${vpub}/0/*)`,
+  `tr([${fingerprint}/86'/${coinTypeTestnet}'/${account}']${vpub}/0/*)`
 ]
 
-const sampleTestnetInternalDescriptors = sampleMainnetExternalDescriptors.map(
+const sampleTestnetInternalDescriptors = sampleTestnetExternalDescriptors.map(
   (descriptor) => descriptor.replace('0/*', '1/*')
 )
 
@@ -88,7 +91,7 @@ describe('bip32 descriptor utils', () => {
 
   it('Gets descriptor from extended key (mainnet)', () => {
     for (let i = 0; i < descriptorCount; i += 1) {
-      const key = sampleTestnetKeys[i]
+      const key = sampleMainnetKeys[i]
       const scriptVersion = sampleDescriptorsScriptVersion[i]
       const network = BDKNetwork.Bitcoin
       const externalDescriptor = sampleMainnetExternalDescriptors[i]
