@@ -6,6 +6,7 @@ import SSIconBlock from './SSIconBlock'
 import SSIconBubbles from './SSIconBubbles'
 import SSIconCamera from './SSIconCamera'
 import SSIconChain from './SSIconChain'
+import SSIconChatBubble from './SSIconChatBubble'
 import SSIconChainTip from './SSIconChainTip'
 import SSIconChartSettings from './SSIconChartSettings'
 import SSIconCheckCircle from './SSIconCheckCircle'
@@ -88,6 +89,7 @@ export {
   SSIconBubbles,
   SSIconCamera,
   SSIconChain,
+  SSIconChatBubble,
   SSIconChainTip,
   SSIconChartSettings,
   SSIconCheckCircle,
