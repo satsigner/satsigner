@@ -26,18 +26,18 @@ const WORDLIST_LIST = [
   'spanish'
 ] as const
 
-type WordList = (typeof WORDLIST_LIST)[number]
+type WordListName = (typeof WORDLIST_LIST)[number]
 
-const DEFAULT_WORD_LIST = bip39.getDefaultWordlist() as WordList
+const DEFAULT_WORD_LIST = bip39.getDefaultWordlist() as WordListName
 
-function getWordList(name: WordList = DEFAULT_WORD_LIST) {
+function getWordList(name: WordListName = DEFAULT_WORD_LIST) {
   return bip39.wordlists[name]
 }
 
 function convertMnemonicUsingIndexes(
   mnemonic: string,
-  target: WordList,
-  source: WordList = 'english'
+  target: WordListName,
+  source: WordListName = 'english'
 ) {
   // we can expect app users to use english as the default word list, and not
   // other languages, in which case the target and source lists will often be
@@ -75,8 +75,8 @@ function convertMnemonicUsingIndexes(
 
 function convertMnemonicUsingEntropy(
   mnemonic: string,
-  target: WordList,
-  source: WordList = 'english'
+  target: WordListName,
+  source: WordListName = 'english'
 ) {
   if (target === source) return mnemonic
   const sourceWordList = bip39.wordlists[source]
@@ -163,6 +163,6 @@ export {
   convertMnemonicUsingIndexes,
   DEFAULT_WORD_LIST,
   getWordList,
-  type WordList,
-  WORDLIST_LIST
+  WORDLIST_LIST,
+  type WordListName
 }

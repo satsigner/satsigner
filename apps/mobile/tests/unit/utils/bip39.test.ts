@@ -5,11 +5,11 @@ import {
   generateMnemonic,
   getFingerprintFromMnemonic,
   validateMnemonic,
-  type WordList,
-  WORDLIST_LIST
+  WORDLIST_LIST,
+  type WordListName
 } from '@/utils/bip39'
 
-const test: Record<WordList, string> = {
+const test: Record<WordListName, string> = {
   chinese_simplified: '摘 惩 括 冬 贤 忙 息 债 户 孔 觉 虾',
   chinese_traditional: '摘 懲 括 冬 賢 忙 息 債 戶 孔 覺 蝦',
   czech:

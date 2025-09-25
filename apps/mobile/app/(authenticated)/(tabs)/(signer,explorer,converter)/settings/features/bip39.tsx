@@ -10,7 +10,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
-import { type WordList, WORDLIST_LIST } from '@/utils/bip39'
+import { WORDLIST_LIST, type WordListName } from '@/utils/bip39'
 
 const tn = _tn('settings.features.bip39')
 
@@ -19,7 +19,8 @@ export default function Bip39() {
     useShallow((state) => [state.mnemonicWordList, state.setMnemonicWordList])
   )
 
-  const [localWordList, setLocalWordList] = useState<WordList>(mnemonicWordList)
+  const [localWordList, setLocalWordList] =
+    useState<WordListName>(mnemonicWordList)
 
   function handleOnSave() {
     setMnemonicWordList(localWordList)
@@ -38,12 +39,12 @@ export default function Bip39() {
         <SSText size="md">{tn('longDescription')}</SSText>
         <ScrollView style={styles.wordListContainer}>
           <SSVStack gap="sm">
-            {WORDLIST_LIST.map((wordList: WordList) => (
+            {WORDLIST_LIST.map((wordListName: WordListName) => (
               <SSCheckbox
-                key={wordList}
-                label={wordList}
-                selected={localWordList === wordList}
-                onPress={() => setLocalWordList(wordList)}
+                key={wordListName}
+                label={wordListName}
+                selected={localWordList === wordListName}
+                onPress={() => setLocalWordList(wordListName)}
               />
             ))}
           </SSVStack>

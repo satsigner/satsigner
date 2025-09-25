@@ -1,4 +1,4 @@
-import { type WordList } from '@/utils/bip39'
+import { type WordListName } from '@/utils/bip39'
 
 import { type Network } from '../settings/blockchain'
 import { type Address } from './Address'
@@ -56,7 +56,7 @@ export type Key = {
   name?: string
   creationType: CreationType
   mnemonicWordCount?: MnemonicWordCount
-  mnemonicWordList?: WordList
+  mnemonicWordList?: WordListName
   /** Sensitive information that can be encrypted with PIN */
   secret: Secret | string
   /** Initialization vector for AES encryption */

@@ -20,7 +20,7 @@ import {
   getFingerprintFromMnemonic,
   getWordList,
   validateMnemonic,
-  type WordList
+  type WordListName
 } from '@/utils/bip39'
 
 type SeedWordInfo = {
@@ -31,7 +31,7 @@ type SeedWordInfo = {
 
 type SSSeedWordsInputProps = {
   wordCount: MnemonicWordCount
-  wordListName: WordList
+  wordListName: WordListName
   network: Network
   onMnemonicValid?: (mnemonic: string, fingerprint: string) => void
   onMnemonicInvalid?: () => void
