@@ -103,7 +103,7 @@ export type Account = {
     dms: DM[]
     lastUpdated: Date
     syncStart: Date
-    relayStatuses?: Record<string, 'synced' | 'syncing' | 'not synced'>
+    relayStatuses?: Record<string, 'connected' | 'connecting' | 'disconnected'>
   }
 }
 

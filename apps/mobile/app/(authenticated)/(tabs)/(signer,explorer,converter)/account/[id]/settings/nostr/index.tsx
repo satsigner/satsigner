@@ -91,8 +91,8 @@ function NostrSync() {
   const [deviceNpub, setDeviceNpub] = useState('')
   const [deviceColor, setDeviceColor] = useState('#404040')
   const [selectedRelays, setSelectedRelays] = useState<string[]>([])
-  const [relayStatuses, setRelayStatuses] = useState<
-    Record<string, 'synced' | 'syncing' | 'not synced'>
+  const [relayConnectionStatuses, setRelayConnectionStatuses] = useState<
+    Record<string, 'connected' | 'connecting' | 'disconnected'>
   >({})
 
   // Add this useCallback near the top of the component, after other hooks
@@ -107,12 +107,15 @@ function NostrSync() {
    */
   const testRelaySync = useCallback(
     async (relays: string[]) => {
-      const statuses: Record<string, 'synced' | 'syncing' | 'not synced'> = {}
+      const statuses: Record<
+        string,
+        'connected' | 'connecting' | 'disconnected'
+      > = {}
 
       relays.forEach((relay) => {
-        statuses[relay] = 'syncing'
+        statuses[relay] = 'connecting'
       })
-      setRelayStatuses(statuses)
+      setRelayConnectionStatuses(statuses)
 
       for (const relay of relays) {
         try {
@@ -136,17 +139,17 @@ function NostrSync() {
                 compressedMessage
               )
               await nostrApi.publishEvent(testEvent)
-              statuses[relay] = 'synced'
+              statuses[relay] = 'connected'
             } catch (publishError) {
-              statuses[relay] = 'not synced'
+              statuses[relay] = 'disconnected'
             }
           } else {
-            statuses[relay] = 'synced'
+            statuses[relay] = 'connected'
           }
         } catch (connectionError) {
-          statuses[relay] = 'not synced'
+          statuses[relay] = 'disconnected'
         }
-        setRelayStatuses({ ...statuses })
+        setRelayConnectionStatuses({ ...statuses })
       }
 
       if (accountId) {
@@ -160,22 +163,31 @@ function NostrSync() {
   )
 
   /**
-   * Gets the display info for relay status
+   * Gets the display info for relay connection status
    */
-  const getRelayStatusInfo = useCallback(
-    (status: 'synced' | 'syncing' | 'not synced') => {
+  const getRelayConnectionInfo = useCallback(
+    (status: 'connected' | 'connecting' | 'disconnected') => {
       switch (status) {
-        case 'synced':
-          return { color: '#22c55e', text: 'Synced' }
-        case 'syncing':
-          return { color: '#f59e0b', text: 'Syncing...' }
-        case 'not synced':
-          return { color: '#ef4444', text: 'Not Synced' }
+        case 'connected':
+          return {
+            color: '#22c55e',
+            text: t('account.nostrSync.relayStatusConnected')
+          }
+        case 'connecting':
+          return {
+            color: '#f59e0b',
+            text: t('account.nostrSync.relayStatusConnecting')
+          }
+        case 'disconnected':
+          return {
+            color: '#ef4444',
+            text: t('account.nostrSync.relayStatusDisconnected')
+          }
         default:
           return { color: '#6b7280', text: 'Unknown' }
       }
     },
-    []
+    [t]
   )
 
   /**
@@ -229,7 +241,7 @@ function NostrSync() {
     setSelectedRelays(account.nostr.relays || [])
 
     if (account.nostr.relayStatuses) {
-      setRelayStatuses(account.nostr.relayStatuses)
+      setRelayConnectionStatuses(account.nostr.relayStatuses)
     }
   }, [account, accountId, updateAccountNostrCallback])
 
@@ -264,23 +276,23 @@ function NostrSync() {
           // Cleanup all subscriptions first
           await cleanupSubscriptions()
 
-          // Set all relays to "not synced" when turning sync off
-          const allRelaysNotSynced: Record<
+          // Set all relays to "disconnected" when turning sync off
+          const allRelaysDisconnected: Record<
             string,
-            'synced' | 'syncing' | 'not synced'
+            'connected' | 'connecting' | 'disconnected'
           > = {}
           if (account.nostr.relays) {
             account.nostr.relays.forEach((relay) => {
-              allRelaysNotSynced[relay] = 'not synced'
+              allRelaysDisconnected[relay] = 'disconnected'
             })
           }
-          setRelayStatuses(allRelaysNotSynced)
+          setRelayConnectionStatuses(allRelaysDisconnected)
 
           // Then update state
           updateAccountNostrCallback(accountId, {
             ...account.nostr,
             autoSync: false,
-            relayStatuses: allRelaysNotSynced,
+            relayStatuses: allRelaysDisconnected,
             lastUpdated: new Date()
           })
         } catch {
@@ -780,8 +792,9 @@ function NostrSync() {
                 <SSText center>{t('account.nostrSync.relayStatus')}</SSText>
                 <SSVStack gap="sm" style={styles.relayStatusContainer}>
                   {selectedRelays.map((relay, index) => {
-                    const status = relayStatuses[relay] || 'not synced'
-                    const statusInfo = getRelayStatusInfo(status)
+                    const status =
+                      relayConnectionStatuses[relay] || 'disconnected'
+                    const statusInfo = getRelayConnectionInfo(status)
 
                     return (
                       <SSHStack
@@ -805,9 +818,9 @@ function NostrSync() {
                         <SSText
                           size="sm"
                           color={
-                            status === 'synced'
+                            status === 'connected'
                               ? 'white'
-                              : status === 'not synced'
+                              : status === 'disconnected'
                                 ? 'white'
                                 : 'muted'
                           }
@@ -815,7 +828,7 @@ function NostrSync() {
                         >
                           {statusInfo.text}
                         </SSText>
-                        {status === 'syncing' && (
+                        {status === 'connecting' && (
                           <ActivityIndicator
                             size="small"
                             color={statusInfo.color}
@@ -882,8 +895,7 @@ const styles = StyleSheet.create({
   },
   relayStatusContainer: {
     backgroundColor: '#1a1a1a',
-    borderRadius: 8,
-    borderColor: Colors.white,
+    borderRadius: 4,
     padding: 12,
     borderWidth: 1
   },
