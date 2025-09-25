@@ -1,6 +1,5 @@
 import {
   convertKeyFormat,
-  convertKeyForNetwork,
   detectNetworkFromKey,
   getDerivationPathFromScriptVersion,
   getKeyFormatForScriptVersion,
@@ -125,26 +124,6 @@ describe('Network-aware key handling', () => {
       // Test with invalid keys that have correct prefixes but invalid checksums
       const invalidKey = 'xpub123456789abcdef'
       expect(convertKeyFormat(invalidKey, 'ypub', 'bitcoin')).toBe(invalidKey)
-    })
-  })
-
-  describe('convertKeyForNetwork', () => {
-    it('should handle invalid inputs gracefully', () => {
-      expect(convertKeyForNetwork('', 'testnet')).toBe('')
-      expect(convertKeyForNetwork('invalid', 'testnet')).toBe('invalid')
-    })
-
-    it('should not convert when source and target networks are the same', () => {
-      const mainnetXpub = 'xpub123456789abcdef'
-      expect(convertKeyForNetwork(mainnetXpub, 'bitcoin')).toBe(mainnetXpub)
-
-      const testnetTpub = 'tpub123456789abcdef'
-      expect(convertKeyForNetwork(testnetTpub, 'testnet')).toBe(testnetTpub)
-    })
-
-    it('should return original key for invalid keys', () => {
-      const invalidKey = 'xpub123456789abcdef'
-      expect(convertKeyForNetwork(invalidKey, 'testnet')).toBe(invalidKey)
     })
   })
 })
