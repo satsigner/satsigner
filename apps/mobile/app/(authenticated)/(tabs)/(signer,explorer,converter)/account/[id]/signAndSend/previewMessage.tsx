@@ -1313,11 +1313,11 @@ function PreviewMessage() {
       }
       try {
         combinedPsbt.finalizeAllInputs()
-      } catch (_finalizeError) {
+      } catch (_error) {
         for (let i = 0; i < combinedPsbt.data.inputs.length; i++) {
           try {
             combinedPsbt.finalizeInput(i)
-          } catch (_inputError) {
+          } catch (_error) {
             toast.error('Failed to finalize input')
           }
         }
@@ -1335,7 +1335,7 @@ function PreviewMessage() {
 
         toast.success('Multisig transaction finalized successfully!')
         return transactionHex
-      } catch (_extractError) {
+      } catch (_error) {
         toast.error('Failed to extract final transaction')
         return null
       }
