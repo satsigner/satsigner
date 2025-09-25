@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { type StyleProp, type ViewStyle } from 'react-native'
 import { toast } from 'sonner-native'
 
-import { getFingerprint, validateMnemonic } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSFingerprint from '@/components/SSFingerprint'
@@ -16,8 +15,12 @@ import SSHStack from '@/layouts/SSHStack'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { type MnemonicCount } from '@/types/models/Account'
-import { getWordList } from '@/utils/bip39'
+import { type MnemonicWordCount } from '@/types/models/Account'
+import {
+  getFingerprintFromMnemonic,
+  getWordList,
+  validateMnemonic
+} from '@/utils/bip39'
 
 type SeedWordInfo = {
   value: string
@@ -26,7 +29,7 @@ type SeedWordInfo = {
 }
 
 type SSSeedWordsInputProps = {
-  wordCount: MnemonicCount
+  wordCount: MnemonicWordCount
   network: Network
   onMnemonicValid?: (mnemonic: string, fingerprint: string) => void
   onMnemonicInvalid?: () => void
@@ -112,7 +115,7 @@ export default function SSSeedWordsInput({
         if (seedCandidate.length !== wordCount) continue
         const validWords = seedCandidate.every((x) => wordList.includes(x))
         if (!validWords) continue
-        const checksum = await validateMnemonic(seedCandidate.join(' '))
+        const checksum = validateMnemonic(seedCandidate.join(' '))
         if (!checksum) continue
         return seedCandidate
       }
@@ -133,11 +136,11 @@ export default function SSSeedWordsInput({
       setSeedWordsInfo(newSeedWordsInfo)
 
       const mnemonic = seed.join(' ')
-      const checksumValid = await validateMnemonic(mnemonic)
+      const checksumValid = validateMnemonic(mnemonic)
       setChecksumValid(checksumValid)
 
       if (checksumValid) {
-        const fingerprintResult = await getFingerprint(
+        const fingerprintResult = getFingerprintFromMnemonic(
           mnemonic,
           passphrase,
           network
@@ -206,11 +209,11 @@ export default function SSSeedWordsInput({
     // Validate complete mnemonic
     const mnemonic = newSeedWordsInfo.map((info) => info.value).join(' ')
     if (mnemonic.trim().length > 0) {
-      const checksumValid = await validateMnemonic(mnemonic)
+      const checksumValid = validateMnemonic(mnemonic)
       setChecksumValid(checksumValid)
 
       if (checksumValid) {
-        const fingerprintResult = await getFingerprint(
+        const fingerprintResult = getFingerprintFromMnemonic(
           mnemonic,
           passphrase,
           network
@@ -241,11 +244,11 @@ export default function SSSeedWordsInput({
 
     // Validate complete mnemonic
     const mnemonic = newSeedWordsInfo.map((info) => info.value).join(' ')
-    const checksumValid = await validateMnemonic(mnemonic)
+    const checksumValid = validateMnemonic(mnemonic)
     setChecksumValid(checksumValid)
 
     if (checksumValid) {
-      const fingerprintResult = await getFingerprint(
+      const fingerprintResult = getFingerprintFromMnemonic(
         mnemonic,
         passphrase,
         network
@@ -263,7 +266,11 @@ export default function SSSeedWordsInput({
     // Re-validate mnemonic with new passphrase if mnemonic is complete
     const mnemonic = seedWordsInfo.map((info) => info.value).join(' ')
     if (mnemonic.trim().length > 0 && checksumValid) {
-      const fingerprintResult = await getFingerprint(mnemonic, text, network)
+      const fingerprintResult = getFingerprintFromMnemonic(
+        mnemonic,
+        text,
+        network
+      )
       setFingerprint(fingerprintResult)
       onMnemonicValid?.(mnemonic, fingerprintResult)
     }

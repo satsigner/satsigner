@@ -41,7 +41,7 @@ import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Typography } from '@/styles'
 import {
   type Key,
-  type MnemonicCount,
+  type MnemonicWordCount,
   type Secret
 } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
@@ -151,7 +151,8 @@ function PreviewMessage() {
   // Seed words modal state
   const [seedWordsModalVisible, setSeedWordsModalVisible] = useState(false)
   const [wordCountModalVisible, setWordCountModalVisible] = useState(false)
-  const [selectedWordCount, setSelectedWordCount] = useState<MnemonicCount>(24)
+  const [selectedWordCount, setSelectedWordCount] =
+    useState<MnemonicWordCount>(24)
   const [currentMnemonic, setCurrentMnemonic] = useState('')
   const [_currentFingerprint, _setCurrentFingerprint] = useState('')
 
@@ -1204,7 +1205,7 @@ function PreviewMessage() {
   }
 
   // Handle word count selection
-  const handleWordCountSelect = (wordCount: MnemonicCount) => {
+  const handleWordCountSelect = (wordCount: MnemonicWordCount) => {
     setSelectedWordCount(wordCount)
     setWordCountModalVisible(false)
     setSeedWordsModalVisible(true)
@@ -2329,7 +2330,7 @@ function PreviewMessage() {
                     selectedWordCount === wordCount ? 'outline' : 'ghost'
                   }
                   onPress={() =>
-                    setSelectedWordCount(wordCount as MnemonicCount)
+                    setSelectedWordCount(wordCount as MnemonicWordCount)
                   }
                 />
               ))}

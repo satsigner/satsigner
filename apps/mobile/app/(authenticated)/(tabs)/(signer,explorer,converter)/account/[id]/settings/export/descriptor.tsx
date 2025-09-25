@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { toast } from 'sonner-native'
 
-import { getDescriptorsFromKeyData } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
@@ -19,6 +18,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { getDescriptorsFromKey } from '@/utils/bip32'
 import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
@@ -292,7 +292,7 @@ export default function DescriptorPage() {
             if (fingerprint) {
               // Use the getDescriptorsFromKeyData function for better consistency
               try {
-                const descriptors = await getDescriptorsFromKeyData(
+                const descriptors = getDescriptorsFromKey(
                   decryptedSecret.extendedPublicKey,
                   fingerprint,
                   key.scriptVersion || 'P2WPKH',

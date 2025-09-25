@@ -35,6 +35,10 @@ import { usePriceStore } from '@/store/price'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Network } from '@/types/settings/blockchain'
+import {
+  getExtendedPublicKeyFromMnemonic,
+  getFingerprintFromMnemonic
+} from '@/utils/bip39'
 import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
 import {
   sampleMultiAddressTether,
@@ -234,51 +238,22 @@ export default function AccountList() {
         setSelectedNetwork(currentNetwork)
       }
 
-      let _sampleAddress
-
       switch (type) {
         case 'segwit': {
-          // Validate the sample seed
-          const seedWords = sampleSignetWalletSeed.split(' ')
-          if (seedWords.length !== 12) {
-            throw new Error('Invalid sample seed: must be 12 words')
-          }
-
           // Generate fingerprint and extended public key from mnemonic
-          try {
-            const { getFingerprint, getExtendedPublicKeyFromMnemonic } =
-              await import('@/api/bdk')
-            const fingerprint = await getFingerprint(
-              sampleSignetWalletSeed,
-              '',
-              bdkNetwork
-            )
-            const extendedPublicKey = await getExtendedPublicKeyFromMnemonic(
-              sampleSignetWalletSeed,
-              '',
-              bdkNetwork,
-              'P2WPKH'
-            )
-
-            // Set the fingerprint and extended public key
-            setFingerprint(fingerprint)
-            setExtendedPublicKey(extendedPublicKey)
-
-            // Additional validation
-            if (!fingerprint || fingerprint.length === 0) {
-              throw new Error('Generated fingerprint is empty or invalid')
-            }
-            if (!extendedPublicKey || extendedPublicKey.length === 0) {
-              throw new Error(
-                'Generated extended public key is empty or invalid'
-              )
-            }
-          } catch (error) {
-            throw new Error(
-              `Failed to process mnemonic: ${(error as Error).message}`
-            )
-          }
-
+          const fingerprint = getFingerprintFromMnemonic(
+            sampleSignetWalletSeed,
+            '',
+            bdkNetwork
+          )
+          const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
+            sampleSignetWalletSeed,
+            '',
+            bdkNetwork,
+            'P2WPKH'
+          )
+          setFingerprint(fingerprint)
+          setExtendedPublicKey(extendedPublicKey)
           setScriptVersion('P2WPKH')
           setPolicyType('singlesig')
           setCreationType('importMnemonic')
@@ -287,47 +262,19 @@ export default function AccountList() {
           break
         }
         case 'legacy': {
-          // Validate the sample seed
-          const legacySeedWords = sampleSignetWalletSeed.split(' ')
-          if (legacySeedWords.length !== 12) {
-            throw new Error('Invalid sample seed: must be 12 words')
-          }
-
-          // Generate fingerprint and extended public key from mnemonic
-          try {
-            const { getFingerprint, getExtendedPublicKeyFromMnemonic } =
-              await import('@/api/bdk')
-            const fingerprint = await getFingerprint(
-              sampleSignetWalletSeed,
-              '',
-              bdkNetwork
-            )
-            const extendedPublicKey = await getExtendedPublicKeyFromMnemonic(
-              sampleSignetWalletSeed,
-              '',
-              bdkNetwork,
-              'P2PKH'
-            )
-
-            // Set the fingerprint and extended public key
-            setFingerprint(fingerprint)
-            setExtendedPublicKey(extendedPublicKey)
-
-            // Additional validation
-            if (!fingerprint || fingerprint.length === 0) {
-              throw new Error('Generated fingerprint is empty or invalid')
-            }
-            if (!extendedPublicKey || extendedPublicKey.length === 0) {
-              throw new Error(
-                'Generated extended public key is empty or invalid'
-              )
-            }
-          } catch (error) {
-            throw new Error(
-              `Failed to process mnemonic: ${(error as Error).message}`
-            )
-          }
-
+          const fingerprint = getFingerprintFromMnemonic(
+            sampleSignetWalletSeed,
+            '',
+            bdkNetwork
+          )
+          const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
+            sampleSignetWalletSeed,
+            '',
+            bdkNetwork,
+            'P2PKH'
+          )
+          setFingerprint(fingerprint)
+          setExtendedPublicKey(extendedPublicKey)
           setScriptVersion('P2PKH')
           setPolicyType('singlesig')
           setCreationType('importMnemonic')
@@ -343,25 +290,21 @@ export default function AccountList() {
           setFingerprint(sampleSignetXpubFingerprint)
           break
         case 'watchonlyAddress':
-          _sampleAddress = sampleSignetAddress
           setPolicyType('watchonly')
           setCreationType('importAddress')
           setExternalDescriptor(`addr(${sampleSignetAddress})`)
           break
         case 'watchonlySalvador':
-          _sampleAddress = sampleSalvadorAddress
           setPolicyType('watchonly')
           setCreationType('importAddress')
           setExternalDescriptor(`addr(${sampleSalvadorAddress})`)
           break
         case 'watchonlySegwit':
-          _sampleAddress = sampleSegwitAddress
           setPolicyType('watchonly')
           setCreationType('importAddress')
           setExternalDescriptor(`addr(${sampleSegwitAddress})`)
           break
         case 'watchonlyTestnet4':
-          _sampleAddress = sampleTestnet4Address
           setPolicyType('watchonly')
           setCreationType('importAddress')
           setExternalDescriptor(`addr(${sampleTestnet4Address})`)
@@ -385,63 +328,39 @@ export default function AccountList() {
           setMnemonic(sampleSignetMultisigKey1)
           setMnemonicWordCount(12)
           setCreationType('importMnemonic')
-
-          // Generate fingerprint and extended public key for key 1
-          try {
-            const { getFingerprint, getExtendedPublicKeyFromMnemonic } =
-              await import('@/api/bdk')
-            const fingerprint1 = await getFingerprint(
-              sampleSignetMultisigKey1,
-              '',
-              bdkNetwork
-            )
-            const extendedPublicKey1 = await getExtendedPublicKeyFromMnemonic(
-              sampleSignetMultisigKey1,
-              '',
-              bdkNetwork,
-              'P2WSH',
-              undefined,
-              true // isMultisig
-            )
-            setFingerprint(fingerprint1)
-            setExtendedPublicKey(extendedPublicKey1)
-            setKey(0)
-          } catch (error) {
-            throw new Error(
-              `Failed to process mnemonic 1: ${(error as Error).message}`
-            )
-          }
+          const fingerprint1 = getFingerprintFromMnemonic(
+            sampleSignetMultisigKey1,
+            '',
+            bdkNetwork
+          )
+          const extendedPublicKey1 = getExtendedPublicKeyFromMnemonic(
+            sampleSignetMultisigKey1,
+            '',
+            bdkNetwork,
+            'P2WSH'
+          )
+          setFingerprint(fingerprint1)
+          setExtendedPublicKey(extendedPublicKey1)
+          setKey(0)
 
           // Key 2: Mnemonic
           setMnemonic(sampleSignetMultisigKey2)
           setMnemonicWordCount(12)
           setCreationType('importMnemonic')
-
-          // Generate fingerprint and extended public key for key 2
-          try {
-            const { getFingerprint, getExtendedPublicKeyFromMnemonic } =
-              await import('@/api/bdk')
-            const fingerprint2 = await getFingerprint(
-              sampleSignetMultisigKey2,
-              '',
-              bdkNetwork
-            )
-            const extendedPublicKey2 = await getExtendedPublicKeyFromMnemonic(
-              sampleSignetMultisigKey2,
-              '',
-              bdkNetwork,
-              'P2WSH',
-              undefined,
-              true // isMultisig
-            )
-            setFingerprint(fingerprint2)
-            setExtendedPublicKey(extendedPublicKey2)
-            setKey(1)
-          } catch (error) {
-            throw new Error(
-              `Failed to process mnemonic 2: ${(error as Error).message}`
-            )
-          }
+          const fingerprint2 = getFingerprintFromMnemonic(
+            sampleSignetMultisigKey2,
+            '',
+            bdkNetwork
+          )
+          const extendedPublicKey2 = getExtendedPublicKeyFromMnemonic(
+            sampleSignetMultisigKey2,
+            '',
+            bdkNetwork,
+            'P2WSH'
+          )
+          setFingerprint(fingerprint2)
+          setExtendedPublicKey(extendedPublicKey2)
+          setKey(1)
 
           // Key 3: Extended Public Key
           setCreationType('importExtendedPub')

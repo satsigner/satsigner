@@ -387,7 +387,7 @@ export default function ImportDescriptor() {
       }
 
       // Set the key data
-      const _key = setKey(Number(keyIndex))
+      setKey(Number(keyIndex))
       setKeyDerivationPath(Number(keyIndex), derivationPath)
 
       clearKeyState()

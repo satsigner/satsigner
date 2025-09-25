@@ -5,7 +5,6 @@ import { ScrollView } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getExtendedPublicKeyFromMnemonic } from '@/api/bdk'
 import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
 import SSGradientModal from '@/components/SSGradientModal'
 import SSSeedWordsInput from '@/components/SSSeedWordsInput'
@@ -23,6 +22,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
+import { getExtendedPublicKeyFromMnemonic } from '@/utils/bip39'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 export default function ImportMnemonic() {
   const { keyIndex } = useLocalSearchParams<ImportMnemonicSearchParams>()
@@ -37,11 +37,11 @@ export default function ImportMnemonic() {
     policyType,
     clearAccount,
     setMnemonic,
+    setKey,
     passphrase,
     setPassphrase: _setPassphrase,
     setFingerprint,
     setExtendedPublicKey,
-    setKey,
     getAccountData,
     updateKeySecret: _updateKeySecret,
     clearKeyState
@@ -55,11 +55,11 @@ export default function ImportMnemonic() {
       policyType: state.policyType,
       clearAccount: state.clearAccount,
       setMnemonic: state.setMnemonic,
+      setKey: state.setKey,
       passphrase: state.passphrase,
       setPassphrase: state.setPassphrase,
       setFingerprint: state.setFingerprint,
       setExtendedPublicKey: state.setExtendedPublicKey,
-      setKey: state.setKey,
       getAccountData: state.getAccountData,
       updateKeySecret: state.updateKeySecret,
       clearKeyState: state.clearKeyState
@@ -104,15 +104,7 @@ export default function ImportMnemonic() {
     // Use the current mnemonic and fingerprint from the component
     setMnemonic(currentMnemonic)
     setFingerprint(currentFingerprint)
-
-    // Set the key with the current data
-    try {
-      const _currentKey = setKey(Number(keyIndex))
-    } catch (error) {
-      setLoadingAccount(false)
-      toast.error(`Failed to set key: ${(error as Error).message}`)
-      return
-    }
+    setKey(Number(keyIndex))
 
     const account = getAccountData()
     const data = await accountBuilderFinish(account)
@@ -155,19 +147,18 @@ export default function ImportMnemonic() {
       // For multisig, we need to generate the extended public key from the mnemonic
       if (currentMnemonic && currentFingerprint) {
         // Generate the extended public key
-        const extendedPublicKey = await getExtendedPublicKeyFromMnemonic(
+        const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
           currentMnemonic,
           passphrase || '',
           network as Network,
-          scriptVersion,
-          undefined,
-          true // isMultisig
+          scriptVersion
         )
 
         // Set the extended public key
         setExtendedPublicKey(extendedPublicKey)
       }
 
+      setKey(Number(keyIndex))
       clearKeyState()
 
       setLoadingAccount(false)

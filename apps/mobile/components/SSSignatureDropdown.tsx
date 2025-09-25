@@ -1,5 +1,3 @@
-import { Descriptor } from 'bdk-rn'
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Buffer } from 'buffer'
 import { useEffect, useState } from 'react'
 import { ScrollView, TouchableOpacity, View } from 'react-native'
@@ -17,6 +15,7 @@ import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Typography } from '@/styles'
 import { type Account, type Key } from '@/types/models/Account'
+import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import {
   validateSignedPSBT,
   validateSignedPSBTForCosigner
@@ -117,13 +116,9 @@ function SSSignatureDropdown({
           }
           if (secret.externalDescriptor) {
             try {
-              const network = useBlockchainStore.getState().selectedNetwork
-              const descriptor = await new Descriptor().create(
-                secret.externalDescriptor,
-                network as Network
+              const publicKey = getExtendedKeyFromDescriptor(
+                secret.externalDescriptor
               )
-              const publicKey =
-                await extractExtendedKeyFromDescriptor(descriptor)
               setExtractedPublicKey(publicKey)
             } catch (_error) {
               setExtractedPublicKey('')
@@ -147,12 +142,9 @@ function SSSignatureDropdown({
         // If we have a descriptor, extract the public key from it
         if (secret.externalDescriptor) {
           try {
-            const network = useBlockchainStore.getState().selectedNetwork
-            const descriptor = await new Descriptor().create(
-              secret.externalDescriptor,
-              network as Network
+            const publicKey = getExtendedKeyFromDescriptor(
+              secret.externalDescriptor
             )
-            const publicKey = await extractExtendedKeyFromDescriptor(descriptor)
             setExtractedPublicKey(publicKey)
           } catch (_error) {
             setExtractedPublicKey('')

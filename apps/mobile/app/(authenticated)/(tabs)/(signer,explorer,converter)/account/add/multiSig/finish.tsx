@@ -43,20 +43,8 @@ export default function ConfirmScreen() {
         return
       }
 
-      if (data.wallet) {
-        // Try to get some wallet information
-        try {
-          const _walletAddressInfo = await data.wallet.getAddress(0)
-          const _walletAddress = await _walletAddressInfo.address.asString()
-        } catch (_error) {}
-      }
-
-      if (data.accountWithEncryptedSecret) {
-      }
-
       // Use the account ID from the created account, not the builder data
       setAccountId(data.accountWithEncryptedSecret.id)
-
       setCompleted(true)
 
       try {
@@ -70,7 +58,7 @@ export default function ConfirmScreen() {
       } catch (error) {
         toast.error((error as Error).message)
       }
-    } catch (_error) {
+    } catch {
       toast.error(t('multisig.createError'))
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps

@@ -379,7 +379,7 @@ export default function ImportExtendedPub() {
       }
 
       // Create the key
-      const _key = setKey(Number(keyIndex))
+      setKey(Number(keyIndex))
 
       // Set the derivation path for this key
       setKeyDerivationPath(Number(keyIndex), derivationPath)
@@ -388,7 +388,7 @@ export default function ImportExtendedPub() {
 
       toast.success(t('account.import.success'))
       router.dismiss(1)
-    } catch (_error) {
+    } catch {
       toast.error(t('import.error'))
     }
   }

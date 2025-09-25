@@ -1,12 +1,9 @@
-import { Descriptor } from 'bdk-rn'
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { Animated, TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
 import { SSIconAdd, SSIconGreen, SSIconGreenNoSecret } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
@@ -29,6 +26,7 @@ import {
   type ScriptVersionType,
   type Secret
 } from '@/types/models/Account'
+import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 
 type SSMultisigKeyControlProps = {
   index: number
@@ -134,21 +132,10 @@ function SSMultisigKeyControl({
 
       // If we have a descriptor, extract the public key from it
       if (secret.externalDescriptor) {
-        try {
-          const network = useBlockchainStore.getState().selectedNetwork
-          const descriptor = await new Descriptor().create(
-            secret.externalDescriptor,
-            network as Network
-          )
-          if (!descriptor) {
-            setExtractedPublicKey('')
-            return
-          }
-          const publicKey = await extractExtendedKeyFromDescriptor(descriptor)
-          setExtractedPublicKey(publicKey)
-        } catch (_error) {
-          setExtractedPublicKey('')
-        }
+        const publicKey = getExtendedKeyFromDescriptor(
+          secret.externalDescriptor
+        )
+        setExtractedPublicKey(publicKey)
       } else {
         setExtractedPublicKey('')
       }
