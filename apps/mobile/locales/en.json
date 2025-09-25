@@ -359,7 +359,7 @@
     "backToAccountHome": "Back to account home",
     "cancel": "Cancel",
     "clear": "Clear",
-    "clipboardEmpty": "Clipboard is empty or doesn't contain a valid Bitcoin address",
+    "clipboardEmpty": "Clipboard is empty or doesn't contain a valid Bitcoin address, payment request, or PSBT",
     "clipboardHasContent": "Clipboard contains a Bitcoin address, payment request, or PSBT",
     "close": "Close",
     "completed": "Completed",
