@@ -96,11 +96,6 @@ const wordCountToEntropyBits: Record<MnemonicWordCount, MnemonicEntropyBits> = {
   24: 256
 }
 
-export function getWordList() {
-  const name = bip39.getDefaultWordlist()
-  return bip39.wordlists[name]
-}
-
 export function validateMnemonic(
   mnemonic: string,
   wordListName: string = 'english'

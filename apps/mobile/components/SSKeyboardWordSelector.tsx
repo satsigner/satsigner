@@ -17,6 +17,7 @@ import useKeyboardHeight from '@/hooks/useKeyboardHeight'
 import usePrevious from '@/hooks/usePrevious'
 import { t } from '@/locales'
 import { Colors, Sizes } from '@/styles'
+import { getWordList, type WordList } from '@/utils/bip39'
 
 type WordInfo = {
   index: number
@@ -57,7 +58,7 @@ function getMatchingWords(wordStart: string, wordList: string[]): WordInfo[] {
 type SSKeyboardWordSelectorProps = {
   visible: boolean
   wordStart: string
-  wordList: string[]
+  wordListName: WordList
   onWordSelected(word: string): void
   style: StyleProp<ViewStyle>
 }
@@ -65,10 +66,11 @@ type SSKeyboardWordSelectorProps = {
 function SSKeyboardWordSelector({
   visible,
   wordStart,
-  wordList,
+  wordListName,
   onWordSelected,
   style
 }: SSKeyboardWordSelectorProps) {
+  const wordList = getWordList(wordListName)
   const { width } = useWindowDimensions()
   const [keyboardOpen, setKeyboardOpen] = useState(false)
   const flashList = useRef<FlashList<WordInfo>>(null)

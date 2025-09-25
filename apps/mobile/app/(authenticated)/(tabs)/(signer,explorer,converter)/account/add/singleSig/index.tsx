@@ -20,7 +20,11 @@ import { useSettingsStore } from '@/store/settings'
 import { type EntropyType } from '@/types/logic/entropy'
 import { type Key } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
-import { WORDLIST_LIST, generateMnemonic, getFingerprintFromMnemonic } from '@/utils/bip39'
+import {
+  WORDLIST_LIST,
+  generateMnemonic,
+  getFingerprintFromMnemonic
+} from '@/utils/bip39'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 export default function SingleSig() {

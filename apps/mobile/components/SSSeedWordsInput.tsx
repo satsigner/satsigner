@@ -19,7 +19,8 @@ import { type MnemonicWordCount } from '@/types/models/Account'
 import {
   getFingerprintFromMnemonic,
   getWordList,
-  validateMnemonic
+  validateMnemonic,
+  type WordList
 } from '@/utils/bip39'
 
 type SeedWordInfo = {
@@ -30,6 +31,7 @@ type SeedWordInfo = {
 
 type SSSeedWordsInputProps = {
   wordCount: MnemonicWordCount
+  wordListName: WordList
   network: Network
   onMnemonicValid?: (mnemonic: string, fingerprint: string) => void
   onMnemonicInvalid?: () => void
@@ -61,6 +63,7 @@ const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
 
 export default function SSSeedWordsInput({
   wordCount,
+  wordListName,
   network,
   onMnemonicValid,
   onMnemonicInvalid,
@@ -89,9 +92,9 @@ export default function SSSeedWordsInput({
   const [fingerprint, setFingerprint] = useState('')
   const [passphrase, setPassphrase] = useState('')
 
-  const wordList = getWordList()
   const passphraseRef = useRef<any>()
   const clipboardCheckedRef = useRef(false)
+  const wordList = getWordList(wordListName)
 
   // Initialize seed words info
   useEffect(() => {
@@ -326,6 +329,7 @@ export default function SSSeedWordsInput({
       <SSKeyboardWordSelector
         visible={keyboardWordSelectorVisible}
         wordStart={currentWordText}
+        wordListName={wordListName}
         onWordSelected={handleWordSelected}
         style={{ height: 60 }}
       />

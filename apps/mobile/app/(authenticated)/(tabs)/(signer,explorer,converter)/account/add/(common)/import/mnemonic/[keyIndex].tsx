@@ -5,6 +5,7 @@ import { ScrollView } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { getExtendedPublicKeyFromAccountKey } from '@/api/bdk'
 import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
 import SSGradientModal from '@/components/SSGradientModal'
 import SSSeedWordsInput from '@/components/SSSeedWordsInput'
@@ -20,14 +21,20 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
+import { type SeedWordInfo } from '@/types/logic/seedWord'
 import { type Account } from '@/types/models/Account'
 import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
-import { convertMnemonic, getWordList, getExtendedPublicKeyFromMnemonic } from '@/utils/bip39'
-import { seedWordsPrefixOfAnother } from '@/utils/seed'
+import {
+  convertMnemonic,
+  getFingerprintFromMnemonic,
+  getWordList,
+  validateMnemonic
+} from '@/utils/bip39'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
+import { seedWordsPrefixOfAnother } from '@/utils/seed'
 
 const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
-        
+
 export default function ImportMnemonic() {
   const { keyIndex } = useLocalSearchParams<ImportMnemonicSearchParams>()
   const router = useRouter()
@@ -44,29 +51,12 @@ export default function ImportMnemonic() {
     setMnemonic,
     setKey,
     passphrase,
+    setPassphrase,
     setFingerprint,
     setExtendedPublicKey,
     getAccountData,
     clearKeyState
-  ] = useAccountBuilderStore(
-    useShallow((state) => [
-      state.name,
-      state.keys,
-      state.scriptVersion,
-      state.mnemonicWordCount,
-      state.mnemonicWordList,
-      state.fingerprint,
-      state.policyType,
-      state.clearAccount,
-      state.setMnemonic,
-      state.setKey,
-      state.passphrase,
-      state.setFingerprint,
-      state.setExtendedPublicKey,
-      state.getAccountData,
-      state.clearKeyState
-    ])
-  )
+  } = useAccountBuilderStore(useShallow((state) => state))
   const [network, connectionMode] = useBlockchainStore(
     useShallow((state) => [
       state.selectedNetwork,
@@ -208,12 +198,12 @@ export default function ImportMnemonic() {
     // convert mnemonic to english
     const mnemonic = convertMnemonic(localMnemonic, 'english', mnemonicWordList)
 
-    const checksumValid = await validateMnemonic(mnemonic)
+    const checksumValid = validateMnemonic(mnemonic)
     setChecksumValid(checksumValid)
 
     if (checksumValid) {
       setMnemonic(mnemonic)
-      const fingerprint = await getFingerprint(
+      const fingerprint = getFingerprintFromMnemonic(
         mnemonic,
         passphrase,
         network as Network
@@ -310,12 +300,12 @@ export default function ImportMnemonic() {
       mnemonicWordList
     )
 
-    const checksumValid = await validateMnemonic(mnemonic)
+    const checksumValid = validateMnemonic(mnemonic)
     setChecksumValid(checksumValid)
 
     if (checksumValid) {
       setMnemonic(mnemonic)
-      const fingerprint = await getFingerprint(
+      const fingerprint = getFingerprintFromMnemonic(
         mnemonic,
         passphrase,
         network as Network
@@ -368,15 +358,13 @@ export default function ImportMnemonic() {
         setLoadingAccount(false)
       }
     } else if (policyType === 'multisig') {
-      try {
-        const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
-          currentKey,
-          network as Network
-        )
+      const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
+        currentKey,
+        network as Network
+      )
 
-        // Set the extended public key
-        setExtendedPublicKey(extendedPublicKey)
-      }
+      // Set the extended public key
+      setExtendedPublicKey(extendedPublicKey)
 
       // Set the key with the current data
       setKey(Number(keyIndex))
@@ -384,9 +372,6 @@ export default function ImportMnemonic() {
       toast.success('Key imported successfully')
       // Navigate back to multisig setup (just one screen back)
       router.back()
-    } catch (error) {
-      setLoadingAccount(false)
-      toast.error(`Failed to set key: ${(error as Error).message}`)
     }
   }
 
