@@ -27,6 +27,11 @@ export function validateExtendedKey(key: string, network?: AppNetwork) {
   return key.match(new RegExp('^[tuvxyz](pub|prv)[a-zA-Z0-9]+$')) !== null
 }
 
+export function isDomainName(host: string): boolean {
+  // Validate host: allow domain names (starting with letter) or IP addresses
+  return /^[a-z][a-z0-9.-]*[a-z0-9]$/i.test(host)
+}
+
 export function validateDerivationPath(path: string) {
   // Updated regex to better handle both h and ' formats
   // Supports: m/84h/0h/0h, m/84'/0'/0', 84h/0h/0h, 84'/0'/0', etc.
@@ -146,7 +151,6 @@ async function validateDescriptorInternal(
   const content = '[a-zA-Z0-9]+'
   // Updated to handle combined descriptor syntax: <0;1> or <0,1>
   const addressDerivationPath = '(/[0-9*]|<0[,;]1>)*'
-  const _checksum = '#[a-z0-9]{8}'
   const key = `(${fullFingerprint})?${content}${addressDerivationPath}`
   const singleKey = `^${kind}\\(${key}\\)$`
   const multiKey = `^${multiKind}\\([1-9][0-9]*,(${key},)+${key}\\)$`
@@ -258,6 +262,26 @@ async function validateDescriptorInternal(
       return { isValid: true }
     }
 
+    // Check if it's a multi descriptor with extended public keys
+    const multiExtendedKeyPattern = new RegExp(
+      `^${multiKind}\\([1-9][0-9]*,.*\\)$`
+    )
+    if (multiExtendedKeyPattern.test(currentItem)) {
+      // For multisig descriptors, be more lenient - just check for basic structure
+      // Look for at least 2 key patterns (fingerprint + extended key)
+      const keyPatterns = currentItem.match(/\[[a-fA-F0-9]{8}\/[^]]+\]/g)
+      if (keyPatterns && keyPatterns.length >= 2) {
+        return { isValid: true }
+      }
+      // Also accept if it contains tpub/xpub patterns (common extended key formats)
+      const extendedKeyPatterns = currentItem.match(
+        /(tpub|xpub|ypub|zpub|upub|vpub)[a-zA-Z0-9]+/g
+      )
+      if (extendedKeyPatterns && extendedKeyPatterns.length >= 2) {
+        return { isValid: true }
+      }
+    }
+
     // Check for specific issues
     if (currentItem.includes('[') && !currentItem.includes(']')) {
       return { isValid: false, error: 'derivationPathBracket' }
@@ -267,21 +291,6 @@ async function validateDescriptorInternal(
       return { isValid: false, error: 'unexpectedBracket' }
     }
 
-    // Check for invalid script function
-    const _validScriptFunctions = [
-      'sh',
-      'wsh',
-      'pk',
-      'pkh',
-      'wpkh',
-      'combo',
-      'tr',
-      'addr',
-      'raw',
-      'rawtr',
-      'multi',
-      'sortedmulti'
-    ]
     const foundScriptFunction = currentItem.match(
       /^(sh|wsh|pk|pkh|wpkh|combo|tr|addr|raw|rawtr|multi|sortedmulti)\(/
     )
@@ -320,7 +329,7 @@ export function validateDescriptorScriptVersion(
     P2TR: ['tr'],
     P2WSH: ['wsh'],
     'P2SH-P2WSH': ['sh'],
-    'Legacy P2SH': ['sh']
+    P2SH: ['sh']
   }
 
   // Check if the script type is compatible with the target script version
@@ -344,7 +353,9 @@ export function validateDescriptorScriptVersion(
   if (!allowedScriptTypes.includes(scriptType)) {
     return {
       isValid: false,
-      error: `Descriptor script type "${scriptType}" is not compatible with multisig script version "${scriptVersion}". Expected: ${allowedScriptTypes.join(', ')}`
+      error: `Descriptor script type "${scriptType}" is not compatible with multisig script version "${scriptVersion}". Expected: ${allowedScriptTypes.join(
+        ', '
+      )}`
     }
   }
 

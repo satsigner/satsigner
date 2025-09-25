@@ -39,10 +39,12 @@ export default function ConfirmScreen() {
 
       const data = await accountBuilderFinish(account)
       if (!data) {
-        toast.error(t('account.multisig.createError'))
+        toast.error(t('multisig.createError'))
         return
       }
 
+      // Use the account ID from the created account, not the builder data
+      setAccountId(data.accountWithEncryptedSecret.id)
       setCompleted(true)
 
       try {
@@ -56,8 +58,8 @@ export default function ConfirmScreen() {
       } catch (error) {
         toast.error((error as Error).message)
       }
-    } catch (_error) {
-      toast.error(t('account.multisig.createError'))
+    } catch {
+      toast.error(t('multisig.createError'))
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -70,8 +72,11 @@ export default function ConfirmScreen() {
   }
 
   function handleGoToWallet() {
-    router.dismissAll()
-    if (accountId) router.navigate(`/account/${accountId}`)
+    if (accountId) {
+      // Clear the navigation stack and navigate to the account
+      router.dismissAll()
+      router.navigate(`/account/${accountId}`)
+    }
   }
 
   useEffect(() => {

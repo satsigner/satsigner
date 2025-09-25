@@ -1,52 +1,38 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
-import * as Clipboard from 'expo-clipboard'
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
-import { AppState, ScrollView, type TextInput } from 'react-native'
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useState } from 'react'
+import { ScrollView } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import {
-  getDescriptorsFromKeyData,
-  getExtendedPublicKeyFromAccountKey,
-  getFingerprint,
-  validateMnemonic
-} from '@/api/bdk'
-import SSButton from '@/components/SSButton'
-import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
-import SSFingerprint from '@/components/SSFingerprint'
 import SSGradientModal from '@/components/SSGradientModal'
-import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
+import SSSeedWordsInput from '@/components/SSSeedWordsInput'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
-import SSTextInput from '@/components/SSTextInput'
-import SSWordInput from '@/components/SSWordInput'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
-import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
-import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type SeedWordInfo } from '@/types/logic/seedWord'
 import { type Account } from '@/types/models/Account'
 import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
-import { convertMnemonic, getWordList } from '@/utils/bip39'
+import { convertMnemonic, getWordList, getExtendedPublicKeyFromMnemonic } from '@/utils/bip39'
 import { seedWordsPrefixOfAnother } from '@/utils/seed'
+import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
-
+        
 export default function ImportMnemonic() {
   const { keyIndex } = useLocalSearchParams<ImportMnemonicSearchParams>()
   const router = useRouter()
   const updateAccount = useAccountsStore((state) => state.updateAccount)
-  const [
+  const {
     name,
     keys,
     scriptVersion,
@@ -56,12 +42,11 @@ export default function ImportMnemonic() {
     policyType,
     clearAccount,
     setMnemonic,
-    passphrase,
-    setPassphrase,
-    setFingerprint,
     setKey,
+    passphrase,
+    setFingerprint,
+    setExtendedPublicKey,
     getAccountData,
-    updateKeySecret,
     clearKeyState
   ] = useAccountBuilderStore(
     useShallow((state) => [
@@ -74,12 +59,11 @@ export default function ImportMnemonic() {
       state.policyType,
       state.clearAccount,
       state.setMnemonic,
-      state.passphrase,
-      state.setPassphrase,
-      state.setFingerprint,
       state.setKey,
+      state.passphrase,
+      state.setFingerprint,
+      state.setExtendedPublicKey,
       state.getAccountData,
-      state.updateKeySecret,
       state.clearKeyState
     ])
   )
@@ -105,21 +89,18 @@ export default function ImportMnemonic() {
   const [checksumValid, setChecksumValid] = useState(false)
   const [currentWordText, setCurrentWordText] = useState('')
   const [currentWordIndex, setCurrentWordIndex] = useState(0)
+
   const [loadingAccount, setLoadingAccount] = useState(false)
   const [accountImported, setAccountImported] = useState(false)
   const [syncedAccount, setSyncedAccount] = useState<Account>()
   const [walletSyncFailed, setWalletSyncFailed] = useState(false)
+  const [currentMnemonic, setCurrentMnemonic] = useState('')
+  const [currentFingerprint, setCurrentFingerprint] = useState('')
 
-  const inputRefs = useRef<TextInput[]>([])
-  const passphraseRef = useRef<TextInput>()
-  const appState = useRef(AppState.currentState)
-
-  const [keyboardWordSelectorVisible, setKeyboardWordSelectorVisible] =
-    useState(false)
   const [accountAddedModalVisible, setAccountAddedModalVisible] =
     useState(false)
 
-  async function checkTextHasSeed(text: string): Promise<string[]> {
+  function checkTextHasSeed(text: string): Promise<string[]> {
     if (text === null || text === '') return []
     const delimiters = [' ', '\n']
 
@@ -141,7 +122,7 @@ export default function ImportMnemonic() {
       )
 
       // validate checksum
-      const checksum = await validateMnemonic(convertedSeed)
+      const checksum = validateMnemonic(convertedSeed)
       if (!checksum) continue
 
       return seedCandidate
@@ -149,7 +130,7 @@ export default function ImportMnemonic() {
     return []
   }
 
-  async function fillOutSeedWords(seed: string[]) {
+  function fillOutSeedWords(seed: string[]) {
     const localMnemonic = seed.join(' ')
 
     const mnemonic = convertMnemonic(localMnemonic, 'english', mnemonicWordList)
@@ -162,12 +143,12 @@ export default function ImportMnemonic() {
 
     if (passphraseRef.current) passphraseRef.current.focus()
 
-    const checksumValid = await validateMnemonic(mnemonic)
+    const checksumValid = validateMnemonic(mnemonic)
     setChecksumValid(checksumValid)
 
     if (checksumValid) {
       setMnemonic(mnemonic)
-      const fingerprint = await getFingerprint(
+      const fingerprint = getFingerprintFromMnemonic(
         mnemonic,
         passphrase,
         network as Network
@@ -177,53 +158,33 @@ export default function ImportMnemonic() {
     }
   }
 
-  async function readSeedFromClipboard() {
-    const text = (await Clipboard.getStringAsync()).trim()
-    const seed = await checkTextHasSeed(text)
-    if (seed.length > 0) {
-      fillOutSeedWords(seed)
-    }
+  // Handle mnemonic validation from the component
+  const handleMnemonicValid = (mnemonic: string, fingerprint: string) => {
+    setCurrentMnemonic(mnemonic)
+    setCurrentFingerprint(fingerprint)
+    setMnemonic(mnemonic)
+    setFingerprint(fingerprint)
   }
 
-  useEffect(() => {
-    readSeedFromClipboard()
+  const handleMnemonicInvalid = () => {
+    setCurrentMnemonic('')
+    setCurrentFingerprint('')
+  }
 
-    const subscription = AppState.addEventListener(
-      'change',
-      async (nextAppState) => {
-        if (
-          appState.current.match(/inactive|background/) &&
-          nextAppState === 'active'
-        ) {
-          setTimeout(async () => {
-            await readSeedFromClipboard()
-          }, 1) // Refactor: without timeout, getStringAsync returns false
-        }
-        appState.current = nextAppState
-      }
-    )
+  // Handle seed import for singlesig (full account creation)
+  async function handleOnPressImportSeed() {
+    setLoadingAccount(true)
 
-    return () => {
-      subscription.remove()
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    // Use the current mnemonic and fingerprint from the component
+    setMnemonic(currentMnemonic)
+    setFingerprint(currentFingerprint)
+    setKey(Number(keyIndex))
 
-  async function handleOnChangeTextWord(word: string, index: number) {
-    const seedWords = [...mnemonicWordsInfo]
-    const seedWord = seedWords[index]
-
-    if (!word.match(/^[a-z]*$/)) {
-      seedWord.valid = false
-      seedWord.dirty = true
-
-      // Paste all seed words at once
-      if (index === 0) {
-        const seed = await checkTextHasSeed(word)
-        if (seed.length > 0) {
-          await fillOutSeedWords(seed)
-        }
-      }
-
+    const account = getAccountData()
+    const data = await accountBuilderFinish(account)
+    if (!data || !data.wallet) {
+      setLoadingAccount(false)
+      toast.error('Failed to create account')
       return
     }
 
@@ -364,7 +325,8 @@ export default function ImportMnemonic() {
     }
   }
 
-  async function handleOnPressImportSeed() {
+  // Handle seed import for multisig (just create the key)
+  async function handleOnPressImportSeedMultisig() {
     setLoadingAccount(true)
 
     const mnemonicSeedWords = mnemonicWordsInfo
@@ -412,51 +374,44 @@ export default function ImportMnemonic() {
           network as Network
         )
 
-        // Generate descriptors from the key data
-        if (extendedPublicKey && currentKey.fingerprint) {
-          const descriptors = await getDescriptorsFromKeyData(
-            extendedPublicKey,
-            currentKey.fingerprint,
-            scriptVersion,
-            network as Network
-          )
+        // Set the extended public key
+        setExtendedPublicKey(extendedPublicKey)
+      }
 
-          // Update the key with both descriptors and extended public key
-          updateKeySecret(Number(keyIndex), {
-            ...(currentKey.secret as object),
-            extendedPublicKey,
-            externalDescriptor: descriptors.externalDescriptor,
-            internalDescriptor: descriptors.internalDescriptor
-          })
-        } else {
-          // Fallback to just updating with extended public key
-          updateKeySecret(Number(keyIndex), {
-            ...(currentKey.secret as object),
-            extendedPublicKey
-          })
-        }
-      } catch (_error) {}
-
+      // Set the key with the current data
+      setKey(Number(keyIndex))
       setLoadingAccount(false)
-      clearKeyState()
-      router.dismiss(2)
+      toast.success('Key imported successfully')
+      // Navigate back to multisig setup (just one screen back)
+      router.back()
+    } catch (error) {
+      setLoadingAccount(false)
+      toast.error(`Failed to set key: ${(error as Error).message}`)
     }
   }
 
   async function handleOnCloseAccountAddedModal() {
     setAccountAddedModalVisible(false)
-    clearKeyState()
-    clearAccount()
-    router.navigate('/')
+
+    if (syncedAccount && !loadingAccount) {
+      clearAccount()
+      router.dismissAll()
+      router.replace(
+        '/(authenticated)/(tabs)/(signer,explorer,converter)/' as any
+      )
+    }
   }
 
   function handleOnPressCancel() {
     if (policyType === 'multisig') {
-      router.back()
-    } else if (policyType === 'singlesig') {
-      router.replace('/')
+      router.dismiss(1)
+    } else {
+      router.dismiss(Number(keyIndex) + 3)
     }
+    clearKeyState()
   }
+
+  if (accountImported) return <Redirect href="/" />
 
   return (
     <SSMainLayout>
@@ -465,78 +420,39 @@ export default function ImportMnemonic() {
           headerTitle: () => <SSText uppercase>{name}</SSText>
         }}
       />
-      <SSKeyboardWordSelector
-        visible={keyboardWordSelectorVisible}
-        wordStart={currentWordText}
-        wordList={wordList}
-        onWordSelected={handleOnWordSelected}
-        style={{ height: 60 }}
-      />
       <ScrollView>
-        <SSVStack justifyBetween>
-          <SSFormLayout>
-            <SSFormLayout.Item>
-              <SSFormLayout.Label label={t('account.mnemonic.title')} />
-              <SSSeedLayout count={mnemonicWordCount}>
-                {[...Array(mnemonicWordsInfo.length)].map((_, index) => (
-                  <SSWordInput
-                    value={mnemonicWordsInfo[index].value}
-                    invalid={
-                      !mnemonicWordsInfo[index].valid &&
-                      mnemonicWordsInfo[index].dirty
-                    }
-                    key={index}
-                    index={index}
-                    ref={(input: TextInput) => inputRefs.current.push(input)}
-                    position={index + 1}
-                    onSubmitEditing={() => focusNextWord(index)}
-                    onChangeText={(text) => handleOnChangeTextWord(text, index)}
-                    onEndEditing={(event) =>
-                      handleOnEndEditingWord(event.nativeEvent.text, index)
-                    }
-                    onFocus={(event) =>
-                      handleOnFocusWord(event.nativeEvent.text, index)
-                    }
-                  />
-                ))}
-              </SSSeedLayout>
-            </SSFormLayout.Item>
-            <SSFormLayout.Item>
-              <SSFormLayout.Label
-                label={`${t('bitcoin.passphrase')} (${t('common.optional')})`}
-              />
-              <SSTextInput
-                ref={(input: TextInput) => (passphraseRef.current = input)}
-                onChangeText={(text) => handleUpdatePassphrase(text)}
-              />
-            </SSFormLayout.Item>
-            <SSFormLayout.Item>
-              <SSHStack justifyBetween>
-                <SSChecksumStatus valid={checksumValid} />
-                {checksumValid && fingerprint && (
-                  <SSFingerprint value={fingerprint} />
-                )}
-              </SSHStack>
-            </SSFormLayout.Item>
-          </SSFormLayout>
-          <SSVStack>
-            <SSButton
-              label={t('account.import.title2')}
-              variant="secondary"
-              loading={loadingAccount}
-              disabled={!checksumValid || accountImported}
-              onPress={() => handleOnPressImportSeed()}
-            />
-            <SSButton
-              label={t('common.cancel')}
-              variant="ghost"
-              onPress={handleOnPressCancel}
-            />
-          </SSVStack>
-        </SSVStack>
+        <SSSeedWordsInput
+          wordCount={mnemonicWordCount}
+          network={network as Network}
+          onMnemonicValid={handleMnemonicValid}
+          onMnemonicInvalid={handleMnemonicInvalid}
+          showPassphrase
+          showChecksum
+          showFingerprint
+          showPasteButton
+          showActionButton
+          actionButtonLabel={t('account.import.title2')}
+          actionButtonVariant="secondary"
+          onActionButtonPress={() =>
+            policyType === 'multisig'
+              ? handleOnPressImportSeedMultisig()
+              : handleOnPressImportSeed()
+          }
+          actionButtonDisabled={!currentMnemonic || accountImported}
+          actionButtonLoading={loadingAccount}
+          cancelButtonLabel={t('common.cancel')}
+          onCancelButtonPress={handleOnPressCancel}
+          showCancelButton
+          autoCheckClipboard
+        />
       </ScrollView>
       <SSGradientModal
         visible={accountAddedModalVisible}
+        closeText={
+          syncedAccount && !loadingAccount
+            ? t('account.gotoWallet')
+            : t('common.close')
+        }
         onClose={() => handleOnCloseAccountAddedModal()}
       >
         <SSVStack style={{ marginVertical: 32, width: '100%' }}>
@@ -555,9 +471,7 @@ export default function ImportMnemonic() {
                 {t('account.script')}
               </SSText>
               <SSText size="md" color="muted" center>
-                {t(`script.${scriptVersion.toLowerCase()}.name`)}
-                {'\n'}
-                {`(${scriptVersion})`}
+                {getScriptVersionDisplayName(scriptVersion)}
               </SSText>
             </SSVStack>
             <SSVStack itemsCenter>
@@ -565,7 +479,7 @@ export default function ImportMnemonic() {
                 {t('account.fingerprint')}
               </SSText>
               <SSText size="md" color="muted">
-                {keys[Number(keyIndex)]?.fingerprint}
+                {fingerprint}
               </SSText>
             </SSVStack>
           </SSHStack>
@@ -576,7 +490,9 @@ export default function ImportMnemonic() {
                 {t('account.derivationPath')}
               </SSText>
               <SSText size="md" color="muted">
-                {syncedAccount?.keys[Number(keyIndex)].derivationPath}
+                {syncedAccount?.keys[Number(keyIndex)].derivationPath ||
+                  keys[Number(keyIndex)]?.derivationPath ||
+                  '-'}
               </SSText>
             </SSVStack>
             <SSHStack justifyEvenly>

@@ -1,5 +1,4 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
-// @ts-ignore @eslint-disable-next-line
 import BlueWalletElectrumClient from 'electrum-client'
 import TcpSocket from 'react-native-tcp-socket'
 
@@ -10,6 +9,7 @@ import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { parseHexToBytes } from '@/utils/parse'
 import { bytesToHex } from '@/utils/scripts'
 import { TxDecoded } from '@/utils/txDecoded'
+import { isDomainName } from '@/utils/validation'
 
 type IElectrumClient = {
   props: {
@@ -89,19 +89,14 @@ type AddressInfo = {
 class ModifiedClient extends BlueWalletElectrumClient {
   // INFO: Override the default timeout for keeping client alive
   keepAlive() {
-    // @ts-ignore
     if (this.timeout != null) clearTimeout(this.timeout)
     const now = new Date().getTime()
-    // @ts-ignore
     this.timeout = setTimeout(() => {
-      // @ts-ignore
       if (this.timeLastCall !== 0 && now > this.timeLastCall + 500_000) {
         const pingTimer = setTimeout(() => {
-          // @ts-ignore
           this.onError(new Error('keepalive ping timeout'))
         }, 900_000)
 
-        // @ts-ignore
         this.server_ping()
           .catch(() => {
             clearTimeout(pingTimer)
@@ -113,7 +108,7 @@ class ModifiedClient extends BlueWalletElectrumClient {
 }
 
 class BaseElectrumClient {
-  client: any
+  client: ModifiedClient
   network: bitcoinjs.networks.Network
 
   constructor({
@@ -126,7 +121,6 @@ class BaseElectrumClient {
     const tls = TcpSocket
     const options = {}
 
-    // @ts-ignore
     this.client = new ModifiedClient(net, tls, port, host, protocol, options)
     this.network = bitcoinjsNetwork(network)
   }
@@ -136,8 +130,15 @@ class BaseElectrumClient {
     const protocol = url.replace(/:\/\/.*/, '')
     const host = url.replace(`${protocol}://`, '').replace(`:${port}`, '')
 
+    // Validate host: allow domain names (starting with letter) or IP addresses
+    const isValidDomain = isDomainName(host)
+    const isValidIP =
+      /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(
+        host
+      )
+
     if (
-      !host.match(/^[a-z][a-z.]+$/i) ||
+      !(isValidDomain || isValidIP) ||
       !port.match(/^[0-9]+$/) ||
       (protocol !== 'ssl' && protocol !== 'tls' && protocol !== 'tcp')
     ) {
@@ -163,23 +164,47 @@ class BaseElectrumClient {
   }
 
   static async test(url: string, network: Network, timeout: number) {
-    const client = ElectrumClient.fromUrl(url, network)
-    const pingPromise = client.client.initElectrum({
-      client: 'satsigner',
-      version: '1.4'
-    })
-    const timeoutPromise = new Promise((_resolve, reject) =>
-      setTimeout(() => {
-        reject(new Error('timeout'))
-      }, timeout)
-    )
+    let client: ElectrumClient | null = null
+    let timeoutId: NodeJS.Timeout | null = null
+
     try {
+      client = ElectrumClient.fromUrl(url, network)
+
+      client.client.reconnect = () => {}
+
+      const pingPromise = client.client.initElectrum({
+        client: 'satsigner',
+        version: '1.4'
+      })
+
+      const timeoutPromise = new Promise((_resolve, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error('timeout'))
+        }, timeout)
+      })
+
       await Promise.race([pingPromise, timeoutPromise])
+
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = null
+      }
+
       return true
     } catch {
       return false
     } finally {
-      client.close()
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+      if (client) {
+        try {
+          client.close()
+          if (client.client && client.client.socket) {
+            client.client.socket.destroy()
+          }
+        } catch {}
+      }
     }
   }
 

@@ -57,11 +57,15 @@ export default class Esplora {
     this.esploraUrl = url
   }
 
-  async _call(params: string) {
+  async _call(params: string, method: 'GET' | 'POST' = 'GET', body?: string) {
     try {
       const response = await fetch(this.esploraUrl + params, {
-        method: 'GET',
-        cache: 'no-cache'
+        method,
+        cache: 'no-cache',
+        headers: {
+          'Content-Type': 'text/plain'
+        },
+        body
       })
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`)
@@ -80,7 +84,27 @@ export default class Esplora {
         throw new Error(`Unsupported Content-Type: ${contentType}`)
       }
     } catch (error: any) {
-      throw new Error(error.message)
+      if (error.message && error.message.includes('InvalidCertificate')) {
+        throw new Error(
+          'TLS certificate validation failed. Please check the server configuration.'
+        )
+      }
+
+      if (error.message && error.message.includes('ConnectionFailed')) {
+        throw new Error(
+          'Connection failed. Please check your internet connection and server URL.'
+        )
+      }
+
+      if (
+        error.message &&
+        (error.message.includes('NetworkError') ||
+          error.message.includes('fetch'))
+      ) {
+        throw new Error('Network error. Please check your internet connection.')
+      }
+
+      throw new Error(error.message || 'Unknown error occurred')
     }
   }
 
@@ -102,6 +126,11 @@ export default class Esplora {
 
   async getTxRaw(txid: string) {
     return await this._call('/tx/' + txid + '/raw')
+  }
+
+  async broadcastTransaction(txHex: string): Promise<string> {
+    const result = await this._call('/tx', 'POST', txHex)
+    return result as string
   }
 
   async getTxInputValues(txid: string) {
@@ -208,6 +237,16 @@ export default class Esplora {
   }
 
   static async test(url: string, timeout: number) {
+    // Suppress console warnings during test
+    // eslint-disable-next-line no-console
+    const originalConsoleWarn = console.warn
+    // eslint-disable-next-line no-console
+    const originalConsoleError = console.error
+    // eslint-disable-next-line no-console
+    console.warn = () => {}
+    // eslint-disable-next-line no-console
+    console.error = () => {}
+
     const esploraClient = new Esplora(url)
     const fetchPromise = esploraClient.getLatestBlockHeight()
     const timeoutPromise = new Promise((resolve, reject) =>
@@ -221,8 +260,40 @@ export default class Esplora {
         return true
       }
       return false
-    } catch {
-      return false
+    } catch (error) {
+      // Handle connection test failures with specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('timeout')) {
+          throw new Error(
+            'Connection timeout - server may be slow or unreachable'
+          )
+        } else if (error.message.includes('Unable to resolve host')) {
+          throw new Error(
+            'Unable to resolve host - check server URL and internet connection'
+          )
+        } else if (error.message.includes('ECONNREFUSED')) {
+          throw new Error(
+            'Connection refused - server may be down or port is closed'
+          )
+        } else if (error.message.includes('ENOTFOUND')) {
+          throw new Error('Server not found - check the server URL')
+        } else if (error.message.includes('InvalidCertificate')) {
+          throw new Error(
+            'TLS certificate validation failed - check server configuration'
+          )
+        } else if (error.message.includes('NetworkError')) {
+          throw new Error('Network error - check your internet connection')
+        } else {
+          throw new Error(`Connection failed: ${error.message}`)
+        }
+      }
+      throw new Error('Unknown connection error')
+    } finally {
+      // Restore console functions
+      // eslint-disable-next-line no-console
+      console.warn = originalConsoleWarn
+      // eslint-disable-next-line no-console
+      console.error = originalConsoleError
     }
   }
 }

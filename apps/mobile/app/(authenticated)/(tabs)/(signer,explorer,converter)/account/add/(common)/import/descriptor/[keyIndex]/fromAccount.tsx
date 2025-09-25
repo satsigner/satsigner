@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react'
 import { ScrollView, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { extractExtendedKeyFromDescriptor, getDescriptor } from '@/api/bdk'
+import { getDescriptorObject } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
@@ -20,6 +20,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Account, type Secret } from '@/types/models/Account'
 import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
+import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { aesDecrypt } from '@/utils/crypto'
 
 function ImportDescriptorFromAccount() {
@@ -77,14 +78,16 @@ function ImportDescriptorFromAccount() {
       const passphrase = accountSecret.passphrase
       if (!mnemonic || !scriptVersion) return
 
-      externalDescriptor = await getDescriptor(
+      externalDescriptor = await getDescriptorObject(
         mnemonic,
         scriptVersion,
         KeychainKind.External,
         passphrase,
         network as Network
       )
-      externalDescriptorString = await externalDescriptor.asString()
+      externalDescriptorString = externalDescriptor
+        ? await externalDescriptor.asString()
+        : ''
     } else {
       if (!accountSecret.externalDescriptor) return
       externalDescriptorString = accountSecret.externalDescriptor
@@ -97,8 +100,9 @@ function ImportDescriptorFromAccount() {
     if (!externalDescriptorString) return
 
     setExternalDescriptor(externalDescriptorString)
-    const extendedPublicKey =
-      await extractExtendedKeyFromDescriptor(externalDescriptor)
+    const extendedPublicKey = getExtendedKeyFromDescriptor(
+      externalDescriptorString
+    )
     setExtendedPublicKey(extendedPublicKey)
     setKey(Number(keyIndex))
     updateKeyFingerprint(
@@ -109,6 +113,7 @@ function ImportDescriptorFromAccount() {
       Number(keyIndex),
       chosenAccount.keys[0].derivationPath as string
     )
+    setKey(Number(keyIndex))
     clearKeyState()
 
     setLoading(false)

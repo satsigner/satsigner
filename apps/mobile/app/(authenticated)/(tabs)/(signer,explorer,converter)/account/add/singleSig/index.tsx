@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { generateMnemonic, getFingerprint } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSScriptVersionModal from '@/components/SSScriptVersionModal'
@@ -21,7 +20,8 @@ import { useSettingsStore } from '@/store/settings'
 import { type EntropyType } from '@/types/logic/entropy'
 import { type Key } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
-import { WORDLIST_LIST } from '@/utils/bip39'
+import { WORDLIST_LIST, generateMnemonic, getFingerprintFromMnemonic } from '@/utils/bip39'
+import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 export default function SingleSig() {
   const router = useRouter()
@@ -86,10 +86,10 @@ export default function SingleSig() {
         case 'none': {
           setLoading(true)
           setMnemonicWordList(localMnemonicWordList)
-          const mnemonic = await generateMnemonic(localMnemonicWordCount)
+          const mnemonic = generateMnemonic(localMnemonicWordCount)
           setMnemonic(mnemonic)
 
-          const fingerprint = await getFingerprint(
+          const fingerprint = getFingerprintFromMnemonic(
             mnemonic,
             undefined,
             network as Network
@@ -118,8 +118,10 @@ export default function SingleSig() {
           break
         }
       }
-    } else if (type === 'importMnemonic')
+    } else if (type === 'importMnemonic') {
+      // For import, navigate to mnemonic input
       router.navigate('/account/add/import/mnemonic/0')
+    }
   }
 
   function handleOnSelectMnemonicWordCount() {
@@ -129,7 +131,7 @@ export default function SingleSig() {
 
   function handleOnSelectMnemonicWordList() {
     setMnemonicWordList(localMnemonicWordList)
-    setMnemonicWordListModalVisible(false)
+    setMnemonicWordCountModalVisibile(false)
   }
 
   function handleOnSelectEntropy() {

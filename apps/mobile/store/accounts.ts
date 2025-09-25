@@ -24,6 +24,7 @@ type AccountsAction = {
   addAccount: (account: Account) => void
   updateAccount: (account: Account) => Promise<void>
   updateAccountName: (id: Account['id'], newName: string) => void
+  updateKeyName: (id: Account['id'], keyIndex: number, newName: string) => void
   updateAccountNostr: (
     id: Account['id'],
     nostr: Partial<Account['nostr']>
@@ -55,6 +56,10 @@ type AccountsAction = {
   ) => Account | undefined
   importLabels: (accountId: Account['id'], labels: Label[]) => number
   dropSeedFromKey: (
+    accountId: Account['id'],
+    keyIndex: number
+  ) => Promise<{ success: boolean; message: string }>
+  resetKey: (
     accountId: Account['id'],
     keyIndex: number
   ) => Promise<{ success: boolean; message: string }>
@@ -91,6 +96,17 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               (account) => account.id === id
             )
             if (index !== -1) state.accounts[index].name = newName
+          })
+        )
+      },
+      updateKeyName: (id, keyIndex, newName) => {
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.id === id
+            )
+            if (index === -1) return
+            state.accounts[index].keys[keyIndex].name = newName
           })
         )
       },
@@ -392,14 +408,74 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           )
 
           return { success: true, message: 'Seed dropped successfully' }
-        } catch (_error) {
+        } catch {
           return { success: false, message: 'Failed to drop seed' }
         }
+      },
+      resetKey: async (accountId, keyIndex) => {
+        const state = get()
+        const account = state.accounts.find((acc) => acc.id === accountId)
+
+        if (!account || !account.keys[keyIndex]) {
+          return { success: false, message: 'Account or key not found' }
+        }
+
+        // Reset the key to its initial state
+        set(
+          produce((state) => {
+            const accountIndex = state.accounts.findIndex(
+              (acc: Account) => acc.id === accountId
+            )
+            if (accountIndex !== -1) {
+              state.accounts[accountIndex].keys[keyIndex] = {
+                index: keyIndex,
+                name: '',
+                creationType: undefined,
+                secret: undefined,
+                iv: undefined,
+                fingerprint: undefined,
+                scriptVersion: undefined,
+                mnemonicWordCount: undefined
+              }
+            }
+          })
+        )
+
+        return { success: true, message: 'Key reset successfully' }
       }
     }),
     {
       name: 'satsigner-accounts',
-      storage: createJSONStorage(() => mmkvStorage)
+      storage: createJSONStorage(() => mmkvStorage),
+      partialize: (state) => state,
+      onRehydrateStorage: () => (state) => {
+        // Convert string dates back to Date objects after rehydration
+        if (state?.accounts) {
+          state.accounts.forEach((account) => {
+            if (account.createdAt && typeof account.createdAt === 'string') {
+              account.createdAt = new Date(account.createdAt)
+            }
+            if (
+              account.lastSyncedAt &&
+              typeof account.lastSyncedAt === 'string'
+            ) {
+              account.lastSyncedAt = new Date(account.lastSyncedAt)
+            }
+            if (
+              account.nostr?.lastUpdated &&
+              typeof account.nostr.lastUpdated === 'string'
+            ) {
+              account.nostr.lastUpdated = new Date(account.nostr.lastUpdated)
+            }
+            if (
+              account.nostr?.syncStart &&
+              typeof account.nostr.syncStart === 'string'
+            ) {
+              account.nostr.syncStart = new Date(account.nostr.syncStart)
+            }
+          })
+        }
+      }
     }
   )
 )

@@ -17,6 +17,7 @@ import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
+import { DEFAULT_PIN, PIN_KEY, SALT_KEY } from '@/config/auth'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
 import useNostrSync from '@/hooks/useNostrSync'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
@@ -26,6 +27,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { getItem, setItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -34,15 +36,39 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Network } from '@/types/settings/blockchain'
 import {
+  getExtendedPublicKeyFromMnemonic,
+  getFingerprintFromMnemonic
+} from '@/utils/bip39'
+import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
+import {
   sampleMultiAddressTether,
   sampleSalvadorAddress,
   sampleSegwitAddress,
   sampleSignetAddress,
+  sampleSignetMultisigKey1,
+  sampleSignetMultisigKey2,
+  sampleSignetMultisigKey3Fingerprint,
+  sampleSignetMultisigKey3Xpub,
   sampleSignetWalletSeed,
   sampleSignetXpub,
   sampleSignetXpubFingerprint,
   sampleTestnet4Address
 } from '@/utils/samples'
+
+// Helper function to map local Network type to bdk-rn Network enum
+function mapNetworkToBdkNetwork(network: 'bitcoin' | 'testnet' | 'signet') {
+  const { Network } = require('bdk-rn/lib/lib/enums')
+  switch (network) {
+    case 'bitcoin':
+      return Network.Bitcoin
+    case 'testnet':
+      return Network.Testnet
+    case 'signet':
+      return Network.Signet
+    default:
+      return Network.Bitcoin
+  }
+}
 
 export default function AccountList() {
   const router = useRouter()
@@ -113,6 +139,7 @@ export default function AccountList() {
     | 'watchonlySegwit'
     | 'watchonlyTestnet4'
     | 'watchonlyTether'
+    | 'multisig'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
 
   const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
@@ -152,6 +179,10 @@ export default function AccountList() {
     router.navigate('/account/add')
   }
 
+  function handleGoToAccount(accountId: string) {
+    router.navigate(`/account/${accountId}`)
+  }
+
   async function syncAccounts() {
     for (const account of accounts) {
       if (account.network !== tabs[tabIndex].key) continue
@@ -175,84 +206,274 @@ export default function AccountList() {
 
   async function loadSampleWallet(type: SampleWallet) {
     setLoadingWallet(type)
-    setName(`Sample Wallet (${type})`)
-    setKeyCount(1)
-    setKeysRequired(1)
-    setNetwork(network)
-    let _sampleAddress
-
-    switch (type) {
-      case 'segwit':
-        setScriptVersion('P2WPKH')
-        setPolicyType('singlesig')
-        setCreationType('importMnemonic')
-        setMnemonicWordCount(12)
-        setMnemonic(sampleSignetWalletSeed)
-        break
-      case 'legacy':
-        setScriptVersion('P2PKH')
-        setPolicyType('singlesig')
-        setCreationType('importMnemonic')
-        setMnemonicWordCount(12)
-        setMnemonic(sampleSignetWalletSeed)
-        break
-      case 'watchonlyXpub':
-        setScriptVersion('P2PKH')
-        setPolicyType('watchonly')
-        setCreationType('importExtendedPub')
-        setExtendedPublicKey(sampleSignetXpub)
-        setFingerprint(sampleSignetXpubFingerprint)
-        break
-      case 'watchonlyAddress':
-        _sampleAddress = sampleSignetAddress
-        setPolicyType('watchonly')
-        setCreationType('importAddress')
-        setExternalDescriptor(`addr(${sampleSignetAddress})`)
-        break
-      case 'watchonlySalvador':
-        _sampleAddress = sampleSalvadorAddress
-        setPolicyType('watchonly')
-        setCreationType('importAddress')
-        setExternalDescriptor(`addr(${sampleSalvadorAddress})`)
-        break
-      case 'watchonlySegwit':
-        _sampleAddress = sampleSegwitAddress
-        setPolicyType('watchonly')
-        setCreationType('importAddress')
-        setExternalDescriptor(`addr(${sampleSegwitAddress})`)
-        break
-      case 'watchonlyTestnet4':
-        _sampleAddress = sampleTestnet4Address
-        setPolicyType('watchonly')
-        setCreationType('importAddress')
-        setExternalDescriptor(`addr(${sampleTestnet4Address})`)
-        break
-      case 'watchonlyTether':
-        setPolicyType('watchonly')
-        setCreationType('importAddress')
-        sampleMultiAddressTether.forEach((address, index) => {
-          setExternalDescriptor(`addr(${address})`)
-          setKey(index)
-        })
-    }
-
-    if (type !== 'watchonlyTether') setKey(0)
-    const account = getAccountData()
-
-    const data = await accountBuilderFinish(account)
-    if (!data) return
 
     try {
-      if (connectionMode === 'auto') {
-        const updatedAccount = ['segwit', 'legacy', 'watchonlyXpub'].includes(
-          type
+      // Check if PIN is available, if not set a default one
+      const pin = await getItem(PIN_KEY)
+      if (!pin) {
+        const salt = await generateSalt()
+        const encryptedPin = await pbkdf2Encrypt(DEFAULT_PIN, salt)
+        await setItem(PIN_KEY, encryptedPin)
+        await setItem(SALT_KEY, salt)
+      }
+
+      // Verify PIN is accessible
+      const verifyPin = await getItem(PIN_KEY)
+      if (!verifyPin) {
+        throw new Error('Failed to set or retrieve PIN')
+      }
+
+      setName(`Sample Wallet (${type})`)
+      setKeyCount(1)
+      setKeysRequired(1)
+
+      const currentNetwork = tabs[tabIndex].key as Network
+
+      const bdkNetwork = mapNetworkToBdkNetwork(currentNetwork)
+
+      setNetwork(currentNetwork)
+
+      // Also ensure the global blockchain network is set correctly
+      if (currentNetwork !== network) {
+        setSelectedNetwork(currentNetwork)
+      }
+
+      switch (type) {
+        case 'segwit': {
+          // Generate fingerprint and extended public key from mnemonic
+          const fingerprint = getFingerprintFromMnemonic(
+            sampleSignetWalletSeed,
+            '',
+            bdkNetwork
+          )
+          const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
+            sampleSignetWalletSeed,
+            '',
+            bdkNetwork,
+            'P2WPKH'
+          )
+          setFingerprint(fingerprint)
+          setExtendedPublicKey(extendedPublicKey)
+          setScriptVersion('P2WPKH')
+          setPolicyType('singlesig')
+          setCreationType('importMnemonic')
+          setMnemonicWordCount(12)
+          setMnemonic(sampleSignetWalletSeed)
+          break
+        }
+        case 'legacy': {
+          const fingerprint = getFingerprintFromMnemonic(
+            sampleSignetWalletSeed,
+            '',
+            bdkNetwork
+          )
+          const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
+            sampleSignetWalletSeed,
+            '',
+            bdkNetwork,
+            'P2PKH'
+          )
+          setFingerprint(fingerprint)
+          setExtendedPublicKey(extendedPublicKey)
+          setScriptVersion('P2PKH')
+          setPolicyType('singlesig')
+          setCreationType('importMnemonic')
+          setMnemonicWordCount(12)
+          setMnemonic(sampleSignetWalletSeed)
+          break
+        }
+        case 'watchonlyXpub':
+          setScriptVersion('P2PKH')
+          setPolicyType('watchonly')
+          setCreationType('importExtendedPub')
+          setExtendedPublicKey(sampleSignetXpub)
+          setFingerprint(sampleSignetXpubFingerprint)
+          break
+        case 'watchonlyAddress':
+          setPolicyType('watchonly')
+          setCreationType('importAddress')
+          setExternalDescriptor(`addr(${sampleSignetAddress})`)
+          break
+        case 'watchonlySalvador':
+          setPolicyType('watchonly')
+          setCreationType('importAddress')
+          setExternalDescriptor(`addr(${sampleSalvadorAddress})`)
+          break
+        case 'watchonlySegwit':
+          setPolicyType('watchonly')
+          setCreationType('importAddress')
+          setExternalDescriptor(`addr(${sampleSegwitAddress})`)
+          break
+        case 'watchonlyTestnet4':
+          setPolicyType('watchonly')
+          setCreationType('importAddress')
+          setExternalDescriptor(`addr(${sampleTestnet4Address})`)
+          break
+        case 'watchonlyTether':
+          setPolicyType('watchonly')
+          setCreationType('importAddress')
+          sampleMultiAddressTether.forEach((address, index) => {
+            setExternalDescriptor(`addr(${address})`)
+            setKey(index)
+          })
+          break
+        case 'multisig': {
+          // Set up multisig configuration
+          setPolicyType('multisig')
+          setScriptVersion('P2WSH')
+          setKeyCount(3)
+          setKeysRequired(2)
+
+          // Key 1: Mnemonic
+          setMnemonic(sampleSignetMultisigKey1)
+          setMnemonicWordCount(12)
+          setCreationType('importMnemonic')
+          const fingerprint1 = getFingerprintFromMnemonic(
+            sampleSignetMultisigKey1,
+            '',
+            bdkNetwork
+          )
+          const extendedPublicKey1 = getExtendedPublicKeyFromMnemonic(
+            sampleSignetMultisigKey1,
+            '',
+            bdkNetwork,
+            'P2WSH'
+          )
+          setFingerprint(fingerprint1)
+          setExtendedPublicKey(extendedPublicKey1)
+          setKey(0)
+
+          // Key 2: Mnemonic
+          setMnemonic(sampleSignetMultisigKey2)
+          setMnemonicWordCount(12)
+          setCreationType('importMnemonic')
+          const fingerprint2 = getFingerprintFromMnemonic(
+            sampleSignetMultisigKey2,
+            '',
+            bdkNetwork
+          )
+          const extendedPublicKey2 = getExtendedPublicKeyFromMnemonic(
+            sampleSignetMultisigKey2,
+            '',
+            bdkNetwork,
+            'P2WSH'
+          )
+          setFingerprint(fingerprint2)
+          setExtendedPublicKey(extendedPublicKey2)
+          setKey(1)
+
+          // Key 3: Extended Public Key
+          setCreationType('importExtendedPub')
+          setExtendedPublicKey(sampleSignetMultisigKey3Xpub)
+          setFingerprint(sampleSignetMultisigKey3Fingerprint)
+          setKey(2)
+          break
+        }
+      }
+
+      if (type !== 'watchonlyTether' && type !== 'multisig') setKey(0)
+
+      const account = getAccountData()
+
+      // Validate account data structure
+      if (
+        !account.name ||
+        !account.network ||
+        !account.policyType ||
+        account.keys.length === 0
+      ) {
+        throw new Error('Invalid account data structure')
+      }
+
+      if (
+        account.keys[0].creationType === 'importMnemonic' &&
+        !account.keys[0].secret
+      ) {
+        throw new Error('Mnemonic secret not properly set')
+      }
+
+      // Additional validation for mnemonic-based wallets
+      if (['segwit', 'legacy'].includes(type)) {
+        const key = account.keys[0]
+        if (
+          !key.secret ||
+          typeof key.secret !== 'object' ||
+          !key.secret.mnemonic
+        ) {
+          throw new Error('Mnemonic not properly set in account key')
+        }
+        if (!key.scriptVersion) {
+          throw new Error('Script version not properly set')
+        }
+      }
+
+      // Additional validation for multisig wallets
+      if (type === 'multisig') {
+        if (account.keys.length !== 3) {
+          throw new Error('Multisig account must have exactly 3 keys')
+        }
+        if (account.keyCount !== 3 || account.keysRequired !== 2) {
+          throw new Error('Multisig configuration invalid')
+        }
+        // Validate that first two keys have mnemonic secrets
+        for (let i = 0; i < 2; i++) {
+          const key = account.keys[i]
+          if (
+            !key.secret ||
+            typeof key.secret !== 'object' ||
+            !key.secret.mnemonic
+          ) {
+            throw new Error(`Mnemonic not properly set in key ${i + 1}`)
+          }
+        }
+        // Validate that third key has extended public key
+        const key3 = account.keys[2]
+        if (
+          !key3.secret ||
+          typeof key3.secret !== 'object' ||
+          !key3.secret.extendedPublicKey
+        ) {
+          throw new Error('Extended public key not properly set in key 3')
+        }
+      }
+
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(
+          () => reject(new Error('Wallet creation timed out after 30 seconds')),
+          30000
         )
-          ? await syncAccountWithWallet(
-              data.accountWithEncryptedSecret,
-              data.wallet!
-            )
-          : await syncAccountWithAddress(data.accountWithEncryptedSecret)
-        updateAccount(updatedAccount)
+      })
+
+      const data = await Promise.race([
+        accountBuilderFinish(account),
+        timeoutPromise
+      ])
+
+      if (!data) {
+        toast.error('Failed to create sample wallet')
+        return
+      }
+      try {
+        if (connectionMode === 'auto') {
+          const updatedAccount = [
+            'segwit',
+            'legacy',
+            'watchonlyXpub',
+            'multisig'
+          ].includes(type)
+            ? await syncAccountWithWallet(
+                data.accountWithEncryptedSecret,
+                data.wallet!
+              )
+            : await syncAccountWithAddress(data.accountWithEncryptedSecret)
+          updateAccount(updatedAccount)
+          toast.success('Sample wallet created successfully!')
+        } else {
+          toast.success('Sample wallet created successfully!')
+        }
+      } catch (error) {
+        toast.error(`Sync failed: ${(error as Error).message}`)
       }
     } catch (error) {
       toast.error((error as Error).message)
@@ -379,6 +600,12 @@ export default function AccountList() {
               loading={loadingWallet === 'segwit'}
             />
             <SSButton
+              label={t('account.load.sample.signet.multisig')}
+              variant="subtle"
+              onPress={() => loadSampleWallet('multisig')}
+              loading={loadingWallet === 'multisig'}
+            />
+            <SSButton
               label={t('account.load.sample.signet.legacy')}
               variant="subtle"
               onPress={() => loadSampleWallet('legacy')}
@@ -470,7 +697,7 @@ export default function AccountList() {
                   <SSVStack>
                     <SSAccountCard
                       account={item}
-                      onPress={() => router.navigate(`/account/${item.id}`)}
+                      onPress={() => handleGoToAccount(item.id)}
                     />
                   </SSVStack>
                 )}

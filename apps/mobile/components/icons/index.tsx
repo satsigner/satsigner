@@ -42,6 +42,7 @@ import SSIconEyeOn from './SSIconEyeOn'
 import SSIconFeature from './SSIconFeature'
 import SSIconGreen from './SSIconGreen'
 import SSIconGreenIndicator from './SSIconGreenIndicator'
+import SSIconGreenNoSecret from './SSIconGreenNoSecret'
 import SSIconHalving from './SSIconHalving'
 import SSIconHamburger from './SSIconHamburger'
 import SSIconHideWarning from './SSIconHideWarning'
@@ -126,6 +127,7 @@ export {
   SSIconFeature,
   SSIconGreen,
   SSIconGreenIndicator,
+  SSIconGreenNoSecret,
   SSIconHalving,
   SSIconHamburger,
   SSIconHideWarning,

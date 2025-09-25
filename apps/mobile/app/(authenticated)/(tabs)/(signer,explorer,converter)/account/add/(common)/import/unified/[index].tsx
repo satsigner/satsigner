@@ -71,6 +71,7 @@ export default function UnifiedImport() {
   const { isAvailable, isReading, readNFCTag, cancelNFCScan } = useNFCReader()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
+  const [scanningFor, setScanningFor] = useState<'main' | 'fingerprint'>('main')
 
   const [xpub, setXpub] = useState('')
   const [localFingerprint, setLocalFingerprint] = useState(fingerprint)
@@ -275,15 +276,17 @@ export default function UnifiedImport() {
       let internalDescriptor = ''
 
       // Try to parse as JSON first
+      let originalDescriptor = ''
       try {
         const jsonData = JSON.parse(text)
 
         if (jsonData.descriptor) {
-          externalDescriptor = jsonData.descriptor
+          originalDescriptor = jsonData.descriptor
+          externalDescriptor = originalDescriptor
 
           // Derive internal descriptor from external descriptor
           // Replace /0/* with /1/* for internal chain and remove checksum
-          const descriptorWithoutChecksum = externalDescriptor.replace(
+          const descriptorWithoutChecksum = originalDescriptor.replace(
             /#[a-z0-9]+$/,
             ''
           )
@@ -340,13 +343,33 @@ export default function UnifiedImport() {
         }
       } else {
         // Handle non-combined descriptors with existing logic
-        if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
+        if (externalDescriptor) {
+          // For JSON descriptors, use the original descriptor for validation
+          const descriptorToValidate = originalDescriptor || externalDescriptor
+          updateExternalDescriptor(descriptorToValidate)
+        }
         if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
       }
     }
 
     if (importType === 'extendedPub') {
       updateXpub(text)
+    }
+  }
+
+  async function pasteFingerprintFromClipboard() {
+    try {
+      const clipboardContent = await Clipboard.getStringAsync()
+      if (!clipboardContent) {
+        toast.error(t('watchonly.error.emptyClipboard'))
+        return
+      }
+
+      const finalContent = clipboardContent.trim()
+      updateMasterFingerprint(finalContent)
+      toast.success(t('watchonly.success.clipboardPasted'))
+    } catch (_error) {
+      toast.error(t('watchonly.error.clipboardPaste'))
     }
   }
 
@@ -385,6 +408,7 @@ export default function UnifiedImport() {
       if (importType === 'descriptor') {
         let externalDescriptor = text
         let internalDescriptor = ''
+        const originalDescriptor = ''
         if (text.includes('\n')) {
           const lines = text.split('\n')
           externalDescriptor = lines[0]
@@ -430,7 +454,12 @@ export default function UnifiedImport() {
           }
         } else {
           // Handle non-combined descriptors with existing logic
-          if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
+          if (externalDescriptor) {
+            // For JSON descriptors, use the original descriptor for validation
+            const descriptorToValidate =
+              originalDescriptor || externalDescriptor
+            updateExternalDescriptor(descriptorToValidate)
+          }
           if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
         }
       }
@@ -450,17 +479,27 @@ export default function UnifiedImport() {
     const data = scanningResult?.data
     if (!data) return
 
+    // Handle fingerprint scanning
+    if (scanningFor === 'fingerprint') {
+      updateMasterFingerprint(data)
+      setCameraModalVisible(false)
+      toast.success(t('watchonly.success.qrScanned'))
+      return
+    }
+
     // Handle regular QR codes
     if (importType === 'descriptor') {
       let externalDescriptor = data
       let internalDescriptor = ''
+      let originalDescriptor = ''
 
       // Try to parse as JSON first
       try {
         const jsonData = JSON.parse(data)
         if (jsonData.descriptor) {
-          externalDescriptor = jsonData.descriptor
-          const descriptorWithoutChecksum = externalDescriptor.replace(
+          originalDescriptor = jsonData.descriptor
+          externalDescriptor = originalDescriptor
+          const descriptorWithoutChecksum = originalDescriptor.replace(
             /#[a-z0-9]+$/,
             ''
           )
@@ -517,7 +556,11 @@ export default function UnifiedImport() {
         }
       } else {
         // Handle non-combined descriptors with existing logic
-        if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
+        if (externalDescriptor) {
+          // For JSON descriptors, use the original descriptor for validation
+          const descriptorToValidate = originalDescriptor || externalDescriptor
+          updateExternalDescriptor(descriptorToValidate)
+        }
         if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
       }
     }
@@ -598,6 +641,23 @@ export default function UnifiedImport() {
                       onChangeText={updateMasterFingerprint}
                       placeholder={t('watchonly.fingerprint.text')}
                     />
+                    <SSHStack gap="sm" style={{ marginTop: 8 }}>
+                      <SSButton
+                        label={t('watchonly.read.clipboard')}
+                        variant="subtle"
+                        onPress={pasteFingerprintFromClipboard}
+                        style={{ flex: 1 }}
+                      />
+                      <SSButton
+                        label={t('watchonly.read.qrcode')}
+                        variant="subtle"
+                        onPress={() => {
+                          setScanningFor('fingerprint')
+                          setCameraModalVisible(true)
+                        }}
+                        style={{ flex: 1 }}
+                      />
+                    </SSHStack>
                   </SSFormLayout.Item>
                 </>
               )}
@@ -660,13 +720,16 @@ export default function UnifiedImport() {
           <SSVStack>
             <SSButton
               label={t('watchonly.read.clipboard')}
-              variant="ghost"
+              variant="subtle"
               onPress={pasteFromClipboard}
             />
             <SSButton
               label={t('watchonly.read.computerVision')}
-              variant="ghost"
-              onPress={() => setCameraModalVisible(true)}
+              variant="subtle"
+              onPress={() => {
+                setScanningFor('main')
+                setCameraModalVisible(true)
+              }}
             />
             {isAvailable && (
               <SSButton
@@ -686,7 +749,7 @@ export default function UnifiedImport() {
             <SSButton
               label={t('common.cancel')}
               variant="ghost"
-              onPress={() => router.back()}
+              onPress={() => router.dismiss(1)}
             />
           </SSVStack>
         </SSVStack>
@@ -694,7 +757,10 @@ export default function UnifiedImport() {
 
       <SSModal
         visible={cameraModalVisible}
-        onClose={() => setCameraModalVisible(false)}
+        onClose={() => {
+          setCameraModalVisible(false)
+          setScanningFor('main')
+        }}
       >
         <SSVStack style={styles.cameraContainer}>
           <SSHStack justifyBetween style={styles.cameraHeader}>
@@ -702,7 +768,10 @@ export default function UnifiedImport() {
             <SSButton
               label={t('common.close')}
               variant="ghost"
-              onPress={() => setCameraModalVisible(false)}
+              onPress={() => {
+                setCameraModalVisible(false)
+                setScanningFor('main')
+              }}
             />
           </SSHStack>
           {permission?.granted ? (

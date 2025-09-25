@@ -2,7 +2,6 @@ import type BottomSheet from '@gorhom/bottom-sheet'
 import { useIsFocused } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
-import * as Clipboard from 'expo-clipboard'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -32,6 +31,7 @@ import SSRadioButton from '@/components/SSRadioButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
+import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -46,13 +46,11 @@ import { type MempoolStatistics } from '@/types/models/Blockchain'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { checkWalletNeedsSync } from '@/utils/account'
 import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
 import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
-
-// Maximum number of days without syncing the wallet before we show a warning
-const MAX_DAYS_WITHOUT_SYNCING = 3
 
 export default function IOPreview() {
   const router = useRouter()
@@ -112,7 +110,9 @@ export default function IOPreview() {
 
       for (let i = 0; true; i += 1) {
         const addressObj = await wallet.getInternalAddress(i)
-        const address = await addressObj.address.asString()
+        const address = addressObj?.address
+          ? await addressObj.address.asString()
+          : ''
         if (outputAddresses[address] === true) continue
         setChangeAddress(address)
         return
@@ -188,6 +188,12 @@ export default function IOPreview() {
   const [originalOutputAmount, setOriginalOutputAmount] = useState(0)
   const [outputLabel, setOutputLabel] = useState('')
 
+  const { pasteFromClipboard } = useClipboardPaste({
+    onPaste: (content) => {
+      setOutputTo(content)
+    }
+  })
+
   const remainingSats = useMemo(
     () =>
       utxosSelectedValue -
@@ -195,7 +201,6 @@ export default function IOPreview() {
     [utxosSelectedValue, outputs]
   )
 
-  // Now calculate final size including change if needed
   const transactionSize = useMemo(() => {
     const { size, vsize } = estimateTransactionSize(
       inputs.size,
@@ -420,6 +425,7 @@ export default function IOPreview() {
       (acc, output) => acc + output.amount,
       0
     )
+
     const totalRequired = totalOutputAmount + minerFee
 
     if (totalRequired > utxosSelectedValue) {
@@ -429,6 +435,12 @@ export default function IOPreview() {
 
     // Add change output if there's any remaining amount
     if (remainingBalance > 0) {
+      // Validate that changeAddress is available before adding change output
+      if (!changeAddress) {
+        toast.error(t('transaction.error.ChangeAddressNotAvailable'))
+        return
+      }
+
       setShouldRemoveChange(false)
       addOutput({
         to: changeAddress,
@@ -437,33 +449,10 @@ export default function IOPreview() {
       })
     }
 
-    // Account not synced. Go to warning page to sync it.
-    if (account.syncStatus !== 'synced' || account.lastSyncedAt === undefined) {
-      router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
-      return
-    }
+    // Check if wallet needs syncing based on time since last sync
+    const needsSync = checkWalletNeedsSync(account)
 
-    const lastSync = new Date(account.lastSyncedAt as Date)
-    const now = new Date()
-
-    // Discard the time and time-zone information.
-    const currentUtc = Date.UTC(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate()
-    )
-    const lastSyncedUtc = Date.UTC(
-      lastSync.getFullYear(),
-      lastSync.getMonth(),
-      lastSync.getDate()
-    )
-    const MILISECONDS_PER_DAY = 1000 * 60 * 60 * 24
-    const daysSinceLastSync = Math.floor(
-      (currentUtc - lastSyncedUtc) / MILISECONDS_PER_DAY
-    )
-
-    // Account updated too long ago.
-    if (daysSinceLastSync > MAX_DAYS_WITHOUT_SYNCING) {
+    if (needsSync) {
       router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
       return
     }
@@ -556,7 +545,10 @@ export default function IOPreview() {
                 {t('bitcoin.sats').toLowerCase()}
               </SSText>
             </SSHStack>
-            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+            <SSHStack
+              gap="xs"
+              style={{ alignItems: 'baseline', marginTop: -5 }}
+            >
               <SSText size="md" color="muted">
                 {formatNumber(satsToFiat(utxosSelectedValue), 2)}
               </SSText>
@@ -737,7 +729,7 @@ export default function IOPreview() {
                       fontFamily: Typography.sfProMono,
                       fontSize: 22,
                       letterSpacing: 0.5,
-                      height: 100,
+                      height: 110,
                       textAlignVertical: 'top',
                       paddingTop: 12
                     }}
@@ -748,18 +740,7 @@ export default function IOPreview() {
                       variant="outline"
                       label={t('common.paste')}
                       style={{ flex: 1 }}
-                      onPress={async () => {
-                        try {
-                          const text = await Clipboard.getStringAsync()
-                          if (text && text.trim()) {
-                            setOutputTo(text.trim())
-                          } else {
-                            toast.error(t('common.invalid'))
-                          }
-                        } catch (_error) {
-                          toast.error(t('common.invalid'))
-                        }
-                      }}
+                      onPress={pasteFromClipboard}
                     />
                     <SSButton
                       variant="outline"
@@ -770,10 +751,18 @@ export default function IOPreview() {
                   </SSHStack>
                 </SSVStack>
                 <SSTextInput
+                  multiline
+                  numberOfLines={4}
                   placeholder={t('transaction.build.add.label.title')}
                   align="left"
                   value={outputLabel}
                   onChangeText={(text) => setOutputLabel(text)}
+                  style={{
+                    fontSize: 22,
+                    height: 110,
+                    textAlignVertical: 'top',
+                    paddingTop: 12
+                  }}
                 />
                 <SSHStack>
                   <SSButton

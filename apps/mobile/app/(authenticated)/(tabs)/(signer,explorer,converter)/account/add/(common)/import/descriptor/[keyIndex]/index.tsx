@@ -22,7 +22,10 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
 import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
-import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
+import {
+  getDerivationPathFromScriptVersion,
+  getMultisigDerivationPathFromScriptVersion
+} from '@/utils/bitcoin'
 import { decodeURToPSBT } from '@/utils/ur'
 import {
   isCombinedDescriptor,
@@ -94,26 +97,30 @@ export default function ImportDescriptor() {
     }
   }, [isReading, pulseAnim])
 
-  const {
-    setKey,
+  const [
+    setExtendedPublicKey,
     setStoreExternalDescriptor,
     setStoreInternalDescriptor,
-    setKeyDerivationPath,
-    setExtendedPublicKey,
     setFingerprint,
+    clearKeyState,
+    setKey,
+    setKeyDerivationPath,
+    policyType,
     scriptVersion,
-    clearKeyState
-  } = useAccountBuilderStore(
-    useShallow((state) => ({
-      setKey: state.setKey,
-      setStoreExternalDescriptor: state.setExternalDescriptor,
-      setStoreInternalDescriptor: state.setInternalDescriptor,
-      setKeyDerivationPath: state.setKeyDerivationPath,
-      setExtendedPublicKey: state.setExtendedPublicKey,
-      setFingerprint: state.setFingerprint,
-      scriptVersion: state.scriptVersion,
-      clearKeyState: state.clearKeyState
-    }))
+    builderNetwork
+  ] = useAccountBuilderStore(
+    useShallow((state) => [
+      state.setExtendedPublicKey,
+      state.setExternalDescriptor,
+      state.setInternalDescriptor,
+      state.setFingerprint,
+      state.clearKeyState,
+      state.setKey,
+      state.setKeyDerivationPath,
+      state.policyType,
+      state.scriptVersion,
+      state.network
+    ])
   )
 
   const updateDescriptorValidationState = useCallback(() => {
@@ -380,7 +387,7 @@ export default function ImportDescriptor() {
       }
 
       // Set the key data
-      const _key = setKey(Number(keyIndex))
+      setKey(Number(keyIndex))
       setKeyDerivationPath(Number(keyIndex), derivationPath)
 
       clearKeyState()
@@ -392,9 +399,12 @@ export default function ImportDescriptor() {
 
   /**
    * Extract fingerprint from descriptor string
+   * Handles both h notation (84h) and ' notation (84') in derivation paths
    */
   function extractFingerprintFromDescriptor(descriptor: string): string {
-    const fingerprintMatch = descriptor.match(/\[([0-9a-fA-F]{8})\/?/)
+    // Use the same regex pattern as BDK API's parseDescriptor function
+    // This handles both h notation (84h) and ' notation (84') in derivation paths
+    const fingerprintMatch = descriptor.match(/\[([0-9a-fA-F]{8})([0-9'/h]+)\]/)
     return fingerprintMatch ? fingerprintMatch[1] : ''
   }
 
@@ -447,7 +457,7 @@ export default function ImportDescriptor() {
     }
 
     // Fallback: Use default derivation path
-    return `m/${getDerivationPathFromScriptVersion(scriptVersion, network)}`
+    return getDefaultDerivationPath()
   }
 
   /**
@@ -501,15 +511,17 @@ export default function ImportDescriptor() {
     let internalDescriptor = ''
 
     // Try to parse as JSON first
+    let originalDescriptor = ''
     try {
       const jsonData = JSON.parse(text)
 
       if (jsonData.descriptor) {
-        externalDescriptor = jsonData.descriptor
+        originalDescriptor = jsonData.descriptor
+        externalDescriptor = originalDescriptor
 
         // Derive internal descriptor from external descriptor
         // Replace /0/* with /1/* for internal chain
-        const descriptorWithoutChecksum = externalDescriptor.replace(
+        const descriptorWithoutChecksum = originalDescriptor.replace(
           /#[a-z0-9]+$/,
           ''
         )
@@ -518,7 +530,7 @@ export default function ImportDescriptor() {
           '/1/*'
         )
         // Add back the checksum to internal descriptor
-        const checksum = externalDescriptor.match(/#[a-z0-9]+$/)
+        const checksum = originalDescriptor.match(/#[a-z0-9]+$/)
         if (checksum) {
           internalDescriptor += checksum[0]
         }
@@ -537,7 +549,11 @@ export default function ImportDescriptor() {
       await handleCombinedDescriptorImport(text)
     } else {
       // Handle non-combined descriptors with existing logic
-      if (externalDescriptor) await updateExternalDescriptor(externalDescriptor)
+      if (externalDescriptor) {
+        // For JSON descriptors, use the original descriptor for validation
+        const descriptorToValidate = originalDescriptor || externalDescriptor
+        await updateExternalDescriptor(descriptorToValidate)
+      }
       if (internalDescriptor) await updateInternalDescriptor(internalDescriptor)
     }
   }
@@ -720,6 +736,19 @@ export default function ImportDescriptor() {
     valid: { height: 'auto', paddingVertical: 10 }
   })
 
+  function getDefaultDerivationPath(): string {
+    // Check if we're in multisig mode to use the correct derivation path function
+    const rawDerivationPath =
+      policyType === 'multisig'
+        ? getMultisigDerivationPathFromScriptVersion(
+            scriptVersion,
+            builderNetwork
+          )
+        : getDerivationPathFromScriptVersion(scriptVersion, builderNetwork)
+
+    return `m/${rawDerivationPath}`
+  }
+
   return (
     <SSMainLayout>
       <Stack.Screen
@@ -840,7 +869,7 @@ export default function ImportDescriptor() {
             <SSButton
               label={t('common.cancel')}
               variant="ghost"
-              onPress={() => router.dismiss(2)}
+              onPress={() => router.dismiss(1)}
             />
           </SSVStack>
         </SSVStack>

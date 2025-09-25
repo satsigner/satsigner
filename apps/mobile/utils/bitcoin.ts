@@ -32,7 +32,7 @@ function bip21decode(uri: string) {
 }
 
 // Convert network notation used by our app (and by BDK enum too)
-// too the network interface used by bitcoinjs-lib
+// to the network interface used by bitcoinjs-lib
 function bitcoinjsNetwork(network: Network): networks.Network {
   switch (network) {
     case 'bitcoin':
@@ -40,7 +40,7 @@ function bitcoinjsNetwork(network: Network): networks.Network {
     case 'signet':
       return networks['testnet']
     case 'testnet':
-      return networks['regtest']
+      return networks['testnet']
   }
 }
 
@@ -146,7 +146,7 @@ export function getKeyFormatForScriptVersion(
     P2TR: 'vpub',
     P2WSH: 'xpub', // P2WSH uses xpub format
     'P2SH-P2WSH': 'xpub', // P2SH-P2WSH uses xpub format
-    'Legacy P2SH': 'xpub' // Legacy P2SH uses xpub format
+    P2SH: 'xpub' // P2SH uses xpub format
   }
 
   const baseFormat = formatMappings[scriptVersion] || 'xpub'
@@ -178,47 +178,6 @@ export function detectNetworkFromKey(key: string): Network | null {
 }
 
 /**
- * Convert a key to be compatible with the target network
- */
-export function convertKeyForNetwork(
-  key: string,
-  targetNetwork: Network
-): string {
-  if (!key) return key
-
-  const sourceNetwork = detectNetworkFromKey(key)
-  if (!sourceNetwork || sourceNetwork === targetNetwork) return key
-
-  // Extract the script version from the key prefix
-  // Note: For testnet, tpub can be used for different script types
-  // The script type should be determined by the derivation path, not just the prefix
-  const scriptVersionMap: Record<string, string> = {
-    xpub: 'P2PKH',
-    ypub: 'P2SH-P2WPKH',
-    upub: 'P2SH-P2WPKH',
-    zpub: 'P2WPKH',
-    vpub: 'P2WPKH'
-    // Note: tpub is not included here because it can be used for different script types
-    // The script type should be determined by the derivation path, not just the prefix
-  }
-
-  const prefix = key.match(/^[tuvxyz](pub|prv)/)?.[0]
-  if (!prefix) return key
-
-  const scriptVersion = scriptVersionMap[prefix]
-  if (!scriptVersion) return key
-
-  // Get the appropriate format for the target network
-  const targetFormat = getKeyFormatForScriptVersion(
-    scriptVersion,
-    targetNetwork
-  )
-
-  // Convert the key
-  return convertKeyFormat(key, targetFormat, targetNetwork)
-}
-
-/**
  * Get the appropriate derivation path for a given script version and network
  */
 export function getDerivationPathFromScriptVersion(
@@ -241,7 +200,7 @@ export function getDerivationPathFromScriptVersion(
       return `48'/${coinType}'/0'/2'`
     case 'P2SH-P2WSH':
       return `48'/${coinType}'/0'/1'`
-    case 'Legacy P2SH':
+    case 'P2SH':
       return `45'/${coinType}'/0'`
     default:
       return `84'/${coinType}'/0'`
@@ -261,7 +220,7 @@ export function getMultisigDerivationPathFromScriptVersion(
 
   switch (scriptVersion) {
     case 'P2PKH':
-      // For multisig P2PKH, use Legacy P2SH derivation path (m/45'/0'/0')
+      // For multisig P2PKH, use P2SH derivation path (m/45'/0'/0')
       return `45'/${coinType}'/0'`
     case 'P2SH-P2WPKH':
       // For multisig P2SH-P2WPKH, use P2SH-P2WSH derivation path (m/48'/0'/0'/1')
@@ -278,8 +237,7 @@ export function getMultisigDerivationPathFromScriptVersion(
     case 'P2SH-P2WSH':
       // Wrapped SegWit multisig (m/48'/0'/0'/1')
       return `48'/${coinType}'/0'/1'`
-    case 'Legacy P2SH':
-      // Legacy P2SH multisig (m/45'/0'/0')
+    case 'P2SH':
       return `45'/${coinType}'/0'`
     default:
       // Default to P2WSH for multisig (m/48'/0'/0'/2')
@@ -296,8 +254,8 @@ export function getMultisigScriptTypeFromScriptVersion(
 ): string {
   switch (scriptVersion) {
     case 'P2PKH':
-      // For multisig P2PKH, use Legacy P2SH descriptor
-      return 'Legacy P2SH'
+      // For multisig P2PKH, use P2SH descriptor
+      return 'P2SH'
     case 'P2SH-P2WPKH':
       // For multisig P2SH-P2WPKH, use P2SH-P2WSH descriptor
       return 'P2SH-P2WSH'
@@ -313,9 +271,8 @@ export function getMultisigScriptTypeFromScriptVersion(
     case 'P2SH-P2WSH':
       // Wrapped SegWit multisig
       return 'P2SH-P2WSH'
-    case 'Legacy P2SH':
-      // Legacy P2SH multisig
-      return 'Legacy P2SH'
+    case 'P2SH':
+      return 'P2SH'
     default:
       // Default to P2WSH for multisig
       return 'P2WSH'

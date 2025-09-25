@@ -23,3 +23,12 @@ export const sampleMultiAddressTether = [
   'bc1q8qpfmpf6hcu3tgfvp8dgtf534rws8uhsl9vtk6p2f3r2gnqdz5sqxmty6q',
   'bc1q4uccuzje5y77tajhgguzj3dut0rjkkq6thym8u2xvqhqn4zykrlsfsyhvl'
 ]
+
+// Sample SegWit Multisig keys for SigNet
+export const sampleSignetMultisigKey1 =
+  'battle engage extend grocery sheriff december bag scout inner chuckle chicken art'
+export const sampleSignetMultisigKey2 =
+  'ostrich mansion argue salad quote news advice method wish misery turn engine'
+export const sampleSignetMultisigKey3Xpub =
+  'tpubDDzkohB8SiPD8qPuna7NVkiMdKXRsugbLaVGrtiicdbW7cvm7YcaJgvDoDhGCz6XA232piFDNpaAB5ZygjSCEtH2vHLoQv5d19Zapvjm3WZ'
+export const sampleSignetMultisigKey3Fingerprint = '6c1fa95a'

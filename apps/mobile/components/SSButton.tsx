@@ -159,16 +159,20 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[850]
   },
   textDefault: {
-    color: Colors.white
+    color: Colors.white,
+    letterSpacing: 1
   },
   textSecondary: {
-    color: Colors.black
+    color: Colors.black,
+    letterSpacing: 1
   },
   textGhost: {
-    color: Colors.gray[200]
+    color: Colors.gray[200],
+    letterSpacing: 1
   },
   textSubtle: {
-    color: Colors.gray[100]
+    color: Colors.gray[100],
+    letterSpacing: 1
   },
   disabled: {
     opacity: 0.3

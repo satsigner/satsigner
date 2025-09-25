@@ -17,6 +17,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { type Key } from '@/types/models/Account'
+import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 export default function MultiSig() {
   const router = useRouter()
@@ -36,7 +37,7 @@ export default function MultiSig() {
     DEFAULT_MULTISIG_KEYS_REQUIRED
   )
   const [localScriptVersion, setLocalScriptVersion] =
-    useState<NonNullable<Key['scriptVersion']>>('P2WPKH')
+    useState<NonNullable<Key['scriptVersion']>>('P2WSH')
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
 
@@ -78,9 +79,7 @@ export default function MultiSig() {
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.script')} />
               <SSButton
-                label={`${t(
-                  `script.${localScriptVersion.toLocaleLowerCase()}.name`
-                )} (${localScriptVersion})`}
+                label={getScriptVersionDisplayName(localScriptVersion)}
                 withSelect
                 onPress={() => setScriptVersionModalVisible(true)}
               />
@@ -88,6 +87,13 @@ export default function MultiSig() {
           </SSFormLayout>
         </SSVStack>
         <SSVStack>
+          <SSButton
+            label={t('account.import.descriptor')}
+            variant="subtle"
+            onPress={() =>
+              router.navigate('/account/add/multiSig/importDescriptor')
+            }
+          />
           <SSButton
             label={t('common.continue')}
             variant="secondary"
@@ -106,6 +112,7 @@ export default function MultiSig() {
       <SSScriptVersionModal
         visible={scriptVersionModalVisible}
         scriptVersion={localScriptVersion}
+        policyType="multisig"
         onSelect={(scriptVersion) => {
           setLocalScriptVersion(scriptVersion)
           setScriptVersionModalVisible(false)

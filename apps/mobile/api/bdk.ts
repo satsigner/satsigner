@@ -21,7 +21,7 @@ import {
   type BlockchainEsploraConfig,
   BlockChainNames,
   KeychainKind,
-  Network
+  type Network
 } from 'bdk-rn/lib/lib/enums'
 
 import { type Account, type Key, type Secret } from '@/types/models/Account'
@@ -32,7 +32,14 @@ import {
   type Backend,
   type Network as BlockchainNetwork
 } from '@/types/settings/blockchain'
-import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
+import {
+  getExtendedKeyFromDescriptor,
+  getFingerprintFromExtendedPublicKey
+} from '@/utils/bip32'
+import {
+  getMultisigDerivationPathFromScriptVersion,
+  getMultisigScriptTypeFromScriptVersion
+} from '@/utils/bitcoin'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 
 import ElectrumClient from './electrum'
@@ -45,53 +52,6 @@ type WalletData = {
   internalDescriptor: string
   wallet: Wallet
   keyFingerprints?: string[] // Optional for multisig accounts
-}
-
-async function generateMnemonic(
-  mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
-) {
-  const mnemonic = await new Mnemonic().create(mnemonicWordCount)
-  return mnemonic.asString()
-}
-
-async function generateMnemonicFromEntropy(entropy: string) {
-  if (entropy.length < 128 || entropy.length > 256)
-    throw new Error(
-      'Invalid Entropy: Entropy length must be range of [128, 256]'
-    )
-
-  if (entropy.length % 32 !== 0)
-    throw new Error('Invalid Entropy: Entropy length must be divide by 32')
-
-  const bytes = entropy.match(/.{1,8}/g)?.map((b) => parseInt(b, 2)) ?? []
-
-  const numbers = Array.from(new Uint8Array(bytes))
-  const mnemonic = await new Mnemonic().fromEntropy(numbers)
-  return mnemonic.asString()
-}
-
-async function validateMnemonic(mnemonic: NonNullable<Secret['mnemonic']>) {
-  try {
-    await new Mnemonic().fromString(mnemonic)
-  } catch (_) {
-    return false
-  }
-  return true
-}
-
-async function extractFingerprintFromExtendedPublicKey(
-  extendedPublicKey: string,
-  network: Network
-): Promise<string> {
-  try {
-    // Create a descriptor from the extended public key to extract fingerprint
-    const descriptorString = `pkh(${extendedPublicKey})`
-    const descriptor = await new Descriptor().create(descriptorString, network)
-    const parsedDescriptor = await parseDescriptor(descriptor)
-    return parsedDescriptor.fingerprint
-  } catch (_error) {
-    return ''
-  }
 }
 
 async function getWalletData(
@@ -130,73 +90,175 @@ async function getWalletData(
       break
     }
     case 'multisig': {
-      const extendedPublicKeys = await Promise.all(
-        account.keys.map(async (key) => {
-          if (typeof key.secret === 'object') {
-            // If we have an extended public key directly, use it
-            if (key.secret.extendedPublicKey) {
-              return key.secret.extendedPublicKey
-            }
+      // Get script version from the first key (all keys should have the same script version)
+      const scriptVersion = account.keys[0]?.scriptVersion || 'P2WSH'
+      const multisigScriptType =
+        getMultisigScriptTypeFromScriptVersion(scriptVersion)
 
-            // If we have a descriptor, extract the extended public key from it
-            if (key.secret.externalDescriptor) {
+      // Extract key data with proper derivation paths and fingerprints
+      const keyData = await Promise.all(
+        account.keys.map(async (key, keyIndex) => {
+          let extendedPublicKey = ''
+          let fingerprint = ''
+
+          if (typeof key.secret === 'object') {
+            // Get fingerprint from secret or key
+            fingerprint =
+              (typeof key.secret === 'object' && key.secret.fingerprint) ||
+              key.fingerprint ||
+              ''
+
+            // Get extended public key from various sources
+            if (key.secret.extendedPublicKey) {
+              extendedPublicKey = key.secret.extendedPublicKey
+            } else if (key.secret.externalDescriptor) {
               try {
-                const descriptor = await new Descriptor().create(
-                  key.secret.externalDescriptor,
-                  network
+                const extractedKey = getExtendedKeyFromDescriptor(
+                  key.secret.externalDescriptor
                 )
-                const extendedKey =
-                  await extractExtendedKeyFromDescriptor(descriptor)
-                return extendedKey
-              } catch (_error) {
-                return null
+                if (extractedKey) {
+                  extendedPublicKey = extractedKey
+                }
+              } catch {
+                // Failed to extract extended public key
               }
             }
           }
-          return null
+
+          // If we still don't have a fingerprint, try to extract it from the extended public key
+          if (!fingerprint && extendedPublicKey) {
+            try {
+              fingerprint = getFingerprintFromExtendedPublicKey(
+                extendedPublicKey,
+                network
+              )
+            } catch {
+              // Failed to extract fingerprint
+            }
+          }
+
+          return { fingerprint, extendedPublicKey, index: keyIndex }
         })
       )
 
-      const validExtendedPublicKeys = extendedPublicKeys.filter(
-        (x): x is string => x !== null
+      // Filter out keys that don't have both fingerprint and extended public key
+      const validKeyData = keyData.filter(
+        (
+          kd
+        ): kd is {
+          fingerprint: string
+          extendedPublicKey: string
+          index: number
+        } =>
+          kd !== null &&
+          kd.fingerprint !== undefined &&
+          kd.extendedPublicKey !== undefined
       )
 
-      if (validExtendedPublicKeys.length !== account.keys.length) {
-        throw new Error('Failed to extract extended public keys from all keys')
+      if (validKeyData.length !== account.keys.length) {
+        throw new Error(
+          `Failed to extract extended public keys from all keys (${validKeyData.length}/${account.keys.length})`
+        )
       }
 
-      // Extract fingerprints for each individual key
-      const keyFingerprints = await Promise.all(
-        validExtendedPublicKeys.map(async (extendedPublicKey) => {
-          return await extractFingerprintFromExtendedPublicKey(
-            extendedPublicKey,
-            network
-          )
+      // Check for duplicate fingerprints (same seed used for multiple keys)
+      const fingerprints = validKeyData.map((kd) => kd.fingerprint)
+      const uniqueFingerprints = [...new Set(fingerprints)]
+      if (uniqueFingerprints.length !== fingerprints.length) {
+        throw new Error(
+          'Multisig wallets require unique keys. Using the same seed for multiple keys is not allowed. Each key must be derived from a different seed.'
+        )
+      }
+
+      // Check for duplicate extended public keys
+      const extendedPublicKeys = validKeyData.map((kd) => kd.extendedPublicKey)
+      const uniqueExtendedPublicKeys = [...new Set(extendedPublicKeys)]
+      if (uniqueExtendedPublicKeys.length !== extendedPublicKeys.length) {
+        throw new Error(
+          'Multisig wallets require unique keys. Using the same extended public key for multiple keys is not allowed.'
+        )
+      }
+
+      // Get the policy-based derivation path according to the account type
+      // Use the original scriptVersion for derivation path, not the mapped multisig script type
+      const policyDerivationPath = getMultisigDerivationPathFromScriptVersion(
+        scriptVersion, // Use original scriptVersion instead of multisigScriptType
+        network as BlockchainNetwork
+      )
+
+      // Remove leading 'm' or 'M' from derivationPath if present
+      const cleanPolicyPath = policyDerivationPath.replace(/^m\/?/i, '')
+
+      // Sort keys by extended public key to ensure consistent ordering with other Bitcoin wallets
+      const sortedKeyData = validKeyData.sort((a, b) =>
+        a.extendedPublicKey.localeCompare(b.extendedPublicKey)
+      )
+
+      // Build key section with policy-based derivation paths and fingerprints
+      const keySection = sortedKeyData
+        .map(({ fingerprint, extendedPublicKey }) => {
+          // Format: [FINGERPRINT/POLICY_DERIVATION_PATH]XPUB/<0;1>/*
+          return `[${fingerprint}/${cleanPolicyPath}]${extendedPublicKey}/<0;1>/*`
         })
-      )
+        .join(',')
 
-      const multisigDescriptorString = `wsh(multi(${
-        account.keysRequired
-      },${validExtendedPublicKeys.join(',')}))`
-      const multisigDescriptor = await new Descriptor().create(
-        multisigDescriptorString,
+      // Create descriptor based on script type using sortedmulti
+      let finalDescriptor = ''
+      switch (multisigScriptType) {
+        case 'P2SH':
+          finalDescriptor = `sh(sortedmulti(${account.keysRequired},${keySection}))`
+          break
+        case 'P2SH-P2WSH':
+          finalDescriptor = `sh(wsh(sortedmulti(${account.keysRequired},${keySection})))`
+          break
+        case 'P2WSH':
+          finalDescriptor = `wsh(sortedmulti(${account.keysRequired},${keySection}))`
+          break
+        case 'P2TR':
+          finalDescriptor = `tr(sortedmulti(${account.keysRequired},${keySection}))`
+          break
+        default:
+          finalDescriptor = `wsh(sortedmulti(${account.keysRequired},${keySection}))`
+      }
+
+      // Since BDK doesn't support multipath descriptors directly, we need to create separate descriptors
+      // for external (0/*) and internal (1/*) addresses
+      const externalDescriptor = finalDescriptor.replace(/<0;1>/g, '0')
+      const internalDescriptor = finalDescriptor.replace(/<0;1>/g, '1')
+
+      const externalDesc = await new Descriptor().create(
+        externalDescriptor,
         network
       )
+      const internalDesc = await new Descriptor().create(
+        internalDescriptor,
+        network
+      )
+      if (!externalDesc) {
+        throw new Error('Failed to create external descriptor')
+      }
+      if (!internalDesc) {
+        throw new Error('Failed to create internal descriptor')
+      }
 
-      const parsedDescriptor = await parseDescriptor(multisigDescriptor)
+      const parsedDescriptor = await parseDescriptor(externalDesc)
+
       const wallet = await getWalletFromDescriptor(
-        multisigDescriptor,
-        null,
+        externalDesc,
+        internalDesc,
         network
       )
+
+      // Extract individual key fingerprints
+      const keyFingerprints = validKeyData.map((kd) => kd.fingerprint)
 
       return {
         fingerprint: parsedDescriptor.fingerprint,
         derivationPath: parsedDescriptor.derivationPath,
-        externalDescriptor: multisigDescriptorString,
+        externalDescriptor: finalDescriptor, // Store the original multipath descriptor
         internalDescriptor: '',
         wallet,
-        keyFingerprints // Add individual key fingerprints
+        keyFingerprints
       }
     }
     case 'watchonly': {
@@ -213,12 +275,18 @@ async function getWalletData(
           key.secret.externalDescriptor,
           network
         )
+        if (!externalDescriptor) {
+          throw new Error('Failed to create external descriptor')
+        }
         const internalDescriptor = key.secret.internalDescriptor
           ? await new Descriptor().create(
               key.secret.internalDescriptor,
               network
             )
           : null
+        if (key.secret.internalDescriptor && !internalDescriptor) {
+          throw new Error('Failed to create internal descriptor')
+        }
 
         const parsedDescriptor = await parseDescriptor(externalDescriptor)
         const wallet = await getWalletFromDescriptor(
@@ -230,7 +298,9 @@ async function getWalletData(
         return {
           fingerprint: parsedDescriptor.fingerprint,
           derivationPath: parsedDescriptor.derivationPath,
-          externalDescriptor: await externalDescriptor.asString(),
+          externalDescriptor: externalDescriptor
+            ? await externalDescriptor.asString()
+            : '',
           internalDescriptor: internalDescriptor
             ? await internalDescriptor.asString()
             : '',
@@ -239,8 +309,8 @@ async function getWalletData(
       } else if (key.creationType === 'importExtendedPub') {
         if (
           !key.scriptVersion ||
-          !key.fingerprint ||
           typeof key.secret === 'string' ||
+          !key.secret.fingerprint ||
           !key.secret.extendedPublicKey
         )
           throw new Error('Invalid account information')
@@ -256,13 +326,13 @@ async function getWalletData(
           case 'P2PKH':
             externalDescriptor = await new Descriptor().newBip44Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.External,
               network
             )
             internalDescriptor = await new Descriptor().newBip44Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.Internal,
               network
             )
@@ -270,13 +340,13 @@ async function getWalletData(
           case 'P2SH-P2WPKH':
             externalDescriptor = await new Descriptor().newBip49Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.External,
               network
             )
             internalDescriptor = await new Descriptor().newBip49Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.Internal,
               network
             )
@@ -284,13 +354,13 @@ async function getWalletData(
           case 'P2WPKH':
             externalDescriptor = await new Descriptor().newBip84Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.External,
               network
             )
             internalDescriptor = await new Descriptor().newBip84Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.Internal,
               network
             )
@@ -298,20 +368,20 @@ async function getWalletData(
           case 'P2TR':
             externalDescriptor = await new Descriptor().newBip86Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.External,
               network
             )
             internalDescriptor = await new Descriptor().newBip86Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.Internal,
               network
             )
             break
           case 'P2WSH':
           case 'P2SH-P2WSH':
-          case 'Legacy P2SH':
+          case 'P2SH':
             // For multisig script types, we need to create descriptors manually
             throw new Error(
               `Manual descriptor creation required for ${key.scriptVersion}`
@@ -319,13 +389,13 @@ async function getWalletData(
           default:
             externalDescriptor = await new Descriptor().newBip84Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.External,
               network
             )
             internalDescriptor = await new Descriptor().newBip84Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.Internal,
               network
             )
@@ -342,8 +412,12 @@ async function getWalletData(
         return {
           fingerprint: parsedDescriptor.fingerprint,
           derivationPath: parsedDescriptor.derivationPath,
-          externalDescriptor: await externalDescriptor.asString(),
-          internalDescriptor: await internalDescriptor.asString(),
+          externalDescriptor: externalDescriptor
+            ? await externalDescriptor.asString()
+            : '',
+          internalDescriptor: internalDescriptor
+            ? await internalDescriptor.asString()
+            : '',
           wallet
         }
       } else if (key.creationType === 'importAddress') {
@@ -365,7 +439,7 @@ async function getWalletFromMnemonic(
   let internalDescriptor: Descriptor
 
   try {
-    externalDescriptor = await getDescriptor(
+    externalDescriptor = await getDescriptorObject(
       mnemonic,
       scriptVersion,
       KeychainKind.External,
@@ -373,7 +447,7 @@ async function getWalletFromMnemonic(
       network
     )
 
-    internalDescriptor = await getDescriptor(
+    internalDescriptor = await getDescriptorObject(
       mnemonic,
       scriptVersion,
       KeychainKind.Internal,
@@ -408,8 +482,12 @@ async function getWalletFromMnemonic(
       )
 
       // Get the base descriptor strings
-      const baseExternalString = await baseExternalDescriptor.asString()
-      const baseInternalString = await baseInternalDescriptor.asString()
+      const baseExternalString = baseExternalDescriptor
+        ? await baseExternalDescriptor.asString()
+        : ''
+      const baseInternalString = baseInternalDescriptor
+        ? await baseInternalDescriptor.asString()
+        : ''
 
       // Extract the key part (everything after the script function)
       const externalKeyPart = baseExternalString
@@ -432,7 +510,7 @@ async function getWalletFromMnemonic(
           externalDescriptorString = `sh(wsh(${externalKeyPart}))`
           internalDescriptorString = `sh(wsh(${internalKeyPart}))`
           break
-        case 'Legacy P2SH':
+        case 'P2SH':
           externalDescriptorString = `sh(${externalKeyPart})`
           internalDescriptorString = `sh(${internalKeyPart})`
           break
@@ -468,13 +546,18 @@ async function getWalletFromMnemonic(
   return {
     fingerprint,
     derivationPath,
-    externalDescriptor: await externalDescriptor.asString(),
-    internalDescriptor: await internalDescriptor.asString(),
+    externalDescriptor: externalDescriptor
+      ? await externalDescriptor.asString()
+      : '',
+    internalDescriptor: internalDescriptor
+      ? await internalDescriptor.asString()
+      : '',
     wallet
   }
 }
 
-async function getDescriptor(
+/** Parse BIP32 path like "m/48'/0'/0'/2'" -> array of indexes (with hardened offset) */
+async function getDescriptorObject(
   mnemonic: NonNullable<Secret['mnemonic']>,
   scriptVersion: NonNullable<Key['scriptVersion']>,
   kind: KeychainKind,
@@ -487,6 +570,7 @@ async function getDescriptor(
     parsedMnemonic,
     passphrase
   )
+
   switch (scriptVersion) {
     case 'P2PKH':
       return new Descriptor().newBip44(descriptorSecretKey, kind, network)
@@ -496,20 +580,24 @@ async function getDescriptor(
       return new Descriptor().newBip84(descriptorSecretKey, kind, network)
     case 'P2TR':
       return new Descriptor().newBip86(descriptorSecretKey, kind, network)
-    case 'P2WSH':
+    case 'P2SH':
     case 'P2SH-P2WSH':
-    case 'Legacy P2SH':
+    case 'P2WSH':
       // For multisig script types, we need to create descriptors manually
       // since BDK doesn't have specific methods for these
       throw new Error(
-        `Manual descriptor creation required for ${scriptVersion}`
+        `Manual descriptor creation required for ${scriptVersion} - use getExtendedPublicKeyFromMnemonic instead`
       )
     default:
       return new Descriptor().newBip84(descriptorSecretKey, kind, network)
   }
 }
 
+// TODO: put it elsewhere
 async function parseDescriptor(descriptor: Descriptor) {
+  if (!descriptor) {
+    return { fingerprint: '', derivationPath: '' }
+  }
   const descriptorString = await descriptor.asString()
   const match = descriptorString.match(/\[([0-9a-f]+)([0-9'/]+)\]/)
   return match
@@ -533,110 +621,26 @@ async function getWalletFromDescriptor(
   return wallet
 }
 
-async function extractExtendedKeyFromDescriptor(descriptor: Descriptor) {
-  const descriptorString = await descriptor.asString()
-  const match = descriptorString.match(/(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/)
-  return match ? match[0] : ''
-}
-
 async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
-  if (typeof key.secret === 'string') return
-  if (!key.secret.mnemonic || !key.scriptVersion) return
+  if (
+    typeof key.secret === 'string' ||
+    !key.secret.mnemonic ||
+    !key.scriptVersion
+  )
+    return
 
-  const externalDescriptor = await getDescriptor(
+  const externalDescriptor = await getDescriptorObject(
     key.secret.mnemonic,
     key.scriptVersion,
     KeychainKind.External,
     key.secret.passphrase,
     network
   )
-  const extendedKey = await extractExtendedKeyFromDescriptor(externalDescriptor)
-
-  return extendedKey
-}
-
-async function getDescriptorsFromKeyData(
-  extendedPublicKey: string,
-  fingerprint: string,
-  scriptVersion: NonNullable<Key['scriptVersion']>,
-  network: Network
-) {
-  // Convert BDK Network to blockchain Network type
-  const blockchainNetwork =
-    network === Network.Bitcoin
-      ? 'bitcoin'
-      : network === Network.Testnet
-        ? 'testnet'
-        : 'signet'
-
-  const derivationPath = getDerivationPathFromScriptVersion(
-    scriptVersion,
-    blockchainNetwork
+  const extendedKey = getExtendedKeyFromDescriptor(
+    await externalDescriptor.asString()
   )
 
-  // Construct the key part with fingerprint and derivation path
-  const keyPart = `[${fingerprint}/${derivationPath}]${extendedPublicKey}`
-
-  let externalDescriptor = ''
-  let internalDescriptor = ''
-
-  // Generate descriptors based on script version
-  switch (scriptVersion) {
-    case 'P2PKH':
-      externalDescriptor = `pkh(${keyPart}/0/*)`
-      internalDescriptor = `pkh(${keyPart}/1/*)`
-      break
-    case 'P2SH-P2WPKH':
-      externalDescriptor = `sh(wpkh(${keyPart}/0/*))`
-      internalDescriptor = `sh(wpkh(${keyPart}/1/*))`
-      break
-    case 'P2WPKH':
-      externalDescriptor = `wpkh(${keyPart}/0/*)`
-      internalDescriptor = `wpkh(${keyPart}/1/*)`
-      break
-    case 'P2TR':
-      externalDescriptor = `tr(${keyPart}/0/*)`
-      internalDescriptor = `tr(${keyPart}/1/*)`
-      break
-    case 'P2WSH':
-      externalDescriptor = `wsh(${keyPart}/0/*)`
-      internalDescriptor = `wsh(${keyPart}/1/*)`
-      break
-    case 'P2SH-P2WSH':
-      externalDescriptor = `sh(wsh(${keyPart}/0/*))`
-      internalDescriptor = `sh(wsh(${keyPart}/1/*))`
-      break
-    case 'Legacy P2SH':
-      externalDescriptor = `sh(${keyPart}/0/*)`
-      internalDescriptor = `sh(${keyPart}/1/*)`
-      break
-    default:
-      externalDescriptor = `wpkh(${keyPart}/0/*)`
-      internalDescriptor = `wpkh(${keyPart}/1/*)`
-  }
-
-  // Add checksum using BDK
-  try {
-    const externalDesc = await new Descriptor().create(
-      externalDescriptor,
-      network
-    )
-    const internalDesc = await new Descriptor().create(
-      internalDescriptor,
-      network
-    )
-
-    return {
-      externalDescriptor: await externalDesc.asString(),
-      internalDescriptor: await internalDesc.asString()
-    }
-  } catch (_error) {
-    // Return descriptors without checksum if BDK fails
-    return {
-      externalDescriptor,
-      internalDescriptor
-    }
-  }
+  return extendedKey
 }
 
 async function syncWallet(
@@ -668,7 +672,8 @@ async function getWalletAddresses(
 
   for (let i = 0; i < count; i += 1) {
     const receiveAddrInfo = await wallet.getAddress(i)
-    const receiveAddr = await receiveAddrInfo.address.asString()
+    const address = receiveAddrInfo?.address
+    const receiveAddr = address ? await address.asString() : ''
     addresses.push({
       address: receiveAddr,
       keychain: 'external',
@@ -686,7 +691,9 @@ async function getWalletAddresses(
     })
 
     const changeAddrInfo = await wallet.getInternalAddress(i)
-    const changeAddr = await changeAddrInfo.address.asString()
+    const changeAddr = changeAddrInfo?.address
+      ? await changeAddrInfo.address.asString()
+      : ''
 
     addresses.push({
       address: changeAddr,
@@ -727,7 +734,9 @@ async function getWalletAddressesUsingStopGap(
 
   for (let i = 0; i < lastIndexWithFunds + stopGap; i += 1) {
     const receiveAddrInfo = await wallet.getAddress(i)
-    const receiveAddr = await receiveAddrInfo.address.asString()
+    const receiveAddr = receiveAddrInfo?.address
+      ? await receiveAddrInfo.address.asString()
+      : ''
     addresses.push({
       address: receiveAddr,
       keychain: 'external',
@@ -749,7 +758,9 @@ async function getWalletAddressesUsingStopGap(
     }
 
     const changeAddrInfo = await wallet.getInternalAddress(i)
-    const changeAddr = await changeAddrInfo.address.asString()
+    const changeAddr = changeAddrInfo?.address
+      ? await changeAddrInfo.address.asString()
+      : ''
 
     addresses.push({
       address: changeAddr,
@@ -918,7 +929,7 @@ async function parseTransactionDetailsToTransaction(
       const { value, script: scriptObj } = outputs[index]
       const script = await scriptObj.toBytes()
       const addressObj = await new Address().fromScript(scriptObj, network)
-      const address = await addressObj.asString()
+      const address = addressObj ? await addressObj.asString() : ''
       vout.push({ value, address, script })
     }
   }
@@ -977,7 +988,7 @@ async function parseLocalUtxoToUtxo(
 async function getAddress(utxo: LocalUtxo, network: Network) {
   const script = utxo.txout.script
   const address = await new Address().fromScript(script, network)
-  return address.asString()
+  return address ? address.asString() : ''
 }
 
 async function getTransactionInputValues(
@@ -1004,30 +1015,8 @@ async function getTransactionInputValues(
   return vin
 }
 
-async function getFingerprint(
-  mnemonic: NonNullable<Secret['mnemonic']>,
-  passphrase: Secret['passphrase'],
-  network: Network
-) {
-  const bdkMnemonic = await new Mnemonic().fromString(mnemonic)
-  const descriptorSecretKey = await new DescriptorSecretKey().create(
-    network,
-    bdkMnemonic,
-    passphrase
-  )
-  const descriptor = await new Descriptor().newBip84(
-    descriptorSecretKey,
-    KeychainKind.External,
-    network
-  )
-
-  const { fingerprint } = await parseDescriptor(descriptor)
-  return fingerprint
-}
-
 async function getLastUnusedAddressFromWallet(wallet: Wallet) {
   const newAddress = await wallet.getAddress(AddressIndex.New)
-
   return newAddress
 }
 
@@ -1083,18 +1072,13 @@ async function broadcastTransaction(
   return result
 }
 
+// Comprehensive example of how to use multisig functions
 export {
   broadcastTransaction,
   buildTransaction,
-  extractExtendedKeyFromDescriptor,
-  extractFingerprintFromExtendedPublicKey,
-  generateMnemonic,
-  generateMnemonicFromEntropy,
   getBlockchain,
-  getDescriptor,
-  getDescriptorsFromKeyData,
+  getDescriptorObject,
   getExtendedPublicKeyFromAccountKey,
-  getFingerprint,
   getLastUnusedAddressFromWallet,
   getTransactionInputValues,
   getWalletAddresses,
@@ -1104,6 +1088,5 @@ export {
   getWalletOverview,
   parseDescriptor,
   signTransaction,
-  syncWallet,
-  validateMnemonic
+  syncWallet
 }

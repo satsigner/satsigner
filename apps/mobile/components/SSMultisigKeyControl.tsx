@@ -1,17 +1,18 @@
-import { Descriptor } from 'bdk-rn'
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
-import { TouchableOpacity, View } from 'react-native'
+import { useEffect, useRef, useState } from 'react'
+import { Animated, TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
-import { SSIconAdd, SSIconGreen } from '@/components/icons'
+import { SSIconAdd, SSIconGreen, SSIconGreenNoSecret } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
+import SSRadioButton from '@/components/SSRadioButton'
+import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { useKeySourceLabel } from '@/hooks/useKeySourceLabel'
+import { useMultisigKeyValidation } from '@/hooks/useKeyValidation'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -25,26 +26,22 @@ import {
   type ScriptVersionType,
   type Secret
 } from '@/types/models/Account'
-import { getKeyFormatForScriptVersion } from '@/utils/bitcoin'
+import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 
 type SSMultisigKeyControlProps = {
-  isBlackBackground: boolean
   index: number
   keyCount: number
   keyDetails?: Key
   isSettingsMode?: boolean
   accountId?: string
-  onRefresh?: () => void
 }
 
 function SSMultisigKeyControl({
-  isBlackBackground,
   index,
   keyCount,
   keyDetails,
   isSettingsMode = false,
-  accountId,
-  onRefresh
+  accountId
 }: SSMultisigKeyControlProps) {
   const router = useRouter()
   const [setKeyName, setCreationType, setNetwork, getAccountData] =
@@ -60,7 +57,7 @@ function SSMultisigKeyControl({
   const globalScriptVersion = useAccountBuilderStore(
     (state) => state.scriptVersion
   ) as ScriptVersionType
-  const updateAccountName = useAccountsStore((state) => state.updateAccountName)
+  const updateKeyName = useAccountsStore((state) => state.updateKeyName)
 
   // Use account's script version in settings mode, global script version in creation mode
   const scriptVersion =
@@ -73,6 +70,49 @@ function SSMultisigKeyControl({
   const [extractedPublicKey, setExtractedPublicKey] = useState('')
   const [seedDropped, setSeedDropped] = useState(false)
   const [dropSeedModalVisible, setDropSeedModalVisible] = useState(false)
+  const [resetKeyModalVisible, setResetKeyModalVisible] = useState(false)
+  const [wordCountModalVisible, setWordCountModalVisible] = useState(false)
+  const [localMnemonicWordCount, setLocalMnemonicWordCount] = useState(24)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+
+  // Animation values
+  const animatedHeight = useRef(new Animated.Value(0)).current
+  const animatedOpacity = useRef(new Animated.Value(0)).current
+  const [contentHeight, setContentHeight] = useState(0)
+
+  // Animation logic for expansion/contraction
+  useEffect(() => {
+    if (isExpanded) {
+      // Expand animation - use measured height or fallback to a reasonable default
+      const targetHeight = contentHeight > 0 ? contentHeight : 300
+      Animated.parallel([
+        Animated.timing(animatedHeight, {
+          toValue: targetHeight + 50 - 16,
+          duration: 100,
+          useNativeDriver: false
+        }),
+        Animated.timing(animatedOpacity, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: false
+        })
+      ]).start()
+    } else {
+      // Collapse animation
+      Animated.parallel([
+        Animated.timing(animatedHeight, {
+          toValue: 0,
+          duration: 100,
+          useNativeDriver: false
+        }),
+        Animated.timing(animatedOpacity, {
+          toValue: 0,
+          duration: 100,
+          useNativeDriver: false
+        })
+      ]).start()
+    }
+  }, [isExpanded, contentHeight, animatedHeight, animatedOpacity])
 
   // Extract public key from descriptor when key details change
   useEffect(() => {
@@ -92,17 +132,10 @@ function SSMultisigKeyControl({
 
       // If we have a descriptor, extract the public key from it
       if (secret.externalDescriptor) {
-        try {
-          const network = useBlockchainStore.getState().selectedNetwork
-          const descriptor = await new Descriptor().create(
-            secret.externalDescriptor,
-            network as Network
-          )
-          const publicKey = await extractExtendedKeyFromDescriptor(descriptor)
-          setExtractedPublicKey(publicKey)
-        } catch (_error) {
-          setExtractedPublicKey('')
-        }
+        const publicKey = getExtendedKeyFromDescriptor(
+          secret.externalDescriptor
+        )
+        setExtractedPublicKey(publicKey)
       } else {
         setExtractedPublicKey('')
       }
@@ -123,62 +156,37 @@ function SSMultisigKeyControl({
     }
   }, [keyDetails])
 
-  function getSourceLabel() {
-    if (!keyDetails) {
-      return t('account.selectKeySource')
-    } else if (keyDetails.creationType === 'generateMnemonic') {
-      // Check if seed has been dropped
-      if (
-        seedDropped ||
-        (typeof keyDetails.secret === 'object' && !keyDetails.secret.mnemonic)
-      ) {
-        return t('account.seed.droppedSeed', {
-          name: keyDetails.scriptVersion
-        })
-      }
-      return t('account.seed.newSeed', {
-        name: keyDetails.scriptVersion
-      })
-    } else if (keyDetails.creationType === 'importMnemonic') {
-      // Check if seed has been dropped
-      if (
-        seedDropped ||
-        (typeof keyDetails.secret === 'object' && !keyDetails.secret.mnemonic)
-      ) {
-        return t('account.seed.droppedSeed', {
-          name: keyDetails.scriptVersion
-        })
-      }
-      return t('account.seed.importedSeed', { name: keyDetails.scriptVersion })
-    } else if (keyDetails.creationType === 'importDescriptor') {
-      return t('account.seed.external')
-    } else if (keyDetails.creationType === 'importExtendedPub') {
-      // Show the correct label according to the script version and network
-      const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
-      return t(`account.import.${keyFormat}`)
+  // Reset localKeyName and hasUnsavedChanges when keyDetails change
+  useEffect(() => {
+    if (keyDetails?.name !== undefined) {
+      setLocalKeyName(keyDetails.name)
+      setHasUnsavedChanges(false)
     }
-  }
+  }, [keyDetails?.name])
 
-  // Always use the global scriptVersion from the store
-  function getImportExtendedLabel() {
-    const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
-    return t(`account.import.${keyFormat}`)
-  }
+  // Use custom hooks for label generation and validation
+  const { sourceLabel, importExtendedLabel, dropSeedLabel, shareXpubLabel } =
+    useKeySourceLabel({
+      keyDetails,
+      scriptVersion,
+      network,
+      seedDropped
+    })
 
-  function getDropSeedLabel() {
-    // Fallback to global script version
-    const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
-    return t(`account.seed.dropAndKeep.${keyFormat}`)
-  }
+  const { isKeyCompleted, hasSeed, hasNoSecret } = useMultisigKeyValidation({
+    keyDetails,
+    seedDropped
+  })
 
-  function getShareXpubLabel() {
-    // Fallback to global script version
-    const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
-    return t(
-      `account.seed.share${
-        keyFormat.charAt(0).toUpperCase() + keyFormat.slice(1)
-      }`
+  function handleWordCountSelection() {
+    setWordCountModalVisible(false)
+    // Set the word count in the account builder store
+    const { setMnemonicWordCount } = useAccountBuilderStore.getState()
+    setMnemonicWordCount(
+      localMnemonicWordCount as NonNullable<Key['mnemonicWordCount']>
     )
+    // Navigate to import page with the selected word count
+    router.navigate(`/account/add/import/mnemonic/${index}`)
   }
 
   async function handleAction(type: NonNullable<Key['creationType']>) {
@@ -193,7 +201,8 @@ function SSMultisigKeyControl({
       // Navigate to each key policy type component
       router.navigate(`/account/add/multiSig/keySettings/${index}`)
     } else if (type === 'importMnemonic') {
-      router.navigate(`/account/add/import/mnemonic/${index}`)
+      // For import, first show the word count selection modal
+      setWordCountModalVisible(true)
     } else if (type === 'importDescriptor') {
       router.navigate(`/account/add/(common)/import/descriptor/${index}`)
     } else if (type === 'importExtendedPub') {
@@ -202,7 +211,7 @@ function SSMultisigKeyControl({
   }
 
   function handleCompletedKeyAction(
-    action: 'dropSeed' | 'shareXpub' | 'shareDescriptor'
+    action: 'dropSeed' | 'shareXpub' | 'shareDescriptor' | 'resetKey'
   ) {
     // Handle actions for completed keys
     switch (action) {
@@ -214,6 +223,9 @@ function SSMultisigKeyControl({
         break
       case 'shareDescriptor':
         handleShareDescriptor()
+        break
+      case 'resetKey':
+        setResetKeyModalVisible(true)
         break
     }
   }
@@ -231,7 +243,7 @@ function SSMultisigKeyControl({
           // Set seedDropped to true to hide the button
           setSeedDropped(true)
           toast.success(result.message)
-          onRefresh?.()
+          // Don't call onRefresh to keep the interface focused
         } else {
           toast.error(result.message)
         }
@@ -242,13 +254,51 @@ function SSMultisigKeyControl({
 
         if (result.success) {
           toast.success(result.message)
-          onRefresh?.()
+          // Don't call onRefresh to keep the interface focused
         } else {
           toast.error(result.message)
         }
       }
     } catch (_error) {
       toast.error(t('account.seed.dropSeedError'))
+    }
+  }
+
+  async function handleResetKey() {
+    if (!keyDetails) return
+
+    try {
+      if (isSettingsMode && accountId) {
+        // Handle existing account (settings mode) - reset the key
+        const { resetKey } = useAccountsStore.getState()
+        const result = await resetKey(accountId, index)
+
+        if (result.success) {
+          // Reset local state
+          setLocalKeyName('')
+          setExtractedPublicKey('')
+          setSeedDropped(false)
+          toast.success(result.message)
+        } else {
+          toast.error(result.message)
+        }
+      } else {
+        // Handle account creation mode
+        const { resetKey } = useAccountBuilderStore.getState()
+        const result = await resetKey(index)
+
+        if (result.success) {
+          // Reset local state
+          setLocalKeyName('')
+          setExtractedPublicKey('')
+          setSeedDropped(false)
+          toast.success(result.message)
+        } else {
+          toast.error(result.message)
+        }
+      }
+    } catch (_error) {
+      toast.error('Failed to reset key')
     }
   }
 
@@ -298,31 +348,39 @@ function SSMultisigKeyControl({
     }
   }
 
-  // Check if the key is completed based on its data
-  const isKeyCompleted =
-    keyDetails &&
-    keyDetails.creationType &&
-    ((typeof keyDetails.secret === 'object' &&
-      keyDetails.secret.fingerprint &&
-      (keyDetails.secret.extendedPublicKey ||
-        keyDetails.secret.externalDescriptor ||
-        keyDetails.secret.mnemonic)) ||
-      (typeof keyDetails.secret === 'string' && keyDetails.secret.length > 0))
+  function handleViewSeedWords() {
+    if (accountId) {
+      // In settings mode, use the existing account
+      router.navigate(
+        `/account/${accountId}/settings/export/seedWords?keyIndex=${index}`
+      )
+    } else {
+      // In creation mode, use account builder store data
+      const accountData = getAccountData()
+      const key = accountData.keys[index]
 
-  // Check if the key has a mnemonic (seed) that can be dropped
-  const hasSeed = Boolean(
-    !seedDropped &&
-      keyDetails &&
-      typeof keyDetails.secret === 'object' &&
-      keyDetails.secret.mnemonic
-  )
+      if (!key) {
+        toast.error('Key not found')
+        return
+      }
+
+      // Navigate to a temporary export page that works with account builder data
+      router.navigate(
+        `/account/add/multiSig/export/seedWords?keyIndex=${index}`
+      )
+    }
+  }
 
   function handleKeyNameChange(newName: string) {
     setLocalKeyName(newName)
+    setHasUnsavedChanges(true)
+  }
 
-    // Save to store if in settings mode and we have an account ID
-    if (isSettingsMode && accountId && newName.trim()) {
-      updateAccountName(accountId, newName.trim())
+  function handleSaveKeyName() {
+    if (isSettingsMode && accountId && localKeyName.trim()) {
+      updateKeyName(accountId, index, localKeyName.trim())
+      setHasUnsavedChanges(false)
+      toast.success('Key name saved')
     }
   }
 
@@ -354,33 +412,39 @@ function SSMultisigKeyControl({
     <View
       style={[
         {
-          borderColor: '#6A6A6A',
-          borderTopWidth: 2,
-          backgroundColor: isBlackBackground ? 'black' : '#1E1E1E'
+          borderColor: '#444444',
+          paddingBottom: 16,
+          paddingTop: 16,
+          borderTopWidth: 1
         },
-        index === keyCount - 1 && { borderBottomWidth: 2 }
+        index === keyCount - 1 && { borderBottomWidth: 1 }
       ]}
     >
       <TouchableOpacity
-        onPress={() => setIsExpanded(!isExpanded)}
+        onPress={() => {
+          setIsExpanded(!isExpanded)
+        }}
         style={{
-          paddingHorizontal: 8,
           paddingBottom: 8,
           paddingTop: 8
         }}
       >
         <SSHStack justifyBetween>
-          <SSHStack style={{ alignItems: 'center' }}>
+          <SSHStack style={{ alignItems: 'center' }} gap="sm">
             {keyDetails ? (
-              <SSIconGreen width={24} height={24} />
+              hasNoSecret ? (
+                <SSIconGreenNoSecret width={24} height={24} />
+              ) : (
+                <SSIconGreen width={24} height={24} />
+              )
             ) : (
               <SSIconAdd width={24} height={24} />
             )}
-            <SSText color="muted" size="lg">
+            <SSText color="muted" size="lg" style={{ paddingHorizontal: 10 }}>
               {t('common.key')} {index + 1}
             </SSText>
             <SSVStack gap="none">
-              <SSText>{getSourceLabel()}</SSText>
+              <SSText color="muted">{sourceLabel}</SSText>
               <SSText color={keyDetails?.name ? 'white' : 'muted'}>
                 {keyDetails?.name ?? t('account.seed.noLabel')}
               </SSText>
@@ -402,8 +466,118 @@ function SSMultisigKeyControl({
         </SSHStack>
       </TouchableOpacity>
 
-      {isExpanded && (
-        <SSVStack style={{ paddingHorizontal: 8, paddingBottom: 8 }} gap="lg">
+      <Animated.View
+        style={{
+          height: animatedHeight,
+          opacity: animatedOpacity,
+          overflow: 'hidden'
+        }}
+      >
+        {/* Hidden content for measurement - always rendered but invisible */}
+        <View
+          style={{
+            position: 'absolute',
+            top: -10000, // Move off-screen
+            left: 0,
+            right: 0,
+            opacity: 0
+          }}
+          onLayout={(event) => {
+            const { height } = event.nativeEvent.layout
+            setContentHeight(height)
+          }}
+        >
+          <SSVStack style={{ paddingBottom: 24, paddingTop: 16 }} gap="lg">
+            {(!isKeyCompleted || isSettingsMode) && (
+              <SSFormLayout>
+                <SSFormLayout.Item>
+                  <SSFormLayout.Label
+                    label={t('account.participant.keyName')}
+                  />
+                  <SSTextInput
+                    value={localKeyName}
+                    onChangeText={handleKeyNameChange}
+                  />
+                  {isSettingsMode && hasUnsavedChanges && (
+                    <SSButton
+                      label={t('common.save')}
+                      variant="secondary"
+                      onPress={handleSaveKeyName}
+                      style={{ marginTop: 8 }}
+                    />
+                  )}
+                </SSFormLayout.Item>
+              </SSFormLayout>
+            )}
+            <SSVStack gap="sm">
+              {isKeyCompleted ? (
+                <>
+                  {hasSeed && (
+                    <SSButton
+                      label={t('account.seed.viewSeedWords')}
+                      onPress={handleViewSeedWords}
+                      variant="secondary"
+                    />
+                  )}
+                  {hasSeed && (
+                    <SSButton
+                      label={dropSeedLabel}
+                      onPress={() => handleCompletedKeyAction('dropSeed')}
+                      style={{
+                        backgroundColor: 'black',
+                        borderWidth: 1,
+                        borderColor: 'white'
+                      }}
+                    />
+                  )}
+                  <SSButton
+                    label={shareXpubLabel}
+                    onPress={() => handleCompletedKeyAction('shareXpub')}
+                  />
+                  <SSButton
+                    label={t('account.seed.shareDescriptor')}
+                    onPress={() => handleCompletedKeyAction('shareDescriptor')}
+                  />
+                  <SSButton
+                    label="Reset Key"
+                    onPress={() => handleCompletedKeyAction('resetKey')}
+                    variant="ghost"
+                    style={{
+                      backgroundColor: 'transparent',
+                      borderWidth: 1,
+                      borderColor: '#666666'
+                    }}
+                  />
+                </>
+              ) : (
+                <>
+                  <SSButton
+                    label={t('account.generate.newSecretSeed')}
+                    disabled={!localKeyName.trim()}
+                    onPress={() => handleAction('generateMnemonic')}
+                  />
+                  <SSButton
+                    label={t('account.import.title2')}
+                    disabled={!localKeyName.trim()}
+                    onPress={() => handleAction('importMnemonic')}
+                  />
+                  <SSButton
+                    label={t('account.import.descriptor')}
+                    disabled={!localKeyName.trim()}
+                    onPress={() => handleAction('importDescriptor')}
+                  />
+                  <SSButton
+                    label={importExtendedLabel}
+                    disabled={!localKeyName.trim()}
+                    onPress={() => handleAction('importExtendedPub')}
+                  />
+                </>
+              )}
+            </SSVStack>
+          </SSVStack>
+        </View>
+        {/* Visible content - same as hidden measurement content */}
+        <SSVStack style={{ paddingBottom: 24, paddingTop: 16 }} gap="lg">
           {(!isKeyCompleted || isSettingsMode) && (
             <SSFormLayout>
               <SSFormLayout.Item>
@@ -412,6 +586,14 @@ function SSMultisigKeyControl({
                   value={localKeyName}
                   onChangeText={handleKeyNameChange}
                 />
+                {isSettingsMode && hasUnsavedChanges && (
+                  <SSButton
+                    label={t('common.save')}
+                    variant="secondary"
+                    onPress={handleSaveKeyName}
+                    style={{ marginTop: 8 }}
+                  />
+                )}
               </SSFormLayout.Item>
             </SSFormLayout>
           )}
@@ -421,7 +603,14 @@ function SSMultisigKeyControl({
               <>
                 {hasSeed && (
                   <SSButton
-                    label={getDropSeedLabel()}
+                    label={t('account.seed.viewSeedWords')}
+                    onPress={handleViewSeedWords}
+                    variant="secondary"
+                  />
+                )}
+                {hasSeed && (
+                  <SSButton
+                    label={dropSeedLabel}
                     onPress={() => handleCompletedKeyAction('dropSeed')}
                     style={{
                       backgroundColor: 'black',
@@ -431,12 +620,22 @@ function SSMultisigKeyControl({
                   />
                 )}
                 <SSButton
-                  label={getShareXpubLabel()}
+                  label={shareXpubLabel}
                   onPress={() => handleCompletedKeyAction('shareXpub')}
                 />
                 <SSButton
                   label={t('account.seed.shareDescriptor')}
                   onPress={() => handleCompletedKeyAction('shareDescriptor')}
+                />
+                <SSButton
+                  label="Reset Key"
+                  onPress={() => handleCompletedKeyAction('resetKey')}
+                  variant="ghost"
+                  style={{
+                    backgroundColor: 'transparent',
+                    borderWidth: 1,
+                    borderColor: '#666666'
+                  }}
                 />
               </>
             ) : (
@@ -457,7 +656,7 @@ function SSMultisigKeyControl({
                   onPress={() => handleAction('importDescriptor')}
                 />
                 <SSButton
-                  label={getImportExtendedLabel()}
+                  label={importExtendedLabel}
                   disabled={!localKeyName.trim()}
                   onPress={() => handleAction('importExtendedPub')}
                 />
@@ -465,7 +664,7 @@ function SSMultisigKeyControl({
             )}
           </SSVStack>
         </SSVStack>
-      )}
+      </Animated.View>
 
       {/* Drop Seed Confirmation Modal */}
       <SSModal
@@ -542,6 +741,97 @@ function SSMultisigKeyControl({
           </SSHStack>
         </SSVStack>
       </SSModal>
+      <SSModal
+        visible={resetKeyModalVisible}
+        onClose={() => setResetKeyModalVisible(false)}
+        label=""
+      >
+        <SSVStack
+          itemsCenter
+          gap="lg"
+          style={{
+            paddingVertical: 20,
+            paddingHorizontal: 16,
+            backgroundColor: Colors.white,
+            borderRadius: 8,
+            marginHorizontal: 40,
+            maxWidth: 300,
+            shadowColor: '#000',
+            shadowOffset: {
+              width: 0,
+              height: 2
+            },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 5
+          }}
+        >
+          {/* Title */}
+          <SSText
+            size="lg"
+            weight="bold"
+            center
+            style={{ color: Colors.black, marginBottom: 4 }}
+          >
+            Reset Key
+          </SSText>
+
+          {/* Message */}
+          <SSText
+            color="muted"
+            center
+            size="md"
+            style={{
+              maxWidth: 260,
+              lineHeight: 20,
+              marginBottom: 8
+            }}
+          >
+            Are you sure you want to reset this key? This will clear all key
+            data including the seed, name, and settings. This action cannot be
+            undone.
+          </SSText>
+          <SSHStack gap="sm" style={{ width: '100%' }}>
+            <SSButton
+              label={t('common.cancel')}
+              variant="ghost"
+              onPress={() => setResetKeyModalVisible(false)}
+              style={{
+                flex: 1,
+                backgroundColor: Colors.gray[100],
+                borderWidth: 0
+              }}
+              textStyle={{ color: Colors.black }}
+            />
+            <SSButton
+              label="Reset Key"
+              variant="danger"
+              onPress={() => {
+                setResetKeyModalVisible(false)
+                handleResetKey()
+              }}
+              style={{ flex: 1 }}
+            />
+          </SSHStack>
+        </SSVStack>
+      </SSModal>
+      <SSSelectModal
+        visible={wordCountModalVisible}
+        title={t('account.mnemonic.title')}
+        selectedText={`${localMnemonicWordCount} ${t('bitcoin.words')}`}
+        selectedDescription={t(`account.mnemonic.${localMnemonicWordCount}`)}
+        onSelect={handleWordCountSelection}
+        onCancel={() => setWordCountModalVisible(false)}
+      >
+        {([24, 21, 18, 15, 12] as const).map((count) => (
+          <SSRadioButton
+            key={count}
+            label={`${count} ${t('bitcoin.words').toLowerCase()}`}
+            selected={localMnemonicWordCount === count}
+            onPress={() => setLocalMnemonicWordCount(count)}
+          />
+        ))}
+      </SSSelectModal>
     </View>
   )
 }
