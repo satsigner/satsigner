@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 
-import { isBip21, isBitcoinAddress } from './bitcoin'
+import { isValidBitcoinContent } from './bitcoinContent'
 
 export async function setClipboard(value: string): Promise<void> {
   try {
@@ -17,7 +17,7 @@ export async function getBitcoinAddressFromClipboard(): Promise<string | void> {
       return
     }
     const value = await Clipboard.getStringAsync()
-    if (!isBitcoinAddress(value) && !isBip21(value)) {
+    if (!isValidBitcoinContent(value)) {
       return
     }
     return value

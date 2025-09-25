@@ -1,5 +1,6 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
+import { validateAddress } from '@/utils/validation'
 
 export function isPSBT(text: string): boolean {
   // PSBTs are base64 encoded and start with 'cHNidP8B' (base64 for 'psbt\xff')
@@ -18,8 +19,8 @@ export function isValidBitcoinContent(text: string): boolean {
   // Check if it's a PSBT
   if (isPSBT(trimmed)) return true
 
-  // Check if it's a Bitcoin address
-  if (isBitcoinAddress(trimmed)) return true
+  // Check if it's a Bitcoin address using the robust validation function
+  if (validateAddress(trimmed)) return true
 
   // Check if it's a BIP21 URI
   if (isBip21(trimmed)) return true
@@ -27,7 +28,7 @@ export function isValidBitcoinContent(text: string): boolean {
   // Check if it's a bitcoin: URI (remove prefix and check address)
   if (trimmed.toLowerCase().startsWith('bitcoin:')) {
     const addressPart = trimmed.substring(8)
-    if (isBitcoinAddress(addressPart)) return true
+    if (validateAddress(addressPart)) return true
   }
 
   return false
@@ -76,7 +77,7 @@ export function processBitcoinContent(
     processedAddress = processedAddress.substring(8)
   }
 
-  if (isBitcoinAddress(processedAddress)) {
+  if (validateAddress(processedAddress)) {
     return {
       type: 'address',
       address: processedAddress,
