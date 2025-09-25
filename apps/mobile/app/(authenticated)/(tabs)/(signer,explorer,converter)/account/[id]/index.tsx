@@ -980,7 +980,7 @@ export default function AccountView() {
             />
           ),
           headerRight: () => (
-            <SSHStack gap="md">
+            <SSHStack gap="xxs">
               {account?.nostr?.autoSync && (
                 <SSIconButton
                   onPress={() =>
@@ -988,12 +988,14 @@ export default function AccountView() {
                       `/account/${id}/settings/nostr/devicesGroupChat`
                     )
                   }
+                  style={{ padding: 6, minWidth: 24, minHeight: 24 }}
                 >
                   <SSIconChatBubble height={15} width={15} />
                 </SSIconButton>
               )}
               <SSIconButton
                 onPress={() => router.navigate(`/account/${id}/settings`)}
+                style={{ padding: 6, minWidth: 24, minHeight: 24 }}
               >
                 <SSIconKeys height={18} width={18} />
               </SSIconButton>
