@@ -592,6 +592,7 @@ function useNostrSync() {
     const { commonNsec, commonNpub, deviceNpub, relays } = account.nostr
 
     if (!commonNsec || !commonNpub || relays.length === 0 || !deviceNpub) {
+      toast.error('Missing required Nostr configuration')
       return
     }
 

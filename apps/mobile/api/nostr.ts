@@ -5,6 +5,7 @@ import * as CBOR from 'cbor-js'
 import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
 import * as pako from 'pako'
 import crypto from 'react-native-aes-crypto'
+import type { NostrMessage } from '@/types/models/Nostr'
 
 const POOL_SIZE = 1024 // 1KB of random values
 
@@ -98,15 +99,6 @@ export interface NostrKeys {
   nsec: string
   npub: string
   secretNostrKey: Uint8Array
-}
-
-export interface NostrMessage {
-  id: string
-  content: any
-  created_at: number
-  decryptedContent?: string
-  isSender?: boolean
-  pubkey?: string
 }
 
 export class NostrAPI {

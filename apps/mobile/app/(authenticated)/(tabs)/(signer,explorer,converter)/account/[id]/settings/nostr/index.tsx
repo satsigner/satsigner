@@ -315,6 +315,13 @@ function NostrSync() {
         const updatedAccount = getUpdatedAccount()
 
         if (
+          !updatedAccount?.nostr?.deviceNsec ||
+          !updatedAccount?.nostr?.deviceNpub
+        ) {
+          toast.error('Missing required Nostr configuration')
+        }
+
+        if (
           updatedAccount?.nostr?.relays &&
           updatedAccount.nostr.relays.length > 0
         ) {
