@@ -268,34 +268,33 @@ function NostrSync() {
       if (account.nostr.autoSync) {
         // Turn sync OFF
         setIsSyncing(true)
-        try {
-          // Cleanup all subscriptions first
-          await cleanupSubscriptions()
 
-          // Set all relays to "disconnected" when turning sync off
-          const allRelaysDisconnected: Record<
-            string,
-            'connected' | 'connecting' | 'disconnected'
-          > = {}
-          if (account.nostr.relays) {
-            account.nostr.relays.forEach((relay) => {
-              allRelaysDisconnected[relay] = 'disconnected'
-            })
-          }
-          setRelayConnectionStatuses(allRelaysDisconnected)
-
-          // Then update state
-          updateAccountNostrCallback(accountId, {
-            ...account.nostr,
-            autoSync: false,
-            relayStatuses: allRelaysDisconnected,
-            lastUpdated: new Date()
-          })
-        } catch {
+        // Cleanup all subscriptions first
+        await cleanupSubscriptions().catch(() => {
           toast.error('Failed to cleanup subscriptions')
-        } finally {
-          setIsSyncing(false)
+        })
+
+        // Set all relays to "disconnected" when turning sync off
+        const allRelaysDisconnected: Record<
+          string,
+          'connected' | 'connecting' | 'disconnected'
+        > = {}
+        if (account.nostr.relays) {
+          account.nostr.relays.forEach((relay) => {
+            allRelaysDisconnected[relay] = 'disconnected'
+          })
         }
+        setRelayConnectionStatuses(allRelaysDisconnected)
+
+        // Then update state
+        updateAccountNostrCallback(accountId, {
+          ...account.nostr,
+          autoSync: false,
+          relayStatuses: allRelaysDisconnected,
+          lastUpdated: new Date()
+        })
+
+        setIsSyncing(false)
       } else {
         // Turn sync ON
         updateAccountNostrCallback(accountId, {
@@ -550,18 +549,16 @@ function NostrSync() {
       if (!account?.nostr?.autoSync || !account?.nostr?.relays?.length) return
 
       setIsSyncing(true)
-      try {
-        deviceAnnouncement(account)
-        await nostrSyncSubscriptions(account, (loading) => {
-          requestAnimationFrame(() => {
-            setIsSyncing(loading)
-          })
+      deviceAnnouncement(account)
+      await nostrSyncSubscriptions(account, (loading) => {
+        requestAnimationFrame(() => {
+          setIsSyncing(loading)
         })
-      } catch {
+      }).catch(() => {
         toast.error('Failed to setup sync')
-      } finally {
-        setIsSyncing(false)
-      }
+      })
+
+      setIsSyncing(false)
     }
 
     startAutoSync()
