@@ -1,7 +1,7 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as Clipboard from 'expo-clipboard'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { type StyleProp, type ViewStyle } from 'react-native'
+import { type StyleProp, type ViewStyle, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -58,6 +58,12 @@ type SSSeedWordsInputProps = {
 }
 
 const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
+const PREFIX_WORD_DELAY_MS = 1500 // 1.5 seconds delay for prefix words
+
+// Check if a word is a prefix of other words in the BIP39 word list
+function isPrefixWord(word: string, wordList: string[]): boolean {
+  return wordList.some((w) => w.startsWith(word) && w !== word)
+}
 
 export default function SSSeedWordsInput({
   wordCount,
@@ -90,8 +96,10 @@ export default function SSSeedWordsInput({
   const [passphrase, setPassphrase] = useState('')
 
   const wordList = getWordList()
-  const passphraseRef = useRef<any>()
+  const passphraseRef = useRef<TextInput>(null)
   const clipboardCheckedRef = useRef(false)
+  const wordInputRefs = useRef<(TextInput | null)[]>([])
+  const autoAdvanceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Initialize seed words info
   useEffect(() => {
@@ -103,7 +111,18 @@ export default function SSSeedWordsInput({
         dirty: false
       }))
     setSeedWordsInfo(initialSeedWordsInfo)
+    // Initialize refs array
+    wordInputRefs.current = Array(wordCount).fill(null)
   }, [wordCount])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autoAdvanceTimeoutRef.current) {
+        clearTimeout(autoAdvanceTimeoutRef.current)
+      }
+    }
+  }, [])
 
   // Check if clipboard contains valid seed
   const checkClipboardForSeed = useCallback(
@@ -186,10 +205,17 @@ export default function SSSeedWordsInput({
       seedWord.valid = false
       seedWord.dirty = true
       setSeedWordsInfo(newSeedWordsInfo)
+
+      // Clear auto-advance timeout if invalid characters are entered
+      if (autoAdvanceTimeoutRef.current) {
+        clearTimeout(autoAdvanceTimeoutRef.current)
+        autoAdvanceTimeoutRef.current = null
+      }
       return
     }
 
     seedWord.value = value.trim()
+    seedWord.dirty = true // Mark as dirty when user starts typing
     setCurrentWordText(value)
     setCurrentWordIndex(index)
 
@@ -197,11 +223,32 @@ export default function SSSeedWordsInput({
     if (wordList.includes(value)) {
       seedWord.valid = true
       setKeyboardWordSelectorVisible(false)
+
+      // Clear any existing timeout
+      if (autoAdvanceTimeoutRef.current) {
+        clearTimeout(autoAdvanceTimeoutRef.current)
+      }
+
+      // Auto-advance to next input when word is valid
+      if (index < wordCount - 1) {
+        const isPrefix = isPrefixWord(value, wordList)
+        const delay = isPrefix ? PREFIX_WORD_DELAY_MS : 100
+
+        autoAdvanceTimeoutRef.current = setTimeout(() => {
+          wordInputRefs.current[index + 1]?.focus()
+        }, delay)
+      }
     } else {
       seedWord.valid = false
       setKeyboardWordSelectorVisible(
         value.length >= MIN_LETTERS_TO_SHOW_WORD_SELECTOR
       )
+
+      // Clear auto-advance timeout if current word becomes invalid
+      if (autoAdvanceTimeoutRef.current) {
+        clearTimeout(autoAdvanceTimeoutRef.current)
+        autoAdvanceTimeoutRef.current = null
+      }
     }
 
     setSeedWordsInfo(newSeedWordsInfo)
@@ -233,11 +280,29 @@ export default function SSSeedWordsInput({
   // Handle word selection from keyboard selector
   const handleWordSelected = async (word: string) => {
     const newSeedWordsInfo = [...seedWordsInfo]
-    newSeedWordsInfo[currentWordIndex].value = word
+    const currentWord = newSeedWordsInfo[currentWordIndex]
+
+    currentWord.value = word
+    currentWord.dirty = true
 
     if (wordList.includes(word)) {
-      newSeedWordsInfo[currentWordIndex].valid = true
+      currentWord.valid = true
       setKeyboardWordSelectorVisible(false)
+
+      // Clear any existing timeout
+      if (autoAdvanceTimeoutRef.current) {
+        clearTimeout(autoAdvanceTimeoutRef.current)
+      }
+
+      // Auto-advance to next input when word is selected
+      if (currentWordIndex < wordCount - 1) {
+        const isPrefix = isPrefixWord(word, wordList)
+        const delay = isPrefix ? PREFIX_WORD_DELAY_MS : 100
+
+        autoAdvanceTimeoutRef.current = setTimeout(() => {
+          wordInputRefs.current[currentWordIndex + 1]?.focus()
+        }, delay)
+      }
     }
 
     setSeedWordsInfo(newSeedWordsInfo)
@@ -285,6 +350,9 @@ export default function SSSeedWordsInput({
             {seedWordsInfo.map((wordInfo, index) => (
               <SSWordInput
                 key={index}
+                ref={(ref) => {
+                  wordInputRefs.current[index] = ref
+                }}
                 value={wordInfo.value}
                 position={index + 1}
                 index={index}
@@ -292,8 +360,7 @@ export default function SSSeedWordsInput({
                 onChangeText={(text) => handleSeedWordChange(index, text)}
                 onSubmitEditing={() => {
                   if (index < wordCount - 1) {
-                    // Focus next input (this would need refs to implement properly)
-                    // TODO: implement focus next input when word is valid
+                    wordInputRefs.current[index + 1]?.focus()
                   }
                 }}
               />
