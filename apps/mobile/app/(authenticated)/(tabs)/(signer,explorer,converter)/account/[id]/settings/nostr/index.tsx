@@ -140,13 +140,15 @@ function NostrSync() {
               )
               await nostrApi.publishEvent(testEvent)
               statuses[relay] = 'connected'
-            } catch (_publishError) {
+            } catch {
+              toast.error('Failed to publish device announcement')
               statuses[relay] = 'disconnected'
             }
           } else {
             statuses[relay] = 'connected'
           }
-        } catch (_connectionError) {
+        } catch {
+          toast.error('Failed to connect to relay ' + relay)
           statuses[relay] = 'disconnected'
         }
         setRelayConnectionStatuses({ ...statuses })
