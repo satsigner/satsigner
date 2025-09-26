@@ -1,22 +1,28 @@
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
-import { ScrollView } from 'react-native'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ScrollView, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
+import * as Clipboard from 'expo-clipboard'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
+import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
+import SSIconButton from '@/components/SSIconButton'
 import SSNumberInput from '@/components/SSNumberInput'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useGetFirstUnusedAddress from '@/hooks/useGetFirstUnusedAddress'
+import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { usePriceStore } from '@/store/price'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
 export default function Receive() {
@@ -27,6 +33,7 @@ export default function Receive() {
     state.accounts.find((account) => account.id === id)
   )
   const wallet = useGetAccountWallet(id!)
+  const setAddrLabel = useAccountsStore((state) => state.setAddrLabel)
 
   const [localAddress, setLocalAddress] = useState<string>()
   const [localAddressNumber, setLocalAddressNumber] = useState<number>()
@@ -35,6 +42,34 @@ export default function Receive() {
   const [localAddressPath, setLocalAddressPath] = useState<string>()
   const [localCustomAmount, setLocalCustomAmount] = useState<string>()
   const [localLabel, setLocalLabel] = useState<string>()
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [includeLabel, setIncludeLabel] = useState(true)
+  const [includeAmount, setIncludeAmount] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isManualAddress, setIsManualAddress] = useState(false)
+
+  const {
+    isAvailable: nfcAvailable,
+    isEmitting,
+    emitNFCTag,
+    cancelNFCScan
+  } = useNFCEmitter()
+
+  const { fiatCurrency, satsToFiat } = usePriceStore((state) => ({
+    fiatCurrency: state.fiatCurrency,
+    satsToFiat: state.satsToFiat
+  }))
+
+  const saveLabelTimeoutRef = useRef<NodeJS.Timeout>()
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveLabelTimeoutRef.current) {
+        clearTimeout(saveLabelTimeoutRef.current)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (!localAddressQR) return
@@ -42,12 +77,20 @@ export default function Receive() {
     const queryParts: string[] = []
 
     if (
+      includeAmount &&
       localCustomAmount &&
       Number(localCustomAmount) > 0 &&
-      Number(localCustomAmount) <= 21_000_000
-    )
-      queryParts.push(`amount=${encodeURIComponent(localCustomAmount)}`)
-    if (localLabel) queryParts.push(`label=${encodeURIComponent(localLabel)}`)
+      Number(localCustomAmount) <= 2_100_000_000_000_000
+    ) {
+      // Convert sats to BTC for the URI with proper decimal formatting
+      const amountInBTC = Number(localCustomAmount) / 100_000_000
+      const formattedAmount = amountInBTC.toFixed(8).replace(/\.?0+$/, '')
+      queryParts.push(`amount=${encodeURIComponent(formattedAmount)}`)
+    }
+
+    if (includeLabel && localLabel) {
+      queryParts.push(`label=${encodeURIComponent(localLabel)}`)
+    }
 
     const finalUri =
       queryParts.length > 0
@@ -55,7 +98,13 @@ export default function Receive() {
         : localAddressQR
 
     setLocalFinalAddressQR(finalUri)
-  }, [localCustomAmount, localLabel]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [
+    localCustomAmount,
+    localLabel,
+    includeAmount,
+    includeLabel,
+    localAddressQR
+  ]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { addressInfo } = useGetFirstUnusedAddress(wallet!, account!)
 
@@ -63,11 +112,17 @@ export default function Receive() {
     async function loadAddress() {
       if (!wallet) {
         toast(t('error.notFound.wallet'))
+        setIsLoading(false)
         return
       }
 
       if (addressInfo === null) {
-        toast('Trying to find a fresh address...')
+        setIsLoading(true)
+        return
+      }
+
+      // Don't update if we have a manually generated address
+      if (isManualAddress) {
         return
       }
 
@@ -82,10 +137,100 @@ export default function Receive() {
       setLocalAddressPath(
         `${account?.keys[0].derivationPath}/0/${addressInfo.index}`
       )
+
+      // Check if this address has an existing label and pre-populate it
+      const existingAddress = account?.addresses.find(
+        (addr) => addr.address === address
+      )
+      if (existingAddress?.label) {
+        setLocalLabel(existingAddress.label)
+      }
+
+      // Mark as manual address to prevent reloads after database saves
+      setIsManualAddress(true)
+      setIsLoading(false)
     }
 
     loadAddress()
-  }, [addressInfo]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [addressInfo, isManualAddress]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function generateAnotherAddress() {
+    if (!wallet || !account) return
+
+    setIsGenerating(true)
+    try {
+      // Get the next unused address
+      const nextIndex = (localAddressNumber || 0) + 1
+      const newAddressInfo = await wallet.getAddress(nextIndex)
+      const [address, qrUri] = await Promise.all([
+        newAddressInfo?.address ? newAddressInfo.address.asString() : '',
+        newAddressInfo?.address ? newAddressInfo.address.toQrUri() : ''
+      ])
+
+      setLocalAddress(address)
+      setLocalAddressNumber(nextIndex)
+      setLocalAddressQR(qrUri)
+      setLocalFinalAddressQR(qrUri)
+      setLocalAddressPath(`${account.keys[0].derivationPath}/0/${nextIndex}`)
+
+      // Check if this address has an existing label and pre-populate it
+      const existingAddress = account.addresses.find(
+        (addr) => addr.address === address
+      )
+      if (existingAddress?.label) {
+        setLocalLabel(existingAddress.label)
+      } else {
+        setLocalLabel('') // Reset label for new address if no existing label
+      }
+
+      setIsManualAddress(true) // Mark as manually generated
+    } catch (error) {
+      toast.error('Failed to generate new address')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const handleLabelChange = useCallback(
+    (text: string) => {
+      setLocalLabel(text)
+
+      // Clear existing timeout
+      if (saveLabelTimeoutRef.current) {
+        clearTimeout(saveLabelTimeoutRef.current)
+      }
+
+      // Debounce saving to database (save after 1 second of no typing)
+      saveLabelTimeoutRef.current = setTimeout(() => {
+        if (localAddress && text.trim()) {
+          setAddrLabel(id!, localAddress, text.trim())
+        }
+      }, 1000)
+    },
+    [localAddress, id, setAddrLabel]
+  )
+
+  async function handleNFCExport() {
+    if (!localFinalAddressQR) return
+
+    try {
+      await emitNFCTag(localFinalAddressQR)
+      toast.success('Address exported via NFC')
+    } catch (error) {
+      toast.error('Failed to export via NFC')
+    }
+  }
+
+  async function copyToClipboard(text: string) {
+    await Clipboard.setStringAsync(text)
+    toast.success(t('common.copiedToClipboard'))
+  }
+
+  function getFiatAmount(sats: string): string {
+    if (!sats || isNaN(Number(sats)) || Number(sats) <= 0) return ''
+    const fiatAmount = satsToFiat(Number(sats))
+    return fiatAmount > 0 ? `≈ ${fiatAmount.toFixed(2)} ${fiatCurrency}` : ''
+  }
 
   if (!account) return <Redirect href="/" />
 
@@ -98,57 +243,207 @@ export default function Receive() {
         }}
       />
       <ScrollView>
-        <SSVStack itemsCenter gap="xs">
-          <SSVStack gap="none" itemsCenter>
-            <SSText color="muted" uppercase>
-              {t('receive.address')} #
-            </SSText>
-            <SSText size="3xl">{localAddressNumber}</SSText>
-          </SSVStack>
-          <SSVStack gap="none" itemsCenter>
-            <SSHStack gap="sm">
+        <SSVStack itemsCenter gap="xl">
+          <SSVStack>
+            <SSVStack gap="none" itemsCenter>
               <SSText color="muted" uppercase>
-                {t('receive.path')}
+                {t('receive.address')} #
               </SSText>
-              <SSText>{localAddressPath}</SSText>
-            </SSHStack>
-            <SSText>{t('receive.neverUsed')}</SSText>
-          </SSVStack>
-          {localFinalAddressQR && <SSQRCode value={localFinalAddressQR} />}
-          <SSVStack gap="xs" itemsCenter style={{ marginVertical: 10 }}>
-            <SSText color="muted" uppercase weight="bold">
-              {t('receive.address')}
-            </SSText>
-            {localAddress && (
-              <SSAddressDisplay address={localAddress} copyToClipboard />
+              {isLoading ? (
+                <SSText size="3xl" color="muted">
+                  ...
+                </SSText>
+              ) : (
+                <SSText size="3xl">{localAddressNumber}</SSText>
+              )}
+            </SSVStack>
+
+            <SSVStack gap="none" itemsCenter>
+              <SSHStack gap="sm">
+                <SSText color="muted" uppercase>
+                  {t('receive.path')}
+                </SSText>
+                {isLoading ? (
+                  <SSText color="muted">...</SSText>
+                ) : (
+                  <SSText>{localAddressPath}</SSText>
+                )}
+              </SSHStack>
+              <SSText>{t('receive.neverUsed')}</SSText>
+            </SSVStack>
+
+            {isLoading ? (
+              <SSVStack itemsCenter gap="md">
+                <SSHStack gap="xs">
+                  <SSText color="muted">Finding a fresh address</SSText>
+                  <SSEllipsisAnimation size={4} />
+                </SSHStack>
+              </SSVStack>
+            ) : (
+              localFinalAddressQR && (
+                <SSVStack itemsCenter gap="lg">
+                  <SSQRCode value={localFinalAddressQR} />
+                  <SSHStack>
+                    {nfcAvailable && (
+                      <SSButton
+                        label={isEmitting ? 'Stop NFC' : 'Export via NFC'}
+                        variant="outline"
+                        disabled={!localFinalAddressQR}
+                        onPress={isEmitting ? cancelNFCScan : handleNFCExport}
+                      />
+                    )}
+                  </SSHStack>
+                </SSVStack>
+              )
+            )}
+
+            {localFinalAddressQR && (
+              <SSVStack gap="sm" itemsCenter style={{ marginVertical: 10 }}>
+                <SSText>Bitcoin URI</SSText>
+                <TextInput
+                  value={localFinalAddressQR}
+                  editable={false}
+                  selectTextOnFocus
+                  multiline
+                  style={{
+                    fontFamily: 'monospace',
+                    color: '#fff',
+                    textAlign: 'center',
+                    padding: 8,
+                    backgroundColor: '#333',
+                    borderRadius: 4,
+                    minWidth: 280
+                  }}
+                />
+                <SSHStack gap="sm" justifyBetween>
+                  <SSButton
+                    label={t('common.copy')}
+                    variant="secondary"
+                    style={{ flex: 1 }}
+                    onPress={() => copyToClipboard(localFinalAddressQR)}
+                  />
+                  <SSButton
+                    label={includeLabel ? 'Exclude Label' : 'Include Label'}
+                    variant={includeLabel ? 'default' : 'outline'}
+                    style={{ flex: 1 }}
+                    onPress={() => setIncludeLabel(!includeLabel)}
+                  />
+                </SSHStack>
+              </SSVStack>
             )}
           </SSVStack>
+
           <SSFormLayout>
             <SSFormLayout.Item>
-              <SSFormLayout.Label label={t('receive.customAmount')} />
+              <SSFormLayout.Label
+                label={
+                  t('receive.customAmount') + ' (' + t('bitcoin.sats') + ')'
+                }
+              />
               <SSNumberInput
-                min={0.00000001}
-                max={21_000_000}
-                placeholder="BTC"
+                min={1}
+                max={2_100_000_000_000_000}
+                placeholder="sats"
                 align="center"
                 keyboardType="numeric"
                 onChangeText={(text) => setLocalCustomAmount(text)}
-                allowDecimal
+                allowDecimal={false}
                 allowValidEmpty
                 alwaysTriggerOnChange
+                style={{
+                  fontSize: 21
+                }}
+              />
+              {localCustomAmount && getFiatAmount(localCustomAmount) && (
+                <SSText color="muted" size="sm" center>
+                  {getFiatAmount(localCustomAmount)}
+                </SSText>
+              )}
+              <SSButton
+                label="Paste Amount"
+                variant="subtle"
+                onPress={async () => {
+                  const text = await Clipboard.getStringAsync()
+                  if (text && !isNaN(Number(text))) {
+                    setLocalCustomAmount(text)
+                  }
+                }}
               />
             </SSFormLayout.Item>
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('receive.label')} />
-              <SSTextInput onChangeText={(text) => setLocalLabel(text)} />
+              <SSTextInput
+                onChangeText={handleLabelChange}
+                value={localLabel}
+                placeholder="Enter label (saved automatically)"
+                multiline
+                numberOfLines={3}
+                style={{
+                  height: 'auto',
+                  textAlignVertical: 'top',
+                  padding: 10,
+                  fontSize: 14
+                }}
+              />
+              <SSButton
+                label="Paste Label"
+                variant="subtle"
+                onPress={async () => {
+                  const text = await Clipboard.getStringAsync()
+                  if (text) {
+                    setLocalLabel(text)
+                    handleLabelChange(text)
+                  }
+                }}
+              />
             </SSFormLayout.Item>
           </SSFormLayout>
-          <SSVStack widthFull>
+
+          <SSVStack>
+            <SSVStack gap="xs" itemsCenter style={{ marginVertical: 10 }}>
+              <SSText>{t('receive.address')}</SSText>
+              {isLoading ? (
+                <SSText color="muted">...</SSText>
+              ) : (
+                localAddress && (
+                  <SSVStack itemsCenter gap="xs">
+                    <TextInput
+                      value={localAddress}
+                      editable={false}
+                      selectTextOnFocus
+                      multiline
+                      style={{
+                        fontFamily: 'monospace',
+                        color: '#fff',
+                        textAlign: 'center',
+                        padding: 8,
+                        backgroundColor: '#333',
+                        borderRadius: 4,
+                        minWidth: 280
+                      }}
+                    />
+                    <SSHStack>
+                      <SSButton
+                        label={t('common.copy')}
+                        variant="subtle"
+                        onPress={() => copyToClipboard(localAddress)}
+                      />
+                    </SSHStack>
+                  </SSVStack>
+                )
+              )}
+            </SSVStack>
+          </SSVStack>
+
+          <SSVStack widthFull gap="sm">
             <SSButton
               label={t('receive.generateAnother')}
               variant="secondary"
-              disabled
+              loading={isGenerating}
+              disabled={isGenerating || isLoading}
+              onPress={generateAnotherAddress}
             />
+
             <SSButton
               label={t('common.cancel')}
               variant="ghost"
