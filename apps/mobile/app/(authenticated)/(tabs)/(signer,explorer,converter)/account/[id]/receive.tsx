@@ -29,11 +29,15 @@ export default function Receive() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const router = useRouter()
 
-  const account = useAccountsStore((state) =>
-    state.accounts.find((account) => account.id === id)
-  )
+  const account = useAccountsStore(function (state) {
+    return state.accounts.find(function (account) {
+      return account.id === id
+    })
+  })
   const wallet = useGetAccountWallet(id!)
-  const setAddrLabel = useAccountsStore((state) => state.setAddrLabel)
+  const setAddrLabel = useAccountsStore(function (state) {
+    return state.setAddrLabel
+  })
 
   const [localAddress, setLocalAddress] = useState<string>()
   const [localAddressNumber, setLocalAddressNumber] = useState<number>()
@@ -55,111 +59,107 @@ export default function Receive() {
     cancelNFCScan
   } = useNFCEmitter()
 
-  const { fiatCurrency, satsToFiat } = usePriceStore((state) => ({
-    fiatCurrency: state.fiatCurrency,
-    satsToFiat: state.satsToFiat
-  }))
+  const { fiatCurrency, satsToFiat } = usePriceStore(function (state) {
+    return {
+      fiatCurrency: state.fiatCurrency,
+      satsToFiat: state.satsToFiat
+    }
+  })
 
   const saveLabelTimeoutRef = useRef<NodeJS.Timeout>()
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
+  useEffect(function () {
+    return function () {
       if (saveLabelTimeoutRef.current) {
         clearTimeout(saveLabelTimeoutRef.current)
       }
     }
   }, [])
 
-  useEffect(() => {
-    if (!localAddressQR) return
+  useEffect(
+    function () {
+      if (!localAddressQR) return
 
-    const queryParts: string[] = []
+      const queryParts: string[] = []
 
-    if (
-      includeAmount &&
-      localCustomAmount &&
-      Number(localCustomAmount) > 0 &&
-      Number(localCustomAmount) <= 2_100_000_000_000_000
-    ) {
-      // Convert sats to BTC for the URI with proper decimal formatting
-      const amountInBTC = Number(localCustomAmount) / 100_000_000
-      const formattedAmount = amountInBTC.toFixed(8).replace(/\.?0+$/, '')
-      queryParts.push(`amount=${encodeURIComponent(formattedAmount)}`)
-    }
+      if (
+        includeAmount &&
+        localCustomAmount &&
+        Number(localCustomAmount) > 0 &&
+        Number(localCustomAmount) <= 2_100_000_000_000_000
+      ) {
+        const amountInBTC = Number(localCustomAmount) / 100_000_000
+        const formattedAmount = amountInBTC.toFixed(8).replace(/\.?0+$/, '')
+        queryParts.push(`amount=${encodeURIComponent(formattedAmount)}`)
+      }
 
-    if (includeLabel && localLabel) {
-      queryParts.push(`label=${encodeURIComponent(localLabel)}`)
-    }
+      if (includeLabel && localLabel) {
+        queryParts.push(`label=${encodeURIComponent(localLabel)}`)
+      }
 
-    const finalUri =
-      queryParts.length > 0
-        ? `${localAddressQR}?${queryParts.join('&')}`
-        : localAddressQR
+      const finalUri =
+        queryParts.length > 0
+          ? `${localAddressQR}?${queryParts.join('&')}`
+          : localAddressQR
 
-    setLocalFinalAddressQR(finalUri)
-  }, [
-    localCustomAmount,
-    localLabel,
-    includeAmount,
-    includeLabel,
-    localAddressQR
-  ]) // eslint-disable-line react-hooks/exhaustive-deps
+      setLocalFinalAddressQR(finalUri)
+    },
+    [localCustomAmount, localLabel, includeAmount, includeLabel, localAddressQR]
+  )
 
   const { addressInfo } = useGetFirstUnusedAddress(wallet!, account!)
 
-  useEffect(() => {
-    async function loadAddress() {
-      if (!wallet) {
-        toast(t('error.notFound.wallet'))
+  useEffect(
+    function () {
+      async function loadAddress() {
+        if (!wallet) {
+          toast(t('error.notFound.wallet'))
+          setIsLoading(false)
+          return
+        }
+
+        if (addressInfo === null) {
+          setIsLoading(true)
+          return
+        }
+
+        if (isManualAddress) {
+          return
+        }
+
+        const [address, qrUri] = await Promise.all([
+          addressInfo?.address ? addressInfo.address.asString() : '',
+          addressInfo?.address ? addressInfo.address.toQrUri() : ''
+        ])
+        setLocalAddress(address)
+        setLocalAddressNumber(addressInfo.index)
+        setLocalAddressQR(qrUri)
+        setLocalFinalAddressQR(qrUri)
+        setLocalAddressPath(
+          `${account?.keys[0].derivationPath}/0/${addressInfo.index}`
+        )
+
+        const existingAddress = account?.addresses.find(function (addr) {
+          return addr.address === address
+        })
+        if (existingAddress?.label) {
+          setLocalLabel(existingAddress.label)
+        }
+
+        setIsManualAddress(true)
         setIsLoading(false)
-        return
       }
 
-      if (addressInfo === null) {
-        setIsLoading(true)
-        return
-      }
-
-      // Don't update if we have a manually generated address
-      if (isManualAddress) {
-        return
-      }
-
-      const [address, qrUri] = await Promise.all([
-        addressInfo?.address ? addressInfo.address.asString() : '',
-        addressInfo?.address ? addressInfo.address.toQrUri() : ''
-      ])
-      setLocalAddress(address)
-      setLocalAddressNumber(addressInfo.index)
-      setLocalAddressQR(qrUri)
-      setLocalFinalAddressQR(qrUri)
-      setLocalAddressPath(
-        `${account?.keys[0].derivationPath}/0/${addressInfo.index}`
-      )
-
-      // Check if this address has an existing label and pre-populate it
-      const existingAddress = account?.addresses.find(
-        (addr) => addr.address === address
-      )
-      if (existingAddress?.label) {
-        setLocalLabel(existingAddress.label)
-      }
-
-      // Mark as manual address to prevent reloads after database saves
-      setIsManualAddress(true)
-      setIsLoading(false)
-    }
-
-    loadAddress()
-  }, [addressInfo, isManualAddress]) // eslint-disable-line react-hooks/exhaustive-deps
+      loadAddress()
+    },
+    [addressInfo, isManualAddress]
+  )
 
   async function generateAnotherAddress() {
     if (!wallet || !account) return
 
     setIsGenerating(true)
     try {
-      // Get the next unused address
       const nextIndex = (localAddressNumber || 0) + 1
       const newAddressInfo = await wallet.getAddress(nextIndex)
       const [address, qrUri] = await Promise.all([
@@ -173,17 +173,16 @@ export default function Receive() {
       setLocalFinalAddressQR(qrUri)
       setLocalAddressPath(`${account.keys[0].derivationPath}/0/${nextIndex}`)
 
-      // Check if this address has an existing label and pre-populate it
-      const existingAddress = account.addresses.find(
-        (addr) => addr.address === address
-      )
+      const existingAddress = account.addresses.find(function (addr) {
+        return addr.address === address
+      })
       if (existingAddress?.label) {
         setLocalLabel(existingAddress.label)
       } else {
-        setLocalLabel('') // Reset label for new address if no existing label
+        setLocalLabel('')
       }
 
-      setIsManualAddress(true) // Mark as manually generated
+      setIsManualAddress(true)
     } catch (error) {
       toast.error('Failed to generate new address')
     } finally {
@@ -192,16 +191,14 @@ export default function Receive() {
   }
 
   const handleLabelChange = useCallback(
-    (text: string) => {
+    function (text: string) {
       setLocalLabel(text)
 
-      // Clear existing timeout
       if (saveLabelTimeoutRef.current) {
         clearTimeout(saveLabelTimeoutRef.current)
       }
 
-      // Debounce saving to database (save after 1 second of no typing)
-      saveLabelTimeoutRef.current = setTimeout(() => {
+      saveLabelTimeoutRef.current = setTimeout(function () {
         if (localAddress && text.trim()) {
           setAddrLabel(id!, localAddress, text.trim())
         }
@@ -238,7 +235,9 @@ export default function Receive() {
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{account.name}</SSText>,
+          headerTitle: function () {
+            return <SSText uppercase>{account.name}</SSText>
+          },
           headerRight: undefined
         }}
       />
@@ -257,7 +256,6 @@ export default function Receive() {
                 <SSText size="3xl">{localAddressNumber}</SSText>
               )}
             </SSVStack>
-
             <SSVStack gap="none" itemsCenter>
               <SSHStack gap="sm">
                 <SSText color="muted" uppercase>
@@ -320,19 +318,22 @@ export default function Receive() {
                     label={t('common.copy')}
                     variant="secondary"
                     style={{ flex: 1 }}
-                    onPress={() => copyToClipboard(localFinalAddressQR)}
+                    onPress={function () {
+                      return copyToClipboard(localFinalAddressQR)
+                    }}
                   />
                   <SSButton
                     label={includeLabel ? 'Exclude Label' : 'Include Label'}
                     variant={includeLabel ? 'default' : 'outline'}
                     style={{ flex: 1 }}
-                    onPress={() => setIncludeLabel(!includeLabel)}
+                    onPress={function () {
+                      return setIncludeLabel(!includeLabel)
+                    }}
                   />
                 </SSHStack>
               </SSVStack>
             )}
           </SSVStack>
-
           <SSFormLayout>
             <SSFormLayout.Item>
               <SSFormLayout.Label
@@ -346,7 +347,9 @@ export default function Receive() {
                 placeholder="sats"
                 align="center"
                 keyboardType="numeric"
-                onChangeText={(text) => setLocalCustomAmount(text)}
+                onChangeText={function (text) {
+                  return setLocalCustomAmount(text)
+                }}
                 allowDecimal={false}
                 allowValidEmpty
                 alwaysTriggerOnChange
@@ -362,7 +365,7 @@ export default function Receive() {
               <SSButton
                 label="Paste Amount"
                 variant="subtle"
-                onPress={async () => {
+                onPress={async function () {
                   const text = await Clipboard.getStringAsync()
                   if (text && !isNaN(Number(text))) {
                     setLocalCustomAmount(text)
@@ -388,7 +391,7 @@ export default function Receive() {
               <SSButton
                 label="Paste Label"
                 variant="subtle"
-                onPress={async () => {
+                onPress={async function () {
                   const text = await Clipboard.getStringAsync()
                   if (text) {
                     setLocalLabel(text)
@@ -398,7 +401,6 @@ export default function Receive() {
               />
             </SSFormLayout.Item>
           </SSFormLayout>
-
           <SSVStack>
             <SSVStack gap="xs" itemsCenter style={{ marginVertical: 10 }}>
               <SSText>{t('receive.address')}</SSText>
@@ -426,7 +428,9 @@ export default function Receive() {
                       <SSButton
                         label={t('common.copy')}
                         variant="subtle"
-                        onPress={() => copyToClipboard(localAddress)}
+                        onPress={function () {
+                          return copyToClipboard(localAddress)
+                        }}
                       />
                     </SSHStack>
                   </SSVStack>
@@ -434,7 +438,6 @@ export default function Receive() {
               )}
             </SSVStack>
           </SSVStack>
-
           <SSVStack widthFull gap="sm">
             <SSButton
               label={t('receive.generateAnother')}
@@ -443,11 +446,12 @@ export default function Receive() {
               disabled={isGenerating || isLoading}
               onPress={generateAnotherAddress}
             />
-
             <SSButton
               label={t('common.cancel')}
               variant="ghost"
-              onPress={() => router.back()}
+              onPress={function () {
+                return router.back()
+              }}
             />
           </SSVStack>
         </SSVStack>
