@@ -530,7 +530,7 @@ export function compressMessage(data: any): string {
   }
 }
 
-export function decompressMessage(compressedString: string): any {
+export function decompressMessage(compressedString: string): unknown {
   try {
     const compressedBytes = base85Decode(compressedString)
     const cborBytes = pako.inflate(new Uint8Array(compressedBytes))

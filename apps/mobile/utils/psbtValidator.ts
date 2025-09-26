@@ -175,9 +175,6 @@ function validateInputsAndOutputs(psbt: bitcoinjs.Psbt): boolean {
   }
 }
 
-/**
- * Validate a single input
- */
 function validateInput(input: any): boolean {
   // Early return if no UTXO data
   if (!input.witnessUtxo && !input.nonWitnessUtxo) {
@@ -204,9 +201,6 @@ function validateOutput(output: any): boolean {
   return !!output
 }
 
-/**
- * Validate witness UTXO structure
- */
 function isValidWitnessUtxo(witnessUtxo: any): boolean {
   return !!(
     witnessUtxo.script &&
@@ -215,9 +209,6 @@ function isValidWitnessUtxo(witnessUtxo: any): boolean {
   )
 }
 
-/**
- * Validate non-witness UTXO structure
- */
 function isValidNonWitnessUtxo(nonWitnessUtxo: any): boolean {
   return !!(nonWitnessUtxo && nonWitnessUtxo.length > 0)
 }
@@ -255,9 +246,6 @@ function isValidOpCode(op: any): boolean {
   return typeof op === 'number' && op >= 81 && op <= 96
 }
 
-/**
- * Count public keys in script
- */
 function countPublicKeysInScript(script: any[]): number {
   return script.filter(
     (item) =>
@@ -267,9 +255,6 @@ function countPublicKeysInScript(script: any[]): number {
   ).length
 }
 
-/**
- * Check if script info is valid
- */
 function isValidScriptInfo(scriptInfo: {
   threshold: number
   totalKeys: number
@@ -291,9 +276,6 @@ function isValidMultisigSignatureCount(
   return signatureCount > 0 && signatureCount <= totalKeys
 }
 
-/**
- * Count signatures in partialSig array
- */
 function countSignatures(partialSig: any[] | any): number {
   if (!partialSig) {
     return 0
@@ -301,9 +283,6 @@ function countSignatures(partialSig: any[] | any): number {
   return Array.isArray(partialSig) ? partialSig.length : 1
 }
 
-/**
- * Validate signature format (basic checks)
- */
 function validateSignatureFormat(partialSig: any[] | any): boolean {
   if (!partialSig) {
     return true
@@ -435,9 +414,6 @@ function findPublicKeyInInput(input: any, fingerprint: string): string {
   return ''
 }
 
-/**
- * Check if PSBT contains signatures from a specific public key
- */
 function checkSignatureForPublicKey(
   psbt: bitcoinjs.Psbt,
   publicKey: string

@@ -102,9 +102,6 @@ function NostrSync() {
       .accounts.find((_account) => _account.id === accountId)
   }, [accountId])
 
-  /**
-   * Tests all relays to see if they can sync
-   */
   const testRelaySync = useCallback(
     async (relays: string[]) => {
       const statuses: Record<
@@ -164,9 +161,6 @@ function NostrSync() {
     [account?.nostr, accountId, updateAccountNostrCallback]
   )
 
-  /**
-   * Gets the display info for relay connection status
-   */
   const getRelayConnectionInfo = useCallback(
     (status: 'connected' | 'connecting' | 'disconnected') => {
       switch (status) {
@@ -361,9 +355,6 @@ function NostrSync() {
     updateAccountNostrCallback
   ])
 
-  /**
-   * Toggles member trust status
-   */
   const toggleMember = useCallback(
     (npub: string) => {
       if (!accountId || !account?.nostr) return
@@ -800,8 +791,6 @@ function NostrSync() {
                 </SSText>
               )}
             </SSVStack>
-
-            {/* Relay Status section */}
             {selectedRelays.length > 0 && (
               <SSVStack gap="sm">
                 <SSText center>{t('account.nostrSync.relayStatus')}</SSText>
@@ -856,7 +845,6 @@ function NostrSync() {
               </SSVStack>
             )}
           </SSVStack>
-          {/* Debug buttons */}
           <SSHStack gap="xs" style={{ marginTop: 30 }}>
             <SSButton
               label="Clear Caches"

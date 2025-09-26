@@ -102,7 +102,7 @@ function hasEnoughSignatures(input: any): boolean {
     const signatureCount = input.partialSig ? input.partialSig.length : 0
 
     return signatureCount >= threshold
-  } catch (_error) {
+  } catch {
     toast.error('Error checking if input has enough signatures')
     return false
   }
@@ -207,7 +207,7 @@ function PreviewMessage() {
             decryptedKeys[cosignerIndex]
           )
           results.set(cosignerIndex, isValid)
-        } catch (_error) {
+        } catch {
           toast.error('Failed in validating cosigner signature')
           results.set(cosignerIndex, false)
         }
@@ -1313,11 +1313,11 @@ function PreviewMessage() {
       }
       try {
         combinedPsbt.finalizeAllInputs()
-      } catch (_error) {
+      } catch {
         for (let i = 0; i < combinedPsbt.data.inputs.length; i++) {
           try {
             combinedPsbt.finalizeInput(i)
-          } catch (_error) {
+          } catch {
             toast.error('Failed to finalize input')
           }
         }
@@ -1335,11 +1335,11 @@ function PreviewMessage() {
 
         toast.success('Multisig transaction finalized successfully!')
         return transactionHex
-      } catch (_error) {
+      } catch {
         toast.error('Failed to extract final transaction')
         return null
       }
-    } catch (_error) {
+    } catch {
       toast.error('Failed to combine and finalize PSBTs')
       return null
     }
