@@ -55,6 +55,11 @@ type SSSeedWordsInputProps = {
   showCancelButton?: boolean
   autoCheckClipboard?: boolean
   style?: StyleProp<ViewStyle>
+  onWordSelectorStateChange?: (state: {
+    visible: boolean
+    wordStart: string
+    onWordSelected: (word: string) => void
+  }) => void
 }
 
 const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
@@ -84,7 +89,8 @@ export default function SSSeedWordsInput({
   onCancelButtonPress,
   showCancelButton = true,
   autoCheckClipboard = true,
-  style
+  style,
+  onWordSelectorStateChange
 }: SSSeedWordsInputProps) {
   const [seedWordsInfo, setSeedWordsInfo] = useState<SeedWordInfo[]>([])
   const [keyboardWordSelectorVisible, setKeyboardWordSelectorVisible] =
@@ -123,6 +129,15 @@ export default function SSSeedWordsInput({
       }
     }
   }, [])
+
+  // Notify parent about word selector state changes
+  useEffect(() => {
+    onWordSelectorStateChange?.({
+      visible: keyboardWordSelectorVisible,
+      wordStart: currentWordText,
+      onWordSelected: handleWordSelected
+    })
+  }, [keyboardWordSelectorVisible, currentWordText, onWordSelectorStateChange])
 
   // Check if clipboard contains valid seed
   const checkClipboardForSeed = useCallback(
@@ -216,11 +231,12 @@ export default function SSSeedWordsInput({
 
     seedWord.value = value.trim()
     seedWord.dirty = true // Mark as dirty when user starts typing
-    setCurrentWordText(value)
+    setCurrentWordText(value.trim())
     setCurrentWordIndex(index)
 
     // Check if word is in BIP39 word list
-    if (wordList.includes(value)) {
+    const trimmedValue = value.trim()
+    if (wordList.includes(trimmedValue)) {
       seedWord.valid = true
       setKeyboardWordSelectorVisible(false)
 
@@ -231,7 +247,7 @@ export default function SSSeedWordsInput({
 
       // Auto-advance to next input when word is valid
       if (index < wordCount - 1) {
-        const isPrefix = isPrefixWord(value, wordList)
+        const isPrefix = isPrefixWord(trimmedValue, wordList)
         const delay = isPrefix ? PREFIX_WORD_DELAY_MS : 100
 
         autoAdvanceTimeoutRef.current = setTimeout(() => {
@@ -240,9 +256,9 @@ export default function SSSeedWordsInput({
       }
     } else {
       seedWord.valid = false
-      setKeyboardWordSelectorVisible(
-        value.length >= MIN_LETTERS_TO_SHOW_WORD_SELECTOR
-      )
+      const shouldShow =
+        trimmedValue.length >= MIN_LETTERS_TO_SHOW_WORD_SELECTOR
+      setKeyboardWordSelectorVisible(shouldShow)
 
       // Clear auto-advance timeout if current word becomes invalid
       if (autoAdvanceTimeoutRef.current) {
@@ -390,12 +406,6 @@ export default function SSSeedWordsInput({
           </SSFormLayout.Item>
         )}
       </SSFormLayout>
-      <SSKeyboardWordSelector
-        visible={keyboardWordSelectorVisible}
-        wordStart={currentWordText}
-        onWordSelected={handleWordSelected}
-        style={{ height: 60 }}
-      />
       <SSVStack gap="sm">
         {showPasteButton && (
           <SSButton
