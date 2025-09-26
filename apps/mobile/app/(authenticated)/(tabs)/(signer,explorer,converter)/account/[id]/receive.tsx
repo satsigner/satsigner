@@ -1,14 +1,11 @@
+import * as Clipboard from 'expo-clipboard'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ScrollView, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
-import * as Clipboard from 'expo-clipboard'
 
-import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
-import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
-import SSIconButton from '@/components/SSIconButton'
 import SSNumberInput from '@/components/SSNumberInput'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
@@ -48,7 +45,7 @@ export default function Receive() {
   const [localLabel, setLocalLabel] = useState<string>()
   const [isGenerating, setIsGenerating] = useState(false)
   const [includeLabel, setIncludeLabel] = useState(true)
-  const [includeAmount, setIncludeAmount] = useState(true)
+  const [includeAmount] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [isManualAddress, setIsManualAddress] = useState(false)
 
@@ -152,7 +149,7 @@ export default function Receive() {
 
       loadAddress()
     },
-    [addressInfo, isManualAddress]
+    [addressInfo, isManualAddress, account?.addresses, account?.keys, wallet]
   )
 
   async function generateAnotherAddress() {
@@ -183,7 +180,7 @@ export default function Receive() {
       }
 
       setIsManualAddress(true)
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to generate new address')
     } finally {
       setIsGenerating(false)
@@ -213,7 +210,7 @@ export default function Receive() {
     try {
       await emitNFCTag(localFinalAddressQR)
       toast.success('Address exported via NFC')
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to export via NFC')
     }
   }
@@ -235,7 +232,7 @@ export default function Receive() {
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerTitle: function () {
+          headerTitle() {
             return <SSText uppercase>{account.name}</SSText>
           },
           headerRight: undefined
