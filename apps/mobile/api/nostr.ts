@@ -530,16 +530,15 @@ export function compressMessage(data: any): string {
   }
 }
 
-export function decompressMessage(compressedString: string): unknown {
+export function decompressMessage(compressedString: string): any {
   try {
     const compressedBytes = base85Decode(compressedString)
     const cborBytes = pako.inflate(new Uint8Array(compressedBytes))
-    const bufferSlice = new Uint8Array(
-      cborBytes.buffer,
+    const bufferSlice = cborBytes.buffer.slice(
       cborBytes.byteOffset,
-      cborBytes.byteLength
+      cborBytes.byteOffset + cborBytes.byteLength
     )
-    return CBOR.decode(bufferSlice)
+    return CBOR.decode(bufferSlice as unknown as Uint8Array)
   } catch (_error) {
     throw new Error(
       'Failed to decompress message: ' +
