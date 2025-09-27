@@ -5,7 +5,6 @@ import { ScrollView } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getExtendedPublicKeyFromAccountKey } from '@/api/bdk'
 import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
 import SSGradientModal from '@/components/SSGradientModal'
 import SSSeedWordsInput from '@/components/SSSeedWordsInput'
@@ -21,19 +20,10 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type SeedWordInfo } from '@/types/logic/seedWord'
 import { type Account } from '@/types/models/Account'
 import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
-import {
-  convertMnemonic,
-  getFingerprintFromMnemonic,
-  getWordList,
-  validateMnemonic
-} from '@/utils/bip39'
+import { getExtendedPublicKeyFromMnemonic } from '@/utils/bip39'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
-import { seedWordsPrefixOfAnother } from '@/utils/seed'
-
-const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
 
 export default function ImportMnemonic() {
   const { keyIndex } = useLocalSearchParams<ImportMnemonicSearchParams>()
@@ -44,19 +34,38 @@ export default function ImportMnemonic() {
     keys,
     scriptVersion,
     mnemonicWordCount,
-    mnemonicWordList,
     fingerprint,
     policyType,
     clearAccount,
     setMnemonic,
     setKey,
     passphrase,
-    setPassphrase,
+    setPassphrase: _setPassphrase,
     setFingerprint,
     setExtendedPublicKey,
     getAccountData,
+    updateKeySecret: _updateKeySecret,
     clearKeyState
-  } = useAccountBuilderStore(useShallow((state) => state))
+  } = useAccountBuilderStore(
+    useShallow((state) => ({
+      name: state.name,
+      keys: state.keys,
+      scriptVersion: state.scriptVersion,
+      mnemonicWordCount: state.mnemonicWordCount,
+      fingerprint: state.fingerprint,
+      policyType: state.policyType,
+      clearAccount: state.clearAccount,
+      setMnemonic: state.setMnemonic,
+      setKey: state.setKey,
+      passphrase: state.passphrase,
+      setPassphrase: state.setPassphrase,
+      setFingerprint: state.setFingerprint,
+      setExtendedPublicKey: state.setExtendedPublicKey,
+      getAccountData: state.getAccountData,
+      updateKeySecret: state.updateKeySecret,
+      clearKeyState: state.clearKeyState
+    }))
+  )
   const [network, connectionMode] = useBlockchainStore(
     useShallow((state) => [
       state.selectedNetwork,
@@ -65,20 +74,6 @@ export default function ImportMnemonic() {
   )
   const { accountBuilderFinish } = useAccountBuilderFinish()
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
-
-  const wordList = getWordList(mnemonicWordList)
-
-  const [mnemonicWordsInfo, setMnemonicWordsInfo] = useState<SeedWordInfo[]>(
-    [...Array(mnemonicWordCount)].map((_, index) => ({
-      value: '',
-      index,
-      dirty: false,
-      valid: false
-    }))
-  )
-  const [checksumValid, setChecksumValid] = useState(false)
-  const [currentWordText, setCurrentWordText] = useState('')
-  const [currentWordIndex, setCurrentWordIndex] = useState(0)
 
   const [loadingAccount, setLoadingAccount] = useState(false)
   const [accountImported, setAccountImported] = useState(false)
@@ -89,64 +84,6 @@ export default function ImportMnemonic() {
 
   const [accountAddedModalVisible, setAccountAddedModalVisible] =
     useState(false)
-
-  function checkTextHasSeed(text: string): Promise<string[]> {
-    if (text === null || text === '') return []
-    const delimiters = [' ', '\n']
-
-    for (const delimiter of delimiters) {
-      const seedCandidate = text.split(delimiter)
-
-      // validate seed length
-      if (seedCandidate.length !== mnemonicWordCount) continue
-
-      // validate words from word list
-      const validWords = seedCandidate.every((x) => wordList.includes(x))
-      if (!validWords) continue
-
-      // convert mnemonic into english before validating its checksum
-      const convertedSeed = convertMnemonic(
-        seedCandidate.join(' '),
-        'english',
-        mnemonicWordList
-      )
-
-      // validate checksum
-      const checksum = validateMnemonic(convertedSeed)
-      if (!checksum) continue
-
-      return seedCandidate
-    }
-    return []
-  }
-
-  function fillOutSeedWords(seed: string[]) {
-    const localMnemonic = seed.join(' ')
-
-    const mnemonic = convertMnemonic(localMnemonic, 'english', mnemonicWordList)
-
-    setMnemonicWordsInfo(
-      seed.map((value, index) => {
-        return { value, index, dirty: false, valid: true }
-      })
-    )
-
-    if (passphraseRef.current) passphraseRef.current.focus()
-
-    const checksumValid = validateMnemonic(mnemonic)
-    setChecksumValid(checksumValid)
-
-    if (checksumValid) {
-      setMnemonic(mnemonic)
-      const fingerprint = getFingerprintFromMnemonic(
-        mnemonic,
-        passphrase,
-        network as Network
-      )
-
-      setFingerprint(fingerprint)
-    }
-  }
 
   // Handle mnemonic validation from the component
   const handleMnemonicValid = (mnemonic: string, fingerprint: string) => {
@@ -178,140 +115,24 @@ export default function ImportMnemonic() {
       return
     }
 
-    seedWord.value = word.trim()
+    setAccountAddedModalVisible(true)
 
-    if (wordList.includes(word)) seedWord.valid = true
-    else {
-      seedWord.valid = false
-      setKeyboardWordSelectorVisible(
-        word.length >= MIN_LETTERS_TO_SHOW_WORD_SELECTOR
-      )
-    }
-
-    setCurrentWordText(word)
-    setMnemonicWordsInfo(seedWords)
-
-    const localMnemonic = mnemonicWordsInfo
-      .map((mnemonicWord) => mnemonicWord.value)
-      .join(' ')
-
-    // convert mnemonic to english
-    const mnemonic = convertMnemonic(localMnemonic, 'english', mnemonicWordList)
-
-    const checksumValid = validateMnemonic(mnemonic)
-    setChecksumValid(checksumValid)
-
-    if (checksumValid) {
-      setMnemonic(mnemonic)
-      const fingerprint = getFingerprintFromMnemonic(
-        mnemonic,
-        passphrase,
-        network as Network
-      )
-
-      setFingerprint(fingerprint)
-    }
-
-    if (seedWord.valid && !seedWordsPrefixOfAnother[word]) {
-      focusNextWord(index)
-    }
-  }
-
-  function focusNextWord(currentIndex: number) {
-    const nextIndex = currentIndex + 1
-    if (nextIndex < mnemonicWordCount) {
-      inputRefs.current[nextIndex]?.focus()
-    } else if (passphraseRef.current) {
-      passphraseRef.current.focus()
-    }
-  }
-
-  function handleOnEndEditingWord(word: string, index: number) {
-    const mnemonic = [...mnemonicWordsInfo]
-    const mnemonicWord = mnemonic[index]
-
-    mnemonicWord.value = word
-    mnemonicWord.valid = wordList.includes(word)
-    mnemonicWord.dirty ||= word.length > 0
-
-    setMnemonicWordsInfo(mnemonic)
-    setCurrentWordText(word)
-  }
-
-  function handleOnFocusWord(word: string | undefined, index: number) {
-    const seedWords = [...mnemonicWordsInfo]
-    const seedWord = seedWords[index]
-
-    setCurrentWordText(word || '')
-    setCurrentWordIndex(index)
-    setKeyboardWordSelectorVisible(
-      !seedWord.valid &&
-        (word?.length || 0) >= MIN_LETTERS_TO_SHOW_WORD_SELECTOR
-    )
-  }
-
-  async function handleOnWordSelected(word: string) {
-    const seedWords = [...mnemonicWordsInfo]
-    seedWords[currentWordIndex].value = word
-
-    if (wordList.includes(word)) {
-      seedWords[currentWordIndex].valid = true
-      setKeyboardWordSelectorVisible(false)
-    }
-
-    setMnemonicWordsInfo(seedWords)
-
-    const mnemonicSeedWords = seedWords
-      .map((seedWord) => seedWord.value)
-      .join(' ')
-
-    const mnemonic = convertMnemonic(
-      mnemonicSeedWords,
-      'english',
-      mnemonicWordList
-    )
-
-    const checksumValid = await validateMnemonic(mnemonic)
-    setChecksumValid(checksumValid)
-
-    if (checksumValid) {
-      setMnemonic(mnemonic)
-      const fingerprint = await getFingerprint(
-        mnemonic,
-        passphrase,
-        network as Network
-      )
-
-      setFingerprint(fingerprint)
-    }
-    focusNextWord(currentWordIndex)
-  }
-
-  async function handleUpdatePassphrase(passphrase: string) {
-    setPassphrase(passphrase)
-
-    const mnemonicSeedWords = mnemonicWordsInfo
-      .map((word) => word.value)
-      .join(' ')
-
-    const mnemonic = convertMnemonic(
-      mnemonicSeedWords,
-      'english',
-      mnemonicWordList
-    )
-
-    const checksumValid = validateMnemonic(mnemonic)
-    setChecksumValid(checksumValid)
-
-    if (checksumValid) {
-      setMnemonic(mnemonic)
-      const fingerprint = getFingerprintFromMnemonic(
-        mnemonic,
-        passphrase,
-        network as Network
-      )
-
-      setFingerprint(fingerprint)
+    try {
+      if (connectionMode === 'auto') {
+        const updatedAccount = await syncAccountWithWallet(
+          data.accountWithEncryptedSecret,
+          data.wallet
+        )
+        updateAccount(updatedAccount)
+        setSyncedAccount(updatedAccount)
+      }
+      setLoadingAccount(false)
+      setAccountImported(true)
+    } catch (error) {
+      setWalletSyncFailed(true)
+      setLoadingAccount(false)
+      setAccountImported(true)
+      toast.error((error as Error).message)
     }
   }
 
@@ -319,52 +140,24 @@ export default function ImportMnemonic() {
   async function handleOnPressImportSeedMultisig() {
     setLoadingAccount(true)
 
-    const mnemonicSeedWords = mnemonicWordsInfo
-      .map((word) => word.value)
-      .join(' ')
+    try {
+      // Use the current mnemonic and fingerprint from the component
+      setMnemonic(currentMnemonic)
+      setFingerprint(currentFingerprint)
 
-    const mnemonic = convertMnemonic(
-      mnemonicSeedWords,
-      'english',
-      mnemonicWordList
-    )
+      // For multisig, we need to generate the extended public key from the mnemonic
+      if (currentMnemonic && currentFingerprint) {
+        // Generate the extended public key
+        const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
+          currentMnemonic,
+          passphrase || '',
+          network as Network,
+          scriptVersion
+        )
 
-    setMnemonic(mnemonic)
-
-    const currentKey = setKey(Number(keyIndex))
-
-    if (policyType === 'singlesig') {
-      const account = getAccountData()
-
-      const data = await accountBuilderFinish(account)
-      if (!data || !data.wallet) return
-
-      setAccountAddedModalVisible(true)
-
-      try {
-        if (connectionMode === 'auto') {
-          const updatedAccount = await syncAccountWithWallet(
-            data.accountWithEncryptedSecret,
-            data.wallet
-          )
-          updateAccount(updatedAccount)
-          setSyncedAccount(updatedAccount)
-        }
-      } catch (error) {
-        setWalletSyncFailed(true)
-        toast.error((error as Error).message)
-      } finally {
-        setAccountImported(true)
-        setLoadingAccount(false)
+        // Set the extended public key
+        setExtendedPublicKey(extendedPublicKey)
       }
-    } else if (policyType === 'multisig') {
-      const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
-        currentKey,
-        network as Network
-      )
-
-      // Set the extended public key
-      setExtendedPublicKey(extendedPublicKey)
 
       // Set the key with the current data
       setKey(Number(keyIndex))
@@ -372,6 +165,9 @@ export default function ImportMnemonic() {
       toast.success('Key imported successfully')
       // Navigate back to multisig setup (just one screen back)
       router.back()
+    } catch (error) {
+      setLoadingAccount(false)
+      toast.error(`Failed to set key: ${(error as Error).message}`)
     }
   }
 
