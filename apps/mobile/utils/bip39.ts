@@ -13,7 +13,7 @@ import {
   getFingerprintFromSeed
 } from '@/utils/bip32'
 
-const WORDLIST_LIST = [
+export const WORDLIST_LIST = [
   'chinese_simplified',
   'chinese_traditional',
   'czech',
@@ -26,67 +26,9 @@ const WORDLIST_LIST = [
   'spanish'
 ] as const
 
-type WordListName = (typeof WORDLIST_LIST)[number]
+export type WordListName = (typeof WORDLIST_LIST)[number]
 
-const DEFAULT_WORD_LIST = bip39.getDefaultWordlist() as WordListName
-
-function getWordList(name: WordListName = DEFAULT_WORD_LIST) {
-  return bip39.wordlists[name]
-}
-
-function convertMnemonicUsingIndexes(
-  mnemonic: string,
-  target: WordListName,
-  source: WordListName = 'english'
-) {
-  // we can expect app users to use english as the default word list, and not
-  // other languages, in which case the target and source lists will often be
-  // the same, not needing conversion.
-  if (target === source) return mnemonic
-
-  const words = mnemonic.split(' ')
-  const sourceWordList = bip39.wordlists[source]
-  const targetWordList = bip39.wordlists[target]
-
-  // build a lookup table for faster index lookup
-  const indexLookupTable: Record<string, number> = sourceWordList.reduce(
-    (previousValue, word, index) => {
-      return {
-        ...previousValue,
-        [word]: index
-      }
-    },
-    {}
-  )
-
-  // collect the word indexes
-  const indexes = words.map((word) => indexLookupTable[word])
-
-  if (indexes.includes(-1)) {
-    throw new Error(
-      `Mnemonic "${mnemonic}" contains words not found in the ${source} word list.`
-    )
-  }
-
-  const convertedWords = indexes.map((index) => targetWordList[index])
-  const convertedMnemonic = convertedWords.join(' ')
-  return convertedMnemonic
-}
-
-function convertMnemonicUsingEntropy(
-  mnemonic: string,
-  target: WordListName,
-  source: WordListName = 'english'
-) {
-  if (target === source) return mnemonic
-  const sourceWordList = bip39.wordlists[source]
-  const targetWordList = bip39.wordlists[target]
-  const entropy = bip39.mnemonicToEntropy(mnemonic, sourceWordList)
-  const targetMnemonic = bip39.entropyToMnemonic(entropy, targetWordList)
-  return targetMnemonic
-}
-
-const convertMnemonic = convertMnemonicUsingEntropy
+export const DEFAULT_WORD_LIST = bip39.getDefaultWordlist() as WordListName
 
 const wordCountToEntropyBits: Record<MnemonicWordCount, MnemonicEntropyBits> = {
   12: 128,
@@ -94,6 +36,10 @@ const wordCountToEntropyBits: Record<MnemonicWordCount, MnemonicEntropyBits> = {
   18: 192,
   21: 224,
   24: 256
+}
+
+export function getWordList(name: WordListName = DEFAULT_WORD_LIST) {
+  return bip39.wordlists[name]
 }
 
 export function validateMnemonic(
@@ -155,14 +101,4 @@ export function getExtendedPublicKeyFromMnemonic(
 ) {
   const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
   return getExtendedPublicKeyFromSeed(seed, network, scriptVersion)
-}
-
-export {
-  convertMnemonic,
-  convertMnemonicUsingEntropy,
-  convertMnemonicUsingIndexes,
-  DEFAULT_WORD_LIST,
-  getWordList,
-  WORDLIST_LIST,
-  type WordListName
 }

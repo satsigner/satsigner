@@ -23,7 +23,6 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useSettingsStore } from '@/store/settings'
 import { type ConfirmWordSearchParams } from '@/types/navigation/searchParams'
-import { convertMnemonic } from '@/utils/bip39'
 import { getConfirmWordCandidates } from '@/utils/seed'
 
 export default function Confirm() {
@@ -42,7 +41,7 @@ export default function Confirm() {
     useShallow((state) => [
       state.name,
       state.mnemonicWordCount,
-      convertMnemonic(state.mnemonic, state.mnemonicWordList).split(' '),
+      state.mnemonic.split(' '),
       state.policyType,
       state.clearAccount,
       state.getAccountData,
