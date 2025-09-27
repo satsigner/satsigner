@@ -118,8 +118,8 @@ export default function SSSeedWordsInput({
         if (seedCandidate.length !== wordCount) continue
         const validWords = seedCandidate.every((x) => wordList.includes(x))
         if (!validWords) continue
-        const checksum = validateMnemonic(seedCandidate.join(' '))
-        if (!checksum) continue
+        const validMnemonic = validateMnemonic(seedCandidate.join(' '))
+        if (!validMnemonic) continue
         return seedCandidate
       }
       return []
@@ -167,8 +167,8 @@ export default function SSSeedWordsInput({
       } else {
         toast.error('No valid seed found in clipboard')
       }
-    } catch (_error) {
-      toast.error('Failed to read clipboard')
+    } catch (error) {
+      toast.error(`Failed to read clipboard, ${(error as Error).message}`)
     }
   }, [checkClipboardForSeed, fillOutSeedWords])
 
