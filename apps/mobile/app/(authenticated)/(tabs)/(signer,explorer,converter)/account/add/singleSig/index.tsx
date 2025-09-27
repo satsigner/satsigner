@@ -80,6 +80,7 @@ export default function SingleSig() {
     setScriptVersion(localScriptVersion)
     setEntropy(localEntropyType)
     setMnemonicWordCount(localMnemonicWordCount)
+    setMnemonicWordList(localMnemonicWordList)
     setKeyCount(1)
     setKeysRequired(1)
     setNetwork(network)
@@ -88,7 +89,6 @@ export default function SingleSig() {
       switch (localEntropyType) {
         case 'none': {
           setLoading(true)
-          setMnemonicWordList(localMnemonicWordList)
           const mnemonic = generateMnemonic(localMnemonicWordCount)
           setMnemonic(mnemonic)
 

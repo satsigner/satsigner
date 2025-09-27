@@ -110,7 +110,7 @@ export default function SSSeedWordsInput({
 
   // Check if clipboard contains valid seed
   const checkClipboardForSeed = useCallback(
-    async (text: string): Promise<string[]> => {
+    (text: string): string[] => {
       if (!text || text === '') return []
       const delimiters = [' ', '\n', ',', ', ']
       for (const delimiter of delimiters) {
@@ -118,13 +118,16 @@ export default function SSSeedWordsInput({
         if (seedCandidate.length !== wordCount) continue
         const validWords = seedCandidate.every((x) => wordList.includes(x))
         if (!validWords) continue
-        const validMnemonic = validateMnemonic(seedCandidate.join(' '))
+        const validMnemonic = validateMnemonic(
+          seedCandidate.join(' '),
+          wordListName
+        )
         if (!validMnemonic) continue
         return seedCandidate
       }
       return []
     },
-    [wordCount, wordList]
+    [wordCount, wordList, wordListName]
   )
 
   // Fill out seed words from clipboard
@@ -139,7 +142,7 @@ export default function SSSeedWordsInput({
       setSeedWordsInfo(newSeedWordsInfo)
 
       const mnemonic = seed.join(' ')
-      const checksumValid = validateMnemonic(mnemonic)
+      const checksumValid = validateMnemonic(mnemonic, wordListName)
       setChecksumValid(checksumValid)
 
       if (checksumValid) {
@@ -154,13 +157,13 @@ export default function SSSeedWordsInput({
         onMnemonicInvalid?.()
       }
     },
-    [passphrase, network, onMnemonicValid, onMnemonicInvalid]
+    [passphrase, network, onMnemonicValid, onMnemonicInvalid, wordListName]
   )
 
   const readSeedFromClipboard = useCallback(async () => {
     try {
       const text = (await Clipboard.getStringAsync()).trim()
-      const seed = await checkClipboardForSeed(text)
+      const seed = checkClipboardForSeed(text)
       if (seed.length > 0) {
         await fillOutSeedWords(seed)
         toast.success('Seed words pasted from clipboard')
@@ -212,7 +215,7 @@ export default function SSSeedWordsInput({
     // Validate complete mnemonic
     const mnemonic = newSeedWordsInfo.map((info) => info.value).join(' ')
     if (mnemonic.trim().length > 0) {
-      const checksumValid = validateMnemonic(mnemonic)
+      const checksumValid = validateMnemonic(mnemonic, wordListName)
       setChecksumValid(checksumValid)
 
       if (checksumValid) {
@@ -245,9 +248,8 @@ export default function SSSeedWordsInput({
 
     setSeedWordsInfo(newSeedWordsInfo)
 
-    // Validate complete mnemonic
     const mnemonic = newSeedWordsInfo.map((info) => info.value).join(' ')
-    const checksumValid = validateMnemonic(mnemonic)
+    const checksumValid = validateMnemonic(mnemonic, wordListName)
     setChecksumValid(checksumValid)
 
     if (checksumValid) {

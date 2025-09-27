@@ -58,14 +58,12 @@ const BIP32Networks: Record<BDKNetwork, BIP32Interface['network']> = {
 
 export function getStandardPath(
   scriptVersion: ScriptVersionType,
-  kind: KeychainKind,
   network: BDKNetwork,
   account = 0
 ) {
   const purpose = getScriptVersionPurpose(scriptVersion)
   const coinType = network === BDKNetwork.Bitcoin ? 0 : 1
-  const change = kind === KeychainKind.External ? 0 : 1
-  const path = `m/${purpose}'/${coinType}'/${account}'/${change}/*`
+  const path = `${purpose}'/${coinType}'/${account}'`
   return path
 }
 
@@ -77,32 +75,44 @@ export function getDescriptorFromSeed(
   account = 0
 ): string {
   const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
-  const path = getStandardPath(scriptVersion, kind, network, account)
-  const derivedKey = masterKey.derivePath(path.replace('*', '0'))
+  const path = getStandardPath(scriptVersion, network, account)
+  const derivedKey = masterKey.derivePath(`m/${path}`)
   const pubkey = Buffer.from(derivedKey.publicKey).toString('hex')
-  const descriptor = getDescriptorFromPubkey(pubkey, scriptVersion)
-  return `${descriptor}[${path}]`
+  const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
+  const descriptor = getDescriptorFromPubkey(
+    pubkey,
+    scriptVersion,
+    fingerprint,
+    path,
+    kind
+  )
+  return descriptor
 }
 
 export function getDescriptorFromPubkey(
   pubkey: string,
-  scriptVersion: ScriptVersionType
+  scriptVersion: ScriptVersionType,
+  fingerprint: string,
+  path: string,
+  kind: KeychainKind
 ) {
+  const change = kind === KeychainKind.External ? 0 : 1
+  const innerPart = `[${fingerprint}/${path}]${pubkey}/${change}/*`
   switch (scriptVersion) {
     case 'P2PKH':
-      return `pkh(${pubkey})`
+      return `pkh(${innerPart})`
     case 'P2WPKH':
-      return `wpkh(${pubkey})`
+      return `wpkh(${innerPart})`
     case 'P2SH-P2WPKH':
-      return `sh(wpkh(${pubkey}))`
+      return `sh(wpkh(${innerPart}))`
     case 'P2TR':
-      return `tr(${pubkey})`
+      return `tr(${innerPart})`
     case 'P2WSH':
-      return `wsh(pk(${pubkey}))`
+      return `wsh(pk(${innerPart}))`
     case 'P2SH-P2WSH':
-      return `sh(wsh(pk(${pubkey})))`
+      return `sh(wsh(pk(${innerPart})))`
     case 'P2SH':
-      return `sh(pk(${pubkey}))`
+      return `sh(pk(${innerPart}))`
   }
 }
 
@@ -138,18 +148,6 @@ export function getFingerprintFromExtendedPublicKey(
   const masterKey = bip32.fromBase58(extendedPublicKey, BIP32Networks[network])
   const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
   return fingerprint
-}
-
-export function getExtendedPublicKeyFromSeed(
-  seed: Buffer,
-  network: BDKNetwork,
-  scriptVersion: ScriptVersionType
-) {
-  const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
-  // this assumes default account=0 and external address kind=0
-  const path = getStandardPath(scriptVersion, KeychainKind.External, network, 0)
-  const derivedKey = masterKey.derivePath(path.replace('*', '0'))
-  return derivedKey.toBase58()
 }
 
 // TODO: use @bitcoinerlab/descriptors and place it on utils/descriptors
