@@ -136,7 +136,7 @@ export default function Receive() {
           `${account?.keys[0].derivationPath}/0/${addressInfo.index}`
         )
 
-        const existingAddress = account?.addresses.find(function (addr) {
+        const existingAddress = account?.addresses.find((addr) => {
           return addr.address === address
         })
         if (existingAddress?.label) {
@@ -180,22 +180,26 @@ export default function Receive() {
       }
 
       setIsManualAddress(true)
-    } catch (_error) {
-      toast.error('Failed to generate new address')
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : t('receive.error.generateAddress')
+      toast.error(errorMessage)
     } finally {
       setIsGenerating(false)
     }
   }
 
   const handleLabelChange = useCallback(
-    function (text: string) {
+    (text: string) => {
       setLocalLabel(text)
 
       if (saveLabelTimeoutRef.current) {
         clearTimeout(saveLabelTimeoutRef.current)
       }
 
-      saveLabelTimeoutRef.current = setTimeout(function () {
+      saveLabelTimeoutRef.current = setTimeout(() => {
         if (localAddress && text.trim()) {
           setAddrLabel(id!, localAddress, text.trim())
         }
@@ -209,9 +213,11 @@ export default function Receive() {
 
     try {
       await emitNFCTag(localFinalAddressQR)
-      toast.success('Address exported via NFC')
-    } catch (_error) {
-      toast.error('Failed to export via NFC')
+      toast.success(t('receive.success.exportNFC'))
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : t('receive.error.exportNFC')
+      toast.error(errorMessage)
     }
   }
 
@@ -225,6 +231,25 @@ export default function Receive() {
     const fiatAmount = satsToFiat(Number(sats))
     return fiatAmount > 0 ? `≈ ${fiatAmount.toFixed(2)} ${fiatCurrency}` : ''
   }
+
+  const handleToggleLabel = useCallback(() => {
+    setIncludeLabel(!includeLabel)
+  }, [includeLabel])
+
+  const handlePasteAmount = useCallback(async () => {
+    const text = await Clipboard.getStringAsync()
+    if (text && !isNaN(Number(text))) {
+      setLocalCustomAmount(text)
+    }
+  }, [])
+
+  const handlePasteLabel = useCallback(async () => {
+    const text = await Clipboard.getStringAsync()
+    if (text) {
+      setLocalLabel(text)
+      handleLabelChange(text)
+    }
+  }, [handleLabelChange])
 
   if (!account) return <Redirect href="/" />
 
@@ -266,11 +291,12 @@ export default function Receive() {
               </SSHStack>
               <SSText>{t('receive.neverUsed')}</SSText>
             </SSVStack>
-
             {isLoading ? (
               <SSVStack itemsCenter gap="md">
                 <SSHStack gap="xs">
-                  <SSText color="muted">Finding a fresh address</SSText>
+                  <SSText color="muted">
+                    {t('receive.findingFreshAddress')}
+                  </SSText>
                   <SSEllipsisAnimation size={4} />
                 </SSHStack>
               </SSVStack>
@@ -281,7 +307,11 @@ export default function Receive() {
                   <SSHStack>
                     {nfcAvailable && (
                       <SSButton
-                        label={isEmitting ? 'Stop NFC' : 'Export via NFC'}
+                        label={
+                          isEmitting
+                            ? t('receive.stopNFC')
+                            : t('receive.exportViaNFC')
+                        }
                         variant="outline"
                         disabled={!localFinalAddressQR}
                         onPress={isEmitting ? cancelNFCScan : handleNFCExport}
@@ -291,7 +321,6 @@ export default function Receive() {
                 </SSVStack>
               )
             )}
-
             {localFinalAddressQR && (
               <SSVStack gap="sm" itemsCenter style={{ marginVertical: 10 }}>
                 <SSText>Bitcoin URI</SSText>
@@ -315,17 +344,17 @@ export default function Receive() {
                     label={t('common.copy')}
                     variant="secondary"
                     style={{ flex: 1 }}
-                    onPress={function () {
-                      return copyToClipboard(localFinalAddressQR)
-                    }}
+                    onPress={() => copyToClipboard(localFinalAddressQR)}
                   />
                   <SSButton
-                    label={includeLabel ? 'Exclude Label' : 'Include Label'}
+                    label={
+                      includeLabel
+                        ? t('receive.excludeLabel')
+                        : t('receive.includeLabel')
+                    }
                     variant={includeLabel ? 'default' : 'outline'}
                     style={{ flex: 1 }}
-                    onPress={function () {
-                      return setIncludeLabel(!includeLabel)
-                    }}
+                    onPress={handleToggleLabel}
                   />
                 </SSHStack>
               </SSVStack>
@@ -341,12 +370,10 @@ export default function Receive() {
               <SSNumberInput
                 min={1}
                 max={2_100_000_000_000_000}
-                placeholder="sats"
+                placeholder={t('receive.placeholder.sats')}
                 align="center"
                 keyboardType="numeric"
-                onChangeText={function (text) {
-                  return setLocalCustomAmount(text)
-                }}
+                onChangeText={setLocalCustomAmount}
                 allowDecimal={false}
                 allowValidEmpty
                 alwaysTriggerOnChange
@@ -360,14 +387,9 @@ export default function Receive() {
                 </SSText>
               )}
               <SSButton
-                label="Paste Amount"
+                label={t('receive.pasteAmount')}
                 variant="subtle"
-                onPress={async function () {
-                  const text = await Clipboard.getStringAsync()
-                  if (text && !isNaN(Number(text))) {
-                    setLocalCustomAmount(text)
-                  }
-                }}
+                onPress={handlePasteAmount}
               />
             </SSFormLayout.Item>
             <SSFormLayout.Item>
@@ -375,7 +397,7 @@ export default function Receive() {
               <SSTextInput
                 onChangeText={handleLabelChange}
                 value={localLabel}
-                placeholder="Enter label (saved automatically)"
+                placeholder={t('receive.placeholder.label')}
                 multiline
                 numberOfLines={3}
                 style={{
@@ -386,15 +408,9 @@ export default function Receive() {
                 }}
               />
               <SSButton
-                label="Paste Label"
+                label={t('receive.pasteLabel')}
                 variant="subtle"
-                onPress={async function () {
-                  const text = await Clipboard.getStringAsync()
-                  if (text) {
-                    setLocalLabel(text)
-                    handleLabelChange(text)
-                  }
-                }}
+                onPress={handlePasteLabel}
               />
             </SSFormLayout.Item>
           </SSFormLayout>
@@ -425,9 +441,7 @@ export default function Receive() {
                       <SSButton
                         label={t('common.copy')}
                         variant="subtle"
-                        onPress={function () {
-                          return copyToClipboard(localAddress)
-                        }}
+                        onPress={() => copyToClipboard(localAddress)}
                       />
                     </SSHStack>
                   </SSVStack>
@@ -446,9 +460,7 @@ export default function Receive() {
             <SSButton
               label={t('common.cancel')}
               variant="ghost"
-              onPress={function () {
-                return router.back()
-              }}
+              onPress={() => router.back()}
             />
           </SSVStack>
         </SSVStack>

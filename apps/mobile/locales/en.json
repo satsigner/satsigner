@@ -832,10 +832,22 @@
   "receive": {
     "address": "Address",
     "customAmount": "Custom amount",
+    "error.exportNFC": "Failed to export via NFC",
+    "error.generateAddress": "Failed to generate new address",
+    "excludeLabel": "Exclude Label",
+    "exportViaNFC": "Export via NFC",
+    "findingFreshAddress": "Finding a fresh address",
     "generateAnother": "Generate another address",
+    "includeLabel": "Include Label",
     "label": "Label",
     "neverUsed": "Never used",
-    "path": "Path"
+    "pasteAmount": "Paste Amount",
+    "pasteLabel": "Paste Label",
+    "path": "Path",
+    "placeholder.label": "Enter label (saved automatically)",
+    "placeholder.sats": "sats",
+    "stopNFC": "Stop NFC",
+    "success.exportNFC": "Address exported via NFC"
   },
   "script": {
     "p2pkh.description.1": "Legacy",
