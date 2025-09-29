@@ -925,8 +925,8 @@ function PreviewMessage() {
 
         // Process the data (convert PSBT to final transaction if needed)
         finalContent = processScannedData(finalContent)
-      } catch (_error) {
-        // Keep original content if conversion fails
+      } catch {
+        toast.error('Failed to process scanned data')
       }
 
       // Use hook's updateSignedPsbt function

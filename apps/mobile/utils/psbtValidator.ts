@@ -194,9 +194,6 @@ function validateInput(input: any): boolean {
   return true
 }
 
-/**
- * Validate a single output
- */
 function validateOutput(output: any): boolean {
   return !!output
 }
@@ -324,7 +321,7 @@ function validateCosignerSignature(
     const hasSignature = checkSignatureForPublicKey(psbt, cosignerPublicKey)
 
     return hasSignature
-  } catch (_error) {
+  } catch {
     toast.error('Error validating cosigner signature')
     return false
   }

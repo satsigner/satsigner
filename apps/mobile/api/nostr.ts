@@ -5,6 +5,7 @@ import * as CBOR from 'cbor-js'
 import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
 import * as pako from 'pako'
 import crypto from 'react-native-aes-crypto'
+import { toast } from 'sonner-native'
 
 import type { NostrMessage } from '@/types/models/Nostr'
 
@@ -243,8 +244,8 @@ export class NostrAPI {
         this.processedMessageIds.add(message.id)
         try {
           this._callback?.(message)
-        } catch (_error) {
-          // Error processing message
+        } catch {
+          toast.error('Failed to process message')
         }
       }
     }
@@ -311,7 +312,9 @@ export class NostrAPI {
             this.eventQueue.push(message)
             this.processQueue()
           }
-        } catch (_error) {}
+        } catch {
+          toast.error('Failed to process message')
+        }
       })
 
       subscription?.on('eose', () => {
@@ -332,8 +335,8 @@ export class NostrAPI {
     for (const subscription of this.activeSubscriptions) {
       try {
         subscription.stop()
-      } catch (_error) {
-        // Error closing subscription
+      } catch {
+        toast.error('Failed to close subscription')
       }
     }
     this.activeSubscriptions.clear()
