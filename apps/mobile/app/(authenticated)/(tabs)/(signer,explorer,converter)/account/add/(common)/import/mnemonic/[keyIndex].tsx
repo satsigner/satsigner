@@ -22,7 +22,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
-import { getExtendedPublicKeyFromMnemonic } from '@/utils/bip39'
+import { getExtendedPublicKeyFromMnemonicCustom } from '@/utils/bip39'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 export default function ImportMnemonic() {
   const { keyIndex } = useLocalSearchParams<ImportMnemonicSearchParams>()
@@ -147,22 +147,24 @@ export default function ImportMnemonic() {
       // For multisig, we need to generate the extended public key from the mnemonic
       if (currentMnemonic && currentFingerprint) {
         // Generate the extended public key
-        const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
+        const extendedPublicKey = await getExtendedPublicKeyFromMnemonicCustom(
           currentMnemonic,
           passphrase || '',
           network as Network,
-          scriptVersion
+          scriptVersion,
+          undefined,
+          true // isMultisig
         )
 
         // Set the extended public key
         setExtendedPublicKey(extendedPublicKey)
       }
 
-      // Set the key with the current data
       setKey(Number(keyIndex))
+      clearKeyState()
+
       setLoadingAccount(false)
       toast.success('Key imported successfully')
-      // Navigate back to multisig setup (just one screen back)
       router.back()
     } catch (error) {
       setLoadingAccount(false)

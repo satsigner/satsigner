@@ -22,7 +22,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { type GenerateMnemonicSearchParams } from '@/types/navigation/searchParams'
 import { getDescriptorsFromKey } from '@/utils/bip32'
 import {
-  getExtendedPublicKeyFromMnemonic,
+  getExtendedPublicKeyFromMnemonicCustom,
   getFingerprintFromMnemonic,
   validateMnemonic
 } from '@/utils/bip39'
@@ -109,11 +109,13 @@ export default function GenerateMnemonic() {
         )
         derivationPath = `m/${rawDerivationPath}`
         // Generate extended public key first using the same method as import flow
-        const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
+        const extendedPublicKey = await getExtendedPublicKeyFromMnemonicCustom(
           mnemonic.join(' '),
           passphrase || '',
           network as Network,
-          scriptVersion
+          scriptVersion,
+          undefined,
+          true // isMultisig
         )
 
         // Generate descriptors from the key data

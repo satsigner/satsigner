@@ -10,13 +10,15 @@ const MAX_CONTAINER_WIDTH = 140
 type SSSignatureRequiredDisplayProps = {
   requiredNumber: number
   totalNumber: number
-  collectedSignatures?: number[] // Array of signature indices that have been collected (0-based)
+  collectedSignatures?: number[]
+  validationResults?: Map<number, boolean>
 }
 
 function SSSignatureRequiredDisplay({
   requiredNumber,
   totalNumber,
-  collectedSignatures = []
+  collectedSignatures = [],
+  validationResults
 }: SSSignatureRequiredDisplayProps) {
   const [containerSize, setContainersize] = useState({ width: 0, height: 0 })
 
@@ -114,8 +116,23 @@ function SSSignatureRequiredDisplay({
           </G>
           <G>
             {Array.from({ length: totalNumber }, (_, i) => i).map((count) => {
-              const isCollected = collectedSignatures.includes(count)
+              const isCollected = count < collectedSignatures.length
               const isRequired = count + 1 <= requiredNumber
+
+              // Get validation result for this position
+              const cosignerIndex = collectedSignatures[count]
+              const isValid = validationResults?.get(cosignerIndex)
+
+              let fillColor = 'transparent'
+              if (isCollected) {
+                if (isValid === true) {
+                  fillColor = '#A7FFAF' // Green for valid
+                } else if (isValid === false) {
+                  fillColor = '#FF6B6B' // Red for invalid
+                } else {
+                  fillColor = '#A7FFAF' // Default to green if no validation result
+                }
+              }
 
               return (
                 <Circle
@@ -126,7 +143,7 @@ function SSSignatureRequiredDisplay({
                   strokeWidth={2}
                   stroke={isRequired ? 'white' : '#4F4F4F'}
                   opacity={0.9}
-                  fill={isCollected ? '#A7FFAF' : 'transparent'}
+                  fill={fillColor}
                 />
               )
             })}
