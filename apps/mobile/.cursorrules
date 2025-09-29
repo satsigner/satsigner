@@ -67,6 +67,7 @@ Avoid creating unnecessary state with useState and overuse useEffect
 [Styling]
 Prefer using StyleSheet.create from react-native for complex styles, placing the styles at the bottom of the page component
 Use inline styles only for simple overrides of component defaults (e.g., style={{ flex: 1 }})
+1-2 styles may be ok inline, but only if they are not repeated multiple times in the same page component
 Do not use hex colors in JSX - use colors stored in variables defined in apps/mobile/styles/colors
 
 [Utils & Helper Functions]
