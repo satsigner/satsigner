@@ -1,6 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { ScrollView, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
 
@@ -26,15 +27,13 @@ export default function Receive() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const router = useRouter()
 
-  const account = useAccountsStore(function (state) {
-    return state.accounts.find(function (account) {
+  const account = useAccountsStore((state) => {
+    return state.accounts.find((account) => {
       return account.id === id
     })
   })
   const wallet = useGetAccountWallet(id!)
-  const setAddrLabel = useAccountsStore(function (state) {
-    return state.setAddrLabel
-  })
+  const setAddrLabel = useAccountsStore((state) => state.setAddrLabel)
 
   const [localAddress, setLocalAddress] = useState<string>()
   const [localAddressNumber, setLocalAddressNumber] = useState<number>()
@@ -56,12 +55,9 @@ export default function Receive() {
     cancelNFCScan
   } = useNFCEmitter()
 
-  const { fiatCurrency, satsToFiat } = usePriceStore(function (state) {
-    return {
-      fiatCurrency: state.fiatCurrency,
-      satsToFiat: state.satsToFiat
-    }
-  })
+  const [fiatCurrency, satsToFiat] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  )
 
   const saveLabelTimeoutRef = useRef<NodeJS.Timeout>()
 
