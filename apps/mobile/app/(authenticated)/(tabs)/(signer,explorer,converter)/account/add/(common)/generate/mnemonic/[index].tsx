@@ -4,7 +4,11 @@ import { useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getDescriptorObject, parseDescriptor } from '@/api/bdk'
+import {
+  getDescriptorObject,
+  getExtendedPublicKeyFromMnemonic,
+  parseDescriptor
+} from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSFingerprint from '@/components/SSFingerprint'
@@ -21,11 +25,7 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type GenerateMnemonicSearchParams } from '@/types/navigation/searchParams'
 import { getDescriptorsFromKey } from '@/utils/bip32'
-import {
-  getExtendedPublicKeyFromMnemonic,
-  getFingerprintFromMnemonic,
-  validateMnemonic
-} from '@/utils/bip39'
+import { getFingerprintFromMnemonic, validateMnemonic } from '@/utils/bip39'
 import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion
@@ -109,11 +109,13 @@ export default function GenerateMnemonic() {
         )
         derivationPath = `m/${rawDerivationPath}`
         // Generate extended public key first using the same method as import flow
-        const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
+        const extendedPublicKey = await getExtendedPublicKeyFromMnemonic(
           mnemonic.join(' '),
           passphrase || '',
           network as Network,
-          scriptVersion
+          scriptVersion,
+          undefined,
+          true // isMultisig
         )
 
         // Generate descriptors from the key data
