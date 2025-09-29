@@ -23,6 +23,10 @@ import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
+function formatAddressInGroups(address: string): string {
+  return (address.match(/(.{1,4})/g) || []).join(' ')
+}
+
 export default function Receive() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const router = useRouter()
@@ -260,18 +264,18 @@ export default function Receive() {
         }}
       />
       <ScrollView>
-        <SSVStack itemsCenter gap="xl">
+        <SSVStack itemsCenter gap="lg">
           <SSVStack>
             <SSVStack gap="none" itemsCenter>
               <SSText color="muted" uppercase>
-                {t('receive.address')} #
+                {t('receive.address')}
               </SSText>
               {isLoading ? (
                 <SSText size="3xl" color="muted">
                   ...
                 </SSText>
               ) : (
-                <SSText size="3xl">{localAddressNumber}</SSText>
+                <SSText size="4xl">{localAddressNumber}</SSText>
               )}
             </SSVStack>
             <SSVStack gap="none" itemsCenter>
@@ -328,11 +332,16 @@ export default function Receive() {
                   style={{
                     fontFamily: 'monospace',
                     color: '#fff',
-                    textAlign: 'center',
                     padding: 8,
                     backgroundColor: '#333',
                     borderRadius: 4,
-                    minWidth: 280
+                    minWidth: 280,
+                    minHeight: 80,
+                    fontSize: 14,
+                    textAlign: 'left',
+                    paddingBottom: 32,
+                    lineHeight: 18,
+                    letterSpacing: 0.5
                   }}
                 />
                 <SSHStack gap="sm" justifyBetween>
@@ -399,8 +408,12 @@ export default function Receive() {
                 style={{
                   height: 'auto',
                   textAlignVertical: 'top',
-                  padding: 10,
-                  fontSize: 14
+                  padding: 16,
+                  paddingBottom: 32,
+                  fontSize: 14,
+                  lineHeight: 22,
+                  letterSpacing: 0.5,
+                  textAlign: 'left'
                 }}
               />
               <SSButton
@@ -419,18 +432,23 @@ export default function Receive() {
                 localAddress && (
                   <SSVStack itemsCenter gap="xs">
                     <TextInput
-                      value={localAddress}
+                      value={formatAddressInGroups(localAddress)}
                       editable={false}
                       selectTextOnFocus
                       multiline
                       style={{
                         fontFamily: 'monospace',
                         color: '#fff',
-                        textAlign: 'center',
-                        padding: 8,
+
+                        padding: 16,
+                        paddingBottom: 22,
                         backgroundColor: '#333',
                         borderRadius: 4,
-                        minWidth: 280
+                        minWidth: 280,
+                        fontSize: 16,
+                        lineHeight: 30,
+                        letterSpacing: 1.5,
+                        textAlign: 'left'
                       }}
                     />
                     <SSHStack>
