@@ -79,6 +79,10 @@ Do not duplicate logic used to parse or create descriptors - use existing functi
 Do not introduce new dependencies if existing ones already do the job
 Avoid adding interface and types for arguments if they are used only in helper functions - declare argument types directly in function signature
 
+[Dependencies]
+Should not add new dependencies if not needed (such as, we already using an existing lib with the same functionality)
+New dependencies should be added to the list of dependencies in our documentation
+
 [Storage]
 Use storage/encrypted to store things in keychain securely
 
