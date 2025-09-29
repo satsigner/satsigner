@@ -573,7 +573,7 @@ async function getDescriptorObject(
     kind,
     passphrase,
     network
-  ).replace(/\/[01]\/\*\//, '') // remove /0/* and /1/*
+  ).replace(/\/[01]\/\*/, '') // remove /0/* and /1/*
   const descriptorObject = await new Descriptor().create(
     descriptorString,
     network
