@@ -540,5 +540,5 @@ export function decompressMessage(compressedString: string): unknown {
     cborBytes.byteOffset,
     cborBytes.byteOffset + cborBytes.byteLength
   )
-  return CBOR.decode(new Uint8Array(bufferSlice))
+  return CBOR.decode(bufferSlice as unknown as Uint8Array)
 }
