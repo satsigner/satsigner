@@ -61,9 +61,22 @@ Move business logic outside of render functions
 
 [Pages]
 Inside the app folder is where our pages are.
-Prioritize using inline styles for overriding components defaults before creating const styles = StyleSheet.create
 Organize the code inside the page - this is very important - first declare hooks, then use zustand stores, then useState and useMemo/useCallback then useEffects/useFocusEffect/function declarations - finally the jsx
 Avoid creating unnecessary state with useState and overuse useEffect
+
+[Styling]
+Prefer using StyleSheet.create from react-native for complex styles, placing the styles at the bottom of the page component
+Use inline styles only for simple overrides of component defaults (e.g., style={{ flex: 1 }})
+Do not use hex colors in JSX - use colors stored in variables defined in apps/mobile/styles/colors
+
+[Utils & Helper Functions]
+Do not create extra files in utils/ if the functions are only being used by 1 page component
+Do not create duplicated helper functions - first check if there is an existing utility function that does the wanted logic
+Avoid adding a helper function which is used only once and used inside another helper function
+Do not duplicate logic used to convert between network types (our app, BDK, Bitcoinjs-lib, bip32 lib) - use existing conversion logic
+Do not duplicate logic used to parse or create descriptors - use existing functions for that
+Do not introduce new dependencies if existing ones already do the job
+Avoid adding interface and types for arguments if they are used only in helper functions - declare argument types directly in function signature
 
 [Storage]
 Use storage/encrypted to store things in keychain securely
