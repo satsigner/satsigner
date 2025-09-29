@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { ScrollView, TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
 
-import { SSIconGreen } from '@/components/icons'
+import { SSIconCircleX, SSIconGreen } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import { useKeySourceLabel } from '@/hooks/useKeySourceLabel'
@@ -42,6 +42,7 @@ type SSSignatureDropdownProps = {
   onSignWithLocalKey: () => void
   onSignWithSeedQR: () => void
   onSignWithSeedWords: () => void
+  validationResult?: boolean
 }
 
 function SSSignatureDropdown({
@@ -64,7 +65,8 @@ function SSSignatureDropdown({
   onNFCScan,
   onSignWithLocalKey,
   onSignWithSeedQR,
-  onSignWithSeedWords
+  onSignWithSeedWords,
+  validationResult
 }: SSSignatureDropdownProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isPsbtValid, setIsPsbtValid] = useState<boolean | null>(null)
@@ -180,6 +182,21 @@ function SSSignatureDropdown({
     }
   }, [keyDetails, decryptedKey])
 
+  // Helper function to get the inner fingerprint from secret
+  function getInnerFingerprint(): string | undefined {
+    // First try to get from decryptedKey (for signing context)
+    if (decryptedKey && typeof decryptedKey.secret === 'object') {
+      return decryptedKey.secret.fingerprint
+    }
+
+    // Fallback to keyDetails.secret if it's an object
+    if (typeof keyDetails?.secret === 'object') {
+      return keyDetails.secret.fingerprint
+    }
+
+    return undefined
+  }
+
   // Use the extracted public key from state, or fall back to direct access
   const extendedPublicKey =
     extractedPublicKey ||
@@ -227,7 +244,12 @@ function SSSignatureDropdown({
         // Use cosigner-specific validation for multisig accounts
         const isValid =
           account.policyType === 'multisig'
-            ? validateSignedPSBTForCosigner(psbtToValidate, account, index)
+            ? validateSignedPSBTForCosigner(
+                psbtToValidate,
+                account,
+                index,
+                decryptedKey
+              )
             : validateSignedPSBT(psbtToValidate, account)
         setIsPsbtValid(isValid)
       } catch (_error) {
@@ -236,7 +258,7 @@ function SSSignatureDropdown({
     } else {
       setIsPsbtValid(null)
     }
-  }, [signedPsbt, account, index])
+  }, [signedPsbt, account, index, decryptedKey])
 
   return (
     <View
@@ -262,7 +284,13 @@ function SSSignatureDropdown({
         <SSHStack justifyBetween>
           <SSHStack style={{ alignItems: 'center' }} gap="sm">
             {isSignatureCompleted ? (
-              <SSIconGreen width={24} height={24} />
+              validationResult === true ? (
+                <SSIconGreen width={24} height={24} />
+              ) : validationResult === false ? (
+                <SSIconCircleX width={24} height={24} stroke="#FF6B6B" />
+              ) : (
+                <SSIconGreen width={24} height={24} />
+              )
             ) : (
               <View
                 style={{
@@ -284,8 +312,8 @@ function SSSignatureDropdown({
             </SSVStack>
           </SSHStack>
           <SSVStack gap="none" style={{ alignItems: 'flex-end' }}>
-            <SSText color={keyDetails?.fingerprint ? 'white' : 'muted'}>
-              {keyDetails?.fingerprint || t('account.fingerprint')}
+            <SSText color={getInnerFingerprint() ? 'white' : 'muted'}>
+              {getInnerFingerprint() || t('account.fingerprint')}
             </SSText>
             <SSText
               color={extendedPublicKey ? 'white' : 'muted'}

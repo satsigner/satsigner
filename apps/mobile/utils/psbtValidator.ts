@@ -1,9 +1,10 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
+import { toast } from 'sonner-native'
 
 import { type Account } from '@/types/models/Account'
 
 /**
- * Simple PSBT validator that checks basic PSBT structure and signature validation
+ * Main PSBT validator that checks basic PSBT structure and signature validation
  * @param psbtBase64 - Base64 encoded PSBT
  * @param account - Account with keys for validation
  * @returns true if validation passes, false otherwise
@@ -13,321 +14,21 @@ export function validateSignedPSBT(
   account: Account
 ): boolean {
   try {
-    // Parse PSBT
     const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
 
-    // Basic PSBT structure validation
-    if (!psbt.data.inputs || psbt.data.inputs.length === 0) {
+    // Early returns for basic structure validation
+    if (!hasValidStructure(psbt)) {
       return false
     }
 
-    if (!psbt.data.outputs || psbt.data.outputs.length === 0) {
-      return false
-    }
-
-    // Validate inputs and outputs
     if (!validateInputsAndOutputs(psbt)) {
       return false
     }
 
-    // Check if this is a multisig account
-    if (account.policyType === 'multisig') {
-      const result = validateMultisigPSBT(psbt)
-      return result
-    } else {
-      // For single-sig accounts, just check basic structure
-      const result = validateSinglesigPSBT(psbt)
-      return result
-    }
-  } catch (_error) {
-    return false
-  }
-}
-
-/**
- * Validate multisig PSBT structure and signatures
- */
-function validateMultisigPSBT(psbt: bitcoinjs.Psbt): boolean {
-  try {
-    // Check each input for proper multisig structure
-    for (let i = 0; i < psbt.data.inputs.length; i++) {
-      const input = psbt.data.inputs[i]
-
-      // Check if input has witness script (required for multisig)
-      if (!input.witnessScript) {
-        return false
-      }
-
-      // Check if input has UTXO data
-      if (!input.witnessUtxo && !input.nonWitnessUtxo) {
-        return false
-      }
-
-      // Parse witness script to get threshold and public keys
-      let threshold = 0
-      let totalKeys = 0
-
-      try {
-        const script = bitcoinjs.script.decompile(input.witnessScript)
-        if (script && script.length >= 3) {
-          const op = script[0]
-          if (typeof op === 'number' && op >= 81 && op <= 96) {
-            threshold = op - 80 // Convert OP_M to actual threshold (OP_2 = 82 -> threshold = 2)
-            // Count only the Buffer elements (public keys) in the script
-            // Script format: [OP_M, pubkey1, pubkey2, ..., pubkeyN, OP_N, OP_CHECKMULTISIG]
-            const publicKeyCount = script.filter(
-              (item) =>
-                item &&
-                typeof item === 'object' &&
-                (Buffer.isBuffer(item) || (item as any).type === 'Buffer')
-            ).length
-            totalKeys = publicKeyCount
-          } else {
-            // Invalid op code
-          }
-        } else {
-          // Script too short
-        }
-      } catch (_error) {
-        return false
-      }
-
-      // Validate threshold and key count
-      if (threshold === 0 || totalKeys === 0 || threshold > totalKeys) {
-        return false
-      }
-
-      // Count signatures for this input
-      let signatureCount = 0
-      if (input.partialSig) {
-        signatureCount = Array.isArray(input.partialSig)
-          ? input.partialSig.length
-          : 1
-      } else {
-        // No partial signatures
-      }
-
-      // For multisig, we should have at least some signatures
-      if (signatureCount === 0) {
-        return false
-      }
-
-      // Validate that we don't have more signatures than total keys
-      if (signatureCount > totalKeys) {
-        return false
-      }
-
-      // Check if signatures are valid (basic format check)
-      if (input.partialSig) {
-        const sigs = Array.isArray(input.partialSig)
-          ? input.partialSig
-          : [input.partialSig]
-        for (const sig of sigs) {
-          if (!sig.pubkey || !sig.signature) {
-            return false
-          }
-          // Basic signature length check (64-72 bytes for DER encoding)
-          if (sig.signature.length < 64 || sig.signature.length > 72) {
-            return false
-          }
-        }
-      }
-    }
-
-    return true
-  } catch (_error) {
-    return false
-  }
-}
-
-/**
- * Validate single-sig PSBT structure
- */
-function validateSinglesigPSBT(psbt: bitcoinjs.Psbt): boolean {
-  try {
-    // Check each input for proper single-sig structure
-    for (let i = 0; i < psbt.data.inputs.length; i++) {
-      const input = psbt.data.inputs[i]
-
-      // Check if input has UTXO data
-      if (!input.witnessUtxo && !input.nonWitnessUtxo) {
-        return false
-      }
-
-      // Count signatures for this input
-      let signatureCount = 0
-      if (input.partialSig) {
-        signatureCount = Array.isArray(input.partialSig)
-          ? input.partialSig.length
-          : 1
-      }
-
-      // For single-sig, we should have exactly 1 signature
-      if (signatureCount !== 1) {
-        return false
-      }
-
-      // Validate signature format
-      if (input.partialSig) {
-        const sig = Array.isArray(input.partialSig)
-          ? input.partialSig[0]
-          : input.partialSig
-        if (!sig.pubkey || !sig.signature) {
-          return false
-        }
-        // Basic signature length check (64-72 bytes for DER encoding)
-        if (sig.signature.length < 64 || sig.signature.length > 72) {
-          return false
-        }
-      }
-    }
-
-    return true
-  } catch (_error) {
-    return false
-  }
-}
-
-/**
- * Validate inputs and outputs structure
- */
-function validateInputsAndOutputs(psbt: bitcoinjs.Psbt): boolean {
-  try {
-    // Validate inputs
-    for (let i = 0; i < psbt.data.inputs.length; i++) {
-      const input = psbt.data.inputs[i]
-
-      // Check for required fields
-      if (!input.witnessUtxo && !input.nonWitnessUtxo) {
-        return false
-      }
-
-      // Validate UTXO structure
-      if (input.witnessUtxo) {
-        if (
-          !input.witnessUtxo.script ||
-          input.witnessUtxo.value === undefined
-        ) {
-          return false
-        }
-        if (input.witnessUtxo.value <= 0) {
-          return false
-        }
-      }
-
-      if (input.nonWitnessUtxo) {
-        // nonWitnessUtxo is a Buffer containing the full transaction
-        // We can't easily validate individual fields without parsing the transaction
-        if (!input.nonWitnessUtxo || input.nonWitnessUtxo.length === 0) {
-          return false
-        }
-      }
-    }
-
-    // Validate outputs
-    for (let i = 0; i < psbt.data.outputs.length; i++) {
-      const output = psbt.data.outputs[i]
-
-      // Check for required fields - PsbtOutput doesn't have script property
-      // Output validation is handled by the PSBT structure itself
-      if (!output) {
-        return false
-      }
-    }
-
-    return true
-  } catch (_error) {
-    return false
-  }
-}
-
-/**
- * Validate signature threshold for multisig
- */
-export function validateSignatureThreshold(
-  psbt: bitcoinjs.Psbt,
-  requiredSignatures: number
-): boolean {
-  try {
-    for (let i = 0; i < psbt.data.inputs.length; i++) {
-      const input = psbt.data.inputs[i]
-
-      if (!input.witnessScript) {
-        continue // Skip non-multisig inputs
-      }
-
-      // Parse witness script to get threshold
-      let threshold = 0
-      try {
-        const script = bitcoinjs.script.decompile(input.witnessScript)
-        if (script && script.length >= 3) {
-          const op = script[0]
-          if (typeof op === 'number' && op >= 81 && op <= 96) {
-            threshold = op - 80 // Convert OP_M to actual threshold (OP_2 = 82 -> threshold = 2)
-          }
-        }
-      } catch (_error) {
-        return false
-      }
-
-      // Count current signatures
-      let signatureCount = 0
-      if (input.partialSig) {
-        signatureCount = Array.isArray(input.partialSig)
-          ? input.partialSig.length
-          : 1
-      }
-
-      // Check if we have enough signatures
-      if (signatureCount < Math.min(threshold, requiredSignatures)) {
-        return false
-      }
-    }
-
-    return true
-  } catch {
-    return false
-  }
-}
-
-/**
- * Validate that a signed PSBT contains signatures from the specific cosigner's public key
- * @param psbtBase64 - Base64 encoded PSBT
- * @param cosignerPublicKey - The public key of the specific cosigner (hex string)
- * @returns true if the PSBT contains signatures from the specified cosigner
- */
-export function validateCosignerSignature(
-  psbtBase64: string,
-  cosignerPublicKey: string
-): boolean {
-  try {
-    // Parse PSBT
-    const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
-
-    // Check if PSBT has signatures from the specific cosigner
-    let hasCosignerSignature = false
-
-    // Check each input for signatures from the specific cosigner
-    for (let i = 0; i < psbt.data.inputs.length; i++) {
-      const input = psbt.data.inputs[i]
-
-      if (input.partialSig && input.partialSig.length > 0) {
-        // Check if any signature is from the specific cosigner
-        const signatures = Array.isArray(input.partialSig)
-          ? input.partialSig
-          : [input.partialSig]
-
-        for (const sig of signatures) {
-          if (sig.pubkey && sig.pubkey.toString('hex') === cosignerPublicKey) {
-            hasCosignerSignature = true
-            break
-          }
-        }
-      }
-    }
-
-    // Return true if we have signatures from the specific cosigner
-    return hasCosignerSignature
+    // Route to appropriate validation based on account type
+    return account.policyType === 'multisig'
+      ? validateMultisigPSBT(psbt)
+      : validateSinglesigPSBT(psbt)
   } catch {
     return false
   }
@@ -338,103 +39,404 @@ export function validateCosignerSignature(
  * @param psbtBase64 - Base64 encoded PSBT
  * @param account - Account with keys for validation
  * @param cosignerIndex - Index of the specific cosigner to validate for
+ * @param decryptedKey - Optional decrypted key object for the cosigner
  * @returns true if validation passes for the specific cosigner
  */
 export function validateSignedPSBTForCosigner(
   psbtBase64: string,
   account: Account,
-  cosignerIndex: number
+  cosignerIndex: number,
+  decryptedKey?: any
 ): boolean {
   try {
-    // First do basic PSBT validation
+    // Early return if basic validation fails
     if (!validateSignedPSBT(psbtBase64, account)) {
       return false
     }
 
-    // For multisig accounts, check if the signature belongs to the specific cosigner
-    if (
-      account.policyType === 'multisig' &&
-      account.keys &&
-      account.keys[cosignerIndex]
-    ) {
-      const cosignerKey = account.keys[cosignerIndex]
-
-      // Parse PSBT to get BIP32 derivations
-      const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
-
-      // Extract the public key from the cosigner's key details
-      let cosignerPublicKey = ''
-
-      if (
-        typeof cosignerKey.secret === 'object' &&
-        cosignerKey.secret.extendedPublicKey
-      ) {
-        // For extended public keys, we need to find the specific derivation used in the PSBT
-        // Look for BIP32 derivations that match this cosigner's fingerprint
-        const cosignerFingerprint = cosignerKey.fingerprint
-
-        if (cosignerFingerprint) {
-          // Find derivations in PSBT that match this cosigner's fingerprint
-          for (let i = 0; i < psbt.data.inputs.length; i++) {
-            const input = psbt.data.inputs[i]
-
-            if (input.bip32Derivation) {
-              for (const derivation of input.bip32Derivation) {
-                const derivationFingerprint =
-                  derivation.masterFingerprint.toString('hex')
-
-                if (derivationFingerprint === cosignerFingerprint) {
-                  // Found a derivation for this cosigner, use its public key
-                  cosignerPublicKey = derivation.pubkey.toString('hex')
-                  break
-                }
-              }
-            }
-
-            if (cosignerPublicKey) break
-          }
-        }
-
-        // Fallback: if we couldn't find the specific derivation, use the extended public key
-        if (!cosignerPublicKey) {
-          cosignerPublicKey = cosignerKey.secret.extendedPublicKey
-        }
-      } else if (cosignerKey.fingerprint) {
-        // If we only have fingerprint, try to find the public key from PSBT derivations
-        const cosignerFingerprint = cosignerKey.fingerprint
-
-        for (let i = 0; i < psbt.data.inputs.length; i++) {
-          const input = psbt.data.inputs[i]
-
-          if (input.bip32Derivation) {
-            for (const derivation of input.bip32Derivation) {
-              const derivationFingerprint =
-                derivation.masterFingerprint.toString('hex')
-
-              if (derivationFingerprint === cosignerFingerprint) {
-                cosignerPublicKey = derivation.pubkey.toString('hex')
-                break
-              }
-            }
-          }
-
-          if (cosignerPublicKey) break
-        }
-      }
-
-      // If we have a public key, validate that the PSBT contains signatures from this cosigner
-      if (cosignerPublicKey) {
-        return validateCosignerSignature(psbtBase64, cosignerPublicKey)
-      } else {
-        // If we can't determine the public key, we can't validate cosigner-specific signatures
-        // In this case, we'll fall back to basic validation but show a warning
-        return true
-      }
+    // Early return for non-multisig accounts
+    if (account.policyType !== 'multisig') {
+      return true
     }
 
-    // For non-multisig or if we can't determine the public key, use basic validation
-    return true
+    // Early return if no keys or invalid cosigner index
+    if (!account.keys || !account.keys[cosignerIndex]) {
+      return true
+    }
+
+    const selectedAccountKey = account.keys[cosignerIndex]
+
+    const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
+
+    // Use decrypted key if available, otherwise fall back to account key
+    const keyToUse = decryptedKey || selectedAccountKey
+
+    return validateCosignerSignature(psbt, keyToUse)
   } catch {
     return false
   }
+}
+
+/**
+ * Check if PSBT has valid basic structure
+ */
+function hasValidStructure(psbt: bitcoinjs.Psbt): boolean {
+  return !!(
+    psbt.data.inputs &&
+    psbt.data.inputs.length > 0 &&
+    psbt.data.outputs &&
+    psbt.data.outputs.length > 0
+  )
+}
+
+/**
+ * Validate multisig PSBT structure and signatures
+ */
+function validateMultisigPSBT(psbt: bitcoinjs.Psbt): boolean {
+  try {
+    return psbt.data.inputs.every(validateMultisigInput)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Validate single-sig PSBT structure
+ */
+function validateSinglesigPSBT(psbt: bitcoinjs.Psbt): boolean {
+  try {
+    return psbt.data.inputs.every(validateSinglesigInput)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Validate a single multisig input
+ */
+function validateMultisigInput(input: any): boolean {
+  // Early returns for required fields
+  if (!input.witnessScript) {
+    return false
+  }
+
+  if (!input.witnessUtxo && !input.nonWitnessUtxo) {
+    return false
+  }
+
+  const scriptInfo = parseWitnessScript(input.witnessScript)
+  if (!scriptInfo) {
+    return false
+  }
+
+  if (!isValidScriptInfo(scriptInfo)) {
+    return false
+  }
+
+  const signatureCount = countSignatures(input.partialSig)
+  if (!isValidMultisigSignatureCount(signatureCount, scriptInfo.totalKeys)) {
+    return false
+  }
+
+  return validateSignatureFormat(input.partialSig)
+}
+
+/**
+ * Validate a single single-sig input
+ */
+function validateSinglesigInput(input: any): boolean {
+  // Early returns for required fields
+  if (!input.witnessUtxo && !input.nonWitnessUtxo) {
+    return false
+  }
+
+  if (input.witnessScript) {
+    return false
+  }
+
+  const signatureCount = countSignatures(input.partialSig)
+  if (signatureCount !== 1) {
+    return false
+  }
+
+  return validateSignatureFormat(input.partialSig)
+}
+
+/**
+ * Validate inputs and outputs structure
+ */
+function validateInputsAndOutputs(psbt: bitcoinjs.Psbt): boolean {
+  try {
+    const inputsValid = psbt.data.inputs.every(validateInput)
+    const outputsValid = psbt.data.outputs.every(validateOutput)
+    return inputsValid && outputsValid
+  } catch {
+    return false
+  }
+}
+
+function validateInput(input: any): boolean {
+  // Early return if no UTXO data
+  if (!input.witnessUtxo && !input.nonWitnessUtxo) {
+    return false
+  }
+
+  // Validate witness UTXO if present
+  if (input.witnessUtxo && !isValidWitnessUtxo(input.witnessUtxo)) {
+    return false
+  }
+
+  // Validate non-witness UTXO if present
+  if (input.nonWitnessUtxo && !isValidNonWitnessUtxo(input.nonWitnessUtxo)) {
+    return false
+  }
+
+  return true
+}
+
+function validateOutput(output: any): boolean {
+  return !!output
+}
+
+function isValidWitnessUtxo(witnessUtxo: any): boolean {
+  return !!(
+    witnessUtxo.script &&
+    witnessUtxo.value !== undefined &&
+    witnessUtxo.value > 0
+  )
+}
+
+function isValidNonWitnessUtxo(nonWitnessUtxo: any): boolean {
+  return !!(nonWitnessUtxo && nonWitnessUtxo.length > 0)
+}
+
+/**
+ * Parse witness script to extract threshold and public key information
+ */
+function parseWitnessScript(
+  witnessScript: Buffer
+): { threshold: number; totalKeys: number } | null {
+  try {
+    const script = bitcoinjs.script.decompile(witnessScript)
+    if (!script || script.length < 3) {
+      return null
+    }
+
+    const op = script[0]
+    if (!isValidOpCode(op)) {
+      return null
+    }
+
+    const threshold = (op as number) - 80
+    const totalKeys = countPublicKeysInScript(script)
+
+    return { threshold, totalKeys }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Check if op code is valid for multisig
+ */
+function isValidOpCode(op: any): boolean {
+  return typeof op === 'number' && op >= 81 && op <= 96
+}
+
+function countPublicKeysInScript(script: any[]): number {
+  return script.filter(
+    (item) =>
+      item &&
+      typeof item === 'object' &&
+      (Buffer.isBuffer(item) || (item as any).type === 'Buffer')
+  ).length
+}
+
+function isValidScriptInfo(scriptInfo: {
+  threshold: number
+  totalKeys: number
+}): boolean {
+  return !!(
+    scriptInfo.threshold > 0 &&
+    scriptInfo.totalKeys > 0 &&
+    scriptInfo.threshold <= scriptInfo.totalKeys
+  )
+}
+
+/**
+ * Check if multisig signature count is valid
+ */
+function isValidMultisigSignatureCount(
+  signatureCount: number,
+  totalKeys: number
+): boolean {
+  return signatureCount > 0 && signatureCount <= totalKeys
+}
+
+function countSignatures(partialSig: any[] | any): number {
+  if (!partialSig) {
+    return 0
+  }
+  return Array.isArray(partialSig) ? partialSig.length : 1
+}
+
+function validateSignatureFormat(partialSig: any[] | any): boolean {
+  if (!partialSig) {
+    return true
+  }
+
+  const sigs = Array.isArray(partialSig) ? partialSig : [partialSig]
+
+  return sigs.every(isValidSignature)
+}
+
+/**
+ * Check if a single signature is valid
+ */
+function isValidSignature(sig: any): boolean {
+  if (!sig.pubkey || !sig.signature) {
+    return false
+  }
+
+  const sigLength = sig.signature.length
+  return sigLength >= 64 && sigLength <= 72
+}
+
+/**
+ * Validate that a signed PSBT contains signatures from the specific cosigner
+ */
+function validateCosignerSignature(
+  psbt: bitcoinjs.Psbt,
+  cosignerKey: any
+): boolean {
+  try {
+    // Get the cosigner's public key from the account
+    const cosignerPublicKey = extractCosignerPublicKey(psbt, cosignerKey)
+
+    if (!cosignerPublicKey) {
+      return false
+    }
+
+    // Check if the PSBT contains signatures from this specific cosigner's public key
+    const hasSignature = checkSignatureForPublicKey(psbt, cosignerPublicKey)
+
+    return hasSignature
+  } catch {
+    toast.error('Error validating cosigner signature')
+    return false
+  }
+}
+
+/**
+ * Extract cosigner public key from key details and PSBT derivations
+ */
+function extractCosignerPublicKey(
+  psbt: bitcoinjs.Psbt,
+  cosignerKey: any
+): string {
+  // Handle encrypted keys - if secret is a string, we can't decrypt it here
+  // so we need to rely on BIP32 derivations in the PSBT
+  if (typeof cosignerKey.secret === 'string') {
+    return extractPublicKeyFromEncryptedKey(psbt, cosignerKey)
+  }
+
+  // Handle decrypted keys - ALWAYS use the inner fingerprint from the secret
+  if (typeof cosignerKey.secret === 'object') {
+    return extractPublicKeyFromDecryptedKey(psbt, cosignerKey)
+  }
+
+  return ''
+}
+
+function extractPublicKeyFromEncryptedKey(
+  psbt: bitcoinjs.Psbt,
+  cosignerKey: any
+): string {
+  const cosignerFingerprint = cosignerKey.fingerprint
+  if (!cosignerFingerprint) {
+    return ''
+  }
+
+  return findDerivedPublicKey(psbt, cosignerFingerprint)
+}
+
+function extractPublicKeyFromDecryptedKey(
+  psbt: bitcoinjs.Psbt,
+  cosignerKey: any
+): string {
+  const innerFingerprint = cosignerKey.secret.fingerprint
+  if (!innerFingerprint) {
+    return ''
+  }
+
+  return findDerivedPublicKey(psbt, innerFingerprint)
+}
+
+/**
+ * Find public key from BIP32 derivations matching fingerprint
+ */
+function findDerivedPublicKey(
+  psbt: bitcoinjs.Psbt,
+  fingerprint: string
+): string {
+  for (let inputIndex = 0; inputIndex < psbt.data.inputs.length; inputIndex++) {
+    const input = psbt.data.inputs[inputIndex]
+    const publicKey = findPublicKeyInInput(input, fingerprint)
+    if (publicKey) {
+      return publicKey
+    }
+  }
+
+  return ''
+}
+
+function findPublicKeyInInput(input: any, fingerprint: string): string {
+  if (!input.bip32Derivation) {
+    return ''
+  }
+
+  for (
+    let derivIndex = 0;
+    derivIndex < input.bip32Derivation.length;
+    derivIndex++
+  ) {
+    const derivation = input.bip32Derivation[derivIndex]
+    const derivationFingerprint = derivation.masterFingerprint.toString('hex')
+
+    if (derivationFingerprint === fingerprint) {
+      return derivation.pubkey.toString('hex')
+    }
+  }
+
+  return ''
+}
+
+function checkSignatureForPublicKey(
+  psbt: bitcoinjs.Psbt,
+  publicKey: string
+): boolean {
+  return psbt.data.inputs.some((input) =>
+    hasSignatureFromPublicKey(input, publicKey)
+  )
+}
+
+/**
+ * Check if input has signature from specific public key
+ */
+function hasSignatureFromPublicKey(input: any, publicKey: string): boolean {
+  if (!input.partialSig || input.partialSig.length === 0) {
+    return false
+  }
+
+  const signatures = Array.isArray(input.partialSig)
+    ? input.partialSig
+    : [input.partialSig]
+
+  return signatures.some((sig: any) => {
+    if (!sig.pubkey) {
+      return false
+    }
+    const sigPublicKey = sig.pubkey.toString('hex')
+    return sigPublicKey === publicKey
+  })
 }

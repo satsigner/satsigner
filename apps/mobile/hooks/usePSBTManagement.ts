@@ -198,7 +198,6 @@ export function usePSBTManagement({
   const handleSignWithLocalKey = useCallback(
     async (index: number) => {
       try {
-        // Get the cosigner's decrypted key
         const cosignerKey = decryptedKeys[index]
         if (!cosignerKey?.secret) {
           toast.error('No decrypted key found for this cosigner')
