@@ -27,13 +27,13 @@ export default function Receive() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const router = useRouter()
 
-  const account = useAccountsStore((state) => {
-    return state.accounts.find((account) => {
-      return account.id === id
-    })
-  })
+  const [account, setAddrLabel] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts.find((account) => account.id === id),
+      state.setAddrLabel
+    ])
+  )
   const wallet = useGetAccountWallet(id!)
-  const setAddrLabel = useAccountsStore((state) => state.setAddrLabel)
 
   const [localAddress, setLocalAddress] = useState<string>()
   const [localAddressNumber, setLocalAddressNumber] = useState<number>()
