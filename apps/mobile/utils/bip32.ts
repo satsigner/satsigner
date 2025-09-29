@@ -3,6 +3,7 @@ import { KeychainKind, Network as BDKNetwork } from 'bdk-rn/lib/lib/enums'
 import { BIP32Factory, type BIP32Interface } from 'bip32'
 
 import type { ScriptVersionType } from '@/types/models/Account'
+import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion
@@ -59,23 +60,22 @@ const BIP32Networks: Record<BDKNetwork, BIP32Interface['network']> = {
 export function getStandardPath(
   scriptVersion: ScriptVersionType,
   network: BDKNetwork,
-  account = 0
+  isMultiSig = false
 ) {
-  const purpose = getScriptVersionPurpose(scriptVersion)
-  const coinType = network === BDKNetwork.Bitcoin ? 0 : 1
-  const path = `${purpose}'/${coinType}'/${account}'`
-  return path
+  const appNetwork = network as AppNetwork
+  return isMultiSig
+    ? getMultisigDerivationPathFromScriptVersion(scriptVersion, appNetwork)
+    : getDerivationPathFromScriptVersion(scriptVersion, appNetwork)
 }
 
 export function getDescriptorFromSeed(
   seed: Buffer,
   scriptVersion: ScriptVersionType,
   kind: KeychainKind,
-  network: BDKNetwork,
-  account = 0
+  network: BDKNetwork
 ): string {
   const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
-  const path = getStandardPath(scriptVersion, network, account)
+  const path = getStandardPath(scriptVersion, network)
   const derivedKey = masterKey.derivePath(`m/${path}`)
   const pubkey = Buffer.from(derivedKey.publicKey).toString('hex')
   const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
@@ -157,8 +157,8 @@ export function getExtendedPublicKeyFromSeed(
 ) {
   const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
   // this assumes default account=0 and external address kind=0
-  const path = getStandardPath(scriptVersion, network, 0)
-  const derivedKey = masterKey.derivePath(path)
+  const path = getStandardPath(scriptVersion, network)
+  const derivedKey = masterKey.derivePath(path).neutered()
   return derivedKey.toBase58()
 }
 
@@ -176,10 +176,7 @@ export function getDescriptorsFromKey(
   network: BDKNetwork,
   isMultisig = false
 ) {
-  const appNetwork = network === BDKNetwork.Regtest ? 'testnet' : network
-  const derivationPath = isMultisig
-    ? getMultisigDerivationPathFromScriptVersion(scriptVersion, appNetwork)
-    : getDerivationPathFromScriptVersion(scriptVersion, appNetwork)
+  const derivationPath = getStandardPath(scriptVersion, network, isMultisig)
   const keyPart = `[${fingerprint}/${derivationPath}]${extendedPublicKey}`
 
   let externalDescriptor = ''

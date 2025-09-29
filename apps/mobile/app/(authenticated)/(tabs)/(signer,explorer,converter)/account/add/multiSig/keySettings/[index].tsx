@@ -28,6 +28,7 @@ export default function MultiSigKeySettings() {
     keyCount,
     setEntropy,
     setMnemonicWordCount,
+    setMnemonicWordList,
     setMnemonic,
     setFingerprint,
     setCreationType,
@@ -38,6 +39,7 @@ export default function MultiSigKeySettings() {
       state.keyCount,
       state.setEntropy,
       state.setMnemonicWordCount,
+      state.setMnemonicWordList,
       state.setMnemonic,
       state.setFingerprint,
       state.setCreationType,
@@ -61,6 +63,7 @@ export default function MultiSigKeySettings() {
     setCreationType(type)
     setEntropy(localEntropyType)
     setMnemonicWordCount(localMnemonicWordCount)
+    setMnemonicWordList('english')
     setNetwork(network)
 
     if (type === 'generateMnemonic') {

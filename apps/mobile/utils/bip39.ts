@@ -77,11 +77,10 @@ export function getDescriptorFromMnemonic(
   scriptVersion: ScriptVersionType,
   kind: KeychainKind,
   passphrase: string | undefined,
-  network: Network,
-  account = 0
+  network: Network
 ): string {
   const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
-  return getDescriptorFromSeed(seed, scriptVersion, kind, network, account)
+  return getDescriptorFromSeed(seed, scriptVersion, kind, network)
 }
 
 export function getFingerprintFromMnemonic(
