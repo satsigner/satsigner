@@ -25,6 +25,14 @@ Use useShallow with array selectors, not object destructuring:
 Use useShallow when selecting multiple pieces of state from the same store
 For single state selection, use direct selector: const something = useStore((state) => state.something)
 
+Example of multiple actions from the same store:
+
+```typescript
+const [action1, action2, action3] = useStore(
+  useShallow((state) => [state.action1, state.action2, state.action3])
+)
+```
+
 [React useEffect Guidelines]
 Before using useEffect, read: [You Might Not Need an Effect](https://react.dev/learn/you-might-not-need-an-effect)
 
