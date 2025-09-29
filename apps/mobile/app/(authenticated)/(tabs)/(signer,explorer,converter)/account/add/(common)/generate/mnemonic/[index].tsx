@@ -37,6 +37,7 @@ export default function GenerateMnemonic() {
   const [
     name,
     mnemonic,
+    mnemonicList,
     mnemonicWordCount,
     mnemonicWordList,
     fingerprint,
@@ -47,7 +48,6 @@ export default function GenerateMnemonic() {
     setFingerprint,
     setKey,
     setKeyDerivationPath,
-    _updateKeySecret,
     setExtendedPublicKey,
     setExternalDescriptor,
     setInternalDescriptor
@@ -55,6 +55,7 @@ export default function GenerateMnemonic() {
     useShallow((state) => [
       state.name,
       state.mnemonic,
+      state.mnemonic.split(' '),
       state.mnemonicWordCount,
       state.mnemonicWordList,
       state.fingerprint,
@@ -65,7 +66,6 @@ export default function GenerateMnemonic() {
       state.setFingerprint,
       state.setKey,
       state.setKeyDerivationPath,
-      state.updateKeySecret,
       state.setExtendedPublicKey,
       state.setExternalDescriptor,
       state.setInternalDescriptor
@@ -187,7 +187,7 @@ export default function GenerateMnemonic() {
                   <SSWordInput
                     key={index}
                     position={index + 1}
-                    value={mnemonic ? mnemonic[index] : ''}
+                    value={mnemonic ? mnemonicList[index] : ''}
                     editable={false}
                     index={index}
                   />

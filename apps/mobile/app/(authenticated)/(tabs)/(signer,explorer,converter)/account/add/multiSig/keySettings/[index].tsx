@@ -49,6 +49,7 @@ export default function MultiSigKeySettings() {
   const [localEntropyType, setLocalEntropyType] = useState<EntropyType>('none')
   const [localMnemonicWordCount, setLocalMnemonicWordCount] =
     useState<NonNullable<Key['mnemonicWordCount']>>(24)
+  // TODO: add support for multi-lang word list
 
   const [entropyModalVisible, setEntropyModalVisible] = useState(false)
   const [mnemonicWordCountModalVisible, setMnemonicWordCountModalVisibile] =
@@ -67,6 +68,7 @@ export default function MultiSigKeySettings() {
         case 'none': {
           setLoading(true)
 
+          // TODO: add support for multi-lang word list
           const mnemonic = generateMnemonic(localMnemonicWordCount)
           setMnemonic(mnemonic)
 

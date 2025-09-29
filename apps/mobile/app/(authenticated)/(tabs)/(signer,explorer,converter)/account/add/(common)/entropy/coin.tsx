@@ -31,10 +31,11 @@ export default function CoinEntropy() {
   const router = useRouter()
   const { index } = useLocalSearchParams()
 
-  const [mnemonicWordCount, setMnemonic, setFingerprint] =
+  const [mnemonicWordCount, mnemonicWordList, setMnemonic, setFingerprint] =
     useAccountBuilderStore(
       useShallow((state) => [
         state.mnemonicWordCount,
+        state.mnemonicWordList,
         state.setMnemonic,
         state.setFingerprint
       ])
@@ -54,7 +55,7 @@ export default function CoinEntropy() {
       setStep(newStep)
 
       if (newStep === length) {
-        const mnemonic = generateMnemonicFromEntropy(newBits)
+        const mnemonic = generateMnemonicFromEntropy(newBits, mnemonicWordList)
 
         setMnemonic(mnemonic)
 

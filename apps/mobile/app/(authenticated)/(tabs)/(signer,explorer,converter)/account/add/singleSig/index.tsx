@@ -89,7 +89,10 @@ export default function SingleSig() {
       switch (localEntropyType) {
         case 'none': {
           setLoading(true)
-          const mnemonic = generateMnemonic(localMnemonicWordCount)
+          const mnemonic = generateMnemonic(
+            localMnemonicWordCount,
+            localMnemonicWordList
+          )
           setMnemonic(mnemonic)
 
           const fingerprint = getFingerprintFromMnemonic(
@@ -134,7 +137,7 @@ export default function SingleSig() {
 
   function handleOnSelectMnemonicWordList() {
     setMnemonicWordList(localMnemonicWordList)
-    setMnemonicWordCountModalVisible(false)
+    setMnemonicWordListModalVisible(false)
   }
 
   function handleOnSelectEntropy() {

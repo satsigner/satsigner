@@ -150,6 +150,18 @@ export function getFingerprintFromExtendedPublicKey(
   return fingerprint
 }
 
+export function getExtendedPublicKeyFromSeed(
+  seed: Buffer,
+  network: BDKNetwork,
+  scriptVersion: ScriptVersionType
+) {
+  const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
+  // this assumes default account=0 and external address kind=0
+  const path = getStandardPath(scriptVersion, network, 0)
+  const derivedKey = masterKey.derivePath(path)
+  return derivedKey.toBase58()
+}
+
 // TODO: use @bitcoinerlab/descriptors and place it on utils/descriptors
 export function getExtendedKeyFromDescriptor(descriptor: string) {
   const match = descriptor.match(/([xyztuv]pub)[A-Za-z0-9]+/)

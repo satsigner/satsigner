@@ -573,7 +573,7 @@ async function getDescriptorObject(
     kind,
     passphrase,
     network
-  ).replace(/\/[01]\/\*/, '') // remove /0/* and /1/*
+  ).replace(/\/[01]\/\*/, '') // remove the suffix /0/* and /1/* because BDK does not allow it
   const descriptorObject = await new Descriptor().create(
     descriptorString,
     network
@@ -581,7 +581,7 @@ async function getDescriptorObject(
   return descriptorObject
 }
 
-// TODO: put it elsewhere
+// TODO: refactor it to be synchronous and replace occurrences
 async function parseDescriptor(descriptor: Descriptor) {
   if (!descriptor) {
     return { fingerprint: '', derivationPath: '' }
