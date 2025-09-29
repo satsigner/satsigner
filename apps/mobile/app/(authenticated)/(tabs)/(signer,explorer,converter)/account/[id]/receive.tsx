@@ -49,6 +49,7 @@ export default function Receive() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [includeLabel, setIncludeLabel] = useState(true)
   const [includeAmount] = useState(true)
+  const [includeBitcoinPrefix, setIncludeBitcoinPrefix] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [isManualAddress, setIsManualAddress] = useState(false)
 
@@ -94,14 +95,29 @@ export default function Receive() {
         queryParts.push(`label=${encodeURIComponent(localLabel)}`)
       }
 
+      let baseUri = localAddressQR
+
+      // Remove bitcoin: prefix if not wanted (case-insensitive)
+      if (
+        !includeBitcoinPrefix &&
+        baseUri.toLowerCase().startsWith('bitcoin:')
+      ) {
+        baseUri = baseUri.substring(8) // Remove "BITCOIN:" (8 characters)
+      }
+
       const finalUri =
-        queryParts.length > 0
-          ? `${localAddressQR}?${queryParts.join('&')}`
-          : localAddressQR
+        queryParts.length > 0 ? `${baseUri}?${queryParts.join('&')}` : baseUri
 
       setLocalFinalAddressQR(finalUri)
     },
-    [localCustomAmount, localLabel, includeAmount, includeLabel, localAddressQR]
+    [
+      localCustomAmount,
+      localLabel,
+      includeAmount,
+      includeLabel,
+      includeBitcoinPrefix,
+      localAddressQR
+    ]
   )
 
   const { addressInfo } = useGetFirstUnusedAddress(wallet!, account!)
@@ -236,6 +252,10 @@ export default function Receive() {
     setIncludeLabel(!includeLabel)
   }, [includeLabel])
 
+  const handleToggleBitcoinPrefix = useCallback(() => {
+    setIncludeBitcoinPrefix(!includeBitcoinPrefix)
+  }, [includeBitcoinPrefix])
+
   const handlePasteAmount = useCallback(async () => {
     const text = await Clipboard.getStringAsync()
     if (text && !isNaN(Number(text))) {
@@ -348,13 +368,19 @@ export default function Receive() {
                   <SSButton
                     label={t('common.copy')}
                     variant="secondary"
-                    style={{ flex: 1 }}
+                    style={{ flex: 0.5 }}
                     onPress={() => copyToClipboard(localFinalAddressQR)}
+                  />
+                  <SSButton
+                    label={includeBitcoinPrefix ? 'bitcoin:' : 'no prefix'}
+                    variant={includeBitcoinPrefix ? 'default' : 'outline'}
+                    style={{ flex: 1 }}
+                    onPress={handleToggleBitcoinPrefix}
                   />
                   <SSButton
                     label={
                       includeLabel
-                        ? t('receive.excludeLabel')
+                        ? t('receive.label')
                         : t('receive.includeLabel')
                     }
                     variant={includeLabel ? 'default' : 'outline'}
