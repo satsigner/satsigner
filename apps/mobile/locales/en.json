@@ -1034,7 +1034,7 @@
   "transaction": {
     "address": "Address",
     "block": "In block",
-    "build.add.input.title": "Add input",
+    "build.add.input.title": "Edit inputs",
     "build.add.inputs.title.1": "Add inputs",
     "build.add.inputs.title.2": "Add as input to transaction",
     "build.add.label.title": "Add label",
