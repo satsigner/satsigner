@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ScrollView, TextInput } from 'react-native'
+import { ScrollView, StyleSheet, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -21,11 +21,8 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
+import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-
-function formatAddressInGroups(address: string): string {
-  return (address.match(/(.{1,4})/g) || []).join(' ')
-}
 
 export default function Receive() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
@@ -65,6 +62,10 @@ export default function Receive() {
   )
 
   const saveLabelTimeoutRef = useRef<NodeJS.Timeout>()
+
+  function formatAddressInGroups(address: string): string {
+    return (address.match(/(.{1,4})/g) || []).join(' ')
+  }
 
   useEffect(function () {
     return function () {
@@ -342,49 +343,40 @@ export default function Receive() {
               )
             )}
             {localFinalAddressQR && (
-              <SSVStack gap="sm" itemsCenter style={{ marginVertical: 10 }}>
+              <SSVStack gap="sm" itemsCenter style={styles.sectionSpacing}>
                 <SSText>Bitcoin URI</SSText>
                 <TextInput
                   value={localFinalAddressQR}
                   editable={false}
                   selectTextOnFocus
                   multiline
-                  style={{
-                    fontFamily: 'monospace',
-                    color: '#fff',
-                    padding: 8,
-                    backgroundColor: '#333',
-                    borderRadius: 4,
-                    minWidth: 280,
-                    minHeight: 80,
-                    fontSize: 14,
-                    textAlign: 'left',
-                    paddingBottom: 32,
-                    lineHeight: 18,
-                    letterSpacing: 0.5
-                  }}
+                  style={styles.uriTextInput}
                 />
                 <SSHStack gap="sm" justifyBetween>
                   <SSButton
                     label={t('common.copy')}
                     variant="secondary"
-                    style={{ flex: 0.5 }}
+                    style={styles.toggleButton}
                     onPress={() => copyToClipboard(localFinalAddressQR)}
                   />
                   <SSButton
-                    label={includeBitcoinPrefix ? 'bitcoin:' : 'no prefix'}
+                    label={
+                      includeBitcoinPrefix
+                        ? t('receive.bitcoinPrefix')
+                        : t('receive.noPrefix')
+                    }
                     variant={includeBitcoinPrefix ? 'default' : 'outline'}
-                    style={{ flex: 1 }}
+                    style={styles.toggleButton}
                     onPress={handleToggleBitcoinPrefix}
                   />
                   <SSButton
                     label={
                       includeLabel
-                        ? t('receive.label')
+                        ? t('receive.excludeLabel')
                         : t('receive.includeLabel')
                     }
                     variant={includeLabel ? 'default' : 'outline'}
-                    style={{ flex: 1 }}
+                    style={styles.toggleButton}
                     onPress={handleToggleLabel}
                   />
                 </SSHStack>
@@ -408,9 +400,7 @@ export default function Receive() {
                 allowDecimal={false}
                 allowValidEmpty
                 alwaysTriggerOnChange
-                style={{
-                  fontSize: 21
-                }}
+                style={styles.amountTextInput}
               />
               {localCustomAmount && getFiatAmount(localCustomAmount) && (
                 <SSText color="muted" size="sm" center>
@@ -431,16 +421,7 @@ export default function Receive() {
                 placeholder={t('receive.placeholder.label')}
                 multiline
                 numberOfLines={3}
-                style={{
-                  height: 'auto',
-                  textAlignVertical: 'top',
-                  padding: 16,
-                  paddingBottom: 32,
-                  fontSize: 14,
-                  lineHeight: 22,
-                  letterSpacing: 0.5,
-                  textAlign: 'left'
-                }}
+                style={styles.labelTextInput}
               />
               <SSButton
                 label={t('receive.pasteLabel')}
@@ -450,7 +431,7 @@ export default function Receive() {
             </SSFormLayout.Item>
           </SSFormLayout>
           <SSVStack>
-            <SSVStack gap="xs" itemsCenter style={{ marginVertical: 10 }}>
+            <SSVStack gap="xs" itemsCenter style={styles.sectionSpacing}>
               <SSText>{t('receive.address')}</SSText>
               {isLoading ? (
                 <SSText color="muted">...</SSText>
@@ -462,20 +443,7 @@ export default function Receive() {
                       editable={false}
                       selectTextOnFocus
                       multiline
-                      style={{
-                        fontFamily: 'monospace',
-                        color: '#fff',
-
-                        padding: 16,
-                        paddingBottom: 22,
-                        backgroundColor: '#333',
-                        borderRadius: 4,
-                        minWidth: 280,
-                        fontSize: 16,
-                        lineHeight: 30,
-                        letterSpacing: 1.5,
-                        textAlign: 'left'
-                      }}
+                      style={styles.addressTextInput}
                     />
                     <SSHStack>
                       <SSButton
@@ -508,3 +476,52 @@ export default function Receive() {
     </SSMainLayout>
   )
 }
+
+const styles = StyleSheet.create({
+  uriTextInput: {
+    fontFamily: 'monospace',
+    color: Colors.white,
+    padding: 8,
+    backgroundColor: Colors.gray[800],
+    borderRadius: 4,
+    minWidth: 280,
+    minHeight: 80,
+    fontSize: 14,
+    textAlign: 'left',
+    paddingBottom: 32,
+    lineHeight: 18,
+    letterSpacing: 0.5
+  },
+  addressTextInput: {
+    fontFamily: 'monospace',
+    color: Colors.white,
+    padding: 16,
+    paddingBottom: 22,
+    backgroundColor: Colors.gray[800],
+    borderRadius: 4,
+    minWidth: 280,
+    fontSize: 16,
+    lineHeight: 30,
+    letterSpacing: 1.5,
+    textAlign: 'left'
+  },
+  labelTextInput: {
+    height: 'auto',
+    textAlignVertical: 'top',
+    padding: 16,
+    paddingBottom: 32,
+    fontSize: 14,
+    lineHeight: 22,
+    letterSpacing: 0.5,
+    textAlign: 'left'
+  },
+  amountTextInput: {
+    fontSize: 21
+  },
+  sectionSpacing: {
+    marginVertical: 10
+  },
+  toggleButton: {
+    flex: 1
+  }
+})
