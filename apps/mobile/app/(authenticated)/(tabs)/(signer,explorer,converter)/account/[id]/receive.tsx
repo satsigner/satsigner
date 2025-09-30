@@ -236,22 +236,22 @@ export default function Receive() {
     return fiatAmount > 0 ? `≈ ${fiatAmount.toFixed(2)} ${fiatCurrency}` : ''
   }
 
-  const handleToggleLabel = () => {
+  function handleToggleLabel() {
     setIncludeLabel(!includeLabel)
   }
 
-  const handleToggleBitcoinPrefix = () => {
+  function handleToggleBitcoinPrefix() {
     setIncludeBitcoinPrefix(!includeBitcoinPrefix)
   }
 
-  const handlePasteAmount = async () => {
+  async function handlePasteAmount() {
     const text = await Clipboard.getStringAsync()
     if (text && !isNaN(Number(text))) {
       setLocalCustomAmount(text)
     }
   }
 
-  const handlePasteLabel = async () => {
+  async function handlePasteLabel() {
     const text = await Clipboard.getStringAsync()
     if (text) {
       setLocalLabel(text)
