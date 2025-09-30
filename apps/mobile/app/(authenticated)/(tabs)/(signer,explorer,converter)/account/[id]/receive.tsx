@@ -98,10 +98,7 @@ export default function Receive() {
     let baseUri = localAddressQR
 
     // Remove bitcoin: prefix if not wanted (case-insensitive)
-    if (
-      !includeBitcoinPrefix &&
-      baseUri.toLowerCase().startsWith('bitcoin:')
-    ) {
+    if (!includeBitcoinPrefix && baseUri.toLowerCase().startsWith('bitcoin:')) {
       baseUri = baseUri.substring(8) // Remove "BITCOIN:" (8 characters)
     }
 
@@ -243,28 +240,28 @@ export default function Receive() {
     return fiatAmount > 0 ? `≈ ${fiatAmount.toFixed(2)} ${fiatCurrency}` : ''
   }
 
-  const handleToggleLabel = useCallback(() => {
+  const handleToggleLabel = () => {
     setIncludeLabel(!includeLabel)
-  }, [includeLabel])
+  }
 
-  const handleToggleBitcoinPrefix = useCallback(() => {
+  const handleToggleBitcoinPrefix = () => {
     setIncludeBitcoinPrefix(!includeBitcoinPrefix)
-  }, [includeBitcoinPrefix])
+  }
 
-  const handlePasteAmount = useCallback(async () => {
+  const handlePasteAmount = async () => {
     const text = await Clipboard.getStringAsync()
     if (text && !isNaN(Number(text))) {
       setLocalCustomAmount(text)
     }
-  }, [])
+  }
 
-  const handlePasteLabel = useCallback(async () => {
+  const handlePasteLabel = async () => {
     const text = await Clipboard.getStringAsync()
     if (text) {
       setLocalLabel(text)
       handleLabelChange(text)
     }
-  }, [handleLabelChange])
+  }
 
   if (!account) return <Redirect href="/" />
 
