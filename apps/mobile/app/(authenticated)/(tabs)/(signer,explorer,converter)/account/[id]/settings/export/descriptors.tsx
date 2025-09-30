@@ -586,13 +586,7 @@ export default function ExportDescriptors() {
 
   async function exportDescriptorsPDF() {
     if (!account || !exportContent) return
-
-    try {
-      // Generate PDF with QR code using a different approach
-      generatePDF()
-    } catch {
-      // Handle error silently
-    }
+    generatePDF()
   }
 
   async function generatePDF() {

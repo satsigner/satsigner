@@ -356,8 +356,6 @@ export default function DescriptorPage() {
         }
 
         setDescriptor(descriptorString)
-
-        // Parse descriptor components for display
         const components = parseDescriptorComponents(descriptorString)
         setDescriptorComponents(components)
       } catch {

@@ -22,6 +22,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { type GenerateMnemonicSearchParams } from '@/types/navigation/searchParams'
 import { getDescriptorsFromKey } from '@/utils/bip32'
 import {
+    getExtendedPublicKeyFromMnemonic,
   getFingerprintFromMnemonic,
   validateMnemonic
 } from '@/utils/bip39'
@@ -81,7 +82,7 @@ export default function GenerateMnemonic() {
     const validMnemonic = validateMnemonic(mnemonic, mnemonicWordList)
     setChecksumValid(validMnemonic)
 
-    if (checksumValid) {
+    if (validMnemonic) {
       const fingerprint = getFingerprintFromMnemonic(
         mnemonic,
         passphrase,
@@ -149,8 +150,7 @@ export default function GenerateMnemonic() {
         )
         const parsedDescriptor = await parseDescriptor(externalDescriptor)
         derivationPath = parsedDescriptor.derivationPath
-        // TODO: remove try/catch
-      } catch (_error) {
+      } catch {
         // Use default derivation path if extraction fails
         const rawDerivationPath = getDerivationPathFromScriptVersion(
           scriptVersion,
@@ -160,12 +160,8 @@ export default function GenerateMnemonic() {
       }
     }
 
-    // Create the key with all the data
     setKey(Number(index))
-
-    // Set the derivation path for this key
     setKeyDerivationPath(Number(index), derivationPath)
-
     router.navigate(`/account/add/confirm/${index}/word/0`)
   }
 
