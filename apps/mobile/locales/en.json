@@ -968,7 +968,7 @@
     "network.server.custom.add": "Add custom",
     "network.server.description": "Select backend to connect to the network",
     "network.server.host": "Host",
-    "network.server.network": "Network",
+    "network.server.network": "Bitcoin Network",
     "network.server.port": "Port",
     "network.server.protocol": "Protocol",
     "network.server.server.modal.title": "Select server",
@@ -983,7 +983,7 @@
     "network.server.type.signet": "Centralized network used for testing (coins have no value)",
     "network.server.type.testnet": "Decentralized network used for testing (coins have no value)",
     "network.server.url": "Url",
-    "network.title": "Network",
+    "network.title": "Bitcoin Network",
     "security.appPin": "App Pin",
     "security.backgroundLockTime": "Background lock time threshold",
     "security.changePin": "Change pin",
@@ -999,7 +999,7 @@
     "security.seed": "Seed",
     "security.skipSeedConfirmation": "Allow skipping seed word confirmation",
     "security.title": "App Security",
-    "title": "Config"
+    "title": "App Settings"
   },
   "sign": {
     "transaction": "Sign transaction"
