@@ -50,9 +50,18 @@ function SSNavMenu(props: SSNavMenuProps) {
         contentContainerStyle={styles.contentContainer}
       >
         <SSVStack style={styles.vStackWrapper}>
-          {filteredNavMenuGroups.map((group, index) => (
-            <SSNavMenuGroup key={`${index} - ${group.title}`} group={group} />
-          ))}
+          {filteredNavMenuGroups.map((group, index) => {
+            return (
+              <SSVStack
+                key={`${index} - ${group.title}`}
+                style={styles.groupWrapper}
+              >
+                <SSNavMenuGroup group={group} />
+              </SSVStack>
+            )
+          })}
+        </SSVStack>
+        <SSVStack style={styles.versionWrapper}>
           <SSText size="sm" color="muted" style={styles.versionText}>
             {`v${APP_VERSION} (${BUILD_NUMBER})`}
           </SSText>
@@ -81,11 +90,8 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 5
   },
-  versionText: {
-    position: 'absolute',
-    letterSpacing: 2,
-    bottom: 30,
-    right: 50
+  groupWrapper: {
+    gap: 0
   },
   contentContainer: {
     flexGrow: 1
@@ -93,8 +99,15 @@ const styles = StyleSheet.create({
   vStackWrapper: {
     gap: 60,
     padding: 12,
-    paddingRight: 22,
+    paddingRight: 32,
     paddingTop: 40
+  },
+  versionWrapper: {
+    marginVertical: 40,
+    marginLeft: 30
+  },
+  versionText: {
+    letterSpacing: 2
   }
 })
 
