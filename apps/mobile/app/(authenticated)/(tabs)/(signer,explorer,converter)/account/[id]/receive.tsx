@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -39,7 +39,6 @@ export default function Receive() {
   const [localAddress, setLocalAddress] = useState<string>()
   const [localAddressNumber, setLocalAddressNumber] = useState<number>()
   const [localAddressQR, setLocalAddressQR] = useState<string>()
-  const [localFinalAddressQR, setLocalFinalAddressQR] = useState<string>()
   const [localAddressPath, setLocalAddressPath] = useState<string>()
   const [localCustomAmount, setLocalCustomAmount] = useState<string>()
   const [localLabel, setLocalLabel] = useState<string>()
@@ -75,8 +74,8 @@ export default function Receive() {
     }
   }, [])
 
-  useEffect(() => {
-    if (!localAddressQR) return
+  const localFinalAddressQR = useMemo(() => {
+    if (!localAddressQR) return ''
 
     const queryParts: string[] = []
 
@@ -102,10 +101,9 @@ export default function Receive() {
       baseUri = baseUri.substring(8) // Remove "BITCOIN:" (8 characters)
     }
 
-    const finalUri =
-      queryParts.length > 0 ? `${baseUri}?${queryParts.join('&')}` : baseUri
-
-    setLocalFinalAddressQR(finalUri)
+    return queryParts.length > 0
+      ? `${baseUri}?${queryParts.join('&')}`
+      : baseUri
   }, [
     localCustomAmount,
     localLabel,
@@ -117,38 +115,37 @@ export default function Receive() {
 
   const { addressInfo } = useGetFirstUnusedAddress(wallet!, account!)
 
+  // Load address when addressInfo changes
   useEffect(() => {
-    async function loadAddress() {
+    if (!wallet || !addressInfo || isManualAddress) {
       if (!wallet) {
         toast(t('error.notFound.wallet'))
         setIsLoading(false)
-        return
-      }
-
-      if (addressInfo === null) {
+      } else if (addressInfo === null) {
         setIsLoading(true)
-        return
       }
+      return
+    }
 
-      if (isManualAddress) {
-        return
-      }
+    async function loadAddress() {
+      if (!addressInfo?.address) return
 
       const [address, qrUri] = await Promise.all([
-        addressInfo?.address ? addressInfo.address.asString() : '',
-        addressInfo?.address ? addressInfo.address.toQrUri() : ''
+        addressInfo.address.asString(),
+        addressInfo.address.toQrUri()
       ])
+
       setLocalAddress(address)
       setLocalAddressNumber(addressInfo.index)
       setLocalAddressQR(qrUri)
-      setLocalFinalAddressQR(qrUri)
       setLocalAddressPath(
         `${account?.keys[0].derivationPath}/0/${addressInfo.index}`
       )
 
-      const existingAddress = account?.addresses.find((addr) => {
-        return addr.address === address
-      })
+      // Set existing label if found
+      const existingAddress = account?.addresses.find(
+        (addr) => addr.address === address
+      )
       if (existingAddress?.label) {
         setLocalLabel(existingAddress.label)
       }
@@ -158,7 +155,7 @@ export default function Receive() {
     }
 
     loadAddress()
-  }, [addressInfo, isManualAddress, account?.addresses, account?.keys, wallet])
+  }, [addressInfo, wallet, account?.keys, account?.addresses, isManualAddress])
 
   async function generateAnotherAddress() {
     if (!wallet || !account) return
@@ -175,7 +172,6 @@ export default function Receive() {
       setLocalAddress(address)
       setLocalAddressNumber(nextIndex)
       setLocalAddressQR(qrUri)
-      setLocalFinalAddressQR(qrUri)
       setLocalAddressPath(`${account.keys[0].derivationPath}/0/${nextIndex}`)
 
       const existingAddress = account.addresses.find((addr) => {
