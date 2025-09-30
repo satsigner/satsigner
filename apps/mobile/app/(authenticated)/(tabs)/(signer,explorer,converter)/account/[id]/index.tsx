@@ -297,7 +297,7 @@ function DerivedAddresses({
 
   function trimLabel(label: string | undefined): string {
     if (!label) return t('transaction.noLabel')
-    return label.length > 15 ? `${label.substring(0, 15)}...` : label
+    return label.length > 14 ? `${label.substring(0, 14)}...` : label
   }
 
   async function refreshAddresses() {
@@ -409,7 +409,7 @@ function DerivedAddresses({
               addressListStyles.columnAddress
             ]}
           >
-            {formatAddress(item.address, 4)}
+            {formatAddress(item.address, 6)}
           </SSText>
           <SSText
             style={[
@@ -509,7 +509,7 @@ function DerivedAddresses({
                   addressListStyles.columnIndex
                 ]}
               >
-                {t('address.list.table.index')}
+                #
               </SSText>
             )}
             <SSText
@@ -1211,12 +1211,12 @@ const addressListStyles = StyleSheet.create({
     color: '#777',
     textTransform: 'uppercase'
   },
-  columnAddress: { width: '20%' },
-  columnLabel: { width: '15%' },
+  columnAddress: { width: '25%' },
+  columnLabel: { width: '25%' },
   columnSats: { width: '10%', textAlign: 'center' },
   columnTxs: { width: '10%', textAlign: 'center' },
   columnUtxos: { width: '10%', textAlign: 'center' },
-  columnIndex: { width: '10%', textAlign: 'center' },
+  columnIndex: { width: '5%', textAlign: 'center' },
   row: {
     paddingVertical: 12,
     width: ADDRESS_LIST_WIDTH,
