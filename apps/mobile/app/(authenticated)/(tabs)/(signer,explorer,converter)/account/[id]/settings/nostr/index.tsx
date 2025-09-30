@@ -4,7 +4,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { NostrAPI } from '@/api/nostr'
+import { compressMessage, NostrAPI } from '@/api/nostr'
 import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
 import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
@@ -28,6 +28,17 @@ function NostrSync() {
       state.accounts.find((_account) => _account.id === accountId),
       state.updateAccountNostr
     ])
+  )
+
+  const [isGeneratingKeys, setIsGeneratingKeys] = useState(false)
+
+  const [keysGenerated, setKeysGenerated] = useState(false)
+
+  const updateAccountNostrCallback = useCallback(
+    (accountId: string, nostrData: any) => {
+      updateAccountNostr(accountId, nostrData)
+    },
+    [updateAccountNostr]
   )
 
   // Nostr store actions
@@ -80,6 +91,9 @@ function NostrSync() {
   const [deviceNpub, setDeviceNpub] = useState('')
   const [deviceColor, setDeviceColor] = useState('#404040')
   const [selectedRelays, setSelectedRelays] = useState<string[]>([])
+  const [relayConnectionStatuses, setRelayConnectionStatuses] = useState<
+    Record<string, 'connected' | 'connecting' | 'disconnected'>
+  >({})
 
   // Add this useCallback near the top of the component, after other hooks
   const getUpdatedAccount = useCallback(() => {
@@ -87,6 +101,90 @@ function NostrSync() {
       .getState()
       .accounts.find((_account) => _account.id === accountId)
   }, [accountId])
+
+  const testRelaySync = useCallback(
+    async (relays: string[]) => {
+      const statuses: Record<
+        string,
+        'connected' | 'connecting' | 'disconnected'
+      > = {}
+
+      relays.forEach((relay) => {
+        statuses[relay] = 'connecting'
+      })
+      setRelayConnectionStatuses(statuses)
+
+      for (const relay of relays) {
+        try {
+          const nostrApi = new NostrAPI([relay])
+          await nostrApi.connect()
+
+          if (
+            account?.nostr?.commonNsec &&
+            account.nostr.commonNpub &&
+            account.nostr.deviceNpub
+          ) {
+            try {
+              const testMessage = {
+                created_at: Math.floor(Date.now() / 1000),
+                public_key_bech32: account.nostr.deviceNpub
+              }
+              const compressedMessage = compressMessage(testMessage)
+              const testEvent = await nostrApi.createKind1059(
+                account.nostr.commonNsec,
+                account.nostr.commonNpub,
+                compressedMessage
+              )
+              await nostrApi.publishEvent(testEvent)
+              statuses[relay] = 'connected'
+            } catch {
+              toast.error('Failed to publish device announcement')
+              statuses[relay] = 'disconnected'
+            }
+          } else {
+            statuses[relay] = 'connected'
+          }
+        } catch {
+          toast.error('Failed to connect to relay ' + relay)
+          statuses[relay] = 'disconnected'
+        }
+        setRelayConnectionStatuses({ ...statuses })
+      }
+
+      if (accountId) {
+        updateAccountNostrCallback(accountId, {
+          relayStatuses: statuses,
+          lastUpdated: new Date()
+        })
+      }
+    },
+    [account?.nostr, accountId, updateAccountNostrCallback]
+  )
+
+  const getRelayConnectionInfo = useCallback(
+    (status: 'connected' | 'connecting' | 'disconnected') => {
+      switch (status) {
+        case 'connected':
+          return {
+            color: '#22c55e',
+            text: t('account.nostrSync.relayStatusConnected')
+          }
+        case 'connecting':
+          return {
+            color: '#f59e0b',
+            text: t('account.nostrSync.relayStatusConnecting')
+          }
+        case 'disconnected':
+          return {
+            color: '#ef4444',
+            text: t('account.nostrSync.relayStatusDisconnected')
+          }
+        default:
+          return { color: '#6b7280', text: 'Unknown' }
+      }
+    },
+    []
+  )
 
   /**
    * Clears all cached messages and processed events
@@ -97,7 +195,7 @@ function NostrSync() {
     try {
       setIsLoading(true)
       await clearStoredDMs(account)
-      updateAccountNostr(accountId, {
+      updateAccountNostrCallback(accountId, {
         ...account.nostr,
         dms: []
       })
@@ -122,7 +220,7 @@ function NostrSync() {
 
     // Initialize nostr object if it doesn't exist
     if (!account.nostr) {
-      updateAccountNostr(accountId, {
+      updateAccountNostrCallback(accountId, {
         autoSync: false,
         relays: [],
         dms: [],
@@ -137,7 +235,11 @@ function NostrSync() {
     }
 
     setSelectedRelays(account.nostr.relays || [])
-  }, [account, accountId, updateAccountNostr])
+
+    if (account.nostr.relayStatuses) {
+      setRelayConnectionStatuses(account.nostr.relayStatuses)
+    }
+  }, [account, accountId, updateAccountNostrCallback])
 
   /**
    * Toggles auto-sync functionality and manages subscriptions
@@ -148,7 +250,7 @@ function NostrSync() {
 
       // Initialize nostr object if it doesn't exist
       if (!account?.nostr) {
-        updateAccountNostr(accountId, {
+        updateAccountNostrCallback(accountId, {
           autoSync: false,
           relays: [],
           dms: [],
@@ -166,24 +268,36 @@ function NostrSync() {
       if (account.nostr.autoSync) {
         // Turn sync OFF
         setIsSyncing(true)
-        try {
-          // Cleanup all subscriptions first
-          await cleanupSubscriptions()
 
-          // Then update state
-          updateAccountNostr(accountId, {
-            ...account.nostr,
-            autoSync: false,
-            lastUpdated: new Date()
-          })
-        } catch {
+        // Cleanup all subscriptions first
+        await cleanupSubscriptions().catch(() => {
           toast.error('Failed to cleanup subscriptions')
-        } finally {
-          setIsSyncing(false)
+        })
+
+        // Set all relays to "disconnected" when turning sync off
+        const allRelaysDisconnected: Record<
+          string,
+          'connected' | 'connecting' | 'disconnected'
+        > = {}
+        if (account.nostr.relays) {
+          account.nostr.relays.forEach((relay) => {
+            allRelaysDisconnected[relay] = 'disconnected'
+          })
         }
+        setRelayConnectionStatuses(allRelaysDisconnected)
+
+        // Then update state
+        updateAccountNostrCallback(accountId, {
+          ...account.nostr,
+          autoSync: false,
+          relayStatuses: allRelaysDisconnected,
+          lastUpdated: new Date()
+        })
+
+        setIsSyncing(false)
       } else {
         // Turn sync ON
-        updateAccountNostr(accountId, {
+        updateAccountNostrCallback(accountId, {
           ...account.nostr,
           autoSync: true,
           lastUpdated: new Date()
@@ -196,11 +310,21 @@ function NostrSync() {
         const updatedAccount = getUpdatedAccount()
 
         if (
+          !updatedAccount?.nostr?.deviceNsec ||
+          !updatedAccount?.nostr?.deviceNpub
+        ) {
+          toast.error('Missing required Nostr configuration')
+        }
+
+        if (
           updatedAccount?.nostr?.relays &&
           updatedAccount.nostr.relays.length > 0
         ) {
           setIsSyncing(true)
           try {
+            // Test relay sync first
+            await testRelaySync(updatedAccount.nostr.relays)
+
             deviceAnnouncement(updatedAccount)
             // Start both subscriptions using the new function
             await nostrSyncSubscriptions(updatedAccount, (loading) => {
@@ -222,39 +346,46 @@ function NostrSync() {
   }, [
     account?.nostr,
     accountId,
+    testRelaySync,
     cleanupSubscriptions,
     deviceAnnouncement,
     getUpdatedAccount,
     nostrSyncSubscriptions,
-    updateAccountNostr
+    updateAccountNostrCallback
   ])
 
-  /**
-   * Toggles member trust status
-   */
-  const toggleMember = (npub: string) => {
-    if (!accountId || !account?.nostr) return
+  const toggleMember = useCallback(
+    (npub: string) => {
+      if (!accountId || !account?.nostr) return
 
-    setSelectedMembers((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(npub)) {
-        newSet.delete(npub)
-        updateAccountNostr(accountId, {
+      const isCurrentlyTrusted = selectedMembers.has(npub)
+
+      setSelectedMembers((prev) => {
+        const newSet = new Set(prev)
+        if (isCurrentlyTrusted) {
+          newSet.delete(npub)
+        } else {
+          newSet.add(npub)
+        }
+        return newSet
+      })
+
+      if (isCurrentlyTrusted) {
+        updateAccountNostrCallback(accountId, {
           trustedMemberDevices: account.nostr.trustedMemberDevices.filter(
             (m) => m !== npub
           ),
           lastUpdated: new Date()
         })
       } else {
-        newSet.add(npub)
-        updateAccountNostr(accountId, {
+        updateAccountNostrCallback(accountId, {
           trustedMemberDevices: [...account.nostr.trustedMemberDevices, npub],
           lastUpdated: new Date()
         })
       }
-      return newSet
-    })
-  }
+    },
+    [accountId, account?.nostr, selectedMembers, updateAccountNostrCallback]
+  )
 
   // Navigation functions
   const goToSelectRelaysPage = () => {
@@ -289,7 +420,7 @@ function NostrSync() {
     if (account && accountId) {
       // Initialize nostr object if it doesn't exist
       if (!account.nostr) {
-        updateAccountNostr(accountId, {
+        updateAccountNostrCallback(accountId, {
           autoSync: false,
           relays: [],
           dms: [],
@@ -310,7 +441,7 @@ function NostrSync() {
             .then((keys) => {
               if (keys) {
                 setCommonNsec(keys.commonNsec as string)
-                updateAccountNostr(accountId, {
+                updateAccountNostrCallback(accountId, {
                   ...account.nostr,
                   commonNsec: keys.commonNsec,
                   commonNpub: keys.commonNpub
@@ -327,15 +458,15 @@ function NostrSync() {
     account,
     accountId,
     generateCommonNostrKeys,
-    updateAccountNostr,
+    updateAccountNostrCallback,
     commonNsec
   ])
 
   useEffect(() => {
-    if (account && accountId) {
+    if (account && accountId && !isGeneratingKeys) {
       // Initialize nostr object if it doesn't exist
       if (!account.nostr) {
-        updateAccountNostr(accountId, {
+        updateAccountNostrCallback(accountId, {
           autoSync: false,
           relays: [],
           dms: [],
@@ -348,15 +479,20 @@ function NostrSync() {
         return // Return early as we'll re-run this effect after the update
       }
 
-      // Only try to load device keys if we don't have them yet
-      if (!account.nostr.deviceNsec || !account.nostr.deviceNpub) {
+      // Only try to load device keys if we don't have them yet and haven't generated them
+      if (
+        (!account.nostr.deviceNsec || !account.nostr.deviceNpub) &&
+        !keysGenerated
+      ) {
+        setIsGeneratingKeys(true)
+        setKeysGenerated(true)
         NostrAPI.generateNostrKeys()
           .then((keys) => {
             if (keys) {
               setDeviceNsec(keys.nsec)
               setDeviceNpub(keys.npub)
               generateColorFromNpub(keys.npub).then(setDeviceColor)
-              updateAccountNostr(accountId, {
+              updateAccountNostrCallback(accountId, {
                 ...account.nostr,
                 deviceNpub: keys.npub,
                 deviceNsec: keys.nsec
@@ -365,15 +501,35 @@ function NostrSync() {
           })
           .catch(() => {
             toast.error('Failed to generate device keys')
+            setKeysGenerated(false)
           })
-      } else {
+          .finally(() => {
+            setIsGeneratingKeys(false)
+          })
+      } else if (account.nostr.deviceNsec && account.nostr.deviceNpub) {
         // If we already have the keys, just set them
         setDeviceNsec(account.nostr.deviceNsec)
         setDeviceNpub(account.nostr.deviceNpub)
         generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
+        setKeysGenerated(true)
       }
     }
-  }, [account, accountId, updateAccountNostr])
+  }, [
+    account,
+    accountId,
+    isGeneratingKeys,
+    updateAccountNostrCallback,
+    keysGenerated
+  ])
+
+  // Reset key generation state when account changes
+  useEffect(() => {
+    if (account?.nostr?.deviceNsec && account?.nostr?.deviceNpub) {
+      setKeysGenerated(true)
+    } else {
+      setKeysGenerated(false)
+    }
+  }, [account?.id, account?.nostr?.deviceNsec, account?.nostr?.deviceNpub])
 
   useEffect(() => {
     if (deviceNpub && deviceColor === '#404040') {
@@ -393,18 +549,16 @@ function NostrSync() {
       if (!account?.nostr?.autoSync || !account?.nostr?.relays?.length) return
 
       setIsSyncing(true)
-      try {
-        deviceAnnouncement(account)
-        await nostrSyncSubscriptions(account, (loading) => {
-          requestAnimationFrame(() => {
-            setIsSyncing(loading)
-          })
+      deviceAnnouncement(account)
+      await nostrSyncSubscriptions(account, (loading) => {
+        requestAnimationFrame(() => {
+          setIsSyncing(loading)
         })
-      } catch {
+      }).catch(() => {
         toast.error('Failed to setup sync')
-      } finally {
-        setIsSyncing(false)
-      }
+      })
+
+      setIsSyncing(false)
     }
 
     startAutoSync()
@@ -634,8 +788,60 @@ function NostrSync() {
                 </SSText>
               )}
             </SSVStack>
+            {selectedRelays.length > 0 && (
+              <SSVStack gap="sm">
+                <SSText center>{t('account.nostrSync.relayStatus')}</SSText>
+                <SSVStack gap="sm" style={styles.relayStatusContainer}>
+                  {selectedRelays.map((relay, index) => {
+                    const status =
+                      relayConnectionStatuses[relay] || 'disconnected'
+                    const statusInfo = getRelayConnectionInfo(status)
+
+                    return (
+                      <SSHStack
+                        key={index}
+                        gap="sm"
+                        style={styles.relayStatusItem}
+                      >
+                        <View
+                          style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: 4,
+                            backgroundColor: statusInfo.color,
+                            marginTop: 1,
+                            marginRight: 8
+                          }}
+                        />
+                        <SSText style={{ flex: 1 }} size="sm">
+                          {relay}
+                        </SSText>
+                        <SSText
+                          size="sm"
+                          color={
+                            status === 'connected'
+                              ? 'white'
+                              : status === 'disconnected'
+                                ? 'white'
+                                : 'muted'
+                          }
+                          style={{ color: statusInfo.color }}
+                        >
+                          {statusInfo.text}
+                        </SSText>
+                        {status === 'connecting' && (
+                          <ActivityIndicator
+                            size="small"
+                            color={statusInfo.color}
+                          />
+                        )}
+                      </SSHStack>
+                    )
+                  })}
+                </SSVStack>
+              </SSVStack>
+            )}
           </SSVStack>
-          {/* Debug buttons */}
           <SSHStack gap="xs" style={{ marginTop: 30 }}>
             <SSButton
               label="Clear Caches"
@@ -686,6 +892,16 @@ const styles = StyleSheet.create({
   },
   autoSyncContainer: {
     marginBottom: 10
+  },
+  relayStatusContainer: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 4,
+    padding: 12,
+    borderWidth: 1
+  },
+  relayStatusItem: {
+    alignItems: 'center',
+    paddingVertical: 4
   }
 })
 

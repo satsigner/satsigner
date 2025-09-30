@@ -1,6 +1,7 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconEyeOn } from '@/components/icons'
@@ -164,8 +165,8 @@ export default function AccountSettings() {
         )
 
         setDecryptedKeys(decryptedKeysData)
-      } catch (_error) {
-        // Handle error silently
+      } catch {
+        toast.error('Failed to decrypt keys')
       }
     }
     decryptKeys()

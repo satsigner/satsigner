@@ -37,6 +37,7 @@ import {
   SSIconBubbles,
   SSIconCamera,
   SSIconChartSettings,
+  SSIconChatBubble,
   SSIconCollapse,
   SSIconExpand,
   SSIconEyeOn,
@@ -1020,17 +1021,24 @@ export default function AccountView() {
             />
           ),
           headerRight: () => (
-            <SSIconButton
-              style={{
-                paddingTop: 6,
-                width: 30,
-                height: 30,
-                alignItems: 'center'
-              }}
-              onPress={() => router.navigate(`/account/${id}/settings`)}
-            >
-              <SSIconKeys height={18} width={18} />
-            </SSIconButton>
+            <SSHStack gap="md">
+              {account?.nostr?.autoSync && (
+                <SSIconButton
+                  onPress={() =>
+                    router.navigate(
+                      `/account/${id}/settings/nostr/devicesGroupChat`
+                    )
+                  }
+                >
+                  <SSIconChatBubble height={15} width={15} />
+                </SSIconButton>
+              )}
+              <SSIconButton
+                onPress={() => router.navigate(`/account/${id}/settings`)}
+              >
+                <SSIconKeys height={18} width={18} />
+              </SSIconButton>
+            </SSHStack>
           )
         }}
       />

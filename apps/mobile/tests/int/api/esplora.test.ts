@@ -72,7 +72,7 @@ describe('Esplora tests', () => {
   })
 
   it('get address utxos', async () => {
-    const address = 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
+    const address = 'bc1qs308e0rcv8aycdq3jcdxxu60ws3a6a5rcnhfyv'
     const resp = await esplora.getAddressUtxos(address)
     expect(Array.isArray(resp)).toBe(true)
     resp.forEach((utxo) => {

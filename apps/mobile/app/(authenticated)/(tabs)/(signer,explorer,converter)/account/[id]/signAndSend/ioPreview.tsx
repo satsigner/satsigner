@@ -675,9 +675,14 @@ export default function IOPreview() {
           </SSVStack>
           <SSButton
             variant="secondary"
-            label={t('sign.transaction')}
-            disabled={outputs.length === 0}
-            onPress={handleGoToPreview}
+            label={
+              outputs.length === 0
+                ? t('transaction.build.add.output.title')
+                : t('sign.transaction')
+            }
+            onPress={
+              outputs.length === 0 ? handleOnPressAddOutput : handleGoToPreview
+            }
           />
         </SSVStack>
       </LinearGradient>

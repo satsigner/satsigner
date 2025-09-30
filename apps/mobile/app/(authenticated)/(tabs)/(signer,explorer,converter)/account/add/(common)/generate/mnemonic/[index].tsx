@@ -22,7 +22,6 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { type GenerateMnemonicSearchParams } from '@/types/navigation/searchParams'
 import { getDescriptorsFromKey } from '@/utils/bip32'
 import {
-  getExtendedPublicKeyFromMnemonic,
   getFingerprintFromMnemonic,
   validateMnemonic
 } from '@/utils/bip39'

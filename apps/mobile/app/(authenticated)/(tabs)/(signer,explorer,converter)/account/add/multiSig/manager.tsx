@@ -52,6 +52,15 @@ export default function MultiSigManager() {
         (typeof key.secret === 'object' && key.secret.externalDescriptor) ||
         (typeof key.secret === 'object' && key.secret.mnemonic)
 
+      if (hasPublicKey && typeof key.secret === 'object') {
+        if (key.secret.extendedPublicKey) {
+        }
+        if (key.secret.externalDescriptor) {
+        }
+        if (key.secret.mnemonic) {
+        }
+      }
+
       if (!hasPublicKey) {
         return false
       }

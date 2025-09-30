@@ -1,4 +1,6 @@
 import ecc from '@bitcoinerlab/secp256k1'
+import { HDKey } from '@scure/bip32'
+import * as bip39 from '@scure/bip39'
 import { KeychainKind, Network as BDKNetwork } from 'bdk-rn/lib/lib/enums'
 import { BIP32Factory, type BIP32Interface } from 'bip32'
 
@@ -8,6 +10,12 @@ import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
+
+// HD key versions for different networks
+const VERSIONS = {
+  mainnet: { public: 0x0488b21e, private: 0x0488ade4 },
+  testnet: { public: 0x043587cf, private: 0x04358394 }
+}
 
 const bip32 = BIP32Factory(ecc)
 
@@ -219,5 +227,202 @@ export function getDescriptorsFromKey(
   return {
     externalDescriptor,
     internalDescriptor
+  }
+}
+
+function getP2SHXpub(seed: Uint8Array, network: 'mainnet' | 'testnet'): string {
+  const versions = getVersionsForNetwork(network)
+  const master = HDKey.fromMasterSeed(seed, versions)
+
+  // Derive m/45' for P2SH
+  const node = master.deriveChild(0x80000000 + 45)
+
+  return node.publicExtendedKey
+}
+
+/**
+ * Get P2SH-P2WSH extended public key from seed
+ */
+function getP2SHP2WSHXpub(
+  seed: Uint8Array,
+  network: 'mainnet' | 'testnet'
+): string {
+  const versions = getVersionsForNetwork(network)
+  const master = HDKey.fromMasterSeed(seed, versions)
+
+  // Derive m/48'/0'/0'/1' for mainnet, m/48'/1'/0'/1' for testnet
+  const coinType = network === 'mainnet' ? 0 : 1
+  const node = master
+    .deriveChild(0x80000000 + 48)
+    .deriveChild(0x80000000 + coinType)
+    .deriveChild(0x80000000)
+    .deriveChild(0x80000000 + 1)
+
+  return node.publicExtendedKey
+}
+
+/**
+ * Get P2WSH extended public key from seed
+ */
+function getP2WSHXpub(
+  seed: Uint8Array,
+  network: 'mainnet' | 'testnet'
+): string {
+  const versions = getVersionsForNetwork(network)
+  const master = HDKey.fromMasterSeed(seed, versions)
+
+  // Derive m/48'/0'/0'/2' for mainnet, m/48'/1'/0'/2' for testnet
+  const coinType = network === 'mainnet' ? 0 : 1
+  const node = master
+    .deriveChild(0x80000000 + 48)
+    .deriveChild(0x80000000 + coinType)
+    .deriveChild(0x80000000)
+    .deriveChild(0x80000000 + 2)
+
+  return node.publicExtendedKey
+}
+
+function getP2WPKHXpub(
+  seed: Uint8Array,
+  network: 'mainnet' | 'testnet'
+): string {
+  // For multisig P2WPKH, use the same derivation path as P2WSH (BIP48)
+  return getP2WSHXpub(seed, network)
+}
+
+function getP2PKHXpub(
+  seed: Uint8Array,
+  network: 'mainnet' | 'testnet'
+): string {
+  const versions = getVersionsForNetwork(network)
+  const master = HDKey.fromMasterSeed(seed, versions)
+
+  // Derive m/44'/0'/0' for mainnet, m/44'/1'/0' for testnet
+  const coinType = network === 'mainnet' ? 0 : 1
+  const node = master
+    .deriveChild(0x80000000 + 44)
+    .deriveChild(0x80000000 + coinType)
+    .deriveChild(0x80000000)
+
+  return node.publicExtendedKey
+}
+
+function getP2SHP2WPKHXpub(
+  seed: Uint8Array,
+  network: 'mainnet' | 'testnet'
+): string {
+  const versions = getVersionsForNetwork(network)
+  const master = HDKey.fromMasterSeed(seed, versions)
+
+  // Derive m/49'/0'/0' for mainnet, m/49'/1'/0' for testnet
+  const coinType = network === 'mainnet' ? 0 : 1
+  const node = master
+    .deriveChild(0x80000000 + 49)
+    .deriveChild(0x80000000 + coinType)
+    .deriveChild(0x80000000)
+
+  return node.publicExtendedKey
+}
+
+function getP2TRXpub(seed: Uint8Array, network: 'mainnet' | 'testnet'): string {
+  const versions = getVersionsForNetwork(network)
+  const master = HDKey.fromMasterSeed(seed, versions)
+
+  // Derive m/86'/0'/0' for mainnet, m/86'/1'/0' for testnet
+  const coinType = network === 'mainnet' ? 0 : 1
+  const node = master
+    .deriveChild(0x80000000 + 86)
+    .deriveChild(0x80000000 + coinType)
+    .deriveChild(0x80000000)
+
+  return node.publicExtendedKey
+}
+
+/**
+ * Convert a Uint8Array to hex string
+ */
+export function toHex(u8: Uint8Array | undefined): string {
+  return Array.from(u8 || [])
+    .map((b: number) => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+/**
+ * Convert a number to a zero-padded 4-byte hex string
+ */
+export function fingerprintToHex(fpNum: number): string {
+  const buf = new Uint8Array(4)
+  const dv = new DataView(buf.buffer)
+  dv.setUint32(0, fpNum >>> 0) // ensure unsigned
+  return toHex(buf)
+}
+
+/**
+ * Get HD key versions for the specified network
+ */
+export function getVersionsForNetwork(network: 'mainnet' | 'testnet') {
+  return VERSIONS[network]
+}
+
+/**
+ * Get extended public key for specific script version
+ */
+export function getXpubForScriptVersion(
+  mnemonic: string,
+  passphrase: string = '',
+  scriptVersion: ScriptVersionType,
+  network: 'mainnet' | 'testnet'
+): string {
+  // Validate that the script version is supported for multisig
+  const supportedMultisigVersions: ScriptVersionType[] = [
+    'P2SH',
+    'P2SH-P2WSH',
+    'P2WSH',
+    'P2WPKH',
+    'P2PKH',
+    'P2SH-P2WPKH',
+    'P2TR'
+  ]
+
+  if (!supportedMultisigVersions.includes(scriptVersion)) {
+    throw new Error(
+      `Script version "${scriptVersion}" is not supported for multisig accounts. ` +
+        `Supported versions: ${supportedMultisigVersions.join(', ')}`
+    )
+  }
+
+  const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
+
+  // Map script versions to their corresponding xpub functions
+  const xpubFunctions: Record<
+    ScriptVersionType,
+    (seed: Uint8Array, network: 'mainnet' | 'testnet') => string
+  > = {
+    P2SH: getP2SHXpub,
+    'P2SH-P2WSH': getP2SHP2WSHXpub,
+    P2WSH: getP2WSHXpub,
+    P2WPKH: getP2WPKHXpub,
+    P2PKH: getP2PKHXpub,
+    'P2SH-P2WPKH': getP2SHP2WPKHXpub,
+    P2TR: getP2TRXpub
+  }
+
+  return xpubFunctions[scriptVersion](seed, network)
+}
+
+/**
+ * Get all three extended public keys from mnemonic
+ */
+export function getAllXpubs(
+  mnemonic: string,
+  passphrase: string = '',
+  network: 'mainnet' | 'testnet'
+) {
+  const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
+
+  return {
+    p2sh: getP2SHXpub(seed, network),
+    p2sh_p2wsh: getP2SHP2WSHXpub(seed, network),
+    p2wsh: getP2WSHXpub(seed, network)
   }
 }

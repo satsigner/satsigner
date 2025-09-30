@@ -131,25 +131,20 @@ export default function ImportMnemonic() {
     setMnemonic(currentMnemonic)
     setFingerprint(currentFingerprint)
 
-    // For multisig, we need to generate the extended public key from the mnemonic
     if (currentMnemonic && currentFingerprint) {
-      // Generate the extended public key
       const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
         currentMnemonic,
         passphrase || '',
         network as Network,
         scriptVersion
       )
-
-      // Set the extended public key
       setExtendedPublicKey(extendedPublicKey)
     }
 
-    // Set the key with the current data
     setKey(Number(keyIndex))
+    clearKeyState()
     setLoadingAccount(false)
     toast.success('Key imported successfully')
-    // Navigate back to multisig setup (just one screen back)
     router.back()
   }
 
