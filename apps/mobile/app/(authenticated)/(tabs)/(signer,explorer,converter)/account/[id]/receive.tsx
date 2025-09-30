@@ -377,9 +377,7 @@ export default function Receive() {
           <SSFormLayout>
             <SSFormLayout.Item>
               <SSFormLayout.Label
-                label={
-                  t('receive.customAmount') + ' (' + t('bitcoin.sats') + ')'
-                }
+                label={`${t('receive.customAmount')} (${t('bitcoin.sats')})`}
               />
               <SSNumberInput
                 min={1}
