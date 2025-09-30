@@ -151,11 +151,18 @@ export default function ExportPubkeys() {
           {t('account.export.pubkeys')}
         </SSText>
         {!isLoading && rawPubkeys.length > 0 && (
-          <SSHStack style={{ marginBottom: 20, justifyContent: 'center' }}>
+          <SSHStack style={{ justifyContent: 'center', gap: 10 }}>
             <SSButton
-              label={useVpubFormat ? 'VPUB Format' : 'XPUB Format'}
-              variant={useVpubFormat ? 'gradient' : 'secondary'}
-              onPress={() => setUseVpubFormat(!useVpubFormat)}
+              label="XPUB Format"
+              variant={!useVpubFormat ? 'outline' : 'subtle'}
+              onPress={() => setUseVpubFormat(false)}
+              style={{ flex: 1 }}
+            />
+            <SSButton
+              label="VPUB Format"
+              variant={useVpubFormat ? 'outline' : 'subtle'}
+              onPress={() => setUseVpubFormat(true)}
+              style={{ flex: 1 }}
             />
           </SSHStack>
         )}
