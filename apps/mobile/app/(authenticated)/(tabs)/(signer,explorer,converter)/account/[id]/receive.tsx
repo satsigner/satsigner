@@ -67,107 +67,101 @@ export default function Receive() {
     return (address.match(/(.{1,4})/g) || []).join(' ')
   }
 
-  useEffect(function () {
-    return function () {
+  useEffect(() => {
+    return () => {
       if (saveLabelTimeoutRef.current) {
         clearTimeout(saveLabelTimeoutRef.current)
       }
     }
   }, [])
 
-  useEffect(
-    function () {
-      if (!localAddressQR) return
+  useEffect(() => {
+    if (!localAddressQR) return
 
-      const queryParts: string[] = []
+    const queryParts: string[] = []
 
-      if (
-        includeAmount &&
-        localCustomAmount &&
-        Number(localCustomAmount) > 0 &&
-        Number(localCustomAmount) <= 2_100_000_000_000_000
-      ) {
-        const amountInBTC = Number(localCustomAmount) / 100_000_000
-        const formattedAmount = amountInBTC.toFixed(8).replace(/\.?0+$/, '')
-        queryParts.push(`amount=${encodeURIComponent(formattedAmount)}`)
-      }
+    if (
+      includeAmount &&
+      localCustomAmount &&
+      Number(localCustomAmount) > 0 &&
+      Number(localCustomAmount) <= 2_100_000_000_000_000
+    ) {
+      const amountInBTC = Number(localCustomAmount) / 100_000_000
+      const formattedAmount = amountInBTC.toFixed(8).replace(/\.?0+$/, '')
+      queryParts.push(`amount=${encodeURIComponent(formattedAmount)}`)
+    }
 
-      if (includeLabel && localLabel) {
-        queryParts.push(`label=${encodeURIComponent(localLabel)}`)
-      }
+    if (includeLabel && localLabel) {
+      queryParts.push(`label=${encodeURIComponent(localLabel)}`)
+    }
 
-      let baseUri = localAddressQR
+    let baseUri = localAddressQR
 
-      // Remove bitcoin: prefix if not wanted (case-insensitive)
-      if (
-        !includeBitcoinPrefix &&
-        baseUri.toLowerCase().startsWith('bitcoin:')
-      ) {
-        baseUri = baseUri.substring(8) // Remove "BITCOIN:" (8 characters)
-      }
+    // Remove bitcoin: prefix if not wanted (case-insensitive)
+    if (
+      !includeBitcoinPrefix &&
+      baseUri.toLowerCase().startsWith('bitcoin:')
+    ) {
+      baseUri = baseUri.substring(8) // Remove "BITCOIN:" (8 characters)
+    }
 
-      const finalUri =
-        queryParts.length > 0 ? `${baseUri}?${queryParts.join('&')}` : baseUri
+    const finalUri =
+      queryParts.length > 0 ? `${baseUri}?${queryParts.join('&')}` : baseUri
 
-      setLocalFinalAddressQR(finalUri)
-    },
-    [
-      localCustomAmount,
-      localLabel,
-      includeAmount,
-      includeLabel,
-      includeBitcoinPrefix,
-      localAddressQR
-    ]
-  )
+    setLocalFinalAddressQR(finalUri)
+  }, [
+    localCustomAmount,
+    localLabel,
+    includeAmount,
+    includeLabel,
+    includeBitcoinPrefix,
+    localAddressQR
+  ])
 
   const { addressInfo } = useGetFirstUnusedAddress(wallet!, account!)
 
-  useEffect(
-    function () {
-      async function loadAddress() {
-        if (!wallet) {
-          toast(t('error.notFound.wallet'))
-          setIsLoading(false)
-          return
-        }
-
-        if (addressInfo === null) {
-          setIsLoading(true)
-          return
-        }
-
-        if (isManualAddress) {
-          return
-        }
-
-        const [address, qrUri] = await Promise.all([
-          addressInfo?.address ? addressInfo.address.asString() : '',
-          addressInfo?.address ? addressInfo.address.toQrUri() : ''
-        ])
-        setLocalAddress(address)
-        setLocalAddressNumber(addressInfo.index)
-        setLocalAddressQR(qrUri)
-        setLocalFinalAddressQR(qrUri)
-        setLocalAddressPath(
-          `${account?.keys[0].derivationPath}/0/${addressInfo.index}`
-        )
-
-        const existingAddress = account?.addresses.find((addr) => {
-          return addr.address === address
-        })
-        if (existingAddress?.label) {
-          setLocalLabel(existingAddress.label)
-        }
-
-        setIsManualAddress(true)
+  useEffect(() => {
+    async function loadAddress() {
+      if (!wallet) {
+        toast(t('error.notFound.wallet'))
         setIsLoading(false)
+        return
       }
 
-      loadAddress()
-    },
-    [addressInfo, isManualAddress, account?.addresses, account?.keys, wallet]
-  )
+      if (addressInfo === null) {
+        setIsLoading(true)
+        return
+      }
+
+      if (isManualAddress) {
+        return
+      }
+
+      const [address, qrUri] = await Promise.all([
+        addressInfo?.address ? addressInfo.address.asString() : '',
+        addressInfo?.address ? addressInfo.address.toQrUri() : ''
+      ])
+      setLocalAddress(address)
+      setLocalAddressNumber(addressInfo.index)
+      setLocalAddressQR(qrUri)
+      setLocalFinalAddressQR(qrUri)
+      setLocalAddressPath(
+        `${account?.keys[0].derivationPath}/0/${addressInfo.index}`
+      )
+
+      const existingAddress = account?.addresses.find((addr) => {
+        return addr.address === address
+      })
+      if (existingAddress?.label) {
+        setLocalLabel(existingAddress.label)
+      }
+
+      setIsManualAddress(true)
+      setIsLoading(false)
+    }
+
+    loadAddress()
+  }, [addressInfo, isManualAddress, account?.addresses, account?.keys, wallet])
 
   async function generateAnotherAddress() {
     if (!wallet || !account) return
