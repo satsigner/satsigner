@@ -187,7 +187,7 @@ export default function Receive() {
       setLocalFinalAddressQR(qrUri)
       setLocalAddressPath(`${account.keys[0].derivationPath}/0/${nextIndex}`)
 
-      const existingAddress = account.addresses.find(function (addr) {
+      const existingAddress = account.addresses.find((addr) => {
         return addr.address === address
       })
       if (existingAddress?.label) {
