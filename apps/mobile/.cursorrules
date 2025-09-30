@@ -109,6 +109,34 @@ Use arrow functions for:
 - Callback functions passed to hooks (useCallback, useMemo, etc.)
 - Inline functions in component props
 - Array methods (map, filter, reduce, etc.)
+- useEffect callbacks and cleanup functions
+- Simple event handlers that don't need memoization
+
+[useCallback Guidelines]
+Only use useCallback when:
+
+- The function is passed as a prop to a memoized component (React.memo)
+- The function is used as a dependency in other hooks (useEffect, useMemo)
+- The function has expensive computations that benefit from memoization
+
+Do NOT use useCallback for:
+
+- Simple state setters: const handleToggle = () => setState(!state)
+- Basic event handlers that don't have dependencies
+- Functions that are only used once in the component
+- Functions that don't have any dependencies or have stable dependencies
+
+[String Concatenation]
+Always use template literals instead of string concatenation:
+✅ Correct: `Hello ${name}, you have ${count} items`
+❌ Wrong: 'Hello ' + name + ', you have ' + count + ' items'
+
+This applies to:
+
+- JSX props and attributes
+- Dynamic text content
+- URL construction
+- Any string building operations
 
 [Error Handling]
 Use try-catch ONLY for operations outside our control:
