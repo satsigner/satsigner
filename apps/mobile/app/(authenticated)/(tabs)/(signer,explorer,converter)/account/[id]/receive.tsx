@@ -262,7 +262,7 @@ export default function Receive() {
   if (!account) return <Redirect href="/" />
 
   return (
-    <SSMainLayout>
+    <SSMainLayout style={{ paddingTop: 0 }}>
       <Stack.Screen
         options={{
           headerTitle() {
@@ -310,7 +310,7 @@ export default function Receive() {
               </SSVStack>
             ) : (
               localFinalAddressQR && (
-                <SSVStack itemsCenter gap="lg">
+                <SSVStack itemsCenter gap="md">
                   <SSQRCode value={localFinalAddressQR} />
                   <SSHStack>
                     {nfcAvailable && (
