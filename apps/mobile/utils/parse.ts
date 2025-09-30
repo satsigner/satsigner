@@ -100,6 +100,11 @@ function parseAccountAddressesDetails({
     addressesDetailed[index].utxos.push(getUtxoOutpoint(utxo))
   }
 
+  // Restore labels from backup
+  addressesDetailed.forEach((addr) => {
+    addr.label = labelsBackup[addr.address] || ''
+  })
+
   return addressesDetailed
 }
 
