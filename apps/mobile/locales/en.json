@@ -49,6 +49,8 @@
     "export.noLabels.description": "Once you add labels to your transactions, utxos, and addresses, you will be able to export them.",
     "export.noLabels.title": "No labels",
     "export.pubkeys": "Export Public Keys",
+    "export.pubkeys.vpubFormat": "VPUB Format",
+    "export.pubkeys.xpubFormat": "XPUB Format",
     "fingerprint": "Fingerprint",
     "generate.disclaimer.1": "Anyone with this information can move the sats to another account.",
     "generate.disclaimer.2": "Consider an air-gapped hardware device for generating keys for significant amounts.",

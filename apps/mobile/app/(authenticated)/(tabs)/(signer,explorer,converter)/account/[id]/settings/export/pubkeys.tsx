@@ -153,13 +153,13 @@ export default function ExportPubkeys() {
         {!isLoading && rawPubkeys.length > 0 && (
           <SSHStack style={{ justifyContent: 'center', gap: 10 }}>
             <SSButton
-              label="XPUB Format"
+              label={t('account.export.pubkeys.xpubFormat')}
               variant={!useVpubFormat ? 'outline' : 'subtle'}
               onPress={() => setUseVpubFormat(false)}
               style={{ flex: 1 }}
             />
             <SSButton
-              label="VPUB Format"
+              label={t('account.export.pubkeys.vpubFormat')}
               variant={useVpubFormat ? 'outline' : 'subtle'}
               onPress={() => setUseVpubFormat(true)}
               style={{ flex: 1 }}
