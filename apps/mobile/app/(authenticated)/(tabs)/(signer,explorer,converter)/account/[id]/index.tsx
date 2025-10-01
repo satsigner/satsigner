@@ -46,7 +46,9 @@ import {
   SSIconKeys,
   SSIconList,
   SSIconMenu,
+  SSIconPasteClipboard,
   SSIconRefresh,
+  SSIconScanNFC,
   SSIconYellowIndicator
 } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
@@ -1109,9 +1111,9 @@ export default function AccountView() {
             </SSVStack>
             <SSVStack gap="none">
               <SSHStack
-                justifyEvenly
+                justifyBetween
                 gap="none"
-                style={{ paddingHorizontal: '5%' }}
+                style={{ paddingHorizontal: '4%' }}
               >
                 {account.keys[0].creationType !== 'importAddress' && (
                   <>
@@ -1119,25 +1121,45 @@ export default function AccountView() {
                       onPress={() => navigateToSignAndSend()}
                       style={{
                         ...styles.actionButton,
-                        width: '40%'
+                        width: '24%'
                       }}
                     >
-                      <SSText uppercase>{t('account.signAndSend')}</SSText>
+                      <SSText uppercase>{t('account.send')}</SSText>
+                    </SSActionButton>
+                    <SSActionButton
+                      onPress={() =>
+                        router.navigate(`/account/${id}/pasteClipboard`)
+                      }
+                      style={{
+                        ...styles.actionButton,
+                        width: '16.5%'
+                      }}
+                    >
+                      <SSIconPasteClipboard height={16} width={18} />
                     </SSActionButton>
                     <SSActionButton
                       onPress={() => router.navigate(`/account/${id}/camera`)}
                       style={{
                         ...styles.actionButton,
-                        width: '20%'
+                        width: '16.5%'
                       }}
                     >
                       <SSIconCamera height={13} width={18} />
                     </SSActionButton>
                     <SSActionButton
+                      onPress={() => router.navigate(`/account/${id}/nfcScan`)}
+                      style={{
+                        ...styles.actionButton,
+                        width: '16.5%'
+                      }}
+                    >
+                      <SSIconScanNFC height={21} width={18} />
+                    </SSActionButton>
+                    <SSActionButton
                       onPress={() => router.navigate(`/account/${id}/receive`)}
                       style={{
                         ...styles.actionButton,
-                        width: '40%'
+                        width: '24%'
                       }}
                     >
                       <SSText uppercase>{t('account.receive')}</SSText>

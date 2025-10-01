@@ -9,18 +9,18 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSCameraOverlay from '@/components/SSCameraOverlay'
 import SSText from '@/components/SSText'
-import { SATS_PER_BITCOIN } from '@/constants/btc'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
+import { useAccountsStore } from '@/store/accounts'
 import { Colors, Layout } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
 import {
   clearClipboard,
   getBitcoinAddressFromClipboard
 } from '@/utils/clipboard'
+import { processBitcoinContentDirect } from '@/utils/bitcoinContentProcessor'
 
 export default function Camera() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
@@ -28,8 +28,18 @@ export default function Camera() {
   const [permission, requestPermission] = useCameraPermissions()
   const [shouldFreezeCamera, setShouldFreezeCamera] = useState(false)
 
-  const [clearTransaction, addOutput] = useTransactionBuilderStore(
-    useShallow((state) => [state.clearTransaction, state.addOutput])
+  const [clearTransaction, addOutput, addInput, setFeeRate] =
+    useTransactionBuilderStore(
+      useShallow((state) => [
+        state.clearTransaction,
+        state.addOutput,
+        state.addInput,
+        state.setFeeRate
+      ])
+    )
+
+  const account = useAccountsStore(
+    (state) => state.accounts.find((account) => account.id === id)!
   )
 
   const appState = useRef(AppState.currentState)
@@ -38,23 +48,25 @@ export default function Camera() {
   function handleAddress(address: string | void) {
     if (!address) return
 
-    clearTransaction()
-    if (isBitcoinAddress(address)) {
-      addOutput({ amount: 1, label: 'Please update', to: address })
-    } else if (isBip21(address)) {
-      const decodedData = bip21decode(address)
-      if (!decodedData || typeof decodedData === 'string') return
-      addOutput({
-        amount: (decodedData.options.amount || 0) * SATS_PER_BITCOIN || 1,
-        label: decodedData.options.label || 'Please update',
-        to: decodedData.address
-      })
-    }
-
-    router.navigate({
-      pathname: '/account/[id]/signAndSend/selectUtxoList',
-      params: { id }
+    // Use shared Bitcoin content processing with custom navigation
+    const success = processBitcoinContentDirect(address, account, id, {
+      clearTransaction,
+      addOutput,
+      addInput,
+      setFeeRate,
+      navigate: (options) => {
+        // Navigate to selectUtxoList instead of ioPreview for camera
+        router.navigate({
+          pathname: '/account/[id]/signAndSend/selectUtxoList',
+          params: { id }
+        })
+      }
     })
+
+    if (!success) {
+      // Handle invalid content if needed
+      console.log('Invalid Bitcoin content:', address)
+    }
   }
 
   useEffect(() => {

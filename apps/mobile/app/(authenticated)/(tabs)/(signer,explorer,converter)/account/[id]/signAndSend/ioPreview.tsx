@@ -47,7 +47,7 @@ import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { checkWalletNeedsSync } from '@/utils/account'
-import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
+import { processBitcoinContentForOutput } from '@/utils/bitcoinContentProcessor'
 import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
@@ -293,32 +293,23 @@ export default function IOPreview() {
   function handleQRCodeScanned(address: string | undefined) {
     if (!address) return
 
-    if (isBitcoinAddress(address)) {
-      setOutputTo(address)
-    } else if (isBip21(address)) {
-      const decodedData = bip21decode(address)
-      if (!decodedData || typeof decodedData === 'string') {
+    // Use shared Bitcoin content processing for output fields
+    const success = processBitcoinContentForOutput(address, {
+      setOutputTo,
+      setOutputAmount,
+      setOutputLabel,
+      onError: (message) => {
         toast.error(t('transaction.error.address.invalid'))
-        setCameraModalVisible(false)
-        return
-      }
+      },
+      onWarning: (message) => {
+        toast.warning(t('transaction.error.bip21.insufficientSats'))
+      },
+      remainingSats
+    })
 
-      setOutputTo(decodedData.address)
-      if (decodedData.options.amount) {
-        const normalizedAmount = decodedData.options.amount * SATS_PER_BITCOIN
-        if (normalizedAmount > remainingSats) {
-          toast.warning(t('transaction.error.bip21.insufficientSats'))
-        } else {
-          setOutputAmount(normalizedAmount)
-        }
-      }
-
-      if (decodedData.options.label) setOutputLabel(decodedData.options.label)
-    } else {
-      toast.error(t('transaction.error.address.invalid'))
+    if (success) {
+      setCameraModalVisible(false)
     }
-
-    setCameraModalVisible(false)
   }
 
   function resetLocalOutput() {
