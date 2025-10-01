@@ -148,7 +148,7 @@ function SSTransactionChart({
         value: output.value,
         fiatValue: formatNumber(satsToFiat(output.value), 2),
         fiatCurrency,
-        address: formatAddress(output.address, 4),
+        address: formatAddress(output.address, 6),
         label: output.label ?? t('common.noLabel'),
         text: t('common.to'),
         isSelfSend: !!(output.address && ownAddresses.has(output.address))
