@@ -126,16 +126,8 @@ async function getWalletData(
             }
           }
 
-          // If we still don't have a fingerprint, try to extract it from the extended public key
           if (!fingerprint && extendedPublicKey) {
-            try {
-              fingerprint = getFingerprintFromExtendedPublicKey(
-                extendedPublicKey,
-                network
-              )
-            } catch {
-              // Failed to extract fingerprint
-            }
+            fingerprint = getFingerprintFromExtendedPublicKey(extendedPublicKey)
           }
 
           return { fingerprint, extendedPublicKey, index: keyIndex }

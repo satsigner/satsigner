@@ -22,7 +22,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { type GenerateMnemonicSearchParams } from '@/types/navigation/searchParams'
 import { getDescriptorsFromKey } from '@/utils/bip32'
 import {
-    getExtendedPublicKeyFromMnemonic,
+  getExtendedPublicKeyFromMnemonic,
   getFingerprintFromMnemonic,
   validateMnemonic
 } from '@/utils/bip39'
@@ -83,11 +83,7 @@ export default function GenerateMnemonic() {
     setChecksumValid(validMnemonic)
 
     if (validMnemonic) {
-      const fingerprint = getFingerprintFromMnemonic(
-        mnemonic,
-        passphrase,
-        network as Network
-      )
+      const fingerprint = getFingerprintFromMnemonic(mnemonic, passphrase)
       setFingerprint(fingerprint)
     }
   }

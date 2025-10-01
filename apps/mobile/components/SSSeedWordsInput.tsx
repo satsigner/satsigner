@@ -64,7 +64,6 @@ const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
 export default function SSSeedWordsInput({
   wordCount,
   wordListName,
-  network,
   onMnemonicValid,
   onMnemonicInvalid,
   showPassphrase = false,
@@ -148,8 +147,7 @@ export default function SSSeedWordsInput({
       if (checksumValid) {
         const fingerprintResult = getFingerprintFromMnemonic(
           mnemonic,
-          passphrase,
-          network
+          passphrase
         )
         setFingerprint(fingerprintResult)
         onMnemonicValid?.(mnemonic, fingerprintResult)
@@ -157,7 +155,7 @@ export default function SSSeedWordsInput({
         onMnemonicInvalid?.()
       }
     },
-    [passphrase, network, onMnemonicValid, onMnemonicInvalid, wordListName]
+    [passphrase, onMnemonicValid, onMnemonicInvalid, wordListName]
   )
 
   const readSeedFromClipboard = useCallback(async () => {
@@ -221,8 +219,7 @@ export default function SSSeedWordsInput({
       if (checksumValid) {
         const fingerprintResult = getFingerprintFromMnemonic(
           mnemonic,
-          passphrase,
-          network
+          passphrase
         )
         setFingerprint(fingerprintResult)
         onMnemonicValid?.(mnemonic, fingerprintResult)
@@ -253,11 +250,7 @@ export default function SSSeedWordsInput({
     setChecksumValid(checksumValid)
 
     if (checksumValid) {
-      const fingerprintResult = getFingerprintFromMnemonic(
-        mnemonic,
-        passphrase,
-        network
-      )
+      const fingerprintResult = getFingerprintFromMnemonic(mnemonic, passphrase)
       setFingerprint(fingerprintResult)
       onMnemonicValid?.(mnemonic, fingerprintResult)
     } else {
@@ -271,11 +264,7 @@ export default function SSSeedWordsInput({
     // Re-validate mnemonic with new passphrase if mnemonic is complete
     const mnemonic = seedWordsInfo.map((info) => info.value).join(' ')
     if (mnemonic.trim().length > 0 && checksumValid) {
-      const fingerprintResult = getFingerprintFromMnemonic(
-        mnemonic,
-        text,
-        network
-      )
+      const fingerprintResult = getFingerprintFromMnemonic(mnemonic, text)
       setFingerprint(fingerprintResult)
       onMnemonicValid?.(mnemonic, fingerprintResult)
     }

@@ -90,12 +90,11 @@ export function getDescriptorFromMnemonic(
 }
 
 export function getFingerprintFromMnemonic(
-  mnemonic: NonNullable<Secret['mnemonic']>,
-  passphrase: Secret['passphrase'],
-  network: Network
+  mnemonic: string,
+  passphrase: Secret['passphrase'] = undefined
 ) {
   const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
-  return getFingerprintFromSeed(seed, network)
+  return getFingerprintFromSeed(seed)
 }
 
 export function getExtendedPublicKeyFromMnemonic(

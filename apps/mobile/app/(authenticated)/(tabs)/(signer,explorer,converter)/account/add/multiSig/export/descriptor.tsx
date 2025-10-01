@@ -1,5 +1,5 @@
 import { Descriptor } from 'bdk-rn'
-import { KeychainKind, type Network } from 'bdk-rn/lib/lib/enums'
+import { KeychainKind, type Network as BDKNetwork } from 'bdk-rn/lib/lib/enums'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
@@ -15,7 +15,11 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type Secret } from '@/types/models/Account'
+import type {
+  CreationType,
+  ScriptVersionType,
+  Secret
+} from '@/types/models/Account'
 import { getDescriptorsFromKey } from '@/utils/bip32'
 import { getDescriptorFromMnemonic } from '@/utils/bip39'
 import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
@@ -32,8 +36,9 @@ export default function DescriptorPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [descriptor, setDescriptor] = useState('')
   const [keyName, setKeyName] = useState('')
-  const [creationType, setCreationType] = useState('')
-  const [scriptVersion, setScriptVersion] = useState('P2WPKH')
+  const [creationType, setCreationType] = useState<CreationType | null>()
+  const [scriptVersion, setScriptVersion] =
+    useState<ScriptVersionType>('P2WPKH')
 
   useEffect(() => {
     async function getDescriptor() {
@@ -69,7 +74,7 @@ export default function DescriptorPage() {
             scriptVersion,
             KeychainKind.External,
             secret.passphrase,
-            network
+            network as BDKNetwork
           )
         } else if (secret.extendedPublicKey && secret.fingerprint) {
           // Generate descriptor from available data (fingerprint, script version, and public key)
@@ -78,7 +83,7 @@ export default function DescriptorPage() {
               secret.extendedPublicKey,
               secret.fingerprint,
               key.scriptVersion || 'P2WPKH',
-              network as Network
+              network as BDKNetwork
             )
             foundDescriptor = descriptors.externalDescriptor
             setDescriptor(descriptors.externalDescriptor)
@@ -122,11 +127,11 @@ export default function DescriptorPage() {
             try {
               const descriptor = await new Descriptor().create(
                 externalDescriptor,
-                network as Network
+                network as BDKNetwork
               )
               foundDescriptor = descriptor ? await descriptor.asString() : ''
               setDescriptor(foundDescriptor)
-            } catch  {
+            } catch {
               foundDescriptor = externalDescriptor
               setDescriptor(externalDescriptor)
             }

@@ -1,4 +1,3 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
@@ -17,7 +16,6 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
-import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import {
   generateMnemonicFromEntropy,
@@ -40,7 +38,6 @@ export default function CoinEntropy() {
         state.setFingerprint
       ])
     )
-  const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const length = 32 * (mnemonicWordCount / 3)
 
@@ -56,14 +53,8 @@ export default function CoinEntropy() {
 
       if (newStep === length) {
         const mnemonic = generateMnemonicFromEntropy(newBits, mnemonicWordList)
-
         setMnemonic(mnemonic)
-
-        const fingerprint = getFingerprintFromMnemonic(
-          mnemonic,
-          undefined,
-          network as Network
-        )
+        const fingerprint = getFingerprintFromMnemonic(mnemonic)
         setFingerprint(fingerprint)
         router.navigate(`/account/add/generate/mnemonic/${index}`)
       }

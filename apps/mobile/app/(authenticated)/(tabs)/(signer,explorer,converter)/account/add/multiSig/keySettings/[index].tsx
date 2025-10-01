@@ -1,4 +1,3 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
@@ -75,11 +74,7 @@ export default function MultiSigKeySettings() {
           const mnemonic = generateMnemonic(localMnemonicWordCount)
           setMnemonic(mnemonic)
 
-          const fingerprint = getFingerprintFromMnemonic(
-            mnemonic,
-            undefined,
-            network as Network
-          )
+          const fingerprint = getFingerprintFromMnemonic(mnemonic)
           setFingerprint(fingerprint)
 
           setLoading(false)

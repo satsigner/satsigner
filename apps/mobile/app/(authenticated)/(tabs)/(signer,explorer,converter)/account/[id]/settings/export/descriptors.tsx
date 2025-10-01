@@ -170,14 +170,8 @@ export default function ExportDescriptors() {
 
               // If we still don't have a fingerprint, try to extract it from the extended public key
               if (!fingerprint && extendedPublicKey) {
-                try {
-                  fingerprint = getFingerprintFromExtendedPublicKey(
-                    extendedPublicKey,
-                    network as Network
-                  )
-                } catch {
-                  // Failed to extract fingerprint from extended public key
-                }
+                fingerprint =
+                  getFingerprintFromExtendedPublicKey(extendedPublicKey)
               }
 
               // If we still don't have a fingerprint, try to get it from the key's fingerprint property
@@ -288,14 +282,8 @@ export default function ExportDescriptors() {
 
                   // If we still don't have a fingerprint, try to extract it from the extended public key
                   if (!fingerprint && extendedPublicKey) {
-                    try {
-                      fingerprint = getFingerprintFromExtendedPublicKey(
-                        extendedPublicKey,
-                        network as Network
-                      )
-                    } catch {
-                      // Failed to extract fingerprint from extended public key for key ${index}
-                    }
+                    fingerprint =
+                      getFingerprintFromExtendedPublicKey(extendedPublicKey)
                   }
 
                   // If we still don't have a fingerprint, try to get it from the key's fingerprint property

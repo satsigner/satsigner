@@ -1,4 +1,3 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
@@ -95,11 +94,7 @@ export default function SingleSig() {
           )
           setMnemonic(mnemonic)
 
-          const fingerprint = getFingerprintFromMnemonic(
-            mnemonic,
-            undefined,
-            network as Network
-          )
+          const fingerprint = getFingerprintFromMnemonic(mnemonic)
           setFingerprint(fingerprint)
 
           setLoading(false)

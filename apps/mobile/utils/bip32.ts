@@ -24,12 +24,6 @@ const bip32 = BIP32Factory(ecc)
 BIP-32 define codes and prefixes to extended key for master keys in HD wallets,
 which vary by network (mainnet, testnet, signet, regtest).
 
-Network | Extended Private Key Prefix | Extended Public Key Prefix | Hex Prefix (Private) | Hex Prefix (Public)
-Mainnet | xprv                        | xpub                       | 0x0488ADE4           | 0x0488B21E
-Testnet | tprv                        | tpub                       | 0x043587CF           | 0x0435B243
-Signet  | tprv                        | tpub                       | 0x043587CF           | 0x0435B243
-Regtest | tprv                        | tpub                       | 0x043587CF           | 0x0435B243
-
 We need to convert BDK Network enum type to the type used by BIP32Interface.
 
 */
