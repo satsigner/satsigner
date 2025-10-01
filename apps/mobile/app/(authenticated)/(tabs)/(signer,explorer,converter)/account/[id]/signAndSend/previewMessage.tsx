@@ -1669,6 +1669,7 @@ function PreviewMessage() {
                           isReading={isReading}
                           decryptedKey={decryptedKeys[index]}
                           account={account}
+                          accountId={id!}
                           onShowQR={() => setNoKeyModalVisible(true)}
                           onNFCExport={handleNFCExport}
                           onPasteFromClipboard={

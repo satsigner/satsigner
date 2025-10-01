@@ -602,8 +602,6 @@ function useNostrSync() {
       const publicKey = getPublicKey(privateKeyBytes)
       const commonNsec = nip19.nsecEncode(privateKeyBytes)
       const commonNpub = nip19.npubEncode(publicKey)
-      console.log('commonNsec: ', commonNsec)
-      console.log('commonNpub: ', commonNpub)
 
       return {
         commonNsec,

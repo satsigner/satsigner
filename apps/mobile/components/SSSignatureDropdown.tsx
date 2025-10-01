@@ -1,4 +1,5 @@
 import { Buffer } from 'buffer'
+import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
@@ -34,6 +35,7 @@ type SSSignatureDropdownProps = {
   isReading: boolean
   decryptedKey?: Key
   account: Account
+  accountId: string
   onShowQR: () => void
   onNFCExport: () => void
   onPasteFromClipboard: (index: number, psbt: string) => void
@@ -58,6 +60,7 @@ function SSSignatureDropdown({
   isReading,
   decryptedKey,
   account,
+  accountId,
   onShowQR,
   onNFCExport,
   onPasteFromClipboard,
@@ -72,6 +75,8 @@ function SSSignatureDropdown({
   const [isPsbtValid, setIsPsbtValid] = useState<boolean | null>(null)
   const [extractedPublicKey, setExtractedPublicKey] = useState('')
   const [seedDropped, setSeedDropped] = useState(false)
+
+  const router = useRouter()
 
   // Get network and script version for source label
   const network = useBlockchainStore((state) => state.selectedNetwork)
@@ -414,8 +419,9 @@ function SSSignatureDropdown({
             variant="outline"
             disabled={!messageId}
             onPress={() => {
-              // TODO: Implement NIP-17 GROUP export
-              toast.info('NIP-17 GROUP export coming soon')
+              router.navigate(
+                `/account/${accountId}/settings/nostr/devicesGroupChat`
+              )
             }}
           />
           <SSText
