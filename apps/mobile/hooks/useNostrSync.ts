@@ -20,6 +20,52 @@ import {
 } from '@/utils/bip329'
 import { aesDecrypt, sha256 } from '@/utils/crypto'
 
+function parseMultisigDescriptor(descriptor: string) {
+  const keyPathMatches = descriptor.match(
+    /\[([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\]/g
+  )
+  if (!keyPathMatches || keyPathMatches.length === 0) {
+    throw new Error('Invalid multisig descriptor format')
+  }
+
+  const firstMatch = keyPathMatches[0].match(
+    /\[([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\]/
+  )
+  if (!firstMatch) {
+    throw new Error('Invalid multisig key path format')
+  }
+
+  const [, , purpose, coinType, accountIndex, keyType] = firstMatch
+  const hardenedPath = `m/${purpose.replace("'", 'h')}/${coinType.replace("'", 'h')}/${accountIndex.replace("'", 'h')}/${keyType.replace("'", 'h')}`
+
+  const xpubRegex = /(tpub|vpub|upub|zpub)[a-zA-Z0-9]+/g
+  const xpubs = (descriptor.match(xpubRegex) || []).sort()
+
+  return { hardenedPath, xpubs }
+}
+
+function parseSinglesigDescriptor(descriptor: string) {
+  const match = descriptor.match(/\[([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\]/)
+  if (!match) {
+    throw new Error('Invalid singlesig descriptor format')
+  }
+
+  const [, , purpose, coinType, accountIndex] = match
+  const hardenedPath = `m/${purpose.replace("'", 'h')}/${coinType.replace("'", 'h')}/${accountIndex.replace("'", 'h')}`
+
+  const xpubRegex = /(tpub|vpub|upub|zpub)[a-zA-Z0-9]+/g
+  const xpubs = (descriptor.match(xpubRegex) || []).sort()
+
+  return { hardenedPath, xpubs }
+}
+
+function parseDescriptor(descriptor: string) {
+  if (descriptor.includes('wsh(sortedmulti')) {
+    return parseMultisigDescriptor(descriptor)
+  }
+  return parseSinglesigDescriptor(descriptor)
+}
+
 function getTrustedDevices(accountId: string): string[] {
   const account = useAccountsStore
     .getState()
@@ -546,18 +592,8 @@ function useNostrSync() {
       }
 
       const descriptor = walletData.externalDescriptor
-      const match = descriptor.match(/\[([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\]/)
-      if (!match) {
-        throw new Error('Invalid descriptor format')
-      }
-
-      const [, , purpose, coinType, accountIndex] = match
-      const hardenedPath = `m/${purpose.replace("'", 'h')}/${coinType.replace("'", 'h')}/${accountIndex.replace("'", 'h')}`
-
-      const xpubRegex = /(tpub|vpub|upub|zpub)[a-zA-Z0-9]+/g
-      const xpubs = (descriptor.match(xpubRegex) || []).sort()
-
-      const totalString = hardenedPath + xpubs.join('')
+      const { hardenedPath, xpubs } = parseDescriptor(descriptor)
+      const totalString = `${hardenedPath}${xpubs.join('')}`
 
       const firstHash = await sha256(totalString)
       const doubleHash = await sha256(firstHash)
@@ -566,6 +602,8 @@ function useNostrSync() {
       const publicKey = getPublicKey(privateKeyBytes)
       const commonNsec = nip19.nsecEncode(privateKeyBytes)
       const commonNpub = nip19.npubEncode(publicKey)
+      console.log('commonNsec: ', commonNsec)
+      console.log('commonNpub: ', commonNpub)
 
       return {
         commonNsec,
