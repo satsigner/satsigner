@@ -138,12 +138,13 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     fontSize: text.fontSize.xxs,
     letterSpacing: 1,
-    marginTop: 2
+    marginTop: 2,
+    paddingBottom: 2
   },
   iconContainer: {
     width: 24,
     height: 24,
-    marginTop: 4,
+    marginTop: 2,
     justifyContent: 'flex-start',
     alignItems: 'center'
   }
