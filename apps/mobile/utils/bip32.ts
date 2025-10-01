@@ -1,6 +1,6 @@
 import ecc from '@bitcoinerlab/secp256k1'
-import { HDKey } from '@scure/bip32'
-import * as bip39 from '@scure/bip39'
+import { HDKey } from '@scure/bip32' // TODO: remove @scure
+import * as bip39 from '@scure/bip39' // TODO: remove @scure
 import { KeychainKind, Network as BDKNetwork } from 'bdk-rn/lib/lib/enums'
 import { BIP32Factory, type BIP32Interface } from 'bip32'
 
@@ -34,34 +34,213 @@ We need to convert BDK Network enum type to the type used by BIP32Interface.
 
 */
 
-const BIP32Networks: Record<BDKNetwork, BIP32Interface['network']> = {
+const BIP32Networks: Record<
+  BDKNetwork,
+  Record<ScriptVersionType, BIP32Interface['network']>
+> = {
   [BDKNetwork.Bitcoin]: {
-    bip32: {
-      public: 0x0488b21e,
-      private: 0x0488ade4
+    P2PKH: {
+      bip32: {
+        public: 0x0488b21e,
+        private: 0x0488ade4
+      },
+      wif: 0x80
     },
-    wif: 0x80
+    P2SH: {
+      bip32: {
+        public: 0x0488b21e,
+        private: 0x0488ade4
+      },
+      wif: 0x80
+    },
+    'P2SH-P2WPKH': {
+      bip32: {
+        public: 0x049d7cb2,
+        private: 0x049d7878
+      },
+      wif: 0x80
+    },
+    P2WPKH: {
+      bip32: {
+        public: 0x04b24746,
+        private: 0x04b2430c
+      },
+      wif: 0x80
+    },
+    'P2SH-P2WSH': {
+      bip32: {
+        public: 0x0295b43f,
+        private: 0x0295b005
+      },
+      wif: 0x80
+    },
+    P2WSH: {
+      bip32: {
+        public: 0x02aa7ed3,
+        private: 0x02aa7a99
+      },
+      wif: 0x80
+    },
+    P2TR: {
+      bip32: {
+        public: 0x0488b21e,
+        private: 0x0488ade4
+      },
+      wif: 0x80
+    }
   },
   [BDKNetwork.Testnet]: {
-    bip32: {
-      public: 0x043587cf,
-      private: 0x04358394
+    P2PKH: {
+      bip32: {
+        public: 0x043587cf,
+        private: 0x04358394
+      },
+      wif: 0xef
     },
-    wif: 0xef
-  },
-  [BDKNetwork.Regtest]: {
-    bip32: {
-      public: 0x043587cf,
-      private: 0x04358394
+    P2SH: {
+      bip32: {
+        public: 0x043587cf,
+        private: 0x04358394
+      },
+      wif: 0xef
     },
-    wif: 0xef
+    'P2SH-P2WPKH': {
+      bip32: {
+        public: 0x044a5262,
+        private: 0x044a4e28
+      },
+      wif: 0xef
+    },
+    P2WPKH: {
+      bip32: {
+        public: 0x045f1cf6,
+        private: 0x045f18bc
+      },
+      wif: 0xef
+    },
+    'P2SH-P2WSH': {
+      bip32: {
+        public: 0x024289ef,
+        private: 0x024285b5
+      },
+      wif: 0xef
+    },
+    P2WSH: {
+      bip32: {
+        public: 0x02575483,
+        private: 0x02575048
+      },
+      wif: 0xef
+    },
+    P2TR: {
+      bip32: {
+        public: 0x043587cf,
+        private: 0x04358394
+      },
+      wif: 0xef
+    }
   },
   [BDKNetwork.Signet]: {
-    bip32: {
-      public: 0x043587cf,
-      private: 0x04358394
+    P2PKH: {
+      bip32: {
+        public: 0x043587cf,
+        private: 0x04358394
+      },
+      wif: 0xef
     },
-    wif: 0xef
+    P2SH: {
+      bip32: {
+        public: 0x043587cf,
+        private: 0x04358394
+      },
+      wif: 0xef
+    },
+    'P2SH-P2WPKH': {
+      bip32: {
+        public: 0x044a5262,
+        private: 0x044a4e28
+      },
+      wif: 0xef
+    },
+    P2WPKH: {
+      bip32: {
+        public: 0x045f1cf6,
+        private: 0x045f18bc
+      },
+      wif: 0xef
+    },
+    'P2SH-P2WSH': {
+      bip32: {
+        public: 0x024289ef,
+        private: 0x024285b5
+      },
+      wif: 0xef
+    },
+    P2WSH: {
+      bip32: {
+        public: 0x02575483,
+        private: 0x02575048
+      },
+      wif: 0xef
+    },
+    P2TR: {
+      bip32: {
+        public: 0x043587cf,
+        private: 0x04358394
+      },
+      wif: 0xef
+    }
+  },
+  [BDKNetwork.Regtest]: {
+    P2PKH: {
+      bip32: {
+        public: 0x043587cf,
+        private: 0x04358394
+      },
+      wif: 0xef
+    },
+    P2SH: {
+      bip32: {
+        public: 0x043587cf,
+        private: 0x04358394
+      },
+      wif: 0xef
+    },
+    'P2SH-P2WPKH': {
+      bip32: {
+        public: 0x044a5262,
+        private: 0x044a4e28
+      },
+      wif: 0xef
+    },
+    P2WPKH: {
+      bip32: {
+        public: 0x045f1cf6,
+        private: 0x045f18bc
+      },
+      wif: 0xef
+    },
+    'P2SH-P2WSH': {
+      bip32: {
+        public: 0x024289ef,
+        private: 0x024285b5
+      },
+      wif: 0xef
+    },
+    P2WSH: {
+      bip32: {
+        public: 0x02575483,
+        private: 0x02575048
+      },
+      wif: 0xef
+    },
+    P2TR: {
+      bip32: {
+        public: 0x043587cf,
+        private: 0x04358394
+      },
+      wif: 0xef
+    }
   }
 }
 
@@ -82,10 +261,12 @@ export function getDescriptorFromSeed(
   kind: KeychainKind,
   network: BDKNetwork
 ): string {
-  const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
+  const masterKey = bip32.fromSeed(seed, BIP32Networks[network][scriptVersion])
+  // const rootKey = masterKey.toBase58()
   const path = getStandardPath(scriptVersion, network)
   const derivedKey = masterKey.derivePath(`m/${path}`)
-  const pubkey = Buffer.from(derivedKey.publicKey).toString('hex')
+  // const pkey = derivedKey.toBase58()
+  const pubkey = derivedKey.neutered().toBase58()
   const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
   const descriptor = getDescriptorFromPubkey(
     pubkey,
@@ -143,17 +324,16 @@ export function getScriptVersionPurpose(
   }
 }
 
-export function getFingerprintFromSeed(seed: Buffer, network: BDKNetwork) {
-  const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
+export function getFingerprintFromSeed(seed: Buffer) {
+  // the master fingerprint does not depend upon network
+  const masterKey = bip32.fromSeed(seed)
   const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
   return fingerprint
 }
 
-export function getFingerprintFromExtendedPublicKey(
-  extendedPublicKey: string,
-  network: BDKNetwork
-) {
-  const masterKey = bip32.fromBase58(extendedPublicKey, BIP32Networks[network])
+export function getFingerprintFromExtendedPublicKey(extendedPublicKey: string) {
+  // the master fingerprint does not depend upon network
+  const masterKey = bip32.fromBase58(extendedPublicKey)
   const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
   return fingerprint
 }
@@ -163,7 +343,7 @@ export function getExtendedPublicKeyFromSeed(
   network: BDKNetwork,
   scriptVersion: ScriptVersionType
 ) {
-  const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
+  const masterKey = bip32.fromSeed(seed, BIP32Networks[network][scriptVersion])
   // this assumes default account=0 and external address kind=0
   const path = getStandardPath(scriptVersion, network)
   const derivedKey = masterKey.derivePath(path).neutered()
@@ -410,9 +590,6 @@ export function getXpubForScriptVersion(
   return xpubFunctions[scriptVersion](seed, network)
 }
 
-/**
- * Get all three extended public keys from mnemonic
- */
 export function getAllXpubs(
   mnemonic: string,
   passphrase: string = '',

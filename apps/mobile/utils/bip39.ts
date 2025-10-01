@@ -200,7 +200,7 @@ function deriveXpubFromMnemonic(
   }
 }
 
-async function getExtendedPublicKeyFromMnemonicCustom(
+function getExtendedPublicKeyFromMnemonicCustom(
   mnemonic: NonNullable<Secret['mnemonic']>,
   passphrase: string = '',
   network: Network,
@@ -262,4 +262,5 @@ async function getExtendedPublicKeyFromMnemonicCustom(
 
   return result.xpub
 }
+
 export { getExtendedPublicKeyFromMnemonicCustom }
