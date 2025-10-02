@@ -46,32 +46,26 @@ function SSSelectModal({
           <ScrollView>
             <SSVStack gap="lg">
               <SSVStack>
-                <SSText color="muted" size="lg" style={{ alignSelf: 'center' }}>
+                <SSText
+                  color="muted"
+                  size="sm"
+                  style={{ alignSelf: 'center', minHeight: 40 }}
+                  uppercase
+                >
                   {title}
                 </SSText>
-                {selectedText && selectedDescription && (
-                  <SSVStack gap="sm">
-                    <SSText uppercase>
-                      {splitSelectedText.length > 1 ? (
-                        <>
-                          <SSText weight="bold">{splitSelectedText[0]}</SSText>
-                          {' - '}
-                          {splitSelectedText[1]}
-                        </>
-                      ) : (
-                        selectedText
-                      )}
-                    </SSText>
-                    {typeof selectedDescription === 'string' ? (
-                      <SSText color="muted">{selectedDescription}</SSText>
-                    ) : (
-                      selectedDescription
-                    )}
-                  </SSVStack>
-                )}
               </SSVStack>
               <SSVStack style={{ paddingBottom: 16 }}>{children}</SSVStack>
             </SSVStack>
+            {selectedText && selectedDescription && (
+              <SSVStack gap="sm" style={{ paddingTop: 16 }}>
+                {typeof selectedDescription === 'string' ? (
+                  <SSText color="muted">{selectedDescription}</SSText>
+                ) : (
+                  selectedDescription
+                )}
+              </SSVStack>
+            )}
           </ScrollView>
           <SSVStack>
             <SSButton
