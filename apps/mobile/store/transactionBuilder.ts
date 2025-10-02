@@ -6,6 +6,7 @@ import { create } from 'zustand'
 
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
+import { type TransactionData } from '@/utils/psbtAccountMatcher'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 enableMapSet()
@@ -17,10 +18,12 @@ type TransactionBuilderState = {
   fee: number
   timeLock: number
   rbf: boolean
+  cpfp: boolean
   txBuilderResult?: TxBuilderResult
   psbt?: PartiallySignedTransaction
   signedTx?: string
   broadcasted: boolean
+  nostrTransactionData?: TransactionData
 }
 
 type TransactionBuilderAction = {
@@ -46,6 +49,10 @@ type TransactionBuilderAction = {
     signedTx: NonNullable<TransactionBuilderState['signedTx']>
   ) => void
   setBroadcasted: (broadcasted: boolean) => void
+  setNostrTransactionData: (
+    data: NonNullable<TransactionBuilderState['nostrTransactionData']>
+  ) => void
+  clearNostrTransactionData: () => void
 }
 
 const useTransactionBuilderStore = create<
@@ -67,7 +74,8 @@ const useTransactionBuilderStore = create<
       txBuilderResult: undefined,
       psbt: undefined,
       signedTx: undefined,
-      broadcasted: false
+      broadcasted: false,
+      nostrTransactionData: undefined
     })
   },
   getInputs: () => {
@@ -137,6 +145,12 @@ const useTransactionBuilderStore = create<
   },
   setBroadcasted: (broadcasted) => {
     set({ broadcasted })
+  },
+  setNostrTransactionData: (nostrTransactionData) => {
+    set({ nostrTransactionData })
+  },
+  clearNostrTransactionData: () => {
+    set({ nostrTransactionData: undefined })
   }
 }))
 

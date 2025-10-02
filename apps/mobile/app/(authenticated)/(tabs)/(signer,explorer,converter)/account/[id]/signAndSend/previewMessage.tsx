@@ -103,7 +103,7 @@ function hasEnoughSignatures(input: any): boolean {
 
     return signatureCount >= threshold
   } catch {
-    toast.error('Error checking if input has enough signatures')
+    toast.error(t('common.error.checkingInputSignatures'))
     return false
   }
 }
@@ -130,6 +130,13 @@ function PreviewMessage() {
       state.txBuilderResult,
       state.setSignedTx
     ])
+  )
+
+  const storeNostrData = useTransactionBuilderStore(
+    (state) => state.nostrTransactionData
+  )
+  const clearNostrTransactionData = useTransactionBuilderStore(
+    (state) => state.clearNostrTransactionData
   )
   const account = useAccountsStore((state) =>
     state.accounts.find((account) => account.id === id)
@@ -208,7 +215,7 @@ function PreviewMessage() {
           )
           results.set(cosignerIndex, isValid)
         } catch {
-          toast.error('Failed in validating cosigner signature')
+          toast.error(t('common.error.validatingCosignerSignature'))
           results.set(cosignerIndex, false)
         }
       }
@@ -343,7 +350,7 @@ function PreviewMessage() {
       }
 
       return data
-    } catch (_error) {
+    } catch {
       // If conversion fails, return original data to prevent app crashes
       return data
     }
@@ -366,7 +373,7 @@ function PreviewMessage() {
           try {
             const hexResult = Buffer.from(assembled, 'base64').toString('hex')
             return hexResult
-          } catch (_error) {
+          } catch {
             return assembled
           }
         }
@@ -498,11 +505,66 @@ function PreviewMessage() {
     const transaction = new bitcoinjs.Transaction()
     const network = bitcoinjsNetwork(account.network)
 
+    // If we have Nostr transaction data, use it directly
+    if (storeNostrData) {
+      for (const input of storeNostrData.inputs) {
+        // Validate txid before processing
+        if (
+          !input.txid ||
+          input.txid.length !== 64 ||
+          !/^[0-9a-fA-F]+$/.test(input.txid)
+        ) {
+          continue
+        }
+
+        const hashBuffer = Buffer.from(parseHexToBytes(input.txid))
+        if (hashBuffer.length !== 32) {
+          continue
+        }
+
+        transaction.addInput(hashBuffer, input.vout)
+      }
+
+      for (const output of storeNostrData.outputs) {
+        // Validate address format before creating output script
+        try {
+          const outputScript = bitcoinjs.address.toOutputScript(
+            output.address,
+            network
+          )
+          transaction.addOutput(outputScript, output.value)
+        } catch {
+          return ''
+        }
+      }
+
+      const hex = transaction.toHex()
+
+      transaction.ins = []
+      transaction.outs = []
+
+      return hex
+    }
+
+    // Otherwise use the normal transaction builder data
     // Convert inputs to array once to avoid repeated Map iteration
     const inputArray = Array.from(inputs.values())
 
     for (const input of inputArray) {
+      // Validate txid before processing
+      if (
+        !input.txid ||
+        input.txid.length !== 64 ||
+        !/^[0-9a-fA-F]+$/.test(input.txid)
+      ) {
+        continue
+      }
+
       const hashBuffer = Buffer.from(parseHexToBytes(input.txid))
+      if (hashBuffer.length !== 32) {
+        continue
+      }
+
       transaction.addInput(hashBuffer, input.vout)
     }
 
@@ -528,9 +590,32 @@ function PreviewMessage() {
     transaction.outs = []
 
     return hex
-  }, [account, inputs, outputs])
+  }, [account, inputs, outputs, storeNostrData])
 
   const transaction = useMemo(() => {
+    // If we have Nostr transaction data, use it directly
+    if (storeNostrData) {
+      const { size, vsize } = estimateTransactionSize(
+        storeNostrData.inputs.length,
+        storeNostrData.outputs.length
+      )
+
+      const vin = storeNostrData.inputs.map((input: any) => ({
+        previousOutput: { txid: input.txid, vout: input.vout },
+        value: input.value,
+        label: input.label || ''
+      }))
+
+      const vout = storeNostrData.outputs.map((output: any) => ({
+        address: output.address,
+        value: output.value,
+        label: output.label || ''
+      }))
+
+      return { id: messageId, size, vsize, vin, vout } as never as Transaction
+    }
+
+    // Otherwise use the normal transaction builder data
     const { size, vsize } = estimateTransactionSize(inputs.size, outputs.length)
 
     const vin = Array.from(inputs.values()).map((input: Utxo) => ({
@@ -546,9 +631,61 @@ function PreviewMessage() {
     }))
 
     return { id: messageId, size, vsize, vin, vout } as never as Transaction
-  }, [inputs, outputs, messageId])
+  }, [inputs, outputs, messageId, storeNostrData])
+
+  // Check for Nostr transaction data first
+  useEffect(() => {
+    if (storeNostrData) {
+      setMessageId(storeNostrData.txid)
+
+      // Create a mock txBuilderResult from Nostr data
+      const mockTxBuilderResult = {
+        psbt: {
+          base64: storeNostrData.originalPsbt,
+          combine: () => {},
+          extractTx: () => ({}) as any,
+          serialize: () => storeNostrData.originalPsbt,
+          txid: storeNostrData.txid,
+          finalizeAllInputs: () => {},
+          finalizeInput: () => {},
+          getFee: () => storeNostrData.fee || 0,
+          getTxid: () => storeNostrData.txid
+        } as any,
+        txDetails: {
+          txid: storeNostrData.txid,
+          received: 0,
+          sent: 0
+        }
+      }
+
+      setTxBuilderResult(mockTxBuilderResult)
+
+      // Populate signedPsbts from Nostr data
+      if (
+        storeNostrData.signedPsbts &&
+        typeof storeNostrData.signedPsbts === 'object'
+      ) {
+        Object.entries(storeNostrData.signedPsbts).forEach(
+          ([cosignerIndexStr, psbt]) => {
+            const cosignerIndex = parseInt(cosignerIndexStr, 10)
+            if (
+              !isNaN(cosignerIndex) &&
+              psbt &&
+              typeof psbt === 'string' &&
+              psbt.trim().length > 0
+            ) {
+              updateSignedPsbt(cosignerIndex, psbt)
+            }
+          }
+        )
+      }
+    }
+  }, [storeNostrData, updateSignedPsbt, setTxBuilderResult])
 
   useEffect(() => {
+    // Only build transaction if we don't have Nostr data
+    if (storeNostrData) return
+
     async function getTransactionMessage() {
       if (!wallet) {
         toast.error(t('error.notFound.wallet'))
@@ -587,7 +724,16 @@ function PreviewMessage() {
     }
 
     getTransactionMessage()
-  }, [wallet, inputs, outputs, fee, rbf, network, setTxBuilderResult])
+  }, [
+    wallet,
+    inputs,
+    outputs,
+    fee,
+    rbf,
+    network,
+    setTxBuilderResult,
+    storeNostrData
+  ])
 
   // Separate effect to validate addresses and show errors
   // Only validate when we have a complete transaction (not during editing)
@@ -871,7 +1017,7 @@ function PreviewMessage() {
     index?: number
   ) => {
     if (!data) {
-      toast.error('Failed to scan QR code')
+      toast.error(t('common.error.scanQRCode'))
       return
     }
 
@@ -890,7 +1036,7 @@ function PreviewMessage() {
             const hexResult = Buffer.from(decoded).toString('hex')
             finalContent = hexResult
           } else {
-            toast.error('Failed to decode BBQR QR code')
+            toast.error(t('common.error.decodeBBQRCode'))
             return
           }
         }
@@ -907,7 +1053,7 @@ function PreviewMessage() {
           if (decoded) {
             finalContent = decoded
           } else {
-            toast.error('Failed to decode UR QR code')
+            toast.error(t('common.error.decodeURCode'))
             return
           }
         }
@@ -926,7 +1072,7 @@ function PreviewMessage() {
         // Process the data (convert PSBT to final transaction if needed)
         finalContent = processScannedData(finalContent)
       } catch {
-        toast.error('Failed to process scanned data')
+        toast.error(t('common.error.processScannedData'))
       }
 
       // Use hook's updateSignedPsbt function
@@ -934,7 +1080,7 @@ function PreviewMessage() {
 
       setCameraModalVisible(false)
       resetScanProgress()
-      toast.success('QR code scanned successfully')
+      toast.success(t('common.success.qrScanned'))
       return
     }
 
@@ -1064,7 +1210,7 @@ function PreviewMessage() {
             )
           }
         } else {
-          toast.error('Failed to assemble multi-part QR code')
+          toast.error(t('common.error.assembleQRCode'))
           resetScanProgress()
         }
       } else {
@@ -1113,7 +1259,7 @@ function PreviewMessage() {
     try {
       const text = await Clipboard.getStringAsync()
       if (!text) {
-        toast.error('No data found in clipboard')
+        toast.error(t('common.error.noClipboardData'))
         return
       }
 
@@ -1123,13 +1269,13 @@ function PreviewMessage() {
       // Use hook's updateSignedPsbt function
       updateSignedPsbt(index, processedData)
 
-      toast.success('Data pasted successfully')
+      toast.success(t('common.success.dataPasted'))
     } catch (error) {
       const errorMessage = (error as Error).message
       if (errorMessage) {
         toast.error(errorMessage)
       } else {
-        toast.error('Failed to paste from clipboard')
+        toast.error(t('common.error.pasteFromClipboard'))
       }
     }
   }
@@ -1225,7 +1371,7 @@ function PreviewMessage() {
   // Handle seed words form submission
   const handleSeedWordsSubmit = async () => {
     if (!currentMnemonic || currentCosignerIndex === null) {
-      toast.error('Please enter a valid mnemonic')
+      toast.error(t('common.error.validMnemonic'))
       return
     }
 
@@ -1266,7 +1412,7 @@ function PreviewMessage() {
     try {
       const originalPsbtBase64 = txBuilderResult?.psbt?.base64
       if (!originalPsbtBase64) {
-        toast.error('No original PSBT found')
+        toast.error(t('common.error.noOriginalPSBT'))
         return null
       }
 
@@ -1276,7 +1422,7 @@ function PreviewMessage() {
       )
 
       if (collectedSignedPsbts.length === 0) {
-        toast.error('No signed PSBTs collected')
+        toast.error(t('common.error.noSignedPSBTs'))
         return null
       }
 
@@ -1318,11 +1464,11 @@ function PreviewMessage() {
           try {
             combinedPsbt.finalizeInput(i)
           } catch {
-            toast.error('Failed to finalize input')
+            toast.error(t('common.error.finalizeInput'))
           }
         }
 
-        toast.error('Failed to finalize transaction - insufficient signatures')
+        toast.error(t('common.error.finalizeTransaction'))
         return null
       }
 
@@ -1333,14 +1479,14 @@ function PreviewMessage() {
 
         setSignedTx(transactionHex)
 
-        toast.success('Multisig transaction finalized successfully!')
+        toast.success(t('transaction.finalizedSuccessfully'))
         return transactionHex
       } catch {
-        toast.error('Failed to extract final transaction')
+        toast.error(t('common.error.extractTransaction'))
         return null
       }
     } catch {
-      toast.error('Failed to combine and finalize PSBTs')
+      toast.error(t('common.error.combinePSBTs'))
       return null
     }
   }
@@ -1390,8 +1536,9 @@ function PreviewMessage() {
       setQrChunks([])
       setUrChunks([])
       setRawPsbtChunks([])
+      clearNostrTransactionData()
     }
-  }, [])
+  }, [clearNostrTransactionData])
 
   // Close expanded signatures when navigating away
   useEffect(() => {
@@ -1670,6 +1817,7 @@ function PreviewMessage() {
                           decryptedKey={decryptedKeys[index]}
                           account={account}
                           accountId={id!}
+                          signedPsbts={signedPsbts}
                           onShowQR={() => setNoKeyModalVisible(true)}
                           onNFCExport={handleNFCExport}
                           onPasteFromClipboard={
@@ -2053,7 +2201,7 @@ function PreviewMessage() {
                             newComplexity === 12 &&
                             isDataTooLargeForSingleQR()
                           ) {
-                            toast.error('Data too large for single QR code')
+                            toast.error(t('common.error.dataTooLarge'))
                             return
                           }
                           setQrComplexity(Math.min(12, newComplexity))

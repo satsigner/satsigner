@@ -1,6 +1,7 @@
+import * as bitcoinjs from 'bitcoinjs-lib'
 import { Buffer } from 'buffer'
 import { useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
 
@@ -9,13 +10,21 @@ import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import { useKeySourceLabel } from '@/hooks/useKeySourceLabel'
 import { useSignatureDropdownValidation } from '@/hooks/useKeyValidation'
+import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Typography } from '@/styles'
 import { type Account, type Key } from '@/types/models/Account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
+import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { parseHexToBytes } from '@/utils/parse'
+import {
+  storeTransactionData,
+  type TransactionData
+} from '@/utils/psbtAccountMatcher'
 import {
   validateSignedPSBT,
   validateSignedPSBTForCosigner
@@ -36,6 +45,7 @@ type SSSignatureDropdownProps = {
   decryptedKey?: Key
   account: Account
   accountId: string
+  signedPsbts: Map<number, string>
   onShowQR: () => void
   onNFCExport: () => void
   onPasteFromClipboard: (index: number, psbt: string) => void
@@ -61,6 +71,7 @@ function SSSignatureDropdown({
   decryptedKey,
   account,
   accountId,
+  signedPsbts,
   onShowQR,
   onNFCExport,
   onPasteFromClipboard,
@@ -77,6 +88,7 @@ function SSSignatureDropdown({
   const [seedDropped, setSeedDropped] = useState(false)
 
   const router = useRouter()
+  const { sendDM } = useNostrSync()
 
   // Get network and script version for source label
   const network = useBlockchainStore((state) => state.selectedNetwork)
@@ -91,6 +103,144 @@ function SSSignatureDropdown({
       signedPsbt
     }
   )
+
+  // Function to send transaction data via Nostr
+  const handleSendTransactionToGroup = useCallback(async () => {
+    if (!account?.nostr?.autoSync) {
+      toast.error(t('account.nostrSync.autoSyncMustBeEnabled'))
+      return
+    }
+
+    if (!messageId || !txBuilderResult?.psbt?.base64) {
+      toast.error(t('account.nostrSync.transactionDataNotAvailable'))
+      return
+    }
+
+    try {
+      // Get inputs and outputs from transaction builder store
+      const inputs = useTransactionBuilderStore.getState().inputs
+      const outputs = useTransactionBuilderStore.getState().outputs
+      const fee = useTransactionBuilderStore.getState().fee
+
+      // Collect all signed PSBTs with their cosigner indices
+      const collectedSignedPsbts = Array.from(signedPsbts.entries())
+        .filter(([, psbt]) => psbt && psbt.trim().length > 0)
+        .reduce(
+          (acc, [cosignerIndex, psbt]) => {
+            acc[cosignerIndex] = psbt
+            return acc
+          },
+          {} as Record<number, string>
+        )
+
+      // Get transaction hex directly from txBuilderResult
+      let transactionHex = ''
+      try {
+        const tx = new bitcoinjs.Transaction()
+
+        // Add inputs
+        const inputArray = Array.from(inputs.values())
+        for (const input of inputArray) {
+          const hashBuffer = Buffer.from(parseHexToBytes(input.txid))
+          tx.addInput(hashBuffer, input.vout)
+        }
+
+        // Add outputs
+        for (const output of outputs) {
+          const network = bitcoinjsNetwork(account.network)
+          const outputScript = bitcoinjs.address.toOutputScript(
+            output.to,
+            network
+          )
+          tx.addOutput(outputScript, output.amount)
+        }
+
+        transactionHex = tx.toHex()
+      } catch {
+        toast.error(t('common.error.failedToGenerateTransactionHex'))
+        return
+      }
+
+      // Create transaction data with pre-computed values
+      const transactionData: TransactionData = {
+        type: 'multisig_transaction',
+        txid: messageId,
+        network: account.network === 'bitcoin' ? 'mainnet' : account.network,
+        keyCount: account.keyCount || account.keys?.length || 0,
+        keysRequired: account.keysRequired || 1,
+        originalPsbt: txBuilderResult.psbt.base64,
+        signedPsbts: collectedSignedPsbts,
+        timestamp: Date.now(),
+        // Pre-computed transaction data
+        transactionHex,
+        // Required TransactionData properties
+        inputs: Array.from(inputs.values()).map((input) => ({
+          txid: input.txid,
+          vout: input.vout,
+          value: input.value,
+          script: '', // Will be filled by receiver if needed
+          label: input.label,
+          keychain: input.keychain
+        })),
+        outputs: outputs.map((output) => ({
+          address: output.to,
+          value: output.amount,
+          script: '', // Will be filled by receiver if needed
+          label: output.label
+        })),
+        fee,
+        rbf: useTransactionBuilderStore.getState().rbf,
+        messageId,
+        // Additional data for preview page reconstruction
+        accountId: account.id,
+        accountName: account.name,
+        accountNetwork: account.network,
+        accountPolicyType: account.policyType,
+        accountKeys:
+          account.keys?.map((key) => ({
+            name: key.name,
+            scriptVersion: key.scriptVersion,
+            creationType: key.creationType,
+            secret: key.secret,
+            iv: key.iv
+          })) || []
+      }
+
+      // Store transaction data temporarily for others to access
+      // Use the same txid that will be extracted from the message
+      storeTransactionData(transactionData)
+
+      const message = `🔐 Multisig Transaction Ready for Signing
+
+Transaction ID: ${messageId}
+Network: ${account.network}
+Required Signatures: ${account.keysRequired}/${account.keyCount}
+Current Signatures: ${Object.keys(collectedSignedPsbts).length}
+
+Transaction Data:
+${JSON.stringify(transactionData, null, 2)}
+
+Please open this transaction in your SatSigner app to review and sign.
+
+[${t('account.transaction.signFlow')}]`
+
+      await sendDM(account, message)
+      toast.success(t('account.nostrSync.transactionDataSentToGroupChat'))
+
+      // Navigate to group chat after sending
+      router.navigate(`/account/${accountId}/settings/nostr/devicesGroupChat`)
+    } catch {
+      toast.error(t('account.nostrSync.failedToSendTransactionData'))
+    }
+  }, [
+    account,
+    messageId,
+    txBuilderResult,
+    signedPsbts,
+    sendDM,
+    router,
+    accountId
+  ])
 
   const { sourceLabel } = useKeySourceLabel({
     keyDetails,
@@ -124,7 +274,7 @@ function SSSignatureDropdown({
                 secret.externalDescriptor
               )
               setExtractedPublicKey(publicKey)
-            } catch (_error) {
+            } catch {
               setExtractedPublicKey('')
             }
           }
@@ -150,7 +300,7 @@ function SSSignatureDropdown({
               secret.externalDescriptor
             )
             setExtractedPublicKey(publicKey)
-          } catch (_error) {
+          } catch {
             setExtractedPublicKey('')
           }
         } else {
@@ -239,7 +389,7 @@ function SSSignatureDropdown({
             // Likely a hex PSBT, try to convert
             try {
               psbtToValidate = Buffer.from(signedPsbt, 'hex').toString('base64')
-            } catch (_error) {
+            } catch {
               // If conversion fails, use original
               psbtToValidate = signedPsbt
             }
@@ -257,7 +407,7 @@ function SSSignatureDropdown({
               )
             : validateSignedPSBT(psbtToValidate, account)
         setIsPsbtValid(isValid)
-      } catch (_error) {
+      } catch {
         setIsPsbtValid(false)
       }
     } else {
@@ -417,12 +567,8 @@ function SSSignatureDropdown({
           <SSButton
             label="NIP-17 GROUP"
             variant="outline"
-            disabled={!messageId}
-            onPress={() => {
-              router.navigate(
-                `/account/${accountId}/settings/nostr/devicesGroupChat`
-              )
-            }}
+            disabled={!messageId || !account?.nostr?.autoSync}
+            onPress={handleSendTransactionToGroup}
           />
           <SSText
             center

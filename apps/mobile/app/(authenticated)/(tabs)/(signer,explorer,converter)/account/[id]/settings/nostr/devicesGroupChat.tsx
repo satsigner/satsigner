@@ -1,4 +1,4 @@
-import { Redirect, Stack, useLocalSearchParams } from 'expo-router'
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, StyleSheet, TextInput, View } from 'react-native'
@@ -13,9 +13,15 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
 import type { NostrDM } from '@/types/models/Nostr'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import {
+  extractTransactionIdFromMessage,
+  handleGoToSignFlow,
+  parseNostrTransactionMessage
+} from '@/utils/nostrTransactionParser'
 
 // Cache for npub colors
 const colorCache = new Map<string, { text: string; color: string }>()
@@ -49,6 +55,7 @@ async function formatNpub(
 
 function SSDevicesGroupChat() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [isContentLoaded, setIsContentLoaded] = useState(false)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
@@ -145,12 +152,12 @@ function SSDevicesGroupChat() {
 
   const handleSendMessage = async () => {
     if (!messageInput.trim()) {
-      toast.error('Message cannot be empty')
+      toast.error(t('common.error.messageCannotBeEmpty'))
       return
     }
 
     if (!account?.nostr?.autoSync) {
-      toast.error('Auto-sync must be enabled to send messages')
+      toast.error(t('common.error.autoSyncMustBeEnabled'))
       return
     }
 
@@ -159,7 +166,7 @@ function SSDevicesGroupChat() {
       !account?.nostr?.deviceNpub ||
       !account?.nostr?.relays?.length
     ) {
-      toast.error('Missing required Nostr configuration')
+      toast.error(t('common.error.missingRequiredNostrConfig'))
       return
     }
 
@@ -167,12 +174,56 @@ function SSDevicesGroupChat() {
     try {
       await sendDM(account, messageInput.trim())
       setMessageInput('')
-    } catch (_error) {
-      toast.error('Failed to send message')
+    } catch {
+      toast.error(t('common.error.failedToSendMessage'))
     } finally {
       setIsLoading(false)
     }
   }
+
+  const handleGoToSignFlowClick = useCallback(
+    (messageContent: string) => {
+      try {
+        // Check if message contains transaction data
+        if (
+          !messageContent.includes('multisig_transaction') ||
+          !messageContent.includes('Transaction Data:') ||
+          !messageContent.includes('originalPsbt')
+        ) {
+          toast.error(t('common.error.transactionDataInvalid'))
+          return
+        }
+
+        // Parse the transaction data from the message
+        if (!parseNostrTransactionMessage(messageContent)) {
+          toast.error(t('common.error.transactionDataParseFailed'))
+          return
+        }
+
+        // Extract transaction ID
+        const txid = extractTransactionIdFromMessage(messageContent)
+        if (!txid) {
+          toast.error(t('common.error.transactionDataNotFound'))
+          return
+        }
+
+        // Transaction data is already stored in Zustand store by parseNostrTransactionMessage
+        // Just navigate to sign flow using the stored data
+        const transactionData =
+          useTransactionBuilderStore.getState().nostrTransactionData
+        if (!transactionData) {
+          toast.error(t('common.error.transactionDataNotFound'))
+          return
+        }
+
+        // Handle navigation to sign flow
+        handleGoToSignFlow(transactionData, router)
+      } catch {
+        toast.error(t('common.error.openSignFlowFailed'))
+      }
+    },
+    [router]
+  )
 
   const renderMessage = useCallback(
     ({ item: msg }: { item: NostrDM }) => {
@@ -192,6 +243,20 @@ function SSDevicesGroupChat() {
           text: msgAuthorNpub.slice(0, 12) + '...' + msgAuthorNpub.slice(-4),
           color: '#404040'
         }
+
+        // Get message content
+        const messageContent =
+          typeof msg.content === 'object' && 'description' in msg.content
+            ? msg.content.description
+            : typeof msg.content === 'string'
+              ? msg.content
+              : 'Invalid message format'
+
+        // Check if message contains transaction data (PSBT)
+        const hasSignFlow =
+          messageContent.includes('multisig_transaction') &&
+          messageContent.includes('Transaction Data:') &&
+          messageContent.includes('originalPsbt')
 
         return (
           <SSVStack
@@ -225,16 +290,18 @@ function SSDevicesGroupChat() {
                 })}
               </SSText>
             </SSHStack>
-            <SSText size="md">
-              {typeof msg.content === 'object' && 'description' in msg.content
-                ? msg.content.description
-                : typeof msg.content === 'string'
-                  ? msg.content
-                  : 'Invalid message format'}
-            </SSText>
+            <SSText size="md">{messageContent}</SSText>
+            {hasSignFlow && (
+              <SSButton
+                label={t('account.transaction.signFlow')}
+                variant="secondary"
+                style={styles.signFlowButton}
+                onPress={() => handleGoToSignFlowClick(messageContent)}
+              />
+            )}
           </SSVStack>
         )
-      } catch (_error) {
+      } catch {
         return (
           <SSVStack gap="xxs" style={styles.message}>
             <SSText size="sm" color="muted">
@@ -244,7 +311,7 @@ function SSDevicesGroupChat() {
         )
       }
     },
-    [account?.nostr?.deviceNpub, formattedNpubs]
+    [account?.nostr?.deviceNpub, formattedNpubs, handleGoToSignFlowClick]
   )
 
   if (!accountId || !account) return <Redirect href="/" />
@@ -374,6 +441,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1
+  },
+  signFlowButton: {
+    marginTop: 8,
+    alignSelf: 'flex-start'
   }
 })
 
