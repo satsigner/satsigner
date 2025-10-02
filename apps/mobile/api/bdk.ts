@@ -36,7 +36,7 @@ import {
   getExtendedKeyFromDescriptor,
   getFingerprintFromExtendedPublicKey
 } from '@/utils/bip32'
-import { getDescriptorFromMnemonic } from '@/utils/bip39'
+import { getDescriptorFromMnemonic, getEntropyFromMnemonic } from '@/utils/bip39'
 import {
   getMultisigDerivationPathFromScriptVersion,
   getMultisigScriptTypeFromScriptVersion
@@ -559,17 +559,33 @@ async function getDescriptorObject(
   passphrase: Secret['passphrase'],
   network: Network
 ) {
-  const descriptorString = getDescriptorFromMnemonic(
-    mnemonic,
-    scriptVersion,
-    kind,
-    passphrase,
-    network
-  ).replace(/\/[01]\/\*/, '') // remove the suffix /0/* and /1/* because BDK does not allow it
-  const descriptorObject = await new Descriptor().create(
-    descriptorString,
-    network
+  const entropy = getEntropyFromMnemonic(mnemonic)
+  const parsedMnemonic = await new Mnemonic().fromEntropy(entropy)
+  const descriptorSecretKey = await new DescriptorSecretKey().create(
+    network,
+    parsedMnemonic,
+    passphrase
   )
+  switch (scriptVersion) {
+    case 'P2PKH':
+      return new Descriptor().newBip44(descriptorSecretKey, kind, network)
+    case 'P2SH-P2WPKH':
+      return new Descriptor().newBip49(descriptorSecretKey, kind, network)
+    case 'P2WPKH':
+      return new Descriptor().newBip84(descriptorSecretKey, kind, network)
+    case 'P2TR':
+      return new Descriptor().newBip86(descriptorSecretKey, kind, network)
+    case 'P2SH':
+    case 'P2SH-P2WSH':
+    case 'P2WSH':
+      // For multisig script types, we need to create descriptors manually
+      // since BDK doesn't have specific methods for these
+      throw new Error(
+        `Manual descriptor creation required for ${scriptVersion} - use getExtendedPublicKeyFromMnemonic instead`
+      )
+    default:
+      return new Descriptor().newBip84(descriptorSecretKey, kind, network)
+  }
   return descriptorObject
 }
 

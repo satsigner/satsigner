@@ -78,6 +78,19 @@ export function generateMnemonicFromEntropy(
   return bip39.entropyToMnemonic(entropy, wordlist)
 }
 
+export function getEntropyFromMnemonic(
+  mnemonic: string,
+  wordListName: WordListName = 'english'
+) {
+  const entropyHexString = bip39.mnemonicToEntropy(
+    mnemonic,
+    bip39.wordlists[wordListName]
+  )
+  const entropyHexBytes = entropyHexString.match(/../g) as string[]
+  const entropyNumbers = entropyHexBytes.map((hex) => parseInt(hex, 16))
+  return entropyNumbers
+}
+
 export function getDescriptorFromMnemonic(
   mnemonic: string,
   scriptVersion: ScriptVersionType,
