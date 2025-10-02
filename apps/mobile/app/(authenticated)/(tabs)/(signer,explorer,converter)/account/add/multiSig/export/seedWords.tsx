@@ -273,6 +273,7 @@ export default function SeedWordsPage() {
       </SSModal>
       <SSSeedQR
         mnemonic={mnemonic}
+        mnemonicWordList="english"
         visible={seedQRModalVisible}
         title={key.name || `Key ${keyIndexNum + 1}`}
         onClose={() => setSeedQRModalVisible(false)}

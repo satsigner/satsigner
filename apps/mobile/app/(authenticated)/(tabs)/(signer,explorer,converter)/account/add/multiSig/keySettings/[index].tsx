@@ -1,4 +1,3 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
@@ -28,6 +27,7 @@ export default function MultiSigKeySettings() {
     keyCount,
     setEntropy,
     setMnemonicWordCount,
+    setMnemonicWordList,
     setMnemonic,
     setFingerprint,
     setCreationType,
@@ -38,6 +38,7 @@ export default function MultiSigKeySettings() {
       state.keyCount,
       state.setEntropy,
       state.setMnemonicWordCount,
+      state.setMnemonicWordList,
       state.setMnemonic,
       state.setFingerprint,
       state.setCreationType,
@@ -49,6 +50,7 @@ export default function MultiSigKeySettings() {
   const [localEntropyType, setLocalEntropyType] = useState<EntropyType>('none')
   const [localMnemonicWordCount, setLocalMnemonicWordCount] =
     useState<NonNullable<Key['mnemonicWordCount']>>(24)
+  // TODO: add support for multi-lang word list
 
   const [entropyModalVisible, setEntropyModalVisible] = useState(false)
   const [mnemonicWordCountModalVisible, setMnemonicWordCountModalVisibile] =
@@ -60,6 +62,7 @@ export default function MultiSigKeySettings() {
     setCreationType(type)
     setEntropy(localEntropyType)
     setMnemonicWordCount(localMnemonicWordCount)
+    setMnemonicWordList('english')
     setNetwork(network)
 
     if (type === 'generateMnemonic') {
@@ -67,14 +70,11 @@ export default function MultiSigKeySettings() {
         case 'none': {
           setLoading(true)
 
+          // TODO: add support for multi-lang word list
           const mnemonic = generateMnemonic(localMnemonicWordCount)
           setMnemonic(mnemonic)
 
-          const fingerprint = getFingerprintFromMnemonic(
-            mnemonic,
-            undefined,
-            network as Network
-          )
+          const fingerprint = getFingerprintFromMnemonic(mnemonic)
           setFingerprint(fingerprint)
 
           setLoading(false)

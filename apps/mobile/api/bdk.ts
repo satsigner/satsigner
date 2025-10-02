@@ -36,6 +36,7 @@ import {
   getExtendedKeyFromDescriptor,
   getFingerprintFromExtendedPublicKey
 } from '@/utils/bip32'
+import { getDescriptorFromMnemonic, getEntropyFromMnemonic } from '@/utils/bip39'
 import {
   getMultisigDerivationPathFromScriptVersion,
   getMultisigScriptTypeFromScriptVersion
@@ -125,16 +126,8 @@ async function getWalletData(
             }
           }
 
-          // If we still don't have a fingerprint, try to extract it from the extended public key
           if (!fingerprint && extendedPublicKey) {
-            try {
-              fingerprint = getFingerprintFromExtendedPublicKey(
-                extendedPublicKey,
-                network
-              )
-            } catch {
-              // Failed to extract fingerprint
-            }
+            fingerprint = getFingerprintFromExtendedPublicKey(extendedPublicKey)
           }
 
           return { fingerprint, extendedPublicKey, index: keyIndex }
@@ -556,7 +549,9 @@ async function getWalletFromMnemonic(
   }
 }
 
-/** Parse BIP32 path like "m/48'/0'/0'/2'" -> array of indexes (with hardened offset) */
+// TODO: remove this and stop depending upon BDK for dealing with descriptors.
+// We use bip39 to get the string because it supports multi-lang mnemonic,
+// but we are keeping this function because it is used in multiple places.
 async function getDescriptorObject(
   mnemonic: NonNullable<Secret['mnemonic']>,
   scriptVersion: NonNullable<Key['scriptVersion']>,
@@ -564,13 +559,13 @@ async function getDescriptorObject(
   passphrase: Secret['passphrase'],
   network: Network
 ) {
-  const parsedMnemonic = await new Mnemonic().fromString(mnemonic)
+  const entropy = getEntropyFromMnemonic(mnemonic)
+  const parsedMnemonic = await new Mnemonic().fromEntropy(entropy)
   const descriptorSecretKey = await new DescriptorSecretKey().create(
     network,
     parsedMnemonic,
     passphrase
   )
-
   switch (scriptVersion) {
     case 'P2PKH':
       return new Descriptor().newBip44(descriptorSecretKey, kind, network)
@@ -591,9 +586,10 @@ async function getDescriptorObject(
     default:
       return new Descriptor().newBip84(descriptorSecretKey, kind, network)
   }
+  return descriptorObject
 }
 
-// TODO: put it elsewhere
+// TODO: refactor it to be synchronous and replace occurrences
 async function parseDescriptor(descriptor: Descriptor) {
   if (!descriptor) {
     return { fingerprint: '', derivationPath: '' }

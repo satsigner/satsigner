@@ -1,5 +1,3 @@
-import { Network as BDKNetwork } from 'bdk-rn/lib/lib/enums'
-
 import {
   generateMnemonic,
   getFingerprintFromMnemonic,
@@ -39,17 +37,14 @@ describe('bip39 utils', () => {
   })
 
   it('get fingerprint from mnemonic in multiple languages', () => {
-    const network = BDKNetwork.Bitcoin
-    const passphrase = undefined
-
-    expect(
-      getFingerprintFromMnemonic(englishMnemonic, passphrase, network)
-    ).toEqual(englishMnemonicFingerprint)
-    expect(
-      getFingerprintFromMnemonic(spanishMnemonic, passphrase, network)
-    ).toEqual(spanishMnemonicFingerprint)
-    expect(
-      getFingerprintFromMnemonic(frenchMnemonic, passphrase, network)
-    ).toEqual(frenchMnemonicFingerprint)
+    expect(getFingerprintFromMnemonic(englishMnemonic)).toEqual(
+      englishMnemonicFingerprint
+    )
+    expect(getFingerprintFromMnemonic(spanishMnemonic)).toEqual(
+      spanishMnemonicFingerprint
+    )
+    expect(getFingerprintFromMnemonic(frenchMnemonic)).toEqual(
+      frenchMnemonicFingerprint
+    )
   })
 })

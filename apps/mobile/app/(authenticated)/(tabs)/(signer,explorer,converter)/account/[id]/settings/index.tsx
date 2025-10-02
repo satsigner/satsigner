@@ -546,6 +546,7 @@ export default function AccountSettings() {
       </SSModal>
       <SSSeedQR
         mnemonic={localMnemonic}
+        mnemonicWordList={account.keys[0]?.mnemonicWordList}
         visible={seedQRModalVisible}
         title={account.name}
         onClose={() => {

@@ -1,10 +1,11 @@
 import ecc from '@bitcoinerlab/secp256k1'
-import { HDKey } from '@scure/bip32'
-import * as bip39 from '@scure/bip39'
+import { HDKey } from '@scure/bip32' // TODO: remove @scure
+import * as bip39 from '@scure/bip39' // TODO: remove @scure
 import { KeychainKind, Network as BDKNetwork } from 'bdk-rn/lib/lib/enums'
 import { BIP32Factory, type BIP32Interface } from 'bip32'
 
 import type { ScriptVersionType } from '@/types/models/Account'
+import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion
@@ -23,94 +24,278 @@ const bip32 = BIP32Factory(ecc)
 BIP-32 define codes and prefixes to extended key for master keys in HD wallets,
 which vary by network (mainnet, testnet, signet, regtest).
 
-Network | Extended Private Key Prefix | Extended Public Key Prefix | Hex Prefix (Private) | Hex Prefix (Public)
-Mainnet | xprv                        | xpub                       | 0x0488ADE4           | 0x0488B21E
-Testnet | tprv                        | tpub                       | 0x043587CF           | 0x0435B243
-Signet  | tprv                        | tpub                       | 0x043587CF           | 0x0435B243
-Regtest | tprv                        | tpub                       | 0x043587CF           | 0x0435B243
-
 We need to convert BDK Network enum type to the type used by BIP32Interface.
 
 */
 
-const BIP32Networks: Record<BDKNetwork, BIP32Interface['network']> = {
+const BIP32Networks: Record<
+  BDKNetwork,
+  Record<ScriptVersionType, BIP32Interface['network']>
+> = {
   [BDKNetwork.Bitcoin]: {
-    bip32: {
-      public: 0x0488b21e,
-      private: 0x0488ade4
+    P2PKH: {
+      bip32: {
+        public: 0x0488b21e,
+        private: 0x0488ade4
+      },
+      wif: 0x80
     },
-    wif: 0x80
+    P2SH: {
+      bip32: {
+        public: 0x0488b21e,
+        private: 0x0488ade4
+      },
+      wif: 0x80
+    },
+    'P2SH-P2WPKH': {
+      bip32: {
+        public: 0x049d7cb2,
+        private: 0x049d7878
+      },
+      wif: 0x80
+    },
+    P2WPKH: {
+      bip32: {
+        public: 0x04b24746,
+        private: 0x04b2430c
+      },
+      wif: 0x80
+    },
+    'P2SH-P2WSH': {
+      bip32: {
+        public: 0x0295b43f,
+        private: 0x0295b005
+      },
+      wif: 0x80
+    },
+    P2WSH: {
+      bip32: {
+        public: 0x02aa7ed3,
+        private: 0x02aa7a99
+      },
+      wif: 0x80
+    },
+    P2TR: {
+      bip32: {
+        public: 0x0488b21e,
+        private: 0x0488ade4
+      },
+      wif: 0x80
+    }
   },
   [BDKNetwork.Testnet]: {
-    bip32: {
-      public: 0x043587cf,
-      private: 0x04358394
+    P2PKH: {
+      bip32: {
+        public: 0x043587cf,
+        private: 0x04358394
+      },
+      wif: 0xef
     },
-    wif: 0xef
-  },
-  [BDKNetwork.Regtest]: {
-    bip32: {
-      public: 0x043587cf,
-      private: 0x04358394
+    P2SH: {
+      bip32: {
+        public: 0x043587cf,
+        private: 0x04358394
+      },
+      wif: 0xef
     },
-    wif: 0xef
+    'P2SH-P2WPKH': {
+      bip32: {
+        public: 0x044a5262,
+        private: 0x044a4e28
+      },
+      wif: 0xef
+    },
+    P2WPKH: {
+      bip32: {
+        public: 0x045f1cf6,
+        private: 0x045f18bc
+      },
+      wif: 0xef
+    },
+    'P2SH-P2WSH': {
+      bip32: {
+        public: 0x024289ef,
+        private: 0x024285b5
+      },
+      wif: 0xef
+    },
+    P2WSH: {
+      bip32: {
+        public: 0x02575483,
+        private: 0x02575048
+      },
+      wif: 0xef
+    },
+    P2TR: {
+      bip32: {
+        public: 0x043587cf,
+        private: 0x04358394
+      },
+      wif: 0xef
+    }
   },
   [BDKNetwork.Signet]: {
-    bip32: {
-      public: 0x043587cf,
-      private: 0x04358394
+    P2PKH: {
+      bip32: {
+        public: 0x043587cf,
+        private: 0x04358394
+      },
+      wif: 0xef
     },
-    wif: 0xef
+    P2SH: {
+      bip32: {
+        public: 0x043587cf,
+        private: 0x04358394
+      },
+      wif: 0xef
+    },
+    'P2SH-P2WPKH': {
+      bip32: {
+        public: 0x044a5262,
+        private: 0x044a4e28
+      },
+      wif: 0xef
+    },
+    P2WPKH: {
+      bip32: {
+        public: 0x045f1cf6,
+        private: 0x045f18bc
+      },
+      wif: 0xef
+    },
+    'P2SH-P2WSH': {
+      bip32: {
+        public: 0x024289ef,
+        private: 0x024285b5
+      },
+      wif: 0xef
+    },
+    P2WSH: {
+      bip32: {
+        public: 0x02575483,
+        private: 0x02575048
+      },
+      wif: 0xef
+    },
+    P2TR: {
+      bip32: {
+        public: 0x043587cf,
+        private: 0x04358394
+      },
+      wif: 0xef
+    }
+  },
+  [BDKNetwork.Regtest]: {
+    P2PKH: {
+      bip32: {
+        public: 0x043587cf,
+        private: 0x04358394
+      },
+      wif: 0xef
+    },
+    P2SH: {
+      bip32: {
+        public: 0x043587cf,
+        private: 0x04358394
+      },
+      wif: 0xef
+    },
+    'P2SH-P2WPKH': {
+      bip32: {
+        public: 0x044a5262,
+        private: 0x044a4e28
+      },
+      wif: 0xef
+    },
+    P2WPKH: {
+      bip32: {
+        public: 0x045f1cf6,
+        private: 0x045f18bc
+      },
+      wif: 0xef
+    },
+    'P2SH-P2WSH': {
+      bip32: {
+        public: 0x024289ef,
+        private: 0x024285b5
+      },
+      wif: 0xef
+    },
+    P2WSH: {
+      bip32: {
+        public: 0x02575483,
+        private: 0x02575048
+      },
+      wif: 0xef
+    },
+    P2TR: {
+      bip32: {
+        public: 0x043587cf,
+        private: 0x04358394
+      },
+      wif: 0xef
+    }
   }
 }
 
 export function getStandardPath(
   scriptVersion: ScriptVersionType,
-  kind: KeychainKind,
   network: BDKNetwork,
-  account = 0
+  isMultiSig = false
 ) {
-  const purpose = getScriptVersionPurpose(scriptVersion)
-  const coinType = network === BDKNetwork.Bitcoin ? 0 : 1
-  const change = kind === KeychainKind.External ? 0 : 1
-  const path = `m/${purpose}'/${coinType}'/${account}'/${change}/*`
-  return path
+  const appNetwork = network as AppNetwork
+  return isMultiSig
+    ? getMultisigDerivationPathFromScriptVersion(scriptVersion, appNetwork)
+    : getDerivationPathFromScriptVersion(scriptVersion, appNetwork)
 }
 
 export function getDescriptorFromSeed(
   seed: Buffer,
   scriptVersion: ScriptVersionType,
   kind: KeychainKind,
-  network: BDKNetwork,
-  account = 0
+  network: BDKNetwork
 ): string {
-  const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
-  const path = getStandardPath(scriptVersion, kind, network, account)
-  const derivedKey = masterKey.derivePath(path.replace('*', '0'))
-  const pubkey = Buffer.from(derivedKey.publicKey).toString('hex')
-  const descriptor = getDescriptorFromPubkey(pubkey, scriptVersion)
-  return `${descriptor}[${path}]`
+  const masterKey = bip32.fromSeed(seed, BIP32Networks[network][scriptVersion])
+  // const rootKey = masterKey.toBase58()
+  const path = getStandardPath(scriptVersion, network)
+  const derivedKey = masterKey.derivePath(`m/${path}`)
+  // const pkey = derivedKey.toBase58()
+  const pubkey = derivedKey.neutered().toBase58()
+  const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
+  const descriptor = getDescriptorFromPubkey(
+    pubkey,
+    scriptVersion,
+    fingerprint,
+    path,
+    kind
+  )
+  return descriptor
 }
 
 export function getDescriptorFromPubkey(
   pubkey: string,
-  scriptVersion: ScriptVersionType
+  scriptVersion: ScriptVersionType,
+  fingerprint: string,
+  path: string,
+  kind: KeychainKind
 ) {
+  const change = kind === KeychainKind.External ? 0 : 1
+  const innerPart = `[${fingerprint}/${path}]${pubkey}/${change}/*`
   switch (scriptVersion) {
     case 'P2PKH':
-      return `pkh(${pubkey})`
+      return `pkh(${innerPart})`
     case 'P2WPKH':
-      return `wpkh(${pubkey})`
+      return `wpkh(${innerPart})`
     case 'P2SH-P2WPKH':
-      return `sh(wpkh(${pubkey}))`
+      return `sh(wpkh(${innerPart}))`
     case 'P2TR':
-      return `tr(${pubkey})`
+      return `tr(${innerPart})`
     case 'P2WSH':
-      return `wsh(pk(${pubkey}))`
+      return `wsh(pk(${innerPart}))`
     case 'P2SH-P2WSH':
-      return `sh(wsh(pk(${pubkey})))`
+      return `sh(wsh(pk(${innerPart})))`
     case 'P2SH':
-      return `sh(pk(${pubkey}))`
+      return `sh(pk(${innerPart}))`
   }
 }
 
@@ -133,17 +318,16 @@ export function getScriptVersionPurpose(
   }
 }
 
-export function getFingerprintFromSeed(seed: Buffer, network: BDKNetwork) {
-  const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
+export function getFingerprintFromSeed(seed: Buffer) {
+  // the master fingerprint does not depend upon network
+  const masterKey = bip32.fromSeed(seed)
   const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
   return fingerprint
 }
 
-export function getFingerprintFromExtendedPublicKey(
-  extendedPublicKey: string,
-  network: BDKNetwork
-) {
-  const masterKey = bip32.fromBase58(extendedPublicKey, BIP32Networks[network])
+export function getFingerprintFromExtendedPublicKey(extendedPublicKey: string) {
+  // the master fingerprint does not depend upon network
+  const masterKey = bip32.fromBase58(extendedPublicKey)
   const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
   return fingerprint
 }
@@ -153,10 +337,10 @@ export function getExtendedPublicKeyFromSeed(
   network: BDKNetwork,
   scriptVersion: ScriptVersionType
 ) {
-  const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
+  const masterKey = bip32.fromSeed(seed, BIP32Networks[network][scriptVersion])
   // this assumes default account=0 and external address kind=0
-  const path = getStandardPath(scriptVersion, KeychainKind.External, network, 0)
-  const derivedKey = masterKey.derivePath(path.replace('*', '0'))
+  const path = getStandardPath(scriptVersion, network)
+  const derivedKey = masterKey.derivePath(path).neutered()
   return derivedKey.toBase58()
 }
 
@@ -174,10 +358,7 @@ export function getDescriptorsFromKey(
   network: BDKNetwork,
   isMultisig = false
 ) {
-  const appNetwork = network === BDKNetwork.Regtest ? 'testnet' : network
-  const derivationPath = isMultisig
-    ? getMultisigDerivationPathFromScriptVersion(scriptVersion, appNetwork)
-    : getDerivationPathFromScriptVersion(scriptVersion, appNetwork)
+  const derivationPath = getStandardPath(scriptVersion, network, isMultisig)
   const keyPart = `[${fingerprint}/${derivationPath}]${extendedPublicKey}`
 
   let externalDescriptor = ''
@@ -403,9 +584,6 @@ export function getXpubForScriptVersion(
   return xpubFunctions[scriptVersion](seed, network)
 }
 
-/**
- * Get all three extended public keys from mnemonic
- */
 export function getAllXpubs(
   mnemonic: string,
   passphrase: string = '',
