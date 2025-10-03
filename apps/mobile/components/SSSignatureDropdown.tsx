@@ -117,11 +117,6 @@ function SSSignatureDropdown({
     }
 
     try {
-      // Get inputs and outputs from transaction builder store
-      const inputs = useTransactionBuilderStore.getState().inputs
-      const outputs = useTransactionBuilderStore.getState().outputs
-      const fee = useTransactionBuilderStore.getState().fee
-
       // Collect all signed PSBTs with their cosigner indices
       const collectedSignedPsbts = Array.from(signedPsbts.entries())
         .filter(([, psbt]) => psbt && psbt.trim().length > 0)
@@ -133,81 +128,95 @@ function SSSignatureDropdown({
           {} as Record<number, string>
         )
 
-      // Get transaction hex directly from txBuilderResult
-      let transactionHex = ''
-      try {
-        const tx = new bitcoinjs.Transaction()
+      // Check if we have Nostr transaction data first (for resends)
+      const storeNostrData =
+        useTransactionBuilderStore.getState().nostrTransactionData
+      let transactionData: TransactionData
 
-        // Add inputs
-        const inputArray = Array.from(inputs.values())
-        for (const input of inputArray) {
-          const hashBuffer = Buffer.from(parseHexToBytes(input.txid))
-          tx.addInput(hashBuffer, input.vout)
+      if (storeNostrData) {
+        transactionData = storeNostrData
+
+        Object.assign(collectedSignedPsbts, storeNostrData.signedPsbts)
+
+        transactionData.signedPsbts = collectedSignedPsbts
+        transactionData.timestamp = Date.now()
+      } else {
+        const inputs = useTransactionBuilderStore.getState().inputs
+        const outputs = useTransactionBuilderStore.getState().outputs
+        const fee = useTransactionBuilderStore.getState().fee
+
+        let transactionHex = ''
+        try {
+          const tx = new bitcoinjs.Transaction()
+
+          const inputArray = Array.from(inputs.values())
+          for (const input of inputArray) {
+            const hashBuffer = Buffer.from(parseHexToBytes(input.txid))
+            tx.addInput(hashBuffer, input.vout)
+          }
+
+          for (const output of outputs) {
+            const network = bitcoinjsNetwork(account.network)
+            const outputScript = bitcoinjs.address.toOutputScript(
+              output.to,
+              network
+            )
+            tx.addOutput(outputScript, output.amount)
+          }
+
+          transactionHex = tx.toHex()
+        } catch {
+          toast.error(t('common.error.failedToGenerateTransactionHex'))
+          return
         }
 
-        // Add outputs
-        for (const output of outputs) {
-          const network = bitcoinjsNetwork(account.network)
-          const outputScript = bitcoinjs.address.toOutputScript(
-            output.to,
-            network
-          )
-          tx.addOutput(outputScript, output.amount)
+        // Create transaction data with pre-computed values
+        transactionData = {
+          type: 'multisig_transaction',
+          txid: messageId,
+          network: account.network === 'bitcoin' ? 'mainnet' : account.network,
+          keyCount: account.keyCount || account.keys?.length || 0,
+          keysRequired: account.keysRequired || 1,
+          originalPsbt: txBuilderResult.psbt.base64,
+          signedPsbts: collectedSignedPsbts,
+          timestamp: Date.now(),
+          transactionHex,
+          inputs: Array.from(inputs.values()).map((input) => ({
+            txid: input.txid,
+            vout: input.vout,
+            value: input.value,
+            script: '',
+            label: input.label,
+            keychain: input.keychain
+          })),
+          outputs: outputs.map((output) => ({
+            address: output.to,
+            value: output.amount,
+            script: '',
+            label: output.label
+          })),
+          fee,
+          rbf: useTransactionBuilderStore.getState().rbf,
+          messageId,
+          accountId: account.id,
+          accountName: account.name,
+          accountNetwork: account.network,
+          accountPolicyType: account.policyType,
+          accountKeys:
+            account.keys?.map((key) => ({
+              name: key.name,
+              scriptVersion: key.scriptVersion,
+              creationType: key.creationType,
+              secret: key.secret,
+              iv: key.iv
+            })) || []
         }
 
-        transactionHex = tx.toHex()
-      } catch {
-        toast.error(t('common.error.failedToGenerateTransactionHex'))
-        return
+        useTransactionBuilderStore
+          .getState()
+          .setNostrTransactionData(transactionData)
       }
 
-      // Create transaction data with pre-computed values
-      const transactionData: TransactionData = {
-        type: 'multisig_transaction',
-        txid: messageId,
-        network: account.network === 'bitcoin' ? 'mainnet' : account.network,
-        keyCount: account.keyCount || account.keys?.length || 0,
-        keysRequired: account.keysRequired || 1,
-        originalPsbt: txBuilderResult.psbt.base64,
-        signedPsbts: collectedSignedPsbts,
-        timestamp: Date.now(),
-        // Pre-computed transaction data
-        transactionHex,
-        // Required TransactionData properties
-        inputs: Array.from(inputs.values()).map((input) => ({
-          txid: input.txid,
-          vout: input.vout,
-          value: input.value,
-          script: '', // Will be filled by receiver if needed
-          label: input.label,
-          keychain: input.keychain
-        })),
-        outputs: outputs.map((output) => ({
-          address: output.to,
-          value: output.amount,
-          script: '', // Will be filled by receiver if needed
-          label: output.label
-        })),
-        fee,
-        rbf: useTransactionBuilderStore.getState().rbf,
-        messageId,
-        // Additional data for preview page reconstruction
-        accountId: account.id,
-        accountName: account.name,
-        accountNetwork: account.network,
-        accountPolicyType: account.policyType,
-        accountKeys:
-          account.keys?.map((key) => ({
-            name: key.name,
-            scriptVersion: key.scriptVersion,
-            creationType: key.creationType,
-            secret: key.secret,
-            iv: key.iv
-          })) || []
-      }
-
-      // Store transaction data temporarily for others to access
-      // Use the same txid that will be extracted from the message
       storeTransactionData(transactionData)
 
       const message = `🔐 Multisig Transaction Ready for Signing
@@ -222,7 +231,7 @@ ${JSON.stringify(transactionData, null, 2)}
 
 Please open this transaction in your SatSigner app to review and sign.
 
-[${t('transaction.signFlow')}]`
+[${t('account.transaction.signFlow')}]`
 
       await sendDM(account, message)
       toast.success(t('account.nostrSync.transactionDataSentToGroupChat'))

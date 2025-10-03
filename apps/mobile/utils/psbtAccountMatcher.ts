@@ -164,7 +164,6 @@ export function findMatchingAccount(
   }
 }
 
-// Temporary in-memory storage for transaction data
 const transactionDataStorage = new Map<string, TransactionData>()
 
 export function storeTransactionData(data: TransactionData): void {
