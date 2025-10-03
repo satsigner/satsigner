@@ -222,7 +222,7 @@ ${JSON.stringify(transactionData, null, 2)}
 
 Please open this transaction in your SatSigner app to review and sign.
 
-[${t('account.transaction.signFlow')}]`
+[${t('transaction.signFlow')}]`
 
       await sendDM(account, message)
       toast.success(t('account.nostrSync.transactionDataSentToGroupChat'))
