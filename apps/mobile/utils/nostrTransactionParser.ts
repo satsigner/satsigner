@@ -7,55 +7,46 @@ import {
   findMatchingAccount,
   type TransactionData
 } from '@/utils/psbtAccountMatcher'
+import { parseHexToBytes } from './parse'
 
 /**
  * Parse Nostr message for transaction data and handle sign flow navigation
  */
-export function parseNostrTransactionMessage(message: string): boolean {
+export function parseNostrTransactionMessage(
+  message: string
+): TransactionData | null {
   try {
-    // Check if message contains transaction data
     if (
       !message.includes('Transaction Data:') ||
       !message.includes('multisig_transaction')
     ) {
-      return false
+      return null
     }
 
-    // Extract JSON data from message
     const jsonMatch = message.match(
       /Transaction Data:\s*\n([\s\S]*?)(?:\n\n|$)/
     )
     if (!jsonMatch) {
-      return false
+      return null
     }
 
     const jsonData = jsonMatch[1].trim()
     const transactionData: TransactionData = JSON.parse(jsonData)
 
-    // Extract the actual transaction ID from the message header
     const txidMatch = message.match(/Transaction ID:\s*([a-fA-F0-9]+)/)
     if (txidMatch) {
       transactionData.txid = txidMatch[1]
     }
 
-    // Validate transaction data structure
     if (!isValidTransactionData(transactionData)) {
       toast.error(t('transaction.dataParseFailed'))
-      return false
+      return null
     }
 
-    // Store transaction data in Zustand store
-    useTransactionBuilderStore
-      .getState()
-      .setNostrTransactionData(transactionData)
-
-    // Show success message
-    toast.success(t('transaction.received'))
-
-    return true
+    return transactionData
   } catch {
     toast.error(t('transaction.dataParseFailed'))
-    return false
+    return null
   }
 }
 
@@ -69,7 +60,6 @@ export function handleGoToSignFlow(
   try {
     const accounts = useAccountsStore.getState().accounts
 
-    // Find matching account using PSBT fingerprints
     const accountMatch = findMatchingAccount(
       transactionData.originalPsbt,
       accounts
@@ -81,13 +71,52 @@ export function handleGoToSignFlow(
     }
 
     // Store transaction data in Zustand store for previewMessage to access
-    useTransactionBuilderStore
-      .getState()
-      .setNostrTransactionData(transactionData)
+    const {
+      clearTransaction,
+      addInput,
+      addOutput,
+      setFee,
+      setTxBuilderResult
+    } = useTransactionBuilderStore.getState()
 
-    // Navigate to the preview page using replace to avoid stacking the same screen
+    clearTransaction()
+
+    transactionData.inputs?.forEach((input) => {
+      addInput({
+        ...input,
+        script: parseHexToBytes(input.script),
+        keychain: input.keychain || 'external'
+      })
+    })
+
+    transactionData.outputs?.forEach((output) => {
+      addOutput({
+        to: output.address,
+        amount: output.value,
+        label: output.label || ''
+      })
+    })
+
+    if (transactionData.fee) setFee(transactionData.fee)
+
+    const mockTxBuilderResult = {
+      psbt: {
+        base64: transactionData.originalPsbt,
+        serialize: () => Promise.resolve(transactionData.originalPsbt),
+        txid: () => Promise.resolve(transactionData.txid)
+      },
+      txDetails: {
+        txid: transactionData.txid,
+        fee: transactionData.fee
+      }
+    }
+    setTxBuilderResult(mockTxBuilderResult as any)
+
     const navigationPath = `/account/${accountMatch.account.id}/signAndSend/previewMessage`
-    router.replace(navigationPath)
+    router.replace({
+      pathname: navigationPath,
+      params: { signedPsbts: JSON.stringify(transactionData.signedPsbts) }
+    })
 
     toast.success(
       t('transaction.openingInAccount', {
@@ -105,8 +134,6 @@ export function handleGoToSignFlow(
  * Validate transaction data structure
  */
 function isValidTransactionData(data: any): data is TransactionData {
-  // For Nostr messages, we only need basic validation
-  // Full validation happens when we extract the complete transaction data
   return (
     data &&
     typeof data === 'object' &&
@@ -121,18 +148,12 @@ function isValidTransactionData(data: any): data is TransactionData {
   )
 }
 
-/**
- * Check if a message contains a "Go to Sign Flow" button
- */
 export function hasSignFlowButton(message: string): boolean {
   return (
     message.includes('[Go to Sign Flow]') || message.includes('Go to Sign Flow')
   )
 }
 
-/**
- * Extract transaction ID from Nostr message
- */
 export function extractTransactionIdFromMessage(
   message: string
 ): string | null {

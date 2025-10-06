@@ -195,24 +195,9 @@ function SSDevicesGroupChat() {
         }
 
         // Parse the transaction data from the message
-        if (!parseNostrTransactionMessage(messageContent)) {
-          toast.error(t('common.error.transactionDataParseFailed'))
-          return
-        }
-
-        // Extract transaction ID
-        const txid = extractTransactionIdFromMessage(messageContent)
-        if (!txid) {
-          toast.error(t('common.error.transactionDataNotFound'))
-          return
-        }
-
-        // Transaction data is already stored in Zustand store by parseNostrTransactionMessage
-        // Just navigate to sign flow using the stored data
-        const transactionData =
-          useTransactionBuilderStore.getState().nostrTransactionData
+        const transactionData = parseNostrTransactionMessage(messageContent)
         if (!transactionData) {
-          toast.error(t('common.error.transactionDataNotFound'))
+          toast.error(t('common.error.transactionDataParseFailed'))
           return
         }
 

@@ -47,7 +47,10 @@ import {
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import {
+  type AccountSearchParams,
+  type SignedPsbtsParams
+} from '@/types/navigation/searchParams'
 import {
   createBBQRChunks,
   decodeBBQRChunks,
@@ -110,7 +113,9 @@ function hasEnoughSignatures(input: any): boolean {
 
 function PreviewMessage() {
   const router = useRouter()
-  const { id } = useLocalSearchParams<AccountSearchParams>()
+  const { id, signedPsbts: signedPsbtsParam } = useLocalSearchParams<
+    AccountSearchParams & SignedPsbtsParams
+  >()
 
   const [
     inputs,
@@ -132,12 +137,6 @@ function PreviewMessage() {
     ])
   )
 
-  const storeNostrData = useTransactionBuilderStore(
-    (state) => state.nostrTransactionData
-  )
-  const clearNostrTransactionData = useTransactionBuilderStore(
-    (state) => state.clearNostrTransactionData
-  )
   const account = useAccountsStore((state) =>
     state.accounts.find((account) => account.id === id)
   )
@@ -505,53 +504,9 @@ function PreviewMessage() {
     const transaction = new bitcoinjs.Transaction()
     const network = bitcoinjsNetwork(account.network)
 
-    // If we have Nostr transaction data, use it directly
-    if (storeNostrData) {
-      for (const input of storeNostrData.inputs) {
-        // Validate txid before processing
-        if (
-          !input.txid ||
-          input.txid.length !== 64 ||
-          !/^[0-9a-fA-F]+$/.test(input.txid)
-        ) {
-          continue
-        }
-
-        const hashBuffer = Buffer.from(parseHexToBytes(input.txid))
-        if (hashBuffer.length !== 32) {
-          continue
-        }
-
-        transaction.addInput(hashBuffer, input.vout)
-      }
-
-      for (const output of storeNostrData.outputs) {
-        // Validate address format before creating output script
-        try {
-          const outputScript = bitcoinjs.address.toOutputScript(
-            output.address,
-            network
-          )
-          transaction.addOutput(outputScript, output.value)
-        } catch {
-          return ''
-        }
-      }
-
-      const hex = transaction.toHex()
-
-      transaction.ins = []
-      transaction.outs = []
-
-      return hex
-    }
-
-    // Otherwise use the normal transaction builder data
-    // Convert inputs to array once to avoid repeated Map iteration
     const inputArray = Array.from(inputs.values())
 
     for (const input of inputArray) {
-      // Validate txid before processing
       if (
         !input.txid ||
         input.txid.length !== 64 ||
@@ -569,7 +524,6 @@ function PreviewMessage() {
     }
 
     for (const output of outputs) {
-      // Validate address format before creating output script
       try {
         const outputScript = bitcoinjs.address.toOutputScript(
           output.to,
@@ -577,45 +531,19 @@ function PreviewMessage() {
         )
         transaction.addOutput(outputScript, output.amount)
       } catch {
-        // Don't call toast during render - this will be handled by validation elsewhere
-        // Just return empty string to indicate invalid transaction
         return ''
       }
     }
 
     const hex = transaction.toHex()
 
-    // Clear transaction data to help garbage collection
     transaction.ins = []
     transaction.outs = []
 
     return hex
-  }, [account, inputs, outputs, storeNostrData])
+  }, [account, inputs, outputs])
 
   const transaction = useMemo(() => {
-    // If we have Nostr transaction data, use it directly
-    if (storeNostrData) {
-      const { size, vsize } = estimateTransactionSize(
-        storeNostrData.inputs.length,
-        storeNostrData.outputs.length
-      )
-
-      const vin = storeNostrData.inputs.map((input: any) => ({
-        previousOutput: { txid: input.txid, vout: input.vout },
-        value: input.value,
-        label: input.label || ''
-      }))
-
-      const vout = storeNostrData.outputs.map((output: any) => ({
-        address: output.address,
-        value: output.value,
-        label: output.label || ''
-      }))
-
-      return { id: messageId, size, vsize, vin, vout } as never as Transaction
-    }
-
-    // Otherwise use the normal transaction builder data
     const { size, vsize } = estimateTransactionSize(inputs.size, outputs.length)
 
     const vin = Array.from(inputs.values()).map((input: Utxo) => ({
@@ -631,60 +559,38 @@ function PreviewMessage() {
     }))
 
     return { id: messageId, size, vsize, vin, vout } as never as Transaction
-  }, [inputs, outputs, messageId, storeNostrData])
+  }, [inputs, outputs, messageId])
 
-  // Check for Nostr transaction data first
   useEffect(() => {
-    if (storeNostrData) {
-      setMessageId(storeNostrData.txid)
-
-      // Create a mock txBuilderResult from Nostr data
-      const mockTxBuilderResult = {
-        psbt: {
-          base64: storeNostrData.originalPsbt,
-          combine: () => {},
-          extractTx: () => ({}) as any,
-          serialize: () => storeNostrData.originalPsbt,
-          txid: storeNostrData.txid,
-          finalizeAllInputs: () => {},
-          finalizeInput: () => {},
-          getFee: () => storeNostrData.fee || 0,
-          getTxid: () => storeNostrData.txid
-        } as any,
-        txDetails: {
-          txid: storeNostrData.txid,
-          received: 0,
-          sent: 0
-        }
-      }
-
-      setTxBuilderResult(mockTxBuilderResult)
-
-      // Populate signedPsbts from Nostr data
-      if (
-        storeNostrData.signedPsbts &&
-        typeof storeNostrData.signedPsbts === 'object'
-      ) {
-        Object.entries(storeNostrData.signedPsbts).forEach(
-          ([cosignerIndexStr, psbt]) => {
-            const cosignerIndex = parseInt(cosignerIndexStr, 10)
-            if (
-              !isNaN(cosignerIndex) &&
-              psbt &&
-              typeof psbt === 'string' &&
-              psbt.trim().length > 0
-            ) {
-              updateSignedPsbt(cosignerIndex, psbt)
+    if (signedPsbtsParam && typeof signedPsbtsParam === 'string') {
+      try {
+        const signedPsbtsFromParam = JSON.parse(signedPsbtsParam)
+        if (signedPsbtsFromParam && typeof signedPsbtsFromParam === 'object') {
+          Object.entries(signedPsbtsFromParam).forEach(
+            ([cosignerIndexStr, psbt]) => {
+              const cosignerIndex = parseInt(cosignerIndexStr, 10)
+              if (
+                !isNaN(cosignerIndex) &&
+                psbt &&
+                typeof psbt === 'string' &&
+                psbt.trim().length > 0
+              ) {
+                updateSignedPsbt(cosignerIndex, psbt)
+              }
             }
-          }
-        )
+          )
+        }
+      } catch {
+        toast.error('Failed to parse signed PSBTs from navigation.')
       }
     }
-  }, [storeNostrData, updateSignedPsbt, setTxBuilderResult])
+  }, [signedPsbtsParam, updateSignedPsbt])
 
   useEffect(() => {
-    // Only build transaction if we don't have Nostr data
-    if (storeNostrData) return
+    if (txBuilderResult?.txDetails?.txid) {
+      setMessageId(txBuilderResult.txDetails.txid)
+      return
+    }
 
     async function getTransactionMessage() {
       if (!wallet) {
@@ -693,7 +599,6 @@ function PreviewMessage() {
       }
 
       try {
-        // Convert inputs and outputs to arrays once to avoid repeated conversions
         const inputArray = Array.from(inputs.values())
         const outputArray = Array.from(outputs.values())
 
@@ -732,7 +637,7 @@ function PreviewMessage() {
     rbf,
     network,
     setTxBuilderResult,
-    storeNostrData
+    txBuilderResult
   ])
 
   // Separate effect to validate addresses and show errors
@@ -1536,14 +1441,8 @@ function PreviewMessage() {
       setQrChunks([])
       setUrChunks([])
       setRawPsbtChunks([])
-      clearNostrTransactionData()
     }
-  }, [clearNostrTransactionData])
-
-  // Close expanded signatures when navigating away
-  useEffect(() => {
-    // No longer needed - each dropdown manages its own state
-  }, [messageId])
+  }, [])
 
   // Decrypt keys to check for seed existence
   useEffect(() => {
@@ -1557,7 +1456,6 @@ function PreviewMessage() {
         const decryptedKeysData = await Promise.all(
           account.keys.map(async (key) => {
             if (typeof key.secret === 'string') {
-              // Decrypt the key's secret
               const decryptedSecretString = await aesDecrypt(
                 key.secret,
                 pin,
@@ -1578,8 +1476,7 @@ function PreviewMessage() {
         )
 
         setDecryptedKeys(decryptedKeysData)
-      } catch (_error) {
-        // Handle error silently - keys remain encrypted
+      } catch {
         setDecryptedKeys([])
       }
     }
@@ -1881,8 +1778,6 @@ function PreviewMessage() {
                           router.navigate(
                             `/account/${id}/signAndSend/signMessage`
                           )
-                        } else {
-                          // Don't navigate if finalization failed
                         }
                       } else {
                         // For non-multisig accounts, navigate directly
