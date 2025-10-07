@@ -840,6 +840,7 @@ export default function IOPreview() {
                 label={t(
                   'transaction.build.options.autoSelect.utxos.privacy.title'
                 )}
+                loading={loadingOptimizeAlgorithm === 'privacy'}
                 selected={selectedAutoSelectUtxos === 'privacy'}
                 style={{ width: '33%', flex: 1 }}
                 onPress={() => handleOnChangeUtxoSelection('privacy')}
@@ -849,6 +850,7 @@ export default function IOPreview() {
                 label={t(
                   'transaction.build.options.autoSelect.utxos.efficiency.title'
                 )}
+                loading={loadingOptimizeAlgorithm === 'efficiency'}
                 selected={selectedAutoSelectUtxos === 'efficiency'}
                 style={{ width: '33%', flex: 1 }}
                 onPress={() => handleOnChangeUtxoSelection('efficiency')}
