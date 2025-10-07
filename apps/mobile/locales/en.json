@@ -261,7 +261,8 @@
       "openSignFlowFailed": "Failed to open sign flow",
       "openingInAccount": "Opening transaction in {{accountName}}",
       "received": "Transaction received! Click \"Go to Sign Flow\" to continue.",
-      "signFlow": "Go to Sign Flow"
+      "signFlow": "Go to Sign Flow",
+      "signRequest": "Transaction Sign Request"
     },
     "utxos": "UTXOs",
     "viewMnemonic": "View mnemonic"
@@ -1136,6 +1137,7 @@
     "build.unspent": "Unspent",
     "build.update.fee.title": "Change fee",
     "build.update.outputs": "Remove or decrease outputs",
+    "checkStatus": "Check Status",
     "decoded.btnCollapse": "Collapse",
     "decoded.btnExpand": "Expand",
     "decoded.description.flag": "This is a 1-byte flag that follows the marker in transactions with witness data. It must be non-zero. It can be interpreted as a bitvector, with the unused bits available for future extensibility for other types of witness data.",
@@ -1210,6 +1212,7 @@
     "input.title": "Input",
     "label": "Label",
     "loadHistory": "Load History",
+    "loadSankey": "Load Sankey Diagram",
     "noLabel": "No label",
     "noTags": "No tags",
     "output.count": "Number of outputs",

@@ -210,17 +210,17 @@ function SSSignatureDropdown({
 
       const message = `🔐 Multisig Transaction Ready for Signing
 
-Transaction ID: ${messageId}
-Network: ${account.network}
-Required Signatures: ${account.keysRequired}/${account.keyCount}
-Current Signatures: ${Object.keys(collectedSignedPsbts).length}
+        Transaction ID: ${messageId}
+        Network: ${account.network}
+        Required Signatures: ${account.keysRequired}/${account.keyCount}
+        Current Signatures: ${Object.keys(collectedSignedPsbts).length}
 
-Transaction Data:
-${JSON.stringify(transactionData, null, 2)}
+        Transaction Data:
+        ${JSON.stringify(transactionData, null, 2)}
 
-Please open this transaction in your SatSigner app to review and sign.
+        Please open this transaction in your SatSigner app to review and sign.
 
-[${t('account.transaction.signFlow')}]`
+        [${t('account.transaction.signFlow')}]`
 
       await sendDM(account, message)
       toast.success(t('account.nostrSync.transactionDataSentToGroupChat'))

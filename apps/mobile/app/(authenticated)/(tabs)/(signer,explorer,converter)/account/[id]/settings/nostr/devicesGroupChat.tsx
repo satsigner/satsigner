@@ -5,7 +5,9 @@ import { FlatList, StyleSheet, TextInput, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
+import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
+import SSTransactionChart from '@/components/SSTransactionChart'
 import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -13,15 +15,17 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
-import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
 import type { NostrDM } from '@/types/models/Nostr'
+import { type Transaction } from '@/types/models/Transaction'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import {
   extractTransactionIdFromMessage,
   handleGoToSignFlow,
   parseNostrTransactionMessage
 } from '@/utils/nostrTransactionParser'
+import { type TransactionData } from '@/utils/psbtAccountMatcher'
+import { estimateTransactionSize } from '@/utils/transaction'
 
 // Cache for npub colors
 const colorCache = new Map<string, { text: string; color: string }>()
@@ -48,109 +52,60 @@ async function formatNpub(
     }
     colorCache.set(pubkey, result)
     return result
-  } catch (_error) {
+  } catch {
     return { text: pubkey.slice(0, 8), color: '#404040' }
   }
 }
 
 function SSDevicesGroupChat() {
+  // Hooks
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const router = useRouter()
+  const flatListRef = useRef<FlatList>(null)
+  const formattedAuthorsRef = useRef(new Set<string>())
+  const { sendDM } = useNostrSync()
+
+  // Zustand stores
+  const account = useAccountsStore((state) =>
+    state.accounts.find((_account) => _account.id === accountId)
+  )
+  const members = useNostrStore(
+    (state) => state.members?.[accountId] || [],
+    (a, b) => JSON.stringify(a) === JSON.stringify(b)
+  )
+
+  // State
   const [isLoading, setIsLoading] = useState(false)
   const [isContentLoaded, setIsContentLoaded] = useState(false)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [messageInput, setMessageInput] = useState('')
-  const flatListRef = useRef<FlatList>(null)
   const [formattedNpubs, setFormattedNpubs] = useState<
     Map<string, { text: string; color: string }>
   >(new Map())
+  const [transactionDataCache, setTransactionDataCache] = useState<
+    Map<string, TransactionData | null>
+  >(new Map())
+  const [visibleComponents, setVisibleComponents] = useState(
+    new Map<string, { sankey: boolean; status: boolean }>()
+  )
 
-  const [account] = useAccountsStore((state) => [
-    state.accounts.find((_account) => _account.id === accountId)
-  ])
-
-  const { members } = useNostrStore((state) => {
-    if (!accountId) return { members: [] }
-    return {
-      members: state.members?.[accountId] || []
-    }
-  })
-
-  const { sendDM } = useNostrSync()
-
-  // Load messages from account's Nostr DMs store
+  // Memoized values
   const messages = useMemo(
     () => account?.nostr?.dms || [],
     [account?.nostr?.dms]
   )
-
-  // Memoize messages to prevent unnecessary re-renders
   const memoizedMessages = useMemo(() => messages, [messages])
-
-  // Memoize the members list to prevent unnecessary recalculations
   const membersList = useMemo(
     () =>
-      members.map((member: { npub: string; color?: string }) => ({
+      members.map((member) => ({
         npub: member.npub,
         color: member.color || '#404040'
       })),
     [members]
   )
 
-  // Keep track of which authors we've already formatted
-  const formattedAuthorsRef = useRef(new Set<string>())
-
-  // Format npubs for all messages
-  useEffect(() => {
-    const formatNpubs = async () => {
-      const newFormattedNpubs = new Map()
-      let hasNewAuthors = false
-
-      for (const msg of memoizedMessages) {
-        if (!formattedAuthorsRef.current.has(msg.author)) {
-          const formatted = await formatNpub(msg.author, membersList)
-          newFormattedNpubs.set(msg.author, formatted)
-          formattedAuthorsRef.current.add(msg.author)
-          hasNewAuthors = true
-        }
-      }
-
-      // Only update state if we have new authors to format
-      if (hasNewAuthors) {
-        setFormattedNpubs((prev) => new Map([...prev, ...newFormattedNpubs]))
-      }
-    }
-
-    formatNpubs()
-  }, [memoizedMessages, membersList])
-
-  // Separate effect for scrolling
-  useEffect(() => {
-    if (messages.length > 0 && account?.nostr?.relays?.length) {
-      if (isInitialLoad) {
-        setIsContentLoaded(false)
-        // Wait for content to be fully rendered
-        setTimeout(() => {
-          if (flatListRef.current) {
-            flatListRef.current.scrollToEnd({ animated: false })
-            // Double check scroll after a short delay
-            setTimeout(() => {
-              flatListRef.current?.scrollToEnd({ animated: false })
-              setIsContentLoaded(true)
-              setIsInitialLoad(false)
-            }, 200)
-          }
-        }, 100)
-      } else {
-        // For subsequent updates, just scroll without showing loading
-        if (flatListRef.current) {
-          flatListRef.current.scrollToEnd({ animated: false })
-        }
-      }
-    }
-  }, [messages.length, account?.nostr?.relays?.length, isInitialLoad])
-
-  const handleSendMessage = async () => {
+  // Callbacks
+  const handleSendMessage = useCallback(async () => {
     if (!messageInput.trim()) {
       toast.error(t('common.error.messageCannotBeEmpty'))
       return
@@ -179,12 +134,11 @@ function SSDevicesGroupChat() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [account, messageInput, sendDM])
 
   const handleGoToSignFlowClick = useCallback(
     (messageContent: string) => {
       try {
-        // Check if message contains transaction data
         if (
           !messageContent.includes('multisig_transaction') ||
           !messageContent.includes('Transaction Data:') ||
@@ -194,14 +148,12 @@ function SSDevicesGroupChat() {
           return
         }
 
-        // Parse the transaction data from the message
         const transactionData = parseNostrTransactionMessage(messageContent)
         if (!transactionData) {
           toast.error(t('common.error.transactionDataParseFailed'))
           return
         }
 
-        // Handle navigation to sign flow
         handleGoToSignFlow(transactionData, router)
       } catch {
         toast.error(t('common.error.openSignFlowFailed'))
@@ -209,6 +161,98 @@ function SSDevicesGroupChat() {
     },
     [router]
   )
+
+  const handleToggleVisibility = useCallback(
+    (msgId: string, component: 'sankey' | 'status') => {
+      setVisibleComponents((prev) => {
+        const newMap = new Map(prev)
+        const current = newMap.get(msgId) || {
+          sankey: false,
+          status: false
+        }
+        newMap.set(msgId, { ...current, [component]: true })
+        return newMap
+      })
+    },
+    []
+  )
+
+  // Effects
+  useEffect(() => {
+    const formatNpubs = async () => {
+      const newFormattedNpubs = new Map()
+      let hasNewAuthors = false
+
+      for (const msg of memoizedMessages) {
+        if (!formattedAuthorsRef.current.has(msg.author)) {
+          const formatted = await formatNpub(msg.author, membersList)
+          newFormattedNpubs.set(msg.author, formatted)
+          formattedAuthorsRef.current.add(msg.author)
+          hasNewAuthors = true
+        }
+      }
+
+      // Only update state if we have new authors to format
+      if (hasNewAuthors) {
+        setFormattedNpubs((prev) => new Map([...prev, ...newFormattedNpubs]))
+      }
+    }
+
+    formatNpubs()
+  }, [memoizedMessages, membersList])
+
+  useEffect(() => {
+    const newCache = new Map(transactionDataCache)
+    let needsUpdate = false
+    for (const msg of memoizedMessages) {
+      if (!newCache.has(msg.id)) {
+        const messageContent =
+          typeof msg.content === 'object' && 'description' in msg.content
+            ? msg.content.description
+            : typeof msg.content === 'string'
+              ? msg.content
+              : ''
+
+        if (
+          messageContent.includes('multisig_transaction') &&
+          messageContent.includes('Transaction Data:')
+        ) {
+          const parsedData = parseNostrTransactionMessage(messageContent)
+          newCache.set(msg.id, parsedData)
+          needsUpdate = true
+        }
+      }
+    }
+
+    if (needsUpdate) {
+      setTransactionDataCache(newCache)
+    }
+  }, [memoizedMessages, transactionDataCache])
+
+  useEffect(() => {
+    if (messages.length > 0 && account?.nostr?.relays?.length) {
+      if (isInitialLoad) {
+        setIsContentLoaded(false)
+        // Wait for content to be fully rendered
+        setTimeout(() => {
+          if (flatListRef.current) {
+            flatListRef.current.scrollToEnd({ animated: false })
+            // Double check scroll after a short delay
+            setTimeout(() => {
+              flatListRef.current?.scrollToEnd({ animated: false })
+              setIsContentLoaded(true)
+              setIsInitialLoad(false)
+            }, 200)
+          }
+        }, 100)
+      } else {
+        // For subsequent updates, just scroll without showing loading
+        if (flatListRef.current) {
+          flatListRef.current.scrollToEnd({ animated: false })
+        }
+      }
+    }
+  }, [messages.length, account?.nostr?.relays?.length, isInitialLoad])
 
   const renderMessage = useCallback(
     ({ item: msg }: { item: NostrDM }) => {
@@ -225,7 +269,7 @@ function SSDevicesGroupChat() {
 
         const isDeviceMessage = msgAuthorNpub === account?.nostr?.deviceNpub
         const formatted = formattedNpubs.get(msg.author) || {
-          text: msgAuthorNpub.slice(0, 12) + '...' + msgAuthorNpub.slice(-4),
+          text: `${msgAuthorNpub.slice(0, 12)}...${msgAuthorNpub.slice(-4)}`,
           color: '#404040'
         }
 
@@ -275,14 +319,116 @@ function SSDevicesGroupChat() {
                 })}
               </SSText>
             </SSHStack>
-            <SSText size="md">{messageContent}</SSText>
-            {hasSignFlow && (
-              <SSButton
-                label={t('account.transaction.signFlow')}
-                variant="secondary"
-                style={styles.signFlowButton}
-                onPress={() => handleGoToSignFlowClick(messageContent)}
-              />
+            {hasSignFlow ? (
+              (() => {
+                const transactionData = transactionDataCache.get(msg.id)
+                const transactionId =
+                  extractTransactionIdFromMessage(messageContent)
+
+                if (transactionData && transactionId) {
+                  const { keysRequired, keyCount, signedPsbts } =
+                    transactionData
+
+                  const inputs = transactionData.inputs || []
+                  const outputs = transactionData.outputs || []
+
+                  const { size, vsize } = estimateTransactionSize(
+                    inputs.length,
+                    outputs.length
+                  )
+
+                  const collectedSignatures = Object.keys(
+                    signedPsbts || {}
+                  ).map(Number)
+
+                  const vin = inputs.map((input) => ({
+                    previousOutput: { txid: input.txid, vout: input.vout },
+                    value: input.value,
+                    label: input.label || ''
+                  }))
+
+                  const vout = outputs.map((output) => ({
+                    address: output.address,
+                    value: output.value,
+                    label: output.label || ''
+                  }))
+
+                  const transaction = {
+                    id: transactionId,
+                    size,
+                    vsize,
+                    vin,
+                    vout
+                  } as unknown as Transaction
+
+                  const visibility = visibleComponents.get(msg.id) || {
+                    sankey: false,
+                    status: false
+                  }
+
+                  return (
+                    <SSVStack gap="md" style={{ paddingTop: 10 }}>
+                      <SSHStack justifyBetween>
+                        <SSText size="lg" weight="bold">
+                          {t('account.transaction.signRequest')}
+                        </SSText>
+                        <SSText size="lg" color="muted">
+                          {`${transactionId.slice(
+                            0,
+                            6
+                          )}...${transactionId.slice(-6)}`}
+                        </SSText>
+                      </SSHStack>
+
+                      {visibility.sankey ? (
+                        <SSTransactionChart transaction={transaction} />
+                      ) : (
+                        <SSButton
+                          label={t('transaction.loadSankey')}
+                          onPress={() =>
+                            handleToggleVisibility(msg.id, 'sankey')
+                          }
+                        />
+                      )}
+
+                      {visibility.status ? (
+                        <SSSignatureRequiredDisplay
+                          requiredNumber={keysRequired}
+                          totalNumber={keyCount}
+                          collectedSignatures={collectedSignatures}
+                        />
+                      ) : (
+                        <SSButton
+                          label={t('transaction.checkStatus')}
+                          onPress={() =>
+                            handleToggleVisibility(msg.id, 'status')
+                          }
+                        />
+                      )}
+
+                      <SSButton
+                        label={t('account.transaction.signFlow')}
+                        variant="secondary"
+                        style={styles.signFlowButton}
+                        onPress={() => handleGoToSignFlowClick(messageContent)}
+                      />
+                    </SSVStack>
+                  )
+                }
+                return (
+                  <>
+                    <SSText size="md">{messageContent}</SSText>
+                    <SSButton
+                      label={t('account.transaction.signFlow')}
+                      variant="secondary"
+                      style={styles.signFlowButton}
+                      onPress={() => handleGoToSignFlowClick(messageContent)}
+                    />
+                  </>
+                )
+              })()
+            ) : (
+              <SSText size="md">{messageContent}</SSText>
             )}
           </SSVStack>
         )
@@ -296,7 +442,14 @@ function SSDevicesGroupChat() {
         )
       }
     },
-    [account?.nostr?.deviceNpub, formattedNpubs, handleGoToSignFlowClick]
+    [
+      account?.nostr?.deviceNpub,
+      formattedNpubs,
+      handleGoToSignFlowClick,
+      transactionDataCache,
+      visibleComponents,
+      handleToggleVisibility
+    ]
   )
 
   if (!accountId || !account) return <Redirect href="/" />
