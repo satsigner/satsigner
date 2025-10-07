@@ -3,6 +3,7 @@ import { nip19 } from 'nostr-tools'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, StyleSheet, TextInput, View } from 'react-native'
 import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
@@ -70,8 +71,7 @@ function SSDevicesGroupChat() {
     state.accounts.find((_account) => _account.id === accountId)
   )
   const members = useNostrStore(
-    (state) => state.members?.[accountId] || [],
-    (a, b) => JSON.stringify(a) === JSON.stringify(b)
+    useShallow((state) => state.members?.[accountId] || [])
   )
 
   // State
