@@ -15,6 +15,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useNostrStore } from '@/store/nostr'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Typography } from '@/styles'
 import { type Account, type Key } from '@/types/models/Account'
@@ -88,7 +89,9 @@ function SSSignatureDropdown({
   const [seedDropped, setSeedDropped] = useState(false)
 
   const router = useRouter()
-  const { sendDM } = useNostrSync()
+  const setTransactionToShare = useNostrStore(
+    (state) => state.setTransactionToShare
+  )
 
   // Get network and script version for source label
   const network = useBlockchainStore((state) => state.selectedNetwork)
@@ -222,23 +225,18 @@ function SSSignatureDropdown({
 
         [${t('account.transaction.signFlow')}]`
 
-      await sendDM(account, message)
-      toast.success(t('account.nostrSync.transactionDataSentToGroupChat'))
+      setTransactionToShare({
+        message: message,
+        transactionData: transactionData
+      })
 
-      // Navigate to group chat after sending
-      router.navigate(`/account/${accountId}/settings/nostr/devicesGroupChat`)
+      router.push({
+        pathname: `/account/${accountId}/settings/nostr/devicesGroupChat`
+      })
     } catch {
       toast.error(t('account.nostrSync.failedToSendTransactionData'))
     }
-  }, [
-    account,
-    messageId,
-    txBuilderResult,
-    signedPsbts,
-    sendDM,
-    router,
-    accountId
-  ])
+  }, [account, messageId, txBuilderResult, signedPsbts, router, accountId])
 
   const { sourceLabel } = useKeySourceLabel({
     keyDetails,

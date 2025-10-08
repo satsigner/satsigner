@@ -141,6 +141,8 @@
       "devicesGroupChat": "Devices Group Chat",
       "failedToSendTransactionData": "Failed to send transaction data",
       "messageReceivedReadySign": "Transaction received! Ready to sign.",
+      "shareInChat": "Share in Chat",
+      "shareTransactionTitle": "Share Transaction",
       "transactionDataNotAvailable": "Transaction data not available",
       "transactionDataSentToGroupChat": "Transaction data sent to group chat"
     },

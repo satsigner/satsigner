@@ -1,7 +1,7 @@
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FlatList, StyleSheet, TextInput, View } from 'react-native'
+import { FlatList, StyleSheet, TextInput, View, ScrollView } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -27,6 +27,7 @@ import {
 } from '@/utils/nostrTransactionParser'
 import { type TransactionData } from '@/utils/psbtAccountMatcher'
 import { estimateTransactionSize } from '@/utils/transaction'
+import SSModal from '@/components/SSModal'
 
 // Cache for npub colors
 const colorCache = new Map<string, { text: string; color: string }>()
@@ -73,6 +74,12 @@ function SSDevicesGroupChat() {
   const members = useNostrStore(
     useShallow((state) => state.members?.[accountId] || [])
   )
+  const { transactionToShare, setTransactionToShare } = useNostrStore(
+    useShallow((state) => ({
+      transactionToShare: state.transactionToShare,
+      setTransactionToShare: state.setTransactionToShare
+    }))
+  )
 
   // State
   const [isLoading, setIsLoading] = useState(false)
@@ -88,6 +95,10 @@ function SSDevicesGroupChat() {
   const [visibleComponents, setVisibleComponents] = useState(
     new Map<string, { sankey: boolean; status: boolean }>()
   )
+  const [isShareModalVisible, setIsShareModalVisible] = useState(false)
+  const [messageToShare, setMessageToShare] = useState('')
+  const [transactionDataForModal, setTransactionDataForModal] =
+    useState<TransactionData | null>(null)
 
   // Memoized values
   const messages = useMemo(
@@ -177,6 +188,29 @@ function SSDevicesGroupChat() {
     []
   )
 
+  const handleShareInChat = useCallback(async () => {
+    if (!account || !messageToShare) return
+
+    setIsLoading(true)
+    try {
+      await sendDM(account, messageToShare)
+      toast.success(t('account.nostrSync.transactionDataSentToGroupChat'))
+    } catch {
+      toast.error(t('account.nostrSync.failedToSendTransactionData'))
+    } finally {
+      setIsShareModalVisible(false)
+      setMessageToShare('')
+      setTransactionDataForModal(null)
+      setIsLoading(false)
+    }
+  }, [account, messageToShare, sendDM])
+
+  const handleCancelShare = useCallback(() => {
+    setIsShareModalVisible(false)
+    setMessageToShare('')
+    setTransactionDataForModal(null)
+  }, [])
+
   // Effects
   useEffect(() => {
     const formatNpubs = async () => {
@@ -253,6 +287,15 @@ function SSDevicesGroupChat() {
       }
     }
   }, [messages.length, account?.nostr?.relays?.length, isInitialLoad])
+
+  useEffect(() => {
+    if (transactionToShare) {
+      setMessageToShare(transactionToShare.message)
+      setTransactionDataForModal(transactionToShare.transactionData)
+      setIsShareModalVisible(true)
+      setTransactionToShare(null)
+    }
+  }, [transactionToShare, setTransactionToShare])
 
   const renderMessage = useCallback(
     ({ item: msg }: { item: NostrDM }) => {
@@ -529,6 +572,99 @@ function SSDevicesGroupChat() {
           />
         </SSHStack>
       </SSVStack>
+      <SSModal
+        visible={isShareModalVisible}
+        onClose={handleCancelShare}
+        label=""
+      >
+        <View style={styles.modalContainer}>
+          <SSVStack gap="xs" style={styles.modalContent}>
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalScrollContent}
+              showsVerticalScrollIndicator
+              nestedScrollEnabled
+            >
+              {transactionDataForModal ? (
+                (() => {
+                  const {
+                    txid,
+                    keysRequired,
+                    keyCount,
+                    signedPsbts,
+                    inputs = [],
+                    outputs = []
+                  } = transactionDataForModal
+
+                  const { size, vsize } = estimateTransactionSize(
+                    inputs.length,
+                    outputs.length
+                  )
+                  const collectedSignatures = Object.keys(
+                    signedPsbts || {}
+                  ).map(Number)
+                  const vin = inputs.map((input) => ({
+                    previousOutput: { txid: input.txid, vout: input.vout },
+                    value: input.value,
+                    label: input.label || ''
+                  }))
+                  const vout = outputs.map((output) => ({
+                    address: output.address,
+                    value: output.value,
+                    label: output.label || ''
+                  }))
+                  const transaction = {
+                    id: txid,
+                    size,
+                    vsize,
+                    vin,
+                    vout
+                  } as unknown as Transaction
+
+                  return (
+                    <SSVStack>
+                      <SSHStack justifyBetween>
+                        <SSText size="md" weight="bold">
+                          {t('account.transaction.signRequest')}
+                        </SSText>
+                        <SSText size="md" color="muted">
+                          {`${txid.slice(0, 6)}...${txid.slice(-6)}`}
+                        </SSText>
+                      </SSHStack>
+                      <View style={styles.chartContainer}>
+                        <SSTransactionChart transaction={transaction} />
+                      </View>
+                      <View style={styles.signatureContainer}>
+                        <SSSignatureRequiredDisplay
+                          requiredNumber={keysRequired}
+                          totalNumber={keyCount}
+                          collectedSignatures={collectedSignatures}
+                        />
+                      </View>
+                    </SSVStack>
+                  )
+                })()
+              ) : (
+                <SSText style={styles.modalMessageText}>
+                  {messageToShare}
+                </SSText>
+              )}
+            </ScrollView>
+            <SSVStack gap="xs" style={{ marginTop: 2 }}>
+              <SSButton
+                label={t('account.nostrSync.shareInChat')}
+                onPress={handleShareInChat}
+                loading={isLoading}
+              />
+              <SSButton
+                label={t('common.cancel')}
+                onPress={handleCancelShare}
+                variant="ghost"
+              />
+            </SSVStack>
+          </SSVStack>
+        </View>
+      </SSModal>
     </SSMainLayout>
   )
 }
@@ -583,6 +719,39 @@ const styles = StyleSheet.create({
   signFlowButton: {
     marginTop: 8,
     alignSelf: 'flex-start'
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    backgroundColor: 'transparent'
+  },
+  modalContent: {
+    backgroundColor: Colors.gray[900],
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    width: '100%',
+    minHeight: '60%',
+    maxHeight: '85%',
+    justifyContent: 'space-between'
+  },
+  modalScroll: {
+    width: '100%'
+  },
+  modalScrollContent: {
+    paddingBottom: 4
+  },
+  chartContainer: {
+    width: '100%',
+    overflow: 'hidden',
+    paddingHorizontal: 2
+  },
+  signatureContainer: {
+    alignItems: 'center'
+  },
+  modalMessageText: {
+    maxHeight: 300
   }
 })
 

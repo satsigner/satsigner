@@ -4,6 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import { type NostrAPI } from '@/api/nostr'
 import mmkvStorage from '@/storage/mmkv'
 import { generateColorFromNpub } from '@/utils/nostr'
+import { type TransactionData } from '@/utils/psbtAccountMatcher'
 
 type Member = {
   npub: string
@@ -30,6 +31,10 @@ type NostrState = {
     [accountId: string]: string[]
   }
   activeSubscriptions: Set<NostrAPI>
+  transactionToShare: {
+    message: string
+    transactionData: TransactionData
+  } | null
 }
 
 type NostrAction = {
@@ -53,6 +58,9 @@ type NostrAction = {
   addSubscription: (subscription: NostrAPI) => void
   clearSubscriptions: () => void
   getActiveSubscriptions: () => Set<NostrAPI>
+  setTransactionToShare: (
+    data: { message: string; transactionData: TransactionData } | null
+  ) => void
 }
 
 type Message = {
@@ -78,6 +86,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
       lastProtocolEOSE: {},
       lastDataExchangeEOSE: {},
       trustedDevices: {},
+      transactionToShare: null,
       activeSubscriptions: new Set<NostrAPI>(),
       addMember: async (accountId, npub) => {
         try {
@@ -276,7 +285,8 @@ const useNostrStore = create<NostrState & NostrAction>()(
       },
       getActiveSubscriptions: () => {
         return get().activeSubscriptions
-      }
+      },
+      setTransactionToShare: (data) => set({ transactionToShare: data })
     }),
     {
       name: 'satsigner-nostr',
