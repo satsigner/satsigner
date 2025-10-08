@@ -1,7 +1,7 @@
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
-import { Stack, useRouter } from 'expo-router'
-import { useCallback, useState } from 'react'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useCallback, useEffect, useState } from 'react'
 import { Alert, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -65,7 +65,13 @@ interface LNURLPayResponse {
   allowsNostr?: boolean
 }
 
+interface EcashSendSearchParams {
+  invoice?: string
+  [key: string]: string | string[] | undefined
+}
+
 export default function EcashSendPage() {
+  const { invoice: invoiceParam } = useLocalSearchParams()
   const [activeTab, setActiveTab] = useState<'ecash' | 'lightning'>('ecash')
   const [amount, setAmount] = useState('')
   const [memo, setMemo] = useState('')
@@ -134,24 +140,24 @@ export default function EcashSendPage() {
   const handleMeltTokens = useCallback(async () => {
     if (!invoice) {
       toast.error(t('ecash.error.invalidInvoice'))
-      setStatusMessage('Error: No invoice provided')
+      setStatusMessage(`Error: ${t('ecash.error.noInvoiceProvided')}`)
       return
     }
 
     if (!activeMint) {
       toast.error(t('ecash.error.noMintConnected'))
-      setStatusMessage('Error: No mint connected')
+      setStatusMessage(`Error: ${t('ecash.error.noMintConnected')}`)
       return
     }
 
     if (proofs.length === 0) {
       toast.error(t('ecash.error.noTokensToMelt'))
-      setStatusMessage('Error: No tokens available')
+      setStatusMessage(`Error: ${t('ecash.error.noTokensAvailable')}`)
       return
     }
 
     setIsMelting(true)
-    setStatusMessage('Starting melt process...')
+    setStatusMessage(t('ecash.status.startingMeltProcess'))
     try {
       let bolt11Invoice: string
 
@@ -159,76 +165,71 @@ export default function EcashSendPage() {
         // For LNURL-pay, create bolt11 invoice first
         if (!amount) {
           toast.error(t('ecash.error.pleaseEnterAmount'))
-          setStatusMessage('Error: No amount entered')
+          setStatusMessage(`Error: ${t('ecash.error.noAmountEntered')}`)
           return
         }
 
         const amountSats = parseInt(amount, 10)
         if (isNaN(amountSats) || amountSats <= 0) {
           toast.error(t('ecash.error.pleaseEnterValidAmount'))
-          setStatusMessage('Error: Invalid amount')
+          setStatusMessage(`Error: ${t('ecash.error.pleaseEnterValidAmount')}`)
           return
         }
 
         // Use existing LNURL-pay flow to get bolt11 invoice
-        setStatusMessage('Requesting LNURL invoice...')
+        setStatusMessage(t('ecash.status.requestingLnurlInvoice'))
         bolt11Invoice = await handleLNURLPay(
           invoice,
           amountSats,
           comment || undefined
         )
-        setStatusMessage('LNURL invoice received, waiting...')
+        setStatusMessage(t('ecash.status.lnurlInvoiceReceived'))
 
         // Small delay to ensure invoice is properly registered
         await new Promise((resolve) => setTimeout(resolve, 1000))
       } else {
         // For bolt11, use invoice directly
-        setStatusMessage('Using bolt11 invoice...')
+        setStatusMessage(t('ecash.status.usingBolt11Invoice'))
         bolt11Invoice = invoice
       }
 
       // Use existing melt logic with the bolt11 invoice
-      setStatusMessage('Creating melt quote...')
+      setStatusMessage(t('ecash.status.creatingMeltQuote'))
       const quote = await createMeltQuote(activeMint.url, bolt11Invoice)
-      setStatusMessage('Melt quote created, melting tokens...')
+      setStatusMessage(t('ecash.status.meltQuoteCreated'))
 
       await meltProofs(activeMint.url, quote, proofs)
-      setStatusMessage('Tokens melted successfully!')
+      setStatusMessage(t('ecash.status.tokensMeltedSuccessfully'))
 
       setInvoice('')
       setAmount('')
       toast.success(t('ecash.success.tokensMelted'))
     } catch (error) {
-      console.error('❌ Melt tokens error:', error)
       if (error instanceof Error) {
         if (
           error.message.includes('404') ||
           error.message.includes('Not Found')
         ) {
-          setStatusMessage('Error: Payment request expired or already paid')
-          toast.error(
-            'Payment request expired or already paid. Please try again.'
-          )
+          setStatusMessage(`Error: ${t('ecash.error.paymentRequestExpired')}`)
+          toast.error(t('ecash.error.paymentRequestExpiredMessage'))
         } else if (error.message.includes('amount')) {
           setStatusMessage(`Error: ${error.message}`)
           toast.error(error.message)
         } else if (error.message.includes('no_route')) {
-          setStatusMessage(
-            'Error: No payment route found - insufficient liquidity'
-          )
-          toast.error(
-            'No payment route found. Try a smaller amount or different invoice.'
-          )
+          setStatusMessage(`Error: ${t('ecash.error.noPaymentRoute')}`)
+          toast.error(t('ecash.error.noPaymentRouteMessage'))
         } else if (error.message.includes('insufficient_balance')) {
-          setStatusMessage('Error: Insufficient balance in LND node')
+          setStatusMessage(`Error: ${t('ecash.error.insufficientBalance')}`)
           toast.error(t('ecash.error.insufficientBalance'))
         } else if (error.message.includes('payment_failed')) {
-          setStatusMessage('Error: Lightning payment failed')
+          setStatusMessage(
+            `Error: ${t('ecash.error.lightningPaymentFailedStatus')}`
+          )
           toast.error(t('ecash.error.lightningPaymentFailed'))
         } else if (error.message.includes('melt proofs')) {
           // Extract the specific error from the melt proofs error
           const specificError =
-            error.message.split(': ').pop() || 'Unknown melt error'
+            error.message.split(': ').pop() || t('ecash.error.unknownMeltError')
           setStatusMessage(`Error: ${specificError}`)
           toast.error(`${t('ecash.error.meltFailed')}: ${specificError}`)
         } else {
@@ -236,7 +237,7 @@ export default function EcashSendPage() {
           toast.error(error.message)
         }
       } else {
-        setStatusMessage('Error: Unknown error occurred')
+        setStatusMessage(`Error: ${t('ecash.error.unknownError')}`)
         toast.error(t('ecash.error.lnurlPaymentFailed'))
       }
     } finally {
@@ -314,8 +315,8 @@ export default function EcashSendPage() {
           const isStillConnected = await verifyConnection()
           if (!isStillConnected) {
             Alert.alert(
-              'Connection Error',
-              'Not connected to LND node. Please check your connection and try again.'
+              t('ecash.error.connectionError'),
+              t('ecash.error.notConnectedToLND')
             )
             return
           }
@@ -337,12 +338,27 @@ export default function EcashSendPage() {
     [isConnected, verifyConnection, decodeInvoice]
   )
 
+  // Handle invoice parameter from navigation
+  useEffect(() => {
+    if (invoiceParam) {
+      const invoiceValue = Array.isArray(invoiceParam)
+        ? invoiceParam[0]
+        : invoiceParam
+      if (invoiceValue) {
+        setInvoice(invoiceValue)
+        setActiveTab('lightning')
+        // Process the invoice to detect if it's LNURL or bolt11
+        handleInvoiceChange(invoiceValue)
+      }
+    }
+  }, [invoiceParam, handleInvoiceChange])
+
   const handlePasteInvoice = useCallback(async () => {
     try {
       const clipboardText = await Clipboard.getStringAsync()
       if (clipboardText) {
         await handleInvoiceChange(clipboardText)
-        toast.success('Invoice pasted from clipboard')
+        toast.success(t('ecash.success.invoicePasted'))
       } else {
         toast.error(t('ecash.error.noTextInClipboard'))
       }
@@ -361,7 +377,7 @@ export default function EcashSendPage() {
       // Clean the data (remove any whitespace and lightning: prefix)
       const cleanData = data.trim().replace(/^lightning:/i, '')
       handleInvoiceChange(cleanData)
-      toast.success('Invoice scanned successfully')
+      toast.success(t('ecash.success.invoiceScanned'))
     },
     [handleInvoiceChange]
   )

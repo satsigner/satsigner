@@ -18,6 +18,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { isLNURL } from '@/utils/lnurl'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
@@ -75,6 +76,16 @@ export default function EcashLanding() {
         params: { invoice: cleanData.replace(/^lightning:/i, '') }
       })
       toast.success(t('ecash.scan.lightningInvoiceScanned'))
+      return
+    }
+
+    // Check if it's an LNURL
+    if (isLNURL(cleanData)) {
+      router.navigate({
+        pathname: '/signer/ecash/send',
+        params: { invoice: cleanData }
+      })
+      toast.success(t('ecash.scan.lnurlScanned'))
       return
     }
 
