@@ -2,19 +2,49 @@ import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { useCallback, useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { Alert, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
+import SSPaymentDetails from '@/components/SSPaymentDetails'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useEcash } from '@/hooks/useEcash'
+import { useLND } from '@/hooks/useLND'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { usePriceStore } from '@/store/price'
+
+// Define the type for makeRequest
+type MakeRequest = <T>(
+  path: string,
+  options?: {
+    method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+    body?: unknown
+    headers?: Record<string, string>
+  }
+) => Promise<T>
+
+interface DecodedInvoice {
+  payment_request: string
+  value: string
+  description: string
+  timestamp: string
+  expiry: string
+  payment_hash: string
+  payment_addr: string
+  num_satoshis: string
+  num_msat: string
+  features: Record<string, { name: string }>
+  route_hints: any[]
+  payment_secret: string
+  min_final_cltv_expiry: string
+}
 
 export default function EcashSendPage() {
   const [activeTab, setActiveTab] = useState<'ecash' | 'lightning'>('ecash')
@@ -26,9 +56,18 @@ export default function EcashSendPage() {
   const [isMelting, setIsMelting] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
+  const [decodedInvoice, setDecodedInvoice] = useState<DecodedInvoice | null>(
+    null
+  )
+  const [isDecoding, setIsDecoding] = useState(false)
 
   const { activeMint, sendEcash, createMeltQuote, meltProofs, proofs } =
     useEcash()
+  const { makeRequest, isConnected, verifyConnection } = useLND()
+  const typedMakeRequest = makeRequest as MakeRequest
+  const [fiatCurrency, satsToFiat] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  )
 
   const handleGenerateToken = useCallback(async () => {
     if (!amount || amount.trim() === '') {
@@ -94,11 +133,69 @@ export default function EcashSendPage() {
     }
   }, [invoice, activeMint, createMeltQuote, meltProofs, proofs])
 
+  // Decode a bolt11 invoice
+  const decodeInvoice = useCallback(
+    async (invoice: string) => {
+      try {
+        setIsDecoding(true)
+        const response = await typedMakeRequest<DecodedInvoice>(
+          '/v1/payreq/' + invoice
+        )
+        setDecodedInvoice(response)
+        return response
+      } catch (error) {
+        setDecodedInvoice(null)
+        throw error
+      } finally {
+        setIsDecoding(false)
+      }
+    },
+    [typedMakeRequest]
+  )
+
+  // Handle invoice input changes and auto-decode
+  const handleInvoiceChange = useCallback(
+    async (text: string) => {
+      setInvoice(text)
+      setDecodedInvoice(null) // Clear previous decode
+
+      // Clean the text and check if it's a valid invoice
+      const cleanText = text.trim()
+      if (!cleanText) return
+
+      // Verify LND connection before proceeding
+      if (!isConnected) {
+        const isStillConnected = await verifyConnection()
+        if (!isStillConnected) {
+          Alert.alert(
+            'Connection Error',
+            'Not connected to LND node. Please check your connection and try again.'
+          )
+          return
+        }
+      }
+
+      // Auto-decode bolt11 invoices
+      if (cleanText.toLowerCase().startsWith('lnbc')) {
+        try {
+          const decoded = await decodeInvoice(cleanText)
+          // Auto-populate amount from decoded invoice
+          if (decoded.num_satoshis) {
+            setAmount(decoded.num_satoshis)
+          }
+        } catch (error) {
+          setDecodedInvoice(null)
+        }
+      }
+    },
+    [isConnected, verifyConnection, decodeInvoice]
+  )
+
   const handlePasteInvoice = useCallback(async () => {
     try {
       const clipboardText = await Clipboard.getStringAsync()
       if (clipboardText) {
-        setInvoice(clipboardText)
+        await handleInvoiceChange(clipboardText)
         toast.success('Invoice pasted from clipboard')
       } else {
         toast.error('No text found in clipboard')
@@ -106,19 +203,22 @@ export default function EcashSendPage() {
     } catch (error) {
       toast.error('Failed to paste from clipboard')
     }
-  }, [])
+  }, [handleInvoiceChange])
 
   const handleScanInvoice = useCallback(() => {
     setCameraModalVisible(true)
   }, [])
 
-  const handleQRCodeScanned = useCallback(({ data }: { data: string }) => {
-    setCameraModalVisible(false)
-    // Clean the data (remove any whitespace and lightning: prefix)
-    const cleanData = data.trim().replace(/^lightning:/i, '')
-    setInvoice(cleanData)
-    toast.success('Invoice scanned successfully')
-  }, [])
+  const handleQRCodeScanned = useCallback(
+    ({ data }: { data: string }) => {
+      setCameraModalVisible(false)
+      // Clean the data (remove any whitespace and lightning: prefix)
+      const cleanData = data.trim().replace(/^lightning:/i, '')
+      handleInvoiceChange(cleanData)
+      toast.success('Invoice scanned successfully')
+    },
+    [handleInvoiceChange]
+  )
 
   const handleCopyToken = useCallback(async () => {
     try {
@@ -212,31 +312,34 @@ export default function EcashSendPage() {
           {/* Lightning Tab Content */}
           {activeTab === 'lightning' && (
             <SSVStack gap="md">
-              <SSVStack gap="xs">
-                <SSText size="xs" uppercase>
-                  {t('ecash.send.lightningInvoice')}
-                </SSText>
+              <SSVStack gap="sm">
+                <SSText uppercase>{t('ecash.send.lightningInvoice')}</SSText>
                 <SSTextInput
                   value={invoice}
-                  onChangeText={setInvoice}
+                  onChangeText={handleInvoiceChange}
                   placeholder="lnbc..."
                   multiline
+                  style={styles.invoiceInput}
                 />
+
+                <SSHStack gap="sm">
+                  <SSButton
+                    label={t('common.paste')}
+                    onPress={handlePasteInvoice}
+                    variant="subtle"
+                    style={{ flex: 1 }}
+                  />
+                  <SSButton
+                    label={t('common.scan')}
+                    onPress={handleScanInvoice}
+                    variant="subtle"
+                    style={{ flex: 1 }}
+                  />
+                </SSHStack>
+                {decodedInvoice && (
+                  <SSPaymentDetails decodedInvoice={decodedInvoice} />
+                )}
               </SSVStack>
-              <SSHStack gap="sm">
-                <SSButton
-                  label={t('common.paste')}
-                  onPress={handlePasteInvoice}
-                  variant="subtle"
-                  style={{ flex: 1 }}
-                />
-                <SSButton
-                  label={t('common.scan')}
-                  onPress={handleScanInvoice}
-                  variant="subtle"
-                  style={{ flex: 1 }}
-                />
-              </SSHStack>
               <SSButton
                 label={t('ecash.send.meltTokens')}
                 onPress={handleMeltTokens}
@@ -278,6 +381,12 @@ const styles = StyleSheet.create({
   camera: {
     flex: 1,
     width: '100%'
+  },
+  invoiceInput: {
+    fontFamily: 'monospace',
+    fontSize: 12,
+    height: 'auto',
+    padding: 10
   },
   tokenInput: {
     minHeight: 100,

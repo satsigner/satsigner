@@ -9,6 +9,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
+import SSPaymentDetails from '@/components/SSPaymentDetails'
 import SSText from '@/components/SSText'
 import { useLND } from '@/hooks/useLND'
 import SSHStack from '@/layouts/SSHStack'
@@ -451,103 +452,11 @@ export default function PayPage() {
                 />
 
                 {decodedInvoice && !isLNURLMode && (
-                  <SSVStack gap="sm" style={styles.invoiceDetails}>
-                    <SSText uppercase>Payment Details</SSText>
-
-                    <View style={styles.detailsContent}>
-                      <View style={styles.detailSection}>
-                        <SSHStack gap="xs" style={styles.detailRow}>
-                          <SSText color="muted" style={styles.detailLabel}>
-                            Amount
-                          </SSText>
-                          <SSHStack gap="xs" style={styles.amountContainer}>
-                            <SSText weight="medium">
-                              {decodedInvoice.num_satoshis} sats
-                            </SSText>
-                            <SSText color="muted" size="sm">
-                              ≈{' '}
-                              {formatNumber(
-                                satsToFiat(Number(decodedInvoice.num_satoshis)),
-                                2
-                              )}{' '}
-                              {fiatCurrency}
-                            </SSText>
-                          </SSHStack>
-                        </SSHStack>
-
-                        {decodedInvoice.description && (
-                          <SSHStack gap="xs" style={styles.detailRow}>
-                            <SSText color="muted" style={styles.detailLabel}>
-                              Description
-                            </SSText>
-                            <SSText style={styles.detailValue}>
-                              {decodedInvoice.description}
-                            </SSText>
-                          </SSHStack>
-                        )}
-
-                        <SSHStack gap="xs" style={styles.detailRow}>
-                          <SSText color="muted" style={styles.detailLabel}>
-                            Created
-                          </SSText>
-                          <SSText style={styles.detailValue}>
-                            {new Date(
-                              Number(decodedInvoice.timestamp) * 1000
-                            ).toLocaleString('en-US', {
-                              month: 'long',
-                              day: 'numeric',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              second: '2-digit',
-                              hour12: true
-                            })}
-                          </SSText>
-                        </SSHStack>
-
-                        <SSHStack gap="xs" style={styles.detailRow}>
-                          <SSText color="muted" style={styles.detailLabel}>
-                            Expires
-                          </SSText>
-                          <SSText style={styles.detailValue}>
-                            {new Date(
-                              Number(decodedInvoice.timestamp) * 1000 +
-                                Number(decodedInvoice.expiry) * 1000
-                            ).toLocaleString('en-US', {
-                              month: 'long',
-                              day: 'numeric',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              second: '2-digit',
-                              hour12: true
-                            })}
-                          </SSText>
-                        </SSHStack>
-                      </View>
-
-                      <View style={styles.detailSection}>
-                        <SSHStack
-                          gap="xs"
-                          style={[styles.detailRow, styles.hashRow]}
-                        >
-                          <SSText color="muted" style={styles.detailLabel}>
-                            Payment Hash
-                          </SSText>
-                          <View style={styles.hashContainer}>
-                            <SSText
-                              size="sm"
-                              style={[styles.hashText, styles.monospaceInput]}
-                              numberOfLines={1}
-                              ellipsizeMode="middle"
-                            >
-                              {decodedInvoice.payment_hash}
-                            </SSText>
-                          </View>
-                        </SSHStack>
-                      </View>
-                    </View>
-                  </SSVStack>
+                  <SSPaymentDetails
+                    decodedInvoice={decodedInvoice}
+                    showCreated={true}
+                    showPaymentHash={true}
+                  />
                 )}
 
                 {isLNURLMode && (
@@ -710,53 +619,5 @@ const styles = StyleSheet.create({
   fiatAmount: {
     marginTop: 4,
     marginLeft: 4
-  },
-  invoiceDetails: {
-    marginTop: 16,
-    marginBottom: 16
-  },
-  detailsTitle: {
-    fontSize: 16,
-    letterSpacing: 0.5,
-    marginBottom: 8
-  },
-  detailsContent: {
-    gap: 16
-  },
-  detailSection: {
-    gap: 12
-  },
-  detailRow: {
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap'
-  },
-  detailLabel: {
-    minWidth: 100,
-    fontSize: 14
-  },
-  detailValue: {
-    flex: 1,
-    textAlign: 'right'
-  },
-  amountContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'baseline'
-  },
-  hashRow: {
-    alignItems: 'flex-start',
-    justifyContent: 'space-between'
-  },
-  hashContainer: {
-    flex: 1,
-    minWidth: 0,
-    marginLeft: 8
-  },
-  hashText: {
-    opacity: 0.8,
-    fontSize: 12,
-    textAlign: 'right',
-    fontFamily: Typography.sfProMono
   }
 })

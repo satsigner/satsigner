@@ -674,6 +674,14 @@
     "from": "Import from %{name}",
     "success": "Imported %{importCount} from a total of %{total} labels matching your wallet"
   },
+  "lightning": {
+    "paymentDetails.amount": "Amount",
+    "paymentDetails.created": "Created",
+    "paymentDetails.description": "Description",
+    "paymentDetails.expires": "Expires",
+    "paymentDetails.paymentHash": "Payment Hash",
+    "paymentDetails.title": "Payment Details"
+  },
   "multisig": {
     "create": "Create Multi-Signature",
     "createError": "Failed to create multi-signature wallet",
