@@ -15,8 +15,7 @@ import { t } from '@/locales'
 
 export default function EcashRecoveryPage() {
   const router = useRouter()
-  const { restoreFromBackup, clearAllData, mints, proofs, transactions } =
-    useEcash()
+  const { restoreFromBackup } = useEcash()
   const [backupData, setBackupData] = useState('')
   const [isValidating, setIsValidating] = useState(false)
 
@@ -136,35 +135,6 @@ export default function EcashRecoveryPage() {
     [restoreFromBackup, router]
   )
 
-  const handleClearAllData = useCallback(() => {
-    const hasData =
-      mints.length > 0 || proofs.length > 0 || transactions.length > 0
-
-    if (!hasData) {
-      toast.info('No data to clear')
-      return
-    }
-
-    Alert.alert(
-      t('ecash.recovery.clearAllData'),
-      'This will permanently delete all ecash data including mints, proofs, and transaction history. This action cannot be undone.',
-      [
-        {
-          text: t('common.cancel'),
-          style: 'cancel'
-        },
-        {
-          text: t('ecash.recovery.clear'),
-          style: 'destructive',
-          onPress: () => {
-            clearAllData()
-            router.back()
-          }
-        }
-      ]
-    )
-  }, [mints.length, proofs.length, transactions.length, clearAllData, router])
-
   return (
     <SSMainLayout>
       <Stack.Screen
@@ -177,13 +147,7 @@ export default function EcashRecoveryPage() {
 
       <ScrollView>
         <SSVStack gap="lg">
-          <SSVStack gap="md">
-            <SSText uppercase>{t('ecash.recovery.title')}</SSText>
-            <SSText color="muted">{t('ecash.recovery.description')}</SSText>
-          </SSVStack>
-
-          <SSVStack gap="md">
-            <SSText uppercase>{t('ecash.recovery.backupData')}</SSText>
+          <SSVStack gap="sm">
             <SSText color="muted" size="sm">
               {t('ecash.recovery.backupInstructions')}
             </SSText>
@@ -195,35 +159,19 @@ export default function EcashRecoveryPage() {
               placeholder={t('ecash.recovery.backupPlaceholder')}
               style={styles.backupInput}
             />
-
-            <SSHStack gap="sm">
-              <SSButton
-                label={t('common.paste')}
-                onPress={handlePasteFromClipboard}
-                variant="outline"
-                style={{ flex: 1 }}
-              />
-              <SSButton
-                label={t('ecash.recovery.validateAndRestore')}
-                onPress={handleValidateBackup}
-                variant="gradient"
-                gradientType="special"
-                style={{ flex: 1 }}
-                disabled={isValidating}
-              />
-            </SSHStack>
-          </SSVStack>
-
-          <SSVStack gap="md" style={styles.dangerSection}>
-            <SSText uppercase>{t('ecash.recovery.dangerZone')}</SSText>
-            <SSText color="muted" size="sm">
-              {t('ecash.recovery.dangerDescription')}
-            </SSText>
+            <SSButton
+              label={t('common.paste')}
+              onPress={handlePasteFromClipboard}
+              variant="subtle"
+              style={{ flex: 1 }}
+            />
 
             <SSButton
-              label={t('ecash.recovery.clearAllData')}
-              onPress={handleClearAllData}
-              variant="danger"
+              label={t('ecash.recovery.validateAndRestore')}
+              onPress={handleValidateBackup}
+              variant="secondary"
+              style={{ flex: 1 }}
+              disabled={isValidating}
             />
           </SSVStack>
         </SSVStack>
@@ -242,11 +190,5 @@ const styles = StyleSheet.create({
     height: 'auto',
     width: '100%',
     textAlign: 'left'
-  },
-  dangerSection: {
-    marginTop: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#333'
   }
 })

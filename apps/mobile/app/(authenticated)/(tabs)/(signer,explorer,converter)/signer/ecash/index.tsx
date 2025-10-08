@@ -8,7 +8,8 @@ import { useShallow } from 'zustand/react/shallow'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import SSEcashTransactionCard from '@/components/SSEcashTransactionCard'
-import { SSIconCamera } from '@/components/icons'
+import SSIconButton from '@/components/SSIconButton'
+import { SSIconCamera, SSIconECash } from '@/components/icons'
 import SSModal from '@/components/SSModal'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
@@ -53,20 +54,12 @@ export default function EcashLanding() {
     router.navigate('/signer/ecash/receive')
   }
 
-  const handleMintPress = () => {
-    router.navigate('/signer/ecash/mint')
-  }
-
-  const handleBackupPress = () => {
-    router.navigate('/signer/ecash/backup')
-  }
-
-  const handleRecoveryPress = () => {
-    router.navigate('/signer/ecash/recovery')
-  }
-
   const handleCameraPress = () => {
     setCameraModalVisible(true)
+  }
+
+  const handleSettingsPress = () => {
+    router.navigate('/signer/ecash/settings')
   }
 
   const handleQRCodeScanned = ({ data }: { data: string }) => {
@@ -108,6 +101,11 @@ export default function EcashLanding() {
         options={{
           headerTitle: () => (
             <SSText uppercase>{t('navigation.item.ecash')}</SSText>
+          ),
+          headerRight: () => (
+            <SSIconButton onPress={handleSettingsPress}>
+              <SSIconECash height={18} width={16} />
+            </SSIconButton>
           )
         }}
       />
@@ -180,27 +178,6 @@ export default function EcashLanding() {
               <SSText uppercase>{t('ecash.receive.title')}</SSText>
             </SSActionButton>
           </SSHStack>
-          <SSVStack gap="sm">
-            <SSButton
-              label={t('ecash.mint.title')}
-              onPress={handleMintPress}
-              variant="subtle"
-            />
-            <SSHStack gap="sm">
-              <SSButton
-                label={t('ecash.backup.title')}
-                onPress={handleBackupPress}
-                variant="subtle"
-                style={{ flex: 1 }}
-              />
-              <SSButton
-                label={t('ecash.recovery.title')}
-                onPress={handleRecoveryPress}
-                variant="subtle"
-                style={{ flex: 1 }}
-              />
-            </SSHStack>
-          </SSVStack>
           {transactions.length > 0 && (
             <SSVStack gap="sm">
               {transactions.slice(0, 50).map((transaction) => (
