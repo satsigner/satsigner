@@ -10,6 +10,7 @@ import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSPaymentDetails from '@/components/SSPaymentDetails'
+import SSLNURLDetails from '@/components/SSLNURLDetails'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useEcash } from '@/hooks/useEcash'
@@ -19,6 +20,13 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
+import { formatNumber } from '@/utils/format'
+import {
+  decodeLNURL,
+  fetchLNURLPayDetails,
+  handleLNURLPay,
+  isLNURL
+} from '@/utils/lnurl'
 
 // Define the type for makeRequest
 type MakeRequest = <T>(
@@ -46,10 +54,22 @@ interface DecodedInvoice {
   min_final_cltv_expiry: string
 }
 
+interface LNURLPayResponse {
+  callback: string
+  maxSendable: number
+  minSendable: number
+  metadata: string
+  tag: 'payRequest'
+  commentAllowed?: number
+  nostrPubkey?: string
+  allowsNostr?: boolean
+}
+
 export default function EcashSendPage() {
   const [activeTab, setActiveTab] = useState<'ecash' | 'lightning'>('ecash')
   const [amount, setAmount] = useState('')
   const [memo, setMemo] = useState('')
+  const [comment, setComment] = useState('')
   const [invoice, setInvoice] = useState('')
   const [generatedToken, setGeneratedToken] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
@@ -59,7 +79,13 @@ export default function EcashSendPage() {
   const [decodedInvoice, setDecodedInvoice] = useState<DecodedInvoice | null>(
     null
   )
+  const [isLNURLMode, setIsLNURLMode] = useState(false)
+  const [lnurlDetails, setLNURLDetails] = useState<LNURLPayResponse | null>(
+    null
+  )
+  const [isFetchingLNURL, setIsFetchingLNURL] = useState(false)
   const [isDecoding, setIsDecoding] = useState(false)
+  const [statusMessage, setStatusMessage] = useState('')
 
   const { activeMint, sendEcash, createMeltQuote, meltProofs, proofs } =
     useEcash()
@@ -82,12 +108,12 @@ export default function EcashSendPage() {
     }
 
     if (!activeMint) {
-      toast.error('No mint connected')
+      toast.error(t('ecash.error.noMintConnected'))
       return
     }
 
     if (proofs.length === 0) {
-      toast.error('No tokens available to send')
+      toast.error(t('ecash.error.noTokensToSend'))
       return
     }
 
@@ -108,30 +134,125 @@ export default function EcashSendPage() {
   const handleMeltTokens = useCallback(async () => {
     if (!invoice) {
       toast.error(t('ecash.error.invalidInvoice'))
+      setStatusMessage('Error: No invoice provided')
       return
     }
 
     if (!activeMint) {
-      toast.error('No mint connected')
+      toast.error(t('ecash.error.noMintConnected'))
+      setStatusMessage('Error: No mint connected')
       return
     }
 
     if (proofs.length === 0) {
-      toast.error('No tokens available to melt')
+      toast.error(t('ecash.error.noTokensToMelt'))
+      setStatusMessage('Error: No tokens available')
       return
     }
 
     setIsMelting(true)
+    setStatusMessage('Starting melt process...')
     try {
-      const quote = await createMeltQuote(activeMint.url, invoice)
+      let bolt11Invoice: string
+
+      if (isLNURLMode && lnurlDetails) {
+        // For LNURL-pay, create bolt11 invoice first
+        if (!amount) {
+          toast.error(t('ecash.error.pleaseEnterAmount'))
+          setStatusMessage('Error: No amount entered')
+          return
+        }
+
+        const amountSats = parseInt(amount, 10)
+        if (isNaN(amountSats) || amountSats <= 0) {
+          toast.error(t('ecash.error.pleaseEnterValidAmount'))
+          setStatusMessage('Error: Invalid amount')
+          return
+        }
+
+        // Use existing LNURL-pay flow to get bolt11 invoice
+        setStatusMessage('Requesting LNURL invoice...')
+        bolt11Invoice = await handleLNURLPay(
+          invoice,
+          amountSats,
+          comment || undefined
+        )
+        setStatusMessage('LNURL invoice received, waiting...')
+
+        // Small delay to ensure invoice is properly registered
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+      } else {
+        // For bolt11, use invoice directly
+        setStatusMessage('Using bolt11 invoice...')
+        bolt11Invoice = invoice
+      }
+
+      // Use existing melt logic with the bolt11 invoice
+      setStatusMessage('Creating melt quote...')
+      const quote = await createMeltQuote(activeMint.url, bolt11Invoice)
+      setStatusMessage('Melt quote created, melting tokens...')
+
       await meltProofs(activeMint.url, quote, proofs)
+      setStatusMessage('Tokens melted successfully!')
+
       setInvoice('')
-    } catch {
-      toast.error('Failed to melt tokens')
+      setAmount('')
+      toast.success(t('ecash.success.tokensMelted'))
+    } catch (error) {
+      console.error('❌ Melt tokens error:', error)
+      if (error instanceof Error) {
+        if (
+          error.message.includes('404') ||
+          error.message.includes('Not Found')
+        ) {
+          setStatusMessage('Error: Payment request expired or already paid')
+          toast.error(
+            'Payment request expired or already paid. Please try again.'
+          )
+        } else if (error.message.includes('amount')) {
+          setStatusMessage(`Error: ${error.message}`)
+          toast.error(error.message)
+        } else if (error.message.includes('no_route')) {
+          setStatusMessage(
+            'Error: No payment route found - insufficient liquidity'
+          )
+          toast.error(
+            'No payment route found. Try a smaller amount or different invoice.'
+          )
+        } else if (error.message.includes('insufficient_balance')) {
+          setStatusMessage('Error: Insufficient balance in LND node')
+          toast.error(t('ecash.error.insufficientBalance'))
+        } else if (error.message.includes('payment_failed')) {
+          setStatusMessage('Error: Lightning payment failed')
+          toast.error(t('ecash.error.lightningPaymentFailed'))
+        } else if (error.message.includes('melt proofs')) {
+          // Extract the specific error from the melt proofs error
+          const specificError =
+            error.message.split(': ').pop() || 'Unknown melt error'
+          setStatusMessage(`Error: ${specificError}`)
+          toast.error(`${t('ecash.error.meltFailed')}: ${specificError}`)
+        } else {
+          setStatusMessage(`Error: ${error.message}`)
+          toast.error(error.message)
+        }
+      } else {
+        setStatusMessage('Error: Unknown error occurred')
+        toast.error(t('ecash.error.lnurlPaymentFailed'))
+      }
     } finally {
       setIsMelting(false)
     }
-  }, [invoice, activeMint, createMeltQuote, meltProofs, proofs])
+  }, [
+    invoice,
+    activeMint,
+    createMeltQuote,
+    meltProofs,
+    proofs,
+    isLNURLMode,
+    lnurlDetails,
+    amount,
+    comment
+  ])
 
   // Decode a bolt11 invoice
   const decodeInvoice = useCallback(
@@ -158,25 +279,48 @@ export default function EcashSendPage() {
     async (text: string) => {
       setInvoice(text)
       setDecodedInvoice(null) // Clear previous decode
+      setLNURLDetails(null) // Clear previous LNURL details
 
       // Clean the text and check if it's a valid invoice
       const cleanText = text.trim()
       if (!cleanText) return
 
-      // Verify LND connection before proceeding
-      if (!isConnected) {
-        const isStillConnected = await verifyConnection()
-        if (!isStillConnected) {
-          Alert.alert(
-            'Connection Error',
-            'Not connected to LND node. Please check your connection and try again.'
-          )
-          return
+      // Check if it's LNURL-pay
+      if (isLNURL(cleanText)) {
+        setIsLNURLMode(true)
+        setIsFetchingLNURL(true)
+        try {
+          const url = decodeLNURL(cleanText)
+          const details = await fetchLNURLPayDetails(url)
+          setLNURLDetails(details)
+          // Auto-set minimum amount
+          if (details.minSendable) {
+            setAmount(Math.ceil(details.minSendable / 1000).toString())
+          }
+        } catch (error) {
+          setLNURLDetails(null)
+        } finally {
+          setIsFetchingLNURL(false)
         }
+        return
       }
 
-      // Auto-decode bolt11 invoices
+      // Check if it's bolt11 invoice
       if (cleanText.toLowerCase().startsWith('lnbc')) {
+        setIsLNURLMode(false)
+
+        // Verify LND connection before proceeding
+        if (!isConnected) {
+          const isStillConnected = await verifyConnection()
+          if (!isStillConnected) {
+            Alert.alert(
+              'Connection Error',
+              'Not connected to LND node. Please check your connection and try again.'
+            )
+            return
+          }
+        }
+
         try {
           const decoded = await decodeInvoice(cleanText)
           // Auto-populate amount from decoded invoice
@@ -186,6 +330,8 @@ export default function EcashSendPage() {
         } catch (error) {
           setDecodedInvoice(null)
         }
+      } else {
+        setIsLNURLMode(false)
       }
     },
     [isConnected, verifyConnection, decodeInvoice]
@@ -198,10 +344,10 @@ export default function EcashSendPage() {
         await handleInvoiceChange(clipboardText)
         toast.success('Invoice pasted from clipboard')
       } else {
-        toast.error('No text found in clipboard')
+        toast.error(t('ecash.error.noTextInClipboard'))
       }
     } catch (error) {
-      toast.error('Failed to paste from clipboard')
+      toast.error(t('ecash.error.failedToPaste'))
     }
   }, [handleInvoiceChange])
 
@@ -225,7 +371,7 @@ export default function EcashSendPage() {
       await Clipboard.setStringAsync(generatedToken)
       toast.success(t('common.copiedToClipboard'))
     } catch (error) {
-      toast.error('Failed to copy to clipboard')
+      toast.error(t('ecash.error.failedToCopy'))
     }
   }, [generatedToken])
 
@@ -317,7 +463,7 @@ export default function EcashSendPage() {
                 <SSTextInput
                   value={invoice}
                   onChangeText={handleInvoiceChange}
-                  placeholder="lnbc..."
+                  placeholder={isLNURLMode ? 'lightning:LNURL1...' : 'lnbc...'}
                   multiline
                   style={styles.invoiceInput}
                 />
@@ -336,6 +482,24 @@ export default function EcashSendPage() {
                     style={{ flex: 1 }}
                   />
                 </SSHStack>
+
+                {decodedInvoice && !isLNURLMode && (
+                  <SSPaymentDetails decodedInvoice={decodedInvoice} />
+                )}
+
+                {isLNURLMode && (
+                  <SSLNURLDetails
+                    lnurlDetails={lnurlDetails}
+                    isFetching={isFetchingLNURL}
+                    showCommentInfo={true}
+                    amount={amount}
+                    onAmountChange={setAmount}
+                    comment={comment}
+                    onCommentChange={setComment}
+                    inputStyles={styles.input}
+                  />
+                )}
+
                 {decodedInvoice && (
                   <SSPaymentDetails decodedInvoice={decodedInvoice} />
                 )}
@@ -343,10 +507,17 @@ export default function EcashSendPage() {
               <SSButton
                 label={t('ecash.send.meltTokens')}
                 onPress={handleMeltTokens}
-                loading={isMelting}
+                loading={isMelting || isFetchingLNURL}
                 variant="gradient"
                 gradientType="special"
               />
+
+              {/* Status Message */}
+              {statusMessage && (
+                <SSText color="muted" size="sm">
+                  {statusMessage}
+                </SSText>
+              )}
             </SSVStack>
           )}
         </SSVStack>
@@ -395,5 +566,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     height: 'auto',
     padding: 10
+  },
+  fiatAmount: {
+    marginTop: 4,
+    marginLeft: 4
+  },
+  input: {
+    backgroundColor: '#242424',
+    borderRadius: 3,
+    padding: 12,
+    color: 'white',
+    fontSize: 16
   }
 })

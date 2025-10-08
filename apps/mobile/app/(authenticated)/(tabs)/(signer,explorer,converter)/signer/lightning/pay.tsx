@@ -10,6 +10,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSPaymentDetails from '@/components/SSPaymentDetails'
+import SSLNURLDetails from '@/components/SSLNURLDetails'
 import SSText from '@/components/SSText'
 import { useLND } from '@/hooks/useLND'
 import SSHStack from '@/layouts/SSHStack'
@@ -72,6 +73,7 @@ export default function PayPage() {
   const [isFetchingDetails, setIsFetchingDetails] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [isLNURLMode, setIsLNURLMode] = useState(false)
+  const [lnurlDetails, setLNURLDetails] = useState<any>(null)
   const [decodedInvoice, setDecodedInvoice] = useState<DecodedInvoice | null>(
     null
   )
@@ -84,12 +86,16 @@ export default function PayPage() {
       const url = isLNURL(lnurl) ? decodeLNURL(lnurl) : lnurl
       const details = await fetchLNURLPayDetails(url)
 
+      // Store LNURL details for display
+      setLNURLDetails(details)
+
       // Convert millisats to sats and set as amount
       const minSats = Math.ceil(details.minSendable / 1000)
       console.log('💰 Setting minimum amount:', minSats, 'sats')
       setAmount(minSats.toString())
     } catch (error) {
       console.error('❌ Failed to fetch LNURL details for amount:', error)
+      setLNURLDetails(null)
       // Don't show error to user, just don't set the amount
     } finally {
       setIsFetchingDetails(false)
@@ -153,6 +159,7 @@ export default function PayPage() {
       const isLNURLInput = isLNURL(text)
       setIsLNURLMode(isLNURLInput)
       setDecodedInvoice(null) // Clear previous decode
+      setLNURLDetails(null) // Clear previous LNURL details
 
       // Verify LND connection before proceeding
       if (!isConnected) {
@@ -330,10 +337,23 @@ export default function PayPage() {
         duration: Date.now() - startTime,
         timestamp: new Date().toISOString()
       })
-      Alert.alert(
-        'Error',
-        error instanceof Error ? error.message : 'Failed to send payment'
-      )
+
+      let errorMessage = 'Failed to send payment'
+      if (error instanceof Error) {
+        if (
+          error.message.includes('404') ||
+          error.message.includes('Not Found')
+        ) {
+          errorMessage =
+            'Payment request expired or already paid. Please try again.'
+        } else if (error.message.includes('amount')) {
+          errorMessage = error.message
+        } else {
+          errorMessage = error.message
+        }
+      }
+
+      Alert.alert('Error', errorMessage)
     } finally {
       setIsProcessing(false)
     }
@@ -422,7 +442,7 @@ export default function PayPage() {
         <ScrollView>
           <SSVStack>
             <View>
-              <SSVStack gap="xs">
+              <SSVStack>
                 <SSHStack style={styles.inputHeader}>
                   <SSText uppercase>
                     {isLNURLMode ? 'LNURL' : 'Payment Request'}
@@ -435,22 +455,43 @@ export default function PayPage() {
                     </SSHStack>
                   )}
                 </SSHStack>
+                <SSVStack gap="sm">
+                  <TextInput
+                    style={[
+                      styles.input,
+                      styles.textArea,
+                      styles.monospaceInput
+                    ]}
+                    value={paymentRequest}
+                    onChangeText={handlePaymentRequestChange}
+                    placeholder={
+                      isLNURLMode
+                        ? 'Enter LNURL'
+                        : 'Enter Lightning payment request'
+                    }
+                    placeholderTextColor="#666"
+                    multiline
+                    numberOfLines={6}
+                    editable={!isFetchingDetails}
+                  />
 
-                <TextInput
-                  style={[styles.input, styles.textArea, styles.monospaceInput]}
-                  value={paymentRequest}
-                  onChangeText={handlePaymentRequestChange}
-                  placeholder={
-                    isLNURLMode
-                      ? 'Enter LNURL'
-                      : 'Enter Lightning payment request'
-                  }
-                  placeholderTextColor="#666"
-                  multiline
-                  numberOfLines={6}
-                  editable={!isFetchingDetails}
-                />
-
+                  <SSHStack gap="sm" style={styles.actionButtons}>
+                    <SSButton
+                      label="Paste"
+                      onPress={handlePasteFromClipboard}
+                      variant="subtle"
+                      style={[styles.actionButton, styles.buttonWithIcon]}
+                      disabled={isFetchingDetails}
+                    />
+                    <SSButton
+                      label="Scan QR"
+                      onPress={() => setCameraModalVisible(true)}
+                      variant="subtle"
+                      style={[styles.actionButton, styles.buttonWithIcon]}
+                      disabled={isFetchingDetails}
+                    />
+                  </SSHStack>
+                </SSVStack>
                 {decodedInvoice && !isLNURLMode && (
                   <SSPaymentDetails
                     decodedInvoice={decodedInvoice}
@@ -460,61 +501,20 @@ export default function PayPage() {
                 )}
 
                 {isLNURLMode && (
-                  <>
-                    <SSVStack gap="xs">
-                      <SSText color="muted">Amount (sats)</SSText>
-                      <TextInput
-                        style={styles.input}
-                        value={amount}
-                        onChangeText={handleAmountChange}
-                        placeholder="Enter amount in sats"
-                        placeholderTextColor="#666"
-                        keyboardType="numeric"
-                        editable={!isFetchingDetails}
-                      />
-                      {amount && !isNaN(Number(amount)) && (
-                        <SSHStack gap="xs" style={styles.fiatAmount}>
-                          <SSText color="muted" size="sm">
-                            ≈ {formatNumber(satsToFiat(Number(amount)), 2)}{' '}
-                            {fiatCurrency}
-                          </SSText>
-                        </SSHStack>
-                      )}
-                    </SSVStack>
-
-                    <SSVStack gap="xs">
-                      <SSText color="muted">Comment (optional)</SSText>
-                      <TextInput
-                        style={styles.input}
-                        value={comment}
-                        onChangeText={setComment}
-                        placeholder="Enter comment"
-                        placeholderTextColor="#666"
-                        editable={!isFetchingDetails}
-                      />
-                    </SSVStack>
-                  </>
+                  <SSLNURLDetails
+                    lnurlDetails={lnurlDetails}
+                    isFetching={isFetchingDetails}
+                    showCommentInfo={true}
+                    amount={amount}
+                    onAmountChange={handleAmountChange}
+                    comment={comment}
+                    onCommentChange={setComment}
+                    inputStyles={styles.input}
+                  />
                 )}
               </SSVStack>
 
               <SSVStack style={styles.actions}>
-                <SSHStack gap="sm" style={styles.actionButtons}>
-                  <SSButton
-                    label="Paste"
-                    onPress={handlePasteFromClipboard}
-                    variant="outline"
-                    style={[styles.actionButton, styles.buttonWithIcon]}
-                    disabled={isFetchingDetails}
-                  />
-                  <SSButton
-                    label="Scan QR"
-                    onPress={() => setCameraModalVisible(true)}
-                    variant="outline"
-                    style={[styles.actionButton, styles.buttonWithIcon]}
-                    disabled={isFetchingDetails}
-                  />
-                </SSHStack>
-
                 <SSButton
                   label="Send Payment"
                   onPress={handleSendPayment}
