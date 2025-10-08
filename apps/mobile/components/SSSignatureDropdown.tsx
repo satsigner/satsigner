@@ -10,7 +10,6 @@ import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import { useKeySourceLabel } from '@/hooks/useKeySourceLabel'
 import { useSignatureDropdownValidation } from '@/hooks/useKeyValidation'
-import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -226,8 +225,8 @@ function SSSignatureDropdown({
         [${t('account.transaction.signFlow')}]`
 
       setTransactionToShare({
-        message: message,
-        transactionData: transactionData
+        message,
+        transactionData
       })
 
       router.push({
@@ -236,7 +235,15 @@ function SSSignatureDropdown({
     } catch {
       toast.error(t('account.nostrSync.failedToSendTransactionData'))
     }
-  }, [account, messageId, txBuilderResult, signedPsbts, router, accountId])
+  }, [
+    account,
+    messageId,
+    txBuilderResult,
+    signedPsbts,
+    router,
+    accountId,
+    setTransactionToShare
+  ])
 
   const { sourceLabel } = useKeySourceLabel({
     keyDetails,
