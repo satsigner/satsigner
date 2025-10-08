@@ -1,11 +1,14 @@
 import { Slider } from '@miblanchard/react-native-slider'
 import { useState } from 'react'
 import { StyleSheet } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
+import { formatNumber } from '@/utils/format'
 
 import SSNumberGhostInput from './SSNumberGhostInput'
 import SSText from './SSText'
@@ -26,6 +29,9 @@ function SSFeeInput({
   onValueChange
 }: SSFeeInputProps) {
   const [localValue, setLocalValue] = useState(value)
+  const [fiatCurrency, satsToFiat] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  )
 
   return (
     <SSVStack gap="sm">
@@ -42,11 +48,19 @@ function SSFeeInput({
           <SSText>1</SSText>
           <SSText color="muted">{t('bitcoin.sat')}</SSText>
         </SSHStack>
-        <SSHStack>
+        <SSHStack gap="sm">
           {vbytes && (
-            <SSHStack style={{ justifyContent: 'center' }} gap="xs">
-              <SSText>{Math.trunc(vbytes * localValue)}</SSText>
-              <SSText color="muted">{t('bitcoin.sats')}</SSText>
+            <SSHStack style={{ alignItems: 'center' }} gap="md">
+              <SSHStack style={{ justifyContent: 'center' }} gap="xxs">
+                <SSText>{Math.trunc(vbytes * localValue)}</SSText>
+                <SSText color="muted">{t('bitcoin.sats')}</SSText>
+              </SSHStack>
+              <SSHStack style={{ justifyContent: 'center' }} gap="xxs">
+                <SSText>
+                  {formatNumber(satsToFiat(Math.trunc(vbytes * localValue)), 2)}
+                </SSText>
+                <SSText color="muted">{fiatCurrency}</SSText>
+              </SSHStack>
             </SSHStack>
           )}
           {estimatedBlock && (
@@ -70,8 +84,8 @@ function SSFeeInput({
         onSlidingComplete={() => onValueChange(localValue)}
         trackStyle={styles.track}
         thumbStyle={styles.thumb}
-        minimumTrackTintColor="#fff"
-        thumbTintColor="#fff"
+        minimumTrackTintColor={Colors.white}
+        thumbTintColor={Colors.white}
         maximumTrackTintColor={Colors.gray[600]}
         step={1}
       />
