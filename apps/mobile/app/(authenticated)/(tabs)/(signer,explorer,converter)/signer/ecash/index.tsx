@@ -1,10 +1,15 @@
+import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { Stack, useRouter } from 'expo-router'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import SSEcashTransactionCard from '@/components/SSEcashTransactionCard'
+import { SSIconCamera } from '@/components/icons'
+import SSModal from '@/components/SSModal'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import { useEcash } from '@/hooks/useEcash'
@@ -22,6 +27,8 @@ export default function EcashLanding() {
   const router = useRouter()
   const { mints, activeMint, proofs, transactions } = useEcash()
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+  const [cameraModalVisible, setCameraModalVisible] = useState(false)
+  const [permission, requestPermission] = useCameraPermissions()
   const [fiatCurrency, btcPrice, fetchPrices] = usePriceStore(
     useShallow((state) => [
       state.fiatCurrency,
@@ -56,6 +63,40 @@ export default function EcashLanding() {
 
   const handleRecoveryPress = () => {
     router.navigate('/signer/ecash/recovery')
+  }
+
+  const handleCameraPress = () => {
+    setCameraModalVisible(true)
+  }
+
+  const handleQRCodeScanned = ({ data }: { data: string }) => {
+    setCameraModalVisible(false)
+
+    // Clean the data (remove any whitespace and prefixes)
+    const cleanData = data.trim()
+
+    // Check if it's a lightning invoice
+    if (cleanData.startsWith('lightning:') || cleanData.startsWith('lnbc')) {
+      router.navigate({
+        pathname: '/signer/ecash/send',
+        params: { invoice: cleanData.replace(/^lightning:/i, '') }
+      })
+      toast.success(t('ecash.scan.lightningInvoiceScanned'))
+      return
+    }
+
+    // Check if it's an ecash token (cashu:// or starts with cashu)
+    if (cleanData.startsWith('cashu://') || cleanData.startsWith('cashu')) {
+      router.navigate({
+        pathname: '/signer/ecash/receive',
+        params: { token: cleanData }
+      })
+      toast.success(t('ecash.scan.tokenScanned'))
+      return
+    }
+
+    // Generic success message for other QR codes
+    toast.success(t('ecash.scan.qrCodeScanned'))
   }
 
   // Calculate total balance from all proofs
@@ -110,21 +151,34 @@ export default function EcashLanding() {
             )}
           </SSVStack>
 
-          <SSHStack gap="sm">
-            <SSButton
-              style={{ flex: 1 }}
-              label={t('ecash.send.title')}
+          <SSHStack justifyEvenly gap="none">
+            <SSActionButton
               onPress={handleSendPress}
-              variant="gradient"
-              gradientType="special"
-            />
-            <SSButton
-              label={t('ecash.receive.title')}
-              style={{ flex: 1 }}
+              style={{
+                ...styles.actionButton,
+                width: '40%'
+              }}
+            >
+              <SSText uppercase>{t('ecash.send.title')}</SSText>
+            </SSActionButton>
+            <SSActionButton
+              onPress={handleCameraPress}
+              style={{
+                ...styles.actionButton,
+                width: '18%'
+              }}
+            >
+              <SSIconCamera height={13} width={18} />
+            </SSActionButton>
+            <SSActionButton
               onPress={handleReceivePress}
-              variant="gradient"
-              gradientType="special"
-            />
+              style={{
+                ...styles.actionButton,
+                width: '40%'
+              }}
+            >
+              <SSText uppercase>{t('ecash.receive.title')}</SSText>
+            </SSActionButton>
           </SSHStack>
           <SSVStack gap="sm">
             <SSButton
@@ -149,7 +203,6 @@ export default function EcashLanding() {
           </SSVStack>
           {transactions.length > 0 && (
             <SSVStack gap="sm">
-              <SSText uppercase>{t('ecash.transactionHistory.title')}</SSText>
               {transactions.slice(0, 50).map((transaction) => (
                 <SSEcashTransactionCard
                   key={transaction.id}
@@ -165,14 +218,48 @@ export default function EcashLanding() {
           )}
         </SSVStack>
       </ScrollView>
+
+      {/* Camera Modal */}
+      <SSModal
+        visible={cameraModalVisible}
+        fullOpacity
+        onClose={() => setCameraModalVisible(false)}
+      >
+        <SSText color="muted" uppercase>
+          {t('camera.scanQRCode')}
+        </SSText>
+        <CameraView
+          onBarcodeScanned={handleQRCodeScanned}
+          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+          style={styles.camera}
+        />
+        {!permission?.granted && (
+          <SSButton
+            label={t('camera.enableCameraAccess')}
+            onPress={requestPermission}
+          />
+        )}
+      </SSModal>
     </SSMainLayout>
   )
 }
 
 const styles = StyleSheet.create({
+  actionButton: {
+    backgroundColor: Colors.gray[925],
+    marginLeft: 2,
+    borderTopWidth: 1,
+    borderTopColor: '#242424',
+    borderRadius: 3
+  },
   balanceContainer: {
     alignItems: 'center',
     paddingTop: 40
+  },
+  camera: {
+    flex: 1,
+    width: 340,
+    height: 340
   },
   headerContainer: {},
   headerText: {
