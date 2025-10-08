@@ -1,3 +1,4 @@
+import { getDecodedToken } from '@cashu/cashu-ts'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
@@ -9,6 +10,7 @@ import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
+import SSEcashTokenDetails from '@/components/SSEcashTokenDetails'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useEcash } from '@/hooks/useEcash'
@@ -16,11 +18,13 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { type EcashToken } from '@/types/models/Ecash'
 
 export default function EcashReceivePage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'ecash' | 'lightning'>('ecash')
   const [token, setToken] = useState('')
+  const [decodedToken, setDecodedToken] = useState<EcashToken | null>(null)
   const [amount, setAmount] = useState('')
   const [memo, setMemo] = useState('')
   const [mintQuote, setMintQuote] = useState<any>(null)
@@ -46,7 +50,7 @@ export default function EcashReceivePage() {
     }
 
     if (!activeMint) {
-      toast.error('No mint connected')
+      toast.error(t('ecash.error.noMintConnected'))
       return
     }
 
@@ -68,7 +72,7 @@ export default function EcashReceivePage() {
     }
 
     if (!activeMint) {
-      toast.error('No mint connected')
+      toast.error(t('ecash.error.noMintConnected'))
       return
     }
 
@@ -77,7 +81,7 @@ export default function EcashReceivePage() {
       const quote = await createMintQuote(activeMint.url, parseInt(amount))
       setMintQuote(quote)
       setQuoteStatus('PENDING')
-      toast.success('Invoice created successfully')
+      toast.success(t('ecash.success.invoiceCreated'))
     } catch (error) {
       // Error handling is done in the hook
     } finally {
@@ -106,31 +110,54 @@ export default function EcashReceivePage() {
     }
   }, [mintQuote, activeMint, checkMintQuote, mintProofs, amount])
 
+  // Handle token input changes and auto-decode
+  const handleTokenChange = useCallback((text: string) => {
+    setToken(text)
+    setDecodedToken(null) // Clear previous decode
+
+    // Clean the text and check if it's a valid token
+    const cleanText = text.trim()
+    if (!cleanText) return
+
+    // Check if it's a cashu token (starts with cashu)
+    if (cleanText.toLowerCase().startsWith('cashu')) {
+      try {
+        const decoded = getDecodedToken(cleanText)
+        setDecodedToken(decoded)
+      } catch (error) {
+        setDecodedToken(null)
+      }
+    }
+  }, [])
+
   const handlePasteToken = useCallback(async () => {
     try {
       const clipboardText = await Clipboard.getStringAsync()
       if (clipboardText) {
-        setToken(clipboardText)
-        toast.success('Token pasted from clipboard')
+        await handleTokenChange(clipboardText)
+        toast.success(t('ecash.success.tokenPasted'))
       } else {
-        toast.error('No text found in clipboard')
+        toast.error(t('ecash.error.noTextInClipboard'))
       }
     } catch (error) {
-      toast.error('Failed to paste from clipboard')
+      toast.error(t('ecash.error.failedToPaste'))
     }
-  }, [])
+  }, [handleTokenChange])
 
-  const handleScanToken = useCallback(() => {
+  const handleScanToken = () => {
     setCameraModalVisible(true)
-  }, [])
+  }
 
-  const handleQRCodeScanned = useCallback(({ data }: { data: string }) => {
-    setCameraModalVisible(false)
-    // Clean the data (remove any whitespace and cashu: prefix)
-    const cleanData = data.trim().replace(/^cashu:/i, '')
-    setToken(cleanData)
-    toast.success('Token scanned successfully')
-  }, [])
+  const handleQRCodeScanned = useCallback(
+    ({ data }: { data: string }) => {
+      setCameraModalVisible(false)
+      // Clean the data (remove any whitespace and cashu: prefix)
+      const cleanData = data.trim().replace(/^cashu:/i, '')
+      handleTokenChange(cleanData)
+      toast.success(t('ecash.success.tokenScanned'))
+    },
+    [handleTokenChange]
+  )
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -173,7 +200,7 @@ export default function EcashReceivePage() {
       />
 
       <ScrollView>
-        <SSVStack gap="lg">
+        <SSVStack gap="lg" style={{ paddingBottom: 60 }}>
           {/* Tab Selector */}
           <SSHStack>
             <SSButton
@@ -199,13 +226,14 @@ export default function EcashReceivePage() {
                 </SSText>
                 <SSTextInput
                   value={token}
-                  onChangeText={setToken}
+                  onChangeText={handleTokenChange}
                   placeholder="cashuAeyJ..."
                   multiline
                   numberOfLines={6}
                   style={styles.tokenInput}
                 />
               </SSVStack>
+
               <SSHStack gap="sm">
                 <SSButton
                   label={t('common.paste')}
@@ -220,11 +248,18 @@ export default function EcashReceivePage() {
                   style={{ flex: 1 }}
                 />
               </SSHStack>
+              {decodedToken && (
+                <SSEcashTokenDetails
+                  decodedToken={decodedToken}
+                  showMint={true}
+                  showProofs={true}
+                />
+              )}
               <SSButton
                 label={t('ecash.receive.redeemToken')}
                 onPress={handleRedeemToken}
                 loading={isRedeeming}
-                variant="gradient"
+                variant="secondary"
                 gradientType="special"
               />
             </SSVStack>
@@ -276,7 +311,7 @@ export default function EcashReceivePage() {
                         await Clipboard.setStringAsync(mintQuote.request)
                         toast.success(t('common.copiedToClipboard'))
                       } catch (error) {
-                        toast.error('Failed to copy to clipboard')
+                        toast.error(t('ecash.error.failedToCopy'))
                       }
                     }}
                     variant="outline"
