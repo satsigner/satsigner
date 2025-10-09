@@ -477,7 +477,7 @@ function SSDevicesGroupChat() {
       }
     },
     [
-      account?.nostr?.deviceNpub,
+      account,
       formattedNpubs,
       handleGoToSignFlowClick,
       visibleComponents,

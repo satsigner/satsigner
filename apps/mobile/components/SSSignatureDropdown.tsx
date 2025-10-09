@@ -1,4 +1,3 @@
-import * as bitcoinjs from 'bitcoinjs-lib'
 import { Buffer } from 'buffer'
 import { useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
@@ -19,8 +18,6 @@ import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Typography } from '@/styles'
 import { type Account, type Key } from '@/types/models/Account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
-import { bitcoinjsNetwork } from '@/utils/bitcoin'
-import { parseHexToBytes } from '@/utils/parse'
 import {
   storeTransactionData,
   type TransactionData

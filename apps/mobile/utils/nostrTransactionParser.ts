@@ -36,13 +36,11 @@ export function parseNostrTransactionMessage(
     const transactionData: TransactionData = JSON.parse(jsonData)
 
     if (!isValidTransactionData(transactionData)) {
-      console.error('Parsed data failed validation:', transactionData)
       return null
     }
 
     return transactionData
-  } catch (error) {
-    console.error('Failed to parse transaction message JSON:', error)
+  } catch {
     return null
   }
 }
@@ -126,7 +124,7 @@ export function handleGoToSignFlow(
       },
       txDetails: {
         txid: extractedTxid,
-        fee: fee
+        fee
       }
     }
     setTxBuilderResult(mockTxBuilderResult as any)

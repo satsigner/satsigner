@@ -160,8 +160,7 @@ export function extractTransactionDataFromPSBTEnhanced(
         | 'testnet'
         | 'signet'
     }
-  } catch (error) {
-    console.error('❌ Failed to extract transaction data from PSBT:', error)
+  } catch {
     return null
   }
 }
