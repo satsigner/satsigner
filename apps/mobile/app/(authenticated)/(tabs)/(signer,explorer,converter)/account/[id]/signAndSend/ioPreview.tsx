@@ -51,7 +51,7 @@ import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
 import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
-import { selectEfficientUtxos, selectStonewallUtxos } from '@/utils/utxo'
+import { selectEfficientUtxos } from '@/utils/utxo'
 
 export default function IOPreview() {
   const router = useRouter()
