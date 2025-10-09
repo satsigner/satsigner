@@ -16,7 +16,6 @@ import { useSettingsStore } from '@/store/settings'
 import { formatNumber } from '@/utils/format'
 
 export default function EcashBackupPage() {
-  const router = useRouter()
   const { mints, proofs, activeMint, transactions } = useEcash()
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [showBackupData, setShowBackupData] = useState(false)
@@ -69,7 +68,7 @@ export default function EcashBackupPage() {
     try {
       await Clipboard.setStringAsync(backupData)
       toast.success(t('common.copiedToClipboard'))
-    } catch (error) {
+      } catch {
       toast.error('Failed to copy to clipboard')
     }
   }, [backupData])

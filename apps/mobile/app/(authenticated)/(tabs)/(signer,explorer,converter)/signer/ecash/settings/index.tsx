@@ -15,15 +15,15 @@ export default function EcashSettingsPage() {
   const { clearAllData, mints, proofs, transactions } = useEcash()
 
   const handleMintPress = () => {
-    router.navigate('/signer/ecash/mint')
+    router.navigate('/signer/ecash/settings/mint')
   }
 
   const handleBackupPress = () => {
-    router.navigate('/signer/ecash/backup')
+    router.navigate('/signer/ecash/settings/backup')
   }
 
   const handleRecoveryPress = () => {
-    router.navigate('/signer/ecash/recovery')
+    router.navigate('/signer/ecash/settings/recovery')
   }
 
   const handleClearAllData = () => {

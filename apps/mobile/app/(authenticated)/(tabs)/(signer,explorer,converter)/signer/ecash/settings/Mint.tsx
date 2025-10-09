@@ -24,7 +24,6 @@ const DEFAULT_MINTS = [
 ]
 
 export default function EcashMintPage() {
-  const router = useRouter()
   const [mintUrl, setMintUrl] = useState('')
   const [isConnecting, setIsConnecting] = useState(false)
 
@@ -41,7 +40,7 @@ export default function EcashMintPage() {
     try {
       await connectToMint(mintUrl)
       setMintUrl('')
-    } catch (error) {
+      } catch {
       // Error handling is done in the hook
     } finally {
       setIsConnecting(false)
