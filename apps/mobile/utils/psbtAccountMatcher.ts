@@ -2,48 +2,16 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { type Account } from '@/types/models/Account'
 import { extractKeyFingerprint } from '@/utils/account'
+import { extractTransactionIdFromPSBT } from '@/utils/psbtTransactionExtractor'
 
 export type TransactionData = {
-  type: 'multisig_transaction'
-  txid: string
   network: 'mainnet' | 'testnet' | 'signet'
   keyCount: number
   keysRequired: number
   originalPsbt: string
   signedPsbts: Record<number, string>
   timestamp: number
-  // Additional data for preview page reconstruction
-  inputs: {
-    txid: string
-    vout: number
-    value: number
-    script: string
-    label?: string
-    keychain?: 'internal' | 'external'
-  }[]
-  outputs: {
-    address: string
-    value: number
-    script: string
-    label?: string
-  }[]
-  fee: number
   rbf: boolean
-  messageId: string
-  // Additional data needed for preview page
-  transactionHex?: string
-  serializedPsbt?: string
-  accountId?: string
-  accountName?: string
-  accountNetwork?: string
-  accountPolicyType?: 'multisig' | 'singlesig' | 'watchonly'
-  accountKeys?: {
-    name?: string
-    scriptVersion?: string
-    creationType?: string
-    secret?: any
-    iv?: string
-  }[]
 }
 
 export type AccountMatchResult = {
@@ -96,7 +64,6 @@ export function extractPSBTDerivations(psbtBase64: string): {
 }
 
 /**
- * Find matching account from PSBT using fingerprint and BIP32 path verification
  */
 export function findMatchingAccount(
   psbtBase64: string,
@@ -167,7 +134,10 @@ export function findMatchingAccount(
 const transactionDataStorage = new Map<string, TransactionData>()
 
 export function storeTransactionData(data: TransactionData): void {
-  transactionDataStorage.set(data.txid, data)
+  const txId = extractTransactionIdFromPSBT(data.originalPsbt)
+  if (txId) {
+    transactionDataStorage.set(txId, data)
+  }
 }
 
 export function getTransactionData(txid: string): TransactionData | undefined {

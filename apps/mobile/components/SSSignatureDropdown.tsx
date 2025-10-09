@@ -130,98 +130,26 @@ function SSSignatureDropdown({
           {} as Record<number, string>
         )
 
-      // Check if we have Nostr transaction data first (for resends)
-      const inputs = useTransactionBuilderStore.getState().inputs
-      const outputs = useTransactionBuilderStore.getState().outputs
-      const fee = useTransactionBuilderStore.getState().fee
-
-      let transactionHex = ''
-      try {
-        const tx = new bitcoinjs.Transaction()
-        const network = bitcoinjsNetwork(account.network)
-
-        const inputArray = Array.from(inputs.values())
-        for (const input of inputArray) {
-          const hashBuffer = Buffer.from(parseHexToBytes(input.txid))
-          tx.addInput(hashBuffer, input.vout)
-        }
-
-        for (const output of outputs) {
-          const outputScript = bitcoinjs.address.toOutputScript(
-            output.to,
-            network
-          )
-          tx.addOutput(outputScript, output.amount)
-        }
-
-        transactionHex = tx.toHex()
-      } catch {
-        toast.error(t('common.error.failedToGenerateTransactionHex'))
-        return
-      }
-
       const transactionData: TransactionData = {
-        type: 'multisig_transaction',
-        txid: messageId,
         network: account.network === 'bitcoin' ? 'mainnet' : account.network,
         keyCount: account.keyCount || account.keys?.length || 0,
         keysRequired: account.keysRequired || 1,
         originalPsbt: txBuilderResult.psbt.base64,
         signedPsbts: collectedSignedPsbts,
         timestamp: Date.now(),
-        transactionHex,
-        inputs: Array.from(inputs.values()).map((input) => ({
-          txid: input.txid,
-          vout: input.vout,
-          value: input.value,
-          script: Buffer.from(input.script || []).toString('hex'),
-          label: input.label,
-          keychain: input.keychain
-        })),
-        outputs: outputs.map((output) => {
-          const network = bitcoinjsNetwork(account.network)
-          const outputScript = bitcoinjs.address.toOutputScript(
-            output.to,
-            network
-          )
-          return {
-            address: output.to,
-            value: output.amount,
-            script: outputScript.toString('hex'),
-            label: output.label
-          }
-        }),
-        fee,
-        rbf: useTransactionBuilderStore.getState().rbf,
-        messageId,
-        accountId: account.id,
-        accountName: account.name,
-        accountNetwork: account.network,
-        accountPolicyType: account.policyType,
-        accountKeys:
-          account.keys?.map((key) => ({
-            name: key.name,
-            scriptVersion: key.scriptVersion,
-            creationType: key.creationType,
-            secret: key.secret,
-            iv: key.iv
-          })) || []
+        rbf: useTransactionBuilderStore.getState().rbf
       }
 
       storeTransactionData(transactionData)
 
       const message = `🔐 Multisig Transaction Ready for Signing
 
-        Transaction ID: ${messageId}
         Network: ${account.network}
         Required Signatures: ${account.keysRequired}/${account.keyCount}
         Current Signatures: ${Object.keys(collectedSignedPsbts).length}
 
-        Transaction Data:
+        Transaction Data (PSBT-based):
         ${JSON.stringify(transactionData, null, 2)}
-
-        Please open this transaction in your SatSigner app to review and sign.
-
         [${t('account.transaction.signFlow')}]`
 
       setTransactionToShare({

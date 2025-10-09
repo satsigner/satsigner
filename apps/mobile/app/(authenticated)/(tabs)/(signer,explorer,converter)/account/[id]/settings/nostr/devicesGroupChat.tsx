@@ -22,11 +22,17 @@ import type { NostrDM } from '@/types/models/Nostr'
 import { type Transaction } from '@/types/models/Transaction'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import {
-  extractTransactionIdFromMessage,
   handleGoToSignFlow,
   parseNostrTransactionMessage
 } from '@/utils/nostrTransactionParser'
-import { type TransactionData } from '@/utils/psbtAccountMatcher'
+import {
+  findMatchingAccount,
+  type TransactionData
+} from '@/utils/psbtAccountMatcher'
+import {
+  extractTransactionDataFromPSBTEnhanced,
+  extractTransactionIdFromPSBT
+} from '@/utils/psbtTransactionExtractor'
 import { estimateTransactionSize } from '@/utils/transaction'
 
 // Cache for npub colors
@@ -89,9 +95,6 @@ function SSDevicesGroupChat() {
   const [formattedNpubs, setFormattedNpubs] = useState<
     Map<string, { text: string; color: string }>
   >(new Map())
-  const [transactionDataCache, setTransactionDataCache] = useState<
-    Map<string, TransactionData | null>
-  >(new Map())
   const [visibleComponents, setVisibleComponents] = useState(
     new Map<string, { sankey: boolean; status: boolean }>()
   )
@@ -150,11 +153,7 @@ function SSDevicesGroupChat() {
   const handleGoToSignFlowClick = useCallback(
     (messageContent: string) => {
       try {
-        if (
-          !messageContent.includes('multisig_transaction') ||
-          !messageContent.includes('Transaction Data:') ||
-          !messageContent.includes('originalPsbt')
-        ) {
+        if (!messageContent.includes('Transaction Data (PSBT-based):')) {
           toast.error(t('common.error.transactionDataInvalid'))
           return
         }
@@ -236,34 +235,6 @@ function SSDevicesGroupChat() {
   }, [memoizedMessages, membersList])
 
   useEffect(() => {
-    const newCache = new Map(transactionDataCache)
-    let needsUpdate = false
-    for (const msg of memoizedMessages) {
-      if (!newCache.has(msg.id)) {
-        const messageContent =
-          typeof msg.content === 'object' && 'description' in msg.content
-            ? msg.content.description
-            : typeof msg.content === 'string'
-              ? msg.content
-              : ''
-
-        if (
-          messageContent.includes('multisig_transaction') &&
-          messageContent.includes('Transaction Data:')
-        ) {
-          const parsedData = parseNostrTransactionMessage(messageContent)
-          newCache.set(msg.id, parsedData)
-          needsUpdate = true
-        }
-      }
-    }
-
-    if (needsUpdate) {
-      setTransactionDataCache(newCache)
-    }
-  }, [memoizedMessages, transactionDataCache])
-
-  useEffect(() => {
     if (messages.length > 0 && account?.nostr?.relays?.length) {
       if (isInitialLoad) {
         setIsContentLoaded(false)
@@ -325,10 +296,9 @@ function SSDevicesGroupChat() {
               : 'Invalid message format'
 
         // Check if message contains transaction data (PSBT)
-        const hasSignFlow =
-          messageContent.includes('multisig_transaction') &&
-          messageContent.includes('Transaction Data:') &&
-          messageContent.includes('originalPsbt')
+        const hasSignFlow = messageContent.includes(
+          'Transaction Data (PSBT-based):'
+        )
 
         return (
           <SSVStack
@@ -364,16 +334,37 @@ function SSDevicesGroupChat() {
             </SSHStack>
             {hasSignFlow ? (
               (() => {
-                const transactionData = transactionDataCache.get(msg.id)
-                const transactionId =
-                  extractTransactionIdFromMessage(messageContent)
+                const transactionData =
+                  parseNostrTransactionMessage(messageContent)
+                const transactionId = transactionData?.originalPsbt
+                  ? extractTransactionIdFromPSBT(transactionData.originalPsbt)
+                  : null
 
                 if (transactionData && transactionId) {
-                  const { keysRequired, keyCount, signedPsbts } =
+                  const { keysRequired, keyCount, signedPsbts, originalPsbt } =
                     transactionData
 
-                  const inputs = transactionData.inputs || []
-                  const outputs = transactionData.outputs || []
+                  const accounts = useAccountsStore.getState().accounts
+                  const accountMatch = findMatchingAccount(
+                    originalPsbt,
+                    accounts
+                  )
+                  const matchedAccount = accountMatch?.account || account
+
+                  let extractedData = null
+                  if (originalPsbt && matchedAccount) {
+                    try {
+                      extractedData = extractTransactionDataFromPSBTEnhanced(
+                        originalPsbt,
+                        matchedAccount
+                      )
+                    } catch {
+                      extractedData = null
+                    }
+                  }
+
+                  const inputs = extractedData?.inputs || []
+                  const outputs = extractedData?.outputs || []
 
                   const { size, vsize } = estimateTransactionSize(
                     inputs.length,
@@ -489,7 +480,6 @@ function SSDevicesGroupChat() {
       account?.nostr?.deviceNpub,
       formattedNpubs,
       handleGoToSignFlowClick,
-      transactionDataCache,
       visibleComponents,
       handleToggleVisibility
     ]
@@ -587,28 +577,54 @@ function SSDevicesGroupChat() {
             >
               {transactionDataForModal ? (
                 (() => {
-                  const {
-                    txid,
-                    keysRequired,
-                    keyCount,
-                    signedPsbts,
-                    inputs = [],
-                    outputs = []
-                  } = transactionDataForModal
+                  const { keysRequired, keyCount, signedPsbts, originalPsbt } =
+                    transactionDataForModal
+
+                  const txid = extractTransactionIdFromPSBT(originalPsbt)
+
+                  if (!txid) {
+                    return (
+                      <SSText size="sm" color="muted">
+                        Invalid PSBT
+                      </SSText>
+                    )
+                  }
+
+                  const accounts = useAccountsStore.getState().accounts
+                  const accountMatch = findMatchingAccount(
+                    originalPsbt,
+                    accounts
+                  )
+                  const matchedAccount = accountMatch?.account || account
+
+                  let extractedData = null
+                  if (originalPsbt && matchedAccount) {
+                    try {
+                      extractedData = extractTransactionDataFromPSBTEnhanced(
+                        originalPsbt,
+                        matchedAccount
+                      )
+                    } catch {
+                      extractedData = null
+                    }
+                  }
+
+                  const finalInputs = extractedData?.inputs || []
+                  const finalOutputs = extractedData?.outputs || []
 
                   const { size, vsize } = estimateTransactionSize(
-                    inputs.length,
-                    outputs.length
+                    finalInputs.length,
+                    finalOutputs.length
                   )
                   const collectedSignatures = Object.keys(
                     signedPsbts || {}
                   ).map(Number)
-                  const vin = inputs.map((input) => ({
+                  const vin = finalInputs.map((input) => ({
                     previousOutput: { txid: input.txid, vout: input.vout },
                     value: input.value,
                     label: input.label || ''
                   }))
-                  const vout = outputs.map((output) => ({
+                  const vout = finalOutputs.map((output) => ({
                     address: output.address,
                     value: output.value,
                     label: output.label || ''

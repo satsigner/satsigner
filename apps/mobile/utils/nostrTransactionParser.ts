@@ -7,6 +7,10 @@ import {
   findMatchingAccount,
   type TransactionData
 } from '@/utils/psbtAccountMatcher'
+import {
+  extractTransactionDataFromPSBTEnhanced,
+  extractTransactionIdFromPSBT
+} from '@/utils/psbtTransactionExtractor'
 
 import { parseHexToBytes } from './parse'
 
@@ -17,36 +21,28 @@ export function parseNostrTransactionMessage(
   message: string
 ): TransactionData | null {
   try {
-    if (
-      !message.includes('Transaction Data:') ||
-      !message.includes('multisig_transaction')
-    ) {
+    if (!message.includes('Transaction Data (PSBT-based):')) {
       return null
     }
 
-    const jsonMatch = message.match(
-      /Transaction Data:\s*\n([\s\S]*?)(?:\n\n|$)/
-    )
-    if (!jsonMatch) {
+    const jsonStartIndex = message.indexOf('{')
+    const jsonEndIndex = message.lastIndexOf('}')
+
+    if (jsonStartIndex === -1 || jsonEndIndex === -1) {
       return null
     }
 
-    const jsonData = jsonMatch[1].trim()
+    const jsonData = message.substring(jsonStartIndex, jsonEndIndex + 1).trim()
     const transactionData: TransactionData = JSON.parse(jsonData)
 
-    const txidMatch = message.match(/Transaction ID:\s*([a-fA-F0-9]+)/)
-    if (txidMatch) {
-      transactionData.txid = txidMatch[1]
-    }
-
     if (!isValidTransactionData(transactionData)) {
-      toast.error(t('transaction.dataParseFailed'))
+      console.error('Parsed data failed validation:', transactionData)
       return null
     }
 
     return transactionData
-  } catch {
-    toast.error(t('transaction.dataParseFailed'))
+  } catch (error) {
+    console.error('Failed to parse transaction message JSON:', error)
     return null
   }
 }
@@ -82,7 +78,24 @@ export function handleGoToSignFlow(
 
     clearTransaction()
 
-    transactionData.inputs?.forEach((input) => {
+    // Try to extract transaction data from PSBT first for more accurate data
+    let extractedData = null
+    if (transactionData.originalPsbt && accountMatch.account) {
+      try {
+        extractedData = extractTransactionDataFromPSBTEnhanced(
+          transactionData.originalPsbt,
+          accountMatch.account
+        )
+      } catch {
+        extractedData = null
+      }
+    }
+
+    const inputs = extractedData?.inputs || []
+    const outputs = extractedData?.outputs || []
+    const fee = extractedData?.fee || 0
+
+    inputs.forEach((input) => {
       addInput({
         ...input,
         script: parseHexToBytes(input.script),
@@ -90,7 +103,7 @@ export function handleGoToSignFlow(
       })
     })
 
-    transactionData.outputs?.forEach((output) => {
+    outputs.forEach((output) => {
       addOutput({
         to: output.address,
         amount: output.value,
@@ -98,17 +111,22 @@ export function handleGoToSignFlow(
       })
     })
 
-    if (transactionData.fee) setFee(transactionData.fee)
+    if (fee) setFee(fee)
+
+    // Extract transaction ID from PSBT
+    const extractedTxid = extractTransactionIdFromPSBT(
+      transactionData.originalPsbt
+    )
 
     const mockTxBuilderResult = {
       psbt: {
         base64: transactionData.originalPsbt,
         serialize: () => Promise.resolve(transactionData.originalPsbt),
-        txid: () => Promise.resolve(transactionData.txid)
+        txid: () => Promise.resolve(extractedTxid)
       },
       txDetails: {
-        txid: transactionData.txid,
-        fee: transactionData.fee
+        txid: extractedTxid,
+        fee: fee
       }
     }
     setTxBuilderResult(mockTxBuilderResult as any)
@@ -138,30 +156,16 @@ function isValidTransactionData(data: any): data is TransactionData {
   return (
     data &&
     typeof data === 'object' &&
-    data.type === 'multisig_transaction' &&
-    typeof data.txid === 'string' &&
-    typeof data.network === 'string' &&
-    typeof data.keyCount === 'number' &&
-    typeof data.keysRequired === 'number' &&
     typeof data.originalPsbt === 'string' &&
     typeof data.signedPsbts === 'object' &&
-    typeof data.timestamp === 'number'
+    typeof data.keyCount === 'number' &&
+    typeof data.keysRequired === 'number'
   )
 }
 
 export function hasSignFlowButton(message: string): boolean {
   return (
-    message.includes('[Go to Sign Flow]') || message.includes('Go to Sign Flow')
+    message.includes('Go to Sign Flow') ||
+    message.includes('Transaction Data (PSBT-based):')
   )
-}
-
-export function extractTransactionIdFromMessage(
-  message: string
-): string | null {
-  try {
-    const txidMatch = message.match(/Transaction ID:\s*([a-fA-F0-9]+)/)
-    return txidMatch ? txidMatch[1] : null
-  } catch {
-    return null
-  }
 }
