@@ -85,7 +85,7 @@ function SSDevicesGroupChat() {
   )
 
   const members = useNostrStore(
-    useShallow((state) => state.members?.[accountId] || [])
+    useShallow((state) => (accountId && state.members?.[accountId]) || [])
   )
   const [transactionToShare, setTransactionToShare] = useNostrStore(
     useShallow((state) => [
