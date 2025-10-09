@@ -302,7 +302,7 @@ export default function EcashReceivePage() {
                 <SSVStack gap="md">
                   {/* Display Lightning Invoice */}
                   <View style={styles.qrContainer}>
-                    <SSQRCode value={mintQuote.request} size={200} />
+                    <SSQRCode value={mintQuote.request} size={300} />
                   </View>
                   <SSButton
                     label={t('common.copy')}

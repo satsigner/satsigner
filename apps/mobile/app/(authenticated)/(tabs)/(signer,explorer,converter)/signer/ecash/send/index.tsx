@@ -515,10 +515,6 @@ export default function EcashSendPage() {
                     inputStyles={styles.input}
                   />
                 )}
-
-                {decodedInvoice && (
-                  <SSPaymentDetails decodedInvoice={decodedInvoice} />
-                )}
               </SSVStack>
               <SSButton
                 label={t('ecash.send.meltTokens')}
