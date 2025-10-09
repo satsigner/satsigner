@@ -79,8 +79,11 @@ function SSDevicesGroupChat() {
 
   // Zustand stores
   const account = useAccountsStore((state) =>
-    state.accounts.find((_account) => _account.id === accountId)
+    accountId
+      ? state.accounts.find((_account) => _account.id === accountId)
+      : undefined
   )
+
   const members = useNostrStore(
     useShallow((state) => state.members?.[accountId] || [])
   )
@@ -115,7 +118,7 @@ function SSDevicesGroupChat() {
   const memoizedMessages = useMemo(() => messages, [messages])
   const membersList = useMemo(
     () =>
-      members.map((member) => ({
+      members.map((member: { npub: string; color?: string }) => ({
         npub: member.npub,
         color: member.color || '#404040'
       })),
