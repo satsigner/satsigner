@@ -2,7 +2,7 @@ import { getDecodedToken } from '@cashu/cashu-ts'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { Stack } from 'expo-router'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
@@ -12,11 +12,12 @@ import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { useEcash } from '@/hooks/useEcash'
+import { useEcash, useQuotePolling } from '@/hooks/useEcash'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { warning, success, error, white } from '@/styles/colors'
 import { type EcashToken } from '@/types/models/Ecash'
 
 export default function EcashReceivePage() {
@@ -29,7 +30,6 @@ export default function EcashReceivePage() {
   const [quoteStatus, setQuoteStatus] = useState<string>('')
   const [isRedeeming, setIsRedeeming] = useState(false)
   const [isCreatingQuote, setIsCreatingQuote] = useState(false)
-  const [isPolling, setIsPolling] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
 
@@ -40,6 +40,22 @@ export default function EcashReceivePage() {
     checkMintQuote,
     mintProofs
   } = useEcash()
+
+  const { isPolling, startPolling, stopPolling } = useQuotePolling()
+
+  // Cleanup polling when component unmounts or tab changes
+  useEffect(() => {
+    return () => {
+      stopPolling()
+    }
+  }, [stopPolling])
+
+  // Stop polling when switching tabs
+  useEffect(() => {
+    if (activeTab !== 'lightning') {
+      stopPolling()
+    }
+  }, [activeTab, stopPolling])
 
   const handleRedeemToken = useCallback(async () => {
     if (!token) {
@@ -80,33 +96,51 @@ export default function EcashReceivePage() {
       setMintQuote(quote)
       setQuoteStatus('PENDING')
       toast.success(t('ecash.success.invoiceCreated'))
+
+      // Start automatic polling for payment status with a small delay
+      setTimeout(() => {
+        startPolling(async () => {
+          if (!activeMint || !quote) return
+
+          try {
+            const status = await checkMintQuote(activeMint.url, quote.quote)
+            setQuoteStatus(status)
+
+            if (status === 'PAID' || status === 'ISSUED') {
+              await mintProofs(
+                activeMint.url,
+                parseInt(amount, 10),
+                quote.quote
+              )
+              setMintQuote(null)
+              setAmount('')
+              setMemo('')
+              stopPolling()
+              toast.success(t('ecash.success.paymentReceived'))
+            } else if (status === 'EXPIRED' || status === 'CANCELLED') {
+              stopPolling()
+              toast.error(t('ecash.error.paymentFailed'))
+            }
+            // Continue polling for PENDING, UNPAID, and unknown statuses
+          } catch (error) {
+            // Continue polling on network errors
+          }
+        })
+      }, 2000) // Wait 2 seconds before starting to poll
     } catch {
       // Error handling is done in the hook
     } finally {
       setIsCreatingQuote(false)
     }
-  }, [amount, activeMint, createMintQuote])
-
-  const handleCheckPayment = useCallback(async () => {
-    if (!mintQuote || !activeMint) return
-
-    setIsPolling(true)
-    try {
-      const status = await checkMintQuote(activeMint.url, mintQuote.quote)
-      setQuoteStatus(status)
-
-      if (status === 'PAID') {
-        await mintProofs(activeMint.url, parseInt(amount, 10), mintQuote.quote)
-        setMintQuote(null)
-        setAmount('')
-        setMemo('')
-      }
-    } catch {
-      // Error handling is done in the hook
-    } finally {
-      setIsPolling(false)
-    }
-  }, [mintQuote, activeMint, checkMintQuote, mintProofs, amount])
+  }, [
+    amount,
+    activeMint,
+    createMintQuote,
+    checkMintQuote,
+    mintProofs,
+    startPolling,
+    stopPolling
+  ])
 
   // Handle token input changes and auto-decode
   const handleTokenChange = useCallback((text: string) => {
@@ -160,15 +194,19 @@ export default function EcashReceivePage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'PENDING':
-        return '#FFA500'
+        return warning
       case 'PAID':
-        return '#00FF00'
+        return success
       case 'EXPIRED':
-        return '#FF0000'
+        return error
       case 'CANCELLED':
-        return '#FF0000'
+        return error
+      case 'UNPAID':
+        return warning
+      case 'ISSUED':
+        return success
       default:
-        return '#FFFFFF'
+        return white
     }
   }
 
@@ -182,8 +220,12 @@ export default function EcashReceivePage() {
         return t('ecash.quote.expired')
       case 'CANCELLED':
         return t('ecash.quote.cancelled')
+      case 'UNPAID':
+        return t('ecash.quote.pending')
+      case 'ISSUED':
+        return t('ecash.quote.paid')
       default:
-        return ''
+        return status || ''
     }
   }
 
@@ -316,23 +358,16 @@ export default function EcashReceivePage() {
                   />
 
                   {/* Quote Status */}
-                  <SSVStack gap="sm">
-                    <SSText color="muted" uppercase>
-                      {t('ecash.receive.status')}
-                    </SSText>
+                  <SSVStack gap="none">
                     <SSText style={{ color: getStatusColor(quoteStatus) }}>
                       {getStatusText(quoteStatus)}
                     </SSText>
+                    {isPolling && (
+                      <SSText color="muted" size="xs">
+                        {t('ecash.receive.polling')}
+                      </SSText>
+                    )}
                   </SSVStack>
-
-                  {quoteStatus === 'PENDING' && (
-                    <SSButton
-                      label={t('ecash.receive.checkPayment')}
-                      onPress={handleCheckPayment}
-                      loading={isPolling}
-                      variant="outline"
-                    />
-                  )}
                 </SSVStack>
               )}
             </SSVStack>

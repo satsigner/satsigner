@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner-native'
 
 import {
@@ -370,47 +370,84 @@ export function useQuotePolling() {
   const [isPolling, setIsPolling] = useState(false)
   const [pollCount, setPollCount] = useState(0)
   const [lastPollTime, setLastPollTime] = useState(0)
+  const isPollingRef = useRef(false)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  const startPolling = useCallback(
-    (pollFunction: () => Promise<any>) => {
-      setIsPolling(true)
-      setPollCount(0)
-      setLastPollTime(Date.now())
+  const startPolling = useCallback((pollFunction: () => Promise<any>) => {
+    setIsPolling(true)
+    isPollingRef.current = true
+    setPollCount(0)
+    setLastPollTime(Date.now())
 
-      const poll = async () => {
-        if (pollCount >= MAX_POLL_ATTEMPTS) {
-          setIsPolling(false)
-          return
-        }
+    let currentPollCount = 0
+    let currentLastPollTime = Date.now()
 
-        const now = Date.now()
-        if (now - lastPollTime < POLL_INTERVAL) {
-          setTimeout(poll, POLL_INTERVAL - (now - lastPollTime))
-          return
-        }
-
-        try {
-          await pollFunction()
-          setPollCount((prev) => prev + 1)
-          setLastPollTime(now)
-
-          if (isPolling) {
-            setTimeout(poll, POLL_INTERVAL)
-          }
-        } catch (error) {
-          setIsPolling(false)
-          throw error
-        }
+    const poll = async () => {
+      if (currentPollCount >= MAX_POLL_ATTEMPTS) {
+        setIsPolling(false)
+        isPollingRef.current = false
+        return
       }
 
-      poll()
-    },
-    [pollCount, lastPollTime, isPolling]
-  )
+      if (!isPollingRef.current) {
+        return
+      }
+
+      const now = Date.now()
+      if (now - currentLastPollTime < POLL_INTERVAL) {
+        const delay = POLL_INTERVAL - (now - currentLastPollTime)
+        timeoutRef.current = setTimeout(poll, delay)
+        return
+      }
+
+      try {
+        await pollFunction()
+        currentPollCount++
+        currentLastPollTime = now
+        setPollCount(currentPollCount)
+        setLastPollTime(currentLastPollTime)
+
+        // Continue polling if still active
+        if (isPollingRef.current) {
+          timeoutRef.current = setTimeout(poll, POLL_INTERVAL)
+        }
+      } catch (error) {
+        currentPollCount++
+        currentLastPollTime = now
+        setPollCount(currentPollCount)
+        setLastPollTime(currentLastPollTime)
+
+        // Continue polling unless it's a critical error or max attempts reached
+        if (isPollingRef.current && currentPollCount < MAX_POLL_ATTEMPTS) {
+          timeoutRef.current = setTimeout(poll, POLL_INTERVAL)
+        } else {
+          setIsPolling(false)
+          isPollingRef.current = false
+        }
+      }
+    }
+
+    poll()
+  }, [])
 
   const stopPolling = useCallback(() => {
     setIsPolling(false)
+    isPollingRef.current = false
     setPollCount(0)
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+  }, [])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
   }, [])
 
   return {
