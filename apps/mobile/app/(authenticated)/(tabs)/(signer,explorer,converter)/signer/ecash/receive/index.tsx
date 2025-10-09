@@ -1,16 +1,15 @@
 import { getDecodedToken } from '@cashu/cashu-ts'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
-import { Stack, useRouter } from 'expo-router'
+import { Stack } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
-import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
+import SSEcashTokenDetails from '@/components/SSEcashTokenDetails'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
-import SSEcashTokenDetails from '@/components/SSEcashTokenDetails'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useEcash } from '@/hooks/useEcash'
@@ -21,7 +20,6 @@ import { t } from '@/locales'
 import { type EcashToken } from '@/types/models/Ecash'
 
 export default function EcashReceivePage() {
-  const router = useRouter()
   const [activeTab, setActiveTab] = useState<'ecash' | 'lightning'>('ecash')
   const [token, setToken] = useState('')
   const [decodedToken, setDecodedToken] = useState<EcashToken | null>(null)
@@ -78,7 +76,7 @@ export default function EcashReceivePage() {
 
     setIsCreatingQuote(true)
     try {
-      const quote = await createMintQuote(activeMint.url, parseInt(amount))
+      const quote = await createMintQuote(activeMint.url, parseInt(amount, 10))
       setMintQuote(quote)
       setQuoteStatus('PENDING')
       toast.success(t('ecash.success.invoiceCreated'))
@@ -98,7 +96,7 @@ export default function EcashReceivePage() {
       setQuoteStatus(status)
 
       if (status === 'PAID') {
-        await mintProofs(activeMint.url, parseInt(amount), mintQuote.quote)
+        await mintProofs(activeMint.url, parseInt(amount, 10), mintQuote.quote)
         setMintQuote(null)
         setAmount('')
         setMemo('')
@@ -124,7 +122,7 @@ export default function EcashReceivePage() {
       try {
         const decoded = getDecodedToken(cleanText)
         setDecodedToken(decoded)
-      } catch (error) {
+      } catch {
         setDecodedToken(null)
       }
     }
@@ -251,8 +249,8 @@ export default function EcashReceivePage() {
               {decodedToken && (
                 <SSEcashTokenDetails
                   decodedToken={decodedToken}
-                  showMint={true}
-                  showProofs={true}
+                  showMint
+                  showProofs
                 />
               )}
               <SSButton
@@ -310,7 +308,7 @@ export default function EcashReceivePage() {
                       try {
                         await Clipboard.setStringAsync(mintQuote.request)
                         toast.success(t('common.copiedToClipboard'))
-                      } catch (error) {
+                      } catch {
                         toast.error(t('ecash.error.failedToCopy'))
                       }
                     }}

@@ -1,9 +1,9 @@
 import { StyleSheet, TextInput } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import SSText from '@/components/SSText'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { formatNumber } from '@/utils/format'

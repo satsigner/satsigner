@@ -1,16 +1,15 @@
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Stack, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, ScrollView, StyleSheet, View } from 'react-native'
+import { Alert, ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
+import SSLNURLDetails from '@/components/SSLNURLDetails'
 import SSModal from '@/components/SSModal'
 import SSPaymentDetails from '@/components/SSPaymentDetails'
-import SSLNURLDetails from '@/components/SSLNURLDetails'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useEcash } from '@/hooks/useEcash'
@@ -19,8 +18,6 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { usePriceStore } from '@/store/price'
-import { formatNumber } from '@/utils/format'
 import {
   decodeLNURL,
   fetchLNURLPayDetails,
@@ -65,11 +62,6 @@ interface LNURLPayResponse {
   allowsNostr?: boolean
 }
 
-interface EcashSendSearchParams {
-  invoice?: string
-  [key: string]: string | string[] | undefined
-}
-
 export default function EcashSendPage() {
   const { invoice: invoiceParam } = useLocalSearchParams()
   const [activeTab, setActiveTab] = useState<'ecash' | 'lightning'>('ecash')
@@ -90,16 +82,12 @@ export default function EcashSendPage() {
     null
   )
   const [isFetchingLNURL, setIsFetchingLNURL] = useState(false)
-  const [isDecoding, setIsDecoding] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
 
   const { activeMint, sendEcash, createMeltQuote, meltProofs, proofs } =
     useEcash()
   const { makeRequest, isConnected, verifyConnection } = useLND()
   const typedMakeRequest = makeRequest as MakeRequest
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
-  )
 
   const handleGenerateToken = useCallback(async () => {
     if (!amount || amount.trim() === '') {
@@ -107,7 +95,7 @@ export default function EcashSendPage() {
       return
     }
 
-    const amountNum = parseInt(amount)
+    const amountNum = parseInt(amount, 10)
     if (isNaN(amountNum) || amountNum <= 0) {
       toast.error(t('ecash.error.invalidAmount'))
       return
@@ -259,17 +247,14 @@ export default function EcashSendPage() {
   const decodeInvoice = useCallback(
     async (invoice: string) => {
       try {
-        setIsDecoding(true)
         const response = await typedMakeRequest<DecodedInvoice>(
           '/v1/payreq/' + invoice
         )
         setDecodedInvoice(response)
         return response
-      } catch (error) {
+      } catch {
         setDecodedInvoice(null)
-        throw error
-      } finally {
-        setIsDecoding(false)
+        throw new Error('Failed to decode invoice')
       }
     },
     [typedMakeRequest]
@@ -298,7 +283,7 @@ export default function EcashSendPage() {
           if (details.minSendable) {
             setAmount(Math.ceil(details.minSendable / 1000).toString())
           }
-        } catch (error) {
+        } catch {
           setLNURLDetails(null)
         } finally {
           setIsFetchingLNURL(false)
@@ -328,7 +313,7 @@ export default function EcashSendPage() {
           if (decoded.num_satoshis) {
             setAmount(decoded.num_satoshis)
           }
-        } catch (error) {
+        } catch {
           setDecodedInvoice(null)
         }
       } else {
@@ -424,7 +409,7 @@ export default function EcashSendPage() {
                   {t('ecash.send.amount')}
                 </SSText>
                 <SSAmountInput
-                  value={parseInt(amount) || 0}
+                  value={parseInt(amount, 10) || 0}
                   onValueChange={(value) => setAmount(value.toString())}
                   min={0}
                   max={proofs.reduce((acc, proof) => acc + proof.amount, 0)}
@@ -507,7 +492,7 @@ export default function EcashSendPage() {
                   <SSLNURLDetails
                     lnurlDetails={lnurlDetails}
                     isFetching={isFetchingLNURL}
-                    showCommentInfo={true}
+                    showCommentInfo
                     amount={amount}
                     onAmountChange={setAmount}
                     comment={comment}

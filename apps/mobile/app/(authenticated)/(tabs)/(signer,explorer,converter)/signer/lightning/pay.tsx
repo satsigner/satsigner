@@ -8,9 +8,9 @@ import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
+import SSLNURLDetails from '@/components/SSLNURLDetails'
 import SSModal from '@/components/SSModal'
 import SSPaymentDetails from '@/components/SSPaymentDetails'
-import SSLNURLDetails from '@/components/SSLNURLDetails'
 import SSText from '@/components/SSText'
 import { useLND } from '@/hooks/useLND'
 import SSHStack from '@/layouts/SSHStack'
@@ -495,8 +495,8 @@ export default function PayPage() {
                 {decodedInvoice && !isLNURLMode && (
                   <SSPaymentDetails
                     decodedInvoice={decodedInvoice}
-                    showCreated={true}
-                    showPaymentHash={true}
+                    showCreated
+                    showPaymentHash
                   />
                 )}
 
@@ -504,7 +504,7 @@ export default function PayPage() {
                   <SSLNURLDetails
                     lnurlDetails={lnurlDetails}
                     isFetching={isFetchingDetails}
-                    showCommentInfo={true}
+                    showCommentInfo
                     amount={amount}
                     onAmountChange={handleAmountChange}
                     comment={comment}

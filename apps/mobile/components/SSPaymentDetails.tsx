@@ -1,4 +1,4 @@
-import { View, StyleSheet } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSText from '@/components/SSText'

@@ -1,4 +1,4 @@
-import { View, StyleSheet } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSText from '@/components/SSText'
@@ -7,8 +7,8 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { Typography } from '@/styles'
-import { formatNumber } from '@/utils/format'
 import { type EcashToken } from '@/types/models/Ecash'
+import { formatNumber } from '@/utils/format'
 
 interface SSEcashTokenDetailsProps {
   decodedToken: EcashToken
