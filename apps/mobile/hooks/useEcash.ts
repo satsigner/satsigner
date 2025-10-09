@@ -14,6 +14,7 @@ import {
   sendEcash,
   validateEcashToken
 } from '@/api/ecash'
+import { CashuMint, CashuWallet } from '@cashu/cashu-ts'
 import { t } from '@/locales'
 import { useEcashStore } from '@/store/ecash'
 import {
@@ -30,6 +31,18 @@ import {
 
 const POLL_INTERVAL = 1500 // 1.5 seconds
 const MAX_POLL_ATTEMPTS = 120 // 3 minutes max
+
+// Cache for wallet instances
+const walletCache = new Map<string, CashuWallet>()
+
+function getWallet(mintUrl: string): CashuWallet {
+  if (!walletCache.has(mintUrl)) {
+    const mint = new CashuMint(mintUrl)
+    const wallet = new CashuWallet(mint)
+    walletCache.set(mintUrl, wallet)
+  }
+  return walletCache.get(mintUrl)!
+}
 
 export function useEcash() {
   const mints = useEcashStore((state) => state.mints)
@@ -245,6 +258,18 @@ export function useEcash() {
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : t('ecash.error.networkError')
+
+        // If the error is about spent proofs, we should clean up the store
+        if (
+          errorMessage.includes('Token already spent') ||
+          errorMessage.includes('spent')
+        ) {
+          // Clear all proofs from the store since they may be invalid
+          // The user will need to reconnect to the mint to get fresh proofs
+          removeProofs(proofs.map((proof) => proof.id))
+          updateMintBalance(mintUrl, 0)
+        }
+
         toast.error(errorMessage)
         throw error
       }

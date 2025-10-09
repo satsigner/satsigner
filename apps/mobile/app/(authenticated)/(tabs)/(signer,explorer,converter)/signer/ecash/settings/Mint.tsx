@@ -40,7 +40,7 @@ export default function EcashMintPage() {
     try {
       await connectToMint(mintUrl)
       setMintUrl('')
-      } catch {
+    } catch {
       // Error handling is done in the hook
     } finally {
       setIsConnecting(false)

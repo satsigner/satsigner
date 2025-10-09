@@ -150,6 +150,36 @@ export async function meltProofs(
   }
 }
 
+export async function validateProofs(
+  mintUrl: string,
+  proofs: EcashProof[]
+): Promise<{ validProofs: EcashProof[]; spentProofs: EcashProof[] }> {
+  try {
+    const wallet = getWallet(mintUrl)
+    await wallet.loadMint()
+
+    // Check the state of all proofs
+    const proofStates = await wallet.checkProofsStates(proofs)
+
+    const validProofs: EcashProof[] = []
+    const spentProofs: EcashProof[] = []
+
+    proofStates.forEach((state, index) => {
+      if (state.state === 'UNSPENT' || state.state === 'PENDING') {
+        validProofs.push(proofs[index])
+      } else if (state.state === 'SPENT') {
+        spentProofs.push(proofs[index])
+      }
+    })
+
+    return { validProofs, spentProofs }
+  } catch (error) {
+    throw new Error(
+      `Failed to validate proofs: ${error instanceof Error ? error.message : 'Unknown error'}`
+    )
+  }
+}
+
 export async function sendEcash(
   mintUrl: string,
   amount: number,
@@ -161,7 +191,20 @@ export async function sendEcash(
       throw new Error('No proofs available to send')
     }
 
-    const totalProofAmount = proofs.reduce(
+    // Validate proofs before attempting to send
+    const { validProofs, spentProofs } = await validateProofs(mintUrl, proofs)
+
+    if (spentProofs.length > 0) {
+      throw new Error(
+        `Token already spent. ${spentProofs.length} proof(s) have been spent.`
+      )
+    }
+
+    if (validProofs.length === 0) {
+      throw new Error('No valid proofs available to send')
+    }
+
+    const totalProofAmount = validProofs.reduce(
       (sum, proof) => sum + proof.amount,
       0
     )
@@ -175,7 +218,7 @@ export async function sendEcash(
     const wallet = getWallet(mintUrl)
     // Ensure wallet is loaded with mint keys
     await wallet.loadMint()
-    const { keep, send } = await wallet.send(amount, proofs, {
+    const { keep, send } = await wallet.send(amount, validProofs, {
       includeFees: true
     })
 

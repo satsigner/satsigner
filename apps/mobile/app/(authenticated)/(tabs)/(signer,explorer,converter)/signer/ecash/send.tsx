@@ -118,7 +118,7 @@ export default function EcashSendPage() {
       const result = await sendEcash(activeMint.url, amountNum, memo)
       // Store the generated token
       setGeneratedToken(result.token)
-      } catch {
+    } catch {
       // Error handling is done in the hook
     } finally {
       setIsGenerating(false)
@@ -192,7 +192,7 @@ export default function EcashSendPage() {
       setInvoice('')
       setAmount('')
       toast.success(t('ecash.success.tokensMelted'))
-      } catch (error) {
+    } catch (error) {
       if (error instanceof Error) {
         if (
           error.message.includes('404') ||
@@ -347,7 +347,7 @@ export default function EcashSendPage() {
       } else {
         toast.error(t('ecash.error.noTextInClipboard'))
       }
-      } catch {
+    } catch {
       toast.error(t('ecash.error.failedToPaste'))
     }
   }, [handleInvoiceChange])
@@ -371,7 +371,7 @@ export default function EcashSendPage() {
     try {
       await Clipboard.setStringAsync(generatedToken)
       toast.success(t('common.copiedToClipboard'))
-      } catch {
+    } catch {
       toast.error(t('ecash.error.failedToCopy'))
     }
   }, [generatedToken])

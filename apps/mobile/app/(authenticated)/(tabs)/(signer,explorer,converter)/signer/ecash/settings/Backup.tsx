@@ -68,7 +68,7 @@ export default function EcashBackupPage() {
     try {
       await Clipboard.setStringAsync(backupData)
       toast.success(t('common.copiedToClipboard'))
-      } catch {
+    } catch {
       toast.error('Failed to copy to clipboard')
     }
   }, [backupData])

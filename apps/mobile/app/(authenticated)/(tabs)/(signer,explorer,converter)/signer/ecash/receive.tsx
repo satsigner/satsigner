@@ -56,7 +56,7 @@ export default function EcashReceivePage() {
     try {
       await receiveEcash(activeMint.url, token)
       setToken('')
-      } catch {
+    } catch {
       // Error handling is done in the hook
     } finally {
       setIsRedeeming(false)
@@ -80,7 +80,7 @@ export default function EcashReceivePage() {
       setMintQuote(quote)
       setQuoteStatus('PENDING')
       toast.success(t('ecash.success.invoiceCreated'))
-      } catch {
+    } catch {
       // Error handling is done in the hook
     } finally {
       setIsCreatingQuote(false)
@@ -101,7 +101,7 @@ export default function EcashReceivePage() {
         setAmount('')
         setMemo('')
       }
-      } catch {
+    } catch {
       // Error handling is done in the hook
     } finally {
       setIsPolling(false)
@@ -137,7 +137,7 @@ export default function EcashReceivePage() {
       } else {
         toast.error(t('ecash.error.noTextInClipboard'))
       }
-      } catch {
+    } catch {
       toast.error(t('ecash.error.failedToPaste'))
     }
   }, [handleTokenChange])
