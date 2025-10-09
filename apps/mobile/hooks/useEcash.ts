@@ -24,6 +24,7 @@ import {
   type EcashProof,
   type EcashReceiveResult,
   type EcashSendResult,
+  type EcashTransaction,
   type MeltQuote,
   type MintQuote,
   type MintQuoteState
@@ -49,6 +50,7 @@ export function useEcash() {
   const activeMint = useEcashStore((state) => state.activeMint)
   const proofs = useEcashStore((state) => state.proofs)
   const transactions = useEcashStore((state) => state.transactions)
+  const mintQuotes = useEcashStore((state) => state.quotes.mint)
   const addMint = useEcashStore((state) => state.addMint)
   const removeMint = useEcashStore((state) => state.removeMint)
   const setActiveMint = useEcashStore((state) => state.setActiveMint)
@@ -100,10 +102,30 @@ export function useEcash() {
   )
 
   const createMintQuoteHandler = useCallback(
-    async (mintUrl: string, amount: number): Promise<MintQuote> => {
+    async (
+      mintUrl: string,
+      amount: number,
+      memo?: string
+    ): Promise<MintQuote> => {
       try {
-        const quote = await createMintQuote(mintUrl, amount)
+        const quote = await createMintQuote(mintUrl, amount, memo)
         addMintQuote(quote)
+
+        // Add transaction to history immediately with pending status
+        const transaction: EcashTransaction = {
+          id: quote.quote,
+          type: 'mint',
+          amount,
+          memo,
+          label: memo, // Use memo as the transaction label
+          mintUrl,
+          timestamp: new Date().toISOString(),
+          status: 'pending',
+          quoteId: quote.quote,
+          expiry: quote.expiry
+        }
+        addTransaction(transaction)
+
         return quote
       } catch (error) {
         const errorMessage =
@@ -112,7 +134,7 @@ export function useEcash() {
         throw error
       }
     },
-    [addMintQuote]
+    [addMintQuote, addTransaction]
   )
 
   const checkMintQuoteHandler = useCallback(
@@ -144,14 +166,9 @@ export function useEcash() {
           await getMintBalance(mintUrl, [...proofs, ...result.proofs])
         )
 
-        // Add transaction record
-        addTransaction({
-          id: `mint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          type: 'mint',
-          amount,
-          mintUrl,
-          timestamp: new Date().toISOString(),
-          quoteId
+        // Update existing transaction status to completed
+        updateTransaction(quoteId, {
+          status: 'completed'
         })
 
         toast.success(t('ecash.success.tokensMinted'))
@@ -163,7 +180,7 @@ export function useEcash() {
         throw error
       }
     },
-    [addProofs, removeMintQuote, updateMintBalance, proofs]
+    [addProofs, removeMintQuote, updateMintBalance, proofs, updateTransaction]
   )
 
   const createMeltQuoteHandler = useCallback(
@@ -186,7 +203,8 @@ export function useEcash() {
     async (
       mintUrl: string,
       quote: MeltQuote,
-      proofsToMelt: EcashProof[]
+      proofsToMelt: EcashProof[],
+      description?: string
     ): Promise<EcashMeltResult> => {
       try {
         const result = await meltProofs(mintUrl, quote, proofsToMelt)
@@ -214,7 +232,10 @@ export function useEcash() {
           mintUrl,
           timestamp: new Date().toISOString(),
           invoice: quote.quote, // Store the invoice for reference
-          quoteId: quote.quote
+          quoteId: quote.quote,
+          expiry: quote.expiry,
+          label: description, // Use description as the transaction label
+          memo: description // Also store as memo for backward compatibility
         })
 
         toast.success(t('ecash.success.tokensMelted'))
@@ -342,12 +363,67 @@ export function useEcash() {
     toast.success(t('ecash.success.dataCleared'))
   }, [clearAllData])
 
+  const resumePollingForTransaction = useCallback(
+    async (
+      transactionId: string,
+      startPolling: (pollFunction: () => Promise<any>) => void
+    ) => {
+      const transaction = transactions.find((t) => t.id === transactionId)
+      if (
+        !transaction ||
+        transaction.status !== 'pending' ||
+        !transaction.quoteId
+      ) {
+        return
+      }
+
+      const mint = mints.find((m) => m.url === transaction.mintUrl)
+      if (!mint) {
+        return
+      }
+
+      startPolling(async () => {
+        try {
+          const status = await checkMintQuoteHandler(
+            mint.url,
+            transaction.quoteId!
+          )
+
+          if (status === 'PAID' || status === 'ISSUED') {
+            await mintProofsHandler(
+              mint.url,
+              transaction.amount,
+              transaction.quoteId!
+            )
+            return true // Stop polling
+          } else if (status === 'EXPIRED' || status === 'CANCELLED') {
+            updateTransaction(transactionId, { status: 'failed' })
+            return true // Stop polling
+          }
+          // Continue polling for PENDING, UNPAID, and unknown statuses
+          return false
+        } catch (error) {
+          // Continue polling on network errors
+          return false
+        }
+      })
+    },
+    [
+      transactions,
+      mints,
+      checkMintQuoteHandler,
+      mintProofsHandler,
+      updateTransaction
+    ]
+  )
+
   return {
     // State
     mints,
     activeMint,
     proofs,
     transactions,
+    mintQuotes,
 
     // Actions
     connectToMint: connectToMintHandler,
@@ -361,6 +437,7 @@ export function useEcash() {
     receiveEcash: receiveEcashHandler,
     updateTransaction,
     validateToken,
+    resumePollingForTransaction,
     restoreFromBackup: restoreFromBackupHandler,
     clearAllData: clearAllDataHandler
   }
@@ -401,11 +478,18 @@ export function useQuotePolling() {
       }
 
       try {
-        await pollFunction()
+        const shouldStop = await pollFunction()
         currentPollCount++
         currentLastPollTime = now
         setPollCount(currentPollCount)
         setLastPollTime(currentLastPollTime)
+
+        // Stop polling if function returns true or if not active
+        if (shouldStop || !isPollingRef.current) {
+          setIsPolling(false)
+          isPollingRef.current = false
+          return
+        }
 
         // Continue polling if still active
         if (isPollingRef.current) {

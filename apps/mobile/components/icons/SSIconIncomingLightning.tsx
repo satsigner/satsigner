@@ -26,7 +26,7 @@ export default function SSIconIncomingLightning({ width, height }: IconProps) {
         />
         <Path
           id="Lightning"
-          d="M18,1L13.5,8L18,8L13.5,17"
+          d="M18,2L13.5,9L18,9L13.5,16"
           fill="none"
           stroke="#ffeb3b"
           strokeLinecap="round"

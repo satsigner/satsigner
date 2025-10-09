@@ -186,7 +186,12 @@ export default function EcashSendPage() {
       const quote = await createMeltQuote(activeMint.url, bolt11Invoice)
       setStatusMessage(t('ecash.status.meltQuoteCreated'))
 
-      await meltProofs(activeMint.url, quote, proofs)
+      await meltProofs(
+        activeMint.url,
+        quote,
+        proofs,
+        decodedInvoice?.description
+      )
       setStatusMessage(t('ecash.status.tokensMeltedSuccessfully'))
 
       setInvoice('')

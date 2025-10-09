@@ -53,7 +53,8 @@ export async function connectToMint(mintUrl: string): Promise<EcashMint> {
 
 export async function createMintQuote(
   mintUrl: string,
-  amount: number
+  amount: number,
+  memo?: string
 ): Promise<MintQuote> {
   try {
     const wallet = getWallet(mintUrl)

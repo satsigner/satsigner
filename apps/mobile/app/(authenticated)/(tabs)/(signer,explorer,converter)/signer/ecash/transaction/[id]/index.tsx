@@ -13,11 +13,13 @@ import {
   SSIconOutgoingLightning
 } from '@/components/icons'
 import SSButton from '@/components/SSButton'
+import SSModal from '@/components/SSModal'
+import SSQRCode from '@/components/SSQRCode'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSTimeAgoText from '@/components/SSTimeAgoText'
-import { useEcash } from '@/hooks/useEcash'
+import { useEcash, useQuotePolling } from '@/hooks/useEcash'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -33,7 +35,15 @@ import { formatFiatPrice } from '@/utils/format'
 export default function EcashTransactionDetailPage() {
   const router = useRouter()
   const { id } = useLocalSearchParams<EcashSearchParams>()
-  const { transactions, mints, updateTransaction, receiveEcash } = useEcash()
+  const {
+    transactions,
+    mints,
+    updateTransaction,
+    receiveEcash,
+    mintQuotes,
+    checkMintQuote,
+    mintProofs
+  } = useEcash()
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [fiatCurrency, btcPrice, fetchPrices] = usePriceStore(
     useShallow((state) => [
@@ -47,26 +57,96 @@ export default function EcashTransactionDetailPage() {
   )
   const [isCheckingStatus, setIsCheckingStatus] = useState(false)
   const [isRedeeming, setIsRedeeming] = useState(false)
+  const [qrModalVisible, setQrModalVisible] = useState(false)
+
+  // Polling hook for pending transactions
+  const { startPolling, stopPolling, isPolling } = useQuotePolling()
+
+  const transaction = transactions.find((t) => t.id === id)
+  const mint = transaction
+    ? mints.find((m) => m.url === transaction.mintUrl)
+    : null
+
+  // Get Lightning invoice from mint quote for pending mint transactions
+  const mintQuote = transaction?.quoteId
+    ? mintQuotes.find((q) => q.quote === transaction.quoteId)
+    : null
+  const lightningInvoice = mintQuote?.request || null
 
   // Fetch prices on mount and when currency changes
   useEffect(() => {
     fetchPrices(mempoolUrl)
   }, [fetchPrices, fiatCurrency, mempoolUrl])
 
-  const transaction = transactions.find((t) => t.id === id)
+  // Start polling for pending transactions
+  useEffect(() => {
+    if (
+      !transaction ||
+      transaction.status !== 'pending' ||
+      !transaction.quoteId ||
+      !mint
+    ) {
+      return
+    }
+
+    // Start polling for payment status
+    startPolling(async () => {
+      try {
+        const status = await checkMintQuote(mint.url, transaction.quoteId!)
+
+        if (status === 'PAID' || status === 'ISSUED') {
+          // Payment detected, mint the proofs
+          await mintProofs(mint.url, transaction.amount, transaction.quoteId!)
+
+          // Update transaction status to completed
+          updateTransaction(transaction.id, { status: 'completed' })
+
+          // Hide QR modal if it's open
+          setQrModalVisible(false)
+
+          return true // Stop polling
+        } else if (status === 'EXPIRED' || status === 'CANCELLED') {
+          // Payment failed or expired
+          updateTransaction(transaction.id, { status: 'failed' })
+          return true // Stop polling
+        }
+
+        // Continue polling for PENDING, UNPAID, and unknown statuses
+        return false
+      } catch (error) {
+        // Continue polling on network errors
+        return false
+      }
+    })
+
+    // Cleanup polling when component unmounts or transaction changes
+    return () => {
+      stopPolling()
+    }
+  }, [
+    transaction,
+    mint,
+    startPolling,
+    stopPolling,
+    checkMintQuote,
+    mintProofs,
+    updateTransaction
+  ])
 
   if (!transaction) {
     return (
       <SSMainLayout>
         <Stack.Screen
           options={{
-            headerTitle: () => <SSText uppercase>Transaction Not Found</SSText>
+            headerTitle: () => (
+              <SSText uppercase>{t('ecash.transactionDetail.notFound')}</SSText>
+            )
           }}
         />
         <SSVStack gap="md">
-          <SSText>Transaction not found</SSText>
+          <SSText>{t('ecash.transactionDetail.notFound')}</SSText>
           <SSButton
-            label="Go Back"
+            label={t('common.goBack')}
             onPress={() => router.back()}
             variant="outline"
           />
@@ -74,8 +154,6 @@ export default function EcashTransactionDetailPage() {
       </SSMainLayout>
     )
   }
-
-  const mint = mints.find((m) => m.url === transaction.mintUrl)
 
   const getTransactionIcon = (type: EcashTransaction['type']) => {
     switch (type) {
@@ -128,8 +206,8 @@ export default function EcashTransactionDetailPage() {
     try {
       await Clipboard.setStringAsync(transaction.token)
       toast.success(t('common.copiedToClipboard'))
-    } catch (error) {
-      toast.error('Failed to copy to clipboard')
+    } catch {
+      toast.error(t('ecash.error.failedToCopy'))
     }
   }, [transaction.token])
 
@@ -139,10 +217,21 @@ export default function EcashTransactionDetailPage() {
     try {
       await Clipboard.setStringAsync(transaction.invoice)
       toast.success(t('common.copiedToClipboard'))
-    } catch (error) {
-      toast.error('Failed to copy to clipboard')
+    } catch {
+      toast.error(t('ecash.error.failedToCopy'))
     }
   }, [transaction.invoice])
+
+  const handleCopyLightningInvoice = useCallback(async () => {
+    if (!lightningInvoice) return
+
+    try {
+      await Clipboard.setStringAsync(lightningInvoice)
+      toast.success(t('common.copiedToClipboard'))
+    } catch {
+      toast.error(t('ecash.error.failedToCopy'))
+    }
+  }, [lightningInvoice])
 
   const handleCheckTokenStatus = useCallback(async () => {
     if (!transaction.token || !transaction.mintUrl) return
@@ -168,9 +257,9 @@ export default function EcashTransactionDetailPage() {
 
       // Save token status to store
       updateTransaction(transaction.id, { tokenStatus })
-    } catch (error) {
+    } catch {
       updateTransaction(transaction.id, { tokenStatus: 'invalid' })
-      toast.error('Failed to check token status')
+      toast.error(t('ecash.error.failedToCheckStatus'))
     } finally {
       setIsCheckingStatus(false)
     }
@@ -266,22 +355,61 @@ export default function EcashTransactionDetailPage() {
                   size="sm"
                 />
               </SSVStack>
-              {transaction.type === 'send' && (
-                <SSText
-                  uppercase
-                  size="sm"
-                  weight="medium"
-                  style={{
-                    color: transaction.tokenStatus
-                      ? getTokenStatusColor(transaction.tokenStatus)
-                      : Colors.gray[700]
-                  }}
-                >
-                  {transaction.tokenStatus
-                    ? transaction.tokenStatus.toUpperCase()
-                    : 'Unknown'}
-                </SSText>
-              )}
+              <SSHStack gap="sm">
+                {transaction.status && (
+                  <SSText
+                    uppercase
+                    size="sm"
+                    weight="medium"
+                    style={{
+                      color: (() => {
+                        switch (transaction.status) {
+                          case 'pending':
+                            return Colors.warning
+                          case 'completed':
+                            return Colors.success
+                          case 'failed':
+                          case 'expired':
+                            return Colors.error
+                          default:
+                            return Colors.gray[700]
+                        }
+                      })()
+                    }}
+                  >
+                    {(() => {
+                      switch (transaction.status) {
+                        case 'pending':
+                          return t('ecash.quote.pending')
+                        case 'completed':
+                          return t('ecash.quote.completed')
+                        case 'failed':
+                          return t('ecash.quote.failed')
+                        case 'expired':
+                          return t('ecash.quote.expired')
+                        default:
+                          return String(transaction.status).toUpperCase()
+                      }
+                    })()}
+                  </SSText>
+                )}
+                {transaction.type === 'send' && (
+                  <SSText
+                    uppercase
+                    size="sm"
+                    weight="medium"
+                    style={{
+                      color: transaction.tokenStatus
+                        ? getTokenStatusColor(transaction.tokenStatus)
+                        : Colors.gray[700]
+                    }}
+                  >
+                    {transaction.tokenStatus
+                      ? transaction.tokenStatus.toUpperCase()
+                      : 'Unknown'}
+                  </SSText>
+                )}
+              </SSHStack>
             </SSHStack>
           </SSVStack>
 
@@ -304,6 +432,31 @@ export default function EcashTransactionDetailPage() {
                     gradientType="special"
                   />
                 )}
+            </SSVStack>
+          )}
+
+          {/* Lightning Invoice Buttons for Pending Transactions */}
+          {transaction.status === 'pending' && lightningInvoice && (
+            <SSVStack gap="sm">
+              {isPolling && (
+                <SSText color="muted" size="sm" style={{ textAlign: 'center' }}>
+                  {t('ecash.receive.polling')}
+                </SSText>
+              )}
+              <SSHStack gap="sm">
+                <SSButton
+                  label={t('ecash.transactionDetail.showQR')}
+                  onPress={() => setQrModalVisible(true)}
+                  variant="subtle"
+                  style={{ flex: 1 }}
+                />
+                <SSButton
+                  label={t('ecash.transactionDetail.copyInvoice')}
+                  onPress={handleCopyLightningInvoice}
+                  variant="subtle"
+                  style={{ flex: 1 }}
+                />
+              </SSHStack>
             </SSVStack>
           )}
 
@@ -334,17 +487,17 @@ export default function EcashTransactionDetailPage() {
                   {mint?.name || transaction.mintUrl}
                 </SSText>
               </SSHStack>
-              {transaction.memo && (
+              {(transaction.label || transaction.memo) && (
                 <SSHStack justifyBetween>
                   <SSText color="muted">
-                    {t('ecash.transactionDetail.memo')}:
+                    {t('ecash.transactionDetail.label')}:
                   </SSText>
                   <SSText
                     size="sm"
                     numberOfLines={2}
                     style={{ flex: 1, textAlign: 'right' }}
                   >
-                    {transaction.memo}
+                    {transaction.label || transaction.memo}
                   </SSText>
                 </SSHStack>
               )}
@@ -359,6 +512,20 @@ export default function EcashTransactionDetailPage() {
                     style={{ flex: 1, textAlign: 'right' }}
                   >
                     {transaction.quoteId}
+                  </SSText>
+                </SSHStack>
+              )}
+              {transaction.expiry && (
+                <SSHStack justifyBetween>
+                  <SSText color="muted">
+                    {t('ecash.transactionDetail.expiry')}:
+                  </SSText>
+                  <SSText
+                    size="sm"
+                    numberOfLines={1}
+                    style={{ flex: 1, textAlign: 'right' }}
+                  >
+                    {new Date(transaction.expiry * 1000).toLocaleString()}
                   </SSText>
                 </SSHStack>
               )}
@@ -390,6 +557,20 @@ export default function EcashTransactionDetailPage() {
           )}
         </SSVStack>
       </ScrollView>
+
+      {/* QR Code Modal */}
+      <SSModal
+        visible={qrModalVisible}
+        onClose={() => setQrModalVisible(false)}
+        label={t('common.close')}
+      >
+        <SSVStack gap="md" style={{ alignItems: 'center' }}>
+          <SSText size="lg" weight="medium" style={{ textAlign: 'center' }}>
+            {t('ecash.transactionDetail.lightningInvoice')}
+          </SSText>
+          {lightningInvoice && <SSQRCode value={lightningInvoice} size={250} />}
+        </SSVStack>
+      </SSModal>
     </SSMainLayout>
   )
 }

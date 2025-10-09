@@ -87,10 +87,13 @@ export type EcashTransaction = {
   type: 'send' | 'receive' | 'mint' | 'melt'
   amount: number
   memo?: string
+  label?: string // User-friendly label for the transaction
   mintUrl: string
   timestamp: string
+  status?: 'pending' | 'completed' | 'failed' | 'expired'
   token?: string // For send transactions
   tokenStatus?: 'unspent' | 'spent' | 'invalid' | 'pending' // Token status for send transactions
   invoice?: string // For melt transactions
   quoteId?: string // For mint/melt transactions
+  expiry?: number // Expiration timestamp for mint/melt transactions
 }

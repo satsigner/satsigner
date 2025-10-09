@@ -85,7 +85,7 @@ export default function SSEcashTransactionCard({
   function getTokenStatusColor(tokenStatus: EcashTransaction['tokenStatus']) {
     switch (tokenStatus) {
       case 'unspent':
-        return Colors.softBarGreen
+        return Colors.error
       case 'spent':
         return Colors.softBarRed
       case 'invalid':
@@ -104,21 +104,59 @@ export default function SSEcashTransactionCard({
           <SSText color="muted" size="xs">
             {transaction.id.slice(0, 30)}...
           </SSText>
-          {transaction.type === 'send' && (
-            <SSText
-              uppercase
-              size="xs"
-              style={{
-                color: transaction.tokenStatus
-                  ? getTokenStatusColor(transaction.tokenStatus)
-                  : Colors.gray[700]
-              }}
-            >
-              {transaction.tokenStatus
-                ? transaction.tokenStatus.toUpperCase()
-                : 'Unknown'}
-            </SSText>
-          )}
+          <SSHStack gap="xs">
+            {transaction.status && (
+              <SSText
+                uppercase
+                size="xs"
+                style={{
+                  color: (() => {
+                    switch (transaction.status) {
+                      case 'pending':
+                        return Colors.warning
+                      case 'completed':
+                        return Colors.softBarGreen
+                      case 'failed':
+                      case 'expired':
+                        return Colors.error
+                      default:
+                        return Colors.gray[700]
+                    }
+                  })()
+                }}
+              >
+                {(() => {
+                  switch (transaction.status) {
+                    case 'pending':
+                      return t('ecash.quote.pending')
+                    case 'completed':
+                      return t('ecash.quote.completed')
+                    case 'failed':
+                      return t('ecash.quote.failed')
+                    case 'expired':
+                      return t('ecash.quote.expired')
+                    default:
+                      return String(transaction.status).toUpperCase()
+                  }
+                })()}
+              </SSText>
+            )}
+            {transaction.type === 'send' && (
+              <SSText
+                uppercase
+                size="xs"
+                style={{
+                  color: transaction.tokenStatus
+                    ? getTokenStatusColor(transaction.tokenStatus)
+                    : Colors.gray[700]
+                }}
+              >
+                {transaction.tokenStatus
+                  ? transaction.tokenStatus.toUpperCase()
+                  : 'Unknown'}
+              </SSText>
+            )}
+          </SSHStack>
         </SSHStack>
 
         <SSTimeAgoText date={new Date(transaction.timestamp)} size="xs" />
@@ -182,7 +220,7 @@ export default function SSEcashTransactionCard({
           )}
         </SSVStack>
 
-        {transaction.memo ? (
+        {transaction.label || transaction.memo ? (
           <SSHStack justifyBetween>
             <SSText
               size="xs"
@@ -191,7 +229,7 @@ export default function SSEcashTransactionCard({
                 flex: 1
               }}
             >
-              {transaction.memo}
+              {transaction.label || transaction.memo}
             </SSText>
           </SSHStack>
         ) : null}

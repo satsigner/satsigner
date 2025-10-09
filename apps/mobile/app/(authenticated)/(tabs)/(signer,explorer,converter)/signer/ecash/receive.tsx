@@ -92,7 +92,11 @@ export default function EcashReceivePage() {
 
     setIsCreatingQuote(true)
     try {
-      const quote = await createMintQuote(activeMint.url, parseInt(amount, 10))
+      const quote = await createMintQuote(
+        activeMint.url,
+        parseInt(amount, 10),
+        memo
+      )
       setMintQuote(quote)
       setQuoteStatus('PENDING')
       toast.success(t('ecash.success.invoiceCreated'))
@@ -117,13 +121,17 @@ export default function EcashReceivePage() {
               setMemo('')
               stopPolling()
               toast.success(t('ecash.success.paymentReceived'))
+              return true // Stop polling
             } else if (status === 'EXPIRED' || status === 'CANCELLED') {
               stopPolling()
               toast.error(t('ecash.error.paymentFailed'))
+              return true // Stop polling
             }
             // Continue polling for PENDING, UNPAID, and unknown statuses
+            return false
           } catch (error) {
             // Continue polling on network errors
+            return false
           }
         })
       }, 2000) // Wait 2 seconds before starting to poll
@@ -134,6 +142,7 @@ export default function EcashReceivePage() {
     }
   }, [
     amount,
+    memo,
     activeMint,
     createMintQuote,
     checkMintQuote,
