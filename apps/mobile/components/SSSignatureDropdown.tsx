@@ -345,24 +345,12 @@ function SSSignatureDropdown({
 
   return (
     <View
-      style={[
-        {
-          borderColor: '#444444',
-          paddingBottom: 16,
-          paddingTop: 16,
-          borderTopWidth: 1
-        },
-        index === totalKeys - 1 && { borderBottomWidth: 1 }
-      ]}
+      style={[styles.container, index === totalKeys - 1 && styles.lastItem]}
     >
       <TouchableOpacity
         onPress={() => setIsExpanded(!isExpanded)}
         disabled={!messageId}
-        style={{
-          paddingBottom: 8,
-          paddingTop: 8,
-          opacity: messageId ? 1 : 0.5
-        }}
+        style={[styles.header, !messageId && styles.headerDisabled]}
       >
         <SSHStack justifyBetween>
           <SSHStack style={{ alignItems: 'center' }} gap="sm">
@@ -375,14 +363,7 @@ function SSSignatureDropdown({
                 <SSIconGreen width={24} height={24} />
               )
             ) : (
-              <View
-                style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 12,
-                  backgroundColor: '#4A4A4A'
-                }}
-              />
+              <View style={styles.signatureIcon} />
             )}
             <SSText color="muted" size="lg" style={{ paddingHorizontal: 10 }}>
               {t('common.key')} {index + 1}
@@ -433,7 +414,7 @@ function SSSignatureDropdown({
                 variant="secondary"
               />
               <SSButton
-                label="Sign with Seed Words"
+                label={t('transaction.preview.signWithSeedWords')}
                 onPress={() => {
                   onSignWithSeedWords()
                 }}
@@ -468,7 +449,7 @@ function SSSignatureDropdown({
             <SSButton
               variant="outline"
               disabled={!messageId}
-              label="Show QR"
+              label={t('transaction.preview.showQR')}
               style={{ width: '48%' }}
               onPress={() => {
                 onShowQR()
@@ -477,13 +458,17 @@ function SSSignatureDropdown({
           </SSHStack>
           <SSHStack gap="xxs" justifyBetween>
             <SSButton
-              label="USB"
+              label={t('common.usb')}
               style={{ width: '48%' }}
               variant="outline"
               disabled
             />
             <SSButton
-              label={isEmitting ? t('watchonly.read.scanning') : 'Export NFC'}
+              label={
+                isEmitting
+                  ? t('watchonly.read.scanning')
+                  : t('transaction.preview.exportNFC')
+              }
               style={{ width: '48%' }}
               variant="outline"
               disabled={!isAvailable || !serializedPsbt}
@@ -493,7 +478,7 @@ function SSSignatureDropdown({
             />
           </SSHStack>
           <SSButton
-            label="NIP-17 GROUP"
+            label={t('transaction.preview.nip17group')}
             variant="outline"
             disabled={!messageId || !account?.nostr?.autoSync}
             onPress={handleSendTransactionToGroup}
@@ -510,35 +495,23 @@ function SSSignatureDropdown({
 
           {/* Imported PSBT Display Area - Placed BEFORE import buttons like watch-only wallet */}
           <View
-            style={{
-              minHeight: 200,
-              maxHeight: 600,
-              paddingTop: 12,
-              paddingBottom: 12,
-              paddingHorizontal: 12,
-              backgroundColor: Colors.gray[900],
-              borderRadius: 8,
-              borderWidth: 1,
-              borderColor: signedPsbt
-                ? isPsbtValid
-                  ? Colors.mainGreen
-                  : Colors.mainRed
-                : Colors.gray[700]
-            }}
+            style={[
+              styles.psbtDisplay,
+              {
+                borderColor: signedPsbt
+                  ? isPsbtValid
+                    ? Colors.mainGreen
+                    : Colors.mainRed
+                  : Colors.gray[700]
+              }
+            ]}
           >
             <ScrollView
               style={{ flex: 1 }}
               showsVerticalScrollIndicator
               nestedScrollEnabled
             >
-              <SSText
-                style={{
-                  fontFamily: Typography.sfProMono,
-                  fontSize: 12,
-                  color: Colors.white,
-                  lineHeight: 18
-                }}
-              >
+              <SSText style={styles.psbtText}>
                 {signedPsbt || t('transaction.preview.signedPsbt')}
               </SSText>
             </ScrollView>
@@ -546,7 +519,7 @@ function SSSignatureDropdown({
 
           <SSHStack gap="xxs" justifyBetween>
             <SSButton
-              label="Paste"
+              label={t('common.paste')}
               style={{ width: '48%' }}
               variant="outline"
               onPress={() => {
@@ -554,7 +527,7 @@ function SSSignatureDropdown({
               }}
             />
             <SSButton
-              label="Scan QR"
+              label={t('transaction.preview.showQR')}
               style={{ width: '48%' }}
               variant="outline"
               onPress={() => {
@@ -564,7 +537,7 @@ function SSSignatureDropdown({
           </SSHStack>
           <SSHStack gap="xxs" justifyBetween>
             <SSButton
-              label="USB"
+              label={t('common.usb')}
               style={{ width: '48%' }}
               variant="outline"
               disabled
@@ -586,11 +559,11 @@ function SSSignatureDropdown({
 
           {/* NIP-17 GROUP Import */}
           <SSButton
-            label="FETCH FROM NIP-17 GROUP"
+            label={t('transaction.preview.fetchFromNip17group')}
             variant="outline"
             onPress={() => {
               // TODO: Implement NIP-17 GROUP import
-              toast.info('NIP-17 GROUP import coming soon')
+              toast.info(t('transaction.preview.nip17groupComingSoon'))
             }}
           />
         </SSVStack>
@@ -599,3 +572,40 @@ function SSSignatureDropdown({
   )
 }
 export default SSSignatureDropdown
+
+const styles = {
+  container: {
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderColor: Colors.gray[700]
+  },
+  lastItem: {
+    borderBottomWidth: 1
+  },
+  header: {
+    paddingVertical: 8
+  },
+  headerDisabled: {
+    opacity: 0.5
+  },
+  signatureIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.gray[800]
+  },
+  psbtDisplay: {
+    minHeight: 200,
+    maxHeight: 600,
+    padding: 12,
+    backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    borderWidth: 1
+  },
+  psbtText: {
+    fontFamily: Typography.sfProMono,
+    fontSize: 12,
+    color: Colors.white,
+    lineHeight: 18
+  }
+}

@@ -42,7 +42,11 @@ async function formatNpub(
   pubkey: string,
   members: { npub: string; color: string }[]
 ): Promise<{ text: string; color: string }> {
-  if (!pubkey) return { text: 'Unknown sender', color: '#666666' }
+  if (!pubkey)
+    return {
+      text: t('account.nostrSync.devicesGroupChat.unknownSender'),
+      color: '#666666'
+    }
 
   const cached = colorCache.get(pubkey)
   if (cached) {
@@ -80,11 +84,11 @@ function SSDevicesGroupChat() {
   const members = useNostrStore(
     useShallow((state) => state.members?.[accountId] || [])
   )
-  const { transactionToShare, setTransactionToShare } = useNostrStore(
-    useShallow((state) => ({
-      transactionToShare: state.transactionToShare,
-      setTransactionToShare: state.setTransactionToShare
-    }))
+  const [transactionToShare, setTransactionToShare] = useNostrStore(
+    useShallow((state) => [
+      state.transactionToShare,
+      state.setTransactionToShare
+    ])
   )
 
   // State
@@ -293,7 +297,7 @@ function SSDevicesGroupChat() {
             ? msg.content.description
             : typeof msg.content === 'string'
               ? msg.content
-              : 'Invalid message format'
+              : t('account.nostrSync.devicesGroupChat.displayError')
 
         // Check if message contains transaction data (PSBT)
         const hasSignFlow = messageContent.includes(
@@ -306,20 +310,17 @@ function SSDevicesGroupChat() {
             style={[styles.message, isDeviceMessage && styles.deviceMessage]}
           >
             <SSHStack gap="xxs" justifyBetween>
-              <SSHStack gap="xxs">
+              <SSHStack gap="xxs" alignItems="center">
                 <View
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: formatted.color,
-                    marginTop: 1,
-                    marginRight: 3
-                  }}
+                  style={[
+                    styles.authorIndicator,
+                    { backgroundColor: formatted.color }
+                  ]}
                 />
                 <SSText size="sm" color="muted">
                   {formatted.text}
-                  {isDeviceMessage && ' (You)'}
+                  {isDeviceMessage &&
+                    t('account.nostrSync.devicesGroupChat.youSuffix')}
                 </SSText>
               </SSHStack>
               <SSText size="xs" color="muted">
@@ -470,7 +471,7 @@ function SSDevicesGroupChat() {
         return (
           <SSVStack gap="xxs" style={styles.message}>
             <SSText size="sm" color="muted">
-              Error displaying message
+              {t('account.nostrSync.devicesGroupChat.displayError')}
             </SSText>
           </SSVStack>
         )
@@ -503,8 +504,10 @@ function SSDevicesGroupChat() {
         <SSVStack gap="sm">
           <SSVStack gap="xs">
             <SSText center uppercase color="muted">
-              {t('account.nostrSync.devicesGroupChat')}
-              {account.nostr.autoSync ? ' (Sync On)' : ' (Sync Off)'}
+              {t('account.nostrSync.devicesGroupChat.title')}
+              {account.nostr.autoSync
+                ? t('account.nostrSync.devicesGroupChat.syncOn')
+                : t('account.nostrSync.devicesGroupChat.syncOff')}
             </SSText>
           </SSVStack>
         </SSVStack>
@@ -514,7 +517,7 @@ function SSDevicesGroupChat() {
           {!isContentLoaded && isInitialLoad && messages.length > 0 && (
             <View style={styles.loadingContainer}>
               <SSText center color="muted">
-                Loading messages...
+                {t('account.nostrSync.devicesGroupChat.loadingMessages')}
               </SSText>
             </View>
           )}
@@ -525,7 +528,7 @@ function SSDevicesGroupChat() {
             keyExtractor={(item) => item.id}
             ListEmptyComponent={
               <SSText center color="muted">
-                No messages yet
+                {t('account.nostrSync.devicesGroupChat.noMessages')}
               </SSText>
             }
             inverted={false}
@@ -549,14 +552,16 @@ function SSDevicesGroupChat() {
             style={styles.input}
             value={messageInput}
             onChangeText={setMessageInput}
-            placeholder="Type your message..."
+            placeholder={t(
+              'account.nostrSync.devicesGroupChat.messagePlaceholder'
+            )}
             placeholderTextColor={Colors.white}
             multiline
             maxLength={500}
           />
           <SSButton
             style={styles.sendButton}
-            label="Send"
+            label={t('account.nostrSync.devicesGroupChat.sendButton')}
             onPress={handleSendMessage}
             disabled={isLoading || !messageInput.trim()}
           />
@@ -585,7 +590,7 @@ function SSDevicesGroupChat() {
                   if (!txid) {
                     return (
                       <SSText size="sm" color="muted">
-                        Invalid PSBT
+                        {t('account.nostrSync.devicesGroupChat.invalidPsbt')}
                       </SSText>
                     )
                   }
@@ -700,6 +705,13 @@ const styles = StyleSheet.create({
   },
   deviceMessage: {
     backgroundColor: '#2a2a2a'
+  },
+  authorIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 1,
+    marginRight: 3
   },
   inputContainer: {
     paddingHorizontal: 0
