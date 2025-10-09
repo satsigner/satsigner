@@ -51,7 +51,7 @@ import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
 import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
-import { selectEfficientUtxos } from '@/utils/utxo'
+import { selectEfficientUtxos, selectStonewallUtxos } from '@/utils/utxo'
 
 export default function IOPreview() {
   const router = useRouter()
@@ -411,6 +411,8 @@ export default function IOPreview() {
         return router.back()
       case 'privacy': {
         setLoadingOptimizeAlgorithm('privacy')
+
+        toast.error('Not implemented yet')
 
         break
       }

@@ -315,7 +315,7 @@ type StonewallOptions = {
  * * selects UTXOs to create two sets of inputs for a transaction, mimicking a CoinJoin-like structure to enhance privacy
  * https://mempool.space/tx/94e5a9a734cdf45ca7387aa786e0c01463ee9102e7e6342aa1712fece0af114f
  * Optimized for privacy by creating transactions that resemble multi-party transactions
- * ideallshould support only P2WPKH and P2PKH script types
+ * Ideally, it should support only P2WPKH and P2PKH script types
  * Returns two UTxo sets with similar values
  *
  * @param {Array} utxos - Array of available UTXOs
