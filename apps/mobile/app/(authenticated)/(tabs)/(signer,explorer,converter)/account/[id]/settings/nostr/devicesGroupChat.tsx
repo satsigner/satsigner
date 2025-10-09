@@ -310,7 +310,7 @@ function SSDevicesGroupChat() {
             style={[styles.message, isDeviceMessage && styles.deviceMessage]}
           >
             <SSHStack gap="xxs" justifyBetween>
-              <SSHStack gap="xxs" alignItems="center">
+              <SSHStack gap="xxs" style={{ alignItems: 'center' }}>
                 <View
                   style={[
                     styles.authorIndicator,
