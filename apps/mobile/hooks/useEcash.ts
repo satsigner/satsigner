@@ -55,6 +55,24 @@ export function useEcash() {
   const restoreFromBackup = useEcashStore((state) => state.restoreFromBackup)
   const clearAllData = useEcashStore((state) => state.clearAllData)
 
+  const markReceivedTokensAsSpent = useCallback(
+    (proofIds: string[]) => {
+      // Find receive transactions that contain the spent proofs and mark them as spent
+      transactions.forEach((transaction) => {
+        if (
+          transaction.type === 'receive' &&
+          transaction.tokenStatus === 'unspent'
+        ) {
+          // For now, we'll mark all receive transactions as spent when any proofs are used
+          // In a more sophisticated implementation, we could track which specific proofs
+          // belong to which receive transaction
+          updateTransaction(transaction.id, { tokenStatus: 'spent' })
+        }
+      })
+    },
+    [transactions, updateTransaction]
+  )
+
   const connectToMintHandler = useCallback(
     async (mintUrl: string): Promise<EcashMint> => {
       try {
@@ -213,6 +231,9 @@ export function useEcash() {
           )
         )
 
+        // Mark received tokens as spent
+        markReceivedTokensAsSpent(proofIds)
+
         // Add transaction record
         addTransaction({
           id: `melt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -242,7 +263,8 @@ export function useEcash() {
       addProofs,
       updateMintBalance,
       proofs,
-      addTransaction
+      addTransaction,
+      markReceivedTokensAsSpent
     ]
   )
 
@@ -258,6 +280,9 @@ export function useEcash() {
         removeProofs(proofIds)
         addProofs(result.keep)
         updateMintBalance(mintUrl, await getMintBalance(mintUrl, result.keep))
+
+        // Mark received tokens as spent
+        markReceivedTokensAsSpent(proofIds)
 
         // Add transaction record
         addTransaction({
@@ -291,7 +316,14 @@ export function useEcash() {
         throw error
       }
     },
-    [proofs, removeProofs, addProofs, updateMintBalance, addTransaction]
+    [
+      proofs,
+      removeProofs,
+      addProofs,
+      updateMintBalance,
+      addTransaction,
+      markReceivedTokensAsSpent
+    ]
   )
 
   const receiveEcashHandler = useCallback(
@@ -311,6 +343,8 @@ export function useEcash() {
           amount: result.totalAmount,
           mintUrl,
           timestamp: new Date().toISOString(),
+          status: 'completed',
+          tokenStatus: 'unspent',
           memo: result.memo,
           label: result.memo
         })
@@ -320,6 +354,19 @@ export function useEcash() {
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : t('ecash.error.networkError')
+
+        // Add failed transaction record
+        addTransaction({
+          id: `receive_failed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          type: 'receive',
+          amount: 0, // Unknown amount for failed transactions
+          mintUrl,
+          timestamp: new Date().toISOString(),
+          status: 'failed',
+          memo: errorMessage,
+          label: `Failed: ${errorMessage}`
+        })
+
         toast.error(errorMessage)
         throw error
       }
@@ -435,6 +482,7 @@ export function useEcash() {
     receiveEcash: receiveEcashHandler,
     updateTransaction,
     validateToken,
+    markReceivedTokensAsSpent,
     resumePollingForTransaction,
     restoreFromBackup: restoreFromBackupHandler,
     clearAllData: clearAllDataHandler
