@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "main": "expo-router/entry",
+  "engines": {
+    "node": ">=22.4.0"
+  },
   "scripts": {
     "android": "expo run:android",
     "format": "cd ../.. && yarn format",
