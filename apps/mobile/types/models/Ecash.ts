@@ -91,7 +91,7 @@ export type EcashTransaction = {
   label?: string // User-friendly label for the transaction
   mintUrl: string
   timestamp: string
-  status?: 'pending' | 'completed' | 'failed' | 'expired'
+  status?: 'pending' | 'completed' | 'failed' | 'expired' | 'settled'
   token?: string // For send transactions
   tokenStatus?: 'unspent' | 'spent' | 'invalid' | 'pending' // Token status for send transactions
   invoice?: string // For melt transactions

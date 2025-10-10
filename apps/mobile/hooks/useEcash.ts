@@ -241,6 +241,7 @@ export function useEcash() {
           amount: quote.amount,
           mintUrl,
           timestamp: new Date().toISOString(),
+          status: 'settled',
           invoice: quote.quote, // Store the invoice for reference
           quoteId: quote.quote,
           expiry: quote.expiry,

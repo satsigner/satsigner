@@ -571,6 +571,7 @@
     "quote.failed": "Failed",
     "quote.paid": "Paid",
     "quote.pending": "Pending",
+    "quote.settled": "Settled",
     "quote.status": "Quote Status",
     "receive.amount": "Amount",
     "receive.checkPayment": "Check Payment",

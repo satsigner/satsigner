@@ -119,6 +119,8 @@ export default function SSEcashTransactionCard({
                       case 'failed':
                       case 'expired':
                         return Colors.error
+                      case 'settled':
+                        return Colors.softBarRed
                       default:
                         return Colors.gray[700]
                     }
@@ -135,6 +137,8 @@ export default function SSEcashTransactionCard({
                       return t('ecash.quote.failed')
                     case 'expired':
                       return t('ecash.quote.expired')
+                    case 'settled':
+                      return t('ecash.quote.settled')
                     default:
                       return String(transaction.status).toUpperCase()
                   }
