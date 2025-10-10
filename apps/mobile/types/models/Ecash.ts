@@ -69,6 +69,7 @@ export type EcashSendResult = {
 export type EcashReceiveResult = {
   proofs: EcashProof[]
   totalAmount: number
+  memo?: string
 }
 
 export type EcashMeltResult = {

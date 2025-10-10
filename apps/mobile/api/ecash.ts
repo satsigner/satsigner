@@ -259,7 +259,8 @@ export async function receiveEcash(
 
     return {
       proofs,
-      totalAmount
+      totalAmount,
+      memo: decodedToken.memo
     }
   } catch (error) {
     throw new Error(

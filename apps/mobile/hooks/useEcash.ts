@@ -310,7 +310,9 @@ export function useEcash() {
           type: 'receive',
           amount: result.totalAmount,
           mintUrl,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          memo: result.memo,
+          label: result.memo
         })
 
         toast.success(t('ecash.success.tokenRedeemed'))
