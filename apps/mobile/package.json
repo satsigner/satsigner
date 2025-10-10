@@ -2,10 +2,10 @@
   "name": "@satsigner/mobile",
   "version": "1.0.0",
   "private": true,
-  "main": "expo-router/entry",
   "engines": {
     "node": ">=22.4.0"
   },
+  "main": "expo-router/entry",
   "scripts": {
     "android": "expo run:android",
     "format": "cd ../.. && yarn format",
