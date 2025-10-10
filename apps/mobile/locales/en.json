@@ -162,7 +162,6 @@
     "nostrSync.commonNostrKeys": "Shared Descriptior Keys",
     "nostrSync.deriveNsec": "Derive nsec",
     "nostrSync.deviceKeys": "Personal Device Keys",
-    "nostrSync.devicesGroupChat": "Devices Group Chat",
     "nostrSync.errorLabelFetching": "Failed to fetch labels",
     "nostrSync.errorLabelSend": "Error sending labels backup to relays",
     "nostrSync.errorMnemonic": "Invalid mnemonic",
