@@ -4,6 +4,7 @@ import { Stack, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { Alert, ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
@@ -18,6 +19,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { usePriceStore } from '@/store/price'
 import {
   decodeLNURL,
   fetchLNURLPayDetails,
@@ -88,6 +90,9 @@ export default function EcashSendPage() {
     useEcash()
   const { makeRequest, isConnected, verifyConnection } = useLND()
   const typedMakeRequest = makeRequest as MakeRequest
+  const [fiatCurrency, satsToFiat] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  )
 
   const handleGenerateToken = useCallback(async () => {
     if (!amount || amount.trim() === '') {
@@ -419,6 +424,12 @@ export default function EcashSendPage() {
                   onValueChange={(value) => setAmount(value.toString())}
                   min={0}
                   max={proofs.reduce((acc, proof) => acc + proof.amount, 0)}
+                  remainingSats={proofs.reduce(
+                    (acc, proof) => acc + proof.amount,
+                    0
+                  )}
+                  fiatCurrency={fiatCurrency}
+                  satsToFiat={satsToFiat}
                 />
               </SSVStack>
               <SSVStack gap="xs">
