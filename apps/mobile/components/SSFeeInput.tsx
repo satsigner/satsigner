@@ -1,12 +1,10 @@
 import { Slider } from '@miblanchard/react-native-slider'
 import { useState } from 'react'
 import { StyleSheet } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { formatNumber } from '@/utils/format'
 
@@ -18,6 +16,8 @@ type SSFeeInputProps = {
   estimatedBlock?: number
   vbytes?: number
   value: number
+  fiatCurrency: string
+  satsToFiat: (sats: number) => number
   onValueChange: (value: number) => void
 }
 
@@ -26,12 +26,11 @@ function SSFeeInput({
   estimatedBlock,
   vbytes,
   value,
+  fiatCurrency,
+  satsToFiat,
   onValueChange
 }: SSFeeInputProps) {
   const [localValue, setLocalValue] = useState(value)
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
-  )
 
   return (
     <SSVStack gap="sm">
