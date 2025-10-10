@@ -55,23 +55,20 @@ export function useEcash() {
   const restoreFromBackup = useEcashStore((state) => state.restoreFromBackup)
   const clearAllData = useEcashStore((state) => state.clearAllData)
 
-  const markReceivedTokensAsSpent = useCallback(
-    (proofIds: string[]) => {
-      // Find receive transactions that contain the spent proofs and mark them as spent
-      transactions.forEach((transaction) => {
-        if (
-          transaction.type === 'receive' &&
-          transaction.tokenStatus === 'unspent'
-        ) {
-          // For now, we'll mark all receive transactions as spent when any proofs are used
-          // In a more sophisticated implementation, we could track which specific proofs
-          // belong to which receive transaction
-          updateTransaction(transaction.id, { tokenStatus: 'spent' })
-        }
-      })
-    },
-    [transactions, updateTransaction]
-  )
+  const markReceivedTokensAsSpent = useCallback(() => {
+    // Find receive transactions that contain the spent proofs and mark them as spent
+    transactions.forEach((transaction) => {
+      if (
+        transaction.type === 'receive' &&
+        transaction.tokenStatus === 'unspent'
+      ) {
+        // For now, we'll mark all receive transactions as spent when any proofs are used
+        // In a more sophisticated implementation, we could track which specific proofs
+        // belong to which receive transaction
+        updateTransaction(transaction.id, { tokenStatus: 'spent' })
+      }
+    })
+  }, [transactions, updateTransaction])
 
   const connectToMintHandler = useCallback(
     async (mintUrl: string): Promise<EcashMint> => {
@@ -232,7 +229,7 @@ export function useEcash() {
         )
 
         // Mark received tokens as spent
-        markReceivedTokensAsSpent(proofIds)
+        markReceivedTokensAsSpent()
 
         // Add transaction record
         addTransaction({
@@ -283,7 +280,7 @@ export function useEcash() {
         updateMintBalance(mintUrl, await getMintBalance(mintUrl, result.keep))
 
         // Mark received tokens as spent
-        markReceivedTokensAsSpent(proofIds)
+        markReceivedTokensAsSpent()
 
         // Add transaction record
         addTransaction({
