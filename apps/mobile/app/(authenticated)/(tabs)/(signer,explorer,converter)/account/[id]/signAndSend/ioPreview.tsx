@@ -51,6 +51,7 @@ import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
 import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
+import { selectEfficientUtxos } from '@/utils/utxo'
 
 export default function IOPreview() {
   const router = useRouter()
@@ -64,6 +65,8 @@ export default function IOPreview() {
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [
     inputs,
+    addInput,
+    removeInput,
     outputs,
     getInputs,
     feeRate,
@@ -75,6 +78,8 @@ export default function IOPreview() {
   ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.inputs,
+      state.addInput,
+      state.removeInput,
       state.outputs,
       state.getInputs,
       state.feeRate,
@@ -147,6 +152,9 @@ export default function IOPreview() {
   const [localFeeRate, setLocalFeeRate] = useState(feeRate)
   const [outputsCount, setOutputsCount] = useState(0)
   const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
+  const [loadingOptimizeAlgorithm, setLoadingOptimizeAlgorithm] = useState<
+    false | 'privacy' | 'efficiency'
+  >(false)
 
   const optionsBottomSheetRef = useRef<BottomSheet>(null)
   const changeFeeBottomSheetRef = useRef<BottomSheet>(null)
@@ -398,26 +406,47 @@ export default function IOPreview() {
       return
     }
 
-    setSelectedAutoSelectUtxos(type)
-
     switch (type) {
       case 'user':
         return router.back()
-      case 'privacy':
-        //
+      case 'privacy': {
+        setLoadingOptimizeAlgorithm('privacy')
+
+        toast.error('Not implemented yet')
+
         break
+      }
       case 'efficiency': {
-        // const result = selectEfficientUtxos(
-        //   account.utxos.map((utxo) => ({
-        //     ...utxo,
-        //     effectiveValue: utxo.value
-        //   })),
-        //   outputsTotalAmount,
-        //   localFeeRate
-        // )
+        setLoadingOptimizeAlgorithm('efficiency')
+
+        const optimizationResult = selectEfficientUtxos(
+          account.utxos.map((utxo) => ({
+            ...utxo,
+            effectiveValue: utxo.value
+          })),
+          totalOutputValue,
+          localFeeRate
+        )
+
+        if (optimizationResult.error) {
+          toast.error(optimizationResult.error)
+          break
+        }
+
+        for (const utxo of account.utxos) {
+          removeInput(utxo)
+        }
+
+        for (const utxo of optimizationResult.inputs) {
+          addInput(utxo)
+        }
+
         break
       }
     }
+
+    setSelectedAutoSelectUtxos(type)
+    setLoadingOptimizeAlgorithm(false)
   }
 
   function handleGoToPreview() {
@@ -815,6 +844,7 @@ export default function IOPreview() {
                 label={t(
                   'transaction.build.options.autoSelect.utxos.privacy.title'
                 )}
+                loading={loadingOptimizeAlgorithm === 'privacy'}
                 selected={selectedAutoSelectUtxos === 'privacy'}
                 style={{ width: '33%', flex: 1 }}
                 onPress={() => handleOnChangeUtxoSelection('privacy')}
@@ -824,6 +854,7 @@ export default function IOPreview() {
                 label={t(
                   'transaction.build.options.autoSelect.utxos.efficiency.title'
                 )}
+                loading={loadingOptimizeAlgorithm === 'efficiency'}
                 selected={selectedAutoSelectUtxos === 'efficiency'}
                 style={{ width: '33%', flex: 1 }}
                 onPress={() => handleOnChangeUtxoSelection('efficiency')}
