@@ -17,7 +17,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { warning, success, error, white } from '@/styles/colors'
+import { error, success, warning, white } from '@/styles/colors'
 import { type EcashToken } from '@/types/models/Ecash'
 
 export default function EcashReceivePage() {

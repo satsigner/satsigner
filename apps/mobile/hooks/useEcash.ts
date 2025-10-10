@@ -1,3 +1,4 @@
+import { CashuMint, CashuWallet } from '@cashu/cashu-ts'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner-native'
 
@@ -14,7 +15,6 @@ import {
   sendEcash,
   validateEcashToken
 } from '@/api/ecash'
-import { CashuMint, CashuWallet } from '@cashu/cashu-ts'
 import { t } from '@/locales'
 import { useEcashStore } from '@/store/ecash'
 import {
