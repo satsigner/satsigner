@@ -75,10 +75,24 @@ export default function EcashRecoveryPage() {
       } else {
         toast.error('No data found in clipboard')
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to read clipboard')
     }
   }, [])
+
+  const handleRestoreBackup = useCallback(
+    (validatedData: any) => {
+      try {
+        restoreFromBackup(validatedData)
+        router.back()
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : 'Failed to restore backup'
+        )
+      }
+    },
+    [restoreFromBackup, router]
+  )
 
   const handleValidateBackup = useCallback(() => {
     if (!backupData.trim()) {
@@ -118,21 +132,7 @@ export default function EcashRecoveryPage() {
     } finally {
       setIsValidating(false)
     }
-  }, [backupData, validateBackupData])
-
-  const handleRestoreBackup = useCallback(
-    (validatedData: any) => {
-      try {
-        restoreFromBackup(validatedData)
-        router.back()
-      } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : 'Failed to restore backup'
-        )
-      }
-    },
-    [restoreFromBackup, router]
-  )
+  }, [backupData, validateBackupData, handleRestoreBackup])
 
   return (
     <SSMainLayout>

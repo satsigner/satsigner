@@ -245,7 +245,8 @@ export default function EcashSendPage() {
     isLNURLMode,
     lnurlDetails,
     amount,
-    comment
+    comment,
+    decodedInvoice?.description
   ])
 
   // Decode a bolt11 invoice

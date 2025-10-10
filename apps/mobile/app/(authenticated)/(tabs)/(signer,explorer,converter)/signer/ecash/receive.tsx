@@ -130,7 +130,11 @@ export default function EcashReceivePage() {
             // Continue polling for PENDING, UNPAID, and unknown statuses
             return false
           } catch (error) {
-            // Continue polling on network errors
+            toast.error(
+              error instanceof Error
+                ? error.message
+                : t('ecash.error.networkError')
+            )
             return false
           }
         })

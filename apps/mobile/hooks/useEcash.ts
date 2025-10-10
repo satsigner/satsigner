@@ -1,4 +1,3 @@
-import { CashuMint, CashuWallet } from '@cashu/cashu-ts'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner-native'
 
@@ -34,16 +33,6 @@ const POLL_INTERVAL = 1500 // 1.5 seconds
 const MAX_POLL_ATTEMPTS = 120 // 3 minutes max
 
 // Cache for wallet instances
-const walletCache = new Map<string, CashuWallet>()
-
-function getWallet(mintUrl: string): CashuWallet {
-  if (!walletCache.has(mintUrl)) {
-    const mint = new CashuMint(mintUrl)
-    const wallet = new CashuWallet(mint)
-    walletCache.set(mintUrl, wallet)
-  }
-  return walletCache.get(mintUrl)!
-}
 
 export function useEcash() {
   const mints = useEcashStore((state) => state.mints)
@@ -108,7 +97,7 @@ export function useEcash() {
       memo?: string
     ): Promise<MintQuote> => {
       try {
-        const quote = await createMintQuote(mintUrl, amount, memo)
+        const quote = await createMintQuote(mintUrl, amount)
         addMintQuote(quote)
 
         // Add transaction to history immediately with pending status
@@ -247,7 +236,14 @@ export function useEcash() {
         throw error
       }
     },
-    [removeProofs, removeMeltQuote, addProofs, updateMintBalance, proofs]
+    [
+      removeProofs,
+      removeMeltQuote,
+      addProofs,
+      updateMintBalance,
+      proofs,
+      addTransaction
+    ]
   )
 
   const sendEcashHandler = useCallback(
@@ -295,7 +291,7 @@ export function useEcash() {
         throw error
       }
     },
-    [proofs, removeProofs, addProofs, updateMintBalance]
+    [proofs, removeProofs, addProofs, updateMintBalance, addTransaction]
   )
 
   const receiveEcashHandler = useCallback(
@@ -326,7 +322,7 @@ export function useEcash() {
         throw error
       }
     },
-    [addProofs, updateMintBalance, proofs]
+    [addProofs, updateMintBalance, proofs, addTransaction]
   )
 
   const validateToken = useCallback(
@@ -402,7 +398,7 @@ export function useEcash() {
           }
           // Continue polling for PENDING, UNPAID, and unknown statuses
           return false
-        } catch (error) {
+        } catch {
           // Continue polling on network errors
           return false
         }
@@ -446,7 +442,7 @@ export function useEcash() {
 export function useQuotePolling() {
   const [isPolling, setIsPolling] = useState(false)
   const [pollCount, setPollCount] = useState(0)
-  const [lastPollTime, setLastPollTime] = useState(0)
+  const [_lastPollTime, setLastPollTime] = useState(0)
   const isPollingRef = useRef(false)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -495,7 +491,7 @@ export function useQuotePolling() {
         if (isPollingRef.current) {
           timeoutRef.current = setTimeout(poll, POLL_INTERVAL)
         }
-      } catch (error) {
+      } catch {
         currentPollCount++
         currentLastPollTime = now
         setPollCount(currentPollCount)
@@ -542,7 +538,7 @@ export function useQuotePolling() {
   }
 }
 
-export function useMintBalance(mintUrl: string) {
+export function useMintBalance() {
   const proofs = useEcashStore((state) => state.proofs)
 
   const balance = proofs.reduce((sum, proof) => {

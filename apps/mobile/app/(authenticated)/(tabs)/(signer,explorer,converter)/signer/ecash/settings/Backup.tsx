@@ -1,5 +1,5 @@
 import * as Clipboard from 'expo-clipboard'
-import { Stack, useRouter } from 'expo-router'
+import { Stack } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'

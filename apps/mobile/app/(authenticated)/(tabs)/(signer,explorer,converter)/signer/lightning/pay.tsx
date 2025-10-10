@@ -19,7 +19,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { Typography } from '@/styles'
-import { formatNumber } from '@/utils/format'
+// import { formatNumber } from '@/utils/format'
 import {
   decodeLNURL,
   fetchLNURLPayDetails,
@@ -58,7 +58,7 @@ export default function PayPage() {
   const { payInvoice, makeRequest, isConnected, verifyConnection } = useLND()
   const typedMakeRequest = makeRequest as MakeRequest
   const [permission, requestPermission] = useCameraPermissions()
-  const [fiatCurrency, satsToFiat] = usePriceStore(
+  const [_fiatCurrency, _satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
 

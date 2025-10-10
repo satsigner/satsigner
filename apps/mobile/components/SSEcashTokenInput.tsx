@@ -35,7 +35,7 @@ export default function SSEcashTokenInput({
       } else {
         toast.success(t('common.copiedToClipboard'))
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to paste from clipboard')
     }
   }, [onPaste])
@@ -47,7 +47,7 @@ export default function SSEcashTokenInput({
       } else {
         toast.error('QR scanner not implemented yet')
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to scan QR code')
     }
   }, [onScan])

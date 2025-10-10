@@ -53,8 +53,7 @@ export async function connectToMint(mintUrl: string): Promise<EcashMint> {
 
 export async function createMintQuote(
   mintUrl: string,
-  amount: number,
-  memo?: string
+  amount: number
 ): Promise<MintQuote> {
   try {
     const wallet = getWallet(mintUrl)
@@ -275,7 +274,7 @@ export async function getMintBalance(
 ): Promise<number> {
   try {
     // Filter proofs for this specific mint
-    const mintProofs = proofs.filter((proof) => {
+    const mintProofs = proofs.filter(() => {
       // This would need to be enhanced to properly identify mint-specific proofs
       // For now, we'll assume all proofs belong to the current mint
       return true

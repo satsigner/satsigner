@@ -78,6 +78,102 @@ export default function EcashTransactionDetailPage() {
     fetchPrices(mempoolUrl)
   }, [fetchPrices, fiatCurrency, mempoolUrl])
 
+  // Define all callbacks before any conditional logic
+  const handleCopyToken = useCallback(async () => {
+    if (!transaction?.token) return
+
+    try {
+      await Clipboard.setStringAsync(transaction.token)
+      toast.success(t('common.copiedToClipboard'))
+    } catch {
+      toast.error(t('ecash.error.failedToCopy'))
+    }
+  }, [transaction?.token])
+
+  const handleCopyInvoice = useCallback(async () => {
+    if (!transaction?.invoice) return
+
+    try {
+      await Clipboard.setStringAsync(transaction.invoice)
+      toast.success(t('common.copiedToClipboard'))
+    } catch {
+      toast.error(t('ecash.error.failedToCopy'))
+    }
+  }, [transaction?.invoice])
+
+  const handleCopyLightningInvoice = useCallback(async () => {
+    if (!lightningInvoice) return
+
+    try {
+      await Clipboard.setStringAsync(lightningInvoice)
+      toast.success(t('common.copiedToClipboard'))
+    } catch {
+      toast.error(t('ecash.error.failedToCopy'))
+    }
+  }, [lightningInvoice])
+
+  const handleCheckTokenStatus = useCallback(async () => {
+    if (!transaction?.token || !transaction?.mintUrl) return
+
+    setIsCheckingStatus(true)
+
+    try {
+      const result = await validateEcashToken(
+        transaction.token,
+        transaction.mintUrl
+      )
+      let tokenStatus: EcashTransaction['tokenStatus']
+
+      if (result.isValid) {
+        if (result.isSpent) {
+          tokenStatus = 'spent'
+        } else {
+          tokenStatus = 'unspent'
+        }
+      } else {
+        tokenStatus = 'invalid'
+      }
+
+      // Save token status to store
+      updateTransaction(transaction.id, { tokenStatus })
+    } catch {
+      updateTransaction(transaction.id, { tokenStatus: 'invalid' })
+      toast.error(t('ecash.error.failedToCheckStatus'))
+    } finally {
+      setIsCheckingStatus(false)
+    }
+  }, [
+    transaction?.token,
+    transaction?.mintUrl,
+    transaction?.id,
+    updateTransaction
+  ])
+
+  const handleRedeemToken = useCallback(async () => {
+    if (!transaction?.token || !transaction?.mintUrl) return
+
+    setIsRedeeming(true)
+
+    try {
+      await receiveEcash(transaction.mintUrl, transaction.token)
+      // Update transaction status to indicate it's been redeemed
+      updateTransaction(transaction.id, { tokenStatus: 'spent' })
+      // Navigate back to ecash main page
+      router.back()
+    } catch {
+      // Error handling is done in the hook
+    } finally {
+      setIsRedeeming(false)
+    }
+  }, [
+    transaction?.token,
+    transaction?.mintUrl,
+    transaction?.id,
+    receiveEcash,
+    updateTransaction,
+    router
+  ])
+
   // Start polling for pending transactions
   useEffect(() => {
     if (
@@ -113,7 +209,7 @@ export default function EcashTransactionDetailPage() {
 
         // Continue polling for PENDING, UNPAID, and unknown statuses
         return false
-      } catch (error) {
+      } catch {
         // Continue polling on network errors
         return false
       }
@@ -199,101 +295,6 @@ export default function EcashTransactionDetailPage() {
         return Colors.white
     }
   }
-
-  const handleCopyToken = useCallback(async () => {
-    if (!transaction.token) return
-
-    try {
-      await Clipboard.setStringAsync(transaction.token)
-      toast.success(t('common.copiedToClipboard'))
-    } catch {
-      toast.error(t('ecash.error.failedToCopy'))
-    }
-  }, [transaction.token])
-
-  const handleCopyInvoice = useCallback(async () => {
-    if (!transaction.invoice) return
-
-    try {
-      await Clipboard.setStringAsync(transaction.invoice)
-      toast.success(t('common.copiedToClipboard'))
-    } catch {
-      toast.error(t('ecash.error.failedToCopy'))
-    }
-  }, [transaction.invoice])
-
-  const handleCopyLightningInvoice = useCallback(async () => {
-    if (!lightningInvoice) return
-
-    try {
-      await Clipboard.setStringAsync(lightningInvoice)
-      toast.success(t('common.copiedToClipboard'))
-    } catch {
-      toast.error(t('ecash.error.failedToCopy'))
-    }
-  }, [lightningInvoice])
-
-  const handleCheckTokenStatus = useCallback(async () => {
-    if (!transaction.token || !transaction.mintUrl) return
-
-    setIsCheckingStatus(true)
-
-    try {
-      const result = await validateEcashToken(
-        transaction.token,
-        transaction.mintUrl
-      )
-      let tokenStatus: EcashTransaction['tokenStatus']
-
-      if (result.isValid) {
-        if (result.isSpent) {
-          tokenStatus = 'spent'
-        } else {
-          tokenStatus = 'unspent'
-        }
-      } else {
-        tokenStatus = 'invalid'
-      }
-
-      // Save token status to store
-      updateTransaction(transaction.id, { tokenStatus })
-    } catch {
-      updateTransaction(transaction.id, { tokenStatus: 'invalid' })
-      toast.error(t('ecash.error.failedToCheckStatus'))
-    } finally {
-      setIsCheckingStatus(false)
-    }
-  }, [
-    transaction.token,
-    transaction.mintUrl,
-    transaction.id,
-    updateTransaction
-  ])
-
-  const handleRedeemToken = useCallback(async () => {
-    if (!transaction.token || !transaction.mintUrl) return
-
-    setIsRedeeming(true)
-
-    try {
-      await receiveEcash(transaction.mintUrl, transaction.token)
-      // Update transaction status to indicate it's been redeemed
-      updateTransaction(transaction.id, { tokenStatus: 'spent' })
-      // Navigate back to ecash main page
-      router.back()
-    } catch (error) {
-      // Error handling is done in the hook
-    } finally {
-      setIsRedeeming(false)
-    }
-  }, [
-    transaction.token,
-    transaction.mintUrl,
-    transaction.id,
-    receiveEcash,
-    updateTransaction,
-    router
-  ])
 
   return (
     <SSMainLayout>

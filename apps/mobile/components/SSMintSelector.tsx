@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native'
 import SSText from '@/components/SSText'
 import { useEcash } from '@/hooks/useEcash'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
+// import { t } from '@/locales'
 
 type SSMintSelectorProps = {
   selectedMintUrl?: string
@@ -11,11 +11,7 @@ type SSMintSelectorProps = {
   style?: any
 }
 
-export default function SSMintSelector({
-  selectedMintUrl,
-  onMintSelect,
-  style
-}: SSMintSelectorProps) {
+export default function SSMintSelector({ style }: SSMintSelectorProps) {
   const { mints } = useEcash()
 
   if (mints.length === 0) {
