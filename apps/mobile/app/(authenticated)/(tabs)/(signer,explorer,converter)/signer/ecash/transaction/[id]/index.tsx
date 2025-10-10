@@ -284,7 +284,7 @@ export default function EcashTransactionDetailPage() {
   function getTokenStatusColor(tokenStatus: EcashTransaction['tokenStatus']) {
     switch (tokenStatus) {
       case 'unspent':
-        return Colors.softBarGreen
+        return Colors.error
       case 'spent':
         return Colors.softBarRed
       case 'invalid':
@@ -406,7 +406,7 @@ export default function EcashTransactionDetailPage() {
                     style={{
                       color: transaction.tokenStatus
                         ? getTokenStatusColor(transaction.tokenStatus)
-                        : Colors.gray[700]
+                        : Colors.white
                     }}
                   >
                     {transaction.tokenStatus

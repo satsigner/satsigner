@@ -152,7 +152,7 @@ export default function SSEcashTransactionCard({
                 style={{
                   color: transaction.tokenStatus
                     ? getTokenStatusColor(transaction.tokenStatus)
-                    : Colors.gray[700]
+                    : Colors.white
                 }}
               >
                 {transaction.tokenStatus
