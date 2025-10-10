@@ -749,6 +749,8 @@ export default function IOPreview() {
                         ? remainingSats + originalOutputAmount - minerFee
                         : remainingSats - minerFee
                     }
+                    fiatCurrency={fiatCurrency}
+                    satsToFiat={satsToFiat}
                     onValueChange={(value) => setOutputAmount(value)}
                   />
                 </SSVStack>
@@ -909,6 +911,8 @@ export default function IOPreview() {
             vbytes={transactionSize.vsize}
             max={40}
             estimatedBlock={Math.trunc(40 / localFeeRate)}
+            fiatCurrency={fiatCurrency}
+            satsToFiat={satsToFiat}
           />
           <SSButton
             label={t('transaction.build.set.fee')}
