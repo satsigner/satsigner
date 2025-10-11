@@ -8,6 +8,7 @@ import {
   type TransactionData
 } from '@/utils/psbtAccountMatcher'
 import {
+  extractOriginalPsbt,
   extractTransactionDataFromPSBTEnhanced,
   extractTransactionIdFromPSBT
 } from '@/utils/psbtTransactionExtractor'
@@ -21,25 +22,16 @@ export function parseNostrTransactionMessage(
   message: string
 ): TransactionData | null {
   try {
-    if (!message.includes('Transaction Data (PSBT-based):')) {
-      return null
+    // A simple check to see if it's likely a JSON object string
+    if (message.trim().startsWith('{') && message.trim().endsWith('}')) {
+      const transactionData: TransactionData = JSON.parse(message)
+
+      if (!isValidTransactionData(transactionData)) {
+        return null
+      }
+      return transactionData
     }
-
-    const jsonStartIndex = message.indexOf('{')
-    const jsonEndIndex = message.lastIndexOf('}')
-
-    if (jsonStartIndex === -1 || jsonEndIndex === -1) {
-      return null
-    }
-
-    const jsonData = message.substring(jsonStartIndex, jsonEndIndex + 1).trim()
-    const transactionData: TransactionData = JSON.parse(jsonData)
-
-    if (!isValidTransactionData(transactionData)) {
-      return null
-    }
-
-    return transactionData
+    return null
   } catch {
     return null
   }
@@ -54,11 +46,9 @@ export function handleGoToSignFlow(
 ): boolean {
   try {
     const accounts = useAccountsStore.getState().accounts
+    const originalPsbt = extractOriginalPsbt(transactionData.combinedPsbt)
 
-    const accountMatch = findMatchingAccount(
-      transactionData.originalPsbt,
-      accounts
-    )
+    const accountMatch = findMatchingAccount(originalPsbt, accounts)
 
     if (!accountMatch) {
       toast.error(t('transaction.dataNotFound'))
@@ -78,10 +68,10 @@ export function handleGoToSignFlow(
 
     // Try to extract transaction data from PSBT first for more accurate data
     let extractedData = null
-    if (transactionData.originalPsbt && accountMatch.account) {
+    if (originalPsbt && accountMatch.account) {
       try {
         extractedData = extractTransactionDataFromPSBTEnhanced(
-          transactionData.originalPsbt,
+          originalPsbt,
           accountMatch.account
         )
       } catch {
@@ -112,14 +102,12 @@ export function handleGoToSignFlow(
     if (fee) setFee(fee)
 
     // Extract transaction ID from PSBT
-    const extractedTxid = extractTransactionIdFromPSBT(
-      transactionData.originalPsbt
-    )
+    const extractedTxid = extractTransactionIdFromPSBT(originalPsbt)
 
     const mockTxBuilderResult = {
       psbt: {
-        base64: transactionData.originalPsbt,
-        serialize: () => Promise.resolve(transactionData.originalPsbt),
+        base64: originalPsbt,
+        serialize: () => Promise.resolve(originalPsbt),
         txid: () => Promise.resolve(extractedTxid)
       },
       txDetails: {
@@ -154,10 +142,8 @@ function isValidTransactionData(data: any): data is TransactionData {
   return (
     data &&
     typeof data === 'object' &&
-    typeof data.originalPsbt === 'string' &&
-    typeof data.signedPsbts === 'object' &&
-    typeof data.keyCount === 'number' &&
-    typeof data.keysRequired === 'number'
+    typeof data.combinedPsbt === 'string' &&
+    typeof data.signedPsbts === 'object'
   )
 }
 

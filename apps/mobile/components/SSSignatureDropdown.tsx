@@ -14,7 +14,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useNostrStore } from '@/store/nostr'
-import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Typography } from '@/styles'
 import { type Account, type Key } from '@/types/models/Account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
@@ -22,6 +21,7 @@ import {
   storeTransactionData,
   type TransactionData
 } from '@/utils/psbtAccountMatcher'
+import { combinePsbts } from '@/utils/psbtTransactionExtractor'
 import {
   validateSignedPSBT,
   validateSignedPSBTForCosigner
@@ -127,27 +127,21 @@ function SSSignatureDropdown({
           {} as Record<number, string>
         )
 
+      // --- COMBINE PSBTS AND LOG ---
+      const psbtsToCombine = [
+        txBuilderResult.psbt.base64,
+        ...Object.values(collectedSignedPsbts)
+      ]
+      const combinedPsbt = combinePsbts(psbtsToCombine)
+
       const transactionData: TransactionData = {
-        network: account.network === 'bitcoin' ? 'mainnet' : account.network,
-        keyCount: account.keyCount || account.keys?.length || 0,
-        keysRequired: account.keysRequired || 1,
-        originalPsbt: txBuilderResult.psbt.base64,
-        signedPsbts: collectedSignedPsbts,
-        timestamp: Date.now(),
-        rbf: useTransactionBuilderStore.getState().rbf
+        combinedPsbt,
+        signedPsbts: collectedSignedPsbts
       }
 
       storeTransactionData(transactionData)
 
-      const message = `🔐 Multisig Transaction Ready for Signing
-
-        Network: ${account.network}
-        Required Signatures: ${account.keysRequired}/${account.keyCount}
-        Current Signatures: ${Object.keys(collectedSignedPsbts).length}
-
-        Transaction Data (PSBT-based):
-        ${JSON.stringify(transactionData, null, 2)}
-        [${t('account.transaction.signFlow')}]`
+      const message = JSON.stringify(transactionData, null, 2)
 
       setTransactionToShare({
         message,

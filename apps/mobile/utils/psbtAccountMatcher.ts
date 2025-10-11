@@ -5,13 +5,8 @@ import { extractKeyFingerprint } from '@/utils/account'
 import { extractTransactionIdFromPSBT } from '@/utils/psbtTransactionExtractor'
 
 export type TransactionData = {
-  network: 'mainnet' | 'testnet' | 'signet'
-  keyCount: number
-  keysRequired: number
-  originalPsbt: string
+  combinedPsbt: string
   signedPsbts: Record<number, string>
-  timestamp: number
-  rbf: boolean
 }
 
 export type AccountMatchResult = {
@@ -134,7 +129,7 @@ export function findMatchingAccount(
 const transactionDataStorage = new Map<string, TransactionData>()
 
 export function storeTransactionData(data: TransactionData): void {
-  const txId = extractTransactionIdFromPSBT(data.originalPsbt)
+  const txId = extractTransactionIdFromPSBT(data.combinedPsbt)
   if (txId) {
     transactionDataStorage.set(txId, data)
   }

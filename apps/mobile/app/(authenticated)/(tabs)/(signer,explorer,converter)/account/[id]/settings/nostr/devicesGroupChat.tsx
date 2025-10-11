@@ -30,8 +30,10 @@ import {
   type TransactionData
 } from '@/utils/psbtAccountMatcher'
 import {
+  extractOriginalPsbt,
   extractTransactionDataFromPSBTEnhanced,
-  extractTransactionIdFromPSBT
+  extractTransactionIdFromPSBT,
+  getMultisigInfoFromPsbt
 } from '@/utils/psbtTransactionExtractor'
 import { estimateTransactionSize } from '@/utils/transaction'
 
@@ -302,10 +304,9 @@ function SSDevicesGroupChat() {
               ? msg.content
               : t('account.nostrSync.devicesGroupChat.displayError')
 
-        // Check if message contains transaction data (PSBT)
-        const hasSignFlow = messageContent.includes(
-          'Transaction Data (PSBT-based):'
-        )
+        // Try to parse the message as transaction data
+        const transactionData = parseNostrTransactionMessage(messageContent)
+        const hasSignFlow = transactionData !== null
 
         return (
           <SSVStack
@@ -336,133 +337,114 @@ function SSDevicesGroupChat() {
                 })}
               </SSText>
             </SSHStack>
-            {hasSignFlow ? (
+            {hasSignFlow && transactionData ? (
               (() => {
-                const transactionData =
-                  parseNostrTransactionMessage(messageContent)
-                const transactionId = transactionData?.originalPsbt
-                  ? extractTransactionIdFromPSBT(transactionData.originalPsbt)
-                  : null
+                const { combinedPsbt, signedPsbts } = transactionData
+                const originalPsbt = extractOriginalPsbt(combinedPsbt)
+                const transactionId = extractTransactionIdFromPSBT(combinedPsbt)
+                const multisigInfo = getMultisigInfoFromPsbt(combinedPsbt)
 
-                if (transactionData && transactionId) {
-                  const { keysRequired, keyCount, signedPsbts, originalPsbt } =
-                    transactionData
+                if (!transactionId) return null
 
-                  const accounts = useAccountsStore.getState().accounts
-                  const accountMatch = findMatchingAccount(
-                    originalPsbt,
-                    accounts
-                  )
-                  const matchedAccount = accountMatch?.account || account
+                const keysRequired = multisigInfo?.required || 0
+                const keyCount = multisigInfo?.total || 0
 
-                  let extractedData = null
-                  if (originalPsbt && matchedAccount) {
-                    try {
-                      extractedData = extractTransactionDataFromPSBTEnhanced(
-                        originalPsbt,
-                        matchedAccount
-                      )
-                    } catch {
-                      extractedData = null
-                    }
+                const accounts = useAccountsStore.getState().accounts
+                const accountMatch = findMatchingAccount(originalPsbt, accounts)
+                const matchedAccount = accountMatch?.account || account
+
+                let extractedData = null
+                if (originalPsbt && matchedAccount) {
+                  try {
+                    extractedData = extractTransactionDataFromPSBTEnhanced(
+                      originalPsbt,
+                      matchedAccount
+                    )
+                  } catch {
+                    extractedData = null
                   }
-
-                  const inputs = extractedData?.inputs || []
-                  const outputs = extractedData?.outputs || []
-
-                  const { size, vsize } = estimateTransactionSize(
-                    inputs.length,
-                    outputs.length
-                  )
-
-                  const collectedSignatures = Object.keys(
-                    signedPsbts || {}
-                  ).map(Number)
-
-                  const vin = inputs.map((input) => ({
-                    previousOutput: { txid: input.txid, vout: input.vout },
-                    value: input.value,
-                    label: input.label || ''
-                  }))
-
-                  const vout = outputs.map((output) => ({
-                    address: output.address,
-                    value: output.value,
-                    label: output.label || ''
-                  }))
-
-                  const transaction = {
-                    id: transactionId,
-                    size,
-                    vsize,
-                    vin,
-                    vout
-                  } as unknown as Transaction
-
-                  const visibility = visibleComponents.get(msg.id) || {
-                    sankey: false,
-                    status: false
-                  }
-
-                  return (
-                    <SSVStack gap="md" style={{ paddingTop: 10 }}>
-                      <SSHStack justifyBetween>
-                        <SSText size="lg" weight="bold">
-                          {t('account.transaction.signRequest')}
-                        </SSText>
-                        <SSText size="lg" color="muted">
-                          {`${transactionId.slice(
-                            0,
-                            6
-                          )}...${transactionId.slice(-6)}`}
-                        </SSText>
-                      </SSHStack>
-
-                      {visibility.sankey ? (
-                        <SSTransactionChart transaction={transaction} />
-                      ) : (
-                        <SSButton
-                          label={t('transaction.loadSankey')}
-                          onPress={() =>
-                            handleToggleVisibility(msg.id, 'sankey')
-                          }
-                        />
-                      )}
-
-                      {visibility.status ? (
-                        <SSSignatureRequiredDisplay
-                          requiredNumber={keysRequired}
-                          totalNumber={keyCount}
-                          collectedSignatures={collectedSignatures}
-                        />
-                      ) : (
-                        <SSButton
-                          label={t('transaction.checkStatus')}
-                          onPress={() =>
-                            handleToggleVisibility(msg.id, 'status')
-                          }
-                        />
-                      )}
-
-                      <SSButton
-                        label={t('account.transaction.signFlow')}
-                        variant="secondary"
-                        style={styles.signFlowButton}
-                        onPress={() => handleGoToSignFlowClick(messageContent)}
-                      />
-                    </SSVStack>
-                  )
                 }
+
+                const inputs = extractedData?.inputs || []
+                const outputs = extractedData?.outputs || []
+
+                const { size, vsize } = estimateTransactionSize(
+                  inputs.length,
+                  outputs.length
+                )
+
+                const collectedSignatures = Object.keys(signedPsbts || {}).map(
+                  Number
+                )
+
+                const vin = inputs.map((input) => ({
+                  previousOutput: { txid: input.txid, vout: input.vout },
+                  value: input.value,
+                  label: input.label || ''
+                }))
+
+                const vout = outputs.map((output) => ({
+                  address: output.address,
+                  value: output.value,
+                  label: output.label || ''
+                }))
+
+                const transaction = {
+                  id: transactionId,
+                  size,
+                  vsize,
+                  vin,
+                  vout
+                } as unknown as Transaction
+
+                const visibility = visibleComponents.get(msg.id) || {
+                  sankey: false,
+                  status: false
+                }
+
                 return (
-                  <>
-                    <SSText size="md">{messageContent}</SSText>
+                  <SSVStack gap="md" style={{ paddingTop: 10 }}>
+                    <SSHStack justifyBetween>
+                      <SSText size="lg" weight="bold">
+                        {t('account.transaction.signRequest')}
+                      </SSText>
+                      <SSText size="lg" color="muted">
+                        {`${transactionId.slice(
+                          0,
+                          6
+                        )}...${transactionId.slice(-6)}`}
+                      </SSText>
+                    </SSHStack>
+
+                    {visibility.sankey ? (
+                      <SSTransactionChart transaction={transaction} />
+                    ) : (
+                      <SSButton
+                        label={t('transaction.loadSankey')}
+                        onPress={() => handleToggleVisibility(msg.id, 'sankey')}
+                      />
+                    )}
+
+                    {visibility.status ? (
+                      <SSSignatureRequiredDisplay
+                        requiredNumber={keysRequired}
+                        totalNumber={keyCount}
+                        collectedSignatures={collectedSignatures}
+                      />
+                    ) : (
+                      <SSButton
+                        label={t('transaction.checkStatus')}
+                        onPress={() => handleToggleVisibility(msg.id, 'status')}
+                      />
+                    )}
+
                     <SSButton
                       label={t('account.transaction.signFlow')}
                       variant="secondary"
                       style={styles.signFlowButton}
                       onPress={() => handleGoToSignFlowClick(messageContent)}
                     />
-                  </>
+                  </SSVStack>
                 )
               })()
             ) : (
@@ -585,10 +567,11 @@ function SSDevicesGroupChat() {
             >
               {transactionDataForModal ? (
                 (() => {
-                  const { keysRequired, keyCount, signedPsbts, originalPsbt } =
-                    transactionDataForModal
+                  const { combinedPsbt, signedPsbts } = transactionDataForModal
 
-                  const txid = extractTransactionIdFromPSBT(originalPsbt)
+                  const originalPsbt = extractOriginalPsbt(combinedPsbt)
+                  const txid = extractTransactionIdFromPSBT(combinedPsbt)
+                  const multisigInfo = getMultisigInfoFromPsbt(combinedPsbt)
 
                   if (!txid) {
                     return (
@@ -597,6 +580,9 @@ function SSDevicesGroupChat() {
                       </SSText>
                     )
                   }
+
+                  const keysRequired = multisigInfo?.required || 0
+                  const keyCount = multisigInfo?.total || 0
 
                   const accounts = useAccountsStore.getState().accounts
                   const accountMatch = findMatchingAccount(
