@@ -116,11 +116,9 @@ export default function EcashSendPage() {
     }
 
     setIsGenerating(true)
-    // Clear previous token
     setGeneratedToken('')
     try {
       const result = await sendEcash(activeMint.url, amountNum, memo)
-      // Store the generated token
       setGeneratedToken(result.token)
     } catch {
       // Error handling is done in the hook
@@ -253,7 +251,6 @@ export default function EcashSendPage() {
     decodedInvoice?.description
   ])
 
-  // Decode a bolt11 invoice
   const decodeInvoice = useCallback(
     async (invoice: string) => {
       try {
@@ -270,7 +267,6 @@ export default function EcashSendPage() {
     [typedMakeRequest]
   )
 
-  // Handle invoice input changes and auto-decode
   const handleInvoiceChange = useCallback(
     async (text: string) => {
       setInvoice(text)
@@ -333,7 +329,6 @@ export default function EcashSendPage() {
     [isConnected, verifyConnection, decodeInvoice]
   )
 
-  // Handle invoice parameter from navigation
   useEffect(() => {
     if (invoiceParam) {
       const invoiceValue = Array.isArray(invoiceParam)
