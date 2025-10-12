@@ -161,16 +161,13 @@ export default function EcashReceivePage() {
     stopPolling
   ])
 
-  // Handle token input changes and auto-decode
   const handleTokenChange = useCallback((text: string) => {
     setToken(text)
     setDecodedToken(null) // Clear previous decode
 
-    // Clean the text and check if it's a valid token
     const cleanText = text.trim()
     if (!cleanText) return
 
-    // Check if it's a cashu token (starts with cashu)
     if (cleanText.toLowerCase().startsWith('cashu')) {
       try {
         const decoded = getDecodedToken(cleanText)
@@ -229,7 +226,7 @@ export default function EcashReceivePage() {
     }
   }
 
-  const getStatusText = (status: string) => {
+  function getStatusText(status: string) {
     switch (status) {
       case 'PENDING':
         return t('ecash.quote.pending')
