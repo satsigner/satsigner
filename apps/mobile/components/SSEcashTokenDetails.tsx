@@ -23,7 +23,6 @@ function SSEcashTokenDetails({
   fiatCurrency,
   satsToFiat
 }: SSEcashTokenDetailsProps) {
-
   const totalAmount = decodedToken.proofs.reduce(
     (sum, proof) => sum + proof.amount,
     0
@@ -45,7 +44,6 @@ function SSEcashTokenDetails({
               </SSText>
             </SSHStack>
           </SSHStack>
-
           {decodedToken.memo && (
             <SSHStack gap="xs" style={styles.detailRow}>
               <SSText color="muted" style={styles.detailLabel}>
@@ -54,7 +52,6 @@ function SSEcashTokenDetails({
               <SSText style={styles.detailValue}>{decodedToken.memo}</SSText>
             </SSHStack>
           )}
-
           {showMint && (
             <SSHStack gap="xs" style={styles.detailRow}>
               <SSText color="muted" style={styles.detailLabel}>

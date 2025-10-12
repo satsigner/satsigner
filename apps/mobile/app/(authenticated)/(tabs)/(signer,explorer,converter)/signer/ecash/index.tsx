@@ -154,7 +154,6 @@ export default function EcashLanding() {
               </SSVStack>
             )}
           </SSVStack>
-
           <SSHStack justifyEvenly gap="none">
             <SSActionButton
               onPress={() => router.navigate('/signer/ecash/send')}
