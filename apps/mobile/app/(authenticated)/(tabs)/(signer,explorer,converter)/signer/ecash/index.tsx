@@ -98,7 +98,6 @@ export default function EcashLanding() {
     toast.success(t('ecash.scan.qrCodeScanned'))
   }
 
-  // Calculate total balance from all proofs
   const totalBalance = proofs.reduce((sum, proof) => sum + proof.amount, 0)
 
   return (
