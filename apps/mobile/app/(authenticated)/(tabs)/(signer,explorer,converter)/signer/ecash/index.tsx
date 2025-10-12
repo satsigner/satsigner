@@ -198,7 +198,9 @@ export default function EcashLanding() {
               ))}
               {transactions.length > 50 && (
                 <SSText color="muted" size="sm" style={styles.moreTransactions}>
-                  {t('ecash.moreTransactions', { count: transactions.length - 50 })}
+                  {t('ecash.moreTransactions', {
+                    count: transactions.length - 50
+                  })}
                 </SSText>
               )}
             </SSVStack>

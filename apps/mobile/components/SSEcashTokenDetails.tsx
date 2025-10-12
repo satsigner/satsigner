@@ -32,7 +32,6 @@ function SSEcashTokenDetails({
   return (
     <SSVStack gap="sm" style={styles.tokenDetails}>
       <SSText uppercase>{t('ecash.tokenDetails.title')}</SSText>
-
       <View style={styles.detailsContent}>
         <View style={styles.detailSection}>
           <SSHStack gap="xs" style={styles.detailRow}>
