@@ -148,6 +148,30 @@ Avoid using `any` type at all costs. Use proper TypeScript types:
 - Use type imports: `import { type Block } from '...'`
 - Prefer types over interfaces when possible
 
+[Console Statements]
+Remove all console statements from production code:
+
+- Avoid `console.log`, `console.error`, `console.warn`, etc.
+- Use proper error handling with toast.error instead of console.error
+- Remove debug console statements before committing
+- Use proper logging mechanisms if debugging is needed
+
+[Variable Naming]
+Use clear, descriptive variable names:
+
+- Avoid underscore prefixes like `_variable` unless absolutely necessary
+- Use meaningful names that describe the variable's purpose
+- Don't prefix unused variables with underscores - either use them or remove them
+- Follow camelCase convention for variables and functions
+
+[Component Architecture]
+Keep components clean and focused:
+
+- Avoid using stores directly in components - pass data via props instead
+- Components should receive data through props, not fetch it from stores
+- Use stores only in pages/hooks, not in reusable components
+- Keep components pure and testable by avoiding external dependencies
+
 [useCallback Guidelines]
 Only use useCallback when:
 
