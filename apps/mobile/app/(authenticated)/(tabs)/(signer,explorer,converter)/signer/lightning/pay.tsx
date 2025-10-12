@@ -26,7 +26,6 @@ import {
   isLNURL
 } from '@/utils/lnurl'
 
-// Define the type for makeRequest
 type MakeRequest = <T>(
   path: string,
   options?: {
@@ -173,7 +172,6 @@ export default function PayPage() {
     // For bolt11 invoices, ensure we have decoded it
     if (!isLNURLMode) {
       if (!decodedInvoice) {
-        console.error('❌ No decoded invoice available')
         Alert.alert('Error', 'Please wait for the invoice to be decoded')
         return
       }
