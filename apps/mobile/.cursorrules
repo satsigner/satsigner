@@ -112,6 +112,42 @@ Use arrow functions for:
 - useEffect callbacks and cleanup functions
 - Simple event handlers that don't need memoization
 
+[Export Style]
+Place export default at the bottom of the file, after all function declarations and component definitions
+✅ Correct:
+
+```typescript
+function MyComponent() {
+  return <div>Hello</div>
+}
+
+export default MyComponent
+```
+
+❌ Wrong:
+
+```typescript
+export default function MyComponent() {
+  return <div>Hello</div>
+}
+```
+
+[Code Formatting]
+Keep code clean and well-formatted:
+
+- Remove unnecessary empty lines in JSX and component files
+- Remove useless comments like `{/* Camera Modal */}` or obvious comments
+- Use consistent spacing and indentation
+- Avoid trailing empty lines at the end of files
+
+[TypeScript Types]
+Avoid using `any` type at all costs. Use proper TypeScript types:
+
+- For React Native styles, use `StyleProp<ViewStyle>` instead of `any`
+- For component props, define proper interfaces or types
+- Use type imports: `import { type Block } from '...'`
+- Prefer types over interfaces when possible
+
 [useCallback Guidelines]
 Only use useCallback when:
 
