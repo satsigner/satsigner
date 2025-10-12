@@ -16,7 +16,7 @@ export default function SSQuoteStatus({
   isLoading = false,
   showCheckButton = true
 }: SSQuoteStatusProps) {
-  const getStatusColor = (status: string) => {
+  function getStatusColor(status: string) {
     switch (status) {
       case 'PENDING':
         return '#FFA500'
@@ -31,7 +31,7 @@ export default function SSQuoteStatus({
     }
   }
 
-  const getStatusText = (status: string) => {
+  function getStatusText(status: string) {
     switch (status) {
       case 'PENDING':
         return t('ecash.quote.pending')
