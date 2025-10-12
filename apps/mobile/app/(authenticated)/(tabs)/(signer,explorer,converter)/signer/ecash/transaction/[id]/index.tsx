@@ -251,7 +251,7 @@ export default function EcashTransactionDetailPage() {
     )
   }
 
-  const getTransactionIcon = (type: EcashTransaction['type']) => {
+  function getTransactionIcon(type: EcashTransaction['type']) {
     switch (type) {
       case 'send':
         return <SSIconOutgoing height={32} width={32} />
@@ -266,7 +266,7 @@ export default function EcashTransactionDetailPage() {
     }
   }
 
-  const getTransactionLabel = (type: EcashTransaction['type']) => {
+  function getTransactionLabel(type: EcashTransaction['type']) {
     switch (type) {
       case 'send':
         return t('ecash.transaction.send')
