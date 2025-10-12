@@ -5,6 +5,7 @@ import { Stack } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSEcashTokenDetails from '@/components/SSEcashTokenDetails'
@@ -17,6 +18,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { usePriceStore } from '@/store/price'
 import { error, success, warning, white } from '@/styles/colors'
 import { type EcashToken } from '@/types/models/Ecash'
 
@@ -42,6 +44,10 @@ export default function EcashReceivePage() {
   } = useEcash()
 
   const { isPolling, startPolling, stopPolling } = useQuotePolling()
+
+  const [fiatCurrency, satsToFiat] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  )
 
   // Cleanup polling when component unmounts or tab changes
   useEffect(() => {
@@ -306,6 +312,8 @@ export default function EcashReceivePage() {
                   decodedToken={decodedToken}
                   showMint
                   showProofs
+                  fiatCurrency={fiatCurrency}
+                  satsToFiat={satsToFiat}
                 />
               )}
               <SSButton

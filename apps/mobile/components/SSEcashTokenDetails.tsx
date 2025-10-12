@@ -1,11 +1,9 @@
 import { StyleSheet, View } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { usePriceStore } from '@/store/price'
 import { Typography } from '@/styles'
 import { type EcashToken } from '@/types/models/Ecash'
 import { formatNumber } from '@/utils/format'
@@ -14,16 +12,17 @@ type SSEcashTokenDetailsProps = {
   decodedToken: EcashToken
   showMint?: boolean
   showProofs?: boolean
+  fiatCurrency: string
+  satsToFiat: (amount: number) => number
 }
 
-export default function SSEcashTokenDetails({
+function SSEcashTokenDetails({
   decodedToken,
   showMint = true,
-  showProofs = true
+  showProofs = true,
+  fiatCurrency,
+  satsToFiat
 }: SSEcashTokenDetailsProps) {
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
-  )
 
   const totalAmount = decodedToken.proofs.reduce(
     (sum, proof) => sum + proof.amount,
@@ -173,3 +172,5 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5
   }
 })
+
+export default SSEcashTokenDetails
