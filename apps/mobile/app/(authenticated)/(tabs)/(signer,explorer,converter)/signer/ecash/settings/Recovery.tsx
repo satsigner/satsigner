@@ -149,7 +149,6 @@ export default function EcashRecoveryPage() {
           )
         }}
       />
-
       <ScrollView>
         <SSVStack gap="lg">
           <SSVStack gap="sm">

@@ -19,7 +19,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { Typography } from '@/styles'
-// import { formatNumber } from '@/utils/format'
 import {
   decodeLNURL,
   fetchLNURLPayDetails,
@@ -58,9 +57,6 @@ export default function PayPage() {
   const { payInvoice, makeRequest, isConnected, verifyConnection } = useLND()
   const typedMakeRequest = makeRequest as MakeRequest
   const [permission, requestPermission] = useCameraPermissions()
-  const [_fiatCurrency, _satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
-  )
 
   const [fontsLoaded] = useFonts({
     'SF-NS-Mono': require('@/assets/fonts/SF-NS-Mono.ttf')
@@ -82,7 +78,6 @@ export default function PayPage() {
   const handleLNURLDetected = useCallback(async (lnurl: string) => {
     try {
       setIsFetchingDetails(true)
-      console.log('🔍 Fetching LNURL details for amount population')
       const url = isLNURL(lnurl) ? decodeLNURL(lnurl) : lnurl
       const details = await fetchLNURLPayDetails(url)
 
@@ -91,10 +86,8 @@ export default function PayPage() {
 
       // Convert millisats to sats and set as amount
       const minSats = Math.ceil(details.minSendable / 1000)
-      console.log('💰 Setting minimum amount:', minSats, 'sats')
       setAmount(minSats.toString())
     } catch (error) {
-      console.error('❌ Failed to fetch LNURL details for amount:', error)
       setLNURLDetails(null)
       // Don't show error to user, just don't set the amount
     } finally {
@@ -106,36 +99,15 @@ export default function PayPage() {
   const decodeInvoice = useCallback(
     async (invoice: string) => {
       try {
-        console.log('🔍 Starting invoice decode:', {
-          prefix: invoice.substring(0, 10) + '...',
-          length: invoice.length,
-          timestamp: new Date().toISOString()
-        })
         const response = await typedMakeRequest<DecodedInvoice>(
           '/v1/payreq/' + invoice
         )
-        console.log('✅ Invoice decoded successfully:', {
-          amount: response.num_satoshis,
-          description: response.description,
-          timestamp: response.timestamp,
-          expiry: response.expiry,
-          payment_hash: response.payment_hash
-        })
 
         // Update state with decoded invoice
         setDecodedInvoice(response)
-        console.log('📝 Updated decodedInvoice state:', {
-          hasDecodedInvoice: !!response,
-          amount: response.num_satoshis,
-          timestamp: new Date().toISOString()
-        })
 
         return response
       } catch (error) {
-        console.error('❌ Failed to decode invoice:', {
-          error: error instanceof Error ? error.message : String(error),
-          timestamp: new Date().toISOString()
-        })
         setDecodedInvoice(null)
         throw error
       }
@@ -146,14 +118,6 @@ export default function PayPage() {
   // Update LNURL mode and fetch details when payment request changes
   const handlePaymentRequestChange = useCallback(
     async (text: string) => {
-      console.log('📝 Payment request changed:', {
-        length: text.length,
-        isLNURL: isLNURL(text),
-        isBolt11: text.toLowerCase().startsWith('lnbc'),
-        isConnected,
-        timestamp: new Date().toISOString()
-      })
-
       // Clear previous state
       setPaymentRequest(text)
       const isLNURLInput = isLNURL(text)
@@ -163,10 +127,8 @@ export default function PayPage() {
 
       // Verify LND connection before proceeding
       if (!isConnected) {
-        console.log('🔌 LND not connected, attempting to verify connection...')
         const isStillConnected = await verifyConnection()
         if (!isStillConnected) {
-          console.error('❌ LND not connected, cannot decode invoice')
           Alert.alert(
             'Connection Error',
             'Not connected to LND node. Please check your connection and try again.'
@@ -176,38 +138,21 @@ export default function PayPage() {
       }
 
       if (isLNURLInput) {
-        console.log('🔍 Detected LNURL payment request')
         // If it's a LNURL and we don't have an amount set, fetch details
         if (!amount) {
           await handleLNURLDetected(text)
         }
       } else if (text.toLowerCase().startsWith('lnbc')) {
-        console.log('🔍 Detected bolt11 invoice, decoding automatically...')
         try {
           const decoded = await decodeInvoice(text)
-          console.log('✅ Successfully decoded bolt11 invoice:', {
-            amount: decoded.num_satoshis,
-            description: decoded.description,
-            timestamp: decoded.timestamp,
-            expiry: decoded.expiry
-          })
           // Set amount from decoded invoice
           if (decoded.num_satoshis) {
-            console.log(
-              '💰 Setting amount from decoded invoice:',
-              decoded.num_satoshis
-            )
             setAmount(decoded.num_satoshis)
           }
         } catch (error) {
-          console.error('❌ Failed to decode bolt11 invoice:', {
-            error: error instanceof Error ? error.message : String(error),
-            timestamp: new Date().toISOString()
-          })
           setDecodedInvoice(null)
         }
       } else {
-        console.log('⚠️ Input is neither LNURL nor bolt11 invoice')
         setDecodedInvoice(null)
       }
     },
@@ -242,35 +187,22 @@ export default function PayPage() {
 
   const processPayment = async () => {
     if (!paymentRequest) {
-      console.error('❌ No payment request available')
       return
     }
 
     // For bolt11, ensure we have decoded it
     if (!isLNURLMode && !decodedInvoice) {
-      console.error('❌ No decoded invoice available for bolt11 payment')
       Alert.alert('Error', 'Please try sending the payment again')
       return
     }
 
-    console.log('🚀 Starting payment process:', {
-      isLNURLMode,
-      hasAmount: !!amount,
-      hasComment: !!comment,
-      hasDecodedInvoice: !!decodedInvoice,
-      timestamp: new Date().toISOString()
-    })
-
     setIsProcessing(true)
-    const startTime = Date.now()
     try {
       let invoice: string
 
       if (isLNURLMode) {
-        console.log('📝 Processing LNURL payment')
         // Validate amount for LNURL
         if (!amount) {
-          console.error('❌ No amount provided for LNURL payment')
           Alert.alert('Error', 'Please enter an amount')
           setIsProcessing(false)
           return
@@ -278,52 +210,23 @@ export default function PayPage() {
 
         const amountSats = parseInt(amount, 10)
         if (isNaN(amountSats) || amountSats <= 0) {
-          console.error('❌ Invalid amount:', amount)
           Alert.alert('Error', 'Please enter a valid amount')
           setIsProcessing(false)
           return
         }
 
-        console.log('💫 Requesting invoice from LNURL:', {
-          amount: amountSats,
-          hasComment: !!comment,
-          timestamp: new Date().toISOString()
-        })
-
         // Get invoice from LNURL
-        const lnurlStartTime = Date.now()
         invoice = await handleLNURLPay(
           paymentRequest,
           amountSats,
           comment || undefined
         )
-        console.log('✅ Received invoice from LNURL:', {
-          duration: Date.now() - lnurlStartTime,
-          timestamp: new Date().toISOString()
-        })
       } else {
-        console.log('📝 Processing decoded bolt11 invoice:', {
-          amount: decodedInvoice?.num_satoshis,
-          description: decodedInvoice?.description,
-          timestamp: new Date().toISOString()
-        })
         invoice = paymentRequest
       }
 
-      console.log('💫 Sending payment to LND:', {
-        invoiceLength: invoice.length,
-        timestamp: new Date().toISOString()
-      })
-      const paymentStartTime = Date.now()
-
       // Pay the invoice
       await payInvoice(invoice)
-
-      console.log('✅ Payment sent successfully:', {
-        totalDuration: Date.now() - startTime,
-        paymentDuration: Date.now() - paymentStartTime,
-        timestamp: new Date().toISOString()
-      })
 
       Alert.alert('Success', 'Payment sent successfully', [
         {
@@ -332,12 +235,6 @@ export default function PayPage() {
         }
       ])
     } catch (error) {
-      console.error('❌ Payment failed:', {
-        error,
-        duration: Date.now() - startTime,
-        timestamp: new Date().toISOString()
-      })
-
       let errorMessage = 'Failed to send payment'
       if (error instanceof Error) {
         if (
@@ -366,19 +263,8 @@ export default function PayPage() {
 
     // Use the same validation logic as handlePaymentRequestChange
     if (cleanText.toLowerCase().startsWith('lnbc') || isLNURL(cleanText)) {
-      console.log('🔍 Processing scanned payment request:', {
-        length: cleanText.length,
-        isLNURL: isLNURL(cleanText),
-        isBolt11: cleanText.toLowerCase().startsWith('lnbc'),
-        timestamp: new Date().toISOString()
-      })
       handlePaymentRequestChange(cleanText)
     } else {
-      console.error('❌ Invalid QR code content:', {
-        content: cleanText.substring(0, 20) + '...',
-        length: cleanText.length,
-        timestamp: new Date().toISOString()
-      })
       Alert.alert(
         'Invalid QR Code',
         'The scanned QR code is not a valid Lightning payment request or LNURL'
@@ -388,37 +274,26 @@ export default function PayPage() {
 
   const handlePasteFromClipboard = async () => {
     try {
-      console.log('📋 Attempting to paste from clipboard')
       const text = await Clipboard.getStringAsync()
       if (!text) {
-        console.log('❌ No text in clipboard')
         Alert.alert('Error', 'No text found in clipboard')
         return
       }
 
       // Clean the text (remove any whitespace)
       const cleanText = text.trim()
-      console.log('📋 Clipboard content:', {
-        length: cleanText.length,
-        isLNURL: isLNURL(cleanText),
-        isBolt11: cleanText.toLowerCase().startsWith('lnbc')
-      })
 
       if (cleanText.toLowerCase().startsWith('lnbc') || isLNURL(cleanText)) {
         // Use handlePaymentRequestChange to process the invoice
         // This ensures consistent handling of both paste and manual input
-        console.log('🔍 Processing pasted payment request')
         await handlePaymentRequestChange(cleanText)
-        console.log('✅ Successfully processed pasted payment request')
       } else {
-        console.error('❌ Invalid clipboard content')
         Alert.alert(
           'Invalid Payment Request',
           'The clipboard content is not a valid Lightning payment request or LNURL'
         )
       }
     } catch (error) {
-      console.error('❌ Clipboard error:', error)
       Alert.alert('Error', 'Failed to read clipboard content')
     }
   }

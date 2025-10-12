@@ -305,7 +305,6 @@ export default function EcashTransactionDetailPage() {
           )
         }}
       />
-
       <ScrollView>
         <SSVStack gap="lg">
           <SSVStack gap="md" style={styles.headerCard}>
