@@ -10,7 +10,7 @@ import { Typography } from '@/styles'
 import { type EcashToken } from '@/types/models/Ecash'
 import { formatNumber } from '@/utils/format'
 
-interface SSEcashTokenDetailsProps {
+type SSEcashTokenDetailsProps = {
   decodedToken: EcashToken
   showMint?: boolean
   showProofs?: boolean

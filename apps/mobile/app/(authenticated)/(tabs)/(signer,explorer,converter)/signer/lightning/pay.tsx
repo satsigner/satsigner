@@ -37,7 +37,7 @@ type MakeRequest = <T>(
   }
 ) => Promise<T>
 
-interface DecodedInvoice {
+type DecodedInvoice = {
   payment_request: string
   value: string
   description: string
@@ -48,7 +48,7 @@ interface DecodedInvoice {
   num_satoshis: string
   num_msat: string
   features: Record<string, { name: string }>
-  route_hints: any[]
+  route_hints: unknown[]
   payment_secret: string
   min_final_cltv_expiry: string
 }
