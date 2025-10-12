@@ -6,7 +6,6 @@ import { extractTransactionIdFromPSBT } from '@/utils/psbtTransactionExtractor'
 
 export type TransactionData = {
   combinedPsbt: string
-  signedPsbts: Record<number, string>
 }
 
 export type AccountMatchResult = {
@@ -58,8 +57,6 @@ export function extractPSBTDerivations(psbtBase64: string): {
   }
 }
 
-/**
- */
 export function findMatchingAccount(
   psbtBase64: string,
   accounts: Account[]
@@ -71,18 +68,15 @@ export function findMatchingAccount(
       return null
     }
 
-    // Get unique fingerprints from PSBT
     const psbtFingerprints = [...new Set(derivations.map((d) => d.fingerprint))]
 
-    // Try to match each account with PSBT derivations
     for (const account of accounts) {
       if (!account.keys || account.keys.length === 0) {
         continue
       }
 
-      // Extract all fingerprints from account keys
       const accountFingerprints: string[] = []
-      const keyFingerprintMap = new Map<string, number>() // fingerprint -> keyIndex
+      const keyFingerprintMap = new Map<string, number>()
 
       for (let keyIndex = 0; keyIndex < account.keys.length; keyIndex++) {
         const key = account.keys[keyIndex]
@@ -94,13 +88,11 @@ export function findMatchingAccount(
         }
       }
 
-      // Check if ALL PSBT fingerprints are present in this account
       const allFingerprintsMatch = psbtFingerprints.every((psbtFp) =>
         accountFingerprints.includes(psbtFp)
       )
 
       if (allFingerprintsMatch) {
-        // Find the first matching derivation
         const firstMatchingDerivation = derivations.find((d) =>
           accountFingerprints.includes(d.fingerprint)
         )
@@ -133,8 +125,4 @@ export function storeTransactionData(data: TransactionData): void {
   if (txId) {
     transactionDataStorage.set(txId, data)
   }
-}
-
-export function getTransactionData(txid: string): TransactionData | undefined {
-  return transactionDataStorage.get(txid)
 }

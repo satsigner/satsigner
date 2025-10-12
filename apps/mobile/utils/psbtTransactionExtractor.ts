@@ -171,10 +171,8 @@ export function combinePsbts(psbtBase64s: string[]): string {
     throw new Error('No PSBTs provided to combine.')
   }
 
-  // Use the first PSBT as the base. It should contain the unsigned transaction.
   const basePsbt = bitcoinjs.Psbt.fromBase64(psbtBase64s[0])
 
-  // Combine all other PSBTs into the base.
   for (let i = 1; i < psbtBase64s.length; i++) {
     const nextPsbt = bitcoinjs.Psbt.fromBase64(psbtBase64s[i])
     basePsbt.combine(nextPsbt)
@@ -190,12 +188,10 @@ export function extractOriginalPsbt(psbtBase64: string): string {
     psbt.data.globalMap.unsignedTx.toBuffer()
   )
 
-  // Create a new PSBT from the unsigned transaction of the original PSBT
   const newPsbt = new bitcoinjs.Psbt()
   newPsbt.setVersion(tx.version)
   newPsbt.setLocktime(tx.locktime)
 
-  // Add inputs from the original transaction, but without any signature data
   psbt.txInputs.forEach((input) => {
     newPsbt.addInput({
       hash: input.hash,
@@ -204,7 +200,6 @@ export function extractOriginalPsbt(psbtBase64: string): string {
     })
   })
 
-  // Add all outputs from the original transaction
   psbt.txOutputs.forEach((output) => {
     newPsbt.addOutput({
       script: output.script,
@@ -212,9 +207,7 @@ export function extractOriginalPsbt(psbtBase64: string): string {
     })
   })
 
-  // Copy over essential non-signature data from the original PSBT's inputs
   psbt.data.inputs.forEach((input, index) => {
-    // We only copy fields that are necessary for signing and are not signatures themselves
     const {
       partialSig: _partialSig,
       finalScriptSig: _finalScriptSig,
@@ -224,7 +217,6 @@ export function extractOriginalPsbt(psbtBase64: string): string {
     newPsbt.updateInput(index, nonSignatureData)
   })
 
-  // Copy over essential non-signature data from the original PSBT's outputs
   psbt.data.outputs.forEach((output, index) => {
     newPsbt.updateOutput(index, output)
   })
@@ -232,7 +224,6 @@ export function extractOriginalPsbt(psbtBase64: string): string {
   return newPsbt.toBase64()
 }
 
-// Function to extract multisig m-of-n info
 export function getMultisigInfoFromPsbt(psbtBase64: string): {
   required: number
   total: number
@@ -247,7 +238,7 @@ export function getMultisigInfoFromPsbt(psbtBase64: string): {
 
   try {
     const decompiled = bitcoinjs.script.decompile(script)
-    if (!decompiled || decompiled.length < 4) return null // e.g., OP_M <pubkeys...> OP_N OP_CHECKMULTISIG
+    if (!decompiled || decompiled.length < 4) return null
 
     const mOp = decompiled[0]
     const nOp = decompiled[decompiled.length - 2]
@@ -283,4 +274,43 @@ export function getCollectedSignerPubkeys(psbtBase64: string): Set<string> {
   }
 
   return signerPubkeys
+}
+
+// Function to extract individual signed PSBTs from a combined PSBT
+export function extractIndividualSignedPsbts(
+  combinedPsbtBase64: string,
+  originalPsbtBase64: string
+): Record<number, string> {
+  try {
+    const combinedPsbt = bitcoinjs.Psbt.fromBase64(combinedPsbtBase64)
+
+    const individualSignedPsbts: Record<number, string> = {}
+
+    const signerPubkeys = getCollectedSignerPubkeys(combinedPsbtBase64)
+    const signerPubkeyArray = Array.from(signerPubkeys)
+
+    signerPubkeyArray.forEach((pubkey, index) => {
+      const individualPsbt = bitcoinjs.Psbt.fromBase64(originalPsbtBase64)
+
+      combinedPsbt.data.inputs.forEach((input, inputIndex) => {
+        if (input.partialSig && input.partialSig.length > 0) {
+          const signerSigs = input.partialSig.filter(
+            (sig) => sig.pubkey.toString('hex') === pubkey
+          )
+
+          if (signerSigs.length > 0) {
+            individualPsbt.updateInput(inputIndex, {
+              partialSig: signerSigs
+            })
+          }
+        }
+      })
+
+      individualSignedPsbts[index] = individualPsbt.toBase64()
+    })
+
+    return individualSignedPsbts
+  } catch {
+    return {}
+  }
 }

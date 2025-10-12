@@ -8,6 +8,7 @@ import {
   type TransactionData
 } from '@/utils/psbtAccountMatcher'
 import {
+  extractIndividualSignedPsbts,
   extractOriginalPsbt,
   extractTransactionDataFromPSBTEnhanced,
   extractTransactionIdFromPSBT
@@ -22,12 +23,9 @@ export function parseNostrTransactionMessage(
   message: string
 ): TransactionData | null {
   try {
-    // A simple check to see if it's likely a JSON object string
-    if (message.trim().startsWith('{') && message.trim().endsWith('}')) {
-      const transactionData: TransactionData = JSON.parse(message)
-
-      if (!isValidTransactionData(transactionData)) {
-        return null
+    if (message.trim().startsWith('cHNidP')) {
+      const transactionData: TransactionData = {
+        combinedPsbt: message.trim()
       }
       return transactionData
     }
@@ -55,18 +53,17 @@ export function handleGoToSignFlow(
       return false
     }
 
-    // Store transaction data in Zustand store for previewMessage to access
     const {
       clearTransaction,
       addInput,
       addOutput,
       setFee,
+      setRbf,
       setTxBuilderResult
     } = useTransactionBuilderStore.getState()
 
     clearTransaction()
 
-    // Try to extract transaction data from PSBT first for more accurate data
     let extractedData = null
     if (originalPsbt && accountMatch.account) {
       try {
@@ -101,8 +98,14 @@ export function handleGoToSignFlow(
 
     if (fee) setFee(fee)
 
-    // Extract transaction ID from PSBT
+    setRbf(true)
+
     const extractedTxid = extractTransactionIdFromPSBT(originalPsbt)
+
+    const derivedSignedPsbts = extractIndividualSignedPsbts(
+      transactionData.combinedPsbt,
+      originalPsbt
+    )
 
     const mockTxBuilderResult = {
       psbt: {
@@ -120,7 +123,7 @@ export function handleGoToSignFlow(
     const navigationPath = `/account/${accountMatch.account.id}/signAndSend/previewMessage`
     router.replace({
       pathname: navigationPath,
-      params: { signedPsbts: JSON.stringify(transactionData.signedPsbts) }
+      params: { signedPsbts: JSON.stringify(derivedSignedPsbts) }
     })
 
     toast.success(
@@ -133,23 +136,4 @@ export function handleGoToSignFlow(
     toast.error(t('transaction.openSignFlowFailed'))
     return false
   }
-}
-
-/**
- * Validate transaction data structure
- */
-function isValidTransactionData(data: any): data is TransactionData {
-  return (
-    data &&
-    typeof data === 'object' &&
-    typeof data.combinedPsbt === 'string' &&
-    typeof data.signedPsbts === 'object'
-  )
-}
-
-export function hasSignFlowButton(message: string): boolean {
-  return (
-    message.includes('Go to Sign Flow') ||
-    message.includes('Transaction Data (PSBT-based):')
-  )
 }

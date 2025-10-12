@@ -89,11 +89,9 @@ function SSSignatureDropdown({
     (state) => state.setTransactionToShare
   )
 
-  // Get network and script version for source label
   const network = useBlockchainStore((state) => state.selectedNetwork)
   const scriptVersion = keyDetails?.scriptVersion || 'P2WSH'
 
-  // Use custom hooks for validation and label generation
   const { hasLocalSeed, isSignatureCompleted } = useSignatureDropdownValidation(
     {
       keyDetails,
@@ -103,7 +101,6 @@ function SSSignatureDropdown({
     }
   )
 
-  // Function to send transaction data via Nostr
   const handleSendTransactionToGroup = useCallback(async () => {
     if (!account?.nostr?.autoSync) {
       toast.error(t('account.nostrSync.autoSyncMustBeEnabled'))
@@ -116,7 +113,6 @@ function SSSignatureDropdown({
     }
 
     try {
-      // Collect all signed PSBTs with their cosigner indices
       const collectedSignedPsbts = Array.from(signedPsbts.entries())
         .filter(([, psbt]) => psbt && psbt.trim().length > 0)
         .reduce(
@@ -127,7 +123,6 @@ function SSSignatureDropdown({
           {} as Record<number, string>
         )
 
-      // --- COMBINE PSBTS AND LOG ---
       const psbtsToCombine = [
         txBuilderResult.psbt.base64,
         ...Object.values(collectedSignedPsbts)
@@ -135,13 +130,12 @@ function SSSignatureDropdown({
       const combinedPsbt = combinePsbts(psbtsToCombine)
 
       const transactionData: TransactionData = {
-        combinedPsbt,
-        signedPsbts: collectedSignedPsbts
+        combinedPsbt
       }
 
       storeTransactionData(transactionData)
 
-      const message = JSON.stringify(transactionData, null, 2)
+      const message = combinedPsbt
 
       setTransactionToShare({
         message,
@@ -180,10 +174,7 @@ function SSSignatureDropdown({
         return
       }
 
-      // In signing context, secret is encrypted (string), so we can't extract public key directly
-      // We need to use the decryptedKey prop instead
       if (typeof keyDetails.secret === 'string') {
-        // Use decryptedKey if available
         if (decryptedKey && typeof decryptedKey.secret === 'object') {
           const secret = decryptedKey.secret
           if (secret.extendedPublicKey) {
@@ -205,17 +196,14 @@ function SSSignatureDropdown({
         return
       }
 
-      // Handle object secret (shouldn't happen in signing context, but just in case)
       if (typeof keyDetails.secret === 'object') {
         const secret = keyDetails.secret
 
-        // If we already have an extended public key, use it
         if (secret.extendedPublicKey) {
           setExtractedPublicKey(secret.extendedPublicKey)
           return
         }
 
-        // If we have a descriptor, extract the public key from it
         if (secret.externalDescriptor) {
           try {
             const publicKey = getExtendedKeyFromDescriptor(
@@ -234,39 +222,30 @@ function SSSignatureDropdown({
     extractPublicKey()
   }, [keyDetails, decryptedKey])
 
-  // Reset seedDropped when keyDetails changes
   useEffect(() => {
     if (keyDetails) {
-      // In signing context, use decryptedKey to check for mnemonic
       if (decryptedKey && typeof decryptedKey.secret === 'object') {
-        // If the key has a mnemonic, reset seedDropped to false
         if (decryptedKey.secret.mnemonic) {
           setSeedDropped(false)
         } else {
           setSeedDropped(true)
         }
       } else if (typeof keyDetails.secret === 'object') {
-        // Fallback for object secret (shouldn't happen in signing context)
         if (keyDetails.secret.mnemonic) {
           setSeedDropped(false)
         } else {
           setSeedDropped(true)
         }
       } else {
-        // For encrypted secrets, we can't determine if mnemonic exists
         setSeedDropped(false)
       }
     }
   }, [keyDetails, decryptedKey])
 
-  // Helper function to get the inner fingerprint from secret
   function getInnerFingerprint(): string | undefined {
-    // First try to get from decryptedKey (for signing context)
     if (decryptedKey && typeof decryptedKey.secret === 'object') {
       return decryptedKey.secret.fingerprint
     }
-
-    // Fallback to keyDetails.secret if it's an object
     if (typeof keyDetails?.secret === 'object') {
       return keyDetails.secret.fingerprint
     }
@@ -274,7 +253,6 @@ function SSSignatureDropdown({
     return undefined
   }
 
-  // Use the extracted public key from state, or fall back to direct access
   const extendedPublicKey =
     extractedPublicKey ||
     (decryptedKey &&
@@ -283,8 +261,6 @@ function SSSignatureDropdown({
     (typeof keyDetails?.secret === 'object' &&
       keyDetails.secret.extendedPublicKey) ||
     ''
-
-  // Format public key for display: first 7, last 4 chars
   let formattedPubKey = extendedPublicKey
   if (extendedPublicKey && extendedPublicKey.length > 12) {
     formattedPubKey = `${extendedPublicKey.slice(
@@ -293,32 +269,24 @@ function SSSignatureDropdown({
     )}...${extendedPublicKey.slice(-4)}`
   }
 
-  // Validate PSBT when signedPsbt changes
   useEffect(() => {
     if (signedPsbt && signedPsbt.trim().length > 0) {
       try {
-        // Convert hex PSBT to base64 if needed
         let psbtToValidate = signedPsbt
         if (signedPsbt.toLowerCase().startsWith('70736274ff')) {
-          // This is a hex PSBT, convert to base64
           psbtToValidate = Buffer.from(signedPsbt, 'hex').toString('base64')
         } else if (signedPsbt.startsWith('cHNidP')) {
-          // This is already base64 PSBT, use as-is
           psbtToValidate = signedPsbt
         } else {
-          // Try to detect if it's a valid hex string
           if (/^[a-fA-F0-9]+$/.test(signedPsbt) && signedPsbt.length > 100) {
-            // Likely a hex PSBT, try to convert
             try {
               psbtToValidate = Buffer.from(signedPsbt, 'hex').toString('base64')
             } catch {
-              // If conversion fails, use original
               psbtToValidate = signedPsbt
             }
           }
         }
 
-        // Use cosigner-specific validation for multisig accounts
         const isValid =
           account.policyType === 'multisig'
             ? validateSignedPSBTForCosigner(
@@ -385,10 +353,8 @@ function SSSignatureDropdown({
         </SSHStack>
       </TouchableOpacity>
 
-      {/* Expanded Content */}
       {isExpanded && (
         <SSVStack style={{ paddingHorizontal: 8, paddingBottom: 8 }} gap="sm">
-          {/* Check if this cosigner has a seed - show Sign with Local Key button at the top */}
           {hasLocalSeed ? (
             <SSButton
               label={t('transaction.preview.signWithLocalKey')}
@@ -433,7 +399,6 @@ function SSSignatureDropdown({
               style={{ width: '48%' }}
               onPress={() => {
                 if (txBuilderResult?.psbt?.base64) {
-                  // Import Clipboard from expo-clipboard
                   const { setStringAsync } = require('expo-clipboard')
                   setStringAsync(txBuilderResult.psbt.base64)
                   toast(t('common.copiedToClipboard'))
@@ -486,8 +451,6 @@ function SSSignatureDropdown({
           >
             {t('transaction.preview.importSigned')}
           </SSText>
-
-          {/* Imported PSBT Display Area - Placed BEFORE import buttons like watch-only wallet */}
           <View
             style={[
               styles.psbtDisplay,
@@ -551,12 +514,10 @@ function SSSignatureDropdown({
             />
           </SSHStack>
 
-          {/* NIP-17 GROUP Import */}
           <SSButton
             label={t('transaction.preview.fetchFromNip17group')}
             variant="outline"
             onPress={() => {
-              // TODO: Implement NIP-17 GROUP import
               toast.info(t('transaction.preview.nip17groupComingSoon'))
             }}
           />

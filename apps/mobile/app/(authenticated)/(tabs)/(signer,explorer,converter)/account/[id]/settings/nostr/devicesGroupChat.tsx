@@ -30,6 +30,7 @@ import {
   type TransactionData
 } from '@/utils/psbtAccountMatcher'
 import {
+  extractIndividualSignedPsbts,
   extractOriginalPsbt,
   extractTransactionDataFromPSBTEnhanced,
   extractTransactionIdFromPSBT,
@@ -37,7 +38,6 @@ import {
 } from '@/utils/psbtTransactionExtractor'
 import { estimateTransactionSize } from '@/utils/transaction'
 
-// Cache for npub colors
 const colorCache = new Map<string, { text: string; color: string }>()
 
 async function formatNpub(
@@ -72,14 +72,12 @@ async function formatNpub(
 }
 
 function SSDevicesGroupChat() {
-  // Hooks
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const router = useRouter()
   const flatListRef = useRef<FlatList>(null)
   const formattedAuthorsRef = useRef(new Set<string>())
   const { sendDM } = useNostrSync()
 
-  // Zustand stores
   const account = useAccountsStore((state) =>
     accountId
       ? state.accounts.find((_account) => _account.id === accountId)
@@ -96,7 +94,6 @@ function SSDevicesGroupChat() {
     ])
   )
 
-  // State
   const [isLoading, setIsLoading] = useState(false)
   const [isContentLoaded, setIsContentLoaded] = useState(false)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
@@ -112,12 +109,10 @@ function SSDevicesGroupChat() {
   const [transactionDataForModal, setTransactionDataForModal] =
     useState<TransactionData | null>(null)
 
-  // Memoized values
   const messages = useMemo(
     () => account?.nostr?.dms || [],
     [account?.nostr?.dms]
   )
-  const memoizedMessages = useMemo(() => messages, [messages])
   const membersList = useMemo(
     () =>
       members.map((member: { npub: string; color?: string }) => ({
@@ -127,7 +122,6 @@ function SSDevicesGroupChat() {
     [members]
   )
 
-  // Callbacks
   const handleSendMessage = useCallback(async () => {
     if (!messageInput.trim()) {
       toast.error(t('common.error.messageCannotBeEmpty'))
@@ -162,11 +156,6 @@ function SSDevicesGroupChat() {
   const handleGoToSignFlowClick = useCallback(
     (messageContent: string) => {
       try {
-        if (!messageContent.includes('Transaction Data (PSBT-based):')) {
-          toast.error(t('common.error.transactionDataInvalid'))
-          return
-        }
-
         const transactionData = parseNostrTransactionMessage(messageContent)
         if (!transactionData) {
           toast.error(t('common.error.transactionDataParseFailed'))
@@ -219,13 +208,12 @@ function SSDevicesGroupChat() {
     setTransactionDataForModal(null)
   }, [])
 
-  // Effects
   useEffect(() => {
-    const formatNpubs = async () => {
+    async function formatNpubs() {
       const newFormattedNpubs = new Map()
       let hasNewAuthors = false
 
-      for (const msg of memoizedMessages) {
+      for (const msg of messages) {
         if (!formattedAuthorsRef.current.has(msg.author)) {
           const formatted = await formatNpub(msg.author, membersList)
           newFormattedNpubs.set(msg.author, formatted)
@@ -234,24 +222,21 @@ function SSDevicesGroupChat() {
         }
       }
 
-      // Only update state if we have new authors to format
       if (hasNewAuthors) {
         setFormattedNpubs((prev) => new Map([...prev, ...newFormattedNpubs]))
       }
     }
 
     formatNpubs()
-  }, [memoizedMessages, membersList])
+  }, [messages, membersList])
 
   useEffect(() => {
     if (messages.length > 0 && account?.nostr?.relays?.length) {
       if (isInitialLoad) {
         setIsContentLoaded(false)
-        // Wait for content to be fully rendered
         setTimeout(() => {
           if (flatListRef.current) {
             flatListRef.current.scrollToEnd({ animated: false })
-            // Double check scroll after a short delay
             setTimeout(() => {
               flatListRef.current?.scrollToEnd({ animated: false })
               setIsContentLoaded(true)
@@ -260,7 +245,6 @@ function SSDevicesGroupChat() {
           }
         }, 100)
       } else {
-        // For subsequent updates, just scroll without showing loading
         if (flatListRef.current) {
           flatListRef.current.scrollToEnd({ animated: false })
         }
@@ -280,12 +264,10 @@ function SSDevicesGroupChat() {
   const renderMessage = useCallback(
     ({ item: msg }: { item: NostrDM }) => {
       try {
-        // Ensure we have a valid hex string
         const hexString = msg.author.startsWith('npub')
           ? msg.author
           : msg.author.padStart(64, '0').toLowerCase()
 
-        // Only encode if it's not already an npub
         const msgAuthorNpub = msg.author.startsWith('npub')
           ? msg.author
           : nip19.npubEncode(hexString)
@@ -296,7 +278,6 @@ function SSDevicesGroupChat() {
           color: '#404040'
         }
 
-        // Get message content
         const messageContent =
           typeof msg.content === 'object' && 'description' in msg.content
             ? msg.content.description
@@ -304,7 +285,6 @@ function SSDevicesGroupChat() {
               ? msg.content
               : t('account.nostrSync.devicesGroupChat.displayError')
 
-        // Try to parse the message as transaction data
         const transactionData = parseNostrTransactionMessage(messageContent)
         const hasSignFlow = transactionData !== null
 
@@ -339,10 +319,15 @@ function SSDevicesGroupChat() {
             </SSHStack>
             {hasSignFlow && transactionData ? (
               (() => {
-                const { combinedPsbt, signedPsbts } = transactionData
+                const { combinedPsbt } = transactionData
                 const originalPsbt = extractOriginalPsbt(combinedPsbt)
                 const transactionId = extractTransactionIdFromPSBT(combinedPsbt)
                 const multisigInfo = getMultisigInfoFromPsbt(combinedPsbt)
+
+                const signedPsbts = extractIndividualSignedPsbts(
+                  combinedPsbt,
+                  originalPsbt
+                )
 
                 if (!transactionId) return null
 
@@ -497,7 +482,6 @@ function SSDevicesGroupChat() {
           </SSVStack>
         </SSVStack>
 
-        {/* Messages section */}
         <View style={styles.messagesContainer}>
           {!isContentLoaded && isInitialLoad && messages.length > 0 && (
             <View style={styles.loadingContainer}>
@@ -531,7 +515,6 @@ function SSDevicesGroupChat() {
           />
         </View>
 
-        {/* Message input section */}
         <SSHStack gap="sm" style={styles.inputContainer}>
           <TextInput
             style={styles.input}
@@ -567,11 +550,16 @@ function SSDevicesGroupChat() {
             >
               {transactionDataForModal ? (
                 (() => {
-                  const { combinedPsbt, signedPsbts } = transactionDataForModal
+                  const { combinedPsbt } = transactionDataForModal
 
                   const originalPsbt = extractOriginalPsbt(combinedPsbt)
                   const txid = extractTransactionIdFromPSBT(combinedPsbt)
                   const multisigInfo = getMultisigInfoFromPsbt(combinedPsbt)
+
+                  const signedPsbts = extractIndividualSignedPsbts(
+                    combinedPsbt,
+                    originalPsbt
+                  )
 
                   if (!txid) {
                     return (
