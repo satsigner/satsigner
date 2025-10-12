@@ -47,10 +47,6 @@ export default function EcashLanding() {
     fetchPrices(mempoolUrl)
   }, [fetchPrices, fiatCurrency, mempoolUrl])
 
-  function handleSendPress() {
-    router.navigate('/signer/ecash/send')
-  }
-
   function handleReceivePress() {
     router.navigate('/signer/ecash/receive')
   }
@@ -161,7 +157,7 @@ export default function EcashLanding() {
 
           <SSHStack justifyEvenly gap="none">
             <SSActionButton
-              onPress={handleSendPress}
+              onPress={() => router.navigate('/signer/ecash/send')}
               style={{
                 ...styles.actionButton,
                 width: '40%'
