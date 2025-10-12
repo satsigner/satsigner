@@ -210,7 +210,7 @@ export default function EcashReceivePage() {
     [handleTokenChange]
   )
 
-  const getStatusColor = (status: string) => {
+  function getStatusColor(status: string) {
     switch (status) {
       case 'PENDING':
         return warning
@@ -275,8 +275,6 @@ export default function EcashReceivePage() {
               onPress={() => setActiveTab('lightning')}
             />
           </SSHStack>
-
-          {/* Ecash Tab Content */}
           {activeTab === 'ecash' && (
             <SSVStack gap="sm">
               <SSVStack gap="xs">
@@ -325,8 +323,6 @@ export default function EcashReceivePage() {
               />
             </SSVStack>
           )}
-
-          {/* Lightning Tab Content */}
           {activeTab === 'lightning' && (
             <SSVStack gap="md">
               <SSVStack gap="xs">

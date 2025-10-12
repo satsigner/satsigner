@@ -47,23 +47,23 @@ export default function EcashLanding() {
     fetchPrices(mempoolUrl)
   }, [fetchPrices, fiatCurrency, mempoolUrl])
 
-  const handleSendPress = () => {
+  function handleSendPress() {
     router.navigate('/signer/ecash/send')
   }
 
-  const handleReceivePress = () => {
+  function handleReceivePress() {
     router.navigate('/signer/ecash/receive')
   }
 
-  const handleCameraPress = () => {
+  function handleCameraPress() {
     setCameraModalVisible(true)
   }
 
-  const handleSettingsPress = () => {
+  function handleSettingsPress() {
     router.navigate('/signer/ecash/settings')
   }
 
-  const handleQRCodeScanned = ({ data }: { data: string }) => {
+  function handleQRCodeScanned({ data }: { data: string }) {
     setCameraModalVisible(false)
 
     // Clean the data (remove any whitespace and prefixes)
@@ -99,7 +99,6 @@ export default function EcashLanding() {
       return
     }
 
-    // Generic success message for other QR codes
     toast.success(t('ecash.scan.qrCodeScanned'))
   }
 
@@ -199,15 +198,13 @@ export default function EcashLanding() {
               ))}
               {transactions.length > 50 && (
                 <SSText color="muted" size="sm" style={styles.moreTransactions}>
-                  +{transactions.length - 50} more transactions
+                  {t('ecash.moreTransactions', { count: transactions.length - 50 })}
                 </SSText>
               )}
             </SSVStack>
           )}
         </SSVStack>
       </ScrollView>
-
-      {/* Camera Modal */}
       <SSModal
         visible={cameraModalVisible}
         fullOpacity

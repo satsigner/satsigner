@@ -27,7 +27,6 @@ import {
   isLNURL
 } from '@/utils/lnurl'
 
-// Define the type for makeRequest
 type MakeRequest = <T>(
   path: string,
   options?: {
@@ -37,7 +36,7 @@ type MakeRequest = <T>(
   }
 ) => Promise<T>
 
-interface DecodedInvoice {
+type DecodedInvoice = {
   payment_request: string
   value: string
   description: string
@@ -48,12 +47,12 @@ interface DecodedInvoice {
   num_satoshis: string
   num_msat: string
   features: Record<string, { name: string }>
-  route_hints: any[]
+  route_hints: unknown[]
   payment_secret: string
   min_final_cltv_expiry: string
 }
 
-interface LNURLPayResponse {
+type LNURLPayResponse = {
   callback: string
   maxSendable: number
   minSendable: number
@@ -394,7 +393,6 @@ export default function EcashSendPage() {
           headerTitle: () => <SSText uppercase>{t('ecash.send.title')}</SSText>
         }}
       />
-
       <ScrollView>
         <SSVStack gap="lg">
           <SSHStack>
@@ -411,8 +409,6 @@ export default function EcashSendPage() {
               onPress={() => setActiveTab('lightning')}
             />
           </SSHStack>
-
-          {/* Ecash Tab Content */}
           {activeTab === 'ecash' && (
             <SSVStack gap="md">
               <SSVStack gap="xs">
@@ -472,8 +468,6 @@ export default function EcashSendPage() {
               )}
             </SSVStack>
           )}
-
-          {/* Lightning Tab Content */}
           {activeTab === 'lightning' && (
             <SSVStack gap="md">
               <SSVStack gap="sm">
@@ -536,8 +530,6 @@ export default function EcashSendPage() {
           )}
         </SSVStack>
       </ScrollView>
-
-      {/* Camera Modal */}
       <SSModal
         visible={cameraModalVisible}
         fullOpacity

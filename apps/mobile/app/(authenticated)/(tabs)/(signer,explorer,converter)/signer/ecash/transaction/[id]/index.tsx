@@ -561,8 +561,6 @@ export default function EcashTransactionDetailPage() {
           )}
         </SSVStack>
       </ScrollView>
-
-      {/* QR Code Modal */}
       <SSModal
         visible={qrModalVisible}
         onClose={() => setQrModalVisible(false)}
