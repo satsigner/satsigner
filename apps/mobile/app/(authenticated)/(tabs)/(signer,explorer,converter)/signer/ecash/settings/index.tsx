@@ -14,18 +14,6 @@ export default function EcashSettingsPage() {
   const router = useRouter()
   const { clearAllData, mints, proofs, transactions } = useEcash()
 
-  function handleMintPress() {
-    router.navigate('/signer/ecash/settings/mint')
-  }
-
-  function handleBackupPress() {
-    router.navigate('/signer/ecash/settings/backup')
-  }
-
-  function handleRecoveryPress() {
-    router.navigate('/signer/ecash/settings/recovery')
-  }
-
   function handleClearAllData() {
     const hasData =
       mints.length > 0 || proofs.length > 0 || transactions.length > 0
@@ -70,7 +58,7 @@ export default function EcashSettingsPage() {
             <SSText uppercase>{t('ecash.settings.mintManagement')}</SSText>
             <SSButton
               label={t('ecash.mint.title')}
-              onPress={handleMintPress}
+              onPress={() => router.navigate('/signer/ecash/settings/mint')}
               variant="secondary"
             />
           </SSVStack>
@@ -80,12 +68,12 @@ export default function EcashSettingsPage() {
             <SSHStack gap="sm">
               <SSButton
                 label={t('ecash.backup.title')}
-                onPress={handleBackupPress}
+                onPress={() => router.navigate('/signer/ecash/settings/backup')}
                 style={{ flex: 1 }}
               />
               <SSButton
                 label={t('ecash.recovery.title')}
-                onPress={handleRecoveryPress}
+                onPress={() => router.navigate('/signer/ecash/settings/recovery')}
                 style={{ flex: 1 }}
               />
             </SSHStack>
