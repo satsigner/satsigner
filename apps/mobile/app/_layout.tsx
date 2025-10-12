@@ -104,7 +104,8 @@ export default function RootLayout() {
             borderRadius: 8,
             backgroundColor: Colors.gray[950],
             borderWidth: 1,
-            borderColor: Colors.gray[800]
+            borderColor: Colors.gray[800],
+            zIndex: 999999
           }}
         />
       </GestureHandlerRootView>
