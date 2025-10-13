@@ -5,8 +5,6 @@ import { useEcash } from '@/hooks/useEcash'
 import SSVStack from '@/layouts/SSVStack'
 
 type SSMintSelectorProps = {
-  selectedMintUrl?: string
-  onMintSelect: (mintUrl: string) => void
   style?: Record<string, unknown>
 }
 

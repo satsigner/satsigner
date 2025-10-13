@@ -104,7 +104,7 @@ function SSLNURLDetails({
 
           {/* Amount Input */}
           <SSVStack gap="xs">
-            <SSText color="muted">Amount (sats)</SSText>
+            <SSText color="muted">{t('lightning.amount')}</SSText>
             <TextInput
               style={[styles.input, inputStyles]}
               value={amount}

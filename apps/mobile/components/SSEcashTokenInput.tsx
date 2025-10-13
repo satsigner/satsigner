@@ -15,7 +15,7 @@ type SSEcashTokenInputProps = {
   onScan?: () => void
   placeholder?: string
   multiline?: boolean
-  style?: any
+  style?: Record<string, unknown>
 }
 
 function SSEcashTokenInput({
@@ -27,9 +27,8 @@ function SSEcashTokenInput({
   multiline = true,
   style
 }: SSEcashTokenInputProps) {
-  const handlePaste = useCallback(async () => {
+  const handlePaste = async () => {
     try {
-      // TODO: Implement clipboard paste
       if (onPaste) {
         onPaste()
       } else {
@@ -38,9 +37,9 @@ function SSEcashTokenInput({
     } catch {
       toast.error('Failed to paste from clipboard')
     }
-  }, [onPaste])
+  }
 
-  const handleScan = useCallback(() => {
+  const handleScan = () => {
     try {
       if (onScan) {
         onScan()
@@ -50,7 +49,7 @@ function SSEcashTokenInput({
     } catch {
       toast.error('Failed to scan QR code')
     }
-  }, [onScan])
+  }
 
   return (
     <SSVStack gap="sm">
