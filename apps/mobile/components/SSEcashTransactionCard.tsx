@@ -27,9 +27,7 @@ type SSEcashTransactionCardProps = {
   transaction: EcashTransaction
 }
 
-function SSEcashTransactionCard({
-  transaction
-}: SSEcashTransactionCardProps) {
+function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
   const router = useRouter()
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [fiatCurrency, btcPrice, fetchPrices] = usePriceStore(
