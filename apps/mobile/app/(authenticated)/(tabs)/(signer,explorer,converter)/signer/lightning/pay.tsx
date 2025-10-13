@@ -18,6 +18,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
+import { useShallow } from 'zustand/react/shallow'
 import { Typography } from '@/styles'
 import {
   decodeLNURL,
@@ -66,6 +67,9 @@ export default function PayPage() {
   const [comment, setComment] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [isFetchingDetails, setIsFetchingDetails] = useState(false)
+  const [fiatCurrency, satsToFiat] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  )
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [isLNURLMode, setIsLNURLMode] = useState(false)
   const [lnurlDetails, setLNURLDetails] = useState<any>(null)
@@ -383,6 +387,8 @@ export default function PayPage() {
                     comment={comment}
                     onCommentChange={setComment}
                     inputStyles={styles.input}
+                    fiatCurrency={fiatCurrency}
+                    satsToFiat={satsToFiat}
                   />
                 )}
               </SSVStack>

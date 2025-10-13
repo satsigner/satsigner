@@ -504,6 +504,8 @@ export default function EcashSendPage() {
                     comment={comment}
                     onCommentChange={setComment}
                     inputStyles={styles.input}
+                    fiatCurrency={fiatCurrency}
+                    satsToFiat={satsToFiat}
                   />
                 )}
               </SSVStack>
