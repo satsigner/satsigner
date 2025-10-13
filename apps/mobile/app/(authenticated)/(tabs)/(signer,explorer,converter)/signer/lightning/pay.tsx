@@ -372,6 +372,8 @@ export default function PayPage() {
                     decodedInvoice={decodedInvoice}
                     showCreated
                     showPaymentHash
+                    fiatCurrency={fiatCurrency}
+                    satsToFiat={satsToFiat}
                   />
                 )}
 

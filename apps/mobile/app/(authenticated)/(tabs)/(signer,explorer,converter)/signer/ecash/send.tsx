@@ -491,7 +491,11 @@ export default function EcashSendPage() {
                 </SSHStack>
 
                 {decodedInvoice && !isLNURLMode && (
-                  <SSPaymentDetails decodedInvoice={decodedInvoice} />
+                  <SSPaymentDetails 
+                    decodedInvoice={decodedInvoice}
+                    fiatCurrency={fiatCurrency}
+                    satsToFiat={satsToFiat}
+                  />
                 )}
 
                 {isLNURLMode && (

@@ -1,11 +1,9 @@
 import { StyleSheet, View } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { usePriceStore } from '@/store/price'
 import { Typography } from '@/styles'
 import { formatNumber } from '@/utils/format'
 
@@ -29,16 +27,17 @@ type SSPaymentDetailsProps = {
   decodedInvoice: DecodedInvoice
   showCreated?: boolean
   showPaymentHash?: boolean
+  fiatCurrency: string
+  satsToFiat: (amount: number) => number
 }
 
 function SSPaymentDetails({
   decodedInvoice,
   showCreated = true,
-  showPaymentHash = true
+  showPaymentHash = true,
+  fiatCurrency,
+  satsToFiat
 }: SSPaymentDetailsProps) {
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
-  )
 
   return (
     <SSVStack gap="sm" style={styles.invoiceDetails}>
