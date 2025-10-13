@@ -18,7 +18,6 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
-import { useShallow } from 'zustand/react/shallow'
 import { Typography } from '@/styles'
 import {
   decodeLNURL,
