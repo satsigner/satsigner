@@ -18,7 +18,7 @@ type SSEcashTokenInputProps = {
   style?: any
 }
 
-export default function SSEcashTokenInput({
+function SSEcashTokenInput({
   value,
   onChangeText,
   onPaste,
@@ -88,3 +88,5 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace'
   }
 })
+
+export default SSEcashTokenInput

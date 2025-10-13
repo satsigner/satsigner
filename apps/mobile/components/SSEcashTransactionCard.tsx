@@ -23,11 +23,11 @@ import { formatFiatPrice } from '@/utils/format'
 import SSStyledSatText from './SSStyledSatText'
 import SSTimeAgoText from './SSTimeAgoText'
 
-interface SSEcashTransactionCardProps {
+type SSEcashTransactionCardProps = {
   transaction: EcashTransaction
 }
 
-export default function SSEcashTransactionCard({
+function SSEcashTransactionCard({
   transaction
 }: SSEcashTransactionCardProps) {
   const router = useRouter()
@@ -64,7 +64,10 @@ export default function SSEcashTransactionCard({
   })()
 
   function handlePress() {
-    router.push(`/signer/ecash/transaction/${transaction.id}` as any)
+    router.push({
+      pathname: '/signer/ecash/transaction/[id]',
+      params: { id: transaction.id }
+    })
   }
 
   function getTransactionIcon(type: EcashTransaction['type']) {
@@ -207,7 +210,6 @@ export default function SSEcashTransactionCard({
               </SSHStack>
             </SSHStack>
           </SSHStack>
-
           {priceDisplay !== '' && (
             <SSHStack justifyBetween>
               <SSHStack
@@ -251,3 +253,5 @@ const styles = StyleSheet.create({
     borderColor: Colors.gray[800]
   }
 })
+
+export default SSEcashTransactionCard
