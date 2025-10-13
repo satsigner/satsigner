@@ -28,7 +28,11 @@ export default function EcashReceivePage() {
   const [decodedToken, setDecodedToken] = useState<EcashToken | null>(null)
   const [amount, setAmount] = useState('')
   const [memo, setMemo] = useState('')
-  const [mintQuote, setMintQuote] = useState<unknown>(null)
+  const [mintQuote, setMintQuote] = useState<{
+    request: string
+    quote: string
+    expiry: number
+  } | null>(null)
   const [quoteStatus, setQuoteStatus] = useState<string>('')
   const [isRedeeming, setIsRedeeming] = useState(false)
   const [isCreatingQuote, setIsCreatingQuote] = useState(false)
@@ -110,7 +114,7 @@ export default function EcashReceivePage() {
       // Start automatic polling for payment status with a small delay
       setTimeout(() => {
         startPolling(async () => {
-          if (!activeMint || !quote) return
+          if (!activeMint || !quote) return false
 
           try {
             const status = await checkMintQuote(activeMint.url, quote.quote)
