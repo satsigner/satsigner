@@ -22,10 +22,13 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
+      - name: clear yarn cache
+        run: yarn cache clean
+
       - name: install dependencies
         uses: borales/actions-yarn@v4.2.0
         with:
-          cmd: install
+          cmd: install --frozen-lockfile
 
       - name: type check
         uses: borales/actions-yarn@v4.2.0
