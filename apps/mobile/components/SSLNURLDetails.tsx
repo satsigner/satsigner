@@ -57,7 +57,6 @@ function SSLNURLDetails({
   fiatCurrency,
   satsToFiat
 }: SSLNURLDetailsProps) {
-
   if (!lnurlDetails && !isFetching) {
     return null
   }
