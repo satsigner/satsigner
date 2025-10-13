@@ -270,7 +270,6 @@ export function getCollectedSignerPubkeys(psbtBase64: string): Set<string> {
         }
       }
     }
-  } else {
   }
 
   return signerPubkeys

@@ -113,6 +113,9 @@ function SSDevicesGroupChat() {
     () => account?.nostr?.dms || [],
     [account?.nostr?.dms]
   )
+
+  const memoizedMessages = useMemo(() => messages, [messages])
+
   const membersList = useMemo(
     () =>
       members.map((member: { npub: string; color?: string }) => ({
@@ -213,7 +216,7 @@ function SSDevicesGroupChat() {
       const newFormattedNpubs = new Map()
       let hasNewAuthors = false
 
-      for (const msg of messages) {
+      for (const msg of memoizedMessages) {
         if (!formattedAuthorsRef.current.has(msg.author)) {
           const formatted = await formatNpub(msg.author, membersList)
           newFormattedNpubs.set(msg.author, formatted)
@@ -228,7 +231,7 @@ function SSDevicesGroupChat() {
     }
 
     formatNpubs()
-  }, [messages, membersList])
+  }, [memoizedMessages, membersList])
 
   useEffect(() => {
     if (messages.length > 0 && account?.nostr?.relays?.length) {
