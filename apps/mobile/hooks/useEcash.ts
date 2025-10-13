@@ -385,7 +385,7 @@ export function useEcash() {
   )
 
   const restoreFromBackupHandler = useCallback(
-    (backupData: any) => {
+    (backupData: unknown) => {
       try {
         restoreFromBackup(backupData)
         toast.success(t('ecash.success.backupRestored'))
@@ -409,7 +409,7 @@ export function useEcash() {
   const resumePollingForTransaction = useCallback(
     async (
       transactionId: string,
-      startPolling: (pollFunction: () => Promise<any>) => void
+      startPolling: (pollFunction: () => Promise<boolean>) => void
     ) => {
       const transaction = transactions.find((t) => t.id === transactionId)
       if (
@@ -494,7 +494,7 @@ export function useQuotePolling() {
   const isPollingRef = useRef(false)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  const startPolling = useCallback((pollFunction: () => Promise<any>) => {
+  const startPolling = useCallback((pollFunction: () => Promise<boolean>) => {
     setIsPolling(true)
     isPollingRef.current = true
     setPollCount(0)
