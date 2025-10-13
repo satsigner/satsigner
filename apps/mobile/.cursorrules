@@ -113,8 +113,10 @@ Use arrow functions for:
 - Simple event handlers that don't need memoization
 
 [Export Style]
-Place export default at the bottom of the file, after all function declarations and component definitions
-✅ Correct:
+For components: Place export default at the bottom of the file, after all function declarations and component definitions
+For pages: Usually export default at the top for better readability
+
+✅ Correct for components:
 
 ```typescript
 function MyComponent() {
@@ -124,7 +126,15 @@ function MyComponent() {
 export default MyComponent
 ```
 
-❌ Wrong:
+✅ Correct for pages:
+
+```typescript
+export default function MyPage() {
+  return <div>Hello</div>
+}
+```
+
+❌ Wrong for components:
 
 ```typescript
 export default function MyComponent() {
