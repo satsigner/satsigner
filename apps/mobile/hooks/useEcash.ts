@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import {
   checkMintQuote,
@@ -35,25 +36,49 @@ const MAX_POLL_ATTEMPTS = 120 // 3 minutes max
 // Cache for wallet instances
 
 export function useEcash() {
-  const mints = useEcashStore((state) => state.mints)
-  const activeMint = useEcashStore((state) => state.activeMint)
-  const proofs = useEcashStore((state) => state.proofs)
-  const transactions = useEcashStore((state) => state.transactions)
-  const mintQuotes = useEcashStore((state) => state.quotes.mint)
-  const addMint = useEcashStore((state) => state.addMint)
-  const removeMint = useEcashStore((state) => state.removeMint)
-  const setActiveMint = useEcashStore((state) => state.setActiveMint)
-  const addProofs = useEcashStore((state) => state.addProofs)
-  const removeProofs = useEcashStore((state) => state.removeProofs)
-  const updateMintBalance = useEcashStore((state) => state.updateMintBalance)
-  const addMintQuote = useEcashStore((state) => state.addMintQuote)
-  const removeMintQuote = useEcashStore((state) => state.removeMintQuote)
-  const addMeltQuote = useEcashStore((state) => state.addMeltQuote)
-  const removeMeltQuote = useEcashStore((state) => state.removeMeltQuote)
-  const addTransaction = useEcashStore((state) => state.addTransaction)
-  const updateTransaction = useEcashStore((state) => state.updateTransaction)
-  const restoreFromBackup = useEcashStore((state) => state.restoreFromBackup)
-  const clearAllData = useEcashStore((state) => state.clearAllData)
+  const {
+    mints,
+    activeMint,
+    proofs,
+    transactions,
+    quotes: { mint: mintQuotes },
+    addMint,
+    removeMint,
+    setActiveMint,
+    addProofs,
+    removeProofs,
+    updateMintBalance,
+    addMintQuote,
+    removeMintQuote,
+    addMeltQuote,
+    removeMeltQuote,
+    addTransaction,
+    updateTransaction,
+    restoreFromBackup,
+    clearAllData
+  } = useEcashStore(
+    useShallow((state) => ({
+      mints: state.mints,
+      activeMint: state.activeMint,
+      proofs: state.proofs,
+      transactions: state.transactions,
+      quotes: { mint: state.quotes.mint },
+      addMint: state.addMint,
+      removeMint: state.removeMint,
+      setActiveMint: state.setActiveMint,
+      addProofs: state.addProofs,
+      removeProofs: state.removeProofs,
+      updateMintBalance: state.updateMintBalance,
+      addMintQuote: state.addMintQuote,
+      removeMintQuote: state.removeMintQuote,
+      addMeltQuote: state.addMeltQuote,
+      removeMeltQuote: state.removeMeltQuote,
+      addTransaction: state.addTransaction,
+      updateTransaction: state.updateTransaction,
+      restoreFromBackup: state.restoreFromBackup,
+      clearAllData: state.clearAllData
+    }))
+  )
 
   const markReceivedTokensAsSpent = useCallback(() => {
     // Find receive transactions that contain the spent proofs and mark them as spent
