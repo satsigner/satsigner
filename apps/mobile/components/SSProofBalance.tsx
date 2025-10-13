@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native'
+import { type StyleProp, StyleSheet, type ViewStyle } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSText from '@/components/SSText'

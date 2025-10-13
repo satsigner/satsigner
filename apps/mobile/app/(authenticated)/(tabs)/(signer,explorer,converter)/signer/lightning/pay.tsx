@@ -89,7 +89,7 @@ export default function PayPage() {
       // Convert millisats to sats and set as amount
       const minSats = Math.ceil(details.minSendable / 1000)
       setAmount(minSats.toString())
-    } catch (error) {
+    } catch (_error) {
       setLNURLDetails(null)
       // Don't show error to user, just don't set the amount
     } finally {
@@ -151,7 +151,7 @@ export default function PayPage() {
           if (decoded.num_satoshis) {
             setAmount(decoded.num_satoshis)
           }
-        } catch (error) {
+        } catch (_error) {
           setDecodedInvoice(null)
         }
       } else {
@@ -294,7 +294,7 @@ export default function PayPage() {
           'The clipboard content is not a valid Lightning payment request or LNURL'
         )
       }
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('Error', 'Failed to read clipboard content')
     }
   }

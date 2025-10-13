@@ -83,8 +83,8 @@ export default function EcashRecoveryPage() {
   const handleRestoreBackup = useCallback(
     (validatedData: {
       version: string
-      mints: Array<{ url: string }>
-      proofs: Array<{ id: string; secret: string; C: string; amount: number }>
+      mints: { url: string }[]
+      proofs: { id: string; secret: string; C: string; amount: number }[]
       transactions: unknown[]
       totalBalance?: number
     }) => {
