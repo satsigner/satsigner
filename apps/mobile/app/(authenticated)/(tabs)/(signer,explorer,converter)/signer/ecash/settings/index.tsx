@@ -73,7 +73,9 @@ export default function EcashSettingsPage() {
               />
               <SSButton
                 label={t('ecash.recovery.title')}
-                onPress={() => router.navigate('/signer/ecash/settings/recovery')}
+                onPress={() =>
+                  router.navigate('/signer/ecash/settings/recovery')
+                }
                 style={{ flex: 1 }}
               />
             </SSHStack>
