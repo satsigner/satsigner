@@ -1,11 +1,9 @@
 import { StyleSheet, TextInput } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { usePriceStore } from '@/store/price'
 import { formatNumber } from '@/utils/format'
 
 type LNURLPayResponse = {
@@ -28,6 +26,8 @@ type SSLNURLDetailsProps = {
   comment?: string
   onCommentChange?: (comment: string) => void
   inputStyles?: Record<string, unknown>
+  fiatCurrency: string
+  satsToFiat: (amount: number) => number
 }
 
 function extractServiceName(metadata: string): string {
@@ -53,11 +53,10 @@ function SSLNURLDetails({
   onAmountChange,
   comment,
   onCommentChange,
-  inputStyles
+  inputStyles,
+  fiatCurrency,
+  satsToFiat
 }: SSLNURLDetailsProps) {
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
-  )
 
   if (!lnurlDetails && !isFetching) {
     return null
