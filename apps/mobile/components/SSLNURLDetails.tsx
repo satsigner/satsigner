@@ -8,7 +8,7 @@ import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { formatNumber } from '@/utils/format'
 
-interface LNURLPayResponse {
+type LNURLPayResponse = {
   callback: string
   maxSendable: number
   minSendable: number
@@ -19,7 +19,7 @@ interface LNURLPayResponse {
   allowsNostr?: boolean
 }
 
-interface SSLNURLDetailsProps {
+type SSLNURLDetailsProps = {
   lnurlDetails: LNURLPayResponse | null
   isFetching: boolean
   showCommentInfo?: boolean
@@ -27,10 +27,9 @@ interface SSLNURLDetailsProps {
   onAmountChange: (amount: string) => void
   comment?: string
   onCommentChange?: (comment: string) => void
-  inputStyles?: any
+  inputStyles?: Record<string, unknown>
 }
 
-// Helper function to extract service name from LNURL metadata
 function extractServiceName(metadata: string): string {
   try {
     const parsed = JSON.parse(metadata)
@@ -46,7 +45,7 @@ function extractServiceName(metadata: string): string {
   }
 }
 
-export default function SSLNURLDetails({
+function SSLNURLDetails({
   lnurlDetails,
   isFetching,
   showCommentInfo = false,
@@ -67,7 +66,6 @@ export default function SSLNURLDetails({
   return (
     <SSVStack gap="sm" style={styles.lnurlDetails}>
       <SSText uppercase>{t('lightning.lnurlDetails.title')}</SSText>
-
       {isFetching ? (
         <SSHStack gap="sm" style={styles.loadingRow}>
           <SSText color="muted" size="sm">
@@ -126,8 +124,6 @@ export default function SSLNURLDetails({
               </SSHStack>
             )}
           </SSVStack>
-
-          {/* Comment Input */}
           {onCommentChange && (
             <SSVStack gap="xs">
               <SSText color="muted">Comment (optional)</SSText>
@@ -193,3 +189,5 @@ const styles = StyleSheet.create({
     marginLeft: 4
   }
 })
+
+export default SSLNURLDetails
