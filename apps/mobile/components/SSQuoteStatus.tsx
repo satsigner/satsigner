@@ -10,7 +10,7 @@ type SSQuoteStatusProps = {
   showCheckButton?: boolean
 }
 
-export default function SSQuoteStatus({
+function SSQuoteStatus({
   status,
   onCheck,
   isLoading = false,
@@ -68,3 +68,5 @@ export default function SSQuoteStatus({
     </SSVStack>
   )
 }
+
+export default SSQuoteStatus

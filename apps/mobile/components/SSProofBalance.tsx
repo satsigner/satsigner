@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { StyleSheet } from 'react-native'
+import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSText from '@/components/SSText'
@@ -15,10 +15,10 @@ import { formatFiatPrice, formatNumber } from '@/utils/format'
 
 type SSProofBalanceProps = {
   mintUrl?: string
-  style?: any
+  style?: StyleProp<ViewStyle>
 }
 
-export default function SSProofBalance({ style }: SSProofBalanceProps) {
+function SSProofBalance({ style }: SSProofBalanceProps) {
   const { proofs } = useEcash()
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [fiatCurrency, btcPrice, fetchPrices] = usePriceStore(
@@ -32,7 +32,6 @@ export default function SSProofBalance({ style }: SSProofBalanceProps) {
     (state) => state.configsMempool['bitcoin']
   )
 
-  // Fetch prices on mount and when currency changes
   useEffect(() => {
     fetchPrices(mempoolUrl)
   }, [fetchPrices, fiatCurrency, mempoolUrl])
@@ -71,3 +70,5 @@ const styles = StyleSheet.create({
     paddingVertical: 16
   }
 })
+
+export default SSProofBalance

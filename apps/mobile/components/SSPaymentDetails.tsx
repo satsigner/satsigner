@@ -25,13 +25,13 @@ interface DecodedInvoice {
   min_final_cltv_expiry: string
 }
 
-interface SSPaymentDetailsProps {
+type SSPaymentDetailsProps = {
   decodedInvoice: DecodedInvoice
   showCreated?: boolean
   showPaymentHash?: boolean
 }
 
-export default function SSPaymentDetails({
+function SSPaymentDetails({
   decodedInvoice,
   showCreated = true,
   showPaymentHash = true
@@ -64,7 +64,6 @@ export default function SSPaymentDetails({
               </SSText>
             </SSHStack>
           </SSHStack>
-
           {decodedInvoice.description && (
             <SSHStack gap="xs" style={styles.detailRow}>
               <SSText color="muted" style={styles.detailLabel}>
@@ -192,3 +191,5 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5
   }
 })
+
+export default SSPaymentDetails
