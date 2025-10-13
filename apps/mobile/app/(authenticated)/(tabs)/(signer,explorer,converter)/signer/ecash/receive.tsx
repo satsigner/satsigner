@@ -28,7 +28,7 @@ export default function EcashReceivePage() {
   const [decodedToken, setDecodedToken] = useState<EcashToken | null>(null)
   const [amount, setAmount] = useState('')
   const [memo, setMemo] = useState('')
-  const [mintQuote, setMintQuote] = useState<any>(null)
+  const [mintQuote, setMintQuote] = useState<unknown>(null)
   const [quoteStatus, setQuoteStatus] = useState<string>('')
   const [isRedeeming, setIsRedeeming] = useState(false)
   const [isCreatingQuote, setIsCreatingQuote] = useState(false)

@@ -47,17 +47,9 @@ export default function EcashLanding() {
     fetchPrices(mempoolUrl)
   }, [fetchPrices, fiatCurrency, mempoolUrl])
 
-  function handleReceivePress() {
-    router.navigate('/signer/ecash/receive')
-  }
-
-  function handleCameraPress() {
-    setCameraModalVisible(true)
-  }
-
-  function handleSettingsPress() {
-    router.navigate('/signer/ecash/settings')
-  }
+  const handleReceivePress = () => router.navigate('/signer/ecash/receive')
+  const handleCameraPress = () => setCameraModalVisible(true)
+  const handleSettingsPress = () => router.navigate('/signer/ecash/settings')
 
   function handleQRCodeScanned({ data }: { data: string }) {
     setCameraModalVisible(false)
@@ -95,7 +87,7 @@ export default function EcashLanding() {
       return
     }
 
-    toast.success(t('ecash.scan.qrCodeScanned'))
+    toast.success(t('ecash.scan.unknownQRCode'))
   }
 
   const totalBalance = proofs.reduce((sum, proof) => sum + proof.amount, 0)

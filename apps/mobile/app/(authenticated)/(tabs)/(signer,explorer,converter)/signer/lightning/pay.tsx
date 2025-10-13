@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { useFonts } from 'expo-font'
@@ -71,7 +70,7 @@ export default function PayPage() {
   )
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [isLNURLMode, setIsLNURLMode] = useState(false)
-  const [lnurlDetails, setLNURLDetails] = useState<any>(null)
+  const [lnurlDetails, setLNURLDetails] = useState<unknown>(null)
   const [decodedInvoice, setDecodedInvoice] = useState<DecodedInvoice | null>(
     null
   )
