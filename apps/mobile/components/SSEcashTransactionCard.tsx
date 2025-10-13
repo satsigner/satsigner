@@ -86,7 +86,7 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
       onPress={() => router.push({
         pathname: '/signer/ecash/transaction/[id]',
         params: { id: transaction.id }
-      })} 
+      } as never)} 
       activeOpacity={0.7}
     >
       <SSVStack style={styles.container} gap="none">

@@ -22,7 +22,8 @@ import {
   decodeLNURL,
   fetchLNURLPayDetails,
   handleLNURLPay,
-  isLNURL
+  isLNURL,
+  type LNURLPayResponse
 } from '@/utils/lnurl'
 
 type MakeRequest = <T>(
@@ -70,7 +71,7 @@ export default function PayPage() {
   )
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [isLNURLMode, setIsLNURLMode] = useState(false)
-  const [lnurlDetails, setLNURLDetails] = useState<unknown>(null)
+  const [lnurlDetails, setLNURLDetails] = useState<LNURLPayResponse | null>(null)
   const [decodedInvoice, setDecodedInvoice] = useState<DecodedInvoice | null>(
     null
   )
