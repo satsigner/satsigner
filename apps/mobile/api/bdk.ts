@@ -21,7 +21,7 @@ import {
   type BlockchainEsploraConfig,
   BlockChainNames,
   KeychainKind,
-  Network
+  type Network
 } from 'bdk-rn/lib/lib/enums'
 
 import { type Account, type Key, type Secret } from '@/types/models/Account'
@@ -36,10 +36,7 @@ import {
   getExtendedKeyFromDescriptor,
   getFingerprintFromExtendedPublicKey
 } from '@/utils/bip32'
-import {
-  getDescriptorFromMnemonic,
-  getEntropyFromMnemonic
-} from '@/utils/bip39'
+import { getDescriptorFromMnemonic } from '@/utils/bip39'
 import {
   getMultisigDerivationPathFromScriptVersion,
   getMultisigScriptTypeFromScriptVersion
@@ -549,94 +546,6 @@ async function getWalletFromMnemonic(
       ? await internalDescriptor.asString()
       : '',
     wallet
-  }
-}
-
-export async function testBdk() {
-  const sampleMnemonicSeed =
-    'visa toddler sentence rival twin believe report person library security stadium hurt'
-  const passphrase = ''
-  const parsedMnemonic = await new Mnemonic().fromString(sampleMnemonicSeed)
-  const kind = KeychainKind.External
-  const networks: Network[] = [
-    Network.Bitcoin,
-    Network.Signet,
-    Network.Regtest,
-    Network.Testnet
-  ]
-
-  for (const network of networks) {
-    console.log('------------------------------------------------------------')
-    console.log(network)
-    const secretKey = await new DescriptorSecretKey().create(
-      network,
-      parsedMnemonic,
-      passphrase
-    )
-
-    const bip44descriptor = await new Descriptor().newBip44(
-      secretKey,
-      kind,
-      network
-    )
-    const bip49descriptor = await new Descriptor().newBip49(
-      secretKey,
-      kind,
-      network
-    )
-    const bip84descriptor = await new Descriptor().newBip84(
-      secretKey,
-      kind,
-      network
-    )
-    const bip86descriptor = await new Descriptor().newBip86(
-      secretKey,
-      kind,
-      network
-    )
-
-    const bip44descriptorString = await bip44descriptor.asString()
-    const bip49descriptorString = await bip49descriptor.asString()
-    const bip84descriptorString = await bip84descriptor.asString()
-    const bip86descriptorString = await bip86descriptor.asString()
-
-    const bip44descriptorString2 = getDescriptorFromMnemonic(
-      sampleMnemonicSeed,
-      'P2PKH',
-      kind,
-      '',
-      network
-    )
-    const bip49descriptorString2 = getDescriptorFromMnemonic(
-      sampleMnemonicSeed,
-      'P2SH-P2WPKH',
-      kind,
-      '',
-      network
-    )
-    const bip84descriptorString2 = getDescriptorFromMnemonic(
-      sampleMnemonicSeed,
-      'P2WPKH',
-      kind,
-      '',
-      network
-    )
-    const bip86descriptorString2 = getDescriptorFromMnemonic(
-      sampleMnemonicSeed,
-      'P2TR',
-      kind,
-      '',
-      network
-    )
-
-    console.log('bip44descriptorString=', bip44descriptorString)
-    console.log('bip44descriptorString2=', bip44descriptorString2)
-    console.log('bip49descriptorString=', bip49descriptorString)
-    console.log('bip49descriptorString2=', bip49descriptorString2)
-    console.log('bip84descriptorString=', bip84descriptorString)
-    console.log('bip84descriptorString2=', bip84descriptorString2)
-    console.log('bip86descriptorString=', bip86descriptorString)
-    console.log('bip86descriptorString2=', bip86descriptorString2)
   }
 }
 

@@ -54,7 +54,6 @@ import {
   sampleSignetXpubFingerprint,
   sampleTestnet4Address
 } from '@/utils/samples'
-import { testBdk } from '@/api/bdk'
 
 // Helper function to map local Network type to bdk-rn Network enum
 function mapNetworkToBdkNetwork(network: 'bitcoin' | 'testnet' | 'signet') {
@@ -74,11 +73,6 @@ function mapNetworkToBdkNetwork(network: 'bitcoin' | 'testnet' | 'signet') {
 export default function AccountList() {
   const router = useRouter()
   const { width } = useWindowDimensions()
-
-  useEffect(() => {
-    console.log('ONCE')
-    testBdk()
-  }, [])
 
   const [network, setSelectedNetwork, connectionMode, mempoolUrl] =
     useBlockchainStore(
