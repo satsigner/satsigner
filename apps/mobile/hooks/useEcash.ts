@@ -486,14 +486,11 @@ export function useEcash() {
   )
 
   return {
-    // State
     mints,
     activeMint,
     proofs,
     transactions,
     mintQuotes,
-
-    // Actions
     connectToMint: connectToMintHandler,
     disconnectMint,
     createMintQuote: createMintQuoteHandler,

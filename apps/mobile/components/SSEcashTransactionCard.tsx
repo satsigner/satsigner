@@ -47,7 +47,7 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
   }, [fetchPrices, fiatCurrency, mempoolUrl])
 
   // Calculate price display during render
-  const priceDisplay = btcPrice 
+  const priceDisplay = btcPrice
     ? `${formatFiatPrice(transaction.amount, btcPrice)} ${fiatCurrency}`
     : ''
 
@@ -82,11 +82,13 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
   }
 
   return (
-    <TouchableOpacity 
-      onPress={() => router.push({
-        pathname: '/signer/ecash/transaction/[id]',
-        params: { id: transaction.id }
-      } as never)} 
+    <TouchableOpacity
+      onPress={() =>
+        router.push({
+          pathname: '/signer/ecash/transaction/[id]',
+          params: { id: transaction.id }
+        } as never)
+      }
       activeOpacity={0.7}
     >
       <SSVStack style={styles.container} gap="none">

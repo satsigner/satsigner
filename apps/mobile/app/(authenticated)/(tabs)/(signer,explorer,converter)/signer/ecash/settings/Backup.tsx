@@ -21,7 +21,7 @@ export default function EcashBackupPage() {
   const [showBackupData, setShowBackupData] = useState(false)
   const [backupData, setBackupData] = useState('')
 
-  const generateBackupData = useCallback(() => {
+  const generateBackupData = () => {
     const data = {
       version: '1.0',
       mints: mints.map((mint) => ({
@@ -62,7 +62,7 @@ export default function EcashBackupPage() {
 
     setBackupData(JSON.stringify(data, null, 2))
     setShowBackupData(true)
-  }, [mints, proofs, activeMint, transactions])
+  }
 
   const handleCopyBackup = useCallback(async () => {
     try {
