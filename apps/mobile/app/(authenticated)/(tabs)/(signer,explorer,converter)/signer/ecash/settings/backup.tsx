@@ -73,10 +73,10 @@ export default function EcashBackupPage() {
     }
   }, [backupData])
 
-  const handleClose = useCallback(() => {
+  const handleClose = () => {
     setShowBackupData(false)
     setBackupData('')
-  }, [])
+  }
 
   return (
     <SSMainLayout>
