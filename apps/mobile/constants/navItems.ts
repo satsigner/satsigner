@@ -43,9 +43,9 @@ export const navMenuGroups: NavMenuGroup[] = [
       {
         title: t('navigation.item.ecash'),
         icon: SSIconECash,
-        url: '',
-        isSoon: true,
-        platform: PLATFORM.ANDROID
+        url: '/signer/ecash',
+        isSoon: false,
+        platform: PLATFORM.HYBRID
       },
       {
         title: t('navigation.item.nostr'),

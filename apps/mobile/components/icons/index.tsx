@@ -49,6 +49,7 @@ import SSIconHamburger from './SSIconHamburger'
 import SSIconHideWarning from './SSIconHideWarning'
 import SSIconHistoryChart from './SSIconHistoryChart'
 import SSIconIncoming from './SSIconIncoming'
+import SSIconIncomingLightning from './SSIconIncomingLightning'
 import SSIconInfo from './SSIconInfo'
 import SSIconInformation from './SSIconInfomation'
 import SSIconKeys from './SSIconKeys'
@@ -62,6 +63,7 @@ import SSIconMenu from './SSIconMenu'
 import SSIconMultiSignature from './SSIconMultiSignature'
 import SSIconNetwork from './SSIconNetwork'
 import SSIconOutgoing from './SSIconOutgoing'
+import SSIconOutgoingLightning from './SSIconOutgoingLightning'
 import SSIconPencil from './SSIconPencil'
 import SSIconPlus from './SSIconPlus'
 import SSIconRefresh from './SSIconRefresh'
@@ -135,6 +137,7 @@ export {
   SSIconHideWarning,
   SSIconHistoryChart,
   SSIconIncoming,
+  SSIconIncomingLightning,
   SSIconInfo,
   SSIconInformation,
   SSIconKeys,
@@ -148,6 +151,7 @@ export {
   SSIconMultiSignature,
   SSIconNetwork,
   SSIconOutgoing,
+  SSIconOutgoingLightning,
   SSIconPencil,
   SSIconPlus,
   SSIconRefresh,
