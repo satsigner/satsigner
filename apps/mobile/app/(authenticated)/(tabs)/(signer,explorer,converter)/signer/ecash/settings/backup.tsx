@@ -87,17 +87,14 @@ export default function EcashBackupPage() {
           )
         }}
       />
-
       <ScrollView>
         <SSVStack gap="lg">
           <SSVStack gap="md">
             <SSText uppercase>{t('ecash.backup.title')}</SSText>
             <SSText color="muted">{t('ecash.backup.description')}</SSText>
           </SSVStack>
-
           <SSVStack gap="md">
             <SSText uppercase>{t('ecash.backup.walletInfo')}</SSText>
-
             <SSVStack gap="sm">
               <SSHStack>
                 <SSText color="muted" style={{ flex: 1 }}>
@@ -112,21 +109,18 @@ export default function EcashBackupPage() {
                   sats
                 </SSText>
               </SSHStack>
-
               <SSHStack>
                 <SSText color="muted" style={{ flex: 1 }}>
                   {t('ecash.backup.connectedMints')}:
                 </SSText>
                 <SSText weight="medium">{mints.length}</SSText>
               </SSHStack>
-
               <SSHStack>
                 <SSText color="muted" style={{ flex: 1 }}>
                   {t('ecash.backup.totalProofs')}:
                 </SSText>
                 <SSText weight="medium">{proofs.length}</SSText>
               </SSHStack>
-
               {activeMint && (
                 <SSHStack>
                   <SSText color="muted" style={{ flex: 1 }}>
@@ -139,21 +133,18 @@ export default function EcashBackupPage() {
               )}
             </SSVStack>
           </SSVStack>
-
           <SSVStack gap="md">
             <SSText uppercase>{t('ecash.backup.warning')}</SSText>
             <SSText color="muted" size="sm">
               {t('ecash.backup.warningText')}
             </SSText>
           </SSVStack>
-
           <SSButton
             label={t('ecash.backup.generateBackup')}
             onPress={generateBackupData}
             variant="gradient"
             gradientType="special"
           />
-
           {showBackupData && (
             <SSVStack gap="md" style={styles.backupDataSection}>
               <SSText uppercase>{t('ecash.backup.backupData')}</SSText>
@@ -167,7 +158,6 @@ export default function EcashBackupPage() {
                 editable={false}
                 style={styles.backupInput}
               />
-
               <SSHStack gap="sm">
                 <SSButton
                   label={t('common.copy')}

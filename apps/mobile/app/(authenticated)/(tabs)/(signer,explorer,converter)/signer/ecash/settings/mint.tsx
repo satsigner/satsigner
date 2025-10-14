@@ -65,10 +65,8 @@ export default function EcashMintPage() {
           headerTitle: () => <SSText uppercase>{t('ecash.mint.title')}</SSText>
         }}
       />
-
       <ScrollView>
         <SSVStack gap="lg">
-          {/* Connect to Mint Section */}
           <SSVStack gap="md">
             {mints.length > 0 && (
               <SSVStack gap="xs" style={styles.warningContainer}>
@@ -80,7 +78,6 @@ export default function EcashMintPage() {
                 </SSText>
               </SSVStack>
             )}
-
             <SSVStack gap="xs">
               <SSText uppercase>{t('ecash.mint.url')}</SSText>
               <SSTextInput
@@ -90,7 +87,6 @@ export default function EcashMintPage() {
                 keyboardType="url"
               />
             </SSVStack>
-
             <SSButton
               label={mints.length > 0 ? 'Switch Mint' : t('ecash.mint.connect')}
               onPress={handleConnectMint}
@@ -99,8 +95,6 @@ export default function EcashMintPage() {
               gradientType="special"
             />
           </SSVStack>
-
-          {/* Connected Mint */}
           {mints.length > 0 && (
             <SSVStack gap="md">
               <SSText uppercase>Connected Mint</SSText>
@@ -140,8 +134,6 @@ export default function EcashMintPage() {
               ))}
             </SSVStack>
           )}
-
-          {/* Empty State */}
           {mints.length === 0 && (
             <SSVStack gap="md" style={styles.emptyState}>
               <SSText color="muted" center>
@@ -152,8 +144,6 @@ export default function EcashMintPage() {
               </SSText>
             </SSVStack>
           )}
-
-          {/* Popular Mints Section */}
           <SSVStack gap="md">
             <SSText uppercase>{t('ecash.mint.defaultMints')}</SSText>
             <SSVStack gap="xs">
