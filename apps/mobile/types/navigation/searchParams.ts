@@ -38,3 +38,10 @@ export type TxSearchParams = {
 export type UtxoSearchParams = {
   vout: string
 } & TxSearchParams
+
+export type EcashSearchParams = {
+  mintUrl?: string
+  amount?: string
+  token?: string
+  id?: string
+}
