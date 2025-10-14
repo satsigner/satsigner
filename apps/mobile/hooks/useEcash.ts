@@ -30,10 +30,8 @@ import {
   type MintQuoteState
 } from '@/types/models/Ecash'
 
-const POLL_INTERVAL = 1500 // 1.5 seconds
-const MAX_POLL_ATTEMPTS = 120 // 3 minutes max
-
-// Cache for wallet instances
+const POLL_INTERVAL = 1500
+const MAX_POLL_ATTEMPTS = 120
 
 export function useEcash() {
   const {
@@ -81,15 +79,11 @@ export function useEcash() {
   )
 
   const markReceivedTokensAsSpent = useCallback(() => {
-    // Find receive transactions that contain the spent proofs and mark them as spent
     transactions.forEach((transaction) => {
       if (
         transaction.type === 'receive' &&
         transaction.tokenStatus === 'unspent'
       ) {
-        // For now, we'll mark all receive transactions as spent when any proofs are used
-        // In a more sophisticated implementation, we could track which specific proofs
-        // belong to which receive transaction
         updateTransaction(transaction.id, { tokenStatus: 'spent' })
       }
     })
@@ -98,7 +92,6 @@ export function useEcash() {
   const connectToMintHandler = useCallback(
     async (mintUrl: string): Promise<EcashMint> => {
       try {
-        // Disconnect any existing mint before connecting to a new one
         if (mints.length > 0) {
           const existingMint = mints[0]
           removeMint(existingMint.url)
@@ -140,7 +133,6 @@ export function useEcash() {
         const quote = await createMintQuote(mintUrl, amount)
         addMintQuote(quote)
 
-        // Add transaction to history immediately with pending status
         const transaction: EcashTransaction = {
           id: quote.quote,
           type: 'mint',

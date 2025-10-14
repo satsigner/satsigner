@@ -2,6 +2,7 @@ import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { error, success, warning, white } from '@/styles/colors'
 
 type SSQuoteStatusProps = {
   status: string
@@ -19,15 +20,15 @@ function SSQuoteStatus({
   function getStatusColor(status: string) {
     switch (status) {
       case 'PENDING':
-        return '#FFA500'
+        return warning
       case 'PAID':
-        return '#00FF00'
+        return success
       case 'EXPIRED':
-        return '#FF0000'
+        return error
       case 'CANCELLED':
-        return '#FF0000'
+        return error
       default:
-        return '#FFFFFF'
+        return white
     }
   }
 
