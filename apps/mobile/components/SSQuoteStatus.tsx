@@ -56,7 +56,6 @@ function SSQuoteStatus({
           {getStatusText(status)}
         </SSText>
       </SSVStack>
-
       {status === 'PENDING' && showCheckButton && onCheck && (
         <SSButton
           label={t('ecash.quote.check')}

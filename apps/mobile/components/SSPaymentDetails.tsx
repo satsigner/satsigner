@@ -38,7 +38,6 @@ function SSPaymentDetails({
   fiatCurrency,
   satsToFiat
 }: SSPaymentDetailsProps) {
-
   return (
     <SSVStack gap="sm" style={styles.invoiceDetails}>
       <SSText uppercase>{t('lightning.paymentDetails.title')}</SSText>
@@ -73,7 +72,6 @@ function SSPaymentDetails({
               </SSText>
             </SSHStack>
           )}
-
           {showCreated && (
             <SSHStack gap="xs" style={styles.detailRow}>
               <SSText color="muted" style={styles.detailLabel}>
@@ -94,7 +92,6 @@ function SSPaymentDetails({
               </SSText>
             </SSHStack>
           )}
-
           <SSHStack gap="xs" style={styles.detailRow}>
             <SSText color="muted" style={styles.detailLabel}>
               {t('lightning.paymentDetails.expires')}
@@ -115,7 +112,6 @@ function SSPaymentDetails({
             </SSText>
           </SSHStack>
         </View>
-
         {showPaymentHash && (
           <View style={styles.detailSection}>
             <SSHStack gap="xs" style={[styles.detailRow, styles.hashRow]}>
