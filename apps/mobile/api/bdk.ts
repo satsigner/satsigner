@@ -21,7 +21,7 @@ import {
   type BlockchainEsploraConfig,
   BlockChainNames,
   KeychainKind,
-  type Network
+  Network
 } from 'bdk-rn/lib/lib/enums'
 
 import { type Account, type Key, type Secret } from '@/types/models/Account'
@@ -36,7 +36,10 @@ import {
   getExtendedKeyFromDescriptor,
   getFingerprintFromExtendedPublicKey
 } from '@/utils/bip32'
-import { getDescriptorFromMnemonic, getEntropyFromMnemonic } from '@/utils/bip39'
+import {
+  getDescriptorFromMnemonic,
+  getEntropyFromMnemonic
+} from '@/utils/bip39'
 import {
   getMultisigDerivationPathFromScriptVersion,
   getMultisigScriptTypeFromScriptVersion
@@ -549,9 +552,94 @@ async function getWalletFromMnemonic(
   }
 }
 
-// TODO: remove this and stop depending upon BDK for dealing with descriptors.
-// We use bip39 to get the string because it supports multi-lang mnemonic,
-// but we are keeping this function because it is used in multiple places.
+export async function testBdk() {
+  const sampleMnemonicSeed =
+    'visa toddler sentence rival twin believe report person library security stadium hurt'
+  const passphrase = ''
+  const parsedMnemonic = await new Mnemonic().fromString(sampleMnemonicSeed)
+  const kind = KeychainKind.External
+  const networks: Network[] = [
+    Network.Bitcoin,
+    Network.Signet,
+    Network.Regtest,
+    Network.Testnet
+  ]
+
+  for (const network of networks) {
+    console.log('------------------------------------------------------------')
+    console.log(network)
+    const secretKey = await new DescriptorSecretKey().create(
+      network,
+      parsedMnemonic,
+      passphrase
+    )
+
+    const bip44descriptor = await new Descriptor().newBip44(
+      secretKey,
+      kind,
+      network
+    )
+    const bip49descriptor = await new Descriptor().newBip49(
+      secretKey,
+      kind,
+      network
+    )
+    const bip84descriptor = await new Descriptor().newBip84(
+      secretKey,
+      kind,
+      network
+    )
+    const bip86descriptor = await new Descriptor().newBip86(
+      secretKey,
+      kind,
+      network
+    )
+
+    const bip44descriptorString = await bip44descriptor.asString()
+    const bip49descriptorString = await bip49descriptor.asString()
+    const bip84descriptorString = await bip84descriptor.asString()
+    const bip86descriptorString = await bip86descriptor.asString()
+
+    const bip44descriptorString2 = getDescriptorFromMnemonic(
+      sampleMnemonicSeed,
+      'P2PKH',
+      kind,
+      '',
+      network
+    )
+    const bip49descriptorString2 = getDescriptorFromMnemonic(
+      sampleMnemonicSeed,
+      'P2SH-P2WPKH',
+      kind,
+      '',
+      network
+    )
+    const bip84descriptorString2 = getDescriptorFromMnemonic(
+      sampleMnemonicSeed,
+      'P2WPKH',
+      kind,
+      '',
+      network
+    )
+    const bip86descriptorString2 = getDescriptorFromMnemonic(
+      sampleMnemonicSeed,
+      'P2TR',
+      kind,
+      '',
+      network
+    )
+
+    console.log('bip44descriptorString=', bip44descriptorString)
+    console.log('bip44descriptorString2=', bip44descriptorString2)
+    console.log('bip49descriptorString=', bip49descriptorString)
+    console.log('bip49descriptorString2=', bip49descriptorString2)
+    console.log('bip84descriptorString=', bip84descriptorString)
+    console.log('bip84descriptorString2=', bip84descriptorString2)
+    console.log('bip86descriptorString=', bip86descriptorString)
+    console.log('bip86descriptorString2=', bip86descriptorString2)
+  }
+}
+
 async function getDescriptorObject(
   mnemonic: NonNullable<Secret['mnemonic']>,
   scriptVersion: NonNullable<Key['scriptVersion']>,
@@ -559,22 +647,7 @@ async function getDescriptorObject(
   passphrase: Secret['passphrase'],
   network: Network
 ) {
-  const entropy = getEntropyFromMnemonic(mnemonic)
-  const parsedMnemonic = await new Mnemonic().fromEntropy(entropy)
-  const descriptorSecretKey = await new DescriptorSecretKey().create(
-    network,
-    parsedMnemonic,
-    passphrase
-  )
   switch (scriptVersion) {
-    case 'P2PKH':
-      return new Descriptor().newBip44(descriptorSecretKey, kind, network)
-    case 'P2SH-P2WPKH':
-      return new Descriptor().newBip49(descriptorSecretKey, kind, network)
-    case 'P2WPKH':
-      return new Descriptor().newBip84(descriptorSecretKey, kind, network)
-    case 'P2TR':
-      return new Descriptor().newBip86(descriptorSecretKey, kind, network)
     case 'P2SH':
     case 'P2SH-P2WSH':
     case 'P2WSH':
@@ -584,8 +657,16 @@ async function getDescriptorObject(
         `Manual descriptor creation required for ${scriptVersion} - use getExtendedPublicKeyFromMnemonic instead`
       )
     default:
-      return new Descriptor().newBip84(descriptorSecretKey, kind, network)
+      break
   }
+  const descriptor = getDescriptorFromMnemonic(
+    mnemonic,
+    scriptVersion,
+    kind,
+    passphrase,
+    network
+  )
+  const descriptorObject = await new Descriptor().create(descriptor, network)
   return descriptorObject
 }
 
