@@ -112,6 +112,76 @@ Use arrow functions for:
 - useEffect callbacks and cleanup functions
 - Simple event handlers that don't need memoization
 
+[Export Style]
+For components: Place export default at the bottom of the file, after all function declarations and component definitions
+For pages: Usually export default at the top for better readability
+
+✅ Correct for components:
+
+```typescript
+function MyComponent() {
+  return <div>Hello</div>
+}
+
+export default MyComponent
+```
+
+✅ Correct for pages:
+
+```typescript
+export default function MyPage() {
+  return <div>Hello</div>
+}
+```
+
+❌ Wrong for components:
+
+```typescript
+export default function MyComponent() {
+  return <div>Hello</div>
+}
+```
+
+[Code Formatting]
+Keep code clean and well-formatted:
+
+- Remove unnecessary empty lines in JSX and component files
+- Remove useless comments like `{/* Camera Modal */}` or obvious comments
+- Use consistent spacing and indentation
+- Avoid trailing empty lines at the end of files
+
+[TypeScript Types]
+Avoid using `any` type at all costs. Use proper TypeScript types:
+
+- For React Native styles, use `StyleProp<ViewStyle>` instead of `any`
+- For component props, define proper interfaces or types
+- Use type imports: `import { type Block } from '...'`
+- Prefer types over interfaces when possible
+
+[Console Statements]
+Remove all console statements from production code:
+
+- Avoid `console.log`, `console.error`, `console.warn`, etc.
+- Use proper error handling with toast.error instead of console.error
+- Remove debug console statements before committing
+- Use proper logging mechanisms if debugging is needed
+
+[Variable Naming]
+Use clear, descriptive variable names:
+
+- Avoid underscore prefixes like `_variable` unless absolutely necessary
+- Use meaningful names that describe the variable's purpose
+- Don't prefix unused variables with underscores - either use them or remove them
+- Follow camelCase convention for variables and functions
+
+[Component Architecture]
+Keep components clean and focused:
+
+- Avoid using stores directly in components - pass data via props instead
+- Components should receive data through props, not fetch it from stores
+- Use stores only in pages/hooks, not in reusable components
+- Keep components pure and testable by avoiding external dependencies
+
 [useCallback Guidelines]
 Only use useCallback when:
 
