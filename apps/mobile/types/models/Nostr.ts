@@ -33,4 +33,5 @@ export type NostrAccount = {
   relays: string[]
   syncStart: Date
   trustedMemberDevices: string[]
+  relayStatuses?: Record<string, 'connected' | 'connecting' | 'disconnected'>
 }

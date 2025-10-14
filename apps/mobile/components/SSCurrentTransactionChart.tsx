@@ -186,7 +186,7 @@ function SSCurrentTransactionChart({
         value: output.amount,
         fiatValue: formatNumber(satsToFiat(output.amount), 2),
         fiatCurrency,
-        address: output?.to ? formatAddress(output?.to, 4) : '',
+        address: output?.to ? formatAddress(output?.to, 6) : '',
         label: output.label,
         text: t('transaction.build.unspent'),
         isSelfSend: !!(output.to && ownAddresses.has(output.to))

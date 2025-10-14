@@ -1,4 +1,3 @@
-import { Descriptor } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import bs58check from 'bs58check'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
@@ -6,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, View } from 'react-native'
 import { toast } from 'sonner-native'
 
-import { extractExtendedKeyFromDescriptor, getWalletData } from '@/api/bdk'
+import { getWalletData } from '@/api/bdk'
 import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -22,6 +21,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Account, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
 
@@ -97,12 +97,9 @@ export default function ExportPubkeys() {
             } else {
               // For regular accounts, we need to extract the extended public key from the descriptor
               if (!walletData?.externalDescriptor) return 'N/A'
-              const descriptor = await new Descriptor().create(
-                walletData.externalDescriptor,
-                network as Network
+              const extendedKey = getExtendedKeyFromDescriptor(
+                walletData.externalDescriptor
               )
-              const extendedKey =
-                await extractExtendedKeyFromDescriptor(descriptor)
               return extendedKey || 'N/A'
             }
           })
@@ -154,11 +151,18 @@ export default function ExportPubkeys() {
           {t('account.export.pubkeys')}
         </SSText>
         {!isLoading && rawPubkeys.length > 0 && (
-          <SSHStack style={{ marginBottom: 20, justifyContent: 'center' }}>
+          <SSHStack style={{ justifyContent: 'center', gap: 10 }}>
             <SSButton
-              label={useVpubFormat ? 'VPUB Format' : 'XPUB Format'}
-              variant={useVpubFormat ? 'gradient' : 'secondary'}
-              onPress={() => setUseVpubFormat(!useVpubFormat)}
+              label={t('account.export.xpubFormat')}
+              variant={!useVpubFormat ? 'outline' : 'subtle'}
+              onPress={() => setUseVpubFormat(false)}
+              style={{ flex: 1 }}
+            />
+            <SSButton
+              label={t('account.export.vpubFormat')}
+              variant={useVpubFormat ? 'outline' : 'subtle'}
+              onPress={() => setUseVpubFormat(true)}
+              style={{ flex: 1 }}
             />
           </SSHStack>
         )}

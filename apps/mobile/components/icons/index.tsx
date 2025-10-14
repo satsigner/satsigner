@@ -8,6 +8,7 @@ import SSIconCamera from './SSIconCamera'
 import SSIconChain from './SSIconChain'
 import SSIconChainTip from './SSIconChainTip'
 import SSIconChartSettings from './SSIconChartSettings'
+import SSIconChatBubble from './SSIconChatBubble'
 import SSIconCheckCircle from './SSIconCheckCircle'
 import SSIconCheckCircleThin from './SSIconCheckCircleThin'
 import SSIconChevronDown from './SSIconChevronDown'
@@ -94,6 +95,7 @@ export {
   SSIconChain,
   SSIconChainTip,
   SSIconChartSettings,
+  SSIconChatBubble,
   SSIconCheckCircle,
   SSIconCheckCircleThin,
   SSIconChevronDown,

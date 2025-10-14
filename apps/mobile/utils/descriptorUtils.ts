@@ -1,6 +1,9 @@
 import { type ScriptVersionType } from '@/types/models/Account'
 import { validateCombinedDescriptor } from '@/utils/validation'
 
+// TODO: refactor this entire file and use @bitcoinerlab/descriptors instead of
+// we implement it ourselves.
+
 export const DescriptorUtils = {
   /**
    * Extract fingerprint from descriptor string
