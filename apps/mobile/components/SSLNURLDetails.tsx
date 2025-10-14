@@ -80,7 +80,6 @@ function SSLNURLDetails({
               {extractServiceName(lnurlDetails.metadata)}
             </SSText>
           </SSHStack>
-
           <SSHStack gap="xs" style={styles.detailRow}>
             <SSText color="muted" style={styles.detailLabel}>
               {t('lightning.lnurlDetails.amountRange')}
@@ -90,7 +89,6 @@ function SSLNURLDetails({
               {Math.floor(lnurlDetails.maxSendable / 1000)} sats
             </SSText>
           </SSHStack>
-
           {showCommentInfo && lnurlDetails.commentAllowed && (
             <SSHStack gap="xs" style={styles.detailRow}>
               <SSText color="muted" style={styles.detailLabel}>
@@ -101,8 +99,6 @@ function SSLNURLDetails({
               </SSText>
             </SSHStack>
           )}
-
-          {/* Amount Input */}
           <SSVStack gap="xs">
             <SSText color="muted">{t('lightning.amount')}</SSText>
             <TextInput

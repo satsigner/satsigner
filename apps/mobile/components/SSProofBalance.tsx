@@ -15,14 +15,13 @@ type SSProofBalanceProps = {
   style?: StyleProp<ViewStyle>
 }
 
-function SSProofBalance({ 
-  balance, 
-  fiatCurrency, 
-  btcPrice, 
-  useZeroPadding, 
-  style 
+function SSProofBalance({
+  balance,
+  fiatCurrency,
+  btcPrice,
+  useZeroPadding,
+  style
 }: SSProofBalanceProps) {
-
   return (
     <SSVStack style={[styles.container, style]}>
       <SSText color="muted" uppercase>
