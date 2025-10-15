@@ -1,5 +1,9 @@
+import { Network as BdkNetwork } from 'bdk-rn/lib/lib/enums'
+
+import { type ScriptVersionType } from '@/types/models/Account'
 import {
   generateMnemonic,
+  getExtendedPublicKeyFromMnemonic,
   getFingerprintFromMnemonic,
   validateMnemonic
 } from '@/utils/bip39'
@@ -48,6 +52,70 @@ describe('bip39 utils', () => {
     )
   })
 
-  // TODO: get extended keu from mnemonic
+  it('gets extended public key from mnemonic', () => {
+    const tests = [
+      [
+        [englishMnemonic, '', BdkNetwork.Bitcoin, 'P2PKH'],
+        'xpub6D8gBE7TKnqPhMZDoC15WsgkSCkCvtKgjpmCKxhRQ3Xd8WJDLPtFw5WCXhShKc4KkXj1yY1da4zvBNE39zRZQvAAg5yWp8aPqWAw9ZLv5qg'
+      ],
+      [
+        [englishMnemonic, '', BdkNetwork.Bitcoin, 'P2SH-P2WPKH'],
+        'xpub6DFNdfLsZHNrsB5Q6KrrGD1Hg1GFgRvdfi1Qd1JJdsZELVJXpucbixvvP6SxiimL2a4E7PXGbtM7tQ5msGxuQE1cnrzdb6obcwd4C24QPiz'
+      ],
+      [
+        [englishMnemonic, '', BdkNetwork.Bitcoin, 'P2WPKH'],
+        'xpub6CtcSUidffGCVPgtENAnGMeymsvJd3GPzMAmzG6SYWxmPK7jZQMTSf3pqbYnpervo49tXmMV2xMre7srJ9msVbse3fvWK1ivN7JvtZ5ApLF'
+      ],
+      [
+        [englishMnemonic, '', BdkNetwork.Signet, 'P2PKH'],
+        'tpubDD4b9xM3AD2FJCbCKkcbVGY6sbkAB5THK9BQHju6ePxBDo2rxrv6cs51s8pzVcDqPJR28hCMbMSgZxg6VbmCqdirJv5CQUZYNBYosy5u8fB'
+      ],
+      [
+        [englishMnemonic, '', BdkNetwork.Signet, 'P2SH-P2WPKH'],
+        'tpubDCpwAp9rMW8PgwKN2tK6k1NE2V6Xefn3o5RPx1XMbd2VgHYWLW7wCyfsSNWyv7czfYXX3rFjE2wjF9kuo6oDgiN6M6RzsNkBjH8YwhEtTwB'
+      ],
+      [
+        [englishMnemonic, '', BdkNetwork.Signet, 'P2WPKH'],
+        'tpubDCh12uBNfxDgMYyqV4G5zoFKmhVNK3oMWpc36gCLR7FT7frx5EFEGJeeZv6vcmPuvqVJJoDMywd3Fxe5F2AeBieG6BRJQmsunVE6j3qDWV5'
+      ],
+      [
+        [spanishMnemonic, '', BdkNetwork.Bitcoin, 'P2PKH'],
+        'xpub6BjME3EuD8kQN4JWLEw81wmw929GDxjsa2p8NcFeiZGELtWdoPExfxLdC8iqjXjCGrNQBYohvmL8PHnoibu4UsL8GydUHyRnSdC7QNfdkfu'
+      ],
+      [
+        [spanishMnemonic, '', BdkNetwork.Bitcoin, 'P2SH-P2WPKH'],
+        'xpub6DJNsBRdJMk6wE2txp9SbJrxy1jcKT1asdXWpMcBmaoL3kbvfRcmmfN4ukGyTR9McDjGRTm86A6EJj47KoodwwTcbFwquvBEEpuBJjWuuKs'
+      ],
+      [
+        [spanishMnemonic, '', BdkNetwork.Bitcoin, 'P2WPKH'],
+        'xpub6CEYv9XiSDGGVfVZQg5d9fQkE1D9g842gxFJcxsZ5H2gjibuzyuqf1F1hENtnHRNsAfXD8rs8kCJ5K44Soua9zTixnp1t8PzNuRY54PVXPM'
+      ],
+      [
+        [spanishMnemonic, '', BdkNetwork.Signet, 'P2PKH'],
+        'tpubDCkMLj4MVeL9oCPVBHNBAKRw1Yg9JUAjyoxtwoZYUB4BNkSJyYqn14ch9ETMPVf95bcXMF4G93VC3mJViQ6C1YB4McZQF4LGW8Hm4BL1yzC'
+      ],
+      [
+        [spanishMnemonic, '', BdkNetwork.Signet, 'P2SH-P2WPKH'],
+        'tpubDDE85Q7CkrrMHVsUFEvzB8TYRAcBQAT89vVUN3i63QxHm5H78qqRrLcWxyGiBSGm2ZYgzgdMQX4soKxA4dBG4LG5ZSCNr2YxML496o5CJPs'
+      ],
+      [
+        [spanishMnemonic, '', BdkNetwork.Signet, 'P2WPKH'],
+        'tpubDDLUuNo3GPFeDdxsPuTsLdxvChs4CR8h7R7bhyAymJmyaR5zoLCxWYRWkPaAF9qynRK8qV5gizYAgM1nDuGCPVcA7wixj7EdoP6PD5WcZuD'
+      ]
+    ]
+
+    for (const test of tests) {
+      const [mnemonic, passphrase, network, scriptVersion] = test[0]
+      const actualKey = test[1]
+      const result = getExtendedPublicKeyFromMnemonic(
+        mnemonic,
+        passphrase,
+        network as BdkNetwork,
+        scriptVersion as ScriptVersionType
+      )
+      expect(result).toBe(actualKey)
+    }
+  })
+
   // TODO: get descriptor from mnemonic
 })
