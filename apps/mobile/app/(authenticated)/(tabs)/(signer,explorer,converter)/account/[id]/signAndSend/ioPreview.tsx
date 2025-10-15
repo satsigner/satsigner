@@ -47,7 +47,7 @@ import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { checkWalletNeedsSync } from '@/utils/account'
-import { processBitcoinContentForOutput } from '@/utils/bitcoinContentProcessor'
+import { processContentForOutput } from '@/utils/contentProcessor'
 import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
@@ -301,23 +301,27 @@ export default function IOPreview() {
   function handleQRCodeScanned(address: string | undefined) {
     if (!address) return
 
-    // Use shared Bitcoin content processing for output fields
-    const success = processBitcoinContentForOutput(address, {
-      setOutputTo,
-      setOutputAmount,
-      setOutputLabel,
-      onError: (message) => {
-        toast.error(t('transaction.error.address.invalid'))
-      },
-      onWarning: (message) => {
-        toast.warning(t('transaction.error.bip21.insufficientSats'))
-      },
-      remainingSats
-    })
+    // Use new content detection system for output fields
+    import('@/utils/contentDetector').then(({ detectContentByContext }) => {
+      const detectedContent = detectContentByContext(address, 'bitcoin')
 
-    if (success) {
-      setCameraModalVisible(false)
-    }
+      const success = processContentForOutput(detectedContent, {
+        setOutputTo,
+        setOutputAmount,
+        setOutputLabel,
+        onError: (message) => {
+          toast.error(t('transaction.error.address.invalid'))
+        },
+        onWarning: (message) => {
+          toast.warning(t('transaction.error.bip21.insufficientSats'))
+        },
+        remainingSats
+      })
+
+      if (success) {
+        setCameraModalVisible(false)
+      }
+    })
   }
 
   function resetLocalOutput() {

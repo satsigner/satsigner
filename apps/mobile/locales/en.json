@@ -349,10 +349,22 @@
     "words": "Words"
   },
   "camera": {
+    "button": {
+      "resetScan": "Reset Scan"
+    },
     "enableCameraAccess": "Enable Camera Access",
+    "error": {
+      "assembleFailed": "Failed to assemble multi-part QR code",
+      "bbqrDecodeFailed": "Failed to decode BBQR QR code",
+      "processFailed": "Failed to process scanned data",
+      "scanFailed": "Failed to scan QR code",
+      "urDecodeFailed": "Failed to decode UR QR code"
+    },
+    "invalidContent": "Invalid {context} content detected",
     "permissions": "Enable camera access in your phone's settings to scan a QR code.",
     "scanQRCode": "Scan QRCode",
-    "scanText": "Scan any Bitcoin or Lightning related QR code."
+    "scanText": "Scan any Bitcoin or Lightning related QR code.",
+    "scanningContent": "Scanning {context} content..."
   },
   "common": {
     "QR": "QR",
@@ -427,6 +439,20 @@
     "version": "Version",
     "warning": "Warning",
     "yes": "Yes"
+  },
+  "content": {
+    "bbqrFragment": "BBQR Fragment",
+    "bitcoinAddress": "Bitcoin Address",
+    "bitcoinUri": "Bitcoin Payment Request",
+    "detected": "Detected: {type}",
+    "ecashToken": "Ecash Token",
+    "lightningInvoice": "Lightning Network Invoice",
+    "lnurl": "LNURL Payment Request",
+    "processing": "Processing content...",
+    "psbt": "Partially Signed Bitcoin Transaction",
+    "seedQr": "Seed Phrase QR Code",
+    "unknown": "Unknown Content",
+    "ur": "Universal Resource"
   },
   "converter": {
     "currency.bitcoin": "Bitcoin",
@@ -778,6 +804,32 @@
     "label.explorer": "Explorer",
     "label.signer": "Signer"
   },
+  "nfc": {
+    "button": {
+      "startReading": "Start Reading",
+      "startWriting": "Start Writing",
+      "writing": "Writing NFC"
+    },
+    "description": {
+      "read": "Hold your device near another NFC-enabled device",
+      "write": "Hold your device near an NFC tag to write data"
+    },
+    "error": {
+      "noDataToWrite": "No data to write to NFC tag",
+      "readFailed": "Failed to read NFC tag",
+      "writeFailed": "Failed to write to NFC tag"
+    },
+    "mode": {
+      "read": "Read NFC Tag",
+      "write": "Write to NFC Tag"
+    },
+    "title": {
+      "bitcoin": "Bitcoin NFC",
+      "default": "NFC",
+      "ecash": "Ecash NFC",
+      "lightning": "Lightning NFC"
+    }
+  },
   "opcode": {
     "DATA": "Data which can be hash, pubkey, address, signature, etc.",
     "OP_0NOTEQUAL": "Returns 0 if the input is 0. 1 otherwise.",
@@ -882,6 +934,44 @@
     "OP_VERNOTIF": "Transaction is invalid even when occuring in an unexecuted OP_IF branch.",
     "OP_WITHIN": "Returns 1 if x is within the specified range (left-inclusive), 0 otherwise.",
     "OP_XOR": "Boolean exclusive or between each bit in the inputs. <em>disabled</em>."
+  },
+  "paste": {
+    "button": {
+      "default": "Paste Content",
+      "payInvoice": "Pay Invoice",
+      "payLightningInvoice": "Pay Lightning Invoice",
+      "processContent": "Process Content",
+      "processEcashToken": "Process Ecash Token",
+      "processLightning": "Process Lightning",
+      "processLnurl": "Process LNURL",
+      "sendToAddress": "Send to Address",
+      "signPsbt": "Sign PSBT"
+    },
+    "description": {
+      "bitcoin": "Paste Bitcoin addresses, payment requests, or PSBTs",
+      "default": "Paste content from clipboard",
+      "ecash": "Paste ecash tokens, Lightning invoices, or LNURL payment requests",
+      "lightning": "Paste Lightning invoices or LNURL payment requests"
+    },
+    "error": {
+      "failed": "Failed to process pasted content",
+      "invalidContent": "Invalid content for this context",
+      "loadFailed": "Failed to load clipboard content",
+      "noContent": "No content to paste",
+      "success": "Content pasted successfully",
+      "validateFailed": "Failed to validate content"
+    },
+    "title": {
+      "bitcoin": "Paste Bitcoin Content",
+      "default": "Paste Content",
+      "ecash": "Paste Ecash Content",
+      "lightning": "Paste Lightning Content"
+    },
+    "validation": {
+      "empty": "Clipboard is empty",
+      "invalid": "Invalid content for this context",
+      "valid": "Valid content detected"
+    }
   },
   "preview": {
     "btnCollapse": "Collapse",

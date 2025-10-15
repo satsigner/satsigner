@@ -63,8 +63,8 @@ import SSIconMenu from './SSIconMenu'
 import SSIconMultiSignature from './SSIconMultiSignature'
 import SSIconNetwork from './SSIconNetwork'
 import SSIconOutgoing from './SSIconOutgoing'
-import SSIconPasteClipboard from './SSIconPasteClipboard'
 import SSIconOutgoingLightning from './SSIconOutgoingLightning'
+import SSIconPasteClipboard from './SSIconPasteClipboard'
 import SSIconPencil from './SSIconPencil'
 import SSIconPlus from './SSIconPlus'
 import SSIconRefresh from './SSIconRefresh'
@@ -152,8 +152,8 @@ export {
   SSIconMultiSignature,
   SSIconNetwork,
   SSIconOutgoing,
-  SSIconPasteClipboard,
   SSIconOutgoingLightning,
+  SSIconPasteClipboard,
   SSIconPencil,
   SSIconPlus,
   SSIconRefresh,

@@ -1,7 +1,7 @@
 import { getDecodedToken } from '@cashu/cashu-ts'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
-import { Stack } from 'expo-router'
+import { Stack, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
@@ -23,6 +23,7 @@ import { error, success, warning, white } from '@/styles/colors'
 import { type EcashToken } from '@/types/models/Ecash'
 
 export default function EcashReceivePage() {
+  const { token: tokenParam } = useLocalSearchParams()
   const [activeTab, setActiveTab] = useState<'ecash' | 'lightning'>('ecash')
   const [token, setToken] = useState('')
   const [decodedToken, setDecodedToken] = useState<EcashToken | null>(null)
@@ -66,6 +67,19 @@ export default function EcashReceivePage() {
       stopPolling()
     }
   }, [activeTab, stopPolling])
+
+  // Handle token parameter from URL
+  useEffect(() => {
+    if (tokenParam) {
+      const tokenValue = Array.isArray(tokenParam) ? tokenParam[0] : tokenParam
+      if (tokenValue) {
+        setToken(tokenValue)
+        setActiveTab('ecash')
+        // Process the token to decode it
+        handleTokenChange(tokenValue)
+      }
+    }
+  }, [tokenParam, handleTokenChange])
 
   const handleRedeemToken = useCallback(async () => {
     if (!token) {
