@@ -19,7 +19,7 @@ import { Colors } from '@/styles'
 import { type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { getDescriptorsFromKey } from '@/utils/bip32'
-import { getDescriptorFromMnemonic } from '@/utils/bip39'
+import { getPublicDescriptorFromMnemonic } from '@/utils/bip39'
 import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
@@ -151,7 +151,7 @@ export default function DescriptorPage() {
               }
             }
           } else if (decryptedSecret.mnemonic && key.scriptVersion) {
-            descriptorString = getDescriptorFromMnemonic(
+            descriptorString = getPublicDescriptorFromMnemonic(
               decryptedSecret.mnemonic,
               key.scriptVersion,
               KeychainKind.External,

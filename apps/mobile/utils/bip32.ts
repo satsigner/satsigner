@@ -62,7 +62,7 @@ export function getStandardPath(
     : getDerivationPathFromScriptVersion(scriptVersion, appNetwork)
 }
 
-export function getDescriptorFromSeed(
+export function getPublicDescriptorFromSeed(
   seed: Buffer,
   scriptVersion: ScriptVersionType,
   kind: KeychainKind,

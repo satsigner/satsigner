@@ -3,7 +3,7 @@ import { KeychainKind, Network as BdkNetwork } from 'bdk-rn/lib/lib/enums'
 import { type ScriptVersionType } from '@/types/models/Account'
 import {
   generateMnemonic,
-  getDescriptorFromMnemonic,
+  getPublicDescriptorFromMnemonic,
   getExtendedPublicKeyFromMnemonic,
   getFingerprintFromMnemonic,
   validateMnemonic
@@ -173,7 +173,7 @@ describe('bip39 utils', () => {
     for (const test of descriptorTests) {
       const [mnemonic, passphrase, network, scriptVersion] = test[0]
       const actualDescriptor = test[1]
-      const result = getDescriptorFromMnemonic(
+      const result = getPublicDescriptorFromMnemonic(
         mnemonic,
         scriptVersion as ScriptVersionType,
         KeychainKind.External,

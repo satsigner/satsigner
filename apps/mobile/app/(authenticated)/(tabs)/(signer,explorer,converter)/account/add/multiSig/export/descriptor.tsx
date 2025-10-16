@@ -21,7 +21,7 @@ import type {
   Secret
 } from '@/types/models/Account'
 import { getDescriptorsFromKey } from '@/utils/bip32'
-import { getDescriptorFromMnemonic } from '@/utils/bip39'
+import { getPublicDescriptorFromMnemonic } from '@/utils/bip39'
 import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 import { shareFile } from '@/utils/filesystem'
 
@@ -69,7 +69,7 @@ export default function DescriptorPage() {
         } else if (secret.internalDescriptor) {
           foundDescriptor = secret.internalDescriptor
         } else if (secret.mnemonic) {
-          foundDescriptor = getDescriptorFromMnemonic(
+          foundDescriptor = getPublicDescriptorFromMnemonic(
             secret.mnemonic,
             scriptVersion,
             KeychainKind.External,

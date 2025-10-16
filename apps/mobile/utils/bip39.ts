@@ -11,7 +11,7 @@ import type {
 } from '@/types/models/Account'
 import {
   fingerprintToHex,
-  getDescriptorFromSeed,
+  getPublicDescriptorFromSeed,
   getExtendedPublicKeyFromSeed,
   getFingerprintFromSeed,
   getVersionsForNetwork,
@@ -91,7 +91,7 @@ export function getEntropyFromMnemonic(
   return entropyNumbers
 }
 
-export function getDescriptorFromMnemonic(
+export function getPublicDescriptorFromMnemonic(
   mnemonic: string,
   scriptVersion: ScriptVersionType,
   kind: KeychainKind,
@@ -99,7 +99,7 @@ export function getDescriptorFromMnemonic(
   network: Network
 ): string {
   const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
-  return getDescriptorFromSeed(seed, scriptVersion, kind, network)
+  return getPublicDescriptorFromSeed(seed, scriptVersion, kind, network)
 }
 
 export function getFingerprintFromMnemonic(

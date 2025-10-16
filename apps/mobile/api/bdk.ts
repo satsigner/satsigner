@@ -36,7 +36,7 @@ import {
   getExtendedKeyFromDescriptor,
   getFingerprintFromExtendedPublicKey
 } from '@/utils/bip32'
-import { getDescriptorFromMnemonic } from '@/utils/bip39'
+import { getPublicDescriptorFromMnemonic } from '@/utils/bip39'
 import {
   getMultisigDerivationPathFromScriptVersion,
   getMultisigScriptTypeFromScriptVersion
@@ -568,7 +568,7 @@ async function getDescriptorObject(
     default:
       break
   }
-  const descriptor = getDescriptorFromMnemonic(
+  const descriptor = getPublicDescriptorFromMnemonic(
     mnemonic,
     scriptVersion,
     kind,
