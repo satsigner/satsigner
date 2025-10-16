@@ -11,9 +11,10 @@ import type {
 } from '@/types/models/Account'
 import {
   fingerprintToHex,
-  getPublicDescriptorFromSeed,
   getExtendedPublicKeyFromSeed,
   getFingerprintFromSeed,
+  getPrivateDescriptorFromSeed,
+  getPublicDescriptorFromSeed,
   getVersionsForNetwork,
   getXpubForScriptVersion,
   toHex
@@ -100,6 +101,17 @@ export function getPublicDescriptorFromMnemonic(
 ): string {
   const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
   return getPublicDescriptorFromSeed(seed, scriptVersion, kind, network)
+}
+
+export function getPrivateDescriptorFromMnemonic(
+  mnemonic: string,
+  scriptVersion: ScriptVersionType,
+  kind: KeychainKind,
+  passphrase: string | undefined,
+  network: Network
+): string {
+  const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
+  return getPrivateDescriptorFromSeed(seed, scriptVersion, kind, network)
 }
 
 export function getFingerprintFromMnemonic(

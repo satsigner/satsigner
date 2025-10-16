@@ -83,6 +83,27 @@ export function getPublicDescriptorFromSeed(
   return descriptor
 }
 
+export function getPrivateDescriptorFromSeed(
+  seed: Buffer,
+  scriptVersion: ScriptVersionType,
+  kind: KeychainKind,
+  network: BDKNetwork
+): string {
+  const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
+  const path = getStandardPath(scriptVersion, network)
+  const derivedKey = masterKey.derivePath(`m/${path}`)
+  const pubkey = derivedKey.toBase58()
+  const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
+  const descriptor = getDescriptorFromPubkey(
+    pubkey,
+    scriptVersion,
+    fingerprint,
+    path,
+    kind
+  )
+  return descriptor
+}
+
 export function getDescriptorFromPubkey(
   pubkey: string,
   scriptVersion: ScriptVersionType,
