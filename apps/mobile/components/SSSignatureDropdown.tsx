@@ -18,14 +18,12 @@ import { Colors, Typography } from '@/styles'
 import { type Account, type Key } from '@/types/models/Account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import {
+  combinePsbts,
   storeTransactionData,
-  type TransactionData
-} from '@/utils/psbtAccountMatcher'
-import { combinePsbts } from '@/utils/psbtTransactionExtractor'
-import {
+  type TransactionData,
   validateSignedPSBT,
   validateSignedPSBTForCosigner
-} from '@/utils/psbtValidator'
+} from '@/utils/psbt'
 
 type SSSignatureDropdownProps = {
   index: number

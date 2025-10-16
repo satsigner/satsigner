@@ -60,7 +60,7 @@ import {
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { parseHexToBytes } from '@/utils/parse'
-import { validateSignedPSBTForCosigner } from '@/utils/psbtValidator'
+import { validateSignedPSBTForCosigner } from '@/utils/psbt'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import { estimateTransactionSize } from '@/utils/transaction'
 import {

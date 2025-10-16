@@ -2,6 +2,8 @@ import ecc from '@bitcoinerlab/secp256k1'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { nip19 } from 'nostr-tools'
 
+import { type TransactionData } from '@/utils/psbt'
+
 // Initialize ECC library
 bitcoinjs.initEccLib(ecc)
 
@@ -47,5 +49,24 @@ export async function generateColorFromNpub(npub: string): Promise<string> {
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`
   } catch (_error) {
     return '#404040' // Default color on error
+  }
+}
+
+/**
+ * Parse Nostr message for transaction data and handle sign flow navigation
+ */
+export function parseNostrTransactionMessage(
+  message: string
+): TransactionData | null {
+  try {
+    if (message.trim().startsWith('cHNidP')) {
+      const transactionData: TransactionData = {
+        combinedPsbt: message.trim()
+      }
+      return transactionData
+    }
+    return null
+  } catch {
+    return null
   }
 }

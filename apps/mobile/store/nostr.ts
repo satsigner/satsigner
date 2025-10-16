@@ -4,7 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import { type NostrAPI } from '@/api/nostr'
 import mmkvStorage from '@/storage/mmkv'
 import { generateColorFromNpub } from '@/utils/nostr'
-import { type TransactionData } from '@/utils/psbtAccountMatcher'
+import { type TransactionData } from '@/utils/psbt'
 
 type Member = {
   npub: string

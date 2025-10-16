@@ -1,15 +1,16 @@
-import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Redirect, Stack, useLocalSearchParams } from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
-import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
+import SSNostrMessage from '@/components/SSNostrMessage'
 import SSText from '@/components/SSText'
-import SSTransactionChart from '@/components/SSTransactionChart'
+import SSTransactionDetails from '@/components/SSTransactionDetails'
+import { useNostrSignFlow } from '@/hooks/useNostrSignFlow'
 import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -18,25 +19,9 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
-import type { NostrDM } from '@/types/models/Nostr'
-import { type Transaction } from '@/types/models/Transaction'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import {
-  handleGoToSignFlow,
-  parseNostrTransactionMessage
-} from '@/utils/nostrTransactionParser'
-import {
-  findMatchingAccount,
-  type TransactionData
-} from '@/utils/psbtAccountMatcher'
-import {
-  extractIndividualSignedPsbts,
-  extractOriginalPsbt,
-  extractTransactionDataFromPSBTEnhanced,
-  extractTransactionIdFromPSBT,
-  getMultisigInfoFromPsbt
-} from '@/utils/psbtTransactionExtractor'
-import { estimateTransactionSize } from '@/utils/transaction'
+import { parseNostrTransactionMessage } from '@/utils/nostr'
+import { type TransactionData } from '@/utils/psbt'
 
 const colorCache = new Map<string, { text: string; color: string }>()
 
@@ -71,12 +56,12 @@ async function formatNpub(
   }
 }
 
-function SSDevicesGroupChat() {
+export default function DevicesGroupChat() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
-  const router = useRouter()
   const flatListRef = useRef<FlatList>(null)
   const formattedAuthorsRef = useRef(new Set<string>())
   const { sendDM } = useNostrSync()
+  const { handleGoToSignFlow } = useNostrSignFlow()
 
   const account = useAccountsStore((state) =>
     accountId
@@ -125,7 +110,7 @@ function SSDevicesGroupChat() {
     [members]
   )
 
-  const handleSendMessage = useCallback(async () => {
+  const handleSendMessage = async () => {
     if (!messageInput.trim()) {
       toast.error(t('common.error.messageCannotBeEmpty'))
       return
@@ -154,41 +139,38 @@ function SSDevicesGroupChat() {
     } finally {
       setIsLoading(false)
     }
-  }, [account, messageInput, sendDM])
+  }
 
-  const handleGoToSignFlowClick = useCallback(
-    (messageContent: string) => {
-      try {
-        const transactionData = parseNostrTransactionMessage(messageContent)
-        if (!transactionData) {
-          toast.error(t('common.error.transactionDataParseFailed'))
-          return
-        }
-
-        handleGoToSignFlow(transactionData, router)
-      } catch {
-        toast.error(t('common.error.openSignFlowFailed'))
+  const handleGoToSignFlowClick = (messageContent: string) => {
+    try {
+      const transactionData = parseNostrTransactionMessage(messageContent)
+      if (!transactionData) {
+        toast.error(t('common.error.transactionDataParseFailed'))
+        return
       }
-    },
-    [router]
-  )
 
-  const handleToggleVisibility = useCallback(
-    (msgId: string, component: 'sankey' | 'status') => {
-      setVisibleComponents((prev) => {
-        const newMap = new Map(prev)
-        const current = newMap.get(msgId) || {
-          sankey: false,
-          status: false
-        }
-        newMap.set(msgId, { ...current, [component]: true })
-        return newMap
-      })
-    },
-    []
-  )
+      handleGoToSignFlow(transactionData)
+    } catch {
+      toast.error(t('common.error.openSignFlowFailed'))
+    }
+  }
 
-  const handleShareInChat = useCallback(async () => {
+  const handleToggleVisibility = (
+    msgId: string,
+    component: 'sankey' | 'status'
+  ) => {
+    setVisibleComponents((prev) => {
+      const newMap = new Map(prev)
+      const current = newMap.get(msgId) || {
+        sankey: false,
+        status: false
+      }
+      newMap.set(msgId, { ...current, [component]: true })
+      return newMap
+    })
+  }
+
+  const handleShareInChat = async () => {
     if (!account || !messageToShare) return
 
     setIsLoading(true)
@@ -203,13 +185,13 @@ function SSDevicesGroupChat() {
       setTransactionDataForModal(null)
       setIsLoading(false)
     }
-  }, [account, messageToShare, sendDM])
+  }
 
-  const handleCancelShare = useCallback(() => {
+  const handleCancelShare = () => {
     setIsShareModalVisible(false)
     setMessageToShare('')
     setTransactionDataForModal(null)
-  }, [])
+  }
 
   useEffect(() => {
     async function formatNpubs() {
@@ -264,201 +246,6 @@ function SSDevicesGroupChat() {
     }
   }, [transactionToShare, setTransactionToShare])
 
-  const renderMessage = useCallback(
-    ({ item: msg }: { item: NostrDM }) => {
-      try {
-        const hexString = msg.author.startsWith('npub')
-          ? msg.author
-          : msg.author.padStart(64, '0').toLowerCase()
-
-        const msgAuthorNpub = msg.author.startsWith('npub')
-          ? msg.author
-          : nip19.npubEncode(hexString)
-
-        const isDeviceMessage = msgAuthorNpub === account?.nostr?.deviceNpub
-        const formatted = formattedNpubs.get(msg.author) || {
-          text: `${msgAuthorNpub.slice(0, 12)}...${msgAuthorNpub.slice(-4)}`,
-          color: '#404040'
-        }
-
-        const messageContent =
-          typeof msg.content === 'object' && 'description' in msg.content
-            ? msg.content.description
-            : typeof msg.content === 'string'
-              ? msg.content
-              : t('account.nostrSync.devicesGroupChat.displayError')
-
-        const transactionData = parseNostrTransactionMessage(messageContent)
-        const hasSignFlow = transactionData !== null
-
-        return (
-          <SSVStack
-            gap="xxs"
-            style={[styles.message, isDeviceMessage && styles.deviceMessage]}
-          >
-            <SSHStack gap="xxs" justifyBetween>
-              <SSHStack gap="xxs" style={{ alignItems: 'center' }}>
-                <View
-                  style={[
-                    styles.authorIndicator,
-                    { backgroundColor: formatted.color }
-                  ]}
-                />
-                <SSText size="sm" color="muted">
-                  {formatted.text}
-                  {isDeviceMessage &&
-                    t('account.nostrSync.devicesGroupChat.youSuffix')}
-                </SSText>
-              </SSHStack>
-              <SSText size="xs" color="muted">
-                {new Date(msg.created_at * 1000).toLocaleString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </SSText>
-            </SSHStack>
-            {hasSignFlow && transactionData ? (
-              (() => {
-                const { combinedPsbt } = transactionData
-                const originalPsbt = extractOriginalPsbt(combinedPsbt)
-                const transactionId = extractTransactionIdFromPSBT(combinedPsbt)
-                const multisigInfo = getMultisigInfoFromPsbt(combinedPsbt)
-
-                const signedPsbts = extractIndividualSignedPsbts(
-                  combinedPsbt,
-                  originalPsbt
-                )
-
-                if (!transactionId) return null
-
-                const keysRequired = multisigInfo?.required || 0
-                const keyCount = multisigInfo?.total || 0
-
-                const accounts = useAccountsStore.getState().accounts
-                const accountMatch = findMatchingAccount(originalPsbt, accounts)
-                const matchedAccount = accountMatch?.account || account
-
-                let extractedData = null
-                if (originalPsbt && matchedAccount) {
-                  try {
-                    extractedData = extractTransactionDataFromPSBTEnhanced(
-                      originalPsbt,
-                      matchedAccount
-                    )
-                  } catch {
-                    extractedData = null
-                  }
-                }
-
-                const inputs = extractedData?.inputs || []
-                const outputs = extractedData?.outputs || []
-
-                const { size, vsize } = estimateTransactionSize(
-                  inputs.length,
-                  outputs.length
-                )
-
-                const collectedSignatures = Object.keys(signedPsbts || {}).map(
-                  Number
-                )
-
-                const vin = inputs.map((input) => ({
-                  previousOutput: { txid: input.txid, vout: input.vout },
-                  value: input.value,
-                  label: input.label || ''
-                }))
-
-                const vout = outputs.map((output) => ({
-                  address: output.address,
-                  value: output.value,
-                  label: output.label || ''
-                }))
-
-                const transaction = {
-                  id: transactionId,
-                  size,
-                  vsize,
-                  vin,
-                  vout
-                } as unknown as Transaction
-
-                const visibility = visibleComponents.get(msg.id) || {
-                  sankey: false,
-                  status: false
-                }
-
-                return (
-                  <SSVStack gap="md" style={{ paddingTop: 10 }}>
-                    <SSHStack justifyBetween>
-                      <SSText size="lg" weight="bold">
-                        {t('account.transaction.signRequest')}
-                      </SSText>
-                      <SSText size="lg" color="muted">
-                        {`${transactionId.slice(
-                          0,
-                          6
-                        )}...${transactionId.slice(-6)}`}
-                      </SSText>
-                    </SSHStack>
-
-                    {visibility.sankey ? (
-                      <SSTransactionChart transaction={transaction} />
-                    ) : (
-                      <SSButton
-                        label={t('transaction.loadSankey')}
-                        onPress={() => handleToggleVisibility(msg.id, 'sankey')}
-                      />
-                    )}
-
-                    {visibility.status ? (
-                      <SSSignatureRequiredDisplay
-                        requiredNumber={keysRequired}
-                        totalNumber={keyCount}
-                        collectedSignatures={collectedSignatures}
-                      />
-                    ) : (
-                      <SSButton
-                        label={t('transaction.checkStatus')}
-                        onPress={() => handleToggleVisibility(msg.id, 'status')}
-                      />
-                    )}
-
-                    <SSButton
-                      label={t('account.transaction.signFlow')}
-                      variant="secondary"
-                      style={styles.signFlowButton}
-                      onPress={() => handleGoToSignFlowClick(messageContent)}
-                    />
-                  </SSVStack>
-                )
-              })()
-            ) : (
-              <SSText size="md">{messageContent}</SSText>
-            )}
-          </SSVStack>
-        )
-      } catch {
-        return (
-          <SSVStack gap="xxs" style={styles.message}>
-            <SSText size="sm" color="muted">
-              {t('account.nostrSync.devicesGroupChat.displayError')}
-            </SSText>
-          </SSVStack>
-        )
-      }
-    },
-    [
-      account,
-      formattedNpubs,
-      handleGoToSignFlowClick,
-      visibleComponents,
-      handleToggleVisibility
-    ]
-  )
-
   if (!accountId || !account) return <Redirect href="/" />
 
   return (
@@ -496,7 +283,16 @@ function SSDevicesGroupChat() {
           <FlatList
             ref={flatListRef}
             data={messages}
-            renderItem={renderMessage}
+            renderItem={({ item }) => (
+              <SSNostrMessage
+                item={item}
+                account={account}
+                formattedNpubs={formattedNpubs}
+                visibleComponents={visibleComponents}
+                onToggleVisibility={handleToggleVisibility}
+                onGoToSignFlow={handleGoToSignFlowClick}
+              />
+            )}
             keyExtractor={(item) => item.id}
             ListEmptyComponent={
               <SSText center color="muted">
@@ -552,99 +348,10 @@ function SSDevicesGroupChat() {
               nestedScrollEnabled
             >
               {transactionDataForModal ? (
-                (() => {
-                  const { combinedPsbt } = transactionDataForModal
-
-                  const originalPsbt = extractOriginalPsbt(combinedPsbt)
-                  const txid = extractTransactionIdFromPSBT(combinedPsbt)
-                  const multisigInfo = getMultisigInfoFromPsbt(combinedPsbt)
-
-                  const signedPsbts = extractIndividualSignedPsbts(
-                    combinedPsbt,
-                    originalPsbt
-                  )
-
-                  if (!txid) {
-                    return (
-                      <SSText size="sm" color="muted">
-                        {t('account.nostrSync.devicesGroupChat.invalidPsbt')}
-                      </SSText>
-                    )
-                  }
-
-                  const keysRequired = multisigInfo?.required || 0
-                  const keyCount = multisigInfo?.total || 0
-
-                  const accounts = useAccountsStore.getState().accounts
-                  const accountMatch = findMatchingAccount(
-                    originalPsbt,
-                    accounts
-                  )
-                  const matchedAccount = accountMatch?.account || account
-
-                  let extractedData = null
-                  if (originalPsbt && matchedAccount) {
-                    try {
-                      extractedData = extractTransactionDataFromPSBTEnhanced(
-                        originalPsbt,
-                        matchedAccount
-                      )
-                    } catch {
-                      extractedData = null
-                    }
-                  }
-
-                  const finalInputs = extractedData?.inputs || []
-                  const finalOutputs = extractedData?.outputs || []
-
-                  const { size, vsize } = estimateTransactionSize(
-                    finalInputs.length,
-                    finalOutputs.length
-                  )
-                  const collectedSignatures = Object.keys(
-                    signedPsbts || {}
-                  ).map(Number)
-                  const vin = finalInputs.map((input) => ({
-                    previousOutput: { txid: input.txid, vout: input.vout },
-                    value: input.value,
-                    label: input.label || ''
-                  }))
-                  const vout = finalOutputs.map((output) => ({
-                    address: output.address,
-                    value: output.value,
-                    label: output.label || ''
-                  }))
-                  const transaction = {
-                    id: txid,
-                    size,
-                    vsize,
-                    vin,
-                    vout
-                  } as unknown as Transaction
-
-                  return (
-                    <SSVStack>
-                      <SSHStack justifyBetween>
-                        <SSText size="md" weight="bold">
-                          {t('account.transaction.signRequest')}
-                        </SSText>
-                        <SSText size="md" color="muted">
-                          {`${txid.slice(0, 6)}...${txid.slice(-6)}`}
-                        </SSText>
-                      </SSHStack>
-                      <View style={styles.chartContainer}>
-                        <SSTransactionChart transaction={transaction} />
-                      </View>
-                      <View style={styles.signatureContainer}>
-                        <SSSignatureRequiredDisplay
-                          requiredNumber={keysRequired}
-                          totalNumber={keyCount}
-                          collectedSignatures={collectedSignatures}
-                        />
-                      </View>
-                    </SSVStack>
-                  )
-                })()
+                <SSTransactionDetails
+                  transactionData={transactionDataForModal}
+                  account={account}
+                />
               ) : (
                 <SSText style={styles.modalMessageText}>
                   {messageToShare}
@@ -750,17 +457,7 @@ const styles = StyleSheet.create({
   modalScrollContent: {
     paddingBottom: 4
   },
-  chartContainer: {
-    width: '100%',
-    overflow: 'hidden',
-    paddingHorizontal: 2
-  },
-  signatureContainer: {
-    alignItems: 'center'
-  },
   modalMessageText: {
     maxHeight: 300
   }
 })
-
-export default SSDevicesGroupChat
