@@ -91,13 +91,10 @@ export function getPrivateDescriptorFromSeed(
 ): string {
   const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
   const path = getStandardPath(scriptVersion, network)
-  const derivedKey = masterKey.derivePath(`m/${path}`)
-  const pubkey = derivedKey.toBase58()
-  const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
-  const descriptor = getDescriptorFromPubkey(
-    pubkey,
+  const privateKey = masterKey.toBase58()
+  const descriptor = getDescriptorFromPrivateKey(
+    privateKey,
     scriptVersion,
-    fingerprint,
     path,
     kind
   )
@@ -113,6 +110,32 @@ export function getDescriptorFromPubkey(
 ) {
   const change = kind === KeychainKind.External ? 0 : 1
   const innerPart = `[${fingerprint}/${path}]${pubkey}/${change}/*`
+  switch (scriptVersion) {
+    case 'P2PKH':
+      return `pkh(${innerPart})`
+    case 'P2WPKH':
+      return `wpkh(${innerPart})`
+    case 'P2SH-P2WPKH':
+      return `sh(wpkh(${innerPart}))`
+    case 'P2TR':
+      return `tr(${innerPart})`
+    case 'P2WSH':
+      return `wsh(pk(${innerPart}))`
+    case 'P2SH-P2WSH':
+      return `sh(wsh(pk(${innerPart})))`
+    case 'P2SH':
+      return `sh(pk(${innerPart}))`
+  }
+}
+
+export function getDescriptorFromPrivateKey(
+  pubkey: string,
+  scriptVersion: ScriptVersionType,
+  path: string,
+  kind: KeychainKind
+) {
+  const change = kind === KeychainKind.External ? 0 : 1
+  const innerPart = `${pubkey}/${path}/${change}/*`
   switch (scriptVersion) {
     case 'P2PKH':
       return `pkh(${innerPart})`

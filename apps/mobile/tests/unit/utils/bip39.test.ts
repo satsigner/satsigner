@@ -3,9 +3,9 @@ import { KeychainKind, Network as BdkNetwork } from 'bdk-rn/lib/lib/enums'
 import { type ScriptVersionType } from '@/types/models/Account'
 import {
   generateMnemonic,
-  getPublicDescriptorFromMnemonic,
   getExtendedPublicKeyFromMnemonic,
   getFingerprintFromMnemonic,
+  getPublicDescriptorFromMnemonic,
   validateMnemonic
 } from '@/utils/bip39'
 
