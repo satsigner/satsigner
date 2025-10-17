@@ -26,7 +26,7 @@ export function useNostrSignFlow() {
     setTxBuilderResult
   } = useTransactionBuilderStore()
 
-  function handleGoToSignFlow(transactionData: TransactionData): boolean {
+  function handleGoToSignFlow(transactionData: TransactionData) {
     try {
       const originalPsbt = extractOriginalPsbt(transactionData.combinedPsbt)
 

@@ -70,9 +70,6 @@ export type ExtractedTransactionData = {
   network: 'mainnet' | 'testnet' | 'signet'
 }
 
-/**
- * Extract BIP32 derivation information from PSBT
- */
 export function extractPSBTDerivations(psbtBase64: string): {
   fingerprint: string
   derivationPath: string

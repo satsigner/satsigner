@@ -1713,7 +1713,7 @@ function PreviewMessage() {
                           isReading={isReading}
                           decryptedKey={decryptedKeys[index]}
                           account={account}
-                          accountId={id!}
+                          accountId={id}
                           signedPsbts={signedPsbts}
                           onShowQR={() => setNoKeyModalVisible(true)}
                           onNFCExport={handleNFCExport}

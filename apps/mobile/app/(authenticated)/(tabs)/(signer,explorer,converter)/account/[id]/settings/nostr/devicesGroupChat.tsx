@@ -63,14 +63,15 @@ export default function DevicesGroupChat() {
   const { sendDM } = useNostrSync()
   const { handleGoToSignFlow } = useNostrSignFlow()
 
-  const account = useAccountsStore((state) =>
-    accountId
-      ? state.accounts.find((_account) => _account.id === accountId)
-      : undefined
+  const { accounts, account } = useAccountsStore(
+    useShallow((state) => ({
+      accounts: state.accounts,
+      account: state.accounts.find((acc) => acc.id === accountId)
+    }))
   )
 
   const members = useNostrStore(
-    useShallow((state) => (accountId && state.members?.[accountId]) || [])
+    (state) => (accountId && state.members?.[accountId]) || []
   )
   const [transactionToShare, setTransactionToShare] = useNostrStore(
     useShallow((state) => [
@@ -110,7 +111,7 @@ export default function DevicesGroupChat() {
     [members]
   )
 
-  const handleSendMessage = async () => {
+  async function handleSendMessage() {
     if (!messageInput.trim()) {
       toast.error(t('common.error.messageCannotBeEmpty'))
       return
@@ -141,7 +142,7 @@ export default function DevicesGroupChat() {
     }
   }
 
-  const handleGoToSignFlowClick = (messageContent: string) => {
+  function handleGoToSignFlowClick(messageContent: string) {
     try {
       const transactionData = parseNostrTransactionMessage(messageContent)
       if (!transactionData) {
@@ -155,10 +156,10 @@ export default function DevicesGroupChat() {
     }
   }
 
-  const handleToggleVisibility = (
+  function handleToggleVisibility(
     msgId: string,
     component: 'sankey' | 'status'
-  ) => {
+  ) {
     setVisibleComponents((prev) => {
       const newMap = new Map(prev)
       const current = newMap.get(msgId) || {
@@ -170,7 +171,7 @@ export default function DevicesGroupChat() {
     })
   }
 
-  const handleShareInChat = async () => {
+  async function handleShareInChat() {
     if (!account || !messageToShare) return
 
     setIsLoading(true)
@@ -187,7 +188,7 @@ export default function DevicesGroupChat() {
     }
   }
 
-  const handleCancelShare = () => {
+  function handleCancelShare() {
     setIsShareModalVisible(false)
     setMessageToShare('')
     setTransactionDataForModal(null)
@@ -287,6 +288,7 @@ export default function DevicesGroupChat() {
               <SSNostrMessage
                 item={item}
                 account={account}
+                accounts={accounts}
                 formattedNpubs={formattedNpubs}
                 visibleComponents={visibleComponents}
                 onToggleVisibility={handleToggleVisibility}
@@ -351,6 +353,7 @@ export default function DevicesGroupChat() {
                 <SSTransactionDetails
                   transactionData={transactionDataForModal}
                   account={account}
+                  accounts={accounts}
                 />
               ) : (
                 <SSText style={styles.modalMessageText}>

@@ -52,9 +52,6 @@ export async function generateColorFromNpub(npub: string): Promise<string> {
   }
 }
 
-/**
- * Parse Nostr message for transaction data and handle sign flow navigation
- */
 export function parseNostrTransactionMessage(
   message: string
 ): TransactionData | null {

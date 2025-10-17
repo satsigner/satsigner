@@ -113,13 +113,10 @@ function SSSignatureDropdown({
     try {
       const collectedSignedPsbts = Array.from(signedPsbts.entries())
         .filter(([, psbt]) => psbt && psbt.trim().length > 0)
-        .reduce(
-          (acc, [cosignerIndex, psbt]) => {
-            acc[cosignerIndex] = psbt
-            return acc
-          },
-          {} as Record<number, string>
-        )
+        .reduce<Record<number, string>>((acc, [cosignerIndex, psbt]) => {
+          acc[cosignerIndex] = psbt
+          return acc
+        }, {})
 
       const psbtsToCombine = [
         txBuilderResult.psbt.base64,

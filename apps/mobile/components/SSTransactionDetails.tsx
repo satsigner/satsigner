@@ -7,7 +7,6 @@ import SSTransactionChart from '@/components/SSTransactionChart'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import {
@@ -24,6 +23,7 @@ import { estimateTransactionSize } from '@/utils/transaction'
 type SSTransactionDetailsProps = {
   transactionData: TransactionData
   account: Account | undefined
+  accounts: Account[]
   visibility?: { sankey: boolean; status: boolean }
   onToggleVisibility?: (component: 'sankey' | 'status') => void
   onGoToSignFlow?: () => void
@@ -32,6 +32,7 @@ type SSTransactionDetailsProps = {
 function SSTransactionDetails({
   transactionData,
   account,
+  accounts,
   visibility,
   onToggleVisibility,
   onGoToSignFlow
@@ -54,7 +55,6 @@ function SSTransactionDetails({
   const keysRequired = multisigInfo?.required || 0
   const keyCount = multisigInfo?.total || 0
 
-  const accounts = useAccountsStore.getState().accounts
   const accountMatch = findMatchingAccount(originalPsbt, accounts)
   const matchedAccount = accountMatch?.account || account
 
@@ -111,7 +111,6 @@ function SSTransactionDetails({
           {`${txid.slice(0, 6)}...${txid.slice(-6)}`}
         </SSText>
       </SSHStack>
-
       {onToggleVisibility ? (
         <>
           {visibility?.sankey ? (
@@ -150,7 +149,6 @@ function SSTransactionDetails({
           </View>
         </>
       )}
-
       {onGoToSignFlow && (
         <SSButton
           label={t('account.transaction.signFlow')}
