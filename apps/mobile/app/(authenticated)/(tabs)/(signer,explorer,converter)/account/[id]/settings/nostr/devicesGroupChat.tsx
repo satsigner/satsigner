@@ -63,11 +63,11 @@ export default function DevicesGroupChat() {
   const { sendDM } = useNostrSync()
   const { handleGoToSignFlow } = useNostrSignFlow()
 
-  const { accounts, account } = useAccountsStore(
-    useShallow((state) => ({
-      accounts: state.accounts,
-      account: state.accounts.find((acc) => acc.id === accountId)
-    }))
+  const [accounts, account] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts,
+      state.accounts.find((acc) => acc.id === accountId)
+    ])
   )
 
   const members = useNostrStore(
