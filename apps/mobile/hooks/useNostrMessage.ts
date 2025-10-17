@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
 import { nip19 } from 'nostr-tools'
+import { useMemo } from 'react'
 
 import { t } from '@/locales'
 import { type Account } from '@/types/models/Account'
