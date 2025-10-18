@@ -1,5 +1,5 @@
-import { Descriptor, DescriptorSecretKey, Mnemonic } from 'bdk-rn'
-import { KeychainKind, type Network } from 'bdk-rn/lib/lib/enums'
+import { Descriptor } from 'bdk-rn'
+import { KeychainKind, type Network as BDKNetwork } from 'bdk-rn/lib/lib/enums'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
@@ -19,6 +19,7 @@ import { Colors } from '@/styles'
 import { type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { getDescriptorsFromKey } from '@/utils/bip32'
+import { getPublicDescriptorFromMnemonic } from '@/utils/bip39'
 import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
@@ -140,7 +141,7 @@ export default function DescriptorPage() {
               try {
                 const descriptor = await new Descriptor().create(
                   descriptorString,
-                  network as Network
+                  network as BDKNetwork
                 )
                 if (descriptor) {
                   descriptorString = await descriptor.asString()
@@ -149,65 +150,14 @@ export default function DescriptorPage() {
                 // Keep the original descriptor if BDK fails
               }
             }
-          } else if (decryptedSecret.mnemonic) {
-            // For seed-based keys, generate descriptor from mnemonic if no stored descriptor
-            const parsedMnemonic = await new Mnemonic().fromString(
-              decryptedSecret.mnemonic
+          } else if (decryptedSecret.mnemonic && key.scriptVersion) {
+            descriptorString = getPublicDescriptorFromMnemonic(
+              decryptedSecret.mnemonic,
+              key.scriptVersion,
+              KeychainKind.External,
+              decryptedSecret.passphrase,
+              account.network as BDKNetwork
             )
-            const descriptorSecretKey = await new DescriptorSecretKey().create(
-              network as Network,
-              parsedMnemonic,
-              decryptedSecret.passphrase
-            )
-
-            let externalDescriptor: Descriptor
-            switch (key.scriptVersion) {
-              case 'P2PKH':
-                externalDescriptor = await new Descriptor().newBip44(
-                  descriptorSecretKey,
-                  KeychainKind.External,
-                  network as Network
-                )
-                break
-              case 'P2SH-P2WPKH':
-                externalDescriptor = await new Descriptor().newBip49(
-                  descriptorSecretKey,
-                  KeychainKind.External,
-                  network as Network
-                )
-                break
-              case 'P2WPKH':
-                externalDescriptor = await new Descriptor().newBip84(
-                  descriptorSecretKey,
-                  KeychainKind.External,
-                  network as Network
-                )
-                break
-              case 'P2TR':
-                externalDescriptor = await new Descriptor().newBip86(
-                  descriptorSecretKey,
-                  KeychainKind.External,
-                  network as Network
-                )
-                break
-              case 'P2WSH':
-              case 'P2SH-P2WSH':
-              case 'P2SH':
-                // For multisig script types, we need to create descriptors manually
-                throw new Error(
-                  `Manual descriptor creation required for ${key.scriptVersion}`
-                )
-              default:
-                externalDescriptor = await new Descriptor().newBip84(
-                  descriptorSecretKey,
-                  KeychainKind.External,
-                  network as Network
-                )
-            }
-
-            if (externalDescriptor) {
-              descriptorString = await externalDescriptor.asString()
-            }
           }
         } else if (key.creationType === 'importDescriptor') {
           // For descriptor-based keys, use the stored descriptor and ensure it has checksum
@@ -218,7 +168,7 @@ export default function DescriptorPage() {
             try {
               const descriptor = await new Descriptor().create(
                 descriptorString,
-                network as Network
+                network as BDKNetwork
               )
               if (descriptor) {
                 descriptorString = await descriptor.asString()
@@ -274,7 +224,7 @@ export default function DescriptorPage() {
             try {
               const descriptor = await new Descriptor().create(
                 descriptorString,
-                network as Network
+                network as BDKNetwork
               )
               if (descriptor) {
                 descriptorString = await descriptor.asString()
@@ -296,7 +246,7 @@ export default function DescriptorPage() {
                   decryptedSecret.extendedPublicKey,
                   fingerprint,
                   key.scriptVersion || 'P2WPKH',
-                  network as Network
+                  network as BDKNetwork
                 )
                 descriptorString = descriptors.externalDescriptor
               } catch {
@@ -345,7 +295,7 @@ export default function DescriptorPage() {
                 try {
                   const descriptor = await new Descriptor().create(
                     descriptorString,
-                    network as Network
+                    network as BDKNetwork
                   )
                   if (descriptor) {
                     descriptorString = await descriptor.asString()
@@ -388,7 +338,7 @@ export default function DescriptorPage() {
               try {
                 const descriptor = await new Descriptor().create(
                   descriptorString,
-                  network as Network
+                  network as BDKNetwork
                 )
                 if (descriptor) {
                   descriptorString = await descriptor.asString()
@@ -406,8 +356,6 @@ export default function DescriptorPage() {
         }
 
         setDescriptor(descriptorString)
-
-        // Parse descriptor components for display
         const components = parseDescriptorComponents(descriptorString)
         setDescriptorComponents(components)
       } catch {

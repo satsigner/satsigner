@@ -242,11 +242,7 @@ export default function AccountList() {
       switch (type) {
         case 'segwit': {
           // Generate fingerprint and extended public key from mnemonic
-          const fingerprint = getFingerprintFromMnemonic(
-            sampleSignetWalletSeed,
-            '',
-            bdkNetwork
-          )
+          const fingerprint = getFingerprintFromMnemonic(sampleSignetWalletSeed)
           const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
             sampleSignetWalletSeed,
             '',
@@ -263,11 +259,7 @@ export default function AccountList() {
           break
         }
         case 'legacy': {
-          const fingerprint = getFingerprintFromMnemonic(
-            sampleSignetWalletSeed,
-            '',
-            bdkNetwork
-          )
+          const fingerprint = getFingerprintFromMnemonic(sampleSignetWalletSeed)
           const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
             sampleSignetWalletSeed,
             '',
@@ -330,9 +322,7 @@ export default function AccountList() {
           setMnemonicWordCount(12)
           setCreationType('importMnemonic')
           const fingerprint1 = getFingerprintFromMnemonic(
-            sampleSignetMultisigKey1,
-            '',
-            bdkNetwork
+            sampleSignetMultisigKey1
           )
           const extendedPublicKey1 =
             await getExtendedPublicKeyFromMnemonicCustom(
@@ -350,9 +340,7 @@ export default function AccountList() {
           setMnemonicWordCount(12)
           setCreationType('importMnemonic')
           const fingerprint2 = getFingerprintFromMnemonic(
-            sampleSignetMultisigKey2,
-            '',
-            bdkNetwork
+            sampleSignetMultisigKey2
           )
           const extendedPublicKey2 =
             await getExtendedPublicKeyFromMnemonicCustom(

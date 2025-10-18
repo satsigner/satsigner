@@ -2413,6 +2413,7 @@ function PreviewMessage() {
 
               <SSSeedWordsInput
                 wordCount={selectedWordCount}
+                wordListName="english"
                 network={network as Network}
                 onMnemonicValid={handleMnemonicValid}
                 onMnemonicInvalid={handleMnemonicInvalid}

@@ -19,7 +19,8 @@ import { type MnemonicWordCount } from '@/types/models/Account'
 import {
   getFingerprintFromMnemonic,
   getWordList,
-  validateMnemonic
+  validateMnemonic,
+  type WordListName
 } from '@/utils/bip39'
 
 type SeedWordInfo = {
@@ -30,6 +31,7 @@ type SeedWordInfo = {
 
 type SSSeedWordsInputProps = {
   wordCount: MnemonicWordCount
+  wordListName: WordListName
   network: Network
   onMnemonicValid?: (mnemonic: string, fingerprint: string) => void
   onMnemonicInvalid?: () => void
@@ -61,7 +63,7 @@ const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
 
 export default function SSSeedWordsInput({
   wordCount,
-  network,
+  wordListName,
   onMnemonicValid,
   onMnemonicInvalid,
   showPassphrase = false,
@@ -89,9 +91,9 @@ export default function SSSeedWordsInput({
   const [fingerprint, setFingerprint] = useState('')
   const [passphrase, setPassphrase] = useState('')
 
-  const wordList = getWordList()
   const passphraseRef = useRef<any>()
   const clipboardCheckedRef = useRef(false)
+  const wordList = getWordList(wordListName)
 
   // Initialize seed words info
   useEffect(() => {
@@ -107,7 +109,7 @@ export default function SSSeedWordsInput({
 
   // Check if clipboard contains valid seed
   const checkClipboardForSeed = useCallback(
-    async (text: string): Promise<string[]> => {
+    (text: string): string[] => {
       if (!text || text === '') return []
       const delimiters = [' ', '\n', ',', ', ']
       for (const delimiter of delimiters) {
@@ -115,13 +117,16 @@ export default function SSSeedWordsInput({
         if (seedCandidate.length !== wordCount) continue
         const validWords = seedCandidate.every((x) => wordList.includes(x))
         if (!validWords) continue
-        const checksum = validateMnemonic(seedCandidate.join(' '))
-        if (!checksum) continue
+        const validMnemonic = validateMnemonic(
+          seedCandidate.join(' '),
+          wordListName
+        )
+        if (!validMnemonic) continue
         return seedCandidate
       }
       return []
     },
-    [wordCount, wordList]
+    [wordCount, wordList, wordListName]
   )
 
   // Fill out seed words from clipboard
@@ -136,14 +141,13 @@ export default function SSSeedWordsInput({
       setSeedWordsInfo(newSeedWordsInfo)
 
       const mnemonic = seed.join(' ')
-      const checksumValid = validateMnemonic(mnemonic)
+      const checksumValid = validateMnemonic(mnemonic, wordListName)
       setChecksumValid(checksumValid)
 
       if (checksumValid) {
         const fingerprintResult = getFingerprintFromMnemonic(
           mnemonic,
-          passphrase,
-          network
+          passphrase
         )
         setFingerprint(fingerprintResult)
         onMnemonicValid?.(mnemonic, fingerprintResult)
@@ -151,21 +155,21 @@ export default function SSSeedWordsInput({
         onMnemonicInvalid?.()
       }
     },
-    [passphrase, network, onMnemonicValid, onMnemonicInvalid]
+    [passphrase, onMnemonicValid, onMnemonicInvalid, wordListName]
   )
 
   const readSeedFromClipboard = useCallback(async () => {
     try {
       const text = (await Clipboard.getStringAsync()).trim()
-      const seed = await checkClipboardForSeed(text)
+      const seed = checkClipboardForSeed(text)
       if (seed.length > 0) {
         await fillOutSeedWords(seed)
         toast.success('Seed words pasted from clipboard')
       } else {
         toast.error('No valid seed found in clipboard')
       }
-    } catch (_error) {
-      toast.error('Failed to read clipboard')
+    } catch (error) {
+      toast.error(`Failed to read clipboard, ${(error as Error).message}`)
     }
   }, [checkClipboardForSeed, fillOutSeedWords])
 
@@ -209,14 +213,13 @@ export default function SSSeedWordsInput({
     // Validate complete mnemonic
     const mnemonic = newSeedWordsInfo.map((info) => info.value).join(' ')
     if (mnemonic.trim().length > 0) {
-      const checksumValid = validateMnemonic(mnemonic)
+      const checksumValid = validateMnemonic(mnemonic, wordListName)
       setChecksumValid(checksumValid)
 
       if (checksumValid) {
         const fingerprintResult = getFingerprintFromMnemonic(
           mnemonic,
-          passphrase,
-          network
+          passphrase
         )
         setFingerprint(fingerprintResult)
         onMnemonicValid?.(mnemonic, fingerprintResult)
@@ -242,17 +245,12 @@ export default function SSSeedWordsInput({
 
     setSeedWordsInfo(newSeedWordsInfo)
 
-    // Validate complete mnemonic
     const mnemonic = newSeedWordsInfo.map((info) => info.value).join(' ')
-    const checksumValid = validateMnemonic(mnemonic)
+    const checksumValid = validateMnemonic(mnemonic, wordListName)
     setChecksumValid(checksumValid)
 
     if (checksumValid) {
-      const fingerprintResult = getFingerprintFromMnemonic(
-        mnemonic,
-        passphrase,
-        network
-      )
+      const fingerprintResult = getFingerprintFromMnemonic(mnemonic, passphrase)
       setFingerprint(fingerprintResult)
       onMnemonicValid?.(mnemonic, fingerprintResult)
     } else {
@@ -266,11 +264,7 @@ export default function SSSeedWordsInput({
     // Re-validate mnemonic with new passphrase if mnemonic is complete
     const mnemonic = seedWordsInfo.map((info) => info.value).join(' ')
     if (mnemonic.trim().length > 0 && checksumValid) {
-      const fingerprintResult = getFingerprintFromMnemonic(
-        mnemonic,
-        text,
-        network
-      )
+      const fingerprintResult = getFingerprintFromMnemonic(mnemonic, text)
       setFingerprint(fingerprintResult)
       onMnemonicValid?.(mnemonic, fingerprintResult)
     }
@@ -326,6 +320,7 @@ export default function SSSeedWordsInput({
       <SSKeyboardWordSelector
         visible={keyboardWordSelectorVisible}
         wordStart={currentWordText}
+        wordListName={wordListName}
         onWordSelected={handleWordSelected}
         style={{ height: 60 }}
       />
