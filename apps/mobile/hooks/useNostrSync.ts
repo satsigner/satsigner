@@ -19,6 +19,7 @@ import {
   labelsToJSONL
 } from '@/utils/bip329'
 import { aesDecrypt, sha256 } from '@/utils/crypto'
+import { parseDescriptor } from '@/utils/parse'
 
 function getTrustedDevices(accountId: string): string[] {
   const account = useAccountsStore
@@ -546,18 +547,8 @@ function useNostrSync() {
       }
 
       const descriptor = walletData.externalDescriptor
-      const match = descriptor.match(/\[([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\]/)
-      if (!match) {
-        throw new Error('Invalid descriptor format')
-      }
-
-      const [, , purpose, coinType, accountIndex] = match
-      const hardenedPath = `m/${purpose.replace("'", 'h')}/${coinType.replace("'", 'h')}/${accountIndex.replace("'", 'h')}`
-
-      const xpubRegex = /(tpub|vpub|upub|zpub)[a-zA-Z0-9]+/g
-      const xpubs = (descriptor.match(xpubRegex) || []).sort()
-
-      const totalString = hardenedPath + xpubs.join('')
+      const { hardenedPath, xpubs } = parseDescriptor(descriptor)
+      const totalString = `${hardenedPath}${xpubs.join('')}`
 
       const firstHash = await sha256(totalString)
       const doubleHash = await sha256(firstHash)

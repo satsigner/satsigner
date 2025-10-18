@@ -1,5 +1,6 @@
 import { Buffer } from 'buffer'
-import { useEffect, useState } from 'react'
+import { useRouter } from 'expo-router'
+import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
 
@@ -12,13 +13,17 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useNostrStore } from '@/store/nostr'
 import { Colors, Typography } from '@/styles'
 import { type Account, type Key } from '@/types/models/Account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import {
+  combinePsbts,
+  storeTransactionData,
+  type TransactionData,
   validateSignedPSBT,
   validateSignedPSBTForCosigner
-} from '@/utils/psbtValidator'
+} from '@/utils/psbt'
 
 type SSSignatureDropdownProps = {
   index: number
@@ -34,6 +39,8 @@ type SSSignatureDropdownProps = {
   isReading: boolean
   decryptedKey?: Key
   account: Account
+  accountId: string
+  signedPsbts: Map<number, string>
   onShowQR: () => void
   onNFCExport: () => void
   onPasteFromClipboard: (index: number, psbt: string) => void
@@ -58,6 +65,8 @@ function SSSignatureDropdown({
   isReading,
   decryptedKey,
   account,
+  accountId,
+  signedPsbts,
   onShowQR,
   onNFCExport,
   onPasteFromClipboard,
@@ -73,11 +82,14 @@ function SSSignatureDropdown({
   const [extractedPublicKey, setExtractedPublicKey] = useState('')
   const [seedDropped, setSeedDropped] = useState(false)
 
-  // Get network and script version for source label
+  const router = useRouter()
+  const setTransactionToShare = useNostrStore(
+    (state) => state.setTransactionToShare
+  )
+
   const network = useBlockchainStore((state) => state.selectedNetwork)
   const scriptVersion = keyDetails?.scriptVersion || 'P2WSH'
 
-  // Use custom hooks for validation and label generation
   const { hasLocalSeed, isSignatureCompleted } = useSignatureDropdownValidation(
     {
       keyDetails,
@@ -86,6 +98,60 @@ function SSSignatureDropdown({
       signedPsbt
     }
   )
+
+  const handleSendTransactionToGroup = useCallback(async () => {
+    if (!account?.nostr?.autoSync) {
+      toast.error(t('account.nostrSync.autoSyncMustBeEnabled'))
+      return
+    }
+
+    if (!messageId || !txBuilderResult?.psbt?.base64) {
+      toast.error(t('account.nostrSync.transactionDataNotAvailable'))
+      return
+    }
+
+    try {
+      const collectedSignedPsbts = Array.from(signedPsbts.entries())
+        .filter(([, psbt]) => psbt && psbt.trim().length > 0)
+        .reduce<Record<number, string>>((acc, [cosignerIndex, psbt]) => {
+          acc[cosignerIndex] = psbt
+          return acc
+        }, {})
+
+      const psbtsToCombine = [
+        txBuilderResult.psbt.base64,
+        ...Object.values(collectedSignedPsbts)
+      ]
+      const combinedPsbt = combinePsbts(psbtsToCombine)
+
+      const transactionData: TransactionData = {
+        combinedPsbt
+      }
+
+      storeTransactionData(transactionData)
+
+      const message = combinedPsbt
+
+      setTransactionToShare({
+        message,
+        transactionData
+      })
+
+      router.push({
+        pathname: `/account/${accountId}/settings/nostr/devicesGroupChat`
+      })
+    } catch {
+      toast.error(t('account.nostrSync.failedToSendTransactionData'))
+    }
+  }, [
+    account,
+    messageId,
+    txBuilderResult,
+    signedPsbts,
+    router,
+    accountId,
+    setTransactionToShare
+  ])
 
   const { sourceLabel } = useKeySourceLabel({
     keyDetails,
@@ -103,10 +169,7 @@ function SSSignatureDropdown({
         return
       }
 
-      // In signing context, secret is encrypted (string), so we can't extract public key directly
-      // We need to use the decryptedKey prop instead
       if (typeof keyDetails.secret === 'string') {
-        // Use decryptedKey if available
         if (decryptedKey && typeof decryptedKey.secret === 'object') {
           const secret = decryptedKey.secret
           if (secret.extendedPublicKey) {
@@ -119,7 +182,7 @@ function SSSignatureDropdown({
                 secret.externalDescriptor
               )
               setExtractedPublicKey(publicKey)
-            } catch (_error) {
+            } catch {
               setExtractedPublicKey('')
             }
           }
@@ -128,24 +191,21 @@ function SSSignatureDropdown({
         return
       }
 
-      // Handle object secret (shouldn't happen in signing context, but just in case)
       if (typeof keyDetails.secret === 'object') {
         const secret = keyDetails.secret
 
-        // If we already have an extended public key, use it
         if (secret.extendedPublicKey) {
           setExtractedPublicKey(secret.extendedPublicKey)
           return
         }
 
-        // If we have a descriptor, extract the public key from it
         if (secret.externalDescriptor) {
           try {
             const publicKey = getExtendedKeyFromDescriptor(
               secret.externalDescriptor
             )
             setExtractedPublicKey(publicKey)
-          } catch (_error) {
+          } catch {
             setExtractedPublicKey('')
           }
         } else {
@@ -157,39 +217,30 @@ function SSSignatureDropdown({
     extractPublicKey()
   }, [keyDetails, decryptedKey])
 
-  // Reset seedDropped when keyDetails changes
   useEffect(() => {
     if (keyDetails) {
-      // In signing context, use decryptedKey to check for mnemonic
       if (decryptedKey && typeof decryptedKey.secret === 'object') {
-        // If the key has a mnemonic, reset seedDropped to false
         if (decryptedKey.secret.mnemonic) {
           setSeedDropped(false)
         } else {
           setSeedDropped(true)
         }
       } else if (typeof keyDetails.secret === 'object') {
-        // Fallback for object secret (shouldn't happen in signing context)
         if (keyDetails.secret.mnemonic) {
           setSeedDropped(false)
         } else {
           setSeedDropped(true)
         }
       } else {
-        // For encrypted secrets, we can't determine if mnemonic exists
         setSeedDropped(false)
       }
     }
   }, [keyDetails, decryptedKey])
 
-  // Helper function to get the inner fingerprint from secret
   function getInnerFingerprint(): string | undefined {
-    // First try to get from decryptedKey (for signing context)
     if (decryptedKey && typeof decryptedKey.secret === 'object') {
       return decryptedKey.secret.fingerprint
     }
-
-    // Fallback to keyDetails.secret if it's an object
     if (typeof keyDetails?.secret === 'object') {
       return keyDetails.secret.fingerprint
     }
@@ -197,7 +248,6 @@ function SSSignatureDropdown({
     return undefined
   }
 
-  // Use the extracted public key from state, or fall back to direct access
   const extendedPublicKey =
     extractedPublicKey ||
     (decryptedKey &&
@@ -206,8 +256,6 @@ function SSSignatureDropdown({
     (typeof keyDetails?.secret === 'object' &&
       keyDetails.secret.extendedPublicKey) ||
     ''
-
-  // Format public key for display: first 7, last 4 chars
   let formattedPubKey = extendedPublicKey
   if (extendedPublicKey && extendedPublicKey.length > 12) {
     formattedPubKey = `${extendedPublicKey.slice(
@@ -216,32 +264,24 @@ function SSSignatureDropdown({
     )}...${extendedPublicKey.slice(-4)}`
   }
 
-  // Validate PSBT when signedPsbt changes
   useEffect(() => {
     if (signedPsbt && signedPsbt.trim().length > 0) {
       try {
-        // Convert hex PSBT to base64 if needed
         let psbtToValidate = signedPsbt
         if (signedPsbt.toLowerCase().startsWith('70736274ff')) {
-          // This is a hex PSBT, convert to base64
           psbtToValidate = Buffer.from(signedPsbt, 'hex').toString('base64')
         } else if (signedPsbt.startsWith('cHNidP')) {
-          // This is already base64 PSBT, use as-is
           psbtToValidate = signedPsbt
         } else {
-          // Try to detect if it's a valid hex string
           if (/^[a-fA-F0-9]+$/.test(signedPsbt) && signedPsbt.length > 100) {
-            // Likely a hex PSBT, try to convert
             try {
               psbtToValidate = Buffer.from(signedPsbt, 'hex').toString('base64')
-            } catch (_error) {
-              // If conversion fails, use original
+            } catch {
               psbtToValidate = signedPsbt
             }
           }
         }
 
-        // Use cosigner-specific validation for multisig accounts
         const isValid =
           account.policyType === 'multisig'
             ? validateSignedPSBTForCosigner(
@@ -252,7 +292,7 @@ function SSSignatureDropdown({
               )
             : validateSignedPSBT(psbtToValidate, account)
         setIsPsbtValid(isValid)
-      } catch (_error) {
+      } catch {
         setIsPsbtValid(false)
       }
     } else {
@@ -262,24 +302,12 @@ function SSSignatureDropdown({
 
   return (
     <View
-      style={[
-        {
-          borderColor: '#444444',
-          paddingBottom: 16,
-          paddingTop: 16,
-          borderTopWidth: 1
-        },
-        index === totalKeys - 1 && { borderBottomWidth: 1 }
-      ]}
+      style={[styles.container, index === totalKeys - 1 && styles.lastItem]}
     >
       <TouchableOpacity
         onPress={() => setIsExpanded(!isExpanded)}
         disabled={!messageId}
-        style={{
-          paddingBottom: 8,
-          paddingTop: 8,
-          opacity: messageId ? 1 : 0.5
-        }}
+        style={[styles.header, !messageId && styles.headerDisabled]}
       >
         <SSHStack justifyBetween>
           <SSHStack style={{ alignItems: 'center' }} gap="sm">
@@ -292,14 +320,7 @@ function SSSignatureDropdown({
                 <SSIconGreen width={24} height={24} />
               )
             ) : (
-              <View
-                style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 12,
-                  backgroundColor: '#4A4A4A'
-                }}
-              />
+              <View style={styles.signatureIcon} />
             )}
             <SSText color="muted" size="lg" style={{ paddingHorizontal: 10 }}>
               {t('common.key')} {index + 1}
@@ -327,10 +348,8 @@ function SSSignatureDropdown({
         </SSHStack>
       </TouchableOpacity>
 
-      {/* Expanded Content */}
       {isExpanded && (
         <SSVStack style={{ paddingHorizontal: 8, paddingBottom: 8 }} gap="sm">
-          {/* Check if this cosigner has a seed - show Sign with Local Key button at the top */}
           {hasLocalSeed ? (
             <SSButton
               label={t('transaction.preview.signWithLocalKey')}
@@ -350,7 +369,7 @@ function SSSignatureDropdown({
                 variant="secondary"
               />
               <SSButton
-                label="Sign with Seed Words"
+                label={t('transaction.preview.signWithSeedWords')}
                 onPress={() => {
                   onSignWithSeedWords()
                 }}
@@ -375,7 +394,6 @@ function SSSignatureDropdown({
               style={{ width: '48%' }}
               onPress={() => {
                 if (txBuilderResult?.psbt?.base64) {
-                  // Import Clipboard from expo-clipboard
                   const { setStringAsync } = require('expo-clipboard')
                   setStringAsync(txBuilderResult.psbt.base64)
                   toast(t('common.copiedToClipboard'))
@@ -385,7 +403,7 @@ function SSSignatureDropdown({
             <SSButton
               variant="outline"
               disabled={!messageId}
-              label="Show QR"
+              label={t('transaction.preview.showQR')}
               style={{ width: '48%' }}
               onPress={() => {
                 onShowQR()
@@ -394,13 +412,17 @@ function SSSignatureDropdown({
           </SSHStack>
           <SSHStack gap="xxs" justifyBetween>
             <SSButton
-              label="USB"
+              label={t('common.usb')}
               style={{ width: '48%' }}
               variant="outline"
               disabled
             />
             <SSButton
-              label={isEmitting ? t('watchonly.read.scanning') : 'Export NFC'}
+              label={
+                isEmitting
+                  ? t('watchonly.read.scanning')
+                  : t('transaction.preview.exportNFC')
+              }
               style={{ width: '48%' }}
               variant="outline"
               disabled={!isAvailable || !serializedPsbt}
@@ -410,13 +432,10 @@ function SSSignatureDropdown({
             />
           </SSHStack>
           <SSButton
-            label="NIP-17 GROUP"
+            label={t('transaction.preview.nip17group')}
             variant="outline"
-            disabled={!messageId}
-            onPress={() => {
-              // TODO: Implement NIP-17 GROUP export
-              toast.info('NIP-17 GROUP export coming soon')
-            }}
+            disabled={!messageId || !account?.nostr?.autoSync}
+            onPress={handleSendTransactionToGroup}
           />
           <SSText
             center
@@ -427,38 +446,24 @@ function SSSignatureDropdown({
           >
             {t('transaction.preview.importSigned')}
           </SSText>
-
-          {/* Imported PSBT Display Area - Placed BEFORE import buttons like watch-only wallet */}
           <View
-            style={{
-              minHeight: 200,
-              maxHeight: 600,
-              paddingTop: 12,
-              paddingBottom: 12,
-              paddingHorizontal: 12,
-              backgroundColor: Colors.gray[900],
-              borderRadius: 8,
-              borderWidth: 1,
-              borderColor: signedPsbt
-                ? isPsbtValid
-                  ? Colors.mainGreen
-                  : Colors.mainRed
-                : Colors.gray[700]
-            }}
+            style={[
+              styles.psbtDisplay,
+              {
+                borderColor: signedPsbt
+                  ? isPsbtValid
+                    ? Colors.mainGreen
+                    : Colors.mainRed
+                  : Colors.gray[700]
+              }
+            ]}
           >
             <ScrollView
               style={{ flex: 1 }}
               showsVerticalScrollIndicator
               nestedScrollEnabled
             >
-              <SSText
-                style={{
-                  fontFamily: Typography.sfProMono,
-                  fontSize: 12,
-                  color: Colors.white,
-                  lineHeight: 18
-                }}
-              >
+              <SSText style={styles.psbtText}>
                 {signedPsbt || t('transaction.preview.signedPsbt')}
               </SSText>
             </ScrollView>
@@ -466,7 +471,7 @@ function SSSignatureDropdown({
 
           <SSHStack gap="xxs" justifyBetween>
             <SSButton
-              label="Paste"
+              label={t('common.paste')}
               style={{ width: '48%' }}
               variant="outline"
               onPress={() => {
@@ -474,7 +479,7 @@ function SSSignatureDropdown({
               }}
             />
             <SSButton
-              label="Scan QR"
+              label={t('transaction.preview.showQR')}
               style={{ width: '48%' }}
               variant="outline"
               onPress={() => {
@@ -484,7 +489,7 @@ function SSSignatureDropdown({
           </SSHStack>
           <SSHStack gap="xxs" justifyBetween>
             <SSButton
-              label="USB"
+              label={t('common.usb')}
               style={{ width: '48%' }}
               variant="outline"
               disabled
@@ -504,13 +509,11 @@ function SSSignatureDropdown({
             />
           </SSHStack>
 
-          {/* NIP-17 GROUP Import */}
           <SSButton
-            label="FETCH FROM NIP-17 GROUP"
+            label={t('transaction.preview.fetchFromNip17group')}
             variant="outline"
             onPress={() => {
-              // TODO: Implement NIP-17 GROUP import
-              toast.info('NIP-17 GROUP import coming soon')
+              toast.info(t('transaction.preview.nip17groupComingSoon'))
             }}
           />
         </SSVStack>
@@ -519,3 +522,40 @@ function SSSignatureDropdown({
   )
 }
 export default SSSignatureDropdown
+
+const styles = {
+  container: {
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderColor: Colors.gray[700]
+  },
+  lastItem: {
+    borderBottomWidth: 1
+  },
+  header: {
+    paddingVertical: 8
+  },
+  headerDisabled: {
+    opacity: 0.5
+  },
+  signatureIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.gray[800]
+  },
+  psbtDisplay: {
+    minHeight: 200,
+    maxHeight: 600,
+    padding: 12,
+    backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    borderWidth: 1
+  },
+  psbtText: {
+    fontFamily: Typography.sfProMono,
+    fontSize: 12,
+    color: Colors.white,
+    lineHeight: 18
+  }
+}

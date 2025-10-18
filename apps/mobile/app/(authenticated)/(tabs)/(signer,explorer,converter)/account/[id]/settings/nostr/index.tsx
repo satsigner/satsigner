@@ -720,7 +720,7 @@ function NostrSync() {
             <SSButton
               style={{ marginTop: 30, marginBottom: 10 }}
               variant="secondary"
-              label={t('account.nostrSync.devicesGroupChat')}
+              label={t('account.nostrSync.devicesGroupChat.title')}
               onPress={goToDevicesGroupChat}
             />
             {/* Members section */}

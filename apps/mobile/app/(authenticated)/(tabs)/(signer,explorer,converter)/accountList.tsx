@@ -37,6 +37,7 @@ import { Colors } from '@/styles'
 import { type Network } from '@/types/settings/blockchain'
 import {
   getExtendedPublicKeyFromMnemonic,
+  getExtendedPublicKeyFromMnemonicCustom,
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
@@ -333,12 +334,13 @@ export default function AccountList() {
             '',
             bdkNetwork
           )
-          const extendedPublicKey1 = getExtendedPublicKeyFromMnemonic(
-            sampleSignetMultisigKey1,
-            '',
-            bdkNetwork,
-            'P2WSH'
-          )
+          const extendedPublicKey1 =
+            await getExtendedPublicKeyFromMnemonicCustom(
+              sampleSignetMultisigKey1,
+              '',
+              bdkNetwork,
+              'P2WSH'
+            )
           setFingerprint(fingerprint1)
           setExtendedPublicKey(extendedPublicKey1)
           setKey(0)
@@ -352,12 +354,13 @@ export default function AccountList() {
             '',
             bdkNetwork
           )
-          const extendedPublicKey2 = getExtendedPublicKeyFromMnemonic(
-            sampleSignetMultisigKey2,
-            '',
-            bdkNetwork,
-            'P2WSH'
-          )
+          const extendedPublicKey2 =
+            await getExtendedPublicKeyFromMnemonicCustom(
+              sampleSignetMultisigKey2,
+              '',
+              bdkNetwork,
+              'P2WSH'
+            )
           setFingerprint(fingerprint2)
           setExtendedPublicKey(extendedPublicKey2)
           setKey(1)
