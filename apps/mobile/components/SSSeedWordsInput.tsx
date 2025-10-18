@@ -1,8 +1,7 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as Clipboard from 'expo-clipboard'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { TextInput } from 'react-native'
-import type { StyleProp, ViewStyle } from 'react-native'
+import type { StyleProp, TextInput, ViewStyle } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -60,7 +59,7 @@ type SSSeedWordsInputProps = {
   onWordSelectorStateChange?: (state: {
     visible: boolean
     wordStart: string
-    onWordSelected: (word: string) => void
+    onWordSelected: (word?: string) => void
   }) => void
 }
 
@@ -134,7 +133,8 @@ export default function SSSeedWordsInput({
 
   // Handle word selection from keyboard selector
   const handleWordSelected = useCallback(
-    async (word: string) => {
+    async (word?: string) => {
+      if (!word) return
       const newSeedWordsInfo = [...seedWordsInfo]
       const currentWord = newSeedWordsInfo[currentWordIndex]
 
