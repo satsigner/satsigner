@@ -1,7 +1,8 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as Clipboard from 'expo-clipboard'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { TextInput, type StyleProp, type ViewStyle } from 'react-native'
+import { TextInput } from 'react-native'
+import type { StyleProp, ViewStyle } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -131,6 +132,60 @@ export default function SSSeedWordsInput({
     }
   }, [])
 
+  // Handle word selection from keyboard selector
+  const handleWordSelected = useCallback(
+    async (word: string) => {
+      const newSeedWordsInfo = [...seedWordsInfo]
+      const currentWord = newSeedWordsInfo[currentWordIndex]
+
+      currentWord.value = word
+      currentWord.dirty = true
+
+      if (wordList.includes(word)) {
+        currentWord.valid = true
+        setKeyboardWordSelectorVisible(false)
+        setCurrentWordText('')
+        setSeedWordsInfo(newSeedWordsInfo)
+
+        // Auto-advance to next word if current word is valid
+        if (currentWordIndex < wordCount - 1) {
+          setCurrentWordIndex(currentWordIndex + 1)
+          wordInputRefs.current[currentWordIndex + 1]?.focus()
+        }
+      } else {
+        currentWord.valid = false
+        setSeedWordsInfo(newSeedWordsInfo)
+      }
+
+      // Validate mnemonic after word selection
+      const mnemonic = newSeedWordsInfo.map((info) => info.value).join(' ')
+      if (mnemonic.trim().length > 0) {
+        const checksumValid = validateMnemonic(mnemonic, wordListName)
+        setChecksumValid(checksumValid)
+        if (checksumValid) {
+          const fingerprintResult = getFingerprintFromMnemonic(
+            mnemonic,
+            passphrase
+          )
+          setFingerprint(fingerprintResult)
+          onMnemonicValid?.(mnemonic, fingerprintResult)
+        } else {
+          onMnemonicInvalid?.()
+        }
+      }
+    },
+    [
+      seedWordsInfo,
+      currentWordIndex,
+      wordList,
+      wordCount,
+      wordListName,
+      passphrase,
+      onMnemonicValid,
+      onMnemonicInvalid
+    ]
+  )
+
   // Notify parent about word selector state changes
   useEffect(() => {
     onWordSelectorStateChange?.({
@@ -138,7 +193,12 @@ export default function SSSeedWordsInput({
       wordStart: currentWordText,
       onWordSelected: handleWordSelected
     })
-  }, [keyboardWordSelectorVisible, currentWordText, onWordSelectorStateChange])
+  }, [
+    keyboardWordSelectorVisible,
+    currentWordText,
+    onWordSelectorStateChange,
+    handleWordSelected
+  ])
 
   // Check if clipboard contains valid seed
   const checkClipboardForSeed = useCallback(
@@ -291,49 +351,6 @@ export default function SSSeedWordsInput({
     } else {
       setChecksumValid(false)
       setFingerprint('')
-      onMnemonicInvalid?.()
-    }
-  }
-
-  // Handle word selection from keyboard selector
-  const handleWordSelected = async (word: string) => {
-    const newSeedWordsInfo = [...seedWordsInfo]
-    const currentWord = newSeedWordsInfo[currentWordIndex]
-
-    currentWord.value = word
-    currentWord.dirty = true
-
-    if (wordList.includes(word)) {
-      currentWord.valid = true
-      setKeyboardWordSelectorVisible(false)
-
-      // Clear any existing timeout
-      if (autoAdvanceTimeoutRef.current) {
-        clearTimeout(autoAdvanceTimeoutRef.current)
-      }
-
-      // Auto-advance to next input when word is selected
-      if (currentWordIndex < wordCount - 1) {
-        const isPrefix = isPrefixWord(word, wordList)
-        const delay = isPrefix ? PREFIX_WORD_DELAY_MS : 100
-
-        autoAdvanceTimeoutRef.current = setTimeout(() => {
-          wordInputRefs.current[currentWordIndex + 1]?.focus()
-        }, delay)
-      }
-    }
-
-    setSeedWordsInfo(newSeedWordsInfo)
-
-    const mnemonic = newSeedWordsInfo.map((info) => info.value).join(' ')
-    const checksumValid = validateMnemonic(mnemonic, wordListName)
-    setChecksumValid(checksumValid)
-
-    if (checksumValid) {
-      const fingerprintResult = getFingerprintFromMnemonic(mnemonic, passphrase)
-      setFingerprint(fingerprintResult)
-      onMnemonicValid?.(mnemonic, fingerprintResult)
-    } else {
       onMnemonicInvalid?.()
     }
   }
