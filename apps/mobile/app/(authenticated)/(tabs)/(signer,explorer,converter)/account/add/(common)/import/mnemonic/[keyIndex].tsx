@@ -215,6 +215,7 @@ export default function ImportMnemonic() {
       <SSKeyboardWordSelector
         visible={wordSelectorState.visible}
         wordStart={wordSelectorState.wordStart}
+        wordListName={mnemonicWordList}
         onWordSelected={wordSelectorState.onWordSelected}
         style={{ height: 60 }}
       />
