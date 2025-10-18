@@ -1,11 +1,16 @@
 import { Redirect, Stack, useLocalSearchParams } from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FlatList, StyleSheet, TextInput, View } from 'react-native'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { FlatList, ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
+import SSModal from '@/components/SSModal'
+import SSNostrMessage from '@/components/SSNostrMessage'
 import SSText from '@/components/SSText'
+import SSTransactionDetails from '@/components/SSTransactionDetails'
+import { useNostrSignFlow } from '@/hooks/useNostrSignFlow'
 import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -14,17 +19,21 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
-import type { NostrDM } from '@/types/models/Nostr'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { parseNostrTransactionMessage } from '@/utils/nostr'
+import { type TransactionData } from '@/utils/psbt'
 
-// Cache for npub colors
 const colorCache = new Map<string, { text: string; color: string }>()
 
 async function formatNpub(
   pubkey: string,
   members: { npub: string; color: string }[]
 ): Promise<{ text: string; color: string }> {
-  if (!pubkey) return { text: 'Unknown sender', color: '#666666' }
+  if (!pubkey)
+    return {
+      text: t('account.nostrSync.devicesGroupChat.unknownSender'),
+      color: '#666666'
+    }
 
   const cached = colorCache.get(pubkey)
   if (cached) {
@@ -42,45 +51,57 @@ async function formatNpub(
     }
     colorCache.set(pubkey, result)
     return result
-  } catch (_error) {
+  } catch {
     return { text: pubkey.slice(0, 8), color: '#404040' }
   }
 }
 
-function SSDevicesGroupChat() {
+export default function DevicesGroupChat() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
+  const flatListRef = useRef<FlatList>(null)
+  const formattedAuthorsRef = useRef(new Set<string>())
+  const { sendDM } = useNostrSync()
+  const { handleGoToSignFlow } = useNostrSignFlow()
+
+  const [accounts, account] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts,
+      state.accounts.find((acc) => acc.id === accountId)
+    ])
+  )
+
+  const members = useNostrStore(
+    (state) => (accountId && state.members?.[accountId]) || []
+  )
+  const [transactionToShare, setTransactionToShare] = useNostrStore(
+    useShallow((state) => [
+      state.transactionToShare,
+      state.setTransactionToShare
+    ])
+  )
+
   const [isLoading, setIsLoading] = useState(false)
   const [isContentLoaded, setIsContentLoaded] = useState(false)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [messageInput, setMessageInput] = useState('')
-  const flatListRef = useRef<FlatList>(null)
   const [formattedNpubs, setFormattedNpubs] = useState<
     Map<string, { text: string; color: string }>
   >(new Map())
+  const [visibleComponents, setVisibleComponents] = useState(
+    new Map<string, { sankey: boolean; status: boolean }>()
+  )
+  const [isShareModalVisible, setIsShareModalVisible] = useState(false)
+  const [messageToShare, setMessageToShare] = useState('')
+  const [transactionDataForModal, setTransactionDataForModal] =
+    useState<TransactionData | null>(null)
 
-  const [account] = useAccountsStore((state) => [
-    state.accounts.find((_account) => _account.id === accountId)
-  ])
-
-  const { members } = useNostrStore((state) => {
-    if (!accountId) return { members: [] }
-    return {
-      members: state.members?.[accountId] || []
-    }
-  })
-
-  const { sendDM } = useNostrSync()
-
-  // Load messages from account's Nostr DMs store
   const messages = useMemo(
     () => account?.nostr?.dms || [],
     [account?.nostr?.dms]
   )
 
-  // Memoize messages to prevent unnecessary re-renders
   const memoizedMessages = useMemo(() => messages, [messages])
 
-  // Memoize the members list to prevent unnecessary recalculations
   const membersList = useMemo(
     () =>
       members.map((member: { npub: string; color?: string }) => ({
@@ -90,12 +111,91 @@ function SSDevicesGroupChat() {
     [members]
   )
 
-  // Keep track of which authors we've already formatted
-  const formattedAuthorsRef = useRef(new Set<string>())
+  async function handleSendMessage() {
+    if (!messageInput.trim()) {
+      toast.error(t('common.error.messageCannotBeEmpty'))
+      return
+    }
 
-  // Format npubs for all messages
+    if (!account?.nostr?.autoSync) {
+      toast.error(t('common.error.autoSyncMustBeEnabled'))
+      return
+    }
+
+    if (
+      !account?.nostr?.deviceNsec ||
+      !account?.nostr?.deviceNpub ||
+      !account?.nostr?.relays?.length
+    ) {
+      toast.error(t('common.error.missingRequiredNostrConfig'))
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      await sendDM(account, messageInput.trim())
+      setMessageInput('')
+    } catch {
+      toast.error(t('common.error.failedToSendMessage'))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  function handleGoToSignFlowClick(messageContent: string) {
+    try {
+      const transactionData = parseNostrTransactionMessage(messageContent)
+      if (!transactionData) {
+        toast.error(t('common.error.transactionDataParseFailed'))
+        return
+      }
+
+      handleGoToSignFlow(transactionData)
+    } catch {
+      toast.error(t('common.error.openSignFlowFailed'))
+    }
+  }
+
+  function handleToggleVisibility(
+    msgId: string,
+    component: 'sankey' | 'status'
+  ) {
+    setVisibleComponents((prev) => {
+      const newMap = new Map(prev)
+      const current = newMap.get(msgId) || {
+        sankey: false,
+        status: false
+      }
+      newMap.set(msgId, { ...current, [component]: true })
+      return newMap
+    })
+  }
+
+  async function handleShareInChat() {
+    if (!account || !messageToShare) return
+
+    setIsLoading(true)
+    try {
+      await sendDM(account, messageToShare)
+      toast.success(t('account.nostrSync.transactionDataSentToGroupChat'))
+    } catch {
+      toast.error(t('account.nostrSync.failedToSendTransactionData'))
+    } finally {
+      setIsShareModalVisible(false)
+      setMessageToShare('')
+      setTransactionDataForModal(null)
+      setIsLoading(false)
+    }
+  }
+
+  function handleCancelShare() {
+    setIsShareModalVisible(false)
+    setMessageToShare('')
+    setTransactionDataForModal(null)
+  }
+
   useEffect(() => {
-    const formatNpubs = async () => {
+    async function formatNpubs() {
       const newFormattedNpubs = new Map()
       let hasNewAuthors = false
 
@@ -108,7 +208,6 @@ function SSDevicesGroupChat() {
         }
       }
 
-      // Only update state if we have new authors to format
       if (hasNewAuthors) {
         setFormattedNpubs((prev) => new Map([...prev, ...newFormattedNpubs]))
       }
@@ -117,16 +216,13 @@ function SSDevicesGroupChat() {
     formatNpubs()
   }, [memoizedMessages, membersList])
 
-  // Separate effect for scrolling
   useEffect(() => {
     if (messages.length > 0 && account?.nostr?.relays?.length) {
       if (isInitialLoad) {
         setIsContentLoaded(false)
-        // Wait for content to be fully rendered
         setTimeout(() => {
           if (flatListRef.current) {
             flatListRef.current.scrollToEnd({ animated: false })
-            // Double check scroll after a short delay
             setTimeout(() => {
               flatListRef.current?.scrollToEnd({ animated: false })
               setIsContentLoaded(true)
@@ -135,7 +231,6 @@ function SSDevicesGroupChat() {
           }
         }, 100)
       } else {
-        // For subsequent updates, just scroll without showing loading
         if (flatListRef.current) {
           flatListRef.current.scrollToEnd({ animated: false })
         }
@@ -143,109 +238,14 @@ function SSDevicesGroupChat() {
     }
   }, [messages.length, account?.nostr?.relays?.length, isInitialLoad])
 
-  const handleSendMessage = async () => {
-    if (!messageInput.trim()) {
-      toast.error('Message cannot be empty')
-      return
+  useEffect(() => {
+    if (transactionToShare) {
+      setMessageToShare(transactionToShare.message)
+      setTransactionDataForModal(transactionToShare.transactionData)
+      setIsShareModalVisible(true)
+      setTransactionToShare(null)
     }
-
-    if (!account?.nostr?.autoSync) {
-      toast.error('Auto-sync must be enabled to send messages')
-      return
-    }
-
-    if (
-      !account?.nostr?.deviceNsec ||
-      !account?.nostr?.deviceNpub ||
-      !account?.nostr?.relays?.length
-    ) {
-      toast.error('Missing required Nostr configuration')
-      return
-    }
-
-    setIsLoading(true)
-    try {
-      await sendDM(account, messageInput.trim())
-      setMessageInput('')
-    } catch (_error) {
-      toast.error('Failed to send message')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const renderMessage = useCallback(
-    ({ item: msg }: { item: NostrDM }) => {
-      try {
-        // Ensure we have a valid hex string
-        const hexString = msg.author.startsWith('npub')
-          ? msg.author
-          : msg.author.padStart(64, '0').toLowerCase()
-
-        // Only encode if it's not already an npub
-        const msgAuthorNpub = msg.author.startsWith('npub')
-          ? msg.author
-          : nip19.npubEncode(hexString)
-
-        const isDeviceMessage = msgAuthorNpub === account?.nostr?.deviceNpub
-        const formatted = formattedNpubs.get(msg.author) || {
-          text: msgAuthorNpub.slice(0, 12) + '...' + msgAuthorNpub.slice(-4),
-          color: '#404040'
-        }
-
-        return (
-          <SSVStack
-            gap="xxs"
-            style={[styles.message, isDeviceMessage && styles.deviceMessage]}
-          >
-            <SSHStack gap="xxs" justifyBetween>
-              <SSHStack gap="xxs">
-                <View
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: formatted.color,
-                    marginTop: 1,
-                    marginRight: 3
-                  }}
-                />
-                <SSText size="sm" color="muted">
-                  {formatted.text}
-                  {isDeviceMessage && ' (You)'}
-                </SSText>
-              </SSHStack>
-              <SSText size="xs" color="muted">
-                {new Date(msg.created_at * 1000).toLocaleString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </SSText>
-            </SSHStack>
-            <SSText size="md">
-              {typeof msg.content === 'object' && 'description' in msg.content
-                ? msg.content.description
-                : typeof msg.content === 'string'
-                  ? msg.content
-                  : 'Invalid message format'}
-            </SSText>
-          </SSVStack>
-        )
-      } catch (_error) {
-        return (
-          <SSVStack gap="xxs" style={styles.message}>
-            <SSText size="sm" color="muted">
-              Error displaying message
-            </SSText>
-          </SSVStack>
-        )
-      }
-    },
-    [account?.nostr?.deviceNpub, formattedNpubs]
-  )
+  }, [transactionToShare, setTransactionToShare])
 
   if (!accountId || !account) return <Redirect href="/" />
 
@@ -265,29 +265,40 @@ function SSDevicesGroupChat() {
         <SSVStack gap="sm">
           <SSVStack gap="xs">
             <SSText center uppercase color="muted">
-              {t('account.nostrSync.devicesGroupChat')}
-              {account.nostr.autoSync ? ' (Sync On)' : ' (Sync Off)'}
+              {t('account.nostrSync.devicesGroupChat.title')}
+              {account.nostr.autoSync
+                ? t('account.nostrSync.devicesGroupChat.syncOn')
+                : t('account.nostrSync.devicesGroupChat.syncOff')}
             </SSText>
           </SSVStack>
         </SSVStack>
 
-        {/* Messages section */}
         <View style={styles.messagesContainer}>
           {!isContentLoaded && isInitialLoad && messages.length > 0 && (
             <View style={styles.loadingContainer}>
               <SSText center color="muted">
-                Loading messages...
+                {t('account.nostrSync.devicesGroupChat.loadingMessages')}
               </SSText>
             </View>
           )}
           <FlatList
             ref={flatListRef}
             data={messages}
-            renderItem={renderMessage}
+            renderItem={({ item }) => (
+              <SSNostrMessage
+                item={item}
+                account={account}
+                accounts={accounts}
+                formattedNpubs={formattedNpubs}
+                visibleComponents={visibleComponents}
+                onToggleVisibility={handleToggleVisibility}
+                onGoToSignFlow={handleGoToSignFlowClick}
+              />
+            )}
             keyExtractor={(item) => item.id}
             ListEmptyComponent={
               <SSText center color="muted">
-                No messages yet
+                {t('account.nostrSync.devicesGroupChat.noMessages')}
               </SSText>
             }
             inverted={false}
@@ -305,25 +316,66 @@ function SSDevicesGroupChat() {
           />
         </View>
 
-        {/* Message input section */}
         <SSHStack gap="sm" style={styles.inputContainer}>
           <TextInput
             style={styles.input}
             value={messageInput}
             onChangeText={setMessageInput}
-            placeholder="Type your message..."
+            placeholder={t(
+              'account.nostrSync.devicesGroupChat.messagePlaceholder'
+            )}
             placeholderTextColor={Colors.white}
             multiline
             maxLength={500}
           />
           <SSButton
             style={styles.sendButton}
-            label="Send"
+            label={t('account.nostrSync.devicesGroupChat.sendButton')}
             onPress={handleSendMessage}
             disabled={isLoading || !messageInput.trim()}
           />
         </SSHStack>
       </SSVStack>
+      <SSModal
+        visible={isShareModalVisible}
+        onClose={handleCancelShare}
+        label=""
+      >
+        <View style={styles.modalContainer}>
+          <SSVStack gap="xs" style={styles.modalContent}>
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalScrollContent}
+              showsVerticalScrollIndicator
+              nestedScrollEnabled
+            >
+              {transactionDataForModal ? (
+                <SSTransactionDetails
+                  transactionData={transactionDataForModal}
+                  account={account}
+                  accounts={accounts}
+                />
+              ) : (
+                <SSText style={styles.modalMessageText}>
+                  {messageToShare}
+                </SSText>
+              )}
+            </ScrollView>
+            <SSVStack gap="xs" style={{ marginTop: 2 }}>
+              <SSButton
+                label={t('account.nostrSync.shareInChat')}
+                onPress={handleShareInChat}
+                loading={isLoading}
+              />
+              <SSButton
+                label={t('common.cancel')}
+                onPress={handleCancelShare}
+                variant="ghost"
+              />
+            </SSVStack>
+          </SSVStack>
+        </View>
+      </SSModal>
     </SSMainLayout>
   )
 }
@@ -343,6 +395,13 @@ const styles = StyleSheet.create({
   },
   deviceMessage: {
     backgroundColor: '#2a2a2a'
+  },
+  authorIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 1,
+    marginRight: 3
   },
   inputContainer: {
     paddingHorizontal: 0
@@ -374,7 +433,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1
+  },
+  signFlowButton: {
+    marginTop: 8,
+    alignSelf: 'flex-start'
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    backgroundColor: 'transparent'
+  },
+  modalContent: {
+    backgroundColor: Colors.gray[900],
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    width: '100%',
+    minHeight: '60%',
+    maxHeight: '85%',
+    justifyContent: 'space-between'
+  },
+  modalScroll: {
+    width: '100%'
+  },
+  modalScrollContent: {
+    paddingBottom: 4
+  },
+  modalMessageText: {
+    maxHeight: 300
   }
 })
-
-export default SSDevicesGroupChat

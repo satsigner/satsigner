@@ -1,6 +1,6 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
+import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
@@ -15,11 +15,15 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useSettingsStore } from '@/store/settings'
 import { type EntropyType } from '@/types/logic/entropy'
 import { type Key } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
-import { generateMnemonic, getFingerprintFromMnemonic } from '@/utils/bip39'
-import { getScriptVersionDisplayName } from '@/utils/scripts'
+import {
+  generateMnemonic,
+  getFingerprintFromMnemonic,
+  WORDLIST_LIST
+} from '@/utils/bip39'
 
 export default function SingleSig() {
   const router = useRouter()
@@ -28,6 +32,7 @@ export default function SingleSig() {
     setScriptVersion,
     setEntropy,
     setMnemonicWordCount,
+    setMnemonicWordList,
     setMnemonic,
     setFingerprint,
     setKeyCount,
@@ -40,6 +45,7 @@ export default function SingleSig() {
       state.setScriptVersion,
       state.setEntropy,
       state.setMnemonicWordCount,
+      state.setMnemonicWordList,
       state.setMnemonic,
       state.setFingerprint,
       state.setKeyCount,
@@ -49,17 +55,21 @@ export default function SingleSig() {
     ])
   )
   const network = useBlockchainStore((state) => state.selectedNetwork)
+  const wordList = useSettingsStore((state) => state.mnemonicWordList)
 
   const [localEntropyType, setLocalEntropyType] = useState<EntropyType>('none')
   const [localScriptVersion, setLocalScriptVersion] =
     useState<NonNullable<Key['scriptVersion']>>('P2WPKH')
   const [localMnemonicWordCount, setLocalMnemonicWordCount] =
     useState<NonNullable<Key['mnemonicWordCount']>>(24)
+  const [localMnemonicWordList, setLocalMnemonicWordList] = useState(wordList)
 
   const [entropyModalVisible, setEntropyModalVisible] = useState(false)
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
-  const [mnemonicWordCountModalVisible, setMnemonicWordCountModalVisibile] =
+  const [mnemonicWordCountModalVisible, setMnemonicWordCountModalVisible] =
+    useState(false)
+  const [mnemonicWordListModalVisible, setMnemonicWordListModalVisible] =
     useState(false)
 
   const [loading, setLoading] = useState(false)
@@ -69,6 +79,7 @@ export default function SingleSig() {
     setScriptVersion(localScriptVersion)
     setEntropy(localEntropyType)
     setMnemonicWordCount(localMnemonicWordCount)
+    setMnemonicWordList(localMnemonicWordList)
     setKeyCount(1)
     setKeysRequired(1)
     setNetwork(network)
@@ -77,15 +88,13 @@ export default function SingleSig() {
       switch (localEntropyType) {
         case 'none': {
           setLoading(true)
-
-          const mnemonic = generateMnemonic(localMnemonicWordCount)
+          const mnemonic = generateMnemonic(
+            localMnemonicWordCount,
+            localMnemonicWordList
+          )
           setMnemonic(mnemonic)
 
-          const fingerprint = getFingerprintFromMnemonic(
-            mnemonic,
-            undefined,
-            network as Network
-          )
+          const fingerprint = getFingerprintFromMnemonic(mnemonic)
           setFingerprint(fingerprint)
 
           setLoading(false)
@@ -118,8 +127,12 @@ export default function SingleSig() {
 
   function handleOnSelectMnemonicWordCount() {
     setMnemonicWordCount(localMnemonicWordCount)
-    setMnemonicWordCountModalVisibile(false)
-    // Modal closes and user returns to options screen to select import/generate
+    setMnemonicWordCountModalVisible(false)
+  }
+
+  function handleOnSelectMnemonicWordList() {
+    setMnemonicWordList(localMnemonicWordList)
+    setMnemonicWordListModalVisible(false)
   }
 
   function handleOnSelectEntropy() {
@@ -136,61 +149,73 @@ export default function SingleSig() {
           headerTitle: () => <SSText uppercase>{name}</SSText>
         }}
       />
-      <SSVStack justifyBetween>
-        <SSVStack>
-          <SSFormLayout>
-            <SSFormLayout.Item>
-              <SSFormLayout.Label label={t('account.policy.title')} />
-              <SSText center weight="bold">
-                {t('account.policy.singleSignature.title').toUpperCase()}
-              </SSText>
-            </SSFormLayout.Item>
-            <SSFormLayout.Item>
-              <SSFormLayout.Label label={t('account.script')} />
-              <SSButton
-                label={getScriptVersionDisplayName(localScriptVersion)}
-                withSelect
-                onPress={() => setScriptVersionModalVisible(true)}
-              />
-            </SSFormLayout.Item>
-            <SSFormLayout.Item>
-              <SSFormLayout.Label label={t('account.mnemonic.title')} />
-              <SSButton
-                label={`${localMnemonicWordCount} ${t(
-                  'bitcoin.words'
-                ).toLowerCase()}`}
-                withSelect
-                onPress={() => setMnemonicWordCountModalVisibile(true)}
-              />
-            </SSFormLayout.Item>
-            <SSFormLayout.Item>
-              <SSFormLayout.Label label={t('account.entropy.title')} />
-              <SSButton
-                label={t(`account.entropy.${localEntropyType}.label`)}
-                withSelect
-                onPress={() => setEntropyModalVisible(true)}
-              />
-            </SSFormLayout.Item>
-          </SSFormLayout>
+      <ScrollView>
+        <SSVStack justifyBetween>
+          <SSVStack>
+            <SSFormLayout>
+              <SSFormLayout.Item>
+                <SSFormLayout.Label label={t('account.policy.title')} />
+                <SSText center weight="bold">
+                  {t('account.policy.singleSignature.title').toUpperCase()}
+                </SSText>
+              </SSFormLayout.Item>
+              <SSFormLayout.Item>
+                <SSFormLayout.Label label={t('account.script')} />
+                <SSButton
+                  label={`${t(
+                    `script.${localScriptVersion.toLocaleLowerCase()}.name`
+                  )} (${localScriptVersion})`}
+                  withSelect
+                  onPress={() => setScriptVersionModalVisible(true)}
+                />
+              </SSFormLayout.Item>
+              <SSFormLayout.Item>
+                <SSFormLayout.Label label={t('account.mnemonic.title')} />
+                <SSButton
+                  label={`${localMnemonicWordCount} ${t(
+                    'bitcoin.words'
+                  ).toLowerCase()}`}
+                  withSelect
+                  onPress={() => setMnemonicWordCountModalVisible(true)}
+                />
+              </SSFormLayout.Item>
+              <SSFormLayout.Item>
+                <SSFormLayout.Label label={t('account.mnemonic.wordList')} />
+                <SSButton
+                  label={localMnemonicWordList}
+                  withSelect
+                  onPress={() => setMnemonicWordListModalVisible(true)}
+                />
+              </SSFormLayout.Item>
+              <SSFormLayout.Item>
+                <SSFormLayout.Label label={t('account.entropy.title')} />
+                <SSButton
+                  label={t(`account.entropy.${localEntropyType}.label`)}
+                  withSelect
+                  onPress={() => setEntropyModalVisible(true)}
+                />
+              </SSFormLayout.Item>
+            </SSFormLayout>
+          </SSVStack>
+          <SSVStack gap="sm">
+            <SSButton
+              label={t('account.import.title2')}
+              onPress={() => handleOnPress('importMnemonic')}
+            />
+            <SSButton
+              label={t('account.generate.title')}
+              variant="secondary"
+              loading={loading}
+              onPress={() => handleOnPress('generateMnemonic')}
+            />
+            <SSButton
+              label={t('common.cancel')}
+              variant="ghost"
+              onPress={() => router.navigate('/')}
+            />
+          </SSVStack>
         </SSVStack>
-        <SSVStack>
-          <SSButton
-            label={t('account.import.title2')}
-            onPress={() => handleOnPress('importMnemonic')}
-          />
-          <SSButton
-            label={t('account.generate.title')}
-            variant="secondary"
-            loading={loading}
-            onPress={() => handleOnPress('generateMnemonic')}
-          />
-          <SSButton
-            label={t('common.cancel')}
-            variant="ghost"
-            onPress={() => router.navigate('/')}
-          />
-        </SSVStack>
-      </SSVStack>
+      </ScrollView>
       <SSScriptVersionModal
         visible={scriptVersionModalVisible}
         scriptVersion={localScriptVersion}
@@ -206,7 +231,7 @@ export default function SingleSig() {
         selectedText={`${localMnemonicWordCount} ${t('bitcoin.words')}`}
         selectedDescription={t(`account.mnemonic.${localMnemonicWordCount}`)}
         onSelect={handleOnSelectMnemonicWordCount}
-        onCancel={() => setMnemonicWordCountModalVisibile(false)}
+        onCancel={() => setMnemonicWordCountModalVisible(false)}
       >
         {([24, 21, 18, 15, 12] as const).map((count) => (
           <SSRadioButton
@@ -215,6 +240,29 @@ export default function SingleSig() {
             selected={localMnemonicWordCount === count}
             onPress={() =>
               setStateWithLayoutAnimation(setLocalMnemonicWordCount, count)
+            }
+          />
+        ))}
+      </SSSelectModal>
+      <SSSelectModal
+        visible={mnemonicWordListModalVisible}
+        title={t('account.mnemonic.wordList')}
+        selectedText={t('account.mnemonic.wordListText', {
+          wordList: localMnemonicWordList.replaceAll('_', ' ')
+        })}
+        selectedDescription={t('account.mnemonic.wordListDescription', {
+          wordList: localMnemonicWordList.replaceAll('_', ' ')
+        })}
+        onSelect={handleOnSelectMnemonicWordList}
+        onCancel={() => setMnemonicWordListModalVisible(false)}
+      >
+        {WORDLIST_LIST.map((wordList) => (
+          <SSRadioButton
+            key={wordList}
+            label={wordList.replaceAll('_', ' ')}
+            selected={localMnemonicWordList === wordList}
+            onPress={() =>
+              setStateWithLayoutAnimation(setLocalMnemonicWordList, wordList)
             }
           />
         ))}

@@ -170,6 +170,58 @@ function parseTXOutputs(input: string): Omit<Output, 'localId'>[] {
   })
 }
 
+function parseMultisigDescriptor(descriptor: string) {
+  const keyPathMatches = descriptor.match(
+    /\[([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\]/g
+  )
+  if (!keyPathMatches || keyPathMatches.length === 0) {
+    throw new Error('Invalid multisig descriptor format')
+  }
+
+  const firstMatch = keyPathMatches[0].match(
+    /\[([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\]/
+  )
+  if (!firstMatch) {
+    throw new Error('Invalid multisig key path format')
+  }
+
+  const [, , purpose, coinType, accountIndex, keyType] = firstMatch
+  const hardenedPath = `m/${purpose.replace("'", 'h')}/${coinType.replace(
+    "'",
+    'h'
+  )}/${accountIndex.replace("'", 'h')}/${keyType.replace("'", 'h')}`
+
+  const xpubRegex = /(tpub|vpub|upub|zpub)[a-zA-Z0-9]+/g
+  const xpubs = (descriptor.match(xpubRegex) || []).sort()
+
+  return { hardenedPath, xpubs }
+}
+
+function parseSinglesigDescriptor(descriptor: string) {
+  const match = descriptor.match(/\[([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\]/)
+  if (!match) {
+    throw new Error('Invalid singlesig descriptor format')
+  }
+
+  const [, , purpose, coinType, accountIndex] = match
+  const hardenedPath = `m/${purpose.replace("'", 'h')}/${coinType.replace(
+    "'",
+    'h'
+  )}/${accountIndex.replace("'", 'h')}`
+
+  const xpubRegex = /(tpub|vpub|upub|zpub)[a-zA-Z0-9]+/g
+  const xpubs = (descriptor.match(xpubRegex) || []).sort()
+
+  return { hardenedPath, xpubs }
+}
+
+export function parseDescriptor(descriptor: string) {
+  if (descriptor.includes('wsh(sortedmulti')) {
+    return parseMultisigDescriptor(descriptor)
+  }
+  return parseSinglesigDescriptor(descriptor)
+}
+
 export {
   parseAccountAddressesDetails,
   parseAddressDescriptorToAddress,
