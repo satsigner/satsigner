@@ -167,7 +167,7 @@ function PreviewMessage() {
   const [wordSelectorState, setWordSelectorState] = useState({
     visible: false,
     wordStart: '',
-    onWordSelected: (word: string) => {}
+    onWordSelected: (_word: string) => {}
   })
 
   const [permission, requestPermission] = useCameraPermissions()

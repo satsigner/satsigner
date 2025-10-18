@@ -1,7 +1,7 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as Clipboard from 'expo-clipboard'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { type StyleProp, type ViewStyle, TextInput } from 'react-native'
+import { TextInput, type StyleProp, type ViewStyle } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'

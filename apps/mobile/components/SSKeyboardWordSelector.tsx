@@ -2,16 +2,15 @@ import { FlashList } from '@shopify/flash-list'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Animated,
+  Dimensions,
   Keyboard,
-  Platform,
   type StyleProp,
   StyleSheet,
   Text,
   TouchableOpacity,
   useWindowDimensions,
   View,
-  type ViewStyle,
-  Dimensions
+  type ViewStyle
 } from 'react-native'
 
 import useKeyboardHeight from '@/hooks/useKeyboardHeight'
@@ -135,7 +134,7 @@ function SSKeyboardWordSelector({
     return StyleSheet.compose(
       {
         ...styles.containerBase,
-        width: width, // Use actual screen width
+        width, // Use actual screen width
         top: topValue - 55, // Subtract the height of the word selector container
         bottom: undefined, // Remove bottom positioning
         opacity: opacityAnimated,
