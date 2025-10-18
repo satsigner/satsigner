@@ -95,9 +95,8 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
         return
       }
 
-      onContentPasted(detectedContent)
       onClose()
-      toast.success(t('paste.error.success'))
+      onContentPasted(detectedContent)
     } catch (error) {
       const errorMessage = (error as Error).message
       if (errorMessage) {

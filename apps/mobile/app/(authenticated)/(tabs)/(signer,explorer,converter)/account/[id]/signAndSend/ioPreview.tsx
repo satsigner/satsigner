@@ -1,7 +1,6 @@
 import type BottomSheet from '@gorhom/bottom-sheet'
 import { useIsFocused } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
-import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -20,6 +19,7 @@ import { SSIconChevronLeft } from '@/components/icons'
 import SSAmountInput from '@/components/SSAmountInput'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSCurrentTransactionChart from '@/components/SSCurrentTransactionChart'
 import SSFeeInput from '@/components/SSFeeInput'
 import SSFeeRateChart, {
@@ -47,6 +47,7 @@ import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { checkWalletNeedsSync } from '@/utils/account'
+import { type DetectedContent } from '@/utils/contentDetector'
 import { processContentForOutput } from '@/utils/contentProcessor'
 import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
@@ -56,7 +57,6 @@ import { selectEfficientUtxos } from '@/utils/utxo'
 export default function IOPreview() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
-  const [permission, requestPermission] = useCameraPermissions()
   const isFocused = useIsFocused()
 
   const account = useAccountsStore(
@@ -298,30 +298,28 @@ export default function IOPreview() {
     }).start()
   }, [localFeeRate, boxPosition])
 
-  function handleQRCodeScanned(address: string | undefined) {
-    if (!address) return
+  function handleContentScanned(content: DetectedContent) {
+    if (!content.isValid) {
+      toast.error(t('camera.error.invalidContent'))
+      return
+    }
 
-    // Use new content detection system for output fields
-    import('@/utils/contentDetector').then(({ detectContentByContext }) => {
-      const detectedContent = detectContentByContext(address, 'bitcoin')
-
-      const success = processContentForOutput(detectedContent, {
-        setOutputTo,
-        setOutputAmount,
-        setOutputLabel,
-        onError: (message) => {
-          toast.error(t('transaction.error.address.invalid'))
-        },
-        onWarning: (message) => {
-          toast.warning(t('transaction.error.bip21.insufficientSats'))
-        },
-        remainingSats
-      })
-
-      if (success) {
-        setCameraModalVisible(false)
-      }
+    const success = processContentForOutput(content, {
+      setOutputTo,
+      setOutputAmount,
+      setOutputLabel,
+      onError: (message) => {
+        toast.error(t('transaction.error.address.invalid'))
+      },
+      onWarning: (message) => {
+        toast.warning(t('transaction.error.bip21.insufficientSats'))
+      },
+      remainingSats
     })
+
+    if (success) {
+      setCameraModalVisible(false)
+    }
   }
 
   function resetLocalOutput() {
@@ -922,26 +920,12 @@ export default function IOPreview() {
           />
         </SSVStack>
       </SSBottomSheet>
-      <SSModal
+      <SSCameraModal
         visible={cameraModalVisible}
-        fullOpacity
         onClose={() => setCameraModalVisible(false)}
-      >
-        <SSText color="muted" uppercase>
-          {t('camera.scanQRCode')}
-        </SSText>
-        <CameraView
-          onBarcodeScanned={(res) => handleQRCodeScanned(res.raw)}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-          style={{ width: 340, height: 340 }}
-        />
-        {!permission?.granted && (
-          <SSButton
-            label={t('camera.enableCameraAccess')}
-            onPress={requestPermission}
-          />
-        )}
-      </SSModal>
+        onContentScanned={handleContentScanned}
+        context="bitcoin"
+      />
     </View>
   )
 }

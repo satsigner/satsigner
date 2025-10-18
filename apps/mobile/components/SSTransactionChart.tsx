@@ -231,6 +231,15 @@ function SSTransactionChart({
     return [...inputToBlockLinks, ...blockToOutputLinks]
   }, [inputs, outputs, minerFee])
 
+  // Early return if no data to render
+  if (inputs.length === 0 || outputs.length === 0) {
+    return null
+  }
+
+  if (transaction.vin.length === 0 || transaction.vout.length === 0) {
+    return null
+  }
+
   const { nodes, links } = sankeyGenerator({
     nodes: sankeyNodes,
     links: sankeyLinks
@@ -241,10 +250,6 @@ function SSTransactionChart({
     target: (link.target as Node).id,
     value: link.value
   }))
-
-  if (transaction.vin.length === 0 || transaction.vout.length === 0) {
-    return null
-  }
 
   if (!nodes?.length || !transformedLinks?.length) {
     return null

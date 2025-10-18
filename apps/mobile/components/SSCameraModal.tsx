@@ -12,7 +12,12 @@ import { Colors } from '@/styles'
 import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
-import { decodeMultiPartURToPSBT, decodeURToPSBT } from '@/utils/ur'
+import {
+  decodeMultiPartURToPSBT,
+  decodeURToPSBT,
+  decodeMultiPartURGeneric,
+  decodeURGeneric
+} from '@/utils/ur'
 
 type SSCameraModalProps = {
   visible: boolean
@@ -58,11 +63,12 @@ function detectQRType(data: string) {
     }
   }
 
-  // Check for UR format
-  if (data.toLowerCase().startsWith('ur:crypto-psbt/')) {
-    const urMatch = data.match(/^ur:crypto-psbt\/(?:(\d+)-(\d+)\/)?(.+)$/i)
+  // Check for UR format (any type: crypto-psbt, bytes, etc.)
+  if (data.toLowerCase().startsWith('ur:')) {
+    // Match any UR format: ur:TYPE/current-total/data or ur:TYPE/data
+    const urMatch = data.match(/^ur:([^\/]+)\/(?:(\d+)-(\d+)\/)?(.+)$/i)
     if (urMatch) {
-      const [, currentStr, totalStr] = urMatch
+      const [, urType, currentStr, totalStr] = urMatch
 
       if (currentStr && totalStr) {
         // Multi-part UR
@@ -138,21 +144,33 @@ function assembleMultiPartQR(
       }
 
       case 'ur': {
-        // UR format assembly using proper UR decoder
+        // UR format assembly using generic UR decoder
         const sortedChunks = Array.from(chunks.entries())
           .sort(([a], [b]) => a - b)
           .map(([, content]) => content)
 
         let result: string
         if (sortedChunks.length === 1) {
-          // Single UR chunk
-          result = decodeURToPSBT(sortedChunks[0])
-        } else {
-          // Multi-part UR
+          // Single UR chunk - try generic decoder first, fallback to PSBT-specific
           try {
-            result = decodeMultiPartURToPSBT(sortedChunks)
+            result = decodeURGeneric(sortedChunks[0])
           } catch {
-            return null
+            try {
+              result = decodeURToPSBT(sortedChunks[0])
+            } catch {
+              return null
+            }
+          }
+        } else {
+          // Multi-part UR - try generic decoder first, fallback to PSBT-specific
+          try {
+            result = decodeMultiPartURGeneric(sortedChunks)
+          } catch {
+            try {
+              result = decodeMultiPartURToPSBT(sortedChunks)
+            } catch {
+              return null
+            }
           }
         }
 
@@ -226,9 +244,21 @@ function SSCameraModal({
             )
             finalContent = hexResult
           }
-          // Check if it's a single UR QR code
-          else if (qrInfo.content.toLowerCase().startsWith('ur:crypto-psbt/')) {
-            const decoded = decodeURToPSBT(qrInfo.content)
+          // Check if it's a single UR QR code (any type)
+          else if (qrInfo.content.toLowerCase().startsWith('ur:')) {
+            let decoded: string | null = null
+            try {
+              // Try generic decoder first
+              decoded = decodeURGeneric(qrInfo.content)
+            } catch {
+              try {
+                // Fallback to PSBT-specific decoder
+                decoded = decodeURToPSBT(qrInfo.content)
+              } catch {
+                decoded = null
+              }
+            }
+
             if (decoded) {
               finalContent = decoded
             } else {
@@ -260,10 +290,24 @@ function SSCameraModal({
         // Process the content using the content detector
         import('@/utils/contentDetector').then(({ detectContentByContext }) => {
           const detectedContent = detectContentByContext(finalContent, context)
-          onContentScanned(detectedContent)
+          console.log('SSCameraModal validation:', {
+            content: finalContent.substring(0, 50) + '...',
+            type: detectedContent.type,
+            isValid: detectedContent.isValid
+          })
+
           onClose()
           resetScanProgress()
-          toast.success('QR code scanned successfully')
+
+          if (!detectedContent.isValid) {
+            // Small delay to ensure modal is fully closed before showing toast
+            setTimeout(() => {
+              toast.error(t('camera.error.invalidContent'))
+            }, 100)
+            return
+          }
+
+          onContentScanned(detectedContent)
         })
 
         return
@@ -294,7 +338,6 @@ function SSCameraModal({
 
       // Continue existing scan session
       if (scanProgress.scanned.has(current)) {
-        toast.info(`Part ${current + 1} already scanned`)
         return
       }
 
@@ -336,9 +379,19 @@ function SSCameraModal({
                   assembledData,
                   context
                 )
-                onContentScanned(detectedContent)
+
                 onClose()
                 resetScanProgress()
+
+                if (!detectedContent.isValid) {
+                  // Small delay to ensure modal is fully closed before showing toast
+                  setTimeout(() => {
+                    toast.error(t('camera.error.invalidContent'))
+                  }, 100)
+                  return
+                }
+
+                onContentScanned(detectedContent)
 
                 if (
                   assembledData.toLowerCase().startsWith('70736274ff') ||
@@ -359,13 +412,6 @@ function SSCameraModal({
         }
 
         // Continue scanning for fountain encoding
-        const targetForDisplay = Math.min(
-          Math.ceil(actualTotal * 1.1),
-          Math.ceil(total * 1.5)
-        )
-        toast.success(
-          `UR: Collected ${newScanned.size} fragments (need ~${targetForDisplay})`
-        )
       } else {
         // For RAW and BBQR, wait for all chunks as before
         if (newScanned.size === total) {
@@ -380,9 +426,19 @@ function SSCameraModal({
                   assembledData,
                   context
                 )
-                onContentScanned(detectedContent)
+
                 onClose()
                 resetScanProgress()
+
+                if (!detectedContent.isValid) {
+                  // Small delay to ensure modal is fully closed before showing toast
+                  setTimeout(() => {
+                    toast.error(t('camera.error.invalidContent'))
+                  }, 100)
+                  return
+                }
+
+                onContentScanned(detectedContent)
 
                 if (
                   assembledData.toLowerCase().startsWith('70736274ff') ||
@@ -402,12 +458,6 @@ function SSCameraModal({
             toast.error(t('camera.error.assembleFailed'))
             resetScanProgress()
           }
-        } else {
-          toast.success(
-            `Scanned part ${current + 1} of ${total} (${
-              newScanned.size
-            }/${total} complete)`
-          )
         }
       }
     },
@@ -440,8 +490,6 @@ function SSCameraModal({
           barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
           style={{ width: 340, height: 340 }}
         />
-
-        {/* Show progress if scanning multi-part QR */}
         {scanProgress.type && scanProgress.total > 1 && (
           <SSVStack itemsCenter gap="xs" style={{ marginBottom: 10 }}>
             {scanProgress.type === 'ur' ? (
@@ -524,15 +572,12 @@ function SSCameraModal({
             )}
           </SSVStack>
         )}
-
         {!permission?.granted && (
           <SSButton
             label={t('camera.enableCameraAccess')}
             onPress={requestPermission}
           />
         )}
-
-        {/* Reset button for multi-part scans */}
         {scanProgress.type && (
           <SSButton
             label={t('camera.button.resetScan')}

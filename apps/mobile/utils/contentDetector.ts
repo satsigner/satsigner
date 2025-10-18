@@ -6,10 +6,51 @@ import { isPSBT } from '@/utils/bitcoinContent'
 import { isLNURL } from '@/utils/lnurl'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 
+/**
+ * Check if a string is a raw Bitcoin transaction in hex format
+ */
+function isBitcoinTransaction(data: string): boolean {
+  const trimmed = data.trim()
+
+  // Bitcoin transactions are hex strings with even length
+  if (!/^[0-9a-fA-F]+$/.test(trimmed)) return false
+  if (trimmed.length % 2 !== 0) return false
+
+  // Bitcoin transactions are typically between 200-1000 bytes (400-2000 hex chars)
+  // But we'll be more lenient to catch edge cases
+  if (trimmed.length < 100 || trimmed.length > 10000) return false
+
+  // Check if it starts with version bytes (typically 01000000 for version 1)
+  // This is a good heuristic for Bitcoin transactions
+  const versionBytes = trimmed.substring(0, 8)
+  if (
+    versionBytes === '01000000' ||
+    versionBytes === '02000000' ||
+    versionBytes === '00000000'
+  ) {
+    return true
+  }
+
+  // Additional check: look for common Bitcoin transaction patterns
+  // Most transactions have input count and output count in the first few bytes
+  try {
+    const firstByte = parseInt(trimmed.substring(8, 10), 16)
+    if (firstByte >= 1 && firstByte <= 20) {
+      // Reasonable input count
+      return true
+    }
+  } catch {
+    return false
+  }
+
+  return false
+}
+
 export type ContentType =
   | 'bitcoin_address'
   | 'bitcoin_uri'
   | 'psbt'
+  | 'bitcoin_transaction'
   | 'lightning_invoice'
   | 'lnurl'
   | 'ecash_token'
@@ -36,6 +77,16 @@ function detectBitcoinContent(data: string): DetectedContent | null {
   if (isPSBT(trimmed)) {
     return {
       type: 'psbt',
+      raw: data,
+      cleaned: trimmed,
+      isValid: true
+    }
+  }
+
+  // Check for raw Bitcoin transaction (hex format)
+  if (isBitcoinTransaction(trimmed)) {
+    return {
+      type: 'bitcoin_transaction',
       raw: data,
       cleaned: trimmed,
       isValid: true

@@ -41,7 +41,7 @@ export function useBitcoinContentHandler({
           content,
           'bitcoin',
           {
-            navigate: router.navigate,
+            navigate: router.push,
             clearTransaction,
             addOutput,
             addInput,
@@ -58,7 +58,7 @@ export function useBitcoinContentHandler({
     [
       accountId,
       account,
-      router.navigate,
+      router.push,
       clearTransaction,
       addOutput,
       addInput,
@@ -67,11 +67,11 @@ export function useBitcoinContentHandler({
   )
 
   const handleSend = useCallback(() => {
-    router.navigate(`/account/${accountId}/signAndSend/selectUtxoList`)
+    router.push(`/account/${accountId}/signAndSend/selectUtxoList`)
   }, [router, accountId])
 
   const handleReceive = useCallback(() => {
-    router.navigate(`/account/${accountId}/receive`)
+    router.push(`/account/${accountId}/receive`)
   }, [router, accountId])
 
   return {

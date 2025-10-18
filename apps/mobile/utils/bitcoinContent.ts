@@ -66,7 +66,7 @@ export function processBitcoinContent(
       type: 'bip21',
       address: decodedData.address,
       amount: (decodedData.options.amount || 0) * SATS_PER_BITCOIN || 1,
-      label: decodedData.options.label || 'Please update',
+      label: decodedData.options.label || '',
       content: trimmed
     }
   }
@@ -82,7 +82,7 @@ export function processBitcoinContent(
       type: 'address',
       address: processedAddress,
       amount: 1,
-      label: 'Please update',
+      label: '',
       content: trimmed
     }
   }

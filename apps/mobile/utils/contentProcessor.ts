@@ -1,14 +1,17 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { type Account } from '@/types/models/Account'
+import { type Utxo } from '@/types/models/Utxo'
 import { bip21decode } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { selectEfficientUtxos } from '@/utils/utxo'
 
 export type ProcessorActions = {
-  navigate: (path: string, params?: any) => void
+  navigate: (
+    path: string | { pathname: string; params?: Record<string, unknown> }
+  ) => void
   clearTransaction?: () => void
   addOutput?: (output: { amount: number; label: string; to: string }) => void
-  addInput?: (input: any) => void
+  addInput?: (input: Utxo) => void
   setFeeRate?: (rate: number) => void
 }
 
@@ -31,10 +34,10 @@ function autoSelectUtxos(
 
   // If no target amount, select the highest value UTXO
   if (targetAmount === 0 || targetAmount === 1) {
-    const highestUtxo = account.utxos.reduce((max: any, utxo: any) =>
+    const highestUtxo = account.utxos.reduce((max: Utxo, utxo: Utxo) =>
       utxo.value > max.value ? utxo : max
     )
-    addInput(highestUtxo)
+    addInput?.(highestUtxo)
     return
   }
 
@@ -52,13 +55,13 @@ function autoSelectUtxos(
 
   if (result.error) {
     // Fallback: select the highest value UTXO
-    const highestUtxo = account.utxos.reduce((max: any, utxo: any) =>
+    const highestUtxo = account.utxos.reduce((max: Utxo, utxo: Utxo) =>
       utxo.value > max.value ? utxo : max
     )
-    addInput(highestUtxo)
+    addInput?.(highestUtxo)
   } else {
     // Add all selected UTXOs as inputs
-    result.inputs.forEach((utxo) => addInput(utxo))
+    result.inputs.forEach((utxo) => addInput?.(utxo))
   }
 }
 
@@ -80,8 +83,15 @@ function processBitcoinContent(
   switch (content.type) {
     case 'psbt':
       navigate({
-        pathname: '/account/[id]/signAndSend/signPSBT',
+        pathname: '/account/[id]/signAndSend/previewMessage',
         params: { id: accountId, psbt: content.cleaned }
+      })
+      break
+
+    case 'bitcoin_transaction':
+      navigate({
+        pathname: '/account/[id]/signAndSend/previewMessage',
+        params: { id: accountId, signedPsbt: content.cleaned }
       })
       break
 
@@ -98,7 +108,7 @@ function processBitcoinContent(
           if (addOutput) {
             addOutput({
               amount: (decodedData.options.amount || 0) * SATS_PER_BITCOIN || 1,
-              label: decodedData.options.label || 'Please update',
+              label: decodedData.options.label || '',
               to: decodedData.address
             })
           }
@@ -126,7 +136,7 @@ function processBitcoinContent(
             const queryString = addressMatch[2] || ''
 
             let amount = 1
-            let label = 'Please update'
+            let label = ''
 
             // Parse query parameters manually
             if (queryString) {
@@ -166,7 +176,7 @@ function processBitcoinContent(
         if (addOutput) {
           addOutput({
             amount: 1,
-            label: 'Please update',
+            label: '',
             to: content.cleaned
           })
         }
@@ -186,7 +196,7 @@ function processBitcoinContent(
       if (addOutput) {
         addOutput({
           amount: 1,
-          label: 'Please update',
+          label: '',
           to: content.cleaned
         })
       }
@@ -259,9 +269,6 @@ function processEcashContent(
   }
 }
 
-/**
- * Main entry point for processing content by context
- */
 export function processContentByContext(
   content: DetectedContent,
   context: 'bitcoin' | 'lightning' | 'ecash',
@@ -294,9 +301,6 @@ export function processContentByContext(
   }
 }
 
-/**
- * Process content for output fields (used in forms)
- */
 export function processContentForOutput(
   content: DetectedContent,
   actions: {
@@ -321,7 +325,7 @@ export function processContentForOutput(
   if (content.type === 'bitcoin_address') {
     actions.setOutputTo(content.cleaned)
     actions.setOutputAmount(1)
-    actions.setOutputLabel('Please update')
+    actions.setOutputLabel('')
     return true
   }
 
@@ -342,7 +346,7 @@ export function processContentForOutput(
           actions.setOutputAmount(1)
         }
 
-        actions.setOutputLabel(decodedData.options.label || 'Please update')
+        actions.setOutputLabel(decodedData.options.label || '')
         return true
       }
     } catch {

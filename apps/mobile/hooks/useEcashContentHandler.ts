@@ -17,22 +17,22 @@ export function useEcashContentHandler() {
 
       try {
         processContentByContext(content, 'ecash', {
-          navigate: router.navigate
+          navigate: router.push
         })
       } catch (error) {
         const errorMessage = (error as Error).message
         toast.error(errorMessage || 'Failed to process content')
       }
     },
-    [router.navigate]
+    [router.push]
   )
 
   const handleSend = useCallback(() => {
-    router.navigate('/signer/ecash/send')
+    router.push('/signer/ecash/send')
   }, [router])
 
   const handleReceive = useCallback(() => {
-    router.navigate('/signer/ecash/receive')
+    router.push('/signer/ecash/receive')
   }, [router])
 
   return {

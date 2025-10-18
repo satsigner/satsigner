@@ -17,22 +17,22 @@ export function useLightningContentHandler() {
 
       try {
         processContentByContext(content, 'lightning', {
-          navigate: router.navigate
+          navigate: router.push
         })
       } catch (error) {
         const errorMessage = (error as Error).message
         toast.error(errorMessage || 'Failed to process content')
       }
     },
-    [router.navigate]
+    [router.push]
   )
 
   const handleSend = useCallback(() => {
-    router.navigate('/signer/lightning/pay')
+    router.push('/signer/lightning/pay')
   }, [router])
 
   const handleReceive = useCallback(() => {
-    router.navigate('/signer/lightning/invoice')
+    router.push('/signer/lightning/invoice')
   }, [router])
 
   return {

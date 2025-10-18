@@ -7,6 +7,7 @@ import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { useNFCReader } from '@/hooks/useNFCReader'
+import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
@@ -209,13 +210,14 @@ function SSNFCModal({
             {t('read.nfcNotAvailable')}
           </SSText>
         )}
-
-        <SSButton
-          label={getButtonLabel()}
-          variant={isActive ? 'secondary' : 'default'}
-          disabled={!isAvailable}
-          onPress={handleButtonPress}
-        />
+        <SSHStack>
+          <SSButton
+            label={getButtonLabel()}
+            variant={isActive ? 'secondary' : 'default'}
+            disabled={!isAvailable}
+            onPress={handleButtonPress}
+          />
+        </SSHStack>
       </SSVStack>
     </SSModal>
   )
