@@ -355,7 +355,7 @@ export default function SSSeedWordsInput({
       <SSFormLayout>
         <SSFormLayout.Item>
           <SSFormLayout.Label
-            label={`${t('account.mnemonic.title')} (${wordListName.replaceAll('_', ' ')})`}
+            label={`${t('account.mnemonic.title')} (${wordListName.replaceAll('_', ' ').toUpperCase()})`}
           />
           <SSSeedLayout count={wordCount}>
             {seedWordsInfo.map((wordInfo, index) => (
