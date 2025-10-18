@@ -107,6 +107,7 @@ export default function SSSeedWordsInput({
   const clipboardCheckedRef = useRef(false)
   const wordInputRefs = useRef<(TextInput | null)[]>([])
   const autoAdvanceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const handleWordSelectedRef = useRef<(word?: string) => Promise<void>>()
 
   // Initialize seed words info
   useEffect(() => {
@@ -186,19 +187,19 @@ export default function SSSeedWordsInput({
     ]
   )
 
+  // Keep ref updated with latest function
+  useEffect(() => {
+    handleWordSelectedRef.current = handleWordSelected
+  }, [handleWordSelected])
+
   // Notify parent about word selector state changes
   useEffect(() => {
     onWordSelectorStateChange?.({
       visible: keyboardWordSelectorVisible,
       wordStart: currentWordText,
-      onWordSelected: handleWordSelected
+      onWordSelected: (word?: string) => handleWordSelectedRef.current?.(word)
     })
-  }, [
-    keyboardWordSelectorVisible,
-    currentWordText,
-    onWordSelectorStateChange,
-    handleWordSelected
-  ])
+  }, [keyboardWordSelectorVisible, currentWordText, onWordSelectorStateChange])
 
   // Check if clipboard contains valid seed
   const checkClipboardForSeed = useCallback(
