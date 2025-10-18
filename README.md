@@ -98,7 +98,7 @@ UTXO consumption
 
 ### Prerequisites
 
-- Node.js (minimum version 18)
+- Node.js (minimum version 22.4.0)
 - [Yarn](https://yarnpkg.com/getting-started/install)
 
 ```bash
@@ -244,3 +244,5 @@ yarn android
 
 yarn ios
 ```
+
+# Trigger CI update

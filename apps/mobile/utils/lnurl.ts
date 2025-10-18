@@ -2,7 +2,7 @@
 import { bech32 } from 'bech32'
 
 // Types for LNURL-pay response
-interface LNURLPayResponse {
+export interface LNURLPayResponse {
   callback: string
   maxSendable: number
   minSendable: number

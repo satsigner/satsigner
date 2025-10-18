@@ -37,6 +37,7 @@ import {
   SSIconBubbles,
   SSIconCamera,
   SSIconChartSettings,
+  SSIconChatBubble,
   SSIconCollapse,
   SSIconExpand,
   SSIconEyeOn,
@@ -275,8 +276,8 @@ function DerivedAddresses({
   const [addressCount, setAddressCount] = useState(
     Math.max(1, Math.ceil(account.addresses.length / perPage)) * perPage
   )
-  const [addresses, setAddresses] = useState([...account.addresses])
   const [_hasLoadMoreAddresses, setHasLoadMoreAddresses] = useState(false)
+  const isUpdatingAddresses = useRef(false)
   const isMultiAddressWatchOnly = useMemo(() => {
     return (
       account.keys.length > 1 &&
@@ -291,8 +292,12 @@ function DerivedAddresses({
   }
 
   function loadExactAccountAddresses() {
-    setAddresses([...account.addresses])
     setAddressCount(account.addresses.length)
+  }
+
+  function trimLabel(label: string | undefined): string {
+    if (!label) return t('transaction.noLabel')
+    return label.length > 14 ? `${label.substring(0, 14)}...` : label
   }
 
   async function refreshAddresses() {
@@ -303,7 +308,6 @@ function DerivedAddresses({
 
     let addresses = await getWalletAddresses(wallet!, network!, addressCount)
     addresses = parseAccountAddressesDetails({ ...account, addresses })
-    setAddresses(addresses.slice(0, addressCount))
     updateAccount({ ...account, addresses })
   }
 
@@ -315,7 +319,9 @@ function DerivedAddresses({
 
     setHasLoadMoreAddresses(true)
     const newAddressCount =
-      addresses.length < addressCount ? addressCount : addressCount + perPage
+      account.addresses.length < addressCount
+        ? addressCount
+        : addressCount + perPage
     setAddressCount(newAddressCount)
     setLoadingAddresses(true)
 
@@ -324,43 +330,51 @@ function DerivedAddresses({
       ...account,
       addresses: addrList
     })
-    setAddresses(addrList)
     setLoadingAddresses(false)
     updateAccount({ ...account, addresses: addrList })
   }
 
   async function updateAddresses() {
-    if (!wallet) return
+    if (!wallet || loadingAddresses || isUpdatingAddresses.current) return
 
-    const result = await getLastUnusedAddressFromWallet(wallet!)
+    isUpdatingAddresses.current = true
 
-    if (!result) return
-    const minItems = Math.max(1, Math.ceil(result.index / perPage)) * perPage
+    try {
+      const result = await getLastUnusedAddressFromWallet(wallet!)
 
-    if (minItems <= addressCount) return
+      if (!result) return
+      const minItems = Math.max(1, Math.ceil(result.index / perPage)) * perPage
 
-    if (account.addresses.length >= addressCount) {
-      let newAddresses = await getWalletAddresses(
-        wallet!,
-        network!,
-        addressCount
-      )
+      if (minItems <= addressCount) return
+
+      if (account.addresses.length >= addressCount) {
+        let newAddresses = await getWalletAddresses(
+          wallet!,
+          network!,
+          addressCount
+        )
+        newAddresses = parseAccountAddressesDetails({
+          ...account,
+          addresses: newAddresses
+        })
+        updateAccount({ ...account, addresses: newAddresses })
+        return
+      }
+
+      let newAddresses = await getWalletAddresses(wallet!, network!, minItems)
       newAddresses = parseAccountAddressesDetails({
         ...account,
         addresses: newAddresses
       })
-      setAddresses(newAddresses)
-      return
+      setAddressCount(minItems)
+      updateAccount({ ...account, addresses: newAddresses })
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to update addresses'
+      )
+    } finally {
+      isUpdatingAddresses.current = false
     }
-
-    let newAddresses = await getWalletAddresses(wallet!, network!, minItems)
-    newAddresses = parseAccountAddressesDetails({
-      ...account,
-      addresses: newAddresses
-    })
-    setAddressCount(minItems)
-    setAddresses(newAddresses)
-    updateAccount({ ...account, addresses: newAddresses })
   }
 
   useEffect(() => {
@@ -369,7 +383,7 @@ function DerivedAddresses({
 
   useEffect(() => {
     updateAddresses()
-  }, [account]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [account.id, account.keys[0]?.derivationPath]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderItem = useCallback(
     ({ item }: { item: Address }) => (
@@ -395,7 +409,7 @@ function DerivedAddresses({
               addressListStyles.columnAddress
             ]}
           >
-            {formatAddress(item.address, 4)}
+            {formatAddress(item.address, 6)}
           </SSText>
           <SSText
             style={[
@@ -403,7 +417,7 @@ function DerivedAddresses({
               { color: item.label ? '#fff' : '#333' }
             ]}
           >
-            {item.label || t('transaction.noLabel')}
+            {trimLabel(item.label)}
           </SSText>
           <SSText
             style={[
@@ -495,7 +509,7 @@ function DerivedAddresses({
                   addressListStyles.columnIndex
                 ]}
               >
-                {t('address.list.table.index')}
+                #
               </SSText>
             )}
             <SSText
@@ -540,7 +554,7 @@ function DerivedAddresses({
             </SSText>
           </SSHStack>
           <FlashList
-            data={addresses?.filter(
+            data={account.addresses?.filter(
               (address) =>
                 isMultiAddressWatchOnly ||
                 (change
@@ -1020,17 +1034,24 @@ export default function AccountView() {
             />
           ),
           headerRight: () => (
-            <SSIconButton
-              style={{
-                paddingTop: 6,
-                width: 30,
-                height: 30,
-                alignItems: 'center'
-              }}
-              onPress={() => router.navigate(`/account/${id}/settings`)}
-            >
-              <SSIconKeys height={18} width={18} />
-            </SSIconButton>
+            <SSHStack gap="md">
+              {account?.nostr?.autoSync && (
+                <SSIconButton
+                  onPress={() =>
+                    router.navigate(
+                      `/account/${id}/settings/nostr/devicesGroupChat`
+                    )
+                  }
+                >
+                  <SSIconChatBubble height={15} width={15} />
+                </SSIconButton>
+              )}
+              <SSIconButton
+                onPress={() => router.navigate(`/account/${id}/settings`)}
+              >
+                <SSIconKeys height={18} width={18} />
+              </SSIconButton>
+            </SSHStack>
           )
         }}
       />
@@ -1190,12 +1211,12 @@ const addressListStyles = StyleSheet.create({
     color: '#777',
     textTransform: 'uppercase'
   },
-  columnAddress: { width: '20%' },
-  columnLabel: { width: '15%' },
+  columnAddress: { width: '25%' },
+  columnLabel: { width: '25%' },
   columnSats: { width: '10%', textAlign: 'center' },
   columnTxs: { width: '10%', textAlign: 'center' },
   columnUtxos: { width: '10%', textAlign: 'center' },
-  columnIndex: { width: '10%', textAlign: 'center' },
+  columnIndex: { width: '5%', textAlign: 'center' },
   row: {
     paddingVertical: 12,
     width: ADDRESS_LIST_WIDTH,

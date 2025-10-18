@@ -1,6 +1,6 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
@@ -139,14 +139,12 @@ function SSNostrRelay({ relay, selected, onPress }: SSNostrRelayProps) {
   return (
     <SSHStack gap="sm">
       <SSCheckbox selected={selected} onPress={onPress} />
-      <TouchableOpacity onPress={onPress}>
-        <SSVStack gap="none">
-          <SSText>{relay.name}</SSText>
-          <SSText size="xs" color="muted">
-            {relay.url}
-          </SSText>
-        </SSVStack>
-      </TouchableOpacity>
+      <SSVStack gap="none">
+        <SSText>{relay.name}</SSText>
+        <SSText size="xs" color="muted">
+          {relay.url}
+        </SSText>
+      </SSVStack>
     </SSHStack>
   )
 }

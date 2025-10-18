@@ -5,7 +5,7 @@ import { toast } from 'sonner-native'
 
 import { type Key, type Secret } from '@/types/models/Account'
 import { getMultisigScriptTypeFromScriptVersion } from '@/utils/bitcoin'
-import { signPSBTWithSeed } from '@/utils/psbtSigner'
+import { signPSBTWithSeed } from '@/utils/psbt'
 
 type UsePSBTManagementParams = {
   txBuilderResult: TxBuilderResult | null | undefined
@@ -198,7 +198,6 @@ export function usePSBTManagement({
   const handleSignWithLocalKey = useCallback(
     async (index: number) => {
       try {
-        // Get the cosigner's decrypted key
         const cosignerKey = decryptedKeys[index]
         if (!cosignerKey?.secret) {
           toast.error('No decrypted key found for this cosigner')

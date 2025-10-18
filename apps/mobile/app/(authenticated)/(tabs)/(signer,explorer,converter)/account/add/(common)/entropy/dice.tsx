@@ -1,4 +1,3 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Dimensions, ScrollView, StyleSheet, View } from 'react-native'
@@ -20,7 +19,6 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
-import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import {
   generateMnemonicFromEntropy,
@@ -34,15 +32,15 @@ export default function DiceEntropy() {
   const router = useRouter()
   const { index } = useLocalSearchParams()
 
-  const [mnemonicWordCount, setMnemonic, setFingerprint] =
+  const [mnemonicWordCount, mnemonicWordList, setMnemonic, setFingerprint] =
     useAccountBuilderStore(
       useShallow((state) => [
         state.mnemonicWordCount,
+        state.mnemonicWordList,
         state.setMnemonic,
         state.setFingerprint
       ])
     )
-  const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const length = 32 * (mnemonicWordCount / 3)
   const approxRolls = Math.round(length / Math.log2(6))
@@ -79,15 +77,12 @@ export default function DiceEntropy() {
       setStep(newStep)
 
       if (newBits.length >= length) {
-        const mnemonic = generateMnemonicFromEntropy(newBits.slice(0, length))
-
-        setMnemonic(mnemonic)
-
-        const fingerprint = getFingerprintFromMnemonic(
-          mnemonic,
-          undefined,
-          network as Network
+        const mnemonic = generateMnemonicFromEntropy(
+          newBits.slice(0, length),
+          mnemonicWordList
         )
+        setMnemonic(mnemonic)
+        const fingerprint = getFingerprintFromMnemonic(mnemonic)
         setFingerprint(fingerprint)
         router.navigate(`/account/add/generate/mnemonic/${index}`)
       }

@@ -6,6 +6,7 @@ import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
 import { type EntropyType } from '@/types/logic/entropy'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
+import { type NostrDM } from '@/types/models/Nostr'
 import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 
 type AccountBuilderState = {
@@ -17,6 +18,7 @@ type AccountBuilderState = {
   creationType: Key['creationType']
   entropy: EntropyType
   mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
+  mnemonicWordList: NonNullable<Key['mnemonicWordList']>
   mnemonic: NonNullable<Secret['mnemonic']>
   passphrase?: Secret['passphrase']
 
@@ -47,6 +49,9 @@ type AccountBuilderAction = {
   setEntropy: (entropy: AccountBuilderState['entropy']) => void
   setMnemonicWordCount: (
     mnemonicWordCount: AccountBuilderState['mnemonicWordCount']
+  ) => void
+  setMnemonicWordList: (
+    mnemonicWordList: AccountBuilderState['mnemonicWordList']
   ) => void
   setMnemonic: (mnemonic: AccountBuilderState['mnemonic']) => void
   setPassphrase: (passphrase: AccountBuilderState['passphrase']) => void
@@ -105,6 +110,7 @@ const initialState: AccountBuilderState = {
   creationType: 'importMnemonic',
   entropy: 'none',
   mnemonicWordCount: 24,
+  mnemonicWordList: 'english',
   mnemonic: '',
   passphrase: undefined,
 
@@ -147,6 +153,9 @@ const useAccountBuilderStore = create<
   setMnemonicWordCount: (mnemonicWordCount) => {
     set({ mnemonicWordCount })
   },
+  setMnemonicWordList: (mnemonicWordList) => {
+    set({ mnemonicWordList })
+  },
   setMnemonic: (mnemonic) => {
     set({ mnemonic })
   },
@@ -173,6 +182,7 @@ const useAccountBuilderStore = create<
       keyName,
       creationType,
       mnemonicWordCount,
+      mnemonicWordList,
       mnemonic,
       passphrase,
       fingerprint,
@@ -206,6 +216,7 @@ const useAccountBuilderStore = create<
       name: keyName,
       creationType,
       mnemonicWordCount,
+      mnemonicWordList,
       secret: {
         ...(mnemonic && { mnemonic }),
         ...(passphrase && { passphrase }),
@@ -301,7 +312,7 @@ const useAccountBuilderStore = create<
         deviceNpub: '',
         deviceNsec: '',
         trustedMemberDevices: [],
-        dms: [],
+        dms: [] as NostrDM[],
         lastUpdated: new Date(),
         syncStart: new Date()
       }
@@ -417,7 +428,7 @@ const useAccountBuilderStore = create<
           )
 
           return { success: true, message: 'Seed dropped successfully' }
-        } catch (_error) {
+        } catch {
           return { success: false, message: 'Failed to drop seed' }
         }
       }

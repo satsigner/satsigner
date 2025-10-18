@@ -37,6 +37,7 @@ import { Colors } from '@/styles'
 import { type Network } from '@/types/settings/blockchain'
 import {
   getExtendedPublicKeyFromMnemonic,
+  getExtendedPublicKeyFromMnemonicCustom,
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
@@ -241,11 +242,7 @@ export default function AccountList() {
       switch (type) {
         case 'segwit': {
           // Generate fingerprint and extended public key from mnemonic
-          const fingerprint = getFingerprintFromMnemonic(
-            sampleSignetWalletSeed,
-            '',
-            bdkNetwork
-          )
+          const fingerprint = getFingerprintFromMnemonic(sampleSignetWalletSeed)
           const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
             sampleSignetWalletSeed,
             '',
@@ -262,11 +259,7 @@ export default function AccountList() {
           break
         }
         case 'legacy': {
-          const fingerprint = getFingerprintFromMnemonic(
-            sampleSignetWalletSeed,
-            '',
-            bdkNetwork
-          )
+          const fingerprint = getFingerprintFromMnemonic(sampleSignetWalletSeed)
           const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
             sampleSignetWalletSeed,
             '',
@@ -329,16 +322,15 @@ export default function AccountList() {
           setMnemonicWordCount(12)
           setCreationType('importMnemonic')
           const fingerprint1 = getFingerprintFromMnemonic(
-            sampleSignetMultisigKey1,
-            '',
-            bdkNetwork
+            sampleSignetMultisigKey1
           )
-          const extendedPublicKey1 = getExtendedPublicKeyFromMnemonic(
-            sampleSignetMultisigKey1,
-            '',
-            bdkNetwork,
-            'P2WSH'
-          )
+          const extendedPublicKey1 =
+            await getExtendedPublicKeyFromMnemonicCustom(
+              sampleSignetMultisigKey1,
+              '',
+              bdkNetwork,
+              'P2WSH'
+            )
           setFingerprint(fingerprint1)
           setExtendedPublicKey(extendedPublicKey1)
           setKey(0)
@@ -348,16 +340,15 @@ export default function AccountList() {
           setMnemonicWordCount(12)
           setCreationType('importMnemonic')
           const fingerprint2 = getFingerprintFromMnemonic(
-            sampleSignetMultisigKey2,
-            '',
-            bdkNetwork
+            sampleSignetMultisigKey2
           )
-          const extendedPublicKey2 = getExtendedPublicKeyFromMnemonic(
-            sampleSignetMultisigKey2,
-            '',
-            bdkNetwork,
-            'P2WSH'
-          )
+          const extendedPublicKey2 =
+            await getExtendedPublicKeyFromMnemonicCustom(
+              sampleSignetMultisigKey2,
+              '',
+              bdkNetwork,
+              'P2WSH'
+            )
           setFingerprint(fingerprint2)
           setExtendedPublicKey(extendedPublicKey2)
           setKey(1)

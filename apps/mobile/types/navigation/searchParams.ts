@@ -23,6 +23,10 @@ export type AccountSearchParams = {
   id: string
 }
 
+export type SignedPsbtsParams = {
+  signedPsbts: string
+}
+
 export type AddrSearchParams = {
   addr: string
 } & AccountSearchParams
@@ -34,3 +38,10 @@ export type TxSearchParams = {
 export type UtxoSearchParams = {
   vout: string
 } & TxSearchParams
+
+export type EcashSearchParams = {
+  mintUrl?: string
+  amount?: string
+  token?: string
+  id?: string
+}
