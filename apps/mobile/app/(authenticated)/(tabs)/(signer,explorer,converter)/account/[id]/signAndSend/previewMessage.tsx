@@ -119,7 +119,10 @@ function PreviewMessage() {
     signedPsbt: signedPsbtParam,
     signedPsbts: signedPsbtsParam
   } = useLocalSearchParams<
-    AccountSearchParams & { psbt?: string; signedPsbt?: string } & SignedPsbtsParams
+    AccountSearchParams & {
+      psbt?: string
+      signedPsbt?: string
+    } & SignedPsbtsParams
   >()
 
   const [
