@@ -7,7 +7,6 @@ import { toast } from 'sonner-native'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSFingerprint from '@/components/SSFingerprint'
-import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
 import SSTextInput from '@/components/SSTextInput'
 import SSWordInput from '@/components/SSWordInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
@@ -402,13 +401,6 @@ export default function SSSeedWordsInput({
           </SSFormLayout.Item>
         )}
       </SSFormLayout>
-      <SSKeyboardWordSelector
-        visible={keyboardWordSelectorVisible}
-        wordStart={currentWordText}
-        wordListName={wordListName}
-        onWordSelected={handleWordSelected}
-        style={{ height: 60 }}
-      />
       <SSVStack gap="sm">
         {showPasteButton && (
           <SSButton
