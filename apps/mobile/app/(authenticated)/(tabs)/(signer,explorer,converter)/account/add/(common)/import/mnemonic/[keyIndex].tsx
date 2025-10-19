@@ -83,7 +83,6 @@ export default function ImportMnemonic() {
   const [accountAddedModalVisible, setAccountAddedModalVisible] =
     useState(false)
 
-  // Word selector state
   const [wordSelectorState, setWordSelectorState] = useState({
     visible: false,
     wordStart: '',

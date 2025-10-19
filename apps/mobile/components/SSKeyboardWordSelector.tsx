@@ -211,7 +211,6 @@ const styles = StyleSheet.create({
   wordContainerBase: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-
     borderRightWidth: 1,
     borderColor: Colors.gray[100],
     minWidth: 80,

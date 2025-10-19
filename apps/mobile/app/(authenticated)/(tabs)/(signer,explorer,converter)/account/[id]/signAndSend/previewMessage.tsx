@@ -163,7 +163,6 @@ function PreviewMessage() {
   const [currentMnemonic, setCurrentMnemonic] = useState('')
   const [_currentFingerprint, _setCurrentFingerprint] = useState('')
 
-  // Word selector state
   const [wordSelectorState, setWordSelectorState] = useState({
     visible: false,
     wordStart: '',

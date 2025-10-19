@@ -29,8 +29,6 @@ function SSSelectModal({
   onCancel,
   children
 }: SSSelectModalProps) {
-  const _splitSelectedText = selectedText?.split(' - ') || []
-
   useEffect(() => {
     if (Platform.OS !== 'android') return
     if (!visible)
