@@ -11,13 +11,31 @@ import type {
 } from '@/types/models/Account'
 import {
   fingerprintToHex,
-  getDescriptorFromSeed,
   getExtendedPublicKeyFromSeed,
   getFingerprintFromSeed,
+  getPrivateDescriptorFromSeed,
+  getPublicDescriptorFromSeed,
   getVersionsForNetwork,
   getXpubForScriptVersion,
   toHex
 } from '@/utils/bip32'
+
+export const WORDLIST_LIST = [
+  'chinese_simplified',
+  'chinese_traditional',
+  'czech',
+  'english',
+  'french',
+  'italian',
+  'japanese',
+  'korean',
+  'portuguese',
+  'spanish'
+] as const
+
+export type WordListName = (typeof WORDLIST_LIST)[number]
+
+export const DEFAULT_WORD_LIST = bip39.getDefaultWordlist() as WordListName
 
 const wordCountToEntropyBits: Record<MnemonicWordCount, MnemonicEntropyBits> = {
   12: 128,
@@ -27,8 +45,7 @@ const wordCountToEntropyBits: Record<MnemonicWordCount, MnemonicEntropyBits> = {
   24: 256
 }
 
-export function getWordList() {
-  const name = bip39.getDefaultWordlist()
+export function getWordList(name: WordListName = DEFAULT_WORD_LIST) {
   return bip39.wordlists[name]
 }
 
@@ -62,25 +79,47 @@ export function generateMnemonicFromEntropy(
   return bip39.entropyToMnemonic(entropy, wordlist)
 }
 
-export function getDescriptorFromMnemonic(
+export function getEntropyFromMnemonic(
+  mnemonic: string,
+  wordListName: WordListName = 'english'
+) {
+  const entropyHexString = bip39.mnemonicToEntropy(
+    mnemonic,
+    bip39.wordlists[wordListName]
+  )
+  const entropyHexBytes = entropyHexString.match(/../g) as string[]
+  const entropyNumbers = entropyHexBytes.map((hex) => parseInt(hex, 16))
+  return entropyNumbers
+}
+
+export function getPublicDescriptorFromMnemonic(
   mnemonic: string,
   scriptVersion: ScriptVersionType,
   kind: KeychainKind,
   passphrase: string | undefined,
-  network: Network,
-  account = 0
+  network: Network
 ): string {
   const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
-  return getDescriptorFromSeed(seed, scriptVersion, kind, network, account)
+  return getPublicDescriptorFromSeed(seed, scriptVersion, kind, network)
+}
+
+export function getPrivateDescriptorFromMnemonic(
+  mnemonic: string,
+  scriptVersion: ScriptVersionType,
+  kind: KeychainKind,
+  passphrase: string | undefined,
+  network: Network
+): string {
+  const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
+  return getPrivateDescriptorFromSeed(seed, scriptVersion, kind, network)
 }
 
 export function getFingerprintFromMnemonic(
-  mnemonic: NonNullable<Secret['mnemonic']>,
-  passphrase: Secret['passphrase'],
-  network: Network
+  mnemonic: string,
+  passphrase: Secret['passphrase'] = undefined
 ) {
   const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
-  return getFingerprintFromSeed(seed, network)
+  return getFingerprintFromSeed(seed)
 }
 
 export function getExtendedPublicKeyFromMnemonic(
@@ -185,7 +224,7 @@ function deriveXpubFromMnemonic(
   }
 }
 
-async function getExtendedPublicKeyFromMnemonicCustom(
+function getExtendedPublicKeyFromMnemonicCustom(
   mnemonic: NonNullable<Secret['mnemonic']>,
   passphrase: string = '',
   network: Network,
@@ -247,4 +286,5 @@ async function getExtendedPublicKeyFromMnemonicCustom(
 
   return result.xpub
 }
+
 export { getExtendedPublicKeyFromMnemonicCustom }
