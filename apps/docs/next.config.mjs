@@ -7,6 +7,9 @@ const withNextra = nextra({
 
 export default withNextra({
   reactStrictMode: true,
+  basePath: '/satsigner',
+  output: 'export',
+  images: { unoptimized: true },
   webpack(config) {
     const allowedSvgRegex = /components\/icons\/.+\.svg$/
 
