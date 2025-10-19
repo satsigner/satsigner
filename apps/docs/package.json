@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev"
+    "dev": "next dev",
+    "export": "next build && next export"
   },
   "dependencies": {
     "next": "^14.2.13",
