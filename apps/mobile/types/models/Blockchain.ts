@@ -197,7 +197,7 @@ export type BlockFeeRates = {
   avgFee_100: number
 }
 
-export interface MempoolStatistics {
+export type MempoolStatistics = {
   added: number
   count: number
   vbytes_per_second: number
