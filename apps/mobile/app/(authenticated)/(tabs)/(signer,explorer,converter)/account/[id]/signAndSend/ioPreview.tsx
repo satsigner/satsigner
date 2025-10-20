@@ -149,6 +149,8 @@ export default function IOPreview() {
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [topGradientHeight, setTopGradientHeight] = useState(0)
 
+  const [previousUserSelectedUtxos, setPreviousUserSelectedUtxos] =
+    useState<Utxo[]>()
   const [localFeeRate, setLocalFeeRate] = useState(feeRate)
   const [outputsCount, setOutputsCount] = useState(0)
   const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
@@ -396,6 +398,16 @@ export default function IOPreview() {
     setAddOutputModalVisible(true)
   }
 
+  function setAccountUtxos(utxos: Utxo[]) {
+    for (const utxo of account.utxos) {
+      removeInput(utxo)
+    }
+
+    for (const utxo of utxos) {
+      addInput(utxo)
+    }
+  }
+
   function handleOnChangeUtxoSelection(type: AutoSelectUtxosAlgorithms) {
     if (type === selectedAutoSelectUtxos) return
 
@@ -407,10 +419,19 @@ export default function IOPreview() {
     }
 
     switch (type) {
-      case 'user':
-        return router.back()
+      case 'user': {
+        if (previousUserSelectedUtxos) {
+          setAccountUtxos(previousUserSelectedUtxos)
+        } else {
+          return router.back()
+        }
+
+        break
+      }
       case 'privacy': {
         setLoadingOptimizeAlgorithm('privacy')
+
+        setPreviousUserSelectedUtxos(account.utxos)
 
         toast.error('Not implemented yet')
 
@@ -418,6 +439,8 @@ export default function IOPreview() {
       }
       case 'efficiency': {
         setLoadingOptimizeAlgorithm('efficiency')
+
+        setPreviousUserSelectedUtxos(account.utxos)
 
         const optimizationResult = selectEfficientUtxos(
           account.utxos.map((utxo) => ({
@@ -433,13 +456,7 @@ export default function IOPreview() {
           break
         }
 
-        for (const utxo of account.utxos) {
-          removeInput(utxo)
-        }
-
-        for (const utxo of optimizationResult.inputs) {
-          addInput(utxo)
-        }
+        setAccountUtxos(optimizationResult.inputs)
 
         break
       }
