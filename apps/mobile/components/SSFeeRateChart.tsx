@@ -10,6 +10,7 @@ import { Path, Svg } from 'react-native-svg'
 import { CartesianChart, StackedArea } from 'victory-native'
 
 import { type MempoolStatistics } from '@/types/models/Blockchain'
+import { bytes } from '@/utils/bytes'
 
 import SSText from './SSText'
 
@@ -63,22 +64,26 @@ function SSFeeRateChart({
         // Group vsizes into fee ranges
         return {
           x: timestamp,
-          high:
+          high: bytes.toMega(
             entry.vsizes
               .slice(0, quarter)
-              .reduce((sum, current) => sum + current, 0) / 1000000,
-          medium:
+              .reduce((sum, current) => sum + current, 0)
+          ),
+          medium: bytes.toMega(
             entry.vsizes
               .slice(quarter, 2 * quarter)
-              .reduce((sum, current) => sum + current, 0) / 1000000,
-          low:
+              .reduce((sum, current) => sum + current, 0)
+          ),
+          low: bytes.toMega(
             entry.vsizes
               .slice(2 * quarter, 3 * quarter)
-              .reduce((sum, current) => sum + current, 0) / 1000000,
-          veryLow:
+              .reduce((sum, current) => sum + current, 0)
+          ),
+          veryLow: bytes.toMega(
             entry.vsizes
               .slice(3 * quarter)
-              .reduce((sum, current) => sum + current, 0) / 1000000
+              .reduce((sum, current) => sum + current, 0)
+          )
         }
       })
       .reverse()
