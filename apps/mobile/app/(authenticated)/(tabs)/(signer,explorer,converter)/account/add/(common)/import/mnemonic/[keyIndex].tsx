@@ -7,6 +7,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
 import SSGradientModal from '@/components/SSGradientModal'
+import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
 import SSSeedWordsInput from '@/components/SSSeedWordsInput'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
@@ -81,6 +82,12 @@ export default function ImportMnemonic() {
 
   const [accountAddedModalVisible, setAccountAddedModalVisible] =
     useState(false)
+
+  const [wordSelectorState, setWordSelectorState] = useState({
+    visible: false,
+    wordStart: '',
+    onWordSelected: () => {}
+  })
 
   // Handle mnemonic validation from the component
   const handleMnemonicValid = (mnemonic: string, fingerprint: string) => {
@@ -201,8 +208,16 @@ export default function ImportMnemonic() {
           onCancelButtonPress={handleOnPressCancel}
           showCancelButton
           autoCheckClipboard
+          onWordSelectorStateChange={setWordSelectorState}
         />
       </ScrollView>
+      <SSKeyboardWordSelector
+        visible={wordSelectorState.visible}
+        wordStart={wordSelectorState.wordStart}
+        wordListName={mnemonicWordList}
+        onWordSelected={wordSelectorState.onWordSelected}
+        style={{ height: 60 }}
+      />
       <SSGradientModal
         visible={accountAddedModalVisible}
         closeText={

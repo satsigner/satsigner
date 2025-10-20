@@ -16,6 +16,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { buildTransaction } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
+import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
 import SSSeedWordsInput from '@/components/SSSeedWordsInput'
@@ -169,6 +170,12 @@ function PreviewMessage() {
     useState<MnemonicWordCount>(24)
   const [currentMnemonic, setCurrentMnemonic] = useState('')
   const [_currentFingerprint, _setCurrentFingerprint] = useState('')
+
+  const [wordSelectorState, setWordSelectorState] = useState({
+    visible: false,
+    wordStart: '',
+    onWordSelected: () => {}
+  })
 
   const [permission, requestPermission] = useCameraPermissions()
 
@@ -2459,10 +2466,18 @@ function PreviewMessage() {
                 actionButtonLoading={false}
                 showCancelButton={false}
                 autoCheckClipboard
+                onWordSelectorStateChange={setWordSelectorState}
               />
             </View>
           </ScrollView>
         </SSModal>
+        <SSKeyboardWordSelector
+          visible={wordSelectorState.visible}
+          wordStart={wordSelectorState.wordStart}
+          wordListName="english"
+          onWordSelected={wordSelectorState.onWordSelected}
+          style={{ height: 60 }}
+        />
       </SSMainLayout>
     </>
   )

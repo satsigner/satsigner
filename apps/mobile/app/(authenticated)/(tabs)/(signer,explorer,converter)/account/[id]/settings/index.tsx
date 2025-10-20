@@ -449,7 +449,8 @@ export default function AccountSettings() {
               </SSText>
               <SSText center uppercase>
                 {account.keys[0].mnemonicWordCount}{' '}
-                {t('account.mnemonic.title')}
+                {t('account.mnemonic.title')} (
+                {account.keys[0].mnemonicWordList?.replaceAll('_', ' ')})
               </SSText>
               <SSHStack style={{ justifyContent: 'center' }}>
                 <SSText uppercase color="muted">
