@@ -431,7 +431,7 @@ export default function IOPreview() {
       case 'privacy': {
         setLoadingOptimizeAlgorithm('privacy')
 
-        setPreviousUserSelectedUtxos(account.utxos)
+        setPreviousUserSelectedUtxos(getInputs())
 
         toast.error('Not implemented yet')
 
@@ -440,7 +440,7 @@ export default function IOPreview() {
       case 'efficiency': {
         setLoadingOptimizeAlgorithm('efficiency')
 
-        setPreviousUserSelectedUtxos(account.utxos)
+        setPreviousUserSelectedUtxos(getInputs())
 
         const optimizationResult = selectEfficientUtxos(
           account.utxos.map((utxo) => ({
