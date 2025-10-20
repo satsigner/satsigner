@@ -162,7 +162,8 @@ export default function SeedWordsPage() {
                   {key.name || `Key ${keyIndexNum + 1}`}
                 </SSText>
                 <SSText center uppercase>
-                  {key.mnemonicWordCount} {t('account.mnemonic.title')}
+                  {key.mnemonicWordCount} {t('account.mnemonic.title')} (
+                  {key.mnemonicWordList?.replaceAll('_', ' ')})
                 </SSText>
                 <SSHStack style={{ justifyContent: 'center' }}>
                   <SSText uppercase color="muted">

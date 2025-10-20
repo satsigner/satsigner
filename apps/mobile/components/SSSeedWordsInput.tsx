@@ -1,13 +1,12 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as Clipboard from 'expo-clipboard'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { type StyleProp, type ViewStyle } from 'react-native'
+import type { StyleProp, TextInput, ViewStyle } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSFingerprint from '@/components/SSFingerprint'
-import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
 import SSTextInput from '@/components/SSTextInput'
 import SSWordInput from '@/components/SSWordInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
@@ -57,9 +56,20 @@ type SSSeedWordsInputProps = {
   showCancelButton?: boolean
   autoCheckClipboard?: boolean
   style?: StyleProp<ViewStyle>
+  onWordSelectorStateChange?: (state: {
+    visible: boolean
+    wordStart: string
+    onWordSelected: (word?: string) => void
+  }) => void
 }
 
 const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
+const PREFIX_WORD_DELAY_MS = 1500 // 1.5 seconds delay for prefix words
+
+// Check if a word is a prefix of other words in the BIP39 word list
+function isPrefixWord(word: string, wordList: string[]): boolean {
+  return wordList.some((w) => w.startsWith(word) && w !== word)
+}
 
 export default function SSSeedWordsInput({
   wordCount,
@@ -80,7 +90,8 @@ export default function SSSeedWordsInput({
   onCancelButtonPress,
   showCancelButton = true,
   autoCheckClipboard = true,
-  style
+  style,
+  onWordSelectorStateChange
 }: SSSeedWordsInputProps) {
   const [seedWordsInfo, setSeedWordsInfo] = useState<SeedWordInfo[]>([])
   const [keyboardWordSelectorVisible, setKeyboardWordSelectorVisible] =
@@ -91,9 +102,12 @@ export default function SSSeedWordsInput({
   const [fingerprint, setFingerprint] = useState('')
   const [passphrase, setPassphrase] = useState('')
 
-  const passphraseRef = useRef<any>()
-  const clipboardCheckedRef = useRef(false)
   const wordList = getWordList(wordListName)
+  const passphraseRef = useRef<TextInput>(null)
+  const clipboardCheckedRef = useRef(false)
+  const wordInputRefs = useRef<(TextInput | null)[]>([])
+  const autoAdvanceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const handleWordSelectedRef = useRef<(word?: string) => Promise<void>>()
 
   // Initialize seed words info
   useEffect(() => {
@@ -105,7 +119,87 @@ export default function SSSeedWordsInput({
         dirty: false
       }))
     setSeedWordsInfo(initialSeedWordsInfo)
+    // Initialize refs array
+    wordInputRefs.current = Array(wordCount).fill(null)
   }, [wordCount])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autoAdvanceTimeoutRef.current) {
+        clearTimeout(autoAdvanceTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  // Handle word selection from keyboard selector
+  const handleWordSelected = useCallback(
+    async (word?: string) => {
+      if (!word) return
+      const newSeedWordsInfo = [...seedWordsInfo]
+      const currentWord = newSeedWordsInfo[currentWordIndex]
+
+      currentWord.value = word
+      currentWord.dirty = true
+
+      if (wordList.includes(word)) {
+        currentWord.valid = true
+        setKeyboardWordSelectorVisible(false)
+        setCurrentWordText('')
+        setSeedWordsInfo(newSeedWordsInfo)
+
+        // Auto-advance to next word if current word is valid
+        if (currentWordIndex < wordCount - 1) {
+          setCurrentWordIndex(currentWordIndex + 1)
+          wordInputRefs.current[currentWordIndex + 1]?.focus()
+        }
+      } else {
+        currentWord.valid = false
+        setSeedWordsInfo(newSeedWordsInfo)
+      }
+
+      // Validate mnemonic after word selection
+      const mnemonic = newSeedWordsInfo.map((info) => info.value).join(' ')
+      if (mnemonic.trim().length > 0) {
+        const checksumValid = validateMnemonic(mnemonic, wordListName)
+        setChecksumValid(checksumValid)
+        if (checksumValid) {
+          const fingerprintResult = getFingerprintFromMnemonic(
+            mnemonic,
+            passphrase
+          )
+          setFingerprint(fingerprintResult)
+          onMnemonicValid?.(mnemonic, fingerprintResult)
+        } else {
+          onMnemonicInvalid?.()
+        }
+      }
+    },
+    [
+      seedWordsInfo,
+      currentWordIndex,
+      wordList,
+      wordCount,
+      wordListName,
+      passphrase,
+      onMnemonicValid,
+      onMnemonicInvalid
+    ]
+  )
+
+  // Keep ref updated with latest function
+  useEffect(() => {
+    handleWordSelectedRef.current = handleWordSelected
+  }, [handleWordSelected])
+
+  // Notify parent about word selector state changes
+  useEffect(() => {
+    onWordSelectorStateChange?.({
+      visible: keyboardWordSelectorVisible,
+      wordStart: currentWordText,
+      onWordSelected: (word?: string) => handleWordSelectedRef.current?.(word)
+    })
+  }, [keyboardWordSelectorVisible, currentWordText, onWordSelectorStateChange])
 
   // Check if clipboard contains valid seed
   const checkClipboardForSeed = useCallback(
@@ -190,22 +284,51 @@ export default function SSSeedWordsInput({
       seedWord.valid = false
       seedWord.dirty = true
       setSeedWordsInfo(newSeedWordsInfo)
+
+      // Clear auto-advance timeout if invalid characters are entered
+      if (autoAdvanceTimeoutRef.current) {
+        clearTimeout(autoAdvanceTimeoutRef.current)
+        autoAdvanceTimeoutRef.current = null
+      }
       return
     }
 
     seedWord.value = value.trim()
-    setCurrentWordText(value)
+    seedWord.dirty = true // Mark as dirty when user starts typing
+    setCurrentWordText(value.trim())
     setCurrentWordIndex(index)
 
     // Check if word is in BIP39 word list
-    if (wordList.includes(value)) {
+    const trimmedValue = value.trim()
+    if (wordList.includes(trimmedValue)) {
       seedWord.valid = true
       setKeyboardWordSelectorVisible(false)
+
+      // Clear any existing timeout
+      if (autoAdvanceTimeoutRef.current) {
+        clearTimeout(autoAdvanceTimeoutRef.current)
+      }
+
+      // Auto-advance to next input when word is valid
+      if (index < wordCount - 1) {
+        const isPrefix = isPrefixWord(trimmedValue, wordList)
+        const delay = isPrefix ? PREFIX_WORD_DELAY_MS : 100
+
+        autoAdvanceTimeoutRef.current = setTimeout(() => {
+          wordInputRefs.current[index + 1]?.focus()
+        }, delay)
+      }
     } else {
       seedWord.valid = false
-      setKeyboardWordSelectorVisible(
-        value.length >= MIN_LETTERS_TO_SHOW_WORD_SELECTOR
-      )
+      const shouldShow =
+        trimmedValue.length >= MIN_LETTERS_TO_SHOW_WORD_SELECTOR
+      setKeyboardWordSelectorVisible(shouldShow)
+
+      // Clear auto-advance timeout if current word becomes invalid
+      if (autoAdvanceTimeoutRef.current) {
+        clearTimeout(autoAdvanceTimeoutRef.current)
+        autoAdvanceTimeoutRef.current = null
+      }
     }
 
     setSeedWordsInfo(newSeedWordsInfo)
@@ -233,31 +356,6 @@ export default function SSSeedWordsInput({
     }
   }
 
-  // Handle word selection from keyboard selector
-  const handleWordSelected = async (word: string) => {
-    const newSeedWordsInfo = [...seedWordsInfo]
-    newSeedWordsInfo[currentWordIndex].value = word
-
-    if (wordList.includes(word)) {
-      newSeedWordsInfo[currentWordIndex].valid = true
-      setKeyboardWordSelectorVisible(false)
-    }
-
-    setSeedWordsInfo(newSeedWordsInfo)
-
-    const mnemonic = newSeedWordsInfo.map((info) => info.value).join(' ')
-    const checksumValid = validateMnemonic(mnemonic, wordListName)
-    setChecksumValid(checksumValid)
-
-    if (checksumValid) {
-      const fingerprintResult = getFingerprintFromMnemonic(mnemonic, passphrase)
-      setFingerprint(fingerprintResult)
-      onMnemonicValid?.(mnemonic, fingerprintResult)
-    } else {
-      onMnemonicInvalid?.()
-    }
-  }
-
   const handlePassphraseChange = async (text: string) => {
     setPassphrase(text)
 
@@ -274,11 +372,16 @@ export default function SSSeedWordsInput({
     <SSVStack gap="lg" style={style}>
       <SSFormLayout>
         <SSFormLayout.Item>
-          <SSFormLayout.Label label={t('account.mnemonic.title')} />
+          <SSFormLayout.Label
+            label={`${t('account.mnemonic.title')} (${wordListName.replaceAll('_', ' ').toUpperCase()})`}
+          />
           <SSSeedLayout count={wordCount}>
             {seedWordsInfo.map((wordInfo, index) => (
               <SSWordInput
                 key={index}
+                ref={(ref) => {
+                  wordInputRefs.current[index] = ref
+                }}
                 value={wordInfo.value}
                 position={index + 1}
                 index={index}
@@ -286,8 +389,7 @@ export default function SSSeedWordsInput({
                 onChangeText={(text) => handleSeedWordChange(index, text)}
                 onSubmitEditing={() => {
                   if (index < wordCount - 1) {
-                    // Focus next input (this would need refs to implement properly)
-                    // TODO: implement focus next input when word is valid
+                    wordInputRefs.current[index + 1]?.focus()
                   }
                 }}
               />
@@ -317,13 +419,6 @@ export default function SSSeedWordsInput({
           </SSFormLayout.Item>
         )}
       </SSFormLayout>
-      <SSKeyboardWordSelector
-        visible={keyboardWordSelectorVisible}
-        wordStart={currentWordText}
-        wordListName={wordListName}
-        onWordSelected={handleWordSelected}
-        style={{ height: 60 }}
-      />
       <SSVStack gap="sm">
         {showPasteButton && (
           <SSButton
