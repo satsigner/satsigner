@@ -1,5 +1,5 @@
-import { StyleSheet, View } from 'react-native'
 import { useEffect, useState } from 'react'
+import { StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
@@ -8,26 +8,19 @@ import SSTransactionChart from '@/components/SSTransactionChart'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { type Account, type CreationType } from '@/types/models/Account'
+import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import {
+  type AccountMatchResult,
   extractIndividualSignedPsbts,
   extractOriginalPsbt,
   extractTransactionDataFromPSBTEnhanced,
   extractTransactionIdFromPSBT,
   findMatchingAccount,
   getMultisigInfoFromPsbt,
-  type AccountMatchResult,
   type TransactionData
 } from '@/utils/psbt'
 import { estimateTransactionSize } from '@/utils/transaction'
-import { extractKeyFingerprint } from '@/utils/account'
-
-type MultisigKeyInfo = {
-  fingerprint: string
-  index: number
-  creationType: CreationType
-}
 
 type SSTransactionDetailsProps = {
   transactionData: TransactionData
@@ -49,9 +42,6 @@ function SSTransactionDetails({
   const [accountMatch, setAccountMatch] = useState<AccountMatchResult | null>(
     null
   )
-  const [multisigKeyInfo, setMultisigKeyInfo] = useState<
-    MultisigKeyInfo[] | null
-  >(null)
   const { combinedPsbt } = transactionData
   const originalPsbt = extractOriginalPsbt(combinedPsbt)
   const txid = extractTransactionIdFromPSBT(combinedPsbt)
@@ -61,21 +51,6 @@ function SSTransactionDetails({
     async function matchAccount() {
       const match = await findMatchingAccount(originalPsbt, accounts)
       setAccountMatch(match)
-
-      if (match && match.account.policyType === 'multisig') {
-        const keyInfoPromises = match.account.keys.map(async (key) => {
-          const fingerprint = await extractKeyFingerprint(key)
-          return {
-            fingerprint,
-            index: key.index,
-            creationType: key.creationType
-          }
-        })
-        const info = await Promise.all(keyInfoPromises)
-        setMultisigKeyInfo(info)
-      } else {
-        setMultisigKeyInfo(null)
-      }
     }
     matchAccount()
   }, [originalPsbt, accounts])
@@ -93,26 +68,6 @@ function SSTransactionDetails({
   const keysRequired = multisigInfo?.required || 0
   const keyCount = multisigInfo?.total || 0
 
-  if (accountMatch) {
-    if (accountMatch.account.policyType === 'multisig') {
-      if (multisigKeyInfo) {
-        multisigKeyInfo.forEach((keyInfo) => {
-          console.log({
-            fingerprint: keyInfo.fingerprint,
-            index: keyInfo.index,
-            creationType: keyInfo.creationType
-          })
-        })
-      }
-    } else {
-      const matchedKey = accountMatch.account.keys[accountMatch.cosignerIndex]
-      console.log({
-        fingerprint: accountMatch.fingerprint,
-        index: matchedKey.index,
-        creationType: matchedKey.creationType
-      })
-    }
-  }
   const matchedAccount = accountMatch?.account || account
 
   let extractedData = null
