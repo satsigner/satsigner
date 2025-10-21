@@ -43,6 +43,8 @@ export default function CustomNetwork() {
   const router = useRouter()
   const { formData, updateField, constructUrl } = useCustomNetworkForm()
 
+  const networkType = network as Network
+
   const [
     selectedNetwork,
     configs,
@@ -64,7 +66,7 @@ export default function CustomNetwork() {
 
   const [testing, setTesting] = useState(false)
   const [oldNetwork] = useState<Network>(selectedNetwork)
-  const [oldServer] = useState<Server>(configs[network as Network].server)
+  const [oldServer] = useState<Server>(configs[networkType].server)
 
   const backends: Backend[] = ['electrum', 'esplora']
   const protocols = ['ssl', 'tcp'] as const
@@ -116,16 +118,15 @@ export default function CustomNetwork() {
     if (!isValid()) return
 
     const url = constructUrl()
-    setSelectedNetwork(network as Network)
-    updateServer(
-      network as Network,
-      {
-        name: formData.name,
-        backend: formData.backend,
-        network,
-        url
-      } as Server
-    )
+    const server: Server = {
+      name: formData.name,
+      backend: formData.backend,
+      network: networkType,
+      url
+    }
+
+    setSelectedNetwork(networkType)
+    updateServer(networkType, server)
 
     setTesting(true)
   }
@@ -138,12 +139,14 @@ export default function CustomNetwork() {
       }
 
       const url = constructUrl()
-      addCustomServer({
+      const server: Server = {
         name: formData.name,
         backend: formData.backend,
-        network,
+        network: networkType,
         url
-      } as Server)
+      }
+
+      addCustomServer(server)
       router.back()
     }
   }
