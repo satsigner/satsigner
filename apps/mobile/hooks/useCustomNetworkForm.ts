@@ -15,7 +15,7 @@ import { type Backend } from '@/types/settings/blockchain'
 type CustomNetworkFormData = {
   backend: Backend
   name: string
-  protocol: 'tcp' | 'ssl' | 'tls'
+  protocol: 'tcp' | 'ssl'
   host: string
   port: string
 }
@@ -44,7 +44,9 @@ export const useCustomNetworkForm = () => {
         : `https://${formData.host}`
     }
     // For Electrum, port is always required
-    return `${formData.protocol}://${formData.host}:${formData.port}`
+    // Map 'ssl' to 'ssl://' (covers both SSL and TLS)
+    const protocol = formData.protocol === 'ssl' ? 'ssl' : 'tcp'
+    return `${protocol}://${formData.host}:${formData.port}`
   }
 
   const resetForm = () => {

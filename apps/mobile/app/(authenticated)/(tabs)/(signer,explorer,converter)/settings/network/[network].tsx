@@ -67,7 +67,7 @@ export default function CustomNetwork() {
   const [oldServer] = useState<Server>(configs[network as Network].server)
 
   const backends: Backend[] = ['electrum', 'esplora']
-  const protocols = ['ssl', 'tcp', 'tls'] as const
+  const protocols = ['ssl', 'tcp'] as const
 
   const urlPreview = useMemo(() => {
     if (!formData.host) return ''
