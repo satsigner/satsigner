@@ -108,10 +108,10 @@ export function extractPSBTDerivations(psbtBase64: string): {
   }
 }
 
-export function findMatchingAccount(
+export async function findMatchingAccount(
   psbtBase64: string,
   accounts: Account[]
-): AccountMatchResult | null {
+): Promise<AccountMatchResult | null> {
   try {
     const derivations = extractPSBTDerivations(psbtBase64)
 
@@ -131,7 +131,7 @@ export function findMatchingAccount(
 
       for (let keyIndex = 0; keyIndex < account.keys.length; keyIndex++) {
         const key = account.keys[keyIndex]
-        const keyFingerprint = extractKeyFingerprint(key)
+        const keyFingerprint = await extractKeyFingerprint(key)
 
         if (keyFingerprint) {
           accountFingerprints.push(keyFingerprint)
@@ -1080,7 +1080,7 @@ function extractPublicKeyFromDecryptedKey(
 /**
  * Find public key from BIP32 derivations matching fingerprint
  */
-function findDerivedPublicKey(
+export function findDerivedPublicKey(
   psbt: bitcoinjs.Psbt,
   fingerprint: string
 ): string {

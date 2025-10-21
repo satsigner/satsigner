@@ -142,7 +142,7 @@ export default function DevicesGroupChat() {
     }
   }
 
-  function handleGoToSignFlowClick(messageContent: string) {
+  async function handleGoToSignFlowClick(messageContent: string) {
     try {
       const transactionData = parseNostrTransactionMessage(messageContent)
       if (!transactionData) {
@@ -150,7 +150,7 @@ export default function DevicesGroupChat() {
         return
       }
 
-      handleGoToSignFlow(transactionData)
+      await handleGoToSignFlow(transactionData)
     } catch {
       toast.error(t('common.error.openSignFlowFailed'))
     }
