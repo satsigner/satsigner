@@ -53,10 +53,7 @@ export default function ImportDescriptor() {
       state.setExtendedPublicKey
     ])
   )
-  const {
-    isAvailable,
-    readNFCTag,
-  } = useNFCReader()
+  const { isAvailable, readNFCTag } = useNFCReader()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
 

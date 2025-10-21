@@ -46,7 +46,7 @@ function useNostrSync() {
     for (const api of apisToCleanup) {
       try {
         await api.closeAllSubscriptions()
-      } catch (_error) {
+      } catch {
         // Error closing subscriptions
       }
     }
@@ -60,55 +60,60 @@ function useNostrSync() {
         return
       }
 
-      const newMessage = {
-        id: unwrappedEvent.id,
-        author: unwrappedEvent.pubkey,
-        created_at: eventContent.created_at,
-        description: eventContent.description,
-        event: JSON.stringify(unwrappedEvent),
-        label: 1,
-        content: {
-          description: eventContent.description,
+      try {
+        const newMessage = {
+          id: unwrappedEvent.id,
+          author: unwrappedEvent.pubkey,
           created_at: eventContent.created_at,
-          pubkey: unwrappedEvent.pubkey
+          description: eventContent.description,
+          event: JSON.stringify(unwrappedEvent),
+          label: 1,
+          content: {
+            description: eventContent.description,
+            created_at: eventContent.created_at,
+            pubkey: unwrappedEvent.pubkey
+          }
         }
-      }
 
-      // Trigger notifcation only if message is recent and is not sent to self
-      const lastDataExchangeEOSE =
-        useNostrStore.getState().getLastDataExchangeEOSE(account.id) || 0
-      if (
-        eventContent.created_at > lastDataExchangeEOSE &&
-        account.nostr.deviceNpub !== nip19.npubEncode(unwrappedEvent.pubkey) &&
-        eventContent.created_at < Date.now() / 1000 - 60 * 5
-      ) {
-        const npub = nip19.npubEncode(unwrappedEvent.pubkey)
-        const formatedAuthor = npub.slice(0, 12) + '...' + npub.slice(-4)
-        toast.info(formatedAuthor + ': ' + eventContent.description)
-      }
+        // Trigger notifcation only if message is recent and is not sent to self
+        const lastDataExchangeEOSE =
+          useNostrStore.getState().getLastDataExchangeEOSE(account.id) || 0
+        if (
+          eventContent.created_at > lastDataExchangeEOSE &&
+          account.nostr.deviceNpub !==
+            nip19.npubEncode(unwrappedEvent.pubkey) &&
+          eventContent.created_at < Date.now() / 1000 - 60 * 5
+        ) {
+          const npub = nip19.npubEncode(unwrappedEvent.pubkey)
+          const formatedAuthor = npub.slice(0, 12) + '...' + npub.slice(-4)
+          toast.info(formatedAuthor + ': ' + eventContent.description)
+        }
 
-      // Get the current state directly from the store to ensure we have the latest
-      const currentState = useAccountsStore.getState()
-      const currentAccount = currentState.accounts.find(
-        (a) => a.id === account.id
-      )
-      if (!currentAccount?.nostr) return
-
-      const currentDms = currentAccount.nostr.dms || []
-
-      // Check if message with same ID already exists
-      const messageExists = currentDms.some((m) => m.id === newMessage.id)
-
-      // If message doesn't exist, add it and sort by timestamp
-      if (!messageExists) {
-        const updatedDms = [...currentDms, newMessage].sort(
-          (a, b) => a.created_at - b.created_at
+        // Get the current state directly from the store to ensure we have the latest
+        const currentState = useAccountsStore.getState()
+        const currentAccount = currentState.accounts.find(
+          (a) => a.id === account.id
         )
+        if (!currentAccount?.nostr) return
 
-        // Update only the dms field, preserving all other nostr fields
-        updateAccountNostr(account.id, {
-          dms: updatedDms
-        })
+        const currentDms = currentAccount.nostr.dms || []
+
+        // Check if message with same ID already exists
+        const messageExists = currentDms.some((m) => m.id === newMessage.id)
+
+        // If message doesn't exist, add it and sort by timestamp
+        if (!messageExists) {
+          const updatedDms = [...currentDms, newMessage].sort(
+            (a, b) => a.created_at - b.created_at
+          )
+
+          // Update only the dms field, preserving all other nostr fields
+          updateAccountNostr(account.id, {
+            dms: updatedDms
+          })
+        }
+      } catch {
+        // Failed to store DM
       }
     },
     [updateAccountNostr]
@@ -154,7 +159,7 @@ function useNostrSync() {
                   toast.success(`Imported ${labelsAdded} labels`)
                 }
               }
-            } catch {
+            } catch (_error) {
               toast.error('Failed to import labels')
             }
           } else if (data_type === 'Tx') {
@@ -205,7 +210,9 @@ function useNostrSync() {
           const newMember = eventContent.public_key_bech32
           try {
             addMember(account.id, newMember)
-          } catch {}
+          } catch {
+            // Failed to add member
+          }
         }
 
         return eventContent
@@ -509,40 +516,55 @@ function useNostrSync() {
     const pin = await getItem(PIN_KEY)
     if (!pin) return
 
-    const isImportAddress = account.keys[0].creationType === 'importAddress'
-    const temporaryAccount = JSON.parse(JSON.stringify(account)) as Account
+    try {
+      const isImportAddress = account.keys[0].creationType === 'importAddress'
+      const temporaryAccount = JSON.parse(JSON.stringify(account)) as Account
 
-    for (const key of temporaryAccount.keys) {
-      const decryptedSecretString = await aesDecrypt(
-        key.secret as string,
-        pin,
-        key.iv
+      for (const key of temporaryAccount.keys) {
+        const decryptedSecretString = await aesDecrypt(
+          key.secret as string,
+          pin,
+          key.iv
+        )
+        const decryptedSecret = JSON.parse(decryptedSecretString) as Secret
+        key.secret = decryptedSecret
+      }
+
+      if (isImportAddress) {
+        const secret = temporaryAccount.keys[0].secret as Secret
+        return {
+          externalDescriptor: secret.externalDescriptor,
+          internalDescriptor: undefined
+        }
+      }
+
+      const walletData = await getWalletData(
+        temporaryAccount,
+        temporaryAccount.network as Network
       )
-      const decryptedSecret = JSON.parse(decryptedSecretString) as Secret
-      key.secret = decryptedSecret
-    }
+      if (!walletData) {
+        throw new Error('Failed to get wallet data')
+      }
 
-    const descriptor = walletData.externalDescriptor
-    const { hardenedPath, xpubs } = parseDescriptor(descriptor)
-    const totalString = `${hardenedPath}${xpubs.join('')}`
+      const descriptor = walletData.externalDescriptor
+      const { hardenedPath, xpubs } = parseDescriptor(descriptor)
+      const totalString = `${hardenedPath}${xpubs.join('')}`
 
-    const xpubRegex = /(tpub|vpub|upub|zpub)[a-zA-Z0-9]+/g
-    const xpubs = (descriptor.match(xpubRegex) || []).sort()
+      const firstHash = await sha256(totalString)
+      const doubleHash = await sha256(firstHash)
 
-    const totalString = hardenedPath + xpubs.join('')
+      const privateKeyBytes = new Uint8Array(Buffer.from(doubleHash, 'hex'))
+      const publicKey = getPublicKey(privateKeyBytes)
+      const commonNsec = nip19.nsecEncode(privateKeyBytes)
+      const commonNpub = nip19.npubEncode(publicKey)
 
-    const firstHash = await sha256(totalString)
-    const doubleHash = await sha256(firstHash)
-
-    const privateKeyBytes = new Uint8Array(Buffer.from(doubleHash, 'hex'))
-    const publicKey = getPublicKey(privateKeyBytes)
-    const commonNsec = nip19.nsecEncode(privateKeyBytes)
-    const commonNpub = nip19.npubEncode(publicKey)
-
-    return {
-      commonNsec,
-      commonNpub,
-      privateKeyBytes
+      return {
+        commonNsec,
+        commonNpub,
+        privateKeyBytes
+      }
+    } catch (_error) {
+      throw _error
     }
   }, [])
 
