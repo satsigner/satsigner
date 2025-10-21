@@ -36,12 +36,20 @@ export const useCustomNetworkValidation = (
       return { isValid: false, error: 'require.host' }
     }
 
-    if (!port.trim()) {
-      return { isValid: false, error: 'require.port' }
-    }
+    // For Electrum, port is always required
+    if (backend === 'electrum') {
+      if (!port.trim()) {
+        return { isValid: false, error: 'require.port' }
+      }
 
-    if (!port.match(/^[0-9]+$/)) {
-      return { isValid: false, error: 'invalid.port' }
+      if (!port.match(/^[0-9]+$/)) {
+        return { isValid: false, error: 'invalid.port' }
+      }
+    } else {
+      // For Esplora, port is optional but must be valid if provided
+      if (port.trim() && !port.match(/^[0-9]+$/)) {
+        return { isValid: false, error: 'invalid.port' }
+      }
     }
 
     // Use the validation utilities for comprehensive URL validation

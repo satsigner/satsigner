@@ -37,9 +37,14 @@ export const useCustomNetworkForm = () => {
   }
 
   const constructUrl = () => {
-    return formData.backend === 'esplora'
-      ? `https://${formData.host}:${formData.port}`
-      : `${formData.protocol}://${formData.host}:${formData.port}`
+    if (formData.backend === 'esplora') {
+      // For Esplora, port is optional (defaults to 443)
+      return formData.port.trim()
+        ? `https://${formData.host}:${formData.port}`
+        : `https://${formData.host}`
+    }
+    // For Electrum, port is always required
+    return `${formData.protocol}://${formData.host}:${formData.port}`
   }
 
   const resetForm = () => {

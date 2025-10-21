@@ -1233,7 +1233,7 @@
     "network.server.hostLabel": "Host",
     "network.server.network": "Bitcoin Network",
     "network.server.port.placeholder.electrum": "50001 (tcp) or 50002 (ssl)",
-    "network.server.port.placeholder.esplora": "443 or 80",
+    "network.server.port.placeholder.esplora": "443 (optional, defaults to 443)",
     "network.server.portLabel": "Port",
     "network.server.protocol.ssl": "SSL",
     "network.server.protocol.tcp": "TCP",

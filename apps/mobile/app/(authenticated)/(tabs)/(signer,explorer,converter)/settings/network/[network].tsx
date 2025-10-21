@@ -70,9 +70,11 @@ export default function CustomNetwork() {
   const protocols = ['ssl', 'tcp', 'tls'] as const
 
   const urlPreview = useMemo(() => {
-    if (!formData.host || !formData.port) return ''
+    if (!formData.host) return ''
+    // For Electrum, both host and port are required
+    if (formData.backend === 'electrum' && !formData.port) return ''
     return constructUrl()
-  }, [formData.host, formData.port, constructUrl])
+  }, [formData.host, formData.port, formData.backend, constructUrl])
 
   useEffect(() => {
     if (testing && !connectionState) toast.error(t('error.invalid.backend'))
@@ -89,14 +91,23 @@ export default function CustomNetwork() {
       return false
     }
 
-    if (!formData.port.trim()) {
-      toast.warning(t('error.require.port'))
-      return false
-    }
+    // For Electrum, port is always required
+    if (formData.backend === 'electrum') {
+      if (!formData.port.trim()) {
+        toast.warning(t('error.require.port'))
+        return false
+      }
 
-    if (!formData.port.match(/^[0-9]+$/)) {
-      toast.warning(t('error.invalid.port'))
-      return false
+      if (!formData.port.match(/^[0-9]+$/)) {
+        toast.warning(t('error.invalid.port'))
+        return false
+      }
+    } else {
+      // For Esplora, port is optional but must be valid if provided
+      if (formData.port.trim() && !formData.port.match(/^[0-9]+$/)) {
+        toast.warning(t('error.invalid.port'))
+        return false
+      }
     }
 
     return true
@@ -244,6 +255,14 @@ export default function CustomNetwork() {
               <SSVStack gap="sm">
                 <SSText uppercase>
                   {t('settings.network.server.portLabel')}
+                  {formData.backend === 'esplora' && (
+                    <SSText
+                      style={{ textTransform: 'none', fontWeight: 'normal' }}
+                    >
+                      {' '}
+                      ({t('common.optional')})
+                    </SSText>
+                  )}
                 </SSText>
                 <SSTextInput
                   value={formData.port}
