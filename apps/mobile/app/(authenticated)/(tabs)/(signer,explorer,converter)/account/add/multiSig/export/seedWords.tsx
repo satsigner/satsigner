@@ -163,7 +163,8 @@ export default function SeedWordsPage() {
             <>
               <SSVStack gap="md">
                 <SSText center uppercase>
-                  {key.mnemonicWordCount} {t('account.mnemonic.title')}
+                  {key.mnemonicWordCount} {t('account.mnemonic.title')} (
+                  {key.mnemonicWordList?.replaceAll('_', ' ')})
                 </SSText>
                 <SSHStack style={{ justifyContent: 'center' }}>
                   <SSText uppercase color="muted">
@@ -273,6 +274,7 @@ export default function SeedWordsPage() {
       </SSModal>
       <SSSeedQR
         mnemonic={mnemonic}
+        mnemonicWordList={key?.mnemonicWordList || 'english'}
         visible={seedQRModalVisible}
         title={key.name || `Key ${keyIndexNum + 1}`}
         onClose={() => setSeedQRModalVisible(false)}

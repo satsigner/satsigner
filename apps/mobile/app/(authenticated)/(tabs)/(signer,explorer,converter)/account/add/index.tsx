@@ -1,5 +1,6 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
+import { View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
@@ -51,32 +52,34 @@ export default function Add() {
               onChangeText={(text) => setLocalName(text)}
             />
           </SSFormLayout.Item>
-          <SSFormLayout.Item>
-            <SSFormLayout.Label
-              label={t('account.policy.title')}
-              center={false}
-            />
-            <SSVStack>
-              <SSCheckbox
-                label={t('account.policy.singleSignature.title')}
-                description={t('account.policy.singleSignature.description')}
-                selected={localPolicyType === 'singlesig'}
-                onPress={() => setLocalPolicyType('singlesig')}
+          <View style={{ marginTop: 24 }}>
+            <SSFormLayout.Item>
+              <SSFormLayout.Label
+                label={t('account.policy.title')}
+                center={false}
               />
-              <SSCheckbox
-                label={t('account.policy.multiSignature.title')}
-                description={t('account.policy.multiSignature.description')}
-                selected={localPolicyType === 'multisig'}
-                onPress={() => setLocalPolicyType('multisig')}
-              />
-              <SSCheckbox
-                label={t('account.policy.watchOnly.title')}
-                description={t('account.policy.watchOnly.description')}
-                selected={localPolicyType === 'watchonly'}
-                onPress={() => setLocalPolicyType('watchonly')}
-              />
-            </SSVStack>
-          </SSFormLayout.Item>
+              <SSVStack>
+                <SSCheckbox
+                  label={t('account.policy.singleSignature.title')}
+                  description={t('account.policy.singleSignature.description')}
+                  selected={localPolicyType === 'singlesig'}
+                  onPress={() => setLocalPolicyType('singlesig')}
+                />
+                <SSCheckbox
+                  label={t('account.policy.multiSignature.title')}
+                  description={t('account.policy.multiSignature.description')}
+                  selected={localPolicyType === 'multisig'}
+                  onPress={() => setLocalPolicyType('multisig')}
+                />
+                <SSCheckbox
+                  label={t('account.policy.watchOnly.title')}
+                  description={t('account.policy.watchOnly.description')}
+                  selected={localPolicyType === 'watchonly'}
+                  onPress={() => setLocalPolicyType('watchonly')}
+                />
+              </SSVStack>
+            </SSFormLayout.Item>
+          </View>
         </SSFormLayout>
         <SSVStack>
           <SSButton
