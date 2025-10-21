@@ -1269,7 +1269,7 @@ function PreviewMessage() {
   }
 
   // Handle mnemonic validation from the component
-  const handleMnemonicValid = (mnemonic: string, _fingerprint: string) => {
+  const handleMnemonicValid = (mnemonic: string, fingerprint: string) => { // eslint-disable-line
     setCurrentMnemonic(mnemonic)
   }
 
