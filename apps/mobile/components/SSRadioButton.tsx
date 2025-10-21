@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { StyleSheet, TouchableOpacity } from 'react-native'
+import { ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
 
@@ -8,12 +8,14 @@ import SSText from './SSText'
 type SSRadioButtonProps = {
   variant?: 'default' | 'outline'
   label: string
+  loading?: boolean
   selected: boolean
 } & React.ComponentPropsWithoutRef<typeof TouchableOpacity>
 
 function SSRadioButton({
   variant = 'default',
   label,
+  loading,
   selected,
   disabled,
   style,
@@ -44,13 +46,17 @@ function SSRadioButton({
       activeOpacity={variant === 'default' ? 0.6 : 1}
       {...props}
     >
-      <SSText
-        uppercase
-        color={variant === 'outline' && !selected ? 'muted' : 'white'}
-        weight={variant === 'outline' && selected ? 'bold' : 'regular'}
-      >
-        {label}
-      </SSText>
+      {!loading ? (
+        <SSText
+          uppercase
+          color={variant === 'outline' && !selected ? 'muted' : 'white'}
+          weight={variant === 'outline' && selected ? 'bold' : 'regular'}
+        >
+          {label}
+        </SSText>
+      ) : (
+        <ActivityIndicator color={Colors.gray[200]} />
+      )}
     </TouchableOpacity>
   )
 }

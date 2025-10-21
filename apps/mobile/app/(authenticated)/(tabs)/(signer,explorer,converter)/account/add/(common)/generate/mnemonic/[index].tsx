@@ -1,5 +1,5 @@
 import { KeychainKind, type Network } from 'bdk-rn/lib/lib/enums'
-import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -22,7 +22,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { type GenerateMnemonicSearchParams } from '@/types/navigation/searchParams'
 import { getDescriptorsFromKey } from '@/utils/bip32'
 import {
-  getExtendedPublicKeyFromMnemonicCustom,
+  getExtendedPublicKeyFromMnemonic,
   getFingerprintFromMnemonic,
   validateMnemonic
 } from '@/utils/bip39'
@@ -36,8 +36,10 @@ export default function GenerateMnemonic() {
   const router = useRouter()
   const [
     name,
-    mnemonicWordCount,
     mnemonic,
+    mnemonicList,
+    mnemonicWordCount,
+    mnemonicWordList,
     fingerprint,
     policyType,
     scriptVersion,
@@ -52,8 +54,10 @@ export default function GenerateMnemonic() {
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
-      state.mnemonicWordCount,
+      state.mnemonic,
       state.mnemonic.split(' '),
+      state.mnemonicWordCount,
+      state.mnemonicWordList,
       state.fingerprint,
       state.policyType,
       state.scriptVersion,
@@ -75,15 +79,11 @@ export default function GenerateMnemonic() {
   async function handleUpdatePassphrase(passphrase: string) {
     setPassphrase(passphrase)
 
-    const validMnemonic = validateMnemonic(mnemonic.join(' '))
+    const validMnemonic = validateMnemonic(mnemonic, mnemonicWordList)
     setChecksumValid(validMnemonic)
 
-    if (checksumValid) {
-      const fingerprint = getFingerprintFromMnemonic(
-        mnemonic.join(' '),
-        passphrase,
-        network as Network
-      )
+    if (validMnemonic) {
+      const fingerprint = getFingerprintFromMnemonic(mnemonic, passphrase)
       setFingerprint(fingerprint)
     }
   }
@@ -94,83 +94,72 @@ export default function GenerateMnemonic() {
   }
 
   async function handleOnPressConfirm() {
-    try {
-      // Extract derivation path from mnemonic
-      let derivationPath = ''
+    // Extract derivation path from mnemonic
+    let derivationPath = ''
 
-      if (policyType === 'multisig') {
-        // For multisig accounts, always use our multisig derivation path logic
-        // Don't try to extract from BDK descriptors as they use single-sig paths
-        const rawDerivationPath = getMultisigDerivationPathFromScriptVersion(
+    if (policyType === 'multisig') {
+      // For multisig accounts, always use our multisig derivation path logic
+      // Don't try to extract from BDK descriptors as they use single-sig paths
+      const rawDerivationPath = getMultisigDerivationPathFromScriptVersion(
+        scriptVersion,
+        network
+      )
+      derivationPath = `m/${rawDerivationPath}`
+
+      // Generate extended public key first using the same method as import flow
+      const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
+        mnemonic,
+        passphrase || '',
+        network as Network,
+        scriptVersion
+      )
+
+      // Generate descriptors from the key data
+      if (extendedPublicKey && fingerprint) {
+        try {
+          const descriptors = getDescriptorsFromKey(
+            extendedPublicKey,
+            fingerprint,
+            scriptVersion,
+            network as Network,
+            policyType === 'multisig' // Pass multisig flag
+          )
+
+          // Set global state values so setKey includes them
+          setExtendedPublicKey(extendedPublicKey)
+          setExternalDescriptor(descriptors.externalDescriptor)
+          setInternalDescriptor(descriptors.internalDescriptor)
+        } catch {
+          // Continue without descriptors if generation fails
+          setExtendedPublicKey(extendedPublicKey)
+        }
+      }
+    } else {
+      // For single-sig accounts, try to extract from BDK descriptor first
+      try {
+        const externalDescriptor = await getDescriptorObject(
+          mnemonic,
+          scriptVersion, // Use the script version from store
+          KeychainKind.External,
+          passphrase || '', // Use passphrase from store
+          network as Network
+        )
+        const parsedDescriptor = await parseDescriptor(externalDescriptor)
+        derivationPath = parsedDescriptor.derivationPath
+      } catch {
+        // Use default derivation path if extraction fails
+        const rawDerivationPath = getDerivationPathFromScriptVersion(
           scriptVersion,
           network
         )
         derivationPath = `m/${rawDerivationPath}`
-        // Generate extended public key first using the same method as import flow
-        const extendedPublicKey = await getExtendedPublicKeyFromMnemonicCustom(
-          mnemonic.join(' '),
-          passphrase || '',
-          network as Network,
-          scriptVersion,
-          undefined,
-          true // isMultisig
-        )
-
-        // Generate descriptors from the key data
-        if (extendedPublicKey && fingerprint) {
-          try {
-            const descriptors = getDescriptorsFromKey(
-              extendedPublicKey,
-              fingerprint,
-              scriptVersion,
-              network as Network,
-              policyType === 'multisig' // Pass multisig flag
-            )
-
-            // Set global state values so setKey includes them
-            setExtendedPublicKey(extendedPublicKey)
-            setExternalDescriptor(descriptors.externalDescriptor)
-            setInternalDescriptor(descriptors.internalDescriptor)
-          } catch {
-            // Continue without descriptors if generation fails
-            setExtendedPublicKey(extendedPublicKey)
-          }
-        }
-      } else {
-        // For single-sig accounts, try to extract from BDK descriptor first
-        try {
-          const externalDescriptor = await getDescriptorObject(
-            mnemonic.join(' '),
-            scriptVersion, // Use the script version from store
-            KeychainKind.External,
-            passphrase || '', // Use passphrase from store
-            network as Network
-          )
-          const parsedDescriptor = await parseDescriptor(externalDescriptor)
-          derivationPath = parsedDescriptor.derivationPath
-        } catch (_error) {
-          // Use default derivation path if extraction fails
-          const rawDerivationPath = getDerivationPathFromScriptVersion(
-            scriptVersion,
-            network
-          )
-          derivationPath = `m/${rawDerivationPath}`
-        }
       }
-
-      // Create the key with all the data
-      setKey(Number(index))
-
-      // Set the derivation path for this key
-      setKeyDerivationPath(Number(index), derivationPath)
-
-      router.navigate(`/account/add/confirm/${index}/word/0`)
-    } catch (_error) {
-      // Handle error silently
     }
-  }
 
-  if (mnemonic.length !== mnemonicWordCount) return <Redirect href="/" />
+    setKey(Number(index))
+    setKeyDerivationPath(Number(index), derivationPath)
+    router.navigate(`/account/add/confirm/${index}/word/0`)
+  }
 
   return (
     <SSMainLayout>
@@ -189,7 +178,7 @@ export default function GenerateMnemonic() {
                   <SSWordInput
                     key={index}
                     position={index + 1}
-                    value={mnemonic ? mnemonic[index] : ''}
+                    value={mnemonic ? mnemonicList[index] : ''}
                     editable={false}
                     index={index}
                   />

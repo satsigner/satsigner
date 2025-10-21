@@ -20,7 +20,7 @@ export default function Settings() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText size="xl">{t('settings.title')}</SSText>,
+          headerTitle: () => <SSText uppercase>{t('settings.title')}</SSText>,
           headerRight: undefined
         }}
       />

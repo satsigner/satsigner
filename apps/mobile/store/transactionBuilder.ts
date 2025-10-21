@@ -17,6 +17,7 @@ type TransactionBuilderState = {
   fee: number
   timeLock: number
   rbf: boolean
+  cpfp: boolean
   txBuilderResult?: TxBuilderResult
   psbt?: PartiallySignedTransaction
   signedTx?: string

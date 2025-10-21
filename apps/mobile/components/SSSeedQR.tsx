@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Clipboard, Pressable, StyleSheet, View } from 'react-native'
 
 import SSModal from '@/components/SSModal'
@@ -7,10 +6,12 @@ import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
+import { getWordList, type WordListName } from '@/utils/bip39'
 import { encodeStandardSeedQR } from '@/utils/seedqr'
 
 type SSSeedQRProps = {
   mnemonic: string
+  mnemonicWordList?: WordListName
   visible: boolean
   onClose: () => void
   title?: string
@@ -18,16 +19,18 @@ type SSSeedQRProps = {
 
 export default function SSSeedQR({
   mnemonic,
+  mnemonicWordList = 'english',
   visible,
   onClose,
   title
 }: SSSeedQRProps) {
   // Format mnemonic by trimming whitespace and ensuring single spaces between words
   const formattedMnemonic = mnemonic.trim().replace(/\s+/g, ' ')
+  const wordList = getWordList(mnemonicWordList)
 
   // Only encode if we have a valid mnemonic
   const qrValue = formattedMnemonic
-    ? encodeStandardSeedQR(formattedMnemonic)
+    ? encodeStandardSeedQR(formattedMnemonic, wordList)
     : ''
 
   const qrSize = formattedMnemonic.split(' ').length === 12 ? 250 : 300

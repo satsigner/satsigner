@@ -2,8 +2,8 @@ import { FlashList } from '@shopify/flash-list'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Animated,
+  Dimensions,
   Keyboard,
-  Platform,
   type StyleProp,
   StyleSheet,
   Text,
@@ -17,7 +17,7 @@ import useKeyboardHeight from '@/hooks/useKeyboardHeight'
 import usePrevious from '@/hooks/usePrevious'
 import { t } from '@/locales'
 import { Colors, Sizes } from '@/styles'
-import { getWordList } from '@/utils/bip39'
+import { getWordList, type WordListName } from '@/utils/bip39'
 
 type WordInfo = {
   index: number
@@ -35,11 +35,11 @@ function wordStartMispells(haystack: string, needle: string) {
   return mismatches
 }
 
-function getMatchingWords(wordStart: string): WordInfo[] {
+function getMatchingWords(wordStart: string, wordList: string[]): WordInfo[] {
   const maxMisspells = 2
   let index = 0
 
-  const result = getWordList()
+  const result = wordList
     .map((w) => ({
       index: index++,
       word: w,
@@ -58,6 +58,7 @@ function getMatchingWords(wordStart: string): WordInfo[] {
 type SSKeyboardWordSelectorProps = {
   visible: boolean
   wordStart: string
+  wordListName: WordListName
   onWordSelected(word: string): void
   style: StyleProp<ViewStyle>
 }
@@ -65,10 +66,12 @@ type SSKeyboardWordSelectorProps = {
 function SSKeyboardWordSelector({
   visible,
   wordStart,
+  wordListName,
   onWordSelected,
   style
 }: SSKeyboardWordSelectorProps) {
-  const { width } = useWindowDimensions()
+  const wordList = getWordList(wordListName)
+  const { width, height } = useWindowDimensions()
   const [keyboardOpen, setKeyboardOpen] = useState(false)
   const flashList = useRef<FlashList<WordInfo>>(null)
 
@@ -77,7 +80,7 @@ function SSKeyboardWordSelector({
 
   const opacityAnimated = useRef(new Animated.Value(0)).current
 
-  const data = getMatchingWords(wordStart)
+  const data = getMatchingWords(wordStart, wordList)
 
   if (data.length > 0 && previousWordStart !== wordStart) {
     flashList.current?.scrollToOffset({ animated: false, offset: 0 })
@@ -102,7 +105,11 @@ function SSKeyboardWordSelector({
   }, [])
 
   useEffect(() => {
-    Keyboard.addListener('keyboardDidShow', handleKeyboardShown)
+    const showSubscription = Keyboard.addListener(
+      'keyboardDidShow',
+      handleKeyboardShown
+    )
+    return () => showSubscription?.remove()
   }, [handleKeyboardShown])
 
   const handleKeyboardHidden = useCallback(() => {
@@ -110,36 +117,48 @@ function SSKeyboardWordSelector({
   }, [])
 
   useEffect(() => {
-    Keyboard.addListener('keyboardDidHide', handleKeyboardHidden)
+    const hideSubscription = Keyboard.addListener(
+      'keyboardDidHide',
+      handleKeyboardHidden
+    )
+    return () => hideSubscription?.remove()
   }, [handleKeyboardHidden])
 
   const containerStyle = useMemo(() => {
-    let bottomValue = 0
-    if (Platform.OS === 'ios') bottomValue = keyboardHeight
+    let topValue = height
+    // Position directly above keyboard for both iOS and Android
+    if (keyboardHeight > 0) {
+      topValue = height - keyboardHeight - 50
+    }
 
     return StyleSheet.compose(
       {
         ...styles.containerBase,
-        width,
-        bottom: bottomValue,
+        width, // Use actual screen width
+        top: topValue - 55, // Subtract the height of the word selector container
+        bottom: undefined, // Remove bottom positioning
         opacity: opacityAnimated,
         zIndex: opacityAnimated.interpolate({
           inputRange: [0, 0.0001],
-          outputRange: [0, 1]
+          outputRange: [0, 1000]
         }) as unknown as number
       },
       style
     )
-  }, [width, opacityAnimated, keyboardHeight, style])
+  }, [width, height, opacityAnimated, keyboardHeight, style])
 
   return (
-    <Animated.View style={containerStyle}>
+    <Animated.View
+      style={containerStyle}
+      pointerEvents={visible ? 'auto' : 'none'}
+    >
       {data.length > 0 ? (
         <FlashList
           ref={flashList}
           data={data}
           horizontal
           keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingHorizontal: 8 }}
           renderItem={({ item }) => (
             <TouchableOpacity
               key={item.index}
@@ -169,7 +188,20 @@ const styles = StyleSheet.create({
     position: 'absolute',
     backgroundColor: Colors.white,
     color: Colors.black,
-    zIndex: 1
+    zIndex: 1000,
+    left: 0,
+    right: 0,
+    top: undefined,
+    height: 50,
+    width: Dimensions.get('window').width,
+    elevation: 1000, // For Android
+    shadowColor: '#000', // For iOS
+    shadowOffset: {
+      width: 0,
+      height: -20
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84
   },
   noMatchingWordsContainerBase: {
     flex: 1,
@@ -177,10 +209,11 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   wordContainerBase: {
-    paddingHorizontal: 20,
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRightWidth: 1,
+    borderColor: Colors.gray[100],
+    minWidth: 80,
     alignItems: 'center',
     justifyContent: 'center'
   },

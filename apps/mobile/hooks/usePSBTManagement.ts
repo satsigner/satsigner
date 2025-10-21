@@ -5,7 +5,7 @@ import { toast } from 'sonner-native'
 
 import { type Key, type Secret } from '@/types/models/Account'
 import { getMultisigScriptTypeFromScriptVersion } from '@/utils/bitcoin'
-import { signPSBTWithSeed } from '@/utils/psbtSigner'
+import { signPSBTWithSeed } from '@/utils/psbt'
 
 type UsePSBTManagementParams = {
   txBuilderResult: TxBuilderResult | null | undefined
