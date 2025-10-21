@@ -30,7 +30,6 @@ export const useCustomNetworkForm = () => {
   })
 
   const updateField = (field: keyof CustomNetworkFormData, value: string) => {
-    // Trim whitespace for host and port fields
     const trimmedValue =
       field === 'host' || field === 'port' ? value.trim() : value
     setFormData((prev) => ({ ...prev, [field]: trimmedValue }))
@@ -38,13 +37,10 @@ export const useCustomNetworkForm = () => {
 
   const constructUrl = () => {
     if (formData.backend === 'esplora') {
-      // For Esplora, port is optional (defaults to 443)
       return formData.port.trim()
         ? `https://${formData.host}:${formData.port}`
         : `https://${formData.host}`
     }
-    // For Electrum, port is always required
-    // Map 'ssl' to 'ssl://' (covers both SSL and TLS)
     const protocol = formData.protocol === 'ssl' ? 'ssl' : 'tcp'
     return `${protocol}://${formData.host}:${formData.port}`
   }

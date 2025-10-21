@@ -71,7 +71,6 @@ export default function CustomNetwork() {
 
   const urlPreview = useMemo(() => {
     if (!formData.host) return ''
-    // For Electrum, both host and port are required
     if (formData.backend === 'electrum' && !formData.port) return ''
     return constructUrl()
   }, [formData.host, formData.port, formData.backend, constructUrl])
@@ -91,7 +90,6 @@ export default function CustomNetwork() {
       return false
     }
 
-    // For Electrum, port is always required
     if (formData.backend === 'electrum') {
       if (!formData.port.trim()) {
         toast.warning(t('error.require.port'))
@@ -103,7 +101,6 @@ export default function CustomNetwork() {
         return false
       }
     } else {
-      // For Esplora, port is optional but must be valid if provided
       if (formData.port.trim() && !formData.port.match(/^[0-9]+$/)) {
         toast.warning(t('error.invalid.port'))
         return false
