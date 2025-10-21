@@ -1,4 +1,3 @@
-import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
@@ -8,18 +7,27 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSLNURLDetails from '@/components/SSLNURLDetails'
 import SSModal from '@/components/SSModal'
 import SSPaymentDetails from '@/components/SSPaymentDetails'
+import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useEcash } from '@/hooks/useEcash'
 import { useLND } from '@/hooks/useLND'
+import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
+import { type DecodedInvoice } from '@/types/lightning'
+import { type DetectedContent } from '@/utils/contentDetector'
+import {
+  decodeLightningInvoice,
+  isLightningInvoice
+} from '@/utils/lightningInvoiceDecoder'
 import {
   decodeLNURL,
   fetchLNURLPayDetails,
@@ -35,22 +43,6 @@ type MakeRequest = <T>(
     headers?: Record<string, string>
   }
 ) => Promise<T>
-
-type DecodedInvoice = {
-  payment_request: string
-  value: string
-  description: string
-  timestamp: string
-  expiry: string
-  payment_hash: string
-  payment_addr: string
-  num_satoshis: string
-  num_msat: string
-  features: Record<string, { name: string }>
-  route_hints: unknown[]
-  payment_secret: string
-  min_final_cltv_expiry: string
-}
 
 type LNURLPayResponse = {
   callback: string
@@ -74,7 +66,6 @@ export default function EcashSendPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isMelting, setIsMelting] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
-  const [permission, requestPermission] = useCameraPermissions()
   const [decodedInvoice, setDecodedInvoice] = useState<DecodedInvoice | null>(
     null
   )
@@ -84,10 +75,12 @@ export default function EcashSendPage() {
   )
   const [isFetchingLNURL, setIsFetchingLNURL] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
+  const [showQRCode, setShowQRCode] = useState(false)
 
   const { activeMint, sendEcash, createMeltQuote, meltProofs, proofs } =
     useEcash()
   const { makeRequest, isConnected, verifyConnection } = useLND()
+  const { isAvailable: nfcAvailable, isEmitting, emitNFCTag } = useNFCEmitter()
   const typedMakeRequest = makeRequest as MakeRequest
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -298,35 +291,44 @@ export default function EcashSendPage() {
       }
 
       // Check if it's bolt11 invoice
-      if (cleanText.toLowerCase().startsWith('lnbc')) {
+      if (isLightningInvoice(cleanText)) {
         setIsLNURLMode(false)
 
-        // Verify LND connection before proceeding
-        if (!isConnected) {
-          const isStillConnected = await verifyConnection()
-          if (!isStillConnected) {
-            Alert.alert(
-              t('ecash.error.connectionError'),
-              t('ecash.error.notConnectedToLND')
-            )
-            return
-          }
-        }
-
+        // For ecash, we don't need LND connection to process Lightning invoices
+        // The ecash mint will handle the Lightning payment
+        // Use bolt11-decode for user transparency (works without LND)
         try {
-          const decoded = await decodeInvoice(cleanText)
+          // Try lightweight decoder first (always works)
+          const decoded = decodeLightningInvoice(cleanText)
+          setDecodedInvoice(decoded)
+
           // Auto-populate amount from decoded invoice
           if (decoded.num_satoshis) {
             setAmount(decoded.num_satoshis)
           }
-        } catch {
-          setDecodedInvoice(null)
+        } catch (bolt11Error) {
+          // Fallback to LND decoder if available
+          if (isConnected) {
+            try {
+              const lndDecoded = await decodeInvoice(cleanText)
+              setDecodedInvoice(lndDecoded)
+              if (lndDecoded.num_satoshis) {
+                setAmount(lndDecoded.num_satoshis)
+              }
+            } catch (lndError) {
+              setDecodedInvoice(null)
+              toast.warning(t('ecash.error.invoiceDecodeFailed'))
+            }
+          } else {
+            setDecodedInvoice(null)
+            toast.warning(t('ecash.error.invoiceDecodeFailed'))
+          }
         }
       } else {
         setIsLNURLMode(false)
       }
     },
-    [isConnected, verifyConnection, decodeInvoice]
+    [isConnected, decodeInvoice]
   )
 
   useEffect(() => {
@@ -361,11 +363,11 @@ export default function EcashSendPage() {
     setCameraModalVisible(true)
   }, [])
 
-  const handleQRCodeScanned = useCallback(
-    ({ data }: { data: string }) => {
+  const handleContentScanned = useCallback(
+    (content: DetectedContent) => {
       setCameraModalVisible(false)
       // Clean the data (remove any whitespace and lightning: prefix)
-      const cleanData = data.trim().replace(/^lightning:/i, '')
+      const cleanData = content.cleaned.replace(/^lightning:/i, '')
       handleInvoiceChange(cleanData)
       toast.success(t('ecash.success.invoiceScanned'))
     },
@@ -381,6 +383,38 @@ export default function EcashSendPage() {
     }
   }, [generatedToken])
 
+  const handleToggleQRCode = useCallback(() => {
+    setShowQRCode(!showQRCode)
+  }, [showQRCode])
+
+  const handleEmitNFC = useCallback(async () => {
+    if (!generatedToken) {
+      toast.error(t('ecash.error.noTokenToEmit'))
+      return
+    }
+
+    if (!nfcAvailable) {
+      toast.error(t('ecash.error.nfcNotAvailable'))
+      return
+    }
+
+    try {
+      await emitNFCTag(generatedToken)
+      // Check if token was truncated due to size limits
+      if (generatedToken.length > 8192) {
+        toast.warning(t('ecash.warning.tokenTruncated'))
+      } else {
+        toast.success(t('ecash.success.tokenEmitted'))
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : t('ecash.error.nfcEmissionFailed')
+      toast.error(errorMessage)
+    }
+  }, [generatedToken, nfcAvailable, emitNFCTag])
+
   return (
     <SSMainLayout>
       <Stack.Screen
@@ -389,7 +423,7 @@ export default function EcashSendPage() {
         }}
       />
       <ScrollView>
-        <SSVStack gap="lg">
+        <SSVStack gap="lg" style={{ paddingBottom: 60 }}>
           <SSHStack>
             <SSButton
               label={t('ecash.send.ecashTab')}
@@ -454,11 +488,41 @@ export default function EcashSendPage() {
                     editable={false}
                     style={styles.tokenInput}
                   />
-                  <SSButton
-                    label={t('common.copy')}
-                    onPress={handleCopyToken}
-                    variant="subtle"
-                  />
+                  <SSVStack gap="sm">
+                    <SSHStack gap="sm">
+                      <SSButton
+                        label={t('common.copy')}
+                        onPress={handleCopyToken}
+                        variant="subtle"
+                        style={{ flex: 1 }}
+                      />
+                      <SSButton
+                        label={
+                          showQRCode ? t('common.hide') : t('common.showQR')
+                        }
+                        onPress={handleToggleQRCode}
+                        variant="subtle"
+                        style={{ flex: 1 }}
+                      />
+                    </SSHStack>
+                    <SSButton
+                      label={t('common.emitNFC')}
+                      onPress={handleEmitNFC}
+                      variant="subtle"
+                      loading={isEmitting}
+                      disabled={!nfcAvailable || !generatedToken}
+                    />
+                  </SSVStack>
+
+                  {/* QR Code Display */}
+                  {showQRCode && (
+                    <SSVStack gap="xs" itemsCenter>
+                      <SSText color="muted" size="xs" uppercase>
+                        {t('ecash.send.qrCode')}
+                      </SSText>
+                      <SSQRCode value={generatedToken} size={300} ecl="H" />
+                    </SSVStack>
+                  )}
                 </SSVStack>
               )}
             </SSVStack>
@@ -531,35 +595,18 @@ export default function EcashSendPage() {
           )}
         </SSVStack>
       </ScrollView>
-      <SSModal
+      <SSCameraModal
         visible={cameraModalVisible}
-        fullOpacity
         onClose={() => setCameraModalVisible(false)}
-      >
-        <SSText color="muted" uppercase>
-          {t('camera.scanQRCode')}
-        </SSText>
-        <CameraView
-          onBarcodeScanned={handleQRCodeScanned}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-          style={styles.camera}
-        />
-        {!permission?.granted && (
-          <SSButton
-            label={t('camera.enableCameraAccess')}
-            onPress={requestPermission}
-          />
-        )}
-      </SSModal>
+        onContentScanned={handleContentScanned}
+        context="ecash"
+        title="Scan Lightning Invoice"
+      />
     </SSMainLayout>
   )
 }
 
 const styles = StyleSheet.create({
-  camera: {
-    flex: 1,
-    width: '100%'
-  },
   invoiceInput: {
     fontFamily: 'monospace',
     fontSize: 12,

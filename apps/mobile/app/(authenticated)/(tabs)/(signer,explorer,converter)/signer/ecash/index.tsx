@@ -1,19 +1,19 @@
-import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { Stack, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView, StyleSheet } from 'react-native'
+import { Animated, ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconCamera, SSIconECash } from '@/components/icons'
-import SSActionButton from '@/components/SSActionButton'
-import SSButton from '@/components/SSButton'
+import { SSIconECash } from '@/components/icons'
+import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
 import SSEcashTransactionCard from '@/components/SSEcashTransactionCard'
 import SSIconButton from '@/components/SSIconButton'
-import SSModal from '@/components/SSModal'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
+import { useContentHandler } from '@/hooks/useContentHandler'
+import { useContentModals } from '@/hooks/useContentModals'
 import { useEcash } from '@/hooks/useEcash'
+import { useEcashContentHandler } from '@/hooks/useEcashContentHandler'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -29,8 +29,7 @@ export default function EcashLanding() {
   const router = useRouter()
   const { mints, activeMint, proofs, transactions } = useEcash()
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
-  const [cameraModalVisible, setCameraModalVisible] = useState(false)
-  const [permission, requestPermission] = useCameraPermissions()
+  const [expand, setExpand] = useState(false)
   const [fiatCurrency, btcPrice, fetchPrices] = usePriceStore(
     useShallow((state) => [
       state.fiatCurrency,
@@ -47,133 +46,108 @@ export default function EcashLanding() {
     fetchPrices(mempoolUrl)
   }, [fetchPrices, fiatCurrency, mempoolUrl])
 
-  const handleReceivePress = () => router.navigate('/signer/ecash/receive')
-  const handleCameraPress = () => setCameraModalVisible(true)
   const handleSettingsPress = () => router.navigate('/signer/ecash/settings')
 
-  function handleQRCodeScanned({ data }: { data: string }) {
-    setCameraModalVisible(false)
+  // Content handling with new hooks
+  const ecashContentHandler = useEcashContentHandler()
 
-    // Clean the data (remove any whitespace and prefixes)
-    const cleanData = data.trim()
+  const contentHandler = useContentHandler({
+    context: 'ecash',
+    onContentScanned: ecashContentHandler.handleContentScanned,
+    onSend: ecashContentHandler.handleSend,
+    onReceive: ecashContentHandler.handleReceive
+  })
 
-    // Check if it's a lightning invoice
-    if (cleanData.startsWith('lightning:') || cleanData.startsWith('lnbc')) {
-      router.navigate({
-        pathname: '/signer/ecash/send',
-        params: { invoice: cleanData.replace(/^lightning:/i, '') }
-      })
-      toast.success(t('ecash.scan.lightningInvoiceScanned'))
-      return
-    }
-
-    // Check if it's an LNURL
-    if (isLNURL(cleanData)) {
-      router.navigate({
-        pathname: '/signer/ecash/send',
-        params: { invoice: cleanData }
-      })
-      toast.success(t('ecash.scan.lnurlScanned'))
-      return
-    }
-
-    // Check if it's an ecash token (cashu:// or starts with cashu)
-    if (cleanData.startsWith('cashu://') || cleanData.startsWith('cashu')) {
-      router.navigate({
-        pathname: '/signer/ecash/receive',
-        params: { token: cleanData }
-      })
-      toast.success(t('ecash.scan.tokenScanned'))
-      return
-    }
-
-    toast.success(t('ecash.scan.unknownQRCode'))
-  }
+  const { cameraModal, nfcModal, pasteModal } = useContentModals({
+    visible: {
+      camera: contentHandler.cameraModalVisible,
+      nfc: contentHandler.nfcModalVisible,
+      paste: contentHandler.pasteModalVisible
+    },
+    onClose: {
+      camera: contentHandler.closeCameraModal,
+      nfc: contentHandler.closeNFCModal,
+      paste: contentHandler.closePasteModal
+    },
+    onContentScanned: contentHandler.handleContentScanned,
+    onContentPasted: contentHandler.handleContentPasted,
+    onNFCContentRead: contentHandler.handleNFCContentRead,
+    context: 'ecash'
+  })
 
   const totalBalance = proofs.reduce((sum, proof) => sum + proof.amount, 0)
 
   return (
-    <SSMainLayout style={{ paddingTop: 0 }}>
+    <SSMainLayout>
       <Stack.Screen
         options={{
           headerTitle: () => (
             <SSText uppercase>{t('navigation.item.ecash')}</SSText>
           ),
           headerRight: () => (
-            <SSIconButton onPress={handleSettingsPress}>
-              <SSIconECash height={18} width={16} />
+            <SSIconButton
+              onPress={handleSettingsPress}
+              style={{ marginRight: 8 }}
+            >
+              <SSIconECash height={16} width={16} />
             </SSIconButton>
           )
         }}
       />
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <SSVStack style={{ paddingBottom: 60 }}>
-          <SSVStack style={styles.balanceContainer} gap="xs">
-            <SSText color="muted" size="xs" uppercase>
-              {t('ecash.mint.balance')}
-            </SSText>
-            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-              <SSStyledSatText
-                amount={totalBalance}
-                decimals={0}
-                useZeroPadding={useZeroPadding}
-                textSize={totalBalance > 1_000_000_000 ? '4xl' : '6xl'}
-                weight="ultralight"
-                letterSpacing={-1}
-              />
-              <SSText size="xl" color="muted">
-                {t('bitcoin.sats').toLowerCase()}
+      {!expand && (
+        <Animated.View>
+          <SSVStack itemsCenter gap="none" style={{ paddingBottom: '4%' }}>
+            <SSVStack style={styles.balanceContainer} gap="xs">
+              <SSText color="muted" size="xs" uppercase>
+                {t('ecash.mint.balance')}
               </SSText>
-            </SSHStack>
-            {btcPrice > 0 && (
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSText color="muted">
-                  {formatFiatPrice(totalBalance, btcPrice)}
-                </SSText>
-                <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                  {fiatCurrency}
+                <SSStyledSatText
+                  amount={totalBalance}
+                  decimals={0}
+                  useZeroPadding={useZeroPadding}
+                  textSize={totalBalance > 1_000_000_000 ? '4xl' : '6xl'}
+                  weight="ultralight"
+                  letterSpacing={-1}
+                />
+                <SSText size="xl" color="muted">
+                  {t('bitcoin.sats').toLowerCase()}
                 </SSText>
               </SSHStack>
-            )}
-            {mints.length > 0 && (
-              <SSVStack style={styles.statusContainer} gap="none">
-                {activeMint && (
-                  <SSText color="muted" size="sm">
-                    {activeMint.name || activeMint.url}
+              {btcPrice > 0 && (
+                <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                  <SSText color="muted">
+                    {formatFiatPrice(totalBalance, btcPrice)}
                   </SSText>
-                )}
-              </SSVStack>
-            )}
+                  <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                    {fiatCurrency}
+                  </SSText>
+                </SSHStack>
+              )}
+              {mints.length > 0 && (
+                <SSVStack style={styles.statusContainer} gap="none">
+                  {activeMint && (
+                    <SSText color="muted" size="sm">
+                      {activeMint.name || activeMint.url}
+                    </SSText>
+                  )}
+                </SSVStack>
+              )}
+            </SSVStack>
+            <SSButtonActionsGroup
+              context="ecash"
+              nfcAvailable={contentHandler.nfcAvailable}
+              onSend={contentHandler.handleSend}
+              onPaste={contentHandler.handlePaste}
+              onCamera={contentHandler.handleCamera}
+              onNFC={contentHandler.handleNFC}
+              onReceive={contentHandler.handleReceive}
+            />
           </SSVStack>
-          <SSHStack justifyEvenly gap="none">
-            <SSActionButton
-              onPress={() => router.navigate('/signer/ecash/send')}
-              style={{
-                ...styles.actionButton,
-                width: '40%'
-              }}
-            >
-              <SSText uppercase>{t('ecash.send.title')}</SSText>
-            </SSActionButton>
-            <SSActionButton
-              onPress={handleCameraPress}
-              style={{
-                ...styles.actionButton,
-                width: '18%'
-              }}
-            >
-              <SSIconCamera height={13} width={18} />
-            </SSActionButton>
-            <SSActionButton
-              onPress={handleReceivePress}
-              style={{
-                ...styles.actionButton,
-                width: '40%'
-              }}
-            >
-              <SSText uppercase>{t('ecash.receive.title')}</SSText>
-            </SSActionButton>
-          </SSHStack>
+        </Animated.View>
+      )}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <SSVStack style={{ paddingBottom: 60 }}>
           {transactions.length > 0 && (
             <SSVStack gap="sm">
               {transactions.slice(0, 50).map((transaction) => (
@@ -193,26 +167,10 @@ export default function EcashLanding() {
           )}
         </SSVStack>
       </ScrollView>
-      <SSModal
-        visible={cameraModalVisible}
-        fullOpacity
-        onClose={() => setCameraModalVisible(false)}
-      >
-        <SSText color="muted" uppercase>
-          {t('camera.scanQRCode')}
-        </SSText>
-        <CameraView
-          onBarcodeScanned={handleQRCodeScanned}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-          style={styles.camera}
-        />
-        {!permission?.granted && (
-          <SSButton
-            label={t('camera.enableCameraAccess')}
-            onPress={requestPermission}
-          />
-        )}
-      </SSModal>
+      {/* Modal Components */}
+      {cameraModal}
+      {nfcModal}
+      {pasteModal}
     </SSMainLayout>
   )
 }
@@ -227,7 +185,7 @@ const styles = StyleSheet.create({
   },
   balanceContainer: {
     alignItems: 'center',
-    paddingTop: 40
+    paddingBottom: 12
   },
   camera: {
     flex: 1,

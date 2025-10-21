@@ -1,11 +1,10 @@
 /* eslint-disable no-console */
-import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Alert, Clipboard, StyleSheet, TextInput } from 'react-native'
 
 import SSButton from '@/components/SSButton'
-import SSModal from '@/components/SSModal'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -13,11 +12,11 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import type { LNDConfig } from '@/store/lightning'
 import { useLightningStore } from '@/store/lightning'
+import { type DetectedContent } from '@/utils/contentDetector'
 
 export default function LNDRestPage() {
   const router = useRouter()
   const { setConfig, setConnected, setNodeInfo } = useLightningStore()
-  const [permission, requestPermission] = useCameraPermissions()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [connectionString, setConnectionString] = useState('')
   const [isButtonEnabled, setIsButtonEnabled] = useState(false)
@@ -38,10 +37,8 @@ export default function LNDRestPage() {
       }
       const text = await response.text()
 
-      // Parse the JSON response
       const jsonConfig = JSON.parse(text)
 
-      // The config should have a configurations array with the first item containing our config
       if (!jsonConfig.configurations?.[0]) {
         throw new Error('Invalid config format: missing configurations array')
       }
@@ -70,19 +67,6 @@ export default function LNDRestPage() {
     }
   }
 
-  // const testLNDConnection = async (config: LNDConfig): Promise<boolean> => {
-  //   try {
-  //     const response = await fetch(`${config.url}/v1/getinfo`, {
-  //       headers: {
-  //         'Grpc-Metadata-macaroon': config.macaroon
-  //       }
-  //     })
-  //     return response.ok
-  //   } catch (_error) {
-  //     return false
-  //   }
-  // }
-
   const handleConnect = async () => {
     if (!connectionString.trim()) return
 
@@ -104,7 +88,6 @@ export default function LNDRestPage() {
       if (response.ok) {
         const nodeInfo = await response.json()
 
-        // Store the config and update connection status with node info
         setConfig(config)
         setNodeInfo(nodeInfo)
         setConnected(true)
@@ -138,8 +121,8 @@ export default function LNDRestPage() {
     }
   }
 
-  const handleQRCodeScanned = (event: { data: string }) => {
-    const scannedData = event.data
+  const handleContentScanned = (content: DetectedContent) => {
+    const scannedData = content.cleaned
     if (validateConnectionString(scannedData)) {
       setConnectionString(scannedData)
       setIsButtonEnabled(true)
@@ -179,7 +162,6 @@ export default function LNDRestPage() {
           <SSText color="muted" style={styles.subtitle}>
             Connect to your LND node via Rest API
           </SSText>
-
           <SSVStack style={styles.inputContainer}>
             <TextInput
               style={styles.textArea}
@@ -194,20 +176,19 @@ export default function LNDRestPage() {
               <SSButton
                 label="Paste"
                 onPress={handlePasteFromClipboard}
-                variant="outline"
+                variant="subtle"
                 uppercase
                 style={styles.buttonRowItem}
               />
               <SSButton
                 label="Scan QR"
                 onPress={() => setCameraModalVisible(true)}
-                variant="outline"
+                variant="subtle"
                 uppercase
                 style={styles.buttonRowItem}
               />
             </SSHStack>
           </SSVStack>
-
           <SSButton
             label={isConnecting ? 'Connecting...' : 'Connect to Node'}
             onPress={handleConnect}
@@ -218,26 +199,13 @@ export default function LNDRestPage() {
         </SSVStack>
       </SSMainLayout>
 
-      <SSModal
+      <SSCameraModal
         visible={cameraModalVisible}
-        fullOpacity
         onClose={() => setCameraModalVisible(false)}
-      >
-        <SSText color="muted" uppercase>
-          {t('camera.scanQRCode')}
-        </SSText>
-        <CameraView
-          onBarcodeScanned={handleQRCodeScanned}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-          style={styles.camera}
-        />
-        {!permission?.granted && (
-          <SSButton
-            label={t('camera.enableCameraAccess')}
-            onPress={requestPermission}
-          />
-        )}
-      </SSModal>
+        onContentScanned={handleContentScanned}
+        context="lightning"
+        title="Scan LND Connection String"
+      />
     </>
   )
 }
@@ -261,11 +229,6 @@ const styles = StyleSheet.create({
   buttonContainer: {
     width: '100%',
     gap: 16
-  },
-  camera: {
-    width: 340,
-    height: 340,
-    marginVertical: 16
   },
   inputContainer: {
     width: '100%',

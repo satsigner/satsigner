@@ -114,8 +114,16 @@ function hasEnoughSignatures(input: any): boolean {
 
 function PreviewMessage() {
   const router = useRouter()
-  const { id, signedPsbts: signedPsbtsParam } = useLocalSearchParams<
-    AccountSearchParams & SignedPsbtsParams
+  const {
+    id,
+    psbt,
+    signedPsbt: signedPsbtParam,
+    signedPsbts: signedPsbtsParam
+  } = useLocalSearchParams<
+    AccountSearchParams & {
+      psbt?: string
+      signedPsbt?: string
+    } & SignedPsbtsParams
   >()
 
   const [
@@ -201,6 +209,28 @@ function PreviewMessage() {
     handleSignWithLocalKey,
     handleSignWithSeedQR
   } = psbtManagement
+
+  // Handle URL parameters for PSBT and signed PSBT
+  useEffect(() => {
+    if (psbt) {
+      // Clear any existing transaction data and set the new PSBT
+      setSignedTx('')
+      // TODO: Decode PSBT and populate transaction builder with inputs/outputs
+      // This utility function is being written in another PR
+      // We need to decode the PSBT and call setTxBuilderResult with the decoded data
+      // so that the SSTransactionChart can properly display the transaction flow
+    }
+
+    if (signedPsbtParam) {
+      // Clear any existing transaction data and set the signed PSBT
+      setSignedTx('')
+      updateSignedPsbt(0, signedPsbtParam) // Assuming index 0 for the first signature
+      // TODO: For raw transactions, decode and populate transaction builder
+      // This utility function is being written in another PR
+      // We need to decode the raw transaction hex and call setTxBuilderResult
+      // so that the SSTransactionChart can properly display the transaction flow
+    }
+  }, [psbt, signedPsbtParam, setSignedTx, updateSignedPsbt])
 
   // Calculate validation results for each cosigner
   const validationResults = useMemo(() => {

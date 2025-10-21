@@ -1,4 +1,3 @@
-import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
@@ -12,6 +11,7 @@ import {
 } from 'react-native'
 
 import SSButton from '@/components/SSButton'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
@@ -22,6 +22,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { formatNumber } from '@/utils/format'
+import { type DetectedContent } from '@/utils/contentDetector'
 import {
   decodeLNURL,
   fetchLNURLWithdrawDetails,
@@ -45,7 +46,6 @@ export default function InvoicePage() {
   const router = useRouter()
   const { createInvoice, makeRequest } = useLND()
   const { satsToFiat, fiatCurrency, fetchPrices } = usePriceStore()
-  const [permission, requestPermission] = useCameraPermissions()
   const mempoolUrl = useBlockchainStore(
     (state) => state.configsMempool['bitcoin']
   )
@@ -234,8 +234,9 @@ export default function InvoicePage() {
     }
   }
 
-  const handleQRCodeScanned = async ({ data }: { data: string }) => {
+  const handleContentScanned = async (content: DetectedContent) => {
     setCameraModalVisible(false)
+    const data = content.cleaned
 
     if (data.toLowerCase().startsWith('lnbc')) {
       // Handle bolt11 invoice
@@ -371,7 +372,6 @@ export default function InvoicePage() {
                   </SSText>
                 )}
               </SSVStack>
-
               <SSVStack style={styles.inputContainer}>
                 <SSText uppercase>Description</SSText>
                 <TextInput
@@ -384,7 +384,6 @@ export default function InvoicePage() {
                   numberOfLines={3}
                 />
               </SSVStack>
-
               <SSVStack style={styles.actions}>
                 <SSHStack gap="sm" style={styles.actionButtons}>
                   <SSButton
@@ -400,7 +399,6 @@ export default function InvoicePage() {
                     style={styles.actionButton}
                   />
                 </SSHStack>
-
                 <SSButton
                   label={isLNURLMode ? 'Withdraw' : 'Create Invoice'}
                   onPress={handleCreateInvoice}
@@ -420,7 +418,6 @@ export default function InvoicePage() {
           </View>
         </SSVStack>
       </SSMainLayout>
-
       <SSModal
         visible={qrModalVisible}
         fullOpacity
@@ -449,7 +446,6 @@ export default function InvoicePage() {
                       </SSText>
                     </SSHStack>
                   </SSHStack>
-
                   <SSHStack gap="xs" style={styles.detailRow}>
                     <SSText color="muted" style={styles.detailLabel}>
                       Description
@@ -458,7 +454,6 @@ export default function InvoicePage() {
                       {currentDescription}
                     </SSText>
                   </SSHStack>
-
                   <SSHStack gap="xs" style={styles.detailRow}>
                     <SSText color="muted" style={styles.detailLabel}>
                       Status
@@ -477,13 +472,11 @@ export default function InvoicePage() {
                 </View>
               </View>
             </SSVStack>
-
             <View style={styles.qrContainer}>
               {paymentRequest && (
                 <SSQRCode value={paymentRequest} size={qrCodeSize} />
               )}
             </View>
-
             <SSVStack style={styles.paymentRequestContainer}>
               <SSText color="muted" uppercase>
                 Payment Request
@@ -506,24 +499,13 @@ export default function InvoicePage() {
           </SSVStack>
         </ScrollView>
       </SSModal>
-
-      <SSModal
+      <SSCameraModal
         visible={cameraModalVisible}
-        fullOpacity
         onClose={() => setCameraModalVisible(false)}
-      >
-        <SSText color="muted" uppercase>
-          Scan QR Code
-        </SSText>
-        <CameraView
-          onBarcodeScanned={handleQRCodeScanned}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-          style={styles.camera}
-        />
-        {!permission?.granted && (
-          <SSButton label="Enable Camera Access" onPress={requestPermission} />
-        )}
-      </SSModal>
+        onContentScanned={handleContentScanned}
+        context="lightning"
+        title="Scan Lightning Invoice"
+      />
     </>
   )
 }
@@ -631,10 +613,6 @@ const styles = StyleSheet.create({
   },
   scanButton: {
     minWidth: 100
-  },
-  camera: {
-    width: 340,
-    height: 340
   },
   actionButtons: {
     width: '100%',

@@ -18,9 +18,13 @@ import {
 } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
+import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
 import SSIconButton from '@/components/SSIconButton'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
+import { useContentHandler } from '@/hooks/useContentHandler'
+import { useContentModals } from '@/hooks/useContentModals'
+import { useLightningContentHandler } from '@/hooks/useLightningContentHandler'
 import { useLND } from '@/hooks/useLND'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -178,6 +182,33 @@ export default function NodeDetailPage() {
     makeRequest
   } = useLND()
 
+  // Content handling with new hooks
+  const lightningContentHandler = useLightningContentHandler()
+
+  const contentHandler = useContentHandler({
+    context: 'lightning',
+    onContentScanned: lightningContentHandler.handleContentScanned,
+    onSend: lightningContentHandler.handleSend,
+    onReceive: lightningContentHandler.handleReceive
+  })
+
+  const { cameraModal, nfcModal, pasteModal } = useContentModals({
+    visible: {
+      camera: contentHandler.cameraModalVisible,
+      nfc: contentHandler.nfcModalVisible,
+      paste: contentHandler.pasteModalVisible
+    },
+    onClose: {
+      camera: contentHandler.closeCameraModal,
+      nfc: contentHandler.closeNFCModal,
+      paste: contentHandler.closePasteModal
+    },
+    onContentScanned: contentHandler.handleContentScanned,
+    onContentPasted: contentHandler.handleContentPasted,
+    onNFCContentRead: contentHandler.handleNFCContentRead,
+    context: 'lightning'
+  })
+
   // All hooks must be declared at the top level, in a consistent order
   const [balance, setBalance] = useState<ProcessedBalance | null>(null)
   const [transactions, setTransactions] = useState<CombinedTransaction[]>([])
@@ -262,14 +293,6 @@ export default function NodeDetailPage() {
           <SSText color="muted" size="sm">
             {isLoading ? 'Loading balances...' : 'Failed to load balances'}
           </SSText>
-          {!isLoading && !balance && (
-            <SSButton
-              label="Retry"
-              onPress={handleRefresh}
-              variant="outline"
-              style={{ marginTop: 8 }}
-            />
-          )}
         </SSVStack>
       )
     }
@@ -901,6 +924,7 @@ export default function NodeDetailPage() {
           ),
           headerRight: () => (
             <SSIconButton
+              style={{ marginRight: 8 }}
               onPress={() =>
                 router.push({
                   pathname: '/signer/lightning/node/settings',
@@ -908,51 +932,48 @@ export default function NodeDetailPage() {
                 } as never)
               }
             >
-              <SSIconLNSettings height={20} width={20} />
+              <SSIconLNSettings height={16} width={16} />
             </SSIconButton>
           )
         }}
       />
       <SSMainLayout style={styles.mainLayout}>
-        <Animated.View style={{ height: gradientHeight }}>
-          {renderBalances()}
-          {!balance && (
-            <SSVStack style={styles.actions}>
-              <SSButton
-                label="Refresh"
-                onPress={handleRefresh}
-                variant="gradient"
-                gradientType="special"
-                loading={isConnecting}
-                style={styles.button}
-              />
+        {!expand && (
+          <Animated.View>
+            <SSVStack itemsCenter gap="md">
+              {renderBalances()}
+              {!balance && (
+                <SSHStack style={styles.actions}>
+                  <SSButton
+                    label="Refresh"
+                    onPress={handleRefresh}
+                    variant="outline"
+                    loading={isConnecting}
+                    style={styles.button}
+                  />
+                </SSHStack>
+              )}
+              {balance && (
+                <SSVStack gap="none">
+                  <SSButtonActionsGroup
+                    context="lightning"
+                    nfcAvailable={contentHandler.nfcAvailable}
+                    onSend={contentHandler.handleSend}
+                    onPaste={contentHandler.handlePaste}
+                    onCamera={contentHandler.handleCamera}
+                    onNFC={contentHandler.handleNFC}
+                    onReceive={contentHandler.handleReceive}
+                  />
+                </SSVStack>
+              )}
+              {lastError && (
+                <SSText color="muted" style={styles.error}>
+                  {lastError}
+                </SSText>
+              )}
             </SSVStack>
-          )}
-          {balance && (
-            <SSHStack gap="sm" style={styles.actions}>
-              <SSButton
-                label="Invoice"
-                onPress={() => router.push('/signer/lightning/invoice')}
-                variant="gradient"
-                gradientType="special"
-                style={[styles.button, { flex: 1 }]}
-              />
-              <SSButton
-                label="Pay"
-                onPress={() => router.push('/signer/lightning/pay')}
-                variant="gradient"
-                gradientType="special"
-                style={[styles.button, { flex: 1 }]}
-              />
-            </SSHStack>
-          )}
-
-          {lastError && (
-            <SSText color="muted" style={styles.error}>
-              {lastError}
-            </SSText>
-          )}
-        </Animated.View>
+          </Animated.View>
+        )}
 
         <TabView
           swipeEnabled={false}
@@ -963,6 +984,11 @@ export default function NodeDetailPage() {
           initialLayout={{ width }}
         />
       </SSMainLayout>
+
+      {/* Modal Components */}
+      {cameraModal}
+      {nfcModal}
+      {pasteModal}
     </>
   )
 }
