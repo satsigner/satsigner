@@ -59,60 +59,55 @@ function useNostrSync() {
         return
       }
 
-      try {
-        const newMessage = {
-          id: unwrappedEvent.id,
-          author: unwrappedEvent.pubkey,
-          created_at: eventContent.created_at,
+      const newMessage = {
+        id: unwrappedEvent.id,
+        author: unwrappedEvent.pubkey,
+        created_at: eventContent.created_at,
+        description: eventContent.description,
+        event: JSON.stringify(unwrappedEvent),
+        label: 1,
+        content: {
           description: eventContent.description,
-          event: JSON.stringify(unwrappedEvent),
-          label: 1,
-          content: {
-            description: eventContent.description,
-            created_at: eventContent.created_at,
-            pubkey: unwrappedEvent.pubkey
-          }
+          created_at: eventContent.created_at,
+          pubkey: unwrappedEvent.pubkey
         }
+      }
 
-        // Trigger notifcation only if message is recent and is not sent to self
-        const lastDataExchangeEOSE =
-          useNostrStore.getState().getLastDataExchangeEOSE(account.id) || 0
-        if (
-          eventContent.created_at > lastDataExchangeEOSE &&
-          account.nostr.deviceNpub !==
-            nip19.npubEncode(unwrappedEvent.pubkey) &&
-          eventContent.created_at < Date.now() / 1000 - 60 * 5
-        ) {
-          const npub = nip19.npubEncode(unwrappedEvent.pubkey)
-          const formatedAuthor = npub.slice(0, 12) + '...' + npub.slice(-4)
-          toast.info(formatedAuthor + ': ' + eventContent.description)
-        }
+      // Trigger notifcation only if message is recent and is not sent to self
+      const lastDataExchangeEOSE =
+        useNostrStore.getState().getLastDataExchangeEOSE(account.id) || 0
+      if (
+        eventContent.created_at > lastDataExchangeEOSE &&
+        account.nostr.deviceNpub !== nip19.npubEncode(unwrappedEvent.pubkey) &&
+        eventContent.created_at < Date.now() / 1000 - 60 * 5
+      ) {
+        const npub = nip19.npubEncode(unwrappedEvent.pubkey)
+        const formatedAuthor = npub.slice(0, 12) + '...' + npub.slice(-4)
+        toast.info(formatedAuthor + ': ' + eventContent.description)
+      }
 
-        // Get the current state directly from the store to ensure we have the latest
-        const currentState = useAccountsStore.getState()
-        const currentAccount = currentState.accounts.find(
-          (a) => a.id === account.id
+      // Get the current state directly from the store to ensure we have the latest
+      const currentState = useAccountsStore.getState()
+      const currentAccount = currentState.accounts.find(
+        (a) => a.id === account.id
+      )
+      if (!currentAccount?.nostr) return
+
+      const currentDms = currentAccount.nostr.dms || []
+
+      // Check if message with same ID already exists
+      const messageExists = currentDms.some((m) => m.id === newMessage.id)
+
+      // If message doesn't exist, add it and sort by timestamp
+      if (!messageExists) {
+        const updatedDms = [...currentDms, newMessage].sort(
+          (a, b) => a.created_at - b.created_at
         )
-        if (!currentAccount?.nostr) return
 
-        const currentDms = currentAccount.nostr.dms || []
-
-        // Check if message with same ID already exists
-        const messageExists = currentDms.some((m) => m.id === newMessage.id)
-
-        // If message doesn't exist, add it and sort by timestamp
-        if (!messageExists) {
-          const updatedDms = [...currentDms, newMessage].sort(
-            (a, b) => a.created_at - b.created_at
-          )
-
-          // Update only the dms field, preserving all other nostr fields
-          updateAccountNostr(account.id, {
-            dms: updatedDms
-          })
-        }
-      } catch (_error) {
-        // Failed to store DM
+        // Update only the dms field, preserving all other nostr fields
+        updateAccountNostr(account.id, {
+          dms: updatedDms
+        })
       }
     },
     [updateAccountNostr]
@@ -134,10 +129,10 @@ function useNostrSync() {
         let eventContent: any
         try {
           eventContent = JSON.parse(unwrappedEvent.content)
-        } catch (_jsonError) {
+        } catch {
           try {
             eventContent = decompressMessage(unwrappedEvent.content)
-          } catch (_error) {
+          } catch {
             eventContent = unwrappedEvent.content
           }
         }
@@ -158,7 +153,7 @@ function useNostrSync() {
                   toast.success(`Imported ${labelsAdded} labels`)
                 }
               }
-            } catch (_error) {
+            } catch {
               toast.error('Failed to import labels')
             }
           } else if (data_type === 'Tx') {
@@ -204,18 +199,16 @@ function useNostrSync() {
             ) {
               await storeDM(account, unwrappedEvent, eventContent)
             }
-          } catch (_error) {}
+          } catch {}
         } else if (eventContent.public_key_bech32) {
           const newMember = eventContent.public_key_bech32
           try {
-            await addMember(account.id, newMember)
-          } catch (_error) {
-            // Failed to add member
-          }
+            addMember(account.id, newMember)
+          } catch {}
         }
 
         return eventContent
-      } catch (_error) {
+      } catch {
         // If processing fails, remove the event from processed events
         const currentProcessedEvents =
           useNostrStore.getState().processedEvents[account.id] || []
@@ -515,65 +508,61 @@ function useNostrSync() {
     const pin = await getItem(PIN_KEY)
     if (!pin) return
 
-    try {
-      const isImportAddress = account.keys[0].creationType === 'importAddress'
-      const temporaryAccount = JSON.parse(JSON.stringify(account)) as Account
+    const isImportAddress = account.keys[0].creationType === 'importAddress'
+    const temporaryAccount = JSON.parse(JSON.stringify(account)) as Account
 
-      for (const key of temporaryAccount.keys) {
-        const decryptedSecretString = await aesDecrypt(
-          key.secret as string,
-          pin,
-          key.iv
-        )
-        const decryptedSecret = JSON.parse(decryptedSecretString) as Secret
-        key.secret = decryptedSecret
-      }
-
-      if (isImportAddress) {
-        const secret = temporaryAccount.keys[0].secret as Secret
-        return {
-          externalDescriptor: secret.externalDescriptor,
-          internalDescriptor: undefined
-        }
-      }
-
-      const walletData = await getWalletData(
-        temporaryAccount,
-        temporaryAccount.network as Network
+    for (const key of temporaryAccount.keys) {
+      const decryptedSecretString = await aesDecrypt(
+        key.secret as string,
+        pin,
+        key.iv
       )
-      if (!walletData) {
-        throw new Error('Failed to get wallet data')
-      }
+      const decryptedSecret = JSON.parse(decryptedSecretString) as Secret
+      key.secret = decryptedSecret
+    }
 
-      const descriptor = walletData.externalDescriptor
-      const match = descriptor.match(/\[([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\]/)
-      if (!match) {
-        throw new Error('Invalid descriptor format')
-      }
-
-      const [, , purpose, coinType, accountIndex] = match
-      const hardenedPath = `m/${purpose.replace("'", 'h')}/${coinType.replace("'", 'h')}/${accountIndex.replace("'", 'h')}`
-
-      const xpubRegex = /(tpub|vpub|upub|zpub)[a-zA-Z0-9]+/g
-      const xpubs = (descriptor.match(xpubRegex) || []).sort()
-
-      const totalString = hardenedPath + xpubs.join('')
-
-      const firstHash = await sha256(totalString)
-      const doubleHash = await sha256(firstHash)
-
-      const privateKeyBytes = new Uint8Array(Buffer.from(doubleHash, 'hex'))
-      const publicKey = getPublicKey(privateKeyBytes)
-      const commonNsec = nip19.nsecEncode(privateKeyBytes)
-      const commonNpub = nip19.npubEncode(publicKey)
-
+    if (isImportAddress) {
+      const secret = temporaryAccount.keys[0].secret as Secret
       return {
-        commonNsec,
-        commonNpub,
-        privateKeyBytes
+        externalDescriptor: secret.externalDescriptor,
+        internalDescriptor: undefined
       }
-    } catch (_error) {
-      throw _error
+    }
+
+    const walletData = await getWalletData(
+      temporaryAccount,
+      temporaryAccount.network as Network
+    )
+    if (!walletData) {
+      throw new Error('Failed to get wallet data')
+    }
+
+    const descriptor = walletData.externalDescriptor
+    const match = descriptor.match(/\[([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\]/)
+    if (!match) {
+      throw new Error('Invalid descriptor format')
+    }
+
+    const [, , purpose, coinType, accountIndex] = match
+    const hardenedPath = `m/${purpose.replace("'", 'h')}/${coinType.replace("'", 'h')}/${accountIndex.replace("'", 'h')}`
+
+    const xpubRegex = /(tpub|vpub|upub|zpub)[a-zA-Z0-9]+/g
+    const xpubs = (descriptor.match(xpubRegex) || []).sort()
+
+    const totalString = hardenedPath + xpubs.join('')
+
+    const firstHash = await sha256(totalString)
+    const doubleHash = await sha256(firstHash)
+
+    const privateKeyBytes = new Uint8Array(Buffer.from(doubleHash, 'hex'))
+    const publicKey = getPublicKey(privateKeyBytes)
+    const commonNsec = nip19.nsecEncode(privateKeyBytes)
+    const commonNpub = nip19.npubEncode(publicKey)
+
+    return {
+      commonNsec,
+      commonNpub,
+      privateKeyBytes
     }
   }, [])
 

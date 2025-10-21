@@ -24,6 +24,7 @@ import { type Account } from '@/types/models/Account'
 import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
 import { getExtendedPublicKeyFromMnemonicCustom } from '@/utils/bip39'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
+
 export default function ImportMnemonic() {
   const { keyIndex } = useLocalSearchParams<ImportMnemonicSearchParams>()
   const router = useRouter()
@@ -39,11 +40,9 @@ export default function ImportMnemonic() {
     setMnemonic,
     setKey,
     passphrase,
-    setPassphrase: _setPassphrase,
     setFingerprint,
     setExtendedPublicKey,
     getAccountData,
-    updateKeySecret: _updateKeySecret,
     clearKeyState
   } = useAccountBuilderStore(
     useShallow((state) => ({
@@ -57,11 +56,9 @@ export default function ImportMnemonic() {
       setMnemonic: state.setMnemonic,
       setKey: state.setKey,
       passphrase: state.passphrase,
-      setPassphrase: state.setPassphrase,
       setFingerprint: state.setFingerprint,
       setExtendedPublicKey: state.setExtendedPublicKey,
       getAccountData: state.getAccountData,
-      updateKeySecret: state.updateKeySecret,
       clearKeyState: state.clearKeyState
     }))
   )

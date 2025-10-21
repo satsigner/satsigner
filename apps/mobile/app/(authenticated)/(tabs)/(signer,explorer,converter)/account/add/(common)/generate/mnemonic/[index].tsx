@@ -46,7 +46,6 @@ export default function GenerateMnemonic() {
     setFingerprint,
     setKey,
     setKeyDerivationPath,
-    _updateKeySecret,
     setExtendedPublicKey,
     setExternalDescriptor,
     setInternalDescriptor
@@ -63,7 +62,6 @@ export default function GenerateMnemonic() {
       state.setFingerprint,
       state.setKey,
       state.setKeyDerivationPath,
-      state.updateKeySecret,
       state.setExtendedPublicKey,
       state.setExternalDescriptor,
       state.setInternalDescriptor

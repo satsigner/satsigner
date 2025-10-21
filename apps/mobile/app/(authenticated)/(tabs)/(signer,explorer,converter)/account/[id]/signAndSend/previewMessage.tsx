@@ -154,7 +154,6 @@ function PreviewMessage() {
   const [selectedWordCount, setSelectedWordCount] =
     useState<MnemonicWordCount>(24)
   const [currentMnemonic, setCurrentMnemonic] = useState('')
-  const [_currentFingerprint, _setCurrentFingerprint] = useState('')
 
   const [permission, requestPermission] = useCameraPermissions()
 
@@ -1212,14 +1211,12 @@ function PreviewMessage() {
   }
 
   // Handle mnemonic validation from the component
-  const handleMnemonicValid = (mnemonic: string, fingerprint: string) => {
+  const handleMnemonicValid = (mnemonic: string, _fingerprint: string) => {
     setCurrentMnemonic(mnemonic)
-    _setCurrentFingerprint(fingerprint)
   }
 
   const handleMnemonicInvalid = () => {
     setCurrentMnemonic('')
-    _setCurrentFingerprint('')
   }
 
   // Handle seed words form submission
@@ -1234,7 +1231,6 @@ function PreviewMessage() {
     // Clear the form and close modals
     setSeedWordsModalVisible(false)
     setCurrentMnemonic('')
-    _setCurrentFingerprint('')
     setCurrentCosignerIndex(null)
   }
 
@@ -2352,7 +2348,6 @@ function PreviewMessage() {
           onClose={() => {
             setSeedWordsModalVisible(false)
             setCurrentMnemonic('')
-            _setCurrentFingerprint('')
             setCurrentCosignerIndex(null)
           }}
         >

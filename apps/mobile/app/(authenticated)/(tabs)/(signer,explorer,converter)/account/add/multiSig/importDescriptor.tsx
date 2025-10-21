@@ -16,7 +16,6 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
-import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import {
   validateDescriptor,
@@ -25,7 +24,6 @@ import {
 
 export default function ImportDescriptor() {
   const router = useRouter()
-  const _network = useBlockchainStore((state) => state.selectedNetwork)
   const [
     scriptVersion,
     policyType,
@@ -57,9 +55,7 @@ export default function ImportDescriptor() {
   )
   const {
     isAvailable,
-    isReading: _isReading,
     readNFCTag,
-    cancelNFCScan: _cancelNFCScan
   } = useNFCReader()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()

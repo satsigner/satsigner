@@ -37,7 +37,6 @@ export default function SeedWordsPage() {
   const [pin, setPin] = useState<string[]>(Array(4).fill(''))
   const [showPinEntry, setShowPinEntry] = useState(false)
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
-  const [_hasMnemonic, _setHasMnemonic] = useState(false)
   const [noMnemonicAvailable, setNoMnemonicAvailable] = useState(false)
 
   const keyIndexNum = parseInt(keyIndex || '0', 10)

@@ -802,13 +802,11 @@ async function getWalletOverview(
     }
   }
 
-  const [balance, _addressInfo, transactionsDetails, localUtxos] =
-    await Promise.all([
-      wallet.getBalance(),
-      wallet.getAddress(AddressIndex.New),
-      wallet.listTransactions(true),
-      wallet.listUnspent()
-    ])
+  const [balance, transactionsDetails, localUtxos] = await Promise.all([
+    wallet.getBalance(),
+    wallet.listTransactions(true),
+    wallet.listUnspent()
+  ])
 
   const transactions: Transaction[] = []
   for (const transactionDetails of transactionsDetails || []) {
