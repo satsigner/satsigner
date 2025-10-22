@@ -1,3 +1,13 @@
+/**
+ * Custom Network Form Hook
+ *
+ * TODO: Add URL parsing utility function
+ * - Parse full URLs like "ssl://electrum.example.com:50002" into protocol, host, port
+ * - Handle both Electrum (ssl://, tls://, tcp://) and Esplora (https://) formats
+ * - Validate parsed components and provide helpful error messages
+ * - Support clipboard paste and QR code scan integration
+ */
+
 import { useState } from 'react'
 
 import { type Backend } from '@/types/settings/blockchain'
@@ -5,7 +15,7 @@ import { type Backend } from '@/types/settings/blockchain'
 type CustomNetworkFormData = {
   backend: Backend
   name: string
-  protocol: 'tcp' | 'ssl' | 'tls'
+  protocol: 'tcp' | 'ssl'
   host: string
   port: string
 }
@@ -20,13 +30,19 @@ export const useCustomNetworkForm = () => {
   })
 
   const updateField = (field: keyof CustomNetworkFormData, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+    const trimmedValue =
+      field === 'host' || field === 'port' ? value.trim() : value
+    setFormData((prev) => ({ ...prev, [field]: trimmedValue }))
   }
 
   const constructUrl = () => {
-    return formData.backend === 'esplora'
-      ? `https://${formData.host}${formData.port ? `:${formData.port}` : ''}/api`
-      : `${formData.protocol}://${formData.host}:${formData.port}`
+    if (formData.backend === 'esplora') {
+      return formData.port.trim()
+        ? `https://${formData.host}:${formData.port}`
+        : `https://${formData.host}`
+    }
+    const protocol = formData.protocol === 'ssl' ? 'ssl' : 'tcp'
+    return `${protocol}://${formData.host}:${formData.port}`
   }
 
   const resetForm = () => {
