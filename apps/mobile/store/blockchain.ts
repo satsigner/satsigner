@@ -139,7 +139,7 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
 
           const blockchain = getBlockchain(server.backend, blockchainConfig)
           return blockchain
-        } catch (error) {
+        } catch {
           throw new Error(
             `Failed to connect to ${network} blockchain. Please check your network connection and server settings.`
           )

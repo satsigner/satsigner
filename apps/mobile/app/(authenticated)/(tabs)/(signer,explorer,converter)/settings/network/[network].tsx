@@ -33,12 +33,12 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { trimOnionAddress } from '@/utils/urlValidation'
 import {
   type Backend,
   type Network,
   type Server
 } from '@/types/settings/blockchain'
+import { trimOnionAddress } from '@/utils/urlValidation'
 
 export default function CustomNetwork() {
   const { network } = useLocalSearchParams()
@@ -251,7 +251,7 @@ export default function CustomNetwork() {
                 <SSTextInput
                   value={formData.host}
                   onChangeText={(value) => updateField('host', value)}
-                  multiline={true}
+                  multiline
                   style={{ height: 'auto', minHeight: 70 }}
                   placeholder={t(
                     `settings.network.server.host.placeholder.${formData.backend}`

@@ -1,9 +1,9 @@
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { type ProxyConfig } from '@/types/settings/blockchain'
-import SSVStack from '@/layouts/SSVStack'
 
 type SSProxyFormFieldsProps = {
   proxy: ProxyConfig

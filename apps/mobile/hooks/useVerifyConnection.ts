@@ -49,7 +49,7 @@ function useVerifyConnection() {
           : await Esplora.test(server.url, config.timeout * 1000)
 
       setConnectionState(result)
-    } catch (error) {
+    } catch {
       setConnectionState(false)
     }
   }, [
@@ -57,8 +57,7 @@ function useVerifyConnection() {
     server.network,
     config.timeout,
     server.url,
-    config.connectionMode,
-    server.proxy
+    config.connectionMode
   ])
 
   const checkConnection = useCallback(async () => {
