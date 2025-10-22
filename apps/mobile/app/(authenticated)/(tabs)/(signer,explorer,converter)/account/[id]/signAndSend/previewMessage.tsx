@@ -1268,8 +1268,8 @@ function PreviewMessage() {
     setSeedWordsModalVisible(true)
   }
 
-  // Handle mnemonic validation from the component
-  const handleMnemonicValid = (mnemonic: string, fingerprint: string) => { // eslint-disable-line
+  // eslint-disable-next-line
+  const handleMnemonicValid = (mnemonic: string, _fingerprint: string) => {
     setCurrentMnemonic(mnemonic)
   }
 
