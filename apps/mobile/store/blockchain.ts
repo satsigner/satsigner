@@ -127,13 +127,19 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
       getBlockchain: async (network = get().selectedNetwork) => {
         try {
           const { server, config } = get().configs[network]
+
           const blockchainConfig = getBlockchainConfig(
             server.backend,
             server.url,
-            config
+            {
+              ...config,
+              proxy: server.proxy
+            }
           )
-          return getBlockchain(server.backend, blockchainConfig)
-        } catch {
+
+          const blockchain = getBlockchain(server.backend, blockchainConfig)
+          return blockchain
+        } catch (error) {
           throw new Error(
             `Failed to connect to ${network} blockchain. Please check your network connection and server settings.`
           )
