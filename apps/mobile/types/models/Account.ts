@@ -5,6 +5,7 @@ import { type Address } from './Address'
 import { type NostrAccount } from './Nostr'
 import { type Transaction } from './Transaction'
 import { type Utxo } from './Utxo'
+import { Label } from '@/utils/bip329'
 
 export type PolicyType = 'singlesig' | 'multisig' | 'watchonly'
 
@@ -87,6 +88,7 @@ export type Account = {
   transactions: Transaction[]
   utxos: Utxo[]
   addresses: Address[]
+  labels: Record<Label['ref'], Label>
   createdAt: Date
   isSyncing?: boolean
   lastSyncedAt?: Date
