@@ -15,7 +15,6 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type Network } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
-import { formatTimestamp } from '@/utils/format'
 import { parseAddressDescriptorToAddress, parseHexToBytes } from '@/utils/parse'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -488,7 +487,7 @@ function useSyncAccountWithAddress() {
     try {
       electrumClient.close()
     } catch {
-      //
+      throw new Error('Failed to close Electrum client')
     }
 
     return {
@@ -507,7 +506,8 @@ function useSyncAccountWithAddress() {
 
     const updatedAccount: Account = {
       ...account,
-      syncStatus: 'syncing'
+      syncStatus: 'syncing',
+      transactions: [...account.transactions]
     }
 
     try {
@@ -520,7 +520,7 @@ function useSyncAccountWithAddress() {
         labelsBackup[getUtxoOutpoint(utxo)] = utxo.label || ''
       }
 
-      // the address extracted from the descriptor
+      // Extract address from descriptor
       const address = parseAddressDescriptorToAddress(addressDescriptor)
 
       let addrInfo: AddressInfo | undefined
@@ -539,13 +539,13 @@ function useSyncAccountWithAddress() {
           network
         )
       } else {
-        throw new Error('unkown backend')
+        throw new Error('unknown backend')
       }
 
       updatedAccount.transactions = addrInfo.transactions
       updatedAccount.utxos = addrInfo.utxos
 
-      // Labels update
+      // Update labels
       for (const index in updatedAccount.utxos) {
         const utxoRef = getUtxoOutpoint(updatedAccount.utxos[index])
         updatedAccount.utxos[index].label = labelsBackup[utxoRef] || ''
@@ -556,57 +556,110 @@ function useSyncAccountWithAddress() {
           labelsBackup[transactionRef] || ''
       }
 
-      // collect timestamps of transactions without price data
+      // Convert timestamps to Date objects
+      for (let i = 0; i < updatedAccount.transactions.length; i++) {
+        const transaction = updatedAccount.transactions[i]
+        if (
+          transaction.timestamp &&
+          typeof transaction.timestamp === 'string'
+        ) {
+          const convertedDate = new Date(transaction.timestamp)
+          if (!isNaN(convertedDate.getTime())) {
+            updatedAccount.transactions[i].timestamp = convertedDate
+          } else {
+            updatedAccount.transactions[i].timestamp = undefined
+          }
+        }
+      }
+
+      // Always fetch prices for all transactions with timestamps
+      const transactionsWithTimestamps = updatedAccount.transactions.filter(
+        (transaction) => !!transaction.timestamp
+      )
+
       const timestamps = [
         ...new Set(
-          updatedAccount.transactions
-            .filter((transaction) => {
-              return transaction.timestamp && transaction.prices['USD']
-            })
-            .map((transaction) => {
-              return formatTimestamp(transaction.timestamp!)
-            })
+          transactionsWithTimestamps
+            .filter((transaction) => transaction.timestamp instanceof Date)
+            .map((transaction) =>
+              Math.floor(transaction.timestamp!.getTime() / 1000)
+            )
         )
       ]
 
-      // update progress status because we are about to fetch price data
-      updatedAccount.syncProgress = {
-        tasksDone: addrInfo.progress?.tasksDone || 0,
-        totalTasks: (addrInfo.progress?.totalTasks || 0) + timestamps.length
-      }
-
-      //Fetch Prices
+      // Fetch historical prices
       const mempoolUrl = configsMempol['bitcoin']
       const oracle = new MempoolOracle(mempoolUrl)
-      const prices = await oracle.getPricesAt('USD', timestamps)
+      let prices: number[] = []
+      const currentTimestamp = Math.floor(Date.now() / 1000)
 
-      // update prices
-      const priceTimestamps: Record<number, number> = {}
-      for (let i = 0; i < timestamps.length; i += 1) {
-        priceTimestamps[timestamps[i]] = prices[i]
+      // Use all timestamps for price fetching
+      const validTimestamps = timestamps
+
+      if (validTimestamps.length > 0) {
+        try {
+          const historicalPrices = await oracle.getPricesAt(
+            'USD',
+            validTimestamps
+          )
+          prices = [...prices, ...historicalPrices]
+        } catch {
+          throw new Error('Price fetching failed')
+        }
       }
+
+      // Create price mapping
+      const priceTimestamps: Record<number, number> = {}
+      for (let i = 0; i < validTimestamps.length && i < prices.length; i += 1) {
+        priceTimestamps[validTimestamps[i]] = prices[i]
+      }
+
+      // Assign prices to transactions
       for (let i = 0; i < updatedAccount.transactions.length; i += 1) {
         const transaction = updatedAccount.transactions[i]
         if (!transaction.timestamp) {
           continue
         }
-        const timestamp = Math.trunc(transaction.timestamp.getTime() / 1000)
-        if (priceTimestamps[timestamp] === undefined) {
+
+        // Convert timestamp to unix timestamp (should already be a Date object)
+        if (!(transaction.timestamp instanceof Date)) {
           continue
         }
-        const price = priceTimestamps[timestamp]
-        updatedAccount.transactions[i].prices = { USD: price }
-      }
+        const unixTimestamp = Math.trunc(transaction.timestamp.getTime() / 1000)
 
-      // Update account progress again
-      updatedAccount.syncProgress.tasksDone += timestamps.length
-      setSyncProgress(updatedAccount.id, updatedAccount.syncProgress)
+        if (priceTimestamps[unixTimestamp] === undefined) {
+          continue
+        }
+
+        const price = priceTimestamps[unixTimestamp]
+
+        // Assign price to transaction (create new objects to avoid frozen object issues)
+        const newPrices = { USD: price }
+        const newTransaction = {
+          ...updatedAccount.transactions[i],
+          prices: newPrices
+        }
+
+        // Create a new transactions array with the updated transaction
+        const newTransactions = [...updatedAccount.transactions]
+        newTransactions[i] = newTransaction
+
+        // Create a completely new account object
+        const newAccount = {
+          ...updatedAccount,
+          transactions: newTransactions
+        }
+
+        // Replace the entire updatedAccount
+        Object.assign(updatedAccount, newAccount)
+      }
 
       // Update sync status
       updatedAccount.syncStatus = 'synced'
       updatedAccount.lastSyncedAt = new Date()
 
       setLoading(false)
+
       return updatedAccount
     } catch {
       setSyncStatus(account.id, 'error')
@@ -675,8 +728,11 @@ function useSyncAccountWithAddress() {
       // update summary
       const newSummary = updatedData.summary as Account['summary']
 
+      // Merge account data while preserving the transactions with prices
       updatedAccount = {
+        ...updatedAccount,
         ...updatedData,
+        transactions: updatedData.transactions, // Explicitly preserve the transactions with prices
         summary: newSummary
       }
     }
