@@ -563,7 +563,7 @@ function useSyncAccountWithAddress() {
 
       // Convert timestamps to Date objects and collect unix timestamps
       const timestamps: number[] = []
-      for (const [i, transaction] of updatedAccount.transactions.entries()) {
+      for (const transaction of updatedAccount.transactions) {
         if (transaction.timestamp) {
           let date: Date
           if (typeof transaction.timestamp === 'string') {
@@ -575,10 +575,10 @@ function useSyncAccountWithAddress() {
           }
 
           if (!isNaN(date.getTime())) {
-            updatedAccount.transactions[i].timestamp = date
+            transaction.timestamp = date
             timestamps.push(Math.floor(date.getTime() / 1000))
           } else {
-            updatedAccount.transactions[i].timestamp = undefined
+            transaction.timestamp = undefined
           }
         }
       }
