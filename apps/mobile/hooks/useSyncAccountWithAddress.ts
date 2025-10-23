@@ -1,7 +1,7 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { useState } from 'react'
-import { useShallow } from 'zustand/react/shallow'
 import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import { MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
@@ -590,7 +590,6 @@ function useSyncAccountWithAddress() {
       const mempoolUrl = configsMempol['bitcoin']
       const oracle = new MempoolOracle(mempoolUrl)
       let prices: number[] = []
-      const currentTimestamp = Math.floor(Date.now() / 1000)
 
       if (uniqueTimestamps.length > 0) {
         try {
