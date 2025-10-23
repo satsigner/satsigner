@@ -111,7 +111,7 @@ export function extractPSBTDerivations(psbtBase64: string): {
 export async function findMatchingAccount(
   psbtBase64: string,
   accounts: Account[]
-): Promise<AccountMatchResult | null> {
+) {
   try {
     const derivations = extractPSBTDerivations(psbtBase64)
 

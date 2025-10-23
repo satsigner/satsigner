@@ -21,13 +21,6 @@ import {
 import { aesDecrypt, sha256 } from '@/utils/crypto'
 import { parseDescriptor } from '@/utils/parse'
 
-function getTrustedDevices(accountId: string): string[] {
-  const account = useAccountsStore
-    .getState()
-    .accounts.find((account) => account.id === accountId)
-  return account?.nostr?.trustedMemberDevices || []
-}
-
 function useNostrSync() {
   const [updateAccountNostr] = useAccountsStore(
     useShallow((state) => [state.updateAccountNostr])
@@ -367,172 +360,78 @@ function useNostrSync() {
     ]
   )
 
-  const sendLabelsToNostr = useCallback(
-    async (account?: Account, singleLabel?: Label) => {
-      if (!account?.nostr?.autoSync) {
-        return
-      }
-      if (!account || !account.nostr) {
-        return
-      }
-      const { commonNsec, commonNpub, relays, deviceNpub } = account.nostr
-
-      if (
-        !commonNsec ||
-        commonNpub === '' ||
-        relays.length === 0 ||
-        !deviceNpub
-      ) {
-        return
-      }
-
-      let labels: Label[] = []
-      if (singleLabel) {
-        // For single label, we need to get all current labels and add the new one
-        labels = formatAccountLabels(account)
-        labels.push(singleLabel)
-      } else {
-        labels = formatAccountLabels(account)
-      }
-
-      // Always check fingerprint for both single and bulk cases
-      const message = labelsToJSONL(labels)
-      const hash = await sha256(message)
-      const fingerprint = hash.slice(0, 8)
-
-      // Only skip if it's not a single label and fingerprint matches
-      if (!singleLabel && fingerprint === account.nostr.lastBackupFingerprint) {
-        return
-      }
-
-      try {
-        if (labels.length === 0) {
-          toast.error(t('account.nostrSync.errorMissingData'))
-          return
-        }
-
-        const labelPackage = labels.map((label) => ({
-          __class__: 'Label',
-          VERSION: '0.0.3',
-          type: label.type,
-          ref: label.ref,
-          label: label.label,
-          spendable: label.spendable,
-          timestamp: Math.floor(Date.now() / 1000)
-        }))
-
-        const labelPackageJSONL = labelsToJSONL(labelPackage)
-        const messageContent = {
-          created_at: Math.floor(Date.now() / 1000),
-          label: 1,
-          description: 'Here come some labels',
-          data: { data: labelPackageJSONL, data_type: 'LabelsBip329' }
-        }
-
-        const compressedMessage = compressMessage(messageContent)
-        const nostrApi = new NostrAPI(relays)
-        await nostrApi.connect()
-
-        const deviceNsec = account.nostr.deviceNsec
-        const trustedDevices = getTrustedDevices(account.id)
-
-        for (const trustedDeviceNpub of trustedDevices) {
-          if (!deviceNsec) continue
-          const eventKind1059 = await nostrApi.createKind1059(
-            deviceNsec,
-            trustedDeviceNpub,
-            compressedMessage
-          )
-          await nostrApi.publishEvent(eventKind1059)
-        }
-      } catch (_error) {
-        toast.error('Failed to send message')
-      }
-    },
-    []
-  )
-
-  const sendDM = useCallback(async (account: Account, message: string) => {
-    if (!account?.nostr?.autoSync) return
-    if (!account || !account.nostr) return
-    const { commonNsec, commonNpub, deviceNsec, deviceNpub, relays } =
-      account.nostr
+  const sendLabelsToNostr = async (account?: Account, singleLabel?: Label) => {
+    if (!account?.nostr?.autoSync) {
+      return
+    }
+    if (!account || !account.nostr) {
+      return
+    }
+    const { commonNsec, commonNpub, relays, deviceNpub } = account.nostr
 
     if (
       !commonNsec ||
-      !commonNpub ||
+      commonNpub === '' ||
       relays.length === 0 ||
-      !deviceNsec ||
       !deviceNpub
     ) {
       return
     }
 
-    let nostrApi: NostrAPI | null = null
-    try {
-      const messageContent = {
-        created_at: Math.floor(Date.now() / 1000),
-        description: message
-      }
-
-      const compressedMessage = compressMessage(messageContent)
-      nostrApi = new NostrAPI(relays)
-      await nostrApi.connect()
-
-      let eventKind1059 = await nostrApi.createKind1059(
-        deviceNsec,
-        deviceNpub,
-        compressedMessage
-      )
-      await nostrApi.publishEvent(eventKind1059)
-
-      const trustedDevices = getTrustedDevices(account.id)
-      for (const trustedDeviceNpub of trustedDevices) {
-        if (!deviceNsec) continue
-        eventKind1059 = await nostrApi.createKind1059(
-          deviceNsec,
-          trustedDeviceNpub,
-          compressedMessage
-        )
-        await nostrApi.publishEvent(eventKind1059)
-      }
-    } catch (_error) {
-      toast.error('Failed to send message')
+    let labels: Label[] = []
+    if (singleLabel) {
+      // For single label, we need to get all current labels and add the new one
+      labels = formatAccountLabels(account)
+      labels.push(singleLabel)
+    } else {
+      labels = formatAccountLabels(account)
     }
-  }, [])
 
-  const sendPSBT = useCallback(async (account: Account, psbt: string) => {
-    if (!account?.nostr?.autoSync) return
-    if (!account || !account.nostr) return
-    const { deviceNsec, deviceNpub, relays } = account.nostr
+    // Always check fingerprint for both single and bulk cases
+    const message = labelsToJSONL(labels)
+    const hash = await sha256(message)
+    const fingerprint = hash.slice(0, 8)
 
-    if (!deviceNsec || !deviceNpub || relays.length === 0) {
+    // Only skip if it's not a single label and fingerprint matches
+    if (!singleLabel && fingerprint === account.nostr.lastBackupFingerprint) {
       return
     }
 
-    let nostrApi: NostrAPI | null = null
     try {
+      if (labels.length === 0) {
+        toast.error(t('account.nostrSync.errorMissingData'))
+        return
+      }
+
+      const labelPackage = labels.map((label) => ({
+        __class__: 'Label',
+        VERSION: '0.0.3',
+        type: label.type,
+        ref: label.ref,
+        label: label.label,
+        spendable: label.spendable,
+        timestamp: Math.floor(Date.now() / 1000)
+      }))
+
+      const labelPackageJSONL = labelsToJSONL(labelPackage)
       const messageContent = {
         created_at: Math.floor(Date.now() / 1000),
-        description: 'PSBT for signing',
-        data: { data: psbt, data_type: 'PSBT' }
+        label: 1,
+        description: 'Here come some labels',
+        data: { data: labelPackageJSONL, data_type: 'LabelsBip329' }
       }
 
       const compressedMessage = compressMessage(messageContent)
-      nostrApi = new NostrAPI(relays)
+      const nostrApi = new NostrAPI(relays)
       await nostrApi.connect()
 
-      const selfEvent = await nostrApi.createKind1059(
-        deviceNsec,
-        deviceNpub,
-        compressedMessage
-      )
-      await nostrApi.publishEvent(selfEvent)
+      const deviceNsec = account.nostr.deviceNsec
+      const trustedDevices =
+        useAccountsStore.getState().accounts.find((a) => a.id === account.id)
+          ?.nostr?.trustedMemberDevices || []
 
-      const trustedDevices = getTrustedDevices(account.id)
       for (const trustedDeviceNpub of trustedDevices) {
         if (!deviceNsec) continue
-        if (trustedDeviceNpub === deviceNpub) continue
         const eventKind1059 = await nostrApi.createKind1059(
           deviceNsec,
           trustedDeviceNpub,
@@ -541,14 +440,14 @@ function useNostrSync() {
         await nostrApi.publishEvent(eventKind1059)
       }
     } catch {
-      toast.error('Failed to send PSBT')
+      toast.error('Failed to send message')
     }
-  }, [])
+  }
 
-  const loadStoredDMs = useCallback(async (account?: Account) => {
+  const loadStoredDMs = async (account?: Account) => {
     if (!account) return []
     return account.nostr?.dms || []
-  }, [])
+  }
 
   const clearStoredDMs = useCallback(
     async (account?: Account) => {
@@ -561,7 +460,7 @@ function useNostrSync() {
     [updateAccountNostr]
   )
 
-  const generateCommonNostrKeys = useCallback(async (account?: Account) => {
+  const generateCommonNostrKeys = async (account?: Account) => {
     if (!account) return
     const pin = await getItem(PIN_KEY)
     if (!pin) return
@@ -616,7 +515,7 @@ function useNostrSync() {
     } catch (_error) {
       throw _error
     }
-  }, [])
+  }
 
   function updateLasEOSETimestamp(account: Account, nsec: string) {
     const timestamp = Math.floor(Date.now() / 1000) - 3600 // Subtract 1 hour
@@ -627,7 +526,7 @@ function useNostrSync() {
     }
   }
 
-  const deviceAnnouncement = useCallback(async (account?: Account) => {
+  const deviceAnnouncement = async (account?: Account) => {
     if (!account?.nostr?.autoSync) return
     if (!account || !account.nostr) return
     const { commonNsec, commonNpub, deviceNpub, relays } = account.nostr
@@ -657,15 +556,13 @@ function useNostrSync() {
     } catch (_error) {
       toast.error('Failed to send device announcement')
     }
-  }, [])
+  }
 
   return {
     sendLabelsToNostr,
     dataExchangeSubscription,
     generateCommonNostrKeys,
     storeDM,
-    sendDM,
-    sendPSBT,
     loadStoredDMs,
     clearStoredDMs,
     processEvent,

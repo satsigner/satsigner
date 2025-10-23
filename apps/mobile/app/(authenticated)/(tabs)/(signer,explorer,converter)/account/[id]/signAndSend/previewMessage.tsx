@@ -48,10 +48,7 @@ import {
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
-import {
-  type AccountSearchParams,
-  type SignedPsbtsParams
-} from '@/types/navigation/searchParams'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import {
   createBBQRChunks,
   decodeBBQRChunks,
@@ -114,9 +111,7 @@ function hasEnoughSignatures(input: any): boolean {
 
 function PreviewMessage() {
   const router = useRouter()
-  const { id, signedPsbts: signedPsbtsParam } = useLocalSearchParams<
-    AccountSearchParams & SignedPsbtsParams
-  >()
+  const { id } = useLocalSearchParams<AccountSearchParams>()
 
   const [
     inputs,
@@ -125,7 +120,8 @@ function PreviewMessage() {
     rbf,
     setTxBuilderResult,
     txBuilderResult,
-    setSignedTx
+    setSignedTx,
+    signedPsbtsFromStore
   ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.inputs,
@@ -134,7 +130,8 @@ function PreviewMessage() {
       state.rbf,
       state.setTxBuilderResult,
       state.txBuilderResult,
-      state.setSignedTx
+      state.setSignedTx,
+      state.signedPsbts
     ])
   )
 
@@ -195,6 +192,7 @@ function PreviewMessage() {
   const {
     signedPsbt,
     signedPsbts,
+    setSignedPsbts,
     updateSignedPsbt,
     convertPsbtToFinalTransaction,
     handleSignWithLocalKey,
@@ -568,29 +566,10 @@ function PreviewMessage() {
   }, [inputs, outputs, messageId])
 
   useEffect(() => {
-    if (signedPsbtsParam && typeof signedPsbtsParam === 'string') {
-      try {
-        const signedPsbtsFromParam = JSON.parse(signedPsbtsParam)
-        if (signedPsbtsFromParam && typeof signedPsbtsFromParam === 'object') {
-          Object.entries(signedPsbtsFromParam).forEach(
-            ([cosignerIndexStr, psbt]) => {
-              const cosignerIndex = parseInt(cosignerIndexStr, 10)
-              if (
-                !isNaN(cosignerIndex) &&
-                psbt &&
-                typeof psbt === 'string' &&
-                psbt.trim().length > 0
-              ) {
-                updateSignedPsbt(cosignerIndex, psbt)
-              }
-            }
-          )
-        }
-      } catch {
-        toast.error('Failed to parse signed PSBTs from navigation.')
-      }
+    if (signedPsbtsFromStore && signedPsbtsFromStore.size > 0) {
+      setSignedPsbts(signedPsbtsFromStore)
     }
-  }, [signedPsbtsParam, updateSignedPsbt])
+  }, [signedPsbtsFromStore, setSignedPsbts])
 
   useEffect(() => {
     if (txBuilderResult?.txDetails?.txid) {

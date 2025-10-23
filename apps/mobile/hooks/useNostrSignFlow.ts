@@ -1,5 +1,5 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
-import { useRouter } from 'expo-router'
+import { useRouter, type Href } from 'expo-router'
 import { toast } from 'sonner-native'
 
 import { t } from '@/locales'
@@ -17,6 +17,7 @@ import {
   getCollectedSignerPubkeys,
   type TransactionData
 } from '@/utils/psbt'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
 export function useNostrSignFlow() {
   const router = useRouter()
@@ -27,7 +28,8 @@ export function useNostrSignFlow() {
     addOutput,
     setFee,
     setRbf,
-    setTxBuilderResult
+    setTxBuilderResult,
+    setSignedPsbts
   } = useTransactionBuilderStore()
 
   async function handleGoToSignFlow(transactionData: TransactionData) {
@@ -123,6 +125,12 @@ export function useNostrSignFlow() {
         finalSignedPsbts = remappedPsbts
       }
 
+      const signedPsbtsMap = new Map<number, string>()
+      Object.entries(finalSignedPsbts).forEach(([key, value]) => {
+        signedPsbtsMap.set(parseInt(key, 10), value)
+      })
+      setSignedPsbts(signedPsbtsMap)
+
       const mockTxBuilderResult = {
         psbt: {
           base64: originalPsbt,
@@ -136,11 +144,9 @@ export function useNostrSignFlow() {
       }
       setTxBuilderResult(mockTxBuilderResult as any)
 
-      const navigationPath = `/account/${accountMatch.account.id}/signAndSend/previewMessage`
-      router.replace({
-        pathname: navigationPath,
-        params: { signedPsbts: JSON.stringify(finalSignedPsbts) }
-      } as any)
+      router.replace(
+        `/account/${accountMatch.account.id}/signAndSend/previewMessage` as any
+      )
 
       toast.success(
         t('transaction.openingInAccount', {
