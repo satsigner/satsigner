@@ -1,6 +1,7 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
+import { toast } from 'sonner-native'
 
 import { MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
@@ -486,8 +487,12 @@ function useSyncAccountWithAddress() {
 
     try {
       electrumClient.close()
-    } catch {
-      throw new Error('Failed to close Electrum client')
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to close Electrum client'
+      )
     }
 
     return {
@@ -603,8 +608,10 @@ function useSyncAccountWithAddress() {
             validTimestamps
           )
           prices = [...prices, ...historicalPrices]
-        } catch {
-          throw new Error('Price fetching failed')
+        } catch (error) {
+          toast.error(
+            error instanceof Error ? error.message : 'Price fetching failded'
+          )
         }
       }
 
