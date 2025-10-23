@@ -111,7 +111,6 @@ export class NostrAPI {
   private isProcessingQueue = false
   private readonly BATCH_SIZE = 10
   private readonly PROCESSING_INTERVAL = 200 // ms
-  private isLoading = false
   private onLoadingChange?: (isLoading: boolean) => void
 
   constructor(private relays: string[]) {
@@ -134,7 +133,6 @@ export class NostrAPI {
   }
 
   private setLoading(loading: boolean) {
-    this.isLoading = loading
     this.onLoadingChange?.(loading)
   }
 

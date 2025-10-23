@@ -1,4 +1,4 @@
-import type { ExtendedTransaction } from '../../../hooks/useInputTransactions.tsx'
+import type { ExtendedTransaction } from '../../../hooks/useInputTransactions.ts'
 import {
   estimateTransactionSize,
   recalculateDepthH

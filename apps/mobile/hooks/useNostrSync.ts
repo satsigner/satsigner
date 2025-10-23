@@ -46,7 +46,7 @@ function useNostrSync() {
     for (const api of apisToCleanup) {
       try {
         await api.closeAllSubscriptions()
-      } catch (_error) {
+      } catch {
         // Error closing subscriptions
       }
     }
@@ -112,7 +112,7 @@ function useNostrSync() {
             dms: updatedDms
           })
         }
-      } catch (_error) {
+      } catch {
         // Failed to store DM
       }
     },
@@ -135,10 +135,10 @@ function useNostrSync() {
         let eventContent: any
         try {
           eventContent = JSON.parse(unwrappedEvent.content)
-        } catch (_jsonError) {
+        } catch {
           try {
             eventContent = decompressMessage(unwrappedEvent.content)
-          } catch (_error) {
+          } catch {
             eventContent = unwrappedEvent.content
           }
         }
@@ -211,18 +211,18 @@ function useNostrSync() {
             ) {
               await storeDM(account, unwrappedEvent, eventContent)
             }
-          } catch (_error) {}
+          } catch {}
         } else if (eventContent.public_key_bech32) {
           const newMember = eventContent.public_key_bech32
           try {
-            await addMember(account.id, newMember)
-          } catch (_error) {
+            addMember(account.id, newMember)
+          } catch {
             // Failed to add member
           }
         }
 
         return eventContent
-      } catch (_error) {
+      } catch {
         // If processing fails, remove the event from processed events
         const currentProcessedEvents =
           useNostrStore.getState().processedEvents[account.id] || []

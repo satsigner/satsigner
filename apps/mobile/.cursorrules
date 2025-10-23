@@ -228,6 +228,31 @@ Also, do not:
 For user input and business logic: Validate inputs properly:
 ✅ Correct: if (!isValidInput(input)) { toast.error('Invalid input'); return }
 
+[Translation System]
+The translation system uses a generateJson function that converts flat keys with dots into nested objects.
+CRITICAL: Avoid having a key that is both a string value AND has child properties.
+
+❌ WRONG - Creates conflicts:
+
+```json
+{
+  "settings.network.server.host": "Host",
+  "settings.network.server.host.placeholder.electrum": "192.168.0.144"
+}
+```
+
+✅ CORRECT - Use descriptive suffixes:
+
+```json
+{
+  "settings.network.server.hostLabel": "Host",
+  "settings.network.server.host.placeholder.electrum": "192.168.0.144"
+}
+```
+
+Common suffixes: Label, Title, Text, Name
+This prevents the nesting function from trying to make a key both a string and an object.
+
 [Before commiting]
 Remove console.logs
 Run the linter: yarn lint:fix
