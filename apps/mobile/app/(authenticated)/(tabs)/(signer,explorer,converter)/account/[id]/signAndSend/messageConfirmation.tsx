@@ -65,11 +65,20 @@ export default function MessageConfirmation() {
         if (output.label === '') continue
 
         const vout = i
+
+        // output label
         const outputRef = `${txid}:${vout}`
         labels.push({
           ref: outputRef,
           label: output.label,
           type: 'output'
+        })
+
+        // address label
+        labels.push({
+          ref: output.to,
+          type: 'addr',
+          label: output.label
         })
 
         // The tx label will inherit the output's label separated by comma.
