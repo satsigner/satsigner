@@ -562,8 +562,7 @@ function useSyncAccountWithAddress() {
       }
 
       // Convert timestamps to Date objects
-      for (let i = 0; i < updatedAccount.transactions.length; i++) {
-        const transaction = updatedAccount.transactions[i]
+      for (const [i, transaction] of updatedAccount.transactions.entries()) {
         if (
           transaction.timestamp &&
           typeof transaction.timestamp === 'string'
