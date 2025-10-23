@@ -1,11 +1,11 @@
 import { type WordListName } from '@/utils/bip39'
+import { type Label } from '@/utils/bip329'
 
 import { type Network } from '../settings/blockchain'
 import { type Address } from './Address'
 import { type NostrAccount } from './Nostr'
 import { type Transaction } from './Transaction'
 import { type Utxo } from './Utxo'
-import { Label } from '@/utils/bip329'
 
 export type PolicyType = 'singlesig' | 'multisig' | 'watchonly'
 

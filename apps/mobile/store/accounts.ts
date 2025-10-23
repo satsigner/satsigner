@@ -224,7 +224,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               ...currentLabel,
               type: 'addr',
               ref: addr,
-              text: label
+              label
             }
 
             state.accounts[index].addresses[addrIndex].label = label
@@ -258,7 +258,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               ...currentLabel,
               type: 'tx',
               ref: txid,
-              text: label
+              label
             }
 
             state.accounts[index].transactions[txIndex].label = label
@@ -296,7 +296,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               ...currentLabel,
               type: 'utxo',
               ref: utxoRef,
-              text: label
+              label
             }
 
             state.accounts[index].utxos[utxoIndex].label = label
@@ -341,6 +341,8 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             )
             labels.forEach((labelObj) => {
               const label = labelObj.label
+
+              state.accounts[index].labels[labelObj.ref] = labelObj
 
               if (
                 labelObj.type === 'tx' &&
