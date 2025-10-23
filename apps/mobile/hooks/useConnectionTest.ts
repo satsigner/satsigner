@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import { type Backend, type Network } from '@/types/settings/blockchain'
+import {
+  type Backend,
+  type Network,
+  type ProxyConfig
+} from '@/types/settings/blockchain'
 
 export type NodeInfo = {
   version?: string
@@ -58,7 +62,8 @@ export function useConnectionTest() {
   async function testConnection(
     url: string,
     backend: Backend,
-    network: Network
+    network: Network,
+    proxy?: ProxyConfig
   ): Promise<{ success: boolean; error?: string }> {
     // Debounce rapid connection attempts to prevent memory issues
     const now = Date.now()
@@ -209,7 +214,10 @@ export function useConnectionTest() {
       )
 
       const result = await Promise.race([testPromise, timeoutPromise])
-      return result || { success: false, error: 'Connection test failed' }
+      const errorMessage = proxy?.enabled
+        ? 'Proxy connection failed. Ensure Tor/Orbot is running.'
+        : 'Connection test failed'
+      return result || { success: false, error: errorMessage }
     } catch (error) {
       // Failed to get node info
       const errorMessage =
@@ -234,7 +242,10 @@ export function useConnectionTest() {
     // This line is unreachable due to the finally block above
     // but kept for type safety
     // eslint-disable-next-line no-unreachable
-    return { success: false, error: 'Connection test failed' }
+    const errorMessage = proxy?.enabled
+      ? 'Proxy connection failed. Ensure Tor/Orbot is running.'
+      : 'Connection test failed'
+    return { success: false, error: errorMessage }
   }
 
   async function resetTest() {

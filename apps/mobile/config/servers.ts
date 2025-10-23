@@ -3,7 +3,7 @@ import {
   type BlockchainEsploraConfig
 } from 'bdk-rn/lib/lib/enums'
 
-import { type Backend } from '@/types/settings/blockchain'
+import { type Backend, type ProxyConfig } from '@/types/settings/blockchain'
 
 const ELECTRUM_URL = 'ssl://bitcoin.lu.ke:50002'
 const MEMPOOL_SIGNET_URL = 'ssl://mempool.space:60602'
@@ -16,6 +16,7 @@ type CustomBlockchainConfig = {
   retries?: number
   timeout?: number
   stopGap?: number
+  proxy?: ProxyConfig
 }
 
 function getBlockchainConfig(
@@ -23,11 +24,15 @@ function getBlockchainConfig(
   url: string,
   options: CustomBlockchainConfig = {}
 ): BlockchainElectrumConfig | BlockchainEsploraConfig {
+  const proxyString = options.proxy?.enabled
+    ? `${options.proxy.host}:${options.proxy.port}`
+    : null
+
   switch (backend) {
     case 'electrum':
       return {
         url,
-        sock5: null,
+        sock5: proxyString,
         retry: options.retries || 5,
         timeout: options.timeout || 5,
         stopGap: options.stopGap || 20,
@@ -38,7 +43,7 @@ function getBlockchainConfig(
         baseUrl: url,
         timeout: options.timeout || 5,
         stopGap: options.stopGap || 20,
-        proxy: null,
+        proxy: proxyString,
         concurrency: 4
       }
   }

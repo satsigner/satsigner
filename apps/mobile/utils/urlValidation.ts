@@ -10,11 +10,33 @@ export type ValidationResult = {
 }
 
 /**
+ * Validates if a host is a valid .onion address
+ * @param host - The host string to validate
+ * @returns true if valid .onion address
+ */
+export function isValidOnionAddress(host: string): boolean {
+  if (!host.endsWith('.onion')) {
+    return false
+  }
+
+  const onionPart = host.replace('.onion', '')
+
+  // v2 .onion addresses are 16 characters (base32)
+  // v3 .onion addresses are 56 characters (base32)
+  return /^[a-z2-7]{16}$|^[a-z2-7]{56}$/i.test(onionPart)
+}
+
+/**
  * Validates if a host is a valid domain name
  * @param host - The host string to validate
  * @returns true if valid domain name
  */
 export function isValidDomainName(host: string): boolean {
+  // Check for .onion addresses first
+  if (isValidOnionAddress(host)) {
+    return true
+  }
+
   // Check for double dots, leading/trailing hyphens, and consecutive hyphens
   if (
     host.includes('..') ||
@@ -134,4 +156,78 @@ export function validateEsploraUrl(url: string): ValidationResult {
       error: 'Invalid URL format'
     }
   }
+}
+
+/**
+ * Validates if a proxy host is valid
+ * @param host - The proxy host string to validate
+ * @returns true if valid proxy host
+ */
+export function isValidProxyHost(host: string): boolean {
+  // Allow localhost, IP addresses, and domain names
+  return (
+    host === 'localhost' || isValidIPAddress(host) || isValidDomainName(host)
+  )
+}
+
+/**
+ * Validates proxy configuration
+ * @param host - The proxy host
+ * @param port - The proxy port
+ * @returns ValidationResult with isValid and optional error message
+ */
+export function validateProxyConfig(
+  host: string,
+  port: string
+): ValidationResult {
+  if (!host.trim()) {
+    return {
+      isValid: false,
+      error: 'Invalid proxy host'
+    }
+  }
+
+  if (!isValidProxyHost(host)) {
+    return {
+      isValid: false,
+      error: 'Invalid proxy host'
+    }
+  }
+
+  if (!isValidPort(port)) {
+    return {
+      isValid: false,
+      error: 'Invalid proxy port'
+    }
+  }
+
+  const portNum = parseInt(port, 10)
+  if (portNum < 1 || portNum > 65535) {
+    return {
+      isValid: false,
+      error: 'Invalid proxy port'
+    }
+  }
+
+  return { isValid: true }
+}
+
+export function trimOnionAddress(url: string): string {
+  // Check if URL contains an onion address
+  const onionMatch = url.match(/([a-z2-7]{16,56}\.onion)(:\d+)?/i)
+  if (!onionMatch) {
+    return url // Return original if no onion address found
+  }
+
+  const fullOnion = onionMatch[1] // e.g., "wilqrsi66cnsbrksba2wvjs8727dwytgqf7ybi3wc4cn72nbv7ce6uzsid.onion"
+  const port = onionMatch[2] || '' // e.g., ":50002" or empty string
+
+  const onionPart = fullOnion.replace('.onion', '') // Remove .onion suffix
+  const first5 = onionPart.substring(0, 5)
+  const last5 = onionPart.substring(onionPart.length - 5)
+
+  const trimmedOnion = `${first5}...${last5}.onion${port}`
+
+  // Replace the full onion address with the trimmed version
+  return url.replace(onionMatch[0], trimmedOnion)
 }

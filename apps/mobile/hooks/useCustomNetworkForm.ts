@@ -10,7 +10,10 @@
 
 import { useState } from 'react'
 
-import { type Backend } from '@/types/settings/blockchain'
+import { type Backend, type ProxyConfig } from '@/types/settings/blockchain'
+
+const DEFAULT_PROXY_HOST = 'localhost'
+const DEFAULT_PROXY_PORT = 9050
 
 type CustomNetworkFormData = {
   backend: Backend
@@ -18,6 +21,7 @@ type CustomNetworkFormData = {
   protocol: 'tcp' | 'ssl'
   host: string
   port: string
+  proxy: ProxyConfig
 }
 
 export const useCustomNetworkForm = () => {
@@ -26,13 +30,22 @@ export const useCustomNetworkForm = () => {
     name: '',
     protocol: 'ssl',
     host: '',
-    port: ''
+    port: '',
+    proxy: {
+      enabled: false,
+      host: DEFAULT_PROXY_HOST,
+      port: DEFAULT_PROXY_PORT
+    }
   })
 
   const updateField = (field: keyof CustomNetworkFormData, value: string) => {
     const trimmedValue =
       field === 'host' || field === 'port' ? value.trim() : value
     setFormData((prev) => ({ ...prev, [field]: trimmedValue }))
+  }
+
+  const updateProxyField = (proxy: ProxyConfig) => {
+    setFormData((prev) => ({ ...prev, proxy }))
   }
 
   const constructUrl = () => {
@@ -51,13 +64,19 @@ export const useCustomNetworkForm = () => {
       name: '',
       protocol: 'ssl',
       host: '',
-      port: ''
+      port: '',
+      proxy: {
+        enabled: false,
+        host: DEFAULT_PROXY_HOST,
+        port: DEFAULT_PROXY_PORT
+      }
     })
   }
 
   return {
     formData,
     updateField,
+    updateProxyField,
     constructUrl,
     resetForm
   }
