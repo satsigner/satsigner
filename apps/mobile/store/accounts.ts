@@ -218,6 +218,15 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (account: Account) => account.id === accountId
             )
+
+            const currentLabel = state.accounts[index].labels[addr] || {}
+            state.accounts[index].labels[addr] = {
+              ...currentLabel,
+              type: 'addr',
+              ref: addr,
+              text: label
+            }
+
             state.accounts[index].addresses[addrIndex].label = label
           })
         )
@@ -243,6 +252,15 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (account: Account) => account.id === accountId
             )
+
+            const currentLabel = state.accounts[index].labels[txid] || {}
+            state.accounts[index].labels[txid] = {
+              ...currentLabel,
+              type: 'tx',
+              ref: txid,
+              text: label
+            }
+
             state.accounts[index].transactions[txIndex].label = label
           })
         )
@@ -271,6 +289,16 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (account: Account) => account.id === accountId
             )
+
+            const utxoRef = `${txid}:${vout}`
+            const currentLabel = state.accounts[index].labels[utxoRef] || {}
+            state.accounts[index].labels[utxoRef] = {
+              ...currentLabel,
+              type: 'utxo',
+              ref: utxoRef,
+              text: label
+            }
+
             state.accounts[index].utxos[utxoIndex].label = label
           })
         )
