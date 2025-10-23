@@ -184,6 +184,12 @@ function useNostrSync() {
                 eventContent.data.data.slice(0, 12) +
                 '...'
             )
+            const psbtEventContent = {
+              created_at:
+                eventContent.created_at || Math.floor(Date.now() / 1000),
+              description: eventContent.data.data
+            }
+            await storeDM(account, unwrappedEvent, psbtEventContent)
           } else if (data_type === 'SignMessageRequest') {
             // POPUP Sign message request
             toast.info(
@@ -495,6 +501,50 @@ function useNostrSync() {
     }
   }, [])
 
+  const sendPSBT = useCallback(async (account: Account, psbt: string) => {
+    if (!account?.nostr?.autoSync) return
+    if (!account || !account.nostr) return
+    const { deviceNsec, deviceNpub, relays } = account.nostr
+
+    if (!deviceNsec || !deviceNpub || relays.length === 0) {
+      return
+    }
+
+    let nostrApi: NostrAPI | null = null
+    try {
+      const messageContent = {
+        created_at: Math.floor(Date.now() / 1000),
+        description: 'PSBT for signing',
+        data: { data: psbt, data_type: 'PSBT' }
+      }
+
+      const compressedMessage = compressMessage(messageContent)
+      nostrApi = new NostrAPI(relays)
+      await nostrApi.connect()
+
+      const selfEvent = await nostrApi.createKind1059(
+        deviceNsec,
+        deviceNpub,
+        compressedMessage
+      )
+      await nostrApi.publishEvent(selfEvent)
+
+      const trustedDevices = getTrustedDevices(account.id)
+      for (const trustedDeviceNpub of trustedDevices) {
+        if (!deviceNsec) continue
+        if (trustedDeviceNpub === deviceNpub) continue
+        const eventKind1059 = await nostrApi.createKind1059(
+          deviceNsec,
+          trustedDeviceNpub,
+          compressedMessage
+        )
+        await nostrApi.publishEvent(eventKind1059)
+      }
+    } catch {
+      toast.error('Failed to send PSBT')
+    }
+  }, [])
+
   const loadStoredDMs = useCallback(async (account?: Account) => {
     if (!account) return []
     return account.nostr?.dms || []
@@ -615,6 +665,7 @@ function useNostrSync() {
     generateCommonNostrKeys,
     storeDM,
     sendDM,
+    sendPSBT,
     loadStoredDMs,
     clearStoredDMs,
     processEvent,

@@ -60,7 +60,7 @@ export default function DevicesGroupChat() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const flatListRef = useRef<FlatList>(null)
   const formattedAuthorsRef = useRef(new Set<string>())
-  const { sendDM } = useNostrSync()
+  const { sendDM, sendPSBT } = useNostrSync()
   const { handleGoToSignFlow } = useNostrSignFlow()
 
   const [accounts, account] = useAccountsStore(
@@ -176,7 +176,7 @@ export default function DevicesGroupChat() {
 
     setIsLoading(true)
     try {
-      await sendDM(account, messageToShare)
+      await sendPSBT(account, messageToShare)
       toast.success(t('account.nostrSync.transactionDataSentToGroupChat'))
     } catch {
       toast.error(t('account.nostrSync.failedToSendTransactionData'))
