@@ -597,15 +597,9 @@ function useSyncAccountWithAddress() {
       let prices: number[] = []
       const currentTimestamp = Math.floor(Date.now() / 1000)
 
-      // Use all timestamps for price fetching
-      const validTimestamps = timestamps
-
-      if (validTimestamps.length > 0) {
+      if (timestamps.length > 0) {
         try {
-          const historicalPrices = await oracle.getPricesAt(
-            'USD',
-            validTimestamps
-          )
+          const historicalPrices = await oracle.getPricesAt('USD', timestamps)
           prices = [...prices, ...historicalPrices]
         } catch (error) {
           toast.error(
@@ -616,8 +610,8 @@ function useSyncAccountWithAddress() {
 
       // Create price mapping
       const priceTimestamps: Record<number, number> = {}
-      for (let i = 0; i < validTimestamps.length && i < prices.length; i += 1) {
-        priceTimestamps[validTimestamps[i]] = prices[i]
+      for (let i = 0; i < timestamps.length && i < prices.length; i += 1) {
+        priceTimestamps[timestamps[i]] = prices[i]
       }
 
       // Assign prices to transactions
