@@ -62,6 +62,8 @@ export default function MessageConfirmation() {
       for (let i = 0; i < outputs.length; i += 1) {
         const output = outputs[i]
 
+        // if label is empty, it means it is a change address because we
+        // enforce labels on all outputs. We deal if it later.
         if (output.label === '') continue
 
         const vout = i
@@ -94,8 +96,15 @@ export default function MessageConfirmation() {
         type: 'tx'
       })
 
-      // TODO: add label for the change address if it exists
-      // TODO: add label for this tx's UTXO of the change address
+      // Add label to change address if it exists.
+      const changeAddressOutput = outputs.find((output) => output.label === '')
+      if (changeAddressOutput) {
+        labels.push({
+          ref: changeAddressOutput.to,
+          type: 'addr',
+          label: `Change for ${txLabelText}` // TODO: i18n strings
+        })
+      }
 
       importLabels(id, labels)
     }
