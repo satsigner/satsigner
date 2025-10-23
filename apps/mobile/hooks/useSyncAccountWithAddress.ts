@@ -561,35 +561,30 @@ function useSyncAccountWithAddress() {
           labelsBackup[transactionRef] || ''
       }
 
-      // Convert timestamps to Date objects
+      // Convert timestamps to Date objects and collect unix timestamps
+      const timestamps: number[] = []
       for (const [i, transaction] of updatedAccount.transactions.entries()) {
-        if (
-          transaction.timestamp &&
-          typeof transaction.timestamp === 'string'
-        ) {
-          const convertedDate = new Date(transaction.timestamp)
-          if (!isNaN(convertedDate.getTime())) {
-            updatedAccount.transactions[i].timestamp = convertedDate
+        if (transaction.timestamp) {
+          let date: Date
+          if (typeof transaction.timestamp === 'string') {
+            date = new Date(transaction.timestamp)
+          } else if (transaction.timestamp instanceof Date) {
+            date = transaction.timestamp
+          } else {
+            continue
+          }
+
+          if (!isNaN(date.getTime())) {
+            updatedAccount.transactions[i].timestamp = date
+            timestamps.push(Math.floor(date.getTime() / 1000))
           } else {
             updatedAccount.transactions[i].timestamp = undefined
           }
         }
       }
 
-      // Always fetch prices for all transactions with timestamps
-      const transactionsWithTimestamps = updatedAccount.transactions.filter(
-        (transaction) => !!transaction.timestamp
-      )
-
-      const timestamps = [
-        ...new Set(
-          transactionsWithTimestamps
-            .filter((transaction) => transaction.timestamp instanceof Date)
-            .map((transaction) =>
-              Math.floor(transaction.timestamp!.getTime() / 1000)
-            )
-        )
-      ]
+      // Remove duplicates
+      const uniqueTimestamps = [...new Set(timestamps)]
 
       // Fetch historical prices
       const mempoolUrl = configsMempol['bitcoin']
@@ -597,9 +592,12 @@ function useSyncAccountWithAddress() {
       let prices: number[] = []
       const currentTimestamp = Math.floor(Date.now() / 1000)
 
-      if (timestamps.length > 0) {
+      if (uniqueTimestamps.length > 0) {
         try {
-          const historicalPrices = await oracle.getPricesAt('USD', timestamps)
+          const historicalPrices = await oracle.getPricesAt(
+            'USD',
+            uniqueTimestamps
+          )
           prices = [...prices, ...historicalPrices]
         } catch (error) {
           toast.error(
@@ -610,28 +608,30 @@ function useSyncAccountWithAddress() {
 
       // Create price mapping
       const priceTimestamps: Record<number, number> = {}
-      for (let i = 0; i < timestamps.length && i < prices.length; i += 1) {
-        priceTimestamps[timestamps[i]] = prices[i]
+      for (
+        let i = 0;
+        i < uniqueTimestamps.length && i < prices.length;
+        i += 1
+      ) {
+        priceTimestamps[uniqueTimestamps[i]] = prices[i]
       }
 
       // Assign prices to transactions
       for (let i = 0; i < updatedAccount.transactions.length; i += 1) {
         const transaction = updatedAccount.transactions[i]
-        if (!transaction.timestamp) {
+        if (
+          !transaction.timestamp ||
+          !(transaction.timestamp instanceof Date)
+        ) {
           continue
         }
 
-        // Convert timestamp to unix timestamp (should already be a Date object)
-        if (!(transaction.timestamp instanceof Date)) {
-          continue
-        }
         const unixTimestamp = Math.trunc(transaction.timestamp.getTime() / 1000)
+        const price = priceTimestamps[unixTimestamp]
 
-        if (priceTimestamps[unixTimestamp] === undefined) {
+        if (price === undefined) {
           continue
         }
-
-        const price = priceTimestamps[unixTimestamp]
 
         // Assign price to transaction (create new objects to avoid frozen object issues)
         const newPrices = { USD: price }
