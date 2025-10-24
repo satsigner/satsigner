@@ -902,8 +902,14 @@ export default function IOPreview() {
       <SSBottomSheet
         ref={changeFeeBottomSheetRef}
         title={t('transaction.build.update.fee.title')}
+        paddingX={false}
       >
-        <SSVStack style={{ paddingBottom: 24 }}>
+        <SSVStack
+          style={{
+            paddingBottom: 24,
+            marginHorizontal: Layout.mainContainer.paddingHorizontal
+          }}
+        >
           <SSFeeRateChart
             mempoolStatistics={mempoolStatistics}
             timeRange="2hours"
