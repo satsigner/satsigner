@@ -169,6 +169,7 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
         ]}
         padding={{ left: 8 }}
         domain={{ y: [0, maxYDomainRef.current] }}
+        domainPadding={{ top: 100 }}
         xAxis={{
           font,
           labelColor: '#787878',
