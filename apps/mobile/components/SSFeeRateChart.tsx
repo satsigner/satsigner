@@ -13,6 +13,8 @@ import { bytes } from '@/utils/bytes'
 
 const sansSerif = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
 
+const Y_VALUE_THRESHOLD_MVB = 3_000_000 // 3 MvB
+
 export type SSFeeRateChartProps = {
   mempoolStatistics: MempoolStatistics[] | undefined
   timeRange: 'week' | 'day' | '2hours'
@@ -23,12 +25,12 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
   const [, setW] = useState(0)
   const [, setH] = useState(0)
 
-  const maxYDomainRef = useRef(100)
+  const maxYDomainRef = useRef(0)
 
   const data = useMemo(() => {
     if (!mempoolStatistics) return []
 
-    let maxYDomain = 100
+    let maxYDomain = 0
 
     const result = mempoolStatistics
       .map((entry) => {
@@ -54,46 +56,54 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
           })
         }
 
-        const max = bytes.toKilo(Math.max(...entry.vsizes))
-        if (max > maxYDomain) maxYDomain = max + 10 // +10 for the chart to have y-axis breathing space
+        const max = Math.max(...entry.vsizes)
+
+        let convertFunction = bytes.toKilo
+        if (max > Y_VALUE_THRESHOLD_MVB) {
+          convertFunction = bytes.toMega
+        }
+
+        const convertedMax = convertFunction(max)
+
+        if (convertedMax > maxYDomain) maxYDomain = convertedMax
 
         return {
           x: timestamp,
-          '1-2': bytes.toKilo(entry.vsizes[1] || 0),
-          '2-3': bytes.toKilo(entry.vsizes[2] || 0),
-          '3-4': bytes.toKilo(entry.vsizes[3] || 0),
-          '4-5': bytes.toKilo(entry.vsizes[4] || 0),
-          '5-6': bytes.toKilo(entry.vsizes[5] || 0),
-          '6-8': bytes.toKilo(entry.vsizes[6] || 0),
-          '8-10': bytes.toKilo(entry.vsizes[7] || 0),
-          '10-12': bytes.toKilo(entry.vsizes[8] || 0),
-          '12-15': bytes.toKilo(entry.vsizes[9] || 0),
-          '15-20': bytes.toKilo(entry.vsizes[10] || 0),
-          '20-30': bytes.toKilo(entry.vsizes[11] || 0),
-          '30-40': bytes.toKilo(entry.vsizes[12] || 0),
-          '40-50': bytes.toKilo(entry.vsizes[13] || 0),
-          '50-60': bytes.toKilo(entry.vsizes[14] || 0),
-          '60-70': bytes.toKilo(entry.vsizes[15] || 0),
-          '70-80': bytes.toKilo(entry.vsizes[16] || 0),
-          '80-90': bytes.toKilo(entry.vsizes[17] || 0),
-          '90-100': bytes.toKilo(entry.vsizes[18] || 0),
-          '100-125': bytes.toKilo(entry.vsizes[19] || 0),
-          '125-150': bytes.toKilo(entry.vsizes[20] || 0),
-          '150-175': bytes.toKilo(entry.vsizes[21] || 0),
-          '175-200': bytes.toKilo(entry.vsizes[22] || 0),
-          '200-250': bytes.toKilo(entry.vsizes[23] || 0),
-          '250-300': bytes.toKilo(entry.vsizes[24] || 0),
-          '300-350': bytes.toKilo(entry.vsizes[25] || 0),
-          '350-400': bytes.toKilo(entry.vsizes[26] || 0),
-          '400-500': bytes.toKilo(entry.vsizes[27] || 0),
-          '500-600': bytes.toKilo(entry.vsizes[28] || 0),
-          '600-700': bytes.toKilo(entry.vsizes[29] || 0),
-          '700-800': bytes.toKilo(entry.vsizes[30] || 0),
-          '800-900': bytes.toKilo(entry.vsizes[31] || 0),
-          '900-1000': bytes.toKilo(entry.vsizes[32] || 0),
-          '1000-1200': bytes.toKilo(entry.vsizes[33] || 0),
-          '1200-1400': bytes.toKilo(entry.vsizes[34] || 0),
-          '1400+': bytes.toKilo(
+          '1-2': convertFunction(entry.vsizes[1] || 0),
+          '2-3': convertFunction(entry.vsizes[2] || 0),
+          '3-4': convertFunction(entry.vsizes[3] || 0),
+          '4-5': convertFunction(entry.vsizes[4] || 0),
+          '5-6': convertFunction(entry.vsizes[5] || 0),
+          '6-8': convertFunction(entry.vsizes[6] || 0),
+          '8-10': convertFunction(entry.vsizes[7] || 0),
+          '10-12': convertFunction(entry.vsizes[8] || 0),
+          '12-15': convertFunction(entry.vsizes[9] || 0),
+          '15-20': convertFunction(entry.vsizes[10] || 0),
+          '20-30': convertFunction(entry.vsizes[11] || 0),
+          '30-40': convertFunction(entry.vsizes[12] || 0),
+          '40-50': convertFunction(entry.vsizes[13] || 0),
+          '50-60': convertFunction(entry.vsizes[14] || 0),
+          '60-70': convertFunction(entry.vsizes[15] || 0),
+          '70-80': convertFunction(entry.vsizes[16] || 0),
+          '80-90': convertFunction(entry.vsizes[17] || 0),
+          '90-100': convertFunction(entry.vsizes[18] || 0),
+          '100-125': convertFunction(entry.vsizes[19] || 0),
+          '125-150': convertFunction(entry.vsizes[20] || 0),
+          '150-175': convertFunction(entry.vsizes[21] || 0),
+          '175-200': convertFunction(entry.vsizes[22] || 0),
+          '200-250': convertFunction(entry.vsizes[23] || 0),
+          '250-300': convertFunction(entry.vsizes[24] || 0),
+          '300-350': convertFunction(entry.vsizes[25] || 0),
+          '350-400': convertFunction(entry.vsizes[26] || 0),
+          '400-500': convertFunction(entry.vsizes[27] || 0),
+          '500-600': convertFunction(entry.vsizes[28] || 0),
+          '600-700': convertFunction(entry.vsizes[29] || 0),
+          '700-800': convertFunction(entry.vsizes[30] || 0),
+          '800-900': convertFunction(entry.vsizes[31] || 0),
+          '900-1000': convertFunction(entry.vsizes[32] || 0),
+          '1000-1200': convertFunction(entry.vsizes[33] || 0),
+          '1200-1400': convertFunction(entry.vsizes[34] || 0),
+          '1400+': convertFunction(
             (entry.vsizes[35] || 0) +
               (entry.vsizes[36] || 0) +
               (entry.vsizes[37] || 0) +
