@@ -161,7 +161,6 @@ function PreviewMessage() {
   const [selectedWordCount, setSelectedWordCount] =
     useState<MnemonicWordCount>(24)
   const [currentMnemonic, setCurrentMnemonic] = useState('')
-  const [_currentFingerprint, _setCurrentFingerprint] = useState('')
 
   const [wordSelectorState, setWordSelectorState] = useState({
     visible: false,
@@ -1269,15 +1268,13 @@ function PreviewMessage() {
     setSeedWordsModalVisible(true)
   }
 
-  // Handle mnemonic validation from the component
-  const handleMnemonicValid = (mnemonic: string, fingerprint: string) => {
+  // eslint-disable-next-line
+  const handleMnemonicValid = (mnemonic: string, _fingerprint: string) => {
     setCurrentMnemonic(mnemonic)
-    _setCurrentFingerprint(fingerprint)
   }
 
   const handleMnemonicInvalid = () => {
     setCurrentMnemonic('')
-    _setCurrentFingerprint('')
   }
 
   // Handle seed words form submission
@@ -1292,7 +1289,6 @@ function PreviewMessage() {
     // Clear the form and close modals
     setSeedWordsModalVisible(false)
     setCurrentMnemonic('')
-    _setCurrentFingerprint('')
     setCurrentCosignerIndex(null)
   }
 
@@ -2403,7 +2399,6 @@ function PreviewMessage() {
           onClose={() => {
             setSeedWordsModalVisible(false)
             setCurrentMnemonic('')
-            _setCurrentFingerprint('')
             setCurrentCosignerIndex(null)
           }}
         >
