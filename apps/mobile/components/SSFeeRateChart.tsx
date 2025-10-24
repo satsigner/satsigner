@@ -1,9 +1,4 @@
-import {
-  DashPathEffect,
-  LinearGradient,
-  useFont,
-  vec
-} from '@shopify/react-native-skia'
+import { DashPathEffect, useFont } from '@shopify/react-native-skia'
 import { useMemo, useRef, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { CartesianChart, StackedArea } from 'victory-native'
@@ -69,6 +64,7 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
 
         return {
           x: timestamp,
+          '0-1': convertFunction(entry.vsizes[0] || 0),
           '1-2': convertFunction(entry.vsizes[1] || 0),
           '2-3': convertFunction(entry.vsizes[2] || 0),
           '3-4': convertFunction(entry.vsizes[3] || 0),
@@ -131,6 +127,7 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
         data={data}
         xKey="x"
         yKeys={[
+          '0-1',
           '1-2',
           '2-3',
           '3-4',
@@ -189,10 +186,12 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
           setW(right - left)
           setH(bottom - top)
         }}
+        axisOptions={{ formatYLabel: (label) => `lol` }}
       >
         {({ points, chartBounds }) => (
           <StackedArea
             points={[
+              points['0-1'],
               points['1-2'],
               points['2-3'],
               points['3-4'],
@@ -232,43 +231,42 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
             y0={chartBounds.bottom}
             curveType="natural"
             animate={{ type: 'spring' }}
-            areaOptions={({ rowIndex, lowestY, highestY }) => {
-              const gradients = [
-                {
-                  colors: ['#515151'],
-                  start: highestY - 5,
-                  end: 20
-                },
-                {
-                  colors: ['#444343', '#f7ce6420'],
-                  start: highestY - 25,
-                  end: lowestY
-                },
-                {
-                  colors: ['#8a8a8a', '#2e2e2e0'],
-                  start: highestY - 100,
-                  end: lowestY
-                },
-                {
-                  colors: ['#c7c8c8', '#9d9e9e11'],
-                  start: highestY - 100,
-                  end: lowestY
-                }
-              ]
-
-              const gradient = gradients[rowIndex]
-              if (!gradient) return {}
-
-              return {
-                children: (
-                  <LinearGradient
-                    start={vec(0, gradient.start)}
-                    end={vec(0, gradient.end)}
-                    colors={gradient.colors}
-                  />
-                )
-              }
-            }}
+            colors={[
+              '#FFFFFF',
+              '#F7F7F7',
+              '#EFEFEF',
+              '#E8E8E8',
+              '#E0E0E0',
+              '#D8D8D8',
+              '#D0D0D0',
+              '#C9C9C9',
+              '#C1C1C1',
+              '#B9B9B9',
+              '#B2B2B2',
+              '#AAAAAA',
+              '#A2A2A2',
+              '#9A9A9A',
+              '#939393',
+              '#8B8B8B',
+              '#838383',
+              '#7B7B7B',
+              '#747474',
+              '#6C6C6C',
+              '#646464',
+              '#5D5D5D',
+              '#555555',
+              '#4D4D4D',
+              '#454545',
+              '#3E3E3E',
+              '#363636',
+              '#2E2E2E',
+              '#272727',
+              '#1F1F1F',
+              '#171717',
+              '#101010',
+              '#080808',
+              '#000000'
+            ]}
           />
         )}
       </CartesianChart>
