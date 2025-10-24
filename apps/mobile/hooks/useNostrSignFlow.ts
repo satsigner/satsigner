@@ -144,7 +144,7 @@ export function useNostrSignFlow() {
       setTxBuilderResult(mockTxBuilderResult as any)
 
       router.replace(
-        `/account/${accountMatch.account.id}/signAndSend/previewMessage` as any
+        `/account/${accountMatch.account.id}/signAndSend/previewMessage`
       )
 
       toast.success(
