@@ -186,7 +186,6 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
           setW(right - left)
           setH(bottom - top)
         }}
-        axisOptions={{ formatYLabel: (label) => `lol` }}
       >
         {({ points, chartBounds }) => (
           <StackedArea
