@@ -460,7 +460,7 @@ function useNostrSync() {
     [updateAccountNostr]
   )
 
-  const generateCommonNostrKeys = async (account?: Account) => {
+  async function generateCommonNostrKeys(account?: Account) {
     if (!account) return
     const pin = await getItem(PIN_KEY)
     if (!pin) return
@@ -512,8 +512,9 @@ function useNostrSync() {
         commonNpub,
         privateKeyBytes
       }
-    } catch (_error) {
-      throw _error
+    } catch {
+      toast.error('Failed to generate common Nostr keys')
+      return null
     }
   }
 

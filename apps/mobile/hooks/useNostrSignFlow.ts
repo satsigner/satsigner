@@ -1,5 +1,5 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
-import { useRouter, type Href } from 'expo-router'
+import { useRouter } from 'expo-router'
 import { toast } from 'sonner-native'
 
 import { t } from '@/locales'
@@ -17,7 +17,6 @@ import {
   getCollectedSignerPubkeys,
   type TransactionData
 } from '@/utils/psbt'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
 export function useNostrSignFlow() {
   const router = useRouter()

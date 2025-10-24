@@ -12,7 +12,7 @@ function getTrustedDevices(accountId: string): string[] {
 }
 
 export function useNostrPublish() {
-  const sendDM = async (account: Account, message: string) => {
+  async function sendDM(account: Account, message: string) {
     if (!account?.nostr?.autoSync) return
     if (!account || !account.nostr) return
     const { commonNsec, commonNpub, deviceNsec, deviceNpub, relays } =
@@ -61,7 +61,7 @@ export function useNostrPublish() {
     }
   }
 
-  const sendPSBT = async (account: Account, psbt: string) => {
+  async function sendPSBT(account: Account, psbt: string) {
     if (!account?.nostr?.autoSync) return
     if (!account || !account.nostr) return
     const { deviceNsec, deviceNpub, relays } = account.nostr
