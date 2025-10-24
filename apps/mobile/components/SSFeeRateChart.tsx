@@ -5,18 +5,13 @@ import {
   vec
 } from '@shopify/react-native-skia'
 import React, { useMemo } from 'react'
-import { Animated, StyleSheet, Text, View } from 'react-native'
-import { Path, Svg } from 'react-native-svg'
+import { StyleSheet, Text, View } from 'react-native'
 import { CartesianChart, StackedArea } from 'victory-native'
 
 import { type MempoolStatistics } from '@/types/models/Blockchain'
 import { bytes } from '@/utils/bytes'
 
-import SSText from './SSText'
-
 const sansSerif = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
-
-const mVBLabels = ['18', '15', '12', '9', '6', '3', '0']
 
 export type SSFeeRateChartProps = {
   mempoolStatistics: MempoolStatistics[] | undefined
