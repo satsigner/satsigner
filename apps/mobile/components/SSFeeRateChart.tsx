@@ -21,6 +21,7 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
   const [, setH] = useState(0)
 
   const maxYDomainRef = useRef(0)
+  const isMvB = useRef(false)
 
   const data = useMemo(() => {
     if (!mempoolStatistics) return []
@@ -56,6 +57,7 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
         let convertFunction = bytes.toKilo
         if (max > Y_VALUE_THRESHOLD_MVB) {
           convertFunction = bytes.toMega
+          isMvB.current = true
         }
 
         const convertedMax = convertFunction(max)
@@ -167,24 +169,17 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
         padding={{ left: 8 }}
         domain={{ y: [0, maxYDomainRef.current] }}
         domainPadding={{ top: 100 }}
-        xAxis={{
-          font,
-          labelColor: '#787878',
-          tickCount: 4,
-          labelOffset: 4
-        }}
-        yAxis={[
-          {
-            font,
-            labelColor: '#fff',
-            linePathEffect: <DashPathEffect intervals={[4, 4]} />,
-            labelOffset: 8,
-            axisSide: 'right'
-          }
-        ]}
         onChartBoundsChange={({ left, right, top, bottom }) => {
           setW(right - left)
           setH(bottom - top)
+        }}
+        axisOptions={{
+          font,
+          formatYLabel: (v) => `${v} ${isMvB.current ? 'MvB' : 'kvB'}`,
+          axisSide: { x: 'bottom', y: 'right' },
+          labelColor: { x: '#787878', y: '#ffffff' },
+          tickCount: { x: 4, y: 8 },
+          labelOffset: { x: 4, y: 8 }
         }}
       >
         {({ points, chartBounds }) => (
