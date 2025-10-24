@@ -29,59 +29,41 @@ export default function LNDRestPage() {
   }
 
   const fetchLNDConfig = async (configUrl: string): Promise<LNDConfig> => {
-    try {
-      const response = await fetch(configUrl)
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch LND config: ${response.status} ${response.statusText}`
-        )
-      }
-      const text = await response.text()
-
-      // Parse the JSON response
-      const jsonConfig = JSON.parse(text)
-
-      // The config should have a configurations array with the first item containing our config
-      if (!jsonConfig.configurations?.[0]) {
-        throw new Error('Invalid config format: missing configurations array')
-      }
-
-      const config = jsonConfig.configurations[0]
-
-      // Extract the required fields
-      const lndConfig: LNDConfig = {
-        macaroon: config.macaroon,
-        cert: config.cert,
-        url: config.uri // Note: in JSON format it's 'uri' instead of 'url'
-      }
-
-      if (!lndConfig.macaroon || !lndConfig.url) {
-        throw new Error(
-          `Invalid config format: missing required fields. Found: ${Object.keys(
-            lndConfig
-          ).join(', ')}`
-        )
-      }
-
-      return lndConfig
-    } catch (_error) {
-      console.error('Config fetch error:', _error)
-      throw _error
+    const response = await fetch(configUrl)
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch LND config: ${response.status} ${response.statusText}`
+      )
     }
-  }
+    const text = await response.text()
 
-  // const testLNDConnection = async (config: LNDConfig): Promise<boolean> => {
-  //   try {
-  //     const response = await fetch(`${config.url}/v1/getinfo`, {
-  //       headers: {
-  //         'Grpc-Metadata-macaroon': config.macaroon
-  //       }
-  //     })
-  //     return response.ok
-  //   } catch (_error) {
-  //     return false
-  //   }
-  // }
+    // Parse the JSON response
+    const jsonConfig = JSON.parse(text)
+
+    // The config should have a configurations array with the first item containing our config
+    if (!jsonConfig.configurations?.[0]) {
+      throw new Error('Invalid config format: missing configurations array')
+    }
+
+    const config = jsonConfig.configurations[0]
+
+    // Extract the required fields
+    const lndConfig: LNDConfig = {
+      macaroon: config.macaroon,
+      cert: config.cert,
+      url: config.uri // Note: in JSON format it's 'uri' instead of 'url'
+    }
+
+    if (!lndConfig.macaroon || !lndConfig.url) {
+      throw new Error(
+        `Invalid config format: missing required fields. Found: ${Object.keys(
+          lndConfig
+        ).join(', ')}`
+      )
+    }
+
+    return lndConfig
+  }
 
   const handleConnect = async () => {
     if (!connectionString.trim()) return

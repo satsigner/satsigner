@@ -30,7 +30,7 @@ export default function Features() {
             <SSVStack>
               <SSSettingsCards
                 title={tn('server.title')}
-                description={tn('server.description')}
+                description={tn('server.descriptionLabel')}
                 icon={<SSIconServer width={24} height={24} />}
                 onPress={() => {
                   router.navigate('/settings/network/server')

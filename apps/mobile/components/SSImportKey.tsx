@@ -19,7 +19,6 @@ import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type CreationType } from '@/types/models/Account'
-import { isBBQRFragment } from '@/utils/bbqr'
 import { convertKeyFormat } from '@/utils/bitcoin'
 import {
   isCombinedDescriptor,
@@ -297,72 +296,6 @@ export default function SSImportKey({
 
     // Use the network-aware conversion utility
     return convertKeyFormat(vpub, 'tpub', network)
-  }
-
-  // Helper functions for QR code detection and parsing
-  const _detectQRType = (data: string) => {
-    // Check for RAW format (pXofY header)
-    if (/^p\d+of\d+\s/.test(data)) {
-      const match = data.match(/^p(\d+)of(\d+)\s/)
-      if (match) {
-        return {
-          type: 'raw' as const,
-          current: parseInt(match[1], 10) - 1, // Convert to 0-based index
-          total: parseInt(match[2], 10),
-          content: data.substring(match[0].length)
-        }
-      }
-    }
-
-    // Check for BBQR format
-    if (isBBQRFragment(data)) {
-      const total = parseInt(data.slice(4, 6), 36)
-      const current = parseInt(data.slice(6, 8), 36)
-      return {
-        type: 'bbqr' as const,
-        current,
-        total,
-        content: data
-      }
-    }
-
-    // Check for UR format (crypto-account, crypto-psbt, etc.)
-    if (data.toLowerCase().startsWith('ur:crypto-')) {
-      // UR format: ur:crypto-*/[sequence]/[data] for multi-part
-      // or ur:crypto-*/[data] for single part
-      const urMatch = data.match(/^ur:crypto-[^/]+\/(?:(\d+)-(\d+)\/)?(.+)$/i)
-      if (urMatch) {
-        const [, currentStr, totalStr] = urMatch
-
-        if (currentStr && totalStr) {
-          // Multi-part UR
-          const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
-          const total = parseInt(totalStr, 10)
-          return {
-            type: 'ur' as const,
-            current,
-            total,
-            content: data
-          }
-        } else {
-          // Single-part UR
-          return {
-            type: 'ur' as const,
-            current: 0,
-            total: 1,
-            content: data
-          }
-        }
-      }
-    }
-
-    // Single QR code (no multi-part format detected)
-    return {
-      type: 'single' as const,
-      current: 0,
-      total: 1,
-      content: data
-    }
   }
 
   function resetScanProgress() {

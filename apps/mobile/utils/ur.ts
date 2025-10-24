@@ -1,11 +1,5 @@
 import { UR, URDecoder, UREncoder } from '@ngraveio/bc-ur'
-import * as bitcoin from 'bitcoinjs-lib'
 import { Buffer } from 'buffer'
-
-export interface URData {
-  type: string
-  data: Uint8Array
-}
 
 /**
  * Manually create CBOR-encoded crypto-psbt UR data
@@ -96,52 +90,6 @@ export function getURFragmentsFromPSBT(
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     throw new Error(`Failed to generate UR fragments: ${message}`)
-  }
-}
-
-/**
- * Simple base32 decoder for UR data
- * This is a fallback when the proper UR library fails
- */
-function _decodeBase32ToHex(base32Data: string): string {
-  try {
-    // Base32 alphabet used by UR format
-    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
-    const base32Clean = base32Data.toUpperCase().replace(/[^A-Z2-7]/g, '')
-
-    let bits = ''
-    for (const char of base32Clean) {
-      const index = alphabet.indexOf(char)
-      if (index === -1) continue
-      bits += index.toString(2).padStart(5, '0')
-    }
-
-    // Convert bits to bytes
-    const bytes: number[] = []
-    for (let i = 0; i < bits.length - 7; i += 8) {
-      const byte = parseInt(bits.slice(i, i + 8), 2)
-      bytes.push(byte)
-    }
-
-    // Convert to hex
-    const hexResult = bytes.map((b) => b.toString(16).padStart(2, '0')).join('')
-
-    // The hexResult is CBOR-encoded data, we need to decode it to get the actual PSBT
-    try {
-      const cborBytes = Buffer.from(hexResult, 'hex')
-      const psbtBytes = parseCBORByteString(new Uint8Array(cborBytes))
-      const psbtHex = Buffer.from(Array.from(psbtBytes)).toString('hex')
-      return psbtHex
-    } catch (_cborError) {
-      // Check if the raw hex might already be PSBT format
-      if (hexResult.toLowerCase().startsWith('70736274')) {
-        return hexResult
-      }
-      // Return raw hex as fallback
-      return hexResult
-    }
-  } catch (_error) {
-    throw new Error('Failed to decode base32 data')
   }
 }
 
@@ -291,98 +239,6 @@ export function decodeMultiPartURToPSBT(urFragments: string[]): string {
         error instanceof Error ? error.message : String(error)
       }`
     )
-  }
-}
-
-/**
- * Extract final transaction hex from PSBT data by finalizing all inputs
- * This properly handles PSBTs by finalizing them and extracting the final transaction
- */
-function _extractFinalTransactionHexFromPSBT(psbtHex: string): string {
-  try {
-    const psbt = bitcoin.Psbt.fromHex(psbtHex)
-
-    // Try extraction first (in case it's already finalized)
-    try {
-      const tx = psbt.extractTransaction()
-      const txHex = tx.toHex()
-      return txHex
-    } catch (_directError) {
-      // If direct extraction fails, try finalizing first
-      try {
-        // Create a new PSBT instance to avoid state issues
-        const freshPsbt = bitcoin.Psbt.fromHex(psbtHex)
-        freshPsbt.finalizeAllInputs()
-
-        const tx = freshPsbt.extractTransaction()
-        const txHex = tx.toHex()
-        return txHex
-      } catch (_finalizeError) {
-        // Last resort: try manual witness extraction if this is a witness transaction
-        try {
-          const manualTxHex = extractWitnessTransactionFromPSBT(psbtHex)
-          if (
-            manualTxHex &&
-            (manualTxHex.startsWith('01000000') ||
-              manualTxHex.startsWith('02000000'))
-          ) {
-            return manualTxHex
-          }
-        } catch (_manualError) {
-          // Continue to final error
-        }
-
-        throw _finalizeError
-      }
-    }
-  } catch (error) {
-    throw new Error(
-      `Failed to extract final transaction: ${(error as Error).message}`
-    )
-  }
-}
-
-/**
- * Manual extraction of witness transaction from PSBT hex
- * This is a fallback when bitcoinjs-lib extraction fails
- */
-function extractWitnessTransactionFromPSBT(psbtHex: string): string {
-  try {
-    // PSBT format: magic(4) + separator(1) + length + global_map + input_maps + output_maps
-    // We need to find and extract the witness transaction
-
-    if (!psbtHex.toLowerCase().startsWith('70736274ff')) {
-      throw new Error('Not a valid PSBT (missing magic bytes)')
-    }
-
-    // Skip PSBT header: 70736274ff (5 bytes)
-    const offset = 10 // 5 bytes * 2 hex chars
-
-    // Skip global map length and data
-    // This is a simplified approach - in reality we'd need to parse the full PSBT structure
-    // But for now, let's try to find the transaction data after the PSBT header
-
-    // Look for transaction version (01000000 or 02000000) after the PSBT header
-    for (let i = offset; i < psbtHex.length - 16; i += 2) {
-      const potential = psbtHex.substring(i, i + 16).toLowerCase()
-      if (
-        potential.startsWith('01000000') ||
-        potential.startsWith('02000000')
-      ) {
-        // Try to extract from this point to the end
-        const remainingHex = psbtHex.substring(i)
-
-        // Use the full remaining hex to preserve all transaction data
-        // This ensures we don't cut off essential witness/signature data
-        if (remainingHex.length >= 60) {
-          return remainingHex
-        }
-      }
-    }
-
-    throw new Error('No valid transaction data found in PSBT')
-  } catch (error) {
-    throw new Error(`Manual extraction failed: ${(error as Error).message}`)
   }
 }
 
