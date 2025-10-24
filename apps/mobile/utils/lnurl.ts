@@ -287,33 +287,33 @@ export async function handleLNURLPay(
 export async function fetchLNURLWithdrawDetails(
   url: string
 ): Promise<LNURLWithdrawDetails> {
-    const response = await fetch(url)
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-    const data = await response.json()
+  const response = await fetch(url)
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+  const data = await response.json()
 
-    if (data.tag !== 'withdrawRequest') {
-      throw new Error('Invalid LNURL: not a withdraw request')
-    }
+  if (data.tag !== 'withdrawRequest') {
+    throw new Error('Invalid LNURL: not a withdraw request')
+  }
 
-    if (
-      !data.callback ||
-      !data.k1 ||
-      typeof data.minWithdrawable !== 'number' ||
+  if (
+    !data.callback ||
+    !data.k1 ||
+    typeof data.minWithdrawable !== 'number' ||
     typeof data.maxWithdrawable !== 'number'
-    ) {
-      throw new Error('Invalid LNURL withdraw details: missing required fields')
-    }
+  ) {
+    throw new Error('Invalid LNURL withdraw details: missing required fields')
+  }
 
-    return {
-      callback: data.callback,
-      k1: data.k1,
-      minWithdrawable: data.minWithdrawable,
-      maxWithdrawable: data.maxWithdrawable,
-      defaultDescription: data.defaultDescription,
-      tag: data.tag
-    }
+  return {
+    callback: data.callback,
+    k1: data.k1,
+    minWithdrawable: data.minWithdrawable,
+    maxWithdrawable: data.maxWithdrawable,
+    defaultDescription: data.defaultDescription,
+    tag: data.tag
+  }
 }
 
 export async function requestLNURLWithdrawInvoice(
@@ -323,40 +323,36 @@ export async function requestLNURLWithdrawInvoice(
   description?: string,
   pr?: string
 ): Promise<LNURLWithdrawResponse> {
-    // Convert millisats to sats for the request
-    const amountSats = Math.floor(amount / 1000)
+  // Convert millisats to sats for the request
+  const amountSats = Math.floor(amount / 1000)
 
-    // Build callback URL with parameters
-    const url = new URL(callback)
-    url.searchParams.append('k1', k1)
-    url.searchParams.append('amount', amountSats.toString())
-    if (description) {
-      url.searchParams.append('description', description)
-    }
-    if (pr) {
-      url.searchParams.append('pr', pr)
-    }
+  // Build callback URL with parameters
+  const url = new URL(callback)
+  url.searchParams.append('k1', k1)
+  url.searchParams.append('amount', amountSats.toString())
+  if (description) {
+    url.searchParams.append('description', description)
+  }
+  if (pr) {
+    url.searchParams.append('pr', pr)
+  }
 
-    const response = await fetch(url.toString())
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('❌ Withdraw request failed:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText
-      })
-      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`)
-    }
+  const response = await fetch(url.toString())
+  if (!response.ok) {
+    const errorText = await response.text()
 
-    const data = await response.json()
+    throw new Error(`HTTP error! status: ${response.status} - ${errorText}`)
+  }
 
-    if (data.status === 'ERROR') {
-      throw new Error(data.reason || 'Unknown error from LNURL service')
-    }
+  const data = await response.json()
 
-    if (data.status !== 'OK') {
-      throw new Error('Invalid response from LNURL service')
-    }
+  if (data.status === 'ERROR') {
+    throw new Error(data.reason || 'Unknown error from LNURL service')
+  }
 
-    return data
+  if (data.status !== 'OK') {
+    throw new Error('Invalid response from LNURL service')
+  }
+
+  return data
 }
