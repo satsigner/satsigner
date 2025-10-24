@@ -6,7 +6,6 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  Animated,
   type LayoutChangeEvent,
   ScrollView,
   TouchableOpacity,
