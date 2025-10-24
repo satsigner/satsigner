@@ -4,7 +4,7 @@ import {
   useFont,
   vec
 } from '@shopify/react-native-skia'
-import React, { useMemo } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { CartesianChart, StackedArea } from 'victory-native'
 
@@ -20,13 +20,17 @@ export type SSFeeRateChartProps = {
 
 function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
   const font = useFont(sansSerif, 12)
-  const [, setW] = React.useState(0)
-  const [, setH] = React.useState(0)
+  const [, setW] = useState(0)
+  const [, setH] = useState(0)
 
-  const processData = useMemo(() => {
+  const maxYDomainRef = useRef(100)
+
+  const data = useMemo(() => {
     if (!mempoolStatistics) return []
 
-    return mempoolStatistics
+    let maxYDomain = 100
+
+    const result = mempoolStatistics
       .map((entry) => {
         const date = new Date(entry.added * 1000)
         let timestamp
@@ -49,34 +53,59 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
             hour12: false
           })
         }
-        const quarter = Math.floor(entry.vsizes.length / 4)
 
-        // Group vsizes into fee ranges
+        const max = bytes.toKilo(Math.max(...entry.vsizes))
+        if (max > maxYDomain) maxYDomain = max + 10 // +10 for the chart to have y-axis breathing space
+
         return {
           x: timestamp,
-          high: bytes.toMega(
-            entry.vsizes
-              .slice(0, quarter)
-              .reduce((sum, current) => sum + current, 0)
-          ),
-          medium: bytes.toMega(
-            entry.vsizes
-              .slice(quarter, 2 * quarter)
-              .reduce((sum, current) => sum + current, 0)
-          ),
-          low: bytes.toMega(
-            entry.vsizes
-              .slice(2 * quarter, 3 * quarter)
-              .reduce((sum, current) => sum + current, 0)
-          ),
-          veryLow: bytes.toMega(
-            entry.vsizes
-              .slice(3 * quarter)
-              .reduce((sum, current) => sum + current, 0)
+          '1-2': bytes.toKilo(entry.vsizes[1] || 0),
+          '2-3': bytes.toKilo(entry.vsizes[2] || 0),
+          '3-4': bytes.toKilo(entry.vsizes[3] || 0),
+          '4-5': bytes.toKilo(entry.vsizes[4] || 0),
+          '5-6': bytes.toKilo(entry.vsizes[5] || 0),
+          '6-8': bytes.toKilo(entry.vsizes[6] || 0),
+          '8-10': bytes.toKilo(entry.vsizes[7] || 0),
+          '10-12': bytes.toKilo(entry.vsizes[8] || 0),
+          '12-15': bytes.toKilo(entry.vsizes[9] || 0),
+          '15-20': bytes.toKilo(entry.vsizes[10] || 0),
+          '20-30': bytes.toKilo(entry.vsizes[11] || 0),
+          '30-40': bytes.toKilo(entry.vsizes[12] || 0),
+          '40-50': bytes.toKilo(entry.vsizes[13] || 0),
+          '50-60': bytes.toKilo(entry.vsizes[14] || 0),
+          '60-70': bytes.toKilo(entry.vsizes[15] || 0),
+          '70-80': bytes.toKilo(entry.vsizes[16] || 0),
+          '80-90': bytes.toKilo(entry.vsizes[17] || 0),
+          '90-100': bytes.toKilo(entry.vsizes[18] || 0),
+          '100-125': bytes.toKilo(entry.vsizes[19] || 0),
+          '125-150': bytes.toKilo(entry.vsizes[20] || 0),
+          '150-175': bytes.toKilo(entry.vsizes[21] || 0),
+          '175-200': bytes.toKilo(entry.vsizes[22] || 0),
+          '200-250': bytes.toKilo(entry.vsizes[23] || 0),
+          '250-300': bytes.toKilo(entry.vsizes[24] || 0),
+          '300-350': bytes.toKilo(entry.vsizes[25] || 0),
+          '350-400': bytes.toKilo(entry.vsizes[26] || 0),
+          '400-500': bytes.toKilo(entry.vsizes[27] || 0),
+          '500-600': bytes.toKilo(entry.vsizes[28] || 0),
+          '600-700': bytes.toKilo(entry.vsizes[29] || 0),
+          '700-800': bytes.toKilo(entry.vsizes[30] || 0),
+          '800-900': bytes.toKilo(entry.vsizes[31] || 0),
+          '900-1000': bytes.toKilo(entry.vsizes[32] || 0),
+          '1000-1200': bytes.toKilo(entry.vsizes[33] || 0),
+          '1200-1400': bytes.toKilo(entry.vsizes[34] || 0),
+          '1400+': bytes.toKilo(
+            (entry.vsizes[35] || 0) +
+              (entry.vsizes[36] || 0) +
+              (entry.vsizes[37] || 0) +
+              (entry.vsizes[38] || 0)
           )
         }
       })
       .reverse()
+
+    maxYDomainRef.current = maxYDomain
+
+    return result
   }, [mempoolStatistics, timeRange])
 
   if (!mempoolStatistics)
@@ -89,11 +118,47 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
   return (
     <View style={styles.container}>
       <CartesianChart
-        data={processData}
+        data={data}
         xKey="x"
-        yKeys={['veryLow', 'low', 'medium', 'high']}
+        yKeys={[
+          '1-2',
+          '2-3',
+          '3-4',
+          '4-5',
+          '5-6',
+          '6-8',
+          '8-10',
+          '10-12',
+          '12-15',
+          '15-20',
+          '20-30',
+          '30-40',
+          '40-50',
+          '50-60',
+          '60-70',
+          '70-80',
+          '80-90',
+          '90-100',
+          '100-125',
+          '125-150',
+          '150-175',
+          '175-200',
+          '200-250',
+          '250-300',
+          '300-350',
+          '350-400',
+          '400-500',
+          '500-600',
+          '600-700',
+          '700-800',
+          '800-900',
+          '900-1000',
+          '1000-1200',
+          '1200-1400',
+          '1400+'
+        ]}
         padding={{ left: 8 }}
-        domain={{ y: [0, 25] }}
+        domain={{ y: [0, maxYDomainRef.current] }}
         xAxis={{
           font,
           labelColor: '#787878',
@@ -116,7 +181,43 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
       >
         {({ points, chartBounds }) => (
           <StackedArea
-            points={[points.high, points.medium, points.low, points.veryLow]}
+            points={[
+              points['1-2'],
+              points['2-3'],
+              points['3-4'],
+              points['4-5'],
+              points['5-6'],
+              points['6-8'],
+              points['8-10'],
+              points['10-12'],
+              points['12-15'],
+              points['15-20'],
+              points['20-30'],
+              points['30-40'],
+              points['40-50'],
+              points['50-60'],
+              points['60-70'],
+              points['70-80'],
+              points['80-90'],
+              points['90-100'],
+              points['100-125'],
+              points['125-150'],
+              points['150-175'],
+              points['175-200'],
+              points['200-250'],
+              points['250-300'],
+              points['300-350'],
+              points['350-400'],
+              points['400-500'],
+              points['500-600'],
+              points['600-700'],
+              points['700-800'],
+              points['800-900'],
+              points['900-1000'],
+              points['1000-1200'],
+              points['1200-1400'],
+              points['1400+']
+            ]}
             y0={chartBounds.bottom}
             curveType="natural"
             animate={{ type: 'spring' }}
