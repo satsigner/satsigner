@@ -1,4 +1,4 @@
-import { DashPathEffect, useFont } from '@shopify/react-native-skia'
+import { useFont } from '@shopify/react-native-skia'
 import { useMemo, useRef, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { CartesianChart, StackedArea } from 'victory-native'
