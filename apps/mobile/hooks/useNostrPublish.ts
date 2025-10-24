@@ -56,7 +56,7 @@ export function useNostrPublish() {
         )
         await nostrApi.publishEvent(eventKind1059)
       }
-    } catch (_error) {
+    } catch {
       toast.error('Failed to send message')
     }
   }

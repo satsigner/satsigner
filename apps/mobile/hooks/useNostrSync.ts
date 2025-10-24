@@ -444,7 +444,7 @@ function useNostrSync() {
     }
   }
 
-  const loadStoredDMs = async (account?: Account) => {
+  async function loadStoredDMs(account?: Account) {
     if (!account) return []
     return account.nostr?.dms || []
   }
@@ -527,7 +527,7 @@ function useNostrSync() {
     }
   }
 
-  const deviceAnnouncement = async (account?: Account) => {
+  async function deviceAnnouncement(account?: Account) {
     if (!account?.nostr?.autoSync) return
     if (!account || !account.nostr) return
     const { commonNsec, commonNpub, deviceNpub, relays } = account.nostr

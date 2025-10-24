@@ -1,3 +1,4 @@
+import { type TxBuilderResult } from 'bdk-rn/lib/classes/Bindings'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { useRouter } from 'expo-router'
 import { toast } from 'sonner-native'
@@ -130,18 +131,10 @@ export function useNostrSignFlow() {
       })
       setSignedPsbts(signedPsbtsMap)
 
-      const mockTxBuilderResult = {
-        psbt: {
-          base64: originalPsbt,
-          serialize: () => Promise.resolve(originalPsbt),
-          txid: () => Promise.resolve(extractedTxid)
-        },
-        txDetails: {
-          txid: extractedTxid,
-          fee
-        }
-      }
-      setTxBuilderResult(mockTxBuilderResult as any)
+      setTxBuilderResult({
+        psbt: { base64: originalPsbt },
+        txDetails: { txid: extractedTxid, fee }
+      } as TxBuilderResult)
 
       router.replace(
         `/account/${accountMatch.account.id}/signAndSend/previewMessage`
