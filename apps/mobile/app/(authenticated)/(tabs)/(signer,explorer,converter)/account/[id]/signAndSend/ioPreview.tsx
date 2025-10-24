@@ -240,11 +240,6 @@ export default function IOPreview() {
     staleTime: time.minutes(5)
   })
 
-  const boxPosition = useMemo(
-    () => new Animated.Value(localFeeRate),
-    [localFeeRate]
-  )
-
   const remainingBalance = useMemo(() => {
     const totalInputValue = utxosSelectedValue
     const totalOutputValue = outputs.reduce(
@@ -291,14 +286,6 @@ export default function IOPreview() {
   useEffect(() => {
     setLocalFeeRate(feeRate)
   }, [feeRate])
-
-  useEffect(() => {
-    Animated.timing(boxPosition, {
-      toValue: localFeeRate,
-      duration: 100,
-      useNativeDriver: true
-    }).start()
-  }, [localFeeRate, boxPosition])
 
   function handleQRCodeScanned(address: string | undefined) {
     if (!address) return
@@ -920,7 +907,6 @@ export default function IOPreview() {
           <SSFeeRateChart
             mempoolStatistics={mempoolStatistics}
             timeRange="2hours"
-            boxPosition={boxPosition}
           />
           <SSFeeInput
             value={localFeeRate}
