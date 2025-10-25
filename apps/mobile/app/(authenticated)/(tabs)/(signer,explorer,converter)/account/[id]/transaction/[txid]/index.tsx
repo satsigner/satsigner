@@ -458,6 +458,12 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
                   />
                 </SSVStack>
               </TouchableOpacity>
+              {account && account.labels[`${tx.id}:${index}`] && (
+                <SSVStack>
+                  <SSText>{t('common.label')}</SSText>
+                  <SSText>{account.labels[`${tx.id}:${index}`].label}</SSText>
+                </SSVStack>
+              )}
               <SSVStack>
                 <SSText uppercase weight="bold" size="md">
                   {t('transaction.unlockingScript')}
