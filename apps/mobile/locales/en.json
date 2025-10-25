@@ -114,7 +114,7 @@
     "import.zpub": "Import ZPub",
     "key.number": "Key number",
     "load.sample.bitcoin.address.salvador": "Watch-only Address (EI Salvador)",
-    "load.sample.bitcoin.address.segwit": "Watch-only Segwit Xpub",
+    "load.sample.bitcoin.address.segwit": "Watch-only Segwit Address",
     "load.sample.bitcoin.address.tether": "Multi-address watch-only (Tether)",
     "load.sample.signet.address": "Watch-only address",
     "load.sample.signet.legacy": "Legacy Signlesig",

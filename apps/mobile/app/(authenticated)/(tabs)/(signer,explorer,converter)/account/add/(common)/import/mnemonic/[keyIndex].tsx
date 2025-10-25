@@ -161,9 +161,7 @@ export default function ImportMnemonic() {
     if (syncedAccount && !loadingAccount) {
       clearAccount()
       router.dismissAll()
-      router.replace(
-        '/(authenticated)/(tabs)/(signer,explorer,converter)/' as any
-      )
+      router.navigate(`/account/${syncedAccount.id}`)
     }
   }
 
