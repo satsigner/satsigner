@@ -469,14 +469,18 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
                   copyToClipboard={false}
                   variant="bare"
                   color="muted"
-                  size="sm"
+                  size="md"
                 />
               </SSVStack>
             </TouchableOpacity>
             {labelsDict[index] && (
-              <SSVStack>
-                <SSText>{t('common.label')}</SSText>
-                <SSText>{labelsDict[index]}</SSText>
+              <SSVStack gap="none">
+                <SSText uppercase weight="bold" size="md">
+                  {t('common.label')}
+                </SSText>
+                <SSText color="muted" size="md">
+                  {labelsDict[index]}
+                </SSText>
               </SSVStack>
             )}
             <SSVStack>
