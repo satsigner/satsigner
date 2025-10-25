@@ -402,20 +402,21 @@ type SSTxDetailsOutputsProps = {
 
 function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
   const account = useAccountsStore((state) =>
-    state.accounts.find((account) => account.name === accountId)
+    state.accounts.find((account) => account.id === accountId)
   )
 
   const utxoDict: Record<string, boolean> = {}
   const addressDict: Record<string, boolean> = {}
-  const labelsDict: Record<number, string> = {}
+  const labelsDict: Record<string, string> = {} // FIX: not reactive
 
-  if (account) {
+  useEffect(() => {
+    if (!account) return
     account.utxos.forEach((utxo) => (utxoDict[getUtxoOutpoint(utxo)] = true))
     account.addresses.forEach((addr) => (addressDict[addr.address] = true))
     tx?.vout.forEach((_output, index) => {
       labelsDict[index] = account.labels[`${tx.id}:${index}`]?.label
     })
-  }
+  }, [account]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!tx || !tx.vout) return null
 
