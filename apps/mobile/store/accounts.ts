@@ -218,6 +218,15 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (account: Account) => account.id === accountId
             )
+
+            const currentLabel = state.accounts[index].labels[addr] || {}
+            state.accounts[index].labels[addr] = {
+              ...currentLabel,
+              type: 'addr',
+              ref: addr,
+              label
+            }
+
             state.accounts[index].addresses[addrIndex].label = label
           })
         )
@@ -243,6 +252,15 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (account: Account) => account.id === accountId
             )
+
+            const currentLabel = state.accounts[index].labels[txid] || {}
+            state.accounts[index].labels[txid] = {
+              ...currentLabel,
+              type: 'tx',
+              ref: txid,
+              label
+            }
+
             state.accounts[index].transactions[txIndex].label = label
           })
         )
@@ -271,6 +289,16 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (account: Account) => account.id === accountId
             )
+
+            const utxoRef = `${txid}:${vout}`
+            const currentLabel = state.accounts[index].labels[utxoRef] || {}
+            state.accounts[index].labels[utxoRef] = {
+              ...currentLabel,
+              type: 'utxo',
+              ref: utxoRef,
+              label
+            }
+
             state.accounts[index].utxos[utxoIndex].label = label
           })
         )
@@ -313,6 +341,8 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             )
             labels.forEach((labelObj) => {
               const label = labelObj.label
+
+              state.accounts[index].labels[labelObj.ref] = labelObj
 
               if (
                 labelObj.type === 'tx' &&

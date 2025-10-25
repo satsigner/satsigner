@@ -70,16 +70,20 @@ function useSyncAccountWithWallet() {
       //Attach additional information to the account addresses
       updatedAccount.addresses = parseAccountAddressesDetails(updatedAccount)
 
-      //Labels update
+      // UTXO labels update
       for (const index in updatedAccount.utxos) {
         const utxoRef = getUtxoOutpoint(updatedAccount.utxos[index])
         updatedAccount.utxos[index].label = labelsBackup[utxoRef] || ''
       }
+
+      // TX label update
       for (const index in updatedAccount.transactions) {
         const transactionRef = updatedAccount.transactions[index].id
-        updatedAccount.transactions[index].label =
-          labelsBackup[transactionRef] || ''
+        const currentLabel = labelsBackup[transactionRef] || ''
+        updatedAccount.transactions[index].label = currentLabel
       }
+
+      // Address label update
       for (const index in updatedAccount.addresses) {
         const addressRef = updatedAccount.addresses[index].address
         updatedAccount.addresses[index].label = labelsBackup[addressRef] || ''
