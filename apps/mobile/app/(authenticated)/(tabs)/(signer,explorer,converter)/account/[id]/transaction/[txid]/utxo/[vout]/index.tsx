@@ -142,17 +142,43 @@ function UtxoDetails({
   )
 }
 
+function formatTxOutputToUtxo(
+  tx: Transaction | undefined,
+  vout: number,
+  keychain: 'internal' | 'external' = 'external'
+): Utxo | undefined {
+  if (!tx || !tx.vout[vout]) return undefined
+  const output = tx.vout[vout]
+  return {
+    txid: tx.id,
+    vout,
+    value: output.value,
+    label: output.label,
+    addressTo: output.address,
+    script: output.script,
+    timestamp: tx.timestamp,
+    keychain
+  }
+}
+
 function UtxoDetailsPage() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 
-  const [tx, utxo] = useAccountsStore((state) => [
+  const tx = useAccountsStore((state) =>
     state.accounts
       .find((account) => account.id === accountId)
-      ?.transactions.find((tx) => tx.id === txid),
-    state.accounts
-      .find((account) => account.id === accountId)
-      ?.utxos.find((u) => u.txid === txid && u.vout === Number(vout))
-  ])
+      ?.transactions.find((tx) => tx.id === txid)
+  )
+
+  const utxoFromTx = formatTxOutputToUtxo(tx, Number(vout))
+
+  const utxo = useAccountsStore(
+    (state) =>
+      state.accounts
+        .find((account) => account.id === accountId)
+        ?.utxos.find((u) => u.txid === txid && u.vout === Number(vout)) ||
+      utxoFromTx
+  )
 
   function navigateToTx() {
     if (!accountId || !txid) return
