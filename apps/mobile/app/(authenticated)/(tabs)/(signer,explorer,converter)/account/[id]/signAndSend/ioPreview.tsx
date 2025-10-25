@@ -6,7 +6,6 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  Animated,
   type LayoutChangeEvent,
   ScrollView,
   TouchableOpacity,
@@ -149,6 +148,8 @@ export default function IOPreview() {
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [topGradientHeight, setTopGradientHeight] = useState(0)
 
+  const [previousUserSelectedUtxos, setPreviousUserSelectedUtxos] =
+    useState<Utxo[]>()
   const [localFeeRate, setLocalFeeRate] = useState(feeRate)
   const [outputsCount, setOutputsCount] = useState(0)
   const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
@@ -238,11 +239,6 @@ export default function IOPreview() {
     staleTime: time.minutes(5)
   })
 
-  const boxPosition = useMemo(
-    () => new Animated.Value(localFeeRate),
-    [localFeeRate]
-  )
-
   const remainingBalance = useMemo(() => {
     const totalInputValue = utxosSelectedValue
     const totalOutputValue = outputs.reduce(
@@ -289,14 +285,6 @@ export default function IOPreview() {
   useEffect(() => {
     setLocalFeeRate(feeRate)
   }, [feeRate])
-
-  useEffect(() => {
-    Animated.timing(boxPosition, {
-      toValue: localFeeRate,
-      duration: 100,
-      useNativeDriver: true
-    }).start()
-  }, [localFeeRate, boxPosition])
 
   function handleQRCodeScanned(address: string | undefined) {
     if (!address) return
@@ -396,6 +384,16 @@ export default function IOPreview() {
     setAddOutputModalVisible(true)
   }
 
+  function setAccountUtxos(utxos: Utxo[]) {
+    for (const utxo of account.utxos) {
+      removeInput(utxo)
+    }
+
+    for (const utxo of utxos) {
+      addInput(utxo)
+    }
+  }
+
   function handleOnChangeUtxoSelection(type: AutoSelectUtxosAlgorithms) {
     if (type === selectedAutoSelectUtxos) return
 
@@ -407,10 +405,19 @@ export default function IOPreview() {
     }
 
     switch (type) {
-      case 'user':
-        return router.back()
+      case 'user': {
+        if (previousUserSelectedUtxos) {
+          setAccountUtxos(previousUserSelectedUtxos)
+        } else {
+          return router.back()
+        }
+
+        break
+      }
       case 'privacy': {
         setLoadingOptimizeAlgorithm('privacy')
+
+        setPreviousUserSelectedUtxos(getInputs())
 
         toast.error('Not implemented yet')
 
@@ -418,6 +425,8 @@ export default function IOPreview() {
       }
       case 'efficiency': {
         setLoadingOptimizeAlgorithm('efficiency')
+
+        setPreviousUserSelectedUtxos(getInputs())
 
         const optimizationResult = selectEfficientUtxos(
           account.utxos.map((utxo) => ({
@@ -433,13 +442,7 @@ export default function IOPreview() {
           break
         }
 
-        for (const utxo of account.utxos) {
-          removeInput(utxo)
-        }
-
-        for (const utxo of optimizationResult.inputs) {
-          addInput(utxo)
-        }
+        setAccountUtxos(optimizationResult.inputs)
 
         break
       }
@@ -898,12 +901,17 @@ export default function IOPreview() {
       <SSBottomSheet
         ref={changeFeeBottomSheetRef}
         title={t('transaction.build.update.fee.title')}
+        paddingX={false}
       >
-        <SSVStack style={{ paddingBottom: 24 }}>
+        <SSVStack
+          style={{
+            paddingBottom: 24,
+            marginHorizontal: Layout.mainContainer.paddingHorizontal
+          }}
+        >
           <SSFeeRateChart
             mempoolStatistics={mempoolStatistics}
             timeRange="2hours"
-            boxPosition={boxPosition}
           />
           <SSFeeInput
             value={localFeeRate}
