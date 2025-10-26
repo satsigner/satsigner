@@ -3,36 +3,20 @@ import { ScrollView } from 'react-native'
 
 import SSLabelInput from '@/components/SSLabelInput'
 import SSText from '@/components/SSText'
+import useGetAccountTransactionOutput from '@/hooks/useGetAccountTransactionOutput'
 import useNostrSync from '@/hooks/useNostrSync'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type UtxoSearchParams } from '@/types/navigation/searchParams'
 import { type Label } from '@/utils/bip329'
-import { formatTxOutputToUtxo } from '@/utils/format'
 
 function UtxoLabel() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 
+  const setUtxoLabel = useAccountsStore((state) => state.setUtxoLabel)
+  const utxo = useGetAccountTransactionOutput(accountId, txid, Number(vout))
   const { sendLabelsToNostr } = useNostrSync()
-
-  const [account, setUtxoLabel] = useAccountsStore((state) => [
-    state.accounts
-      .find((account) => account.id === accountId),
-    state.setUtxoLabel
-  ])
-
-  const tx = account?.transactions.find((tx) => tx.id === txid)
-  const utxoLabel = account?.labels[`${txid}:${vout}`]?.label
-  const utxoFromTx = formatTxOutputToUtxo(tx, Number(vout))
-  const utxoFromAccount = account?.utxos.find(
-    (u) => u.txid === txid && u.vout === Number(vout)
-  )
-  const utxo = utxoFromAccount ? { ...utxoFromAccount } : utxoFromTx
-  if (utxoLabel && utxo) {
-    utxo.label = utxoLabel
-  }
-
 
   function updateLabel(label: string) {
     const updatedAccount = setUtxoLabel(accountId!, txid!, Number(vout!), label)

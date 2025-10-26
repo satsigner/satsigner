@@ -8,6 +8,7 @@ import SSLabelDetails from '@/components/SSLabelDetails'
 import SSScriptDecoded from '@/components/SSScriptDecoded'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
+import useGetAccountTransactionOutput from '@/hooks/useGetAccountTransactionOutput'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -145,27 +146,13 @@ function UtxoDetails({
 function UtxoDetailsPage() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 
-  const account = useAccountsStore((state) =>
-    state.accounts.find((account) => account.id === accountId)
+  const tx = useAccountsStore((state) =>
+    state.accounts
+      .find((account) => account.id === accountId)
+      ?.transactions.find((tx) => tx.id === txid)
   )
 
-  const tx = account?.transactions.find((tx) => tx.id === txid)
-  const utxoLabel = account?.labels[`${txid}:${vout}`]?.label
-
-  const utxoFromTx = formatTxOutputToUtxo(tx, Number(vout))
-  const utxoFromAccount = account?.utxos.find(
-    (u) => u.txid === txid && u.vout === Number(vout)
-  )
-
-  // we clone utxoFromAccount to avoid mutating store object,
-  // because we need to modify its label property.
-  const utxo = utxoFromAccount ? { ...utxoFromAccount } : utxoFromTx
-
-  if (utxoLabel && utxo) {
-    utxo.label = utxoLabel
-  }
-
-  console.log(utxo)
+  const utxo = useGetAccountTransactionOutput(accountId, txid, Number(vout))
 
   function navigateToTx() {
     if (!accountId || !txid) return
