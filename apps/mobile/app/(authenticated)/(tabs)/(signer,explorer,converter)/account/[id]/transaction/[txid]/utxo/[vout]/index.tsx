@@ -15,7 +15,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type UtxoSearchParams } from '@/types/navigation/searchParams'
-import { formatDate, formatNumber } from '@/utils/format'
+import { formatDate, formatNumber, formatTxOutputToUtxo } from '@/utils/format'
 
 type UtxoDetailsProps = {
   accountId: string
@@ -142,43 +142,30 @@ function UtxoDetails({
   )
 }
 
-function formatTxOutputToUtxo(
-  tx: Transaction | undefined,
-  vout: number,
-  keychain: 'internal' | 'external' = 'external'
-): Utxo | undefined {
-  if (!tx || !tx.vout[vout]) return undefined
-  const output = tx.vout[vout]
-  return {
-    txid: tx.id,
-    vout,
-    value: output.value,
-    label: output.label,
-    addressTo: output.address,
-    script: output.script,
-    timestamp: tx.timestamp,
-    keychain
-  }
-}
-
 function UtxoDetailsPage() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 
-  const tx = useAccountsStore((state) =>
-    state.accounts
-      .find((account) => account.id === accountId)
-      ?.transactions.find((tx) => tx.id === txid)
+  const account = useAccountsStore((state) =>
+    state.accounts.find((account) => account.id === accountId)
   )
+
+  const tx = account?.transactions.find((tx) => tx.id === txid)
+  const utxoLabel = account?.labels[`${txid}:${vout}`]?.label
 
   const utxoFromTx = formatTxOutputToUtxo(tx, Number(vout))
-
-  const utxo = useAccountsStore(
-    (state) =>
-      state.accounts
-        .find((account) => account.id === accountId)
-        ?.utxos.find((u) => u.txid === txid && u.vout === Number(vout)) ||
-      utxoFromTx
+  const utxoFromAccount = account?.utxos.find(
+    (u) => u.txid === txid && u.vout === Number(vout)
   )
+
+  // we clone utxoFromAccount to avoid mutating store object,
+  // because we need to modify its label property.
+  const utxo = utxoFromAccount ? { ...utxoFromAccount } : utxoFromTx
+
+  if (utxoLabel && utxo) {
+    utxo.label = utxoLabel
+  }
+
+  console.log(utxo)
 
   function navigateToTx() {
     if (!accountId || !txid) return

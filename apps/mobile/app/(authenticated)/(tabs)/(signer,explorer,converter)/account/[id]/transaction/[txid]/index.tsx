@@ -405,26 +405,31 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
     state.accounts.find((account) => account.id === accountId)
   )
 
-  const utxoDict: Record<string, boolean> = {}
+  const [utxoDict, setUtxoDict] = useState<Record<string, boolean>>({})
   const addressDict: Record<string, boolean> = {}
   const [labelsDict, setLabelsDict] = useState<Record<number, string>>({})
 
   useEffect(() => {
     if (!account) return
-    account.utxos.forEach((utxo) => (utxoDict[getUtxoOutpoint(utxo)] = true))
+
+    const utxos: Record<string, boolean> = {}
+    account.utxos.forEach((utxo) => (utxos[getUtxoOutpoint(utxo)] = true))
     account.addresses.forEach((addr) => (addressDict[addr.address] = true))
+    setUtxoDict(utxos)
 
     if (!tx) return
 
-    setLabelsDict(
-      tx.vout.reduce(
-        (labels, _, index) => {
-          labels[index] = account.labels[`${tx.id}:${index}`]?.label
-          return labels
-        },
-        {} as Record<number, string>
-      )
-    )
+    const labels: Record<number, string> = {}
+    tx.vout.forEach((_, index) => {
+      const utxoOutpoint = `${tx.id}:${index}`
+      const label = account.labels[utxoOutpoint]
+      if (! label) return
+      labels[index] = label.label
+      utxos[utxoOutpoint] = true
+
+    })
+    setLabelsDict(labels)
+    setUtxoDict(utxos)
   }, [account, tx]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!tx || !tx.vout) return null
@@ -435,6 +440,8 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
         <TouchableOpacity
           key={index}
           onPress={() => {
+            console.log(`${tx.id}:${index}`)
+            console.log(utxoDict[`${tx.id}:${index}`])
             if (utxoDict[`${tx.id}:${index}`]) {
               router.navigate(
                 `/account/${accountId}/transaction/${tx.id}/utxo/${index}`

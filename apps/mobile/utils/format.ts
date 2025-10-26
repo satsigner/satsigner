@@ -1,5 +1,7 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { t } from '@/locales'
+import { Transaction } from '@/types/models/Transaction'
+import { Utxo } from '@/types/models/Utxo'
 import { type PageParams } from '@/types/navigation/page'
 
 function formatAddress(address: string, character: number = 8) {
@@ -149,6 +151,25 @@ function formatTxId(txid: string, character: number = 6) {
   return `${beginning}...${end}`
 }
 
+function formatTxOutputToUtxo(
+  tx: Transaction | undefined,
+  vout: number,
+  keychain: 'internal' | 'external' = 'external'
+): Utxo | undefined {
+  if (!tx || !tx.vout[vout]) return undefined
+  const output = tx.vout[vout]
+  return {
+    txid: tx.id,
+    vout,
+    value: output.value,
+    label: output.label,
+    addressTo: output.address,
+    script: output.script,
+    timestamp: tx.timestamp,
+    keychain
+  }
+}
+
 export {
   formatAddress,
   formatConfirmations,
@@ -160,5 +181,6 @@ export {
   formatTime,
   formatTimeFromNow,
   formatTimestamp,
-  formatTxId
+  formatTxId,
+  formatTxOutputToUtxo
 }

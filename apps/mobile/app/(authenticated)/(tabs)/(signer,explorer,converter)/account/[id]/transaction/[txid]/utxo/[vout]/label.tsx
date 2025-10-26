@@ -9,18 +9,30 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type UtxoSearchParams } from '@/types/navigation/searchParams'
 import { type Label } from '@/utils/bip329'
+import { formatTxOutputToUtxo } from '@/utils/format'
 
 function UtxoLabel() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 
   const { sendLabelsToNostr } = useNostrSync()
 
-  const [utxo, setUtxoLabel] = useAccountsStore((state) => [
+  const [account, setUtxoLabel] = useAccountsStore((state) => [
     state.accounts
-      .find((account) => account.id === accountId)
-      ?.utxos.find((utxo) => utxo.txid === txid && utxo.vout === Number(vout)),
+      .find((account) => account.id === accountId),
     state.setUtxoLabel
   ])
+
+  const tx = account?.transactions.find((tx) => tx.id === txid)
+  const utxoLabel = account?.labels[`${txid}:${vout}`]?.label
+  const utxoFromTx = formatTxOutputToUtxo(tx, Number(vout))
+  const utxoFromAccount = account?.utxos.find(
+    (u) => u.txid === txid && u.vout === Number(vout)
+  )
+  const utxo = utxoFromAccount ? { ...utxoFromAccount } : utxoFromTx
+  if (utxoLabel && utxo) {
+    utxo.label = utxoLabel
+  }
+
 
   function updateLabel(label: string) {
     const updatedAccount = setUtxoLabel(accountId!, txid!, Number(vout!), label)

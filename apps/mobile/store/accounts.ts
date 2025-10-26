@@ -282,7 +282,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         const utxoIndex = account.utxos.findIndex((u) => {
           return u.txid === txid && u.vout === vout
         })
-        if (utxoIndex === -1) return undefined
 
         set(
           produce((state) => {
@@ -299,10 +298,12 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               label
             }
 
+            if (utxoIndex === -1) return undefined
             state.accounts[index].utxos[utxoIndex].label = label
           })
         )
 
+        if (utxoIndex === -1) return undefined
         const updatedAccount = { ...account }
         updatedAccount.utxos = [...account.utxos]
         updatedAccount.utxos[utxoIndex] = {
