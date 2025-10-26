@@ -16,6 +16,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type Network } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
+import { formatTimestamp } from '@/utils/format'
 import { parseAddressDescriptorToAddress, parseHexToBytes } from '@/utils/parse'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -576,7 +577,7 @@ function useSyncAccountWithAddress() {
 
           if (!isNaN(date.getTime())) {
             transaction.timestamp = date
-            timestamps.push(Math.floor(date.getTime() / 1000))
+            timestamps.push(formatTimestamp(date))
           } else {
             transaction.timestamp = undefined
           }
@@ -625,7 +626,7 @@ function useSyncAccountWithAddress() {
           continue
         }
 
-        const unixTimestamp = Math.trunc(transaction.timestamp.getTime() / 1000)
+        const unixTimestamp = formatTimestamp(transaction.timestamp)
         const price = priceTimestamps[unixTimestamp]
 
         if (price === undefined) {
