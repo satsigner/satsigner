@@ -423,10 +423,9 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
     tx.vout.forEach((_, index) => {
       const utxoOutpoint = `${tx.id}:${index}`
       const label = account.labels[utxoOutpoint]
-      if (! label) return
+      if (!label) return
       labels[index] = label.label
       utxos[utxoOutpoint] = true
-
     })
     setLabelsDict(labels)
     setUtxoDict(utxos)
@@ -440,8 +439,6 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
         <TouchableOpacity
           key={index}
           onPress={() => {
-            console.log(`${tx.id}:${index}`)
-            console.log(utxoDict[`${tx.id}:${index}`])
             if (utxoDict[`${tx.id}:${index}`]) {
               router.navigate(
                 `/account/${accountId}/transaction/${tx.id}/utxo/${index}`

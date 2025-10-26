@@ -16,7 +16,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type UtxoSearchParams } from '@/types/navigation/searchParams'
-import { formatDate, formatNumber, formatTxOutputToUtxo } from '@/utils/format'
+import { formatDate, formatNumber } from '@/utils/format'
 
 type UtxoDetailsProps = {
   accountId: string

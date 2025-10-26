@@ -1,7 +1,7 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { t } from '@/locales'
-import { Transaction } from '@/types/models/Transaction'
-import { Utxo } from '@/types/models/Utxo'
+import { type Transaction } from '@/types/models/Transaction'
+import { type Utxo } from '@/types/models/Utxo'
 import { type PageParams } from '@/types/navigation/page'
 
 function formatAddress(address: string, character: number = 8) {
