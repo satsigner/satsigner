@@ -30,7 +30,8 @@ const OUTPUT_SIZES: Record<ScriptVersionType, number> = {
   'P2SH-P2WSH': 43
 }
 
-export function estimateTransactionSize(
+// TODO: To be removed
+export function legacyEstimateTransactionSize(
   inputCount: number,
   outputCount: number
 ) {
@@ -48,7 +49,7 @@ export function estimateTransactionSize(
   return { size: totalSize, vsize }
 }
 
-export function estimateTransactionSize2(
+export function estimateTransactionSize(
   inputs: Utxo[],
   outputs: Output[],
   hasChange?: boolean

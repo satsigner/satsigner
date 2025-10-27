@@ -21,7 +21,7 @@ import type { Output } from '@/types/models/Output'
 import type { Utxo } from '@/types/models/Utxo'
 import { BLOCK_WIDTH } from '@/types/ui/sankey'
 import { formatAddress, formatNumber } from '@/utils/format'
-import { estimateTransactionSize } from '@/utils/transaction'
+import { legacyEstimateTransactionSize } from '@/utils/transaction'
 
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
@@ -74,14 +74,17 @@ function SSCurrentTransactionChart({
   )
 
   // First calculate without change output
-  const baseSize = estimateTransactionSize(inputMap.size, outputArray.length)
+  const baseSize = legacyEstimateTransactionSize(
+    inputMap.size,
+    outputArray.length
+  )
   const baseFee = Math.round(feeRateProp * baseSize.vsize)
 
   // Check if we'll have change
   const hasChange = totalInputValue > totalOutputValue + baseFee
 
   // Now calculate final size including change if needed
-  const { size: txSize, vsize: txVsize } = estimateTransactionSize(
+  const { size: txSize, vsize: txVsize } = legacyEstimateTransactionSize(
     inputMap.size,
     outputArray.length + (hasChange ? 1 : 0)
   )

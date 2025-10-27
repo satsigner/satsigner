@@ -4,7 +4,6 @@ import { type Utxo } from '@/types/models/Utxo'
 import type { ExtendedTransaction } from '../../../hooks/useInputTransactions.ts'
 import {
   estimateTransactionSize,
-  estimateTransactionSize2,
   recalculateDepthH
 } from '../../../utils/transaction'
 
@@ -29,26 +28,6 @@ const minimalTxProps = {
 
 describe('Transaction Utils', () => {
   describe('estimateTransactionSize', () => {
-    it('should correctly calculate transaction size for 1 input and 1 output', () => {
-      const result = estimateTransactionSize(1, 1)
-      expect(result.size).toBe(192) // 10 + (1 * 148) + (1 * 34)
-      expect(result.vsize).toBe(48) // ceil(192 * 0.25)
-    })
-
-    it('should correctly calculate transaction size for multiple inputs and outputs', () => {
-      const result = estimateTransactionSize(2, 3)
-      expect(result.size).toBe(408) // 10 + (2 * 148) + (3 * 34)
-      expect(result.vsize).toBe(102) // ceil(408 * 0.25)
-    })
-
-    it('should correctly calculate transaction size for zero inputs and outputs', () => {
-      const result = estimateTransactionSize(0, 0)
-      expect(result.size).toBe(10) // base size only
-      expect(result.vsize).toBe(3) // ceil(10 * 0.25)
-    })
-  })
-
-  describe('estimateTransactionSize2', () => {
     it('should correctly estimate transaction size for legacy inputs and outputs', () => {
       const utxo1: Utxo = {
         addressTo: 'mkyFyB2kkY8JwsnRLMLRG8Q2Ppn5BUeYoP',
@@ -72,7 +51,7 @@ describe('Transaction Utils', () => {
         localId: ''
       }
 
-      const resultWithChange = estimateTransactionSize2(
+      const resultWithChange = estimateTransactionSize(
         [utxo1, utxo2],
         [output1],
         true
@@ -80,7 +59,7 @@ describe('Transaction Utils', () => {
       expect(resultWithChange.size).toBe(372)
       expect(resultWithChange.vsize).toBe(372)
 
-      const resultWithoutChange = estimateTransactionSize2(
+      const resultWithoutChange = estimateTransactionSize(
         [utxo1, utxo2],
         [output1]
       )
@@ -111,7 +90,7 @@ describe('Transaction Utils', () => {
         localId: ''
       }
 
-      const resultWithChange = estimateTransactionSize2(
+      const resultWithChange = estimateTransactionSize(
         [utxo1, utxo2],
         [output1],
         true
@@ -119,7 +98,7 @@ describe('Transaction Utils', () => {
       expect(resultWithChange.size).toBe(373)
       expect(resultWithChange.vsize).toBe(211)
 
-      const resultWithoutChange = estimateTransactionSize2(
+      const resultWithoutChange = estimateTransactionSize(
         [utxo1, utxo2],
         [output1]
       )
@@ -150,7 +129,7 @@ describe('Transaction Utils', () => {
         localId: ''
       }
 
-      const resultWithChange = estimateTransactionSize2(
+      const resultWithChange = estimateTransactionSize(
         [utxo1, utxo2],
         [output1],
         true
@@ -158,7 +137,7 @@ describe('Transaction Utils', () => {
       expect(resultWithChange.size).toBe(370)
       expect(resultWithChange.vsize).toBe(208)
 
-      const resultWithoutChange = estimateTransactionSize2(
+      const resultWithoutChange = estimateTransactionSize(
         [utxo1, utxo2],
         [output1]
       )
@@ -189,7 +168,7 @@ describe('Transaction Utils', () => {
         localId: ''
       }
 
-      const resultWithChange = estimateTransactionSize2(
+      const resultWithChange = estimateTransactionSize(
         [utxo1, utxo2],
         [output1],
         true
@@ -197,7 +176,7 @@ describe('Transaction Utils', () => {
       expect(resultWithChange.size).toBe(382)
       expect(resultWithChange.vsize).toBe(220)
 
-      const resultWithoutChange = estimateTransactionSize2(
+      const resultWithoutChange = estimateTransactionSize(
         [utxo1, utxo2],
         [output1]
       )
@@ -222,15 +201,11 @@ describe('Transaction Utils', () => {
         localId: ''
       }
 
-      const resultWithChange = estimateTransactionSize2(
-        [utxo1],
-        [output1],
-        true
-      )
+      const resultWithChange = estimateTransactionSize([utxo1], [output1], true)
       expect(resultWithChange.size).toBe(205)
       expect(resultWithChange.vsize).toBe(154)
 
-      const resultWithoutChange = estimateTransactionSize2([utxo1], [output1])
+      const resultWithoutChange = estimateTransactionSize([utxo1], [output1])
       expect(resultWithoutChange.size).toBe(162)
       expect(resultWithoutChange.vsize).toBe(111)
     })
