@@ -110,37 +110,31 @@ export async function extractAccountFingerprintWithDecryption(
  * Extract the fingerprint from a specific key
  * This function handles both encrypted and decrypted secrets
  * @param key The key to extract the fingerprint from
- * @param decryptedKey Optional decrypted key (if already available)
  * @returns The fingerprint string or empty string if not found
  */
-export function extractKeyFingerprint(key: Key, decryptedKey?: Key): string {
-  // First, try to get fingerprint from decrypted key if available
-  if (decryptedKey) {
-    // Check if the decrypted secret has a fingerprint
-    if (
-      typeof decryptedKey.secret === 'object' &&
-      decryptedKey.secret.fingerprint
-    ) {
-      return decryptedKey.secret.fingerprint
-    }
-    // Check if the decrypted key has a fingerprint
-    if (decryptedKey.fingerprint) {
-      return decryptedKey.fingerprint
-    }
-  }
-
-  // Fallback to original key
-  // Check if the secret is already decrypted and has a fingerprint
+export async function extractKeyFingerprint(key: Key): Promise<string> {
   if (typeof key.secret === 'object' && key.secret.fingerprint) {
     return key.secret.fingerprint
   }
 
-  // Check if the key has a fingerprint
-  if (key.fingerprint) {
-    return key.fingerprint
+  if (typeof key.secret === 'string') {
+    try {
+      const skipPin = useAuthStore.getState().skipPin
+      const pin = await getPinForDecryption(skipPin)
+      if (!pin) {
+        return ''
+      }
+
+      const decryptedSecretString = await aesDecrypt(key.secret, pin, key.iv)
+      const decryptedSecret = JSON.parse(decryptedSecretString)
+
+      return decryptedSecret.fingerprint || ''
+    } catch {
+      return ''
+    }
   }
 
-  return ''
+  return key.fingerprint || ''
 }
 
 /**

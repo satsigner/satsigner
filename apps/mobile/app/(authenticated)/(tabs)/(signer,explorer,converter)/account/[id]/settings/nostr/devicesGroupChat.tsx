@@ -10,8 +10,8 @@ import SSModal from '@/components/SSModal'
 import SSNostrMessage from '@/components/SSNostrMessage'
 import SSText from '@/components/SSText'
 import SSTransactionDetails from '@/components/SSTransactionDetails'
+import { useNostrPublish } from '@/hooks/useNostrPublish'
 import { useNostrSignFlow } from '@/hooks/useNostrSignFlow'
-import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -60,7 +60,7 @@ export default function DevicesGroupChat() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const flatListRef = useRef<FlatList>(null)
   const formattedAuthorsRef = useRef(new Set<string>())
-  const { sendDM } = useNostrSync()
+  const { sendDM, sendPSBT } = useNostrPublish()
   const { handleGoToSignFlow } = useNostrSignFlow()
 
   const [accounts, account] = useAccountsStore(
@@ -142,7 +142,7 @@ export default function DevicesGroupChat() {
     }
   }
 
-  function handleGoToSignFlowClick(messageContent: string) {
+  async function handleGoToSignFlowClick(messageContent: string) {
     try {
       const transactionData = parseNostrTransactionMessage(messageContent)
       if (!transactionData) {
@@ -150,7 +150,7 @@ export default function DevicesGroupChat() {
         return
       }
 
-      handleGoToSignFlow(transactionData)
+      await handleGoToSignFlow(transactionData)
     } catch {
       toast.error(t('common.error.openSignFlowFailed'))
     }
@@ -176,7 +176,7 @@ export default function DevicesGroupChat() {
 
     setIsLoading(true)
     try {
-      await sendDM(account, messageToShare)
+      await sendPSBT(account, messageToShare)
       toast.success(t('account.nostrSync.transactionDataSentToGroupChat'))
     } catch {
       toast.error(t('account.nostrSync.failedToSendTransactionData'))
