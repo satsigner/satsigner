@@ -95,7 +95,15 @@ export default function SignMessage() {
   }, [inputs, outputs, txBuilderResult])
 
   async function handleBroadcastTransaction() {
-    if (!psbt && !signedTx) return
+    if (!signedTx) {
+      toast.error('Could not get signed transaction')
+      return
+    }
+
+    if (!psbt) {
+      toast.error('Could not get psbt')
+      return
+    }
 
     // Prevent double broadcasting
     if (broadcasted) {
