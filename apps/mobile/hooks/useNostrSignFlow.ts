@@ -1,4 +1,8 @@
-import { type TxBuilderResult } from 'bdk-rn/lib/classes/Bindings'
+import { PartiallySignedTransaction } from 'bdk-rn'
+import {
+  type TransactionDetails,
+  type TxBuilderResult
+} from 'bdk-rn/lib/classes/Bindings'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { useRouter } from 'expo-router'
 import { toast } from 'sonner-native'
@@ -61,6 +65,12 @@ export function useNostrSignFlow() {
       const outputs = extractedData?.outputs || []
       const fee = extractedData?.fee || 0
 
+      const sent = outputs.reduce((acc, output) => acc + output.value, 0)
+      const received = inputs.reduce(
+        (acc, input) => acc + (input.value || 0),
+        0
+      )
+
       inputs.forEach((input) => {
         addInput({
           ...input,
@@ -82,6 +92,10 @@ export function useNostrSignFlow() {
       setRbf(true)
 
       const extractedTxid = extractTransactionIdFromPSBT(originalPsbt)
+      if (!extractedTxid) {
+        toast.error(t('transaction.invalidPsbt'))
+        return false
+      }
 
       const derivedSignedPsbts = extractIndividualSignedPsbts(
         transactionData.combinedPsbt,
@@ -131,10 +145,22 @@ export function useNostrSignFlow() {
       })
       setSignedPsbts(signedPsbtsMap)
 
-      setTxBuilderResult({
-        psbt: { base64: originalPsbt },
-        txDetails: { txid: extractedTxid, fee }
-      } as TxBuilderResult)
+      const psbt = new PartiallySignedTransaction(originalPsbt)
+
+      const txDetails: TransactionDetails = {
+        txid: extractedTxid,
+        fee,
+        sent,
+        received,
+        confirmationTime: undefined,
+        transaction: undefined
+      }
+
+      const txBuilderResult: TxBuilderResult = {
+        psbt,
+        txDetails
+      }
+      setTxBuilderResult(txBuilderResult)
 
       router.replace(
         `/account/${accountMatch.account.id}/signAndSend/previewMessage`
