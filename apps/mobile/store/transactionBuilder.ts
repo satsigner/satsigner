@@ -21,6 +21,7 @@ type TransactionBuilderState = {
   txBuilderResult?: TxBuilderResult
   psbt?: PartiallySignedTransaction
   signedTx?: string
+  signedPsbts: Map<number, string>
   broadcasted: boolean
 }
 
@@ -46,6 +47,7 @@ type TransactionBuilderAction = {
   setSignedTx: (
     signedTx: NonNullable<TransactionBuilderState['signedTx']>
   ) => void
+  setSignedPsbts: (signedPsbts: TransactionBuilderState['signedPsbts']) => void
   setBroadcasted: (broadcasted: boolean) => void
 }
 
@@ -60,6 +62,7 @@ const useTransactionBuilderStore = create<
   rbf: true,
   cpfp: true,
   broadcasted: false,
+  signedPsbts: new Map<number, string>(),
   clearTransaction: () => {
     set({
       inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
@@ -68,7 +71,8 @@ const useTransactionBuilderStore = create<
       txBuilderResult: undefined,
       psbt: undefined,
       signedTx: undefined,
-      broadcasted: false
+      broadcasted: false,
+      signedPsbts: new Map<number, string>()
     })
   },
   getInputs: () => {
@@ -135,6 +139,9 @@ const useTransactionBuilderStore = create<
   },
   setSignedTx: (signedTx) => {
     set({ signedTx })
+  },
+  setSignedPsbts: (signedPsbts) => {
+    set({ signedPsbts })
   },
   setBroadcasted: (broadcasted) => {
     set({ broadcasted })
