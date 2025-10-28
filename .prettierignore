@@ -5,3 +5,4 @@ ios
 android
 shim.js
 storybook.requires.ts
+apps/docs/out
