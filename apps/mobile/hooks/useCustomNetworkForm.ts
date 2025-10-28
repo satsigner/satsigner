@@ -24,7 +24,7 @@ type CustomNetworkFormData = {
   proxy: ProxyConfig
 }
 
-export const useCustomNetworkForm = () => {
+export function useCustomNetworkForm() {
   const [formData, setFormData] = useState<CustomNetworkFormData>({
     backend: 'electrum',
     name: '',
@@ -38,17 +38,17 @@ export const useCustomNetworkForm = () => {
     }
   })
 
-  const updateField = (field: keyof CustomNetworkFormData, value: string) => {
+  function updateField(field: keyof CustomNetworkFormData, value: string) {
     const trimmedValue =
       field === 'host' || field === 'port' ? value.trim() : value
     setFormData((prev) => ({ ...prev, [field]: trimmedValue }))
   }
 
-  const updateProxyField = (proxy: ProxyConfig) => {
+  function updateProxyField(proxy: ProxyConfig) {
     setFormData((prev) => ({ ...prev, proxy }))
   }
 
-  const constructUrl = () => {
+  function constructUrl() {
     if (formData.backend === 'esplora') {
       return formData.port.trim()
         ? `https://${formData.host}:${formData.port}`
@@ -58,7 +58,7 @@ export const useCustomNetworkForm = () => {
     return `${protocol}://${formData.host}:${formData.port}`
   }
 
-  const resetForm = () => {
+  function resetForm() {
     setFormData({
       backend: 'electrum',
       name: '',
