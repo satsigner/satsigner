@@ -38,7 +38,7 @@ import {
   type Network,
   type Server
 } from '@/types/settings/blockchain'
-import { trimOnionAddress } from '@/utils/validation/url'
+import { trimOnionAddress } from '@/utils/format'
 
 export default function CustomNetwork() {
   const { network } = useLocalSearchParams()

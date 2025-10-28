@@ -6,7 +6,7 @@ import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import { servers } from '@/constants/servers'
 import { useBlockchainStore } from '@/store/blockchain'
-import { trimOnionAddress } from '@/utils/validation/url'
+import { trimOnionAddress } from '@/utils/format'
 
 function useVerifyConnection() {
   const [selectedNetwork, configs] = useBlockchainStore(
