@@ -20,7 +20,7 @@ import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Network, type Server } from '@/types/settings/blockchain'
-import { trimOnionAddress } from '@/utils/urlValidation'
+import { trimOnionAddress } from '@/utils/validation/url'
 
 const tn = _tn('settings.network.server')
 

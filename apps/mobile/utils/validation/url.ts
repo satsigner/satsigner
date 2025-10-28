@@ -56,6 +56,16 @@ export function isValidDomainName(host: string): boolean {
 }
 
 /**
+ * Validates if a host is a valid domain name (legacy function)
+ * @param host - The host string to validate
+ * @returns true if valid domain name
+ */
+export function isDomainName(host: string): boolean {
+  // Validate host: allow domain names (starting with letter) or IP addresses
+  return /^[a-z][a-z0-9.-]*[a-z0-9]$/i.test(host)
+}
+
+/**
  * Validates if a host is a valid IP address
  * @param host - The host string to validate
  * @returns true if valid IP address

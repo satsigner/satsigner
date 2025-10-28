@@ -13,7 +13,7 @@ import { toast } from 'sonner-native'
 
 import { t } from '@/locales'
 import { type Backend } from '@/types/settings/blockchain'
-import { validateElectrumUrl, validateEsploraUrl } from '@/utils/urlValidation'
+import { validateElectrumUrl, validateEsploraUrl } from '@/utils/validation/url'
 
 type ValidationResult = {
   isValid: boolean

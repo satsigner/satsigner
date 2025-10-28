@@ -9,7 +9,7 @@ import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { parseHexToBytes } from '@/utils/parse'
 import { bytesToHex } from '@/utils/scripts'
 import { TxDecoded } from '@/utils/txDecoded'
-import { isValidDomainName, isValidIPAddress } from '@/utils/urlValidation'
+import { isValidDomainName, isValidIPAddress } from '@/utils/validation/url'
 
 type IElectrumClient = {
   props: {
