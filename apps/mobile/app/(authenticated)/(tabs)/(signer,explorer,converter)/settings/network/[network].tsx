@@ -38,13 +38,17 @@ import {
   type Network,
   type Server
 } from '@/types/settings/blockchain'
-import { trimOnionAddress } from '@/utils/format'
 
 export default function CustomNetwork() {
   const { network } = useLocalSearchParams()
   const router = useRouter()
-  const { formData, updateField, updateProxyField, constructUrl } =
-    useCustomNetworkForm()
+  const {
+    formData,
+    updateField,
+    updateProxyField,
+    constructUrl,
+    constructTrimmedUrl
+  } = useCustomNetworkForm()
 
   const networkType = network as Network
 
@@ -75,11 +79,8 @@ export default function CustomNetwork() {
   const protocols = ['ssl', 'tcp'] as const
 
   const urlPreview = useMemo(() => {
-    if (!formData.host) return ''
-    if (formData.backend === 'electrum' && !formData.port) return ''
-    const fullUrl = constructUrl()
-    return trimOnionAddress(fullUrl)
-  }, [formData.host, formData.port, formData.backend, constructUrl])
+    return constructTrimmedUrl()
+  }, [constructTrimmedUrl])
 
   useEffect(() => {
     if (testing && !connectionState) toast.error(t('error.invalid.backend'))
