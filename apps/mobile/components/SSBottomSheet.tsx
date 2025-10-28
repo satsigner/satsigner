@@ -11,11 +11,17 @@ import SSText from './SSText'
 type SSBottomSheetProps = {
   title: string
   snapPoints?: (string | number)[]
+  paddingX?: boolean
   children: React.ReactNode
 }
 
 function SSBottomSheet(
-  { title, snapPoints = ['50%'], children }: SSBottomSheetProps,
+  {
+    title,
+    snapPoints = ['50%'],
+    paddingX = true,
+    children
+  }: SSBottomSheetProps,
   ref: ForwardedRef<BottomSheetMethods>
 ) {
   return (
@@ -28,7 +34,16 @@ function SSBottomSheet(
       handleStyle={styles.handle}
       style={styles.bottomSheet}
     >
-      <BottomSheetScrollView style={styles.scrollView}>
+      <BottomSheetScrollView
+        style={[
+          styles.scrollView,
+          {
+            paddingHorizontal: paddingX
+              ? Layout.mainContainer.paddingHorizontal
+              : 0
+          }
+        ]}
+      >
         <SSVStack>
           <SSText uppercase center>
             {title}
@@ -54,8 +69,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    paddingTop: 16,
-    paddingHorizontal: Layout.mainContainer.paddingHorizontal
+    paddingTop: 16
   }
 })
 
