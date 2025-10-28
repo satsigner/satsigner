@@ -60,7 +60,7 @@ import { aesDecrypt } from '@/utils/crypto'
 import { parseHexToBytes } from '@/utils/parse'
 import { validateSignedPSBTForCosigner } from '@/utils/psbt'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
-import { estimateTransactionSize } from '@/utils/transaction'
+import { legacyEstimateTransactionSize } from '@/utils/transaction'
 import {
   decodeMultiPartURToPSBT,
   decodeURToPSBT,
@@ -548,7 +548,10 @@ function PreviewMessage() {
   }, [account, inputs, outputs])
 
   const transaction = useMemo(() => {
-    const { size, vsize } = estimateTransactionSize(inputs.size, outputs.length)
+    const { size, vsize } = legacyEstimateTransactionSize(
+      inputs.size,
+      outputs.length
+    )
 
     const vin = Array.from(inputs.values()).map((input: Utxo) => ({
       previousOutput: { txid: input.txid, vout: input.vout },
