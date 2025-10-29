@@ -1,5 +1,11 @@
-import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
+import {
+  Redirect,
+  router,
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams
+} from 'expo-router'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -94,6 +100,9 @@ function NostrSync() {
   const [relayConnectionStatuses, setRelayConnectionStatuses] = useState<
     Record<string, 'connected' | 'connecting' | 'disconnected'>
   >({})
+
+  // Track previous relays to detect when new relays are added
+  const previousRelaysRef = useRef<string[]>([])
 
   // Add this useCallback near the top of the component, after other hooks
   const getUpdatedAccount = useCallback(() => {
@@ -231,10 +240,16 @@ function NostrSync() {
         deviceNpub: ''
       })
       setSelectedRelays([])
+      previousRelaysRef.current = []
       return
     }
 
-    setSelectedRelays(account.nostr.relays || [])
+    const currentRelays = account.nostr.relays || []
+    setSelectedRelays(currentRelays)
+
+    if (previousRelaysRef.current.length === 0 && currentRelays.length > 0) {
+      previousRelaysRef.current = [...currentRelays]
+    }
 
     if (account.nostr.relayStatuses) {
       setRelayConnectionStatuses(account.nostr.relayStatuses)
@@ -584,6 +599,64 @@ function NostrSync() {
 
     startAutoSync()
   }, [account, deviceAnnouncement, nostrSyncSubscriptions])
+
+  // Auto-trigger sync when a new relay is added and sync is ON
+  useFocusEffect(
+    useCallback(() => {
+      const currentAccount = useAccountsStore
+        .getState()
+        .accounts.find((_account) => _account.id === accountId)
+
+      if (!accountId || !currentAccount?.nostr) {
+        previousRelaysRef.current = []
+        return
+      }
+
+      const currentRelays = currentAccount.nostr.relays || []
+      const previousRelays = previousRelaysRef.current
+
+      if (previousRelays.length === 0) {
+        previousRelaysRef.current = [...currentRelays]
+        return
+      }
+
+      const hasNewRelay = currentRelays.some(
+        (relay) => !previousRelays.includes(relay)
+      )
+
+      if (
+        hasNewRelay &&
+        currentAccount.nostr.autoSync &&
+        currentRelays.length > 0 &&
+        previousRelays.length > 0
+      ) {
+        setIsSyncing(true)
+        
+        const triggerAutoSync = async () => {
+          try {
+            await testRelaySync(currentRelays)
+            deviceAnnouncement(currentAccount)
+            
+            await nostrSyncSubscriptions(currentAccount, (loading) => {
+              requestAnimationFrame(() => {
+                setIsSyncing(loading)
+              })
+            })
+          } catch {
+            toast.error('Failed to setup sync with new relay')
+          } finally {
+            setIsSyncing(false)
+          }
+        }
+
+        setTimeout(() => {
+          triggerAutoSync()
+        }, 0)
+      }
+      
+      previousRelaysRef.current = [...currentRelays]
+    }, [accountId, deviceAnnouncement, nostrSyncSubscriptions, testRelaySync])
+  )
 
   if (!accountId || !account) return <Redirect href="/" />
 
