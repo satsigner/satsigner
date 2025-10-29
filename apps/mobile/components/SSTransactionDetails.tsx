@@ -20,7 +20,7 @@ import {
   getMultisigInfoFromPsbt,
   type TransactionData
 } from '@/utils/psbt'
-import { estimateTransactionSize } from '@/utils/transaction'
+import { legacyEstimateTransactionSize } from '@/utils/transaction'
 
 type SSTransactionDetailsProps = {
   transactionData: TransactionData
@@ -85,7 +85,7 @@ function SSTransactionDetails({
   const finalInputs = extractedData?.inputs || []
   const finalOutputs = extractedData?.outputs || []
 
-  const { size, vsize } = estimateTransactionSize(
+  const { size, vsize } = legacyEstimateTransactionSize(
     finalInputs.length,
     finalOutputs.length
   )

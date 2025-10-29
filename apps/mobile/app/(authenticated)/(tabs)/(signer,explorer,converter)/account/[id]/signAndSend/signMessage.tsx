@@ -24,7 +24,7 @@ import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { bytesToHex } from '@/utils/scripts'
-import { estimateTransactionSize } from '@/utils/transaction'
+import { legacyEstimateTransactionSize } from '@/utils/transaction'
 
 const tn = _tn('transaction.build.sign')
 
@@ -80,7 +80,10 @@ export default function SignMessage() {
   const transaction = useMemo(() => {
     if (!txBuilderResult) return null
 
-    const { size, vsize } = estimateTransactionSize(inputs.size, outputs.length)
+    const { size, vsize } = legacyEstimateTransactionSize(
+      inputs.size,
+      outputs.length
+    )
 
     const vin = Array.from(inputs.values()).map((input: Utxo) => ({
       previousOutput: { txid: input.txid, vout: input.vout },
