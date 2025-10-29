@@ -62,10 +62,19 @@ export default function SignMessage() {
   )
 
   const currentConfig = configs[selectedNetwork]
+  const opts = {
+    retries: currentConfig.config.retries,
+    stopGap: currentConfig.config.stopGap,
+    timeout: currentConfig.config.timeout
+  }
+  const blockchainConfig = getBlockchainConfig(
+    currentConfig.server.backend,
+    currentConfig.server.url,
+    opts
+  )
 
   const [signed, setSigned] = useState(false)
   const [broadcasting, setBroadcasting] = useState(false)
-
   const [rawTx, setRawTx] = useState('')
 
   const transaction = useMemo(() => {
@@ -94,10 +103,60 @@ export default function SignMessage() {
     } as never as Transaction
   }, [inputs, outputs, txBuilderResult])
 
-  async function handleBroadcastTransaction() {
-    if (!psbt && !signedTx) return
+  async function handleBroadcastSingleSig() {
+    if (!psbt) {
+      throw new Error('Empty PSBT')
+    }
+    const blockchain = await getBlockchain(
+      currentConfig.server.backend,
+      blockchainConfig
+    )
+    return broadcastTransaction(psbt, blockchain)
+  }
 
-    // Prevent double broadcasting
+  async function handleBroadcastMultiSig() {
+    if (!signedTx) {
+      throw new Error('Empty signed transaction')
+    }
+
+    if (typeof signedTx !== 'string' || signedTx.length === 0) {
+      throw new Error('Invalid signedTx: empty or invalid format')
+    }
+
+    if (!/^[a-fA-F0-9]+$/.test(signedTx)) {
+      throw new Error('Invalid signedTx: not a valid hex string')
+    }
+
+    if (signedTx.length < 100) {
+      throw new Error('Invalid signedTx: too short to be a valid transaction')
+    }
+
+    if (currentConfig.server.backend === 'electrum') {
+      const electrumClient = await ElectrumClient.initClientFromUrl(
+        currentConfig.server.url,
+        selectedNetwork
+      )
+      await electrumClient.broadcastTransactionHex(signedTx)
+      electrumClient.close()
+      return true
+    }
+
+    if (currentConfig.server.backend === 'esplora') {
+      const { default: Esplora } = await import('@/api/esplora')
+      const esploraClient = new Esplora(currentConfig.server.url)
+      await esploraClient.broadcastTransaction(signedTx)
+      return true
+    }
+
+    throw new Error(`Unsupported backend: ${currentConfig.server.backend}`)
+  }
+
+  async function handleBroadcastTransaction() {
+    if (broadcasting) {
+      toast.info('Please wait while the transaction is being broadcast.')
+      return
+    }
+
     if (broadcasted) {
       toast.error(
         'This transaction has already been broadcasted to the network'
@@ -107,86 +166,20 @@ export default function SignMessage() {
 
     setBroadcasting(true)
 
-    const opts = {
-      retries: currentConfig.config.retries,
-      stopGap: currentConfig.config.stopGap,
-      timeout: currentConfig.config.timeout
-    }
-    const blockchainConfig = getBlockchainConfig(
-      currentConfig.server.backend,
-      currentConfig.server.url,
-      opts
-    )
-    const blockchain = await getBlockchain(
-      currentConfig.server.backend,
-      blockchainConfig
-    )
-
     try {
       let broadcastSuccess = false
       if (signedTx) {
-        // For multisig wallets, broadcast the finalized transaction hex directly
-
-        // Validate signedTx format
-        if (
-          !signedTx ||
-          typeof signedTx !== 'string' ||
-          signedTx.length === 0
-        ) {
-          throw new Error('Invalid signedTx: empty or invalid format')
-        }
-
-        // Basic hex validation
-        if (!/^[a-fA-F0-9]+$/.test(signedTx)) {
-          throw new Error('Invalid signedTx: not a valid hex string')
-        }
-
-        // Check minimum length for a valid Bitcoin transaction
-        if (signedTx.length < 100) {
-          throw new Error(
-            'Invalid signedTx: too short to be a valid transaction'
-          )
-        }
-
-        if (currentConfig.server.backend === 'electrum') {
-          // Use Electrum client for electrum backends
-          const electrumClient = await ElectrumClient.initClientFromUrl(
-            currentConfig.server.url,
-            selectedNetwork
-          )
-          await electrumClient.broadcastTransactionHex(signedTx)
-          electrumClient.close()
-          broadcastSuccess = true
-        } else if (currentConfig.server.backend === 'esplora') {
-          // Use Esplora client for esplora backends
-          const { default: Esplora } = await import('@/api/esplora')
-          const esploraClient = new Esplora(currentConfig.server.url)
-          await esploraClient.broadcastTransaction(signedTx)
-          broadcastSuccess = true
-        } else {
-          throw new Error(
-            `Unsupported backend: ${currentConfig.server.backend}`
-          )
-        }
+        broadcastSuccess = await handleBroadcastMultiSig()
       } else if (psbt) {
-        // For singlesig wallets, broadcast the PSBT
-        broadcastSuccess = await broadcastTransaction(psbt, blockchain)
+        broadcastSuccess = await handleBroadcastSingleSig()
       }
 
       if (broadcastSuccess) {
         setBroadcasted(true)
         router.navigate(`/account/${id}/signAndSend/messageConfirmation`)
       }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : typeof err === 'object' && err !== null && 'message' in err
-            ? String(err.message)
-            : typeof err === 'object' && err !== null
-              ? JSON.stringify(err)
-              : String(err)
-      toast.error(errorMessage)
+    } catch (err: Error | any) {
+      toast.error(err?.message || 'Failed to broadcast transaction')
     } finally {
       setBroadcasting(false)
     }
