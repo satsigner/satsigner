@@ -22,6 +22,7 @@ import {
 } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
+import SSProxyFormFields from '@/components/SSProxyFormFields'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useCustomNetworkForm } from '@/hooks/useCustomNetworkForm'
@@ -41,7 +42,13 @@ import {
 export default function CustomNetwork() {
   const { network } = useLocalSearchParams()
   const router = useRouter()
-  const { formData, updateField, constructUrl } = useCustomNetworkForm()
+  const {
+    formData,
+    updateField,
+    updateProxyField,
+    constructUrl,
+    constructTrimmedUrl
+  } = useCustomNetworkForm()
 
   const networkType = network as Network
 
@@ -72,10 +79,8 @@ export default function CustomNetwork() {
   const protocols = ['ssl', 'tcp'] as const
 
   const urlPreview = useMemo(() => {
-    if (!formData.host) return ''
-    if (formData.backend === 'electrum' && !formData.port) return ''
-    return constructUrl()
-  }, [formData.host, formData.port, formData.backend, constructUrl])
+    return constructTrimmedUrl()
+  }, [constructTrimmedUrl])
 
   useEffect(() => {
     if (testing && !connectionState) toast.error(t('error.invalid.backend'))
@@ -122,7 +127,8 @@ export default function CustomNetwork() {
       name: formData.name,
       backend: formData.backend,
       network: networkType,
-      url
+      url,
+      proxy: formData.proxy.enabled ? formData.proxy : undefined
     }
 
     setSelectedNetwork(networkType)
@@ -143,7 +149,8 @@ export default function CustomNetwork() {
         name: formData.name,
         backend: formData.backend,
         network: networkType,
-        url
+        url,
+        proxy: formData.proxy.enabled ? formData.proxy : undefined
       }
 
       addCustomServer(server)
@@ -245,6 +252,8 @@ export default function CustomNetwork() {
                 <SSTextInput
                   value={formData.host}
                   onChangeText={(value) => updateField('host', value)}
+                  multiline
+                  style={{ height: 'auto', minHeight: 70 }}
                   placeholder={t(
                     `settings.network.server.host.placeholder.${formData.backend}`
                   )}
@@ -283,6 +292,10 @@ export default function CustomNetwork() {
                   </SSText>
                 </SSVStack>
               )}
+              <SSProxyFormFields
+                proxy={formData.proxy}
+                onProxyChange={updateProxyField}
+              />
               {testing && (
                 <SSHStack
                   style={{ justifyContent: 'center', gap: 0, marginBottom: 24 }}

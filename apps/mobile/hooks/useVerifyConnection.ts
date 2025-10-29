@@ -6,6 +6,7 @@ import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import { servers } from '@/constants/servers'
 import { useBlockchainStore } from '@/store/blockchain'
+import { trimOnionAddress } from '@/utils/format'
 
 function useVerifyConnection() {
   const [selectedNetwork, configs] = useBlockchainStore(
@@ -17,10 +18,11 @@ function useVerifyConnection() {
   const isConnectionAvailable = useRef<boolean | null>(false)
   const [connectionState, setConnectionState] = useState<boolean>(false)
   const connectionString = useMemo(() => {
+    const trimmedUrl = trimOnionAddress(server.url)
     if (config.connectionMode === 'auto')
-      return `${server.network} - ${server.name} (${server.url})`
+      return `${server.network} - ${server.name} (${trimmedUrl})`
 
-    return `${server.network} - ${server.name} (${server.url}) [${config.connectionMode}]`
+    return `${server.network} - ${server.name} (${trimmedUrl}) [${config.connectionMode}]`
   }, [server.network, server.name, server.url, config.connectionMode])
 
   const isPrivateConnection = useMemo(() => {
