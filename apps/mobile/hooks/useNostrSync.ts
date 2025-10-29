@@ -527,7 +527,7 @@ function useNostrSync() {
     }
   }
 
-  async function deviceAnnouncement(account?: Account) {
+  const deviceAnnouncement = useCallback(async (account?: Account) => {
     if (!account?.nostr?.autoSync) return
     if (!account || !account.nostr) return
     const { commonNsec, commonNpub, deviceNpub, relays } = account.nostr
@@ -557,7 +557,7 @@ function useNostrSync() {
     } catch (_error) {
       toast.error('Failed to send device announcement')
     }
-  }
+  }, [])
 
   return {
     sendLabelsToNostr,
