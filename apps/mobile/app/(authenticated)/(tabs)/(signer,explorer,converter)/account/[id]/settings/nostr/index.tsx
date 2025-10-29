@@ -479,24 +479,60 @@ function NostrSync() {
         return // Return early as we'll re-run this effect after the update
       }
 
-      // Only try to load device keys if we don't have them yet and haven't generated them
-      if (
-        (!account.nostr.deviceNsec || !account.nostr.deviceNpub) &&
-        !keysGenerated
-      ) {
+      if (account.nostr.deviceNsec && account.nostr.deviceNpub) {
+        setDeviceNsec(account.nostr.deviceNsec)
+        setDeviceNpub(account.nostr.deviceNpub)
+        generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
+        setKeysGenerated(true)
+        return
+      }
+
+      if (!keysGenerated) {
+        const currentAccount = useAccountsStore
+          .getState()
+          .accounts.find((_account) => _account.id === accountId)
+
+        if (
+          currentAccount?.nostr?.deviceNsec &&
+          currentAccount.nostr.deviceNpub
+        ) {
+          setDeviceNsec(currentAccount.nostr.deviceNsec)
+          setDeviceNpub(currentAccount.nostr.deviceNpub)
+          generateColorFromNpub(currentAccount.nostr.deviceNpub).then(
+            setDeviceColor
+          )
+          setKeysGenerated(true)
+          return
+        }
+
         setIsGeneratingKeys(true)
         setKeysGenerated(true)
         NostrAPI.generateNostrKeys()
           .then((keys) => {
             if (keys) {
-              setDeviceNsec(keys.nsec)
-              setDeviceNpub(keys.npub)
-              generateColorFromNpub(keys.npub).then(setDeviceColor)
-              updateAccountNostrCallback(accountId, {
-                ...account.nostr,
-                deviceNpub: keys.npub,
-                deviceNsec: keys.nsec
-              })
+              const latestAccount = useAccountsStore
+                .getState()
+                .accounts.find((_account) => _account.id === accountId)
+
+              if (
+                latestAccount?.nostr?.deviceNsec &&
+                latestAccount.nostr.deviceNpub
+              ) {
+                setDeviceNsec(latestAccount.nostr.deviceNsec)
+                setDeviceNpub(latestAccount.nostr.deviceNpub)
+                generateColorFromNpub(latestAccount.nostr.deviceNpub).then(
+                  setDeviceColor
+                )
+              } else if (latestAccount?.nostr) {
+                setDeviceNsec(keys.nsec)
+                setDeviceNpub(keys.npub)
+                generateColorFromNpub(keys.npub).then(setDeviceColor)
+                updateAccountNostrCallback(accountId, {
+                  ...latestAccount.nostr,
+                  deviceNpub: keys.npub,
+                  deviceNsec: keys.nsec
+                })
+              }
             }
           })
           .catch(() => {
@@ -506,12 +542,6 @@ function NostrSync() {
           .finally(() => {
             setIsGeneratingKeys(false)
           })
-      } else if (account.nostr.deviceNsec && account.nostr.deviceNpub) {
-        // If we already have the keys, just set them
-        setDeviceNsec(account.nostr.deviceNsec)
-        setDeviceNpub(account.nostr.deviceNpub)
-        generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
-        setKeysGenerated(true)
       }
     }
   }, [
@@ -521,15 +551,6 @@ function NostrSync() {
     updateAccountNostrCallback,
     keysGenerated
   ])
-
-  // Reset key generation state when account changes
-  useEffect(() => {
-    if (account?.nostr?.deviceNsec && account?.nostr?.deviceNpub) {
-      setKeysGenerated(true)
-    } else {
-      setKeysGenerated(false)
-    }
-  }, [account?.id, account?.nostr?.deviceNsec, account?.nostr?.deviceNpub])
 
   useEffect(() => {
     if (deviceNpub && deviceColor === '#404040') {
