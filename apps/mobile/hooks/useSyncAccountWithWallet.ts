@@ -32,18 +32,6 @@ function useSyncAccountWithWallet() {
       setLoading(true)
       setSyncStatus(account.id, 'syncing')
 
-      // Labels backup
-      const labelsBackup: Record<string, string> = {}
-      for (const transaction of account.transactions) {
-        labelsBackup[transaction.id] = transaction.label || ''
-      }
-      for (const utxo of account.utxos) {
-        labelsBackup[getUtxoOutpoint(utxo)] = utxo.label || ''
-      }
-      for (const address of account.addresses) {
-        labelsBackup[address.address] = address.label || ''
-      }
-
       await syncWallet(
         wallet,
         server.backend,
@@ -60,7 +48,8 @@ function useSyncAccountWithWallet() {
         config.stopGap
       )
 
-      const updatedAccount: Account = { ...account }
+      const labels = account.labels || {}
+      const updatedAccount: Account = { ...account, labels }
 
       updatedAccount.transactions = walletSummary.transactions
       updatedAccount.utxos = walletSummary.utxos
@@ -73,23 +62,22 @@ function useSyncAccountWithWallet() {
       // UTXO labels update
       for (const index in updatedAccount.utxos) {
         const utxoRef = getUtxoOutpoint(updatedAccount.utxos[index])
-        updatedAccount.utxos[index].label = labelsBackup[utxoRef] || ''
+        updatedAccount.utxos[index].label = labels[utxoRef]?.label || ''
       }
 
       // TX label update
       for (const index in updatedAccount.transactions) {
-        const transactionRef = updatedAccount.transactions[index].id
-        const currentLabel = labelsBackup[transactionRef] || ''
-        updatedAccount.transactions[index].label = currentLabel
+        const txRef = updatedAccount.transactions[index].id
+        updatedAccount.transactions[index].label = labels[txRef]?.label || ''
       }
 
       // Address label update
       for (const index in updatedAccount.addresses) {
         const addressRef = updatedAccount.addresses[index].address
-        updatedAccount.addresses[index].label = labelsBackup[addressRef] || ''
+        updatedAccount.addresses[index].label = labels[addressRef]?.label || ''
       }
 
-      //Extract timestamps
+      // Extract timestamps
       const timestamps = updatedAccount.transactions
         .filter((transaction) => transaction.timestamp)
         .map((transaction) => formatTimestamp(transaction.timestamp!))
