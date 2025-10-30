@@ -17,10 +17,6 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type Label } from '@/utils/bip329'
 import { formatAddress } from '@/utils/format'
 
-// TODO: this variable must be used in other parts of the code to make it
-// consistent. For example, the label for the sankey diagram.
-const DEFAULT_CHANGE_ADDRESS_LABEL = 'Change'
-
 export default function MessageConfirmation() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
@@ -40,8 +36,8 @@ export default function MessageConfirmation() {
       state.importLabels
     ])
   )
-  const mempoolConfig = useBlockchainStore((state) => state.configsMempool)
 
+  const mempoolConfig = useBlockchainStore((state) => state.configsMempool)
   const webExplorerUrl = useMemo(() => {
     if (!account) return ''
     const { network } = account
@@ -61,13 +57,14 @@ export default function MessageConfirmation() {
     if (txBuilderResult) {
       const { txid } = txBuilderResult.txDetails
       const labels: Label[] = []
+      const defaultChangeAddressLabel = t('sign.changeAddressLabelDefault')
 
       let txLabelText = ''
       for (let i = 0; i < outputs.length; i += 1) {
         const output = outputs[i]
 
         // we deal with change address later
-        if (output.label === DEFAULT_CHANGE_ADDRESS_LABEL) continue
+        if (output.label === defaultChangeAddressLabel) continue
 
         const vout = i
 
@@ -101,11 +98,13 @@ export default function MessageConfirmation() {
 
       // add label to change address if it exists.
       const changeOutputIndex = outputs.findIndex(
-        (output) => output.label === DEFAULT_CHANGE_ADDRESS_LABEL
+        (output) => output.label === defaultChangeAddressLabel
       )
       if (changeOutputIndex !== -1) {
         const changeOutput = outputs[changeOutputIndex]
-        const changeLabel = `Change for ${txLabelText}`
+        const changeLabel = t('sign.changeAddressLabelFinal', {
+          label: txLabelText
+        })
         labels.push({
           ref: `${txid}:${changeOutputIndex}`,
           type: 'output',
