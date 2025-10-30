@@ -6,7 +6,13 @@ import {
   useLocalSearchParams
 } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View
+} from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -375,17 +381,13 @@ function NostrSync() {
 
       const isCurrentlyTrusted = selectedMembers.has(npub)
 
-      setSelectedMembers((prev) => {
-        const newSet = new Set(prev)
-        if (isCurrentlyTrusted) {
-          newSet.delete(npub)
-        } else {
-          newSet.add(npub)
-        }
-        return newSet
-      })
-
       if (isCurrentlyTrusted) {
+        setSelectedMembers((prev) => {
+          const newSet = new Set(prev)
+          newSet.delete(npub)
+          return newSet
+        })
+
         updateAccountNostrCallback(accountId, {
           trustedMemberDevices: account.nostr.trustedMemberDevices.filter(
             (m) => m !== npub
@@ -393,9 +395,22 @@ function NostrSync() {
           lastUpdated: new Date()
         })
       } else {
+        // Trust - add to trusted list and open alias modal
+        setSelectedMembers((prev) => {
+          const newSet = new Set(prev)
+          newSet.add(npub)
+          return newSet
+        })
+
         updateAccountNostrCallback(accountId, {
           trustedMemberDevices: [...account.nostr.trustedMemberDevices, npub],
           lastUpdated: new Date()
+        })
+
+        // Navigate to alias page
+        router.push({
+          pathname: `/account/${accountId}/settings/nostr/device/[npub]`,
+          params: { npub }
         })
       }
     },
@@ -631,12 +646,12 @@ function NostrSync() {
         previousRelays.length > 0
       ) {
         setIsSyncing(true)
-        
+
         const triggerAutoSync = async () => {
           try {
             await testRelaySync(currentRelays)
             deviceAnnouncement(currentAccount)
-            
+
             await nostrSyncSubscriptions(currentAccount, (loading) => {
               requestAnimationFrame(() => {
                 setIsSyncing(loading)
@@ -653,7 +668,7 @@ function NostrSync() {
           triggerAutoSync()
         }, 0)
       }
-      
+
       previousRelaysRef.current = [...currentRelays]
     }, [accountId, deviceAnnouncement, nostrSyncSubscriptions, testRelaySync])
   )
@@ -828,32 +843,79 @@ function NostrSync() {
                       <SSVStack key={index} gap="md">
                         {member?.npub && (
                           <SSHStack gap="md">
-                            <SSHStack gap="sm" style={{ flex: 0.7 }}>
-                              <View
-                                style={{
-                                  width: 8,
-                                  height: 8,
-                                  borderRadius: 4,
-                                  backgroundColor: member.color || '#404040',
-                                  marginTop: 1,
-                                  marginLeft: 20,
-                                  marginRight: -20
-                                }}
-                              />
-                              <SSTextClipboard text={member.npub || ''}>
-                                <SSText
-                                  center
-                                  size="lg"
-                                  type="mono"
-                                  style={styles.memberText}
-                                  selectable
+                            <SSVStack gap="xxs" style={{ flex: 0.7 }}>
+                              <SSHStack gap="sm">
+                                <View
+                                  style={{
+                                    width: 8,
+                                    height: 8,
+                                    borderRadius: 4,
+                                    backgroundColor: member.color || '#404040',
+                                    marginTop: 1,
+                                    marginLeft: 20,
+                                    marginRight: 0
+                                  }}
+                                />
+                                <Pressable
+                                  onPress={() => {
+                                    router.push({
+                                      pathname: `/account/${accountId}/settings/nostr/device/[npub]`,
+                                      params: { npub: member.npub }
+                                    })
+                                  }}
                                 >
-                                  {member.npub.slice(0, 12) +
-                                    '...' +
-                                    member.npub.slice(-4)}
-                                </SSText>
-                              </SSTextClipboard>
-                            </SSHStack>
+                                  <SSVStack gap="xxs">
+                                    {account?.nostr?.npubAliases?.[
+                                      member.npub
+                                    ] ? (
+                                      <>
+                                        <SSText
+                                          center
+                                          size="lg"
+                                          style={styles.memberText}
+                                          selectable
+                                        >
+                                          {
+                                            account.nostr.npubAliases[
+                                              member.npub
+                                            ]
+                                          }
+                                        </SSText>
+                                        <SSTextClipboard
+                                          text={member.npub || ''}
+                                        >
+                                          <SSText
+                                            center
+                                            size="sm"
+                                            type="mono"
+                                            style={styles.memberNpubText}
+                                            selectable
+                                          >
+                                            {member.npub.slice(0, 12) +
+                                              '...' +
+                                              member.npub.slice(-4)}
+                                          </SSText>
+                                        </SSTextClipboard>
+                                      </>
+                                    ) : (
+                                      <SSTextClipboard text={member.npub || ''}>
+                                        <SSText
+                                          center
+                                          size="lg"
+                                          type="mono"
+                                          style={styles.memberText}
+                                          selectable
+                                        >
+                                          {member.npub.slice(0, 12) +
+                                            '...' +
+                                            member.npub.slice(-4)}
+                                        </SSText>
+                                      </SSTextClipboard>
+                                    )}
+                                  </SSVStack>
+                                </Pressable>
+                              </SSHStack>
+                            </SSVStack>
                             <SSButton
                               style={{
                                 height: 44,
@@ -996,6 +1058,10 @@ const styles = StyleSheet.create({
   relayStatusItem: {
     alignItems: 'center',
     paddingVertical: 4
+  },
+  memberNpubText: {
+    letterSpacing: 1,
+    color: Colors.gray[400]
   }
 })
 
