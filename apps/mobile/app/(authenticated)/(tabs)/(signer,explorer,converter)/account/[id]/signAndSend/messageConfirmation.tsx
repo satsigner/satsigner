@@ -103,7 +103,7 @@ export default function MessageConfirmation() {
       const changeOutputIndex = outputs.findIndex(
         (output) => output.label === DEFAULT_CHANGE_ADDRESS_LABEL
       )
-      if (changeOutputIndex) {
+      if (changeOutputIndex !== -1) {
         const changeOutput = outputs[changeOutputIndex]
         const changeLabel = `Change for ${txLabelText}`
         labels.push({
