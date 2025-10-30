@@ -257,20 +257,26 @@ export default function DevicesGroupChat() {
     }
   }, [])
 
-  const handleListScroll = useCallback((e: { nativeEvent: {
-    contentOffset: { y: number }
-    layoutMeasurement: { height: number }
-    contentSize: { height: number }
-  } }) => {
-    const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent
-    const threshold = 40
-    const atBottom =
-      contentOffset.y + layoutMeasurement.height >= contentSize.height - threshold
-    if (isAtBottomRef.current !== atBottom) {
-      isAtBottomRef.current = atBottom
-      if (atBottom) setShowNewMessageButton(false)
-    }
-  }, [])
+  const handleListScroll = useCallback(
+    (e: {
+      nativeEvent: {
+        contentOffset: { y: number }
+        layoutMeasurement: { height: number }
+        contentSize: { height: number }
+      }
+    }) => {
+      const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent
+      const threshold = 40
+      const atBottom =
+        contentOffset.y + layoutMeasurement.height >=
+        contentSize.height - threshold
+      if (isAtBottomRef.current !== atBottom) {
+        isAtBottomRef.current = atBottom
+        if (atBottom) setShowNewMessageButton(false)
+      }
+    },
+    []
+  )
 
   useEffect(() => {
     if (transactionToShare) {

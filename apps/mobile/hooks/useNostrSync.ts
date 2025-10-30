@@ -121,12 +121,14 @@ function useNostrSync() {
         return ''
       }
 
-      let eventTimestamp = unwrappedEvent.created_at || 0
+      const eventTimestamp = unwrappedEvent.created_at || 0
       const now = Math.floor(Date.now() / 1000)
 
       const MAX_EVENT_AGE = 2 * 24 * 60 * 60
       if (eventTimestamp > 0 && now - eventTimestamp > MAX_EVENT_AGE) {
-        useNostrStore.getState().addProcessedEvent(account.id, unwrappedEvent.id)
+        useNostrStore
+          .getState()
+          .addProcessedEvent(account.id, unwrappedEvent.id)
         return ''
       }
 
