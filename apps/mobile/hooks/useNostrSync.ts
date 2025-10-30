@@ -121,6 +121,15 @@ function useNostrSync() {
         return ''
       }
 
+      let eventTimestamp = unwrappedEvent.created_at || 0
+      const now = Math.floor(Date.now() / 1000)
+
+      const MAX_EVENT_AGE = 2 * 24 * 60 * 60
+      if (eventTimestamp > 0 && now - eventTimestamp > MAX_EVENT_AGE) {
+        useNostrStore.getState().addProcessedEvent(account.id, unwrappedEvent.id)
+        return ''
+      }
+
       // Mark event as processed immediately to prevent duplicate processing
       useNostrStore.getState().addProcessedEvent(account.id, unwrappedEvent.id)
 
@@ -136,6 +145,10 @@ function useNostrSync() {
           }
         }
 
+        const contentTimestamp =
+          eventContent.created_at || unwrappedEvent.created_at || now
+        const eventAge = now - contentTimestamp
+
         if (eventContent.data) {
           const data_type = eventContent.data.data_type
           if (data_type === 'LabelsBip329') {
@@ -148,7 +161,8 @@ function useNostrSync() {
                 const labels = JSONLtoLabels(eventContent.data.data)
                 const store = useAccountsStore.getState()
                 const labelsAdded = store.importLabels(account.id, labels)
-                if (labelsAdded > 0) {
+                const ONE_HOUR = 60 * 60
+                if (labelsAdded > 0 && eventAge < ONE_HOUR) {
                   toast.success(`Imported ${labelsAdded} labels`)
                 }
               }
