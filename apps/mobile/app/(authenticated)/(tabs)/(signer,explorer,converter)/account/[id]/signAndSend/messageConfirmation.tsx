@@ -17,6 +17,10 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type Label } from '@/utils/bip329'
 import { formatAddress } from '@/utils/format'
 
+// TODO: this variable must be used in other parts of the code to make it
+// consistent. For example, the label for the sankey diagram.
+const DEFAULT_CHANGE_ADDRESS_LABEL = 'Change'
+
 export default function MessageConfirmation() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
@@ -64,7 +68,7 @@ export default function MessageConfirmation() {
 
         // if label is empty, it means it is a change address because we
         // enforce labels on all outputs. We deal if it later.
-        if (output.label === '') continue
+        if (output.label === DEFAULT_CHANGE_ADDRESS_LABEL) continue
 
         const vout = i
 
@@ -97,7 +101,9 @@ export default function MessageConfirmation() {
       })
 
       // Add label to change address if it exists.
-      const changeAddressOutput = outputs.find((output) => output.label === '')
+      const changeAddressOutput = outputs.find(
+        (output) => output.label === DEFAULT_CHANGE_ADDRESS_LABEL
+      )
       if (changeAddressOutput) {
         labels.push({
           ref: changeAddressOutput.to,
