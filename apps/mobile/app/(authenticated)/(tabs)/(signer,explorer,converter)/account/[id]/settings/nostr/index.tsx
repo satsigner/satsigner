@@ -107,14 +107,13 @@ function NostrSync() {
     Record<string, 'connected' | 'connecting' | 'disconnected'>
   >({})
 
-  // Track previous relays to detect when new relays are added
   const previousRelaysRef = useRef<string[]>([])
 
   // Add this useCallback near the top of the component, after other hooks
   const getUpdatedAccount = useCallback(() => {
     return useAccountsStore
       .getState()
-      .accounts.find((_account) => _account.id === accountId)
+      .accounts.find((account) => account.id === accountId)
   }, [accountId])
 
   const testRelaySync = useCallback(
@@ -395,7 +394,6 @@ function NostrSync() {
           lastUpdated: new Date()
         })
       } else {
-        // Trust - add to trusted list and open alias modal
         setSelectedMembers((prev) => {
           const newSet = new Set(prev)
           newSet.add(npub)
@@ -407,7 +405,6 @@ function NostrSync() {
           lastUpdated: new Date()
         })
 
-        // Navigate to alias page
         router.push({
           pathname: `/account/${accountId}/settings/nostr/device/[npub]`,
           params: { npub }
@@ -664,9 +661,7 @@ function NostrSync() {
           }
         }
 
-        setTimeout(() => {
-          triggerAutoSync()
-        }, 0)
+        triggerAutoSync()
       }
 
       previousRelaysRef.current = [...currentRelays]
