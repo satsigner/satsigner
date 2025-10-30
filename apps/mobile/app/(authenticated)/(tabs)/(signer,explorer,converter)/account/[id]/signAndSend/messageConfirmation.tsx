@@ -101,14 +101,21 @@ export default function MessageConfirmation() {
       })
 
       // Add label to change address if it exists.
-      const changeAddressOutput = outputs.find(
+      const changeOutputIndex = outputs.findIndex(
         (output) => output.label === DEFAULT_CHANGE_ADDRESS_LABEL
       )
-      if (changeAddressOutput) {
+      if (changeOutputIndex) {
+        const changeOutput = outputs[changeOutputIndex]
+        const changeLabel = `Change for ${txLabelText}`
         labels.push({
-          ref: changeAddressOutput.to,
+          ref: `${txid}:${changeOutputIndex}`,
+          type: 'output',
+          label: changeLabel
+        })
+        labels.push({
+          ref: changeOutput.to,
           type: 'addr',
-          label: `Change for ${txLabelText}` // TODO: i18n strings
+          label: changeLabel
         })
       }
 
