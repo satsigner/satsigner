@@ -169,7 +169,7 @@ function formatTxOutputToUtxo(
     keychain
   }
 }
-    
+
 function trimOnionAddress(url: string): string {
   // Check if URL contains an onion address
   const onionMatch = url.match(/([a-z2-7]{16,56}\.onion)(:\d+)?/i)
