@@ -55,8 +55,8 @@ export default function MessageConfirmation() {
     router.navigate(`/account/${id}`)
   }
 
-  // Store the labels (in account.labels) for this transaction.
-  // The labels will later appear when the wallet data is fetched.
+  // we store the labels in account.labels, then later on the labels will be
+  // restored when the wallet data is fetched.
   useEffect(() => {
     if (txBuilderResult) {
       const { txid } = txBuilderResult.txDetails
@@ -66,8 +66,7 @@ export default function MessageConfirmation() {
       for (let i = 0; i < outputs.length; i += 1) {
         const output = outputs[i]
 
-        // if label is empty, it means it is a change address because we
-        // enforce labels on all outputs. We deal if it later.
+        // we deal with change address later
         if (output.label === DEFAULT_CHANGE_ADDRESS_LABEL) continue
 
         const vout = i
@@ -80,19 +79,19 @@ export default function MessageConfirmation() {
           type: 'output'
         })
 
-        // address label
+        // output's address label
         labels.push({
           ref: output.to,
           type: 'addr',
           label: output.label
         })
 
-        // The tx label will inherit the output's label separated by comma.
-        // This is what Sparrow does.
+        // the tx label will inherit the output's label separated by comma.
+        // this is what sparrow does.
         txLabelText += output.label + ','
       }
 
-      // Trim the last comma before adding the tx label.
+      // trim the last comma before adding the tx label.
       txLabelText = txLabelText.replace(/,$/, '')
       labels.push({
         ref: txid,
@@ -100,7 +99,7 @@ export default function MessageConfirmation() {
         type: 'tx'
       })
 
-      // Add label to change address if it exists.
+      // add label to change address if it exists.
       const changeOutputIndex = outputs.findIndex(
         (output) => output.label === DEFAULT_CHANGE_ADDRESS_LABEL
       )
