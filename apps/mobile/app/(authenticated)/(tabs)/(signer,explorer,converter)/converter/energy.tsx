@@ -712,20 +712,6 @@ export default function Energy() {
             Number.MAX_SAFE_INTEGER
           )
           tx.addOutput(outputScript, safeValue)
-
-          // Verify output
-          /*
-          console.log('🔍 Coinbase output:', {
-            address: miningAddress,
-            value: safeValue,
-            originalValue: template.coinbasevalue,
-            scriptHex: outputScript.toString('hex'),
-            // Verify output requirements
-            hasValidValue:
-              safeValue > 0 && safeValue <= Number.MAX_SAFE_INTEGER,
-            hasValidScript: outputScript.length > 0
-          })
-          */
         } catch (error) {
           /*
           console.error('❌ Error creating output script:', {
@@ -752,23 +738,6 @@ export default function Energy() {
         if (!tx.isCoinbase()) {
           throw new Error('Generated transaction is not a valid coinbase')
         }
-
-        /*
-        // Verify final transaction
-        console.log('🔍 Final coinbase transaction:', {
-          txid: tx.getId(),
-          hex: tx.toHex(),
-          isCoinbase: tx.isCoinbase(),
-          inputCount: tx.ins.length,
-          outputCount: tx.outs.length,
-          // Verify transaction requirements
-          hasValidInput:
-            tx.ins.length === 1 && tx.ins[0].sequence === 0xffffffff,
-          hasValidOutput:
-            tx.outs.length > 0 && tx.outs[0].value === template.coinbasevalue,
-          hasValidTxid: tx.getId().length === 64
-        })
-        */
 
         return {
           data: tx.toHex(),
@@ -839,18 +808,6 @@ export default function Energy() {
 
       // For regtest, we should use the template's curtime
       const blockTime = template.curtime
-
-      /*
-      console.log('🔨 Creating block header:', {
-        version: template.version,
-        prevBlock: template.previousblockhash,
-        merkleRoot,
-        timestamp: blockTime, // Use template's curtime
-        bits: template.bits,
-        nonce,
-        isRegtest: template.bits === '207fffff'
-      })
-        */
 
       // Create header buffer (80 bytes)
       const header = Buffer.alloc(80)

@@ -10,7 +10,11 @@
 
 import { useState } from 'react'
 
-import { type Backend } from '@/types/settings/blockchain'
+import { type Backend, type ProxyConfig } from '@/types/settings/blockchain'
+import { trimOnionAddress } from '@/utils/format'
+
+const DEFAULT_PROXY_HOST = 'localhost'
+const DEFAULT_PROXY_PORT = 9050
 
 type CustomNetworkFormData = {
   backend: Backend
@@ -18,24 +22,34 @@ type CustomNetworkFormData = {
   protocol: 'tcp' | 'ssl'
   host: string
   port: string
+  proxy: ProxyConfig
 }
 
-export const useCustomNetworkForm = () => {
+export function useCustomNetworkForm() {
   const [formData, setFormData] = useState<CustomNetworkFormData>({
     backend: 'electrum',
     name: '',
     protocol: 'ssl',
     host: '',
-    port: ''
+    port: '',
+    proxy: {
+      enabled: false,
+      host: DEFAULT_PROXY_HOST,
+      port: DEFAULT_PROXY_PORT
+    }
   })
 
-  const updateField = (field: keyof CustomNetworkFormData, value: string) => {
+  function updateField(field: keyof CustomNetworkFormData, value: string) {
     const trimmedValue =
       field === 'host' || field === 'port' ? value.trim() : value
     setFormData((prev) => ({ ...prev, [field]: trimmedValue }))
   }
 
-  const constructUrl = () => {
+  function updateProxyField(proxy: ProxyConfig) {
+    setFormData((prev) => ({ ...prev, proxy }))
+  }
+
+  function constructUrl() {
     if (formData.backend === 'esplora') {
       return formData.port.trim()
         ? `https://${formData.host}:${formData.port}`
@@ -45,20 +59,34 @@ export const useCustomNetworkForm = () => {
     return `${protocol}://${formData.host}:${formData.port}`
   }
 
-  const resetForm = () => {
+  function constructTrimmedUrl() {
+    if (!formData.host) return ''
+    if (formData.backend === 'electrum' && !formData.port) return ''
+    const fullUrl = constructUrl()
+    return trimOnionAddress(fullUrl)
+  }
+
+  function resetForm() {
     setFormData({
       backend: 'electrum',
       name: '',
       protocol: 'ssl',
       host: '',
-      port: ''
+      port: '',
+      proxy: {
+        enabled: false,
+        host: DEFAULT_PROXY_HOST,
+        port: DEFAULT_PROXY_PORT
+      }
     })
   }
 
   return {
     formData,
     updateField,
+    updateProxyField,
     constructUrl,
+    constructTrimmedUrl,
     resetForm
   }
 }

@@ -1,6 +1,37 @@
 import type { ExtendedTransaction } from '@/hooks/useInputTransactions'
+import { type ScriptVersionType } from '@/types/models/Account'
+import { type Output } from '@/types/models/Output'
+import { type Utxo } from '@/types/models/Utxo'
 
-export function estimateTransactionSize(
+import { getScriptVersionType } from './address'
+
+const BASE_SIZE = 10
+
+const INPUT_SIZES: Record<
+  ScriptVersionType,
+  { base: number; witness: number }
+> = {
+  P2PKH: { base: 147, witness: 0 },
+  P2SH: { base: 147, witness: 0 },
+  P2WPKH: { base: 41, witness: 107 },
+  P2WSH: { base: 41, witness: 107 },
+  P2TR: { base: 41, witness: 66 },
+  'P2SH-P2WPKH': { base: 91, witness: 107 },
+  'P2SH-P2WSH': { base: 41, witness: 107 }
+}
+
+const OUTPUT_SIZES: Record<ScriptVersionType, number> = {
+  P2PKH: 34,
+  P2SH: 34,
+  P2WPKH: 31,
+  P2WSH: 43,
+  P2TR: 43,
+  'P2SH-P2WPKH': 31,
+  'P2SH-P2WSH': 43
+}
+
+// TODO: To be removed
+export function legacyEstimateTransactionSize(
   inputCount: number,
   outputCount: number
 ) {
@@ -16,6 +47,50 @@ export function estimateTransactionSize(
   const vsize = Math.ceil(totalSize * 0.25)
 
   return { size: totalSize, vsize }
+}
+
+export function estimateTransactionSize(
+  inputs: Utxo[],
+  outputs: Output[],
+  hasChange?: boolean
+) {
+  const inputTypeSizes = inputs.map((utxo) => {
+    const type = utxo.addressTo ? getScriptVersionType(utxo.addressTo) : 'P2PKH'
+    const size = INPUT_SIZES[type || 'P2PKH']
+    return size
+  })
+
+  const inputBase = inputTypeSizes.reduce((sum, i) => sum + i.base, 0)
+  const inputWitness = inputTypeSizes.reduce((sum, i) => sum + i.witness, 0)
+
+  const allOutputs = [...outputs]
+  if (hasChange) {
+    allOutputs.push({
+      localId: 'change-output',
+      to: inputs[0].addressTo || '', // Assume that change address script type will be the same type of the first input
+      amount: 0, // Amount not need for size estimation
+      label: 'change'
+    })
+  }
+
+  const outputSize = allOutputs.reduce((sum, o) => {
+    const type = getScriptVersionType(o.to) || 'P2PKH'
+    return sum + OUTPUT_SIZES[type]
+  }, 0)
+
+  const baseSize = BASE_SIZE + inputBase + outputSize
+
+  const hasWitness = inputWitness > 0
+  const baseSizeWithMarker = hasWitness ? baseSize : baseSize
+
+  const weight = hasWitness
+    ? baseSizeWithMarker * 4 + inputWitness
+    : baseSize * 3
+
+  const size = hasWitness ? baseSizeWithMarker + inputWitness + 2 : baseSize
+  const vsize = hasWitness ? Math.ceil(weight / 4) : size
+
+  return { size, vsize }
 }
 
 /**

@@ -171,9 +171,13 @@ export default function IOPreview() {
 
   // First calculate without change output
   const baseTransactionSize = useMemo(() => {
-    const { size, vsize } = estimateTransactionSize(inputs.size, outputs.length)
+    const { size, vsize } = estimateTransactionSize(
+      Array.from(inputs.values()),
+      outputs
+      // add hasChange
+    )
     return { size, vsize }
-  }, [inputs.size, outputs.length])
+  }, [inputs, outputs])
 
   const baseMinerFee = useMemo(
     () => Math.round(feeRate * baseTransactionSize.vsize),
@@ -212,11 +216,12 @@ export default function IOPreview() {
 
   const transactionSize = useMemo(() => {
     const { size, vsize } = estimateTransactionSize(
-      inputs.size,
-      outputs.length + (hasChange ? 1 : 0)
+      Array.from(inputs.values()),
+      outputs,
+      hasChange
     )
     return { size, vsize }
-  }, [inputs.size, outputs.length, hasChange])
+  }, [inputs, outputs, hasChange])
 
   const minerFee = useMemo(
     () => Math.round(feeRate * transactionSize.vsize),

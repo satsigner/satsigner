@@ -2,6 +2,10 @@ import ecc from '@bitcoinerlab/secp256k1'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import { isDomainName } from '@/utils/validation/url'
+
+// Re-export for backward compatibility
+export { isDomainName }
 
 bitcoinjs.initEccLib(ecc)
 
@@ -25,11 +29,6 @@ export function validateExtendedKey(key: string, network?: AppNetwork) {
 
   // Fallback to original validation (accepts all prefixes)
   return key.match(new RegExp('^[tuvxyz](pub|prv)[a-zA-Z0-9]+$')) !== null
-}
-
-export function isDomainName(host: string): boolean {
-  // Validate host: allow domain names (starting with letter) or IP addresses
-  return /^[a-z][a-z0-9.-]*[a-z0-9]$/i.test(host)
 }
 
 export function validateDerivationPath(path: string) {

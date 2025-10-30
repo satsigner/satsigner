@@ -169,6 +169,26 @@ function formatTxOutputToUtxo(
     keychain
   }
 }
+    
+function trimOnionAddress(url: string): string {
+  // Check if URL contains an onion address
+  const onionMatch = url.match(/([a-z2-7]{16,56}\.onion)(:\d+)?/i)
+  if (!onionMatch) {
+    return url // Return original if no onion address found
+  }
+
+  const fullOnion = onionMatch[1] // e.g., "wilqrsi66cnsbrksba2wvjs8727dwytgqf7ybi3wc4cn72nbv7ce6uzsid.onion"
+  const port = onionMatch[2] || '' // e.g., ":50002" or empty string
+
+  const onionPart = fullOnion.replace('.onion', '') // Remove .onion suffix
+  const first5 = onionPart.substring(0, 5)
+  const last5 = onionPart.substring(onionPart.length - 5)
+
+  const trimmedOnion = `${first5}...${last5}.onion${port}`
+
+  // Replace the full onion address with the trimmed version
+  return url.replace(onionMatch[0], trimmedOnion)
+}
 
 export {
   formatAddress,
@@ -182,5 +202,6 @@ export {
   formatTimeFromNow,
   formatTimestamp,
   formatTxId,
-  formatTxOutputToUtxo
+  formatTxOutputToUtxo,
+  trimOnionAddress
 }

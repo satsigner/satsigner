@@ -102,8 +102,9 @@ export const useNodesAndLinks = ({
       const blockDepth = maxExistingDepth + 2
 
       const { size, vsize } = estimateTransactionSize(
-        inputs.size,
-        outputs.length + 1
+        Array.from(inputs.values()),
+        outputs,
+        true
       )
       const minerFee = Math.round(feeRate * vsize)
 
