@@ -3,12 +3,18 @@ import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
 import { validateAddress } from '@/utils/validation'
 
 export function isPSBT(text: string): boolean {
-  // PSBTs are base64 encoded and start with 'cHNidP8B' (base64 for 'psbt\xff')
   const trimmed = text.trim()
-  // Check for PSBT magic bytes and ensure it's a reasonable length
-  const isPSBTFormat = trimmed.startsWith('cHNidP8B') && trimmed.length > 50
 
-  return isPSBTFormat
+  // Check for base64 PSBT format (starts with 'cHNidP8B' which is base64 for 'psbt\xff')
+  const isBase64PSBT = trimmed.startsWith('cHNidP8B') && trimmed.length > 50
+
+  // Check for hex PSBT format (starts with '70736274ff' or '70736274FF' which is hex for 'psbt\xff')
+  const isHexPSBT =
+    /^[0-9a-fA-F]+$/.test(trimmed) &&
+    (trimmed.startsWith('70736274ff') || trimmed.startsWith('70736274FF')) &&
+    trimmed.length > 100
+
+  return isBase64PSBT || isHexPSBT
 }
 
 export function isValidBitcoinContent(text: string): boolean {

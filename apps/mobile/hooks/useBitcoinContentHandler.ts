@@ -19,13 +19,14 @@ export function useBitcoinContentHandler({
 }: UseBitcoinContentHandlerProps) {
   const router = useRouter()
 
-  const [clearTransaction, addOutput, addInput, setFeeRate] =
+  const [clearTransaction, addOutput, addInput, setFeeRate, setRbf] =
     useTransactionBuilderStore(
       useShallow((state) => [
         state.clearTransaction,
         state.addOutput,
         state.addInput,
-        state.setFeeRate
+        state.setFeeRate,
+        state.setRbf
       ])
     )
 
@@ -41,11 +42,22 @@ export function useBitcoinContentHandler({
           content,
           'bitcoin',
           {
-            navigate: router.push,
+            navigate: (
+              path:
+                | string
+                | { pathname: string; params?: Record<string, unknown> }
+            ) => {
+              if (typeof path === 'string') {
+                router.push(path as any)
+              } else {
+                router.push(path as any)
+              }
+            },
             clearTransaction,
             addOutput,
             addInput,
-            setFeeRate
+            setFeeRate,
+            setRbf
           },
           accountId,
           account
@@ -62,7 +74,8 @@ export function useBitcoinContentHandler({
       clearTransaction,
       addOutput,
       addInput,
-      setFeeRate
+      setFeeRate,
+      setRbf
     ]
   )
 

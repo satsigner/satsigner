@@ -61,7 +61,12 @@ import {
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { parseHexToBytes } from '@/utils/parse'
-import { validateSignedPSBTForCosigner } from '@/utils/psbt'
+import {
+  validateSignedPSBTForCosigner,
+  extractTransactionIdFromPSBT,
+  extractOriginalPsbt
+} from '@/utils/psbt'
+import { extractKeyFingerprint } from '@/utils/account'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import { estimateTransactionSize } from '@/utils/transaction'
 import {
@@ -133,7 +138,11 @@ function PreviewMessage() {
     rbf,
     setTxBuilderResult,
     txBuilderResult,
-    setSignedTx
+    setSignedTx,
+    addInput,
+    addOutput,
+    setFee,
+    setRbf
   ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.inputs,
@@ -142,7 +151,11 @@ function PreviewMessage() {
       state.rbf,
       state.setTxBuilderResult,
       state.txBuilderResult,
-      state.setSignedTx
+      state.setSignedTx,
+      state.addInput,
+      state.addOutput,
+      state.setFee,
+      state.setRbf
     ])
   )
 
@@ -215,10 +228,149 @@ function PreviewMessage() {
     if (psbt) {
       // Clear any existing transaction data and set the new PSBT
       setSignedTx('')
-      // TODO: Decode PSBT and populate transaction builder with inputs/outputs
-      // This utility function is being written in another PR
-      // We need to decode the PSBT and call setTxBuilderResult with the decoded data
-      // so that the SSTransactionChart can properly display the transaction flow
+
+      // Enhanced PSBT processing using the tools from nostr multisig
+      if (account) {
+        try {
+          const {
+            extractTransactionDataFromPSBTEnhanced,
+            extractTransactionIdFromPSBT
+          } = require('@/utils/psbt')
+
+          // Extract transaction data from PSBT
+          const extractedData = extractTransactionDataFromPSBTEnhanced(
+            psbt,
+            account
+          )
+
+          if (extractedData) {
+            // Populate transaction builder with extracted data
+            extractedData.inputs.forEach((input: any) => {
+              addInput({
+                ...input,
+                script: Buffer.from(input.script, 'hex'),
+                keychain: input.keychain || 'external'
+              })
+            })
+
+            extractedData.outputs.forEach((output: any) => {
+              addOutput({
+                to: output.address,
+                amount: output.value,
+                label: output.label || ''
+              })
+            })
+
+            if (extractedData.fee) {
+              setFee(extractedData.fee)
+            }
+
+            setRbf(true)
+
+            // Create mock transaction builder result for display
+            const extractedTxid = extractTransactionIdFromPSBT(psbt)
+            const mockTxBuilderResult = {
+              psbt: {
+                base64: psbt,
+                serialize: () => Promise.resolve(psbt),
+                txid: () => Promise.resolve(extractedTxid)
+              },
+              txDetails: {
+                txid: extractedTxid,
+                fee: extractedData.fee
+              }
+            }
+            setTxBuilderResult(mockTxBuilderResult as any)
+            toast.success('PSBT processed successfully with enhanced features.')
+
+            // Detect and populate any existing signatures already present in the PSBT
+            try {
+              const combinedPsbtBase64: string = psbt
+              const originalPsbtBase64: string = extractOriginalPsbt(psbt)
+
+              // Split combined PSBT into per-signer PSBTs (by pubkey)
+              const { extractIndividualSignedPsbts } = require('@/utils/psbt')
+              const bySigner = extractIndividualSignedPsbts(
+                combinedPsbtBase64,
+                originalPsbtBase64
+              ) as Record<number, string>
+
+              const totalCosigners = account.keys?.length || 0
+
+              // For each derived PSBT, find which cosigner it belongs to using validation
+              Object.values(bySigner).forEach((indivBase64: string) => {
+                for (let cosIdx = 0; cosIdx < totalCosigners; cosIdx++) {
+                  try {
+                    const matches = validateSignedPSBTForCosigner(
+                      indivBase64,
+                      account,
+                      cosIdx,
+                      decryptedKeys[cosIdx]
+                    )
+                    if (matches) {
+                      // Assign to the correct slot; if slot already filled, skip
+                      const existing = signedPsbts.get(cosIdx)
+                      if (!existing || existing.trim().length === 0) {
+                        updateSignedPsbt(cosIdx, indivBase64)
+                      }
+                      break
+                    }
+                  } catch {}
+                }
+              })
+            } catch {}
+          }
+        } catch (error) {
+          console.warn('Enhanced PSBT processing failed:', error)
+
+          // Show user-friendly error message
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error'
+          if (
+            errorMessage.includes('fingerprint') ||
+            errorMessage.includes('derivation')
+          ) {
+            toast.error(
+              'This PSBT does not match the current account. Using basic processing.'
+            )
+          } else if (
+            errorMessage.includes('Invalid PSBT') ||
+            errorMessage.includes('malformed')
+          ) {
+            toast.error('Invalid PSBT format. Please check the PSBT data.')
+          } else {
+            toast.error(
+              'Failed to process PSBT with enhanced features. Using basic processing.'
+            )
+          }
+
+          // Fallback: create basic transaction builder result
+          try {
+            const extractedTxid = extractTransactionIdFromPSBT(psbt)
+            const mockTxBuilderResult = {
+              psbt: {
+                base64: psbt,
+                serialize: () => Promise.resolve(psbt),
+                txid: () => Promise.resolve(extractedTxid)
+              },
+              txDetails: {
+                txid: extractedTxid,
+                fee: 0
+              }
+            }
+            setTxBuilderResult(mockTxBuilderResult as any)
+            toast.info(
+              'PSBT loaded with basic processing. Some features may be limited.'
+            )
+          } catch (fallbackError) {
+            console.error(
+              'Fallback PSBT processing also failed:',
+              fallbackError
+            )
+            toast.error('Failed to process PSBT. Please check the data format.')
+          }
+        }
+      }
     }
 
     if (signedPsbtParam) {

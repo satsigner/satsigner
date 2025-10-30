@@ -4,6 +4,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { bip21decode } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { selectEfficientUtxos } from '@/utils/utxo'
+import { toast } from 'sonner-native'
 
 export type ProcessorActions = {
   navigate: (
@@ -13,6 +14,7 @@ export type ProcessorActions = {
   addOutput?: (output: { amount: number; label: string; to: string }) => void
   addInput?: (input: Utxo) => void
   setFeeRate?: (rate: number) => void
+  setRbf?: (enabled: boolean) => void
 }
 
 /**
@@ -82,10 +84,112 @@ function processBitcoinContent(
 
   switch (content.type) {
     case 'psbt':
-      navigate({
-        pathname: '/account/[id]/signAndSend/previewMessage',
-        params: { id: accountId, psbt: content.cleaned }
-      })
+      // Enhanced PSBT processing using the tools from nostr multisig
+      if (account) {
+        // Convert hex PSBT to base64 if needed
+        let psbtBase64 = content.cleaned
+        if (/^[0-9a-fA-F]+$/.test(content.cleaned.trim())) {
+          // It's a hex PSBT, convert to base64
+          psbtBase64 = Buffer.from(content.cleaned, 'hex').toString('base64')
+        }
+
+        try {
+          // Import the enhanced PSBT utilities
+          const {
+            extractTransactionDataFromPSBTEnhanced,
+            findMatchingAccount,
+            extractOriginalPsbt,
+            extractIndividualSignedPsbts
+          } = require('@/utils/psbt')
+
+          // Check if this PSBT matches the current account
+          const accountMatch = findMatchingAccount(psbtBase64, [account])
+
+          if (accountMatch) {
+            // Extract transaction data and populate the transaction builder
+            const extractedData = extractTransactionDataFromPSBTEnhanced(
+              psbtBase64,
+              account
+            )
+
+            if (extractedData) {
+              // Populate inputs and outputs in the transaction builder
+              extractedData.inputs.forEach((input: any) => {
+                actions.addInput?.({
+                  ...input,
+                  script: Buffer.from(input.script, 'hex'),
+                  keychain: input.keychain || 'external'
+                })
+              })
+
+              extractedData.outputs.forEach((output: any) => {
+                actions.addOutput?.({
+                  to: output.address,
+                  amount: output.value,
+                  label: output.label || ''
+                })
+              })
+
+              if (extractedData.fee) {
+                actions.setFeeRate?.(extractedData.fee)
+              }
+
+              // Set RBF to true for PSBTs
+              actions.setRbf?.(true)
+            }
+          }
+
+          // Navigate to preview with enhanced PSBT data
+          navigate({
+            pathname: '/account/[id]/signAndSend/previewMessage',
+            params: {
+              id: accountId,
+              psbt: psbtBase64,
+              enhanced: 'true' // Flag to indicate enhanced processing
+            }
+          })
+        } catch (error) {
+          console.warn(
+            'Enhanced PSBT processing failed, falling back to basic processing:',
+            error
+          )
+
+          // Show user-friendly error message
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error'
+          if (
+            errorMessage.includes('fingerprint') ||
+            errorMessage.includes('derivation')
+          ) {
+            // This PSBT doesn't match the current account
+            toast.error(
+              'This PSBT does not match the current account. Proceeding with basic processing.'
+            )
+          } else {
+            toast.error(
+              'Failed to process PSBT with enhanced features. Using basic processing.'
+            )
+          }
+
+          // Fallback to basic PSBT processing
+          navigate({
+            pathname: '/account/[id]/signAndSend/previewMessage',
+            params: { id: accountId, psbt: psbtBase64 }
+          })
+        }
+      } else {
+        // Basic PSBT processing when no account context
+        // Convert hex PSBT to base64 if needed
+        let psbtBase64 = content.cleaned
+        if (/^[0-9a-fA-F]+$/.test(content.cleaned.trim())) {
+          psbtBase64 = Buffer.from(content.cleaned, 'hex').toString('base64')
+        }
+
+        navigate({
+          pathname: '/account/[id]/signAndSend/previewMessage',
+          params: { id: accountId, psbt: psbtBase64 }
+        })
+      }
       break
 
     case 'bitcoin_transaction':
