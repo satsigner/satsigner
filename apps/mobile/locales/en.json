@@ -146,6 +146,7 @@
         "invalidPsbt": "Invalid PSBT",
         "loadingMessages": "Loading messages...",
         "messagePlaceholder": "Type your message...",
+        "newMessages": "New messages",
         "noMessages": "No messages yet",
         "sendButton": "Send",
         "syncOff": " (Sync Off)",

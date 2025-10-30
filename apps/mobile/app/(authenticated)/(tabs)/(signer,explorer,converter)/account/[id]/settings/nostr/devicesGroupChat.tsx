@@ -1,6 +1,6 @@
 import { Redirect, Stack, useLocalSearchParams } from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -94,11 +94,15 @@ export default function DevicesGroupChat() {
   const [messageToShare, setMessageToShare] = useState('')
   const [transactionDataForModal, setTransactionDataForModal] =
     useState<TransactionData | null>(null)
+  const isAtBottomRef = useRef(true)
+  const [showNewMessageButton, setShowNewMessageButton] = useState(false)
 
   const messages = useMemo(
     () => account?.nostr?.dms || [],
     [account?.nostr?.dms]
   )
+
+  const prevMessageCountRef = useRef(messages.length)
 
   const memoizedMessages = useMemo(() => messages, [messages])
 
@@ -227,16 +231,46 @@ export default function DevicesGroupChat() {
               flatListRef.current?.scrollToEnd({ animated: false })
               setIsContentLoaded(true)
               setIsInitialLoad(false)
+              isAtBottomRef.current = true
             }, 200)
           }
         }, 100)
-      } else {
-        if (flatListRef.current) {
-          flatListRef.current.scrollToEnd({ animated: false })
-        }
+      } else if (isAtBottomRef.current && flatListRef.current) {
+        flatListRef.current.scrollToEnd({ animated: false })
       }
     }
   }, [messages.length, account?.nostr?.relays?.length, isInitialLoad])
+
+  useEffect(() => {
+    const prevCount = prevMessageCountRef.current
+    if (messages.length > prevCount && !isAtBottomRef.current) {
+      setShowNewMessageButton(true)
+    }
+    prevMessageCountRef.current = messages.length
+  }, [messages.length])
+
+  const handleScrollToBottom = useCallback(() => {
+    if (flatListRef.current) {
+      flatListRef.current.scrollToEnd({ animated: true })
+      isAtBottomRef.current = true
+      setShowNewMessageButton(false)
+    }
+  }, [])
+
+  const handleListScroll = useCallback((e: { nativeEvent: {
+    contentOffset: { y: number }
+    layoutMeasurement: { height: number }
+    contentSize: { height: number }
+  } }) => {
+    const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent
+    const threshold = 40
+    const atBottom =
+      contentOffset.y + layoutMeasurement.height >= contentSize.height - threshold
+    if (isAtBottomRef.current !== atBottom) {
+      isAtBottomRef.current = atBottom
+      if (atBottom) setShowNewMessageButton(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (transactionToShare) {
@@ -304,16 +338,27 @@ export default function DevicesGroupChat() {
             inverted={false}
             contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end' }}
             onContentSizeChange={() => {
-              if (flatListRef.current) {
+              if (isAtBottomRef.current && flatListRef.current) {
                 flatListRef.current.scrollToEnd({ animated: false })
               }
             }}
             onLayout={() => {
-              if (flatListRef.current) {
+              if (isAtBottomRef.current && flatListRef.current) {
                 flatListRef.current.scrollToEnd({ animated: false })
               }
             }}
+            onScroll={handleListScroll}
+            scrollEventThrottle={16}
           />
+          {showNewMessageButton && (
+            <View style={styles.newMessageButtonContainer}>
+              <SSButton
+                label={t('account.nostrSync.devicesGroupChat.newMessages')}
+                onPress={handleScrollToBottom}
+                variant="secondary"
+              />
+            </View>
+          )}
         </View>
 
         <SSHStack gap="sm" style={styles.inputContainer}>
@@ -462,5 +507,11 @@ const styles = StyleSheet.create({
   },
   modalMessageText: {
     maxHeight: 300
+  },
+  newMessageButtonContainer: {
+    position: 'absolute',
+    bottom: 70,
+    alignSelf: 'center',
+    zIndex: 2
   }
 })
