@@ -1,4 +1,5 @@
 import { type WordListName } from '@/utils/bip39'
+import { type Label } from '@/utils/bip329'
 
 import { type Network } from '../settings/blockchain'
 import { type Address } from './Address'
@@ -87,6 +88,7 @@ export type Account = {
   transactions: Transaction[]
   utxos: Utxo[]
   addresses: Address[]
+  labels: Record<Label['ref'], Label>
   createdAt: Date
   isSyncing?: boolean
   lastSyncedAt?: Date

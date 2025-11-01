@@ -18,9 +18,6 @@ import {
   type Bip329FileType,
   bip329FileTypes,
   bip329mimes,
-  formatAddressLabels,
-  formatTransactionLabels,
-  formatUtxoLabels,
   type Label
 } from '@/utils/bip329'
 import { shareFile } from '@/utils/filesystem'
@@ -34,6 +31,7 @@ export default function ExportLabels() {
 
   const [exportType, setExportType] = useState<Bip329FileType>('JSONL')
   const [exportContent, setExportContent] = useState('')
+  const labels: Label[] = Object.values(account?.labels || {})
 
   useEffect(() => {
     setExportContent(bip329export[exportType](labels))
@@ -56,12 +54,6 @@ export default function ExportLabels() {
   }
 
   if (!account) return <Redirect href="/" />
-
-  const labels = [
-    ...formatTransactionLabels(account.transactions),
-    ...formatUtxoLabels(account.utxos),
-    ...formatAddressLabels(account.addresses)
-  ] as Label[]
 
   return (
     <ScrollView style={{ width: '100%' }}>

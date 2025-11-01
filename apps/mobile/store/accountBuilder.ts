@@ -294,6 +294,7 @@ const useAccountBuilderStore = create<
         numberOfUtxos: 0,
         satsInMempool: 0
       },
+      labels: {},
       transactions: [],
       utxos: [],
       addresses: [],

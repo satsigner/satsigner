@@ -13,7 +13,6 @@ export type Label = {
   type: LabelType
   ref: string
   label: string
-  spendable: boolean
 
   // optional
   fee?: number
@@ -23,6 +22,7 @@ export type Label = {
   keypath?: string
   origin?: string
   rate?: Prices
+  spendable?: boolean
   time?: Date
   value?: number
 }

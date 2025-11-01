@@ -8,6 +8,7 @@ import SSLabelDetails from '@/components/SSLabelDetails'
 import SSScriptDecoded from '@/components/SSScriptDecoded'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
+import useGetAccountTransactionOutput from '@/hooks/useGetAccountTransactionOutput'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -145,14 +146,13 @@ function UtxoDetails({
 function UtxoDetailsPage() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 
-  const [tx, utxo] = useAccountsStore((state) => [
+  const tx = useAccountsStore((state) =>
     state.accounts
       .find((account) => account.id === accountId)
-      ?.transactions.find((tx) => tx.id === txid),
-    state.accounts
-      .find((account) => account.id === accountId)
-      ?.utxos.find((u) => u.txid === txid && u.vout === Number(vout))
-  ])
+      ?.transactions.find((tx) => tx.id === txid)
+  )
+
+  const utxo = useGetAccountTransactionOutput(accountId!, txid!, Number(vout!))
 
   function navigateToTx() {
     if (!accountId || !txid) return

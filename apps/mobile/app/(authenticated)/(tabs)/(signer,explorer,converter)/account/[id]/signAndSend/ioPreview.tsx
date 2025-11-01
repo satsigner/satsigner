@@ -482,7 +482,7 @@ export default function IOPreview() {
       addOutput({
         to: changeAddress,
         amount: remainingBalance,
-        label: 'Change'
+        label: t('sign.changeAddressLabelDefault')
       })
     }
 
