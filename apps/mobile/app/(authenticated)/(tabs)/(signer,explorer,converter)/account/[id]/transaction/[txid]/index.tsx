@@ -420,9 +420,12 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
     if (!tx) return
 
     const labels: Record<number, string> = {}
-    tx.vout.forEach((_, index) => {
+    tx.vout.forEach((output, index) => {
       const utxoOutpoint = `${tx.id}:${index}`
-      const label = account.labels[utxoOutpoint]
+      const outputAddress = output.address
+      const labelFromUtxo = account.labels[utxoOutpoint]
+      const labelFromAddress = account.labels[outputAddress]
+      const label = labelFromUtxo || labelFromAddress
       if (!label) return
       labels[index] = label.label
       utxos[utxoOutpoint] = true

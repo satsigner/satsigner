@@ -25,6 +25,14 @@ function useGetAccountTransactionOutput(
     output.label = outputLabel
   }
 
+  if (!outputLabel && output && output.addressTo) {
+    output.label = account?.labels[output.addressTo]?.label
+  }
+
+  if (output && !output.label) {
+    output.label = ''
+  }
+
   return output
 }
 
