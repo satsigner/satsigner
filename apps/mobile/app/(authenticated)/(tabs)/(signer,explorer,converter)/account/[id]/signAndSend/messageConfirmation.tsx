@@ -117,7 +117,7 @@ export default function MessageConfirmation() {
         })
       }
 
-      importLabels(id, labels)
+      importLabels(id!, labels)
     }
   }, [id, txBuilderResult, outputs, importLabels])
 
