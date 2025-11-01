@@ -85,7 +85,7 @@ function useSyncAccountWithWallet() {
             if (!outputLabel) continue
             label += outputLabel + ','
           }
-          label.replace(/,$/, '')
+          label = label.replace(/,$/, '')
         }
         updatedAccount.transactions[index].label = label || ''
       }
