@@ -56,39 +56,59 @@ function useSyncAccountWithWallet() {
       updatedAccount.addresses = walletSummary.addresses
       updatedAccount.summary = walletSummary.summary
 
-      //Attach additional information to the account addresses
+      // attach additional information to the account addresses
       updatedAccount.addresses = parseAccountAddressesDetails(updatedAccount)
 
-      // UTXO labels update
+      // utxo labels update
       for (const index in updatedAccount.utxos) {
-        const utxoRef = getUtxoOutpoint(updatedAccount.utxos[index])
-        updatedAccount.utxos[index].label = labels[utxoRef]?.label || ''
+        const utxo = updatedAccount.utxos[index]
+        const utxoRef = getUtxoOutpoint(utxo)
+        let label = labels[utxoRef]?.label
+        // fall back to utxo's address's label
+        if (!label && utxo.addressTo) {
+          label = labels[utxo.addressTo]?.label
+        }
+        updatedAccount.utxos[index].label = label || ''
       }
 
       // TX label update
       for (const index in updatedAccount.transactions) {
-        const txRef = updatedAccount.transactions[index].id
-        updatedAccount.transactions[index].label = labels[txRef]?.label || ''
+        const tx = updatedAccount.transactions[index]
+        const txRef = tx.id
+        let label = labels[txRef]?.label
+        // fall back to tx's address' label
+        if (!label && tx.vout.length > 0) {
+          label = ''
+          for (const output of tx.vout) {
+            const outputAddress = output.address
+            const outputLabel = labels[outputAddress]?.label
+            if (!outputLabel) continue
+            label += outputLabel + ','
+          }
+          label.replace(/,$/, '')
+        }
+        updatedAccount.transactions[index].label = label || ''
       }
 
-      // Address label update
+      // address label update
       for (const index in updatedAccount.addresses) {
         const addressRef = updatedAccount.addresses[index].address
-        updatedAccount.addresses[index].label = labels[addressRef]?.label || ''
+        const label = labels[addressRef]?.label
+        updatedAccount.addresses[index].label = label || ''
       }
 
-      // Extract timestamps
+      // extract timestamps
       const timestamps = updatedAccount.transactions
         .filter((transaction) => transaction.timestamp)
         .map((transaction) => formatTimestamp(transaction.timestamp!))
 
-      // Fetch Prices
+      // fetch prices
       const network = 'bitcoin' // always use mainnet when fetching prices
       const mempoolUrl = configsMempol[network]
       const oracle = new MempoolOracle(mempoolUrl)
       const prices = await oracle.getPricesAt('USD', timestamps)
 
-      //Transaction prices update
+      // transaction prices update
       for (const index in updatedAccount.transactions) {
         updatedAccount.transactions[index].prices = { USD: prices[index] }
       }
