@@ -68,6 +68,14 @@ function useSyncAccountWithWallet() {
         if (!label && utxo.addressTo) {
           label = labels[utxo.addressTo]?.label
         }
+        // save label inherited from address
+        if (label && !labels[utxoRef]) {
+          labels[utxoRef] = {
+            type: 'output',
+            ref: utxoRef,
+            label
+          }
+        }
         updatedAccount.utxos[index].label = label || ''
       }
 
@@ -87,6 +95,14 @@ function useSyncAccountWithWallet() {
           }
           label = label.replace(/,$/, '')
         }
+        // save label inherited from address
+        if (label && !labels[txRef]) {
+          labels[txRef] = {
+            type: 'tx',
+            ref: txRef,
+            label
+          }
+        }
         updatedAccount.transactions[index].label = label || ''
       }
 
@@ -96,6 +112,9 @@ function useSyncAccountWithWallet() {
         const label = labels[addressRef]?.label
         updatedAccount.addresses[index].label = label || ''
       }
+
+      // update labels with possible new labels inherited from receive address
+      updatedAccount.labels = { ...labels }
 
       // extract timestamps
       const timestamps = updatedAccount.transactions
