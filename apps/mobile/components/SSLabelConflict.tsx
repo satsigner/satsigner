@@ -77,7 +77,32 @@ function SSLabelConflict({ conflicts }: SSLabelConflictProps) {
         Array(conflicts.length).fill(defaultStrategu) as ConflictStrategy[]
       )
     }
-  }, [conflicts, conflictStrategy, conflictStrategyPerLabel])
+  }, [conflicts, conflictStrategy]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function getStyle(type: 'current' | 'incoming', strategy: ConflictStrategy) {
+    switch (type) {
+      case 'current':
+        switch (strategy) {
+          case 'current':
+          case 'merge':
+            return styles.accepted
+          case 'incoming':
+            return styles.rejected
+          case 'manual':
+            return styles.none
+        }
+      case 'incoming':
+        switch (strategy) {
+          case 'incoming':
+          case 'merge':
+            return styles.accepted
+          case 'current':
+            return styles.rejected
+          case 'manual':
+            return styles.none
+        }
+    }
+  }
 
   return (
     <SSVStack>
@@ -113,12 +138,9 @@ function SSLabelConflict({ conflicts }: SSLabelConflictProps) {
               <SSText
                 size="md"
                 style={
-                  conflictStrategy === 'incoming'
-                    ? styles.rejected
-                    : conflictStrategy === 'current' ||
-                        conflictStrategy === 'merge'
-                      ? styles.accepted
-                      : styles.none
+                  conflictStrategy !== 'manual'
+                    ? getStyle('current', conflictStrategy)
+                    : getStyle('current', conflictStrategyPerLabel[index])
                 }
               >
                 {current.label}
@@ -129,12 +151,9 @@ function SSLabelConflict({ conflicts }: SSLabelConflictProps) {
               <SSText
                 size="md"
                 style={
-                  conflictStrategy === 'current'
-                    ? styles.rejected
-                    : conflictStrategy === 'incoming' ||
-                        conflictStrategy === 'merge'
-                      ? styles.accepted
-                      : styles.none
+                  conflictStrategy !== 'manual'
+                    ? getStyle('incoming', conflictStrategy)
+                    : getStyle('incoming', conflictStrategyPerLabel[index])
                 }
               >
                 {incoming.label}
@@ -150,9 +169,7 @@ function SSLabelConflict({ conflicts }: SSLabelConflictProps) {
                         key={strategy}
                         selected={strategy === conflictStrategyPerLabel[index]}
                         label={strategy}
-                        onPress={() =>
-                          solveConflictByIndex(index, strategy)
-                        }
+                        onPress={() => solveConflictByIndex(index, strategy)}
                       />
                     )
                   })}
