@@ -1,5 +1,5 @@
 import type { Decorator, StoryFn } from '@storybook/react'
-import { View } from 'react-native'
+import { ScrollView, View } from 'react-native'
 
 import { Layout } from '@/styles'
 
@@ -10,10 +10,12 @@ function SSStoryBookLayout({ children }: { children: React.ReactNode }) {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: Layout.mainContainer.paddingHorizontal
+        paddingHorizontal: Layout.mainContainer.paddingHorizontal,
+        paddingBottom: Layout.mainContainer.paddingBottom,
+        paddingTop: Layout.mainContainer.paddingTop
       }}
     >
-      {children}
+      <ScrollView>{children}</ScrollView>
     </View>
   )
 }
