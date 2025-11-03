@@ -6,6 +6,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { Colors } from '@/styles'
 import { type Label } from '@/utils/bip329'
 
+import SSButton from './SSButton'
 import SSCheckbox from './SSCheckbox'
 import SSText from './SSText'
 import SSTextInput from './SSTextInput'
@@ -21,13 +22,13 @@ type ConflictStrategy = (typeof conflictStrategies)[number]
 
 const defaultStrategu: ConflictStrategy = 'incoming'
 
-function SSLabelConflict({ conflicts }: SSLabelConflictProps) {
+function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
   const [conflictStrategy, setConflictStrategy] =
     useState<ConflictStrategy>(defaultStrategu)
   const [conflictStrategyPerLabel, setConflictStrategyPerLabel] = useState<
     ConflictStrategy[]
   >([])
-  const [result, setResult] = useState<Label[]>([])
+  const [results, setResults] = useState<Label[]>([])
 
   function solveConflict(
     current: Label,
@@ -56,9 +57,9 @@ function SSLabelConflict({ conflicts }: SSLabelConflictProps) {
     const [current, incoming] = conflicts[index]
     const solved = solveConflict(current, incoming, strategy)
 
-    const newResults = [...result]
+    const newResults = [...results]
     newResults[index] = solved
-    setResult(newResults)
+    setResults(newResults)
 
     const newLabelStrategies = [...conflictStrategyPerLabel]
     newLabelStrategies[index] = strategy
@@ -66,13 +67,13 @@ function SSLabelConflict({ conflicts }: SSLabelConflictProps) {
   }
 
   function solveConflictManually(index: number, label: string) {
-    const newResults = [...result]
+    const newResults = [...results]
     newResults[index] = { ...newResults[index], label }
-    setResult(newResults)
+    setResults(newResults)
   }
 
   useEffect(() => {
-    setResult(
+    setResults(
       conflicts.map(([current, incoming]) =>
         solveConflict(current, incoming, conflictStrategy)
       )
@@ -190,22 +191,32 @@ function SSLabelConflict({ conflicts }: SSLabelConflictProps) {
                   <SSText>Enter the new label manually:</SSText>
                   <SSTextInput
                     size="small"
-                    value={result[index].label}
+                    value={results[index].label}
                     onChangeText={(text) => solveConflictManually(index, text)}
+                    placeholder="Enter label manually"
+                    style={
+                      results[index].label === '' ? styles.invalidInput : {}
+                    }
                   />
                 </SSVStack>
               )}
-            {result[index] && (
+            {results[index] && (
               <SSVStack gap="none">
                 <SSText weight="bold">Result:</SSText>
                 <SSText size="md" style={styles.info}>
-                  {result[index].label}
+                  {results[index].label}
                 </SSText>
               </SSVStack>
             )}
           </SSVStack>
         )
       })}
+      <SSButton
+        label="CONFIRM"
+        variant="secondary"
+        disabled={results.some((label) => label.label === '')}
+        onPress={() => onResolve(results)}
+      />
     </SSVStack>
   )
 }
@@ -217,9 +228,15 @@ const styles = StyleSheet.create({
   rejected: {
     backgroundColor: Colors.error
   },
-  none: {},
+  none: {
+    // maybe add some color here?
+  },
   info: {
     backgroundColor: Colors.info
+  },
+  invalidInput: {
+    borderColor: Colors.error,
+    borderWidth: 2
   }
 })
 
