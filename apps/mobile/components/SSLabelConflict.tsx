@@ -34,24 +34,22 @@ function SSLabelConflict({ conflicts }: SSLabelConflictProps) {
     incoming: Label,
     strategy: ConflictStrategy
   ): Label {
+    let label = ''
     switch (strategy) {
       case 'current':
-        return { ...incoming, ...current }
+        label = current.label
+        break
       case 'incoming':
-        return { ...current, ...incoming }
+        label = incoming.label
+        break
       case 'merge':
-        return {
-          ...current,
-          ...incoming,
-          label: `${current.label}; ${incoming.label}`
-        }
+        label = `${current.label}; ${incoming.label}`
+        break
       case 'manual':
-        return {
-          ...current,
-          ...incoming,
-          label: ''
-        }
+        label = ''
+        break
     }
+    return { ...current, ...incoming, label }
   }
 
   function solveConflictByIndex(index: number, strategy: ConflictStrategy) {
@@ -79,9 +77,12 @@ function SSLabelConflict({ conflicts }: SSLabelConflictProps) {
         solveConflict(current, incoming, conflictStrategy)
       )
     )
-    if (conflictStrategy.length !== conflictStrategyPerLabel.length) {
+    if (
+      conflictStrategy.length !== conflictStrategyPerLabel.length &&
+      conflictStrategy === 'manual'
+    ) {
       setConflictStrategyPerLabel(
-        Array(conflicts.length).fill(defaultStrategu) as ConflictStrategy[]
+        Array(conflicts.length).fill('manual') as ConflictStrategy[]
       )
     }
   }, [conflicts, conflictStrategy]) // eslint-disable-line react-hooks/exhaustive-deps
