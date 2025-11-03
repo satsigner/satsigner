@@ -8,6 +8,7 @@ import { type Label } from '@/utils/bip329'
 
 import SSCheckbox from './SSCheckbox'
 import SSText from './SSText'
+import SSTextInput from './SSTextInput'
 
 type SSLabelConflictProps = {
   conflicts: [Label, Label][] // [current, incoming][]
@@ -64,6 +65,12 @@ function SSLabelConflict({ conflicts }: SSLabelConflictProps) {
     const newLabelStrategies = [...conflictStrategyPerLabel]
     newLabelStrategies[index] = strategy
     setConflictStrategyPerLabel(newLabelStrategies)
+  }
+
+  function solveConflictManually(index: number, label: string) {
+    const newResults = [...result]
+    newResults[index] = { ...newResults[index], label }
+    setResult(newResults)
   }
 
   useEffect(() => {
@@ -176,6 +183,17 @@ function SSLabelConflict({ conflicts }: SSLabelConflictProps) {
                 </SSVStack>
               </SSVStack>
             )}
+            {conflictStrategy === 'manual' &&
+              conflictStrategyPerLabel[index] === 'manual' && (
+                <SSVStack gap="none">
+                  <SSText>Enter the new label manually:</SSText>
+                  <SSTextInput
+                    size="small"
+                    value={result[index].label}
+                    onChangeText={(text) => solveConflictManually(index, text)}
+                  />
+                </SSVStack>
+              )}
             {result[index] && (
               <SSVStack gap="none">
                 <SSText weight="bold">Result:</SSText>
