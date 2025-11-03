@@ -18,42 +18,66 @@ const conflictStrategies = ['current', 'incoming', 'merge', 'manual'] as const
 
 type ConflictStrategy = (typeof conflictStrategies)[number]
 
+const defaultStrategu: ConflictStrategy = 'incoming'
+
 function SSLabelConflict({ conflicts }: SSLabelConflictProps) {
   const [conflictStrategy, setConflictStrategy] =
-    useState<ConflictStrategy>('incoming')
+    useState<ConflictStrategy>(defaultStrategu)
+  const [conflictStrategyPerLabel, setConflictStrategyPerLabel] = useState<
+    ConflictStrategy[]
+  >([])
   const [result, setResult] = useState<Label[]>([])
 
-  useEffect(() => {
-    let results: Label[] = []
-
-    if (conflictStrategy === 'current') {
-      results = conflicts.map(([current, _incoming]) => {
-        return { ...current }
-      })
-    }
-
-    if (conflictStrategy === 'incoming') {
-      results = conflicts.map(([_current, incoming]) => {
-        return { ...incoming }
-      })
-    }
-
-    if (conflictStrategy === 'merge') {
-      results = conflicts.map(([current, incoming]) => {
+  function solveConflict(
+    current: Label,
+    incoming: Label,
+    strategy: ConflictStrategy
+  ): Label {
+    switch (strategy) {
+      case 'current':
+        return { ...incoming, ...current }
+      case 'incoming':
+        return { ...current, ...incoming }
+      case 'merge':
         return {
           ...current,
           ...incoming,
           label: `${current.label}; ${incoming.label}`
         }
-      })
+      case 'manual':
+        return {
+          ...current,
+          ...incoming,
+          label: ''
+        }
     }
+  }
 
-    if (conflictStrategy === 'manual') {
-      results = []
+  function solveConflictByIndex(index: number, strategy: ConflictStrategy) {
+    const [current, incoming] = conflicts[index]
+    const solved = solveConflict(current, incoming, strategy)
+
+    const newResults = [...result]
+    newResults[index] = solved
+    setResult(newResults)
+
+    const newLabelStrategies = [...conflictStrategyPerLabel]
+    newLabelStrategies[index] = strategy
+    setConflictStrategyPerLabel(newLabelStrategies)
+  }
+
+  useEffect(() => {
+    setResult(
+      conflicts.map(([current, incoming]) =>
+        solveConflict(current, incoming, conflictStrategy)
+      )
+    )
+    if (conflictStrategy.length !== conflictStrategyPerLabel.length) {
+      setConflictStrategyPerLabel(
+        Array(conflicts.length).fill(defaultStrategu) as ConflictStrategy[]
+      )
     }
-
-    setResult(results)
-  }, [conflictStrategy, conflicts])
+  }, [conflicts, conflictStrategy, conflictStrategyPerLabel])
 
   return (
     <SSVStack>
@@ -116,6 +140,25 @@ function SSLabelConflict({ conflicts }: SSLabelConflictProps) {
                 {incoming.label}
               </SSText>
             </SSVStack>
+            {conflictStrategy === 'manual' && (
+              <SSVStack gap="none">
+                <SSText>Select what to do with this conflict</SSText>
+                <SSVStack gap="sm">
+                  {conflictStrategies.map((strategy) => {
+                    return (
+                      <SSCheckbox
+                        key={strategy}
+                        selected={strategy === conflictStrategyPerLabel[index]}
+                        label={strategy}
+                        onPress={() =>
+                          solveConflictByIndex(index, strategy)
+                        }
+                      />
+                    )
+                  })}
+                </SSVStack>
+              </SSVStack>
+            )}
             {result[index] && (
               <SSVStack gap="none">
                 <SSText weight="bold">Result:</SSText>
