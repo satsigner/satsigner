@@ -402,71 +402,103 @@ type SSTxDetailsOutputsProps = {
 
 function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
   const account = useAccountsStore((state) =>
-    state.accounts.find((account) => account.name === accountId)
+    state.accounts.find((account) => account.id === accountId)
   )
 
-  const utxoDict: Record<string, boolean> = {}
+  const [utxoDict, setUtxoDict] = useState<Record<string, boolean>>({})
   const addressDict: Record<string, boolean> = {}
+  const [labelsDict, setLabelsDict] = useState<Record<number, string>>({})
 
-  if (account) {
-    account.utxos.forEach((utxo) => (utxoDict[getUtxoOutpoint(utxo)] = true))
+  useEffect(() => {
+    if (!account) return
+
+    const utxos: Record<string, boolean> = {}
+    account.utxos.forEach((utxo) => (utxos[getUtxoOutpoint(utxo)] = true))
     account.addresses.forEach((addr) => (addressDict[addr.address] = true))
-  }
+    setUtxoDict(utxos)
+
+    if (!tx) return
+
+    const labels: Record<number, string> = {}
+    tx.vout.forEach((output, index) => {
+      const utxoOutpoint = `${tx.id}:${index}`
+      const outputAddress = output.address
+      const labelFromUtxo = account.labels[utxoOutpoint]
+      const labelFromAddress = account.labels[outputAddress]
+      const label = labelFromUtxo || labelFromAddress
+      if (!label) return
+      labels[index] = label.label
+      utxos[utxoOutpoint] = true
+    })
+    setLabelsDict(labels)
+    setUtxoDict(utxos)
+  }, [account, tx]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!tx || !tx.vout) return null
 
   return (
     <SSVStack>
-      {tx &&
-        (tx?.vout || []).map((output, index) => (
-          <TouchableOpacity
-            key={index}
-            onPress={() => {
-              if (utxoDict[`${tx.id}:${index}`]) {
-                router.navigate(
-                  `/account/${accountId}/transaction/${tx.id}/utxo/${index}`
-                )
-              }
-            }}
-          >
-            <SSVStack key={`${tx.id}:${index}`}>
-              <SSSeparator color="gradient" />
-              <SSText weight="bold" center>
-                {t('transaction.output.title')} {index}
-              </SSText>
-              <SSTxDetailsBox
-                header={t('transaction.value')}
-                text={output.value}
-              />
-              <TouchableOpacity
-                onPress={() => {
-                  if (addressDict[output.address]) {
-                    router.navigate(
-                      `/account/${accountId}/address/${output.address}`
-                    )
-                  }
-                }}
-              >
-                <SSVStack gap="sm">
-                  <SSText uppercase weight="bold" size="md">
-                    {t('bitcoin.address')}
-                  </SSText>
-                  <SSAddressDisplay
-                    address={output.address}
-                    copyToClipboard={false}
-                    variant="bare"
-                    color="muted"
-                    size="sm"
-                  />
-                </SSVStack>
-              </TouchableOpacity>
-              <SSVStack>
+      {tx.vout.map((output, index) => (
+        <TouchableOpacity
+          key={index}
+          onPress={() => {
+            if (utxoDict[`${tx.id}:${index}`]) {
+              router.navigate(
+                `/account/${accountId}/transaction/${tx.id}/utxo/${index}`
+              )
+            }
+          }}
+        >
+          <SSVStack key={`${tx.id}:${index}`}>
+            <SSSeparator color="gradient" />
+            <SSText weight="bold" center>
+              {t('transaction.output.title')} {index}
+            </SSText>
+            <SSTxDetailsBox
+              header={t('transaction.value')}
+              text={output.value}
+            />
+            <TouchableOpacity
+              onPress={() => {
+                if (addressDict[output.address]) {
+                  router.navigate(
+                    `/account/${accountId}/address/${output.address}`
+                  )
+                }
+              }}
+            >
+              <SSVStack gap="sm">
                 <SSText uppercase weight="bold" size="md">
-                  {t('transaction.unlockingScript')}
+                  {t('bitcoin.address')}
                 </SSText>
-                <SSScriptDecoded script={output.script || []} />
+                <SSAddressDisplay
+                  address={output.address}
+                  copyToClipboard={false}
+                  variant="bare"
+                  color="muted"
+                  size="md"
+                />
               </SSVStack>
+            </TouchableOpacity>
+            {labelsDict[index] && (
+              <SSVStack gap="none">
+                <SSText uppercase weight="bold" size="md">
+                  {t('common.label')}
+                </SSText>
+                <SSText color="muted" size="md">
+                  {labelsDict[index]}
+                </SSText>
+              </SSVStack>
+            )}
+            <SSVStack>
+              <SSText uppercase weight="bold" size="md">
+                {t('transaction.unlockingScript')}
+              </SSText>
+              <SSScriptDecoded script={output.script || []} />
             </SSVStack>
-          </TouchableOpacity>
-        ))}
+          </SSVStack>
+        </TouchableOpacity>
+      ))}
     </SSVStack>
   )
 }

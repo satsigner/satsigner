@@ -1,6 +1,6 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconSuccess } from '@/components/icons'
@@ -14,25 +14,30 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { type Label } from '@/utils/bip329'
 import { formatAddress } from '@/utils/format'
 
 export default function MessageConfirmation() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const [clearTransaction, txBuilderResult, broadcasted] =
+  const [clearTransaction, txBuilderResult, broadcasted, outputs] =
     useTransactionBuilderStore(
       useShallow((state) => [
         state.clearTransaction,
         state.txBuilderResult,
-        state.broadcasted
+        state.broadcasted,
+        state.outputs
       ])
     )
-  const account = useAccountsStore((state) =>
-    state.accounts.find((account) => account.id === id)
+  const [account, importLabels] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts.find((account) => account.id === id),
+      state.importLabels
+    ])
   )
-  const mempoolConfig = useBlockchainStore((state) => state.configsMempool)
 
+  const mempoolConfig = useBlockchainStore((state) => state.configsMempool)
   const webExplorerUrl = useMemo(() => {
     if (!account) return ''
     const { network } = account
@@ -45,6 +50,76 @@ export default function MessageConfirmation() {
     router.dismissAll()
     router.navigate(`/account/${id}`)
   }
+
+  // we store the labels in account.labels, then later on the labels will be
+  // restored when the wallet data is fetched.
+  useEffect(() => {
+    if (txBuilderResult) {
+      const { txid } = txBuilderResult.txDetails
+      const labels: Label[] = []
+      const defaultChangeAddressLabel = t('sign.changeAddressLabelDefault')
+
+      let txLabelText = ''
+      for (let i = 0; i < outputs.length; i += 1) {
+        const output = outputs[i]
+
+        // we deal with change address later
+        if (output.label === defaultChangeAddressLabel) continue
+
+        const vout = i
+
+        // output label
+        const outputRef = `${txid}:${vout}`
+        labels.push({
+          ref: outputRef,
+          label: output.label,
+          type: 'output'
+        })
+
+        // output's address label
+        labels.push({
+          ref: output.to,
+          type: 'addr',
+          label: output.label
+        })
+
+        // the tx label will inherit the output's label separated by comma.
+        // this is what sparrow does.
+        txLabelText += output.label + ','
+      }
+
+      // trim the last comma before adding the tx label.
+      txLabelText = txLabelText.replace(/,$/, '')
+      labels.push({
+        ref: txid,
+        label: txLabelText,
+        type: 'tx'
+      })
+
+      // add label to change address if it exists.
+      const changeOutputIndex = outputs.findIndex(
+        (output) => output.label === defaultChangeAddressLabel
+      )
+      if (changeOutputIndex !== -1) {
+        const changeOutput = outputs[changeOutputIndex]
+        const changeLabel = t('sign.changeAddressLabelFinal', {
+          label: txLabelText
+        })
+        labels.push({
+          ref: `${txid}:${changeOutputIndex}`,
+          type: 'output',
+          label: changeLabel
+        })
+        labels.push({
+          ref: changeOutput.to,
+          type: 'addr',
+          label: changeLabel
+        })
+      }
+
+      importLabels(id!, labels)
+    }
+  }, [id, txBuilderResult, outputs, importLabels])
 
   if (!account || !txBuilderResult) return <Redirect href="/" />
 
