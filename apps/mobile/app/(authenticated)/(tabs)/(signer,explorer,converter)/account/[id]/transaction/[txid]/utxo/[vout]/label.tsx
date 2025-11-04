@@ -3,6 +3,7 @@ import { ScrollView } from 'react-native'
 
 import SSLabelInput from '@/components/SSLabelInput'
 import SSText from '@/components/SSText'
+import useGetAccountTransactionOutput from '@/hooks/useGetAccountTransactionOutput'
 import useNostrSync from '@/hooks/useNostrSync'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -13,14 +14,9 @@ import { type Label } from '@/utils/bip329'
 function UtxoLabel() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 
+  const setUtxoLabel = useAccountsStore((state) => state.setUtxoLabel)
+  const utxo = useGetAccountTransactionOutput(accountId!, txid!, Number(vout!))
   const { sendLabelsToNostr } = useNostrSync()
-
-  const [utxo, setUtxoLabel] = useAccountsStore((state) => [
-    state.accounts
-      .find((account) => account.id === accountId)
-      ?.utxos.find((utxo) => utxo.txid === txid && utxo.vout === Number(vout)),
-    state.setUtxoLabel
-  ])
 
   function updateLabel(label: string) {
     const updatedAccount = setUtxoLabel(accountId!, txid!, Number(vout!), label)

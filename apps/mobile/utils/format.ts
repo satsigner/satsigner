@@ -1,5 +1,7 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { t } from '@/locales'
+import { type Transaction } from '@/types/models/Transaction'
+import { type Utxo } from '@/types/models/Utxo'
 import { type PageParams } from '@/types/navigation/page'
 
 function formatAddress(address: string, character: number = 8) {
@@ -149,6 +151,25 @@ function formatTxId(txid: string, character: number = 6) {
   return `${beginning}...${end}`
 }
 
+function formatTxOutputToUtxo(
+  tx: Transaction | undefined,
+  vout: number,
+  keychain: 'internal' | 'external' = 'external'
+): Utxo | undefined {
+  if (!tx || !tx.vout[vout]) return undefined
+  const output = tx.vout[vout]
+  return {
+    txid: tx.id,
+    vout,
+    value: output.value,
+    label: output.label,
+    addressTo: output.address,
+    script: output.script,
+    timestamp: tx.timestamp,
+    keychain
+  }
+}
+
 function trimOnionAddress(url: string): string {
   // Check if URL contains an onion address
   const onionMatch = url.match(/([a-z2-7]{16,56}\.onion)(:\d+)?/i)
@@ -181,5 +202,6 @@ export {
   formatTimeFromNow,
   formatTimestamp,
   formatTxId,
+  formatTxOutputToUtxo,
   trimOnionAddress
 }
