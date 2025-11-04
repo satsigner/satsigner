@@ -859,7 +859,7 @@ function NostrSync() {
                                     })
                                   }}
                                 >
-                                  <SSVStack gap="xxs">
+                                  <SSVStack gap="none">
                                     {account?.nostr?.npubAliases?.[
                                       member.npub
                                     ] ? (
