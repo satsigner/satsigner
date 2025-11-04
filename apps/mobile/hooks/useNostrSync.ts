@@ -148,7 +148,7 @@ function useNostrSync() {
                 const labels = JSONLtoLabels(eventContent.data.data)
                 const store = useAccountsStore.getState()
                 const labelsAdded = store.importLabels(account.id, labels)
-                if (labelsAdded > 0 ) {
+                if (labelsAdded > 0) {
                   toast.success(`Imported ${labelsAdded} labels`)
                 }
               }

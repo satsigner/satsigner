@@ -865,7 +865,6 @@ function NostrSync() {
                                     ] ? (
                                       <>
                                         <SSText
-                                          center
                                           size="lg"
                                           style={styles.memberText}
                                           selectable
@@ -880,7 +879,6 @@ function NostrSync() {
                                           text={member.npub || ''}
                                         >
                                           <SSText
-                                            center
                                             size="sm"
                                             type="mono"
                                             style={styles.memberNpubText}
@@ -895,7 +893,6 @@ function NostrSync() {
                                     ) : (
                                       <SSTextClipboard text={member.npub || ''}>
                                         <SSText
-                                          center
                                           size="lg"
                                           type="mono"
                                           style={styles.memberText}
