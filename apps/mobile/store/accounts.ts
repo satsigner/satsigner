@@ -12,10 +12,10 @@ import {
 } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type Transaction } from '@/types/models/Transaction'
+import { type Utxo } from '@/types/models/Utxo'
 import { type Label } from '@/utils/bip329'
 import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 import { getUtxoOutpoint } from '@/utils/utxo'
-import { Utxo } from '@/types/models/Utxo'
 
 type AccountsState = {
   accounts: Account[]
@@ -213,7 +213,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         const addrIndex = account.addresses.findIndex(
           (address) => address.address === addr
         )
-        if (addrIndex === -1) return undefined
 
         set(
           produce((state) => {
@@ -229,15 +228,69 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               label
             }
 
-            state.accounts[index].addresses[addrIndex].label = label
+            if (addrIndex !== -1) {
+              state.accounts[index].addresses[addrIndex].label = label
+            }
+
+            // utxos associated with this address will inherit its labels
+            state.accounts[index].utxos = state.accounts[index].utxos.map(
+              (utxo: Utxo) => {
+                const newUtxo = { ...utxo }
+                const isRelated = utxo.addressTo === addr
+                if (!isRelated) return newUtxo
+
+                const utxoRef = `${utxo.txid}:${utxo.vout}`
+                const utxoHasLabel = state.accounts[index].labels[utxoRef]
+                if (!utxoHasLabel) {
+                  state.accounts[index].labels[utxoRef] = {
+                    type: 'output',
+                    ref: utxoRef,
+                    label
+                  }
+                  newUtxo.label = label
+                }
+
+                return newUtxo
+              }
+            )
+
+            // tx associated with this address will inherit its label
+            state.accounts[index].transactions = state.accounts[
+              index
+            ].transactions.map((tx: Transaction) => {
+              const newTx = { ...tx }
+              const isRelated = tx.vout.some(
+                (output) => output.address === addr
+              )
+              if (!isRelated) return newTx
+
+              const txHasLabel = state.accounts[index].labels[tx.id]
+              if (!txHasLabel) {
+                state.accounts[index].labels[tx.id] = {
+                  type: 'tx',
+                  ref: tx.id,
+                  label
+                }
+                newTx.label = label
+              }
+
+              return newTx
+            })
           })
         )
+
         const updatedAccount = { ...account }
-        updatedAccount.addresses = [...account.addresses]
-        updatedAccount.addresses[addrIndex] = {
-          ...account.addresses[addrIndex],
-          label
+
+        if (addrIndex !== -1) {
+          updatedAccount.addresses = [...account.addresses]
+          updatedAccount.addresses[addrIndex] = {
+            ...account.addresses[addrIndex],
+            label
+          }
         }
+
+        // TODO: update the variable updatedAccount with inherited labels
+
         return updatedAccount
       },
       setTxLabel: (accountId, txid, label) => {
