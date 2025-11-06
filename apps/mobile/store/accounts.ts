@@ -314,7 +314,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const currentLabel = state.accounts[index].labels[utxoRef] || {}
             state.accounts[index].labels[utxoRef] = {
               ...currentLabel,
-              type: 'utxo',
+              type: 'output',
               ref: utxoRef,
               label
             }
@@ -325,10 +325,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             }
 
             // UTXO's tx label update
-            const txHasLabel = state.accounts[index].labels[txid]?.label
+            const txHasLabel = state.accounts[index].labels[txid]
             if (!txHasLabel) {
               state.accounts[index].labels[txid] = {
-                type: 'utxo',
+                type: 'output',
                 ref: txid,
                 label
               }
@@ -341,10 +341,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
             // UTXO's address label update
             if (!address) return
-            const addressHasLabel = state.accounts[index].labels[address].label
+            const addressHasLabel = state.accounts[index].labels[address]
             if (!addressHasLabel) {
               state.accounts[index].labels[address] = {
-                type: 'address',
+                type: 'addr',
                 ref: address,
                 label
               }
