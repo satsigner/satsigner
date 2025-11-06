@@ -31,11 +31,17 @@ function DeviceAliasPage() {
     ])
   )
 
-  const currentAlias = account?.nostr?.npubAliases?.[npub] || ''
+  const currentAlias =
+    npub && account?.nostr?.npubAliases?.[npub]
+      ? account.nostr.npubAliases[npub]
+      : ''
   const [alias, setAlias] = useState(currentAlias)
 
   useEffect(() => {
-    const aliasValue = account?.nostr?.npubAliases?.[npub] || ''
+    const aliasValue =
+      npub && account?.nostr?.npubAliases?.[npub]
+        ? account.nostr.npubAliases[npub]
+        : ''
     setAlias(aliasValue)
   }, [npub, account?.nostr?.npubAliases])
 
