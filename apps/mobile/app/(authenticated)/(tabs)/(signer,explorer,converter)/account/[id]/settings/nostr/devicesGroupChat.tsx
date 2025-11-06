@@ -1,6 +1,6 @@
 import { Redirect, Stack, useLocalSearchParams } from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -249,34 +249,31 @@ export default function DevicesGroupChat() {
     prevMessageCountRef.current = messages.length
   }, [messages.length])
 
-  const handleScrollToBottom = useCallback(() => {
+  function handleScrollToBottom() {
     if (flatListRef.current) {
       flatListRef.current.scrollToEnd({ animated: true })
       isAtBottomRef.current = true
       setShowNewMessageButton(false)
     }
-  }, [])
+  }
 
-  const handleListScroll = useCallback(
-    (e: {
-      nativeEvent: {
-        contentOffset: { y: number }
-        layoutMeasurement: { height: number }
-        contentSize: { height: number }
-      }
-    }) => {
-      const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent
-      const threshold = 40
-      const atBottom =
-        contentOffset.y + layoutMeasurement.height >=
-        contentSize.height - threshold
-      if (isAtBottomRef.current !== atBottom) {
-        isAtBottomRef.current = atBottom
-        if (atBottom) setShowNewMessageButton(false)
-      }
-    },
-    []
-  )
+  function handleListScroll(e: {
+    nativeEvent: {
+      contentOffset: { y: number }
+      layoutMeasurement: { height: number }
+      contentSize: { height: number }
+    }
+  }) {
+    const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent
+    const threshold = 40
+    const atBottom =
+      contentOffset.y + layoutMeasurement.height >=
+      contentSize.height - threshold
+    if (isAtBottomRef.current !== atBottom) {
+      isAtBottomRef.current = atBottom
+      if (atBottom) setShowNewMessageButton(false)
+    }
+  }
 
   useEffect(() => {
     if (transactionToShare) {

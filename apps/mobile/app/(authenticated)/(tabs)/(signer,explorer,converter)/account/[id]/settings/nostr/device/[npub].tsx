@@ -14,13 +14,9 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import type { AccountSearchParams } from '@/types/navigation/searchParams'
+import type { DeviceAliasSearchParams } from '@/types/navigation/searchParams'
 
-type DeviceAliasSearchParams = AccountSearchParams & {
-  npub: string
-}
-
-function DeviceAliasPage() {
+export default function DeviceAliasPage() {
   const { id: accountId, npub } =
     useLocalSearchParams<DeviceAliasSearchParams>()
 
@@ -115,7 +111,6 @@ function DeviceAliasPage() {
               </SSText>
             </SSTextClipboard>
           </SSVStack>
-
           <SSVStack gap="sm">
             <SSText center color="muted">
               {t('account.nostrSync.deviceAlias.alias')}
@@ -134,7 +129,6 @@ function DeviceAliasPage() {
               onPress={handleRemoveAlias}
             />
           )}
-
           <SSButton
             label={t('account.nostrSync.save')}
             onPress={handleSave}
@@ -156,5 +150,3 @@ const styles = StyleSheet.create({
     flex: 1
   }
 })
-
-export default DeviceAliasPage
