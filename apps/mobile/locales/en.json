@@ -1281,6 +1281,8 @@
     "title": "App Settings"
   },
   "sign": {
+    "changeAddressLabelDefault": "Change",
+    "changeAddressLabelFinal": "Change for %{txlabel}",
     "transaction": "Sign transaction"
   },
   "time": {
