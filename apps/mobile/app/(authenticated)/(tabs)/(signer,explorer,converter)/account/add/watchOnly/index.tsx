@@ -901,7 +901,8 @@ export default function WatchOnly() {
       // Save the account and redirect immediately
       updateAccount(data.accountWithEncryptedSecret)
       toast.success(t('watchonly.success.accountCreated'))
-      router.replace('/accountList')
+      router.dismissAll()
+      router.navigate(`/account/${data.accountWithEncryptedSecret.id}`)
 
       // Start sync in background if auto mode is enabled
       if (connectionMode === 'auto') {

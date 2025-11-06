@@ -20,6 +20,7 @@ import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Network, type Server } from '@/types/settings/blockchain'
+import { trimOnionAddress } from '@/utils/format'
 
 const tn = _tn('settings.network.server')
 
@@ -102,7 +103,8 @@ export default function NetworkSettings() {
       const result = await testConnection(
         server.url,
         server.backend,
-        server.network
+        server.network,
+        server.proxy
       )
 
       if (!result.success) {
@@ -232,7 +234,7 @@ export default function NetworkSettings() {
                                     style={{ lineHeight: 14 }}
                                     color="muted"
                                   >
-                                    {server.url}
+                                    {trimOnionAddress(server.url)}
                                   </SSText>
                                 </SSHStack>
                               </SSVStack>

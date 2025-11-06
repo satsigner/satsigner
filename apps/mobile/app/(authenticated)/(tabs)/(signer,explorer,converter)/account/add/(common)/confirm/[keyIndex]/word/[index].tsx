@@ -114,8 +114,10 @@ export default function Confirm() {
 
   function handleCloseWordsWarning() {
     setWarningModalVisible(false)
+    const account = getAccountData()
     clearAccount()
-    router.navigate('/accountList')
+    router.dismissAll()
+    router.navigate(`/account/${account.id}`)
   }
 
   function handleOnPressCancel() {
