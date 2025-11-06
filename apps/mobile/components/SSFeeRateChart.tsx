@@ -1,41 +1,34 @@
-import {
-  DashPathEffect,
-  LinearGradient,
-  useFont,
-  vec
-} from '@shopify/react-native-skia'
-import React, { useMemo } from 'react'
-import { Animated, StyleSheet, Text, View } from 'react-native'
-import { Path, Svg } from 'react-native-svg'
+import { useFont } from '@shopify/react-native-skia'
+import { useMemo, useRef, useState } from 'react'
+import { StyleSheet, Text, View } from 'react-native'
 import { CartesianChart, StackedArea } from 'victory-native'
 
 import { type MempoolStatistics } from '@/types/models/Blockchain'
-
-import SSText from './SSText'
+import { bytes } from '@/utils/bytes'
 
 const sansSerif = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
 
-const mVBLabels = ['18', '15', '12', '9', '6', '3', '0']
+const Y_VALUE_THRESHOLD_MVB = 3_000_000 // 3 MvB
 
 export type SSFeeRateChartProps = {
   mempoolStatistics: MempoolStatistics[] | undefined
   timeRange: 'week' | 'day' | '2hours'
-  boxPosition?: Animated.Value
 }
 
-function SSFeeRateChart({
-  mempoolStatistics,
-  timeRange,
-  boxPosition = new Animated.Value(0)
-}: SSFeeRateChartProps) {
+function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
   const font = useFont(sansSerif, 12)
-  const [, setW] = React.useState(0)
-  const [, setH] = React.useState(0)
+  const [, setW] = useState(0)
+  const [, setH] = useState(0)
 
-  const processData = useMemo(() => {
+  const maxYDomainRef = useRef(0)
+  const isMvB = useRef(false)
+
+  const data = useMemo(() => {
     if (!mempoolStatistics) return []
 
-    return mempoolStatistics
+    let maxYDomain = 0
+
+    const result = mempoolStatistics
       .map((entry) => {
         const date = new Date(entry.added * 1000)
         let timestamp
@@ -58,30 +51,69 @@ function SSFeeRateChart({
             hour12: false
           })
         }
-        const quarter = Math.floor(entry.vsizes.length / 4)
 
-        // Group vsizes into fee ranges
+        const max = Math.max(...entry.vsizes)
+
+        let convertFunction = bytes.toKilo
+        if (max > Y_VALUE_THRESHOLD_MVB) {
+          convertFunction = bytes.toMega
+          isMvB.current = true
+        }
+
+        const convertedMax = convertFunction(max)
+
+        if (convertedMax > maxYDomain) maxYDomain = convertedMax
+
         return {
           x: timestamp,
-          high:
-            entry.vsizes
-              .slice(0, quarter)
-              .reduce((sum, current) => sum + current, 0) / 1000000,
-          medium:
-            entry.vsizes
-              .slice(quarter, 2 * quarter)
-              .reduce((sum, current) => sum + current, 0) / 1000000,
-          low:
-            entry.vsizes
-              .slice(2 * quarter, 3 * quarter)
-              .reduce((sum, current) => sum + current, 0) / 1000000,
-          veryLow:
-            entry.vsizes
-              .slice(3 * quarter)
-              .reduce((sum, current) => sum + current, 0) / 1000000
+          '0-1': convertFunction(entry.vsizes[0] || 0),
+          '1-2': convertFunction(entry.vsizes[1] || 0),
+          '2-3': convertFunction(entry.vsizes[2] || 0),
+          '3-4': convertFunction(entry.vsizes[3] || 0),
+          '4-5': convertFunction(entry.vsizes[4] || 0),
+          '5-6': convertFunction(entry.vsizes[5] || 0),
+          '6-8': convertFunction(entry.vsizes[6] || 0),
+          '8-10': convertFunction(entry.vsizes[7] || 0),
+          '10-12': convertFunction(entry.vsizes[8] || 0),
+          '12-15': convertFunction(entry.vsizes[9] || 0),
+          '15-20': convertFunction(entry.vsizes[10] || 0),
+          '20-30': convertFunction(entry.vsizes[11] || 0),
+          '30-40': convertFunction(entry.vsizes[12] || 0),
+          '40-50': convertFunction(entry.vsizes[13] || 0),
+          '50-60': convertFunction(entry.vsizes[14] || 0),
+          '60-70': convertFunction(entry.vsizes[15] || 0),
+          '70-80': convertFunction(entry.vsizes[16] || 0),
+          '80-90': convertFunction(entry.vsizes[17] || 0),
+          '90-100': convertFunction(entry.vsizes[18] || 0),
+          '100-125': convertFunction(entry.vsizes[19] || 0),
+          '125-150': convertFunction(entry.vsizes[20] || 0),
+          '150-175': convertFunction(entry.vsizes[21] || 0),
+          '175-200': convertFunction(entry.vsizes[22] || 0),
+          '200-250': convertFunction(entry.vsizes[23] || 0),
+          '250-300': convertFunction(entry.vsizes[24] || 0),
+          '300-350': convertFunction(entry.vsizes[25] || 0),
+          '350-400': convertFunction(entry.vsizes[26] || 0),
+          '400-500': convertFunction(entry.vsizes[27] || 0),
+          '500-600': convertFunction(entry.vsizes[28] || 0),
+          '600-700': convertFunction(entry.vsizes[29] || 0),
+          '700-800': convertFunction(entry.vsizes[30] || 0),
+          '800-900': convertFunction(entry.vsizes[31] || 0),
+          '900-1000': convertFunction(entry.vsizes[32] || 0),
+          '1000-1200': convertFunction(entry.vsizes[33] || 0),
+          '1200-1400': convertFunction(entry.vsizes[34] || 0),
+          '1400+': convertFunction(
+            (entry.vsizes[35] || 0) +
+              (entry.vsizes[36] || 0) +
+              (entry.vsizes[37] || 0) +
+              (entry.vsizes[38] || 0)
+          )
         }
       })
       .reverse()
+
+    maxYDomainRef.current = maxYDomain
+
+    return result
   }, [mempoolStatistics, timeRange])
 
   if (!mempoolStatistics)
@@ -94,124 +126,144 @@ function SSFeeRateChart({
   return (
     <View style={styles.container}>
       <CartesianChart
-        data={processData}
+        data={data}
         xKey="x"
-        yKeys={['veryLow', 'low', 'medium', 'high']}
-        padding={{ left: 8 }}
-        domain={{ y: [0, 25] }}
-        xAxis={{
-          font,
-          labelColor: '#787878',
-          tickCount: 4,
-          labelOffset: 4
-        }}
-        yAxis={[
-          {
-            labelOffset: 8,
-            font: null,
-            linePathEffect: <DashPathEffect intervals={[4, 4]} />,
-            labelColor: '#fff'
-          }
+        yKeys={[
+          '0-1',
+          '1-2',
+          '2-3',
+          '3-4',
+          '4-5',
+          '5-6',
+          '6-8',
+          '8-10',
+          '10-12',
+          '12-15',
+          '15-20',
+          '20-30',
+          '30-40',
+          '40-50',
+          '50-60',
+          '60-70',
+          '70-80',
+          '80-90',
+          '90-100',
+          '100-125',
+          '125-150',
+          '150-175',
+          '175-200',
+          '200-250',
+          '250-300',
+          '300-350',
+          '350-400',
+          '400-500',
+          '500-600',
+          '600-700',
+          '700-800',
+          '800-900',
+          '900-1000',
+          '1000-1200',
+          '1200-1400',
+          '1400+'
         ]}
+        padding={{ left: 8 }}
+        domain={{ y: [0, maxYDomainRef.current] }}
+        domainPadding={{ top: 100 }}
         onChartBoundsChange={({ left, right, top, bottom }) => {
           setW(right - left)
           setH(bottom - top)
         }}
+        axisOptions={{
+          font,
+          formatYLabel: (v) => `${v} ${isMvB.current ? 'MvB' : 'kvB'}`,
+          axisSide: { x: 'bottom', y: 'right' },
+          labelColor: { x: '#787878', y: '#ffffff' },
+          tickCount: { x: 4, y: 8 },
+          labelOffset: { x: 4, y: 8 }
+        }}
       >
         {({ points, chartBounds }) => (
           <StackedArea
-            points={[points.high, points.medium, points.low, points.veryLow]}
+            points={[
+              points['0-1'],
+              points['1-2'],
+              points['2-3'],
+              points['3-4'],
+              points['4-5'],
+              points['5-6'],
+              points['6-8'],
+              points['8-10'],
+              points['10-12'],
+              points['12-15'],
+              points['15-20'],
+              points['20-30'],
+              points['30-40'],
+              points['40-50'],
+              points['50-60'],
+              points['60-70'],
+              points['70-80'],
+              points['80-90'],
+              points['90-100'],
+              points['100-125'],
+              points['125-150'],
+              points['150-175'],
+              points['175-200'],
+              points['200-250'],
+              points['250-300'],
+              points['300-350'],
+              points['350-400'],
+              points['400-500'],
+              points['500-600'],
+              points['600-700'],
+              points['700-800'],
+              points['800-900'],
+              points['900-1000'],
+              points['1000-1200'],
+              points['1200-1400'],
+              points['1400+']
+            ]}
             y0={chartBounds.bottom}
             curveType="natural"
             animate={{ type: 'spring' }}
-            areaOptions={({ rowIndex, lowestY, highestY }) => {
-              const gradients = [
-                {
-                  colors: ['#515151'],
-                  start: highestY - 5,
-                  end: 20
-                },
-                {
-                  colors: ['#444343', '#f7ce6420'],
-                  start: highestY - 25,
-                  end: lowestY
-                },
-                {
-                  colors: ['#8a8a8a', '#2e2e2e0'],
-                  start: highestY - 100,
-                  end: lowestY
-                },
-                {
-                  colors: ['#c7c8c8', '#9d9e9e11'],
-                  start: highestY - 100,
-                  end: lowestY
-                }
-              ]
-
-              const gradient = gradients[rowIndex]
-              if (!gradient) return {}
-
-              return {
-                children: (
-                  <LinearGradient
-                    start={vec(0, gradient.start)}
-                    end={vec(0, gradient.end)}
-                    colors={gradient.colors}
-                  />
-                )
-              }
-            }}
+            colors={[
+              '#FFFFFF',
+              '#F7F7F7',
+              '#EFEFEF',
+              '#E8E8E8',
+              '#E0E0E0',
+              '#D8D8D8',
+              '#D0D0D0',
+              '#C9C9C9',
+              '#C1C1C1',
+              '#B9B9B9',
+              '#B2B2B2',
+              '#AAAAAA',
+              '#A2A2A2',
+              '#9A9A9A',
+              '#939393',
+              '#8B8B8B',
+              '#838383',
+              '#7B7B7B',
+              '#747474',
+              '#6C6C6C',
+              '#646464',
+              '#5D5D5D',
+              '#555555',
+              '#4D4D4D',
+              '#454545',
+              '#3E3E3E',
+              '#363636',
+              '#2E2E2E',
+              '#272727',
+              '#1F1F1F',
+              '#171717',
+              '#101010',
+              '#080808',
+              '#000000'
+            ]}
           />
         )}
       </CartesianChart>
-      <View style={styles.arrowContainer}>
-        <Animated.View
-          style={[
-            styles.arrow,
-            {
-              transform: [
-                {
-                  translateY: boxPosition.interpolate({
-                    inputRange: [1, 100],
-                    outputRange: [0, -150],
-                    extrapolate: 'clamp'
-                  })
-                }
-              ]
-            }
-          ]}
-        >
-          <Svg
-            style={styles.arrow}
-            width="20"
-            height="20"
-            viewBox="0 0 15 15"
-            fill="none"
-          >
-            <Path
-              d="M-4.64163e-07 5.40065L5.9162 10.8013L11 11L11 9.53674e-07L5.9162 2.62584e-05L-4.64163e-07 5.40065Z"
-              fill="white"
-            />
-          </Svg>
-        </Animated.View>
-        <View>
-          {mVBLabels.map((label, index) => (
-            <SSText
-              style={{
-                marginTop: 8
-              }}
-              size="xs"
-              color="white"
-              key={index}
-            >
-              {label}{' '}
-              <SSText size="xs" color="muted">
-                MvB
-              </SSText>
-            </SSText>
-          ))}
-        </View>
-      </View>
     </View>
   )
 }

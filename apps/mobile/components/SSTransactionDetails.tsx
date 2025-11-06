@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
@@ -10,6 +11,7 @@ import { t } from '@/locales'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import {
+  type AccountMatchResult,
   extractIndividualSignedPsbts,
   extractOriginalPsbt,
   extractTransactionDataFromPSBTEnhanced,
@@ -18,7 +20,7 @@ import {
   getMultisigInfoFromPsbt,
   type TransactionData
 } from '@/utils/psbt'
-import { estimateTransactionSize } from '@/utils/transaction'
+import { legacyEstimateTransactionSize } from '@/utils/transaction'
 
 type SSTransactionDetailsProps = {
   transactionData: TransactionData
@@ -37,10 +39,21 @@ function SSTransactionDetails({
   onToggleVisibility,
   onGoToSignFlow
 }: SSTransactionDetailsProps) {
+  const [accountMatch, setAccountMatch] = useState<AccountMatchResult | null>(
+    null
+  )
   const { combinedPsbt } = transactionData
   const originalPsbt = extractOriginalPsbt(combinedPsbt)
   const txid = extractTransactionIdFromPSBT(combinedPsbt)
   const multisigInfo = getMultisigInfoFromPsbt(combinedPsbt)
+
+  useEffect(() => {
+    async function matchAccount() {
+      const match = await findMatchingAccount(originalPsbt, accounts)
+      setAccountMatch(match)
+    }
+    matchAccount()
+  }, [originalPsbt, accounts])
 
   const signedPsbts = extractIndividualSignedPsbts(combinedPsbt, originalPsbt)
 
@@ -55,7 +68,6 @@ function SSTransactionDetails({
   const keysRequired = multisigInfo?.required || 0
   const keyCount = multisigInfo?.total || 0
 
-  const accountMatch = findMatchingAccount(originalPsbt, accounts)
   const matchedAccount = accountMatch?.account || account
 
   let extractedData = null
@@ -73,7 +85,7 @@ function SSTransactionDetails({
   const finalInputs = extractedData?.inputs || []
   const finalOutputs = extractedData?.outputs || []
 
-  const { size, vsize } = estimateTransactionSize(
+  const { size, vsize } = legacyEstimateTransactionSize(
     finalInputs.length,
     finalOutputs.length
   )

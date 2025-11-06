@@ -1,9 +1,19 @@
+/**
+ * Custom Network Validation Hook
+ *
+ * TODO: Enhanced validation for pasted URLs
+ * - Add validation for full URL format (ssl://host:port)
+ * - Provide specific error messages for malformed URLs
+ * - Validate protocol compatibility with selected backend
+ * - Add real-time validation feedback for better UX
+ */
+
 import { useCallback } from 'react'
 import { toast } from 'sonner-native'
 
 import { t } from '@/locales'
 import { type Backend } from '@/types/settings/blockchain'
-import { validateElectrumUrl, validateEsploraUrl } from '@/utils/urlValidation'
+import { validateElectrumUrl, validateEsploraUrl } from '@/utils/validation/url'
 
 type ValidationResult = {
   isValid: boolean
@@ -26,15 +36,20 @@ export const useCustomNetworkValidation = (
       return { isValid: false, error: 'require.host' }
     }
 
-    if (!port.trim()) {
-      return { isValid: false, error: 'require.port' }
+    if (backend === 'electrum') {
+      if (!port.trim()) {
+        return { isValid: false, error: 'require.port' }
+      }
+
+      if (!port.match(/^[0-9]+$/)) {
+        return { isValid: false, error: 'invalid.port' }
+      }
+    } else {
+      if (port.trim() && !port.match(/^[0-9]+$/)) {
+        return { isValid: false, error: 'invalid.port' }
+      }
     }
 
-    if (!port.match(/^[0-9]+$/)) {
-      return { isValid: false, error: 'invalid.port' }
-    }
-
-    // Use the validation utilities for comprehensive URL validation
     if (backend === 'electrum') {
       const validation = validateElectrumUrl(url)
       if (!validation.isValid) {

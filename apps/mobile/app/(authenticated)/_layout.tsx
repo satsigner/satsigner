@@ -144,11 +144,7 @@ export default function AuthenticatedLayout() {
   // Do not push index route
   useEffect(() => {
     if (routeName !== '' && routeName !== 'index') {
-      const {
-        params: _paramsUnused,
-        screen: _screenUnused,
-        ...filteredRouteParams
-      } = routeParams
+      const { ...filteredRouteParams } = routeParams
 
       markPageVisited({
         path: routeName,

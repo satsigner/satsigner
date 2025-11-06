@@ -1,5 +1,16 @@
+/**
+ * Custom Network Configuration Screen
+ *
+ * TODO: Future UX Enhancements
+ * - Add paste from clipboard functionality to auto-parse server URLs (ssl://host:port)
+ * - Add QR code scan button to scan server connection details and auto-populate form
+ * - Add URL parsing utility to parse full URLs into protocol, host, port components
+ * - Add input validation for pasted URLs with helpful error messages
+ * - Add server import/export functionality to share configurations via QR codes
+ */
+
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, TouchableOpacity } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -11,8 +22,10 @@ import {
 } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
+import SSProxyFormFields from '@/components/SSProxyFormFields'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { useCustomNetworkForm } from '@/hooks/useCustomNetworkForm'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -28,8 +41,17 @@ import {
 
 export default function CustomNetwork() {
   const { network } = useLocalSearchParams()
-
   const router = useRouter()
+  const {
+    formData,
+    updateField,
+    updateProxyField,
+    constructUrl,
+    constructTrimmedUrl
+  } = useCustomNetworkForm()
+
+  const networkType = network as Network
+
   const [
     selectedNetwork,
     configs,
@@ -49,43 +71,47 @@ export default function CustomNetwork() {
   const [connectionState, connectionString, isPrivateConnection] =
     useVerifyConnection()
 
-  const [backend, setBackend] = useState<Backend>('electrum')
-  const [name, setName] = useState('')
-  const [url, setUrl] = useState('')
   const [testing, setTesting] = useState(false)
   const [oldNetwork] = useState<Network>(selectedNetwork)
-  const [oldServer] = useState<Server>(configs[network as Network].server)
+  const [oldServer] = useState<Server>(configs[networkType].server)
 
   const backends: Backend[] = ['electrum', 'esplora']
+  const protocols = ['ssl', 'tcp'] as const
+
+  const urlPreview = useMemo(() => {
+    return constructTrimmedUrl()
+  }, [constructTrimmedUrl])
 
   useEffect(() => {
     if (testing && !connectionState) toast.error(t('error.invalid.backend'))
   }, [testing, connectionState])
 
   function isValid() {
-    if (!name.trim()) {
+    if (!formData.name.trim()) {
       toast.warning(t('error.require.name'))
       return false
     }
 
-    if (!url.trim()) {
-      toast.warning(t('error.require.url'))
+    if (!formData.host.trim()) {
+      toast.warning(t('error.require.host'))
       return false
     }
 
-    if (
-      backend === 'electrum' &&
-      !url.startsWith('ssl://') &&
-      !url.startsWith('tls://') &&
-      !url.startsWith('tcp://')
-    ) {
-      toast.warning(t('error.invalid.url'))
-      return false
-    }
+    if (formData.backend === 'electrum') {
+      if (!formData.port.trim()) {
+        toast.warning(t('error.require.port'))
+        return false
+      }
 
-    if (backend === 'esplora' && !url.startsWith('https://')) {
-      toast.warning(t('error.invalid.url'))
-      return false
+      if (!formData.port.match(/^[0-9]+$/)) {
+        toast.warning(t('error.invalid.port'))
+        return false
+      }
+    } else {
+      if (formData.port.trim() && !formData.port.match(/^[0-9]+$/)) {
+        toast.warning(t('error.invalid.port'))
+        return false
+      }
     }
 
     return true
@@ -96,8 +122,17 @@ export default function CustomNetwork() {
 
     if (!isValid()) return
 
-    setSelectedNetwork(network as Network)
-    updateServer(network as Network, { name, backend, network, url } as Server)
+    const url = constructUrl()
+    const server: Server = {
+      name: formData.name,
+      backend: formData.backend,
+      network: networkType,
+      url,
+      proxy: formData.proxy.enabled ? formData.proxy : undefined
+    }
+
+    setSelectedNetwork(networkType)
+    updateServer(networkType, server)
 
     setTesting(true)
   }
@@ -109,7 +144,16 @@ export default function CustomNetwork() {
         updateServer(oldNetwork, oldServer)
       }
 
-      addCustomServer({ name, backend, network, url } as Server)
+      const url = constructUrl()
+      const server: Server = {
+        name: formData.name,
+        backend: formData.backend,
+        network: networkType,
+        url,
+        proxy: formData.proxy.enabled ? formData.proxy : undefined
+      }
+
+      addCustomServer(server)
       router.back()
     }
   }
@@ -144,10 +188,10 @@ export default function CustomNetwork() {
                 <SSHStack key={be}>
                   <SSCheckbox
                     key={be}
-                    selected={be === backend}
-                    onPress={() => setBackend(be)}
+                    selected={be === formData.backend}
+                    onPress={() => updateField('backend', be)}
                   />
-                  <TouchableOpacity onPress={() => setBackend(be)}>
+                  <TouchableOpacity onPress={() => updateField('backend', be)}>
                     <SSVStack gap="none" justifyBetween>
                       <SSText
                         style={{ lineHeight: 18, textTransform: 'capitalize' }}
@@ -156,7 +200,7 @@ export default function CustomNetwork() {
                         {be}
                       </SSText>
                       <SSText style={{ lineHeight: 14 }} color="muted">
-                        {t(`settings.network.backend.${be}.description`)}
+                        {t(`settings.network.server.description.${be}`)}
                       </SSText>
                     </SSVStack>
                   </TouchableOpacity>
@@ -167,17 +211,91 @@ export default function CustomNetwork() {
               <SSVStack gap="sm">
                 <SSText uppercase>{t('common.name')}</SSText>
                 <SSTextInput
-                  value={name}
-                  onChangeText={(value) => setName(value)}
+                  value={formData.name}
+                  onChangeText={(value) => updateField('name', value)}
                 />
+              </SSVStack>
+              {formData.backend === 'electrum' && (
+                <SSVStack gap="sm">
+                  <SSText uppercase>
+                    {t('settings.network.server.protocolLabel')}
+                  </SSText>
+                  <SSHStack gap="lg">
+                    {protocols.map((protocol) => (
+                      <SSHStack key={protocol}>
+                        <SSCheckbox
+                          selected={protocol === formData.protocol}
+                          onPress={() => updateField('protocol', protocol)}
+                        />
+                        <TouchableOpacity
+                          onPress={() => updateField('protocol', protocol)}
+                        >
+                          <SSText
+                            style={{
+                              lineHeight: 18,
+                              textTransform: 'uppercase'
+                            }}
+                            size="md"
+                          >
+                            {t(`settings.network.server.protocol.${protocol}`)}
+                          </SSText>
+                        </TouchableOpacity>
+                      </SSHStack>
+                    ))}
+                  </SSHStack>
+                </SSVStack>
+              )}
+              <SSVStack gap="sm">
+                <SSText uppercase>
+                  {t('settings.network.server.hostLabel')}
+                </SSText>
+                <SSTextInput
+                  value={formData.host}
+                  onChangeText={(value) => updateField('host', value)}
+                  multiline
+                  style={{ height: 'auto', minHeight: 70 }}
+                  placeholder={t(
+                    `settings.network.server.host.placeholder.${formData.backend}`
+                  )}
+                />
+                {/* TODO: Add paste from clipboard functionality to auto-parse server URLs */}
+                {/* TODO: Add QR code scan button to scan server connection details */}
               </SSVStack>
               <SSVStack gap="sm">
-                <SSText uppercase>{t('settings.network.server.url')}</SSText>
+                <SSText uppercase>
+                  {t('settings.network.server.portLabel')}
+                  {formData.backend === 'esplora' && (
+                    <SSText
+                      style={{ textTransform: 'none', fontWeight: 'normal' }}
+                    >
+                      {' '}
+                      ({t('common.optional')})
+                    </SSText>
+                  )}
+                </SSText>
                 <SSTextInput
-                  value={url}
-                  onChangeText={(value) => setUrl(value)}
+                  value={formData.port}
+                  onChangeText={(value) => updateField('port', value)}
+                  placeholder={t(
+                    `settings.network.server.port.placeholder.${formData.backend}`
+                  )}
+                  keyboardType="numeric"
                 />
               </SSVStack>
+              {urlPreview && (
+                <SSVStack gap="sm">
+                  <SSText uppercase>
+                    {t('settings.network.server.urlPreview')}
+                  </SSText>
+                  <SSText color="muted" size="sm">
+                    {urlPreview}
+                  </SSText>
+                </SSVStack>
+              )}
+              <SSProxyFormFields
+                proxy={formData.proxy}
+                onProxyChange={updateProxyField}
+              />
               {testing && (
                 <SSHStack
                   style={{ justifyContent: 'center', gap: 0, marginBottom: 24 }}
@@ -205,24 +323,25 @@ export default function CustomNetwork() {
                 </SSHStack>
               )}
             </SSVStack>
+
+            <SSVStack>
+              <SSButton
+                label={t('settings.network.server.test')}
+                onPress={() => handleTest()}
+              />
+              <SSButton
+                variant="secondary"
+                label={t('common.add')}
+                onPress={() => handleAdd()}
+              />
+              <SSButton
+                variant="ghost"
+                label={t('common.cancel')}
+                onPress={() => handleCancel()}
+              />
+            </SSVStack>
           </SSVStack>
         </ScrollView>
-        <SSVStack>
-          <SSButton
-            label={t('settings.network.server.test')}
-            onPress={() => handleTest()}
-          />
-          <SSButton
-            variant="secondary"
-            label={t('common.add')}
-            onPress={() => handleAdd()}
-          />
-          <SSButton
-            variant="ghost"
-            label={t('common.cancel')}
-            onPress={() => handleCancel()}
-          />
-        </SSVStack>
       </SSVStack>
     </SSMainLayout>
   )

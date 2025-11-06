@@ -1,4 +1,7 @@
-import type { ExtendedTransaction } from '../../../hooks/useInputTransactions.tsx'
+import { type Output } from '@/types/models/Output'
+import { type Utxo } from '@/types/models/Utxo'
+
+import type { ExtendedTransaction } from '../../../hooks/useInputTransactions.ts'
 import {
   estimateTransactionSize,
   recalculateDepthH
@@ -25,22 +28,186 @@ const minimalTxProps = {
 
 describe('Transaction Utils', () => {
   describe('estimateTransactionSize', () => {
-    it('should correctly calculate transaction size for 1 input and 1 output', () => {
-      const result = estimateTransactionSize(1, 1)
-      expect(result.size).toBe(192) // 10 + (1 * 148) + (1 * 34)
-      expect(result.vsize).toBe(48) // ceil(192 * 0.25)
+    it('should correctly estimate transaction size for legacy inputs and outputs', () => {
+      const utxo1: Utxo = {
+        addressTo: 'mkyFyB2kkY8JwsnRLMLRG8Q2Ppn5BUeYoP',
+        keychain: 'external',
+        txid: 'tx-test-1',
+        value: 1,
+        vout: 0
+      }
+      const utxo2: Utxo = {
+        addressTo: 'mqASYhnjpyAXaV1s2w2L73dhWCbfvgLfDz',
+        keychain: 'external',
+        txid: 'tx-test-2',
+        value: 1,
+        vout: 0
+      }
+
+      const output1: Output = {
+        to: 'msu3M5xpDRrR43NC4E4FHoSd2fDhacXUXb',
+        amount: 1,
+        label: '',
+        localId: ''
+      }
+
+      const resultWithChange = estimateTransactionSize(
+        [utxo1, utxo2],
+        [output1],
+        true
+      )
+      expect(resultWithChange.size).toBe(372)
+      expect(resultWithChange.vsize).toBe(372)
+
+      const resultWithoutChange = estimateTransactionSize(
+        [utxo1, utxo2],
+        [output1]
+      )
+      expect(resultWithoutChange.size).toBe(338)
+      expect(resultWithoutChange.vsize).toBe(338)
     })
 
-    it('should correctly calculate transaction size for multiple inputs and outputs', () => {
-      const result = estimateTransactionSize(2, 3)
-      expect(result.size).toBe(408) // 10 + (2 * 148) + (3 * 34)
-      expect(result.vsize).toBe(102) // ceil(408 * 0.25)
+    it('should correctly estimate transaction size for segwit inputs and legacy outputs', () => {
+      const utxo1: Utxo = {
+        addressTo: 'tb1q7aynfngxqxkcumxvptz0h3vydves9f5z7sqafl',
+        keychain: 'external',
+        txid: 'tx-test-1',
+        value: 1,
+        vout: 0
+      }
+      const utxo2: Utxo = {
+        addressTo: 'tb1q0w063da99taqcgutc9g9x24vw4wjd7m2yxexq5',
+        keychain: 'external',
+        txid: 'tx-test-2',
+        value: 1,
+        vout: 0
+      }
+
+      const output1: Output = {
+        to: 'n1tykAD25bXrw2jo3bY8J4Erk3V6MfhG47',
+        amount: 1,
+        label: '',
+        localId: ''
+      }
+
+      const resultWithChange = estimateTransactionSize(
+        [utxo1, utxo2],
+        [output1],
+        true
+      )
+      expect(resultWithChange.size).toBe(373)
+      expect(resultWithChange.vsize).toBe(211)
+
+      const resultWithoutChange = estimateTransactionSize(
+        [utxo1, utxo2],
+        [output1]
+      )
+      expect(resultWithoutChange.size).toBe(342)
+      expect(resultWithoutChange.vsize).toBe(180)
     })
 
-    it('should correctly calculate transaction size for zero inputs and outputs', () => {
-      const result = estimateTransactionSize(0, 0)
-      expect(result.size).toBe(10) // base size only
-      expect(result.vsize).toBe(3) // ceil(10 * 0.25)
+    it('should correctly estimate transaction size for segwit inputs and outputs', () => {
+      const utxo1: Utxo = {
+        addressTo: 'tb1q7aynfngxqxkcumxvptz0h3vydves9f5z7sqafl',
+        keychain: 'external',
+        txid: 'tx-test-1',
+        value: 1,
+        vout: 0
+      }
+      const utxo2: Utxo = {
+        addressTo: 'tb1q0w063da99taqcgutc9g9x24vw4wjd7m2yxexq5',
+        keychain: 'external',
+        txid: 'tx-test-2',
+        value: 1,
+        vout: 0
+      }
+
+      const output1: Output = {
+        to: 'tb1qygc2n34zkdnxks4j7k9ayv78l9rf7zjhta4pvk',
+        amount: 1,
+        label: '',
+        localId: ''
+      }
+
+      const resultWithChange = estimateTransactionSize(
+        [utxo1, utxo2],
+        [output1],
+        true
+      )
+      expect(resultWithChange.size).toBe(370)
+      expect(resultWithChange.vsize).toBe(208)
+
+      const resultWithoutChange = estimateTransactionSize(
+        [utxo1, utxo2],
+        [output1]
+      )
+      expect(resultWithoutChange.size).toBe(339)
+      expect(resultWithoutChange.vsize).toBe(177)
+    })
+
+    it('should correctly estimate transaction size for segwit inputs and taproot outputs', () => {
+      const utxo1: Utxo = {
+        addressTo: 'tb1qmlqe87k5dkq6x6repu03zkk7u2hlhckrvqz6nv',
+        keychain: 'external',
+        txid: 'tx-test-1',
+        value: 1,
+        vout: 0
+      }
+      const utxo2: Utxo = {
+        addressTo: 'tb1qrvvutzlpyv5qmtnl8ljwxhywth3r5s0cf9st0h',
+        keychain: 'external',
+        txid: 'tx-test-2',
+        value: 1,
+        vout: 0
+      }
+
+      const output1: Output = {
+        to: 'tb1pqtrwjvqh0k759mwfpwcsz47rw6j3tqk5tjf2a9vy5ymv263fndyqe5fkrj',
+        amount: 1,
+        label: '',
+        localId: ''
+      }
+
+      const resultWithChange = estimateTransactionSize(
+        [utxo1, utxo2],
+        [output1],
+        true
+      )
+      expect(resultWithChange.size).toBe(382)
+      expect(resultWithChange.vsize).toBe(220)
+
+      const resultWithoutChange = estimateTransactionSize(
+        [utxo1, utxo2],
+        [output1]
+      )
+      expect(resultWithoutChange.size).toBe(351)
+      expect(resultWithoutChange.vsize).toBe(189)
+    })
+
+    it('should correctly estimate transaction size for taproot inputs and outputs', () => {
+      const utxo1: Utxo = {
+        addressTo:
+          'tb1pqtrwjvqh0k759mwfpwcsz47rw6j3tqk5tjf2a9vy5ymv263fndyqe5fkrj',
+        keychain: 'external',
+        txid: 'tx-test-1',
+        value: 1,
+        vout: 0
+      }
+
+      const output1: Output = {
+        to: 'tb1pamrzdpunsyqegkgx8hqg9qzcueucqhen248wmfzrl90njnq35y7qdh55pf',
+        amount: 1,
+        label: '',
+        localId: ''
+      }
+
+      const resultWithChange = estimateTransactionSize([utxo1], [output1], true)
+      expect(resultWithChange.size).toBe(205)
+      expect(resultWithChange.vsize).toBe(154)
+
+      const resultWithoutChange = estimateTransactionSize([utxo1], [output1])
+      expect(resultWithoutChange.size).toBe(162)
+      expect(resultWithoutChange.vsize).toBe(111)
     })
   })
 })

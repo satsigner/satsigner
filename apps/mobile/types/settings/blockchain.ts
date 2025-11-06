@@ -4,11 +4,18 @@ export type Network = 'bitcoin' | 'testnet' | 'signet'
 
 export type ServerType = 'CUSTOM' | 'PUBLIC'
 
+export type ProxyConfig = {
+  enabled: boolean
+  host: string
+  port: number
+}
+
 export type Server = {
   name: string
   backend: Backend
   network: Network
   url: string
+  proxy?: ProxyConfig
 }
 
 export type Config = {

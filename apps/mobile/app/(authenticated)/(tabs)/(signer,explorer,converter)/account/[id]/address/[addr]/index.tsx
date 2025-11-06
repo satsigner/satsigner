@@ -4,6 +4,7 @@ import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, useWindowDimensions } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSBubbleChart from '@/components/SSBubbleChart'
@@ -17,6 +18,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
+import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
@@ -53,6 +55,10 @@ function AddressDetails() {
 
   const getBlockchainHeight = useBlockchainStore(
     (state) => state.getBlockchainHeight
+  )
+
+  const [btcPrice, fiatCurrency] = usePriceStore(
+    useShallow((state) => [state.btcPrice, state.fiatCurrency])
   )
 
   const [blockchainHeight, setBlockchainHeight] = useState<number>(0)
@@ -170,8 +176,8 @@ function AddressDetails() {
                         transaction={tx}
                         key={tx.id}
                         blockHeight={blockchainHeight}
-                        fiatCurrency="USD"
-                        btcPrice={0}
+                        fiatCurrency={fiatCurrency}
+                        btcPrice={btcPrice}
                         link={`/account/${accountId}/transaction/${tx.id}`}
                         expand
                       />

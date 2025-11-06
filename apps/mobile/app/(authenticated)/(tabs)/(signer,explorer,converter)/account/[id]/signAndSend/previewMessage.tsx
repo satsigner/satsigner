@@ -48,10 +48,7 @@ import {
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
-import {
-  type AccountSearchParams,
-  type SignedPsbtsParams
-} from '@/types/navigation/searchParams'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import {
   createBBQRChunks,
   decodeBBQRChunks,
@@ -68,7 +65,7 @@ import {
 } from '@/utils/psbt'
 import { extractKeyFingerprint } from '@/utils/account'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
-import { estimateTransactionSize } from '@/utils/transaction'
+import { legacyEstimateTransactionSize } from '@/utils/transaction'
 import {
   decodeMultiPartURToPSBT,
   decodeURToPSBT,
@@ -142,7 +139,8 @@ function PreviewMessage() {
     addInput,
     addOutput,
     setFee,
-    setRbf
+    setRbf,
+    signedPsbtsFromStore
   ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.inputs,
@@ -155,7 +153,8 @@ function PreviewMessage() {
       state.addInput,
       state.addOutput,
       state.setFee,
-      state.setRbf
+      state.setRbf,
+      state.signedPsbts
     ])
   )
 
@@ -182,7 +181,6 @@ function PreviewMessage() {
   const [selectedWordCount, setSelectedWordCount] =
     useState<MnemonicWordCount>(24)
   const [currentMnemonic, setCurrentMnemonic] = useState('')
-  const [_currentFingerprint, _setCurrentFingerprint] = useState('')
 
   const [wordSelectorState, setWordSelectorState] = useState({
     visible: false,
@@ -217,6 +215,7 @@ function PreviewMessage() {
   const {
     signedPsbt,
     signedPsbts,
+    setSignedPsbts,
     updateSignedPsbt,
     convertPsbtToFinalTransaction,
     handleSignWithLocalKey,
@@ -733,7 +732,10 @@ function PreviewMessage() {
   }, [account, inputs, outputs])
 
   const transaction = useMemo(() => {
-    const { size, vsize } = estimateTransactionSize(inputs.size, outputs.length)
+    const { size, vsize } = legacyEstimateTransactionSize(
+      inputs.size,
+      outputs.length
+    )
 
     const vin = Array.from(inputs.values()).map((input: Utxo) => ({
       previousOutput: { txid: input.txid, vout: input.vout },
@@ -751,29 +753,10 @@ function PreviewMessage() {
   }, [inputs, outputs, messageId])
 
   useEffect(() => {
-    if (signedPsbtsParam && typeof signedPsbtsParam === 'string') {
-      try {
-        const signedPsbtsFromParam = JSON.parse(signedPsbtsParam)
-        if (signedPsbtsFromParam && typeof signedPsbtsFromParam === 'object') {
-          Object.entries(signedPsbtsFromParam).forEach(
-            ([cosignerIndexStr, psbt]) => {
-              const cosignerIndex = parseInt(cosignerIndexStr, 10)
-              if (
-                !isNaN(cosignerIndex) &&
-                psbt &&
-                typeof psbt === 'string' &&
-                psbt.trim().length > 0
-              ) {
-                updateSignedPsbt(cosignerIndex, psbt)
-              }
-            }
-          )
-        }
-      } catch {
-        toast.error('Failed to parse signed PSBTs from navigation.')
-      }
+    if (signedPsbtsFromStore && signedPsbtsFromStore.size > 0) {
+      setSignedPsbts(signedPsbtsFromStore)
     }
-  }, [signedPsbtsParam, updateSignedPsbt])
+  }, [signedPsbtsFromStore, setSignedPsbts])
 
   useEffect(() => {
     if (txBuilderResult?.txDetails?.txid) {
@@ -1451,15 +1434,13 @@ function PreviewMessage() {
     setSeedWordsModalVisible(true)
   }
 
-  // Handle mnemonic validation from the component
-  const handleMnemonicValid = (mnemonic: string, fingerprint: string) => {
+  // eslint-disable-next-line
+  const handleMnemonicValid = (mnemonic: string, _fingerprint: string) => {
     setCurrentMnemonic(mnemonic)
-    _setCurrentFingerprint(fingerprint)
   }
 
   const handleMnemonicInvalid = () => {
     setCurrentMnemonic('')
-    _setCurrentFingerprint('')
   }
 
   // Handle seed words form submission
@@ -1474,7 +1455,6 @@ function PreviewMessage() {
     // Clear the form and close modals
     setSeedWordsModalVisible(false)
     setCurrentMnemonic('')
-    _setCurrentFingerprint('')
     setCurrentCosignerIndex(null)
   }
 
@@ -2585,7 +2565,6 @@ function PreviewMessage() {
           onClose={() => {
             setSeedWordsModalVisible(false)
             setCurrentMnemonic('')
-            _setCurrentFingerprint('')
             setCurrentCosignerIndex(null)
           }}
         >

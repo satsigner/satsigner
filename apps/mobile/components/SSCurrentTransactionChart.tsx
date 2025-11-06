@@ -74,7 +74,11 @@ function SSCurrentTransactionChart({
   )
 
   // First calculate without change output
-  const baseSize = estimateTransactionSize(inputMap.size, outputArray.length)
+  const baseSize = estimateTransactionSize(
+    Array.from(inputMap.values()),
+    outputArray.map((o) => ({ ...o, to: o.to || '' }))
+  )
+
   const baseFee = Math.round(feeRateProp * baseSize.vsize)
 
   // Check if we'll have change
@@ -82,8 +86,9 @@ function SSCurrentTransactionChart({
 
   // Now calculate final size including change if needed
   const { size: txSize, vsize: txVsize } = estimateTransactionSize(
-    inputMap.size,
-    outputArray.length + (hasChange ? 1 : 0)
+    Array.from(inputMap.values()),
+    outputArray.map((o) => ({ ...o, to: o.to || '' })),
+    hasChange
   )
 
   // Ensure transaction size values are valid

@@ -66,7 +66,6 @@ export default function LNDRestPage() {
       throw _error
     }
   }
-
   const handleConnect = async () => {
     if (!connectionString.trim()) return
 
