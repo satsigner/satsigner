@@ -361,7 +361,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
                 // address label inheritance
                 if (!addressHasLabel) {
-                  const labelObj : Label = {
+                  const labelObj: Label = {
                     type: 'addr',
                     ref: addressRef,
                     label
@@ -422,6 +422,8 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             })
           : -1
 
+        const newLabels = { ...account.labels }
+
         const updatedLabels = {
           utxo: false,
           tx: false,
@@ -437,12 +439,14 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             // UTXO label update
             const utxoRef = `${txid}:${vout}`
             const currentLabel = state.accounts[index].labels[utxoRef] || {}
-            state.accounts[index].labels[utxoRef] = {
+            const labelObj = {
               ...currentLabel,
               type: 'output',
               ref: utxoRef,
               label
             }
+            state.accounts[index].labels[utxoRef] = labelObj
+            newLabels[utxoRef] = labelObj
 
             if (utxoIndex !== -1) {
               state.accounts[index].utxos[utxoIndex].label = label
@@ -452,11 +456,13 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             // UTXO's tx label update
             const txHasLabel = state.accounts[index].labels[txid]
             if (!txHasLabel) {
-              state.accounts[index].labels[txid] = {
+              const labelObj: Label = {
                 type: 'output',
                 ref: txid,
                 label
               }
+              state.accounts[index].labels[txid] = labelObj
+              newLabels[txid] = labelObj
 
               if (txIndex !== -1) {
                 state.accounts[index].transactions[txIndex].label = label
@@ -468,11 +474,13 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             if (!address) return
             const addressHasLabel = state.accounts[index].labels[address]
             if (!addressHasLabel) {
-              state.accounts[index].labels[address] = {
+              const labelObj: Label = {
                 type: 'addr',
                 ref: address,
                 label
               }
+              state.accounts[index].labels[address] = labelObj
+              newLabels[address] = labelObj
 
               if (addressIndex !== -1) {
                 state.accounts[index].addresses[addressIndex].label = label
