@@ -308,6 +308,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         if (!account) return undefined
 
         const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
+        const newLabels = { ...account.labels }
 
         set(
           produce((state) => {
@@ -316,12 +317,14 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             )
 
             const currentLabel = state.accounts[index].labels[txid] || {}
-            state.accounts[index].labels[txid] = {
+            const labelObj = {
               ...currentLabel,
               type: 'tx',
               ref: txid,
               label
             }
+            state.accounts[index].labels[txid] = labelObj
+            newLabels[txid] = labelObj
 
             if (txIndex === -1) return
 
@@ -337,11 +340,13 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
                 // utxo label inheritance
                 if (!utxoHasLabel) {
-                  state.accounts[index].labels[utxoRef] = {
+                  const labelsObj: Label = {
                     type: 'output',
                     ref: utxoRef,
                     label
                   }
+                  state.accounts[index].labels[utxoRef] = labelsObj
+                  newLabels[utxoRef] = labelsObj
 
                   // also update the utxo object if it exist
                   const utxoIndex = state.accounts[index].utxos.findIndex(
@@ -356,11 +361,13 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
                 // address label inheritance
                 if (!addressHasLabel) {
-                  state.accounts[index].labels[addressRef] = {
+                  const labelObj : Label = {
                     type: 'addr',
                     ref: addressRef,
                     label
                   }
+                  state.accounts[index].labels[addressRef] = labelObj
+                  newLabels[addressRef] = labelObj
 
                   // also update the address object if it exists
                   const addressIndex = state.accounts[
@@ -377,7 +384,8 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           })
         )
 
-        const updatedAccount = { ...account }
+        const updatedAccount = { ...account, labels: newLabels }
+
         if (txIndex !== -1) {
           updatedAccount.transactions = [...account.transactions]
           updatedAccount.transactions[txIndex] = {
@@ -386,8 +394,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           }
         }
 
-        // TODO: update the inherited labels of addresses and outputs in the
-        // variable updatedAccount
+        // TODO: update fields utxos and addresses in updatedAccount
 
         return updatedAccount
       },
