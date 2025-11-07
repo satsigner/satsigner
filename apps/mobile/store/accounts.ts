@@ -210,11 +210,11 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
         if (!account) return undefined
 
+        let updatedAccount = { ...account }
+
         const addrIndex = account.addresses.findIndex(
           (address) => address.address === addr
         )
-
-        const newLabels = { ...account.labels }
 
         set(
           produce((state) => {
@@ -222,15 +222,11 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               (account: Account) => account.id === accountId
             )
 
-            const currentLabel = state.accounts[index].labels[addr] || {}
-            const labelObj: Label = {
-              ...currentLabel,
+            state.accounts[index].labels[addr] = {
               type: 'addr',
               ref: addr,
               label
             }
-            state.accounts[index].labels[addr] = labelObj
-            newLabels[addr] = labelObj
 
             if (addrIndex !== -1) {
               state.accounts[index].addresses[addrIndex].label = label
@@ -246,13 +242,11 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 const utxoRef = `${utxo.txid}:${utxo.vout}`
                 const utxoHasLabel = state.accounts[index].labels[utxoRef]
                 if (!utxoHasLabel) {
-                  const labelObj: Label = {
+                  state.accounts[index].labels[utxoRef] = {
                     type: 'output',
                     ref: utxoRef,
                     label
                   }
-                  state.accounts[index].labels[utxoRef] = labelObj
-                  newLabels[utxoRef] = labelObj
                   newUtxo.label = label
                 }
 
@@ -272,32 +266,20 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
               const txHasLabel = state.accounts[index].labels[tx.id]
               if (!txHasLabel) {
-                const labelObj: Label = {
+                state.accounts[index].labels[tx.id] = {
                   type: 'tx',
                   ref: tx.id,
                   label
                 }
-                state.accounts[index].labels[tx.id] = labelObj
-                newLabels[tx.id] = labelObj
                 newTx.label = label
               }
 
               return newTx
             })
+
+            updatedAccount = { ...state.accounts[index] }
           })
         )
-
-        const updatedAccount = { ...account, labels: newLabels }
-
-        if (addrIndex !== -1) {
-          updatedAccount.addresses = [...account.addresses]
-          updatedAccount.addresses[addrIndex] = {
-            ...account.addresses[addrIndex],
-            label
-          }
-        }
-
-        // TODO: update the fields utxos and transactions in updateAccount
 
         return updatedAccount
       },
@@ -305,10 +287,12 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         const account = get().accounts.find(
           (account) => account.id === accountId
         )
+
         if (!account) return undefined
 
+        let updatedAccount = { ...account }
+
         const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
-        const newLabels = { ...account.labels }
 
         set(
           produce((state) => {
@@ -317,14 +301,12 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             )
 
             const currentLabel = state.accounts[index].labels[txid] || {}
-            const labelObj = {
+            state.accounts[index].labels[txid] = {
               ...currentLabel,
               type: 'tx',
               ref: txid,
               label
             }
-            state.accounts[index].labels[txid] = labelObj
-            newLabels[txid] = labelObj
 
             if (txIndex === -1) return
 
@@ -340,13 +322,11 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
                 // utxo label inheritance
                 if (!utxoHasLabel) {
-                  const labelsObj: Label = {
+                  state.accounts[index].labels[utxoRef] = {
                     type: 'output',
                     ref: utxoRef,
                     label
                   }
-                  state.accounts[index].labels[utxoRef] = labelsObj
-                  newLabels[utxoRef] = labelsObj
 
                   // also update the utxo object if it exist
                   const utxoIndex = state.accounts[index].utxos.findIndex(
@@ -361,13 +341,11 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
                 // address label inheritance
                 if (!addressHasLabel) {
-                  const labelObj: Label = {
+                  state.accounts[index].labels[addressRef] = {
                     type: 'addr',
                     ref: addressRef,
                     label
                   }
-                  state.accounts[index].labels[addressRef] = labelObj
-                  newLabels[addressRef] = labelObj
 
                   // also update the address object if it exists
                   const addressIndex = state.accounts[
@@ -381,20 +359,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 }
               }
             )
+
+            updatedAccount = { ...state.accounts[index] }
           })
         )
-
-        const updatedAccount = { ...account, labels: newLabels }
-
-        if (txIndex !== -1) {
-          updatedAccount.transactions = [...account.transactions]
-          updatedAccount.transactions[txIndex] = {
-            ...account.transactions[txIndex],
-            label
-          }
-        }
-
-        // TODO: update fields utxos and addresses in updatedAccount
 
         return updatedAccount
       },
@@ -404,6 +372,8 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
 
         if (!account) return undefined
+
+        let updatedAccount = { ...account }
 
         const txIndex = account.transactions.findIndex((tx) => {
           return tx.id === txid
@@ -422,14 +392,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             })
           : -1
 
-        const newLabels = { ...account.labels }
-
-        const updatedLabels = {
-          utxo: false,
-          tx: false,
-          address: false
-        }
-
         set(
           produce((state) => {
             const index = state.accounts.findIndex(
@@ -438,81 +400,51 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
             // UTXO label update
             const utxoRef = `${txid}:${vout}`
-            const currentLabel = state.accounts[index].labels[utxoRef] || {}
-            const labelObj = {
-              ...currentLabel,
+            state.accounts[index].labels[utxoRef] = {
               type: 'output',
               ref: utxoRef,
               label
             }
-            state.accounts[index].labels[utxoRef] = labelObj
-            newLabels[utxoRef] = labelObj
 
             if (utxoIndex !== -1) {
               state.accounts[index].utxos[utxoIndex].label = label
-              updatedLabels.utxo = true
             }
 
             // UTXO's tx label update
             const txHasLabel = state.accounts[index].labels[txid]
             if (!txHasLabel) {
-              const labelObj: Label = {
+              state.accounts[index].labels[txid] = {
                 type: 'output',
                 ref: txid,
                 label
               }
-              state.accounts[index].labels[txid] = labelObj
-              newLabels[txid] = labelObj
 
               if (txIndex !== -1) {
                 state.accounts[index].transactions[txIndex].label = label
-                updatedLabels.tx = true
               }
             }
 
             // UTXO's address label update
-            if (!address) return
-            const addressHasLabel = state.accounts[index].labels[address]
-            if (!addressHasLabel) {
-              const labelObj: Label = {
-                type: 'addr',
-                ref: address,
-                label
-              }
-              state.accounts[index].labels[address] = labelObj
-              newLabels[address] = labelObj
+            if (address) {
+              const addressHasLabel = state.accounts[index].labels[address]
 
-              if (addressIndex !== -1) {
-                state.accounts[index].addresses[addressIndex].label = label
-                updatedLabels.address = true
+              if (!addressHasLabel) {
+                state.accounts[index].labels[address] = {
+                  type: 'addr',
+                  ref: address,
+                  label
+                }
+
+                if (addressIndex !== -1) {
+                  state.accounts[index].addresses[addressIndex].label = label
+                }
               }
             }
+
+            updatedAccount = { ...state.accounts[index] }
           })
         )
 
-        // TODO: refactor this ugly code
-        const updatedAccount = { ...account }
-        if (updatedLabels.utxo && utxoIndex !== -1) {
-          updatedAccount.utxos = [...account.utxos]
-          updatedAccount.utxos[utxoIndex] = {
-            ...account.utxos[utxoIndex],
-            label
-          }
-        }
-        if (updatedLabels.tx && txIndex !== -1) {
-          updatedAccount.transactions = [...account.transactions]
-          updatedAccount.transactions[txIndex] = {
-            ...account.transactions[txIndex],
-            label
-          }
-        }
-        if (updatedLabels.address && addressIndex !== -1) {
-          updatedAccount.addresses = [...account.addresses]
-          updatedAccount.addresses[addressIndex] = {
-            ...account.addresses[addressIndex],
-            label
-          }
-        }
         return updatedAccount
       },
       importLabels: (accountId: string, labels: Label[]) => {
