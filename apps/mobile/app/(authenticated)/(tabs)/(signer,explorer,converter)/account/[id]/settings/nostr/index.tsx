@@ -378,7 +378,8 @@ function NostrSync() {
     deviceAnnouncement,
     getUpdatedAccount,
     nostrSyncSubscriptions,
-    updateAccountNostrCallback
+    updateAccountNostrCallback,
+    setSyncing
   ])
 
   const toggleMember = useCallback(
@@ -684,7 +685,13 @@ function NostrSync() {
       }
 
       previousRelaysRef.current = [...currentRelays]
-    }, [accountId, deviceAnnouncement, nostrSyncSubscriptions, testRelaySync])
+    }, [
+      accountId,
+      deviceAnnouncement,
+      nostrSyncSubscriptions,
+      setSyncing,
+      testRelaySync
+    ])
   )
 
   if (!accountId || !account) return <Redirect href="/" />
