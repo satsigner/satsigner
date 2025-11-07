@@ -61,6 +61,7 @@ function NostrSync() {
   const clearProcessedEvents = useNostrStore(
     (state) => state.clearProcessedEvents
   )
+  const setSyncing = useNostrStore((state) => state.setSyncing)
 
   // Members management
   const members = useNostrStore(
@@ -288,6 +289,7 @@ function NostrSync() {
       if (account.nostr.autoSync) {
         // Turn sync OFF
         setIsSyncing(true)
+        if (accountId) setSyncing(accountId, true)
 
         // Cleanup all subscriptions first
         await cleanupSubscriptions().catch(() => {
@@ -315,6 +317,7 @@ function NostrSync() {
         })
 
         setIsSyncing(false)
+        if (accountId) setSyncing(accountId, false)
       } else {
         // Turn sync ON
         updateAccountNostrCallback(accountId, {
@@ -341,6 +344,7 @@ function NostrSync() {
           updatedAccount.nostr.relays.length > 0
         ) {
           setIsSyncing(true)
+          if (accountId) setSyncing(accountId, true)
           try {
             // Test relay sync first
             await testRelaySync(updatedAccount.nostr.relays)
@@ -350,18 +354,21 @@ function NostrSync() {
             await nostrSyncSubscriptions(updatedAccount, (loading) => {
               requestAnimationFrame(() => {
                 setIsSyncing(loading)
+                if (accountId) setSyncing(accountId, loading)
               })
             })
           } catch {
             toast.error('Failed to setup sync')
           } finally {
             setIsSyncing(false)
+            if (accountId) setSyncing(accountId, false)
           }
         }
       }
     } catch {
       toast.error('Failed to toggle auto sync')
       setIsSyncing(false)
+      if (accountId) setSyncing(accountId, false)
     }
   }, [
     account?.nostr,
@@ -597,20 +604,29 @@ function NostrSync() {
       if (!account?.nostr?.autoSync || !account?.nostr?.relays?.length) return
 
       setIsSyncing(true)
+      if (accountId) setSyncing(accountId, true)
       deviceAnnouncement(account)
       await nostrSyncSubscriptions(account, (loading) => {
         requestAnimationFrame(() => {
           setIsSyncing(loading)
+          if (accountId) setSyncing(accountId, loading)
         })
       }).catch(() => {
         toast.error('Failed to setup sync')
       })
 
       setIsSyncing(false)
+      if (accountId) setSyncing(accountId, false)
     }
 
     startAutoSync()
-  }, [account, deviceAnnouncement, nostrSyncSubscriptions])
+  }, [
+    account,
+    accountId,
+    deviceAnnouncement,
+    nostrSyncSubscriptions,
+    setSyncing
+  ])
 
   // Auto-trigger sync when a new relay is added and sync is ON
   useFocusEffect(
@@ -643,6 +659,7 @@ function NostrSync() {
         previousRelays.length > 0
       ) {
         setIsSyncing(true)
+        if (accountId) setSyncing(accountId, true)
 
         const triggerAutoSync = async () => {
           try {
@@ -652,12 +669,14 @@ function NostrSync() {
             await nostrSyncSubscriptions(currentAccount, (loading) => {
               requestAnimationFrame(() => {
                 setIsSyncing(loading)
+                if (accountId) setSyncing(accountId, loading)
               })
             })
           } catch {
             toast.error('Failed to setup sync with new relay')
           } finally {
             setIsSyncing(false)
+            if (accountId) setSyncing(accountId, false)
           }
         }
 
@@ -699,7 +718,8 @@ function NostrSync() {
               }
               onPress={handleToggleAutoSync}
               disabled={
-                !account?.nostr?.autoSync && selectedRelays.length === 0
+                isSyncing ||
+                (!account?.nostr?.autoSync && selectedRelays.length === 0)
               }
             />
             {!account?.nostr?.autoSync && selectedRelays.length === 0 && (
@@ -826,6 +846,7 @@ function NostrSync() {
               variant="secondary"
               label={t('account.nostrSync.devicesGroupChat.title')}
               onPress={goToDevicesGroupChat}
+              disabled={isSyncing}
             />
             {/* Members section */}
             <SSVStack gap="sm">
@@ -839,7 +860,7 @@ function NostrSync() {
                         {member?.npub && (
                           <SSHStack gap="md">
                             <SSVStack gap="xxs" style={{ flex: 0.7 }}>
-                              <SSHStack gap="sm">
+                              <SSHStack gap="md">
                                 <View
                                   style={{
                                     width: 8,
@@ -852,12 +873,14 @@ function NostrSync() {
                                   }}
                                 />
                                 <Pressable
+                                  disabled={isSyncing}
                                   onPress={() => {
                                     router.push({
                                       pathname: `/account/${accountId}/settings/nostr/device/[npub]`,
                                       params: { npub: member.npub }
                                     })
                                   }}
+                                  style={{ opacity: isSyncing ? 0.5 : 1 }}
                                 >
                                   <SSVStack gap="none">
                                     {account?.nostr?.npubAliases?.[
@@ -865,7 +888,7 @@ function NostrSync() {
                                     ] ? (
                                       <>
                                         <SSText
-                                          size="lg"
+                                          size="md"
                                           style={styles.memberText}
                                           selectable
                                         >
@@ -893,7 +916,7 @@ function NostrSync() {
                                     ) : (
                                       <SSTextClipboard text={member.npub || ''}>
                                         <SSText
-                                          size="lg"
+                                          size="md"
                                           type="mono"
                                           style={styles.memberText}
                                           selectable
@@ -924,6 +947,7 @@ function NostrSync() {
                                   : 'Trust'
                               }
                               onPress={() => toggleMember(member.npub)}
+                              disabled={isSyncing}
                             />
                           </SSHStack>
                         )}
@@ -1029,7 +1053,8 @@ const styles = StyleSheet.create({
   },
   memberText: {
     letterSpacing: 1,
-    color: Colors.white
+    color: Colors.white,
+    marginBottom: -4
   },
   keyContainerLoading: {
     justifyContent: 'center',
@@ -1044,8 +1069,7 @@ const styles = StyleSheet.create({
   relayStatusContainer: {
     backgroundColor: '#1a1a1a',
     borderRadius: 4,
-    padding: 12,
-    borderWidth: 1
+    padding: 12
   },
   relayStatusItem: {
     alignItems: 'center',
