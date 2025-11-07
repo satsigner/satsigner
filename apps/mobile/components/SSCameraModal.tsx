@@ -1,6 +1,6 @@
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Animated, StyleSheet, View } from 'react-native'
+import { useCallback, useEffect, useState } from 'react'
+import { View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -13,10 +13,10 @@ import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import {
-  decodeMultiPartURToPSBT,
-  decodeURToPSBT,
   decodeMultiPartURGeneric,
-  decodeURGeneric
+  decodeMultiPartURToPSBT,
+  decodeURGeneric,
+  decodeURToPSBT
 } from '@/utils/ur'
 
 type SSCameraModalProps = {
@@ -66,9 +66,9 @@ function detectQRType(data: string) {
   // Check for UR format (any type: crypto-psbt, bytes, etc.)
   if (data.toLowerCase().startsWith('ur:')) {
     // Match any UR format: ur:TYPE/current-total/data or ur:TYPE/data
-    const urMatch = data.match(/^ur:([^\/]+)\/(?:(\d+)-(\d+)\/)?(.+)$/i)
+    const urMatch = data.match(/^ur:([^/]+)\/(?:(\d+)-(\d+)\/)?(.+)$/i)
     if (urMatch) {
-      const [, urType, currentStr, totalStr] = urMatch
+      const [, , currentStr, totalStr] = urMatch
 
       if (currentStr && totalStr) {
         // Multi-part UR
@@ -290,11 +290,6 @@ function SSCameraModal({
         // Process the content using the content detector
         import('@/utils/contentDetector').then(({ detectContentByContext }) => {
           const detectedContent = detectContentByContext(finalContent, context)
-          console.log('SSCameraModal validation:', {
-            content: finalContent.substring(0, 50) + '...',
-            type: detectedContent.type,
-            isValid: detectedContent.isValid
-          })
 
           onClose()
           resetScanProgress()
@@ -407,7 +402,6 @@ function SSCameraModal({
                 }
               }
             )
-            return
           }
         }
 

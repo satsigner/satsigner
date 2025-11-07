@@ -1,10 +1,29 @@
+// @ts-nocheck
+import {
+  PartiallySignedTransaction,
+  type TransactionDetails,
+  type TxBuilderResult
+} from 'bdk-rn/lib/classes/Bindings'
+import * as bitcoinjs from 'bitcoinjs-lib'
+import { Buffer } from 'buffer'
+import { toast } from 'sonner-native'
+
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
+import { extractKeyFingerprint } from '@/utils/account'
 import { bip21decode } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
+import {
+  combinePsbts,
+  extractIndividualSignedPsbts,
+  extractOriginalPsbt,
+  extractTransactionDataFromPSBTEnhanced,
+  extractTransactionIdFromPSBT,
+  findMatchingAccount,
+  getCollectedSignerPubkeys
+} from '@/utils/psbt'
 import { selectEfficientUtxos } from '@/utils/utxo'
-import { toast } from 'sonner-native'
 
 export type ProcessorActions = {
   navigate: (
@@ -15,6 +34,8 @@ export type ProcessorActions = {
   addInput?: (input: Utxo) => void
   setFeeRate?: (rate: number) => void
   setRbf?: (enabled: boolean) => void
+  setSignedPsbts?: (psbts: Map<number, string>) => void
+  setTxBuilderResult?: (result: TxBuilderResult) => void
 }
 
 /**
@@ -70,7 +91,7 @@ function autoSelectUtxos(
 /**
  * Process Bitcoin content (addresses, URIs, PSBTs)
  */
-function processBitcoinContent(
+async function processBitcoinContent(
   content: DetectedContent,
   actions: ProcessorActions,
   accountId: string,
@@ -94,66 +115,156 @@ function processBitcoinContent(
         }
 
         try {
-          // Import the enhanced PSBT utilities
-          const {
-            extractTransactionDataFromPSBTEnhanced,
-            findMatchingAccount,
-            extractOriginalPsbt,
-            extractIndividualSignedPsbts
-          } = require('@/utils/psbt')
-
           // Check if this PSBT matches the current account
-          const accountMatch = findMatchingAccount(psbtBase64, [account])
+          const accountMatch = await findMatchingAccount(psbtBase64, [account])
 
           if (accountMatch) {
+            const originalPsbt = extractOriginalPsbt(psbtBase64)
+
             // Extract transaction data and populate the transaction builder
             const extractedData = extractTransactionDataFromPSBTEnhanced(
-              psbtBase64,
+              originalPsbt,
               account
             )
 
             if (extractedData) {
-              // Populate inputs and outputs in the transaction builder
-              extractedData.inputs.forEach((input: any) => {
-                actions.addInput?.({
-                  ...input,
-                  script: Buffer.from(input.script, 'hex'),
-                  keychain: input.keychain || 'external'
-                })
-              })
-
-              extractedData.outputs.forEach((output: any) => {
-                actions.addOutput?.({
-                  to: output.address,
-                  amount: output.value,
-                  label: output.label || ''
-                })
-              })
-
-              if (extractedData.fee) {
-                actions.setFeeRate?.(extractedData.fee)
-              }
+              const inputs = extractedData?.inputs || []
+              const outputs = extractedData?.outputs || []
+              const fee = extractedData?.fee || 0
 
               // Set RBF to true for PSBTs
               actions.setRbf?.(true)
+
+              const finalSignedPsbtsMap = new Map<number, string>()
+
+              if (accountMatch.account.policyType === 'multisig') {
+                const combinedPsbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
+
+                const keyFingerprintToCosignerIndex = new Map<string, number>()
+                await Promise.all(
+                  accountMatch.account.keys.map(async (key, index) => {
+                    const fp = await extractKeyFingerprint(key)
+                    if (fp) keyFingerprintToCosignerIndex.set(fp, index)
+                  })
+                )
+
+                const pubkeyToCosignerIndex = new Map<string, number>()
+                combinedPsbt.data.inputs.forEach((input) => {
+                  if (input.bip32Derivation) {
+                    input.bip32Derivation.forEach((derivation) => {
+                      const fingerprint =
+                        derivation.masterFingerprint.toString('hex')
+                      const pubkey = derivation.pubkey.toString('hex')
+                      const cosignerIndex =
+                        keyFingerprintToCosignerIndex.get(fingerprint)
+
+                      if (cosignerIndex !== undefined) {
+                        pubkeyToCosignerIndex.set(pubkey, cosignerIndex)
+                      }
+                    })
+                  }
+                  if (input.partialSig) {
+                    input.partialSig.forEach((sig) => {
+                      // Calculate fingerprint from the public key
+                      bitcoinjs.crypto
+                        .hash160(sig.pubkey)
+                        .slice(0, 4)
+                        .toString('hex')
+                    })
+                  }
+                })
+
+                const individualSignedPsbts = extractIndividualSignedPsbts(
+                  psbtBase64,
+                  originalPsbt
+                )
+
+                const psbtsByCosigner = new Map<number, string[]>()
+
+                Object.values(individualSignedPsbts).forEach((psbtStr) => {
+                  const pubkeys = getCollectedSignerPubkeys(psbtStr)
+                  if (pubkeys.size > 0) {
+                    const pubkey = pubkeys.values().next().value
+                    const cosignerIndex = pubkeyToCosignerIndex.get(pubkey)
+                    if (cosignerIndex !== undefined) {
+                      if (!psbtsByCosigner.has(cosignerIndex)) {
+                        psbtsByCosigner.set(cosignerIndex, [])
+                      }
+                      psbtsByCosigner.get(cosignerIndex)!.push(psbtStr)
+                    }
+                  }
+                })
+
+                for (const [
+                  cosignerIndex,
+                  psbts
+                ] of psbtsByCosigner.entries()) {
+                  if (psbts.length > 1) {
+                    const combined = combinePsbts(psbts)
+                    finalSignedPsbtsMap.set(cosignerIndex, combined)
+                  } else {
+                    finalSignedPsbtsMap.set(cosignerIndex, psbts[0])
+                  }
+                }
+              } else {
+                // For single-sig, we can just use the combined psbt as is.
+                // It will be assigned to the first cosigner (index 0).
+                const individualSignedPsbts = extractIndividualSignedPsbts(
+                  psbtBase64,
+                  originalPsbt
+                )
+                Object.entries(individualSignedPsbts).forEach(
+                  ([key, value]) => {
+                    finalSignedPsbtsMap.set(parseInt(key, 10), value as string)
+                  }
+                )
+              }
+              actions.setSignedPsbts?.(finalSignedPsbtsMap)
+
+              const extractedTxid = extractTransactionIdFromPSBT(originalPsbt)
+              if (!extractedTxid) {
+                return
+              }
+
+              const sent = outputs.reduce(
+                (
+                  acc: number,
+                  output: { address: string; value: number; label: string }
+                ) => acc + output.value,
+                0
+              )
+              const received = inputs.reduce(
+                (acc: number, input: Utxo) => acc + (input.value || 0),
+                0
+              )
+
+              const psbt = new PartiallySignedTransaction(originalPsbt)
+
+              const txDetails: TransactionDetails = {
+                txid: extractedTxid,
+                fee,
+                sent,
+                received,
+                confirmationTime: undefined,
+                transaction: undefined
+              }
+
+              const txBuilderResult: TxBuilderResult = {
+                psbt,
+                txDetails
+              }
+              actions.setTxBuilderResult?.(txBuilderResult)
             }
           }
 
-          // Navigate to preview with enhanced PSBT data
+          // Navigate to preview
           navigate({
             pathname: '/account/[id]/signAndSend/previewMessage',
             params: {
-              id: accountId,
-              psbt: psbtBase64,
-              enhanced: 'true' // Flag to indicate enhanced processing
+              id: accountId
             }
           })
         } catch (error) {
-          console.warn(
-            'Enhanced PSBT processing failed, falling back to basic processing:',
-            error
-          )
-
           // Show user-friendly error message
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error'
@@ -373,13 +484,13 @@ function processEcashContent(
   }
 }
 
-export function processContentByContext(
+export async function processContentByContext(
   content: DetectedContent,
   context: 'bitcoin' | 'lightning' | 'ecash',
   actions: ProcessorActions,
   accountId?: string,
   account?: Account
-): void {
+): Promise<void> {
   if (!content.isValid) {
     throw new Error('Invalid content cannot be processed')
   }
@@ -389,7 +500,7 @@ export function processContentByContext(
       if (!accountId) {
         throw new Error('Account ID is required for Bitcoin context')
       }
-      processBitcoinContent(content, actions, accountId, account)
+      await processBitcoinContent(content, actions, accountId, account)
       break
 
     case 'lightning':

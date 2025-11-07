@@ -29,7 +29,7 @@ import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
+import { DUST_LIMIT } from '@/constants/btc'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import SSHStack from '@/layouts/SSHStack'
@@ -301,10 +301,10 @@ export default function IOPreview() {
       setOutputTo,
       setOutputAmount,
       setOutputLabel,
-      onError: (message) => {
+      onError: () => {
         toast.error(t('transaction.error.address.invalid'))
       },
-      onWarning: (message) => {
+      onWarning: () => {
         toast.warning(t('transaction.error.bip21.insufficientSats'))
       },
       remainingSats

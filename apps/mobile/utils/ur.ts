@@ -322,8 +322,8 @@ export function decodeMultiPartURGeneric(urFragments: string[]): string {
     // Sort fragments by sequence number - handle different UR types
     const sortedFragments = urFragments.sort((a, b) => {
       // Extract sequence number from fragments like "UR:CRYPTO-PSBT/881-13/..." or "UR:BYTES/225-5/..."
-      const aMatch = a.match(/ur:([^\/]+)\/(\d+)-(\d+)\//i)
-      const bMatch = b.match(/ur:([^\/]+)\/(\d+)-(\d+)\//i)
+      const aMatch = a.match(new RegExp('ur:([^/]+)/(\\d+)-(\\d+)/', 'i'))
+      const bMatch = b.match(new RegExp('ur:([^/]+)/(\\d+)-(\\d+)/', 'i'))
 
       if (aMatch && bMatch) {
         const aSeq = parseInt(aMatch[2], 10)

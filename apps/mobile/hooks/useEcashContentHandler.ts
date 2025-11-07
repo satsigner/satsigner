@@ -16,15 +16,24 @@ export function useEcashContentHandler() {
       }
 
       try {
+        const navigate = (
+          path: string | { pathname: string; params?: Record<string, unknown> }
+        ) => {
+          if (typeof path === 'string') {
+            router.push(path as any)
+          } else {
+            router.push(path as any)
+          }
+        }
         processContentByContext(content, 'ecash', {
-          navigate: router.push
+          navigate
         })
       } catch (error) {
         const errorMessage = (error as Error).message
         toast.error(errorMessage || 'Failed to process content')
       }
     },
-    [router.push]
+    [router]
   )
 
   const handleSend = useCallback(() => {

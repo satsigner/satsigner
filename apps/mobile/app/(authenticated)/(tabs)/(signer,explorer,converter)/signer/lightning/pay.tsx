@@ -8,14 +8,12 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSLNURLDetails from '@/components/SSLNURLDetails'
-import SSModal from '@/components/SSModal'
 import SSPaymentDetails from '@/components/SSPaymentDetails'
 import SSText from '@/components/SSText'
 import { useLND } from '@/hooks/useLND'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { Typography } from '@/styles'
 import { type DecodedInvoice } from '@/types/lightning'
@@ -78,7 +76,7 @@ export default function PayPage() {
       // Convert millisats to sats and set as amount
       const minSats = Math.ceil(details.minSendable / 1000)
       setAmount(minSats.toString())
-    } catch (error) {
+    } catch {
       setLNURLDetails(null)
       // Don't show error to user, just don't set the amount
     } finally {

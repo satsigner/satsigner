@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, ScrollView, StyleSheet } from 'react-native'
+import { ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -9,7 +9,6 @@ import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSLNURLDetails from '@/components/SSLNURLDetails'
-import SSModal from '@/components/SSModal'
 import SSPaymentDetails from '@/components/SSPaymentDetails'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
@@ -79,7 +78,7 @@ export default function EcashSendPage() {
 
   const { activeMint, sendEcash, createMeltQuote, meltProofs, proofs } =
     useEcash()
-  const { makeRequest, isConnected, verifyConnection } = useLND()
+  const { makeRequest, isConnected } = useLND()
   const { isAvailable: nfcAvailable, isEmitting, emitNFCTag } = useNFCEmitter()
   const typedMakeRequest = makeRequest as MakeRequest
   const [fiatCurrency, satsToFiat] = usePriceStore(
@@ -306,7 +305,7 @@ export default function EcashSendPage() {
           if (decoded.num_satoshis) {
             setAmount(decoded.num_satoshis)
           }
-        } catch (bolt11Error) {
+        } catch {
           // Fallback to LND decoder if available
           if (isConnected) {
             try {
@@ -315,7 +314,7 @@ export default function EcashSendPage() {
               if (lndDecoded.num_satoshis) {
                 setAmount(lndDecoded.num_satoshis)
               }
-            } catch (lndError) {
+            } catch {
               setDecodedInvoice(null)
               toast.warning(t('ecash.error.invoiceDecodeFailed'))
             }

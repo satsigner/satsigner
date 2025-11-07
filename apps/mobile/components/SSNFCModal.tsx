@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { Animated, StyleSheet, View } from 'react-native'
+import { Animated } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -16,7 +16,6 @@ type SSNFCModalProps = {
   visible: boolean
   onClose: () => void
   onContentRead: (content: string) => void
-  context: 'bitcoin' | 'lightning' | 'ecash'
   mode: 'read' | 'write'
   dataToWrite?: string // for write mode
 }
@@ -25,7 +24,6 @@ function SSNFCModal({
   visible,
   onClose,
   onContentRead,
-  context,
   mode,
   dataToWrite
 }: SSNFCModalProps) {
@@ -132,19 +130,6 @@ function SSNFCModal({
       }
     }
   }, [visible, nfcPulseAnim])
-
-  const getContextTitle = () => {
-    switch (context) {
-      case 'bitcoin':
-        return t('nfc.title.bitcoin')
-      case 'lightning':
-        return t('nfc.title.lightning')
-      case 'ecash':
-        return t('nfc.title.ecash')
-      default:
-        return t('nfc.title.default')
-    }
-  }
 
   const getModeTitle = () => {
     return mode === 'read' ? t('nfc.mode.read') : t('nfc.mode.write')

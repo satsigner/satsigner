@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { AppState, StyleSheet, View } from 'react-native'
+import { useCallback, useEffect, useState } from 'react'
+import { AppState } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -51,6 +51,22 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
     }
   }, [visible])
 
+  const validateContent = useCallback(
+    async (text: string) => {
+      try {
+        const { detectContentByContext } = await import(
+          '@/utils/contentDetector'
+        )
+        const detectedContent = detectContentByContext(text, context)
+        setIsValidContent(detectedContent.isValid)
+      } catch {
+        toast.error(t('paste.error.validateFailed'))
+        setIsValidContent(false)
+      }
+    },
+    [context]
+  )
+
   // Validate content when it changes
   useEffect(() => {
     if (content.trim()) {
@@ -58,25 +74,14 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
     } else {
       setIsValidContent(false)
     }
-  }, [content, context])
+  }, [content, context, validateContent])
 
   const loadClipboardContent = async () => {
     try {
       const text = await getAllClipboardContent()
       setContent(text || '')
-    } catch (error) {
-      console.error(t('paste.error.loadFailed'), error)
-    }
-  }
-
-  const validateContent = async (text: string) => {
-    try {
-      const { detectContentByContext } = await import('@/utils/contentDetector')
-      const detectedContent = detectContentByContext(text, context)
-      setIsValidContent(detectedContent.isValid)
-    } catch (error) {
-      console.error(t('paste.error.validateFailed'), error)
-      setIsValidContent(false)
+    } catch {
+      toast.error(t('paste.error.loadFailed'))
     }
   }
 
@@ -97,13 +102,8 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
 
       onClose()
       onContentPasted(detectedContent)
-    } catch (error) {
-      const errorMessage = (error as Error).message
-      if (errorMessage) {
-        toast.error(errorMessage)
-      } else {
-        toast.error(t('paste.error.failed'))
-      }
+    } catch {
+      toast.error(t('paste.error.failed'))
     }
   }
 

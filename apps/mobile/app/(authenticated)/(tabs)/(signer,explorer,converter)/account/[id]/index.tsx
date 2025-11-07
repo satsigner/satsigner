@@ -739,9 +739,7 @@ export default function AccountView() {
       state.configsMempool['bitcoin']
     ])
   )
-  const clearTransaction = useTransactionBuilderStore(
-    (state) => state.clearTransaction
-  )
+  useTransactionBuilderStore((state) => state.clearTransaction)
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { nostrSyncSubscriptions } = useNostrSync()
@@ -912,11 +910,6 @@ export default function AccountView() {
   async function handleOnExpand(state: boolean) {
     setExpand(state)
     animateTransition(state)
-  }
-
-  function navigateToSignAndSend() {
-    clearTransaction()
-    router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
   }
 
   if (!account) return <Redirect href="/" />
@@ -1198,16 +1191,6 @@ export default function AccountView() {
     </>
   )
 }
-
-const styles = StyleSheet.create({
-  actionButton: {
-    backgroundColor: Colors.gray[925],
-    marginLeft: 2,
-    borderTopWidth: 1,
-    borderTopColor: '#242424',
-    borderRadius: 3
-  }
-})
 
 const addressListStyles = StyleSheet.create({
   container: {

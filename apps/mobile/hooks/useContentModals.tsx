@@ -58,7 +58,6 @@ export function useContentModals({
       visible={visible.nfc}
       onClose={onClose.nfc}
       onContentRead={onNFCContentRead}
-      context={context}
       mode="read"
     />
   )

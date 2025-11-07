@@ -39,7 +39,7 @@ function mapBolt11DecodeToDecodedInvoice(
   )
 
   const amountValue = amountSection?.value || '0'
-  const numMsats = parseInt(amountValue.toString())
+  const numMsats = parseInt(amountValue.toString(), 10)
   const numSatoshis = Math.ceil(numMsats / 1000).toString() // Round up to avoid dust
 
   return {

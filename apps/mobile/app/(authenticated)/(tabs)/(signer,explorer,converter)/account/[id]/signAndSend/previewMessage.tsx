@@ -59,11 +59,10 @@ import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { parseHexToBytes } from '@/utils/parse'
 import {
-  validateSignedPSBTForCosigner,
+  extractOriginalPsbt,
   extractTransactionIdFromPSBT,
-  extractOriginalPsbt
+  validateSignedPSBTForCosigner
 } from '@/utils/psbt'
-import { extractKeyFingerprint } from '@/utils/account'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import { legacyEstimateTransactionSize } from '@/utils/transaction'
 import {
@@ -118,14 +117,13 @@ function PreviewMessage() {
   const router = useRouter()
   const {
     id,
-    psbt,
-    signedPsbt: signedPsbtParam,
-    signedPsbts: signedPsbtsParam
+    psbt
+    // signedPsbt: signedPsbtParam
   } = useLocalSearchParams<
     AccountSearchParams & {
       psbt?: string
       signedPsbt?: string
-    } & SignedPsbtsParams
+    }
   >()
 
   const [
@@ -320,7 +318,7 @@ function PreviewMessage() {
             } catch {}
           }
         } catch (error) {
-          console.warn('Enhanced PSBT processing failed:', error)
+          toast.error(`Enhanced PSBT processing failed: ${error as string}`)
 
           // Show user-friendly error message
           const errorMessage =
@@ -361,27 +359,25 @@ function PreviewMessage() {
             toast.info(
               'PSBT loaded with basic processing. Some features may be limited.'
             )
-          } catch (fallbackError) {
-            console.error(
-              'Fallback PSBT processing also failed:',
-              fallbackError
-            )
+          } catch {
             toast.error('Failed to process PSBT. Please check the data format.')
           }
         }
       }
     }
-
-    if (signedPsbtParam) {
-      // Clear any existing transaction data and set the signed PSBT
-      setSignedTx('')
-      updateSignedPsbt(0, signedPsbtParam) // Assuming index 0 for the first signature
-      // TODO: For raw transactions, decode and populate transaction builder
-      // This utility function is being written in another PR
-      // We need to decode the raw transaction hex and call setTxBuilderResult
-      // so that the SSTransactionChart can properly display the transaction flow
-    }
-  }, [psbt, signedPsbtParam, setSignedTx, updateSignedPsbt])
+  }, [
+    psbt,
+    setSignedTx,
+    updateSignedPsbt,
+    account,
+    addInput,
+    addOutput,
+    decryptedKeys,
+    setFee,
+    setRbf,
+    setTxBuilderResult,
+    signedPsbts
+  ])
 
   // Calculate validation results for each cosigner
   const validationResults = useMemo(() => {

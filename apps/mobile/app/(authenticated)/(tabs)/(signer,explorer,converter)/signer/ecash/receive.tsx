@@ -9,7 +9,6 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSEcashTokenDetails from '@/components/SSEcashTokenDetails'
-import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -20,8 +19,8 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { error, success, warning, white } from '@/styles/colors'
-import { type DetectedContent } from '@/utils/contentDetector'
 import { type EcashToken } from '@/types/models/Ecash'
+import { type DetectedContent } from '@/utils/contentDetector'
 
 export default function EcashReceivePage() {
   const { token: tokenParam } = useLocalSearchParams()

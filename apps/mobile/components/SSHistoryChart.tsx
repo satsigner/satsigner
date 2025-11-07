@@ -727,14 +727,14 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
   const labelParagraphs = useMemo(() => {
     if (!customFontManager) return new Map<string, any>()
     const paragraphs = new Map<string, any>()
-    
+
     txInfoLabels.forEach((label) => {
       if (label.type === 'end') return
       const text =
         (showLabel && label.memo!) ||
         (showAmount && numberCommaFormatter(label.amount!)) ||
         ''
-      
+
       const para = Skia.ParagraphBuilder.Make(
         {
           maxLines: 1,
@@ -750,13 +750,19 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
         .addText(text)
         .pop()
         .build()
-      
+
       para.layout(1000) // Layout with a large width to measure
       paragraphs.set(label.index, para)
     })
-    
+
     return paragraphs
-  }, [txInfoLabels, customFontManager, showLabel, showAmount, numberCommaFormatter])
+  }, [
+    txInfoLabels,
+    customFontManager,
+    showLabel,
+    showAmount,
+    numberCommaFormatter
+  ])
 
   let previousDate: string = ''
 
@@ -1020,13 +1026,16 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
         (showLabel && label.memo!) ||
         (showAmount && numberCommaFormatter(label.amount!)) ||
         ''
-      
+
       // Use Paragraph for better emoji support
       const paragraph = labelParagraphs.get(label.index)
       const textWidth = paragraph
-        ? Math.max(paragraph.getMinIntrinsicWidth(), font.measureText(text).width)
+        ? Math.max(
+            paragraph.getMinIntrinsicWidth(),
+            font.measureText(text).width
+          )
         : font.measureText(text).width
-      
+
       labelRectRef.current.push({
         rect: {
           left: label.type === 'receive' ? label.x - textWidth : label.x,
@@ -1036,7 +1045,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
         },
         id: label.id
       })
-      
+
       if (paragraph) {
         // For receive transactions, position to the left of the point
         // For send transactions, position to the right of the point
@@ -1054,7 +1063,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
           </Fragment>
         )
       }
-      
+
       // Fallback to Text if Paragraph creation fails
       const xPos = label.type === 'receive' ? label.x - textWidth : label.x
       const clampedX = Math.max(0, xPos)

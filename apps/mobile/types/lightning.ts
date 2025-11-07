@@ -13,4 +13,3 @@ export type DecodedInvoice = {
   payment_secret: string
   min_final_cltv_expiry: string
 }
-

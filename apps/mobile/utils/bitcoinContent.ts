@@ -1,5 +1,5 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
-import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
+import { bip21decode, isBip21 } from '@/utils/bitcoin'
 import { validateAddress } from '@/utils/validation'
 
 export function isPSBT(text: string): boolean {

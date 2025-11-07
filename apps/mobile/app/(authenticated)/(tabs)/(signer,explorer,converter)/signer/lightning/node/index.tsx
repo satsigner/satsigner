@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Animated,
   Easing,
@@ -230,16 +230,6 @@ export default function NodeDetailPage() {
   const btcPrice = usePriceStore((state) => state.btcPrice)
   const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
 
-  // Memoized values
-  const gradientHeight = useMemo(
-    () =>
-      animationValue.interpolate({
-        inputRange: [0, 1],
-        outputRange: [190, 0]
-      }),
-    [animationValue]
-  )
-
   // Memoized callbacks
   const animateTransition = useCallback(
     (expandState: boolean) => {
@@ -355,7 +345,7 @@ export default function NodeDetailPage() {
         </SSHStack>
       </SSVStack>
     )
-  }, [balance, isLoading, handleRefresh, satsToFiat, btcPrice, fiatCurrency])
+  }, [balance, isLoading, satsToFiat, btcPrice, fiatCurrency])
 
   const renderTransactions = useCallback(() => {
     if (isLoading && transactions.length === 0) {

@@ -26,7 +26,6 @@ function SSButtonActionsGroup({
   onCamera,
   onNFC,
   onReceive,
-  context,
   nfcAvailable = true
 }: SSButtonActionsGroupProps) {
   return (

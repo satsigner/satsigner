@@ -19,16 +19,25 @@ export function useBitcoinContentHandler({
 }: UseBitcoinContentHandlerProps) {
   const router = useRouter()
 
-  const [clearTransaction, addOutput, addInput, setFeeRate, setRbf] =
-    useTransactionBuilderStore(
-      useShallow((state) => [
-        state.clearTransaction,
-        state.addOutput,
-        state.addInput,
-        state.setFeeRate,
-        state.setRbf
-      ])
-    )
+  const [
+    clearTransaction,
+    addOutput,
+    addInput,
+    setFeeRate,
+    setRbf,
+    setSignedPsbts,
+    setTxBuilderResult
+  ] = useTransactionBuilderStore(
+    useShallow((state) => [
+      state.clearTransaction,
+      state.addOutput,
+      state.addInput,
+      state.setFeeRate,
+      state.setRbf,
+      state.setSignedPsbts,
+      state.setTxBuilderResult
+    ])
+  )
 
   const handleContentScanned = useCallback(
     (content: DetectedContent) => {
@@ -57,7 +66,9 @@ export function useBitcoinContentHandler({
             addOutput,
             addInput,
             setFeeRate,
-            setRbf
+            setRbf,
+            setSignedPsbts,
+            setTxBuilderResult
           },
           accountId,
           account
@@ -70,12 +81,14 @@ export function useBitcoinContentHandler({
     [
       accountId,
       account,
-      router.push,
+      router,
       clearTransaction,
       addOutput,
       addInput,
       setFeeRate,
-      setRbf
+      setRbf,
+      setSignedPsbts,
+      setTxBuilderResult
     ]
   )
 

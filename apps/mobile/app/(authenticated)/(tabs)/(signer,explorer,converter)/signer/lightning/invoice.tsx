@@ -21,8 +21,8 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
-import { formatNumber } from '@/utils/format'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { formatNumber } from '@/utils/format'
 import {
   decodeLNURL,
   fetchLNURLWithdrawDetails,
