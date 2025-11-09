@@ -4,10 +4,7 @@ import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
-import {
-  SSIconBlackIndicator,
-  SSIconGreenIndicator
-} from '@/components/icons'
+import { SSIconBlackIndicator, SSIconGreenIndicator } from '@/components/icons'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useEcash } from '@/hooks/useEcash'
