@@ -1,5 +1,6 @@
 import { FlashList } from '@shopify/flash-list'
 import { type Network } from 'bdk-rn/lib/lib/enums'
+import { useFocusEffect } from '@react-navigation/native'
 import {
   Redirect,
   router,
@@ -796,6 +797,22 @@ export default function AccountView() {
     onNFCContentRead: contentHandler.handleNFCContentRead,
     context: 'bitcoin'
   })
+
+  // Close modals when navigating away from this page
+  useFocusEffect(
+    useCallback(() => {
+      // Cleanup function: close modals when leaving the page
+      return () => {
+        contentHandler.closeCameraModal()
+        contentHandler.closeNFCModal()
+        contentHandler.closePasteModal()
+      }
+    }, [
+      contentHandler.closeCameraModal,
+      contentHandler.closeNFCModal,
+      contentHandler.closePasteModal
+    ])
+  )
 
   useEffect(() => {
     if (wallet) handleOnRefresh()

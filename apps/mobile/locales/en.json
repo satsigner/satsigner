@@ -465,6 +465,7 @@
       "validMnemonic": "Please enter a valid mnemonic",
       "validatingCosignerSignature": "Failed in validating cosigner signature"
     },
+    "exceeds": "exceeds",
     "extendedPublicKey": "Extended Public Key",
     "fingerprint": "Fingerprint",
     "from": "From",
@@ -494,6 +495,7 @@
     "publicKeys": "PUBLIC KEYS",
     "remaining": "Remaining",
     "remove": "Remove",
+    "sats": "sats",
     "save": "Save",
     "scan": "Scan",
     "scanQR": "Scan QR",
@@ -1543,12 +1545,21 @@
     "edit.label.transaction": "Edit transaction label",
     "edit.label.utxo": "Edit UTXO label",
     "error.ChangeAddressNotAvailable": "Change address not available. Please try again.",
+    "error.accountIdRequired": "Account ID is required for Bitcoin context",
     "error.address.invalid": "Invalid address",
+    "error.amountExceedsBalance": "Amount (%{amount} sats) exceeds wallet balance (%{balance} sats)",
     "error.bip21.insufficientSats": "Insufficient sats for amount in address",
+    "error.failedToDecodeBitcoinUri": "Failed to decode Bitcoin URI",
+    "error.insufficientFundsForAmount": "Insufficient funds for the specified amount",
     "error.insufficientInputs": "Amount exceed max with selected inputs. Add more inputs.",
     "error.invalid.proxyHost": "Invalid proxy host",
     "error.invalid.proxyPort": "Invalid proxy port",
+    "error.invalidContent": "Invalid content",
+    "error.invalidContentCannotBeProcessed": "Invalid content cannot be processed",
+    "error.noValidAddressFound": "No valid address found in content",
     "error.proxy.connection": "Proxy connection failed. Ensure Tor/Orbot is running.",
+    "error.psbtCannotBeUsedForOutputs": "PSBTs cannot be used for individual outputs",
+    "error.unsupportedContext": "Unsupported context: %{context}",
     "exportNFC": "Export NFC",
     "fee": "Fee",
     "feeBytes": "Fee sat/b",
@@ -1690,6 +1701,9 @@
     "number.greater": "The value must be greather than %{value}",
     "number.smaller": "The value must be smaller than %{value}",
     "required": "*required*"
+  },
+  "wallet": {
+    "balance": "wallet balance"
   },
   "warning": {
     "content": "Copyright (c) 2025 SatSigner\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.",

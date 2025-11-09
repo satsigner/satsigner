@@ -414,43 +414,6 @@ function PreviewMessage() {
             }
             setTxBuilderResult(mockTxBuilderResult as any)
             setIsLoadingPSBT(false)
-
-            // Detect and populate any existing signatures already present in the PSBT
-            try {
-              const combinedPsbtBase64: string = psbt
-              const originalPsbtBase64: string = extractOriginalPsbt(psbt)
-
-              // Split combined PSBT into per-signer PSBTs (by pubkey)
-              const { extractIndividualSignedPsbts } = require('@/utils/psbt')
-              const bySigner = extractIndividualSignedPsbts(
-                combinedPsbtBase64,
-                originalPsbtBase64
-              ) as Record<number, string>
-
-              const totalCosigners = account.keys?.length || 0
-
-              // For each derived PSBT, find which cosigner it belongs to using validation
-              Object.values(bySigner).forEach((indivBase64: string) => {
-                for (let cosIdx = 0; cosIdx < totalCosigners; cosIdx++) {
-                  try {
-                    const matches = validateSignedPSBTForCosigner(
-                      indivBase64,
-                      account,
-                      cosIdx,
-                      decryptedKeys[cosIdx]
-                    )
-                    if (matches) {
-                      // Assign to the correct slot; if slot already filled, skip
-                      const existing = signedPsbts.get(cosIdx)
-                      if (!existing || existing.trim().length === 0) {
-                        updateSignedPsbt(cosIdx, indivBase64)
-                      }
-                      break
-                    }
-                  } catch {}
-                }
-              })
-            } catch {}
           } else {
             throw new Error(
               'Failed to extract transaction data from PSBT. This PSBT may not match the current account.'
@@ -554,16 +517,137 @@ function PreviewMessage() {
     psbt,
     clearTransaction,
     setSignedTx,
-    updateSignedPsbt,
     account,
     addInput,
     addOutput,
-    decryptedKeys,
     setFee,
     setRbf,
-    setTxBuilderResult,
-    signedPsbts
+    setTxBuilderResult
   ])
+
+  // Separate effect to detect existing signatures - runs when both PSBT and decryptedKeys are ready
+  useEffect(() => {
+    if (!psbt || !account || decryptedKeys.length === 0 || !account.keys) return
+
+    const currentAccount = account
+    const currentPsbt = psbt
+
+    async function detectSignatures() {
+      if (!currentAccount || !currentAccount.keys || !currentPsbt) return
+
+      try {
+        const combinedPsbtBase64: string = currentPsbt
+        const originalPsbtBase64: string =
+          extractOriginalPsbt(combinedPsbtBase64)
+
+        // Check if PSBT has any partial signatures
+        const psbtObj = bitcoinjs.Psbt.fromBase64(combinedPsbtBase64)
+        const hasSignatures = psbtObj.data.inputs.some(
+          (input) => input.partialSig && input.partialSig.length > 0
+        )
+
+        if (!hasSignatures) {
+          return
+        }
+
+        // Build a map of fingerprint to cosigner index
+        const keyFingerprintToCosignerIndex = new Map<string, number>()
+        await Promise.all(
+          currentAccount.keys.map(async (key, index) => {
+            const fp = await extractKeyFingerprint(key)
+            if (fp) keyFingerprintToCosignerIndex.set(fp, index)
+          })
+        )
+
+        // Build a map of pubkey to cosigner index from BIP32 derivations
+        const pubkeyToCosignerIndex = new Map<string, number>()
+        psbtObj.data.inputs.forEach((input) => {
+          if (input.bip32Derivation) {
+            input.bip32Derivation.forEach((derivation) => {
+              const fingerprint = derivation.masterFingerprint.toString('hex')
+              const pubkey = derivation.pubkey.toString('hex')
+              const cosignerIndex =
+                keyFingerprintToCosignerIndex.get(fingerprint)
+
+              if (cosignerIndex !== undefined) {
+                pubkeyToCosignerIndex.set(pubkey, cosignerIndex)
+              }
+            })
+          }
+        })
+
+        // Get all pubkeys that have signatures in the PSBT
+        const { getCollectedSignerPubkeys } = require('@/utils/psbt')
+        const signerPubkeys = getCollectedSignerPubkeys(combinedPsbtBase64)
+
+        if (signerPubkeys.size === 0) {
+          return
+        }
+
+        // Split combined PSBT into per-signer PSBTs (by pubkey)
+        const { extractIndividualSignedPsbts } = require('@/utils/psbt')
+        const bySigner = extractIndividualSignedPsbts(
+          combinedPsbtBase64,
+          originalPsbtBase64
+        ) as Record<number, string>
+
+        if (Object.keys(bySigner).length === 0) {
+          return
+        }
+
+        // Match each signed PSBT to a cosigner
+        Object.values(bySigner).forEach((indivBase64: string) => {
+          const indivPsbt = bitcoinjs.Psbt.fromBase64(indivBase64)
+          const indivPubkeys = getCollectedSignerPubkeys(indivBase64)
+
+          // Try to match by pubkey from BIP32 derivations first
+          for (const pubkey of indivPubkeys) {
+            const cosignerIndex = pubkeyToCosignerIndex.get(pubkey)
+            if (cosignerIndex !== undefined) {
+              const existing = signedPsbts.get(cosignerIndex)
+              if (!existing || existing.trim().length === 0) {
+                updateSignedPsbt(cosignerIndex, indivBase64)
+                toast.success(
+                  `Detected existing signature for cosigner ${cosignerIndex + 1}`
+                )
+                return
+              }
+            }
+          }
+
+          // Fallback: try validation for each cosigner
+          const totalCosigners = currentAccount.keys?.length || 0
+          for (let cosIdx = 0; cosIdx < totalCosigners; cosIdx++) {
+            try {
+              const matches = validateSignedPSBTForCosigner(
+                indivBase64,
+                currentAccount,
+                cosIdx,
+                decryptedKeys[cosIdx]
+              )
+              if (matches) {
+                const existing = signedPsbts.get(cosIdx)
+                if (!existing || existing.trim().length === 0) {
+                  updateSignedPsbt(cosIdx, indivBase64)
+                  toast.success(
+                    `Detected existing signature for cosigner ${cosIdx + 1}`
+                  )
+                }
+                break
+              }
+            } catch {
+              // Validation failed for this cosigner, try next one
+            }
+          }
+        })
+      } catch {
+        // Signature detection failed, but don't show error to user
+        // This is expected for PSBTs without signatures or from other wallets
+      }
+    }
+
+    detectSignatures()
+  }, [psbt, account, decryptedKeys, updateSignedPsbt, signedPsbts])
 
   // Calculate validation results for each cosigner
   const validationResults = useMemo(() => {

@@ -9,6 +9,7 @@ import { Buffer } from 'buffer'
 import { toast } from 'sonner-native'
 
 import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { t } from '@/locales'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { extractKeyFingerprint } from '@/utils/account'
@@ -289,9 +290,36 @@ async function processBitcoinContent(
 
         const decodedData = bip21decode(uriToDecode)
         if (decodedData && typeof decodedData === 'object') {
+          const amount =
+            (decodedData.options.amount || 0) * SATS_PER_BITCOIN || 1
+
+          // Check if amount exceeds wallet balance
+          if (account && account.summary && amount > account.summary.balance) {
+            const formattedAmount = amount.toLocaleString()
+            const formattedBalance = account.summary.balance.toLocaleString()
+            let errorMessage = t('error.amountExceedsBalance', {
+              amount: formattedAmount,
+              balance: formattedBalance
+            })
+            // Check if translation was found (i18n-js returns key or "missing" message if not found)
+            if (
+              errorMessage.includes('missing') ||
+              errorMessage === 'error.amountExceedsBalance'
+            ) {
+              // Fallback: construct message from translation keys
+              const amountLabel = t('common.amount')
+              const satsLabel = t('common.sats')
+              const exceedsLabel = t('common.exceeds')
+              const walletBalanceLabel = t('wallet.balance')
+              errorMessage = `${amountLabel} (${formattedAmount} ${satsLabel}) ${exceedsLabel} ${walletBalanceLabel} (${formattedBalance} ${satsLabel})`
+            }
+            toast.error(errorMessage)
+            return
+          }
+
           if (addOutput) {
             addOutput({
-              amount: (decodedData.options.amount || 0) * SATS_PER_BITCOIN || 1,
+              amount,
               label: decodedData.options.label || '',
               to: decodedData.address
             })
@@ -299,11 +327,7 @@ async function processBitcoinContent(
 
           // Auto-select UTXOs if account is available
           if (account && addOutput) {
-            autoSelectUtxos(
-              account,
-              (decodedData.options.amount || 0) * SATS_PER_BITCOIN || 1,
-              actions
-            )
+            autoSelectUtxos(account, amount, actions)
           }
 
           navigate({
@@ -335,6 +359,34 @@ async function processBitcoinContent(
               if (labelParam) {
                 label = decodeURIComponent(labelParam)
               }
+            }
+
+            // Check if amount exceeds wallet balance
+            if (
+              account &&
+              account.summary &&
+              amount > account.summary.balance
+            ) {
+              const formattedAmount = amount.toLocaleString()
+              const formattedBalance = account.summary.balance.toLocaleString()
+              let errorMessage = t('error.amountExceedsBalance', {
+                amount: formattedAmount,
+                balance: formattedBalance
+              })
+              // Check if translation was found (i18n-js returns key or "missing" message if not found)
+              if (
+                errorMessage.includes('missing') ||
+                errorMessage === 'error.amountExceedsBalance'
+              ) {
+                // Fallback: construct message from translation keys
+                const amountLabel = t('common.amount')
+                const satsLabel = t('common.sats')
+                const exceedsLabel = t('common.exceeds')
+                const walletBalanceLabel = t('wallet.balance')
+                errorMessage = `${amountLabel} (${formattedAmount} ${satsLabel}) ${exceedsLabel} ${walletBalanceLabel} (${formattedBalance} ${satsLabel})`
+              }
+              toast.error(errorMessage)
+              return
             }
 
             if (addOutput) {
@@ -461,13 +513,13 @@ export async function processContentByContext(
   account?: Account
 ): Promise<void> {
   if (!content.isValid) {
-    throw new Error('Invalid content cannot be processed')
+    throw new Error(t('error.invalidContentCannotBeProcessed'))
   }
 
   switch (context) {
     case 'bitcoin':
       if (!accountId) {
-        throw new Error('Account ID is required for Bitcoin context')
+        throw new Error(t('error.accountIdRequired'))
       }
       await processBitcoinContent(content, actions, accountId, account)
       break
@@ -481,7 +533,7 @@ export async function processContentByContext(
       break
 
     default:
-      throw new Error(`Unsupported context: ${context}`)
+      throw new Error(t('error.unsupportedContext', { context }))
   }
 }
 
@@ -497,12 +549,12 @@ export function processContentForOutput(
   }
 ): boolean {
   if (!content.isValid) {
-    actions.onError('Invalid content')
+    actions.onError(t('error.invalidContent'))
     return false
   }
 
   if (content.type === 'psbt') {
-    actions.onError('PSBTs cannot be used for individual outputs')
+    actions.onError(t('error.psbtCannotBeUsedForOutputs'))
     return false
   }
 
@@ -522,7 +574,7 @@ export function processContentForOutput(
         const amount = (decodedData.options.amount || 0) * SATS_PER_BITCOIN || 1
         if (amount > 1) {
           if (actions.remainingSats && amount > actions.remainingSats) {
-            actions.onWarning('Insufficient funds for the specified amount')
+            actions.onWarning(t('error.insufficientFundsForAmount'))
           } else {
             actions.setOutputAmount(amount)
           }
@@ -534,11 +586,11 @@ export function processContentForOutput(
         return true
       }
     } catch {
-      actions.onError('Failed to decode Bitcoin URI')
+      actions.onError(t('error.failedToDecodeBitcoinUri'))
       return false
     }
   }
 
-  actions.onError('No valid address found in content')
+  actions.onError(t('error.noValidAddressFound'))
   return false
 }
