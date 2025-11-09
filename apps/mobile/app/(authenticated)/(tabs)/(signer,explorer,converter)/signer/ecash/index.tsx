@@ -195,6 +195,13 @@ export default function EcashLanding() {
               />
             </SSVStack>
           )}
+          {activeMint && transactions.length === 0 && (
+            <SSVStack style={styles.noTransactionsContainer} gap="xs">
+              <SSText color="muted" center size="sm">
+                {t('ecash.noTransactions')}
+              </SSText>
+            </SSVStack>
+          )}
           {transactions.length > 0 && (
             <SSVStack gap="sm">
               {transactions.slice(0, 50).map((transaction) => (
@@ -276,5 +283,10 @@ const styles = StyleSheet.create({
   },
   addMintButton: {
     marginTop: 8
+  },
+  noTransactionsContainer: {
+    paddingTop: 20,
+    paddingBottom: 10,
+    alignItems: 'center'
   }
 })

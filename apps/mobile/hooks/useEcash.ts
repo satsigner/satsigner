@@ -34,12 +34,12 @@ const POLL_INTERVAL = 1500
 const MAX_POLL_ATTEMPTS = 120
 
 export function useEcash() {
-  const {
+  const [
     mints,
     activeMint,
     proofs,
     transactions,
-    quotes: { mint: mintQuotes },
+    mintQuotes,
     addMint,
     removeMint,
     setActiveMint,
@@ -54,28 +54,28 @@ export function useEcash() {
     updateTransaction,
     restoreFromBackup,
     clearAllData
-  } = useEcashStore(
-    useShallow((state) => ({
-      mints: state.mints,
-      activeMint: state.activeMint,
-      proofs: state.proofs,
-      transactions: state.transactions,
-      quotes: { mint: state.quotes.mint },
-      addMint: state.addMint,
-      removeMint: state.removeMint,
-      setActiveMint: state.setActiveMint,
-      addProofs: state.addProofs,
-      removeProofs: state.removeProofs,
-      updateMintBalance: state.updateMintBalance,
-      addMintQuote: state.addMintQuote,
-      removeMintQuote: state.removeMintQuote,
-      addMeltQuote: state.addMeltQuote,
-      removeMeltQuote: state.removeMeltQuote,
-      addTransaction: state.addTransaction,
-      updateTransaction: state.updateTransaction,
-      restoreFromBackup: state.restoreFromBackup,
-      clearAllData: state.clearAllData
-    }))
+  ] = useEcashStore(
+    useShallow((state) => [
+      state.mints,
+      state.activeMint,
+      state.proofs,
+      state.transactions,
+      state.quotes.mint,
+      state.addMint,
+      state.removeMint,
+      state.setActiveMint,
+      state.addProofs,
+      state.removeProofs,
+      state.updateMintBalance,
+      state.addMintQuote,
+      state.removeMintQuote,
+      state.addMeltQuote,
+      state.removeMeltQuote,
+      state.addTransaction,
+      state.updateTransaction,
+      state.restoreFromBackup,
+      state.clearAllData
+    ])
   )
 
   const markReceivedTokensAsSpent = useCallback(() => {
@@ -102,10 +102,15 @@ export function useEcash() {
         const mint = await connectToMint(mintUrl)
         addMint(mint)
         setActiveMint(mint)
+
         toast.success(t('ecash.success.mintConnected'))
         return mint
       } catch (error) {
-        toast.error(t('ecash.error.mintConnection'))
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : t('ecash.error.mintConnection')
+        toast.error(errorMessage)
         throw error
       }
     },

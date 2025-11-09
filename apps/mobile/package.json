@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@bitcoinerlab/secp256k1": "^1.2.0",
-    "@cashu/cashu-ts": "^2.7.2",
+    "@cashu/cashu-ts": "^3.0.0",
     "@gorhom/bottom-sheet": "^5.1.1",
     "@miblanchard/react-native-slider": "^2.6.0",
     "@ngraveio/bc-ur": "^1.1.13",

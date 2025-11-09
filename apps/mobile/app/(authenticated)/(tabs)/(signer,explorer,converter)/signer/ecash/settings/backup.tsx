@@ -4,8 +4,8 @@ import { useCallback, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 
-import SSCheckbox from '@/components/SSCheckbox'
 import SSButton from '@/components/SSButton'
+import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useEcash } from '@/hooks/useEcash'
@@ -14,6 +14,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
+import { Colors } from '@/styles'
 import { formatNumber } from '@/utils/format'
 
 export default function EcashBackupPage() {
@@ -23,59 +24,77 @@ export default function EcashBackupPage() {
   const [backupData, setBackupData] = useState('')
   const [includeTokenProofs, setIncludeTokenProofs] = useState(true)
   const [includeMintInformation, setIncludeMintInformation] = useState(true)
-  const [includeTransactionHistory, setIncludeTransactionHistory] = useState(true)
+  const [includeTransactionHistory, setIncludeTransactionHistory] =
+    useState(true)
+  const [isGenerating, setIsGenerating] = useState(false)
 
-  const generateBackupData = () => {
-    const data: Record<string, unknown> = {
-      version: '1.0',
-      timestamp: new Date().toISOString()
+  const generateBackupData = useCallback(async () => {
+    setIsGenerating(true)
+    try {
+      const data: Record<string, unknown> = {
+        version: '1.0',
+        timestamp: new Date().toISOString()
+      }
+
+      if (includeTokenProofs) {
+        data.proofs = proofs.map((proof) => ({
+          id: proof.id,
+          amount: proof.amount,
+          secret: proof.secret,
+          C: proof.C
+        }))
+        data.totalBalance = proofs.reduce((sum, proof) => sum + proof.amount, 0)
+      }
+
+      if (includeMintInformation) {
+        data.mints = mints.map((mint) => ({
+          url: mint.url,
+          name: mint.name,
+          balance: mint.balance,
+          isConnected: mint.isConnected,
+          keysets: mint.keysets,
+          lastSync: mint.lastSync
+        }))
+        data.activeMint = activeMint
+          ? {
+              url: activeMint.url,
+              name: activeMint.name
+            }
+          : null
+      }
+
+      if (includeTransactionHistory) {
+        data.transactions = transactions.map((transaction) => ({
+          id: transaction.id,
+          type: transaction.type,
+          amount: transaction.amount,
+          memo: transaction.memo,
+          mintUrl: transaction.mintUrl,
+          timestamp: transaction.timestamp,
+          token: transaction.token,
+          tokenStatus: transaction.tokenStatus,
+          invoice: transaction.invoice,
+          quoteId: transaction.quoteId
+        }))
+      }
+
+      const jsonData = JSON.stringify(data, null, 2)
+      setBackupData(jsonData)
+      setShowBackupData(true)
+    } catch {
+      toast.error(t('ecash.error.backupGenerationFailed'))
+    } finally {
+      setIsGenerating(false)
     }
-
-    if (includeTokenProofs) {
-      data.proofs = proofs.map((proof) => ({
-        id: proof.id,
-        amount: proof.amount,
-        secret: proof.secret,
-        C: proof.C
-      }))
-      data.totalBalance = proofs.reduce((sum, proof) => sum + proof.amount, 0)
-    }
-
-    if (includeMintInformation) {
-      data.mints = mints.map((mint) => ({
-        url: mint.url,
-        name: mint.name,
-        balance: mint.balance,
-        isConnected: mint.isConnected,
-        keysets: mint.keysets,
-        lastSync: mint.lastSync
-      }))
-      data.activeMint = activeMint
-        ? {
-            url: activeMint.url,
-            name: activeMint.name
-          }
-        : null
-    }
-
-    if (includeTransactionHistory) {
-      data.transactions = transactions.map((transaction) => ({
-        id: transaction.id,
-        type: transaction.type,
-        amount: transaction.amount,
-        memo: transaction.memo,
-        mintUrl: transaction.mintUrl,
-        timestamp: transaction.timestamp,
-        token: transaction.token,
-        tokenStatus: transaction.tokenStatus,
-        invoice: transaction.invoice,
-        quoteId: transaction.quoteId
-      }))
-    }
-
-    setBackupData(JSON.stringify(data, null, 2))
-    setShowBackupData(true)
-  }
+  }, [
+    includeTokenProofs,
+    includeMintInformation,
+    includeTransactionHistory,
+    proofs,
+    mints,
+    activeMint,
+    transactions
+  ])
 
   const handleCopyBackup = useCallback(async () => {
     try {
@@ -181,6 +200,7 @@ export default function EcashBackupPage() {
             onPress={generateBackupData}
             variant="gradient"
             gradientType="special"
+            loading={isGenerating}
           />
           {showBackupData && (
             <SSVStack gap="md" style={styles.backupDataSection}>
@@ -222,7 +242,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: '#333'
+    borderTopColor: Colors.gray[800]
   },
   backupInput: {
     minHeight: 200,

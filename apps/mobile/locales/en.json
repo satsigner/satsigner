@@ -596,6 +596,9 @@
     "backup.walletInfo": "Wallet Information",
     "backup.warning": "Important Warning",
     "backup.warningText": "Keep this backup data secure and private. Anyone with access to this data can potentially access your ecash funds.",
+    "error.backupDecryptionFailed": "Failed to decrypt backup",
+    "error.backupEncryptionFailed": "Failed to encrypt backup",
+    "error.backupGenerationFailed": "Failed to generate backup",
     "error.backupRestore": "Failed to restore backup",
     "error.connectionError": "Connection Error",
     "error.failedToCheckStatus": "Failed to check token status",
@@ -641,6 +644,8 @@
     "mint.status": "Status",
     "mint.title": "Manage Mints",
     "mint.url": "Mint URL",
+    "moreTransactions": "And {{count}} more transaction(s)",
+    "noTransactions": "No transactions",
     "quote.cancelled": "Cancelled",
     "quote.check": "Check Status",
     "quote.completed": "Completed",
@@ -667,6 +672,7 @@
     "recovery.backupData": "Backup Data",
     "recovery.backupInstructions": "Paste your backup data below to restore your ecash wallet.",
     "recovery.backupPlaceholder": "{\n  \"version\": \"1.0\",\n  \"mints\": [\n    {\n      \"url\": \"https://mint.minibits.cash/Bitcoin\",\n      \"name\": \"Minibits mint\",\n      \"balance\": 11,\n      \"isConnected\": true\n    }\n  ],\n  \"proofs\": [\n    {\n      \"id\": \"00500550f0494146\",\n      \"amount\": 1,\n      \"secret\": \"19efe24ff6c750a757265f17c782984c2cad09427f3caf5f045c7db5c1b32755\",\n      \"C\": \"038777d58fbbaaa10ffeeea397eab7c2f70f52f39eca91ae274d8b889a37ebc447\"\n    }\n  ],\n  \"transactions\": []\n}",
+    "recovery.backupTab": "Backup Data",
     "recovery.clear": "Clear",
     "recovery.clearAllData": "Clear All Data",
     "recovery.clearAllDataWarning": "This will permanently delete all ecash data including mints, proofs, and transaction history. This action cannot be undone.",
@@ -744,7 +750,8 @@
     "transactionDetail.title": "Transaction Details",
     "transactionDetail.token": "Ecash Token",
     "transactionHistory.empty": "No transactions yet",
-    "transactionHistory.title": "Transaction History"
+    "transactionHistory.title": "Transaction History",
+    "warning.noKeysetsFound": "No keysets found for mint: {{mint}}"
   },
   "error": {
     "invalid.backend": "Invalid Backend",

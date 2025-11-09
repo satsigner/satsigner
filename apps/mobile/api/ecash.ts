@@ -1,9 +1,9 @@
 import {
-  CashuMint,
-  CashuWallet,
   getDecodedToken,
   getEncodedTokenV4,
-  type MintQuoteState
+  Mint,
+  type MintQuoteState,
+  Wallet
 } from '@cashu/cashu-ts'
 
 import {
@@ -18,12 +18,79 @@ import {
 } from '@/types/models/Ecash'
 
 // Cache for wallet instances
-const walletCache = new Map<string, CashuWallet>()
+const walletCache = new Map<string, Wallet>()
 
-function getWallet(mintUrl: string): CashuWallet {
+type KeysetResponse = {
+  id: string
+  unit?: string
+  active?: boolean
+}
+
+/**
+ * Helper function to get keysets from wallet (v3.0.0)
+ */
+export async function getKeysetsFromWallet(
+  wallet: Wallet
+): Promise<{ id: string; unit: 'sat'; active: boolean }[]> {
+  const walletAny = wallet as {
+    getKeysets?: () => Promise<KeysetResponse[]>
+    mint?: { url?: string }
+  }
+
+  // v3.0.0: Try getKeysets() method first
+  if (typeof walletAny.getKeysets === 'function') {
+    const result = await walletAny.getKeysets()
+    if (Array.isArray(result)) {
+      return result
+        .filter(
+          (ks): ks is KeysetResponse =>
+            ks && typeof ks === 'object' && typeof ks.id === 'string'
+        )
+        .map((ks) => ({
+          id: ks.id,
+          unit: 'sat' as const,
+          active: ks.active !== false
+        }))
+    }
+  }
+
+  // Fallback: Fetch from mint API
+  try {
+    const mintUrl = walletAny.mint?.url
+    if (mintUrl) {
+      const response = await fetch(`${mintUrl}/keysets`)
+      if (response.ok) {
+        const keysetsData = (await response.json()) as
+          | KeysetResponse[]
+          | { keysets?: KeysetResponse[] }
+        const keysets = Array.isArray(keysetsData)
+          ? keysetsData
+          : Array.isArray(keysetsData.keysets)
+            ? keysetsData.keysets
+            : []
+        return keysets
+          .filter(
+            (ks): ks is KeysetResponse =>
+              ks && typeof ks === 'object' && typeof ks.id === 'string'
+          )
+          .map((ks) => ({
+            id: ks.id,
+            unit: 'sat' as const,
+            active: ks.active !== false
+          }))
+      }
+    }
+  } catch {
+    // Fallback failed, return empty array
+  }
+
+  return []
+}
+
+export function getWallet(mintUrl: string): Wallet {
   if (!walletCache.has(mintUrl)) {
-    const mint = new CashuMint(mintUrl)
-    const wallet = new CashuWallet(mint)
+    const mint = new Mint(mintUrl)
+    const wallet = new Wallet(mint)
     walletCache.set(mintUrl, wallet)
   }
   return walletCache.get(mintUrl)!
@@ -31,16 +98,21 @@ function getWallet(mintUrl: string): CashuWallet {
 
 export async function connectToMint(mintUrl: string): Promise<EcashMint> {
   try {
+    clearWalletCache(mintUrl)
     const wallet = getWallet(mintUrl)
     await wallet.loadMint()
-
     const mintInfo = await wallet.getMintInfo()
+    const keysets = await getKeysetsFromWallet(wallet)
 
     return {
       url: mintUrl,
       name: mintInfo.name || `Mint ${mintUrl}`,
       isConnected: true,
-      keysets: [], // Will be populated from wallet keysets
+      keysets: keysets.map((ks) => ({
+        id: ks.id,
+        unit: ks.unit,
+        active: ks.active
+      })),
       balance: 0, // Will be calculated from proofs
       lastSync: new Date().toISOString()
     }
@@ -57,6 +129,8 @@ export async function createMintQuote(
 ): Promise<MintQuote> {
   try {
     const wallet = getWallet(mintUrl)
+    // Ensure mint is loaded before creating quote (required in v3.0.0+)
+    await wallet.loadMint()
     const quote = await wallet.createMintQuote(amount)
 
     return {
@@ -78,6 +152,8 @@ export async function checkMintQuote(
 ): Promise<MintQuoteState> {
   try {
     const wallet = getWallet(mintUrl)
+    // Ensure mint is loaded before checking quote
+    await wallet.loadMint()
     const quoteStatus = await wallet.checkMintQuote(quoteId)
     return quoteStatus.state
   } catch (error) {
@@ -94,6 +170,7 @@ export async function mintProofs(
 ): Promise<EcashMintResult> {
   try {
     const wallet = getWallet(mintUrl)
+    await wallet.loadMint()
     const proofs = await wallet.mintProofs(amount, quoteId)
 
     return {
@@ -136,11 +213,22 @@ export async function meltProofs(
 ): Promise<EcashMeltResult> {
   try {
     const wallet = getWallet(mintUrl)
-    const result = await wallet.meltProofs(quote as any, proofs)
+    await wallet.loadMint()
+    // v3.0.0: Need to recreate the quote object from the wallet
+    // The new API expects the quote object returned by createMeltQuote
+    const meltQuote = await wallet.createMeltQuote(quote.quote)
+    const result = await wallet.meltProofs(meltQuote, proofs)
+
+    type MeltResult = {
+      preimage?: string
+      payment_preimage?: string
+      change?: EcashProof[]
+    }
+    const meltResult = result as MeltResult
 
     return {
       paid: true, // If we get here without error, it was successful
-      preimage: undefined, // Will be available in the result
+      preimage: meltResult.preimage || meltResult.payment_preimage || undefined,
       change: result.change
     }
   } catch (error) {
@@ -218,9 +306,12 @@ export async function sendEcash(
     const wallet = getWallet(mintUrl)
     // Ensure wallet is loaded with mint keys
     await wallet.loadMint()
+
     const { keep, send } = await wallet.send(amount, validProofs, {
       includeFees: true
     })
+
+    // Note: The wallet's send() method generates change outputs (keep) internally.
 
     const token = getEncodedTokenV4({
       mint: mintUrl,
@@ -247,6 +338,7 @@ export async function receiveEcash(
 ): Promise<EcashReceiveResult> {
   try {
     const wallet = getWallet(mintUrl)
+    await wallet.loadMint()
 
     // Decode token to get mint URL and validate
     const decodedToken = getDecodedToken(token)

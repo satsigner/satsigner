@@ -179,7 +179,7 @@ export default function EcashReceivePage() {
     if (cleanText.toLowerCase().startsWith('cashu')) {
       try {
         const decoded = getDecodedToken(cleanText)
-        setDecodedToken(decoded)
+        setDecodedToken(decoded as EcashToken)
       } catch {
         setDecodedToken(null)
       }
