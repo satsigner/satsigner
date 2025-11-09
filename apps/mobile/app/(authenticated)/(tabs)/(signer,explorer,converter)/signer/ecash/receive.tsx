@@ -1,7 +1,7 @@
 import { getDecodedToken } from '@cashu/cashu-ts'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
-import { Stack } from 'expo-router'
+import { Stack, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
@@ -23,6 +23,7 @@ import { error, success, warning, white } from '@/styles/colors'
 import { type EcashToken } from '@/types/models/Ecash'
 
 export default function EcashReceivePage() {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<'ecash' | 'lightning'>('ecash')
   const [token, setToken] = useState('')
   const [decodedToken, setDecodedToken] = useState<EcashToken | null>(null)
@@ -82,12 +83,13 @@ export default function EcashReceivePage() {
     try {
       await receiveEcash(activeMint.url, token)
       setToken('')
+      router.navigate('/signer/ecash')
     } catch {
       // Error handling is done in the hook
     } finally {
       setIsRedeeming(false)
     }
-  }, [token, activeMint, receiveEcash])
+  }, [token, activeMint, receiveEcash, router])
 
   const handleCreateInvoice = useCallback(async () => {
     if (!amount) {
