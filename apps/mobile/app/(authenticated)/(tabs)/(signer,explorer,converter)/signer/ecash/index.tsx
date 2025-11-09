@@ -50,6 +50,8 @@ export default function EcashLanding() {
   const handleReceivePress = () => router.navigate('/signer/ecash/receive')
   const handleCameraPress = () => setCameraModalVisible(true)
   const handleSettingsPress = () => router.navigate('/signer/ecash/settings')
+  const handleAddMintPress = () =>
+    router.navigate('/signer/ecash/settings/mint')
 
   function handleQRCodeScanned({ data }: { data: string }) {
     setCameraModalVisible(false)
@@ -174,6 +176,25 @@ export default function EcashLanding() {
               <SSText uppercase>{t('ecash.receive.title')}</SSText>
             </SSActionButton>
           </SSHStack>
+          {!activeMint && (
+            <SSVStack style={styles.noMintContainer} gap="md">
+              <SSVStack gap="xs" style={styles.noMintMessage}>
+                <SSText color="muted" center>
+                  {t('ecash.mint.noMintSelected')}
+                </SSText>
+                <SSText color="muted" size="sm" center>
+                  {t('ecash.mint.noMintSelectedDescription')}
+                </SSText>
+              </SSVStack>
+              <SSButton
+                label={t('ecash.mint.addMint')}
+                onPress={handleAddMintPress}
+                variant="gradient"
+                gradientType="special"
+                style={styles.addMintButton}
+              />
+            </SSVStack>
+          )}
           {transactions.length > 0 && (
             <SSVStack gap="sm">
               {transactions.slice(0, 50).map((transaction) => (
@@ -245,5 +266,15 @@ const styles = StyleSheet.create({
   moreTransactions: {
     textAlign: 'center',
     paddingVertical: 8
+  },
+  noMintContainer: {
+    paddingTop: 20,
+    paddingBottom: 10
+  },
+  noMintMessage: {
+    alignItems: 'center'
+  },
+  addMintButton: {
+    marginTop: 8
   }
 })
