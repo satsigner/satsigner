@@ -1029,12 +1029,16 @@
       "default": "Paste Content",
       "payInvoice": "Pay Invoice",
       "payLightningInvoice": "Pay Lightning Invoice",
+      "previewPsbt": "Preview PSBT",
+      "processBBQR": "Process BBQR",
       "processContent": "Process Content",
       "processEcashToken": "Process Ecash Token",
       "processLightning": "Process Lightning",
       "processLnurl": "Process LNURL",
-      "sendToAddress": "Send to Address",
-      "signPsbt": "Sign PSBT"
+      "processSeed": "Process Seed",
+      "processTransaction": "Process Transaction",
+      "processUR": "Process UR",
+      "sendToAddress": "Send to Address"
     },
     "description": {
       "bitcoin": "Paste Bitcoin addresses, payment requests, or PSBTs",
@@ -1057,8 +1061,19 @@
       "lightning": "Paste Lightning Content"
     },
     "validation": {
+      "bbqr_fragment": "BBQR fragment detected",
+      "bitcoin_address": "Bitcoin address detected",
+      "bitcoin_transaction": "Bitcoin transaction detected",
+      "bitcoin_uri": "Bitcoin payment request detected",
+      "ecash_token": "Ecash token detected",
       "empty": "Clipboard is empty",
       "invalid": "Invalid content for this context",
+      "lightning_invoice": "Lightning invoice detected",
+      "lnurl": "LNURL payment request detected",
+      "psbt": "PSBT detected",
+      "seed_qr": "Seed phrase QR code detected",
+      "unknown": "Unknown content detected",
+      "ur": "Universal Resource detected",
       "valid": "Valid content detected"
     }
   },

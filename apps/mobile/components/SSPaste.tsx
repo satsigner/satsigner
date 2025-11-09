@@ -11,7 +11,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { getAllClipboardContent } from '@/utils/clipboard'
-import { type DetectedContent } from '@/utils/contentDetector'
+import { type ContentType, type DetectedContent } from '@/utils/contentDetector'
 
 type SSPasteProps = {
   visible: boolean
@@ -23,11 +23,18 @@ type SSPasteProps = {
 function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
   const [content, setContent] = useState<string>('')
   const [isValidContent, setIsValidContent] = useState<boolean>(false)
+  const [detectedContentType, setDetectedContentType] =
+    useState<ContentType | null>(null)
 
   // Load clipboard content when modal opens
   useEffect(() => {
     if (visible) {
       loadClipboardContent()
+    } else {
+      // Reset state when modal closes
+      setContent('')
+      setIsValidContent(false)
+      setDetectedContentType(null)
     }
   }, [visible])
 
@@ -59,9 +66,13 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
         )
         const detectedContent = detectContentByContext(text, context)
         setIsValidContent(detectedContent.isValid)
+        setDetectedContentType(
+          detectedContent.isValid ? detectedContent.type : null
+        )
       } catch {
         toast.error(t('paste.error.validateFailed'))
         setIsValidContent(false)
+        setDetectedContentType(null)
       }
     },
     [context]
@@ -73,6 +84,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
       validateContent(content)
     } else {
       setIsValidContent(false)
+      setDetectedContentType(null)
     }
   }, [content, context, validateContent])
 
@@ -138,8 +150,10 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
       return t('paste.validation.empty')
     }
 
-    if (isValidContent) {
-      return t('paste.validation.valid')
+    if (isValidContent && detectedContentType) {
+      const contentTypeKey = `paste.validation.${detectedContentType}`
+      const fallbackKey = 'paste.validation.valid'
+      return t(contentTypeKey) || t(fallbackKey)
     } else {
       return t('paste.validation.invalid')
     }
@@ -150,34 +164,30 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
       return t('paste.button.default')
     }
 
-    if (isValidContent) {
-      switch (context) {
-        case 'bitcoin':
-          if (content.includes('psbt')) {
-            return t('paste.button.signPsbt')
-          } else if (content.startsWith('bitcoin:')) {
-            return t('paste.button.sendToAddress')
-          } else {
-            return t('paste.button.sendToAddress')
-          }
-        case 'lightning':
-          if (content.startsWith('lnbc') || content.startsWith('lntb')) {
-            return t('paste.button.payInvoice')
-          } else if (content.startsWith('lnurl')) {
-            return t('paste.button.processLnurl')
-          } else {
-            return t('paste.button.processLightning')
-          }
-        case 'ecash':
-          if (content.startsWith('cashuA') || content.startsWith('cashuB')) {
-            return t('paste.button.processEcashToken')
-          } else if (content.startsWith('lnbc') || content.startsWith('lntb')) {
+    if (isValidContent && detectedContentType) {
+      switch (detectedContentType) {
+        case 'psbt':
+          return t('paste.button.previewPsbt')
+        case 'bitcoin_address':
+        case 'bitcoin_uri':
+          return t('paste.button.sendToAddress')
+        case 'bitcoin_transaction':
+          return t('paste.button.processTransaction')
+        case 'lightning_invoice':
+          if (context === 'ecash') {
             return t('paste.button.payLightningInvoice')
-          } else if (content.startsWith('lnurl')) {
-            return t('paste.button.processLnurl')
-          } else {
-            return t('paste.button.processContent')
           }
+          return t('paste.button.payInvoice')
+        case 'lnurl':
+          return t('paste.button.processLnurl')
+        case 'ecash_token':
+          return t('paste.button.processEcashToken')
+        case 'bbqr_fragment':
+          return t('paste.button.processBBQR')
+        case 'seed_qr':
+          return t('paste.button.processSeed')
+        case 'ur':
+          return t('paste.button.processUR')
         default:
           return t('paste.button.processContent')
       }
