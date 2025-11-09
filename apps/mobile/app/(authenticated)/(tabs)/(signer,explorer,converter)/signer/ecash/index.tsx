@@ -1,11 +1,16 @@
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
-import { Stack, useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { Stack, useFocusEffect, useRouter } from 'expo-router'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconCamera, SSIconECash } from '@/components/icons'
+import {
+  SSIconBlackIndicator,
+  SSIconCamera,
+  SSIconECash,
+  SSIconGreenIndicator
+} from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import SSEcashTransactionCard from '@/components/SSEcashTransactionCard'
@@ -14,6 +19,7 @@ import SSModal from '@/components/SSModal'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import { useEcash } from '@/hooks/useEcash'
+import { useEcashStore } from '@/store/ecash'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -27,7 +33,15 @@ import { getLNURLType } from '@/utils/lnurl'
 
 export default function EcashLanding() {
   const router = useRouter()
-  const { mints, activeMint, proofs, transactions } = useEcash()
+  const {
+    mints,
+    activeMint,
+    proofs,
+    transactions,
+    checkPendingTransactionStatus,
+    setActiveMint
+  } = useEcash()
+  const ecashStatus = useEcashStore((state) => state.status)
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
@@ -42,16 +56,101 @@ export default function EcashLanding() {
     (state) => state.configsMempool['bitcoin']
   )
 
+  // Sync activeMint with mints array on mount and when mints change
+  useEffect(() => {
+    if (activeMint && mints.length > 0) {
+      const mintFromArray = mints.find((m) => m.url === activeMint.url)
+      if (mintFromArray && mintFromArray !== activeMint) {
+        setActiveMint(mintFromArray)
+      }
+    } else if (!activeMint && mints.length > 0) {
+      // If no activeMint but we have mints, set the first one as active
+      setActiveMint(mints[0])
+    }
+  }, [mints, activeMint, setActiveMint])
+
   // Fetch prices on mount and when currency changes
   useEffect(() => {
     fetchPrices(mempoolUrl)
   }, [fetchPrices, fiatCurrency, mempoolUrl])
+
+  // Track last check time to prevent rapid successive checks
+  const lastCheckTimeRef = useRef<number>(0)
+  const CHECK_COOLDOWN = 5000 // 5 seconds minimum between checks
+
+  // Check pending transaction status on mount only
+  useEffect(() => {
+    const now = Date.now()
+    if (now - lastCheckTimeRef.current >= CHECK_COOLDOWN) {
+      lastCheckTimeRef.current = now
+      checkPendingTransactionStatus()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Check when page comes into focus (e.g., when navigating back)
+  // But only if enough time has passed since last check
+  useFocusEffect(
+    useCallback(() => {
+      const now = Date.now()
+      if (now - lastCheckTimeRef.current >= CHECK_COOLDOWN) {
+        lastCheckTimeRef.current = now
+        checkPendingTransactionStatus()
+      }
+    }, [checkPendingTransactionStatus])
+  )
+
+  // Periodically check pending transaction status every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now()
+      if (now - lastCheckTimeRef.current >= CHECK_COOLDOWN) {
+        lastCheckTimeRef.current = now
+        checkPendingTransactionStatus()
+      }
+    }, 30000) // 30 seconds
+
+    return () => {
+      clearInterval(interval)
+    }
+  }, [checkPendingTransactionStatus])
 
   const handleReceivePress = () => router.navigate('/signer/ecash/receive')
   const handleCameraPress = () => setCameraModalVisible(true)
   const handleSettingsPress = () => router.navigate('/signer/ecash/settings')
   const handleAddMintPress = () =>
     router.navigate('/signer/ecash/settings/mint')
+
+  function getConnectionErrorMessage(error?: string): string {
+    if (!error) {
+      return t('ecash.error.mintNotConnected')
+    }
+
+    const errorLower = error.toLowerCase()
+
+    // Check for rate limiting (HTTP 429 or rate limit messages)
+    if (
+      errorLower.includes('429') ||
+      errorLower.includes('rate limit') ||
+      errorLower.includes('too many requests') ||
+      errorLower.includes('rate limited')
+    ) {
+      return t('ecash.error.mintRateLimited')
+    }
+
+    // Check for blocked/forbidden (HTTP 403 or blocked messages)
+    if (
+      errorLower.includes('403') ||
+      errorLower.includes('forbidden') ||
+      errorLower.includes('blocked') ||
+      errorLower.includes('access denied')
+    ) {
+      return t('ecash.error.mintBlocked')
+    }
+
+    // Default to showing the actual error message or generic not connected
+    return error || t('ecash.error.mintNotConnected')
+  }
 
   function handleQRCodeScanned({ data }: { data: string }) {
     setCameraModalVisible(false)
@@ -158,11 +257,28 @@ export default function EcashLanding() {
               </SSHStack>
             )}
             {mints.length > 0 && (
-              <SSVStack style={styles.statusContainer} gap="none">
+              <SSVStack style={styles.statusContainer} gap="xs">
                 {activeMint && (
-                  <SSText color="muted" size="sm">
-                    {activeMint.name || activeMint.url}
-                  </SSText>
+                  <>
+                    <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+                      {activeMint.isConnected ? (
+                        <SSIconGreenIndicator height={12} width={12} />
+                      ) : (
+                        <SSIconBlackIndicator height={12} width={12} />
+                      )}
+                      <SSText color="muted" size="sm">
+                        {activeMint.name || activeMint.url}
+                      </SSText>
+                    </SSHStack>
+                    {!activeMint.isConnected && (
+                      <SSText
+                        size="xs"
+                        style={[styles.errorText, { color: Colors.error }]}
+                      >
+                        {getConnectionErrorMessage(ecashStatus.lastError)}
+                      </SSText>
+                    )}
+                  </>
                 )}
               </SSVStack>
             )}
@@ -308,5 +424,9 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 10,
     alignItems: 'center'
+  },
+  errorText: {
+    paddingTop: 4,
+    textAlign: 'center'
   }
 })

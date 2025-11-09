@@ -6,6 +6,7 @@ import {
   Wallet
 } from '@cashu/cashu-ts'
 
+import { useEcashStore } from '@/store/ecash'
 import {
   type EcashMeltResult,
   type EcashMint,
@@ -266,9 +267,21 @@ export async function validateProofs(
 
     return { validProofs, spentProofs }
   } catch (error) {
-    throw new Error(
-      `Failed to validate proofs: ${error instanceof Error ? error.message : 'Unknown error'}`
-    )
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+    const errorName = (error as { name?: string })?.name
+
+    // Update mint connection status to false when network errors occur
+    if (
+      errorName === 'NetworkError' ||
+      errorMsg.includes('Network request failed')
+    ) {
+      useEcashStore
+        .getState()
+        .setError('Network request failed. Please check your connection.')
+      useEcashStore.getState().updateMintConnection(mintUrl, false)
+    }
+
+    throw new Error(`Failed to validate proofs: ${errorMsg}`)
   }
 }
 
@@ -442,6 +455,84 @@ export async function validateEcashToken(
       }
     }
   } catch (error) {
+    // Try to extract HTTP status code from error
+    let httpStatus: number | undefined
+    let httpStatusText: string | undefined
+    let errorResponse: unknown
+
+    // Check if error has status property (common in fetch errors)
+    if (error && typeof error === 'object') {
+      const errorAny = error as {
+        status?: number
+        statusCode?: number
+        response?: { status?: number; statusText?: string }
+        cause?: { status?: number; statusCode?: number }
+      }
+
+      httpStatus =
+        errorAny.status ||
+        errorAny.statusCode ||
+        errorAny.response?.status ||
+        errorAny.cause?.status ||
+        errorAny.cause?.statusCode
+      httpStatusText = errorAny.response?.statusText
+      errorResponse = errorAny.response
+    }
+
+    // Try to extract more error information
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+    const errorName = (error as { name?: string })?.name
+
+    // Check error message for HTTP status codes (e.g., "429 Too Many Requests" or "HTTP 429")
+    if (!httpStatus && errorMsg) {
+      const statusMatch = errorMsg.match(
+        /\b(429|403|401|404|500|502|503|504)\b/
+      )
+      if (statusMatch) {
+        httpStatus = parseInt(statusMatch[1], 10)
+      }
+    }
+
+    // Check if error message contains rate limit keywords
+    const isRateLimitError =
+      errorMsg.toLowerCase().includes('rate limit') ||
+      errorMsg.toLowerCase().includes('too many requests') ||
+      errorMsg.toLowerCase().includes('429')
+
+    // Note: React Native's fetch doesn't expose HTTP status codes in NetworkError
+    // The @cashu/cashu-ts library uses fetch internally, so we can't definitively
+    // detect rate limiting (429) or blocked connections (403) from generic network errors
+
+    // Store error in store if we have status code or rate limit indication
+    // Also update mint connection status to false when network errors occur
+    if (httpStatus) {
+      const storeErrorMessage =
+        httpStatus === 429
+          ? 'Connection rate limited. Please wait before retrying.'
+          : httpStatus === 403
+            ? 'Connection blocked or forbidden. Please check mint access.'
+            : `HTTP ${httpStatus}: ${errorMsg}`
+
+      useEcashStore.getState().setError(storeErrorMessage)
+      useEcashStore.getState().updateMintConnection(mintUrl, false)
+    } else if (isRateLimitError) {
+      // Fallback: check error message for rate limit keywords
+      useEcashStore
+        .getState()
+        .setError('Connection rate limited. Please wait before retrying.')
+      useEcashStore.getState().updateMintConnection(mintUrl, false)
+    } else if (
+      errorName === 'NetworkError' ||
+      errorMsg.includes('Network request failed')
+    ) {
+      // For generic network errors, we can't definitively say it's rate limiting
+      // Store a generic error that doesn't claim rate limiting
+      useEcashStore
+        .getState()
+        .setError('Network request failed. Please check your connection.')
+      useEcashStore.getState().updateMintConnection(mintUrl, false)
+    }
+
     return {
       isValid: false,
       details: `Failed to check proof states: ${error instanceof Error ? error.message : 'Unknown error'}`

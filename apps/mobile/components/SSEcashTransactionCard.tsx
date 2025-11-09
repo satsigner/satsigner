@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router'
 import { useEffect } from 'react'
-import { StyleSheet, TouchableOpacity } from 'react-native'
+import { ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -14,6 +14,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useEcashStore } from '@/store/ecash'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
@@ -30,6 +31,10 @@ type SSEcashTransactionCardProps = {
 function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
   const router = useRouter()
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+  const checkingTransactionIds = useEcashStore(
+    (state) => state.checkingTransactionIds
+  )
+  const isChecking = checkingTransactionIds.includes(transaction.id)
   const [fiatCurrency, btcPrice, fetchPrices] = usePriceStore(
     useShallow((state) => [
       state.fiatCurrency,
@@ -138,19 +143,31 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
               </SSText>
             )}
             {transaction.type === 'send' && (
-              <SSText
-                uppercase
-                size="xs"
-                style={{
-                  color: transaction.tokenStatus
-                    ? getTokenStatusColor(transaction.tokenStatus)
-                    : Colors.white
-                }}
-              >
-                {transaction.tokenStatus
-                  ? transaction.tokenStatus.toUpperCase()
-                  : 'Unknown'}
-              </SSText>
+              <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+                {isChecking && (
+                  <ActivityIndicator
+                    size={10}
+                    color={
+                      transaction.tokenStatus
+                        ? getTokenStatusColor(transaction.tokenStatus)
+                        : Colors.white
+                    }
+                  />
+                )}
+                <SSText
+                  uppercase
+                  size="xs"
+                  style={{
+                    color: transaction.tokenStatus
+                      ? getTokenStatusColor(transaction.tokenStatus)
+                      : Colors.white
+                  }}
+                >
+                  {transaction.tokenStatus
+                    ? transaction.tokenStatus.toUpperCase()
+                    : 'Unknown'}
+                </SSText>
+              </SSHStack>
             )}
           </SSHStack>
         </SSHStack>

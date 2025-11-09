@@ -40,6 +40,7 @@ export function useEcash() {
     proofs,
     transactions,
     mintQuotes,
+    checkingTransactionIds,
     addMint,
     removeMint,
     setActiveMint,
@@ -53,7 +54,9 @@ export function useEcash() {
     addTransaction,
     updateTransaction,
     restoreFromBackup,
-    clearAllData
+    clearAllData,
+    addCheckingTransaction,
+    removeCheckingTransaction
   ] = useEcashStore(
     useShallow((state) => [
       state.mints,
@@ -61,6 +64,7 @@ export function useEcash() {
       state.proofs,
       state.transactions,
       state.quotes.mint,
+      state.checkingTransactionIds,
       state.addMint,
       state.removeMint,
       state.setActiveMint,
@@ -74,7 +78,9 @@ export function useEcash() {
       state.addTransaction,
       state.updateTransaction,
       state.restoreFromBackup,
-      state.clearAllData
+      state.clearAllData,
+      state.addCheckingTransaction,
+      state.removeCheckingTransaction
     ])
   )
 
@@ -435,6 +441,89 @@ export function useEcash() {
     toast.success(t('ecash.success.dataCleared'))
   }, [clearAllData])
 
+  const checkPendingTransactionStatus = useCallback(async () => {
+    // Get current transactions from store to avoid stale closure
+    const currentTransactions = useEcashStore.getState().transactions
+    const currentCheckingIds = useEcashStore.getState().checkingTransactionIds
+
+    // Filter transactions: type === 'send' AND (tokenStatus === undefined OR tokenStatus === 'unspent' OR tokenStatus === 'invalid') AND token exists
+    // Also exclude transactions that are already being checked
+    // We check "invalid" to re-validate them and get proper status (e.g., if they were marked invalid due to rate limiting)
+    const transactionsToCheck = currentTransactions.filter((tx) => {
+      const isSend = tx.type === 'send'
+      const hasValidStatus =
+        tx.tokenStatus === undefined ||
+        tx.tokenStatus === 'unspent' ||
+        tx.tokenStatus === 'invalid'
+      const hasToken =
+        tx.token && typeof tx.token === 'string' && tx.token.trim().length > 0
+      const notChecking = !currentCheckingIds.includes(tx.id)
+
+      return isSend && hasValidStatus && hasToken && notChecking
+    })
+
+    if (transactionsToCheck.length === 0) {
+      return
+    }
+
+    // Process sequentially with 500ms delay between each check
+    for (const transaction of transactionsToCheck) {
+      // Double-check it's not being checked (race condition protection)
+      const stillChecking = useEcashStore.getState().checkingTransactionIds
+      if (stillChecking.includes(transaction.id)) {
+        continue
+      }
+
+      try {
+        addCheckingTransaction(transaction.id)
+
+        const result = await validateEcashToken(
+          transaction.token!,
+          transaction.mintUrl
+        )
+
+        // Map result to tokenStatus
+        let tokenStatus: 'spent' | 'unspent' | 'invalid' | 'pending' | undefined
+        if (result.isValid === false) {
+          tokenStatus = 'invalid'
+        } else if (result.isSpent === true) {
+          tokenStatus = 'spent'
+        } else if (result.isSpent === false) {
+          tokenStatus = 'unspent'
+        } else if (
+          result.isSpent === undefined &&
+          result.details?.toLowerCase().includes('pending')
+        ) {
+          tokenStatus = 'pending'
+        }
+
+        // Only update if status actually changed to avoid unnecessary re-renders
+        const currentTx = useEcashStore
+          .getState()
+          .transactions.find((t) => t.id === transaction.id)
+        if (
+          currentTx &&
+          tokenStatus !== undefined &&
+          currentTx.tokenStatus !== tokenStatus
+        ) {
+          updateTransaction(transaction.id, { tokenStatus })
+        }
+      } catch {
+        // Continue processing other transactions on error
+        // Don't show toast errors for individual failures
+      } finally {
+        removeCheckingTransaction(transaction.id)
+        // Wait 500ms before processing next transaction
+        await new Promise((resolve) => setTimeout(resolve, 500))
+      }
+    }
+  }, [
+    validateEcashToken,
+    addCheckingTransaction,
+    removeCheckingTransaction,
+    updateTransaction
+  ])
+
   const resumePollingForTransaction = useCallback(
     async (
       transactionId: string,
@@ -495,6 +584,7 @@ export function useEcash() {
     proofs,
     transactions,
     mintQuotes,
+    checkingTransactionIds,
     connectToMint: connectToMintHandler,
     disconnectMint,
     createMintQuote: createMintQuoteHandler,
@@ -509,7 +599,9 @@ export function useEcash() {
     markReceivedTokensAsSpent,
     resumePollingForTransaction,
     restoreFromBackup: restoreFromBackupHandler,
-    clearAllData: clearAllDataHandler
+    clearAllData: clearAllDataHandler,
+    checkPendingTransactionStatus,
+    setActiveMint
   }
 }
 
