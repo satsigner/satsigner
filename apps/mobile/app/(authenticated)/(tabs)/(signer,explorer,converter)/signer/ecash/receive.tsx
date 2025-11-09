@@ -1,7 +1,7 @@
 import { getDecodedToken } from '@cashu/cashu-ts'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
-import { Stack, useRouter } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
@@ -21,9 +21,20 @@ import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { error, success, warning, white } from '@/styles/colors'
 import { type EcashToken } from '@/types/models/Ecash'
+import {
+  decodeLNURL,
+  fetchLNURLWithdrawDetails,
+  getLNURLType,
+  type LNURLWithdrawDetails,
+  requestLNURLWithdrawInvoice
+} from '@/utils/lnurl'
 
 export default function EcashReceivePage() {
   const router = useRouter()
+  const { token: tokenParam, lnurl: lnurlParam } = useLocalSearchParams<{
+    token?: string
+    lnurl?: string
+  }>()
   const [activeTab, setActiveTab] = useState<'ecash' | 'lightning'>('ecash')
   const [token, setToken] = useState('')
   const [decodedToken, setDecodedToken] = useState<EcashToken | null>(null)
@@ -39,6 +50,13 @@ export default function EcashReceivePage() {
   const [isCreatingQuote, setIsCreatingQuote] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
+  const [lnurlWithdrawCode, setLnurlWithdrawCode] = useState<string | null>(
+    null
+  )
+  const [lnurlWithdrawDetails, setLnurlWithdrawDetails] =
+    useState<LNURLWithdrawDetails | null>(null)
+  const [isLNURLWithdrawMode, setIsLNURLWithdrawMode] = useState(false)
+  const [isFetchingLNURL, setIsFetchingLNURL] = useState(false)
 
   const {
     activeMint,
@@ -67,6 +85,55 @@ export default function EcashReceivePage() {
       stopPolling()
     }
   }, [activeTab, stopPolling])
+
+  // Handle URL params
+  useEffect(() => {
+    if (tokenParam) {
+      setActiveTab('ecash')
+      handleTokenChange(tokenParam)
+    } else if (lnurlParam) {
+      setActiveTab('lightning')
+      handleLNURLWithdrawInput(lnurlParam)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tokenParam, lnurlParam])
+
+  // Handle LNURL-w input
+  const handleLNURLWithdrawInput = useCallback(async (input: string) => {
+    const cleanInput = input.trim()
+    if (!cleanInput) return
+
+    const { isLNURL: isLNURLInput, type: lnurlType } = getLNURLType(cleanInput)
+
+    if (!isLNURLInput || lnurlType !== 'withdraw') {
+      toast.error(t('ecash.error.invalidLnurlType'))
+      return
+    }
+
+    setIsFetchingLNURL(true)
+    setIsLNURLWithdrawMode(true)
+    setLnurlWithdrawCode(cleanInput)
+
+    try {
+      const url = decodeLNURL(cleanInput)
+      const details = await fetchLNURLWithdrawDetails(url)
+      setLnurlWithdrawDetails(details)
+      // Auto-populate amount with max withdrawable (in sats)
+      setAmount(Math.floor(details.maxWithdrawable / 1000).toString())
+      toast.success(t('ecash.success.lnurlWithdrawDetected'))
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t('ecash.error.failedToFetchLnurlDetails')
+      )
+      setIsLNURLWithdrawMode(false)
+      setLnurlWithdrawCode(null)
+      setLnurlWithdrawDetails(null)
+    } finally {
+      setIsFetchingLNURL(false)
+    }
+  }, [])
 
   const handleRedeemToken = useCallback(async () => {
     if (!token) {
@@ -104,14 +171,56 @@ export default function EcashReceivePage() {
 
     setIsCreatingQuote(true)
     try {
-      const quote = await createMintQuote(
-        activeMint.url,
-        parseInt(amount, 10),
-        memo
-      )
+      const amountSats = parseInt(amount, 10)
+
+      // Validate amount against LNURL-w limits if in withdraw mode
+      if (isLNURLWithdrawMode && lnurlWithdrawDetails) {
+        const amountMillisats = amountSats * 1000
+        if (
+          amountMillisats < lnurlWithdrawDetails.minWithdrawable ||
+          amountMillisats > lnurlWithdrawDetails.maxWithdrawable
+        ) {
+          toast.error(
+            t('ecash.error.amountOutOfRange', {
+              min: Math.ceil(
+                lnurlWithdrawDetails.minWithdrawable / 1000
+              ).toString(),
+              max: Math.floor(
+                lnurlWithdrawDetails.maxWithdrawable / 1000
+              ).toString()
+            })
+          )
+          setIsCreatingQuote(false)
+          return
+        }
+      }
+
+      // Create mint quote (bolt11 invoice)
+      const quote = await createMintQuote(activeMint.url, amountSats, memo)
       setMintQuote(quote)
       setQuoteStatus('PENDING')
       toast.success(t('ecash.success.invoiceCreated'))
+
+      // If in LNURL-w mode, request withdraw with the bolt11 invoice
+      if (isLNURLWithdrawMode && lnurlWithdrawDetails && lnurlWithdrawCode) {
+        try {
+          await requestLNURLWithdrawInvoice(
+            lnurlWithdrawDetails.callback,
+            amountSats * 1000,
+            lnurlWithdrawDetails.k1,
+            memo || lnurlWithdrawDetails.defaultDescription,
+            quote.request
+          )
+          toast.success(t('ecash.success.lnurlWithdrawRequested'))
+        } catch (error) {
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : t('ecash.error.failedToRequestLnurlWithdraw')
+          )
+          // Continue anyway - the invoice is created and can be displayed
+        }
+      }
 
       // Start automatic polling for payment status with a small delay
       setTimeout(() => {
@@ -123,14 +232,13 @@ export default function EcashReceivePage() {
             setQuoteStatus(status)
 
             if (status === 'PAID' || status === 'ISSUED') {
-              await mintProofs(
-                activeMint.url,
-                parseInt(amount, 10),
-                quote.quote
-              )
+              await mintProofs(activeMint.url, amountSats, quote.quote)
               setMintQuote(null)
               setAmount('')
               setMemo('')
+              setLnurlWithdrawCode(null)
+              setLnurlWithdrawDetails(null)
+              setIsLNURLWithdrawMode(false)
               stopPolling()
               toast.success(t('ecash.success.paymentReceived'))
               router.navigate('/signer/ecash')
@@ -166,7 +274,10 @@ export default function EcashReceivePage() {
     mintProofs,
     startPolling,
     stopPolling,
-    router
+    router,
+    isLNURLWithdrawMode,
+    lnurlWithdrawDetails,
+    lnurlWithdrawCode
   ])
 
   const handleTokenChange = useCallback((text: string) => {
@@ -190,15 +301,26 @@ export default function EcashReceivePage() {
     try {
       const clipboardText = await Clipboard.getStringAsync()
       if (clipboardText) {
-        await handleTokenChange(clipboardText)
-        toast.success(t('ecash.success.tokenPasted'))
+        if (activeTab === 'ecash') {
+          await handleTokenChange(clipboardText)
+          toast.success(t('ecash.success.tokenPasted'))
+        } else if (activeTab === 'lightning') {
+          // Check if it's an LNURL-w code
+          const { isLNURL: isLNURLInput, type: lnurlType } =
+            getLNURLType(clipboardText)
+          if (isLNURLInput && lnurlType === 'withdraw') {
+            await handleLNURLWithdrawInput(clipboardText)
+          } else {
+            toast.error(t('ecash.error.invalidLnurlType'))
+          }
+        }
       } else {
         toast.error(t('ecash.error.noTextInClipboard'))
       }
     } catch {
       toast.error(t('ecash.error.failedToPaste'))
     }
-  }, [handleTokenChange])
+  }, [handleTokenChange, activeTab, handleLNURLWithdrawInput])
 
   const handleScanToken = () => {
     setCameraModalVisible(true)
@@ -207,12 +329,25 @@ export default function EcashReceivePage() {
   const handleQRCodeScanned = useCallback(
     ({ data }: { data: string }) => {
       setCameraModalVisible(false)
-      // Clean the data (remove any whitespace and cashu: prefix)
-      const cleanData = data.trim().replace(/^cashu:/i, '')
-      handleTokenChange(cleanData)
-      toast.success(t('ecash.success.tokenScanned'))
+      const cleanData = data.trim()
+
+      if (activeTab === 'ecash') {
+        // Handle ecash token
+        const tokenData = cleanData.replace(/^cashu:/i, '')
+        handleTokenChange(tokenData)
+        toast.success(t('ecash.success.tokenScanned'))
+      } else if (activeTab === 'lightning') {
+        // Check if it's an LNURL-w code
+        const { isLNURL: isLNURLInput, type: lnurlType } =
+          getLNURLType(cleanData)
+        if (isLNURLInput && lnurlType === 'withdraw') {
+          handleLNURLWithdrawInput(cleanData)
+        } else {
+          toast.error(t('ecash.error.invalidLnurlType'))
+        }
+      }
     },
-    [handleTokenChange]
+    [handleTokenChange, activeTab, handleLNURLWithdrawInput]
   )
 
   function getStatusColor(status: string) {
@@ -330,6 +465,28 @@ export default function EcashReceivePage() {
           )}
           {activeTab === 'lightning' && (
             <SSVStack gap="md">
+              {isLNURLWithdrawMode && lnurlWithdrawDetails && (
+                <SSVStack gap="xs" style={styles.lnurlDetails}>
+                  <SSText color="muted" size="xs" uppercase>
+                    {t('ecash.receive.lnurlWithdrawDetails')}
+                  </SSText>
+                  <SSVStack gap="xs">
+                    <SSHStack gap="xs" style={styles.detailRow}>
+                      <SSText color="muted" size="sm">
+                        {t('ecash.receive.amountRange')}:
+                      </SSText>
+                      <SSText size="sm">
+                        {Math.ceil(lnurlWithdrawDetails.minWithdrawable / 1000)}{' '}
+                        -{' '}
+                        {Math.floor(
+                          lnurlWithdrawDetails.maxWithdrawable / 1000
+                        )}{' '}
+                        sats
+                      </SSText>
+                    </SSHStack>
+                  </SSVStack>
+                </SSVStack>
+              )}
               <SSVStack gap="xs">
                 <SSText color="muted" size="xs" uppercase>
                   {t('ecash.receive.amount')}
@@ -339,7 +496,22 @@ export default function EcashReceivePage() {
                   onChangeText={setAmount}
                   placeholder="0"
                   keyboardType="numeric"
+                  editable={!isFetchingLNURL}
                 />
+                {isLNURLWithdrawMode &&
+                  lnurlWithdrawDetails &&
+                  amount &&
+                  !isNaN(Number(amount)) && (
+                    <SSText color="muted" size="xs">
+                      {Number(amount) * 1000 <
+                      lnurlWithdrawDetails.minWithdrawable
+                        ? t('ecash.error.amountTooLow')
+                        : Number(amount) * 1000 >
+                            lnurlWithdrawDetails.maxWithdrawable
+                          ? t('ecash.error.amountTooHigh')
+                          : ''}
+                    </SSText>
+                  )}
               </SSVStack>
               <SSVStack gap="xs">
                 <SSText color="muted" size="xs" uppercase>
@@ -348,36 +520,73 @@ export default function EcashReceivePage() {
                 <SSTextInput
                   value={memo}
                   onChangeText={setMemo}
-                  placeholder={t('ecash.receive.memoPlaceholder')}
+                  placeholder={
+                    lnurlWithdrawDetails?.defaultDescription ||
+                    t('ecash.receive.memoPlaceholder')
+                  }
                 />
               </SSVStack>
 
               {!mintQuote ? (
-                <SSButton
-                  label={t('ecash.receive.createInvoice')}
-                  onPress={handleCreateInvoice}
-                  loading={isCreatingQuote}
-                  variant="gradient"
-                  gradientType="special"
-                />
+                <SSVStack gap="sm">
+                  <SSHStack gap="sm">
+                    <SSButton
+                      label={t('common.paste')}
+                      onPress={handlePasteToken}
+                      variant="subtle"
+                      style={{ flex: 1 }}
+                    />
+                    <SSButton
+                      label={t('common.scan')}
+                      onPress={handleScanToken}
+                      variant="subtle"
+                      style={{ flex: 1 }}
+                    />
+                  </SSHStack>
+                  <SSButton
+                    label={
+                      isLNURLWithdrawMode
+                        ? t('ecash.receive.withdraw')
+                        : t('ecash.receive.createInvoice')
+                    }
+                    onPress={handleCreateInvoice}
+                    loading={isCreatingQuote || isFetchingLNURL}
+                    variant="gradient"
+                    gradientType="special"
+                    disabled={
+                      !amount ||
+                      isFetchingLNURL ||
+                      (isLNURLWithdrawMode &&
+                        lnurlWithdrawDetails !== null &&
+                        (Number(amount) * 1000 <
+                          lnurlWithdrawDetails.minWithdrawable ||
+                          Number(amount) * 1000 >
+                            lnurlWithdrawDetails.maxWithdrawable))
+                    }
+                  />
+                </SSVStack>
               ) : (
                 <SSVStack gap="md">
-                  {/* Display Lightning Invoice */}
-                  <View style={styles.qrContainer}>
-                    <SSQRCode value={mintQuote.request} size={300} />
-                  </View>
-                  <SSButton
-                    label={t('common.copy')}
-                    onPress={async () => {
-                      try {
-                        await Clipboard.setStringAsync(mintQuote.request)
-                        toast.success(t('common.copiedToClipboard'))
-                      } catch {
-                        toast.error(t('ecash.error.failedToCopy'))
-                      }
-                    }}
-                    variant="outline"
-                  />
+                  {/* Display Lightning Invoice - only show QR for non-LNURL-w */}
+                  {!isLNURLWithdrawMode && (
+                    <View style={styles.qrContainer}>
+                      <SSQRCode value={mintQuote.request} size={300} />
+                    </View>
+                  )}
+                  {!isLNURLWithdrawMode && (
+                    <SSButton
+                      label={t('common.copy')}
+                      onPress={async () => {
+                        try {
+                          await Clipboard.setStringAsync(mintQuote.request)
+                          toast.success(t('common.copiedToClipboard'))
+                        } catch {
+                          toast.error(t('ecash.error.failedToCopy'))
+                        }
+                      }}
+                      variant="outline"
+                    />
+                  )}
 
                   {/* Quote Status */}
                   <SSVStack gap="none">
@@ -387,6 +596,11 @@ export default function EcashReceivePage() {
                     {isPolling && (
                       <SSText color="muted" size="xs">
                         {t('ecash.receive.polling')}
+                      </SSText>
+                    )}
+                    {isLNURLWithdrawMode && (
+                      <SSText color="muted" size="sm">
+                        {t('ecash.receive.withdrawPending')}
                       </SSText>
                     )}
                   </SSVStack>
@@ -441,5 +655,15 @@ const styles = StyleSheet.create({
   camera: {
     flex: 1,
     width: '100%'
+  },
+  lnurlDetails: {
+    padding: 12,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 4
+  },
+  detailRow: {
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap'
   }
 })

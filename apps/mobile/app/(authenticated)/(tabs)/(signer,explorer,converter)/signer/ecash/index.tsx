@@ -23,7 +23,7 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { formatFiatPrice } from '@/utils/format'
-import { isLNURL } from '@/utils/lnurl'
+import { getLNURLType } from '@/utils/lnurl'
 
 export default function EcashLanding() {
   const router = useRouter()
@@ -69,14 +69,34 @@ export default function EcashLanding() {
       return
     }
 
-    // Check if it's an LNURL
-    if (isLNURL(cleanData)) {
-      router.navigate({
-        pathname: '/signer/ecash/send',
-        params: { invoice: cleanData }
-      })
-      toast.success(t('ecash.scan.lnurlScanned'))
-      return
+    // Check if it's an LNURL and differentiate between pay and withdraw
+    const { isLNURL: isLNURLInput, type: lnurlType } = getLNURLType(cleanData)
+    if (isLNURLInput) {
+      if (lnurlType === 'pay') {
+        // LNURL-p: Route to send tab
+        router.navigate({
+          pathname: '/signer/ecash/send',
+          params: { invoice: cleanData }
+        })
+        toast.success(t('ecash.scan.lnurlPayScanned'))
+        return
+      } else if (lnurlType === 'withdraw') {
+        // LNURL-w: Route to receive tab
+        router.navigate({
+          pathname: '/signer/ecash/receive',
+          params: { lnurl: cleanData }
+        })
+        toast.success(t('ecash.scan.lnurlWithdrawScanned'))
+        return
+      } else {
+        // Unknown LNURL type, default to send
+        router.navigate({
+          pathname: '/signer/ecash/send',
+          params: { invoice: cleanData }
+        })
+        toast.success(t('ecash.scan.lnurlScanned'))
+        return
+      }
     }
 
     // Check if it's an ecash token (cashu:// or starts with cashu)

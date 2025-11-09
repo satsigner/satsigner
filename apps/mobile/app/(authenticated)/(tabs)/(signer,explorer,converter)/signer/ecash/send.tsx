@@ -1,6 +1,6 @@
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
-import { Stack, useLocalSearchParams } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { Alert, ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
@@ -23,8 +23,8 @@ import { usePriceStore } from '@/store/price'
 import {
   decodeLNURL,
   fetchLNURLPayDetails,
-  handleLNURLPay,
-  isLNURL
+  getLNURLType,
+  handleLNURLPay
 } from '@/utils/lnurl'
 
 type MakeRequest = <T>(
@@ -64,6 +64,7 @@ type LNURLPayResponse = {
 }
 
 export default function EcashSendPage() {
+  const router = useRouter()
   const { invoice: invoiceParam } = useLocalSearchParams()
   const [activeTab, setActiveTab] = useState<'ecash' | 'lightning'>('ecash')
   const [amount, setAmount] = useState('')
@@ -192,13 +193,15 @@ export default function EcashSendPage() {
         activeMint.url,
         quote,
         proofs,
-        decodedInvoice?.description
+        decodedInvoice?.description,
+        bolt11Invoice // Pass the original bolt11 invoice
       )
       setStatusMessage(t('ecash.status.tokensMeltedSuccessfully'))
 
       setInvoice('')
       setAmount('')
       toast.success(t('ecash.success.tokensMelted'))
+      router.navigate('/signer/ecash')
     } catch (error) {
       if (error instanceof Error) {
         if (
@@ -248,14 +251,15 @@ export default function EcashSendPage() {
     lnurlDetails,
     amount,
     comment,
-    decodedInvoice?.description
+    decodedInvoice?.description,
+    router
   ])
 
   const decodeInvoice = useCallback(
     async (invoice: string) => {
       try {
         const response = await typedMakeRequest<DecodedInvoice>(
-          '/v1/payreq/' + invoice
+          `/v1/payreq/${invoice}`
         )
         setDecodedInvoice(response)
         return response
@@ -277,8 +281,9 @@ export default function EcashSendPage() {
       const cleanText = text.trim()
       if (!cleanText) return
 
-      // Check if it's LNURL-pay
-      if (isLNURL(cleanText)) {
+      // Check if it's LNURL-pay (not withdraw)
+      const { isLNURL: isLNURLInput, type: lnurlType } = getLNURLType(cleanText)
+      if (isLNURLInput && lnurlType === 'pay') {
         setIsLNURLMode(true)
         setIsFetchingLNURL(true)
         try {
@@ -294,6 +299,10 @@ export default function EcashSendPage() {
         } finally {
           setIsFetchingLNURL(false)
         }
+        return
+      } else if (isLNURLInput && lnurlType === 'withdraw') {
+        // LNURL-w should be handled in receive tab
+        toast.error(t('ecash.error.lnurlWithdrawInSendTab'))
         return
       }
 

@@ -230,10 +230,17 @@ export function useEcash() {
       mintUrl: string,
       quote: MeltQuote,
       proofsToMelt: EcashProof[],
-      description?: string
+      description?: string,
+      originalInvoice?: string
     ): Promise<EcashMeltResult> => {
       try {
-        const result = await meltProofs(mintUrl, quote, proofsToMelt)
+        const result = await meltProofs(
+          mintUrl,
+          quote,
+          proofsToMelt,
+          description,
+          originalInvoice
+        )
         const proofIds = proofsToMelt.map((proof) => proof.id)
         removeProofs(proofIds)
         removeMeltQuote(quote.quote)

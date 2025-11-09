@@ -200,23 +200,27 @@ export async function createMeltQuote(
       expiry: quote.expiry
     }
   } catch (error) {
-    throw new Error(
-      `Failed to create melt quote: ${error instanceof Error ? error.message : 'Unknown error'}`
-    )
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error'
+    throw new Error(`Failed to create melt quote: ${errorMessage}`)
   }
 }
 
 export async function meltProofs(
   mintUrl: string,
   quote: MeltQuote,
-  proofs: EcashProof[]
+  proofs: EcashProof[],
+  description?: string,
+  originalInvoice?: string
 ): Promise<EcashMeltResult> {
   try {
     const wallet = getWallet(mintUrl)
     await wallet.loadMint()
     // v3.0.0: Need to recreate the quote object from the wallet
     // The new API expects the quote object returned by createMeltQuote
-    const meltQuote = await wallet.createMeltQuote(quote.quote)
+    // IMPORTANT: We need to use the original bolt11 invoice, not the quote ID
+    const invoiceToUse = originalInvoice || quote.quote
+    const meltQuote = await wallet.createMeltQuote(invoiceToUse)
     const result = await wallet.meltProofs(meltQuote, proofs)
 
     type MeltResult = {
