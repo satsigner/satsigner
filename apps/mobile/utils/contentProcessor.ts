@@ -105,15 +105,22 @@ async function processBitcoinContent(
 
   switch (content.type) {
     case 'psbt':
-      // Enhanced PSBT processing using the tools from nostr multisig
-      if (account) {
-        // Convert hex PSBT to base64 if needed
-        let psbtBase64 = content.cleaned
-        if (/^[0-9a-fA-F]+$/.test(content.cleaned.trim())) {
-          // It's a hex PSBT, convert to base64
-          psbtBase64 = Buffer.from(content.cleaned, 'hex').toString('base64')
-        }
+      // Convert hex PSBT to base64 if needed
+      let psbtBase64 = content.cleaned
+      if (/^[0-9a-fA-F]+$/.test(content.cleaned.trim())) {
+        // It's a hex PSBT, convert to base64
+        psbtBase64 = Buffer.from(content.cleaned, 'hex').toString('base64')
+      }
 
+      // Navigate immediately to improve UX - processing will happen on preview page
+      const psbtParam = encodeURIComponent(psbtBase64)
+      navigate(
+        `/account/${accountId}/signAndSend/previewMessage?psbt=${psbtParam}`
+      )
+
+      // Enhanced PSBT processing using the tools from nostr multisig
+      // This now happens in the background on the preview page
+      if (account) {
         try {
           // Check if this PSBT matches the current account
           const accountMatch = await findMatchingAccount(psbtBase64, [account])
@@ -257,49 +264,11 @@ async function processBitcoinContent(
             }
           }
 
-          // Navigate to preview
-          navigate({
-            pathname: '/account/[id]/signAndSend/previewMessage',
-            params: {
-              id: accountId
-            }
-          })
+          // Processing happens on preview page now
         } catch (error) {
-          // Show user-friendly error message
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error'
-          if (
-            errorMessage.includes('fingerprint') ||
-            errorMessage.includes('derivation')
-          ) {
-            // This PSBT doesn't match the current account
-            toast.error(
-              'This PSBT does not match the current account. Proceeding with basic processing.'
-            )
-          } else {
-            toast.error(
-              'Failed to process PSBT with enhanced features. Using basic processing.'
-            )
-          }
-
-          // Fallback to basic PSBT processing
-          navigate({
-            pathname: '/account/[id]/signAndSend/previewMessage',
-            params: { id: accountId, psbt: psbtBase64 }
-          })
+          // Errors will be shown on the preview page
+          // Navigation already happened above
         }
-      } else {
-        // Basic PSBT processing when no account context
-        // Convert hex PSBT to base64 if needed
-        let psbtBase64 = content.cleaned
-        if (/^[0-9a-fA-F]+$/.test(content.cleaned.trim())) {
-          psbtBase64 = Buffer.from(content.cleaned, 'hex').toString('base64')
-        }
-
-        navigate({
-          pathname: '/account/[id]/signAndSend/previewMessage',
-          params: { id: accountId, psbt: psbtBase64 }
-        })
       }
       break
 

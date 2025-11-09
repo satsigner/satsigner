@@ -1587,6 +1587,7 @@
     "preview.nfcTip": "Hold your device near another NFC-enabled device",
     "preview.nip17group": "NIP-17 GROUP",
     "preview.nip17groupComingSoon": "NIP-17 GROUP import coming soon",
+    "preview.processingPsbt": "Processing PSBT...",
     "preview.rawPSBT": "Raw PSBT",
     "preview.readyForFinalization": "Ready for finalization",
     "preview.scanAllChunks": "Chunk %{current} of %{total}",

@@ -25,6 +25,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
   const [isValidContent, setIsValidContent] = useState<boolean>(false)
   const [detectedContentType, setDetectedContentType] =
     useState<ContentType | null>(null)
+  const [isProcessing, setIsProcessing] = useState<boolean>(false)
 
   // Load clipboard content when modal opens
   useEffect(() => {
@@ -35,6 +36,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
       setContent('')
       setIsValidContent(false)
       setDetectedContentType(null)
+      setIsProcessing(false)
     }
   }, [visible])
 
@@ -104,17 +106,34 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
     }
 
     try {
+      setIsProcessing(true)
+
+      // Small delay to ensure loading state is visible
+      await new Promise((resolve) => setTimeout(resolve, 100))
+
       const { detectContentByContext } = await import('@/utils/contentDetector')
       const detectedContent = detectContentByContext(content, context)
 
       if (!detectedContent.isValid) {
+        setIsProcessing(false)
         toast.error(t('paste.error.invalidContent'))
         return
       }
 
-      onClose()
+      // For PSBT, navigation happens immediately, so close modal after showing loading
+      if (detectedContent.type === 'psbt') {
+        // Keep loading visible briefly, then close modal
+        setTimeout(() => {
+          onClose()
+          setIsProcessing(false)
+        }, 300)
+      } else {
+        setIsProcessing(false)
+      }
+
       onContentPasted(detectedContent)
     } catch {
+      setIsProcessing(false)
       toast.error(t('paste.error.failed'))
     }
   }
@@ -255,6 +274,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
             variant={isValidContent ? 'default' : 'secondary'}
             label={getButtonLabel()}
             disabled={!isValidContent}
+            loading={isProcessing}
             onPress={handlePaste}
           />
         </SSHStack>
