@@ -442,12 +442,9 @@ export function useEcash() {
   }, [clearAllData])
 
   const checkPendingTransactionStatus = useCallback(async () => {
-    // Get current transactions from store to avoid stale closure
     const currentTransactions = useEcashStore.getState().transactions
     const currentCheckingIds = useEcashStore.getState().checkingTransactionIds
 
-    // Filter transactions: type === 'send' AND (tokenStatus === undefined OR tokenStatus === 'unspent' OR tokenStatus === 'invalid') AND token exists
-    // Also exclude transactions that are already being checked
     // We check "invalid" to re-validate them and get proper status (e.g., if they were marked invalid due to rate limiting)
     const transactionsToCheck = currentTransactions.filter((tx) => {
       const isSend = tx.type === 'send'
@@ -466,9 +463,7 @@ export function useEcash() {
       return
     }
 
-    // Process sequentially with 500ms delay between each check
     for (const transaction of transactionsToCheck) {
-      // Double-check it's not being checked (race condition protection)
       const stillChecking = useEcashStore.getState().checkingTransactionIds
       if (stillChecking.includes(transaction.id)) {
         continue
@@ -482,7 +477,6 @@ export function useEcash() {
           transaction.mintUrl
         )
 
-        // Map result to tokenStatus
         let tokenStatus: 'spent' | 'unspent' | 'invalid' | 'pending' | undefined
         if (result.isValid === false) {
           tokenStatus = 'invalid'
@@ -497,7 +491,6 @@ export function useEcash() {
           tokenStatus = 'pending'
         }
 
-        // Only update if status actually changed to avoid unnecessary re-renders
         const currentTx = useEcashStore
           .getState()
           .transactions.find((t) => t.id === transaction.id)
@@ -510,10 +503,8 @@ export function useEcash() {
         }
       } catch {
         // Continue processing other transactions on error
-        // Don't show toast errors for individual failures
       } finally {
         removeCheckingTransaction(transaction.id)
-        // Wait 500ms before processing next transaction
         await new Promise((resolve) => setTimeout(resolve, 500))
       }
     }

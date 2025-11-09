@@ -251,7 +251,6 @@ export async function validateProofs(
     const wallet = getWallet(mintUrl)
     await wallet.loadMint()
 
-    // Check the state of all proofs
     const proofStates = await wallet.checkProofsStates(proofs)
 
     const validProofs: EcashProof[] = []
@@ -270,7 +269,6 @@ export async function validateProofs(
     const errorMsg = error instanceof Error ? error.message : 'Unknown error'
     const errorName = (error as { name?: string })?.name
 
-    // Update mint connection status to false when network errors occur
     if (
       errorName === 'NetworkError' ||
       errorMsg.includes('Network request failed')
@@ -405,22 +403,17 @@ export async function validateEcashToken(
   try {
     const decodedToken = getDecodedToken(token)
 
-    // Get wallet for this mint
     const wallet = getWallet(mintUrl)
     if (!wallet) {
       return { isValid: false, details: 'Wallet not found for mint' }
     }
 
-    // Extract proofs from the token
     const proofs = decodedToken.proofs || []
     if (proofs.length === 0) {
       return { isValid: false, details: 'No proofs found in token' }
     }
 
-    // Check the state of proofs using checkProofsStates
     const proofStates = await wallet.checkProofsStates(proofs)
-
-    // Analyze the results
     const spentProofs = proofStates.filter((state) => state.state === 'SPENT')
     const unspentProofs = proofStates.filter(
       (state) => state.state === 'UNSPENT'
@@ -455,12 +448,9 @@ export async function validateEcashToken(
       }
     }
   } catch (error) {
-    // Try to extract HTTP status code from error
     let httpStatus: number | undefined
     let httpStatusText: string | undefined
     let errorResponse: unknown
-
-    // Check if error has status property (common in fetch errors)
     if (error && typeof error === 'object') {
       const errorAny = error as {
         status?: number
@@ -479,11 +469,8 @@ export async function validateEcashToken(
       errorResponse = errorAny.response
     }
 
-    // Try to extract more error information
     const errorMsg = error instanceof Error ? error.message : 'Unknown error'
     const errorName = (error as { name?: string })?.name
-
-    // Check error message for HTTP status codes (e.g., "429 Too Many Requests" or "HTTP 429")
     if (!httpStatus && errorMsg) {
       const statusMatch = errorMsg.match(
         /\b(429|403|401|404|500|502|503|504)\b/
@@ -493,7 +480,6 @@ export async function validateEcashToken(
       }
     }
 
-    // Check if error message contains rate limit keywords
     const isRateLimitError =
       errorMsg.toLowerCase().includes('rate limit') ||
       errorMsg.toLowerCase().includes('too many requests') ||
@@ -502,9 +488,6 @@ export async function validateEcashToken(
     // Note: React Native's fetch doesn't expose HTTP status codes in NetworkError
     // The @cashu/cashu-ts library uses fetch internally, so we can't definitively
     // detect rate limiting (429) or blocked connections (403) from generic network errors
-
-    // Store error in store if we have status code or rate limit indication
-    // Also update mint connection status to false when network errors occur
     if (httpStatus) {
       const storeErrorMessage =
         httpStatus === 429
@@ -516,7 +499,6 @@ export async function validateEcashToken(
       useEcashStore.getState().setError(storeErrorMessage)
       useEcashStore.getState().updateMintConnection(mintUrl, false)
     } else if (isRateLimitError) {
-      // Fallback: check error message for rate limit keywords
       useEcashStore
         .getState()
         .setError('Connection rate limited. Please wait before retrying.')
@@ -525,8 +507,6 @@ export async function validateEcashToken(
       errorName === 'NetworkError' ||
       errorMsg.includes('Network request failed')
     ) {
-      // For generic network errors, we can't definitively say it's rate limiting
-      // Store a generic error that doesn't claim rate limiting
       useEcashStore
         .getState()
         .setError('Network request failed. Please check your connection.')

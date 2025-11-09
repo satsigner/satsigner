@@ -56,7 +56,6 @@ export default function EcashLanding() {
     (state) => state.configsMempool['bitcoin']
   )
 
-  // Sync activeMint with mints array on mount and when mints change
   useEffect(() => {
     if (activeMint && mints.length > 0) {
       const mintFromArray = mints.find((m) => m.url === activeMint.url)
@@ -64,21 +63,17 @@ export default function EcashLanding() {
         setActiveMint(mintFromArray)
       }
     } else if (!activeMint && mints.length > 0) {
-      // If no activeMint but we have mints, set the first one as active
       setActiveMint(mints[0])
     }
   }, [mints, activeMint, setActiveMint])
 
-  // Fetch prices on mount and when currency changes
   useEffect(() => {
     fetchPrices(mempoolUrl)
   }, [fetchPrices, fiatCurrency, mempoolUrl])
 
-  // Track last check time to prevent rapid successive checks
   const lastCheckTimeRef = useRef<number>(0)
-  const CHECK_COOLDOWN = 5000 // 5 seconds minimum between checks
+  const CHECK_COOLDOWN = 5000
 
-  // Check pending transaction status on mount only
   useEffect(() => {
     const now = Date.now()
     if (now - lastCheckTimeRef.current >= CHECK_COOLDOWN) {
@@ -88,8 +83,6 @@ export default function EcashLanding() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Check when page comes into focus (e.g., when navigating back)
-  // But only if enough time has passed since last check
   useFocusEffect(
     useCallback(() => {
       const now = Date.now()
@@ -100,7 +93,6 @@ export default function EcashLanding() {
     }, [checkPendingTransactionStatus])
   )
 
-  // Periodically check pending transaction status every 30 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now()
@@ -108,7 +100,7 @@ export default function EcashLanding() {
         lastCheckTimeRef.current = now
         checkPendingTransactionStatus()
       }
-    }, 30000) // 30 seconds
+    }, 30000)
 
     return () => {
       clearInterval(interval)
@@ -128,7 +120,6 @@ export default function EcashLanding() {
 
     const errorLower = error.toLowerCase()
 
-    // Check for rate limiting (HTTP 429 or rate limit messages)
     if (
       errorLower.includes('429') ||
       errorLower.includes('rate limit') ||
@@ -138,7 +129,6 @@ export default function EcashLanding() {
       return t('ecash.error.mintRateLimited')
     }
 
-    // Check for blocked/forbidden (HTTP 403 or blocked messages)
     if (
       errorLower.includes('403') ||
       errorLower.includes('forbidden') ||
@@ -148,17 +138,14 @@ export default function EcashLanding() {
       return t('ecash.error.mintBlocked')
     }
 
-    // Default to showing the actual error message or generic not connected
     return error || t('ecash.error.mintNotConnected')
   }
 
   function handleQRCodeScanned({ data }: { data: string }) {
     setCameraModalVisible(false)
 
-    // Clean the data (remove any whitespace and prefixes)
     const cleanData = data.trim()
 
-    // Check if it's a lightning invoice
     if (cleanData.startsWith('lightning:') || cleanData.startsWith('lnbc')) {
       router.navigate({
         pathname: '/signer/ecash/send',
@@ -168,11 +155,9 @@ export default function EcashLanding() {
       return
     }
 
-    // Check if it's an LNURL and differentiate between pay and withdraw
     const { isLNURL: isLNURLInput, type: lnurlType } = getLNURLType(cleanData)
     if (isLNURLInput) {
       if (lnurlType === 'pay') {
-        // LNURL-p: Route to send tab
         router.navigate({
           pathname: '/signer/ecash/send',
           params: { invoice: cleanData }
@@ -180,7 +165,6 @@ export default function EcashLanding() {
         toast.success(t('ecash.scan.lnurlPayScanned'))
         return
       } else if (lnurlType === 'withdraw') {
-        // LNURL-w: Route to receive tab
         router.navigate({
           pathname: '/signer/ecash/receive',
           params: { lnurl: cleanData }
@@ -188,7 +172,6 @@ export default function EcashLanding() {
         toast.success(t('ecash.scan.lnurlWithdrawScanned'))
         return
       } else {
-        // Unknown LNURL type, default to send
         router.navigate({
           pathname: '/signer/ecash/send',
           params: { invoice: cleanData }
@@ -198,7 +181,6 @@ export default function EcashLanding() {
       }
     }
 
-    // Check if it's an ecash token (cashu:// or starts with cashu)
     if (cleanData.startsWith('cashu://') || cleanData.startsWith('cashu')) {
       router.navigate({
         pathname: '/signer/ecash/receive',

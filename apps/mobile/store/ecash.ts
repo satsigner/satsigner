@@ -86,7 +86,6 @@ export const useEcashStore = create<EcashState & EcashAction>()(
         })),
       setActiveMint: (mint) =>
         set((state) => {
-          // If mint is provided, find it in mints array to ensure sync
           if (mint) {
             const mintFromArray = state.mints.find((m) => m.url === mint.url)
             return { activeMint: mintFromArray || mint }
@@ -181,7 +180,6 @@ export const useEcashStore = create<EcashState & EcashAction>()(
       clearTransactions: () => set({ transactions: [] }),
       restoreFromBackup: (backupData) =>
         set(() => {
-          // Validate backup data structure
           if (!backupData || typeof backupData !== 'object') {
             throw new Error('Invalid backup data format')
           }
