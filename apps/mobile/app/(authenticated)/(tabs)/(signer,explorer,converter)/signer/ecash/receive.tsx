@@ -133,6 +133,7 @@ export default function EcashReceivePage() {
               setMemo('')
               stopPolling()
               toast.success(t('ecash.success.paymentReceived'))
+              router.navigate('/signer/ecash')
               return true // Stop polling
             } else if (status === 'EXPIRED' || status === 'CANCELLED') {
               stopPolling()
@@ -164,7 +165,8 @@ export default function EcashReceivePage() {
     checkMintQuote,
     mintProofs,
     startPolling,
-    stopPolling
+    stopPolling,
+    router
   ])
 
   const handleTokenChange = useCallback((text: string) => {
