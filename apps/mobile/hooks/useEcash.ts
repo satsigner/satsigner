@@ -508,12 +508,7 @@ export function useEcash() {
         await new Promise((resolve) => setTimeout(resolve, 500))
       }
     }
-  }, [
-    validateEcashToken,
-    addCheckingTransaction,
-    removeCheckingTransaction,
-    updateTransaction
-  ])
+  }, [addCheckingTransaction, removeCheckingTransaction, updateTransaction])
 
   const resumePollingForTransaction = useCallback(
     async (

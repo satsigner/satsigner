@@ -479,8 +479,6 @@ export async function validateEcashToken(
     }
   } catch (error) {
     let httpStatus: number | undefined
-    let httpStatusText: string | undefined
-    let errorResponse: unknown
     if (error && typeof error === 'object') {
       const errorAny = error as {
         status?: number
@@ -495,8 +493,6 @@ export async function validateEcashToken(
         errorAny.response?.status ||
         errorAny.cause?.status ||
         errorAny.cause?.statusCode
-      httpStatusText = errorAny.response?.statusText
-      errorResponse = errorAny.response
     }
 
     const errorMsg = error instanceof Error ? error.message : 'Unknown error'
