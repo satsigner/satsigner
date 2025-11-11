@@ -312,7 +312,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
             state.accounts[index].transactions[txIndex].label = label
 
-            // Labeless addresses and utxos will inherit the transaction label
+            // Labeless outputs and their addresses will inherit the tx label
             state.accounts[index].transactions[txIndex].vout.forEach(
               (output: Transaction['vout'][number], vout: number) => {
                 const outputRef = `${txid}:${vout}`
@@ -357,6 +357,34 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                     state.accounts[index].addresses[addressIndex].label = label
                   }
                 }
+              }
+            )
+
+            // Labeless inputs and their addresses will inherit the tx label
+            state.accounts[index].transactions[txIndex].vin.forEach(
+              (input: Transaction['vin'][number]) => {
+                const { txid, vout } = input.previousOutput
+                const outputRef = `${txid}:${vout}`
+                const outputHasLabel = state.accounts[index].labels[outputRef]
+
+                // input label inheritance (the input's previous output)
+                if (!outputHasLabel) {
+                  state.accounts[index].labels[outputRef] = {
+                    type: 'output',
+                    ref: outputRef,
+                    label
+                  }
+
+                  // we do not have to update any utxo object, like we did when
+                  // looping throughout the vout property. Because the input has
+                  // been spent, its previous output cannot be an utxo (unspent
+                  // tx output)
+                }
+
+                // we cannot figure out the address of the input's previous
+                // output without making additional request to the backend or
+                // adding quite complicated logic. Therefore, we dismiss label
+                // inheritance for the address of the previous output.
               }
             )
 
