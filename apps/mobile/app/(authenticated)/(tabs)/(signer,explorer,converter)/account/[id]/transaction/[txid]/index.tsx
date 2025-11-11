@@ -51,12 +51,22 @@ export default function TxDetails() {
   const originalTx = account?.transactions.find((tx) => tx.id === txid)
   const tx = originalTx ? { ...originalTx } : null
 
-  if (tx && tx.vout) {
+  if (tx) {
     tx.vout = tx.vout.map((output, index) => {
       const outputRef = `${txid}:${index}`
       const label = account?.labels[outputRef]?.label || output.label || ''
       return {
         ...output,
+        label
+      }
+    })
+
+    tx.vin = tx.vin.map((input) => {
+      const { txid, vout } = input.previousOutput
+      const outputRef = `${txid}:${vout}`
+      const label = account?.labels[outputRef]?.label || input.label || ''
+      return {
+        ...input,
         label
       }
     })
