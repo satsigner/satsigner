@@ -121,7 +121,6 @@ export default function DeviceAliasPage() {
               placeholder={t('account.nostrSync.deviceAlias.aliasPlaceholder')}
             />
           </SSVStack>
-
           {alias.trim() && (
             <SSButton
               variant="danger"

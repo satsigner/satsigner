@@ -363,7 +363,6 @@ export default function DevicesGroupChat() {
             </View>
           )}
         </View>
-
         <SSHStack gap="sm" style={styles.inputContainer}>
           <TextInput
             style={styles.input}
