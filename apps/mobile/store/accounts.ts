@@ -314,24 +314,24 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
             // Labeless addresses and utxos will inherit the transaction label
             state.accounts[index].transactions[txIndex].vout.forEach(
-              (output: Transaction['vout'][number], index: number) => {
-                const utxoRef = `${txid}:${index}`
+              (output: Transaction['vout'][number], vout: number) => {
+                const outputRef = `${txid}:${vout}`
                 const addressRef = output.address
-                const utxoHasLabel = state.accounts[index].labels[utxoRef]
+                const outputHasLabel = state.accounts[index].labels[outputRef]
                 const addressHasLabel = state.accounts[index].labels[addressRef]
 
-                // utxo label inheritance
-                if (!utxoHasLabel) {
-                  state.accounts[index].labels[utxoRef] = {
+                // output label inheritance
+                if (!outputHasLabel) {
+                  state.accounts[index].labels[outputRef] = {
                     type: 'output',
-                    ref: utxoRef,
+                    ref: outputRef,
                     label
                   }
 
                   // also update the utxo object if it exist
                   const utxoIndex = state.accounts[index].utxos.findIndex(
                     (utxo: Utxo) => {
-                      return utxo.txid === txid && utxo.vout === index
+                      return utxo.txid === txid && utxo.vout === vout
                     }
                   )
                   if (utxoIndex !== -1) {
