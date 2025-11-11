@@ -423,11 +423,22 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 state.accounts[index].transactions[txIndex].label = label
 
                 // also store label in vout property of transaction model
-                if (
-                  state.accounts[index].transaction[txIndex].vout[utxoIndex]
-                ) {
-                  state.accounts[index].transaction[txIndex].vout[
-                    utxoIndex
+                if (state.accounts[index].transaction[txIndex].vout[vout]) {
+                  state.accounts[index].transaction[txIndex].vout[vout].label =
+                    label
+                }
+
+                // also store label in vin property of transaction model
+                const inputIndex = state.accounts[index].transactions[
+                  txIndex
+                ].vin.findIndex(
+                  (input: Transaction['vin'][number]) =>
+                    input.previousOutput.txid === txid &&
+                    input.previousOutput.vout === vout
+                )
+                if (inputIndex !== -1) {
+                  state.accounts[index].transactions[txIndex].vin[
+                    inputIndex
                   ].label = label
                 }
               }
