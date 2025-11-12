@@ -1,7 +1,8 @@
+import { FlashList } from '@shopify/flash-list'
 import { Redirect, Stack, useLocalSearchParams } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { FlatList, ScrollView, StyleSheet, TextInput, View } from 'react-native'
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -58,7 +59,7 @@ async function formatNpub(
 
 export default function DevicesGroupChat() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
-  const flatListRef = useRef<FlatList>(null)
+  const flashListRef = useRef<FlashList<any>>(null)
   const formattedAuthorsRef = useRef(new Set<string>())
   const { sendDM, sendPSBT } = useNostrPublish()
   const { handleGoToSignFlow } = useNostrSignFlow()
@@ -225,18 +226,18 @@ export default function DevicesGroupChat() {
       if (isInitialLoad) {
         setIsContentLoaded(false)
         setTimeout(() => {
-          if (flatListRef.current) {
-            flatListRef.current.scrollToEnd({ animated: false })
+          if (flashListRef.current) {
+            flashListRef.current.scrollToEnd({ animated: false })
             setTimeout(() => {
-              flatListRef.current?.scrollToEnd({ animated: false })
+              flashListRef.current?.scrollToEnd({ animated: false })
               setIsContentLoaded(true)
               setIsInitialLoad(false)
               isAtBottomRef.current = true
             }, 200)
           }
         }, 100)
-      } else if (isAtBottomRef.current && flatListRef.current) {
-        flatListRef.current.scrollToEnd({ animated: false })
+      } else if (isAtBottomRef.current && flashListRef.current) {
+        flashListRef.current.scrollToEnd({ animated: false })
       }
     }
   }, [messages.length, account?.nostr?.relays?.length, isInitialLoad])
@@ -250,8 +251,8 @@ export default function DevicesGroupChat() {
   }, [messages.length])
 
   function handleScrollToBottom() {
-    if (flatListRef.current) {
-      flatListRef.current.scrollToEnd({ animated: true })
+    if (flashListRef.current) {
+      flashListRef.current.scrollToEnd({ animated: true })
       isAtBottomRef.current = true
       setShowNewMessageButton(false)
     }
@@ -318,8 +319,8 @@ export default function DevicesGroupChat() {
               </SSText>
             </View>
           )}
-          <FlatList
-            ref={flatListRef}
+          <FlashList
+            ref={flashListRef}
             data={messages}
             renderItem={({ item }) => (
               <SSNostrMessage
@@ -333,21 +334,24 @@ export default function DevicesGroupChat() {
               />
             )}
             keyExtractor={(item) => item.id}
+            estimatedItemSize={100}
             ListEmptyComponent={
               <SSText center color="muted">
                 {t('account.nostrSync.devicesGroupChat.noMessages')}
               </SSText>
             }
             inverted={false}
-            contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end' }}
+            contentContainerStyle={
+              { flexGrow: 1, justifyContent: 'flex-end' } as any
+            }
             onContentSizeChange={() => {
-              if (isAtBottomRef.current && flatListRef.current) {
-                flatListRef.current.scrollToEnd({ animated: false })
+              if (isAtBottomRef.current && flashListRef.current) {
+                flashListRef.current.scrollToEnd({ animated: false })
               }
             }}
             onLayout={() => {
-              if (isAtBottomRef.current && flatListRef.current) {
-                flatListRef.current.scrollToEnd({ animated: false })
+              if (isAtBottomRef.current && flashListRef.current) {
+                flashListRef.current.scrollToEnd({ animated: false })
               }
             }}
             onScroll={handleListScroll}

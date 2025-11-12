@@ -32,7 +32,7 @@ import { Colors } from '@/styles'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { generateColorFromNpub } from '@/utils/nostr'
 
-function NostrSync() {
+export default function NostrSync() {
   // Account and store hooks
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const [account, updateAccountNostr] = useAccountsStore(
@@ -62,6 +62,9 @@ function NostrSync() {
     (state) => state.clearProcessedEvents
   )
   const setSyncing = useNostrStore((state) => state.setSyncing)
+  const lastProtocolEOSE = useNostrStore((state) =>
+    accountId ? state.lastProtocolEOSE[accountId] : undefined
+  )
 
   // Members management
   const members = useNostrStore(
@@ -109,13 +112,6 @@ function NostrSync() {
   >({})
 
   const previousRelaysRef = useRef<string[]>([])
-
-  // Add this useCallback near the top of the component, after other hooks
-  const getUpdatedAccount = useCallback(() => {
-    return useAccountsStore
-      .getState()
-      .accounts.find((account) => account.id === accountId)
-  }, [accountId])
 
   const testRelaySync = useCallback(
     async (relays: string[]) => {
@@ -267,10 +263,10 @@ function NostrSync() {
    */
   const handleToggleAutoSync = useCallback(async () => {
     try {
-      if (!accountId) return
+      if (!accountId || !account) return
 
       // Initialize nostr object if it doesn't exist
-      if (!account?.nostr) {
+      if (!account.nostr) {
         updateAccountNostrCallback(accountId, {
           autoSync: false,
           relays: [],
@@ -320,17 +316,17 @@ function NostrSync() {
         if (accountId) setSyncing(accountId, false)
       } else {
         // Turn sync ON
-        updateAccountNostrCallback(accountId, {
+        const newNostrState = {
           ...account.nostr,
           autoSync: true,
           lastUpdated: new Date()
-        })
+        }
+        updateAccountNostrCallback(accountId, newNostrState)
 
-        // Wait a tick for state to update
-        await new Promise((resolve) => setTimeout(resolve, 0))
-
-        // Get fresh account state after update using the callback
-        const updatedAccount = getUpdatedAccount()
+        const updatedAccount = {
+          ...account,
+          nostr: newNostrState
+        }
 
         if (
           !updatedAccount?.nostr?.deviceNsec ||
@@ -371,12 +367,11 @@ function NostrSync() {
       if (accountId) setSyncing(accountId, false)
     }
   }, [
-    account?.nostr,
+    account,
     accountId,
     testRelaySync,
     cleanupSubscriptions,
     deviceAnnouncement,
-    getUpdatedAccount,
     nostrSyncSubscriptions,
     updateAccountNostrCallback,
     setSyncing
@@ -416,7 +411,7 @@ function NostrSync() {
         router.push({
           pathname: `/account/${accountId}/settings/nostr/device/[npub]`,
           params: { npub }
-        })
+        } as never)
       }
     },
     [accountId, account?.nostr, selectedMembers, updateAccountNostrCallback]
@@ -523,19 +518,10 @@ function NostrSync() {
       }
 
       if (!keysGenerated) {
-        const currentAccount = useAccountsStore
-          .getState()
-          .accounts.find((_account) => _account.id === accountId)
-
-        if (
-          currentAccount?.nostr?.deviceNsec &&
-          currentAccount.nostr.deviceNpub
-        ) {
-          setDeviceNsec(currentAccount.nostr.deviceNsec)
-          setDeviceNpub(currentAccount.nostr.deviceNpub)
-          generateColorFromNpub(currentAccount.nostr.deviceNpub).then(
-            setDeviceColor
-          )
+        if (account?.nostr?.deviceNsec && account.nostr.deviceNpub) {
+          setDeviceNsec(account.nostr.deviceNsec)
+          setDeviceNpub(account.nostr.deviceNpub)
+          generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
           setKeysGenerated(true)
           return
         }
@@ -632,16 +618,12 @@ function NostrSync() {
   // Auto-trigger sync when a new relay is added and sync is ON
   useFocusEffect(
     useCallback(() => {
-      const currentAccount = useAccountsStore
-        .getState()
-        .accounts.find((_account) => _account.id === accountId)
-
-      if (!accountId || !currentAccount?.nostr) {
+      if (!accountId || !account?.nostr) {
         previousRelaysRef.current = []
         return
       }
 
-      const currentRelays = currentAccount.nostr.relays || []
+      const currentRelays = account.nostr.relays || []
       const previousRelays = previousRelaysRef.current
 
       if (previousRelays.length === 0) {
@@ -655,7 +637,7 @@ function NostrSync() {
 
       if (
         hasNewRelay &&
-        currentAccount.nostr.autoSync &&
+        account.nostr.autoSync &&
         currentRelays.length > 0 &&
         previousRelays.length > 0
       ) {
@@ -665,9 +647,9 @@ function NostrSync() {
         const triggerAutoSync = async () => {
           try {
             await testRelaySync(currentRelays)
-            deviceAnnouncement(currentAccount)
+            deviceAnnouncement(account)
 
-            await nostrSyncSubscriptions(currentAccount, (loading) => {
+            await nostrSyncSubscriptions(account, (loading) => {
               requestAnimationFrame(() => {
                 setIsSyncing(loading)
                 if (accountId) setSyncing(accountId, loading)
@@ -686,6 +668,7 @@ function NostrSync() {
 
       previousRelaysRef.current = [...currentRelays]
     }, [
+      account,
       accountId,
       deviceAnnouncement,
       nostrSyncSubscriptions,
@@ -744,20 +727,19 @@ function NostrSync() {
               <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
                 <SSText color="muted">
                   Last sync:{' '}
-                  {(() => {
-                    const lastEOSE = useNostrStore
-                      .getState()
-                      .getLastProtocolEOSE(accountId)
-                    if (!lastEOSE) return 'Never'
-                    return new Date(lastEOSE * 1000).toLocaleString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit'
-                    })
-                  })()}
+                  {lastProtocolEOSE
+                    ? new Date(lastProtocolEOSE * 1000).toLocaleString(
+                        'en-US',
+                        {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit'
+                        }
+                      )
+                    : 'Never'}
                 </SSText>
               </SSHStack>
             )}
@@ -885,7 +867,7 @@ function NostrSync() {
                                     router.push({
                                       pathname: `/account/${accountId}/settings/nostr/device/[npub]`,
                                       params: { npub: member.npub }
-                                    })
+                                    } as never)
                                   }}
                                   style={{ opacity: isSyncing ? 0.5 : 1 }}
                                 >
@@ -1087,5 +1069,3 @@ const styles = StyleSheet.create({
     color: Colors.gray[400]
   }
 })
-
-export default NostrSync
