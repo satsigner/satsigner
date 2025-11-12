@@ -533,7 +533,7 @@ export default function NostrSync() {
             if (keys) {
               const latestAccount = useAccountsStore
                 .getState()
-                .accounts.find((_account) => _account.id === accountId)
+                .accounts.find((account) => account.id === accountId)
 
               if (
                 latestAccount?.nostr?.deviceNsec &&
