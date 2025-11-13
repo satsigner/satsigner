@@ -41,6 +41,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Typography } from '@/styles'
 import {
+  type Account,
   type Key,
   type MnemonicWordCount,
   type Secret
@@ -55,10 +56,17 @@ import {
   FileType,
   isBBQRFragment
 } from '@/utils/bbqr'
+import { extractKeyFingerprint } from '@/utils/account'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { parseHexToBytes } from '@/utils/parse'
-import { validateSignedPSBTForCosigner } from '@/utils/psbt'
+import {
+  extractOriginalPsbt,
+  extractPSBTDerivations,
+  extractTransactionIdFromPSBT,
+  findMatchingAccount,
+  validateSignedPSBTForCosigner
+} from '@/utils/psbt'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import { legacyEstimateTransactionSize } from '@/utils/transaction'
 import {
@@ -111,7 +119,16 @@ function hasEnoughSignatures(input: any): boolean {
 
 function PreviewMessage() {
   const router = useRouter()
-  const { id } = useLocalSearchParams<AccountSearchParams>()
+  const {
+    id,
+    psbt
+    // signedPsbt: signedPsbtParam
+  } = useLocalSearchParams<
+    AccountSearchParams & {
+      psbt?: string
+      signedPsbt?: string
+    }
+  >()
 
   const [
     inputs,
@@ -121,7 +138,12 @@ function PreviewMessage() {
     setTxBuilderResult,
     txBuilderResult,
     setSignedTx,
-    signedPsbtsFromStore
+    addInput,
+    addOutput,
+    setFee,
+    setRbf,
+    signedPsbtsFromStore,
+    clearTransaction
   ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.inputs,
@@ -131,7 +153,12 @@ function PreviewMessage() {
       state.setTxBuilderResult,
       state.txBuilderResult,
       state.setSignedTx,
-      state.signedPsbts
+      state.addInput,
+      state.addOutput,
+      state.setFee,
+      state.setRbf,
+      state.signedPsbts,
+      state.clearTransaction
     ])
   )
 
@@ -141,6 +168,7 @@ function PreviewMessage() {
   const wallet = useGetAccountWallet(id!)
   const network = useBlockchainStore((state) => state.selectedNetwork)
   const [messageId, setMessageId] = useState('')
+  const [isLoadingPSBT, setIsLoadingPSBT] = useState(false)
 
   const [noKeyModalVisible, setNoKeyModalVisible] = useState(false)
   const [currentChunk, setCurrentChunk] = useState(0)
@@ -198,6 +226,428 @@ function PreviewMessage() {
     handleSignWithLocalKey,
     handleSignWithSeedQR
   } = psbtManagement
+
+  // Validate PSBT inputs, UTXO spendability, and account association
+  const validatePSBT = async (
+    psbtBase64: string,
+    account: Account
+  ): Promise<void> => {
+    try {
+      const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
+
+      // 1. Validate all inputs are valid
+      const invalidInputs: number[] = []
+      psbt.data.inputs.forEach((input, index) => {
+        if (!input.witnessUtxo && !input.nonWitnessUtxo) {
+          invalidInputs.push(index)
+        } else if (input.witnessUtxo) {
+          if (
+            !input.witnessUtxo.script ||
+            input.witnessUtxo.value === undefined ||
+            input.witnessUtxo.value <= 0
+          ) {
+            invalidInputs.push(index)
+          }
+        } else if (input.nonWitnessUtxo) {
+          try {
+            const prevTx = bitcoinjs.Transaction.fromBuffer(
+              input.nonWitnessUtxo
+            )
+            const txInput = psbt.txInputs[index]
+            const prevOut = prevTx.outs[txInput.index]
+            if (!prevOut || prevOut.value <= 0) {
+              invalidInputs.push(index)
+            }
+          } catch {
+            invalidInputs.push(index)
+          }
+        }
+      })
+
+      if (invalidInputs.length > 0) {
+        toast.error(
+          `Invalid inputs detected at indices: ${invalidInputs.join(', ')}`
+        )
+      }
+
+      // 2. Check if UTXOs are spendable (exist in wallet)
+      const unspendableUtxos: string[] = []
+      const utxoMap = new Map<string, Utxo>()
+      account.utxos.forEach((utxo) => {
+        utxoMap.set(`${utxo.txid}:${utxo.vout}`, utxo)
+      })
+
+      psbt.txInputs.forEach((txInput, index) => {
+        const txid = txInput.hash.reverse().toString('hex')
+        const vout = txInput.index
+        const utxoKey = `${txid}:${vout}`
+
+        if (!utxoMap.has(utxoKey)) {
+          unspendableUtxos.push(
+            `Input ${index + 1} (${txid.substring(0, 8)}...:${vout})`
+          )
+        }
+      })
+
+      if (unspendableUtxos.length > 0) {
+        toast.warning(
+          `Some UTXOs are not spendable or not found in wallet: ${unspendableUtxos.slice(0, 3).join(', ')}${unspendableUtxos.length > 3 ? '...' : ''}`
+        )
+      }
+
+      // 3. Check if PSBT is associated with this policy/account
+      const derivations = extractPSBTDerivations(psbtBase64)
+      if (derivations.length === 0) {
+        toast.warning(
+          'PSBT does not contain BIP32 derivation paths. Cannot verify account association.'
+        )
+      } else {
+        const accountMatch = await findMatchingAccount(psbtBase64, [account])
+        if (!accountMatch) {
+          const psbtFingerprints = [
+            ...new Set(derivations.map((d) => d.fingerprint))
+          ]
+          const accountFingerprints: string[] = []
+          if (account.keys) {
+            for (const key of account.keys) {
+              const keyFingerprint = await extractKeyFingerprint(key)
+              if (keyFingerprint) {
+                accountFingerprints.push(keyFingerprint)
+              }
+            }
+          }
+
+          const hasMatchingFingerprint = psbtFingerprints.some((fp) =>
+            accountFingerprints.includes(fp)
+          )
+
+          if (!hasMatchingFingerprint) {
+            toast.error(
+              'PSBT does not match this account. Fingerprints in PSBT do not match account keys.'
+            )
+          } else {
+            toast.warning(
+              'PSBT may not be fully associated with this account. Please verify before signing.'
+            )
+          }
+        }
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
+      toast.error(`PSBT validation failed: ${errorMessage}`)
+    }
+  }
+
+  // Handle URL parameters for PSBT and signed PSBT
+  useEffect(() => {
+    if (psbt) {
+      // Show loading state immediately
+      setIsLoadingPSBT(true)
+
+      // Clear any existing transaction data and set the new PSBT
+      clearTransaction()
+      setSignedTx('')
+
+      // Enhanced PSBT processing using the tools from nostr multisig
+      if (account) {
+        // Validate PSBT before processing (don't await, let it run in background)
+        validatePSBT(psbt, account).catch(() => {
+          // Validation errors are already shown via toast
+        })
+
+        try {
+          const {
+            extractTransactionDataFromPSBTEnhanced,
+            extractTransactionIdFromPSBT
+          } = require('@/utils/psbt')
+
+          // Extract transaction data from PSBT
+          const extractedData = extractTransactionDataFromPSBTEnhanced(
+            psbt,
+            account
+          )
+
+          if (extractedData) {
+            // Populate transaction builder with extracted data
+            // Clear first to avoid duplicates
+            extractedData.inputs.forEach((input: any) => {
+              addInput({
+                ...input,
+                script: Buffer.from(input.script, 'hex'),
+                keychain: input.keychain || 'external'
+              })
+            })
+
+            extractedData.outputs.forEach((output: any) => {
+              addOutput({
+                to: output.address,
+                amount: output.value,
+                label: output.label || ''
+              })
+            })
+
+            if (extractedData.fee) {
+              setFee(extractedData.fee)
+            }
+
+            setRbf(true)
+
+            // Create mock transaction builder result for display
+            const extractedTxid = extractTransactionIdFromPSBT(psbt)
+            if (extractedTxid) {
+              setMessageId(extractedTxid)
+            } else {
+              // Fallback: generate a temporary ID if extraction fails
+              setMessageId('PSBT-' + Date.now().toString(36))
+            }
+            const mockTxBuilderResult = {
+              psbt: {
+                base64: psbt,
+                serialize: () => Promise.resolve(psbt),
+                txid: () => Promise.resolve(extractedTxid || '')
+              },
+              txDetails: {
+                txid: extractedTxid || '',
+                fee: extractedData.fee
+              }
+            }
+            setTxBuilderResult(mockTxBuilderResult as any)
+            setIsLoadingPSBT(false)
+          } else {
+            throw new Error(
+              'Failed to extract transaction data from PSBT. This PSBT may not match the current account.'
+            )
+          }
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error'
+
+          if (
+            errorMessage.includes('fingerprint') ||
+            errorMessage.includes('derivation') ||
+            errorMessage.includes('not match')
+          ) {
+            toast.warning(
+              'This PSBT does not match the current account. Using basic processing.'
+            )
+          } else if (
+            errorMessage.includes('Invalid PSBT') ||
+            errorMessage.includes('malformed')
+          ) {
+            toast.error('Invalid PSBT format. Please check the PSBT data.')
+          } else {
+            toast.warning(
+              'Failed to process PSBT with enhanced features. Using basic processing.'
+            )
+          }
+
+          try {
+            const { extractTransactionIdFromPSBT } = require('@/utils/psbt')
+            const extractedTxid = extractTransactionIdFromPSBT(psbt)
+            if (extractedTxid) {
+              setMessageId(extractedTxid)
+            } else {
+              // Fallback: generate a temporary ID if extraction fails
+              setMessageId('PSBT-' + Date.now().toString(36))
+            }
+            const mockTxBuilderResult = {
+              psbt: {
+                base64: psbt,
+                serialize: () => Promise.resolve(psbt),
+                txid: () => Promise.resolve(extractedTxid || '')
+              },
+              txDetails: {
+                txid: extractedTxid || '',
+                fee: 0
+              }
+            }
+            setTxBuilderResult(mockTxBuilderResult as any)
+            setIsLoadingPSBT(false)
+            toast.info(
+              'PSBT loaded with basic processing. Some features may be limited.'
+            )
+          } catch (fallbackError) {
+            const fallbackMessage =
+              fallbackError instanceof Error
+                ? fallbackError.message
+                : 'Unknown error'
+            setIsLoadingPSBT(false)
+            toast.error(
+              `Failed to process PSBT: ${fallbackMessage}. Please check the data format.`
+            )
+            // Still try to set a message ID so the UI doesn't hang
+            setMessageId('PSBT-ERROR-' + Date.now().toString(36))
+          }
+        }
+      } else {
+        // No account context - use basic processing
+        try {
+          const { extractTransactionIdFromPSBT } = require('@/utils/psbt')
+          const extractedTxid = extractTransactionIdFromPSBT(psbt)
+          if (extractedTxid) {
+            setMessageId(extractedTxid)
+          } else {
+            setMessageId('PSBT-' + Date.now().toString(36))
+          }
+          const mockTxBuilderResult = {
+            psbt: {
+              base64: psbt,
+              serialize: () => Promise.resolve(psbt),
+              txid: () => Promise.resolve(extractedTxid || '')
+            },
+            txDetails: {
+              txid: extractedTxid || '',
+              fee: 0
+            }
+          }
+          setTxBuilderResult(mockTxBuilderResult as any)
+          setIsLoadingPSBT(false)
+          toast.info('PSBT loaded. Some features may be limited.')
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error'
+          setIsLoadingPSBT(false)
+          toast.error(`Failed to process PSBT: ${errorMessage}`)
+          setMessageId('PSBT-ERROR-' + Date.now().toString(36))
+        }
+      }
+    }
+  }, [
+    psbt,
+    clearTransaction,
+    setSignedTx,
+    account,
+    addInput,
+    addOutput,
+    setFee,
+    setRbf,
+    setTxBuilderResult
+  ])
+
+  // Separate effect to detect existing signatures - runs when both PSBT and decryptedKeys are ready
+  useEffect(() => {
+    if (!psbt || !account || decryptedKeys.length === 0 || !account.keys) return
+
+    const currentAccount = account
+    const currentPsbt = psbt
+
+    async function detectSignatures() {
+      if (!currentAccount || !currentAccount.keys || !currentPsbt) return
+
+      try {
+        const combinedPsbtBase64: string = currentPsbt
+        const originalPsbtBase64: string =
+          extractOriginalPsbt(combinedPsbtBase64)
+
+        // Check if PSBT has any partial signatures
+        const psbtObj = bitcoinjs.Psbt.fromBase64(combinedPsbtBase64)
+        const hasSignatures = psbtObj.data.inputs.some(
+          (input) => input.partialSig && input.partialSig.length > 0
+        )
+
+        if (!hasSignatures) {
+          return
+        }
+
+        // Build a map of fingerprint to cosigner index
+        const keyFingerprintToCosignerIndex = new Map<string, number>()
+        await Promise.all(
+          currentAccount.keys.map(async (key, index) => {
+            const fp = await extractKeyFingerprint(key)
+            if (fp) keyFingerprintToCosignerIndex.set(fp, index)
+          })
+        )
+
+        // Build a map of pubkey to cosigner index from BIP32 derivations
+        const pubkeyToCosignerIndex = new Map<string, number>()
+        psbtObj.data.inputs.forEach((input) => {
+          if (input.bip32Derivation) {
+            input.bip32Derivation.forEach((derivation) => {
+              const fingerprint = derivation.masterFingerprint.toString('hex')
+              const pubkey = derivation.pubkey.toString('hex')
+              const cosignerIndex =
+                keyFingerprintToCosignerIndex.get(fingerprint)
+
+              if (cosignerIndex !== undefined) {
+                pubkeyToCosignerIndex.set(pubkey, cosignerIndex)
+              }
+            })
+          }
+        })
+
+        // Get all pubkeys that have signatures in the PSBT
+        const { getCollectedSignerPubkeys } = require('@/utils/psbt')
+        const signerPubkeys = getCollectedSignerPubkeys(combinedPsbtBase64)
+
+        if (signerPubkeys.size === 0) {
+          return
+        }
+
+        // Split combined PSBT into per-signer PSBTs (by pubkey)
+        const { extractIndividualSignedPsbts } = require('@/utils/psbt')
+        const bySigner = extractIndividualSignedPsbts(
+          combinedPsbtBase64,
+          originalPsbtBase64
+        ) as Record<number, string>
+
+        if (Object.keys(bySigner).length === 0) {
+          return
+        }
+
+        // Match each signed PSBT to a cosigner
+        Object.values(bySigner).forEach((indivBase64: string) => {
+          const indivPsbt = bitcoinjs.Psbt.fromBase64(indivBase64)
+          const indivPubkeys = getCollectedSignerPubkeys(indivBase64)
+
+          // Try to match by pubkey from BIP32 derivations first
+          for (const pubkey of indivPubkeys) {
+            const cosignerIndex = pubkeyToCosignerIndex.get(pubkey)
+            if (cosignerIndex !== undefined) {
+              const existing = signedPsbts.get(cosignerIndex)
+              if (!existing || existing.trim().length === 0) {
+                updateSignedPsbt(cosignerIndex, indivBase64)
+                toast.success(
+                  `Detected existing signature for cosigner ${cosignerIndex + 1}`
+                )
+                return
+              }
+            }
+          }
+
+          // Fallback: try validation for each cosigner
+          const totalCosigners = currentAccount.keys?.length || 0
+          for (let cosIdx = 0; cosIdx < totalCosigners; cosIdx++) {
+            try {
+              const matches = validateSignedPSBTForCosigner(
+                indivBase64,
+                currentAccount,
+                cosIdx,
+                decryptedKeys[cosIdx]
+              )
+              if (matches) {
+                const existing = signedPsbts.get(cosIdx)
+                if (!existing || existing.trim().length === 0) {
+                  updateSignedPsbt(cosIdx, indivBase64)
+                  toast.success(
+                    `Detected existing signature for cosigner ${cosIdx + 1}`
+                  )
+                }
+                break
+              }
+            } catch {
+              // Validation failed for this cosigner, try next one
+            }
+          }
+        })
+      } catch {
+        // Signature detection failed, but don't show error to user
+        // This is expected for PSBTs without signatures or from other wallets
+      }
+    }
+
+    detectSignatures()
+  }, [psbt, account, decryptedKeys, updateSignedPsbt, signedPsbts])
 
   // Calculate validation results for each cosigner
   const validationResults = useMemo(() => {
@@ -575,6 +1025,16 @@ function PreviewMessage() {
   }, [signedPsbtsFromStore, setSignedPsbts])
 
   useEffect(() => {
+    // If we have a PSBT loaded from URL params, skip building transaction
+    // The PSBT processing useEffect will handle setting the messageId
+    if (psbt) {
+      // If txBuilderResult is already set, use its txid
+      if (txBuilderResult?.txDetails?.txid) {
+        setMessageId(txBuilderResult.txDetails.txid)
+      }
+      return
+    }
+
     if (txBuilderResult?.txDetails?.txid) {
       setMessageId(txBuilderResult.txDetails.txid)
       return
@@ -583,6 +1043,12 @@ function PreviewMessage() {
     async function getTransactionMessage() {
       if (!wallet) {
         toast.error(t('error.notFound.wallet'))
+        return
+      }
+
+      // Don't try to build transaction if we have no inputs or outputs
+      // This can happen when loading a PSBT from another wallet
+      if (inputs.size === 0 || outputs.length === 0) {
         return
       }
 
@@ -607,11 +1073,18 @@ function PreviewMessage() {
         // Handle specific UTXO errors
         const errorMessage = String(err)
         if (errorMessage.includes('UTXO not found')) {
-          toast.error(
-            'UTXO not found in wallet database. Please sync your wallet or check your inputs.'
-          )
+          // Don't show error if we're loading a PSBT from another wallet
+          // This is expected behavior
+          if (!psbt) {
+            toast.error(
+              'UTXO not found in wallet database. Please sync your wallet or check your inputs.'
+            )
+          }
         } else {
-          toast.error(errorMessage)
+          // Only show other errors if we're not loading a PSBT
+          if (!psbt) {
+            toast.error(errorMessage)
+          }
         }
       }
     }
@@ -625,7 +1098,8 @@ function PreviewMessage() {
     rbf,
     network,
     setTxBuilderResult,
-    txBuilderResult
+    txBuilderResult,
+    psbt
   ])
 
   // Separate effect to validate addresses and show errors
@@ -1625,8 +2099,15 @@ function PreviewMessage() {
                   {t('transaction.id')}
                 </SSText>
                 <SSText size="lg" type="mono">
-                  {messageId || `${t('common.loading')}...`}
+                  {isLoadingPSBT
+                    ? t('common.loading')
+                    : messageId || `${t('common.loading')}...`}
                 </SSText>
+                {isLoadingPSBT && (
+                  <SSText color="muted" size="sm" style={{ marginTop: 8 }}>
+                    {t('transaction.preview.processingPsbt')}
+                  </SSText>
+                )}
               </SSVStack>
               <SSVStack gap="xxs">
                 <SSText color="muted" size="sm" uppercase>

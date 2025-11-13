@@ -260,8 +260,8 @@
     "seed.unableToDecrypt": "Unable to decrypt seed",
     "seed.viewSeedWords": "View Seed Words",
     "selectKeySource": "Select Key Source",
+    "send": "Send",
     "settings.title": "Account Settings and Tools",
-    "signAndSend": "Sign & Send",
     "signatureRequired": "Signatures Required",
     "sync.status.error": "Can't sync",
     "sync.status.old.day": "~%{value}d ago",
@@ -389,10 +389,23 @@
     "words": "Words"
   },
   "camera": {
+    "button": {
+      "resetScan": "Reset Scan"
+    },
     "enableCameraAccess": "Enable Camera Access",
+    "error": {
+      "assembleFailed": "Failed to assemble multi-part QR code",
+      "bbqrDecodeFailed": "Failed to decode BBQR QR code",
+      "invalidContent": "Invalid content detected",
+      "processFailed": "Failed to process scanned data",
+      "scanFailed": "Failed to scan QR code",
+      "urDecodeFailed": "Failed to decode UR QR code"
+    },
+    "invalidContent": "Invalid {context} content detected",
     "permissions": "Enable camera access in your phone's settings to scan a QR code.",
     "scanQRCode": "Scan QRCode",
-    "scanText": "Scan any Bitcoin or Lightning related QR code."
+    "scanText": "Scan any Bitcoin or Lightning related QR code.",
+    "scanningContent": "Scanning {context} content..."
   },
   "common": {
     "QR": "QR",
@@ -405,6 +418,8 @@
     "backToAccountHome": "Back to account home",
     "cancel": "Cancel",
     "clear": "Clear",
+    "clipboardEmpty": "Clipboard is empty or doesn't contain a valid Bitcoin address, payment request, or PSBT",
+    "clipboardHasContent": "Clipboard contains a Bitcoin address, payment request, or PSBT",
     "close": "Close",
     "completed": "Completed",
     "confirm": "Confirm",
@@ -423,6 +438,7 @@
     "dismiss": "Dismiss",
     "download": "Download",
     "downloadFile": "Download file",
+    "emitNFC": "Emit NFC",
     "error": {
       "assembleQRCode": "Failed to assemble multi-part QR code",
       "autoSyncMustBeEnabled": "Auto-sync must be enabled to send messages",
@@ -431,6 +447,7 @@
       "dataTooLarge": "Data too large for single QR code",
       "decodeBBQRCode": "Failed to decode BBQR QR code",
       "decodeURCode": "Failed to decode UR QR code",
+      "extractPSBTData": "Failed to extract transaction data from PSBT",
       "extractTransaction": "Failed to extract final transaction",
       "failedToGenerateTransactionHex": "Failed to generate transaction hex",
       "failedToSendMessage": "Failed to send message",
@@ -439,11 +456,13 @@
       "messageCannotBeEmpty": "Message cannot be empty",
       "missingRequiredNostrConfig": "Missing required Nostr configuration",
       "noClipboardData": "No data found in clipboard",
-      "noOriginalPSBT": "No original PSBT found",
-      "noSignedPSBTs": "No signed PSBTs collected",
+      "noOriginalPSBT": "No original PSBT found for combination",
+      "noSignedPSBTs": "No signed PSBTs found for combination",
       "openSignFlowFailed": "Failed to open sign flow",
       "pasteFromClipboard": "Failed to paste from clipboard",
+      "processPSBT": "Failed to process PSBT",
       "processScannedData": "Failed to process scanned data",
+      "processSignedPSBT": "Failed to process signed PSBT",
       "scanQRCode": "Failed to scan QR code",
       "transactionDataInvalid": "This message does not contain transaction data",
       "transactionDataNotFound": "Transaction data not found",
@@ -451,10 +470,12 @@
       "validMnemonic": "Please enter a valid mnemonic",
       "validatingCosignerSignature": "Failed in validating cosigner signature"
     },
+    "exceeds": "exceeds",
     "extendedPublicKey": "Extended Public Key",
     "fingerprint": "Fingerprint",
     "from": "From",
     "goBack": "Go back",
+    "hide": "Hide",
     "importFromClipboard": "Import from clipboard",
     "invalid": "Invalid",
     "key": "Key",
@@ -479,16 +500,21 @@
     "publicKeys": "PUBLIC KEYS",
     "remaining": "Remaining",
     "remove": "Remove",
+    "sats": "sats",
     "save": "Save",
     "scan": "Scan",
+    "scanQR": "Scan QR",
     "select": "Select",
     "selectAll": "Select All",
     "selected": "Selected",
+    "showQR": "Show QR",
     "skip": "Skip",
     "speed": "Speed",
     "success": {
       "dataPasted": "Data pasted successfully",
-      "qrScanned": "QR code scanned successfully"
+      "psbtImported": "PSBT imported successfully",
+      "qrScanned": "QR code scanned successfully",
+      "signedPsbtImported": "Signed PSBT imported successfully"
     },
     "tags": "Tags",
     "to": "To",
@@ -498,6 +524,20 @@
     "version": "Version",
     "warning": "Warning",
     "yes": "Yes"
+  },
+  "content": {
+    "bbqrFragment": "BBQR Fragment",
+    "bitcoinAddress": "Bitcoin Address",
+    "bitcoinUri": "Bitcoin Payment Request",
+    "detected": "Detected: {type}",
+    "ecashToken": "Ecash Token",
+    "lightningInvoice": "Lightning Network Invoice",
+    "lnurl": "LNURL Payment Request",
+    "processing": "Processing content...",
+    "psbt": "Partially Signed Bitcoin Transaction",
+    "seedQr": "Seed Phrase QR Code",
+    "unknown": "Unknown Content",
+    "ur": "Universal Resource"
   },
   "converter": {
     "currency.bitcoin": "Bitcoin",
@@ -607,18 +647,23 @@
     "error.invalidAmount": "Invalid amount",
     "error.invalidInvoice": "Invalid Lightning invoice",
     "error.invalidToken": "Invalid ecash token",
+    "error.invoiceDecodeFailed": "Failed to decode invoice details. Please verify the amount and description manually before proceeding.",
+    "error.invoiceDecodeUnavailable": "Invoice details could not be decoded. Please verify the amount and description manually before proceeding.",
     "error.lightningPaymentFailed": "Lightning payment failed. Please try again.",
     "error.lightningPaymentFailedStatus": "Lightning payment failed",
     "error.lnurlPaymentFailed": "Failed to process LNURL payment",
     "error.meltFailed": "Melt failed",
     "error.mintConnection": "Failed to connect to mint",
     "error.networkError": "Network error occurred",
+    "error.nfcEmissionFailed": "Failed to emit token via NFC",
+    "error.nfcNotAvailable": "NFC is not available on this device",
     "error.noAmountEntered": "No amount entered",
     "error.noInvoiceProvided": "No invoice provided",
     "error.noMintConnected": "No mint connected",
     "error.noPaymentRoute": "No payment route found - insufficient liquidity",
     "error.noPaymentRouteMessage": "No payment route found. Try a smaller amount or different invoice.",
     "error.noTextInClipboard": "No text found in clipboard",
+    "error.noTokenToEmit": "No token available to emit via NFC",
     "error.noTokensAvailable": "No tokens available",
     "error.noTokensToMelt": "No tokens available to melt",
     "error.noTokensToSend": "No tokens available to send",
@@ -688,6 +733,7 @@
     "send.meltTokens": "Melt Tokens",
     "send.memo": "Memo",
     "send.memoPlaceholder": "Enter memo (optional)",
+    "send.qrCode": "QR Code",
     "send.title": "Send",
     "settings.dataManagement": "Data Management",
     "settings.mintManagement": "Mint Management",
@@ -706,6 +752,7 @@
     "success.invoiceScanned": "Invoice scanned successfully",
     "success.mintConnected": "Connected to mint successfully",
     "success.paymentReceived": "Payment received successfully",
+    "success.tokenEmitted": "Token emitted via NFC successfully",
     "success.tokenGenerated": "Ecash token generated successfully",
     "success.tokenPasted": "Token pasted from clipboard",
     "success.tokenRedeemed": "Ecash token redeemed successfully",
@@ -742,7 +789,8 @@
     "transactionDetail.title": "Transaction Details",
     "transactionDetail.token": "Ecash Token",
     "transactionHistory.empty": "No transactions yet",
-    "transactionHistory.title": "Transaction History"
+    "transactionHistory.title": "Transaction History",
+    "warning.tokenTruncated": "Token was truncated due to NFC size limits"
   },
   "error": {
     "invalid.backend": "Invalid Backend",
@@ -811,6 +859,7 @@
     "success": "Imported %{importCount} from a total of %{total} labels matching your wallet"
   },
   "lightning": {
+    "amount": "Amount",
     "lnurlDetails.amountRange": "Amount Range",
     "lnurlDetails.commentAllowed": "Comment Allowed",
     "lnurlDetails.error": "Failed to load LNURL details",
@@ -850,6 +899,32 @@
     "label.converter": "Converter",
     "label.explorer": "Explorer",
     "label.signer": "Signer"
+  },
+  "nfc": {
+    "button": {
+      "startReading": "Start Reading",
+      "startWriting": "Start Writing",
+      "writing": "Writing NFC"
+    },
+    "description": {
+      "read": "Hold your device near another NFC-enabled device",
+      "write": "Hold your device near an NFC tag to write data"
+    },
+    "error": {
+      "noDataToWrite": "No data to write to NFC tag",
+      "readFailed": "Failed to read NFC tag",
+      "writeFailed": "Failed to write to NFC tag"
+    },
+    "mode": {
+      "read": "Read NFC Tag",
+      "write": "Write to NFC Tag"
+    },
+    "title": {
+      "bitcoin": "Bitcoin NFC",
+      "default": "NFC",
+      "ecash": "Ecash NFC",
+      "lightning": "Lightning NFC"
+    }
   },
   "opcode": {
     "DATA": "Data which can be hash, pubkey, address, signature, etc.",
@@ -955,6 +1030,59 @@
     "OP_VERNOTIF": "Transaction is invalid even when occuring in an unexecuted OP_IF branch.",
     "OP_WITHIN": "Returns 1 if x is within the specified range (left-inclusive), 0 otherwise.",
     "OP_XOR": "Boolean exclusive or between each bit in the inputs. <em>disabled</em>."
+  },
+  "paste": {
+    "button": {
+      "default": "Paste Content",
+      "payInvoice": "Pay Invoice",
+      "payLightningInvoice": "Pay Lightning Invoice",
+      "previewPsbt": "Preview PSBT",
+      "processBBQR": "Process BBQR",
+      "processContent": "Process Content",
+      "processEcashToken": "Process Ecash Token",
+      "processLightning": "Process Lightning",
+      "processLnurl": "Process LNURL",
+      "processSeed": "Process Seed",
+      "processTransaction": "Process Transaction",
+      "processUR": "Process UR",
+      "sendToAddress": "Send to Address"
+    },
+    "description": {
+      "bitcoin": "Paste Bitcoin addresses, payment requests, or PSBTs",
+      "default": "Paste content from clipboard",
+      "ecash": "Paste ecash tokens, Lightning invoices, or LNURL payment requests",
+      "lightning": "Paste Lightning invoices or LNURL payment requests"
+    },
+    "error": {
+      "failed": "Failed to process pasted content",
+      "invalidContent": "Invalid content for this context",
+      "loadFailed": "Failed to load clipboard content",
+      "noContent": "No content to paste",
+      "success": "Content pasted successfully",
+      "validateFailed": "Failed to validate content"
+    },
+    "title": {
+      "bitcoin": "Paste Bitcoin Content",
+      "default": "Paste Content",
+      "ecash": "Paste Ecash Content",
+      "lightning": "Paste Lightning Content"
+    },
+    "validation": {
+      "bbqr_fragment": "BBQR fragment detected",
+      "bitcoin_address": "Bitcoin address detected",
+      "bitcoin_transaction": "Bitcoin transaction detected",
+      "bitcoin_uri": "Bitcoin payment request detected",
+      "ecash_token": "Ecash token detected",
+      "empty": "Clipboard is empty",
+      "invalid": "Invalid content for this context",
+      "lightning_invoice": "Lightning invoice detected",
+      "lnurl": "LNURL payment request detected",
+      "psbt": "PSBT detected",
+      "seed_qr": "Seed phrase QR code detected",
+      "unknown": "Unknown content detected",
+      "ur": "Universal Resource detected",
+      "valid": "Valid content detected"
+    }
   },
   "preview": {
     "btnCollapse": "Collapse",
@@ -1422,12 +1550,21 @@
     "edit.label.transaction": "Edit transaction label",
     "edit.label.utxo": "Edit UTXO label",
     "error.ChangeAddressNotAvailable": "Change address not available. Please try again.",
+    "error.accountIdRequired": "Account ID is required for Bitcoin context",
     "error.address.invalid": "Invalid address",
+    "error.amountExceedsBalance": "Amount (%{amount} sats) exceeds wallet balance (%{balance} sats)",
     "error.bip21.insufficientSats": "Insufficient sats for amount in address",
+    "error.failedToDecodeBitcoinUri": "Failed to decode Bitcoin URI",
+    "error.insufficientFundsForAmount": "Insufficient funds for the specified amount",
     "error.insufficientInputs": "Amount exceed max with selected inputs. Add more inputs.",
     "error.invalid.proxyHost": "Invalid proxy host",
     "error.invalid.proxyPort": "Invalid proxy port",
+    "error.invalidContent": "Invalid content",
+    "error.invalidContentCannotBeProcessed": "Invalid content cannot be processed",
+    "error.noValidAddressFound": "No valid address found in content",
     "error.proxy.connection": "Proxy connection failed. Ensure Tor/Orbot is running.",
+    "error.psbtCannotBeUsedForOutputs": "PSBTs cannot be used for individual outputs",
+    "error.unsupportedContext": "Unsupported context: %{context}",
     "exportNFC": "Export NFC",
     "fee": "Fee",
     "feeBytes": "Fee sat/b",
@@ -1466,6 +1603,7 @@
     "preview.nfcTip": "Hold your device near another NFC-enabled device",
     "preview.nip17group": "NIP-17 GROUP",
     "preview.nip17groupComingSoon": "NIP-17 GROUP import coming soon",
+    "preview.processingPsbt": "Processing PSBT...",
     "preview.rawPSBT": "Raw PSBT",
     "preview.readyForFinalization": "Ready for finalization",
     "preview.scanAllChunks": "Chunk %{current} of %{total}",
@@ -1568,6 +1706,9 @@
     "number.greater": "The value must be greather than %{value}",
     "number.smaller": "The value must be smaller than %{value}",
     "required": "*required*"
+  },
+  "wallet": {
+    "balance": "wallet balance"
   },
   "warning": {
     "content": "Copyright (c) 2025 SatSigner\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.",

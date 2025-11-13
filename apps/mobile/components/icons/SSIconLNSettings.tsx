@@ -6,10 +6,10 @@ export default function SSIconLNSettings({ width, height }: IconProps) {
   return (
     <Svg width={width} height={height} viewBox="0 0 24 24">
       <Path
-        d="M18 3L6 13h7l-1 8 8-10h-7z"
+        d="M18 1L7 13h8l-3 10 9-13h-7z"
         fill="none"
         stroke="#828282"
-        strokeWidth="2.2"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
