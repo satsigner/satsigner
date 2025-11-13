@@ -74,6 +74,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useNostrStore } from '@/store/nostr'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
@@ -710,6 +711,10 @@ export default function AccountView() {
       ])
     )
 
+  const isNostrSyncing = useNostrStore((state) =>
+    id ? state.isSyncing(id) : false
+  )
+
   const wallet = useGetAccountWallet(id!)
   const watchOnlyWalletAddress = useGetAccountAddress(id!)
 
@@ -1037,6 +1042,7 @@ export default function AccountView() {
             <SSHStack gap="md">
               {account?.nostr?.autoSync && (
                 <SSIconButton
+                  disabled={isNostrSyncing}
                   onPress={() =>
                     router.navigate(
                       `/account/${id}/settings/nostr/devicesGroupChat`

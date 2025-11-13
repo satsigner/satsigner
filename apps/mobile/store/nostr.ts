@@ -31,6 +31,9 @@ type NostrState = {
     [accountId: string]: string[]
   }
   activeSubscriptions: Set<NostrAPI>
+  syncingAccounts: {
+    [accountId: string]: boolean
+  }
   transactionToShare: {
     message: string
     transactionData: TransactionData
@@ -58,6 +61,8 @@ type NostrAction = {
   addSubscription: (subscription: NostrAPI) => void
   clearSubscriptions: () => void
   getActiveSubscriptions: () => Set<NostrAPI>
+  setSyncing: (accountId: string, isSyncing: boolean) => void
+  isSyncing: (accountId: string) => boolean
   setTransactionToShare: (
     data: { message: string; transactionData: TransactionData } | null
   ) => void
@@ -88,6 +93,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
       trustedDevices: {},
       transactionToShare: null,
       activeSubscriptions: new Set<NostrAPI>(),
+      syncingAccounts: {},
       addMember: async (accountId, npub) => {
         try {
           const color = await generateColorFromNpub(npub)
@@ -285,6 +291,17 @@ const useNostrStore = create<NostrState & NostrAction>()(
       },
       getActiveSubscriptions: () => {
         return get().activeSubscriptions
+      },
+      setSyncing: (accountId, isSyncing) => {
+        set((state) => ({
+          syncingAccounts: {
+            ...state.syncingAccounts,
+            [accountId]: isSyncing
+          }
+        }))
+      },
+      isSyncing: (accountId) => {
+        return get().syncingAccounts[accountId] || false
       },
       setTransactionToShare: (data) => set({ transactionToShare: data })
     }),

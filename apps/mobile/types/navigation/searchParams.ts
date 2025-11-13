@@ -41,3 +41,7 @@ export type EcashSearchParams = {
   token?: string
   id?: string
 }
+
+export type DeviceAliasSearchParams = {
+  npub: string
+} & AccountSearchParams
