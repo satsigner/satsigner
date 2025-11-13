@@ -30,6 +30,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
+import { formatDate } from '@/utils/date'
 import { generateColorFromNpub } from '@/utils/nostr'
 
 export default function NostrSync() {
@@ -411,7 +412,7 @@ export default function NostrSync() {
         router.push({
           pathname: `/account/${accountId}/settings/nostr/device/[npub]`,
           params: { npub }
-        } as never)
+        })
       }
     },
     [accountId, account?.nostr, selectedMembers, updateAccountNostrCallback]
@@ -727,19 +728,7 @@ export default function NostrSync() {
               <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
                 <SSText color="muted">
                   Last sync:{' '}
-                  {lastProtocolEOSE
-                    ? new Date(lastProtocolEOSE * 1000).toLocaleString(
-                        'en-US',
-                        {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit'
-                        }
-                      )
-                    : 'Never'}
+                  {lastProtocolEOSE ? formatDate(lastProtocolEOSE) : 'Never'}
                 </SSText>
               </SSHStack>
             )}
@@ -867,7 +856,7 @@ export default function NostrSync() {
                                     router.push({
                                       pathname: `/account/${accountId}/settings/nostr/device/[npub]`,
                                       params: { npub: member.npub }
-                                    } as never)
+                                    })
                                   }}
                                   style={{ opacity: isSyncing ? 0.5 : 1 }}
                                 >
