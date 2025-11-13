@@ -1,11 +1,9 @@
-
 import { Redirect, Stack, useLocalSearchParams } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
-
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSNostrMessage from '@/components/SSNostrMessage'
@@ -20,7 +18,6 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
-import { type NostrDM } from '@/types/models/Nostr'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { parseNostrTransactionMessage } from '@/utils/nostr'
 import { type TransactionData } from '@/utils/psbt'
@@ -341,9 +338,7 @@ export default function DevicesGroupChat() {
               </SSText>
             }
             inverted={false}
-            contentContainerStyle={
-              { flexGrow: 1, justifyContent: 'flex-end' }
-            }
+            contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end' }}
             onContentSizeChange={() => {
               if (isAtBottomRef.current && flatListRef.current) {
                 flatListRef.current.scrollToEnd({ animated: false })
