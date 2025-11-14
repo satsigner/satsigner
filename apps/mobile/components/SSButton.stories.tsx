@@ -1,11 +1,10 @@
 import { withBackgrounds } from '@storybook/addon-ondevice-backgrounds'
 import type { Meta, StoryObj } from '@storybook/react'
-import { View } from 'react-native'
 
 import { storybookBackgrounds } from '@/.storybook/utils/backgrounds'
-import { Layout } from '@/styles'
 
 import SSButton from './SSButton'
+import storybookLayoutDecorator from './SSStoryBookLayout'
 
 const meta = {
   title: 'SSButton',
@@ -42,18 +41,7 @@ const meta = {
     }
   },
   decorators: [
-    (Story) => (
-      <View
-        style={{
-          alignItems: 'center',
-          justifyContent: 'center',
-          flex: 1,
-          paddingHorizontal: Layout.mainContainer.paddingHorizontal
-        }}
-      >
-        <Story />
-      </View>
-    ),
+    storybookLayoutDecorator,
     withBackgrounds
   ],
   parameters: {
