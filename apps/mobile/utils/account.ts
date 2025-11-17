@@ -65,7 +65,7 @@ export function updateAccountObjectLabels(account: Account) {
       const outputRef = `${tx.id}:${vout}`
       let outputLabel = labels[outputRef]?.label || ''
       if (!outputLabel && label) {
-        outputLabel = `${label} - ${vout} output`
+        outputLabel = `${label} (output ${vout})`
       }
       return {
         ...output,
@@ -73,12 +73,12 @@ export function updateAccountObjectLabels(account: Account) {
       }
     })
 
-    updatedAccount.transactions[index].vin = vin.map((input) => {
+    updatedAccount.transactions[index].vin = vin.map((input, vin) => {
       const { txid, vout } = input.previousOutput
       const inputRef = `${txid}:${vout}`
       let inputLabel = labels[inputRef]?.label
       if (!inputLabel && label) {
-        inputLabel = `${label} - ${vout} input`
+        inputLabel = `${label} (input ${vin})`
       }
       return {
         ...input,
