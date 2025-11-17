@@ -19,6 +19,7 @@ import { aesDecrypt } from '@/utils/crypto'
 import { formatTimestamp } from '@/utils/format'
 import { parseAddressDescriptorToAddress, parseHexToBytes } from '@/utils/parse'
 import { getUtxoOutpoint } from '@/utils/utxo'
+import { updateAccountObjectLabels } from '@/utils/account'
 
 type AddressInfo = {
   transactions: Transaction[]
@@ -510,8 +511,7 @@ function useSyncAccountWithAddress() {
     setLoading(true)
     setSyncStatus(account.id, 'syncing')
 
-    const labels = { ...account.labels }
-    const updatedAccount: Account = {
+    let updatedAccount: Account = {
       ...account,
       syncStatus: 'syncing',
       transactions: [...account.transactions]
@@ -543,83 +543,8 @@ function useSyncAccountWithAddress() {
       updatedAccount.transactions = addrInfo.transactions
       updatedAccount.utxos = addrInfo.utxos
 
-      // utxo labels update
-      for (const index in updatedAccount.utxos) {
-        const utxo = updatedAccount.utxos[index]
-        const utxoRef = getUtxoOutpoint(utxo)
-        let label = labels[utxoRef]?.label
-
-        // fall back to utxo's address's label
-        if (!label && utxo.addressTo) {
-          label = labels[utxo.addressTo]?.label
-        }
-
-        // save label inherited from address
-        if (label && !labels[utxoRef]) {
-          labels[utxoRef] = {
-            type: 'output',
-            ref: utxoRef,
-            label
-          }
-        }
-
-        updatedAccount.utxos[index].label = label || ''
-      }
-
-      // TX label update
-      for (const index in updatedAccount.transactions) {
-        const tx = updatedAccount.transactions[index]
-        const { id: txRef, vout, vin } = tx
-        let label = labels[txRef]?.label
-
-        // fall back to tx's address' label
-        if (!label && tx.vout.length > 0) {
-          label = ''
-          for (const output of tx.vout) {
-            const outputAddress = output.address
-            const outputLabel = labels[outputAddress]?.label
-            if (!outputLabel) continue
-            label += outputLabel + ','
-          }
-          label = label.replace(/,$/, '')
-        }
-
-        // save label inherited from address
-        if (label && !labels[txRef]) {
-          labels[txRef] = {
-            type: 'tx',
-            ref: txRef,
-            label
-          }
-        }
-
-        updatedAccount.transactions[index].label = label || ''
-
-        updatedAccount.transactions[index].vout = vout.map((output, vout) => {
-          const outputRef = `${tx.id}:${vout}`
-          let outputLabel = labels[outputRef]?.label || ''
-          if (!outputLabel && label) {
-            outputLabel = `${label} - ${vout} output`
-          }
-          return {
-            ...output,
-            label: outputLabel
-          }
-        })
-
-        updatedAccount.transactions[index].vin = vin.map((input) => {
-          const { txid, vout } = input.previousOutput
-          const inputRef = `${txid}:${vout}`
-          let inputLabel = labels[inputRef]?.label
-          if (!inputLabel && label) {
-            inputLabel = `${label} - ${vout} input`
-          }
-          return {
-            ...input,
-            label: inputLabel
-          }
-        })
-      }
+      // label update
+      updatedAccount = updateAccountObjectLabels(updatedAccount)
 
       // Convert timestamps to Date objects and collect unix timestamps
       const timestamps: number[] = []
