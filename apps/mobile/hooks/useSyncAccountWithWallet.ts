@@ -82,8 +82,9 @@ function useSyncAccountWithWallet() {
       // TX label update
       for (const index in updatedAccount.transactions) {
         const tx = updatedAccount.transactions[index]
-        const txRef = tx.id
+        const { id: txRef, vout, vin } = tx
         let label = labels[txRef]?.label
+
         // fall back to tx's address' label
         if (!label && tx.vout.length > 0) {
           label = ''
@@ -95,6 +96,7 @@ function useSyncAccountWithWallet() {
           }
           label = label.replace(/,$/, '')
         }
+
         // save label inherited from address
         if (label && !labels[txRef]) {
           labels[txRef] = {
@@ -103,7 +105,33 @@ function useSyncAccountWithWallet() {
             label
           }
         }
+
         updatedAccount.transactions[index].label = label || ''
+
+        updatedAccount.transactions[index].vout = vout.map((output, vout) => {
+          const outputRef = `${tx.id}:${vout}`
+          let outputLabel = labels[outputRef]?.label || ''
+          if (!outputLabel && label) {
+            outputLabel = `${label} - ${vout} output`
+          }
+          return {
+            ...output,
+            label: outputLabel
+          }
+        })
+
+        updatedAccount.transactions[index].vin = vin.map((input) => {
+          const { txid, vout } = input.previousOutput
+          const inputRef = `${txid}:${vout}`
+          let inputLabel = labels[inputRef]?.label
+          if (!inputLabel && label) {
+            inputLabel = `${label} - ${vout} input`
+          }
+          return {
+            ...input,
+            label: inputLabel
+          }
+        })
       }
 
       // address label update
