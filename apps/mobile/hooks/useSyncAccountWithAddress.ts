@@ -652,17 +652,11 @@ function useSyncAccountWithAddress() {
       let prices: number[] = []
 
       if (uniqueTimestamps.length > 0) {
-        try {
-          const historicalPrices = await oracle.getPricesAt(
-            'USD',
-            uniqueTimestamps
-          )
-          prices = [...prices, ...historicalPrices]
-        } catch (error) {
-          toast.error(
-            error instanceof Error ? error.message : 'Price fetching failded'
-          )
-        }
+        const historicalPrices = await oracle.getPricesAt(
+          'USD',
+          uniqueTimestamps
+        )
+        prices = [...prices, ...historicalPrices]
       }
 
       // Create price mapping
