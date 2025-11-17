@@ -30,6 +30,7 @@ export type NostrAccount = {
   dms: NostrDM[]
   lastBackupFingerprint?: string
   lastUpdated: Date
+  npubAliases?: Record<string, string>
   relays: string[]
   syncStart: Date
   trustedMemberDevices: string[]
