@@ -577,9 +577,20 @@ function DerivedAddresses({
           variant="outline"
           uppercase
           style={{ marginTop: 10 }}
-          label={t('address.list.table.loadMore')}
+          label={t('address.list.btn.loadMore')}
           disabled={loadingAddresses}
           onPress={loadMoreAddresses}
+        />
+      )}
+      {isMultiAddressWatchOnly && (
+        <SSButton
+          variant="outline"
+          uppercase
+          style={{ marginTop: 10 }}
+          label={t('address.list.btn.manage')}
+          onPress={() =>
+            router.navigate(`/account/${account.id}/settings/manageAddresses`)
+          }
         />
       )}
     </SSMainLayout>
