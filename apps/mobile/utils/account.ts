@@ -10,17 +10,25 @@ const MAX_DAYS_WITHOUT_SYNCING = 3
 // using the field labels.
 export function updateAccountObjectLabels(account: Account) {
   const labels = { ...account.labels }
-  const updatedAccount: Account = { ...account }
+  const copyObj = (obj: any) => ({ ...obj })
+  const updatedAccount: Account = {
+    ...account,
+    transactions: account.transactions.map(copyObj),
+    utxos: account.utxos.map(copyObj),
+    addresses: account.addresses.map(copyObj)
+  }
 
   // utxo labels update
   for (const index in updatedAccount.utxos) {
     const utxo = updatedAccount.utxos[index]
     const utxoRef = getUtxoOutpoint(utxo)
     let label = labels[utxoRef]?.label
+
     // fall back to utxo's address's label
     if (!label && utxo.addressTo) {
       label = labels[utxo.addressTo]?.label
     }
+
     // save label inherited from address
     if (label && !labels[utxoRef]) {
       labels[utxoRef] = {
