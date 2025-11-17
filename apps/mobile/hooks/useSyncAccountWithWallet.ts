@@ -48,8 +48,8 @@ function useSyncAccountWithWallet() {
         config.stopGap
       )
 
-      const labels = account.labels || {}
-      const updatedAccount: Account = { ...account, labels }
+      const labels = { ...account.labels }
+      const updatedAccount: Account = { ...account }
 
       updatedAccount.transactions = walletSummary.transactions
       updatedAccount.utxos = walletSummary.utxos
