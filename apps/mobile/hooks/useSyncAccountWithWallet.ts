@@ -9,10 +9,9 @@ import { getBlockchainConfig } from '@/config/servers'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
+import { updateAccountObjectLabels } from '@/utils/account'
 import { formatTimestamp } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
-import { getUtxoOutpoint } from '@/utils/utxo'
-import { updateAccountObjectLabels } from '@/utils/account'
 
 function useSyncAccountWithWallet() {
   const setSyncStatus = useAccountsStore((state) => state.setSyncStatus)
