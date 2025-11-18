@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router'
 import { useCallback } from 'react'
+import { Alert } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -46,36 +47,60 @@ export function useBitcoinContentHandler({
         return
       }
 
-      try {
-        processContentByContext(
-          content,
-          'bitcoin',
-          {
-            navigate: (
-              path:
-                | string
-                | { pathname: string; params?: Record<string, unknown> }
-            ) => {
-              if (typeof path === 'string') {
-                router.push(path as any)
-              } else {
-                router.push(path as any)
-              }
+      const processContent = () => {
+        try {
+          processContentByContext(
+            content,
+            'bitcoin',
+            {
+              navigate: (
+                path:
+                  | string
+                  | { pathname: string; params?: Record<string, unknown> }
+              ) => {
+                if (typeof path === 'string') {
+                  router.push(path as any)
+                } else {
+                  router.push(path as any)
+                }
+              },
+              clearTransaction,
+              addOutput,
+              addInput,
+              setFeeRate,
+              setRbf,
+              setSignedPsbts,
+              setTxBuilderResult
             },
-            clearTransaction,
-            addOutput,
-            addInput,
-            setFeeRate,
-            setRbf,
-            setSignedPsbts,
-            setTxBuilderResult
-          },
-          accountId,
-          account
+            accountId,
+            account
+          )
+        } catch (error) {
+          const errorMessage = (error as Error).message
+          toast.error(errorMessage || 'Failed to process content')
+        }
+      }
+
+      if (
+        content.type === 'bitcoin_descriptor' ||
+        content.type === 'extended_public_key'
+      ) {
+        Alert.alert(
+          'Create Watch-Only Account',
+          'Do you want to create a new watch-only account with this content?',
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel'
+            },
+            {
+              text: 'OK',
+              onPress: processContent
+            }
+          ]
         )
-      } catch (error) {
-        const errorMessage = (error as Error).message
-        toast.error(errorMessage || 'Failed to process content')
+      } else {
+        processContent()
       }
     },
     [
