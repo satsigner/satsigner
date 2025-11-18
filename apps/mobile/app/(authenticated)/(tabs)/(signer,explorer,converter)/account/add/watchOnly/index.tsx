@@ -54,7 +54,8 @@ const WATCH_ONLY_OPTIONS: CreationType[] = [
 ]
 
 export default function WatchOnly() {
-  const params = useLocalSearchParams<{ descriptor?: string }>()
+  const params =
+    useLocalSearchParams<{ descriptor?: string; extendedPublicKey?: string }>()
   const updateAccount = useAccountsStore((state) => state.updateAccount)
   const [
     name,
@@ -102,10 +103,14 @@ export default function WatchOnly() {
   const [permission, requestPermission] = useCameraPermissions()
   const [scanningFor, setScanningFor] = useState<'main' | 'fingerprint'>('main')
   const [selectedOption, setSelectedOption] = useState<CreationType>(
-    params.descriptor ? 'importDescriptor' : 'importExtendedPub'
+    params.descriptor
+      ? 'importDescriptor'
+      : params.extendedPublicKey
+        ? 'importExtendedPub'
+        : 'importExtendedPub'
   )
   const [modalOptionsVisible, setModalOptionsVisible] = useState(
-    !params.descriptor
+    !params.descriptor && !params.extendedPublicKey
   )
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
@@ -130,12 +135,18 @@ export default function WatchOnly() {
         const descriptorFromScanner = params.descriptor as string
 
         setCreationType('importDescriptor')
+        // handleSingleDescriptor will check if it is a combined descriptor and process it accordingly
         await handleSingleDescriptor(descriptorFromScanner)
+      } else if (params.extendedPublicKey) {
+        const xpubFromScanner = params.extendedPublicKey as string
+        setCreationType('importExtendedPub')
+        updateXpub(xpubFromScanner)
       }
     }
 
     handleScannerParams()
-  }, [params.descriptor, setCreationType])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.descriptor, params.extendedPublicKey, setCreationType])
 
   // Multipart QR scanning state
   const urDecoderRef = useRef<URDecoder>(new URDecoder())
@@ -262,7 +273,13 @@ export default function WatchOnly() {
   }
 
   function updateXpub(xpub: string) {
-    const validXpub = validateExtendedKey(xpub, network)
+    const validXpub = validateExtendedKey(xpub)
+    const validForNetwork = validateExtendedKey(xpub, network)
+
+    if (!validForNetwork && validXpub) {
+      toast.error(t('watchonly.error.networkMismatch'))
+    }
+
     setValidXpub(!xpub || validXpub)
 
     // Extract fingerprint from xpub if it contains a fingerprint prefix

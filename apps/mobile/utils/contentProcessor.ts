@@ -282,6 +282,14 @@ async function processBitcoinContent(
         )
       break
 
+    case 'extended_public_key':
+      router.push(
+        `/account/add/watchOnly?extendedPublicKey=${encodeURIComponent(
+          content.cleaned
+        )}`
+      )
+      break
+
     case 'bitcoin_transaction':
       navigate({
         pathname: '/account/[id]/signAndSend/previewMessage',

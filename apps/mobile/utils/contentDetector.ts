@@ -7,7 +7,8 @@ import { isLNURL } from '@/utils/lnurl'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import {
   isCombinedDescriptor,
-  validateDescriptorFormat
+  validateDescriptorFormat,
+  validateExtendedKey
 } from '@/utils/validation'
 
 /**
@@ -62,6 +63,7 @@ export type ContentType =
   | 'seed_qr'
   | 'ur'
   | 'bitcoin_descriptor'
+  | 'extended_public_key'
   | 'unknown'
 
 export type DetectedContent = {
@@ -70,6 +72,10 @@ export type DetectedContent = {
   cleaned: string
   metadata?: Record<string, any>
   isValid: boolean
+}
+
+function isExtendedPublicKey(data: string): boolean {
+  return validateExtendedKey(data)
 }
 
 async function isBitcoinDescriptor(data: string): Promise<boolean> {
@@ -112,6 +118,7 @@ async function detectBitcoinContent(
 ): Promise<DetectedContent | null> {
   const trimmed = data.trim()
 
+  // Check for Bitcoin descriptor
   if (await isBitcoinDescriptor(trimmed)) {
     return {
       type: 'bitcoin_descriptor',
@@ -138,6 +145,16 @@ async function detectBitcoinContent(
   if (isBitcoinTransaction(trimmed)) {
     return {
       type: 'bitcoin_transaction',
+      raw: data,
+      cleaned: trimmed,
+      isValid: true
+    }
+  }
+  
+  // Check for extended public key
+  if (isExtendedPublicKey(trimmed)) {
+    return {
+      type: 'extended_public_key',
       raw: data,
       cleaned: trimmed,
       isValid: true
@@ -371,7 +388,13 @@ export function isContentTypeSupportedInContext(
 ): boolean {
   switch (context) {
     case 'bitcoin':
-      return ['bitcoin_address', 'bitcoin_uri', 'psbt', 'bitcoin_descriptor'].includes(contentType)
+      return [
+        'bitcoin_address',
+        'bitcoin_uri',
+        'psbt',
+        'bitcoin_descriptor',
+        'extended_public_key'
+      ].includes(contentType)
     case 'lightning':
       return ['lightning_invoice', 'lnurl'].includes(contentType)
     case 'ecash':
@@ -394,6 +417,8 @@ export function getContentTypeDescription(contentType: ContentType): string {
       return 'Partially Signed Bitcoin Transaction'
     case 'bitcoin_descriptor':
       return 'Bitcoin Descriptor'
+    case 'extended_public_key':
+      return 'Extended Public Key'
     case 'lightning_invoice':
       return 'Lightning Network Invoice'
     case 'lnurl':
