@@ -5,6 +5,10 @@ import { isBip21, isBitcoinAddress } from '@/utils/bitcoin'
 import { isPSBT } from '@/utils/bitcoinContent'
 import { isLNURL } from '@/utils/lnurl'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
+import {
+  isCombinedDescriptor,
+  validateDescriptorFormat
+} from '@/utils/validation'
 
 /**
  * Check if a string is a raw Bitcoin transaction in hex format
@@ -57,6 +61,7 @@ export type ContentType =
   | 'bbqr_fragment'
   | 'seed_qr'
   | 'ur'
+  | 'bitcoin_descriptor'
   | 'unknown'
 
 export type DetectedContent = {
@@ -67,11 +72,57 @@ export type DetectedContent = {
   isValid: boolean
 }
 
+async function isBitcoinDescriptor(data: string): Promise<boolean> {
+  if (data.length < 10 || data.length > 1024) {
+    return false
+  }
+
+  const prefixes = [
+    'pk',
+    'pkh',
+    'wpkh',
+    'sh',
+    'wsh',
+    'tr',
+    'multi',
+    'sortedmulti',
+    'addr',
+    'combo'
+  ]
+  const startsWithPrefix = prefixes.some((prefix) =>
+    data.trim().toLowerCase().startsWith(prefix)
+  )
+  if (!startsWithPrefix) {
+    return false
+  }
+
+  try {
+    const result = await validateDescriptorFormat(data)
+    return result.isValid
+  } catch {
+    return false
+  }
+}
+
 /**
  * Detect Bitcoin-related content (addresses, URIs, PSBTs)
  */
-function detectBitcoinContent(data: string): DetectedContent | null {
+async function detectBitcoinContent(
+  data: string
+): Promise<DetectedContent | null> {
   const trimmed = data.trim()
+
+  if (await isBitcoinDescriptor(trimmed)) {
+    return {
+      type: 'bitcoin_descriptor',
+      raw: data,
+      cleaned: trimmed,
+      isValid: true,
+      metadata: {
+        isCombined: isCombinedDescriptor(trimmed)
+      }
+    }
+  }
 
   // Check for PSBT
   if (isPSBT(trimmed)) {
@@ -261,10 +312,10 @@ function detectImportContent(data: string): DetectedContent | null {
 /**
  * Main entry point for content detection by context
  */
-export function detectContentByContext(
+export async function detectContentByContext(
   data: string,
   context: 'bitcoin' | 'lightning' | 'ecash'
-): DetectedContent {
+): Promise<DetectedContent> {
   if (!data || data.trim().length === 0) {
     return {
       type: 'unknown',
@@ -279,7 +330,7 @@ export function detectContentByContext(
 
   switch (context) {
     case 'bitcoin':
-      detected = detectBitcoinContent(data)
+      detected = await detectBitcoinContent(data)
       break
     case 'lightning':
       detected = detectLightningContent(data)
@@ -320,7 +371,7 @@ export function isContentTypeSupportedInContext(
 ): boolean {
   switch (context) {
     case 'bitcoin':
-      return ['bitcoin_address', 'bitcoin_uri', 'psbt'].includes(contentType)
+      return ['bitcoin_address', 'bitcoin_uri', 'psbt', 'bitcoin_descriptor'].includes(contentType)
     case 'lightning':
       return ['lightning_invoice', 'lnurl'].includes(contentType)
     case 'ecash':
@@ -341,6 +392,8 @@ export function getContentTypeDescription(contentType: ContentType): string {
       return 'Bitcoin Payment Request'
     case 'psbt':
       return 'Partially Signed Bitcoin Transaction'
+    case 'bitcoin_descriptor':
+      return 'Bitcoin Descriptor'
     case 'lightning_invoice':
       return 'Lightning Network Invoice'
     case 'lnurl':

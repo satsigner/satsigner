@@ -1065,9 +1065,10 @@
     "validation": {
       "bbqr_fragment": "BBQR fragment detected",
       "bitcoin_address": "Bitcoin address detected",
-      "bitcoin_transaction": "Bitcoin transaction detected",
-      "bitcoin_uri": "Bitcoin payment request detected",
-      "ecash_token": "Ecash token detected",
+      "bitcoin_descriptor": "Valid Bitcoin Descriptor detected.",
+      "bitcoin_transaction": "Valid Bitcoin Transaction detected.",
+      "bitcoin_uri": "Valid Bitcoin URI detected.",
+      "ecash_token": "Valid Ecash Token detected",
       "empty": "Clipboard is empty",
       "invalid": "Invalid content for this context",
       "lightning_invoice": "Lightning invoice detected",

@@ -6,6 +6,7 @@ import {
 } from 'bdk-rn/lib/classes/Bindings'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { Buffer } from 'buffer'
+import { router } from 'expo-router'
 import { toast } from 'sonner-native'
 
 import { SATS_PER_BITCOIN } from '@/constants/btc'
@@ -98,6 +99,7 @@ async function processBitcoinContent(
   accountId: string,
   account?: Account
 ) {
+
   const { navigate, clearTransaction, addOutput } = actions
 
   if (clearTransaction) {
@@ -271,6 +273,13 @@ async function processBitcoinContent(
           // Navigation already happened above
         }
       }
+      break
+
+    case 'bitcoin_descriptor':
+      router.push(
+          `/account/add/watchOnly?descriptor=${content.cleaned
+          }`
+        )
       break
 
     case 'bitcoin_transaction':

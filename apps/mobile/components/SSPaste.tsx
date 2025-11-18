@@ -66,7 +66,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
         const { detectContentByContext } = await import(
           '@/utils/contentDetector'
         )
-        const detectedContent = detectContentByContext(text, context)
+        const detectedContent = await detectContentByContext(text, context)
         setIsValidContent(detectedContent.isValid)
         setDetectedContentType(
           detectedContent.isValid ? detectedContent.type : null
@@ -112,7 +112,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
       await new Promise((resolve) => setTimeout(resolve, 100))
 
       const { detectContentByContext } = await import('@/utils/contentDetector')
-      const detectedContent = detectContentByContext(content, context)
+      const detectedContent = await detectContentByContext(content, context)
 
       if (!detectedContent.isValid) {
         setIsProcessing(false)

@@ -211,7 +211,7 @@ function SSCameraModal({
   }, [])
 
   const handleQRCodeScanned = useCallback(
-    (data: string) => {
+    async (data: string) => {
       if (!data) {
         toast.error(t('camera.error.scanFailed'))
         return
@@ -288,22 +288,22 @@ function SSCameraModal({
         }
 
         // Process the content using the content detector
-        import('@/utils/contentDetector').then(({ detectContentByContext }) => {
-          const detectedContent = detectContentByContext(finalContent, context)
+        const { detectContentByContext } = await import(
+          '@/utils/contentDetector'
+        )
+        const detectedContent = await detectContentByContext(finalContent, context)
 
-          onClose()
-          resetScanProgress()
+        onClose()
+        resetScanProgress()
 
-          if (!detectedContent.isValid) {
-            // Small delay to ensure modal is fully closed before showing toast
-            setTimeout(() => {
-              toast.error(t('camera.error.invalidContent'))
-            }, 100)
-            return
-          }
+        if (!detectedContent.isValid) {
+          setTimeout(() => {
+            toast.error(t('camera.error.invalidContent'))
+          }, 100)
+          return
+        }
 
-          onContentScanned(detectedContent)
-        })
+        onContentScanned(detectedContent)
 
         return
       }
@@ -368,40 +368,39 @@ function SSCameraModal({
 
           if (assembledData) {
             // Process the assembled data using content detector
-            import('@/utils/contentDetector').then(
-              ({ detectContentByContext }) => {
-                const detectedContent = detectContentByContext(
-                  assembledData,
-                  context
-                )
-
-                onClose()
-                resetScanProgress()
-
-                if (!detectedContent.isValid) {
-                  // Small delay to ensure modal is fully closed before showing toast
-                  setTimeout(() => {
-                    toast.error(t('camera.error.invalidContent'))
-                  }, 100)
-                  return
-                }
-
-                onContentScanned(detectedContent)
-
-                if (
-                  assembledData.toLowerCase().startsWith('70736274ff') ||
-                  assembledData.startsWith('cHNidP')
-                ) {
-                  toast.success(
-                    `PSBT assembled successfully (${newScanned.size} fragments). Note: PSBT may need additional signatures to finalize.`
-                  )
-                } else {
-                  toast.success(
-                    `Successfully assembled final transaction from ${newScanned.size} fragments`
-                  )
-                }
-              }
+            const { detectContentByContext } = await import(
+              '@/utils/contentDetector'
             )
+            const detectedContent = await detectContentByContext(
+              assembledData,
+              context
+            )
+
+            onClose()
+            resetScanProgress()
+
+            if (!detectedContent.isValid) {
+              // Small delay to ensure modal is fully closed before showing toast
+              setTimeout(() => {
+                toast.error(t('camera.error.invalidContent'))
+              }, 100)
+              return
+            }
+
+            onContentScanned(detectedContent)
+
+            if (
+              assembledData.toLowerCase().startsWith('70736274ff') ||
+              assembledData.startsWith('cHNidP')
+            ) {
+              toast.success(
+                `PSBT assembled successfully (${newScanned.size} fragments). Note: PSBT may need additional signatures to finalize.`
+              )
+            } else {
+              toast.success(
+                `Successfully assembled final transaction from ${newScanned.size} fragments`
+              )
+            }
           }
         }
 
@@ -414,40 +413,39 @@ function SSCameraModal({
 
           if (assembledData) {
             // Process the assembled data using content detector
-            import('@/utils/contentDetector').then(
-              ({ detectContentByContext }) => {
-                const detectedContent = detectContentByContext(
-                  assembledData,
-                  context
-                )
-
-                onClose()
-                resetScanProgress()
-
-                if (!detectedContent.isValid) {
-                  // Small delay to ensure modal is fully closed before showing toast
-                  setTimeout(() => {
-                    toast.error(t('camera.error.invalidContent'))
-                  }, 100)
-                  return
-                }
-
-                onContentScanned(detectedContent)
-
-                if (
-                  assembledData.toLowerCase().startsWith('70736274ff') ||
-                  assembledData.startsWith('cHNidP')
-                ) {
-                  toast.success(
-                    `PSBT assembled successfully (${total} parts). Note: PSBT may need additional signatures to finalize.`
-                  )
-                } else {
-                  toast.success(
-                    `Successfully assembled final transaction from ${total} parts`
-                  )
-                }
-              }
+            const { detectContentByContext } = await import(
+              '@/utils/contentDetector'
             )
+            const detectedContent = await detectContentByContext(
+              assembledData,
+              context
+            )
+
+            onClose()
+            resetScanProgress()
+
+            if (!detectedContent.isValid) {
+              // Small delay to ensure modal is fully closed before showing toast
+              setTimeout(() => {
+                toast.error(t('camera.error.invalidContent'))
+              }, 100)
+              return
+            }
+
+            onContentScanned(detectedContent)
+
+            if (
+              assembledData.toLowerCase().startsWith('70736274ff') ||
+              assembledData.startsWith('cHNidP')
+            ) {
+              toast.success(
+                `PSBT assembled successfully (${total} parts). Note: PSBT may need additional signatures to finalize.`
+              )
+            } else {
+              toast.success(
+                `Successfully assembled final transaction from ${total} parts`
+              )
+            }
           } else {
             toast.error(t('camera.error.assembleFailed'))
             resetScanProgress()
