@@ -10,12 +10,11 @@ const MAX_DAYS_WITHOUT_SYNCING = 3
 // using the field labels.
 export function updateAccountObjectLabels(account: Account) {
   const labels = { ...account.labels }
-  const copyObj = (obj: any) => ({ ...obj })
   const updatedAccount: Account = {
     ...account,
-    transactions: account.transactions.map(copyObj),
-    utxos: account.utxos.map(copyObj),
-    addresses: account.addresses.map(copyObj)
+    transactions: account.transactions.map((t) => ({ ...t })),
+    utxos: account.utxos.map((u) => ({ ...u })),
+    addresses: account.addresses.map((a) => ({ ...a }))
   }
 
   // utxo labels update
