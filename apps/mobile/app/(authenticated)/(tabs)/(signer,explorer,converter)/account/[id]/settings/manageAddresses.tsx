@@ -1,13 +1,16 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { ScrollView, StyleSheet } from 'react-native'
+import { SafeAreaView, StyleSheet, TouchableOpacity } from 'react-native'
+import DraggableFlatList, {
+  type RenderItemParams,
+  ScaleDecorator
+} from 'react-native-draggable-flatlist'
 import uuid from 'react-native-uuid'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
-import SSCheckbox from '@/components/SSCheckbox'
 import SSModal from '@/components/SSModal'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
@@ -37,11 +40,9 @@ export default function ManageAccountAddresses() {
     ])
   )
 
-  const [currencyUnit, setSatsUnit] = useState<'sats' | 'btc'>('sats')
   const [addresses, setAddresses] = useState<WatchedAddress[]>([
     ...(account?.addresses || [])
   ])
-
   const [showAddAddressModal, setShowAddAddressModal] = useState(false)
   const [showDeleteAddressModal, setShowDeleteAddressModal] = useState(false)
   const [addressInput, setAddressInput] = useState('')
@@ -55,31 +56,97 @@ export default function ManageAccountAddresses() {
     )
   }, [account])
 
-  function handleAddAddress() {
-    const address = addressInput.trim()
-    if (!validateAddress(address)) {
-      toast.error('Invalid address')
-      return
-    }
+  function renderItem({
+    item,
+    getIndex,
+    drag,
+    isActive
+  }: RenderItemParams<WatchedAddress>) {
+    const index = getIndex() || 0
+    const address = item
 
-    const duplicated = addresses.some((addr) => addr.address === address)
-    if (duplicated) {
-      toast.error('Duplicated address')
-      return
-    }
-
-    addAddress(address)
-    setShowAddAddressModal(false)
-  }
-
-  function handleDeleteAddress(address: string) {
-    setShowDeleteAddressModal(true)
-    setAddressToDelete(address)
-  }
-
-  function deleteAddress(address: string) {
-    setAddresses(addresses.filter((addr) => addr.address !== address))
-    setShowDeleteAddressModal(false)
+    return (
+      <ScaleDecorator activeScale={1.03}>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onLongPress={drag}
+          delayLongPress={250}
+          disabled={isActive}
+          style={{
+            marginVertical: 10,
+            paddingVertical: isActive ? 12 : 0,
+            paddingHorizontal: isActive ? 16 : 0,
+            borderRadius: isActive ? 16 : 0,
+            backgroundColor: isActive ? '#333' : '#000'
+          }}
+        >
+          <SSVStack gap="sm">
+            <SSText uppercase weight="bold">
+              {`Address #${index + 1}`} {address.new && '(NEW)'}
+            </SSText>
+            <SSAddressDisplay address={address.address} />
+            {!address.new && (
+              <SSVStack gap="none">
+                <SSText>
+                  Current balance:{' '}
+                  <SSStyledSatText
+                    amount={address.summary.balance}
+                    textSize="sm"
+                    noColor
+                  />{' '}
+                  sats
+                </SSText>
+                {address.summary.satsInMempool > 0 && (
+                  <SSText>
+                    Unconfirmed funds in mempool:{' '}
+                    <SSStyledSatText
+                      amount={address.summary.satsInMempool}
+                      textSize="sm"
+                      noColor
+                    />
+                  </SSText>
+                )}
+                <SSText>
+                  Total UTXOs:{' '}
+                  <SSText weight="bold">{address.summary.utxos}</SSText>
+                </SSText>
+                <SSText>
+                  Total Transactions:{' '}
+                  <SSText weight="bold">{address.summary.transactions}</SSText>
+                </SSText>
+                <SSText>
+                  Label:{' '}
+                  {address.label ? (
+                    <SSText weight="bold">{address.label}</SSText>
+                  ) : (
+                    <SSText color="muted">{t('common.noLabel')}</SSText>
+                  )}
+                </SSText>
+              </SSVStack>
+            )}
+            <SSHStack gap="sm" justifyBetween>
+              <SSButton
+                style={styles.addressActionButton}
+                label="VIEW DETAILS"
+                variant="secondary"
+                disabled={address.new}
+                onPress={() =>
+                  router.navigate(
+                    `/account/${accountId}/address/${address.address}`
+                  )
+                }
+              />
+              <SSButton
+                style={styles.addressActionButton}
+                label="DELETE"
+                variant="danger"
+                onPress={() => handleDeleteAddress(address.address)}
+              />
+            </SSHStack>
+          </SSVStack>
+        </TouchableOpacity>
+      </ScaleDecorator>
+    )
   }
 
   function addAddress(address: string) {
@@ -100,10 +167,45 @@ export default function ManageAccountAddresses() {
     setAddresses([...addresses, newAddress])
   }
 
+  function handleAddAddress() {
+    const address = addressInput.trim()
+    if (!validateAddress(address)) {
+      toast.error('Invalid address')
+      return
+    }
+
+    const duplicated = addresses.some((addr) => addr.address === address)
+    if (duplicated) {
+      toast.error('Duplicated address')
+      return
+    }
+
+    addAddress(address)
+    setShowAddAddressModal(false)
+  }
+
+  function deleteAddress(address: string) {
+    setAddresses(addresses.filter((addr) => addr.address !== address))
+    setShowDeleteAddressModal(false)
+  }
+
+  function handleDeleteAddress(address: string) {
+    setShowDeleteAddressModal(true)
+    setAddressToDelete(address)
+  }
+
   async function handleSaveChanges() {
     if (!account) return
 
-    // the account keys has the addresses stored as external descriptors
+    const addressesNotChanged = addresses.every(
+      (addr, index) => account.addresses[index].address === addr.address
+    )
+
+    if (addressesNotChanged) {
+      router.back()
+      return
+    }
+
     const keys = addresses.map((addr, index) => {
       const secret: Secret = {
         externalDescriptor: `addr(${addr.address})`
@@ -118,9 +220,19 @@ export default function ManageAccountAddresses() {
     })
     const keyCount = keys.length
 
+    // we have to reset the account data because
     const updatedAccount: Account = {
       ...account,
+      transactions: [],
+      utxos: [],
       addresses,
+      summary: {
+        satsInMempool: 0,
+        numberOfUtxos: 0,
+        numberOfTransactions: 0,
+        numberOfAddresses: addresses.length,
+        balance: 0
+      },
       syncStatus: 'unsynced',
       keyCount,
       keys
@@ -133,99 +245,22 @@ export default function ManageAccountAddresses() {
   if (!account || !isMultiAddressWatchOnly) return <Redirect href="/" />
 
   return (
-    <SSMainLayout style={{ marginBottom: 20 }}>
-      <ScrollView>
-        <SSVStack gap="lg">
-          <SSText uppercase size="lg" weight="bold">
+    <SSMainLayout style={[styles.container, styles.mainContainer]}>
+      <SafeAreaView style={styles.container}>
+        <SSVStack style={styles.container}>
+          <SSText uppercase size="lg" weight="bold" center>
             Manage addresses
           </SSText>
-          <SSVStack gap="sm">
-            <SSText size="md" weight="bold">
-              Currency display options:
-            </SSText>
-            <SSCheckbox
-              selected={currencyUnit === 'sats'}
-              onPress={() => setSatsUnit('sats')}
-              label="SATS"
+          <SSVStack gap="lg" style={styles.container}>
+            <DraggableFlatList
+              data={addresses}
+              onDragEnd={({ data }) => setAddresses(data)}
+              keyExtractor={(item) => item.address}
+              renderItem={renderItem}
+              style={{ flex: 1 }}
+              dragItemOverflow
+              containerStyle={styles.container}
             />
-            <SSCheckbox
-              selected={currencyUnit === 'btc'}
-              onPress={() => setSatsUnit('btc')}
-              label="BTC"
-            />
-          </SSVStack>
-          <SSVStack gap="lg">
-            {addresses.map((address, index) => {
-              return (
-                <SSVStack gap="sm" key={address.address}>
-                  <SSText uppercase weight="bold">
-                    {`Address #${index + 1}`} {address.new && '(NEW)'}
-                  </SSText>
-                  <SSAddressDisplay address={address.address} />
-                  {!address.new && (
-                    <SSVStack gap="none">
-                      <SSText>
-                        Current balance:{' '}
-                        <SSStyledSatText
-                          amount={address.summary.balance}
-                          useZeroPadding={currencyUnit === 'btc'}
-                          textSize="sm"
-                          noColor
-                        />
-                      </SSText>
-                      {address.summary.satsInMempool > 0 && (
-                        <SSText>
-                          Unconfirmed funds in mempool:{' '}
-                          <SSStyledSatText
-                            amount={address.summary.satsInMempool}
-                            useZeroPadding={currencyUnit === 'btc'}
-                            textSize="sm"
-                            noColor
-                          />
-                        </SSText>
-                      )}
-                      <SSText>
-                        Total UTXOs:{' '}
-                        <SSText weight="bold">{address.summary.utxos}</SSText>
-                      </SSText>
-                      <SSText>
-                        Total Transactions:{' '}
-                        <SSText weight="bold">
-                          {address.summary.transactions}
-                        </SSText>
-                      </SSText>
-                      <SSText>
-                        Label:{' '}
-                        {address.label ? (
-                          <SSText weight="bold">{address.label}</SSText>
-                        ) : (
-                          <SSText color="muted">{t('common.noLabel')}</SSText>
-                        )}
-                      </SSText>
-                    </SSVStack>
-                  )}
-                  <SSHStack gap="sm" justifyBetween>
-                    <SSButton
-                      style={styles.addressActionButton}
-                      label="VIEW DETAILS"
-                      variant="secondary"
-                      disabled={address.new}
-                      onPress={() =>
-                        router.navigate(
-                          `/account/${accountId}/address/${address.address}`
-                        )
-                      }
-                    />
-                    <SSButton
-                      style={styles.addressActionButton}
-                      label="DELETE"
-                      variant="danger"
-                      onPress={() => handleDeleteAddress(address.address)}
-                    />
-                  </SSHStack>
-                </SSVStack>
-              )
-            })}
           </SSVStack>
           <SSVStack gap="sm">
             <SSButton
@@ -242,7 +277,7 @@ export default function ManageAccountAddresses() {
             />
           </SSVStack>
         </SSVStack>
-      </ScrollView>
+      </SafeAreaView>
       <SSModal
         visible={showDeleteAddressModal}
         onClose={() => setShowDeleteAddressModal(false)}
@@ -312,5 +347,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     height: '100%',
     width: '100%'
+  },
+  container: {
+    flex: 1,
+    overflow: 'visible'
+  },
+  mainContainer: {
+    paddingTop: 0,
+    marginTop: 0,
+    marginBottom: 20
   }
 })
