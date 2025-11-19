@@ -5,6 +5,7 @@ import { ScrollView } from 'react-native'
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
+import SSModal from '@/components/SSModal'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
@@ -23,6 +24,8 @@ export default function ManageAccountAddresses() {
   )
 
   const [currencyUnit, setSatsUnit] = useState<'sats' | 'btc'>('sats')
+  const [showDeleteAddressModal, setShowDeleteAddressModal] = useState(false)
+  const [addressToDelete, setAddressToDelete] = useState('')
 
   const isMultiAddressWatchOnly = useMemo(() => {
     return (
@@ -41,8 +44,14 @@ export default function ManageAccountAddresses() {
     [currencyUnit]
   )
 
-  function handleShowAddAddress() {
-    // TODO:
+  function handleDeleteAddress(address: string) {
+    setShowDeleteAddressModal(true)
+    setAddressToDelete(address)
+  }
+
+  function deleteAddress(address: string) {
+    setAddresses(addresses.filter((addr) => addr.address !== address))
+  }
   }
 
   function handleDeleteAddress() {
@@ -130,7 +139,7 @@ export default function ManageAccountAddresses() {
                       style={{ width: 'auto', flexGrow: 1 }}
                       label="DELETE"
                       variant="danger"
-                      onPress={handleDeleteAddress}
+                      onPress={() => handleDeleteAddress(address.address)}
                     />
                   </SSHStack>
                 </SSVStack>
@@ -145,6 +154,32 @@ export default function ManageAccountAddresses() {
           />
         </SSVStack>
       </ScrollView>
+      <SSModal
+        visible={showDeleteAddressModal}
+        onClose={() => setShowDeleteAddressModal(false)}
+      >
+        <SSVStack>
+          <SSText>You are about to delete the following address:</SSText>
+          <SSAddressDisplay
+            address={addressToDelete}
+            variant='bare'
+          />
+          <SSVStack gap="sm">
+            <SSButton
+              label={t('common.yes')}
+              variant="outline"
+              uppercase
+              onPress={() => handleAddAddress()}
+            />
+            <SSButton
+              label={t('common.no')}
+              variant="danger"
+              uppercase
+              onPress={() => setShowDeleteAddressModal(false)}
+            />
+          </SSVStack>
+        </SSVStack>
+      </SSModal>
     </SSMainLayout>
   )
 }
