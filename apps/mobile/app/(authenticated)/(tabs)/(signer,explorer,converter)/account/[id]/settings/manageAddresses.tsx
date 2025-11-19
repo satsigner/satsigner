@@ -1,9 +1,11 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
-import { useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { ScrollView } from 'react-native'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
+import SSCheckbox from '@/components/SSCheckbox'
+import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -11,6 +13,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { formatNumber } from '@/utils/format'
 
 export default function ManageAccountAddresses() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -18,6 +21,8 @@ export default function ManageAccountAddresses() {
   const account = useAccountsStore((state) =>
     state.accounts.find((_account) => _account.id === accountId)
   )
+
+  const [currencyUnit, setSatsUnit] = useState<'sats' | 'btc'>('sats')
 
   const isMultiAddressWatchOnly = useMemo(() => {
     return (
@@ -27,14 +32,21 @@ export default function ManageAccountAddresses() {
     )
   }, [account])
 
+  const formatAmount = useCallback(
+    function (amount: number) {
+      return currencyUnit === 'sats'
+        ? formatNumber(amount)
+        : formatNumber(amount / 100_000_000, 8)
+    },
+    [currencyUnit]
+  )
+
   function handleShowAddAddress() {
-    // TODO: show input to add a new address, store it as new key and address
-    // object as well.
+    // TODO:
   }
 
   function handleDeleteAddress() {
-    // TODO: remove the secret key associated with that address and the address
-    // object as well.
+    // TODO:
   }
 
   if (!account || !isMultiAddressWatchOnly) return <Redirect href="/" />
@@ -46,17 +58,64 @@ export default function ManageAccountAddresses() {
           <SSText uppercase size="lg" weight="bold">
             Manage addresses
           </SSText>
-          <SSVStack>
+          <SSVStack gap="sm">
+            <SSText size="md" weight="bold">
+              Currency display options:
+            </SSText>
+            <SSCheckbox
+              selected={currencyUnit === 'sats'}
+              onPress={() => setSatsUnit('sats')}
+              label="SATS"
+            />
+            <SSCheckbox
+              selected={currencyUnit === 'btc'}
+              onPress={() => setSatsUnit('btc')}
+              label="BTC"
+            />
+          </SSVStack>
+          <SSVStack gap="lg">
             {account.addresses.map((address, index) => {
               return (
-                <SSVStack gap="sm">
+                <SSVStack gap="sm" key={address.address}>
                   <SSText uppercase weight="bold">
                     {`Address #${index + 1}`}
                   </SSText>
                   <SSAddressDisplay address={address.address} />
-                  <SSText color="muted">
-                    {address.label || t('common.noLabel')}
-                  </SSText>
+                  <SSVStack gap="none">
+                    <SSText>
+                      Current balance:{' '}
+                      <SSStyledSatText
+                        amount={address.summary.balance}
+                        useZeroPadding
+                        textSize="sm"
+                        noColor
+                      />
+                    </SSText>
+                    {address.summary.satsInMempool > 0 && (
+                      <SSText>
+                        Unconfirmed funds in mempool:{' '}
+                        {formatAmount(address.summary.satsInMempool)}
+                      </SSText>
+                    )}
+                    <SSText>
+                      Total UTXOs:{' '}
+                      <SSText weight="bold">{address.summary.utxos}</SSText>
+                    </SSText>
+                    <SSText>
+                      Total Transactions:{' '}
+                      <SSText weight="bold">
+                        {address.summary.transactions}
+                      </SSText>
+                    </SSText>
+                    <SSText>
+                      Label:{' '}
+                      {address.label ? (
+                        <SSText weight="bold">{address.label}</SSText>
+                      ) : (
+                        <SSText color="muted">{t('common.noLabel')}</SSText>
+                      )}
+                    </SSText>
+                  </SSVStack>
                   <SSHStack gap="sm">
                     <SSButton
                       style={{ width: 'auto', flexGrow: 1 }}
@@ -79,9 +138,9 @@ export default function ManageAccountAddresses() {
             })}
           </SSVStack>
           <SSButton
+            label="Add address"
             variant="outline"
             uppercase
-            label="Add address"
             onPress={handleShowAddAddress}
           />
         </SSVStack>
