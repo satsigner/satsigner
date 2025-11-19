@@ -14,6 +14,7 @@ import { type Account, type Secret } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Network } from '@/types/settings/blockchain'
+import { updateAccountObjectLabels } from '@/utils/account'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { formatTimestamp } from '@/utils/format'
@@ -510,22 +511,13 @@ function useSyncAccountWithAddress() {
     setLoading(true)
     setSyncStatus(account.id, 'syncing')
 
-    const updatedAccount: Account = {
+    let updatedAccount: Account = {
       ...account,
       syncStatus: 'syncing',
       transactions: [...account.transactions]
     }
 
     try {
-      // Labels backup
-      const labelsBackup: Record<string, string> = {}
-      for (const transaction of account.transactions) {
-        labelsBackup[transaction.id] = transaction.label || ''
-      }
-      for (const utxo of account.utxos) {
-        labelsBackup[getUtxoOutpoint(utxo)] = utxo.label || ''
-      }
-
       // Extract address from descriptor
       const address = parseAddressDescriptorToAddress(addressDescriptor)
 
@@ -551,16 +543,8 @@ function useSyncAccountWithAddress() {
       updatedAccount.transactions = addrInfo.transactions
       updatedAccount.utxos = addrInfo.utxos
 
-      // Update labels
-      for (const index in updatedAccount.utxos) {
-        const utxoRef = getUtxoOutpoint(updatedAccount.utxos[index])
-        updatedAccount.utxos[index].label = labelsBackup[utxoRef] || ''
-      }
-      for (const index in updatedAccount.transactions) {
-        const transactionRef = updatedAccount.transactions[index].id
-        updatedAccount.transactions[index].label =
-          labelsBackup[transactionRef] || ''
-      }
+      // label update
+      updatedAccount = updateAccountObjectLabels(updatedAccount)
 
       // Convert timestamps to Date objects and collect unix timestamps
       const timestamps: number[] = []
@@ -593,17 +577,11 @@ function useSyncAccountWithAddress() {
       let prices: number[] = []
 
       if (uniqueTimestamps.length > 0) {
-        try {
-          const historicalPrices = await oracle.getPricesAt(
-            'USD',
-            uniqueTimestamps
-          )
-          prices = [...prices, ...historicalPrices]
-        } catch (error) {
-          toast.error(
-            error instanceof Error ? error.message : 'Price fetching failded'
-          )
-        }
+        const historicalPrices = await oracle.getPricesAt(
+          'USD',
+          uniqueTimestamps
+        )
+        prices = [...prices, ...historicalPrices]
       }
 
       // Create price mapping
