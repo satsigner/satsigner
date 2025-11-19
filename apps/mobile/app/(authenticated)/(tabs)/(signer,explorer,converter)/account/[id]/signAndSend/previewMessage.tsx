@@ -50,20 +50,19 @@ import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { extractKeyFingerprint } from '@/utils/account'
 import {
   createBBQRChunks,
   decodeBBQRChunks,
   FileType,
   isBBQRFragment
 } from '@/utils/bbqr'
-import { extractKeyFingerprint } from '@/utils/account'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { parseHexToBytes } from '@/utils/parse'
 import {
   extractOriginalPsbt,
   extractPSBTDerivations,
-  extractTransactionIdFromPSBT,
   findMatchingAccount,
   validateSignedPSBTForCosigner
 } from '@/utils/psbt'
@@ -597,7 +596,6 @@ function PreviewMessage() {
 
         // Match each signed PSBT to a cosigner
         Object.values(bySigner).forEach((indivBase64: string) => {
-          const indivPsbt = bitcoinjs.Psbt.fromBase64(indivBase64)
           const indivPubkeys = getCollectedSignerPubkeys(indivBase64)
 
           // Try to match by pubkey from BIP32 derivations first

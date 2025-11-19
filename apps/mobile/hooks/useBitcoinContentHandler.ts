@@ -47,6 +47,24 @@ export function useBitcoinContentHandler({
         return
       }
 
+      if (content.type === 'incompatible') {
+        Alert.alert(
+          'Incompatible Content',
+          'The content you scanned is not compatible with a Bitcoin wallet. Would you like to switch to a compatible wallet?',
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel'
+            },
+            {
+              text: 'Switch Wallet',
+              onPress: () => router.push('/accountList')
+            }
+          ]
+        )
+        return
+      }
+
       const processContent = () => {
         try {
           processContentByContext(

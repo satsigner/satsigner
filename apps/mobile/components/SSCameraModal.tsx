@@ -291,7 +291,10 @@ function SSCameraModal({
         const { detectContentByContext } = await import(
           '@/utils/contentDetector'
         )
-        const detectedContent = await detectContentByContext(finalContent, context)
+        const detectedContent = await detectContentByContext(
+          finalContent,
+          context
+        )
 
         onClose()
         resetScanProgress()

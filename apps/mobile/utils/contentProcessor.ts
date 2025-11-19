@@ -99,7 +99,6 @@ async function processBitcoinContent(
   accountId: string,
   account?: Account
 ) {
-
   const { navigate, clearTransaction, addOutput } = actions
 
   if (clearTransaction) {
@@ -108,178 +107,184 @@ async function processBitcoinContent(
 
   switch (content.type) {
     case 'psbt':
-      // Convert hex PSBT to base64 if needed
-      let psbtBase64 = content.cleaned
-      if (/^[0-9a-fA-F]+$/.test(content.cleaned.trim())) {
-        // It's a hex PSBT, convert to base64
-        psbtBase64 = Buffer.from(content.cleaned, 'hex').toString('base64')
-      }
+      {
+        // Convert hex PSBT to base64 if needed
+        let psbtBase64 = content.cleaned
+        if (/^[0-9a-fA-F]+$/.test(content.cleaned.trim())) {
+          // It's a hex PSBT, convert to base64
+          psbtBase64 = Buffer.from(content.cleaned, 'hex').toString('base64')
+        }
 
-      // Navigate immediately to improve UX - processing will happen on preview page
-      const psbtParam = encodeURIComponent(psbtBase64)
-      navigate(
-        `/account/${accountId}/signAndSend/previewMessage?psbt=${psbtParam}`
-      )
+        // Navigate immediately to improve UX - processing will happen on preview page
+        const psbtParam = encodeURIComponent(psbtBase64)
+        navigate(
+          `/account/${accountId}/signAndSend/previewMessage?psbt=${psbtParam}`
+        )
 
-      // Enhanced PSBT processing using the tools from nostr multisig
-      // This now happens in the background on the preview page
-      if (account) {
-        try {
-          // Check if this PSBT matches the current account
-          const accountMatch = await findMatchingAccount(psbtBase64, [account])
-
-          if (accountMatch) {
-            const originalPsbt = extractOriginalPsbt(psbtBase64)
-
-            // Extract transaction data and populate the transaction builder
-            const extractedData = extractTransactionDataFromPSBTEnhanced(
-              originalPsbt,
+        // Enhanced PSBT processing using the tools from nostr multisig
+        // This now happens in the background on the preview page
+        if (account) {
+          try {
+            // Check if this PSBT matches the current account
+            const accountMatch = await findMatchingAccount(psbtBase64, [
               account
-            )
+            ])
 
-            if (extractedData) {
-              const inputs = extractedData?.inputs || []
-              const outputs = extractedData?.outputs || []
-              const fee = extractedData?.fee || 0
+            if (accountMatch) {
+              const originalPsbt = extractOriginalPsbt(psbtBase64)
 
-              // Set RBF to true for PSBTs
-              actions.setRbf?.(true)
+              // Extract transaction data and populate the transaction builder
+              const extractedData = extractTransactionDataFromPSBTEnhanced(
+                originalPsbt,
+                account
+              )
 
-              const finalSignedPsbtsMap = new Map<number, string>()
+              if (extractedData) {
+                const inputs = extractedData?.inputs || []
+                const outputs = extractedData?.outputs || []
+                const fee = extractedData?.fee || 0
 
-              if (accountMatch.account.policyType === 'multisig') {
-                const combinedPsbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
+                // Set RBF to true for PSBTs
+                actions.setRbf?.(true)
 
-                const keyFingerprintToCosignerIndex = new Map<string, number>()
-                await Promise.all(
-                  accountMatch.account.keys.map(async (key, index) => {
-                    const fp = await extractKeyFingerprint(key)
-                    if (fp) keyFingerprintToCosignerIndex.set(fp, index)
+                const finalSignedPsbtsMap = new Map<number, string>()
+
+                if (accountMatch.account.policyType === 'multisig') {
+                  const combinedPsbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
+
+                  const keyFingerprintToCosignerIndex = new Map<
+                    string,
+                    number
+                  >()
+                  await Promise.all(
+                    accountMatch.account.keys.map(async (key, index) => {
+                      const fp = await extractKeyFingerprint(key)
+                      if (fp) keyFingerprintToCosignerIndex.set(fp, index)
+                    })
+                  )
+
+                  const pubkeyToCosignerIndex = new Map<string, number>()
+                  combinedPsbt.data.inputs.forEach((input) => {
+                    if (input.bip32Derivation) {
+                      input.bip32Derivation.forEach((derivation) => {
+                        const fingerprint =
+                          derivation.masterFingerprint.toString('hex')
+                        const pubkey = derivation.pubkey.toString('hex')
+                        const cosignerIndex =
+                          keyFingerprintToCosignerIndex.get(fingerprint)
+
+                        if (cosignerIndex !== undefined) {
+                          pubkeyToCosignerIndex.set(pubkey, cosignerIndex)
+                        }
+                      })
+                    }
+                    if (input.partialSig) {
+                      input.partialSig.forEach((sig) => {
+                        // Calculate fingerprint from the public key
+                        bitcoinjs.crypto
+                          .hash160(sig.pubkey)
+                          .slice(0, 4)
+                          .toString('hex')
+                      })
+                    }
                   })
-                )
 
-                const pubkeyToCosignerIndex = new Map<string, number>()
-                combinedPsbt.data.inputs.forEach((input) => {
-                  if (input.bip32Derivation) {
-                    input.bip32Derivation.forEach((derivation) => {
-                      const fingerprint =
-                        derivation.masterFingerprint.toString('hex')
-                      const pubkey = derivation.pubkey.toString('hex')
-                      const cosignerIndex =
-                        keyFingerprintToCosignerIndex.get(fingerprint)
+                  const individualSignedPsbts = extractIndividualSignedPsbts(
+                    psbtBase64,
+                    originalPsbt
+                  )
 
+                  const psbtsByCosigner = new Map<number, string[]>()
+
+                  Object.values(individualSignedPsbts).forEach((psbtStr) => {
+                    const pubkeys = getCollectedSignerPubkeys(psbtStr)
+                    if (pubkeys.size > 0) {
+                      const pubkey = pubkeys.values().next().value
+                      const cosignerIndex = pubkeyToCosignerIndex.get(pubkey)
                       if (cosignerIndex !== undefined) {
-                        pubkeyToCosignerIndex.set(pubkey, cosignerIndex)
+                        if (!psbtsByCosigner.has(cosignerIndex)) {
+                          psbtsByCosigner.set(cosignerIndex, [])
+                        }
+                        psbtsByCosigner.get(cosignerIndex)!.push(psbtStr)
                       }
-                    })
-                  }
-                  if (input.partialSig) {
-                    input.partialSig.forEach((sig) => {
-                      // Calculate fingerprint from the public key
-                      bitcoinjs.crypto
-                        .hash160(sig.pubkey)
-                        .slice(0, 4)
-                        .toString('hex')
-                    })
-                  }
-                })
+                    }
+                  })
 
-                const individualSignedPsbts = extractIndividualSignedPsbts(
-                  psbtBase64,
-                  originalPsbt
-                )
-
-                const psbtsByCosigner = new Map<number, string[]>()
-
-                Object.values(individualSignedPsbts).forEach((psbtStr) => {
-                  const pubkeys = getCollectedSignerPubkeys(psbtStr)
-                  if (pubkeys.size > 0) {
-                    const pubkey = pubkeys.values().next().value
-                    const cosignerIndex = pubkeyToCosignerIndex.get(pubkey)
-                    if (cosignerIndex !== undefined) {
-                      if (!psbtsByCosigner.has(cosignerIndex)) {
-                        psbtsByCosigner.set(cosignerIndex, [])
-                      }
-                      psbtsByCosigner.get(cosignerIndex)!.push(psbtStr)
+                  for (const [
+                    cosignerIndex,
+                    psbts
+                  ] of psbtsByCosigner.entries()) {
+                    if (psbts.length > 1) {
+                      const combined = combinePsbts(psbts)
+                      finalSignedPsbtsMap.set(cosignerIndex, combined)
+                    } else {
+                      finalSignedPsbtsMap.set(cosignerIndex, psbts[0])
                     }
                   }
-                })
-
-                for (const [
-                  cosignerIndex,
-                  psbts
-                ] of psbtsByCosigner.entries()) {
-                  if (psbts.length > 1) {
-                    const combined = combinePsbts(psbts)
-                    finalSignedPsbtsMap.set(cosignerIndex, combined)
-                  } else {
-                    finalSignedPsbtsMap.set(cosignerIndex, psbts[0])
-                  }
+                } else {
+                  // For single-sig, we can just use the combined psbt as is.
+                  // It will be assigned to the first cosigner (index 0).
+                  const individualSignedPsbts = extractIndividualSignedPsbts(
+                    psbtBase64,
+                    originalPsbt
+                  )
+                  Object.entries(individualSignedPsbts).forEach(
+                    ([key, value]) => {
+                      finalSignedPsbtsMap.set(
+                        parseInt(key, 10),
+                        value as string
+                      )
+                    }
+                  )
                 }
-              } else {
-                // For single-sig, we can just use the combined psbt as is.
-                // It will be assigned to the first cosigner (index 0).
-                const individualSignedPsbts = extractIndividualSignedPsbts(
-                  psbtBase64,
-                  originalPsbt
+                actions.setSignedPsbts?.(finalSignedPsbtsMap)
+
+                const extractedTxid = extractTransactionIdFromPSBT(originalPsbt)
+                if (!extractedTxid) {
+                  return
+                }
+
+                const sent = outputs.reduce(
+                  (
+                    acc: number,
+                    output: { address: string; value: number; label: string }
+                  ) => acc + output.value,
+                  0
                 )
-                Object.entries(individualSignedPsbts).forEach(
-                  ([key, value]) => {
-                    finalSignedPsbtsMap.set(parseInt(key, 10), value as string)
-                  }
+                const received = inputs.reduce(
+                  (acc: number, input: Utxo) => acc + (input.value || 0),
+                  0
                 )
+
+                const psbt = new PartiallySignedTransaction(originalPsbt)
+
+                const txDetails: TransactionDetails = {
+                  txid: extractedTxid,
+                  fee,
+                  sent,
+                  received,
+                  confirmationTime: undefined,
+                  transaction: undefined
+                }
+
+                const txBuilderResult: TxBuilderResult = {
+                  psbt,
+                  txDetails
+                }
+                actions.setTxBuilderResult?.(txBuilderResult)
               }
-              actions.setSignedPsbts?.(finalSignedPsbtsMap)
-
-              const extractedTxid = extractTransactionIdFromPSBT(originalPsbt)
-              if (!extractedTxid) {
-                return
-              }
-
-              const sent = outputs.reduce(
-                (
-                  acc: number,
-                  output: { address: string; value: number; label: string }
-                ) => acc + output.value,
-                0
-              )
-              const received = inputs.reduce(
-                (acc: number, input: Utxo) => acc + (input.value || 0),
-                0
-              )
-
-              const psbt = new PartiallySignedTransaction(originalPsbt)
-
-              const txDetails: TransactionDetails = {
-                txid: extractedTxid,
-                fee,
-                sent,
-                received,
-                confirmationTime: undefined,
-                transaction: undefined
-              }
-
-              const txBuilderResult: TxBuilderResult = {
-                psbt,
-                txDetails
-              }
-              actions.setTxBuilderResult?.(txBuilderResult)
             }
-          }
 
-          // Processing happens on preview page now
-        } catch (error) {
-          // Errors will be shown on the preview page
-          // Navigation already happened above
+            // Processing happens on preview page now
+          } catch {
+            toast.error(t('error.failedToProcessPsbt'))
+          }
         }
       }
       break
 
     case 'bitcoin_descriptor':
-      router.push(
-          `/account/add/watchOnly?descriptor=${content.cleaned
-          }`
-        )
+      router.push(`/account/add/watchOnly?descriptor=${content.cleaned}`)
       break
 
     case 'extended_public_key':

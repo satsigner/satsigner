@@ -1028,7 +1028,7 @@
   },
   "paste": {
     "button": {
-      "default": "Paste Content",
+      "default": "Process Content",
       "payInvoice": "Pay Invoice",
       "payLightningInvoice": "Pay Lightning Invoice",
       "previewPsbt": "Preview PSBT",
@@ -1040,18 +1040,20 @@
       "processSeed": "Process Seed",
       "processTransaction": "Process Transaction",
       "processUR": "Process UR",
-      "sendToAddress": "Send to Address"
+      "sendToAddress": "Send to Address",
+      "urDecodeFailed": "Failed to decode UR"
     },
     "description": {
       "bitcoin": "Paste Bitcoin addresses, payment requests, or PSBTs",
-      "default": "Paste content from clipboard",
+      "default": "Paste any Bitcoin-related content to process it.",
       "ecash": "Paste ecash tokens, Lightning invoices, or LNURL payment requests",
       "lightning": "Paste Lightning invoices or LNURL payment requests"
     },
     "error": {
-      "failed": "Failed to process pasted content",
-      "invalidContent": "Invalid content for this context",
-      "loadFailed": "Failed to load clipboard content",
+      "failed": "Failed to process pasted content.",
+      "incompatibleContent": "The pasted content is not compatible with this wallet.",
+      "invalidContent": "The pasted content is invalid.",
+      "loadFailed": "Failed to load content from clipboard.",
       "noContent": "No content to paste",
       "success": "Content pasted successfully",
       "validateFailed": "Failed to validate content"
@@ -1552,6 +1554,7 @@
     "error.amountExceedsBalance": "Amount (%{amount} sats) exceeds wallet balance (%{balance} sats)",
     "error.bip21.insufficientSats": "Insufficient sats for amount in address",
     "error.failedToDecodeBitcoinUri": "Failed to decode Bitcoin URI",
+    "error.failedToProcessPsbt": "Failed to process PSBT.",
     "error.insufficientFundsForAmount": "Insufficient funds for the specified amount",
     "error.insufficientInputs": "Amount exceed max with selected inputs. Add more inputs.",
     "error.invalid.proxyHost": "Invalid proxy host",
@@ -1717,7 +1720,9 @@
       "clipboardPaste": "Failed to paste from clipboard",
       "creationFailed": "Failed to create watch-only account",
       "emptyClipboard": "No data found in clipboard",
-      "missingFields": "Please fill in all required fields"
+      "incompatibleContent": "Incompatible content for this wallet.",
+      "missingFields": "Please fill in all required fields",
+      "networkMismatch": "Extended public key is not valid for the selected network."
     },
     "fingerprint.label": "Master Fingerprint",
     "fingerprint.scanQR": "Scan Fingerprint QR Code",

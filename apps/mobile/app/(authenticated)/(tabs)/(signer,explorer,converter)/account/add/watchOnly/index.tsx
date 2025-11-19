@@ -54,8 +54,10 @@ const WATCH_ONLY_OPTIONS: CreationType[] = [
 ]
 
 export default function WatchOnly() {
-  const params =
-    useLocalSearchParams<{ descriptor?: string; extendedPublicKey?: string }>()
+  const params = useLocalSearchParams<{
+    descriptor?: string
+    extendedPublicKey?: string
+  }>()
   const updateAccount = useAccountsStore((state) => state.updateAccount)
   const [
     name,

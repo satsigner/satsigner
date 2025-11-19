@@ -64,6 +64,7 @@ export type ContentType =
   | 'ur'
   | 'bitcoin_descriptor'
   | 'extended_public_key'
+  | 'incompatible'
   | 'unknown'
 
 export type DetectedContent = {
@@ -150,7 +151,7 @@ async function detectBitcoinContent(
       isValid: true
     }
   }
-  
+
   // Check for extended public key
   if (isExtendedPublicKey(trimmed)) {
     return {
@@ -286,7 +287,9 @@ function detectEcashContent(data: string): DetectedContent | null {
 /**
  * Detect import-related content (seeds, descriptors, BBQR, UR)
  */
-function detectImportContent(data: string): DetectedContent | null {
+async function detectImportContent(
+  data: string
+): Promise<DetectedContent | null> {
   const trimmed = data.trim()
 
   // Check for BBQR fragment
@@ -348,22 +351,37 @@ export async function detectContentByContext(
   switch (context) {
     case 'bitcoin':
       detected = await detectBitcoinContent(data)
+      if (!detected) {
+        detected = detectLightningContent(data) || detectEcashContent(data)
+        if (detected) {
+          detected.type = 'incompatible'
+        }
+      }
       break
     case 'lightning':
       detected = detectLightningContent(data)
+      if (!detected) {
+        detected =
+          (await detectBitcoinContent(data)) || detectEcashContent(data)
+        if (detected) {
+          detected.type = 'incompatible'
+        }
+      }
       break
     case 'ecash':
-      detected = detectEcashContent(data)
-      // Also check for lightning content in ecash context
+      detected = detectEcashContent(data) || detectLightningContent(data)
       if (!detected) {
-        detected = detectLightningContent(data)
+        detected = await detectBitcoinContent(data)
+        if (detected) {
+          detected.type = 'incompatible'
+        }
       }
       break
   }
 
   // If context-specific detection failed, try import content detection
   if (!detected) {
-    detected = detectImportContent(data)
+    detected = await detectImportContent(data)
   }
 
   // If still no detection, return unknown
@@ -419,6 +437,8 @@ export function getContentTypeDescription(contentType: ContentType): string {
       return 'Bitcoin Descriptor'
     case 'extended_public_key':
       return 'Extended Public Key'
+    case 'incompatible':
+      return 'Incompatible Content'
     case 'lightning_invoice':
       return 'Lightning Network Invoice'
     case 'lnurl':

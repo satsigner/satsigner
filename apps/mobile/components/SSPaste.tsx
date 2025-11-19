@@ -67,6 +67,12 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
           '@/utils/contentDetector'
         )
         const detectedContent = await detectContentByContext(text, context)
+        if (detectedContent.type === 'incompatible') {
+          toast.error(t('paste.error.incompatibleContent'))
+          setIsValidContent(false)
+          setDetectedContentType(null)
+          return
+        }
         setIsValidContent(detectedContent.isValid)
         setDetectedContentType(
           detectedContent.isValid ? detectedContent.type : null

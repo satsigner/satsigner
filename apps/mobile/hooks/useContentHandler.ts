@@ -35,9 +35,7 @@ export function useContentHandler({
   const handleNFCContentRead = useCallback(
     async (content: string) => {
       // Process NFC content through the content detector
-      const { detectContentByContext } = await import(
-        '@/utils/contentDetector'
-      )
+      const { detectContentByContext } = await import('@/utils/contentDetector')
       const detectedContent = await detectContentByContext(content, context)
       onContentScanned(detectedContent)
     },

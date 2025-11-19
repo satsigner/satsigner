@@ -1,6 +1,6 @@
+import { useFocusEffect } from '@react-navigation/native'
 import { FlashList } from '@shopify/flash-list'
 import { type Network } from 'bdk-rn/lib/lib/enums'
-import { useFocusEffect } from '@react-navigation/native'
 import {
   Redirect,
   router,
@@ -807,11 +807,7 @@ export default function AccountView() {
         contentHandler.closeNFCModal()
         contentHandler.closePasteModal()
       }
-    }, [
-      contentHandler.closeCameraModal,
-      contentHandler.closeNFCModal,
-      contentHandler.closePasteModal
-    ])
+    }, [contentHandler])
   )
 
   useEffect(() => {
