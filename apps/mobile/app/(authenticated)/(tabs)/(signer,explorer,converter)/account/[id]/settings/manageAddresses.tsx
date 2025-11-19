@@ -18,7 +18,6 @@ import { useAccountsStore } from '@/store/accounts'
 import { type Address } from '@/types/models/Address'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { getScriptVersionType } from '@/utils/address'
-import { formatNumber } from '@/utils/format'
 import { validateAddress } from '@/utils/validation'
 
 type WatchedAddress = Address & {
@@ -50,15 +49,6 @@ export default function ManageAccountAddresses() {
     )
   }, [account])
 
-  const formatAmount = useCallback(
-    function (amount: number) {
-      return currencyUnit === 'sats'
-        ? formatNumber(amount)
-        : formatNumber(amount / 100_000_000, 8)
-    },
-    [currencyUnit]
-  )
-
   function handleAddAddress() {
     const address = addressInput.trim()
     if (!validateAddress(address)) {
@@ -67,10 +57,6 @@ export default function ManageAccountAddresses() {
     }
 
     const duplicated = addresses.some((addr) => addr.address === address)
-    console.log(
-      'DEBUGPRINT[129]: manageAddresses.tsx:65: duplicated=',
-      duplicated
-    )
     if (duplicated) {
       toast.error('Duplicated address')
       return
@@ -150,7 +136,7 @@ export default function ManageAccountAddresses() {
                         Current balance:{' '}
                         <SSStyledSatText
                           amount={address.summary.balance}
-                          useZeroPadding
+                          useZeroPadding={currencyUnit === 'btc'}
                           textSize="sm"
                           noColor
                         />
@@ -158,7 +144,12 @@ export default function ManageAccountAddresses() {
                       {address.summary.satsInMempool > 0 && (
                         <SSText>
                           Unconfirmed funds in mempool:{' '}
-                          {formatAmount(address.summary.satsInMempool)}
+                          <SSStyledSatText
+                            amount={address.summary.satsInMempool}
+                            useZeroPadding={currencyUnit === 'btc'}
+                            textSize="sm"
+                            noColor
+                          />
                         </SSText>
                       )}
                       <SSText>
