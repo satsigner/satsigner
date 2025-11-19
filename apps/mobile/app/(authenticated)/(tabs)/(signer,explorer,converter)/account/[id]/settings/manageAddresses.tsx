@@ -1,6 +1,6 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useMemo, useState } from 'react'
-import { ScrollView } from 'react-native'
+import { ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
@@ -161,8 +161,9 @@ export default function ManageAccountAddresses() {
                   </SSVStack>
                   <SSHStack gap="sm">
                     <SSButton
-                      style={{ width: 'auto', flexGrow: 1 }}
-                      label="VIEW"
+                      style={styles.addressActionButton}
+                      label="VIEW DETAILS"
+                      variant="secondary"
                       onPress={() =>
                         router.navigate(
                           `/account/${accountId}/address/${address.address}`
@@ -170,7 +171,7 @@ export default function ManageAccountAddresses() {
                       }
                     />
                     <SSButton
-                      style={{ width: 'auto', flexGrow: 1 }}
+                      style={styles.addressActionButton}
                       label="DELETE"
                       variant="danger"
                       onPress={() => handleDeleteAddress(address.address)}
@@ -200,10 +201,7 @@ export default function ManageAccountAddresses() {
       >
         <SSVStack>
           <SSText>You are about to delete the following address:</SSText>
-          <SSAddressDisplay
-            address={addressToDelete}
-            variant='bare'
-          />
+          <SSAddressDisplay address={addressToDelete} variant="bare" />
           <SSVStack gap="sm">
             <SSButton
               label={t('common.yes')}
@@ -250,3 +248,11 @@ export default function ManageAccountAddresses() {
     </SSMainLayout>
   )
 }
+
+const styles = StyleSheet.create({
+  addressActionButton: {
+    width: 'auto',
+    flexGrow: 1,
+    padding: 8
+  }
+})
