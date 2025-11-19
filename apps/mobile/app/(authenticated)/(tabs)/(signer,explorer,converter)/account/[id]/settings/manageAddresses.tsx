@@ -1,6 +1,6 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { SafeAreaView, StyleSheet, TouchableOpacity } from 'react-native'
+import { Clipboard, SafeAreaView, StyleSheet, TouchableOpacity } from 'react-native'
 import DraggableFlatList, {
   type RenderItemParams,
   ScaleDecorator
@@ -84,9 +84,9 @@ export default function ManageAccountAddresses() {
         >
           <SSVStack gap="sm">
             <SSText uppercase weight="bold">
-              {address.new
-                ? tl('addressIndex', { index })
-                : tl('addressIndexNew', { index })}
+              {address.new === true
+                ? tl('addressIndexNew', { index })
+                : tl('addressIndex', { index })}
             </SSText>
             <SSAddressDisplay address={address.address} />
             {!address.new && (
@@ -114,7 +114,7 @@ export default function ManageAccountAddresses() {
                   </SSText>
                 )}
                 <SSText>
-                  {tl('summary.utxos')}
+                  {tl('summary.utxo')}
                   {': '}
                   <SSText weight="bold">{address.summary.utxos}</SSText>
                 </SSText>
@@ -175,6 +175,16 @@ export default function ManageAccountAddresses() {
       new: true
     }
     setAddresses([...addresses, newAddress])
+  }
+
+  async function handleShowAddAddress() {
+    setShowAddAddressModal(true)
+    setAddressInput('')
+    const content = await Clipboard.getString()
+    if (content && validateAddress(content)) {
+      setAddressInput(content)
+      toast.info('Address has been pasted from clipboard')
+    }
   }
 
   function handleAddAddress() {
@@ -278,10 +288,7 @@ export default function ManageAccountAddresses() {
               label={tl('addBtn')}
               variant="outline"
               uppercase
-              onPress={() => {
-                setShowAddAddressModal(true)
-                setAddressInput('')
-              }}
+              onPress={handleShowAddAddress}
             />
             <SSButton
               label={t('common.save')}
@@ -335,6 +342,7 @@ export default function ManageAccountAddresses() {
             <SSButton
               label={t('common.save')}
               variant="outline"
+              disabled={!addressInput || !validateAddress(addressInput)}
               uppercase
               onPress={() => handleAddAddress()}
             />
