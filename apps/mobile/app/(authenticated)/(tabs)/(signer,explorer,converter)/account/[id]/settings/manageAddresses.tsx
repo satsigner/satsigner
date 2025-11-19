@@ -1,6 +1,11 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { Clipboard, SafeAreaView, StyleSheet, TouchableOpacity } from 'react-native'
+import {
+  Clipboard,
+  SafeAreaView,
+  StyleSheet,
+  TouchableOpacity
+} from 'react-native'
 import DraggableFlatList, {
   type RenderItemParams,
   ScaleDecorator
@@ -74,17 +79,11 @@ export default function ManageAccountAddresses() {
           onLongPress={drag}
           delayLongPress={250}
           disabled={isActive}
-          style={{
-            marginVertical: 10,
-            paddingVertical: isActive ? 12 : 0,
-            paddingHorizontal: isActive ? 16 : 0,
-            borderRadius: isActive ? 16 : 0,
-            backgroundColor: isActive ? '#333' : '#000'
-          }}
+          style={isActive ? styles.addressItemActive : styles.addressItem}
         >
           <SSVStack gap="sm">
             <SSText uppercase weight="bold">
-              {address.new === true
+              {address.new
                 ? tl('addressIndexNew', { index })
                 : tl('addressIndex', { index })}
             </SSText>
@@ -360,6 +359,15 @@ export default function ManageAccountAddresses() {
 }
 
 const styles = StyleSheet.create({
+  addressItem: {
+    marginVertical: 10
+  },
+  addressItemActive: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    backgroundColor: '#333'
+  },
   addressActionButton: {
     width: '48%',
     padding: 12,
