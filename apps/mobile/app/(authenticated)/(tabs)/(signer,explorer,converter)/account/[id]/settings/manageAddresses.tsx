@@ -1,6 +1,7 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useMemo, useState } from 'react'
 import { ScrollView } from 'react-native'
+import { toast } from 'sonner-native'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
@@ -8,13 +9,17 @@ import SSCheckbox from '@/components/SSCheckbox'
 import SSModal from '@/components/SSModal'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
+import SSTextInput from '@/components/SSTextInput'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { type Address } from '@/types/models/Address'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { getScriptVersionType } from '@/utils/address'
 import { formatNumber } from '@/utils/format'
+import { validateAddress } from '@/utils/validation'
 
 export default function ManageAccountAddresses() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -24,7 +29,11 @@ export default function ManageAccountAddresses() {
   )
 
   const [currencyUnit, setSatsUnit] = useState<'sats' | 'btc'>('sats')
+  const [addresses, setAddresses] = useState([...(account?.addresses || [])])
+
+  const [showAddAddressModal, setShowAddAddressModal] = useState(false)
   const [showDeleteAddressModal, setShowDeleteAddressModal] = useState(false)
+  const [addressInput, setAddressInput] = useState('')
   const [addressToDelete, setAddressToDelete] = useState('')
 
   const isMultiAddressWatchOnly = useMemo(() => {
@@ -44,6 +53,15 @@ export default function ManageAccountAddresses() {
     [currencyUnit]
   )
 
+  function handleAddAddress() {
+    const address = addressInput.trim()
+    if (validateAddress(address)) {
+      addAddress(address)
+    } else {
+      toast.error('Invalid address')
+    }
+  }
+
   function handleDeleteAddress(address: string) {
     setShowDeleteAddressModal(true)
     setAddressToDelete(address)
@@ -52,10 +70,26 @@ export default function ManageAccountAddresses() {
   function deleteAddress(address: string) {
     setAddresses(addresses.filter((addr) => addr.address !== address))
   }
+
+  function addAddress(address: string) {
+    const newAddress: Address = {
+      address,
+      label: '',
+      transactions: [],
+      utxos: [],
+      scriptVersion: getScriptVersionType(address) || undefined,
+      summary: {
+        utxos: 0,
+        transactions: 0,
+        satsInMempool: 0,
+        balance: 0
+      }
+    }
+    setAddresses([...addresses, newAddress])
   }
 
-  function handleDeleteAddress() {
-    // TODO:
+  function handleSaveChanges() {
+    //
   }
 
   if (!account || !isMultiAddressWatchOnly) return <Redirect href="/" />
@@ -83,7 +117,7 @@ export default function ManageAccountAddresses() {
             />
           </SSVStack>
           <SSVStack gap="lg">
-            {account.addresses.map((address, index) => {
+            {addresses.map((address, index) => {
               return (
                 <SSVStack gap="sm" key={address.address}>
                   <SSText uppercase weight="bold">
@@ -150,7 +184,13 @@ export default function ManageAccountAddresses() {
             label="Add address"
             variant="outline"
             uppercase
-            onPress={handleShowAddAddress}
+            onPress={() => setShowAddAddressModal(true)}
+          />
+          <SSButton
+            label={t('common.save')}
+            variant="outline"
+            uppercase
+            onPress={handleSaveChanges}
           />
         </SSVStack>
       </ScrollView>
@@ -176,6 +216,33 @@ export default function ManageAccountAddresses() {
               variant="danger"
               uppercase
               onPress={() => setShowDeleteAddressModal(false)}
+            />
+          </SSVStack>
+        </SSVStack>
+      </SSModal>
+      <SSModal
+        visible={showAddAddressModal}
+        onClose={() => setShowAddAddressModal(false)}
+      >
+        <SSVStack>
+          <SSText>Add new addresses</SSText>
+          <SSTextInput
+            value={addressInput}
+            onChangeText={setAddressInput}
+            placeholder="Enter new address..."
+          />
+          <SSVStack gap="sm">
+            <SSButton
+              label={t('common.save')}
+              variant="outline"
+              uppercase
+              onPress={() => handleAddAddress()}
+            />
+            <SSButton
+              label={t('common.cancel')}
+              variant="danger"
+              uppercase
+              onPress={() => setShowAddAddressModal(false)}
             />
           </SSVStack>
         </SSVStack>
