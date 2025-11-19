@@ -1,7 +1,9 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
-import { useCallback, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
+import uuid from 'react-native-uuid'
 import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
@@ -15,6 +17,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { getScriptVersionType } from '@/utils/address'
@@ -27,8 +30,11 @@ type WatchedAddress = Address & {
 export default function ManageAccountAddresses() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
 
-  const account = useAccountsStore((state) =>
-    state.accounts.find((_account) => _account.id === accountId)
+  const [account, updateAccount] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts.find((_account) => _account.id === accountId),
+      state.updateAccount
+    ])
   )
 
   const [currencyUnit, setSatsUnit] = useState<'sats' | 'btc'>('sats')
@@ -77,7 +83,7 @@ export default function ManageAccountAddresses() {
   }
 
   function addAddress(address: string) {
-    const newAddress: Address = {
+    const newAddress: WatchedAddress = {
       address,
       label: '',
       transactions: [],
@@ -94,8 +100,34 @@ export default function ManageAccountAddresses() {
     setAddresses([...addresses, newAddress])
   }
 
-  function handleSaveChanges() {
-    //
+  async function handleSaveChanges() {
+    if (!account) return
+
+    // the account keys has the addresses stored as external descriptors
+    const keys = addresses.map((addr, index) => {
+      const secret: Secret = {
+        externalDescriptor: `addr(${addr.address})`
+      }
+      const key: Key = {
+        index,
+        secret,
+        creationType: 'importAddress',
+        iv: uuid.v4().replace(/-/g, '')
+      }
+      return key
+    })
+    const keyCount = keys.length
+
+    const updatedAccount: Account = {
+      ...account,
+      addresses,
+      syncStatus: 'unsynced',
+      keyCount,
+      keys
+    }
+    updateAccount(updatedAccount)
+
+    router.back()
   }
 
   if (!account || !isMultiAddressWatchOnly) return <Redirect href="/" />
