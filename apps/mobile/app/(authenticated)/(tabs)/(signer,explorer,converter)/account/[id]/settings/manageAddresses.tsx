@@ -172,7 +172,7 @@ export default function ManageAccountAddresses() {
                       </SSText>
                     </SSVStack>
                   )}
-                  <SSHStack gap="sm">
+                  <SSHStack gap="sm" justifyBetween>
                     <SSButton
                       style={styles.addressActionButton}
                       label="VIEW DETAILS"
@@ -272,9 +272,9 @@ export default function ManageAccountAddresses() {
 
 const styles = StyleSheet.create({
   addressActionButton: {
-    width: 'auto',
-    flexGrow: 1,
-    padding: 8
+    width: '48%',
+    padding: 12,
+    height: 'auto'
   },
   modalContainer: {
     justifyContent: 'center',
