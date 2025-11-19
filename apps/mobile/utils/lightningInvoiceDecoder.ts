@@ -40,7 +40,7 @@ function mapBolt11DecodeToDecodedInvoice(
 
   const amountValue = amountSection?.value || '0'
   const numMsats = parseInt(amountValue.toString(), 10)
-  const numSatoshis = Math.ceil(numMsats / 1000).toString() // Round up to avoid dust
+  const numSatoshis = Math.ceil(numMsats / 1000).toString()
 
   return {
     payment_request: originalInvoice,
@@ -49,10 +49,10 @@ function mapBolt11DecodeToDecodedInvoice(
     timestamp: (timestampSection?.value || '').toString(),
     expiry: (expirySection?.value || '').toString(),
     payment_hash: (paymentHashSection?.value || '').toString(),
-    payment_addr: '', // Not available in this decoder
+    payment_addr: '',
     num_satoshis: numSatoshis,
     num_msat: numMsats.toString(),
-    features: {}, // Simplified for our use case
+    features: {},
     route_hints: bolt11Decoded.route_hints || [],
     payment_secret: (paymentSecretSection?.value || '').toString(),
     min_final_cltv_expiry: (minFinalCltvExpirySection?.value || '').toString()

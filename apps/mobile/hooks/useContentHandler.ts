@@ -16,15 +16,12 @@ export function useContentHandler({
   onSend,
   onReceive
 }: UseContentHandlerProps) {
-  // Modal state management
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [nfcModalVisible, setNfcModalVisible] = useState(false)
   const [pasteModalVisible, setPasteModalVisible] = useState(false)
 
-  // NFC reader hook
   const { isAvailable: nfcAvailable } = useNFCReader()
 
-  // Content processing callbacks
   const handleContentPasted = useCallback(
     (content: DetectedContent) => {
       onContentScanned(content)
@@ -34,7 +31,6 @@ export function useContentHandler({
 
   const handleNFCContentRead = useCallback(
     async (content: string) => {
-      // Process NFC content through the content detector
       const { detectContentByContext } = await import('@/utils/contentDetector')
       const detectedContent = await detectContentByContext(content, context)
       onContentScanned(detectedContent)
@@ -42,7 +38,6 @@ export function useContentHandler({
     [context, onContentScanned]
   )
 
-  // Action handlers
   const handlePaste = useCallback(() => {
     setPasteModalVisible(true)
   }, [])
@@ -55,7 +50,6 @@ export function useContentHandler({
     setNfcModalVisible(true)
   }, [])
 
-  // Modal close handlers
   const closeCameraModal = useCallback(() => {
     setCameraModalVisible(false)
   }, [])
@@ -69,29 +63,24 @@ export function useContentHandler({
   }, [])
 
   return {
-    // Modal state
     cameraModalVisible,
     nfcModalVisible,
     pasteModalVisible,
 
-    // Modal close handlers
     closeCameraModal,
     closeNFCModal,
     closePasteModal,
 
-    // Action handlers
     handleSend: onSend,
     handlePaste,
     handleCamera,
     handleNFC,
     handleReceive: onReceive,
 
-    // Content handlers
     handleContentScanned: onContentScanned,
     handleContentPasted,
     handleNFCContentRead,
 
-    // NFC availability
     nfcAvailable
   }
 }

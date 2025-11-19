@@ -78,7 +78,6 @@ export default function PayPage() {
       setAmount(minSats.toString())
     } catch {
       setLNURLDetails(null)
-      // Don't show error to user, just don't set the amount
     } finally {
       setIsFetchingDetails(false)
     }
@@ -127,12 +126,10 @@ export default function PayPage() {
       }
 
       if (isLNURLInput) {
-        // Always fetch LNURL details when a LNURL is detected
         await handleLNURLDetected(text)
       } else if (text.toLowerCase().startsWith('lnbc')) {
         try {
           const decoded = await decodeInvoice(text)
-          // Set amount from decoded invoice
           if (decoded.num_satoshis) {
             setAmount(decoded.num_satoshis)
           }
@@ -157,16 +154,13 @@ export default function PayPage() {
       return
     }
 
-    // For bolt11 invoices, ensure we have decoded it
     if (!isLNURLMode) {
       if (!decodedInvoice) {
         Alert.alert('Error', 'Please wait for the invoice to be decoded')
         return
       }
-      // Proceed with payment since we already have the decoded invoice
       await processPayment()
     } else {
-      // For LNURL, proceed directly to payment
       await processPayment()
     }
   }
@@ -176,7 +170,6 @@ export default function PayPage() {
       return
     }
 
-    // For bolt11, ensure we have decoded it
     if (!isLNURLMode && !decodedInvoice) {
       Alert.alert('Error', 'Please try sending the payment again')
       return
@@ -187,7 +180,6 @@ export default function PayPage() {
       let invoice: string
 
       if (isLNURLMode) {
-        // Validate amount for LNURL
         if (!amount) {
           Alert.alert('Error', 'Please enter an amount')
           setIsProcessing(false)
@@ -201,7 +193,6 @@ export default function PayPage() {
           return
         }
 
-        // Get invoice from LNURL
         invoice = await handleLNURLPay(
           paymentRequest,
           amountSats,
@@ -211,7 +202,6 @@ export default function PayPage() {
         invoice = paymentRequest
       }
 
-      // Pay the invoice
       await payInvoice(invoice)
 
       Alert.alert('Success', 'Payment sent successfully', [
@@ -244,10 +234,8 @@ export default function PayPage() {
 
   const handleContentScanned = (content: DetectedContent) => {
     setCameraModalVisible(false)
-    // Clean the text (remove any whitespace and lightning: prefix)
     const cleanText = content.cleaned.replace(/^lightning:/i, '')
 
-    // Use the same validation logic as handlePaymentRequestChange
     if (cleanText.toLowerCase().startsWith('lnbc') || isLNURL(cleanText)) {
       handlePaymentRequestChange(cleanText)
     } else {
@@ -266,12 +254,9 @@ export default function PayPage() {
         return
       }
 
-      // Clean the text (remove any whitespace)
       const cleanText = text.trim()
 
       if (cleanText.toLowerCase().startsWith('lnbc') || isLNURL(cleanText)) {
-        // Use handlePaymentRequestChange to process the invoice
-        // This ensures consistent handling of both paste and manual input
         await handlePaymentRequestChange(cleanText)
       } else {
         Alert.alert(
@@ -284,9 +269,7 @@ export default function PayPage() {
     }
   }
 
-  // Handle payment request parameter from URL (when scanned from other pages)
   useEffect(() => {
-    // Check both parameter names (paymentRequest and invoice)
     const paramValue = paymentRequestParam || invoiceParam
 
     if (paramValue) {
@@ -295,11 +278,9 @@ export default function PayPage() {
         : paramValue
 
       if (paymentRequestValue) {
-        // Clean the text (remove any whitespace and lightning: prefix)
         const cleanText = paymentRequestValue.trim().replace(/^lightning:/i, '')
 
         if (cleanText.toLowerCase().startsWith('lnbc') || isLNURL(cleanText)) {
-          // Process the scanned content
           handlePaymentRequestChange(cleanText)
         }
       }

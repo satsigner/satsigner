@@ -723,7 +723,6 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
     fontSize: 10
   } as const
 
-  // Create paragraphs for labels to support emojis
   const labelParagraphs = useMemo(() => {
     if (!customFontManager) return new Map<string, any>()
     const paragraphs = new Map<string, any>()
@@ -751,7 +750,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
         .pop()
         .build()
 
-      para.layout(1000) // Layout with a large width to measure
+      para.layout(1000)
       paragraphs.set(label.index, para)
     })
 
@@ -1027,7 +1026,6 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
         (showAmount && numberCommaFormatter(label.amount!)) ||
         ''
 
-      // Use Paragraph for better emoji support
       const paragraph = labelParagraphs.get(label.index)
       const textWidth = paragraph
         ? Math.max(
@@ -1047,10 +1045,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       })
 
       if (paragraph) {
-        // For receive transactions, position to the left of the point
-        // For send transactions, position to the right of the point
         const xPos = label.type === 'receive' ? label.x - textWidth : label.x
-        // Ensure the label is visible (not off-screen to the left)
         const clampedX = Math.max(0, xPos)
         return (
           <Fragment key={index}>
@@ -1064,7 +1059,6 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
         )
       }
 
-      // Fallback to Text if Paragraph creation fails
       const xPos = label.type === 'receive' ? label.x - textWidth : label.x
       const clampedX = Math.max(0, xPos)
       return (

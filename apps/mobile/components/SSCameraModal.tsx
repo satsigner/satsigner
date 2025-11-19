@@ -38,20 +38,18 @@ type ScanProgress = {
  * Detect QR code type and extract metadata
  */
 function detectQRType(data: string) {
-  // Check for RAW format (pXofY header)
   if (/^p\d+of\d+\s/.test(data)) {
     const match = data.match(/^p(\d+)of(\d+)\s/)
     if (match) {
       return {
         type: 'raw' as const,
-        current: parseInt(match[1], 10) - 1, // Convert to 0-based index
+        current: parseInt(match[1], 10) - 1,
         total: parseInt(match[2], 10),
         content: data.substring(match[0].length)
       }
     }
   }
 
-  // Check for BBQR format
   if (isBBQRFragment(data)) {
     const total = parseInt(data.slice(4, 6), 36)
     const current = parseInt(data.slice(6, 8), 36)
@@ -63,16 +61,13 @@ function detectQRType(data: string) {
     }
   }
 
-  // Check for UR format (any type: crypto-psbt, bytes, etc.)
   if (data.toLowerCase().startsWith('ur:')) {
-    // Match any UR format: ur:TYPE/current-total/data or ur:TYPE/data
     const urMatch = data.match(/^ur:([^/]+)\/(?:(\d+)-(\d+)\/)?(.+)$/i)
     if (urMatch) {
       const [, , currentStr, totalStr] = urMatch
 
       if (currentStr && totalStr) {
-        // Multi-part UR
-        const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
+        const current = parseInt(currentStr, 10) - 1
         const total = parseInt(totalStr, 10)
         return {
           type: 'ur' as const,
@@ -81,7 +76,6 @@ function detectQRType(data: string) {
           content: data
         }
       } else {
-        // Single-part UR
         return {
           type: 'ur' as const,
           current: 0,
@@ -92,7 +86,6 @@ function detectQRType(data: string) {
     }
   }
 
-  // Single QR code (no multi-part format detected)
   return {
     type: 'single' as const,
     current: 0,
@@ -111,13 +104,11 @@ function assembleMultiPartQR(
   try {
     switch (type) {
       case 'raw': {
-        // Assemble RAW format chunks
         const sortedChunks = Array.from(chunks.entries())
           .sort(([a], [b]) => a - b)
           .map(([, content]) => content)
         const assembled = sortedChunks.join('')
 
-        // Convert base64 to hex for RAW format
         try {
           const hexResult = Buffer.from(assembled, 'base64').toString('hex')
           return hexResult
@@ -127,7 +118,6 @@ function assembleMultiPartQR(
       }
 
       case 'bbqr': {
-        // Assemble BBQR format chunks
         const sortedChunks = Array.from(chunks.entries())
           .sort(([a], [b]) => a - b)
           .map(([, content]) => content)
@@ -135,7 +125,6 @@ function assembleMultiPartQR(
         const decoded = decodeBBQRChunks(sortedChunks)
 
         if (decoded) {
-          // Convert binary PSBT to hex for consistency with RAW format
           const hexResult = Buffer.from(decoded).toString('hex')
           return hexResult
         }
@@ -144,14 +133,12 @@ function assembleMultiPartQR(
       }
 
       case 'ur': {
-        // UR format assembly using generic UR decoder
         const sortedChunks = Array.from(chunks.entries())
           .sort(([a], [b]) => a - b)
           .map(([, content]) => content)
 
         let result: string
         if (sortedChunks.length === 1) {
-          // Single UR chunk - try generic decoder first, fallback to PSBT-specific
           try {
             result = decodeURGeneric(sortedChunks[0])
           } catch {
@@ -162,7 +149,6 @@ function assembleMultiPartQR(
             }
           }
         } else {
-          // Multi-part UR - try generic decoder first, fallback to PSBT-specific
           try {
             result = decodeMultiPartURGeneric(sortedChunks)
           } catch {
@@ -217,42 +203,32 @@ function SSCameraModal({
         return
       }
 
-      // Detect QR code type and format
       const qrInfo = detectQRType(data)
 
-      // Handle single QR codes (complete data in one scan)
       if (qrInfo.type === 'single' || qrInfo.total === 1) {
         let finalContent = qrInfo.content
 
         try {
-          // Check if it's a single BBQR QR code
           if (isBBQRFragment(qrInfo.content)) {
             const decoded = decodeBBQRChunks([qrInfo.content])
             if (decoded) {
-              // Convert binary PSBT to hex for consistency
               const hexResult = Buffer.from(decoded).toString('hex')
               finalContent = hexResult
             } else {
               toast.error(t('camera.error.bbqrDecodeFailed'))
               return
             }
-          }
-          // Check if it looks like base64 PSBT (starts with cHNidP)
-          else if (qrInfo.content.startsWith('cHNidP')) {
+          } else if (qrInfo.content.startsWith('cHNidP')) {
             const hexResult = Buffer.from(qrInfo.content, 'base64').toString(
               'hex'
             )
             finalContent = hexResult
-          }
-          // Check if it's a single UR QR code (any type)
-          else if (qrInfo.content.toLowerCase().startsWith('ur:')) {
+          } else if (qrInfo.content.toLowerCase().startsWith('ur:')) {
             let decoded: string | null = null
             try {
-              // Try generic decoder first
               decoded = decodeURGeneric(qrInfo.content)
             } catch {
               try {
-                // Fallback to PSBT-specific decoder
                 decoded = decodeURToPSBT(qrInfo.content)
               } catch {
                 decoded = null
@@ -265,12 +241,9 @@ function SSCameraModal({
               toast.error(t('camera.error.urDecodeFailed'))
               return
             }
-          }
-          // Check if it's a seed QR code
-          else {
+          } else {
             const decodedMnemonic = detectAndDecodeSeedQR(qrInfo.content)
             if (decodedMnemonic) {
-              // For seed QR codes, we'll pass the mnemonic as metadata
               onContentScanned({
                 type: 'seed_qr',
                 raw: data,
@@ -287,7 +260,6 @@ function SSCameraModal({
           toast.error(t('camera.error.processFailed'))
         }
 
-        // Process the content using the content detector
         const { detectContentByContext } = await import(
           '@/utils/contentDetector'
         )
@@ -311,16 +283,13 @@ function SSCameraModal({
         return
       }
 
-      // Handle multi-part QR codes
       const { type, current, total, content } = qrInfo
 
-      // Check if this is the start of a new scan session or continuation
       if (
         scanProgress.type === null ||
         scanProgress.type !== type ||
         scanProgress.total !== total
       ) {
-        // Start new scan session
         const newScanned = new Set([current])
         const newChunks = new Map([[current, content]])
 
@@ -334,12 +303,10 @@ function SSCameraModal({
         return
       }
 
-      // Continue existing scan session
       if (scanProgress.scanned.has(current)) {
         return
       }
 
-      // Add new chunk
       const newScanned = new Set(scanProgress.scanned).add(current)
       const newChunks = new Map(scanProgress.chunks).set(current, content)
 
@@ -350,18 +317,14 @@ function SSCameraModal({
         chunks: newChunks
       })
 
-      // For UR format, use fountain encoding logic
       if (type === 'ur') {
-        // For fountain encoding, we need to find the highest fragment number to determine the actual range
         const maxFragmentNumber = Math.max(...Array.from(newScanned))
-        const actualTotal = maxFragmentNumber + 1 // Convert from 0-based to 1-based
+        const actualTotal = maxFragmentNumber + 1
 
-        // For fountain encoding, try assembly after collecting enough fragments
         const conservativeTarget = Math.ceil(actualTotal * 1.1)
         const theoreticalTarget = Math.ceil(total * 1.5)
         const assemblyTarget = Math.min(conservativeTarget, theoreticalTarget)
 
-        // Also try assembly if we have most of the available fragments (80% of actual range)
         const fallbackTarget = Math.ceil(actualTotal * 0.8)
         const shouldTryAssembly =
           newScanned.size >= assemblyTarget || newScanned.size >= fallbackTarget
@@ -370,7 +333,6 @@ function SSCameraModal({
           const assembledData = assembleMultiPartQR(type, newChunks)
 
           if (assembledData) {
-            // Process the assembled data using content detector
             const { detectContentByContext } = await import(
               '@/utils/contentDetector'
             )
@@ -383,7 +345,6 @@ function SSCameraModal({
             resetScanProgress()
 
             if (!detectedContent.isValid) {
-              // Small delay to ensure modal is fully closed before showing toast
               setTimeout(() => {
                 toast.error(t('camera.error.invalidContent'))
               }, 100)
@@ -406,16 +367,11 @@ function SSCameraModal({
             }
           }
         }
-
-        // Continue scanning for fountain encoding
       } else {
-        // For RAW and BBQR, wait for all chunks as before
         if (newScanned.size === total) {
-          // All chunks collected, assemble the final result
           const assembledData = assembleMultiPartQR(type, newChunks)
 
           if (assembledData) {
-            // Process the assembled data using content detector
             const { detectContentByContext } = await import(
               '@/utils/contentDetector'
             )
@@ -428,7 +384,6 @@ function SSCameraModal({
             resetScanProgress()
 
             if (!detectedContent.isValid) {
-              // Small delay to ensure modal is fully closed before showing toast
               setTimeout(() => {
                 toast.error(t('camera.error.invalidContent'))
               }, 100)
@@ -459,7 +414,6 @@ function SSCameraModal({
     [context, onContentScanned, onClose, resetScanProgress, scanProgress]
   )
 
-  // Reset scan progress when modal closes
   useEffect(() => {
     if (!visible) {
       resetScanProgress()
@@ -488,7 +442,6 @@ function SSCameraModal({
         {scanProgress.type && scanProgress.total > 1 && (
           <SSVStack itemsCenter gap="xs" style={{ marginBottom: 10 }}>
             {scanProgress.type === 'ur' ? (
-              // For UR fountain encoding, show the actual target
               <>
                 {(() => {
                   const maxFragment = Math.max(
@@ -531,7 +484,6 @@ function SSCameraModal({
                 })()}
               </>
             ) : (
-              // For RAW and BBQR, show normal progress
               <>
                 <SSText color="white" center>
                   {`${t('common.progress')}: ${scanProgress.scanned.size}/${

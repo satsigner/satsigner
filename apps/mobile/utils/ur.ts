@@ -134,35 +134,28 @@ export function decodeURGeneric(ur: string): string {
       const result = decoder.resultUR()
       const cborData = result.cbor
 
-      // For BYTES type, the data might be encoded as a CBOR byte string
       if (result.type === 'bytes') {
-        // First try to parse as CBOR byte string (most common case)
         try {
           const parsedBytes = parseCBORByteString(new Uint8Array(cborData))
           const decodedString = Buffer.from(parsedBytes).toString('utf-8')
 
-          // Check if this looks like an ecash token (starts with cashuA or cashuB)
           if (
             decodedString.includes('cashuA') ||
             decodedString.includes('cashuB')
           ) {
-            // For ecash tokens, clean up any control characters and return the clean token
             const cleanToken = decodedString.replace(/[^\x20-\x7E]/g, '').trim()
             return cleanToken
           }
 
           return decodedString
         } catch {
-          // If CBOR parsing fails, try direct conversion
           const bytes = new Uint8Array(cborData)
           const decodedString = Buffer.from(bytes).toString('utf-8')
 
-          // Check if this looks like an ecash token (starts with cashuA or cashuB)
           if (
             decodedString.includes('cashuA') ||
             decodedString.includes('cashuB')
           ) {
-            // For ecash tokens, clean up any control characters and return the clean token
             const cleanToken = decodedString.replace(/[^\x20-\x7E]/g, '').trim()
             return cleanToken
           }
@@ -171,13 +164,11 @@ export function decodeURGeneric(ur: string): string {
         }
       }
 
-      // For other types, try to parse as CBOR byte string
       try {
         const parsedBytes = parseCBORByteString(new Uint8Array(cborData))
         const hexResult = Buffer.from(Array.from(parsedBytes)).toString('hex')
         return hexResult
       } catch {
-        // If CBOR parsing fails, return the raw data as hex
         const hexResult = Buffer.from(Array.from(cborData)).toString('hex')
         return hexResult
       }
@@ -319,9 +310,7 @@ export function decodeMultiPartURGeneric(urFragments: string[]): string {
   try {
     const decoder = new URDecoder()
 
-    // Sort fragments by sequence number - handle different UR types
     const sortedFragments = urFragments.sort((a, b) => {
-      // Extract sequence number from fragments like "UR:CRYPTO-PSBT/881-13/..." or "UR:BYTES/225-5/..."
       const aMatch = a.match(new RegExp('ur:([^/]+)/(\\d+)-(\\d+)/', 'i'))
       const bMatch = b.match(new RegExp('ur:([^/]+)/(\\d+)-(\\d+)/', 'i'))
 
@@ -334,7 +323,6 @@ export function decodeMultiPartURGeneric(urFragments: string[]): string {
       return 0
     })
 
-    // Feed all fragments to the decoder in sequence order
     const batchSize = 10
     for (let i = 0; i < sortedFragments.length; i += batchSize) {
       const batch = sortedFragments.slice(i, i + batchSize)
@@ -364,71 +352,55 @@ export function decodeMultiPartURGeneric(urFragments: string[]): string {
       progress >= 1.0
 
     if (shouldTryDecoding) {
-      try {
-        const result = decoder.resultUR()
-        if (result && result.cbor) {
-          const cborData = result.cbor
+      const result = decoder.resultUR()
+      if (result && result.cbor) {
+        const cborData = result.cbor
 
-          // For BYTES type, the data might be encoded as a CBOR byte string
-          if (result.type === 'bytes') {
-            // First try to parse as CBOR byte string (most common case)
-            try {
-              const parsedBytes = parseCBORByteString(new Uint8Array(cborData))
-              const decodedString = Buffer.from(parsedBytes).toString('utf-8')
-
-              // Check if this looks like an ecash token (starts with cashuA or cashuB)
-              if (
-                decodedString.includes('cashuA') ||
-                decodedString.includes('cashuB')
-              ) {
-                // For ecash tokens, clean up any control characters and return the clean token
-                const cleanToken = decodedString
-                  .replace(/[^\x20-\x7E]/g, '')
-                  .trim()
-                return cleanToken
-              }
-
-              return decodedString
-            } catch {
-              // If CBOR parsing fails, try direct conversion
-              const bytes = new Uint8Array(cborData)
-              const decodedString = Buffer.from(bytes).toString('utf-8')
-
-              // Check if this looks like an ecash token (starts with cashuA or cashuB)
-              if (
-                decodedString.includes('cashuA') ||
-                decodedString.includes('cashuB')
-              ) {
-                // For ecash tokens, clean up any control characters and return the clean token
-                const cleanToken = decodedString
-                  .replace(/[^\x20-\x7E]/g, '')
-                  .trim()
-                return cleanToken
-              }
-
-              return decodedString
-            }
-          }
-
-          // For other types, try to parse as CBOR byte string
+        if (result.type === 'bytes') {
           try {
             const parsedBytes = parseCBORByteString(new Uint8Array(cborData))
-            const hexResult = Buffer.from(Array.from(parsedBytes)).toString(
-              'hex'
-            )
-            return hexResult
+            const decodedString = Buffer.from(parsedBytes).toString('utf-8')
+
+            if (
+              decodedString.includes('cashuA') ||
+              decodedString.includes('cashuB')
+            ) {
+              const cleanToken = decodedString
+                .replace(/[^\x20-\x7E]/g, '')
+                .trim()
+              return cleanToken
+            }
+
+            return decodedString
           } catch {
-            // If CBOR parsing fails, return the raw data as hex
-            const hexResult = Buffer.from(Array.from(cborData)).toString('hex')
-            return hexResult
+            const bytes = new Uint8Array(cborData)
+            const decodedString = Buffer.from(bytes).toString('utf-8')
+
+            if (
+              decodedString.includes('cashuA') ||
+              decodedString.includes('cashuB')
+            ) {
+              const cleanToken = decodedString
+                .replace(/[^\x20-\x7E]/g, '')
+                .trim()
+              return cleanToken
+            }
+
+            return decodedString
           }
         }
-      } catch (_resultError) {
-        // Continue to error handling
+
+        try {
+          const parsedBytes = parseCBORByteString(new Uint8Array(cborData))
+          const hexResult = Buffer.from(Array.from(parsedBytes)).toString('hex')
+          return hexResult
+        } catch {
+          const hexResult = Buffer.from(Array.from(cborData)).toString('hex')
+          return hexResult
+        }
       }
     }
 
-    // If we get here, the decoder isn't ready yet
     if (progress < 0.3) {
       throw new Error(
         `UR decoder needs more fragments: ${Math.round(
@@ -442,65 +414,52 @@ export function decodeMultiPartURGeneric(urFragments: string[]): string {
         )}% complete (fountain encoding requires more fragments)`
       )
     } else {
-      // Try to force extraction even if not 100% complete
-      try {
-        const result = decoder.resultUR()
-        if (result && result.cbor) {
-          const cborData = result.cbor
+      const result = decoder.resultUR()
+      if (result && result.cbor) {
+        const cborData = result.cbor
 
-          if (result.type === 'bytes') {
-            // First try to parse as CBOR byte string (most common case)
-            try {
-              const parsedBytes = parseCBORByteString(new Uint8Array(cborData))
-              const decodedString = Buffer.from(parsedBytes).toString('utf-8')
-
-              // Check if this looks like an ecash token (starts with cashuA or cashuB)
-              if (
-                decodedString.includes('cashuA') ||
-                decodedString.includes('cashuB')
-              ) {
-                // For ecash tokens, clean up any control characters and return the clean token
-                const cleanToken = decodedString
-                  .replace(/[^\x20-\x7E]/g, '')
-                  .trim()
-                return cleanToken
-              }
-
-              return decodedString
-            } catch {
-              // If CBOR parsing fails, try direct conversion
-              const bytes = new Uint8Array(cborData)
-              const decodedString = Buffer.from(bytes).toString('utf-8')
-
-              // Check if this looks like an ecash token (starts with cashuA or cashuB)
-              if (
-                decodedString.includes('cashuA') ||
-                decodedString.includes('cashuB')
-              ) {
-                // For ecash tokens, clean up any control characters and return the clean token
-                const cleanToken = decodedString
-                  .replace(/[^\x20-\x7E]/g, '')
-                  .trim()
-                return cleanToken
-              }
-
-              return decodedString
-            }
-          }
-
+        if (result.type === 'bytes') {
           try {
             const parsedBytes = parseCBORByteString(new Uint8Array(cborData))
-            const hexResult = Buffer.from(Array.from(parsedBytes)).toString(
-              'hex'
-            )
-            return hexResult
+            const decodedString = Buffer.from(parsedBytes).toString('utf-8')
+
+            if (
+              decodedString.includes('cashuA') ||
+              decodedString.includes('cashuB')
+            ) {
+              const cleanToken = decodedString
+                .replace(/[^\x20-\x7E]/g, '')
+                .trim()
+              return cleanToken
+            }
+
+            return decodedString
           } catch {
-            const hexResult = Buffer.from(Array.from(cborData)).toString('hex')
-            return hexResult
+            const bytes = new Uint8Array(cborData)
+            const decodedString = Buffer.from(bytes).toString('utf-8')
+
+            if (
+              decodedString.includes('cashuA') ||
+              decodedString.includes('cashuB')
+            ) {
+              const cleanToken = decodedString
+                .replace(/[^\x20-\x7E]/g, '')
+                .trim()
+              return cleanToken
+            }
+
+            return decodedString
           }
         }
-      } catch (_forceError) {
-        // Continue to final error
+
+        try {
+          const parsedBytes = parseCBORByteString(new Uint8Array(cborData))
+          const hexResult = Buffer.from(Array.from(parsedBytes)).toString('hex')
+          return hexResult
+        } catch {
+          const hexResult = Buffer.from(Array.from(cborData)).toString('hex')
+          return hexResult
+        }
       }
 
       throw new Error(

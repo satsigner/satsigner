@@ -27,12 +27,10 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
     useState<ContentType | null>(null)
   const [isProcessing, setIsProcessing] = useState<boolean>(false)
 
-  // Load clipboard content when modal opens
   useEffect(() => {
     if (visible) {
       loadClipboardContent()
     } else {
-      // Reset state when modal closes
       setContent('')
       setIsValidContent(false)
       setDetectedContentType(null)
@@ -40,7 +38,6 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
     }
   }, [visible])
 
-  // Monitor clipboard changes when app becomes active
   useEffect(() => {
     if (!visible) return
 
@@ -86,7 +83,6 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
     [context]
   )
 
-  // Validate content when it changes
   useEffect(() => {
     if (content.trim()) {
       validateContent(content)
@@ -114,7 +110,6 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
     try {
       setIsProcessing(true)
 
-      // Small delay to ensure loading state is visible
       await new Promise((resolve) => setTimeout(resolve, 100))
 
       const { detectContentByContext } = await import('@/utils/contentDetector')
@@ -126,9 +121,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
         return
       }
 
-      // For PSBT, navigation happens immediately, so close modal after showing loading
       if (detectedContent.type === 'psbt') {
-        // Keep loading visible briefly, then close modal
         setTimeout(() => {
           onClose()
           setIsProcessing(false)

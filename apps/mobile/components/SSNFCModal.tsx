@@ -17,7 +17,7 @@ type SSNFCModalProps = {
   onClose: () => void
   onContentRead: (content: string) => void
   mode: 'read' | 'write'
-  dataToWrite?: string // for write mode
+  dataToWrite?: string
 }
 
 function SSNFCModal({
@@ -34,7 +34,6 @@ function SSNFCModal({
     cancelNFCScan: cancelNFCEmitterScan
   } = useNFCEmitter()
 
-  // Animation for NFC pulsating effect
   const nfcPulseAnim = useRef(new Animated.Value(0)).current
 
   const handleNFCRead = useCallback(async () => {
@@ -57,13 +56,12 @@ function SSNFCModal({
         return
       }
 
-      // Sanitize NFC data
       const text = nfcData.text
         .trim()
-        .replace(/[^\S\n]+/g, '') // Remove all whitespace except newlines
-        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
-        .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
-        .normalize('NFKC') // Normalize unicode characters
+        .replace(/[^\S\n]+/g, '')
+        .replace(/[\u200B-\u200D\uFEFF]/g, '')
+        .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '')
+        .normalize('NFKC')
 
       onContentRead(text)
       onClose()
@@ -104,7 +102,6 @@ function SSNFCModal({
     }
   }, [isEmitting, cancelNFCEmitterScan, emitNFCTag, dataToWrite, onClose])
 
-  // NFC pulsating animation effect
   useEffect(() => {
     if (visible) {
       const pulseAnimation = Animated.loop(

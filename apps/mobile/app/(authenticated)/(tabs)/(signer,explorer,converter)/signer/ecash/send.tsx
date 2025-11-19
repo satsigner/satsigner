@@ -293,11 +293,7 @@ export default function EcashSendPage() {
       if (isLightningInvoice(cleanText)) {
         setIsLNURLMode(false)
 
-        // For ecash, we don't need LND connection to process Lightning invoices
-        // The ecash mint will handle the Lightning payment
-        // Use bolt11-decode for user transparency (works without LND)
         try {
-          // Try lightweight decoder first (always works)
           const decoded = decodeLightningInvoice(cleanText)
           setDecodedInvoice(decoded)
 
@@ -306,7 +302,6 @@ export default function EcashSendPage() {
             setAmount(decoded.num_satoshis)
           }
         } catch {
-          // Fallback to LND decoder if available
           if (isConnected) {
             try {
               const lndDecoded = await decodeInvoice(cleanText)
@@ -399,7 +394,6 @@ export default function EcashSendPage() {
 
     try {
       await emitNFCTag(generatedToken)
-      // Check if token was truncated due to size limits
       if (generatedToken.length > 8192) {
         toast.warning(t('ecash.warning.tokenTruncated'))
       } else {

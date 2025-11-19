@@ -17,16 +17,11 @@ import {
 function isBitcoinTransaction(data: string): boolean {
   const trimmed = data.trim()
 
-  // Bitcoin transactions are hex strings with even length
   if (!/^[0-9a-fA-F]+$/.test(trimmed)) return false
   if (trimmed.length % 2 !== 0) return false
 
-  // Bitcoin transactions are typically between 200-1000 bytes (400-2000 hex chars)
-  // But we'll be more lenient to catch edge cases
   if (trimmed.length < 100 || trimmed.length > 10000) return false
 
-  // Check if it starts with version bytes (typically 01000000 for version 1)
-  // This is a good heuristic for Bitcoin transactions
   const versionBytes = trimmed.substring(0, 8)
   if (
     versionBytes === '01000000' ||
@@ -36,12 +31,9 @@ function isBitcoinTransaction(data: string): boolean {
     return true
   }
 
-  // Additional check: look for common Bitcoin transaction patterns
-  // Most transactions have input count and output count in the first few bytes
   try {
     const firstByte = parseInt(trimmed.substring(8, 10), 16)
     if (firstByte >= 1 && firstByte <= 20) {
-      // Reasonable input count
       return true
     }
   } catch {
@@ -119,7 +111,6 @@ async function detectBitcoinContent(
 ): Promise<DetectedContent | null> {
   const trimmed = data.trim()
 
-  // Check for Bitcoin descriptor
   if (await isBitcoinDescriptor(trimmed)) {
     return {
       type: 'bitcoin_descriptor',
@@ -132,7 +123,6 @@ async function detectBitcoinContent(
     }
   }
 
-  // Check for PSBT
   if (isPSBT(trimmed)) {
     return {
       type: 'psbt',
@@ -142,7 +132,6 @@ async function detectBitcoinContent(
     }
   }
 
-  // Check for raw Bitcoin transaction (hex format)
   if (isBitcoinTransaction(trimmed)) {
     return {
       type: 'bitcoin_transaction',
@@ -152,7 +141,6 @@ async function detectBitcoinContent(
     }
   }
 
-  // Check for extended public key
   if (isExtendedPublicKey(trimmed)) {
     return {
       type: 'extended_public_key',
@@ -162,7 +150,6 @@ async function detectBitcoinContent(
     }
   }
 
-  // Check for BIP21 URI
   if (isBip21(trimmed)) {
     return {
       type: 'bitcoin_uri',
@@ -172,7 +159,6 @@ async function detectBitcoinContent(
     }
   }
 
-  // Check for bitcoin: URI (remove prefix and check address)
   if (trimmed.toLowerCase().startsWith('bitcoin:')) {
     const addressPart = trimmed.substring(8)
     if (isBitcoinAddress(addressPart)) {
@@ -185,8 +171,6 @@ async function detectBitcoinContent(
     }
   }
 
-  // Check for Bitcoin address (with or without query parameters)
-  // First try the full string, then try extracting just the address part
   if (isBitcoinAddress(trimmed)) {
     return {
       type: 'bitcoin_address',
@@ -196,7 +180,6 @@ async function detectBitcoinContent(
     }
   }
 
-  // Check if it's an address with query parameters (like amount, label, etc.)
   const addressMatch = trimmed.match(/^([a-zA-Z0-9]{26,62})(\?.*)?$/)
   if (addressMatch) {
     const addressPart = addressMatch[1]
@@ -219,7 +202,6 @@ async function detectBitcoinContent(
 function detectLightningContent(data: string): DetectedContent | null {
   const trimmed = data.trim().toLowerCase()
 
-  // Check for Lightning invoice (lnbc, lntb, lnbcrt)
   if (
     trimmed.startsWith('lnbc') ||
     trimmed.startsWith('lntb') ||
@@ -233,7 +215,6 @@ function detectLightningContent(data: string): DetectedContent | null {
     }
   }
 
-  // Check for LNURL
   if (isLNURL(trimmed)) {
     return {
       type: 'lnurl',
@@ -252,10 +233,8 @@ function detectLightningContent(data: string): DetectedContent | null {
 function detectEcashContent(data: string): DetectedContent | null {
   const trimmed = data.trim()
 
-  // Check for ecash token patterns
   if (trimmed.startsWith('cashuA') || trimmed.startsWith('cashuB')) {
     try {
-      // Validate token structure using Cashu library
       const decoded = getDecodedToken(trimmed)
       if (decoded) {
         return {
@@ -271,7 +250,6 @@ function detectEcashContent(data: string): DetectedContent | null {
         }
       }
     } catch {
-      // Token format detected but invalid structure
       return {
         type: 'ecash_token',
         raw: data,
@@ -292,7 +270,6 @@ async function detectImportContent(
 ): Promise<DetectedContent | null> {
   const trimmed = data.trim()
 
-  // Check for BBQR fragment
   if (isBBQRFragment(trimmed)) {
     return {
       type: 'bbqr_fragment',
@@ -302,7 +279,6 @@ async function detectImportContent(
     }
   }
 
-  // Check for UR (Universal Resource)
   if (trimmed.toLowerCase().startsWith('ur:crypto-psbt/')) {
     return {
       type: 'ur',
@@ -312,7 +288,6 @@ async function detectImportContent(
     }
   }
 
-  // Check for seed QR
   const decodedSeed = detectAndDecodeSeedQR(trimmed)
   if (decodedSeed) {
     return {
@@ -345,7 +320,6 @@ export async function detectContentByContext(
     }
   }
 
-  // Try context-specific detection first
   let detected: DetectedContent | null = null
 
   switch (context) {
@@ -379,12 +353,10 @@ export async function detectContentByContext(
       break
   }
 
-  // If context-specific detection failed, try import content detection
   if (!detected) {
     detected = await detectImportContent(data)
   }
 
-  // If still no detection, return unknown
   if (!detected) {
     return {
       type: 'unknown',

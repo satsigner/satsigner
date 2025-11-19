@@ -69,7 +69,7 @@ export default function EcashReceivePage() {
 
   const handleTokenChange = useCallback((text: string) => {
     setToken(text)
-    setDecodedToken(null) // Clear previous decode
+    setDecodedToken(null)
 
     const cleanText = text.trim()
     if (!cleanText) return
@@ -84,14 +84,12 @@ export default function EcashReceivePage() {
     }
   }, [])
 
-  // Handle token parameter from URL
   useEffect(() => {
     if (tokenParam) {
       const tokenValue = Array.isArray(tokenParam) ? tokenParam[0] : tokenParam
       if (tokenValue) {
         setToken(tokenValue)
         setActiveTab('ecash')
-        // Process the token to decode it
         handleTokenChange(tokenValue)
       }
     }
@@ -216,7 +214,6 @@ export default function EcashReceivePage() {
   const handleContentScanned = useCallback(
     (content: DetectedContent) => {
       setCameraModalVisible(false)
-      // Clean the data (remove any whitespace and cashu: prefix)
       const cleanData = content.cleaned.replace(/^cashu:/i, '')
       handleTokenChange(cleanData)
       toast.success(t('ecash.success.tokenScanned'))

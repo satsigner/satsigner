@@ -52,12 +52,10 @@ function autoSelectUtxos(
 
   const { addInput, setFeeRate } = actions
 
-  // Set a default fee rate if not set
   if (setFeeRate && typeof setFeeRate === 'function') {
-    setFeeRate(1) // Default to 1 sat/vbyte
+    setFeeRate(1)
   }
 
-  // If no target amount, select the highest value UTXO
   if (targetAmount === 0 || targetAmount === 1) {
     const highestUtxo = account.utxos.reduce((max: Utxo, utxo: Utxo) =>
       utxo.value > max.value ? utxo : max
@@ -66,26 +64,18 @@ function autoSelectUtxos(
     return
   }
 
-  // Use efficient UTXO selection for the target amount
-  const result = selectEfficientUtxos(
-    account.utxos,
-    targetAmount,
-    1, // Default fee rate of 1 sat/vbyte
-    {
-      dustThreshold: 546,
-      inputSize: 148,
-      changeOutputSize: 34
-    }
-  )
+  const result = selectEfficientUtxos(account.utxos, targetAmount, 1, {
+    dustThreshold: 546,
+    inputSize: 148,
+    changeOutputSize: 34
+  })
 
   if (result.error) {
-    // Fallback: select the highest value UTXO
     const highestUtxo = account.utxos.reduce((max: Utxo, utxo: Utxo) =>
       utxo.value > max.value ? utxo : max
     )
     addInput?.(highestUtxo)
   } else {
-    // Add all selected UTXOs as inputs
     result.inputs.forEach((utxo) => addInput?.(utxo))
   }
 }
@@ -108,24 +98,18 @@ async function processBitcoinContent(
   switch (content.type) {
     case 'psbt':
       {
-        // Convert hex PSBT to base64 if needed
         let psbtBase64 = content.cleaned
         if (/^[0-9a-fA-F]+$/.test(content.cleaned.trim())) {
-          // It's a hex PSBT, convert to base64
           psbtBase64 = Buffer.from(content.cleaned, 'hex').toString('base64')
         }
 
-        // Navigate immediately to improve UX - processing will happen on preview page
         const psbtParam = encodeURIComponent(psbtBase64)
         navigate(
           `/account/${accountId}/signAndSend/previewMessage?psbt=${psbtParam}`
         )
 
-        // Enhanced PSBT processing using the tools from nostr multisig
-        // This now happens in the background on the preview page
         if (account) {
           try {
-            // Check if this PSBT matches the current account
             const accountMatch = await findMatchingAccount(psbtBase64, [
               account
             ])
@@ -133,7 +117,6 @@ async function processBitcoinContent(
             if (accountMatch) {
               const originalPsbt = extractOriginalPsbt(psbtBase64)
 
-              // Extract transaction data and populate the transaction builder
               const extractedData = extractTransactionDataFromPSBTEnhanced(
                 originalPsbt,
                 account
@@ -144,7 +127,6 @@ async function processBitcoinContent(
                 const outputs = extractedData?.outputs || []
                 const fee = extractedData?.fee || 0
 
-                // Set RBF to true for PSBTs
                 actions.setRbf?.(true)
 
                 const finalSignedPsbtsMap = new Map<number, string>()
@@ -180,7 +162,6 @@ async function processBitcoinContent(
                     }
                     if (input.partialSig) {
                       input.partialSig.forEach((sig) => {
-                        // Calculate fingerprint from the public key
                         bitcoinjs.crypto
                           .hash160(sig.pubkey)
                           .slice(0, 4)
@@ -222,8 +203,6 @@ async function processBitcoinContent(
                     }
                   }
                 } else {
-                  // For single-sig, we can just use the combined psbt as is.
-                  // It will be assigned to the first cosigner (index 0).
                   const individualSignedPsbts = extractIndividualSignedPsbts(
                     psbtBase64,
                     originalPsbt
@@ -274,8 +253,6 @@ async function processBitcoinContent(
                 actions.setTxBuilderResult?.(txBuilderResult)
               }
             }
-
-            // Processing happens on preview page now
           } catch {
             toast.error(t('error.failedToProcessPsbt'))
           }
@@ -304,7 +281,6 @@ async function processBitcoinContent(
 
     case 'bitcoin_uri':
       try {
-        // First try with bitcoin: prefix if not present
         let uriToDecode = content.cleaned
         if (!uriToDecode.toLowerCase().startsWith('bitcoin:')) {
           uriToDecode = `bitcoin:${uriToDecode}`
@@ -315,7 +291,6 @@ async function processBitcoinContent(
           const amount =
             (decodedData.options.amount || 0) * SATS_PER_BITCOIN || 1
 
-          // Check if amount exceeds wallet balance
           if (account && account.summary && amount > account.summary.balance) {
             const formattedAmount = amount.toLocaleString()
             const formattedBalance = account.summary.balance.toLocaleString()
@@ -323,12 +298,11 @@ async function processBitcoinContent(
               amount: formattedAmount,
               balance: formattedBalance
             })
-            // Check if translation was found (i18n-js returns key or "missing" message if not found)
+
             if (
               errorMessage.includes('missing') ||
               errorMessage === 'error.amountExceedsBalance'
             ) {
-              // Fallback: construct message from translation keys
               const amountLabel = t('common.amount')
               const satsLabel = t('common.sats')
               const exceedsLabel = t('common.exceeds')
@@ -347,7 +321,6 @@ async function processBitcoinContent(
             })
           }
 
-          // Auto-select UTXOs if account is available
           if (account && addOutput) {
             autoSelectUtxos(account, amount, actions)
           }
@@ -357,7 +330,6 @@ async function processBitcoinContent(
             params: { id: accountId }
           })
         } else {
-          // If decoding returns just an address string, parse manually
           const addressMatch = content.cleaned.match(
             /^([a-zA-Z0-9]{26,62})(\?.*)?$/
           )
@@ -368,9 +340,8 @@ async function processBitcoinContent(
             let amount = 1
             let label = ''
 
-            // Parse query parameters manually
             if (queryString) {
-              const params = new URLSearchParams(queryString.substring(1)) // Remove the '?'
+              const params = new URLSearchParams(queryString.substring(1))
               const amountParam = params.get('amount')
               const labelParam = params.get('label')
 
@@ -383,7 +354,6 @@ async function processBitcoinContent(
               }
             }
 
-            // Check if amount exceeds wallet balance
             if (
               account &&
               account.summary &&
@@ -395,12 +365,10 @@ async function processBitcoinContent(
                 amount: formattedAmount,
                 balance: formattedBalance
               })
-              // Check if translation was found (i18n-js returns key or "missing" message if not found)
               if (
                 errorMessage.includes('missing') ||
                 errorMessage === 'error.amountExceedsBalance'
               ) {
-                // Fallback: construct message from translation keys
                 const amountLabel = t('common.amount')
                 const satsLabel = t('common.sats')
                 const exceedsLabel = t('common.exceeds')
@@ -430,7 +398,6 @@ async function processBitcoinContent(
           }
         }
       } catch {
-        // If URI decoding fails, treat as address
         if (addOutput) {
           addOutput({
             amount: 1,
@@ -505,8 +472,6 @@ function processEcashContent(
 
   switch (content.type) {
     case 'ecash_token':
-      // For ecash tokens, we'll let the ecash store handle the processing
-      // The parent component should handle the token processing
       navigate({
         pathname: '/signer/ecash/receive',
         params: { token: content.cleaned }
@@ -515,7 +480,6 @@ function processEcashContent(
 
     case 'lightning_invoice':
     case 'lnurl':
-      // Lightning invoices in ecash context go to ecash send
       navigate({
         pathname: '/signer/ecash/send',
         params: {

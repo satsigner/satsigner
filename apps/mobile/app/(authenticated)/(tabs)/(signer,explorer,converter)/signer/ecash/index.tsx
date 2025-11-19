@@ -45,7 +45,6 @@ export default function EcashLanding() {
 
   const handleSettingsPress = () => router.navigate('/signer/ecash/settings')
 
-  // Content handling with new hooks
   const ecashContentHandler = useEcashContentHandler()
 
   const contentHandler = useContentHandler({
@@ -162,7 +161,6 @@ export default function EcashLanding() {
           )}
         </SSVStack>
       </ScrollView>
-      {/* Modal Components */}
       {cameraModal}
       {nfcModal}
       {pasteModal}

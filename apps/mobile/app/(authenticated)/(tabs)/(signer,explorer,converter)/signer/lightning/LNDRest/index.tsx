@@ -44,11 +44,10 @@ export default function LNDRestPage() {
 
       const config = jsonConfig.configurations[0]
 
-      // Extract the required fields
       const lndConfig: LNDConfig = {
         macaroon: config.macaroon,
         cert: config.cert,
-        url: config.uri // Note: in JSON format it's 'uri' instead of 'url'
+        url: config.uri
       }
 
       if (!lndConfig.macaroon || !lndConfig.url) {
@@ -60,9 +59,9 @@ export default function LNDRestPage() {
       }
 
       return lndConfig
-    } catch (_error) {
-      console.error('Config fetch error:', _error)
-      throw _error
+    } catch (error) {
+      console.error('Config fetch error:', error)
+      throw error
     }
   }
   const handleConnect = async () => {

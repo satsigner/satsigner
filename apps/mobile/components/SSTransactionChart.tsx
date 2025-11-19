@@ -231,7 +231,6 @@ function SSTransactionChart({
     return [...inputToBlockLinks, ...blockToOutputLinks]
   }, [inputs, outputs, minerFee])
 
-  // Early return if no data to render
   if (inputs.length === 0 || outputs.length === 0) {
     return null
   }

@@ -773,7 +773,6 @@ export default function AccountView() {
   const [connectionState, connectionString, isPrivateConnection] =
     useVerifyConnection()
 
-  // Content handling with new hooks
   const bitcoinContentHandler = useBitcoinContentHandler({
     accountId: id!,
     account: account!
@@ -803,10 +802,8 @@ export default function AccountView() {
     context: 'bitcoin'
   })
 
-  // Close modals when navigating away from this page
   useFocusEffect(
     useCallback(() => {
-      // Cleanup function: close modals when leaving the page
       return () => {
         contentHandler.closeCameraModal()
         contentHandler.closeNFCModal()

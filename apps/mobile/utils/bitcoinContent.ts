@@ -5,10 +5,8 @@ import { validateAddress } from '@/utils/validation'
 export function isPSBT(text: string): boolean {
   const trimmed = text.trim()
 
-  // Check for base64 PSBT format (starts with 'cHNidP8B' which is base64 for 'psbt\xff')
   const isBase64PSBT = trimmed.startsWith('cHNidP8B') && trimmed.length > 50
 
-  // Check for hex PSBT format (starts with '70736274ff' or '70736274FF' which is hex for 'psbt\xff')
   const isHexPSBT =
     /^[0-9a-fA-F]+$/.test(trimmed) &&
     (trimmed.startsWith('70736274ff') || trimmed.startsWith('70736274FF')) &&
@@ -22,16 +20,12 @@ export function isValidBitcoinContent(text: string): boolean {
 
   const trimmed = text.trim()
 
-  // Check if it's a PSBT
   if (isPSBT(trimmed)) return true
 
-  // Check if it's a Bitcoin address using the robust validation function
   if (validateAddress(trimmed)) return true
 
-  // Check if it's a BIP21 URI
   if (isBip21(trimmed)) return true
 
-  // Check if it's a bitcoin: URI (remove prefix and check address)
   if (trimmed.toLowerCase().startsWith('bitcoin:')) {
     const addressPart = trimmed.substring(8)
     if (validateAddress(addressPart)) return true
@@ -55,7 +49,6 @@ export function processBitcoinContent(
 
   const trimmed = text.trim()
 
-  // Handle PSBT
   if (isPSBT(trimmed)) {
     return {
       type: 'psbt',
@@ -63,7 +56,6 @@ export function processBitcoinContent(
     }
   }
 
-  // Handle BIP21 URI
   if (isBip21(trimmed)) {
     const decodedData = bip21decode(trimmed)
     if (!decodedData || typeof decodedData === 'string') return null
@@ -77,7 +69,6 @@ export function processBitcoinContent(
     }
   }
 
-  // Handle Bitcoin address
   let processedAddress = trimmed
   if (processedAddress.toLowerCase().startsWith('bitcoin:')) {
     processedAddress = processedAddress.substring(8)

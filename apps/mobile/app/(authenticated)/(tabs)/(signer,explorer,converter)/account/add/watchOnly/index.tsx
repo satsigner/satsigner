@@ -137,7 +137,6 @@ export default function WatchOnly() {
         const descriptorFromScanner = params.descriptor as string
 
         setCreationType('importDescriptor')
-        // handleSingleDescriptor will check if it is a combined descriptor and process it accordingly
         await handleSingleDescriptor(descriptorFromScanner)
       } else if (params.extendedPublicKey) {
         const xpubFromScanner = params.extendedPublicKey as string
