@@ -18,7 +18,7 @@ import SSTextInput from '@/components/SSTextInput'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
+import { t, tn } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
@@ -29,6 +29,8 @@ import { validateAddress } from '@/utils/validation'
 type WatchedAddress = Address & {
   new?: boolean
 }
+
+const tl = tn('account.settings.manageAddresses')
 
 export default function ManageAccountAddresses() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -82,40 +84,48 @@ export default function ManageAccountAddresses() {
         >
           <SSVStack gap="sm">
             <SSText uppercase weight="bold">
-              {`Address #${index + 1}`} {address.new && '(NEW)'}
+              {address.new
+                ? tl('addressIndex', { index })
+                : tl('addressIndexNew', { index })}
             </SSText>
             <SSAddressDisplay address={address.address} />
             {!address.new && (
               <SSVStack gap="none">
                 <SSText>
-                  Current balance:{' '}
+                  {tl('summary.balance')}
+                  {': '}
                   <SSStyledSatText
                     amount={address.summary.balance}
                     textSize="sm"
                     noColor
                   />{' '}
-                  sats
+                  {t('bitcoin.sats')}
                 </SSText>
                 {address.summary.satsInMempool > 0 && (
                   <SSText>
-                    Unconfirmed funds in mempool:{' '}
+                    {tl('summary.balanceUncofirmed')}
+                    {': '}
                     <SSStyledSatText
                       amount={address.summary.satsInMempool}
                       textSize="sm"
                       noColor
                     />
+                    {t('bitcoin.sats')}
                   </SSText>
                 )}
                 <SSText>
-                  Total UTXOs:{' '}
+                  {tl('summary.utxos')}
+                  {': '}
                   <SSText weight="bold">{address.summary.utxos}</SSText>
                 </SSText>
                 <SSText>
-                  Total Transactions:{' '}
+                  {tl('summary.tx')}
+                  {': '}
                   <SSText weight="bold">{address.summary.transactions}</SSText>
                 </SSText>
                 <SSText>
-                  Label:{' '}
+                  {t('common.label')}
+                  {': '}
                   {address.label ? (
                     <SSText weight="bold">{address.label}</SSText>
                   ) : (
@@ -127,7 +137,7 @@ export default function ManageAccountAddresses() {
             <SSHStack gap="sm" justifyBetween>
               <SSButton
                 style={styles.addressActionButton}
-                label="VIEW DETAILS"
+                label={tl('detailsBtn').toUpperCase()}
                 variant="secondary"
                 disabled={address.new}
                 onPress={() =>
@@ -138,7 +148,7 @@ export default function ManageAccountAddresses() {
               />
               <SSButton
                 style={styles.addressActionButton}
-                label="DELETE"
+                label={tl('deleteBtn').toUpperCase()}
                 variant="danger"
                 onPress={() => handleDeleteAddress(address.address)}
               />
@@ -170,17 +180,18 @@ export default function ManageAccountAddresses() {
   function handleAddAddress() {
     const address = addressInput.trim()
     if (!validateAddress(address)) {
-      toast.error('Invalid address')
+      toast.error(tl('error.invalid'))
       return
     }
 
     const duplicated = addresses.some((addr) => addr.address === address)
     if (duplicated) {
-      toast.error('Duplicated address')
+      toast.error(tl('error.duplicated'))
       return
     }
 
     addAddress(address)
+    setAddressInput('')
     setShowAddAddressModal(false)
   }
 
@@ -249,7 +260,7 @@ export default function ManageAccountAddresses() {
       <SafeAreaView style={styles.container}>
         <SSVStack style={styles.container}>
           <SSText uppercase size="lg" weight="bold" center>
-            Manage addresses
+            {tl('title')}
           </SSText>
           <SSVStack gap="lg" style={styles.container}>
             <DraggableFlatList
@@ -264,10 +275,13 @@ export default function ManageAccountAddresses() {
           </SSVStack>
           <SSVStack gap="sm">
             <SSButton
-              label="Add address"
+              label={tl('addBtn')}
               variant="outline"
               uppercase
-              onPress={() => setShowAddAddressModal(true)}
+              onPress={() => {
+                setShowAddAddressModal(true)
+                setAddressInput('')
+              }}
             />
             <SSButton
               label={t('common.save')}
@@ -284,7 +298,7 @@ export default function ManageAccountAddresses() {
       >
         <SSVStack gap="lg" style={styles.modalContainer}>
           <SSText size="lg" center>
-            You are about to delete the following address:
+            {tl('deleteWarn')}
           </SSText>
           <SSAddressDisplay address={addressToDelete} variant="bare" />
           <SSVStack gap="sm">
@@ -312,10 +326,10 @@ export default function ManageAccountAddresses() {
           <SSTextInput
             value={addressInput}
             onChangeText={setAddressInput}
-            placeholder="Enter new address!"
-            multiline
-            style={{ height: 'auto' }}
+            placeholder={tl('addInputPlaceholder')}
             numberOfLines={5}
+            style={{ height: 'auto' }}
+            multiline
           />
           <SSVStack gap="sm">
             <SSButton
