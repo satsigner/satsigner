@@ -18,7 +18,7 @@ describe('validation', () => {
       try {
         const decoded = Buffer.from(text, 'base64').toString()
         return decoded.startsWith('psbt')
-      } catch (e) {
+      } catch {
         return false
       }
     }
@@ -95,7 +95,7 @@ describe('validation', () => {
       try {
         Buffer.from(token, 'base64url')
         return true
-      } catch (e) {
+      } catch {
         return false
       }
     }
