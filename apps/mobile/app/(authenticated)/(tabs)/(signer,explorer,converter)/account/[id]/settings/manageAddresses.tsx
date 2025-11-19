@@ -21,6 +21,10 @@ import { getScriptVersionType } from '@/utils/address'
 import { formatNumber } from '@/utils/format'
 import { validateAddress } from '@/utils/validation'
 
+type WatchedAddress = Address & {
+  new?: boolean
+}
+
 export default function ManageAccountAddresses() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
 
@@ -29,7 +33,9 @@ export default function ManageAccountAddresses() {
   )
 
   const [currencyUnit, setSatsUnit] = useState<'sats' | 'btc'>('sats')
-  const [addresses, setAddresses] = useState([...(account?.addresses || [])])
+  const [addresses, setAddresses] = useState<WatchedAddress[]>([
+    ...(account?.addresses || [])
+  ])
 
   const [showAddAddressModal, setShowAddAddressModal] = useState(false)
   const [showDeleteAddressModal, setShowDeleteAddressModal] = useState(false)
@@ -55,11 +61,23 @@ export default function ManageAccountAddresses() {
 
   function handleAddAddress() {
     const address = addressInput.trim()
-    if (validateAddress(address)) {
-      addAddress(address)
-    } else {
+    if (!validateAddress(address)) {
       toast.error('Invalid address')
+      return
     }
+
+    const duplicated = addresses.some((addr) => addr.address === address)
+    console.log(
+      'DEBUGPRINT[129]: manageAddresses.tsx:65: duplicated=',
+      duplicated
+    )
+    if (duplicated) {
+      toast.error('Duplicated address')
+      return
+    }
+
+    addAddress(address)
+    setShowAddAddressModal(false)
   }
 
   function handleDeleteAddress(address: string) {
@@ -69,6 +87,7 @@ export default function ManageAccountAddresses() {
 
   function deleteAddress(address: string) {
     setAddresses(addresses.filter((addr) => addr.address !== address))
+    setShowDeleteAddressModal(false)
   }
 
   function addAddress(address: string) {
@@ -83,7 +102,8 @@ export default function ManageAccountAddresses() {
         transactions: 0,
         satsInMempool: 0,
         balance: 0
-      }
+      },
+      new: true
     }
     setAddresses([...addresses, newAddress])
   }
@@ -121,49 +141,52 @@ export default function ManageAccountAddresses() {
               return (
                 <SSVStack gap="sm" key={address.address}>
                   <SSText uppercase weight="bold">
-                    {`Address #${index + 1}`}
+                    {`Address #${index + 1}`} {address.new && '(NEW)'}
                   </SSText>
                   <SSAddressDisplay address={address.address} />
-                  <SSVStack gap="none">
-                    <SSText>
-                      Current balance:{' '}
-                      <SSStyledSatText
-                        amount={address.summary.balance}
-                        useZeroPadding
-                        textSize="sm"
-                        noColor
-                      />
-                    </SSText>
-                    {address.summary.satsInMempool > 0 && (
+                  {!address.new && (
+                    <SSVStack gap="none">
                       <SSText>
-                        Unconfirmed funds in mempool:{' '}
-                        {formatAmount(address.summary.satsInMempool)}
+                        Current balance:{' '}
+                        <SSStyledSatText
+                          amount={address.summary.balance}
+                          useZeroPadding
+                          textSize="sm"
+                          noColor
+                        />
                       </SSText>
-                    )}
-                    <SSText>
-                      Total UTXOs:{' '}
-                      <SSText weight="bold">{address.summary.utxos}</SSText>
-                    </SSText>
-                    <SSText>
-                      Total Transactions:{' '}
-                      <SSText weight="bold">
-                        {address.summary.transactions}
-                      </SSText>
-                    </SSText>
-                    <SSText>
-                      Label:{' '}
-                      {address.label ? (
-                        <SSText weight="bold">{address.label}</SSText>
-                      ) : (
-                        <SSText color="muted">{t('common.noLabel')}</SSText>
+                      {address.summary.satsInMempool > 0 && (
+                        <SSText>
+                          Unconfirmed funds in mempool:{' '}
+                          {formatAmount(address.summary.satsInMempool)}
+                        </SSText>
                       )}
-                    </SSText>
-                  </SSVStack>
+                      <SSText>
+                        Total UTXOs:{' '}
+                        <SSText weight="bold">{address.summary.utxos}</SSText>
+                      </SSText>
+                      <SSText>
+                        Total Transactions:{' '}
+                        <SSText weight="bold">
+                          {address.summary.transactions}
+                        </SSText>
+                      </SSText>
+                      <SSText>
+                        Label:{' '}
+                        {address.label ? (
+                          <SSText weight="bold">{address.label}</SSText>
+                        ) : (
+                          <SSText color="muted">{t('common.noLabel')}</SSText>
+                        )}
+                      </SSText>
+                    </SSVStack>
+                  )}
                   <SSHStack gap="sm">
                     <SSButton
                       style={styles.addressActionButton}
                       label="VIEW DETAILS"
                       variant="secondary"
+                      disabled={address.new}
                       onPress={() =>
                         router.navigate(
                           `/account/${accountId}/address/${address.address}`
@@ -181,33 +204,37 @@ export default function ManageAccountAddresses() {
               )
             })}
           </SSVStack>
-          <SSButton
-            label="Add address"
-            variant="outline"
-            uppercase
-            onPress={() => setShowAddAddressModal(true)}
-          />
-          <SSButton
-            label={t('common.save')}
-            variant="outline"
-            uppercase
-            onPress={handleSaveChanges}
-          />
+          <SSVStack gap="sm">
+            <SSButton
+              label="Add address"
+              variant="outline"
+              uppercase
+              onPress={() => setShowAddAddressModal(true)}
+            />
+            <SSButton
+              label={t('common.save')}
+              variant="secondary"
+              uppercase
+              onPress={handleSaveChanges}
+            />
+          </SSVStack>
         </SSVStack>
       </ScrollView>
       <SSModal
         visible={showDeleteAddressModal}
         onClose={() => setShowDeleteAddressModal(false)}
       >
-        <SSVStack>
-          <SSText>You are about to delete the following address:</SSText>
+        <SSVStack gap="lg" style={styles.modalContainer}>
+          <SSText size="lg" center>
+            You are about to delete the following address:
+          </SSText>
           <SSAddressDisplay address={addressToDelete} variant="bare" />
           <SSVStack gap="sm">
             <SSButton
               label={t('common.yes')}
               variant="outline"
               uppercase
-              onPress={() => handleAddAddress()}
+              onPress={() => deleteAddress(addressToDelete)}
             />
             <SSButton
               label={t('common.no')}
@@ -221,13 +248,16 @@ export default function ManageAccountAddresses() {
       <SSModal
         visible={showAddAddressModal}
         onClose={() => setShowAddAddressModal(false)}
+        fullOpacity
       >
-        <SSVStack>
-          <SSText>Add new addresses</SSText>
+        <SSVStack gap="lg" style={styles.modalContainer}>
           <SSTextInput
             value={addressInput}
             onChangeText={setAddressInput}
-            placeholder="Enter new address..."
+            placeholder="Enter new address!"
+            multiline
+            style={{ height: 'auto' }}
+            numberOfLines={5}
           />
           <SSVStack gap="sm">
             <SSButton
@@ -254,5 +284,10 @@ const styles = StyleSheet.create({
     width: 'auto',
     flexGrow: 1,
     padding: 8
+  },
+  modalContainer: {
+    justifyContent: 'center',
+    height: '100%',
+    width: '100%'
   }
 })
