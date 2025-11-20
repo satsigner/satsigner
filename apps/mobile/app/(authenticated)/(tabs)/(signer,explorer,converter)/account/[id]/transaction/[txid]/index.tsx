@@ -41,26 +41,14 @@ import { getUtxoOutpoint } from '@/utils/utxo'
 export default function TxDetails() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
 
-  const [account, loadTx] = useAccountsStore(
+  const [tx, loadTx] = useAccountsStore(
     useShallow((state) => [
-      state.accounts.find((account) => account.id === accountId),
+      state.accounts
+        .find((account) => account.id === accountId)
+        ?.transactions.find((tx) => tx.id === txid),
       state.loadTx
     ])
   )
-
-  const originalTx = account?.transactions.find((tx) => tx.id === txid)
-  const tx = originalTx ? { ...originalTx } : null
-
-  if (tx && tx.vout) {
-    tx.vout = tx.vout.map((output, index) => {
-      const outputRef = `${txid}:${index}`
-      const label = account?.labels[outputRef]?.label || output.label || ''
-      return {
-        ...output,
-        label
-      }
-    })
-  }
 
   const [selectedNetwork, configs] = useBlockchainStore(
     useShallow((state) => [state.selectedNetwork, state.configs])
