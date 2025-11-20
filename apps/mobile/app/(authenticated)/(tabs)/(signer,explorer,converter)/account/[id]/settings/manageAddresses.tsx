@@ -35,9 +35,22 @@ type WatchedAddress = Address & {
   new?: boolean
 }
 
+type ManageAccountAddressesProps = {
+  account: Account
+  onUpdateAccount: (newAccount: Account) => void
+  onViewAddressDetails: (address: Address['address']) => void
+}
+
+type AddressCardProps = {
+  address: WatchedAddress
+  index: number
+  onViewDetails: () => void
+  onDelete: () => void
+}
+
 const tl = tn('account.settings.manageAddresses')
 
-export default function ManageAccountAddresses() {
+export default function ManageAccountAddressesPage() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
 
   const [account, updateAccount] = useAccountsStore(
@@ -47,14 +60,6 @@ export default function ManageAccountAddresses() {
     ])
   )
 
-  const [addresses, setAddresses] = useState<WatchedAddress[]>([
-    ...(account?.addresses || [])
-  ])
-  const [showAddAddressModal, setShowAddAddressModal] = useState(false)
-  const [showDeleteAddressModal, setShowDeleteAddressModal] = useState(false)
-  const [addressInput, setAddressInput] = useState('')
-  const [addressToDelete, setAddressToDelete] = useState('')
-
   const isMultiAddressWatchOnly = useMemo(() => {
     return (
       account &&
@@ -62,6 +67,121 @@ export default function ManageAccountAddresses() {
       account.keys[0].creationType === 'importAddress'
     )
   }, [account])
+
+  function handleUpdateAccount(newAccount: Account) {
+    const addressesNotChanged = newAccount.addresses.every(
+      (address, index) => account!.addresses[index].address === address.address
+    )
+
+    if (addressesNotChanged) {
+      router.back()
+      return
+    }
+
+    updateAccount(newAccount)
+    router.back()
+  }
+
+  function handleOnViewAddressDetails(address: Address['address']) {
+    router.navigate(`/account/${account!.id}/address/${address}`)
+  }
+
+  if (!account || !isMultiAddressWatchOnly) return <Redirect href="/" />
+
+  return (
+    <ManageAccountAddresses
+      account={account}
+      onUpdateAccount={handleUpdateAccount}
+      onViewAddressDetails={handleOnViewAddressDetails}
+    />
+  )
+}
+
+export function AddressCard({
+  address,
+  index,
+  onViewDetails,
+  onDelete
+}: AddressCardProps) {
+  return (
+    <SSVStack gap="sm">
+      <SSText uppercase weight="bold">
+        {address.new
+          ? tl('addressIndexNew', { index })
+          : tl('addressIndex', { index })}
+      </SSText>
+      <SSAddressDisplay address={address.address} />
+      {!address.new && (
+        <SSVStack gap="none">
+          <SSText>
+            {tl('summary.balance')}{' '}
+            <SSStyledSatText
+              amount={address.summary.balance}
+              textSize="sm"
+              noColor
+            />{' '}
+            {t('bitcoin.sats')}
+          </SSText>
+          {address.summary.satsInMempool > 0 && (
+            <SSText>
+              {tl('summary.balanceUncofirmed')}{' '}
+              <SSStyledSatText
+                amount={address.summary.satsInMempool}
+                textSize="sm"
+                noColor
+              />
+              {t('bitcoin.sats')}
+            </SSText>
+          )}
+          <SSText>
+            {tl('summary.utxo')}{' '}
+            <SSText weight="bold">{address.summary.utxos}</SSText>
+          </SSText>
+          <SSText>
+            {tl('summary.tx')}{' '}
+            <SSText weight="bold">{address.summary.transactions}</SSText>
+          </SSText>
+          <SSText>
+            {t('common.label')}{' '}
+            {address.label ? (
+              <SSText weight="bold">{address.label}</SSText>
+            ) : (
+              <SSText color="muted">{t('common.noLabel')}</SSText>
+            )}
+          </SSText>
+        </SSVStack>
+      )}
+      <SSHStack gap="sm" justifyBetween>
+        <SSButton
+          style={styles.addressActionButton}
+          label={tl('detailsBtn').toUpperCase()}
+          variant="secondary"
+          disabled={address.new}
+          onPress={onViewDetails}
+        />
+        <SSButton
+          style={styles.addressActionButton}
+          label={tl('deleteBtn').toUpperCase()}
+          variant="danger"
+          onPress={onDelete}
+        />
+      </SSHStack>
+    </SSVStack>
+  )
+}
+
+export function ManageAccountAddresses({
+  account,
+  onUpdateAccount,
+  onViewAddressDetails
+}: ManageAccountAddressesProps) {
+  const [addresses, setAddresses] = useState<WatchedAddress[]>([
+    ...(account?.addresses || [])
+  ])
+  const [showAddAddressModal, setShowAddAddressModal] = useState(false)
+  const [showDeleteAddressModal, setShowDeleteAddressModal] = useState(false)
+  const [addressInput, setAddressInput] = useState('')
+  const [addressToDelete, setAddressToDelete] = useState('')
 
   function renderItem({
     item,
@@ -71,9 +191,8 @@ export default function ManageAccountAddresses() {
   }: RenderItemParams<WatchedAddress>) {
     const index = getIndex() || 0
     const address = item
-
     return (
-      <ScaleDecorator activeScale={1.03}>
+      <ScaleDecorator activeScale={1.05}>
         <TouchableOpacity
           activeOpacity={0.8}
           onLongPress={drag}
@@ -81,78 +200,12 @@ export default function ManageAccountAddresses() {
           disabled={isActive}
           style={isActive ? styles.addressItemActive : styles.addressItem}
         >
-          <SSVStack gap="sm">
-            <SSText uppercase weight="bold">
-              {address.new
-                ? tl('addressIndexNew', { index })
-                : tl('addressIndex', { index })}
-            </SSText>
-            <SSAddressDisplay address={address.address} />
-            {!address.new && (
-              <SSVStack gap="none">
-                <SSText>
-                  {tl('summary.balance')}
-                  {': '}
-                  <SSStyledSatText
-                    amount={address.summary.balance}
-                    textSize="sm"
-                    noColor
-                  />{' '}
-                  {t('bitcoin.sats')}
-                </SSText>
-                {address.summary.satsInMempool > 0 && (
-                  <SSText>
-                    {tl('summary.balanceUncofirmed')}
-                    {': '}
-                    <SSStyledSatText
-                      amount={address.summary.satsInMempool}
-                      textSize="sm"
-                      noColor
-                    />
-                    {t('bitcoin.sats')}
-                  </SSText>
-                )}
-                <SSText>
-                  {tl('summary.utxo')}
-                  {': '}
-                  <SSText weight="bold">{address.summary.utxos}</SSText>
-                </SSText>
-                <SSText>
-                  {tl('summary.tx')}
-                  {': '}
-                  <SSText weight="bold">{address.summary.transactions}</SSText>
-                </SSText>
-                <SSText>
-                  {t('common.label')}
-                  {': '}
-                  {address.label ? (
-                    <SSText weight="bold">{address.label}</SSText>
-                  ) : (
-                    <SSText color="muted">{t('common.noLabel')}</SSText>
-                  )}
-                </SSText>
-              </SSVStack>
-            )}
-            <SSHStack gap="sm" justifyBetween>
-              <SSButton
-                style={styles.addressActionButton}
-                label={tl('detailsBtn').toUpperCase()}
-                variant="secondary"
-                disabled={address.new}
-                onPress={() =>
-                  router.navigate(
-                    `/account/${accountId}/address/${address.address}`
-                  )
-                }
-              />
-              <SSButton
-                style={styles.addressActionButton}
-                label={tl('deleteBtn').toUpperCase()}
-                variant="danger"
-                onPress={() => handleDeleteAddress(address.address)}
-              />
-            </SSHStack>
-          </SSVStack>
+          <AddressCard
+            address={address}
+            index={index}
+            onViewDetails={() => onViewAddressDetails(address.address)}
+            onDelete={() => handleDeleteAddress(address.address)}
+          />
         </TouchableOpacity>
       </ScaleDecorator>
     )
@@ -215,17 +268,6 @@ export default function ManageAccountAddresses() {
   }
 
   async function handleSaveChanges() {
-    if (!account) return
-
-    const addressesNotChanged = addresses.every(
-      (addr, index) => account.addresses[index].address === addr.address
-    )
-
-    if (addressesNotChanged) {
-      router.back()
-      return
-    }
-
     const keys = addresses.map((addr, index) => {
       const secret: Secret = {
         externalDescriptor: `addr(${addr.address})`
@@ -240,7 +282,6 @@ export default function ManageAccountAddresses() {
     })
     const keyCount = keys.length
 
-    // we have to reset the account data because
     const updatedAccount: Account = {
       ...account,
       transactions: [],
@@ -257,12 +298,9 @@ export default function ManageAccountAddresses() {
       keyCount,
       keys
     }
-    updateAccount(updatedAccount)
 
-    router.back()
+    onUpdateAccount(updatedAccount)
   }
-
-  if (!account || !isMultiAddressWatchOnly) return <Redirect href="/" />
 
   return (
     <SSMainLayout style={[styles.container, styles.mainContainer]}>
