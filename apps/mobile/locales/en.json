@@ -269,6 +269,7 @@
     "settings.manageAddresses.detailsBtn": "View details",
     "settings.manageAddresses.error.duplicated": "Duplicated address",
     "settings.manageAddresses.error.invalid": "Invalid address",
+    "settings.manageAddresses.info.pasted": "Address has been pasted from clipboard ",
     "settings.manageAddresses.summary.balance": "Current balance:",
     "settings.manageAddresses.summary.balanceUncofirmed": "Unconfirmed balance:",
     "settings.manageAddresses.summary.tx": "Total Transactions:",

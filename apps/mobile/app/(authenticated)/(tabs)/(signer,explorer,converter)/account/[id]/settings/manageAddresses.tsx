@@ -235,7 +235,7 @@ export function ManageAccountAddresses({
     const content = await Clipboard.getString()
     if (content && validateAddress(content)) {
       setAddressInput(content)
-      toast.info('Address has been pasted from clipboard')
+      toast.info(tl('info.pasted'))
     }
   }
 
