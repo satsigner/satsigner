@@ -18,3 +18,7 @@ export type Address = {
     satsInMempool: number
   }
 }
+
+export type WatchedAddress = Address & {
+  new?: boolean
+}

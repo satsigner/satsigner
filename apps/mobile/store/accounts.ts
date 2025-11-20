@@ -24,7 +24,7 @@ type AccountsState = {
 
 type AccountsAction = {
   addAccount: (account: Account) => void
-  updateAccount: (account: Account) => Promise<void>
+  updateAccount: (account: Account) => void
   updateAccountName: (id: Account['id'], newName: string) => void
   updateKeyName: (id: Account['id'], keyIndex: number, newName: string) => void
   updateAccountNostr: (
@@ -79,7 +79,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           })
         )
       },
-      updateAccount: async (account) => {
+      updateAccount: (account) => {
         set(
           produce((state: AccountsState) => {
             const index = state.accounts.findIndex(
