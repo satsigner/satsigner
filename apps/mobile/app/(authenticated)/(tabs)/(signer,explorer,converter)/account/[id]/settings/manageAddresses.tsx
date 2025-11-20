@@ -339,6 +339,7 @@ export function ManageAccountAddresses({
       <SSModal
         visible={showDeleteAddressModal}
         onClose={() => setShowDeleteAddressModal(false)}
+        fullOpacity
       >
         <SSVStack gap="lg" style={styles.modalContainer}>
           <SSText size="lg" center>

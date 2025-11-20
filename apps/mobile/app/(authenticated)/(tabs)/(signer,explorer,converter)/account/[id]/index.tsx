@@ -255,7 +255,7 @@ type DerivedAddressesProps = {
 }
 
 const SCREEN_WIDTH = Dimensions.get('window').width
-const ADDRESS_LIST_WIDTH = SCREEN_WIDTH * 1.1
+const ADDRESS_LIST_WIDTH = SCREEN_WIDTH * 1.2
 
 function DerivedAddresses({
   account,
@@ -277,7 +277,6 @@ function DerivedAddresses({
   const [addressCount, setAddressCount] = useState(
     Math.max(1, Math.ceil(account.addresses.length / perPage)) * perPage
   )
-  const [_hasLoadMoreAddresses, setHasLoadMoreAddresses] = useState(false)
   const isUpdatingAddresses = useRef(false)
   const isMultiAddressWatchOnly = useMemo(() => {
     return (
@@ -318,7 +317,6 @@ function DerivedAddresses({
       return
     }
 
-    setHasLoadMoreAddresses(true)
     const newAddressCount =
       account.addresses.length < addressCount
         ? addressCount
@@ -422,19 +420,22 @@ function DerivedAddresses({
           </SSText>
           <SSText
             style={[
+              addressListStyles.columnSats,
+              { color: item.summary.balance === 0 ? '#333' : '#fff' }
+            ]}
+          >
+            <SSStyledSatText
+              amount={item.summary.balance}
+              textSize="xs"
+            />
+          </SSText>
+          <SSText
+            style={[
               addressListStyles.columnTxs,
               { color: item.summary.transactions === 0 ? '#333' : '#fff' }
             ]}
           >
             {item.summary.transactions}
-          </SSText>
-          <SSText
-            style={[
-              addressListStyles.columnSats,
-              { color: item.summary.balance === 0 ? '#333' : '#fff' }
-            ]}
-          >
-            {item.summary.balance}
           </SSText>
           <SSText
             style={[
@@ -532,18 +533,18 @@ function DerivedAddresses({
             <SSText
               style={[
                 addressListStyles.headerText,
-                addressListStyles.columnTxs
-              ]}
-            >
-              {t('address.list.table.tx')}
-            </SSText>
-            <SSText
-              style={[
-                addressListStyles.headerText,
                 addressListStyles.columnSats
               ]}
             >
               {t('address.list.table.balance')}
+            </SSText>
+            <SSText
+              style={[
+                addressListStyles.headerText,
+                addressListStyles.columnTxs
+              ]}
+            >
+              {t('address.list.table.tx')}
             </SSText>
             <SSText
               style={[
@@ -1228,12 +1229,29 @@ const addressListStyles = StyleSheet.create({
     color: '#777',
     textTransform: 'uppercase'
   },
-  columnAddress: { width: '25%' },
-  columnLabel: { width: '25%' },
-  columnSats: { width: '10%', textAlign: 'center' },
-  columnTxs: { width: '10%', textAlign: 'center' },
-  columnUtxos: { width: '10%', textAlign: 'center' },
-  columnIndex: { width: '5%', textAlign: 'center' },
+  columnAddress: {
+    width: '20%'
+  },
+  columnLabel: {
+    width: '20%'
+  },
+  columnSats: {
+    flexWrap: 'nowrap',
+    width: '20%',
+    textAlign: 'center'
+  },
+  columnTxs: {
+    width: '10%',
+    textAlign: 'center'
+  },
+  columnUtxos: {
+    width: '10%',
+    textAlign: 'center'
+  },
+  columnIndex: {
+    width: '5%',
+    textAlign: 'center'
+  },
   row: {
     paddingVertical: 12,
     width: ADDRESS_LIST_WIDTH,
