@@ -424,10 +424,7 @@ function DerivedAddresses({
               { color: item.summary.balance === 0 ? '#333' : '#fff' }
             ]}
           >
-            <SSStyledSatText
-              amount={item.summary.balance}
-              textSize="xs"
-            />
+            <SSStyledSatText amount={item.summary.balance} textSize="xs" />
           </SSText>
           <SSText
             style={[
@@ -1233,7 +1230,7 @@ const addressListStyles = StyleSheet.create({
     width: '20%'
   },
   columnLabel: {
-    width: '20%'
+    width: '15%'
   },
   columnSats: {
     flexWrap: 'nowrap',
