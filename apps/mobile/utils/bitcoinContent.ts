@@ -1,4 +1,5 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { type ProcessedBitcoinContent } from '@/types/bitcoin'
 import { bip21decode, isBip21 } from '@/utils/bitcoin'
 import { validateAddress } from '@/utils/validation'
 
@@ -32,14 +33,6 @@ export function isValidBitcoinContent(text: string): boolean {
   }
 
   return false
-}
-
-export type ProcessedBitcoinContent = {
-  type: 'psbt' | 'address' | 'bip21'
-  address?: string
-  amount?: number
-  label?: string
-  content: string
 }
 
 export function processBitcoinContent(

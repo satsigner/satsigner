@@ -641,6 +641,7 @@
     "error.backupRestore": "Failed to restore backup",
     "error.connectionError": "Connection Error",
     "error.failedToCheckStatus": "Failed to check token status",
+    "error.processFailed": "Failed to process scanned data",
     "error.failedToCopy": "Failed to copy to clipboard",
     "error.failedToPaste": "Failed to paste from clipboard",
     "error.insufficientBalance": "Insufficient balance in LND node",
@@ -861,6 +862,9 @@
   },
   "lightning": {
     "amount": "Amount",
+    "error": {
+      "processFailed": "Failed to process scanned data"
+    },
     "lnurlDetails.amountRange": "Amount Range",
     "lnurlDetails.commentAllowed": "Comment Allowed",
     "lnurlDetails.error": "Failed to load LNURL details",
@@ -1729,6 +1733,9 @@
       "incompatibleContent": "Incompatible content for this wallet.",
       "missingFields": "Please fill in all required fields",
       "networkMismatch": "Extended public key is not valid for the selected network."
+    },
+    "info": {
+      "creatingWatchOnlyAccount": "Creating a new watch-only account with this content"
     },
     "fingerprint.label": "Master Fingerprint",
     "fingerprint.scanQR": "Scan Fingerprint QR Code",

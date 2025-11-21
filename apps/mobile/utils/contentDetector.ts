@@ -11,9 +11,6 @@ import {
   validateExtendedKey
 } from '@/utils/validation'
 
-/**
- * Check if a string is a raw Bitcoin transaction in hex format
- */
 function isBitcoinTransaction(data: string): boolean {
   const trimmed = data.trim()
 
@@ -71,47 +68,13 @@ function isExtendedPublicKey(data: string): boolean {
   return validateExtendedKey(data)
 }
 
-async function isBitcoinDescriptor(data: string): Promise<boolean> {
-  if (data.length < 10 || data.length > 1024) {
-    return false
-  }
-
-  const prefixes = [
-    'pk',
-    'pkh',
-    'wpkh',
-    'sh',
-    'wsh',
-    'tr',
-    'multi',
-    'sortedmulti',
-    'addr',
-    'combo'
-  ]
-  const startsWithPrefix = prefixes.some((prefix) =>
-    data.trim().toLowerCase().startsWith(prefix)
-  )
-  if (!startsWithPrefix) {
-    return false
-  }
-
-  try {
-    const result = await validateDescriptorFormat(data)
-    return result.isValid
-  } catch {
-    return false
-  }
-}
-
-/**
- * Detect Bitcoin-related content (addresses, URIs, PSBTs)
- */
 async function detectBitcoinContent(
   data: string
 ): Promise<DetectedContent | null> {
   const trimmed = data.trim()
 
-  if (await isBitcoinDescriptor(trimmed)) {
+  const descriptorValidation = await validateDescriptorFormat(trimmed)
+  if (descriptorValidation.isValid) {
     return {
       type: 'bitcoin_descriptor',
       raw: data,
@@ -196,9 +159,6 @@ async function detectBitcoinContent(
   return null
 }
 
-/**
- * Detect Lightning Network content (invoices, LNURLs)
- */
 function detectLightningContent(data: string): DetectedContent | null {
   const trimmed = data.trim().toLowerCase()
 
@@ -227,9 +187,6 @@ function detectLightningContent(data: string): DetectedContent | null {
   return null
 }
 
-/**
- * Detect ecash tokens (v3 and v4 formats)
- */
 function detectEcashContent(data: string): DetectedContent | null {
   const trimmed = data.trim()
 
@@ -262,9 +219,6 @@ function detectEcashContent(data: string): DetectedContent | null {
   return null
 }
 
-/**
- * Detect import-related content (seeds, descriptors, BBQR, UR)
- */
 async function detectImportContent(
   data: string
 ): Promise<DetectedContent | null> {
@@ -304,9 +258,6 @@ async function detectImportContent(
   return null
 }
 
-/**
- * Main entry point for content detection by context
- */
 export async function detectContentByContext(
   data: string,
   context: 'bitcoin' | 'lightning' | 'ecash'
@@ -369,9 +320,6 @@ export async function detectContentByContext(
   return detected
 }
 
-/**
- * Check if content type is supported in the given context
- */
 export function isContentTypeSupportedInContext(
   contentType: ContentType,
   context: 'bitcoin' | 'lightning' | 'ecash'
@@ -394,9 +342,6 @@ export function isContentTypeSupportedInContext(
   }
 }
 
-/**
- * Get user-friendly description for content type
- */
 export function getContentTypeDescription(contentType: ContentType): string {
   switch (contentType) {
     case 'bitcoin_address':
