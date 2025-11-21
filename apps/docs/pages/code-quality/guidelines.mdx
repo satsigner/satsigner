@@ -1,0 +1,290 @@
+# Guidelines
+
+General guidelines
+
+## Components
+
+Components are `TSX` functions located under `@/components`. They **shall not**:
+
+- access the store (directly or via hooks)
+- make network requests (directly or via hooks)
+- use hooks that access the store or make network requests
+- use the router
+- use toast to show notifications
+
+They may:
+
+- make use of utility functions
+- make use of other components
+- access `i18n` strings
+
+## Page components
+
+Page components are `TSX` functions located under `@/app/src`. They may:
+
+- access the store directly
+- make network requests
+- use the router
+- use hooks
+- use utility functions
+- use components
+- use toast to show notification (success, info, or error messages)
+- access `i18n` strings
+
+## API functions
+
+API functions are utilities located under `@/api` meant to deal with external
+content. They may:
+
+- make network requests
+- make system calls
+- read or write files
+- read from or write to the clipboard
+- access the camera
+- execute asynchronous code
+
+They **shall not**:
+
+- use toast to show errors
+- display UI notification such as error messages
+- use `i18n` to display error messages
+- access the store
+- use hooks (both native and custom ones)
+
+If an API function does not match the above criteria, it should likely be an
+utility function or hook, and not an API function.
+
+## Utilities
+
+Utilities are functions meant to do synchronous logic on static data, such
+  as parsing, validating, processing and are located under `@/utils`
+
+They **shall not**:
+
+- make network requests
+- make system calls
+- access the store
+- access the clipboard
+- access the camera
+- access files
+- execute **asynchronous** code
+- use hooks (both native and custom ones)
+- display error messages to the user
+- have try/catch blocks
+
+If a utility function does not match the above criteria, it should likely be
+an API function or hook, not a utility one.
+
+## Hooks
+
+Hooks are functions meant to be reusable pieces of logic that deal with
+component state and/or access external data, and are located under `@/hooks`.
+
+They may:
+
+- make use of both native  and custom hooks
+- make network requests
+- access the store
+- access the clipboard
+- access the camera
+- access files
+- execute **asynchronous** code
+- have try/catch blocks
+
+They shall not:
+
+- display errors to the user
+
+A hook should always make use of another hook (such as `useState`, `useMemo`,
+`useCallback` or our custom hooks such as `useAccountStore`). Otherwise, it is
+very likely the function itself should not be a hook, but an API function or
+utility.
+
+## Try/catch
+
+There is no need for a `try/catch` inside a block of code whose variables and
+functions we have full control of. `try/catch` is for things outside of our
+control that can fail regardless of our code being corrected If try/catch fails
+in a code block entirely under our control, that means the implementation of
+that code block is wrong because the programmer coded it wrongly.
+
+Do not catch an error just to throw it again:
+
+```typescript
+try {
+  // code
+} catch (error) {
+  throw error
+}
+```
+
+Do not parse error or do casting:
+
+```typescript
+try {
+  // code
+} catch (error) {
+   const errorMessage = error instanceof Error ? error.message : t('ecash.error.nfcEmissionFailed')
+   toast.error(errorMessage)
+}
+```
+
+Instead, just use the `i18n` error string directly:
+
+```typescript
+try {
+  // code
+} catch {
+   toast.error(t('ecash.error.nfcEmissionFailed'))
+}
+```
+
+
+In a try/catch, if the error is not handled because the function does not apply
+to some scenarios, then the try/catch should be removed and the code should not
+run for the particular scenario.
+
+Instead of:
+
+```typescript
+try {
+  // code block...
+} catch {
+  // operation failed, but we do not show error because this is expect in the
+  // specific scenario X
+}
+```
+
+Do:
+
+```typescript
+const isScenarioX = someCondition === true /**/
+
+if (isScenarioX) return
+
+// code block
+```
+
+
+
+
+Use inverted logic to avoid nested `if` statements.
+
+Instead of:
+
+```typescript
+if (x) {
+  // code 1
+  if (y) {
+     // code 2
+  }
+}
+```
+
+Do:
+
+```typescript
+if (!x) return
+// code 1
+if (!y) return
+// code 2
+```
+
+The `if` statement should always be smaller than the `else` statement.
+Otherwise, this makes it harder to follow the execution flow: after reading
+lines inside the `if` block, when we finally starting reading the matching
+`else` block, we will have lost track of the original condition.
+
+Instead of:
+
+```typescript
+if (A) {
+  // several lines
+} else {
+  // few lines
+}
+
+// more code
+```
+
+Do:
+
+```typescript
+if (!A) {
+  // few lines
+} else {
+  // several lines
+}
+
+// more code
+```
+
+If there are is no code after an `if/else` statement, we can avoid indentation
+by returning the function.
+
+Instead of:
+
+```typescript
+if (A) {
+  // code 1
+} else {
+  // code 2
+}
+```
+
+Do:
+
+```typescript
+if (A) {
+  // code 1
+  return
+}
+
+// code 2
+```
+
+Or
+
+```typescript
+if (!A) {
+  // code 2
+  return
+}
+
+// code 1
+```
+
+Never do something like the following:
+
+```typescript
+if (A) {
+  doStuff() // some code
+} else {
+  doStuff() // the same code as inside the if block
+}
+```
+
+## Mix
+
+Only import modules at the top of the file.
+Never import a module like this:
+
+```typescript
+const bitcoinjs = await import('bitcoinjs-lib')
+```
+
+Declare types at the top level of files, after the imports. Do not declare
+complex types inside a function:
+
+```typescript
+function myFunction(myArg: {
+  a: string
+  b: number
+  c: {
+    d: boolean,
+    e: string
+  }
+}) {
+  // code
+}
+```
