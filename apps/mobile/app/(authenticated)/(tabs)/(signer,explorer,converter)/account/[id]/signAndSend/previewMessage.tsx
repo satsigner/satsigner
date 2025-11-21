@@ -49,7 +49,7 @@ import {
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { type PreviewMessageSearchParams } from '@/types/navigation/searchParams'
 import { extractKeyFingerprint } from '@/utils/account'
 import {
   createBBQRChunks,
@@ -118,16 +118,7 @@ function hasEnoughSignatures(input: any): boolean {
 
 function PreviewMessage() {
   const router = useRouter()
-  const {
-    id,
-    psbt
-    // signedPsbt: signedPsbtParam
-  } = useLocalSearchParams<
-    AccountSearchParams & {
-      psbt?: string
-      signedPsbt?: string
-    }
-  >()
+  const { id, psbt } = useLocalSearchParams<PreviewMessageSearchParams>()
 
   const [
     inputs,
