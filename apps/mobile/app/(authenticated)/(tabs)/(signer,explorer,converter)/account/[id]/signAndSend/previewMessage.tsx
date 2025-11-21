@@ -373,7 +373,7 @@ function PreviewMessage() {
             toast.info(
               'PSBT loaded with basic processing. Some features may be limited.'
             )
-          } catch (fallbackError) {
+          } catch {
             setIsLoadingPSBT(false)
             toast.error(t('common.error.processPSBT'))
             // Still try to set a message ID so the UI doesn't hang
@@ -404,7 +404,7 @@ function PreviewMessage() {
           setTxBuilderResult(mockTxBuilderResult as any)
           setIsLoadingPSBT(false)
           toast.info('PSBT loaded. Some features may be limited.')
-        } catch (error) {
+        } catch {
           setIsLoadingPSBT(false)
           toast.error(t('common.error.processPSBT'))
           setMessageId('PSBT-ERROR-' + Date.now().toString(36))
@@ -533,7 +533,9 @@ function PreviewMessage() {
             break
           }
           updateSignedPsbt(cosIdx, indivBase64)
-          toast.success(`Detected existing signature for cosigner ${cosIdx + 1}`)
+          toast.success(
+            `Detected existing signature for cosigner ${cosIdx + 1}`
+          )
           break
         }
       })
