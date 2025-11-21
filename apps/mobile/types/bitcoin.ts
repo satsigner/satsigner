@@ -5,4 +5,3 @@ export type ProcessedBitcoinContent = {
   label?: string
   content: string
 }
-

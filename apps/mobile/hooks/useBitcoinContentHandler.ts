@@ -3,8 +3,8 @@ import { useCallback } from 'react'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { t } from '@/locales'
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account } from '@/types/models/Account'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { processContentByContext } from '@/utils/contentProcessor'
@@ -92,6 +92,7 @@ export function useBitcoinContentHandler({
       toast.info(t('watchonly.info.creatingWatchOnlyAccount'))
       processContent()
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       accountId,
       account,
@@ -102,7 +103,6 @@ export function useBitcoinContentHandler({
       setRbf,
       setSignedPsbts,
       setTxBuilderResult
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     ]
   )
 

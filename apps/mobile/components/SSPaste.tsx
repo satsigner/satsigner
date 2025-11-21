@@ -12,8 +12,8 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { getAllClipboardContent } from '@/utils/clipboard'
 import {
-  detectContentByContext,
   type ContentType,
+  detectContentByContext,
   type DetectedContent
 } from '@/utils/contentDetector'
 
