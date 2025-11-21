@@ -2,8 +2,13 @@ import { useRouter } from 'expo-router'
 import { useCallback } from 'react'
 import { toast } from 'sonner-native'
 
+import { t } from '@/locales'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { processContentByContext } from '@/utils/contentProcessor'
+
+type NavigatePath =
+  | string
+  | { pathname: string; params?: Record<string, unknown> }
 
 export function useLightningContentHandler() {
   const router = useRouter()
@@ -16,33 +21,29 @@ export function useLightningContentHandler() {
       }
 
       try {
-        const navigate = (
-          path: string | { pathname: string; params?: Record<string, unknown> }
-        ) => {
-          if (typeof path === 'string') {
-            router.push(path as any)
-          } else {
-            router.push(path as any)
-          }
+        const navigate = (path: NavigatePath) => {
+          router.navigate(path)
         }
         processContentByContext(content, 'lightning', {
           navigate
         })
-      } catch (error) {
-        const errorMessage = (error as Error).message
-        toast.error(errorMessage || 'Failed to process content')
+      } catch {
+        toast.error(t('lightning.error.processFailed'))
       }
     },
-    [router]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
   )
 
   const handleSend = useCallback(() => {
     router.push('/signer/lightning/pay')
-  }, [router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleReceive = useCallback(() => {
     router.push('/signer/lightning/invoice')
-  }, [router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return {
     handleContentScanned,
