@@ -32,51 +32,32 @@ function SSButtonActionsGroup({
     <SSHStack gap="none">
       <SSActionButton
         onPress={onSend}
-        style={{
-          ...styles.actionButton,
-          width: '25.25%'
-        }}
+        style={[styles.actionButton, styles.actionButtonWide]}
       >
         <SSText uppercase>Send</SSText>
       </SSActionButton>
-
       <SSActionButton
         onPress={onPaste}
-        style={{
-          ...styles.actionButton,
-          width: '16.5%'
-        }}
+        style={[styles.actionButton, styles.actionButtonNarrow]}
       >
         <SSIconPasteClipboard height={16} width={18} />
       </SSActionButton>
-
       <SSActionButton
         onPress={onCamera}
-        style={{
-          ...styles.actionButton,
-          width: '16.5%'
-        }}
+        style={[styles.actionButton, styles.actionButtonNarrow]}
       >
         <SSIconCamera height={13} width={18} />
       </SSActionButton>
-
       <SSActionButton
         onPress={onNFC}
-        style={{
-          ...styles.actionButton,
-          width: '16.5%'
-        }}
+        style={[styles.actionButton, styles.actionButtonNarrow]}
         disabled={!nfcAvailable}
       >
         <SSIconScanNFC height={21} width={18} />
       </SSActionButton>
-
       <SSActionButton
         onPress={onReceive}
-        style={{
-          ...styles.actionButton,
-          width: '25.25%'
-        }}
+        style={[styles.actionButton, styles.actionButtonWide]}
       >
         <SSText uppercase>Receive</SSText>
       </SSActionButton>
@@ -93,6 +74,12 @@ const styles = StyleSheet.create({
     borderRightColor: Colors.gray[950],
     borderBottomColor: Colors.gray[950],
     borderRadius: 4
+  },
+  actionButtonWide: {
+    width: '25.25%'
+  },
+  actionButtonNarrow: {
+    width: '16.5%'
   }
 })
 

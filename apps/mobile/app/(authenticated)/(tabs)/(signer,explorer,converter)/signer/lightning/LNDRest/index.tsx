@@ -27,42 +27,37 @@ export default function LNDRestPage() {
   }
 
   const fetchLNDConfig = async (configUrl: string): Promise<LNDConfig> => {
-    try {
-      const response = await fetch(configUrl)
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch LND config: ${response.status} ${response.statusText}`
-        )
-      }
-      const text = await response.text()
-
-      const jsonConfig = JSON.parse(text)
-
-      if (!jsonConfig.configurations?.[0]) {
-        throw new Error('Invalid config format: missing configurations array')
-      }
-
-      const config = jsonConfig.configurations[0]
-
-      const lndConfig: LNDConfig = {
-        macaroon: config.macaroon,
-        cert: config.cert,
-        url: config.uri
-      }
-
-      if (!lndConfig.macaroon || !lndConfig.url) {
-        throw new Error(
-          `Invalid config format: missing required fields. Found: ${Object.keys(
-            lndConfig
-          ).join(', ')}`
-        )
-      }
-
-      return lndConfig
-    } catch (error) {
-      console.error('Config fetch error:', error)
-      throw error
+    const response = await fetch(configUrl)
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch LND config: ${response.status} ${response.statusText}`
+      )
     }
+    const text = await response.text()
+
+    const jsonConfig = JSON.parse(text)
+
+    if (!jsonConfig.configurations?.[0]) {
+      throw new Error('Invalid config format: missing configurations array')
+    }
+
+    const config = jsonConfig.configurations[0]
+
+    const lndConfig: LNDConfig = {
+      macaroon: config.macaroon,
+      cert: config.cert,
+      url: config.uri
+    }
+
+    if (!lndConfig.macaroon || !lndConfig.url) {
+      throw new Error(
+        `Invalid config format: missing required fields. Found: ${Object.keys(
+          lndConfig
+        ).join(', ')}`
+      )
+    }
+
+    return lndConfig
   }
   const handleConnect = async () => {
     if (!connectionString.trim()) return

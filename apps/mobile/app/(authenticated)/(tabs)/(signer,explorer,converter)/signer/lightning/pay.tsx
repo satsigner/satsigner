@@ -133,7 +133,7 @@ export default function PayPage() {
           if (decoded.num_satoshis) {
             setAmount(decoded.num_satoshis)
           }
-        } catch (_error) {
+        } catch {
           setDecodedInvoice(null)
         }
       } else {
@@ -154,15 +154,11 @@ export default function PayPage() {
       return
     }
 
-    if (!isLNURLMode) {
-      if (!decodedInvoice) {
-        Alert.alert('Error', 'Please wait for the invoice to be decoded')
-        return
-      }
-      await processPayment()
-    } else {
-      await processPayment()
+    if (!isLNURLMode && !decodedInvoice) {
+      Alert.alert('Error', 'Please wait for the invoice to be decoded')
+      return
     }
+    await processPayment()
   }
 
   const processPayment = async () => {
@@ -179,7 +175,9 @@ export default function PayPage() {
     try {
       let invoice: string
 
-      if (isLNURLMode) {
+      if (!isLNURLMode) {
+        invoice = paymentRequest
+      } else {
         if (!amount) {
           Alert.alert('Error', 'Please enter an amount')
           setIsProcessing(false)
@@ -198,8 +196,6 @@ export default function PayPage() {
           amountSats,
           comment || undefined
         )
-      } else {
-        invoice = paymentRequest
       }
 
       await payInvoice(invoice)

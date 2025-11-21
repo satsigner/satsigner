@@ -290,36 +290,35 @@ export default function EcashSendPage() {
       }
 
       // Check if it's bolt11 invoice
-      if (isLightningInvoice(cleanText)) {
+      if (!isLightningInvoice(cleanText)) {
         setIsLNURLMode(false)
+        return
+      }
 
-        try {
-          const decoded = decodeLightningInvoice(cleanText)
-          setDecodedInvoice(decoded)
+      setIsLNURLMode(false)
 
-          // Auto-populate amount from decoded invoice
-          if (decoded.num_satoshis) {
-            setAmount(decoded.num_satoshis)
-          }
-        } catch {
-          if (isConnected) {
-            try {
-              const lndDecoded = await decodeInvoice(cleanText)
-              setDecodedInvoice(lndDecoded)
-              if (lndDecoded.num_satoshis) {
-                setAmount(lndDecoded.num_satoshis)
-              }
-            } catch {
-              setDecodedInvoice(null)
-              toast.warning(t('ecash.error.invoiceDecodeFailed'))
-            }
-          } else {
-            setDecodedInvoice(null)
-            toast.warning(t('ecash.error.invoiceDecodeFailed'))
-          }
+      try {
+        const decoded = decodeLightningInvoice(cleanText)
+        setDecodedInvoice(decoded)
+
+        if (decoded.num_satoshis) {
+          setAmount(decoded.num_satoshis)
         }
-      } else {
-        setIsLNURLMode(false)
+      } catch {
+        if (!isConnected) {
+          setDecodedInvoice(null)
+          toast.warning(t('ecash.error.invoiceDecodeFailed'))
+          return
+        }
+        try {
+          const lndDecoded = await decodeInvoice(cleanText)
+          setDecodedInvoice(lndDecoded)
+          if (!lndDecoded.num_satoshis) return
+          setAmount(lndDecoded.num_satoshis)
+        } catch {
+          setDecodedInvoice(null)
+          toast.warning(t('ecash.error.invoiceDecodeFailed'))
+        }
       }
     },
     [isConnected, decodeInvoice]
@@ -399,12 +398,8 @@ export default function EcashSendPage() {
       } else {
         toast.success(t('ecash.success.tokenEmitted'))
       }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : t('ecash.error.nfcEmissionFailed')
-      toast.error(errorMessage)
+    } catch {
+      toast.error(t('ecash.error.nfcEmissionFailed'))
     }
   }, [generatedToken, nfcAvailable, emitNFCTag])
 

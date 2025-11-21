@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { Animated } from 'react-native'
+import { Animated, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -161,22 +161,19 @@ function SSNFCModal({
   return (
     <SSModal visible={visible} fullOpacity onClose={onClose}>
       <SSVStack itemsCenter gap="lg">
-        <SSText center style={{ maxWidth: 300 }}>
+        <SSText center style={styles.descriptionText}>
           {getModeDescription()}
         </SSText>
-
         <Animated.View
-          style={{
-            width: 200,
-            height: 200,
-            backgroundColor: nfcPulseAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [Colors.gray[800], Colors.gray[400]]
-            }),
-            borderRadius: 100,
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}
+          style={[
+            styles.nfcCircle,
+            {
+              backgroundColor: nfcPulseAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [Colors.gray[800], Colors.gray[400]]
+              })
+            }
+          ]}
         >
           <SSText uppercase>
             {isActive
@@ -186,7 +183,6 @@ function SSNFCModal({
               : getModeTitle()}
           </SSText>
         </Animated.View>
-
         {!isAvailable && (
           <SSText center color="muted" size="sm">
             {t('read.nfcNotAvailable')}
@@ -204,5 +200,18 @@ function SSNFCModal({
     </SSModal>
   )
 }
+
+const styles = StyleSheet.create({
+  descriptionText: {
+    maxWidth: 300
+  },
+  nfcCircle: {
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    justifyContent: 'center',
+    alignItems: 'center'
+  }
+})
 
 export default SSNFCModal

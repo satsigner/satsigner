@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { AppState } from 'react-native'
+import { AppState, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -11,7 +11,11 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { getAllClipboardContent } from '@/utils/clipboard'
-import { type ContentType, type DetectedContent } from '@/utils/contentDetector'
+import {
+  detectContentByContext,
+  type ContentType,
+  type DetectedContent
+} from '@/utils/contentDetector'
 
 type SSPasteProps = {
   visible: boolean
@@ -60,9 +64,6 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
   const validateContent = useCallback(
     async (text: string) => {
       try {
-        const { detectContentByContext } = await import(
-          '@/utils/contentDetector'
-        )
         const detectedContent = await detectContentByContext(text, context)
         if (detectedContent.type === 'incompatible') {
           toast.error(t('paste.error.incompatibleContent'))
@@ -112,7 +113,6 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
 
       await new Promise((resolve) => setTimeout(resolve, 100))
 
-      const { detectContentByContext } = await import('@/utils/contentDetector')
       const detectedContent = await detectContentByContext(content, context)
 
       if (!detectedContent.isValid) {
@@ -224,11 +224,9 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
           <SSText center uppercase>
             {getContextTitle()}
           </SSText>
-
           <SSText center color="muted" size="sm" style={{ maxWidth: 280 }}>
             {getContextDescription()}
           </SSText>
-
           <SSText
             center
             color={
@@ -245,26 +243,16 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
             placeholder={getContextDescription()}
             multiline
             numberOfLines={20}
-            style={{
-              minHeight: 200,
-              maxHeight: 400,
-              height: 'auto',
-              width: '100%',
-              maxWidth: 320,
-              textAlign: 'left',
-              fontSize: 14,
-              letterSpacing: 0.5,
-              fontFamily: 'monospace',
-              borderWidth: 1,
-              padding: 10,
-              borderColor: content.trim()
-                ? isValidContent
-                  ? Colors.success
-                  : Colors.error
-                : Colors.gray[600],
-              borderRadius: 5,
-              backgroundColor: Colors.gray[900]
-            }}
+            style={[
+              styles.textInput,
+              {
+                borderColor: content.trim()
+                  ? isValidContent
+                    ? Colors.success
+                    : Colors.error
+                  : Colors.gray[600]
+              }
+            ]}
             textAlignVertical="top"
           />
         </SSVStack>
@@ -281,5 +269,23 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
     </SSModal>
   )
 }
+
+const styles = StyleSheet.create({
+  textInput: {
+    minHeight: 200,
+    maxHeight: 400,
+    height: 'auto',
+    width: '100%',
+    maxWidth: 320,
+    textAlign: 'left',
+    fontSize: 14,
+    letterSpacing: 0.5,
+    fontFamily: 'monospace',
+    borderWidth: 1,
+    padding: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.gray[900]
+  }
+})
 
 export default SSPaste
