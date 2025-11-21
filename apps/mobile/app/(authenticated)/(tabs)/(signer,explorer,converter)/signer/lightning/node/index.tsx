@@ -19,11 +19,13 @@ import {
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSIconButton from '@/components/SSIconButton'
+import SSNFCModal from '@/components/SSNFCModal'
+import SSPaste from '@/components/SSPaste'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import { useContentHandler } from '@/hooks/useContentHandler'
-import { useContentModals } from '@/hooks/useContentModals'
 import { useLightningContentHandler } from '@/hooks/useLightningContentHandler'
 import { useLND } from '@/hooks/useLND'
 import SSHStack from '@/layouts/SSHStack'
@@ -190,23 +192,6 @@ export default function NodeDetailPage() {
     onContentScanned: lightningContentHandler.handleContentScanned,
     onSend: lightningContentHandler.handleSend,
     onReceive: lightningContentHandler.handleReceive
-  })
-
-  const { cameraModal, nfcModal, pasteModal } = useContentModals({
-    visible: {
-      camera: contentHandler.cameraModalVisible,
-      nfc: contentHandler.nfcModalVisible,
-      paste: contentHandler.pasteModalVisible
-    },
-    onClose: {
-      camera: contentHandler.closeCameraModal,
-      nfc: contentHandler.closeNFCModal,
-      paste: contentHandler.closePasteModal
-    },
-    onContentScanned: contentHandler.handleContentScanned,
-    onContentPasted: contentHandler.handleContentPasted,
-    onNFCContentRead: contentHandler.handleNFCContentRead,
-    context: 'lightning'
   })
 
   // All hooks must be declared at the top level, in a consistent order
@@ -976,9 +961,25 @@ export default function NodeDetailPage() {
       </SSMainLayout>
 
       {/* Modal Components */}
-      {cameraModal}
-      {nfcModal}
-      {pasteModal}
+      <SSCameraModal
+        visible={contentHandler.cameraModalVisible}
+        onClose={contentHandler.closeCameraModal}
+        onContentScanned={contentHandler.handleContentScanned}
+        context="lightning"
+        title="Scan Lightning Content"
+      />
+      <SSNFCModal
+        visible={contentHandler.nfcModalVisible}
+        onClose={contentHandler.closeNFCModal}
+        onContentRead={contentHandler.handleNFCContentRead}
+        mode="read"
+      />
+      <SSPaste
+        visible={contentHandler.pasteModalVisible}
+        onClose={contentHandler.closePasteModal}
+        onContentPasted={contentHandler.handleContentPasted}
+        context="lightning"
+      />
     </>
   )
 }

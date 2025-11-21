@@ -55,8 +55,11 @@ import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
 import SSBubbleChart from '@/components/SSBubbleChart'
 import SSButton from '@/components/SSButton'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSHistoryChart from '@/components/SSHistoryChart'
 import SSIconButton from '@/components/SSIconButton'
+import SSNFCModal from '@/components/SSNFCModal'
+import SSPaste from '@/components/SSPaste'
 import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSStyledSatText from '@/components/SSStyledSatText'
@@ -65,7 +68,6 @@ import SSTransactionCard from '@/components/SSTransactionCard'
 import SSUtxoCard from '@/components/SSUtxoCard'
 import { useBitcoinContentHandler } from '@/hooks/useBitcoinContentHandler'
 import { useContentHandler } from '@/hooks/useContentHandler'
-import { useContentModals } from '@/hooks/useContentModals'
 import useGetAccountAddress from '@/hooks/useGetAccountAddress'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useNostrSync from '@/hooks/useNostrSync'
@@ -785,31 +787,15 @@ export default function AccountView() {
     onReceive: bitcoinContentHandler.handleReceive
   })
 
-  const { cameraModal, nfcModal, pasteModal } = useContentModals({
-    visible: {
-      camera: contentHandler.cameraModalVisible,
-      nfc: contentHandler.nfcModalVisible,
-      paste: contentHandler.pasteModalVisible
-    },
-    onClose: {
-      camera: contentHandler.closeCameraModal,
-      nfc: contentHandler.closeNFCModal,
-      paste: contentHandler.closePasteModal
-    },
-    onContentScanned: contentHandler.handleContentScanned,
-    onContentPasted: contentHandler.handleContentPasted,
-    onNFCContentRead: contentHandler.handleNFCContentRead,
-    context: 'bitcoin'
-  })
-
+  const { closeCameraModal, closeNFCModal, closePasteModal } = contentHandler
   useFocusEffect(
     useCallback(() => {
       return () => {
-        contentHandler.closeCameraModal()
-        contentHandler.closeNFCModal()
-        contentHandler.closePasteModal()
+        closeCameraModal()
+        closeNFCModal()
+        closePasteModal()
       }
-    }, [contentHandler])
+    }, [closeCameraModal, closeNFCModal, closePasteModal])
   )
 
   useEffect(() => {
@@ -1201,9 +1187,25 @@ export default function AccountView() {
         onIndexChange={setTabIndex}
         initialLayout={{ width }}
       />
-      {cameraModal}
-      {nfcModal}
-      {pasteModal}
+      <SSCameraModal
+        visible={contentHandler.cameraModalVisible}
+        onClose={contentHandler.closeCameraModal}
+        onContentScanned={contentHandler.handleContentScanned}
+        context="bitcoin"
+        title="Scan Bitcoin Content"
+      />
+      <SSNFCModal
+        visible={contentHandler.nfcModalVisible}
+        onClose={contentHandler.closeNFCModal}
+        onContentRead={contentHandler.handleNFCContentRead}
+        mode="read"
+      />
+      <SSPaste
+        visible={contentHandler.pasteModalVisible}
+        onClose={contentHandler.closePasteModal}
+        onContentPasted={contentHandler.handleContentPasted}
+        context="bitcoin"
+      />
     </>
   )
 }

@@ -5,12 +5,14 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconECash } from '@/components/icons'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSEcashTransactionCard from '@/components/SSEcashTransactionCard'
 import SSIconButton from '@/components/SSIconButton'
+import SSNFCModal from '@/components/SSNFCModal'
+import SSPaste from '@/components/SSPaste'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import { useContentHandler } from '@/hooks/useContentHandler'
-import { useContentModals } from '@/hooks/useContentModals'
 import { useEcash } from '@/hooks/useEcash'
 import { useEcashContentHandler } from '@/hooks/useEcashContentHandler'
 import SSHStack from '@/layouts/SSHStack'
@@ -52,23 +54,6 @@ export default function EcashLanding() {
     onContentScanned: ecashContentHandler.handleContentScanned,
     onSend: ecashContentHandler.handleSend,
     onReceive: ecashContentHandler.handleReceive
-  })
-
-  const { cameraModal, nfcModal, pasteModal } = useContentModals({
-    visible: {
-      camera: contentHandler.cameraModalVisible,
-      nfc: contentHandler.nfcModalVisible,
-      paste: contentHandler.pasteModalVisible
-    },
-    onClose: {
-      camera: contentHandler.closeCameraModal,
-      nfc: contentHandler.closeNFCModal,
-      paste: contentHandler.closePasteModal
-    },
-    onContentScanned: contentHandler.handleContentScanned,
-    onContentPasted: contentHandler.handleContentPasted,
-    onNFCContentRead: contentHandler.handleNFCContentRead,
-    context: 'ecash'
   })
 
   const totalBalance = proofs.reduce((sum, proof) => sum + proof.amount, 0)
@@ -161,9 +146,25 @@ export default function EcashLanding() {
           )}
         </SSVStack>
       </ScrollView>
-      {cameraModal}
-      {nfcModal}
-      {pasteModal}
+      <SSCameraModal
+        visible={contentHandler.cameraModalVisible}
+        onClose={contentHandler.closeCameraModal}
+        onContentScanned={contentHandler.handleContentScanned}
+        context="ecash"
+        title="Scan Ecash Content"
+      />
+      <SSNFCModal
+        visible={contentHandler.nfcModalVisible}
+        onClose={contentHandler.closeNFCModal}
+        onContentRead={contentHandler.handleNFCContentRead}
+        mode="read"
+      />
+      <SSPaste
+        visible={contentHandler.pasteModalVisible}
+        onClose={contentHandler.closePasteModal}
+        onContentPasted={contentHandler.handleContentPasted}
+        context="ecash"
+      />
     </SSMainLayout>
   )
 }
