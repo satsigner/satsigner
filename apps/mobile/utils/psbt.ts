@@ -5,6 +5,7 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 import { toast } from 'sonner-native'
 
 import { type Account } from '@/types/models/Account'
+import { type Utxo } from '@/types/models/Utxo'
 import { extractKeyFingerprint } from '@/utils/account'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 
@@ -720,6 +721,114 @@ export function extractIndividualSignedPsbts(
   } catch {
     return {}
   }
+}
+
+export function validatePsbt(
+  psbtBase64: string,
+  utxos: Utxo[],
+  accountKeyFingerprints: string[]
+): { errors: string[]; warnings: string[] } {
+  const errors: string[] = []
+  const warnings: string[] = []
+
+  try {
+    const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
+
+    // 1. Validate all inputs are valid
+    const invalidInputs: number[] = []
+    psbt.data.inputs.forEach((input, index) => {
+      if (!input.witnessUtxo && !input.nonWitnessUtxo) {
+        invalidInputs.push(index)
+      } else if (input.witnessUtxo) {
+        if (
+          !input.witnessUtxo.script ||
+          input.witnessUtxo.value === undefined ||
+          input.witnessUtxo.value <= 0
+        ) {
+          invalidInputs.push(index)
+        }
+      } else if (input.nonWitnessUtxo) {
+        try {
+          const prevTx = bitcoinjs.Transaction.fromBuffer(input.nonWitnessUtxo)
+          const txInput = psbt.txInputs[index]
+          const prevOut = prevTx.outs[txInput.index]
+          if (!prevOut || prevOut.value <= 0) {
+            invalidInputs.push(index)
+          }
+        } catch {
+          invalidInputs.push(index)
+        }
+      }
+    })
+
+    if (invalidInputs.length > 0) {
+      errors.push(
+        `Invalid inputs detected at indices: ${invalidInputs.join(', ')}`
+      )
+    }
+
+    // 2. Check if UTXOs are spendable (exist in wallet)
+    const unspendableUtxos: string[] = []
+    const utxoMap = new Map<string, Utxo>()
+    utxos.forEach((utxo) => {
+      utxoMap.set(`${utxo.txid}:${utxo.vout}`, utxo)
+    })
+
+    psbt.txInputs.forEach((txInput, index) => {
+      const txid = txInput.hash.reverse().toString('hex')
+      const vout = txInput.index
+      const utxoKey = `${txid}:${vout}`
+
+      if (!utxoMap.has(utxoKey)) {
+        unspendableUtxos.push(
+          `Input ${index + 1} (${txid.substring(0, 8)}...:${vout})`
+        )
+      }
+    })
+
+    if (unspendableUtxos.length > 0) {
+      warnings.push(
+        `Some UTXOs are not spendable or not found in wallet: ${unspendableUtxos
+          .slice(0, 3)
+          .join(', ')}${unspendableUtxos.length > 3 ? '...' : ''}`
+      )
+    }
+
+    // 3. Check if PSBT is associated with this policy/account
+    const derivations = extractPSBTDerivations(psbtBase64)
+    if (derivations.length === 0) {
+      warnings.push(
+        'PSBT does not contain BIP32 derivation paths. Cannot verify account association.'
+      )
+    } else {
+      const psbtFingerprints = [
+        ...new Set(derivations.map((d) => d.fingerprint))
+      ]
+      const allFingerprintsMatch = psbtFingerprints.every((psbtFp) =>
+        accountKeyFingerprints.includes(psbtFp)
+      )
+
+      if (!allFingerprintsMatch) {
+        const someFingerprintsMatch = psbtFingerprints.some((psbtFp) =>
+          accountKeyFingerprints.includes(psbtFp)
+        )
+
+        if (!someFingerprintsMatch) {
+          errors.push(
+            'PSBT does not match this account. Fingerprints in PSBT do not match account keys.'
+          )
+        } else {
+          warnings.push(
+            'PSBT may not be fully associated with this account. Please verify before signing.'
+          )
+        }
+      }
+    }
+  } catch {
+    errors.push('An error occurred during PSBT validation.')
+  }
+
+  return { errors, warnings }
 }
 
 /**

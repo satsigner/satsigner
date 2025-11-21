@@ -461,6 +461,7 @@
       "openSignFlowFailed": "Failed to open sign flow",
       "pasteFromClipboard": "Failed to paste from clipboard",
       "processPSBT": "Failed to process PSBT",
+      "psbtValidation": "PSBT validation failed",
       "processScannedData": "Failed to process scanned data",
       "processSignedPSBT": "Failed to process signed PSBT",
       "scanQRCode": "Failed to scan QR code",

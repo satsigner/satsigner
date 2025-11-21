@@ -41,7 +41,6 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Typography } from '@/styles'
 import {
-  type Account,
   type Key,
   type MnemonicWordCount,
   type Secret
@@ -62,8 +61,7 @@ import { aesDecrypt } from '@/utils/crypto'
 import { parseHexToBytes } from '@/utils/parse'
 import {
   extractOriginalPsbt,
-  extractPSBTDerivations,
-  findMatchingAccount,
+  validatePsbt,
   validateSignedPSBTForCosigner
 } from '@/utils/psbt'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
@@ -217,118 +215,6 @@ function PreviewMessage() {
     handleSignWithSeedQR
   } = psbtManagement
 
-  // Validate PSBT inputs, UTXO spendability, and account association
-  const validatePSBT = async (
-    psbtBase64: string,
-    account: Account
-  ): Promise<void> => {
-    try {
-      const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
-
-      // 1. Validate all inputs are valid
-      const invalidInputs: number[] = []
-      psbt.data.inputs.forEach((input, index) => {
-        if (!input.witnessUtxo && !input.nonWitnessUtxo) {
-          invalidInputs.push(index)
-        } else if (input.witnessUtxo) {
-          if (
-            !input.witnessUtxo.script ||
-            input.witnessUtxo.value === undefined ||
-            input.witnessUtxo.value <= 0
-          ) {
-            invalidInputs.push(index)
-          }
-        } else if (input.nonWitnessUtxo) {
-          try {
-            const prevTx = bitcoinjs.Transaction.fromBuffer(
-              input.nonWitnessUtxo
-            )
-            const txInput = psbt.txInputs[index]
-            const prevOut = prevTx.outs[txInput.index]
-            if (!prevOut || prevOut.value <= 0) {
-              invalidInputs.push(index)
-            }
-          } catch {
-            invalidInputs.push(index)
-          }
-        }
-      })
-
-      if (invalidInputs.length > 0) {
-        toast.error(
-          `Invalid inputs detected at indices: ${invalidInputs.join(', ')}`
-        )
-      }
-
-      // 2. Check if UTXOs are spendable (exist in wallet)
-      const unspendableUtxos: string[] = []
-      const utxoMap = new Map<string, Utxo>()
-      account.utxos.forEach((utxo) => {
-        utxoMap.set(`${utxo.txid}:${utxo.vout}`, utxo)
-      })
-
-      psbt.txInputs.forEach((txInput, index) => {
-        const txid = txInput.hash.reverse().toString('hex')
-        const vout = txInput.index
-        const utxoKey = `${txid}:${vout}`
-
-        if (!utxoMap.has(utxoKey)) {
-          unspendableUtxos.push(
-            `Input ${index + 1} (${txid.substring(0, 8)}...:${vout})`
-          )
-        }
-      })
-
-      if (unspendableUtxos.length > 0) {
-        toast.warning(
-          `Some UTXOs are not spendable or not found in wallet: ${unspendableUtxos.slice(0, 3).join(', ')}${unspendableUtxos.length > 3 ? '...' : ''}`
-        )
-      }
-
-      // 3. Check if PSBT is associated with this policy/account
-      const derivations = extractPSBTDerivations(psbtBase64)
-      if (derivations.length === 0) {
-        toast.warning(
-          'PSBT does not contain BIP32 derivation paths. Cannot verify account association.'
-        )
-      } else {
-        const accountMatch = await findMatchingAccount(psbtBase64, [account])
-        if (!accountMatch) {
-          const psbtFingerprints = [
-            ...new Set(derivations.map((d) => d.fingerprint))
-          ]
-          const accountFingerprints: string[] = []
-          if (account.keys) {
-            for (const key of account.keys) {
-              const keyFingerprint = await extractKeyFingerprint(key)
-              if (keyFingerprint) {
-                accountFingerprints.push(keyFingerprint)
-              }
-            }
-          }
-
-          const hasMatchingFingerprint = psbtFingerprints.some((fp) =>
-            accountFingerprints.includes(fp)
-          )
-
-          if (!hasMatchingFingerprint) {
-            toast.error(
-              'PSBT does not match this account. Fingerprints in PSBT do not match account keys.'
-            )
-          } else {
-            toast.warning(
-              'PSBT may not be fully associated with this account. Please verify before signing.'
-            )
-          }
-        }
-      }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error'
-      toast.error(`PSBT validation failed: ${errorMessage}`)
-    }
-  }
-
   // Handle URL parameters for PSBT and signed PSBT
   useEffect(() => {
     if (psbt) {
@@ -342,7 +228,37 @@ function PreviewMessage() {
       // Enhanced PSBT processing using the tools from nostr multisig
       if (account) {
         // Validate PSBT before processing (don't await, let it run in background)
-        validatePSBT(psbt, account).catch(() => {
+        const validate = async () => {
+          const accountKeyFingerprints: string[] = []
+          if (account.keys) {
+            for (const key of account.keys) {
+              const keyFingerprint = await extractKeyFingerprint(key)
+              if (keyFingerprint) {
+                accountKeyFingerprints.push(keyFingerprint)
+              }
+            }
+          }
+
+          const { errors, warnings } = validatePsbt(
+            psbt,
+            account.utxos,
+            accountKeyFingerprints
+          )
+
+          if (errors.length > 0) {
+            errors.forEach((error) => {
+              if (error === 'An error occurred during PSBT validation.') {
+                toast.error(t('common.error.psbtValidation'))
+              } else {
+                toast.error(error)
+              }
+            })
+          }
+          if (warnings.length > 0) {
+            warnings.forEach((warning) => toast.warning(warning))
+          }
+        }
+        validate().catch(() => {
           // Validation errors are already shown via toast
         })
 
