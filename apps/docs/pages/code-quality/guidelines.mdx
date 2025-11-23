@@ -11,16 +11,18 @@ Components are `TSX` functions located under `@/components`. They **shall not**:
 - use hooks that access the store or make network requests
 - use the router
 - use toast to show notifications
+- fetch/use data from external sources other than props
 
 They may:
 
 - make use of utility functions
 - make use of other components
 - access `i18n` strings
+- receive data from props and process/display it
 
 ## Page components
 
-Page components are `TSX` functions located under `@/app/src`. They may:
+Page components are `TSX` functions located under `@/app`. hey may:
 
 - access the store directly
 - make network requests
@@ -57,7 +59,7 @@ utility function or hook, and not an API function.
 ## Utilities
 
 Utilities are functions meant to do synchronous logic on static data, such
-  as parsing, validating, processing and are located under `@/utils`
+as parsing, validating, processing and are located under `@/utils`
 
 They **shall not**:
 
@@ -70,10 +72,13 @@ They **shall not**:
 - execute **asynchronous** code
 - use hooks (both native and custom ones)
 - display error messages to the user
-- have try/catch blocks
+- have try/catch blocks (in most cases)
 
 If a utility function does not match the above criteria, it should likely be
 an API function or hook, not a utility one.
+
+If a utility executes async code, it likely should be API function. Exceptions
+to the rules must be discussed.
 
 ## Hooks
 
@@ -82,7 +87,7 @@ component state and/or access external data, and are located under `@/hooks`.
 
 They may:
 
-- make use of both native  and custom hooks
+- make use of both native and custom hooks
 - make network requests
 - access the store
 - access the clipboard
@@ -91,9 +96,10 @@ They may:
 - execute **asynchronous** code
 - have try/catch blocks
 
-They shall not:
+They **shall not**:
 
 - display errors to the user
+- use `toast`
 
 A hook should always make use of another hook (such as `useState`, `useMemo`,
 `useCallback` or our custom hooks such as `useAccountStore`). Otherwise, it is
@@ -118,14 +124,15 @@ try {
 }
 ```
 
-Do not parse error or do casting:
+In most cases, do not parse error or do casting:
 
 ```typescript
 try {
   // code
 } catch (error) {
-   const errorMessage = error instanceof Error ? error.message : t('ecash.error.nfcEmissionFailed')
-   toast.error(errorMessage)
+  const errorMessage =
+    error instanceof Error ? error.message : t('ecash.error.nfcEmissionFailed')
+  toast.error(errorMessage)
 }
 ```
 
@@ -135,14 +142,13 @@ Instead, just use the `i18n` error string directly:
 try {
   // code
 } catch {
-   toast.error(t('ecash.error.nfcEmissionFailed'))
+  toast.error(t('ecash.error.nfcEmissionFailed'))
 }
 ```
 
-
-In a try/catch, if the error is not handled because the function does not apply
-to some scenarios, then the try/catch should be removed and the code should not
-run for the particular scenario.
+In a `try/catch`, if the error is not handled because the function does not
+apply to some scenarios, then the try/catch should be removed and the code
+should not run for the particular scenario.
 
 Instead of:
 
@@ -165,9 +171,6 @@ if (isScenarioX) return
 // code block
 ```
 
-
-
-
 Use inverted logic to avoid nested `if` statements.
 
 Instead of:
@@ -176,7 +179,7 @@ Instead of:
 if (x) {
   // code 1
   if (y) {
-     // code 2
+    // code 2
   }
 }
 ```
@@ -254,7 +257,8 @@ if (!A) {
 // code 1
 ```
 
-Never do something like the following:
+Never use `if/else` if the code inside the `if` block is the **same** as the
+code inside the `else` block.
 
 ```typescript
 if (A) {
@@ -281,7 +285,7 @@ function myFunction(myArg: {
   a: string
   b: number
   c: {
-    d: boolean,
+    d: boolean
     e: string
   }
 }) {
