@@ -1,5 +1,3 @@
-// @ts-nocheck
-
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { Buffer } from 'buffer'
 
@@ -167,12 +165,14 @@ async function processBitcoinContent(
                 const pubkeys = getCollectedSignerPubkeys(psbtStr)
                 if (pubkeys.size > 0) {
                   const pubkey = pubkeys.values().next().value
-                  const cosignerIndex = pubkeyToCosignerIndex.get(pubkey)
-                  if (cosignerIndex !== undefined) {
-                    if (!psbtsByCosigner.has(cosignerIndex)) {
-                      psbtsByCosigner.set(cosignerIndex, [])
+                  if (pubkey) {
+                    const cosignerIndex = pubkeyToCosignerIndex.get(pubkey)
+                    if (cosignerIndex !== undefined) {
+                      if (!psbtsByCosigner.has(cosignerIndex)) {
+                        psbtsByCosigner.set(cosignerIndex, [])
+                      }
+                      psbtsByCosigner.get(cosignerIndex)!.push(psbtStr)
                     }
-                    psbtsByCosigner.get(cosignerIndex)!.push(psbtStr)
                   }
                 }
               })
@@ -202,14 +202,11 @@ async function processBitcoinContent(
             }
 
             const sent = outputs.reduce(
-              (
-                acc: number,
-                output: { address: string; value: number; label: string }
-              ) => acc + output.value,
+              (acc: number, output) => acc + output.value,
               0
             )
             const received = inputs.reduce(
-              (acc: number, input: Utxo) => acc + (input.value || 0),
+              (acc: number, input) => acc + (input.value || 0),
               0
             )
 
