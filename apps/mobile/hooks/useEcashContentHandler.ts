@@ -4,7 +4,7 @@ import { toast } from 'sonner-native'
 
 import { t } from '@/locales'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { processContentByContext } from '@/utils/contentProcessor'
+import { processContentByContext } from '@/hooks/useContentProcessor'
 
 type NavigatePath =
   | string

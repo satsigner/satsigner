@@ -7,7 +7,7 @@ import { t } from '@/locales'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account } from '@/types/models/Account'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { processContentByContext } from '@/utils/contentProcessor'
+import { processContentByContext } from '@/hooks/useContentProcessor'
 
 type NavigatePath =
   | string

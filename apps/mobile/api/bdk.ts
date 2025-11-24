@@ -1074,3 +1074,5 @@ export {
   signTransaction,
   syncWallet
 }
+
+export type { PartiallySignedTransaction, TransactionDetails, TxBuilderResult }
