@@ -97,10 +97,10 @@ function detectQRType(data: string) {
 /**
  * Assemble multi-part QR data
  */
-function assembleMultiPartQR(
+async function assembleMultiPartQR(
   type: 'raw' | 'ur' | 'bbqr',
   chunks: Map<number, string>
-): string | null {
+): Promise<string | null> {
   try {
     switch (type) {
       case 'raw': {
@@ -153,7 +153,7 @@ function assembleMultiPartQR(
             result = decodeMultiPartURGeneric(sortedChunks)
           } catch {
             try {
-              result = decodeMultiPartURToPSBT(sortedChunks)
+              result = await decodeMultiPartURToPSBT(sortedChunks)
             } catch {
               return null
             }
@@ -330,7 +330,7 @@ function SSCameraModal({
           newScanned.size >= assemblyTarget || newScanned.size >= fallbackTarget
 
         if (shouldTryAssembly) {
-          const assembledData = assembleMultiPartQR(type, newChunks)
+          const assembledData = await assembleMultiPartQR(type, newChunks)
 
           if (assembledData) {
             const { detectContentByContext } = await import(
@@ -369,7 +369,7 @@ function SSCameraModal({
         }
       } else {
         if (newScanned.size === total) {
-          const assembledData = assembleMultiPartQR(type, newChunks)
+          const assembledData = await assembleMultiPartQR(type, newChunks)
 
           if (assembledData) {
             const { detectContentByContext } = await import(

@@ -41,7 +41,7 @@ type UseQRCodeHandlerReturn = {
   assembleMultiPartQR: (
     type: QRCodeType,
     chunks: Map<number, string>
-  ) => string | null
+  ) => Promise<string | null>
 }
 
 export function useQRCodeHandler({
@@ -125,7 +125,10 @@ export function useQRCodeHandler({
   }, [])
 
   const assembleMultiPartQR = useCallback(
-    (type: QRCodeType, chunks: Map<number, string>): string | null => {
+    async (
+      type: QRCodeType,
+      chunks: Map<number, string>
+    ): Promise<string | null> => {
       try {
         switch (type) {
           case 'raw': {
@@ -174,7 +177,7 @@ export function useQRCodeHandler({
             } else {
               // Multi-part UR
               try {
-                result = decodeMultiPartURToPSBT(sortedChunks)
+                result = await decodeMultiPartURToPSBT(sortedChunks)
               } catch (_error) {
                 return null
               }
@@ -349,7 +352,7 @@ export function useQRCodeHandler({
           newScanned.size >= assemblyTarget || newScanned.size >= fallbackTarget
 
         if (shouldTryAssembly) {
-          const assembledData = assembleMultiPartQR(type, newChunks)
+          const assembledData = await assembleMultiPartQR(type, newChunks)
 
           if (assembledData) {
             // Call the multi-part QR handler
@@ -381,7 +384,7 @@ export function useQRCodeHandler({
         // For RAW and BBQR, wait for all chunks as before
         if (newScanned.size === total) {
           // All chunks collected, assemble the final result
-          const assembledData = assembleMultiPartQR(type, newChunks)
+          const assembledData = await assembleMultiPartQR(type, newChunks)
 
           if (assembledData) {
             // Call the multi-part QR handler

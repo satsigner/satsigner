@@ -3,11 +3,11 @@ import { useCallback } from 'react'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { processContentByContext } from '@/hooks/useContentProcessor'
 import { t } from '@/locales'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account } from '@/types/models/Account'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { processContentByContext } from '@/hooks/useContentProcessor'
 
 type NavigatePath =
   | string

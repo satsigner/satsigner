@@ -3,6 +3,11 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { Buffer } from 'buffer'
 
+import {
+  type PartiallySignedTransaction,
+  type TransactionDetails,
+  type TxBuilderResult
+} from '@/api/bdk'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { t } from '@/locales'
 import { type Account } from '@/types/models/Account'
@@ -20,11 +25,6 @@ import {
   getCollectedSignerPubkeys
 } from '@/utils/psbt'
 import { selectEfficientUtxos } from '@/utils/utxo'
-import {
-  type PartiallySignedTransaction,
-  type TransactionDetails,
-  type TxBuilderResult
-} from '@/api/bdk'
 
 export type ProcessorActions = {
   navigate: (
@@ -96,7 +96,9 @@ async function processBitcoinContent(
       }
 
       const psbtParam = encodeURIComponent(psbtBase64)
-      navigate(`/account/${accountId}/signAndSend/previewMessage?psbt=${psbtParam}`)
+      navigate(
+        `/account/${accountId}/signAndSend/previewMessage?psbt=${psbtParam}`
+      )
 
       if (account) {
         const accountMatch = await findMatchingAccount(psbtBase64, [account])
@@ -133,7 +135,8 @@ async function processBitcoinContent(
               combinedPsbt.data.inputs.forEach((input) => {
                 if (input.bip32Derivation) {
                   input.bip32Derivation.forEach((derivation) => {
-                    const fingerprint = derivation.masterFingerprint.toString('hex')
+                    const fingerprint =
+                      derivation.masterFingerprint.toString('hex')
                     const pubkey = derivation.pubkey.toString('hex')
                     const cosignerIndex =
                       keyFingerprintToCosignerIndex.get(fingerprint)
@@ -145,7 +148,10 @@ async function processBitcoinContent(
                 }
                 if (input.partialSig) {
                   input.partialSig.forEach((sig) => {
-                    bitcoinjs.crypto.hash160(sig.pubkey).slice(0, 4).toString('hex')
+                    bitcoinjs.crypto
+                      .hash160(sig.pubkey)
+                      .slice(0, 4)
+                      .toString('hex')
                   })
                 }
               })
@@ -258,7 +264,8 @@ async function processBitcoinContent(
 
         const decodedData = bip21decode(uriToDecode)
         if (decodedData && typeof decodedData === 'object') {
-          const amount = (decodedData.options.amount || 0) * SATS_PER_BITCOIN || 1
+          const amount =
+            (decodedData.options.amount || 0) * SATS_PER_BITCOIN || 1
 
           if (account && account.summary && amount > account.summary.balance) {
             return
@@ -305,7 +312,11 @@ async function processBitcoinContent(
               }
             }
 
-            if (account && account.summary && amount > account.summary.balance) {
+            if (
+              account &&
+              account.summary &&
+              amount > account.summary.balance
+            ) {
               return
             }
 
@@ -389,7 +400,10 @@ function processLightningContent(
   }
 }
 
-function processEcashContent(content: DetectedContent, actions: ProcessorActions) {
+function processEcashContent(
+  content: DetectedContent,
+  actions: ProcessorActions
+) {
   const { navigate } = actions
 
   switch (content.type) {
@@ -502,4 +516,3 @@ export function processContentForOutput(
   actions.onError(t('error.noValidAddressFound'))
   return false
 }
-

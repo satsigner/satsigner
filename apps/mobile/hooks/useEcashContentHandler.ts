@@ -2,9 +2,9 @@ import { useRouter } from 'expo-router'
 import { useCallback } from 'react'
 import { toast } from 'sonner-native'
 
+import { processContentByContext } from '@/hooks/useContentProcessor'
 import { t } from '@/locales'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { processContentByContext } from '@/hooks/useContentProcessor'
 
 type NavigatePath =
   | string

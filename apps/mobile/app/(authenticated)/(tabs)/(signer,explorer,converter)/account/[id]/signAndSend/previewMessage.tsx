@@ -704,10 +704,10 @@ function PreviewMessage() {
     }
   }
 
-  const assembleMultiPartQR = (
+  const assembleMultiPartQR = async (
     type: 'raw' | 'ur' | 'bbqr',
     chunks: Map<number, string>
-  ): string | null => {
+  ): Promise<string | null> => {
     try {
       switch (type) {
         case 'raw': {
@@ -756,7 +756,7 @@ function PreviewMessage() {
           } else {
             // Multi-part UR
             try {
-              result = decodeMultiPartURToPSBT(sortedChunks)
+              result = await decodeMultiPartURToPSBT(sortedChunks)
             } catch (_error) {
               return null
             }
@@ -1405,7 +1405,7 @@ function PreviewMessage() {
         newScanned.size >= assemblyTarget || newScanned.size >= fallbackTarget
 
       if (shouldTryAssembly) {
-        const assembledData = assembleMultiPartQR(type, newChunks)
+        const assembledData = await assembleMultiPartQR(type, newChunks)
 
         if (assembledData) {
           // Process the assembled data (convert PSBT to final transaction if needed)
@@ -1446,7 +1446,7 @@ function PreviewMessage() {
       // For RAW and BBQR, wait for all chunks as before
       if (newScanned.size === total) {
         // All chunks collected, assemble the final result
-        const assembledData = assembleMultiPartQR(type, newChunks)
+        const assembledData = await assembleMultiPartQR(type, newChunks)
 
         if (assembledData) {
           // Process the assembled data (convert PSBT to final transaction if needed)
