@@ -24,7 +24,7 @@ type AccountsState = {
 
 type AccountsAction = {
   addAccount: (account: Account) => void
-  updateAccount: (account: Account) => Promise<void>
+  updateAccount: (account: Account) => void
   updateAccountName: (id: Account['id'], newName: string) => void
   updateKeyName: (id: Account['id'], keyIndex: number, newName: string) => void
   updateAccountNostr: (
@@ -79,7 +79,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           })
         )
       },
-      updateAccount: async (account) => {
+      updateAccount: (account) => {
         set(
           produce((state: AccountsState) => {
             const index = state.accounts.findIndex(
@@ -312,26 +312,26 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
             state.accounts[index].transactions[txIndex].label = label
 
-            // Labeless addresses and utxos will inherit the transaction label
+            // Labeless outputs and their addresses will inherit the tx label
             state.accounts[index].transactions[txIndex].vout.forEach(
-              (output: Transaction['vout'][number], index: number) => {
-                const utxoRef = `${txid}:${index}`
+              (output: Transaction['vout'][number], vout: number) => {
+                const outputRef = `${txid}:${vout}`
                 const addressRef = output.address
-                const utxoHasLabel = state.accounts[index].labels[utxoRef]
+                const outputHasLabel = state.accounts[index].labels[outputRef]
                 const addressHasLabel = state.accounts[index].labels[addressRef]
 
-                // utxo label inheritance
-                if (!utxoHasLabel) {
-                  state.accounts[index].labels[utxoRef] = {
+                // output label inheritance
+                if (!outputHasLabel) {
+                  state.accounts[index].labels[outputRef] = {
                     type: 'output',
-                    ref: utxoRef,
+                    ref: outputRef,
                     label
                   }
 
                   // also update the utxo object if it exist
                   const utxoIndex = state.accounts[index].utxos.findIndex(
                     (utxo: Utxo) => {
-                      return utxo.txid === txid && utxo.vout === index
+                      return utxo.txid === txid && utxo.vout === vout
                     }
                   )
                   if (utxoIndex !== -1) {
@@ -357,6 +357,34 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                     state.accounts[index].addresses[addressIndex].label = label
                   }
                 }
+              }
+            )
+
+            // Labeless inputs and their addresses will inherit the tx label
+            state.accounts[index].transactions[txIndex].vin.forEach(
+              (input: Transaction['vin'][number]) => {
+                const { txid, vout } = input.previousOutput
+                const outputRef = `${txid}:${vout}`
+                const outputHasLabel = state.accounts[index].labels[outputRef]
+
+                // input label inheritance (the input's previous output)
+                if (!outputHasLabel) {
+                  state.accounts[index].labels[outputRef] = {
+                    type: 'output',
+                    ref: outputRef,
+                    label
+                  }
+
+                  // we do not have to update any utxo object, like we did when
+                  // looping throughout the vout property. Because the input has
+                  // been spent, its previous output cannot be an utxo (unspent
+                  // tx output)
+                }
+
+                // we cannot figure out the address of the input's previous
+                // output without making additional request to the backend or
+                // adding quite complicated logic. Therefore, we dismiss label
+                // inheritance for the address of the previous output.
               }
             )
 
@@ -421,6 +449,26 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
               if (txIndex !== -1) {
                 state.accounts[index].transactions[txIndex].label = label
+
+                // also store label in vout property of transaction model
+                if (state.accounts[index].transaction[txIndex].vout[vout]) {
+                  state.accounts[index].transaction[txIndex].vout[vout].label =
+                    label
+                }
+
+                // also store label in vin property of transaction model
+                const inputIndex = state.accounts[index].transactions[
+                  txIndex
+                ].vin.findIndex(
+                  (input: Transaction['vin'][number]) =>
+                    input.previousOutput.txid === txid &&
+                    input.previousOutput.vout === vout
+                )
+                if (inputIndex !== -1) {
+                  state.accounts[index].transactions[txIndex].vin[
+                    inputIndex
+                  ].label = label
+                }
               }
             }
 
