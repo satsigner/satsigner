@@ -34,12 +34,13 @@ const POLL_INTERVAL = 1500
 const MAX_POLL_ATTEMPTS = 120
 
 export function useEcash() {
-  const {
+  const [
     mints,
     activeMint,
     proofs,
     transactions,
-    quotes: { mint: mintQuotes },
+    mintQuotes,
+    checkingTransactionIds,
     addMint,
     removeMint,
     setActiveMint,
@@ -53,29 +54,34 @@ export function useEcash() {
     addTransaction,
     updateTransaction,
     restoreFromBackup,
-    clearAllData
-  } = useEcashStore(
-    useShallow((state) => ({
-      mints: state.mints,
-      activeMint: state.activeMint,
-      proofs: state.proofs,
-      transactions: state.transactions,
-      quotes: { mint: state.quotes.mint },
-      addMint: state.addMint,
-      removeMint: state.removeMint,
-      setActiveMint: state.setActiveMint,
-      addProofs: state.addProofs,
-      removeProofs: state.removeProofs,
-      updateMintBalance: state.updateMintBalance,
-      addMintQuote: state.addMintQuote,
-      removeMintQuote: state.removeMintQuote,
-      addMeltQuote: state.addMeltQuote,
-      removeMeltQuote: state.removeMeltQuote,
-      addTransaction: state.addTransaction,
-      updateTransaction: state.updateTransaction,
-      restoreFromBackup: state.restoreFromBackup,
-      clearAllData: state.clearAllData
-    }))
+    clearAllData,
+    addCheckingTransaction,
+    removeCheckingTransaction
+  ] = useEcashStore(
+    useShallow((state) => [
+      state.mints,
+      state.activeMint,
+      state.proofs,
+      state.transactions,
+      state.quotes.mint,
+      state.checkingTransactionIds,
+      state.addMint,
+      state.removeMint,
+      state.setActiveMint,
+      state.addProofs,
+      state.removeProofs,
+      state.updateMintBalance,
+      state.addMintQuote,
+      state.removeMintQuote,
+      state.addMeltQuote,
+      state.removeMeltQuote,
+      state.addTransaction,
+      state.updateTransaction,
+      state.restoreFromBackup,
+      state.clearAllData,
+      state.addCheckingTransaction,
+      state.removeCheckingTransaction
+    ])
   )
 
   const markReceivedTokensAsSpent = useCallback(() => {
@@ -102,10 +108,15 @@ export function useEcash() {
         const mint = await connectToMint(mintUrl)
         addMint(mint)
         setActiveMint(mint)
+
         toast.success(t('ecash.success.mintConnected'))
         return mint
       } catch (error) {
-        toast.error(t('ecash.error.mintConnection'))
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : t('ecash.error.mintConnection')
+        toast.error(errorMessage)
         throw error
       }
     },
@@ -225,10 +236,17 @@ export function useEcash() {
       mintUrl: string,
       quote: MeltQuote,
       proofsToMelt: EcashProof[],
-      description?: string
+      description?: string,
+      originalInvoice?: string
     ): Promise<EcashMeltResult> => {
       try {
-        const result = await meltProofs(mintUrl, quote, proofsToMelt)
+        const result = await meltProofs(
+          mintUrl,
+          quote,
+          proofsToMelt,
+          description,
+          originalInvoice
+        )
         const proofIds = proofsToMelt.map((proof) => proof.id)
         removeProofs(proofIds)
         removeMeltQuote(quote.quote)
@@ -423,6 +441,75 @@ export function useEcash() {
     toast.success(t('ecash.success.dataCleared'))
   }, [clearAllData])
 
+  const checkPendingTransactionStatus = useCallback(async () => {
+    const currentTransactions = useEcashStore.getState().transactions
+    const currentCheckingIds = useEcashStore.getState().checkingTransactionIds
+
+    // We check "invalid" to re-validate them and get proper status (e.g., if they were marked invalid due to rate limiting)
+    const transactionsToCheck = currentTransactions.filter((tx) => {
+      const isSend = tx.type === 'send'
+      const hasValidStatus =
+        tx.tokenStatus === undefined ||
+        tx.tokenStatus === 'unspent' ||
+        tx.tokenStatus === 'invalid'
+      const hasToken =
+        tx.token && typeof tx.token === 'string' && tx.token.trim().length > 0
+      const notChecking = !currentCheckingIds.includes(tx.id)
+
+      return isSend && hasValidStatus && hasToken && notChecking
+    })
+
+    if (transactionsToCheck.length === 0) {
+      return
+    }
+
+    for (const transaction of transactionsToCheck) {
+      const stillChecking = useEcashStore.getState().checkingTransactionIds
+      if (stillChecking.includes(transaction.id)) {
+        continue
+      }
+
+      try {
+        addCheckingTransaction(transaction.id)
+
+        const result = await validateEcashToken(
+          transaction.token!,
+          transaction.mintUrl
+        )
+
+        let tokenStatus: 'spent' | 'unspent' | 'invalid' | 'pending' | undefined
+        if (result.isValid === false) {
+          tokenStatus = 'invalid'
+        } else if (result.isSpent === true) {
+          tokenStatus = 'spent'
+        } else if (result.isSpent === false) {
+          tokenStatus = 'unspent'
+        } else if (
+          result.isSpent === undefined &&
+          result.details?.toLowerCase().includes('pending')
+        ) {
+          tokenStatus = 'pending'
+        }
+
+        const currentTx = useEcashStore
+          .getState()
+          .transactions.find((t) => t.id === transaction.id)
+        if (
+          currentTx &&
+          tokenStatus !== undefined &&
+          currentTx.tokenStatus !== tokenStatus
+        ) {
+          updateTransaction(transaction.id, { tokenStatus })
+        }
+      } catch {
+        // Continue processing other transactions on error
+      } finally {
+        removeCheckingTransaction(transaction.id)
+        await new Promise((resolve) => setTimeout(resolve, 500))
+      }
+    }
+  }, [addCheckingTransaction, removeCheckingTransaction, updateTransaction])
+
   const resumePollingForTransaction = useCallback(
     async (
       transactionId: string,
@@ -483,6 +570,7 @@ export function useEcash() {
     proofs,
     transactions,
     mintQuotes,
+    checkingTransactionIds,
     connectToMint: connectToMintHandler,
     disconnectMint,
     createMintQuote: createMintQuoteHandler,
@@ -497,7 +585,9 @@ export function useEcash() {
     markReceivedTokensAsSpent,
     resumePollingForTransaction,
     restoreFromBackup: restoreFromBackupHandler,
-    clearAllData: clearAllDataHandler
+    clearAllData: clearAllDataHandler,
+    checkPendingTransactionStatus,
+    setActiveMint
   }
 }
 

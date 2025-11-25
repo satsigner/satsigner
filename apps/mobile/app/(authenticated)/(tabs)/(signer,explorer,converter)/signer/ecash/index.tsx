@@ -1,11 +1,16 @@
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
-import { Stack, useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { Stack, useFocusEffect, useRouter } from 'expo-router'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconCamera, SSIconECash } from '@/components/icons'
+import {
+  SSIconBlackIndicator,
+  SSIconCamera,
+  SSIconECash,
+  SSIconGreenIndicator
+} from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import SSEcashTransactionCard from '@/components/SSEcashTransactionCard'
@@ -19,15 +24,24 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useEcashStore } from '@/store/ecash'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { formatFiatPrice } from '@/utils/format'
-import { isLNURL } from '@/utils/lnurl'
+import { getLNURLType } from '@/utils/lnurl'
 
 export default function EcashLanding() {
   const router = useRouter()
-  const { mints, activeMint, proofs, transactions } = useEcash()
+  const {
+    mints,
+    activeMint,
+    proofs,
+    transactions,
+    checkPendingTransactionStatus,
+    setActiveMint
+  } = useEcash()
+  const ecashStatus = useEcashStore((state) => state.status)
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
@@ -42,22 +56,96 @@ export default function EcashLanding() {
     (state) => state.configsMempool['bitcoin']
   )
 
-  // Fetch prices on mount and when currency changes
+  useEffect(() => {
+    if (activeMint && mints.length > 0) {
+      const mintFromArray = mints.find((m) => m.url === activeMint.url)
+      if (mintFromArray && mintFromArray !== activeMint) {
+        setActiveMint(mintFromArray)
+      }
+    } else if (!activeMint && mints.length > 0) {
+      setActiveMint(mints[0])
+    }
+  }, [mints, activeMint, setActiveMint])
+
   useEffect(() => {
     fetchPrices(mempoolUrl)
   }, [fetchPrices, fiatCurrency, mempoolUrl])
 
+  const lastCheckTimeRef = useRef<number>(0)
+  const CHECK_COOLDOWN = 5000
+
+  useEffect(() => {
+    const now = Date.now()
+    if (now - lastCheckTimeRef.current >= CHECK_COOLDOWN) {
+      lastCheckTimeRef.current = now
+      checkPendingTransactionStatus()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useFocusEffect(
+    useCallback(() => {
+      const now = Date.now()
+      if (now - lastCheckTimeRef.current >= CHECK_COOLDOWN) {
+        lastCheckTimeRef.current = now
+        checkPendingTransactionStatus()
+      }
+    }, [checkPendingTransactionStatus])
+  )
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now()
+      if (now - lastCheckTimeRef.current >= CHECK_COOLDOWN) {
+        lastCheckTimeRef.current = now
+        checkPendingTransactionStatus()
+      }
+    }, 30000)
+
+    return () => {
+      clearInterval(interval)
+    }
+  }, [checkPendingTransactionStatus])
+
   const handleReceivePress = () => router.navigate('/signer/ecash/receive')
   const handleCameraPress = () => setCameraModalVisible(true)
   const handleSettingsPress = () => router.navigate('/signer/ecash/settings')
+  const handleAddMintPress = () =>
+    router.navigate('/signer/ecash/settings/mint')
+
+  function getConnectionErrorMessage(error?: string): string {
+    if (!error) {
+      return t('ecash.error.mintNotConnected')
+    }
+
+    const errorLower = error.toLowerCase()
+
+    if (
+      errorLower.includes('429') ||
+      errorLower.includes('rate limit') ||
+      errorLower.includes('too many requests') ||
+      errorLower.includes('rate limited')
+    ) {
+      return t('ecash.error.mintRateLimited')
+    }
+
+    if (
+      errorLower.includes('403') ||
+      errorLower.includes('forbidden') ||
+      errorLower.includes('blocked') ||
+      errorLower.includes('access denied')
+    ) {
+      return t('ecash.error.mintBlocked')
+    }
+
+    return error || t('ecash.error.mintNotConnected')
+  }
 
   function handleQRCodeScanned({ data }: { data: string }) {
     setCameraModalVisible(false)
 
-    // Clean the data (remove any whitespace and prefixes)
     const cleanData = data.trim()
 
-    // Check if it's a lightning invoice
     if (cleanData.startsWith('lightning:') || cleanData.startsWith('lnbc')) {
       router.navigate({
         pathname: '/signer/ecash/send',
@@ -67,17 +155,32 @@ export default function EcashLanding() {
       return
     }
 
-    // Check if it's an LNURL
-    if (isLNURL(cleanData)) {
-      router.navigate({
-        pathname: '/signer/ecash/send',
-        params: { invoice: cleanData }
-      })
-      toast.success(t('ecash.scan.lnurlScanned'))
-      return
+    const { isLNURL: isLNURLInput, type: lnurlType } = getLNURLType(cleanData)
+    if (isLNURLInput) {
+      if (lnurlType === 'pay') {
+        router.navigate({
+          pathname: '/signer/ecash/send',
+          params: { invoice: cleanData }
+        })
+        toast.success(t('ecash.scan.lnurlPayScanned'))
+        return
+      } else if (lnurlType === 'withdraw') {
+        router.navigate({
+          pathname: '/signer/ecash/receive',
+          params: { lnurl: cleanData }
+        })
+        toast.success(t('ecash.scan.lnurlWithdrawScanned'))
+        return
+      } else {
+        router.navigate({
+          pathname: '/signer/ecash/send',
+          params: { invoice: cleanData }
+        })
+        toast.success(t('ecash.scan.lnurlScanned'))
+        return
+      }
     }
 
-    // Check if it's an ecash token (cashu:// or starts with cashu)
     if (cleanData.startsWith('cashu://') || cleanData.startsWith('cashu')) {
       router.navigate({
         pathname: '/signer/ecash/receive',
@@ -136,11 +239,28 @@ export default function EcashLanding() {
               </SSHStack>
             )}
             {mints.length > 0 && (
-              <SSVStack style={styles.statusContainer} gap="none">
+              <SSVStack style={styles.statusContainer} gap="xs">
                 {activeMint && (
-                  <SSText color="muted" size="sm">
-                    {activeMint.name || activeMint.url}
-                  </SSText>
+                  <>
+                    <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+                      {activeMint.isConnected ? (
+                        <SSIconGreenIndicator height={12} width={12} />
+                      ) : (
+                        <SSIconBlackIndicator height={12} width={12} />
+                      )}
+                      <SSText color="muted" size="sm">
+                        {activeMint.name || activeMint.url}
+                      </SSText>
+                    </SSHStack>
+                    {!activeMint.isConnected && (
+                      <SSText
+                        size="xs"
+                        style={[styles.errorText, { color: Colors.error }]}
+                      >
+                        {getConnectionErrorMessage(ecashStatus.lastError)}
+                      </SSText>
+                    )}
+                  </>
                 )}
               </SSVStack>
             )}
@@ -174,6 +294,32 @@ export default function EcashLanding() {
               <SSText uppercase>{t('ecash.receive.title')}</SSText>
             </SSActionButton>
           </SSHStack>
+          {!activeMint && (
+            <SSVStack style={styles.noMintContainer} gap="md">
+              <SSVStack gap="xs" style={styles.noMintMessage}>
+                <SSText color="muted" center>
+                  {t('ecash.mint.noMintSelected')}
+                </SSText>
+                <SSText color="muted" size="sm" center>
+                  {t('ecash.mint.noMintSelectedDescription')}
+                </SSText>
+              </SSVStack>
+              <SSButton
+                label={t('ecash.mint.addMint')}
+                onPress={handleAddMintPress}
+                variant="gradient"
+                gradientType="special"
+                style={styles.addMintButton}
+              />
+            </SSVStack>
+          )}
+          {activeMint && transactions.length === 0 && (
+            <SSVStack style={styles.noTransactionsContainer} gap="xs">
+              <SSText color="muted" center size="sm">
+                {t('ecash.noTransactions')}
+              </SSText>
+            </SSVStack>
+          )}
           {transactions.length > 0 && (
             <SSVStack gap="sm">
               {transactions.slice(0, 50).map((transaction) => (
@@ -245,5 +391,24 @@ const styles = StyleSheet.create({
   moreTransactions: {
     textAlign: 'center',
     paddingVertical: 8
+  },
+  noMintContainer: {
+    paddingTop: 20,
+    paddingBottom: 10
+  },
+  noMintMessage: {
+    alignItems: 'center'
+  },
+  addMintButton: {
+    marginTop: 8
+  },
+  noTransactionsContainer: {
+    paddingTop: 20,
+    paddingBottom: 10,
+    alignItems: 'center'
+  },
+  errorText: {
+    paddingTop: 4,
+    textAlign: 'center'
   }
 })

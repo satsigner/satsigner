@@ -1433,10 +1433,10 @@
   resolved "https://registry.yarnpkg.com/@braintree/sanitize-url/-/sanitize-url-6.0.4.tgz#923ca57e173c6b232bbbb07347b1be982f03e783"
   integrity sha512-s3jaWicZd0pkP0jf5ysyHUI/RE7MHos6qlToFcGWXVp+ykHOy77OUMrfbgJ9it2C5bow7OIQwYYaHjk9XlBQ2A==
 
-"@cashu/cashu-ts@^2.7.2":
-  version "2.7.2"
-  resolved "https://registry.yarnpkg.com/@cashu/cashu-ts/-/cashu-ts-2.7.2.tgz#6aa928229dcd6139fb0fe28aad87cdf854d72173"
-  integrity sha512-AOwL6+10AA0syRf2mtRYgoTvAz31gE4MnElj9TLS9xG3k8Msxy27awBlCX5MsBpBgcZZoqWOReYEuUgnbN3IQQ==
+"@cashu/cashu-ts@^3.0.0":
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/@cashu/cashu-ts/-/cashu-ts-3.0.2.tgz#fa851574bb9fdff92f59269cbe7fe987c4c57e51"
+  integrity sha512-gLRmzvt3iHhMj7vISzu9fxovm1V8DXDqBiEiKcarl1ZG+HqJuP89CDyrdzoQwzE/LaDCwb6R7/JEcLmjD9gSCQ==
   dependencies:
     "@noble/curves" "^1.9.5"
     "@noble/hashes" "^1.5.0"

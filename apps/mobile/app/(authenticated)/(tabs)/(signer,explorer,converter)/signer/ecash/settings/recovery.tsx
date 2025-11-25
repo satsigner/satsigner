@@ -176,6 +176,7 @@ export default function EcashRecoveryPage() {
               variant="secondary"
               style={{ flex: 1 }}
               disabled={isValidating}
+              loading={isValidating}
             />
           </SSVStack>
         </SSVStack>
