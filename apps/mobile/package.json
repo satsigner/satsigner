@@ -13,7 +13,6 @@
     "ios": "expo run:ios",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "log:android:all": "adb logcat",
     "postinstall": "rn-nodeify --install assert,buffer,events,process --hack --yarn",
     "sb:android": "cross-env EXPO_PUBLIC_STORYBOOK_ENABLED=true expo run:android",
     "sb:ios": "cross-env EXPO_PUBLIC_STORYBOOK_ENABLED=true expo run:ios",
