@@ -1,7 +1,10 @@
 import { useCallback, useState } from 'react'
 
 import { useNFCReader } from '@/hooks/useNFCReader'
-import { type DetectedContent } from '@/utils/contentDetector'
+import {
+  detectContentByContext,
+  type DetectedContent
+} from '@/utils/contentDetector'
 
 type UseContentHandlerProps = {
   context: 'bitcoin' | 'lightning' | 'ecash'
@@ -31,7 +34,6 @@ export function useContentHandler({
 
   const handleNFCContentRead = useCallback(
     async (content: string) => {
-      const { detectContentByContext } = await import('@/utils/contentDetector')
       const detectedContent = await detectContentByContext(content, context)
       onContentScanned(detectedContent)
     },
