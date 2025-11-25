@@ -83,7 +83,6 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { useNostrStore } from '@/store/nostr'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Account } from '@/types/models/Account'
@@ -747,7 +746,6 @@ export default function AccountView() {
       state.configsMempool['bitcoin']
     ])
   )
-  useTransactionBuilderStore((state) => state.clearTransaction)
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { nostrSyncSubscriptions } = useNostrSync()

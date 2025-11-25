@@ -427,7 +427,7 @@ function SSCameraModal({
           {title ||
             (scanProgress.type
               ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
-              : t('camera.scanQRCode'))}
+              : t('transaction.build.options.importOutputs.qrcode'))}
         </SSText>
 
         <CameraView
@@ -527,7 +527,7 @@ function SSCameraModal({
         )}
         {scanProgress.type && (
           <SSButton
-            label={t('camera.button.resetScan')}
+            label={t('qrcode.scan.reset')}
             variant="outline"
             onPress={resetScanProgress}
             style={{ marginTop: 10, width: 200 }}

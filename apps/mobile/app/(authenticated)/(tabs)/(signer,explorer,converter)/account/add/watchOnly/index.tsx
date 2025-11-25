@@ -1244,7 +1244,7 @@ export default function WatchOnly() {
               ? t('watchonly.fingerprint.scanQR')
               : scanProgress.type
                 ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
-                : t('camera.scanQRCode')}
+                : t('transaction.build.options.importOutputs.qrcode')}
           </SSText>
           <CameraView
             onBarcodeScanned={(res) => {

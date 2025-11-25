@@ -1298,7 +1298,7 @@ function PreviewMessage() {
             const hexResult = Buffer.from(decoded).toString('hex')
             finalContent = hexResult
           } else {
-            toast.error(t('common.error.decodeBBQRCode'))
+            toast.error(t('camera.error.bbqrDecodeFailed'))
             return
           }
         }
@@ -1315,7 +1315,7 @@ function PreviewMessage() {
           if (decoded) {
             finalContent = decoded
           } else {
-            toast.error(t('common.error.decodeURCode'))
+            toast.error(t('camera.error.urDecodeFailed'))
             return
           }
         }
@@ -1472,7 +1472,7 @@ function PreviewMessage() {
             )
           }
         } else {
-          toast.error(t('common.error.assembleQRCode'))
+          toast.error(t('camera.error.assembleFailed'))
           resetScanProgress()
         }
       } else {

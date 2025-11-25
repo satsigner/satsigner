@@ -1,4 +1,6 @@
+import ecc from '@bitcoinerlab/secp256k1'
 import { getDecodedToken } from '@cashu/cashu-ts'
+import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { isBBQRFragment } from '@/utils/bbqr'
 import { isBip21, isBitcoinAddress } from '@/utils/bitcoin'
@@ -11,33 +13,24 @@ import {
   validateExtendedKey
 } from '@/utils/validation'
 
+bitcoinjs.initEccLib(ecc)
+
 function isBitcoinTransaction(data: string): boolean {
   const trimmed = data.trim()
 
   if (!/^[0-9a-fA-F]+$/.test(trimmed)) return false
   if (trimmed.length % 2 !== 0) return false
 
-  if (trimmed.length < 100 || trimmed.length > 10000) return false
-
-  const versionBytes = trimmed.substring(0, 8)
-  if (
-    versionBytes === '01000000' ||
-    versionBytes === '02000000' ||
-    versionBytes === '00000000'
-  ) {
+  if (trimmed.length === 64) {
     return true
   }
 
   try {
-    const firstByte = parseInt(trimmed.substring(8, 10), 16)
-    if (firstByte >= 1 && firstByte <= 20) {
-      return true
-    }
+    bitcoinjs.Transaction.fromHex(trimmed)
+    return true
   } catch {
     return false
   }
-
-  return false
 }
 
 export type ContentType =
