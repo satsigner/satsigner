@@ -61,7 +61,10 @@ export default function IOPreview() {
   const account = useAccountsStore(
     (state) => state.accounts.find((account) => account.id === id)!
   )
-  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+  const [currencyUnit, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  )
+  const zeroPadding = useZeroPadding || currencyUnit === 'btc'
   const [
     inputs,
     addInput,
@@ -555,10 +558,10 @@ export default function IOPreview() {
                 {t('common.total')}
               </SSText>
               <SSText size="xxs" style={{ color: Colors.gray[75] }}>
-                {formatNumber(utxosTotalValue, 0, useZeroPadding)}
+                {formatNumber(utxosTotalValue, 0, zeroPadding)}
               </SSText>
               <SSText size="xxs" style={{ color: Colors.gray[400] }}>
-                {t('bitcoin.sats').toLowerCase()}
+                {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
               </SSText>
               <SSText size="xxs" style={{ color: Colors.gray[75] }}>
                 {formatNumber(satsToFiat(utxosTotalValue), 2)}
@@ -576,10 +579,10 @@ export default function IOPreview() {
                 weight="ultralight"
                 style={{ lineHeight: 62 }}
               >
-                {formatNumber(utxosSelectedValue, 0, useZeroPadding)}
+                {formatNumber(utxosSelectedValue, 0, zeroPadding)}
               </SSText>
               <SSText size="xl" color="muted">
-                {t('bitcoin.sats').toLowerCase()}
+                {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
               </SSText>
             </SSHStack>
             <SSHStack
