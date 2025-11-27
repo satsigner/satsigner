@@ -31,11 +31,7 @@ export default function CurrencyFormatting() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>
-              {tl('title')}
-            </SSText>
-          ),
+          headerTitle: () => <SSText uppercase>{tl('title')}</SSText>,
           headerRight: undefined
         }}
       />
