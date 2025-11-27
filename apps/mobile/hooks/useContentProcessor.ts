@@ -1,8 +1,8 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { type PartiallySignedTransaction } from 'bdk-rn'
-import type {
-  TransactionDetails,
-  TxBuilderResult
+import {
+  type TransactionDetails,
+  type TxBuilderResult
 } from 'bdk-rn/lib/classes/Bindings'
 import { Buffer } from 'buffer'
 
