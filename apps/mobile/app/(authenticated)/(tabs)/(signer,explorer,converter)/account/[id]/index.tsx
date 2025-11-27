@@ -735,7 +735,9 @@ export default function AccountView() {
     )
   }, [account])
 
-  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+  const [currencyUnit, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  )
 
   const [fiatCurrency, satsToFiat, fetchPrices] = usePriceStore(
     useShallow((state) => [
@@ -1103,6 +1105,7 @@ export default function AccountView() {
                   amount={account?.summary.balance || 0}
                   decimals={0}
                   useZeroPadding={useZeroPadding}
+                  currency={currencyUnit}
                   textSize={
                     account?.summary.balance > 1_000_000_000 ? '4xl' : '6xl'
                   }
@@ -1110,7 +1113,9 @@ export default function AccountView() {
                   letterSpacing={-1}
                 />
                 <SSText size="xl" color="muted">
-                  {t('bitcoin.sats').toLowerCase()}
+                  {currencyUnit === 'btc'
+                    ? t('bitcoin.btc')
+                    : t('bitcoin.sats')}
                 </SSText>
               </SSHStack>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>

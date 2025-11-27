@@ -28,7 +28,9 @@ import { isLNURL } from '@/utils/lnurl'
 export default function EcashLanding() {
   const router = useRouter()
   const { mints, activeMint, proofs, transactions } = useEcash()
-  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+  const [currencyUnit, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  )
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
   const [fiatCurrency, btcPrice, fetchPrices] = usePriceStore(
@@ -117,12 +119,13 @@ export default function EcashLanding() {
                 amount={totalBalance}
                 decimals={0}
                 useZeroPadding={useZeroPadding}
+                currency={currencyUnit}
                 textSize={totalBalance > 1_000_000_000 ? '4xl' : '6xl'}
                 weight="ultralight"
                 letterSpacing={-1}
               />
               <SSText size="xl" color="muted">
-                {t('bitcoin.sats').toLowerCase()}
+                {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
               </SSText>
             </SSHStack>
             {btcPrice > 0 && (

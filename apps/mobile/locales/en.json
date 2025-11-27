@@ -378,6 +378,7 @@
     "block": "Block",
     "blockHeight": "Block Height",
     "blocks": "Blocks",
+    "btc": "BTC",
     "checksum": "Checksum",
     "confirmations.manyBlocks": "%{blocks} confirmations",
     "confirmations.oneBlock": "1 confirmation",

@@ -27,7 +27,9 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
-  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+  const [currencyUnit, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  )
   const fingerprint = useAccountFingerprint(account)
 
   const rotateAnim = useRef(new Animated.Value(0)).current
@@ -179,13 +181,14 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
                 amount={account?.summary.balance || 0}
                 decimals={0}
                 useZeroPadding={useZeroPadding}
+                currency={currencyUnit}
                 textSize="3xl"
                 weight="light"
                 letterSpacing={-1}
               />
             </SSText>
             <SSText size="xl" color="muted">
-              {t('bitcoin.sats').toLowerCase()}
+              {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
             </SSText>
           </SSHStack>
           <SSHStack

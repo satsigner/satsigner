@@ -29,7 +29,9 @@ type SSEcashTransactionCardProps = {
 
 function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
   const router = useRouter()
-  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+  const [currencyUnit, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  )
   const [fiatCurrency, btcPrice, fetchPrices] = usePriceStore(
     useShallow((state) => [
       state.fiatCurrency,
@@ -181,6 +183,7 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
                   amount={transaction.amount}
                   decimals={0}
                   useZeroPadding={useZeroPadding}
+                  currency={currencyUnit}
                   type={
                     transaction.type === 'mint'
                       ? 'receive'
@@ -194,7 +197,9 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
                   letterSpacing={-0.5}
                 />
                 <SSText color="muted" size="sm" style={{ marginBottom: -2 }}>
-                  {t('bitcoin.sats').toLowerCase()}
+                  {currencyUnit === 'btc'
+                    ? t('bitcoin.btc')
+                    : t('bitcoin.sats')}
                 </SSText>
               </SSHStack>
             </SSHStack>
