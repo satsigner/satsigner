@@ -97,7 +97,7 @@ type MockTxBuilderResult = {
 
 type PsbtInputWithSignatures = {
   witnessScript?: Buffer
-  partialSig?: Array<{ pubkey: Buffer; signature: Buffer }>
+  partialSig?: { pubkey: Buffer; signature: Buffer }[]
 }
 
 /**
