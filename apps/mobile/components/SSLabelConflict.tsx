@@ -20,11 +20,11 @@ const conflictStrategies = ['current', 'incoming', 'merge', 'manual'] as const
 
 type ConflictStrategy = (typeof conflictStrategies)[number]
 
-const defaultStrategu: ConflictStrategy = 'incoming'
+const defaultStrategy: ConflictStrategy = 'incoming'
 
 function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
   const [conflictStrategy, setConflictStrategy] =
-    useState<ConflictStrategy>(defaultStrategu)
+    useState<ConflictStrategy>(defaultStrategy)
   const [conflictStrategyPerLabel, setConflictStrategyPerLabel] = useState<
     ConflictStrategy[]
   >([])
