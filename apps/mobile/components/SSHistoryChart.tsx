@@ -10,6 +10,7 @@ import {
   Rect,
   rect,
   Skia,
+  type SkParagraph,
   Text,
   TextAlign,
   TileMode,
@@ -724,8 +725,8 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
   } as const
 
   const labelParagraphs = useMemo(() => {
-    if (!customFontManager) return new Map<string, any>()
-    const paragraphs = new Map<string, any>()
+    if (!customFontManager) return new Map<string, SkParagraph>()
+    const paragraphs = new Map<string, SkParagraph>()
 
     txInfoLabels.forEach((label) => {
       if (label.type === 'end') return

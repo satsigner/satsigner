@@ -187,7 +187,7 @@ function normalizeCashuTokenString(decodedString: string): string {
   return decodedString
 }
 
-export function decodeURGeneric(ur: string): string {
+export function decodeURGeneric(ur: string) {
   const decoder = new URDecoder()
   decoder.receivePart(ur)
 
@@ -335,11 +335,7 @@ export async function decodeMultiPartURToPSBT(
   }
 }
 
-/**
- * Generic multi-part UR decoder that can handle any UR type (BYTES, CRYPTO-PSBT, etc.)
- * Returns the raw decoded data as a string
- */
-function processURGenericBytes(cborData: Uint8Array): string {
+function processURGenericBytes(cborData: Uint8Array) {
   const parsedBytes = parseCBORByteString(cborData)
   const decodedString = Buffer.from(parsedBytes).toString('utf-8')
 
@@ -350,7 +346,7 @@ function processURGenericBytes(cborData: Uint8Array): string {
   return decodedString
 }
 
-function processURGenericResult(result: any): string {
+function processURGenericResult(result: UR) {
   if (!result || !result.cbor) {
     throw new Error('UR decoder result is invalid')
   }

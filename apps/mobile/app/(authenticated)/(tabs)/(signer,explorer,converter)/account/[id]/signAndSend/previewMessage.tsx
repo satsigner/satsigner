@@ -60,6 +60,7 @@ import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { parseHexToBytes } from '@/utils/parse'
 import {
+  type ExtractedTransactionData,
   extractOriginalPsbt,
   validatePsbt,
   validateSignedPSBTForCosigner
@@ -80,10 +81,29 @@ enum QRDisplayMode {
   BBQR = 'BBQR'
 }
 
+type MockPsbt = {
+  base64: string
+  serialize: () => Promise<string>
+  txid: () => Promise<string>
+}
+
+type MockTxBuilderResult = {
+  psbt: MockPsbt
+  txDetails: {
+    txid: string
+    fee: number
+  }
+}
+
+type PsbtInputWithSignatures = {
+  witnessScript?: Buffer
+  partialSig?: Array<{ pubkey: Buffer; signature: Buffer }>
+}
+
 /**
  * Check if a multisig input has enough signatures to finalize
  */
-function hasEnoughSignatures(input: any): boolean {
+function hasEnoughSignatures(input: PsbtInputWithSignatures): boolean {
   // Early return if not a multisig input
   if (!input.witnessScript) {
     return true
@@ -277,21 +297,29 @@ function PreviewMessage() {
           if (extractedData) {
             // Populate transaction builder with extracted data
             // Clear first to avoid duplicates
-            extractedData.inputs.forEach((input: any) => {
-              addInput({
-                ...input,
-                script: Buffer.from(input.script, 'hex'),
-                keychain: input.keychain || 'external'
-              })
-            })
+            extractedData.inputs.forEach(
+              (input: ExtractedTransactionData['inputs'][number]) => {
+                addInput({
+                  txid: input.txid,
+                  vout: input.vout,
+                  value: input.value,
+                  script: Buffer.from(input.script, 'hex').toJSON().data,
+                  keychain: input.keychain || 'external',
+                  label: input.label,
+                  addressTo: input.address
+                })
+              }
+            )
 
-            extractedData.outputs.forEach((output: any) => {
-              addOutput({
-                to: output.address,
-                amount: output.value,
-                label: output.label || ''
-              })
-            })
+            extractedData.outputs.forEach(
+              (output: ExtractedTransactionData['outputs'][number]) => {
+                addOutput({
+                  to: output.address,
+                  amount: output.value,
+                  label: output.label || ''
+                })
+              }
+            )
 
             if (extractedData.fee) {
               setFee(extractedData.fee)
@@ -307,7 +335,7 @@ function PreviewMessage() {
               // Fallback: generate a temporary ID if extraction fails
               setMessageId('PSBT-' + Date.now().toString(36))
             }
-            const mockTxBuilderResult = {
+            const mockTxBuilderResult: MockTxBuilderResult = {
               psbt: {
                 base64: psbt,
                 serialize: () => Promise.resolve(psbt),
@@ -318,7 +346,7 @@ function PreviewMessage() {
                 fee: extractedData.fee
               }
             }
-            setTxBuilderResult(mockTxBuilderResult as any)
+            setTxBuilderResult(mockTxBuilderResult as never)
             setIsLoadingPSBT(false)
           } else {
             throw new Error(
@@ -357,7 +385,7 @@ function PreviewMessage() {
               // Fallback: generate a temporary ID if extraction fails
               setMessageId('PSBT-' + Date.now().toString(36))
             }
-            const mockTxBuilderResult = {
+            const mockTxBuilderResult: MockTxBuilderResult = {
               psbt: {
                 base64: psbt,
                 serialize: () => Promise.resolve(psbt),
@@ -368,7 +396,7 @@ function PreviewMessage() {
                 fee: 0
               }
             }
-            setTxBuilderResult(mockTxBuilderResult as any)
+            setTxBuilderResult(mockTxBuilderResult as never)
             setIsLoadingPSBT(false)
             toast.info(
               'PSBT loaded with basic processing. Some features may be limited.'
@@ -390,7 +418,7 @@ function PreviewMessage() {
           } else {
             setMessageId('PSBT-' + Date.now().toString(36))
           }
-          const mockTxBuilderResult = {
+          const mockTxBuilderResult: MockTxBuilderResult = {
             psbt: {
               base64: psbt,
               serialize: () => Promise.resolve(psbt),
@@ -401,7 +429,7 @@ function PreviewMessage() {
               fee: 0
             }
           }
-          setTxBuilderResult(mockTxBuilderResult as any)
+          setTxBuilderResult(mockTxBuilderResult as never)
           setIsLoadingPSBT(false)
           toast.info('PSBT loaded. Some features may be limited.')
         } catch {

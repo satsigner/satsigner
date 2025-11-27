@@ -178,7 +178,7 @@ export function useQRCodeHandler({
               // Multi-part UR
               try {
                 result = await decodeMultiPartURToPSBT(sortedChunks)
-              } catch (_error) {
+              } catch {
                 return null
               }
             }

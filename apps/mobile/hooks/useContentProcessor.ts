@@ -1,11 +1,11 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { Buffer } from 'buffer'
 
+import { PartiallySignedTransaction } from 'bdk-rn'
 import {
-  type PartiallySignedTransaction,
   type TransactionDetails,
   type TxBuilderResult
-} from '@/api/bdk'
+} from 'bdk-rn/lib/classes/Bindings'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { t } from '@/locales'
 import { type Account } from '@/types/models/Account'

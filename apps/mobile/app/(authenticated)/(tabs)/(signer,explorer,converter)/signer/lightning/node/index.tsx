@@ -949,7 +949,6 @@ export default function NodeDetailPage() {
             </SSVStack>
           </Animated.View>
         )}
-
         <TabView
           swipeEnabled={false}
           navigationState={{ index: tabIndex, routes: tabs }}
@@ -959,8 +958,6 @@ export default function NodeDetailPage() {
           initialLayout={{ width }}
         />
       </SSMainLayout>
-
-      {/* Modal Components */}
       <SSCameraModal
         visible={contentHandler.cameraModalVisible}
         onClose={contentHandler.closeCameraModal}

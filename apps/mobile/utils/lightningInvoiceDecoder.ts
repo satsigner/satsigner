@@ -15,7 +15,7 @@ type Bolt11Decoded = {
 function mapBolt11DecodeToDecodedInvoice(
   bolt11Decoded: Bolt11Decoded,
   originalInvoice: string
-): DecodedInvoice {
+) {
   const amountSection = bolt11Decoded.sections.find(
     (s: Bolt11Section) => s.name === 'amount'
   )
@@ -69,7 +69,7 @@ export function decodeLightningInvoice(invoice: string): DecodedInvoice {
   }
 }
 
-export function isLightningInvoice(invoice: string): boolean {
+export function isLightningInvoice(invoice: string) {
   if (!invoice || typeof invoice !== 'string') return false
 
   const trimmed = invoice.trim()

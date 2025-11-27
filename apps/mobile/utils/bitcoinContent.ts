@@ -3,7 +3,7 @@ import { type ProcessedBitcoinContent } from '@/types/bitcoin'
 import { bip21decode, isBip21 } from '@/utils/bitcoin'
 import { validateAddress } from '@/utils/validation'
 
-export function isPSBT(text: string): boolean {
+export function isPSBT(text: string) {
   const trimmed = text.trim()
 
   const isBase64PSBT = trimmed.startsWith('cHNidP8B') && trimmed.length > 50

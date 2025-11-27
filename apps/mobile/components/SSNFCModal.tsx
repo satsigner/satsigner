@@ -132,7 +132,7 @@ function SSNFCModal({
     return mode === 'read' ? t('nfc.mode.read') : t('nfc.mode.write')
   }
 
-  const getModeDescription = () => {
+  function getModeDescription() {
     if (mode === 'read') {
       return t('nfc.description.read')
     } else {
@@ -140,7 +140,7 @@ function SSNFCModal({
     }
   }
 
-  const getButtonLabel = () => {
+  function getButtonLabel() {
     if (mode === 'read') {
       return isReading ? t('common.cancel') : t('nfc.button.startReading')
     } else {
@@ -148,7 +148,7 @@ function SSNFCModal({
     }
   }
 
-  const handleButtonPress = () => {
+  function handleButtonPress() {
     if (mode === 'read') {
       handleNFCRead()
     } else {

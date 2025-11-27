@@ -25,11 +25,11 @@ type SSPasteProps = {
 }
 
 function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
-  const [content, setContent] = useState<string>('')
-  const [isValidContent, setIsValidContent] = useState<boolean>(false)
+  const [content, setContent] = useState('')
+  const [isValidContent, setIsValidContent] = useState(false)
   const [detectedContentType, setDetectedContentType] =
     useState<ContentType | null>(null)
-  const [isProcessing, setIsProcessing] = useState<boolean>(false)
+  const [isProcessing, setIsProcessing] = useState(false)
 
   useEffect(() => {
     if (visible) {
@@ -93,7 +93,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
     }
   }, [content, context, validateContent])
 
-  const loadClipboardContent = async () => {
+  async function loadClipboardContent() {
     try {
       const text = await getAllClipboardContent()
       setContent(text || '')
@@ -102,7 +102,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
     }
   }
 
-  const handlePaste = async () => {
+  async function handlePaste() {
     if (!content.trim()) {
       toast.error(t('paste.error.noContent'))
       return
@@ -137,7 +137,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
     }
   }
 
-  const getContextTitle = () => {
+  function getContextTitle() {
     switch (context) {
       case 'bitcoin':
         return t('paste.title.bitcoin')
@@ -150,7 +150,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
     }
   }
 
-  const getContextDescription = () => {
+  function getContextDescription() {
     switch (context) {
       case 'bitcoin':
         return t('paste.description.bitcoin')
@@ -163,7 +163,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
     }
   }
 
-  const getValidationMessage = () => {
+  function getValidationMessage() {
     if (!content.trim()) {
       return t('paste.validation.empty')
     }
@@ -177,7 +177,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
     }
   }
 
-  const getButtonLabel = () => {
+  function getButtonLabel() {
     if (!content.trim()) {
       return t('paste.button.default')
     }

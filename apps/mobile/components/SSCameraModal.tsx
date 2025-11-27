@@ -10,7 +10,10 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
-import { type DetectedContent } from '@/utils/contentDetector'
+import {
+  detectContentByContext,
+  type DetectedContent
+} from '@/utils/contentDetector'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import {
   decodeMultiPartURGeneric,
@@ -94,9 +97,6 @@ function detectQRType(data: string) {
   }
 }
 
-/**
- * Assemble multi-part QR data
- */
 async function assembleMultiPartQR(
   type: 'raw' | 'ur' | 'bbqr',
   chunks: Map<number, string>
@@ -260,9 +260,6 @@ function SSCameraModal({
           toast.error(t('camera.error.processFailed'))
         }
 
-        const { detectContentByContext } = await import(
-          '@/utils/contentDetector'
-        )
         const detectedContent = await detectContentByContext(
           finalContent,
           context
@@ -333,9 +330,6 @@ function SSCameraModal({
           const assembledData = await assembleMultiPartQR(type, newChunks)
 
           if (assembledData) {
-            const { detectContentByContext } = await import(
-              '@/utils/contentDetector'
-            )
             const detectedContent = await detectContentByContext(
               assembledData,
               context
@@ -372,9 +366,6 @@ function SSCameraModal({
           const assembledData = await assembleMultiPartQR(type, newChunks)
 
           if (assembledData) {
-            const { detectContentByContext } = await import(
-              '@/utils/contentDetector'
-            )
             const detectedContent = await detectContentByContext(
               assembledData,
               context
