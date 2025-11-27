@@ -996,6 +996,15 @@ async function getTransactionInputValues(
     vin = await esploraClient.getTxInputValues(tx.id)
   }
 
+  // merge the old input object -- which may have label,
+  // with the new one -- which has the value of the input.
+  for (const index in vin) {
+    vin[index] = {
+      ...(tx.vin[index] || {}),
+      ...vin[index]
+    }
+  }
+
   return vin
 }
 

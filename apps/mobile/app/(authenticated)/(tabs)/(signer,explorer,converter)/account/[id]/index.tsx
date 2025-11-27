@@ -74,6 +74,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useNostrStore } from '@/store/nostr'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
@@ -254,7 +255,7 @@ type DerivedAddressesProps = {
 }
 
 const SCREEN_WIDTH = Dimensions.get('window').width
-const ADDRESS_LIST_WIDTH = SCREEN_WIDTH * 1.1
+const ADDRESS_LIST_WIDTH = SCREEN_WIDTH * 1.2
 
 function DerivedAddresses({
   account,
@@ -276,7 +277,6 @@ function DerivedAddresses({
   const [addressCount, setAddressCount] = useState(
     Math.max(1, Math.ceil(account.addresses.length / perPage)) * perPage
   )
-  const [_hasLoadMoreAddresses, setHasLoadMoreAddresses] = useState(false)
   const isUpdatingAddresses = useRef(false)
   const isMultiAddressWatchOnly = useMemo(() => {
     return (
@@ -317,7 +317,6 @@ function DerivedAddresses({
       return
     }
 
-    setHasLoadMoreAddresses(true)
     const newAddressCount =
       account.addresses.length < addressCount
         ? addressCount
@@ -421,19 +420,19 @@ function DerivedAddresses({
           </SSText>
           <SSText
             style={[
+              addressListStyles.columnSats,
+              { color: item.summary.balance === 0 ? '#333' : '#fff' }
+            ]}
+          >
+            <SSStyledSatText amount={item.summary.balance} textSize="xs" />
+          </SSText>
+          <SSText
+            style={[
               addressListStyles.columnTxs,
               { color: item.summary.transactions === 0 ? '#333' : '#fff' }
             ]}
           >
             {item.summary.transactions}
-          </SSText>
-          <SSText
-            style={[
-              addressListStyles.columnSats,
-              { color: item.summary.balance === 0 ? '#333' : '#fff' }
-            ]}
-          >
-            {item.summary.balance}
           </SSText>
           <SSText
             style={[
@@ -531,18 +530,18 @@ function DerivedAddresses({
             <SSText
               style={[
                 addressListStyles.headerText,
-                addressListStyles.columnTxs
-              ]}
-            >
-              {t('address.list.table.tx')}
-            </SSText>
-            <SSText
-              style={[
-                addressListStyles.headerText,
                 addressListStyles.columnSats
               ]}
             >
               {t('address.list.table.balance')}
+            </SSText>
+            <SSText
+              style={[
+                addressListStyles.headerText,
+                addressListStyles.columnTxs
+              ]}
+            >
+              {t('address.list.table.tx')}
             </SSText>
             <SSText
               style={[
@@ -577,9 +576,20 @@ function DerivedAddresses({
           variant="outline"
           uppercase
           style={{ marginTop: 10 }}
-          label={t('address.list.table.loadMore')}
+          label={t('address.list.btn.loadMore')}
           disabled={loadingAddresses}
           onPress={loadMoreAddresses}
+        />
+      )}
+      {isMultiAddressWatchOnly && (
+        <SSButton
+          variant="outline"
+          uppercase
+          style={{ marginTop: 10 }}
+          label={t('address.list.btn.manage')}
+          onPress={() =>
+            router.navigate(`/account/${account.id}/settings/manageAddresses`)
+          }
         />
       )}
     </SSMainLayout>
@@ -709,6 +719,10 @@ export default function AccountView() {
         state.accounts.find((a) => a.id === id)?.syncProgress?.totalTasks
       ])
     )
+
+  const isNostrSyncing = useNostrStore((state) =>
+    id ? state.isSyncing(id) : false
+  )
 
   const wallet = useGetAccountWallet(id!)
   const watchOnlyWalletAddress = useGetAccountAddress(id!)
@@ -1037,6 +1051,7 @@ export default function AccountView() {
             <SSHStack gap="md">
               {account?.nostr?.autoSync && (
                 <SSIconButton
+                  disabled={isNostrSyncing}
                   onPress={() =>
                     router.navigate(
                       `/account/${id}/settings/nostr/devicesGroupChat`
@@ -1211,12 +1226,29 @@ const addressListStyles = StyleSheet.create({
     color: '#777',
     textTransform: 'uppercase'
   },
-  columnAddress: { width: '25%' },
-  columnLabel: { width: '25%' },
-  columnSats: { width: '10%', textAlign: 'center' },
-  columnTxs: { width: '10%', textAlign: 'center' },
-  columnUtxos: { width: '10%', textAlign: 'center' },
-  columnIndex: { width: '5%', textAlign: 'center' },
+  columnAddress: {
+    width: '20%'
+  },
+  columnLabel: {
+    width: '15%'
+  },
+  columnSats: {
+    flexWrap: 'nowrap',
+    width: '20%',
+    textAlign: 'center'
+  },
+  columnTxs: {
+    width: '10%',
+    textAlign: 'center'
+  },
+  columnUtxos: {
+    width: '10%',
+    textAlign: 'center'
+  },
+  columnIndex: {
+    width: '5%',
+    textAlign: 'center'
+  },
   row: {
     paddingVertical: 12,
     width: ADDRESS_LIST_WIDTH,
