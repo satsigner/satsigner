@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { StyleSheet } from 'react-native'
 
-import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { Colors } from '@/styles'
 import { type Label } from '@/utils/bip329'
@@ -11,16 +10,126 @@ import SSCheckbox from './SSCheckbox'
 import SSText from './SSText'
 import SSTextInput from './SSTextInput'
 
+type Conflict = [Label, Label] // [current, incoming]
+
+type ConflictStrategy = (typeof conflictStrategies)[number]
+
 type SSLabelConflictProps = {
-  conflicts: [Label, Label][] // [current, incoming][]
+  conflicts: Conflict[]
   onResolve: (labels: Label[]) => void
+}
+
+type SSLabelConflictItemProps = {
+  conflict: Conflict
+  conflictStrategy: ConflictStrategy
+  conflictStrategyGlobal: ConflictStrategy
+  finalLabel: string
+  index: number
+  onChangeLabel: (text: string) => void
+  onSelectStrategy: (strategy: ConflictStrategy) => void
 }
 
 const conflictStrategies = ['current', 'incoming', 'merge', 'manual'] as const
 
-type ConflictStrategy = (typeof conflictStrategies)[number]
-
 const defaultStrategy: ConflictStrategy = 'incoming'
+
+function SSLabelConflictItem({
+  conflict: [current, incoming],
+  conflictStrategy,
+  conflictStrategyGlobal,
+  index,
+  finalLabel,
+  onChangeLabel,
+  onSelectStrategy
+}: SSLabelConflictItemProps) {
+  return (
+    <SSVStack gap="md" style={[styles.labelItem]}>
+      <SSVStack gap="sm">
+        <SSText uppercase weight="bold" size="lg">
+          {`Conflict #${index + 1}`}
+        </SSText>
+        <SSVStack gap="xs">
+          <SSText size="md" weight="bold">
+            Object
+          </SSText>
+          <SSText type="mono">{`${current.type} - ${current.ref}`}</SSText>
+        </SSVStack>
+        <SSVStack gap="xs">
+          <SSText weight="bold" size="md">
+            Current label
+          </SSText>
+          <SSText
+            size="md"
+            style={
+              conflictStrategyGlobal === 'manual'
+                ? getStyle('current', conflictStrategy)
+                : getStyle('current', conflictStrategyGlobal)
+            }
+          >
+            {current.label}
+          </SSText>
+        </SSVStack>
+        <SSVStack gap="xs">
+          <SSText weight="bold" size="md">
+            Incoming label
+          </SSText>
+          <SSText
+            size="md"
+            style={
+              conflictStrategyGlobal === 'manual'
+                ? getStyle('incoming', conflictStrategy)
+                : getStyle('incoming', conflictStrategyGlobal)
+            }
+          >
+            {incoming.label}
+          </SSText>
+        </SSVStack>
+      </SSVStack>
+      {conflictStrategyGlobal === 'manual' && (
+        <SSVStack gap="xs">
+          <SSText size="md">Select what to do with this conflict</SSText>
+          <SSVStack gap="sm">
+            {conflictStrategies.map((strategy) => {
+              return (
+                <SSCheckbox
+                  key={strategy}
+                  selected={strategy === conflictStrategy}
+                  label={strategy}
+                  onPress={() => onSelectStrategy(strategy)}
+                  unFillColor={Colors.gray[400]}
+                  fillColor={Colors.gray[400]}
+                />
+              )
+            })}
+          </SSVStack>
+        </SSVStack>
+      )}
+      {conflictStrategyGlobal === 'manual' && conflictStrategy === 'manual' && (
+        <SSVStack gap="xs">
+          <SSText size="md">Enter the new label manually</SSText>
+          <SSTextInput
+            size="small"
+            value={finalLabel}
+            onChangeText={(text) => onChangeLabel(text)}
+            placeholder="Enter label manually"
+            style={finalLabel === '' ? styles.invalidInput : {}}
+          />
+        </SSVStack>
+      )}
+      <SSVStack gap="xs">
+        <SSText size="md" weight="bold">
+          Final label
+        </SSText>
+        <SSText
+          size="md"
+          style={[styles.box, finalLabel ? styles.info : styles.none]}
+        >
+          {finalLabel || ' '}
+        </SSText>
+      </SSVStack>
+    </SSVStack>
+  )
+}
 
 function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
   const [conflictStrategy, setConflictStrategy] =
@@ -61,7 +170,7 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
     return { ...current, ...incoming, label }
   }
 
-  function solveConflictByIndex(index: number, strategy: ConflictStrategy) {
+  function solveConflictByIndex(strategy: ConflictStrategy, index: number) {
     const [current, incoming] = conflicts[index]
     const solved = solveConflict(current, incoming, strategy)
 
@@ -74,7 +183,7 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
     setConflictStrategyPerLabel(newLabelStrategies)
   }
 
-  function solveConflictManually(index: number, label: string) {
+  function solveConflictManually(label: string, index: number) {
     const newResults = [...results]
     newResults[index] = { ...newResults[index], label }
     setResults(newResults)
@@ -95,38 +204,6 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
       )
     }
   }, [conflicts, conflictStrategy]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  function getStyle(type: 'current' | 'incoming', strategy: ConflictStrategy) {
-    return [styles.preview, getBackgroundStyle(type, strategy)]
-  }
-
-  function getBackgroundStyle(
-    type: 'current' | 'incoming',
-    strategy: ConflictStrategy
-  ) {
-    switch (type) {
-      case 'current':
-        switch (strategy) {
-          case 'current':
-          case 'merge':
-            return styles.accepted
-          case 'incoming':
-            return styles.rejected
-          case 'manual':
-            return styles.none
-        }
-      case 'incoming':
-        switch (strategy) {
-          case 'incoming':
-          case 'merge':
-            return styles.accepted
-          case 'current':
-            return styles.rejected
-          case 'manual':
-            return styles.none
-        }
-    }
-  }
 
   return (
     <SSVStack style={{ width: '100%' }}>
@@ -158,141 +235,78 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
           />
         </SSVStack>
       )}
-      {stage === 'manual_intervention' && (
-        <SSVStack gap="lg">
-          {conflicts.map(([current, incoming], index) => {
+      {stage !== 'select_strategy' && (
+        <SSVStack>
+          {conflicts.map((conflict, index) => {
             return (
-              <SSVStack key={index} gap="sm">
-                <SSVStack gap="sm">
-                  <SSText uppercase weight="bold" size="lg">
-                    {`Conflict #${index + 1}`}
-                  </SSText>
-                  <SSVStack gap="xs">
-                    <SSText size="md" weight="bold">
-                      Object
-                    </SSText>
-                    <SSText type="mono">
-                      {`${current.type} - ${current.ref}`}
-                    </SSText>
-                  </SSVStack>
-                  <SSVStack gap="xs">
-                    <SSText weight="bold" size="md">
-                      Current label:
-                    </SSText>
-                    <SSText
-                      size="md"
-                      style={
-                        conflictStrategy !== 'manual'
-                          ? getStyle('current', conflictStrategy)
-                          : getStyle('current', conflictStrategyPerLabel[index])
-                      }
-                    >
-                      {current.label}
-                    </SSText>
-                  </SSVStack>
-                  <SSVStack gap="xs">
-                    <SSText weight="bold" size="md">
-                      Incoming label:
-                    </SSText>
-                    <SSText
-                      size="md"
-                      style={
-                        conflictStrategy !== 'manual'
-                          ? getStyle('incoming', conflictStrategy)
-                          : getStyle(
-                              'incoming',
-                              conflictStrategyPerLabel[index]
-                            )
-                      }
-                    >
-                      {incoming.label}
-                    </SSText>
-                  </SSVStack>
-                </SSVStack>
-                {conflictStrategy === 'manual' && (
-                  <SSVStack gap="sm">
-                    <SSText size="md">
-                      Select what to do with this conflict:
-                    </SSText>
-                    <SSVStack gap="sm">
-                      {conflictStrategies.map((strategy) => {
-                        return (
-                          <SSCheckbox
-                            key={strategy}
-                            selected={
-                              strategy === conflictStrategyPerLabel[index]
-                            }
-                            label={strategy}
-                            onPress={() =>
-                              solveConflictByIndex(index, strategy)
-                            }
-                          />
-                        )
-                      })}
-                    </SSVStack>
-                  </SSVStack>
-                )}
-                {conflictStrategy === 'manual' &&
-                  conflictStrategyPerLabel[index] === 'manual' && (
-                    <SSVStack gap="sm">
-                      <SSText size="md">Enter the new label manually:</SSText>
-                      <SSTextInput
-                        size="small"
-                        value={results[index].label}
-                        onChangeText={(text) =>
-                          solveConflictManually(index, text)
-                        }
-                        placeholder="Enter label manually"
-                        style={
-                          results[index].label === '' ? styles.invalidInput : {}
-                        }
-                      />
-                    </SSVStack>
-                  )}
-                {results[index].label && (
-                  <SSVStack gap="sm">
-                    <SSText size="md" weight="bold">
-                      Final label:
-                    </SSText>
-                    <SSText size="md" style={[styles.preview, styles.info]}>
-                      {results[index].label}
-                    </SSText>
-                  </SSVStack>
-                )}
-              </SSVStack>
+              <SSLabelConflictItem
+                conflict={conflict}
+                conflictStrategyGlobal={conflictStrategy}
+                conflictStrategy={conflictStrategyPerLabel[index]}
+                finalLabel={results[index].label}
+                index={index}
+                onChangeLabel={(text) => solveConflictManually(text, index)}
+                onSelectStrategy={(strategy) =>
+                  solveConflictByIndex(strategy, index)
+                }
+              />
             )
           })}
-          <SSButton
-            label="CONFIRM"
-            variant="secondary"
-            disabled={results.some((label) => label.label === '')}
-            onPress={() => onResolve(results)}
-            style={styles.btn}
-          />
-        </SSVStack>
-      )}
-      {stage === 'result_preview' && (
-        <SSVStack style={{ width: '100%' }}>
-          <SSButton
-            label="CANCEL"
-            onPress={() => setStage('select_strategy')}
-            style={styles.btn}
-          />
-          <SSButton
-            label="CONFIRM"
-            variant="secondary"
-            disabled={results.some((label) => label.label === '')}
-            onPress={() => onResolve(results)}
-            style={styles.btn}
-          />
+          <SSVStack gap="sm" style={{ width: '100%' }}>
+            <SSButton
+              label="CANCEL"
+              onPress={() => setStage('select_strategy')}
+              style={styles.button}
+            />
+            <SSButton
+              label="CONFIRM"
+              variant="secondary"
+              disabled={results.some((label) => label.label === '')}
+              onPress={() => onResolve(results)}
+              style={styles.button}
+            />
+          </SSVStack>
         </SSVStack>
       )}
     </SSVStack>
   )
 }
 
+function getStyle(type: 'current' | 'incoming', strategy: ConflictStrategy) {
+  return [styles.box, getBackgroundStyle(type, strategy)]
+}
+
+function getBackgroundStyle(
+  type: 'current' | 'incoming',
+  strategy: ConflictStrategy
+) {
+  switch (type) {
+    case 'current':
+      switch (strategy) {
+        case 'current':
+        case 'merge':
+          return styles.accepted
+        case 'incoming':
+          return styles.rejected
+        case 'manual':
+          return styles.none
+      }
+      break
+    case 'incoming':
+      switch (strategy) {
+        case 'incoming':
+        case 'merge':
+          return styles.accepted
+        case 'current':
+          return styles.rejected
+        case 'manual':
+          return styles.none
+      }
+  }
+}
+
 const styles = StyleSheet.create({
-  preview: {
+  box: {
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 4
@@ -304,7 +318,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.error
   },
   none: {
-    backgroundColor: Colors.gray[200]
+    backgroundColor: Colors.gray[400]
   },
   info: {
     backgroundColor: Colors.info
@@ -313,8 +327,13 @@ const styles = StyleSheet.create({
     borderColor: Colors.error,
     borderWidth: 2
   },
-  btn: {
+  button: {
     width: '100%'
+  },
+  labelItem: {
+    backgroundColor: '#333',
+    borderRadius: 4,
+    padding: 8
   }
 })
 

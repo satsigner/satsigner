@@ -40,10 +40,7 @@ const meta = {
       description: 'Text uppercase'
     }
   },
-  decorators: [
-    storybookLayoutDecorator,
-    withBackgrounds
-  ],
+  decorators: [storybookLayoutDecorator, withBackgrounds],
   parameters: {
     backgrounds: storybookBackgrounds
   }

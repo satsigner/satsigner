@@ -59,10 +59,7 @@ const meta = {
     //   options: ['Boom', 'Pow pow pow', 'foo', 'bar']
     // }
   },
-  decorators: [
-    SSStoryBookLayout,
-    withBackgrounds
-  ],
+  decorators: [SSStoryBookLayout, withBackgrounds],
   parameters: {
     backgrounds: storybookBackgrounds
   }
