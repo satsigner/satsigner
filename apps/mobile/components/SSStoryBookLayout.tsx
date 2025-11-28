@@ -12,7 +12,8 @@ function SSStoryBookLayout({ children }: { children: React.ReactNode }) {
         justifyContent: 'center',
         paddingHorizontal: Layout.mainContainer.paddingHorizontal,
         paddingBottom: Layout.mainContainer.paddingBottom,
-        paddingTop: Layout.mainContainer.paddingTop
+        paddingTop: Layout.mainContainer.paddingTop,
+        width: '100%'
       }}
     >
       <ScrollView>{children}</ScrollView>
