@@ -273,36 +273,7 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
 }
 
 function getStyle(type: 'current' | 'incoming', strategy: ConflictStrategy) {
-  return [styles.box, getBackgroundStyle(type, strategy)]
-}
-
-function getBackgroundStyle(
-  type: 'current' | 'incoming',
-  strategy: ConflictStrategy
-) {
-  switch (type) {
-    case 'current':
-      switch (strategy) {
-        case 'current':
-        case 'merge':
-          return styles.accepted
-        case 'incoming':
-          return styles.rejected
-        case 'manual':
-          return styles.none
-      }
-      break
-    case 'incoming':
-      switch (strategy) {
-        case 'incoming':
-        case 'merge':
-          return styles.accepted
-        case 'current':
-          return styles.rejected
-        case 'manual':
-          return styles.none
-      }
-  }
+  return [styles.box, bgStyles[type][strategy]]
 }
 
 const styles = StyleSheet.create({
@@ -336,5 +307,20 @@ const styles = StyleSheet.create({
     padding: 8
   }
 })
+
+const bgStyles = {
+  current: {
+    current: styles.accepted,
+    merge: styles.accepted,
+    incoming: styles.rejected,
+    manual: styles.none
+  },
+  incoming: {
+    incoming: styles.accepted,
+    merge: styles.accepted,
+    current: styles.rejected,
+    manual: styles.none
+  }
+}
 
 export default SSLabelConflict
