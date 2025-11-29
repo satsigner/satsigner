@@ -37,9 +37,6 @@ type ScanProgress = {
   chunks: Map<number, string>
 }
 
-/**
- * Detect QR code type and extract metadata
- */
 function detectQRType(data: string) {
   if (/^p\d+of\d+\s/.test(data)) {
     const match = data.match(/^p(\d+)of(\d+)\s/)

@@ -466,7 +466,7 @@ export function processContentForOutput(
     onWarning: (message: string) => void
     remainingSats?: number
   }
-): boolean {
+) {
   if (!content.isValid) {
     actions.onError(t('error.invalidContent'))
     return false

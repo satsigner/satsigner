@@ -376,10 +376,6 @@ export default function EcashSendPage() {
     }
   }, [generatedToken])
 
-  const handleToggleQRCode = useCallback(() => {
-    setShowQRCode(!showQRCode)
-  }, [showQRCode])
-
   const handleEmitNFC = useCallback(async () => {
     if (!generatedToken) {
       toast.error(t('ecash.error.noTokenToEmit'))
@@ -488,7 +484,7 @@ export default function EcashSendPage() {
                         label={
                           showQRCode ? t('common.hide') : t('common.showQR')
                         }
-                        onPress={handleToggleQRCode}
+                        onPress={() => setShowQRCode(!showQRCode)}
                         variant="subtle"
                         style={{ flex: 1 }}
                       />
@@ -501,8 +497,6 @@ export default function EcashSendPage() {
                       disabled={!nfcAvailable || !generatedToken}
                     />
                   </SSVStack>
-
-                  {/* QR Code Display */}
                   {showQRCode && (
                     <SSVStack gap="xs" itemsCenter>
                       <SSText color="muted" size="xs" uppercase>

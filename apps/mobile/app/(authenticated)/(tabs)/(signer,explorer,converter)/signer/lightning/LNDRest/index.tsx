@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Alert, Clipboard, StyleSheet, TextInput } from 'react-native'
@@ -93,17 +92,9 @@ export default function LNDRestPage() {
           }
         ])
       } else {
-        console.error('Failed to connect to LND node:', {
-          status: response.status,
-          statusText: response.statusText
-        })
         Alert.alert('Error', 'Failed to connect to LND node')
       }
     } catch (error) {
-      console.error('Connection error:', {
-        error: error instanceof Error ? error.message : String(error),
-        timestamp: new Date().toISOString()
-      })
       Alert.alert(
         'Error',
         error instanceof Error ? error.message : 'Failed to connect to LND node'

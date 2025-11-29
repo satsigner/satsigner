@@ -16,7 +16,7 @@ export function isPSBT(text: string) {
   return isBase64PSBT || isHexPSBT
 }
 
-export function isValidBitcoinContent(text: string): boolean {
+export function isValidBitcoinContent(text: string) {
   if (!text || text.trim().length === 0) return false
 
   const trimmed = text.trim()

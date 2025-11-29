@@ -184,7 +184,6 @@ export default function NodeDetailPage() {
     makeRequest
   } = useLND()
 
-  // Content handling with new hooks
   const lightningContentHandler = useLightningContentHandler()
 
   const contentHandler = useContentHandler({
@@ -194,7 +193,6 @@ export default function NodeDetailPage() {
     onReceive: lightningContentHandler.handleReceive
   })
 
-  // All hooks must be declared at the top level, in a consistent order
   const [balance, setBalance] = useState<ProcessedBalance | null>(null)
   const [transactions, setTransactions] = useState<CombinedTransaction[]>([])
   const [isLoading, setIsLoading] = useState(true)

@@ -33,7 +33,7 @@ export async function getAllClipboardContent() {
   } catch {}
 }
 
-export async function clearClipboard(): Promise<void> {
+export async function clearClipboard() {
   try {
     await Clipboard.setStringAsync('')
   } catch {}

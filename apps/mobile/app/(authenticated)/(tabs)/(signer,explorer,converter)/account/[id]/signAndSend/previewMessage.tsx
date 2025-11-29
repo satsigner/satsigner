@@ -61,7 +61,11 @@ import { aesDecrypt } from '@/utils/crypto'
 import { parseHexToBytes } from '@/utils/parse'
 import {
   type ExtractedTransactionData,
+  extractIndividualSignedPsbts,
   extractOriginalPsbt,
+  extractTransactionDataFromPSBTEnhanced,
+  extractTransactionIdFromPSBT,
+  getCollectedSignerPubkeys,
   validatePsbt,
   validateSignedPSBTForCosigner
 } from '@/utils/psbt'
@@ -100,11 +104,7 @@ type PsbtInputWithSignatures = {
   partialSig?: { pubkey: Buffer; signature: Buffer }[]
 }
 
-/**
- * Check if a multisig input has enough signatures to finalize
- */
-function hasEnoughSignatures(input: PsbtInputWithSignatures): boolean {
-  // Early return if not a multisig input
+function hasEnoughSignatures(input: PsbtInputWithSignatures) {
   if (!input.witnessScript) {
     return true
   }
@@ -112,19 +112,17 @@ function hasEnoughSignatures(input: PsbtInputWithSignatures): boolean {
   try {
     const script = bitcoinjs.script.decompile(input.witnessScript)
 
-    // Early return if script is invalid
     if (!script || script.length < 3) {
       return false
     }
 
     const op = script[0]
 
-    // Early return if op code is invalid
     if (typeof op !== 'number' || op < 81 || op > 96) {
       return false
     }
 
-    const threshold = op - 80 // Convert OP_M to actual threshold (OP_2 = 82 -> threshold = 2)
+    const threshold = op - 80
     const signatureCount = input.partialSig ? input.partialSig.length : 0
 
     return signatureCount >= threshold
@@ -283,11 +281,6 @@ function PreviewMessage() {
         })
 
         try {
-          const {
-            extractTransactionDataFromPSBTEnhanced,
-            extractTransactionIdFromPSBT
-          } = require('@/utils/psbt')
-
           // Extract transaction data from PSBT
           const extractedData = extractTransactionDataFromPSBTEnhanced(
             psbt,
@@ -377,7 +370,6 @@ function PreviewMessage() {
           }
 
           try {
-            const { extractTransactionIdFromPSBT } = require('@/utils/psbt')
             const extractedTxid = extractTransactionIdFromPSBT(psbt)
             if (extractedTxid) {
               setMessageId(extractedTxid)
@@ -411,7 +403,6 @@ function PreviewMessage() {
       } else {
         // No account context - use basic processing
         try {
-          const { extractTransactionIdFromPSBT } = require('@/utils/psbt')
           const extractedTxid = extractTransactionIdFromPSBT(psbt)
           if (extractedTxid) {
             setMessageId(extractedTxid)
@@ -511,7 +502,6 @@ function PreviewMessage() {
       })
 
       // Get all pubkeys that have signatures in the PSBT
-      const { getCollectedSignerPubkeys } = require('@/utils/psbt')
       const signerPubkeys = getCollectedSignerPubkeys(combinedPsbtBase64)
 
       if (signerPubkeys.size === 0) {
@@ -519,7 +509,6 @@ function PreviewMessage() {
       }
 
       // Split combined PSBT into per-signer PSBTs (by pubkey)
-      const { extractIndividualSignedPsbts } = require('@/utils/psbt')
       const bySigner = extractIndividualSignedPsbts(
         combinedPsbtBase64,
         originalPsbtBase64
@@ -720,14 +709,11 @@ function PreviewMessage() {
           const convertedResult = convertPsbtToFinalTransaction(data)
           return convertedResult
         } else {
-          // If no original PSBT context, return as-is to avoid UTXO errors
           return data
         }
       }
-
       return data
     } catch {
-      // If conversion fails, return original data to prevent app crashes
       return data
     }
   }
@@ -735,17 +721,15 @@ function PreviewMessage() {
   const assembleMultiPartQR = async (
     type: 'raw' | 'ur' | 'bbqr',
     chunks: Map<number, string>
-  ): Promise<string | null> => {
+  ) => {
     try {
       switch (type) {
         case 'raw': {
-          // Assemble RAW format chunks
           const sortedChunks = Array.from(chunks.entries())
             .sort(([a], [b]) => a - b)
             .map(([, content]) => content)
           const assembled = sortedChunks.join('')
 
-          // Convert base64 to hex for RAW format
           try {
             const hexResult = Buffer.from(assembled, 'base64').toString('hex')
             return hexResult
@@ -785,7 +769,7 @@ function PreviewMessage() {
             // Multi-part UR
             try {
               result = await decodeMultiPartURToPSBT(sortedChunks)
-            } catch (_error) {
+            } catch {
               return null
             }
           }
