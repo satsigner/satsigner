@@ -248,14 +248,7 @@ export default function WatchOnly() {
     const validXpub = validateExtendedKey(xpub, network)
     setValidXpub(!xpub || validXpub)
 
-    // Extract fingerprint from xpub if it contains a fingerprint prefix
-    if (!localFingerprint && xpub.includes('[')) {
-      const extractedFingerprint = DescriptorUtils.extractFingerprint(xpub)
-      if (extractedFingerprint) {
-        setLocalFingerprint(extractedFingerprint)
-        setFingerprint(extractedFingerprint)
-      }
-    }
+    extractAndSetFingerprint(xpub)
 
     if (selectedOption === 'importExtendedPub') {
       setDisabled(!validXpub || !localFingerprint)
@@ -397,15 +390,13 @@ export default function WatchOnly() {
   }
 
   async function extractAndSetFingerprint(descriptor: string) {
-    if (!localFingerprint) {
-      const extractedFingerprint =
-        DescriptorUtils.extractFingerprint(descriptor)
-      if (extractedFingerprint) {
-        setLocalFingerprint(extractedFingerprint)
-        setFingerprint(extractedFingerprint)
-      }
-    }
+    if (localFingerprint) return
+    const extractedFingerprint = DescriptorUtils.extractFingerprint(descriptor)
+    if (!extractedFingerprint) return
+    setLocalFingerprint(extractedFingerprint)
+    setFingerprint(extractedFingerprint)
   }
+
   function detectQRType(data: string) {
     // Check for RAW format (pXofY header)
     if (/^p\d+of\d+\s/.test(data)) {
@@ -462,7 +453,6 @@ export default function WatchOnly() {
       }
     }
 
-    // Single QR code (no multi-part format detected)
     return {
       type: 'single' as const,
       current: 0,
@@ -478,7 +468,6 @@ export default function WatchOnly() {
       scanned: new Set(),
       chunks: new Map()
     })
-    // Create a new UR decoder instance
     urDecoderRef.current = new URDecoder()
   }
 
@@ -488,7 +477,6 @@ export default function WatchOnly() {
       return
     }
 
-    // Handle fingerprint scanning
     if (scanningFor === 'fingerprint') {
       updateMasterFingerprint(data)
       setCameraModalVisible(false)
@@ -498,11 +486,9 @@ export default function WatchOnly() {
 
     const qrInfo = detectQRType(data)
 
-    // Handle single QR codes (complete data in one scan)
     if (qrInfo.type === 'single' || qrInfo.total === 1) {
       await handleSingleQRCode(qrInfo.content)
     } else {
-      // Handle multi-part QR codes
       await handleMultiPartQRCode(qrInfo)
     }
   }
@@ -510,18 +496,11 @@ export default function WatchOnly() {
   async function handleSingleQRCode(data: string) {
     if (isCombinedDescriptor(data)) {
       await handleCombinedDescriptor(data, data)
-    } else {
-      await updateExternalDescriptor(data)
-
-      // Extract and set fingerprint
-      if (!localFingerprint) {
-        const extractedFingerprint = DescriptorUtils.extractFingerprint(data)
-        if (extractedFingerprint) {
-          setLocalFingerprint(extractedFingerprint)
-          setFingerprint(extractedFingerprint)
-        }
-      }
+      return
     }
+
+    await updateExternalDescriptor(data)
+    extractAndSetFingerprint(data)
   }
 
   async function handleMultiPartQRCode(qrInfo: {
@@ -547,12 +526,19 @@ export default function WatchOnly() {
     await handleSingleQRCode(content)
   }
 
-  /**
-   * Handle clipboard paste
-   */
   async function pasteFromClipboard() {
     const text = await Clipboard.getStringAsync()
     if (!text) return
+
+    if (selectedOption === 'importExtendedPub') {
+      updateXpub(text)
+      return
+    }
+
+    if (selectedOption === 'importAddress') {
+      updateAddress(text)
+      return
+    }
 
     if (selectedOption === 'importDescriptor') {
       // Try to parse as JSON first
@@ -571,10 +557,6 @@ export default function WatchOnly() {
 
       // Handle as single descriptor
       await handleSingleDescriptor(text)
-    } else if (selectedOption === 'importExtendedPub') {
-      updateXpub(text)
-    } else if (selectedOption === 'importAddress') {
-      updateAddress(text)
     }
   }
 
@@ -589,14 +571,11 @@ export default function WatchOnly() {
       const finalContent = clipboardContent.trim()
       updateMasterFingerprint(finalContent)
       toast.success(t('watchonly.success.clipboardPasted'))
-    } catch (_error) {
+    } catch {
       toast.error(t('watchonly.error.clipboardPaste'))
     }
   }
 
-  /**
-   * Handle JSON descriptor import
-   */
   async function handleJsonDescriptor(
     result: { external: string; internal: string; original: string },
     originalText: string
@@ -609,16 +588,7 @@ export default function WatchOnly() {
       // For JSON descriptors, use the original descriptor for validation
       await updateExternalDescriptor(original)
       if (internal) await updateInternalDescriptor(internal)
-
-      // Extract and set fingerprint
-      if (!localFingerprint) {
-        const extractedFingerprint =
-          DescriptorUtils.extractFingerprint(external)
-        if (extractedFingerprint) {
-          setLocalFingerprint(extractedFingerprint)
-          setFingerprint(extractedFingerprint)
-        }
-      }
+      extractAndSetFingerprint(external)
     }
   }
 
@@ -630,20 +600,13 @@ export default function WatchOnly() {
 
     if (isCombinedDescriptor(external)) {
       await handleCombinedDescriptor(external, external)
-    } else {
-      await updateExternalDescriptor(external)
-      if (internal) await updateInternalDescriptor(internal)
-
-      // Extract and set fingerprint
-      if (!localFingerprint) {
-        const extractedFingerprint =
-          DescriptorUtils.extractFingerprint(external)
-        if (extractedFingerprint) {
-          setLocalFingerprint(extractedFingerprint)
-          setFingerprint(extractedFingerprint)
-        }
-      }
+      return
     }
+
+    await updateExternalDescriptor(external)
+    if (internal) await updateInternalDescriptor(internal)
+
+    extractAndSetFingerprint(external)
   }
 
   async function handleSingleDescriptor(descriptor: string) {
@@ -651,16 +614,7 @@ export default function WatchOnly() {
       await handleCombinedDescriptor(descriptor, descriptor)
     } else {
       await updateExternalDescriptor(descriptor)
-
-      // Extract and set fingerprint
-      if (!localFingerprint) {
-        const extractedFingerprint =
-          DescriptorUtils.extractFingerprint(descriptor)
-        if (extractedFingerprint) {
-          setLocalFingerprint(extractedFingerprint)
-          setFingerprint(extractedFingerprint)
-        }
-      }
+      extractAndSetFingerprint(descriptor)
     }
   }
 
@@ -713,9 +667,6 @@ export default function WatchOnly() {
     }
   }
 
-  /**
-   * Handle NFC read
-   */
   async function handleNFCRead() {
     if (isReading) {
       await cancelNFCScan()
@@ -773,16 +724,7 @@ export default function WatchOnly() {
             setExternalDescriptor(text) // Store the original combined descriptor
             setInternalDescriptor('') // No internal descriptor for combined descriptors
 
-            // Extract and set fingerprint from external descriptor if available
-            if (!localFingerprint) {
-              const extractedFingerprint = DescriptorUtils.extractFingerprint(
-                combinedValidation.external
-              )
-              if (extractedFingerprint) {
-                setLocalFingerprint(extractedFingerprint)
-                setFingerprint(extractedFingerprint)
-              }
-            }
+            extractAndSetFingerprint(combinedValidation.external)
 
             // IMPORTANT: For combined descriptors, we need to remove the checksum from the separated descriptors
             // because the checksums are only valid for the full combined descriptor
@@ -809,16 +751,7 @@ export default function WatchOnly() {
           // Handle non-combined descriptors with existing logic
           if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
           if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
-
-          // Extract and set fingerprint from external descriptor if available
-          if (externalDescriptor && !localFingerprint) {
-            const extractedFingerprint =
-              DescriptorUtils.extractFingerprint(externalDescriptor)
-            if (extractedFingerprint) {
-              setLocalFingerprint(extractedFingerprint)
-              setFingerprint(extractedFingerprint)
-            }
-          }
+          extractAndSetFingerprint(externalDescriptor)
         }
       }
 
@@ -871,14 +804,7 @@ export default function WatchOnly() {
           }
         }
 
-        if (!localFingerprint && externalDescriptor) {
-          const extractedFingerprint =
-            DescriptorUtils.extractFingerprint(externalDescriptor)
-          if (extractedFingerprint) {
-            setFingerprint(extractedFingerprint)
-            setLocalFingerprint(extractedFingerprint)
-          }
-        }
+        extractAndSetFingerprint(externalDescriptor)
 
         // Ensure we have a fingerprint for descriptor import
         if (!localFingerprint) {
@@ -898,7 +824,6 @@ export default function WatchOnly() {
         return
       }
 
-      // Save the account and redirect immediately
       updateAccount(data.accountWithEncryptedSecret)
       toast.success(t('watchonly.success.accountCreated'))
       router.dismissAll()
@@ -906,39 +831,19 @@ export default function WatchOnly() {
 
       // Start sync in background if auto mode is enabled
       if (connectionMode === 'auto') {
-        // Use setTimeout to ensure this runs after the current execution context
-        setTimeout(() => {
-          // Wrap the entire async operation in a try-catch
-          const backgroundSync = async () => {
-            try {
-              const updatedAccount =
-                selectedOption !== 'importAddress'
-                  ? await syncAccountWithWallet(
-                      data.accountWithEncryptedSecret,
-                      data.wallet!
-                    )
-                  : await syncAccountWithAddress(
-                      data.accountWithEncryptedSecret
-                    )
-              updateAccount(updatedAccount)
-            } catch {
-              // Sync failed in background, but user is already on account page
-            }
-          }
-
-          // Execute the background sync and catch any unhandled rejections
-          backgroundSync().catch(() => {
-            return null
-          })
-        }, 100)
+        try {
+          const updatedAccount =
+            selectedOption !== 'importAddress'
+              ? await syncAccountWithWallet(
+                  data.accountWithEncryptedSecret,
+                  data.wallet!
+                )
+              : await syncAccountWithAddress(data.accountWithEncryptedSecret)
+          updateAccount(updatedAccount)
+        } catch {}
       }
-    } catch (error) {
-      const errorMessage = (error as Error).message
-      if (errorMessage) {
-        toast.error(errorMessage)
-      } else {
-        toast.error(t('watchonly.error.creationFailed'))
-      }
+    } catch {
+      toast.error(t('watchonly.error.creationFailed'))
     } finally {
       clearAccount()
       setLoadingWallet(false)
@@ -973,7 +878,11 @@ export default function WatchOnly() {
         options={{ headerTitle: () => <SSText uppercase>{name}</SSText> }}
       />
       <ScrollView contentContainerStyle={{ height: '100%' }}>
-        <SSVStack justifyBetween gap="lg" style={{ paddingBottom: 20, flex: 1 }}>
+        <SSVStack
+          justifyBetween
+          gap="lg"
+          style={{ paddingBottom: 20, flex: 1 }}
+        >
           <SSVStack gap="lg">
             <SSVStack gap="lg">
               <SSVStack gap="lg">
@@ -1174,16 +1083,7 @@ export default function WatchOnly() {
         onSelect={(scriptVersion) => {
           setScriptVersion(scriptVersion)
           setScriptVersionModalVisible(false)
-
-          // After script version change, try to extract fingerprint from existing descriptors
-          if (externalDescriptor && !localFingerprint) {
-            const extractedFingerprint =
-              DescriptorUtils.extractFingerprint(externalDescriptor)
-            if (extractedFingerprint) {
-              setLocalFingerprint(extractedFingerprint)
-              setFingerprint(extractedFingerprint)
-            }
-          }
+          extractAndSetFingerprint(externalDescriptor)
         }}
       />
       <SSModal
