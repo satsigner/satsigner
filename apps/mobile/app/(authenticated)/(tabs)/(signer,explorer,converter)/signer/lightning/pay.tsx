@@ -267,20 +267,18 @@ export default function PayPage() {
 
   useEffect(() => {
     const paramValue = paymentRequestParam || invoiceParam
+    if (!paramValue) return
 
-    if (paramValue) {
-      const paymentRequestValue = Array.isArray(paramValue)
-        ? paramValue[0]
-        : paramValue
+    const paymentRequestValue = Array.isArray(paramValue)
+      ? paramValue[0]
+      : paramValue
+    if (!paymentRequestValue) return
 
-      if (paymentRequestValue) {
-        const cleanText = paymentRequestValue.trim().replace(/^lightning:/i, '')
+    const cleanText = paymentRequestValue.trim().replace(/^lightning:/i, '')
+    if (!cleanText.toLowerCase().startsWith('lnbc') && !isLNURL(cleanText))
+      return
 
-        if (cleanText.toLowerCase().startsWith('lnbc') || isLNURL(cleanText)) {
-          handlePaymentRequestChange(cleanText)
-        }
-      }
-    }
+    handlePaymentRequestChange(cleanText)
   }, [paymentRequestParam, invoiceParam, handlePaymentRequestChange])
 
   if (!fontsLoaded) {

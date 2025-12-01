@@ -72,27 +72,22 @@ export default function EcashReceivePage() {
     setDecodedToken(null)
 
     const cleanText = text.trim()
-    if (!cleanText) return
-
-    if (cleanText.toLowerCase().startsWith('cashu')) {
-      try {
-        const decoded = getDecodedToken(cleanText)
-        setDecodedToken(decoded)
-      } catch {
-        setDecodedToken(null)
-      }
+    if (!cleanText || !cleanText.toLowerCase().startsWith('cashu')) return
+    try {
+      const decoded = getDecodedToken(cleanText)
+      setDecodedToken(decoded)
+    } catch {
+      setDecodedToken(null)
     }
   }, [])
 
   useEffect(() => {
-    if (tokenParam) {
-      const tokenValue = Array.isArray(tokenParam) ? tokenParam[0] : tokenParam
-      if (tokenValue) {
-        setToken(tokenValue)
-        setActiveTab('ecash')
-        handleTokenChange(tokenValue)
-      }
-    }
+    if (!tokenParam) return
+    const tokenValue = Array.isArray(tokenParam) ? tokenParam[0] : tokenParam
+    if (!tokenValue) return
+    setToken(tokenValue)
+    setActiveTab('ecash')
+    handleTokenChange(tokenValue)
   }, [tokenParam, handleTokenChange])
 
   const handleRedeemToken = useCallback(async () => {
