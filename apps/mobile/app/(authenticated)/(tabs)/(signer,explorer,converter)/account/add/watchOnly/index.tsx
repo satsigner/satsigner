@@ -1012,13 +1012,13 @@ export default function WatchOnly() {
                   <SSHStack gap="sm">
                     <SSButton
                       label="Paste"
-                      variant="subtle"
+                      variant="gradient"
                       onPress={pasteFromClipboard}
                       style={{ flex: 1 }}
                     />
                     <SSButton
                       label="Scan QR"
-                      variant="subtle"
+                      variant="gradient"
                       onPress={() => {
                         setScanningFor('main')
                         setCameraModalVisible(true)
@@ -1108,13 +1108,13 @@ export default function WatchOnly() {
                 <SSHStack gap="sm">
                   <SSButton
                     label="Paste"
-                    variant="subtle"
+                    variant="gradient"
                     onPress={pasteFingerprintFromClipboard}
                     style={{ flex: 1 }}
                   />
                   <SSButton
                     label="Scan QR"
-                    variant="subtle"
+                    variant="gradient"
                     onPress={() => {
                       setScanningFor('fingerprint')
                       setCameraModalVisible(true)
