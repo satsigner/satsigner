@@ -1228,6 +1228,7 @@
     "build.options.title": "Options",
     "build.preview.contents": "Contents",
     "build.preview.decoded": "Decoded",
+    "build.preview.detectedSignature": "Detected existing signature for cosigner %{cosigner}",
     "build.preview.keyInput": "Input your secret private key to sign the transaction",
     "build.preview.noKey": "Missing private key",
     "build.preview.psbt": "PSBT: Share partially signed bitcoin transaction on external hardware",

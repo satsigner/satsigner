@@ -46,6 +46,10 @@ import {
   type Secret
 } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
+import {
+  type MockTxBuilderResult,
+  type PsbtInputWithSignatures
+} from '@/types/models/Psbt'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type PreviewMessageSearchParams } from '@/types/navigation/searchParams'
@@ -66,7 +70,7 @@ import {
   extractTransactionDataFromPSBTEnhanced,
   extractTransactionIdFromPSBT,
   getCollectedSignerPubkeys,
-  validatePsbt,
+  matchSignedPsbtsToCosigners,
   validateSignedPSBTForCosigner
 } from '@/utils/psbt'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
@@ -83,25 +87,6 @@ enum QRDisplayMode {
   RAW = 'RAW',
   UR = 'UR',
   BBQR = 'BBQR'
-}
-
-type MockPsbt = {
-  base64: string
-  serialize: () => Promise<string>
-  txid: () => Promise<string>
-}
-
-type MockTxBuilderResult = {
-  psbt: MockPsbt
-  txDetails: {
-    txid: string
-    fee: number
-  }
-}
-
-type PsbtInputWithSignatures = {
-  witnessScript?: Buffer
-  partialSig?: { pubkey: Buffer; signature: Buffer }[]
 }
 
 function hasEnoughSignatures(input: PsbtInputWithSignatures) {
@@ -129,6 +114,52 @@ function hasEnoughSignatures(input: PsbtInputWithSignatures) {
   } catch {
     toast.error(t('common.error.checkingInputSignatures'))
     return false
+  }
+}
+
+function createMockTxBuilderResult(
+  psbtBase64: string,
+  txid: string,
+  txFee: number
+): MockTxBuilderResult {
+  return {
+    psbt: {
+      base64: psbtBase64,
+      serialize: () => Promise.resolve(psbtBase64),
+      txid: () => Promise.resolve(txid)
+    },
+    txDetails: {
+      txid,
+      fee: txFee
+    }
+  }
+}
+
+function generateMessageId(psbtBase64: string): string {
+  const extractedTxid = extractTransactionIdFromPSBT(psbtBase64)
+  return extractedTxid || `PSBT-${Date.now().toString(36)}`
+}
+
+function handlePsbtExtractionError(error: unknown) {
+  const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+
+  if (
+    errorMessage.includes('fingerprint') ||
+    errorMessage.includes('derivation') ||
+    errorMessage.includes('not match')
+  ) {
+    toast.warning(
+      'This PSBT does not match the current account. Using basic processing.'
+    )
+  } else if (
+    errorMessage.includes('Invalid PSBT') ||
+    errorMessage.includes('malformed')
+  ) {
+    toast.error('Invalid PSBT format. Please check the PSBT data.')
+  } else {
+    toast.warning(
+      'Failed to process PSBT with enhanced features. Using basic processing.'
+    )
   }
 }
 
@@ -233,214 +264,114 @@ function PreviewMessage() {
     handleSignWithSeedQR
   } = psbtManagement
 
-  // Handle URL parameters for PSBT and signed PSBT
-  useEffect(() => {
-    if (psbt) {
-      // Show loading state immediately
-      setIsLoadingPSBT(true)
-
-      // Clear any existing transaction data and set the new PSBT
-      clearTransaction()
-      setSignedTx('')
-
-      // Enhanced PSBT processing using the tools from nostr multisig
-      if (account) {
-        // Validate PSBT before processing (don't await, let it run in background)
-        const validate = async () => {
-          const accountKeyFingerprints: string[] = []
-          if (account.keys) {
-            for (const key of account.keys) {
-              const keyFingerprint = await extractKeyFingerprint(key)
-              if (keyFingerprint) {
-                accountKeyFingerprints.push(keyFingerprint)
-              }
-            }
-          }
-
-          const { errors, warnings } = validatePsbt(
-            psbt,
-            account.utxos,
-            accountKeyFingerprints
-          )
-
-          if (errors.length > 0) {
-            errors.forEach((error) => {
-              if (error === 'An error occurred during PSBT validation.') {
-                toast.error(t('common.error.psbtValidation'))
-              } else {
-                toast.error(error)
-              }
-            })
-          }
-          if (warnings.length > 0) {
-            warnings.forEach((warning) => toast.warning(warning))
-          }
-        }
-        validate().catch(() => {
-          // Validation errors are already shown via toast
+  function processExtractedPsbtData(extractedData: ExtractedTransactionData) {
+    extractedData.inputs.forEach(
+      (input: ExtractedTransactionData['inputs'][number]) => {
+        addInput({
+          txid: input.txid,
+          vout: input.vout,
+          value: input.value,
+          script: Buffer.from(input.script, 'hex').toJSON().data,
+          keychain: input.keychain || 'external',
+          label: input.label,
+          addressTo: input.address
         })
+      }
+    )
 
-        try {
-          // Extract transaction data from PSBT
-          const extractedData = extractTransactionDataFromPSBTEnhanced(
-            psbt,
-            account
-          )
+    extractedData.outputs.forEach(
+      (output: ExtractedTransactionData['outputs'][number]) => {
+        addOutput({
+          to: output.address,
+          amount: output.value,
+          label: output.label || ''
+        })
+      }
+    )
 
-          if (extractedData) {
-            // Populate transaction builder with extracted data
-            // Clear first to avoid duplicates
-            extractedData.inputs.forEach(
-              (input: ExtractedTransactionData['inputs'][number]) => {
-                addInput({
-                  txid: input.txid,
-                  vout: input.vout,
-                  value: input.value,
-                  script: Buffer.from(input.script, 'hex').toJSON().data,
-                  keychain: input.keychain || 'external',
-                  label: input.label,
-                  addressTo: input.address
-                })
-              }
-            )
+    if (extractedData.fee) {
+      setFee(extractedData.fee)
+    }
 
-            extractedData.outputs.forEach(
-              (output: ExtractedTransactionData['outputs'][number]) => {
-                addOutput({
-                  to: output.address,
-                  amount: output.value,
-                  label: output.label || ''
-                })
-              }
-            )
+    setRbf(true)
+  }
 
-            if (extractedData.fee) {
-              setFee(extractedData.fee)
-            }
+  function processBasicPsbt(psbtBase64: string) {
+    const txid = generateMessageId(psbtBase64)
+    setMessageId(txid)
+    const mockResult = createMockTxBuilderResult(psbtBase64, txid, 0)
+    setTxBuilderResult(mockResult as never)
+    setIsLoadingPSBT(false)
+  }
 
-            setRbf(true)
+  function processPsbtWithAccount(
+    psbtBase64: string,
+    accountData: NonNullable<typeof account>
+  ) {
+    try {
+      const extractedData = extractTransactionDataFromPSBTEnhanced(
+        psbtBase64,
+        accountData
+      )
 
-            // Create mock transaction builder result for display
-            const extractedTxid = extractTransactionIdFromPSBT(psbt)
-            if (extractedTxid) {
-              setMessageId(extractedTxid)
-            } else {
-              // Fallback: generate a temporary ID if extraction fails
-              setMessageId('PSBT-' + Date.now().toString(36))
-            }
-            const mockTxBuilderResult: MockTxBuilderResult = {
-              psbt: {
-                base64: psbt,
-                serialize: () => Promise.resolve(psbt),
-                txid: () => Promise.resolve(extractedTxid || '')
-              },
-              txDetails: {
-                txid: extractedTxid || '',
-                fee: extractedData.fee
-              }
-            }
-            setTxBuilderResult(mockTxBuilderResult as never)
-            setIsLoadingPSBT(false)
-          } else {
-            throw new Error(
-              'Failed to extract transaction data from PSBT. This PSBT may not match the current account.'
-            )
-          }
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error'
+      if (!extractedData) {
+        throw new Error(
+          'Failed to extract transaction data from PSBT. This PSBT may not match the current account.'
+        )
+      }
 
-          if (
-            errorMessage.includes('fingerprint') ||
-            errorMessage.includes('derivation') ||
-            errorMessage.includes('not match')
-          ) {
-            toast.warning(
-              'This PSBT does not match the current account. Using basic processing.'
-            )
-          } else if (
-            errorMessage.includes('Invalid PSBT') ||
-            errorMessage.includes('malformed')
-          ) {
-            toast.error('Invalid PSBT format. Please check the PSBT data.')
-          } else {
-            toast.warning(
-              'Failed to process PSBT with enhanced features. Using basic processing.'
-            )
-          }
+      processExtractedPsbtData(extractedData)
 
-          try {
-            const extractedTxid = extractTransactionIdFromPSBT(psbt)
-            if (extractedTxid) {
-              setMessageId(extractedTxid)
-            } else {
-              // Fallback: generate a temporary ID if extraction fails
-              setMessageId('PSBT-' + Date.now().toString(36))
-            }
-            const mockTxBuilderResult: MockTxBuilderResult = {
-              psbt: {
-                base64: psbt,
-                serialize: () => Promise.resolve(psbt),
-                txid: () => Promise.resolve(extractedTxid || '')
-              },
-              txDetails: {
-                txid: extractedTxid || '',
-                fee: 0
-              }
-            }
-            setTxBuilderResult(mockTxBuilderResult as never)
-            setIsLoadingPSBT(false)
-            toast.info(
-              'PSBT loaded with basic processing. Some features may be limited.'
-            )
-          } catch {
-            setIsLoadingPSBT(false)
-            toast.error(t('common.error.processPSBT'))
-            // Still try to set a message ID so the UI doesn't hang
-            setMessageId('PSBT-ERROR-' + Date.now().toString(36))
-          }
-        }
-      } else {
-        // No account context - use basic processing
-        try {
-          const extractedTxid = extractTransactionIdFromPSBT(psbt)
-          if (extractedTxid) {
-            setMessageId(extractedTxid)
-          } else {
-            setMessageId('PSBT-' + Date.now().toString(36))
-          }
-          const mockTxBuilderResult: MockTxBuilderResult = {
-            psbt: {
-              base64: psbt,
-              serialize: () => Promise.resolve(psbt),
-              txid: () => Promise.resolve(extractedTxid || '')
-            },
-            txDetails: {
-              txid: extractedTxid || '',
-              fee: 0
-            }
-          }
-          setTxBuilderResult(mockTxBuilderResult as never)
-          setIsLoadingPSBT(false)
-          toast.info('PSBT loaded. Some features may be limited.')
-        } catch {
-          setIsLoadingPSBT(false)
-          toast.error(t('common.error.processPSBT'))
-          setMessageId('PSBT-ERROR-' + Date.now().toString(36))
-        }
+      const txid = generateMessageId(psbtBase64)
+      setMessageId(txid)
+      const mockResult = createMockTxBuilderResult(
+        psbtBase64,
+        txid,
+        extractedData.fee
+      )
+      setTxBuilderResult(mockResult as never)
+      setIsLoadingPSBT(false)
+    } catch (error) {
+      handlePsbtExtractionError(error)
+
+      try {
+        processBasicPsbt(psbtBase64)
+        toast.info(
+          'PSBT loaded with basic processing. Some features may be limited.'
+        )
+      } catch {
+        setIsLoadingPSBT(false)
+        toast.error(t('common.error.processPSBT'))
+        setMessageId(`PSBT-ERROR-${Date.now().toString(36)}`)
       }
     }
-  }, [
-    psbt,
-    clearTransaction,
-    setSignedTx,
-    account,
-    addInput,
-    addOutput,
-    setFee,
-    setRbf,
-    setTxBuilderResult
-  ])
+  }
+
+  function processPsbtWithoutAccount(psbtBase64: string) {
+    try {
+      processBasicPsbt(psbtBase64)
+      toast.info('PSBT loaded. Some features may be limited.')
+    } catch {
+      setIsLoadingPSBT(false)
+      toast.error(t('common.error.processPSBT'))
+      setMessageId(`PSBT-ERROR-${Date.now().toString(36)}`)
+    }
+  }
+
+  useEffect(() => {
+    if (!psbt) return
+
+    setIsLoadingPSBT(true)
+    clearTransaction()
+    setSignedTx('')
+
+    if (account) {
+      processPsbtWithAccount(psbt, account)
+    } else {
+      processPsbtWithoutAccount(psbt)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [psbt, account])
 
   // Separate effect to detect existing signatures - runs when both PSBT and decryptedKeys are ready
   useEffect(() => {
@@ -454,7 +385,7 @@ function PreviewMessage() {
 
       const combinedPsbtBase64: string = currentPsbt
 
-      // Check if PSBT can be parsed (walletHasPsbt)
+      // Check if PSBT can be parsed
       let psbtObj: bitcoinjs.Psbt
       try {
         psbtObj = bitcoinjs.Psbt.fromBase64(combinedPsbtBase64)
@@ -462,14 +393,11 @@ function PreviewMessage() {
         return
       }
 
-      // Check if PSBT has any partial signatures (psbtHasSignatures)
+      // Check if PSBT has any partial signatures
       const psbtHasSignatures = psbtObj.data.inputs.some(
         (input) => input.partialSig && input.partialSig.length > 0
       )
-
-      if (!psbtHasSignatures) {
-        return
-      }
+      if (!psbtHasSignatures) return
 
       // Extract original PSBT - if this fails, the PSBT structure is invalid
       let originalPsbtBase64: string
@@ -503,58 +431,32 @@ function PreviewMessage() {
 
       // Get all pubkeys that have signatures in the PSBT
       const signerPubkeys = getCollectedSignerPubkeys(combinedPsbtBase64)
-
-      if (signerPubkeys.size === 0) {
-        return
-      }
+      if (signerPubkeys.size === 0) return
 
       // Split combined PSBT into per-signer PSBTs (by pubkey)
       const bySigner = extractIndividualSignedPsbts(
         combinedPsbtBase64,
         originalPsbtBase64
       ) as Record<number, string>
+      if (Object.keys(bySigner).length === 0) return
 
-      if (Object.keys(bySigner).length === 0) {
-        return
-      }
+      // Match signed PSBTs to cosigners using the utility function
+      const matches = matchSignedPsbtsToCosigners(
+        bySigner,
+        pubkeyToCosignerIndex,
+        currentAccount,
+        decryptedKeys,
+        signedPsbts
+      )
 
-      // Match each signed PSBT to a cosigner
-      Object.values(bySigner).forEach((indivBase64: string) => {
-        const indivPubkeys = getCollectedSignerPubkeys(indivBase64)
-
-        // Try to match by pubkey from BIP32 derivations first
-        for (const pubkey of indivPubkeys) {
-          const cosignerIndex = pubkeyToCosignerIndex.get(pubkey)
-          if (cosignerIndex === undefined) continue
-          const existing = signedPsbts.get(cosignerIndex)
-          if (existing && existing.trim().length > 0) continue
-          updateSignedPsbt(cosignerIndex, indivBase64)
-          toast.success(
-            `Detected existing signature for cosigner ${cosignerIndex + 1}`
-          )
-          return
-        }
-
-        // Fallback: try validation for each cosigner
-        const totalCosigners = currentAccount.keys?.length || 0
-        for (let cosIdx = 0; cosIdx < totalCosigners; cosIdx++) {
-          const matches = validateSignedPSBTForCosigner(
-            indivBase64,
-            currentAccount,
-            cosIdx,
-            decryptedKeys[cosIdx]
-          )
-          if (!matches) continue
-          const existing = signedPsbts.get(cosIdx)
-          if (existing && existing.trim().length > 0) {
-            break
-          }
-          updateSignedPsbt(cosIdx, indivBase64)
-          toast.success(
-            `Detected existing signature for cosigner ${cosIdx + 1}`
-          )
-          break
-        }
+      // Apply matches and show notifications
+      matches.forEach((match) => {
+        updateSignedPsbt(match.cosignerIndex, match.signedPsbtBase64)
+        toast.success(
+          t('transaction.build.preview.detectedSignature', {
+            cosigner: match.cosignerIndex + 1
+          })
+        )
       })
     }
 
@@ -932,15 +834,10 @@ function PreviewMessage() {
   }, [signedPsbtsFromStore, setSignedPsbts])
 
   useEffect(() => {
-    // If we have a PSBT loaded from URL params, skip building transaction
-    // The PSBT processing useEffect will handle setting the messageId
-    if (psbt) {
-      // If txBuilderResult is already set, use its txid
-      if (txBuilderResult?.txDetails?.txid) {
-        setMessageId(txBuilderResult.txDetails.txid)
-      }
-      return
+    if (psbt && txBuilderResult?.txDetails?.txid) {
+      setMessageId(txBuilderResult.txDetails.txid)
     }
+    if (psbt) return
 
     if (txBuilderResult?.txDetails?.txid) {
       setMessageId(txBuilderResult.txDetails.txid)
@@ -953,8 +850,6 @@ function PreviewMessage() {
         return
       }
 
-      // Don't try to build transaction if we have no inputs or outputs
-      // This can happen when loading a PSBT from another wallet
       if (inputs.size === 0 || outputs.length === 0) {
         return
       }
@@ -977,21 +872,13 @@ function PreviewMessage() {
         setMessageId(transactionMessage.txDetails.txid)
         setTxBuilderResult(transactionMessage)
       } catch (err) {
-        // Handle specific UTXO errors
         const errorMessage = String(err)
-        if (errorMessage.includes('UTXO not found')) {
-          // Don't show error if we're loading a PSBT from another wallet
-          // This is expected behavior
-          if (!psbt) {
-            toast.error(
-              'UTXO not found in wallet database. Please sync your wallet or check your inputs.'
-            )
-          }
-        } else {
-          // Only show other errors if we're not loading a PSBT
-          if (!psbt) {
-            toast.error(errorMessage)
-          }
+        if (errorMessage.includes('UTXO not found') && !psbt) {
+          toast.error(
+            'UTXO not found in wallet database. Please sync your wallet or check your inputs.'
+          )
+        } else if (!psbt) {
+          toast.error(errorMessage)
         }
       }
     }

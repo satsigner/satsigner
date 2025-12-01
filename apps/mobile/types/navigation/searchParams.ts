@@ -50,3 +50,8 @@ export type EcashSearchParams = {
 export type DeviceAliasSearchParams = {
   npub: string
 } & AccountSearchParams
+
+export type WatchOnlySearchParams = {
+  descriptor?: string
+  extendedPublicKey?: string
+}

@@ -38,6 +38,7 @@ import { isBBQRFragment } from '@/utils/bbqr'
 import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 import { DescriptorUtils } from '@/utils/descriptorUtils'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
+import { type WatchOnlySearchParams } from '@/types/navigation/searchParams'
 import {
   isCombinedDescriptor,
   validateAddress,
@@ -54,10 +55,7 @@ const WATCH_ONLY_OPTIONS: CreationType[] = [
 ]
 
 export default function WatchOnly() {
-  const params = useLocalSearchParams<{
-    descriptor?: string
-    extendedPublicKey?: string
-  }>()
+  const params = useLocalSearchParams<WatchOnlySearchParams>()
   const updateAccount = useAccountsStore((state) => state.updateAccount)
   const [
     name,

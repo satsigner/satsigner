@@ -1234,9 +1234,6 @@ function checkSignatureForPublicKey(
   )
 }
 
-/**
- * Check if input has signature from specific public key
- */
 function hasSignatureFromPublicKey(input: any, publicKey: string): boolean {
   if (!input.partialSig || input.partialSig.length === 0) {
     return false
@@ -1253,4 +1250,65 @@ function hasSignatureFromPublicKey(input: any, publicKey: string): boolean {
     const sigPublicKey = sig.pubkey.toString('hex')
     return sigPublicKey === publicKey
   })
+}
+
+export type SignedPsbtMatch = {
+  cosignerIndex: number
+  signedPsbtBase64: string
+  matchMethod: 'pubkey' | 'validation'
+}
+
+export function matchSignedPsbtsToCosigners(
+  signedPsbts: Record<number, string>,
+  pubkeyToCosignerIndex: Map<string, number>,
+  account: Account,
+  decryptedKeys: any[],
+  existingSignedPsbts: Map<number, string>
+): SignedPsbtMatch[] {
+  const matches: SignedPsbtMatch[] = []
+
+  for (const indivBase64 of Object.values(signedPsbts)) {
+    const indivPubkeys = getCollectedSignerPubkeys(indivBase64)
+    let matched = false
+    for (const pubkey of indivPubkeys) {
+      const cosignerIndex = pubkeyToCosignerIndex.get(pubkey)
+      if (cosignerIndex === undefined) continue
+
+      const existing = existingSignedPsbts.get(cosignerIndex)
+      if (existing && existing.trim().length > 0) continue
+
+      matches.push({
+        cosignerIndex,
+        signedPsbtBase64: indivBase64,
+        matchMethod: 'pubkey'
+      })
+      matched = true
+      break
+    }
+
+    if (matched) continue
+
+    const totalCosigners = account.keys?.length || 0
+    for (let cosIdx = 0; cosIdx < totalCosigners; cosIdx++) {
+      const isValid = validateSignedPSBTForCosigner(
+        indivBase64,
+        account,
+        cosIdx,
+        decryptedKeys[cosIdx]
+      )
+      if (!isValid) continue
+
+      const existing = existingSignedPsbts.get(cosIdx)
+      if (existing && existing.trim().length > 0) break
+
+      matches.push({
+        cosignerIndex: cosIdx,
+        signedPsbtBase64: indivBase64,
+        matchMethod: 'validation'
+      })
+      break
+    }
+  }
+
+  return matches
 }
