@@ -34,11 +34,11 @@ import {
   type CreationType,
   type ScriptVersionType
 } from '@/types/models/Account'
+import { type WatchOnlySearchParams } from '@/types/navigation/searchParams'
 import { isBBQRFragment } from '@/utils/bbqr'
 import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 import { DescriptorUtils } from '@/utils/descriptorUtils'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
-import { type WatchOnlySearchParams } from '@/types/navigation/searchParams'
 import {
   isCombinedDescriptor,
   validateAddress,
