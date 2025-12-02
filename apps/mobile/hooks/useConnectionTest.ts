@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import ElectrumClient from '@/api/electrum'
+import Esplora from '@/api/esplora'
 import {
   type Backend,
   type Network,
   type ProxyConfig
 } from '@/types/settings/blockchain'
-import Esplora from '@/api/esplora'
 
 export type NodeInfo = {
   version?: string

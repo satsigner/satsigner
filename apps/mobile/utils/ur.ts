@@ -384,13 +384,6 @@ export function decodeMultiPartURGeneric(urFragments: string[]): string {
     for (const fragment of batch) {
       decoder.receivePart(fragment)
     }
-
-    if (i + batchSize < sortedFragments.length) {
-      const start = Date.now()
-      while (Date.now() - start < 1) {
-        // Busy wait for 1ms to allow GC
-      }
-    }
   }
 
   const isDecoderComplete = decoder.isComplete()
