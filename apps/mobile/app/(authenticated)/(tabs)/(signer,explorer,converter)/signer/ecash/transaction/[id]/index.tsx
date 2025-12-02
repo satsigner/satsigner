@@ -44,7 +44,9 @@ export default function EcashTransactionDetailPage() {
     checkMintQuote,
     mintProofs
   } = useEcash()
-  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+  const [currencyUnit, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  )
   const [fiatCurrency, btcPrice, fetchPrices] = usePriceStore(
     useShallow((state) => [
       state.fiatCurrency,
@@ -319,6 +321,7 @@ export default function EcashTransactionDetailPage() {
                     amount={transaction.amount}
                     decimals={0}
                     useZeroPadding={useZeroPadding}
+                    currency={currencyUnit}
                     type={
                       transaction.type === 'mint'
                         ? 'receive'
@@ -332,7 +335,9 @@ export default function EcashTransactionDetailPage() {
                     letterSpacing={-0.5}
                   />
                   <SSText color="muted">
-                    {t('bitcoin.sats').toLowerCase()}
+                    {currencyUnit === 'btc'
+                      ? t('bitcoin.btc')
+                      : t('bitcoin.sats')}
                   </SSText>
                 </SSHStack>
                 {btcPrice > 0 && (

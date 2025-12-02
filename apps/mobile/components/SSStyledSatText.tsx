@@ -8,6 +8,7 @@ type SSStyledSatTextProps = {
   amount: number
   decimals?: number
   useZeroPadding?: boolean
+  currency?: 'sats' | 'btc'
   type?: 'send' | 'receive'
   noColor?: boolean
   textSize?: TextFontSize
@@ -19,13 +20,15 @@ function SSStyledSatText({
   amount,
   decimals = 0,
   useZeroPadding = false,
+  currency = 'sats',
   type = 'send',
   noColor = true,
   textSize = '3xl',
   weight = 'regular',
   letterSpacing = -0.1
 }: SSStyledSatTextProps) {
-  const formatted = formatNumber(amount, decimals, useZeroPadding)
+  const zeroPadding = useZeroPadding || currency === 'btc'
+  const formatted = formatNumber(amount, decimals, zeroPadding)
   const spacedFormatted = formatted.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')
 
   const firstNonZeroIndex =

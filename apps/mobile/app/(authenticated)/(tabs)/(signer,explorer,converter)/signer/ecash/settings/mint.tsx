@@ -2,6 +2,7 @@ import { Stack } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -28,7 +29,10 @@ export default function EcashMintPage() {
   const [isConnecting, setIsConnecting] = useState(false)
 
   const { mints, connectToMint, disconnectMint } = useEcash()
-  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+  const [currencyUnit, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  )
+  const zeroPadding = useZeroPadding || currencyUnit === 'btc'
 
   const handleConnectMint = useCallback(async () => {
     if (!mintUrl) {
@@ -111,7 +115,10 @@ export default function EcashMintPage() {
                           {t('ecash.mint.balance')}
                         </SSText>
                         <SSText weight="medium">
-                          {formatNumber(mint.balance, 0, useZeroPadding)} sats
+                          {formatNumber(mint.balance, 0, zeroPadding)}{' '}
+                          {currencyUnit === 'btc'
+                            ? t('bitcoin.btc')
+                            : t('bitcoin.sats')}
                         </SSText>
                       </SSVStack>
                       <SSVStack gap="xs">
