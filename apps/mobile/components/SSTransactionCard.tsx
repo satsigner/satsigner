@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     color: Colors.warning
   },
   confirmedEnough: {
-    color: Colors.success
+    color: Colors.softBarGreen
   }
 })
 

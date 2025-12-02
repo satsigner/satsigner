@@ -399,7 +399,7 @@ export default function ImportDescriptor() {
       >
         <SSVStack gap="lg" style={{ flex: 1 }}>
           <SSText center size="lg" weight="bold">
-            {t('camera.scanQRCode')}
+            {t('transaction.build.options.importOutputs.qrcode')}
           </SSText>
           <SSText center color="muted">
             {t('camera.scanText')}

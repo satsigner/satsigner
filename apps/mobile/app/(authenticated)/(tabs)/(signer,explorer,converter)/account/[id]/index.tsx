@@ -1,3 +1,4 @@
+import { useFocusEffect } from '@react-navigation/native'
 import { FlashList } from '@shopify/flash-list'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import {
@@ -35,7 +36,6 @@ import { getLastUnusedAddressFromWallet, getWalletAddresses } from '@/api/bdk'
 import {
   SSIconBlackIndicator,
   SSIconBubbles,
-  SSIconCamera,
   SSIconChartSettings,
   SSIconChatBubble,
   SSIconCollapse,
@@ -54,14 +54,20 @@ import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
 import SSBubbleChart from '@/components/SSBubbleChart'
 import SSButton from '@/components/SSButton'
+import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSHistoryChart from '@/components/SSHistoryChart'
 import SSIconButton from '@/components/SSIconButton'
+import SSNFCModal from '@/components/SSNFCModal'
+import SSPaste from '@/components/SSPaste'
 import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSUtxoCard from '@/components/SSUtxoCard'
+import { useBitcoinContentHandler } from '@/hooks/useBitcoinContentHandler'
+import { useContentHandler } from '@/hooks/useContentHandler'
 import useGetAccountAddress from '@/hooks/useGetAccountAddress'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useNostrSync from '@/hooks/useNostrSync'
@@ -77,7 +83,6 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { useNostrStore } from '@/store/nostr'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Account } from '@/types/models/Account'
@@ -752,9 +757,6 @@ export default function AccountView() {
       state.configsMempool['bitcoin']
     ])
   )
-  const clearTransaction = useTransactionBuilderStore(
-    (state) => state.clearTransaction
-  )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { nostrSyncSubscriptions } = useNostrSync()
@@ -781,6 +783,29 @@ export default function AccountView() {
 
   const [connectionState, connectionString, isPrivateConnection] =
     useVerifyConnection()
+
+  const bitcoinContentHandler = useBitcoinContentHandler({
+    accountId: id!,
+    account: account!
+  })
+
+  const contentHandler = useContentHandler({
+    context: 'bitcoin',
+    onContentScanned: bitcoinContentHandler.handleContentScanned,
+    onSend: bitcoinContentHandler.handleSend,
+    onReceive: bitcoinContentHandler.handleReceive
+  })
+
+  const { closeCameraModal, closeNFCModal, closePasteModal } = contentHandler
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        closeCameraModal()
+        closeNFCModal()
+        closePasteModal()
+      }
+    }, [closeCameraModal, closeNFCModal, closePasteModal])
+  )
 
   useEffect(() => {
     if (wallet) handleOnRefresh()
@@ -895,11 +920,6 @@ export default function AccountView() {
   async function handleOnExpand(state: boolean) {
     setExpand(state)
     animateTransition(state)
-  }
-
-  function navigateToSignAndSend() {
-    clearTransaction()
-    router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
   }
 
   if (!account) return <Redirect href="/" />
@@ -1127,58 +1147,32 @@ export default function AccountView() {
                 </SSText>
               </SSHStack>
             </SSVStack>
-            <SSVStack gap="none">
-              <SSHStack
-                justifyEvenly
-                gap="none"
-                style={{ paddingHorizontal: '5%' }}
-              >
-                {account.keys[0].creationType !== 'importAddress' && (
-                  <>
-                    <SSActionButton
-                      onPress={() => navigateToSignAndSend()}
-                      style={{
-                        ...styles.actionButton,
-                        width: '40%'
-                      }}
-                    >
-                      <SSText uppercase>{t('account.signAndSend')}</SSText>
-                    </SSActionButton>
-                    <SSActionButton
-                      onPress={() => router.navigate(`/account/${id}/camera`)}
-                      style={{
-                        ...styles.actionButton,
-                        width: '20%'
-                      }}
-                    >
-                      <SSIconCamera height={13} width={18} />
-                    </SSActionButton>
-                    <SSActionButton
-                      onPress={() => router.navigate(`/account/${id}/receive`)}
-                      style={{
-                        ...styles.actionButton,
-                        width: '40%'
-                      }}
-                    >
-                      <SSText uppercase>{t('account.receive')}</SSText>
-                    </SSActionButton>
-                  </>
+            <SSVStack gap="none" style={{ paddingHorizontal: 16 }}>
+              {account.keys[0].creationType !== 'importAddress' && (
+                <SSButtonActionsGroup
+                  context="bitcoin"
+                  nfcAvailable={contentHandler.nfcAvailable}
+                  onSend={contentHandler.handleSend}
+                  onPaste={contentHandler.handlePaste}
+                  onCamera={contentHandler.handleCamera}
+                  onNFC={contentHandler.handleNFC}
+                  onReceive={contentHandler.handleReceive}
+                />
+              )}
+              {account.keys[0].creationType === 'importAddress' &&
+                account.keys.length === 1 && (
+                  <SSVStack gap="xs">
+                    <SSText center color="muted" size="xs">
+                      {t('receive.address').toUpperCase()}
+                    </SSText>
+                    <SSAddressDisplay
+                      variant="outline"
+                      type="sans-serif"
+                      style={{ lineHeight: 14 }}
+                      address={watchOnlyWalletAddress || ''}
+                    />
+                  </SSVStack>
                 )}
-                {account.keys[0].creationType === 'importAddress' &&
-                  account.keys.length === 1 && (
-                    <SSVStack gap="xs">
-                      <SSText center color="muted" size="xs">
-                        {t('receive.address').toUpperCase()}
-                      </SSText>
-                      <SSAddressDisplay
-                        variant="outline"
-                        type="sans-serif"
-                        style={{ lineHeight: 14 }}
-                        address={watchOnlyWalletAddress || ''}
-                      />
-                    </SSVStack>
-                  )}
-              </SSHStack>
             </SSVStack>
           </SSVStack>
         </Animated.View>
@@ -1205,19 +1199,28 @@ export default function AccountView() {
         onIndexChange={setTabIndex}
         initialLayout={{ width }}
       />
+      <SSCameraModal
+        visible={contentHandler.cameraModalVisible}
+        onClose={contentHandler.closeCameraModal}
+        onContentScanned={contentHandler.handleContentScanned}
+        context="bitcoin"
+        title="Scan Bitcoin Content"
+      />
+      <SSNFCModal
+        visible={contentHandler.nfcModalVisible}
+        onClose={contentHandler.closeNFCModal}
+        onContentRead={contentHandler.handleNFCContentRead}
+        mode="read"
+      />
+      <SSPaste
+        visible={contentHandler.pasteModalVisible}
+        onClose={contentHandler.closePasteModal}
+        onContentPasted={contentHandler.handleContentPasted}
+        context="bitcoin"
+      />
     </>
   )
 }
-
-const styles = StyleSheet.create({
-  actionButton: {
-    backgroundColor: Colors.gray[925],
-    marginLeft: 2,
-    borderTopWidth: 1,
-    borderTopColor: '#242424',
-    borderRadius: 3
-  }
-})
 
 const addressListStyles = StyleSheet.create({
   container: {

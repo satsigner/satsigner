@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Animated,
   Easing,
@@ -18,9 +18,15 @@ import {
 } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
+import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSIconButton from '@/components/SSIconButton'
+import SSNFCModal from '@/components/SSNFCModal'
+import SSPaste from '@/components/SSPaste'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
+import { useContentHandler } from '@/hooks/useContentHandler'
+import { useLightningContentHandler } from '@/hooks/useLightningContentHandler'
 import { useLND } from '@/hooks/useLND'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -178,7 +184,15 @@ export default function NodeDetailPage() {
     makeRequest
   } = useLND()
 
-  // All hooks must be declared at the top level, in a consistent order
+  const lightningContentHandler = useLightningContentHandler()
+
+  const contentHandler = useContentHandler({
+    context: 'lightning',
+    onContentScanned: lightningContentHandler.handleContentScanned,
+    onSend: lightningContentHandler.handleSend,
+    onReceive: lightningContentHandler.handleReceive
+  })
+
   const [balance, setBalance] = useState<ProcessedBalance | null>(null)
   const [transactions, setTransactions] = useState<CombinedTransaction[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -198,16 +212,6 @@ export default function NodeDetailPage() {
   const satsToFiat = usePriceStore((state) => state.satsToFiat)
   const btcPrice = usePriceStore((state) => state.btcPrice)
   const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
-
-  // Memoized values
-  const gradientHeight = useMemo(
-    () =>
-      animationValue.interpolate({
-        inputRange: [0, 1],
-        outputRange: [190, 0]
-      }),
-    [animationValue]
-  )
 
   // Memoized callbacks
   const animateTransition = useCallback(
@@ -262,14 +266,6 @@ export default function NodeDetailPage() {
           <SSText color="muted" size="sm">
             {isLoading ? 'Loading balances...' : 'Failed to load balances'}
           </SSText>
-          {!isLoading && !balance && (
-            <SSButton
-              label="Retry"
-              onPress={handleRefresh}
-              variant="outline"
-              style={{ marginTop: 8 }}
-            />
-          )}
         </SSVStack>
       )
     }
@@ -332,7 +328,7 @@ export default function NodeDetailPage() {
         </SSHStack>
       </SSVStack>
     )
-  }, [balance, isLoading, handleRefresh, satsToFiat, btcPrice, fiatCurrency])
+  }, [balance, isLoading, satsToFiat, btcPrice, fiatCurrency])
 
   const renderTransactions = useCallback(() => {
     if (isLoading && transactions.length === 0) {
@@ -901,6 +897,7 @@ export default function NodeDetailPage() {
           ),
           headerRight: () => (
             <SSIconButton
+              style={{ marginRight: 8 }}
               onPress={() =>
                 router.push({
                   pathname: '/signer/lightning/node/settings',
@@ -908,52 +905,48 @@ export default function NodeDetailPage() {
                 } as never)
               }
             >
-              <SSIconLNSettings height={20} width={20} />
+              <SSIconLNSettings height={16} width={16} />
             </SSIconButton>
           )
         }}
       />
       <SSMainLayout style={styles.mainLayout}>
-        <Animated.View style={{ height: gradientHeight }}>
-          {renderBalances()}
-          {!balance && (
-            <SSVStack style={styles.actions}>
-              <SSButton
-                label="Refresh"
-                onPress={handleRefresh}
-                variant="gradient"
-                gradientType="special"
-                loading={isConnecting}
-                style={styles.button}
-              />
+        {!expand && (
+          <Animated.View>
+            <SSVStack itemsCenter gap="md">
+              {renderBalances()}
+              {!balance && (
+                <SSHStack style={styles.actions}>
+                  <SSButton
+                    label="Refresh"
+                    onPress={handleRefresh}
+                    variant="outline"
+                    loading={isConnecting}
+                    style={styles.button}
+                  />
+                </SSHStack>
+              )}
+              {balance && (
+                <SSVStack gap="none">
+                  <SSButtonActionsGroup
+                    context="lightning"
+                    nfcAvailable={contentHandler.nfcAvailable}
+                    onSend={contentHandler.handleSend}
+                    onPaste={contentHandler.handlePaste}
+                    onCamera={contentHandler.handleCamera}
+                    onNFC={contentHandler.handleNFC}
+                    onReceive={contentHandler.handleReceive}
+                  />
+                </SSVStack>
+              )}
+              {lastError && (
+                <SSText color="muted" style={styles.error}>
+                  {lastError}
+                </SSText>
+              )}
             </SSVStack>
-          )}
-          {balance && (
-            <SSHStack gap="sm" style={styles.actions}>
-              <SSButton
-                label="Invoice"
-                onPress={() => router.push('/signer/lightning/invoice')}
-                variant="gradient"
-                gradientType="special"
-                style={[styles.button, { flex: 1 }]}
-              />
-              <SSButton
-                label="Pay"
-                onPress={() => router.push('/signer/lightning/pay')}
-                variant="gradient"
-                gradientType="special"
-                style={[styles.button, { flex: 1 }]}
-              />
-            </SSHStack>
-          )}
-
-          {lastError && (
-            <SSText color="muted" style={styles.error}>
-              {lastError}
-            </SSText>
-          )}
-        </Animated.View>
-
+          </Animated.View>
+        )}
         <TabView
           swipeEnabled={false}
           navigationState={{ index: tabIndex, routes: tabs }}
@@ -963,6 +956,25 @@ export default function NodeDetailPage() {
           initialLayout={{ width }}
         />
       </SSMainLayout>
+      <SSCameraModal
+        visible={contentHandler.cameraModalVisible}
+        onClose={contentHandler.closeCameraModal}
+        onContentScanned={contentHandler.handleContentScanned}
+        context="lightning"
+        title="Scan Lightning Content"
+      />
+      <SSNFCModal
+        visible={contentHandler.nfcModalVisible}
+        onClose={contentHandler.closeNFCModal}
+        onContentRead={contentHandler.handleNFCContentRead}
+        mode="read"
+      />
+      <SSPaste
+        visible={contentHandler.pasteModalVisible}
+        onClose={contentHandler.closePasteModal}
+        onContentPasted={contentHandler.handleContentPasted}
+        context="lightning"
+      />
     </>
   )
 }
