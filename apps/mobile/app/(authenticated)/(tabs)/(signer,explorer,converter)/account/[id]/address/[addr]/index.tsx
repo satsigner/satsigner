@@ -131,7 +131,7 @@ function AddressDetails() {
                 </SSVStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
                   <SSText color="muted" uppercase>
-                    {t('address.details.balance.unconfirmed')}
+                    {t('bitcoin.confirmations.unconfirmed')}
                   </SSText>
                   <SSText>{formatNumber(address.summary.satsInMempool)}</SSText>
                 </SSVStack>
@@ -145,7 +145,7 @@ function AddressDetails() {
               <SSHStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
                   <SSText color="muted" uppercase>
-                    {t('address.details.history.tx')}
+                    {t('block.txCount')}
                   </SSText>
                   <SSText>{address?.summary.transactions}</SSText>
                 </SSVStack>

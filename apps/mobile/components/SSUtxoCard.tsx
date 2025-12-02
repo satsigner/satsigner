@@ -69,7 +69,6 @@ function SSUtxoCard({ utxo }: SSUtxoCardProps) {
         </SSVStack>
       </SSHStack>
       <SSText size="md" color={utxo.label ? 'white' : 'muted'}>
-        {t('common.label')} {': '}
         {parseLabel(utxo.label || t('utxo.noLabel'))['label']}
       </SSText>
     </TouchableOpacity>

@@ -227,8 +227,10 @@ export function ManageAccountAddresses({
           <SSVStack gap="lg" style={styles.container}>
             <DraggableFlatList
               data={addresses}
-              onDragEnd={({ data }) => setAddresses(data)}
-              keyExtractor={(item) => item.address}
+              onDragEnd={({ data }: { data: WatchedAddress[] }) =>
+                setAddresses(data)
+              }
+              keyExtractor={(item: WatchedAddress) => item.address}
               renderItem={renderItem}
               style={{ flex: 1 }}
               dragItemOverflow

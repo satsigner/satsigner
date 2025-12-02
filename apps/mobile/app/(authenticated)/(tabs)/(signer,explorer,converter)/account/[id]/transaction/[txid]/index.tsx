@@ -262,7 +262,9 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
     (state) => state.getBlockchainHeight
   )
 
-  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+  const [currencyUnit, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  )
 
   const [amount, setAmount] = useState(0)
   const [confirmations, setConfirmations] = useState(0)
@@ -310,13 +312,16 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
                 amount={Math.abs(amount)}
                 decimals={0}
                 useZeroPadding={useZeroPadding}
+                currency={currencyUnit}
                 type={tx?.type}
                 weight="light"
               />
             ) : (
               <SSText color="muted">?</SSText>
             )}
-            <SSText color="muted">{t('bitcoin.sats').toLowerCase()}</SSText>
+            <SSText color="muted">
+              {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
+            </SSText>
           </SSHStack>
           <SSHStack gap="xs">
             {price && <SSText>{price}</SSText>}

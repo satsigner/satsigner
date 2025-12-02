@@ -36,7 +36,10 @@ export default function SelectUtxoList() {
   const account = useAccountsStore(
     (state) => state.accounts.find((account) => account.id === id)!
   )
-  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+  const [currencyUnit, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  )
+  const zeroPadding = useZeroPadding || currencyUnit === 'btc'
   const [inputs, getInputs, hasInput, addInput, removeInput] =
     useTransactionBuilderStore(
       useShallow((state) => [
@@ -135,10 +138,12 @@ export default function SelectUtxoList() {
                   {t('common.total')}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[75] }}>
-                  {formatNumber(utxosTotalValue, 0, useZeroPadding)}
+                  {formatNumber(utxosTotalValue, 0, zeroPadding)}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
-                  {t('bitcoin.sats').toLowerCase()}
+                  {currencyUnit === 'btc'
+                    ? t('bitcoin.btc')
+                    : t('bitcoin.sats')}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[75] }}>
                   {formatNumber(satsToFiat(utxosTotalValue), 2)}
@@ -155,13 +160,16 @@ export default function SelectUtxoList() {
                     amount={utxosSelectedValue || 0}
                     decimals={0}
                     useZeroPadding={useZeroPadding}
+                    currency={currencyUnit}
                     textSize="7xl"
                     weight="ultralight"
                     letterSpacing={-1}
                   />
                 </SSText>
                 <SSText size="xl" color="muted">
-                  {t('bitcoin.sats').toLowerCase()}
+                  {currencyUnit === 'btc'
+                    ? t('bitcoin.btc')
+                    : t('bitcoin.sats')}
                 </SSText>
               </SSHStack>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
@@ -184,9 +192,9 @@ export default function SelectUtxoList() {
             selectedAllUtxos
               ? t('common.deselectAll').toUpperCase()
               : t('common.selectAll').toUpperCase()
-          } ${formatNumber(utxosTotalValue, 0, useZeroPadding)} ${t(
-            'bitcoin.sats'
-          ).toLowerCase()}`}
+          } ${formatNumber(utxosTotalValue, 0, zeroPadding)} ${
+            currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')
+          }`}
           style={{ width: 'auto' }}
           textStyle={{
             color: Colors.gray[75],

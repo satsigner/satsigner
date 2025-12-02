@@ -1,15 +1,14 @@
 import { getDecodedToken } from '@cashu/cashu-ts'
-import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
-import { Stack } from 'expo-router'
+import { Stack, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSEcashTokenDetails from '@/components/SSEcashTokenDetails'
-import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -21,8 +20,10 @@ import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { error, success, warning, white } from '@/styles/colors'
 import { type EcashToken } from '@/types/models/Ecash'
+import { type DetectedContent } from '@/utils/contentDetector'
 
 export default function EcashReceivePage() {
+  const { token: tokenParam } = useLocalSearchParams()
   const [activeTab, setActiveTab] = useState<'ecash' | 'lightning'>('ecash')
   const [token, setToken] = useState('')
   const [decodedToken, setDecodedToken] = useState<EcashToken | null>(null)
@@ -37,7 +38,6 @@ export default function EcashReceivePage() {
   const [isRedeeming, setIsRedeeming] = useState(false)
   const [isCreatingQuote, setIsCreatingQuote] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
-  const [permission, requestPermission] = useCameraPermissions()
 
   const {
     activeMint,
@@ -66,6 +66,29 @@ export default function EcashReceivePage() {
       stopPolling()
     }
   }, [activeTab, stopPolling])
+
+  const handleTokenChange = useCallback((text: string) => {
+    setToken(text)
+    setDecodedToken(null)
+
+    const cleanText = text.trim()
+    if (!cleanText || !cleanText.toLowerCase().startsWith('cashu')) return
+    try {
+      const decoded = getDecodedToken(cleanText)
+      setDecodedToken(decoded)
+    } catch {
+      setDecodedToken(null)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!tokenParam) return
+    const tokenValue = Array.isArray(tokenParam) ? tokenParam[0] : tokenParam
+    if (!tokenValue) return
+    setToken(tokenValue)
+    setActiveTab('ecash')
+    handleTokenChange(tokenValue)
+  }, [tokenParam, handleTokenChange])
 
   const handleRedeemToken = useCallback(async () => {
     if (!token) {
@@ -165,23 +188,6 @@ export default function EcashReceivePage() {
     stopPolling
   ])
 
-  const handleTokenChange = useCallback((text: string) => {
-    setToken(text)
-    setDecodedToken(null) // Clear previous decode
-
-    const cleanText = text.trim()
-    if (!cleanText) return
-
-    if (cleanText.toLowerCase().startsWith('cashu')) {
-      try {
-        const decoded = getDecodedToken(cleanText)
-        setDecodedToken(decoded)
-      } catch {
-        setDecodedToken(null)
-      }
-    }
-  }, [])
-
   const handlePasteToken = useCallback(async () => {
     try {
       const clipboardText = await Clipboard.getStringAsync()
@@ -200,11 +206,10 @@ export default function EcashReceivePage() {
     setCameraModalVisible(true)
   }
 
-  const handleQRCodeScanned = useCallback(
-    ({ data }: { data: string }) => {
+  const handleContentScanned = useCallback(
+    (content: DetectedContent) => {
       setCameraModalVisible(false)
-      // Clean the data (remove any whitespace and cashu: prefix)
-      const cleanData = data.trim().replace(/^cashu:/i, '')
+      const cleanData = content.cleaned.replace(/^cashu:/i, '')
       handleTokenChange(cleanData)
       toast.success(t('ecash.success.tokenScanned'))
     },
@@ -261,7 +266,6 @@ export default function EcashReceivePage() {
 
       <ScrollView>
         <SSVStack gap="lg" style={{ paddingBottom: 60 }}>
-          {/* Tab Selector */}
           <SSHStack>
             <SSButton
               label={t('ecash.receive.ecashTab')}
@@ -291,7 +295,6 @@ export default function EcashReceivePage() {
                   style={styles.tokenInput}
                 />
               </SSVStack>
-
               <SSHStack gap="sm">
                 <SSButton
                   label={t('common.paste')}
@@ -347,7 +350,6 @@ export default function EcashReceivePage() {
                   placeholder={t('ecash.receive.memoPlaceholder')}
                 />
               </SSVStack>
-
               {!mintQuote ? (
                 <SSButton
                   label={t('ecash.receive.createInvoice')}
@@ -358,7 +360,6 @@ export default function EcashReceivePage() {
                 />
               ) : (
                 <SSVStack gap="md">
-                  {/* Display Lightning Invoice */}
                   <View style={styles.qrContainer}>
                     <SSQRCode value={mintQuote.request} size={300} />
                   </View>
@@ -392,28 +393,13 @@ export default function EcashReceivePage() {
           )}
         </SSVStack>
       </ScrollView>
-
-      {/* Camera Modal */}
-      <SSModal
+      <SSCameraModal
         visible={cameraModalVisible}
-        fullOpacity
         onClose={() => setCameraModalVisible(false)}
-      >
-        <SSText color="muted" uppercase>
-          {t('camera.scanQRCode')}
-        </SSText>
-        <CameraView
-          onBarcodeScanned={handleQRCodeScanned}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-          style={styles.camera}
-        />
-        {!permission?.granted && (
-          <SSButton
-            label={t('camera.enableCameraAccess')}
-            onPress={requestPermission}
-          />
-        )}
-      </SSModal>
+        onContentScanned={handleContentScanned}
+        context="ecash"
+        title="Scan Ecash Token"
+      />
     </SSMainLayout>
   )
 }
@@ -433,9 +419,5 @@ const styles = StyleSheet.create({
   qrContainer: {
     alignItems: 'center',
     paddingVertical: 20
-  },
-  camera: {
-    flex: 1,
-    width: '100%'
   }
 })

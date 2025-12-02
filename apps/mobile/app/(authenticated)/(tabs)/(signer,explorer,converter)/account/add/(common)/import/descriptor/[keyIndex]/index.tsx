@@ -887,7 +887,7 @@ export default function ImportDescriptor() {
           <SSText color="muted" uppercase>
             {scanProgress.type
               ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
-              : t('camera.scanQRCode')}
+              : t('transaction.build.options.importOutputs.qrcode')}
           </SSText>
 
           <CameraView
