@@ -117,6 +117,7 @@ export function ManageAccountAddresses({
         >
           <AddressCard
             address={address}
+            allowDelete={addresses.length > 2}
             index={index}
             onViewDetails={() => onViewAddressDetails(address.address)}
             onDelete={() => handleDeleteAddress(address.address)}
@@ -248,6 +249,7 @@ export function ManageAccountAddresses({
               label={t('common.save')}
               variant="secondary"
               uppercase
+              disabled={addresses.length < 2}
               onPress={handleSaveChanges}
             />
           </SSVStack>

@@ -11,6 +11,7 @@ import { type WatchedAddress } from '@/types/models/Address'
 
 type AddressCardProps = {
   address: WatchedAddress
+  allowDelete: boolean
   index: number
   onViewDetails: () => void
   onDelete: () => void
@@ -20,6 +21,7 @@ const tl = tn('account.settings.manageAddresses')
 
 export function AddressCard({
   address,
+  allowDelete,
   index,
   onViewDetails,
   onDelete
@@ -84,6 +86,7 @@ export function AddressCard({
           style={styles.addressActionButton}
           label={tl('deleteBtn').toUpperCase()}
           variant="danger"
+          disabled={!allowDelete}
           onPress={onDelete}
         />
       </SSHStack>
