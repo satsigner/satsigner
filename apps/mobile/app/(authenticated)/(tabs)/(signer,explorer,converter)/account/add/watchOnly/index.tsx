@@ -819,6 +819,7 @@ export default function WatchOnly() {
         for (let index = 0; index < addresses.length; index += 1) {
           const address = addresses[index]
           setExternalDescriptor(`addr(${address})`)
+          setKey(index)
         }
       } else if (selectedOption === 'importDescriptor') {
         // Extract fingerprint from descriptor if not already set
