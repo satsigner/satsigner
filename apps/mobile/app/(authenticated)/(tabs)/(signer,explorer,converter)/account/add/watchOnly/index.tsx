@@ -3,7 +3,7 @@ import { Descriptor } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
-import { router, Stack } from 'expo-router'
+import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Animated, Keyboard, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
@@ -34,6 +34,7 @@ import {
   type CreationType,
   type ScriptVersionType
 } from '@/types/models/Account'
+import { type WatchOnlySearchParams } from '@/types/navigation/searchParams'
 import { isBBQRFragment } from '@/utils/bbqr'
 import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 import { DescriptorUtils } from '@/utils/descriptorUtils'
@@ -54,6 +55,7 @@ const WATCH_ONLY_OPTIONS: CreationType[] = [
 ]
 
 export default function WatchOnly() {
+  const params = useLocalSearchParams<WatchOnlySearchParams>()
   const updateAccount = useAccountsStore((state) => state.updateAccount)
   const [
     name,
@@ -100,9 +102,16 @@ export default function WatchOnly() {
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
   const [scanningFor, setScanningFor] = useState<'main' | 'fingerprint'>('main')
-  const [selectedOption, setSelectedOption] =
-    useState<CreationType>('importExtendedPub')
-  const [modalOptionsVisible, setModalOptionsVisible] = useState(true)
+  const [selectedOption, setSelectedOption] = useState<CreationType>(
+    params.descriptor
+      ? 'importDescriptor'
+      : params.extendedPublicKey
+        ? 'importExtendedPub'
+        : 'importExtendedPub'
+  )
+  const [modalOptionsVisible, setModalOptionsVisible] = useState(
+    !params.descriptor && !params.extendedPublicKey
+  )
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
 
@@ -119,6 +128,24 @@ export default function WatchOnly() {
   const [validXpub, setValidXpub] = useState(true)
   const [validMasterFingerprint, setValidMasterFingerprint] = useState(true)
   const [loadingWallet, setLoadingWallet] = useState(false)
+
+  useEffect(() => {
+    async function handleScannerParams() {
+      if (params.descriptor) {
+        const descriptorFromScanner = params.descriptor as string
+
+        setCreationType('importDescriptor')
+        await handleSingleDescriptor(descriptorFromScanner)
+      } else if (params.extendedPublicKey) {
+        const xpubFromScanner = params.extendedPublicKey as string
+        setCreationType('importExtendedPub')
+        updateXpub(xpubFromScanner)
+      }
+    }
+
+    handleScannerParams()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.descriptor, params.extendedPublicKey, setCreationType])
 
   // Multipart QR scanning state
   const urDecoderRef = useRef<URDecoder>(new URDecoder())
@@ -245,7 +272,13 @@ export default function WatchOnly() {
   }
 
   function updateXpub(xpub: string) {
-    const validXpub = validateExtendedKey(xpub, network)
+    const validXpub = validateExtendedKey(xpub)
+    const validForNetwork = validateExtendedKey(xpub, network)
+
+    if (!validForNetwork && validXpub) {
+      toast.error(t('watchonly.error.networkMismatch'))
+    }
+
     setValidXpub(!xpub || validXpub)
 
     extractAndSetFingerprint(xpub)
@@ -1101,7 +1134,7 @@ export default function WatchOnly() {
               ? t('watchonly.fingerprint.scanQR')
               : scanProgress.type
                 ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
-                : t('camera.scanQRCode')}
+                : t('transaction.build.options.importOutputs.qrcode')}
           </SSText>
           <CameraView
             onBarcodeScanned={(res) => {

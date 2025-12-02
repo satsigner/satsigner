@@ -1,23 +1,23 @@
-import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { useFonts } from 'expo-font'
-import { Stack, useRouter } from 'expo-router'
-import { useCallback, useState } from 'react'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useCallback, useEffect, useState } from 'react'
 import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSLNURLDetails from '@/components/SSLNURLDetails'
-import SSModal from '@/components/SSModal'
 import SSPaymentDetails from '@/components/SSPaymentDetails'
 import SSText from '@/components/SSText'
 import { useLND } from '@/hooks/useLND'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { Typography } from '@/styles'
+import { type DecodedInvoice } from '@/types/lightning'
+import { type DetectedContent } from '@/utils/contentDetector'
 import {
   decodeLNURL,
   fetchLNURLPayDetails,
@@ -35,27 +35,12 @@ type MakeRequest = <T>(
   }
 ) => Promise<T>
 
-type DecodedInvoice = {
-  payment_request: string
-  value: string
-  description: string
-  timestamp: string
-  expiry: string
-  payment_hash: string
-  payment_addr: string
-  num_satoshis: string
-  num_msat: string
-  features: Record<string, { name: string }>
-  route_hints: unknown[]
-  payment_secret: string
-  min_final_cltv_expiry: string
-}
-
 export default function PayPage() {
   const router = useRouter()
+  const { paymentRequest: paymentRequestParam, invoice: invoiceParam } =
+    useLocalSearchParams()
   const { payInvoice, makeRequest, isConnected, verifyConnection } = useLND()
   const typedMakeRequest = makeRequest as MakeRequest
-  const [permission, requestPermission] = useCameraPermissions()
 
   const [fontsLoaded] = useFonts({
     'SF-NS-Mono': require('@/assets/fonts/SF-NS-Mono.ttf')
@@ -91,9 +76,8 @@ export default function PayPage() {
       // Convert millisats to sats and set as amount
       const minSats = Math.ceil(details.minSendable / 1000)
       setAmount(minSats.toString())
-    } catch (_error) {
+    } catch {
       setLNURLDetails(null)
-      // Don't show error to user, just don't set the amount
     } finally {
       setIsFetchingDetails(false)
     }
@@ -142,25 +126,21 @@ export default function PayPage() {
       }
 
       if (isLNURLInput) {
-        // If it's a LNURL and we don't have an amount set, fetch details
-        if (!amount) {
-          await handleLNURLDetected(text)
-        }
+        await handleLNURLDetected(text)
       } else if (text.toLowerCase().startsWith('lnbc')) {
         try {
           const decoded = await decodeInvoice(text)
-          // Set amount from decoded invoice
           if (decoded.num_satoshis) {
             setAmount(decoded.num_satoshis)
           }
-        } catch (_error) {
+        } catch {
           setDecodedInvoice(null)
         }
       } else {
         setDecodedInvoice(null)
       }
     },
-    [amount, handleLNURLDetected, decodeInvoice, isConnected, verifyConnection]
+    [handleLNURLDetected, decodeInvoice, isConnected, verifyConnection]
   )
 
   // Handle amount change and update fiat value
@@ -174,18 +154,11 @@ export default function PayPage() {
       return
     }
 
-    // For bolt11 invoices, ensure we have decoded it
-    if (!isLNURLMode) {
-      if (!decodedInvoice) {
-        Alert.alert('Error', 'Please wait for the invoice to be decoded')
-        return
-      }
-      // Proceed with payment since we already have the decoded invoice
-      await processPayment()
-    } else {
-      // For LNURL, proceed directly to payment
-      await processPayment()
+    if (!isLNURLMode && !decodedInvoice) {
+      Alert.alert('Error', 'Please wait for the invoice to be decoded')
+      return
     }
+    await processPayment()
   }
 
   const processPayment = async () => {
@@ -193,7 +166,6 @@ export default function PayPage() {
       return
     }
 
-    // For bolt11, ensure we have decoded it
     if (!isLNURLMode && !decodedInvoice) {
       Alert.alert('Error', 'Please try sending the payment again')
       return
@@ -203,8 +175,9 @@ export default function PayPage() {
     try {
       let invoice: string
 
-      if (isLNURLMode) {
-        // Validate amount for LNURL
+      if (!isLNURLMode) {
+        invoice = paymentRequest
+      } else {
         if (!amount) {
           Alert.alert('Error', 'Please enter an amount')
           setIsProcessing(false)
@@ -218,17 +191,13 @@ export default function PayPage() {
           return
         }
 
-        // Get invoice from LNURL
         invoice = await handleLNURLPay(
           paymentRequest,
           amountSats,
           comment || undefined
         )
-      } else {
-        invoice = paymentRequest
       }
 
-      // Pay the invoice
       await payInvoice(invoice)
 
       Alert.alert('Success', 'Payment sent successfully', [
@@ -259,12 +228,10 @@ export default function PayPage() {
     }
   }
 
-  const handleQRCodeScanned = ({ data }: { data: string }) => {
+  const handleContentScanned = (content: DetectedContent) => {
     setCameraModalVisible(false)
-    // Clean the text (remove any whitespace and lightning: prefix)
-    const cleanText = data.trim().replace(/^lightning:/i, '')
+    const cleanText = content.cleaned.replace(/^lightning:/i, '')
 
-    // Use the same validation logic as handlePaymentRequestChange
     if (cleanText.toLowerCase().startsWith('lnbc') || isLNURL(cleanText)) {
       handlePaymentRequestChange(cleanText)
     } else {
@@ -283,12 +250,9 @@ export default function PayPage() {
         return
       }
 
-      // Clean the text (remove any whitespace)
       const cleanText = text.trim()
 
       if (cleanText.toLowerCase().startsWith('lnbc') || isLNURL(cleanText)) {
-        // Use handlePaymentRequestChange to process the invoice
-        // This ensures consistent handling of both paste and manual input
         await handlePaymentRequestChange(cleanText)
       } else {
         Alert.alert(
@@ -300,6 +264,22 @@ export default function PayPage() {
       Alert.alert('Error', 'Failed to read clipboard content')
     }
   }
+
+  useEffect(() => {
+    const paramValue = paymentRequestParam || invoiceParam
+    if (!paramValue) return
+
+    const paymentRequestValue = Array.isArray(paramValue)
+      ? paramValue[0]
+      : paramValue
+    if (!paymentRequestValue) return
+
+    const cleanText = paymentRequestValue.trim().replace(/^lightning:/i, '')
+    if (!cleanText.toLowerCase().startsWith('lnbc') && !isLNURL(cleanText))
+      return
+
+    handlePaymentRequestChange(cleanText)
+  }, [paymentRequestParam, invoiceParam, handlePaymentRequestChange])
 
   if (!fontsLoaded) {
     return null
@@ -379,7 +359,6 @@ export default function PayPage() {
                     satsToFiat={satsToFiat}
                   />
                 )}
-
                 {isLNURLMode && (
                   <SSLNURLDetails
                     lnurlDetails={lnurlDetails}
@@ -395,7 +374,6 @@ export default function PayPage() {
                   />
                 )}
               </SSVStack>
-
               <SSVStack style={styles.actions}>
                 <SSButton
                   label="Send Payment"
@@ -422,28 +400,13 @@ export default function PayPage() {
           </SSVStack>
         </ScrollView>
       </SSMainLayout>
-
-      {/* Camera Modal */}
-      <SSModal
+      <SSCameraModal
         visible={cameraModalVisible}
-        fullOpacity
         onClose={() => setCameraModalVisible(false)}
-      >
-        <SSText color="muted" uppercase>
-          {t('camera.scanQRCode')}
-        </SSText>
-        <CameraView
-          onBarcodeScanned={handleQRCodeScanned}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-          style={styles.camera}
-        />
-        {!permission?.granted && (
-          <SSButton
-            label={t('camera.enableCameraAccess')}
-            onPress={requestPermission}
-          />
-        )}
-      </SSModal>
+        onContentScanned={handleContentScanned}
+        context="lightning"
+        title="Scan Lightning Payment Request"
+      />
     </>
   )
 }
@@ -481,10 +444,6 @@ const styles = StyleSheet.create({
   },
   button: {
     width: '100%'
-  },
-  camera: {
-    width: 340,
-    height: 340
   },
   buttonWithIcon: {
     flexDirection: 'row',

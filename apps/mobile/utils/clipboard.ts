@@ -1,11 +1,11 @@
 import * as Clipboard from 'expo-clipboard'
 
-import { isBip21, isBitcoinAddress } from './bitcoin'
+import { isValidBitcoinContent } from './bitcoinContent'
 
 export async function setClipboard(value: string): Promise<void> {
   try {
     await Clipboard.setStringAsync(value)
-  } catch (_error) {
+  } catch {
     // TO DO: add error logger
   }
 }
@@ -17,15 +17,24 @@ export async function getBitcoinAddressFromClipboard(): Promise<string | void> {
       return
     }
     const value = await Clipboard.getStringAsync()
-    if (!isBitcoinAddress(value) && !isBip21(value)) {
+    if (!isValidBitcoinContent(value)) {
       return
     }
     return value
-  } catch (_error) {}
+  } catch {}
 }
 
-export async function clearClipboard(): Promise<void> {
+export async function getAllClipboardContent() {
+  try {
+    if (!(await Clipboard.hasStringAsync())) {
+      return
+    }
+    return await Clipboard.getStringAsync()
+  } catch {}
+}
+
+export async function clearClipboard() {
   try {
     await Clipboard.setStringAsync('')
-  } catch (_error) {}
+  } catch {}
 }

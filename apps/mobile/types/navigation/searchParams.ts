@@ -23,6 +23,11 @@ export type AccountSearchParams = {
   id: string
 }
 
+export type PreviewMessageSearchParams = AccountSearchParams & {
+  psbt?: string
+  signedPsbt?: string
+}
+
 export type AddrSearchParams = {
   addr: string
 } & AccountSearchParams
@@ -45,3 +50,8 @@ export type EcashSearchParams = {
 export type DeviceAliasSearchParams = {
   npub: string
 } & AccountSearchParams
+
+export type WatchOnlySearchParams = {
+  descriptor?: string
+  extendedPublicKey?: string
+}
