@@ -46,9 +46,14 @@ import {
   type Secret
 } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
+import {
+  type MockTxBuilderResult,
+  type PsbtInputWithSignatures
+} from '@/types/models/Psbt'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { type PreviewMessageSearchParams } from '@/types/navigation/searchParams'
+import { extractKeyFingerprint } from '@/utils/account'
 import {
   createBBQRChunks,
   decodeBBQRChunks,
@@ -58,7 +63,16 @@ import {
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { parseHexToBytes } from '@/utils/parse'
-import { validateSignedPSBTForCosigner } from '@/utils/psbt'
+import {
+  type ExtractedTransactionData,
+  extractIndividualSignedPsbts,
+  extractOriginalPsbt,
+  extractTransactionDataFromPSBTEnhanced,
+  extractTransactionIdFromPSBT,
+  getCollectedSignerPubkeys,
+  matchSignedPsbtsToCosigners,
+  validateSignedPSBTForCosigner
+} from '@/utils/psbt'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import { legacyEstimateTransactionSize } from '@/utils/transaction'
 import {
@@ -75,11 +89,7 @@ enum QRDisplayMode {
   BBQR = 'BBQR'
 }
 
-/**
- * Check if a multisig input has enough signatures to finalize
- */
-function hasEnoughSignatures(input: any): boolean {
-  // Early return if not a multisig input
+function hasEnoughSignatures(input: PsbtInputWithSignatures) {
   if (!input.witnessScript) {
     return true
   }
@@ -87,19 +97,17 @@ function hasEnoughSignatures(input: any): boolean {
   try {
     const script = bitcoinjs.script.decompile(input.witnessScript)
 
-    // Early return if script is invalid
     if (!script || script.length < 3) {
       return false
     }
 
     const op = script[0]
 
-    // Early return if op code is invalid
     if (typeof op !== 'number' || op < 81 || op > 96) {
       return false
     }
 
-    const threshold = op - 80 // Convert OP_M to actual threshold (OP_2 = 82 -> threshold = 2)
+    const threshold = op - 80
     const signatureCount = input.partialSig ? input.partialSig.length : 0
 
     return signatureCount >= threshold
@@ -109,9 +117,55 @@ function hasEnoughSignatures(input: any): boolean {
   }
 }
 
+function createMockTxBuilderResult(
+  psbtBase64: string,
+  txid: string,
+  txFee: number
+): MockTxBuilderResult {
+  return {
+    psbt: {
+      base64: psbtBase64,
+      serialize: () => Promise.resolve(psbtBase64),
+      txid: () => Promise.resolve(txid)
+    },
+    txDetails: {
+      txid,
+      fee: txFee
+    }
+  }
+}
+
+function generateMessageId(psbtBase64: string): string {
+  const extractedTxid = extractTransactionIdFromPSBT(psbtBase64)
+  return extractedTxid || `PSBT-${Date.now().toString(36)}`
+}
+
+function handlePsbtExtractionError(error: unknown) {
+  const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+
+  if (
+    errorMessage.includes('fingerprint') ||
+    errorMessage.includes('derivation') ||
+    errorMessage.includes('not match')
+  ) {
+    toast.warning(
+      'This PSBT does not match the current account. Using basic processing.'
+    )
+  } else if (
+    errorMessage.includes('Invalid PSBT') ||
+    errorMessage.includes('malformed')
+  ) {
+    toast.error('Invalid PSBT format. Please check the PSBT data.')
+  } else {
+    toast.warning(
+      'Failed to process PSBT with enhanced features. Using basic processing.'
+    )
+  }
+}
+
 function PreviewMessage() {
   const router = useRouter()
-  const { id } = useLocalSearchParams<AccountSearchParams>()
+  const { id, psbt } = useLocalSearchParams<PreviewMessageSearchParams>()
 
   const [
     inputs,
@@ -121,7 +175,12 @@ function PreviewMessage() {
     setTxBuilderResult,
     txBuilderResult,
     setSignedTx,
-    signedPsbtsFromStore
+    addInput,
+    addOutput,
+    setFee,
+    setRbf,
+    signedPsbtsFromStore,
+    clearTransaction
   ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.inputs,
@@ -131,7 +190,12 @@ function PreviewMessage() {
       state.setTxBuilderResult,
       state.txBuilderResult,
       state.setSignedTx,
-      state.signedPsbts
+      state.addInput,
+      state.addOutput,
+      state.setFee,
+      state.setRbf,
+      state.signedPsbts,
+      state.clearTransaction
     ])
   )
 
@@ -141,6 +205,7 @@ function PreviewMessage() {
   const wallet = useGetAccountWallet(id!)
   const network = useBlockchainStore((state) => state.selectedNetwork)
   const [messageId, setMessageId] = useState('')
+  const [isLoadingPSBT, setIsLoadingPSBT] = useState(false)
 
   const [noKeyModalVisible, setNoKeyModalVisible] = useState(false)
   const [currentChunk, setCurrentChunk] = useState(0)
@@ -198,6 +263,205 @@ function PreviewMessage() {
     handleSignWithLocalKey,
     handleSignWithSeedQR
   } = psbtManagement
+
+  function processExtractedPsbtData(extractedData: ExtractedTransactionData) {
+    extractedData.inputs.forEach(
+      (input: ExtractedTransactionData['inputs'][number]) => {
+        addInput({
+          txid: input.txid,
+          vout: input.vout,
+          value: input.value,
+          script: Buffer.from(input.script, 'hex').toJSON().data,
+          keychain: input.keychain || 'external',
+          label: input.label,
+          addressTo: input.address
+        })
+      }
+    )
+
+    extractedData.outputs.forEach(
+      (output: ExtractedTransactionData['outputs'][number]) => {
+        addOutput({
+          to: output.address,
+          amount: output.value,
+          label: output.label || ''
+        })
+      }
+    )
+
+    if (extractedData.fee) {
+      setFee(extractedData.fee)
+    }
+
+    setRbf(true)
+  }
+
+  function processBasicPsbt(psbtBase64: string) {
+    const txid = generateMessageId(psbtBase64)
+    setMessageId(txid)
+    const mockResult = createMockTxBuilderResult(psbtBase64, txid, 0)
+    setTxBuilderResult(mockResult as never)
+    setIsLoadingPSBT(false)
+  }
+
+  function processPsbtWithAccount(
+    psbtBase64: string,
+    accountData: NonNullable<typeof account>
+  ) {
+    try {
+      const extractedData = extractTransactionDataFromPSBTEnhanced(
+        psbtBase64,
+        accountData
+      )
+
+      if (!extractedData) {
+        throw new Error(
+          'Failed to extract transaction data from PSBT. This PSBT may not match the current account.'
+        )
+      }
+
+      processExtractedPsbtData(extractedData)
+
+      const txid = generateMessageId(psbtBase64)
+      setMessageId(txid)
+      const mockResult = createMockTxBuilderResult(
+        psbtBase64,
+        txid,
+        extractedData.fee
+      )
+      setTxBuilderResult(mockResult as never)
+      setIsLoadingPSBT(false)
+    } catch (error) {
+      handlePsbtExtractionError(error)
+
+      try {
+        processBasicPsbt(psbtBase64)
+        toast.info(
+          'PSBT loaded with basic processing. Some features may be limited.'
+        )
+      } catch {
+        setIsLoadingPSBT(false)
+        toast.error(t('common.error.processPSBT'))
+        setMessageId(`PSBT-ERROR-${Date.now().toString(36)}`)
+      }
+    }
+  }
+
+  function processPsbtWithoutAccount(psbtBase64: string) {
+    try {
+      processBasicPsbt(psbtBase64)
+      toast.info('PSBT loaded. Some features may be limited.')
+    } catch {
+      setIsLoadingPSBT(false)
+      toast.error(t('common.error.processPSBT'))
+      setMessageId(`PSBT-ERROR-${Date.now().toString(36)}`)
+    }
+  }
+
+  useEffect(() => {
+    if (!psbt) return
+
+    setIsLoadingPSBT(true)
+    clearTransaction()
+    setSignedTx('')
+
+    if (account) {
+      processPsbtWithAccount(psbt, account)
+    } else {
+      processPsbtWithoutAccount(psbt)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [psbt, account])
+
+  // Separate effect to detect existing signatures - runs when both PSBT and decryptedKeys are ready
+  useEffect(() => {
+    if (!psbt || !account || decryptedKeys.length === 0 || !account.keys) return
+
+    const currentAccount = account
+    const currentPsbt = psbt
+
+    async function detectSignatures() {
+      if (!currentAccount || !currentAccount.keys || !currentPsbt) return
+
+      const combinedPsbtBase64: string = currentPsbt
+
+      // Check if PSBT can be parsed
+      let psbtObj: bitcoinjs.Psbt
+      try {
+        psbtObj = bitcoinjs.Psbt.fromBase64(combinedPsbtBase64)
+      } catch {
+        return
+      }
+
+      // Check if PSBT has any partial signatures
+      const psbtHasSignatures = psbtObj.data.inputs.some(
+        (input) => input.partialSig && input.partialSig.length > 0
+      )
+      if (!psbtHasSignatures) return
+
+      // Extract original PSBT - if this fails, the PSBT structure is invalid
+      let originalPsbtBase64: string
+      try {
+        originalPsbtBase64 = extractOriginalPsbt(combinedPsbtBase64)
+      } catch {
+        return
+      }
+
+      // Build a map of fingerprint to cosigner index
+      const keyFingerprintToCosignerIndex = new Map<string, number>()
+      await Promise.all(
+        currentAccount.keys.map(async (key, index) => {
+          const fp = await extractKeyFingerprint(key)
+          if (fp) keyFingerprintToCosignerIndex.set(fp, index)
+        })
+      )
+
+      // Build a map of pubkey to cosigner index from BIP32 derivations
+      const pubkeyToCosignerIndex = new Map<string, number>()
+      psbtObj.data.inputs.forEach((input) => {
+        if (!input.bip32Derivation) return
+        input.bip32Derivation.forEach((derivation) => {
+          const fingerprint = derivation.masterFingerprint.toString('hex')
+          const pubkey = derivation.pubkey.toString('hex')
+          const cosignerIndex = keyFingerprintToCosignerIndex.get(fingerprint)
+          if (cosignerIndex === undefined) return
+          pubkeyToCosignerIndex.set(pubkey, cosignerIndex)
+        })
+      })
+
+      // Get all pubkeys that have signatures in the PSBT
+      const signerPubkeys = getCollectedSignerPubkeys(combinedPsbtBase64)
+      if (signerPubkeys.size === 0) return
+
+      // Split combined PSBT into per-signer PSBTs (by pubkey)
+      const bySigner = extractIndividualSignedPsbts(
+        combinedPsbtBase64,
+        originalPsbtBase64
+      ) as Record<number, string>
+      if (Object.keys(bySigner).length === 0) return
+
+      // Match signed PSBTs to cosigners using the utility function
+      const matches = matchSignedPsbtsToCosigners(
+        bySigner,
+        pubkeyToCosignerIndex,
+        currentAccount,
+        decryptedKeys,
+        signedPsbts
+      )
+
+      // Apply matches and show notifications
+      matches.forEach((match) => {
+        updateSignedPsbt(match.cosignerIndex, match.signedPsbtBase64)
+        toast.success(
+          t('transaction.build.preview.detectedSignature', {
+            cosigner: match.cosignerIndex + 1
+          })
+        )
+      })
+    }
+
+    detectSignatures()
+  }, [psbt, account, decryptedKeys, updateSignedPsbt, signedPsbts])
 
   // Calculate validation results for each cosigner
   const validationResults = useMemo(() => {
@@ -347,32 +611,27 @@ function PreviewMessage() {
           const convertedResult = convertPsbtToFinalTransaction(data)
           return convertedResult
         } else {
-          // If no original PSBT context, return as-is to avoid UTXO errors
           return data
         }
       }
-
       return data
     } catch {
-      // If conversion fails, return original data to prevent app crashes
       return data
     }
   }
 
-  const assembleMultiPartQR = (
+  const assembleMultiPartQR = async (
     type: 'raw' | 'ur' | 'bbqr',
     chunks: Map<number, string>
-  ): string | null => {
+  ) => {
     try {
       switch (type) {
         case 'raw': {
-          // Assemble RAW format chunks
           const sortedChunks = Array.from(chunks.entries())
             .sort(([a], [b]) => a - b)
             .map(([, content]) => content)
           const assembled = sortedChunks.join('')
 
-          // Convert base64 to hex for RAW format
           try {
             const hexResult = Buffer.from(assembled, 'base64').toString('hex')
             return hexResult
@@ -411,8 +670,8 @@ function PreviewMessage() {
           } else {
             // Multi-part UR
             try {
-              result = decodeMultiPartURToPSBT(sortedChunks)
-            } catch (_error) {
+              result = await decodeMultiPartURToPSBT(sortedChunks)
+            } catch {
               return null
             }
           }
@@ -575,6 +834,11 @@ function PreviewMessage() {
   }, [signedPsbtsFromStore, setSignedPsbts])
 
   useEffect(() => {
+    if (psbt && txBuilderResult?.txDetails?.txid) {
+      setMessageId(txBuilderResult.txDetails.txid)
+    }
+    if (psbt) return
+
     if (txBuilderResult?.txDetails?.txid) {
       setMessageId(txBuilderResult.txDetails.txid)
       return
@@ -583,6 +847,10 @@ function PreviewMessage() {
     async function getTransactionMessage() {
       if (!wallet) {
         toast.error(t('error.notFound.wallet'))
+        return
+      }
+
+      if (inputs.size === 0 || outputs.length === 0) {
         return
       }
 
@@ -604,13 +872,12 @@ function PreviewMessage() {
         setMessageId(transactionMessage.txDetails.txid)
         setTxBuilderResult(transactionMessage)
       } catch (err) {
-        // Handle specific UTXO errors
         const errorMessage = String(err)
-        if (errorMessage.includes('UTXO not found')) {
+        if (errorMessage.includes('UTXO not found') && !psbt) {
           toast.error(
             'UTXO not found in wallet database. Please sync your wallet or check your inputs.'
           )
-        } else {
+        } else if (!psbt) {
           toast.error(errorMessage)
         }
       }
@@ -625,7 +892,8 @@ function PreviewMessage() {
     rbf,
     network,
     setTxBuilderResult,
-    txBuilderResult
+    txBuilderResult,
+    psbt
   ])
 
   // Separate effect to validate addresses and show errors
@@ -929,7 +1197,7 @@ function PreviewMessage() {
             const hexResult = Buffer.from(decoded).toString('hex')
             finalContent = hexResult
           } else {
-            toast.error(t('common.error.decodeBBQRCode'))
+            toast.error(t('camera.error.bbqrDecodeFailed'))
             return
           }
         }
@@ -946,7 +1214,7 @@ function PreviewMessage() {
           if (decoded) {
             finalContent = decoded
           } else {
-            toast.error(t('common.error.decodeURCode'))
+            toast.error(t('camera.error.urDecodeFailed'))
             return
           }
         }
@@ -1036,7 +1304,7 @@ function PreviewMessage() {
         newScanned.size >= assemblyTarget || newScanned.size >= fallbackTarget
 
       if (shouldTryAssembly) {
-        const assembledData = assembleMultiPartQR(type, newChunks)
+        const assembledData = await assembleMultiPartQR(type, newChunks)
 
         if (assembledData) {
           // Process the assembled data (convert PSBT to final transaction if needed)
@@ -1077,7 +1345,7 @@ function PreviewMessage() {
       // For RAW and BBQR, wait for all chunks as before
       if (newScanned.size === total) {
         // All chunks collected, assemble the final result
-        const assembledData = assembleMultiPartQR(type, newChunks)
+        const assembledData = await assembleMultiPartQR(type, newChunks)
 
         if (assembledData) {
           // Process the assembled data (convert PSBT to final transaction if needed)
@@ -1103,7 +1371,7 @@ function PreviewMessage() {
             )
           }
         } else {
-          toast.error(t('common.error.assembleQRCode'))
+          toast.error(t('camera.error.assembleFailed'))
           resetScanProgress()
         }
       } else {
@@ -1625,8 +1893,15 @@ function PreviewMessage() {
                   {t('transaction.id')}
                 </SSText>
                 <SSText size="lg" type="mono">
-                  {messageId || `${t('common.loading')}...`}
+                  {isLoadingPSBT
+                    ? t('common.loading')
+                    : messageId || `${t('common.loading')}...`}
                 </SSText>
+                {isLoadingPSBT && (
+                  <SSText color="muted" size="sm" style={{ marginTop: 8 }}>
+                    {t('transaction.preview.processingPsbt')}
+                  </SSText>
+                )}
               </SSVStack>
               <SSVStack gap="xxs">
                 <SSText color="muted" size="sm" uppercase>

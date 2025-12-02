@@ -121,7 +121,105 @@ export function decodeURToPSBT(ur: string): string {
   }
 }
 
-export function decodeMultiPartURToPSBT(urFragments: string[]): string {
+/**
+ * Generic UR decoder that can handle any UR type (BYTES, CRYPTO-PSBT, etc.)
+ * Returns the raw decoded data as a string
+ */
+function isCBORByteStringLike(cborData: Uint8Array): boolean {
+  if (cborData.length < 2) {
+    return false
+  }
+
+  const firstByte = cborData[0]
+
+  if ((firstByte & 0xe0) !== 0x40) {
+    return false
+  }
+
+  if (firstByte < 0x58) {
+    const length = firstByte & 0x1f
+    return 1 + length <= cborData.length
+  }
+
+  if (firstByte === 0x58 && cborData.length >= 2) {
+    const length = cborData[1]
+    return 2 + length <= cborData.length
+  }
+
+  if (firstByte === 0x59 && cborData.length >= 3) {
+    const length = (cborData[1] << 8) | cborData[2]
+    return 3 + length <= cborData.length
+  }
+
+  if (firstByte === 0x5a && cborData.length >= 5) {
+    const length =
+      (cborData[1] << 24) |
+      (cborData[2] << 16) |
+      (cborData[3] << 8) |
+      cborData[4]
+
+    return 5 + length <= cborData.length
+  }
+
+  if (firstByte === 0x5b && cborData.length >= 9) {
+    const high =
+      (cborData[1] << 24) |
+      (cborData[2] << 16) |
+      (cborData[3] << 8) |
+      cborData[4]
+    const low =
+      (cborData[5] << 24) |
+      (cborData[6] << 16) |
+      (cborData[7] << 8) |
+      cborData[8]
+
+    return high === 0 && 9 + low <= cborData.length
+  }
+
+  return false
+}
+
+function normalizeCashuTokenString(decodedString: string): string {
+  if (decodedString.includes('cashuA') || decodedString.includes('cashuB')) {
+    return decodedString.replace(/[^\x20-\x7E]/g, '').trim()
+  }
+
+  return decodedString
+}
+
+export function decodeURGeneric(ur: string) {
+  const decoder = new URDecoder()
+  decoder.receivePart(ur)
+
+  if (!decoder.isComplete()) {
+    throw new Error('UR decoder not complete after receiving part')
+  }
+
+  const result = decoder.resultUR()
+  const cborData = result.cbor
+  const cborBytes = new Uint8Array(cborData)
+
+  if (result.type === 'bytes') {
+    const decodedString = isCBORByteStringLike(cborBytes)
+      ? Buffer.from(parseCBORByteString(cborBytes)).toString('utf-8')
+      : Buffer.from(cborBytes).toString('utf-8')
+
+    return normalizeCashuTokenString(decodedString)
+  }
+
+  if (isCBORByteStringLike(cborBytes)) {
+    const parsedBytes = parseCBORByteString(cborBytes)
+    const hexResult = Buffer.from(Array.from(parsedBytes)).toString('hex')
+    return hexResult
+  }
+
+  const hexResult = Buffer.from(Array.from(cborData)).toString('hex')
+  return hexResult
+}
+
+export async function decodeMultiPartURToPSBT(
+  urFragments: string[]
+): Promise<string> {
   try {
     // Use URDecoder for proper multi-part UR parsing
     const decoder = new URDecoder()
@@ -150,18 +248,13 @@ export function decodeMultiPartURToPSBT(urFragments: string[]): string {
 
       for (const fragment of batch) {
         const success = decoder.receivePart(fragment)
+
         if (!success) {
-          // Continue processing other fragments even if one fails
+          continue
         }
       }
-
-      // Allow garbage collection between batches
       if (i + batchSize < sortedFragments.length) {
-        // Small delay to allow GC
-        const start = Date.now()
-        while (Date.now() - start < 1) {
-          // Busy wait for 1ms to allow GC
-        }
+        await new Promise((resolve) => setTimeout(resolve, 1))
       }
     }
 
@@ -240,6 +333,88 @@ export function decodeMultiPartURToPSBT(urFragments: string[]): string {
       }`
     )
   }
+}
+
+function processURGenericBytes(cborData: Uint8Array) {
+  const parsedBytes = parseCBORByteString(cborData)
+  const decodedString = Buffer.from(parsedBytes).toString('utf-8')
+
+  if (decodedString.includes('cashuA') || decodedString.includes('cashuB')) {
+    return decodedString.replace(/[^\x20-\x7E]/g, '').trim()
+  }
+
+  return decodedString
+}
+
+function processURGenericResult(result: UR) {
+  if (!result || !result.cbor) {
+    throw new Error('UR decoder result is invalid')
+  }
+
+  const cborData = new Uint8Array(result.cbor)
+
+  if (result.type === 'bytes') {
+    return processURGenericBytes(cborData)
+  }
+
+  const parsedBytes = parseCBORByteString(cborData)
+  return Buffer.from(Array.from(parsedBytes)).toString('hex')
+}
+
+export function decodeMultiPartURGeneric(urFragments: string[]): string {
+  const decoder = new URDecoder()
+
+  const sortedFragments = urFragments.sort((a, b) => {
+    const aMatch = a.match(/ur:([^/]+)\/(\d+)-(\d+)\//i)
+    const bMatch = b.match(/ur:([^/]+)\/(\d+)-(\d+)\//i)
+
+    if (aMatch && bMatch) {
+      const aSeq = parseInt(aMatch[2], 10)
+      const bSeq = parseInt(bMatch[2], 10)
+      return aSeq - bSeq
+    }
+
+    return 0
+  })
+
+  const batchSize = 10
+  for (let i = 0; i < sortedFragments.length; i += batchSize) {
+    const batch = sortedFragments.slice(i, i + batchSize)
+
+    for (const fragment of batch) {
+      decoder.receivePart(fragment)
+    }
+  }
+
+  const isDecoderComplete = decoder.isComplete()
+  const progress = decoder.estimatedPercentComplete()
+
+  const shouldTryDecoding =
+    isDecoderComplete === true ||
+    (isDecoderComplete === undefined && progress > 0.9) ||
+    progress >= 1.0
+
+  if (shouldTryDecoding) {
+    const result = decoder.resultUR()
+    return processURGenericResult(result)
+  }
+
+  if (progress < 0.3) {
+    throw new Error(
+      `UR decoder needs more fragments: ${Math.round(progress * 100)}% complete`
+    )
+  }
+
+  if (progress < 0.8) {
+    throw new Error(
+      `UR decoder needs more fragments: ${Math.round(
+        progress * 100
+      )}% complete (fountain encoding requires more fragments)`
+    )
+  }
+
+  const result = decoder.resultUR()
+  return processURGenericResult(result)
 }
 
 /**
