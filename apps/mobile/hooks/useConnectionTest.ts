@@ -144,7 +144,7 @@ export function useConnectionTest() {
                 return sum + (Array.isArray(item) && item[1] ? item[1] : 0)
               }, 0)
             }
-          } catch (_e) {
+          } catch {
             // Mempool info not available
           }
 
@@ -159,7 +159,7 @@ export function useConnectionTest() {
 
           try {
             client.close()
-          } catch (_closeError) {
+          } catch {
             // Silently handle close errors
           }
           return { success: true }

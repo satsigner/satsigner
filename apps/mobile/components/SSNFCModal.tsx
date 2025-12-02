@@ -93,12 +93,9 @@ function SSNFCModal({
       toast.success(t('success.exportNFC'))
       onClose()
     } catch (error) {
-      const errorMessage = (error as Error).message
-      if (errorMessage) {
-        toast.error(errorMessage)
-      } else {
-        toast.error(t('nfc.error.writeFailed'))
-      }
+      toast.error(
+        error instanceof Error ? error.message : t('nfc.error.writeFailed')
+      )
     }
   }, [isEmitting, cancelNFCEmitterScan, emitNFCTag, dataToWrite, onClose])
 
