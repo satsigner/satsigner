@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 
+import ElectrumClient from '@/api/electrum'
 import {
   type Backend,
   type Network,
   type ProxyConfig
 } from '@/types/settings/blockchain'
+import Esplora from '@/api/esplora'
 
 export type NodeInfo = {
   version?: string
@@ -100,7 +102,6 @@ export function useConnectionTest() {
       const testPromise = (async () => {
         if (backend === 'electrum') {
           // Test Electrum connection and get server info
-          const ElectrumClient = (await import('@/api/electrum')).default
           const client = ElectrumClient.fromUrl(url, network)
 
           // Store current client for cleanup
@@ -164,7 +165,6 @@ export function useConnectionTest() {
           return { success: true }
         } else if (backend === 'esplora') {
           // Test Esplora connection and get server info
-          const Esplora = (await import('@/api/esplora')).default
           const client = new Esplora(url)
 
           // Store current client for cleanup

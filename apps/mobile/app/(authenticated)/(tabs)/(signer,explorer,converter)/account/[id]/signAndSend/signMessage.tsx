@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { broadcastTransaction, getBlockchain, signTransaction } from '@/api/bdk'
 import ElectrumClient from '@/api/electrum'
+import Esplora from '@/api/esplora'
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -145,7 +146,6 @@ export default function SignMessage() {
     }
 
     if (currentConfig.server.backend === 'esplora') {
-      const { default: Esplora } = await import('@/api/esplora')
       const esploraClient = new Esplora(currentConfig.server.url)
       await esploraClient.broadcastTransaction(signedTx)
       return true
