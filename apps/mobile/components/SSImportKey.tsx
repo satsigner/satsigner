@@ -169,7 +169,7 @@ export default function SSImportKey({
 
   function updateAddress(address: string) {
     const validAddress = address.includes('\n')
-      ? address.split('\n').every(validateAddress)
+      ? address.split('\n').every((addr) => validateAddress(addr))
       : validateAddress(address)
     setValidAddress(!address || validAddress)
     if (importType === 'importAddress') {
@@ -345,7 +345,7 @@ export default function SSImportKey({
               '/1/*'
             )
           }
-        } catch (_jsonError) {
+        } catch {
           // Handle legacy formats
           if (finalContent.includes('\n')) {
             const lines = finalContent.split('\n')
@@ -414,7 +414,7 @@ export default function SSImportKey({
       }
 
       toast.success(t('watchonly.success.clipboardPasted'))
-    } catch (_error) {
+    } catch {
       toast.error(t('watchonly.error.clipboardPaste'))
     }
   }
@@ -470,7 +470,7 @@ export default function SSImportKey({
                 '/1/*'
               )
             }
-          } catch (_jsonError) {
+          } catch {
             // Handle legacy formats
             if (finalContent.includes('\n')) {
               const lines = finalContent.split('\n')
@@ -531,7 +531,7 @@ export default function SSImportKey({
 
         toast.success(t('watchonly.success.nfcRead'))
       }
-    } catch (_error) {
+    } catch {
       toast.error(t('watchonly.error.nfcRead'))
     }
   }
@@ -573,7 +573,7 @@ export default function SSImportKey({
             '/1/*'
           )
         }
-      } catch (_jsonError) {
+      } catch {
         // Handle legacy formats
         if (finalContent.includes('\n')) {
           const lines = finalContent.split('\n')
@@ -842,5 +842,8 @@ const styles = StyleSheet.create({
     height: 'auto',
     paddingVertical: 10
   },
-  valid: { height: 'auto', paddingVertical: 10 }
+  valid: {
+    height: 'auto',
+    paddingVertical: 10,
+  }
 })
