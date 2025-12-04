@@ -981,7 +981,7 @@ export default function WatchOnly() {
                           >
                             <SSHStack justifyBetween>
                               <SSText uppercase weight="bold">
-                                {`Address #${index + 1}`}
+                                {`${t('bitcoin.address')} #${index + 1}`}
                               </SSText>
                               <TouchableOpacity
                                 onPress={() => deleteAddress(address)}
@@ -1004,7 +1004,7 @@ export default function WatchOnly() {
                         multiline
                       />
                       <SSButton
-                        label="ADD"
+                        label={t('common.add')}
                         disabled={!addressInput || !validAddress}
                         onPress={() => addAddress(addressInput)}
                       />
@@ -1014,13 +1014,13 @@ export default function WatchOnly() {
                 <SSVStack gap="sm">
                   <SSHStack gap="sm">
                     <SSButton
-                      label="Paste"
+                      label={t('common.paste')}
                       variant="gradient"
                       onPress={pasteFromClipboard}
                       style={{ flex: 1 }}
                     />
                     <SSButton
-                      label="Scan QR"
+                      label={t('common.scanQR')}
                       variant="gradient"
                       onPress={() => {
                         setScanningFor('main')
@@ -1110,13 +1110,13 @@ export default function WatchOnly() {
                 />
                 <SSHStack gap="sm">
                   <SSButton
-                    label="Paste"
+                    label={t('common.paste')}
                     variant="gradient"
                     onPress={pasteFingerprintFromClipboard}
                     style={{ flex: 1 }}
                   />
                   <SSButton
-                    label="Scan QR"
+                    label={t('common.scanQR')}
                     variant="gradient"
                     onPress={() => {
                       setScanningFor('fingerprint')
