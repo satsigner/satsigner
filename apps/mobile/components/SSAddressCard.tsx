@@ -1,7 +1,6 @@
-import { StyleSheet, TouchableOpacity } from 'react-native'
+import { TouchableOpacity } from 'react-native'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
-import SSButton from '@/components/SSButton'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
@@ -91,11 +90,3 @@ export function AddressCard({
     </SSVStack>
   )
 }
-
-const styles = StyleSheet.create({
-  addressActionButton: {
-    width: '48%',
-    padding: 12,
-    height: 'auto'
-  }
-})
