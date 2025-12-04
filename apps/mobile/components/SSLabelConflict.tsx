@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { StyleSheet } from 'react-native'
 
 import SSVStack from '@/layouts/SSVStack'
+import { t, tn } from '@/locales'
 import { Colors } from '@/styles'
 import { type Label } from '@/utils/bip329'
 
@@ -33,6 +34,8 @@ const conflictStrategies = ['current', 'incoming', 'merge', 'manual'] as const
 
 const defaultStrategy: ConflictStrategy = 'incoming'
 
+const tl = tn('account.import.labelConflict')
+
 function SSLabelConflictItem({
   conflict: [current, incoming],
   conflictStrategy,
@@ -46,17 +49,17 @@ function SSLabelConflictItem({
     <SSVStack gap="md" style={[styles.labelItem]}>
       <SSVStack gap="sm">
         <SSText uppercase weight="bold" size="lg">
-          {`Conflict #${index + 1}`}
+          {tl('conflict', { index: index + 1 })}
         </SSText>
         <SSVStack gap="xs">
           <SSText size="md" weight="bold">
-            Object
+            {tl('object')}
           </SSText>
           <SSText type="mono">{`${current.type} - ${current.ref}`}</SSText>
         </SSVStack>
         <SSVStack gap="xs">
           <SSText weight="bold" size="md">
-            Current label
+            {tl('current')}
           </SSText>
           <SSText
             size="md"
@@ -72,7 +75,7 @@ function SSLabelConflictItem({
         </SSVStack>
         <SSVStack gap="xs">
           <SSText weight="bold" size="md">
-            Incoming label
+            {tl('incoming')}
           </SSText>
           <SSText
             size="md"
@@ -89,7 +92,7 @@ function SSLabelConflictItem({
       </SSVStack>
       {conflictStrategyGlobal === 'manual' && (
         <SSVStack gap="xs">
-          <SSText size="md">Select what to do with this conflict</SSText>
+          <SSText size="md">{tl('manualSelection')}</SSText>
           <SSVStack gap="sm">
             {conflictStrategies.map((strategy) => {
               return (
@@ -107,20 +110,17 @@ function SSLabelConflictItem({
         </SSVStack>
       )}
       {conflictStrategyGlobal === 'manual' && conflictStrategy === 'manual' && (
-        <SSVStack gap="xs">
-          <SSText size="md">Enter the new label manually</SSText>
-          <SSTextInput
-            size="small"
-            value={finalLabel}
-            onChangeText={(text) => onChangeLabel(text)}
-            placeholder="Enter label manually"
-            style={finalLabel === '' ? styles.invalidInput : {}}
-          />
-        </SSVStack>
+        <SSTextInput
+          size="small"
+          value={finalLabel}
+          onChangeText={(text) => onChangeLabel(text)}
+          placeholder={tl('manualInput')}
+          style={finalLabel === '' ? styles.invalidInput : {}}
+        />
       )}
       <SSVStack gap="xs">
         <SSText size="md" weight="bold">
-          Final label
+          {tl('result')}
         </SSText>
         <SSText
           size="md"
@@ -213,10 +213,9 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
         <SSVStack>
           <SSVStack gap="none">
             <SSText size="md">
-              There are {conflicts.length} conflicts between the upcoming labels
-              and current local labels.
+              {tl('intro', { conflictsCount: conflicts.length })}
             </SSText>
-            <SSText size="md">Select what to do with the conflicts.</SSText>
+            <SSText size="md">{tl('selection')}</SSText>
           </SSVStack>
           <SSVStack gap="sm">
             {conflictStrategies.map((strategy) => {
@@ -231,7 +230,7 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
             })}
           </SSVStack>
           <SSButton
-            label="PROCEED"
+            label={t('common.next')}
             variant="secondary"
             onPress={confirmStrategy}
           />
@@ -256,12 +255,12 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
           })}
           <SSVStack gap="sm" style={{ width: '100%' }}>
             <SSButton
-              label="CANCEL"
+              label={t('common.back')}
               onPress={() => setStage('select_strategy')}
               style={styles.button}
             />
             <SSButton
-              label="CONFIRM"
+              label={t('common.confirm')}
               variant="secondary"
               disabled={results.some((label) => label.label === '')}
               onPress={() => onResolve(results)}
