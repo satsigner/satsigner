@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native'
+import { StyleSheet, TouchableOpacity } from 'react-native'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
@@ -8,6 +8,8 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn } from '@/locales'
 import { type WatchedAddress } from '@/types/models/Address'
+
+import { SSIconEyeOn, SSIconTrash } from './icons'
 
 type AddressCardProps = {
   address: WatchedAddress
@@ -28,11 +30,23 @@ export function AddressCard({
 }: AddressCardProps) {
   return (
     <SSVStack gap="sm">
-      <SSText uppercase weight="bold">
-        {address.new
-          ? tl('addressIndexNew', { index })
-          : tl('addressIndex', { index })}
-      </SSText>
+      <SSHStack justifyBetween>
+        <SSText uppercase weight="bold">
+          {address.new
+            ? tl('addressIndexNew', { index })
+            : tl('addressIndex', { index })}
+        </SSText>
+        <SSHStack gap="sm">
+          <TouchableOpacity onPress={onViewDetails}>
+            <SSIconEyeOn width={16} height={16} />
+          </TouchableOpacity>
+          {allowDelete && (
+            <TouchableOpacity onPress={onDelete}>
+              <SSIconTrash width={16} height={16} />
+            </TouchableOpacity>
+          )}
+        </SSHStack>
+      </SSHStack>
       <SSAddressDisplay address={address.address} />
       {!address.new && (
         <SSVStack gap="none">
@@ -74,22 +88,6 @@ export function AddressCard({
           </SSText>
         </SSVStack>
       )}
-      <SSHStack gap="sm" justifyBetween>
-        <SSButton
-          style={styles.addressActionButton}
-          label={tl('detailsBtn').toUpperCase()}
-          variant="secondary"
-          disabled={address.new}
-          onPress={onViewDetails}
-        />
-        <SSButton
-          style={styles.addressActionButton}
-          label={tl('deleteBtn').toUpperCase()}
-          variant="danger"
-          disabled={!allowDelete}
-          onPress={onDelete}
-        />
-      </SSHStack>
     </SSVStack>
   )
 }

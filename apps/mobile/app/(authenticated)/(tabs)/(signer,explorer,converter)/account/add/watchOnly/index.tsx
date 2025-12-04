@@ -16,7 +16,7 @@ import {
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconRemove } from '@/components/icons'
+import { SSIconTrash } from '@/components/icons'
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
 import SSCollapsible from '@/components/SSCollapsible'
@@ -917,6 +917,7 @@ export default function WatchOnly() {
     addresses,
     externalDescriptor,
     network,
+    extractAndSetFingerprint,
     setExtendedPublicKey,
     setFingerprint,
     setScriptVersion,
@@ -985,7 +986,7 @@ export default function WatchOnly() {
                               <TouchableOpacity
                                 onPress={() => deleteAddress(address)}
                               >
-                                <SSIconRemove height={16} width={16} />
+                                <SSIconTrash height={12} width={12} />
                               </TouchableOpacity>
                             </SSHStack>
                             <SSAddressDisplay
