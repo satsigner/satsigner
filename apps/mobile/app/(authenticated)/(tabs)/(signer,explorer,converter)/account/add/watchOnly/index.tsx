@@ -935,16 +935,12 @@ export default function WatchOnly() {
   ])
 
   return (
-    <SSMainLayout style={{ paddingTop: 0, paddingBottom: 10 }}>
+    <SSMainLayout style={styles.mainContainer}>
       <Stack.Screen
         options={{ headerTitle: () => <SSText uppercase>{name}</SSText> }}
       />
-      <ScrollView contentContainerStyle={{ minHeight: '100%' }}>
-        <SSVStack
-          justifyBetween
-          gap="lg"
-          style={{ paddingBottom: 20, flex: 1 }}
-        >
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <SSVStack justifyBetween gap="lg" style={styles.innerScrollContainer}>
           <SSVStack gap="lg">
             <SSVStack gap="lg">
               <SSVStack gap="lg">
@@ -1198,11 +1194,9 @@ export default function WatchOnly() {
                 : t('transaction.build.options.importOutputs.qrcode')}
           </SSText>
           <CameraView
-            onBarcodeScanned={(res) => {
-              handleQRCodeScanned(res.raw)
-            }}
+            onBarcodeScanned={(res) => handleQRCodeScanned(res.raw)}
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            style={{ width: 340, height: 340 }}
+            style={styles.cameraView}
           />
           {/* Show progress if scanning multi-part QR */}
           {scanProgress.type && scanProgress.total > 1 && (
@@ -1227,24 +1221,16 @@ export default function WatchOnly() {
                         <SSText color="white" center>
                           {`UR fountain encoding: ${scanProgress.scanned.size}/${displayTarget} fragments`}
                         </SSText>
-                        <View
-                          style={{
-                            width: 300,
-                            height: 4,
-                            backgroundColor: Colors.gray[700],
-                            borderRadius: 2
-                          }}
-                        >
+                        <View style={styles.progressBarOuter}>
                           <View
-                            style={{
-                              width:
-                                (scanProgress.scanned.size / displayTarget) *
-                                300,
-                              height: 4,
-                              maxWidth: 300,
-                              backgroundColor: Colors.white,
-                              borderRadius: 2
-                            }}
+                            style={[
+                              styles.progressBarInner,
+                              {
+                                width:
+                                  (scanProgress.scanned.size / displayTarget) *
+                                  300
+                              }
+                            ]}
                           />
                         </View>
                       </>
@@ -1257,24 +1243,16 @@ export default function WatchOnly() {
                   <SSText color="white" center>
                     {`Progress: ${scanProgress.scanned.size}/${scanProgress.total} chunks`}
                   </SSText>
-                  <View
-                    style={{
-                      width: 300,
-                      height: 4,
-                      backgroundColor: Colors.gray[700],
-                      borderRadius: 2
-                    }}
-                  >
+                  <View style={styles.progressBarOuter}>
                     <View
-                      style={{
-                        width:
-                          (scanProgress.scanned.size / scanProgress.total) *
-                          300,
-                        height: 4,
-                        maxWidth: scanProgress.total * 300,
-                        backgroundColor: Colors.white,
-                        borderRadius: 2
-                      }}
+                      style={[
+                        styles.progressBarInner,
+                        {
+                          width:
+                            (scanProgress.scanned.size / scanProgress.total) *
+                            300
+                        }
+                      ]}
                     />
                   </View>
                   <SSText color="muted" size="sm" center>
@@ -1313,11 +1291,41 @@ export default function WatchOnly() {
 }
 
 const styles = StyleSheet.create({
+  progressBarOuter: {
+    width: 300,
+    height: 4,
+    backgroundColor: Colors.gray[700],
+    borderRadius: 2
+  },
+  progressBarInner: {
+    height: 4,
+    maxWidth: 300,
+    backgroundColor: Colors.white,
+    borderRadius: 2
+  },
   invalid: {
     borderColor: Colors.error,
     borderWidth: 1,
     height: 'auto',
     paddingVertical: 10
   },
-  valid: { height: 'auto', paddingVertical: 10 }
+  valid: {
+    height: 'auto',
+    paddingVertical: 10
+  },
+  mainContainer: {
+    paddingTop: 0,
+    paddingBottom: 10
+  },
+  scrollContainer: {
+    minHeight: '100%'
+  },
+  innerScrollContainer: {
+    paddingBottom: 20,
+    flex: 1
+  },
+  cameraView: {
+    width: 340,
+    height: 340
+  }
 })
