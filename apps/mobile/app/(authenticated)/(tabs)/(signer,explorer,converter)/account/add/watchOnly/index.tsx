@@ -45,7 +45,10 @@ import {
 } from '@/types/models/Account'
 import { type WatchOnlySearchParams } from '@/types/navigation/searchParams'
 import { isBBQRFragment } from '@/utils/bbqr'
-import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
+import {
+  bitcoinjsNetwork,
+  getDerivationPathFromScriptVersion
+} from '@/utils/bitcoin'
 import { DescriptorUtils } from '@/utils/descriptorUtils'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 import {
@@ -252,7 +255,8 @@ export default function WatchOnly() {
 
   function updateAddress(address: string) {
     const validAddress =
-      validateAddress(address) && !addresses.includes(address)
+      validateAddress(address, bitcoinjsNetwork(network)) &&
+      !addresses.includes(address)
 
     setValidAddress(!address || validAddress)
 
@@ -594,10 +598,13 @@ export default function WatchOnly() {
 
       // handle pasting multiple addresses at once
       const lines = text.split('\n').filter((line) => line !== '')
-      if (lines.every(validateAddress)) {
-        // use Set to prevent duplicates
-        setAddresses([...new Set([...addresses, ...lines])])
-      }
+      const hasAddresses = lines.every((line) =>
+        validateAddress(line, bitcoinjsNetwork(network))
+      )
+
+      // use Set to prevent duplicates
+      if (hasAddresses) setAddresses([...new Set([...addresses, ...lines])])
+
       return
     }
 
@@ -728,6 +735,7 @@ export default function WatchOnly() {
     }
   }
 
+  // TODO: remove this logic, it should not be defined here.
   async function handleNFCRead() {
     if (isReading) {
       await cancelNFCScan()
