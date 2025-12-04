@@ -5,10 +5,19 @@ import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Animated, Keyboard, ScrollView, StyleSheet, View } from 'react-native'
+import {
+  Animated,
+  Keyboard,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View
+} from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconRemove } from '@/components/icons'
+import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
 import SSCollapsible from '@/components/SSCollapsible'
 import SSModal from '@/components/SSModal'
@@ -119,7 +128,8 @@ export default function WatchOnly() {
   const [localFingerprint, setLocalFingerprint] = useState(fingerprint)
   const [externalDescriptor, setLocalExternalDescriptor] = useState('')
   const [internalDescriptor, setLocalInternalDescriptor] = useState('')
-  const [address, setAddress] = useState('')
+  const [addresses, setAddresses] = useState<string[]>([])
+  const [addressInput, setAddressInput] = useState('')
 
   const [disabled, setDisabled] = useState(true)
   const [validAddress, setValidAddress] = useState(true)
@@ -241,9 +251,8 @@ export default function WatchOnly() {
   ])
 
   function updateAddress(address: string) {
-    const validAddress = address.includes('\n')
-      ? address.split('\n').every(validateAddress)
-      : validateAddress(address)
+    const validAddress =
+      validateAddress(address) && !addresses.includes(address)
 
     setValidAddress(!address || validAddress)
 
@@ -251,7 +260,16 @@ export default function WatchOnly() {
       setDisabled(!validAddress)
     }
 
-    setAddress(address)
+    setAddressInput(address)
+  }
+
+  function addAddress(address: string) {
+    setAddresses([...addresses, address])
+    setAddressInput('')
+  }
+
+  function deleteAddress(address: string) {
+    setAddresses(addresses.filter((a) => a !== address))
   }
 
   function updateMasterFingerprint(fingerprint: string) {
@@ -569,7 +587,17 @@ export default function WatchOnly() {
     }
 
     if (selectedOption === 'importAddress') {
-      updateAddress(text)
+      if (!text.includes('\n')) {
+        updateAddress(text)
+        return
+      }
+
+      // handle pasting multiple addresses at once
+      const lines = text.split('\n').filter((line) => line !== '')
+      if (lines.every(validateAddress)) {
+        // use Set to prevent duplicates
+        setAddresses([...new Set([...addresses, ...lines])])
+      }
       return
     }
 
@@ -815,7 +843,6 @@ export default function WatchOnly() {
         setFingerprint(localFingerprint)
         setScriptVersion(scriptVersion)
       } else if (selectedOption === 'importAddress') {
-        const addresses = address.split('\n')
         for (let index = 0; index < addresses.length; index += 1) {
           const address = addresses[index]
           setExternalDescriptor(`addr(${address})`)
@@ -887,7 +914,7 @@ export default function WatchOnly() {
     xpub,
     localFingerprint,
     scriptVersion,
-    address,
+    addresses,
     externalDescriptor,
     network,
     setExtendedPublicKey,
@@ -911,7 +938,7 @@ export default function WatchOnly() {
       <Stack.Screen
         options={{ headerTitle: () => <SSText uppercase>{name}</SSText> }}
       />
-      <ScrollView contentContainerStyle={{ height: '100%' }}>
+      <ScrollView contentContainerStyle={{ minHeight: '100%' }}>
         <SSVStack
           justifyBetween
           gap="lg"
@@ -943,12 +970,44 @@ export default function WatchOnly() {
                     />
                   )}
                   {selectedOption === 'importAddress' && (
-                    <SSTextInput
-                      value={address}
-                      style={validAddress ? styles.valid : styles.invalid}
-                      onChangeText={updateAddress}
-                      multiline
-                    />
+                    <>
+                      {addresses.map((address, index) => {
+                        return (
+                          <SSVStack
+                            key={address}
+                            gap="xs"
+                            style={{ marginVertical: 16 }}
+                          >
+                            <SSHStack justifyBetween>
+                              <SSText uppercase weight="bold">
+                                {`Address #${index + 1}`}
+                              </SSText>
+                              <TouchableOpacity
+                                onPress={() => deleteAddress(address)}
+                              >
+                                <SSIconRemove height={16} width={16} />
+                              </TouchableOpacity>
+                            </SSHStack>
+                            <SSAddressDisplay
+                              address={address}
+                              variant="bare"
+                              size="xs"
+                            />
+                          </SSVStack>
+                        )
+                      })}
+                      <SSTextInput
+                        value={addressInput}
+                        style={validAddress ? styles.valid : styles.invalid}
+                        onChangeText={updateAddress}
+                        multiline
+                      />
+                      <SSButton
+                        label="ADD"
+                        disabled={!addressInput || !validAddress}
+                        onPress={() => addAddress(addressInput)}
+                      />
+                    </>
                   )}
                 </SSVStack>
                 <SSVStack gap="sm">
