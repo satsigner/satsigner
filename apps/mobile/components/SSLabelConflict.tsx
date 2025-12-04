@@ -60,11 +60,12 @@ function SSLabelConflictItem({
           </SSText>
           <SSText
             size="md"
-            style={
+            style={[
+              styles.box,
               conflictStrategyGlobal === 'manual'
-                ? getStyle('current', conflictStrategy)
-                : getStyle('current', conflictStrategyGlobal)
-            }
+                ? bgStyles['current'][conflictStrategy]
+                : bgStyles['current'][conflictStrategyGlobal]
+            ]}
           >
             {current.label}
           </SSText>
@@ -75,11 +76,12 @@ function SSLabelConflictItem({
           </SSText>
           <SSText
             size="md"
-            style={
+            style={[
+              styles.box,
               conflictStrategyGlobal === 'manual'
-                ? getStyle('incoming', conflictStrategy)
-                : getStyle('incoming', conflictStrategyGlobal)
-            }
+                ? bgStyles['incoming'][conflictStrategy]
+                : bgStyles['incoming'][conflictStrategyGlobal]
+            ]}
           >
             {incoming.label}
           </SSText>
@@ -270,10 +272,6 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
       )}
     </SSVStack>
   )
-}
-
-function getStyle(type: 'current' | 'incoming', strategy: ConflictStrategy) {
-  return [styles.box, bgStyles[type][strategy]]
 }
 
 const styles = StyleSheet.create({
