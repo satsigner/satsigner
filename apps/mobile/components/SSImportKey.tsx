@@ -844,6 +844,6 @@ const styles = StyleSheet.create({
   },
   valid: {
     height: 'auto',
-    paddingVertical: 10,
+    paddingVertical: 10
   }
 })
