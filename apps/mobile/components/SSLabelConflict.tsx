@@ -36,6 +36,38 @@ const defaultStrategy: ConflictStrategy = 'incoming'
 
 const tl = tn('account.import.labelConflict')
 
+export function solveConflict(
+  current: Label,
+  incoming: Label,
+  strategy: ConflictStrategy
+): Label {
+  let label = ''
+  switch (strategy) {
+    case 'current':
+      label = current.label
+      break
+    case 'incoming':
+      label = incoming.label
+      break
+    case 'merge':
+      label = `${current.label}; ${incoming.label}`
+      break
+    case 'manual':
+      label = ''
+      break
+  }
+  return { ...current, ...incoming, label }
+}
+
+export function solveConflicts(
+  conflicts: Conflict[],
+  strategy: ConflictStrategy
+) {
+  return conflicts.map(([current, incoming]) =>
+    solveConflict(current, incoming, strategy)
+  )
+}
+
 function SSLabelConflictItem({
   conflict: [current, incoming],
   conflictStrategy,
@@ -140,37 +172,7 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
     ConflictStrategy[]
   >([])
   const [results, setResults] = useState<Label[]>([])
-  const [stage, setStage] = useState<
-    'select_strategy' | 'manual_intervention' | 'result_preview'
-  >('select_strategy')
-
-  const confirmStrategy = useCallback(() => {
-    if (conflictStrategy === 'manual') setStage('manual_intervention')
-    else setStage('result_preview')
-  }, [conflictStrategy])
-
-  function solveConflict(
-    current: Label,
-    incoming: Label,
-    strategy: ConflictStrategy
-  ): Label {
-    let label = ''
-    switch (strategy) {
-      case 'current':
-        label = current.label
-        break
-      case 'incoming':
-        label = incoming.label
-        break
-      case 'merge':
-        label = `${current.label}; ${incoming.label}`
-        break
-      case 'manual':
-        label = ''
-        break
-    }
-    return { ...current, ...incoming, label }
-  }
+  const [stage, setStage] = useState<'selection' | 'preview'>('selection')
 
   function solveConflictByIndex(strategy: ConflictStrategy, index: number) {
     const [current, incoming] = conflicts[index]
@@ -192,11 +194,8 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
   }
 
   useEffect(() => {
-    setResults(
-      conflicts.map(([current, incoming]) =>
-        solveConflict(current, incoming, conflictStrategy)
-      )
-    )
+    setResults(solveConflicts(conflicts, conflictStrategy))
+
     if (
       conflictStrategy.length !== conflictStrategyPerLabel.length &&
       conflictStrategy === 'manual'
@@ -209,7 +208,7 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
 
   return (
     <SSVStack style={{ width: '100%' }}>
-      {stage === 'select_strategy' && (
+      {stage === 'selection' && (
         <SSVStack>
           <SSVStack gap="none">
             <SSText size="md">
@@ -232,11 +231,11 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
           <SSButton
             label={t('common.next')}
             variant="secondary"
-            onPress={confirmStrategy}
+            onPress={() => setStage('preview')}
           />
         </SSVStack>
       )}
-      {stage !== 'select_strategy' && (
+      {stage !== 'selection' && (
         <SSVStack>
           {conflicts.map((conflict, index) => {
             return (
@@ -256,7 +255,7 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
           <SSVStack gap="sm" style={{ width: '100%' }}>
             <SSButton
               label={t('common.back')}
-              onPress={() => setStage('select_strategy')}
+              onPress={() => setStage('selection')}
               style={styles.button}
             />
             <SSButton
