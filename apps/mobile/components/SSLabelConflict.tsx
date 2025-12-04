@@ -283,16 +283,16 @@ const styles = StyleSheet.create({
     borderRadius: 4
   },
   accepted: {
-    backgroundColor: Colors.success
+    backgroundColor: Colors.softBarGreen
   },
   rejected: {
-    backgroundColor: Colors.error
+    backgroundColor: Colors.softBarRed
   },
   none: {
     backgroundColor: Colors.gray[400]
   },
   info: {
-    backgroundColor: Colors.info
+    backgroundColor: Colors.success
   },
   invalidInput: {
     borderColor: Colors.error,
