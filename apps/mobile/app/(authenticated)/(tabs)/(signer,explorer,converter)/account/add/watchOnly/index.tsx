@@ -839,108 +839,98 @@ export default function WatchOnly() {
     }
   }
 
-  const confirmAccountCreation = useCallback(async () => {
-    setLoadingWallet(true)
-    try {
-      if (selectedOption === 'importExtendedPub') {
-        if (!xpub || !localFingerprint || !scriptVersion) {
-          toast.error(t('watchonly.error.missingFields'))
-          return
-        }
-        setExtendedPublicKey(xpub)
-        setFingerprint(localFingerprint)
-        setScriptVersion(scriptVersion)
-      } else if (selectedOption === 'importAddress') {
-        for (let index = 0; index < addresses.length; index += 1) {
-          const address = addresses[index]
-          setExternalDescriptor(`addr(${address})`)
-          setKey(index)
-        }
-      } else if (selectedOption === 'importDescriptor') {
-        // Extract fingerprint from descriptor if not already set
+  const confirmAccountCreation = useCallback(
+    async () => {
+      setLoadingWallet(true)
+      try {
+        if (selectedOption === 'importExtendedPub') {
+          if (!xpub || !localFingerprint || !scriptVersion) {
+            toast.error(t('watchonly.error.missingFields'))
+            return
+          }
+          setExtendedPublicKey(xpub)
+          setFingerprint(localFingerprint)
+          setScriptVersion(scriptVersion)
+        } else if (selectedOption === 'importAddress') {
+          for (let index = 0; index < addresses.length; index += 1) {
+            const address = addresses[index]
+            setExternalDescriptor(`addr(${address})`)
+            setKey(index)
+          }
+        } else if (selectedOption === 'importDescriptor') {
+          // Extract fingerprint from descriptor if not already set
 
-        // Check if we have a combined descriptor and validate it
-        if (externalDescriptor && isCombinedDescriptor(externalDescriptor)) {
-          const combinedValidation =
-            await DescriptorUtils.processCombinedDescriptor(
-              externalDescriptor,
-              scriptVersion as ScriptVersionType
-            )
+          // Check if we have a combined descriptor and validate it
+          if (externalDescriptor && isCombinedDescriptor(externalDescriptor)) {
+            const combinedValidation =
+              await DescriptorUtils.processCombinedDescriptor(
+                externalDescriptor,
+                scriptVersion as ScriptVersionType
+              )
 
-          if (!combinedValidation.success) {
-            toast.error('Invalid combined descriptor')
+            if (!combinedValidation.success) {
+              toast.error('Invalid combined descriptor')
+              return
+            }
+          }
+
+          extractAndSetFingerprint(externalDescriptor)
+
+          // Ensure we have a fingerprint for descriptor import
+          if (!localFingerprint) {
+            toast.error(t('watchonly.error.missingFields'))
             return
           }
         }
 
-        extractAndSetFingerprint(externalDescriptor)
+        setNetwork(network)
+        setKey(0)
 
-        // Ensure we have a fingerprint for descriptor import
-        if (!localFingerprint) {
-          toast.error(t('watchonly.error.missingFields'))
+        const account = getAccountData()
+
+        const data = await accountBuilderFinish(account)
+        if (!data) {
+          toast.error(t('watchonly.error.creationFailed'))
           return
         }
-      }
 
-      setNetwork(network)
-      setKey(0)
+        updateAccount(data.accountWithEncryptedSecret)
+        toast.success(t('watchonly.success.accountCreated'))
+        router.dismissAll()
+        router.navigate(`/account/${data.accountWithEncryptedSecret.id}`)
 
-      const account = getAccountData()
-
-      const data = await accountBuilderFinish(account)
-      if (!data) {
+        // Start sync in background if auto mode is enabled
+        if (connectionMode === 'auto') {
+          try {
+            const updatedAccount =
+              selectedOption !== 'importAddress'
+                ? await syncAccountWithWallet(
+                    data.accountWithEncryptedSecret,
+                    data.wallet!
+                  )
+                : await syncAccountWithAddress(data.accountWithEncryptedSecret)
+            updateAccount(updatedAccount)
+          } catch {}
+        }
+      } catch {
         toast.error(t('watchonly.error.creationFailed'))
-        return
+      } finally {
+        clearAccount()
+        setLoadingWallet(false)
       }
-
-      updateAccount(data.accountWithEncryptedSecret)
-      toast.success(t('watchonly.success.accountCreated'))
-      router.dismissAll()
-      router.navigate(`/account/${data.accountWithEncryptedSecret.id}`)
-
-      // Start sync in background if auto mode is enabled
-      if (connectionMode === 'auto') {
-        try {
-          const updatedAccount =
-            selectedOption !== 'importAddress'
-              ? await syncAccountWithWallet(
-                  data.accountWithEncryptedSecret,
-                  data.wallet!
-                )
-              : await syncAccountWithAddress(data.accountWithEncryptedSecret)
-          updateAccount(updatedAccount)
-        } catch {}
-      }
-    } catch {
-      toast.error(t('watchonly.error.creationFailed'))
-    } finally {
-      clearAccount()
-      setLoadingWallet(false)
-    }
-  }, [
-    selectedOption,
-    xpub,
-    localFingerprint,
-    scriptVersion,
-    addresses,
-    externalDescriptor,
-    network,
-    extractAndSetFingerprint,
-    setExtendedPublicKey,
-    setFingerprint,
-    setScriptVersion,
-    setExternalDescriptor,
-    setNetwork,
-    setKey,
-    getAccountData,
-    accountBuilderFinish,
-    updateAccount,
-    connectionMode,
-    syncAccountWithWallet,
-    syncAccountWithAddress,
-    clearAccount,
-    setLoadingWallet
-  ])
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      selectedOption,
+      xpub,
+      localFingerprint,
+      scriptVersion,
+      addresses,
+      externalDescriptor,
+      network,
+      connectionMode
+    ]
+  )
 
   return (
     <SSMainLayout style={styles.mainContainer}>
