@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { StyleSheet } from 'react-native'
 
 import SSVStack from '@/layouts/SSVStack'
@@ -35,6 +35,31 @@ const conflictStrategies = ['current', 'incoming', 'merge', 'manual'] as const
 const defaultStrategy: ConflictStrategy = 'incoming'
 
 const tl = tn('account.import.labelConflict')
+
+// this is meant to be used by the pages that will display the conflict solver,
+// so they can detect any conflicts when importing labels manually via picking
+// a file or via nostr sync.
+export function detectConflcits(
+  currentLabels: Label[],
+  incomingLabels: Label[]
+) {
+  const currentLabelsDict = currentLabels.reduce(
+    (dict, label) => {
+      dict[label.ref] = label
+      return dict
+    },
+    {} as Record<Label['ref'], Label>
+  )
+
+  const conflicts: Conflict[] = []
+  for (const incoming of incomingLabels) {
+    if (!currentLabelsDict[incoming.ref]) continue
+    const current = currentLabelsDict[incoming.ref]
+    if (current.label === incoming.label) continue
+    conflicts.push([current, incoming])
+  }
+  return conflicts
+}
 
 export function solveConflict(
   current: Label,
