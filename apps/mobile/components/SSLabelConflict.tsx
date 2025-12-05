@@ -11,7 +11,7 @@ import SSCheckbox from './SSCheckbox'
 import SSText from './SSText'
 import SSTextInput from './SSTextInput'
 
-type Conflict = [Label, Label] // [current, incoming]
+export type Conflict = [Label, Label] // [current, incoming]
 
 type ConflictStrategy = (typeof conflictStrategies)[number]
 
