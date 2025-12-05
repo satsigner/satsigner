@@ -1717,7 +1717,7 @@
     "fingerprint.scanQR": "Scan Fingerprint QR Code",
     "fingerprint.text": "Fingerprint",
     "importAddress.label": "Address",
-    "importAddress.text": "A single bitcoin address",
+    "importAddress.text": "One or more arbitrary bitcoin addresses. It can be used to track the transactions and balance of a single address or a group of related addresses, even without the keys.",
     "importAddress.title": "Address",
     "importDescriptor.external": "External Descriptor",
     "importDescriptor.internal": "Internal Descriptor (optional)",

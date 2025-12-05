@@ -40,7 +40,7 @@ function SSSelectModal({
   return (
     <Modal visible={visible} transparent={false}>
       <SafeAreaView style={{ flex: 1, backgroundColor: Colors.black }}>
-        <SSMainLayout black>
+        <SSMainLayout black style={{ paddingBottom: 20 }}>
           <ScrollView>
             <SSVStack gap="lg">
               <SSVStack>
@@ -65,7 +65,7 @@ function SSSelectModal({
               </SSVStack>
             )}
           </ScrollView>
-          <SSVStack>
+          <SSVStack gap="sm">
             <SSButton
               label={t('common.select')}
               variant="secondary"
