@@ -7,6 +7,10 @@ import { useShallow } from 'zustand/react/shallow'
 import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
+import SSLabelConflict, {
+  type Conflict,
+  detectConflcits
+} from '@/components/SSLabelConflict'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import useNostrSync from '@/hooks/useNostrSync'
@@ -20,7 +24,8 @@ import {
   type Bip329FileType,
   bip329FileTypes,
   bip329mimes,
-  bip329parser
+  bip329parser,
+  type Label
 } from '@/utils/bip329'
 import { pickFile } from '@/utils/filesystem'
 
@@ -41,11 +46,27 @@ export default function ImportLabels() {
   const [invalidContent, setInvalidContent] = useState(false)
   const [successMsgVisible, setSuccessMsgVisible] = useState(false)
 
+  const [showConflictSolver, setShowConflictSolver] = useState(false)
+  const [conflicts, setConflicts] = useState<Conflict[]>([])
+  const [pendingLabels, setPendingLabels] = useState<Label[]>([])
+
   const [importCount, setImportCount] = useState(0)
   const [importCountTotal, setImportCountTotal] = useState(0)
 
-  function importLabels(content: string) {
+  function tryImportLabels(content: string) {
     const labels = bip329parser[importType](content)
+    const currentLabels = Object.values(account?.labels || [])
+    const conflicts = detectConflcits(currentLabels, labels)
+    if (conflicts.length > 0) {
+      setPendingLabels(labels)
+      setConflicts(conflicts)
+      setShowConflictSolver(true)
+    } else {
+      importLabels(labels)
+    }
+  }
+
+  function importLabels(labels: Label[]) {
     const importCount = importLabelsToAccount(accountId!, labels)
     setImportCount(importCount)
     setImportCountTotal(labels.length)
@@ -53,15 +74,23 @@ export default function ImportLabels() {
     sendLabelsToNostr(account)
   }
 
+  function importLabelsWithConflicts(resolvedLabels: Label[]) {
+    const labelsDict: Record<Label['ref'], Label> = {}
+    for (const label of pendingLabels) labelsDict[label.ref] = label
+    for (const label of resolvedLabels) labelsDict[label.ref] = label
+    importLabels(Object.values(labelsDict))
+    setShowConflictSolver(false)
+  }
+
   function importLabelsFromClipboard() {
-    importLabels(importContent)
+    tryImportLabels(importContent)
   }
 
   async function importLabelsFromFile() {
     const type = bip329mimes[importType]
     const fileContent = await pickFile({ type })
     if (!fileContent) return
-    importLabels(fileContent)
+    tryImportLabels(fileContent)
   }
 
   async function pasteFromClipboard() {
@@ -164,7 +193,17 @@ export default function ImportLabels() {
           onPress={() => router.back()}
         />
       </SSVStack>
-      <SSModal visible={successMsgVisible} onClose={router.back}>
+      <SSModal
+        visible={showConflictSolver}
+        onClose={() => setShowConflictSolver(false)}
+        fullOpacity
+      >
+        <SSLabelConflict
+          conflicts={conflicts}
+          onResolve={importLabelsWithConflicts}
+        />
+      </SSModal>
+      <SSModal visible={successMsgVisible} onClose={router.back} fullOpacity>
         <SSVStack
           gap="lg"
           style={{ justifyContent: 'center', height: '100%', width: '100%' }}
