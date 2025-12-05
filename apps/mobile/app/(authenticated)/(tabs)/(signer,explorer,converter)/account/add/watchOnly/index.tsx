@@ -134,13 +134,15 @@ export default function WatchOnly() {
   const [addresses, setAddresses] = useState<string[]>([])
   const [addressInput, setAddressInput] = useState('')
 
-  const [disabled, setDisabled] = useState(true)
-  const [validAddress, setValidAddress] = useState(true)
-  const [validExternalDescriptor, setValidExternalDescriptor] = useState(true)
-  const [validInternalDescriptor, setValidInternalDescriptor] = useState(true)
-  const [validXpub, setValidXpub] = useState(true)
-  const [validMasterFingerprint, setValidMasterFingerprint] = useState(true)
-  const [loadingWallet, setLoadingWallet] = useState(false)
+  const [isDisabled, setIsDisabled] = useState(true)
+  const [isValidAddress, setIsValidAddress] = useState(true)
+  const [isValidExternalDescriptor, setIsValidExternalDescriptor] =
+    useState(true)
+  const [isValidInternalDescriptor, setIsValidInternalDescriptor] =
+    useState(true)
+  const [isValidXpub, setIsValidXpub] = useState(true)
+  const [isValidMasterFingerprint, setIsValidMasterFingerprint] = useState(true)
+  const [isLoadingWallet, setIsLoadingWallet] = useState(false)
 
   useEffect(() => {
     async function handleScannerParams() {
@@ -224,18 +226,18 @@ export default function WatchOnly() {
   }, [isReading, pulseAnim, scaleAnim])
 
   const updateDescriptorValidationState = useCallback(() => {
-    const hasValidExternal = externalDescriptor && validExternalDescriptor
-    const hasValidInternal = internalDescriptor && validInternalDescriptor
+    const hasValidExternal = externalDescriptor && isValidExternalDescriptor
+    const hasValidInternal = internalDescriptor && isValidInternalDescriptor
     const hasAnyValidDescriptor = hasValidExternal || hasValidInternal
 
     if (selectedOption === 'importDescriptor') {
-      setDisabled(!hasAnyValidDescriptor)
+      setIsDisabled(!hasAnyValidDescriptor)
     }
   }, [
     externalDescriptor,
     internalDescriptor,
-    validExternalDescriptor,
-    validInternalDescriptor,
+    isValidExternalDescriptor,
+    isValidInternalDescriptor,
     selectedOption
   ])
 
@@ -248,20 +250,20 @@ export default function WatchOnly() {
     selectedOption,
     externalDescriptor,
     internalDescriptor,
-    validExternalDescriptor,
-    validInternalDescriptor,
+    isValidExternalDescriptor,
+    isValidInternalDescriptor,
     updateDescriptorValidationState
   ])
 
   function updateAddress(address: string) {
-    const validAddress =
+    const isValidAddress =
       validateAddress(address, bitcoinjsNetwork(network)) &&
       !addresses.includes(address)
 
-    setValidAddress(!address || validAddress)
+    setIsValidAddress(!address || isValidAddress)
 
     if (selectedOption === 'importAddress') {
-      setDisabled(!validAddress)
+      setIsDisabled(!isValidAddress)
     }
 
     setAddressInput(address)
@@ -279,10 +281,10 @@ export default function WatchOnly() {
   function updateMasterFingerprint(fingerprint: string) {
     const validFingerprint = validateFingerprint(fingerprint)
 
-    setValidMasterFingerprint(!fingerprint || validFingerprint)
+    setIsValidMasterFingerprint(!fingerprint || validFingerprint)
 
     if (selectedOption === 'importExtendedPub') {
-      setDisabled(!validXpub || !validFingerprint)
+      setIsDisabled(!isValidXpub || !validFingerprint)
     }
 
     setLocalFingerprint(fingerprint)
@@ -301,12 +303,12 @@ export default function WatchOnly() {
       toast.error(t('watchonly.error.networkMismatch'))
     }
 
-    setValidXpub(!xpub || validXpub)
+    setIsValidXpub(!xpub || validXpub)
 
     extractAndSetFingerprint(xpub)
 
     if (selectedOption === 'importExtendedPub') {
-      setDisabled(!validXpub || !localFingerprint)
+      setIsDisabled(!validXpub || !localFingerprint)
     }
 
     setXpub(xpub)
@@ -367,7 +369,7 @@ export default function WatchOnly() {
       descriptorValidation.isValid && !descriptor.match(/[txyz]priv/)
 
     if (type === 'external') {
-      setValidExternalDescriptor(!descriptor || basicValidation)
+      setIsValidExternalDescriptor(!descriptor || basicValidation)
       setLocalExternalDescriptor(descriptor)
 
       if (basicValidation) {
@@ -375,7 +377,7 @@ export default function WatchOnly() {
         await extractAndSetFingerprint(descriptor)
       }
     } else {
-      setValidInternalDescriptor(!descriptor || basicValidation)
+      setIsValidInternalDescriptor(!descriptor || basicValidation)
       setLocalInternalDescriptor(descriptor)
 
       if (basicValidation) {
@@ -426,7 +428,7 @@ export default function WatchOnly() {
     const isValidDescriptor = basicValidation && networkValidation.isValid
 
     if (type === 'external') {
-      setValidExternalDescriptor(!descriptor || isValidDescriptor)
+      setIsValidExternalDescriptor(!descriptor || isValidDescriptor)
       setLocalExternalDescriptor(descriptor)
 
       if (isValidDescriptor) {
@@ -434,7 +436,7 @@ export default function WatchOnly() {
         await extractAndSetFingerprint(descriptor)
       }
     } else {
-      setValidInternalDescriptor(!descriptor || isValidDescriptor)
+      setIsValidInternalDescriptor(!descriptor || isValidDescriptor)
       setLocalInternalDescriptor(descriptor)
 
       if (isValidDescriptor) {
@@ -699,8 +701,8 @@ export default function WatchOnly() {
       // Set both descriptors and mark them as valid
       setLocalExternalDescriptor(result.external)
       setLocalInternalDescriptor(result.internal)
-      setValidExternalDescriptor(true)
-      setValidInternalDescriptor(true)
+      setIsValidExternalDescriptor(true)
+      setIsValidInternalDescriptor(true)
 
       // Store the FULL combined descriptor in the store for validation during account creation
       setExternalDescriptor(originalText)
@@ -726,8 +728,8 @@ export default function WatchOnly() {
       // Set the separated descriptors but mark them as invalid
       setLocalExternalDescriptor(result.external)
       setLocalInternalDescriptor(result.internal)
-      setValidExternalDescriptor(false)
-      setValidInternalDescriptor(false)
+      setIsValidExternalDescriptor(false)
+      setIsValidInternalDescriptor(false)
 
       if (result.error) {
         toast.error(result.error)
@@ -785,8 +787,8 @@ export default function WatchOnly() {
             // Set both descriptors and mark them as valid
             setLocalExternalDescriptor(combinedValidation.external)
             setLocalInternalDescriptor(combinedValidation.internal)
-            setValidExternalDescriptor(true)
-            setValidInternalDescriptor(true)
+            setIsValidExternalDescriptor(true)
+            setIsValidInternalDescriptor(true)
 
             // IMPORTANT: Store the FULL combined descriptor in the store for validation during account creation
             // The separated descriptors are only for display purposes
@@ -813,8 +815,8 @@ export default function WatchOnly() {
             // Set the separated descriptors but mark them as invalid
             setLocalExternalDescriptor(combinedValidation.external)
             setLocalInternalDescriptor(combinedValidation.internal)
-            setValidExternalDescriptor(false)
-            setValidInternalDescriptor(false)
+            setIsValidExternalDescriptor(false)
+            setIsValidInternalDescriptor(false)
           }
         } else {
           // Handle non-combined descriptors with existing logic
@@ -841,7 +843,7 @@ export default function WatchOnly() {
 
   const confirmAccountCreation = useCallback(
     async () => {
-      setLoadingWallet(true)
+      setIsLoadingWallet(true)
       try {
         if (selectedOption === 'importExtendedPub') {
           if (!xpub || !localFingerprint || !scriptVersion) {
@@ -916,7 +918,7 @@ export default function WatchOnly() {
         toast.error(t('watchonly.error.creationFailed'))
       } finally {
         clearAccount()
-        setLoadingWallet(false)
+        setIsLoadingWallet(false)
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -949,7 +951,7 @@ export default function WatchOnly() {
                   {selectedOption === 'importExtendedPub' && (
                     <SSTextInput
                       value={xpub}
-                      style={validXpub ? styles.valid : styles.invalid}
+                      style={isValidXpub ? styles.valid : styles.invalid}
                       onChangeText={updateXpub}
                       multiline
                     />
@@ -958,7 +960,9 @@ export default function WatchOnly() {
                     <SSTextInput
                       value={externalDescriptor}
                       style={
-                        validExternalDescriptor ? styles.valid : styles.invalid
+                        isValidExternalDescriptor
+                          ? styles.valid
+                          : styles.invalid
                       }
                       onChangeText={updateExternalDescriptor}
                       multiline
@@ -993,13 +997,13 @@ export default function WatchOnly() {
                       })}
                       <SSTextInput
                         value={addressInput}
-                        style={validAddress ? styles.valid : styles.invalid}
+                        style={isValidAddress ? styles.valid : styles.invalid}
                         onChangeText={updateAddress}
                         multiline
                       />
                       <SSButton
                         label={t('common.add')}
-                        disabled={!addressInput || !validAddress}
+                        disabled={!addressInput || !isValidAddress}
                         onPress={() => addAddress(addressInput)}
                       />
                     </>
@@ -1066,7 +1070,9 @@ export default function WatchOnly() {
                     <SSTextInput
                       value={internalDescriptor}
                       style={
-                        validInternalDescriptor ? styles.valid : styles.invalid
+                        isValidInternalDescriptor
+                          ? styles.valid
+                          : styles.invalid
                       }
                       multiline
                       onChangeText={updateInternalDescriptor}
@@ -1100,7 +1106,9 @@ export default function WatchOnly() {
                 <SSTextInput
                   value={localFingerprint}
                   onChangeText={updateMasterFingerprint}
-                  style={validMasterFingerprint ? styles.valid : styles.invalid}
+                  style={
+                    isValidMasterFingerprint ? styles.valid : styles.invalid
+                  }
                 />
                 <SSHStack gap="sm">
                   <SSButton
@@ -1125,8 +1133,8 @@ export default function WatchOnly() {
               <SSButton
                 label={t('common.confirm')}
                 variant="secondary"
-                loading={loadingWallet}
-                disabled={disabled}
+                loading={isLoadingWallet}
+                disabled={isDisabled}
                 onPress={() => confirmAccountCreation()}
               />
               <SSButton
