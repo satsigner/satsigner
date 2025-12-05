@@ -361,12 +361,15 @@ export function validateDescriptorScriptVersion(
   return { isValid: true }
 }
 
-export function validateAddress(address: string) {
-  const networks = [
-    bitcoinjs.networks.bitcoin,
-    bitcoinjs.networks.testnet,
-    bitcoinjs.networks.regtest
-  ]
+export function validateAddress(address: string, network?: bitcoinjs.Network) {
+  const networks =
+    network !== undefined
+      ? [network]
+      : [
+          bitcoinjs.networks.bitcoin,
+          bitcoinjs.networks.testnet,
+          bitcoinjs.networks.regtest
+        ]
   for (const network of networks) {
     try {
       bitcoinjs.address.toOutputScript(address, network)
