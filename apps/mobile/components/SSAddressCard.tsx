@@ -12,34 +12,39 @@ import { SSIconEyeOn, SSIconTrash } from './icons'
 
 type AddressCardProps = {
   address: WatchedAddress
-  allowDelete: boolean
-  index: number
-  onViewDetails: () => void
-  onDelete: () => void
+  showDelete?: boolean
+  showView?: boolean
+  onViewDetails?: () => void
+  onDelete?: () => void
 }
 
 const tl = tn('account.settings.manageAddresses')
 
 export function AddressCard({
   address,
-  allowDelete,
-  index,
+  showDelete = false,
+  showView = false,
   onViewDetails,
   onDelete
 }: AddressCardProps) {
+  const index = address.index || -1
   return (
     <SSVStack gap="sm">
       <SSHStack justifyBetween>
         <SSText uppercase weight="bold">
-          {address.new
-            ? tl('addressIndexNew', { index })
-            : tl('addressIndex', { index })}
+          {index === -1
+            ? t('bitcoin.address')
+            : address.new
+              ? tl('addressIndexNew', { index })
+              : tl('addressIndex', { index })}
         </SSText>
         <SSHStack gap="sm">
-          <TouchableOpacity onPress={onViewDetails}>
-            <SSIconEyeOn width={16} height={16} />
-          </TouchableOpacity>
-          {allowDelete && (
+          {showView && (
+            <TouchableOpacity onPress={onViewDetails}>
+              <SSIconEyeOn width={16} height={16} />
+            </TouchableOpacity>
+          )}
+          {showDelete && (
             <TouchableOpacity onPress={onDelete}>
               <SSIconTrash width={16} height={16} />
             </TouchableOpacity>
