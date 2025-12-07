@@ -27,7 +27,7 @@ export function AddressCard({
   onViewDetails,
   onDelete
 }: AddressCardProps) {
-  const index = address.index || -1
+  const index = address.index !== undefined ? address.index : -1
   return (
     <SSVStack gap="sm">
       <SSHStack justifyBetween>
@@ -53,15 +53,15 @@ export function AddressCard({
       </SSHStack>
       <SSAddressDisplay address={address.address} />
       {!address.new && (
-        <SSVStack gap="none">
+        <SSVStack gap="xxs">
           <SSText>
             {tl('summary.balance')}{' '}
             <SSStyledSatText
               amount={address.summary.balance}
               textSize="sm"
               noColor
-            />{' '}
-            {t('bitcoin.sats')}
+            />
+            <SSText> {t('bitcoin.sats')}</SSText>
           </SSText>
           {address.summary.satsInMempool > 0 && (
             <SSText>
@@ -83,7 +83,7 @@ export function AddressCard({
             <SSText weight="bold">{address.summary.transactions}</SSText>
           </SSText>
           <SSText>
-            {t('common.label')}{' '}
+            {t('common.label')}{': '}
             {address.label ? (
               <SSText weight="bold">{address.label}</SSText>
             ) : (
