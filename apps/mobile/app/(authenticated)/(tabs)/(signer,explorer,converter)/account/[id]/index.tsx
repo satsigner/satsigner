@@ -262,7 +262,8 @@ type DerivedAddressesProps = {
 }
 
 const SCREEN_WIDTH = Dimensions.get('window').width
-const ADDRESS_LIST_WIDTH = SCREEN_WIDTH * 1.2
+const SCREEN_HEIGHT = Dimensions.get('window').height
+const ADDRESS_TABLE_WIDTH = SCREEN_WIDTH * 1.2
 
 function DerivedAddresses({
   account,
@@ -279,12 +280,16 @@ function DerivedAddresses({
   ) as Network
   const updateAccount = useAccountsStore((state) => state.updateAccount)
 
+  // if the device height is greater than width (phone screens), the default
+  // view is list. Otherwise, in case of tablet screens, it will be table view.
+  const defaultView = SCREEN_HEIGHT > SCREEN_WIDTH ? 'list' : 'table'
+
   const [addressPath, setAddressPath] = useState('')
   const [addressCount, setAddressCount] = useState(
     Math.max(1, Math.ceil(account.addresses.length / perPage)) * perPage
   )
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(false)
-  const [addressView, setAddressView] = useState<'table' | 'list'>('table')
+  const [addressView, setAddressView] = useState<'table' | 'list'>(defaultView)
 
   const isUpdatingAddresses = useRef(false)
   const isMultiAddressWatchOnly = useMemo(() => {
@@ -460,7 +465,7 @@ function DerivedAddresses({
   function SSAddressTable({ addresses }: SSAddressViewProps) {
     return (
       <ScrollView style={{ marginTop: 10 }} horizontal>
-        <SSVStack gap="none" style={{ width: ADDRESS_LIST_WIDTH }}>
+        <SSVStack gap="none" style={{ width: ADDRESS_TABLE_WIDTH }}>
           <SSHStack style={addressListStyles.headerRow}>
             <SSText
               style={[
@@ -1313,7 +1318,7 @@ const addressListStyles = StyleSheet.create({
   },
   row: {
     paddingVertical: 12,
-    width: ADDRESS_LIST_WIDTH,
+    width: ADDRESS_TABLE_WIDTH,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderColor: '#333',
@@ -1338,7 +1343,7 @@ const addressListStyles = StyleSheet.create({
     backgroundColor: '#111',
     justifyContent: 'space-between',
     alignItems: 'center',
-    width: ADDRESS_LIST_WIDTH
+    width: ADDRESS_TABLE_WIDTH
   },
   receiveChangeContainer: {
     display: 'flex',
