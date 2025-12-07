@@ -83,7 +83,8 @@ export function AddressCard({
             <SSText weight="bold">{address.summary.transactions}</SSText>
           </SSText>
           <SSText>
-            {t('common.label')}{': '}
+            {t('common.label')}
+            {': '}
             {address.label ? (
               <SSText weight="bold">{address.label}</SSText>
             ) : (
