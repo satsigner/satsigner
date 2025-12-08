@@ -262,7 +262,6 @@ type DerivedAddressesProps = {
 }
 
 const SCREEN_WIDTH = Dimensions.get('window').width
-const SCREEN_HEIGHT = Dimensions.get('window').height
 const ADDRESS_TABLE_WIDTH = SCREEN_WIDTH * 1.2
 
 function DerivedAddresses({
@@ -282,7 +281,8 @@ function DerivedAddresses({
 
   // if the device height is greater than width (phone screens), the default
   // view is list. Otherwise, in case of tablet screens, it will be table view.
-  const defaultView = SCREEN_HEIGHT > SCREEN_WIDTH ? 'list' : 'table'
+  const { width, height } = useWindowDimensions()
+  const defaultView = height > width ? 'list' : 'table'
 
   const [addressPath, setAddressPath] = useState('')
   const [addressCount, setAddressCount] = useState(
