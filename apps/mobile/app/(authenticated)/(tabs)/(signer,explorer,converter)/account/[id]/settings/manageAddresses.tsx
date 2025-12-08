@@ -116,9 +116,8 @@ export function ManageAccountAddresses({
           style={isActive ? styles.addressItemActive : styles.addressItem}
         >
           <AddressCard
-            address={address}
-            allowDelete={addresses.length > 2}
-            index={index}
+            address={{ ...address, index }}
+            showDelete={addresses.length > 2}
             onViewDetails={() => onViewAddressDetails(address.address)}
             onDelete={() => handleDeleteAddress(address.address)}
           />
