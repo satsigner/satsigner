@@ -47,9 +47,11 @@ import {
   SSIconList,
   SSIconMenu,
   SSIconRefresh,
+  SSIconTable,
   SSIconYellowIndicator
 } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
+import { AddressCard } from '@/components/SSAddressCard'
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
 import SSBubbleChart from '@/components/SSBubbleChart'
@@ -260,7 +262,7 @@ type DerivedAddressesProps = {
 }
 
 const SCREEN_WIDTH = Dimensions.get('window').width
-const ADDRESS_LIST_WIDTH = SCREEN_WIDTH * 1.2
+const ADDRESS_TABLE_WIDTH = SCREEN_WIDTH * 1.2
 
 function DerivedAddresses({
   account,
@@ -277,11 +279,18 @@ function DerivedAddresses({
   ) as Network
   const updateAccount = useAccountsStore((state) => state.updateAccount)
 
+  // if the device height is greater than width (phone screens), the default
+  // view is list. Otherwise, in case of tablet screens, it will be table view.
+  const { width, height } = useWindowDimensions()
+  const defaultView = height > width ? 'list' : 'table'
+
   const [addressPath, setAddressPath] = useState('')
-  const [loadingAddresses, setLoadingAddresses] = useState(false)
   const [addressCount, setAddressCount] = useState(
     Math.max(1, Math.ceil(account.addresses.length / perPage)) * perPage
   )
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false)
+  const [addressView, setAddressView] = useState<'table' | 'list'>(defaultView)
+
   const isUpdatingAddresses = useRef(false)
   const isMultiAddressWatchOnly = useMemo(() => {
     return (
@@ -327,19 +336,19 @@ function DerivedAddresses({
         ? addressCount
         : addressCount + perPage
     setAddressCount(newAddressCount)
-    setLoadingAddresses(true)
+    setIsLoadingAddresses(true)
 
     let addrList = await getWalletAddresses(wallet!, network!, newAddressCount)
     addrList = parseAccountAddressesDetails({
       ...account,
       addresses: addrList
     })
-    setLoadingAddresses(false)
+    setIsLoadingAddresses(false)
     updateAccount({ ...account, addresses: addrList })
   }
 
   async function updateAddresses() {
-    if (!wallet || loadingAddresses || isUpdatingAddresses.current) return
+    if (!wallet || isLoadingAddresses || isUpdatingAddresses.current) return
 
     isUpdatingAddresses.current = true
 
@@ -397,16 +406,11 @@ function DerivedAddresses({
         }
       >
         <SSHStack style={addressListStyles.row}>
-          {!isMultiAddressWatchOnly && (
-            <SSText
-              style={[
-                addressListStyles.indexText,
-                addressListStyles.columnIndex
-              ]}
-            >
-              {item.index}
-            </SSText>
-          )}
+          <SSText
+            style={[addressListStyles.indexText, addressListStyles.columnIndex]}
+          >
+            {item.index}
+          </SSText>
           <SSText
             style={[
               addressListStyles.addressText,
@@ -453,69 +457,24 @@ function DerivedAddresses({
     [] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
-  return (
-    <SSMainLayout style={addressListStyles.container}>
-      <SSHStack justifyBetween style={addressListStyles.header}>
-        <SSHStack>
-          <SSIconButton onPress={refreshAddresses}>
-            <SSIconRefresh height={18} width={22} />
-          </SSIconButton>
-          <SSIconButton onPress={() => handleOnExpand(!expand)}>
-            {expand ? (
-              <SSIconCollapse height={15} width={15} />
-            ) : (
-              <SSIconExpand height={15} width={16} />
-            )}
-          </SSIconButton>
-        </SSHStack>
-        {!isMultiAddressWatchOnly && (
-          <SSHStack gap="sm">
-            <SSText color="muted" uppercase>
-              {t('receive.path')}
-            </SSText>
-            <SSText>{addressPath}</SSText>
-          </SSHStack>
-        )}
-        <SSHStack gap="sm" style={{ width: 40, justifyContent: 'flex-end' }}>
-          <SSSortDirectionToggle
-            onDirectionChanged={() => setSortDirection()}
-          />
-        </SSHStack>
-      </SSHStack>
-      {!isMultiAddressWatchOnly && (
-        <SSHStack
-          gap="md"
-          justifyBetween
-          style={addressListStyles.receiveChangeContainer}
-        >
-          {[t('accounts.receive'), t('accounts.change')].map((type, index) => (
-            <SSHStack key={type} style={{ flex: 1, justifyContent: 'center' }}>
-              <SSButton
-                style={{
-                  borderColor: change === (index === 1) ? '#fff' : '#333'
-                }}
-                uppercase
-                onPress={() => setChange(index === 1)}
-                label={type}
-                variant="outline"
-              />
-            </SSHStack>
-          ))}
-        </SSHStack>
-      )}
+  type SSAddressViewProps = {
+    addresses: Address[]
+  }
+
+  // TODO: in the refactor stage, move it to its own file
+  function SSAddressTable({ addresses }: SSAddressViewProps) {
+    return (
       <ScrollView style={{ marginTop: 10 }} horizontal>
-        <SSVStack gap="none" style={{ width: ADDRESS_LIST_WIDTH }}>
+        <SSVStack gap="none" style={{ width: ADDRESS_TABLE_WIDTH }}>
           <SSHStack style={addressListStyles.headerRow}>
-            {!isMultiAddressWatchOnly && (
-              <SSText
-                style={[
-                  addressListStyles.headerText,
-                  addressListStyles.columnIndex
-                ]}
-              >
-                #
-              </SSText>
-            )}
+            <SSText
+              style={[
+                addressListStyles.headerText,
+                addressListStyles.columnIndex
+              ]}
+            >
+              #
+            </SSText>
             <SSText
               style={[
                 addressListStyles.headerText,
@@ -558,13 +517,7 @@ function DerivedAddresses({
             </SSText>
           </SSHStack>
           <FlashList
-            data={account.addresses?.filter(
-              (address) =>
-                isMultiAddressWatchOnly ||
-                (change
-                  ? address.keychain === 'internal'
-                  : address.keychain === 'external')
-            )}
+            data={addresses}
             renderItem={renderItem}
             estimatedItemSize={150}
             keyExtractor={(item) => {
@@ -576,13 +529,119 @@ function DerivedAddresses({
           />
         </SSVStack>
       </ScrollView>
+    )
+  }
+
+  function SSAddressList({ addresses }: SSAddressViewProps) {
+    return (
+      <ScrollView>
+        <SSVStack style={{ paddingVertical: 10 }}>
+          {addresses.map((address, index) => {
+            const link = `/account/${account.id}/address/${address.address}`
+            return (
+              <TouchableOpacity
+                key={address.address}
+                onPress={() => router.navigate(link)}
+              >
+                <AddressCard address={{ index, ...address }} />
+              </TouchableOpacity>
+            )
+          })}
+        </SSVStack>
+      </ScrollView>
+    )
+  }
+
+  return (
+    <SSMainLayout style={addressListStyles.container}>
+      <SSHStack justifyBetween style={addressListStyles.header}>
+        <SSHStack>
+          <SSIconButton onPress={refreshAddresses}>
+            <SSIconRefresh height={18} width={22} />
+          </SSIconButton>
+          <SSIconButton onPress={() => handleOnExpand(!expand)}>
+            {expand ? (
+              <SSIconCollapse height={15} width={15} />
+            ) : (
+              <SSIconExpand height={15} width={15} />
+            )}
+          </SSIconButton>
+          <SSIconButton
+            onPress={() =>
+              setAddressView(addressView === 'table' ? 'list' : 'table')
+            }
+          >
+            {addressView === 'table' ? (
+              <SSIconList height={15} width={15} />
+            ) : (
+              <SSIconTable height={15} width={15} />
+            )}
+          </SSIconButton>
+        </SSHStack>
+        {!isMultiAddressWatchOnly && (
+          <SSHStack gap="sm">
+            <SSText color="muted" uppercase>
+              {t('receive.path')}
+            </SSText>
+            <SSText>{addressPath}</SSText>
+          </SSHStack>
+        )}
+        <SSHStack gap="sm" style={{ width: 40, justifyContent: 'flex-end' }}>
+          <SSSortDirectionToggle
+            onDirectionChanged={() => setSortDirection()}
+          />
+        </SSHStack>
+      </SSHStack>
+      {!isMultiAddressWatchOnly && (
+        <SSHStack
+          gap="md"
+          justifyBetween
+          style={addressListStyles.receiveChangeContainer}
+        >
+          {[t('accounts.receive'), t('accounts.change')].map((type, index) => (
+            <SSHStack key={type} style={{ flex: 1, justifyContent: 'center' }}>
+              <SSButton
+                style={{
+                  borderColor: change === (index === 1) ? '#fff' : '#333'
+                }}
+                uppercase
+                onPress={() => setChange(index === 1)}
+                label={type}
+                variant="outline"
+              />
+            </SSHStack>
+          ))}
+        </SSHStack>
+      )}
+      {addressView === 'table' && (
+        <SSAddressTable
+          addresses={account?.addresses.filter(
+            (address) =>
+              isMultiAddressWatchOnly ||
+              (change
+                ? address.keychain === 'internal'
+                : address.keychain === 'external')
+          )}
+        />
+      )}
+      {addressView === 'list' && (
+        <SSAddressList
+          addresses={account?.addresses.filter(
+            (address) =>
+              isMultiAddressWatchOnly ||
+              (change
+                ? address.keychain === 'internal'
+                : address.keychain === 'external')
+          )}
+        />
+      )}
       {!isMultiAddressWatchOnly && (
         <SSButton
           variant="outline"
           uppercase
           style={{ marginTop: 10 }}
           label={t('address.list.btn.loadMore')}
-          disabled={loadingAddresses}
+          disabled={isLoadingAddresses}
           onPress={loadMoreAddresses}
         />
       )}
@@ -1259,7 +1318,7 @@ const addressListStyles = StyleSheet.create({
   },
   row: {
     paddingVertical: 12,
-    width: ADDRESS_LIST_WIDTH,
+    width: ADDRESS_TABLE_WIDTH,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderColor: '#333',
@@ -1284,7 +1343,7 @@ const addressListStyles = StyleSheet.create({
     backgroundColor: '#111',
     justifyContent: 'space-between',
     alignItems: 'center',
-    width: ADDRESS_LIST_WIDTH
+    width: ADDRESS_TABLE_WIDTH
   },
   receiveChangeContainer: {
     display: 'flex',
