@@ -1,7 +1,6 @@
 import type BottomSheet from '@gorhom/bottom-sheet'
 import { useIsFocused } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
-import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -19,6 +18,7 @@ import { SSIconChevronLeft } from '@/components/icons'
 import SSAmountInput from '@/components/SSAmountInput'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSCurrentTransactionChart from '@/components/SSCurrentTransactionChart'
 import SSFeeInput from '@/components/SSFeeInput'
 import SSFeeRateChart, {
@@ -29,8 +29,9 @@ import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
+import { DUST_LIMIT } from '@/constants/btc'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
+import { processContentForOutput } from '@/hooks/useContentProcessor'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -46,7 +47,7 @@ import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { checkWalletNeedsSync } from '@/utils/account'
-import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
+import { type DetectedContent } from '@/utils/contentDetector'
 import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
@@ -55,13 +56,15 @@ import { selectEfficientUtxos } from '@/utils/utxo'
 export default function IOPreview() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
-  const [permission, requestPermission] = useCameraPermissions()
   const isFocused = useIsFocused()
 
   const account = useAccountsStore(
     (state) => state.accounts.find((account) => account.id === id)!
   )
-  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+  const [currencyUnit, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  )
+  const zeroPadding = useZeroPadding || currencyUnit === 'btc'
   const [
     inputs,
     addInput,
@@ -291,35 +294,28 @@ export default function IOPreview() {
     setLocalFeeRate(feeRate)
   }, [feeRate])
 
-  function handleQRCodeScanned(address: string | undefined) {
-    if (!address) return
-
-    if (isBitcoinAddress(address)) {
-      setOutputTo(address)
-    } else if (isBip21(address)) {
-      const decodedData = bip21decode(address)
-      if (!decodedData || typeof decodedData === 'string') {
-        toast.error(t('transaction.error.address.invalid'))
-        setCameraModalVisible(false)
-        return
-      }
-
-      setOutputTo(decodedData.address)
-      if (decodedData.options.amount) {
-        const normalizedAmount = decodedData.options.amount * SATS_PER_BITCOIN
-        if (normalizedAmount > remainingSats) {
-          toast.warning(t('transaction.error.bip21.insufficientSats'))
-        } else {
-          setOutputAmount(normalizedAmount)
-        }
-      }
-
-      if (decodedData.options.label) setOutputLabel(decodedData.options.label)
-    } else {
-      toast.error(t('transaction.error.address.invalid'))
+  function handleContentScanned(content: DetectedContent) {
+    if (!content.isValid) {
+      toast.error(t('camera.error.invalidContent'))
+      return
     }
 
-    setCameraModalVisible(false)
+    const success = processContentForOutput(content, {
+      setOutputTo,
+      setOutputAmount,
+      setOutputLabel,
+      onError: () => {
+        toast.error(t('transaction.error.address.invalid'))
+      },
+      onWarning: () => {
+        toast.warning(t('transaction.error.bip21.insufficientSats'))
+      },
+      remainingSats
+    })
+
+    if (success) {
+      setCameraModalVisible(false)
+    }
   }
 
   function resetLocalOutput() {
@@ -555,10 +551,10 @@ export default function IOPreview() {
                 {t('common.total')}
               </SSText>
               <SSText size="xxs" style={{ color: Colors.gray[75] }}>
-                {formatNumber(utxosTotalValue, 0, useZeroPadding)}
+                {formatNumber(utxosTotalValue, 0, zeroPadding)}
               </SSText>
               <SSText size="xxs" style={{ color: Colors.gray[400] }}>
-                {t('bitcoin.sats').toLowerCase()}
+                {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
               </SSText>
               <SSText size="xxs" style={{ color: Colors.gray[75] }}>
                 {formatNumber(satsToFiat(utxosTotalValue), 2)}
@@ -576,10 +572,10 @@ export default function IOPreview() {
                 weight="ultralight"
                 style={{ lineHeight: 62 }}
               >
-                {formatNumber(utxosSelectedValue, 0, useZeroPadding)}
+                {formatNumber(utxosSelectedValue, 0, zeroPadding)}
               </SSText>
               <SSText size="xl" color="muted">
-                {t('bitcoin.sats').toLowerCase()}
+                {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
               </SSText>
             </SSHStack>
             <SSHStack
@@ -940,26 +936,12 @@ export default function IOPreview() {
           />
         </SSVStack>
       </SSBottomSheet>
-      <SSModal
+      <SSCameraModal
         visible={cameraModalVisible}
-        fullOpacity
         onClose={() => setCameraModalVisible(false)}
-      >
-        <SSText color="muted" uppercase>
-          {t('camera.scanQRCode')}
-        </SSText>
-        <CameraView
-          onBarcodeScanned={(res) => handleQRCodeScanned(res.raw)}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-          style={{ width: 340, height: 340 }}
-        />
-        {!permission?.granted && (
-          <SSButton
-            label={t('camera.enableCameraAccess')}
-            onPress={requestPermission}
-          />
-        )}
-      </SSModal>
+        onContentScanned={handleContentScanned}
+        context="bitcoin"
+      />
     </View>
   )
 }

@@ -1,4 +1,3 @@
-import * as React from 'react'
 import Svg, { Path, type SvgProps } from 'react-native-svg'
 
 type IconProps = Pick<SvgProps, 'width' | 'height' | 'color'>
@@ -10,9 +9,7 @@ export default function SSIconSync({
 }: IconProps) {
   return (
     <Svg width={width} height={height} viewBox="0 0 10 9" fill="none">
-      {/* Filled path */}
       <Path d="M1.714 6.104v1.84-1.84Z" fill={color} />
-      {/* Stroked path */}
       <Path
         stroke={color}
         strokeLinecap="round"

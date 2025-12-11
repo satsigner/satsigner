@@ -27,6 +27,7 @@
   "dependencies": {
     "@bitcoinerlab/secp256k1": "^1.2.0",
     "@cashu/cashu-ts": "^3.0.0",
+    "@gandlaf21/bolt11-decode": "^3.1.1",
     "@gorhom/bottom-sheet": "^5.1.1",
     "@miblanchard/react-native-slider": "^2.6.0",
     "@ngraveio/bc-ur": "^1.1.13",
@@ -79,6 +80,7 @@
     "react-native-bouncy-checkbox": "^4.1.2",
     "react-native-device-info": "^11.1.0",
     "react-native-document-picker": "^9.3.1",
+    "react-native-draggable-flatlist": "^4.0.3",
     "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "~2.14.0",
     "react-native-get-random-values": "^1.11.0",

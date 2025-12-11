@@ -1,15 +1,14 @@
 import { getDecodedToken } from '@cashu/cashu-ts'
-import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Stack, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSEcashTokenDetails from '@/components/SSEcashTokenDetails'
-import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -21,20 +20,10 @@ import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { error, success, warning, white } from '@/styles/colors'
 import { type EcashToken } from '@/types/models/Ecash'
-import {
-  decodeLNURL,
-  fetchLNURLWithdrawDetails,
-  getLNURLType,
-  type LNURLWithdrawDetails,
-  requestLNURLWithdrawInvoice
-} from '@/utils/lnurl'
+import { type DetectedContent } from '@/utils/contentDetector'
 
 export default function EcashReceivePage() {
-  const router = useRouter()
-  const { token: tokenParam, lnurl: lnurlParam } = useLocalSearchParams<{
-    token?: string
-    lnurl?: string
-  }>()
+  const { token: tokenParam } = useLocalSearchParams()
   const [activeTab, setActiveTab] = useState<'ecash' | 'lightning'>('ecash')
   const [token, setToken] = useState('')
   const [decodedToken, setDecodedToken] = useState<EcashToken | null>(null)
@@ -49,14 +38,6 @@ export default function EcashReceivePage() {
   const [isRedeeming, setIsRedeeming] = useState(false)
   const [isCreatingQuote, setIsCreatingQuote] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
-  const [permission, requestPermission] = useCameraPermissions()
-  const [lnurlWithdrawCode, setLnurlWithdrawCode] = useState<string | null>(
-    null
-  )
-  const [lnurlWithdrawDetails, setLnurlWithdrawDetails] =
-    useState<LNURLWithdrawDetails | null>(null)
-  const [isLNURLWithdrawMode, setIsLNURLWithdrawMode] = useState(false)
-  const [isFetchingLNURL, setIsFetchingLNURL] = useState(false)
 
   const {
     activeMint,
@@ -86,54 +67,28 @@ export default function EcashReceivePage() {
     }
   }, [activeTab, stopPolling])
 
-  // Handle URL params
-  useEffect(() => {
-    if (tokenParam) {
-      setActiveTab('ecash')
-      handleTokenChange(tokenParam)
-    } else if (lnurlParam) {
-      setActiveTab('lightning')
-      handleLNURLWithdrawInput(lnurlParam)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tokenParam, lnurlParam])
+  const handleTokenChange = useCallback((text: string) => {
+    setToken(text)
+    setDecodedToken(null)
 
-  // Handle LNURL-w input
-  const handleLNURLWithdrawInput = useCallback(async (input: string) => {
-    const cleanInput = input.trim()
-    if (!cleanInput) return
-
-    const { isLNURL: isLNURLInput, type: lnurlType } = getLNURLType(cleanInput)
-
-    if (!isLNURLInput || lnurlType !== 'withdraw') {
-      toast.error(t('ecash.error.invalidLnurlType'))
-      return
-    }
-
-    setIsFetchingLNURL(true)
-    setIsLNURLWithdrawMode(true)
-    setLnurlWithdrawCode(cleanInput)
-
+    const cleanText = text.trim()
+    if (!cleanText || !cleanText.toLowerCase().startsWith('cashu')) return
     try {
-      const url = decodeLNURL(cleanInput)
-      const details = await fetchLNURLWithdrawDetails(url)
-      setLnurlWithdrawDetails(details)
-      // Auto-populate amount with max withdrawable (in sats)
-      setAmount(Math.floor(details.maxWithdrawable / 1000).toString())
-      toast.success(t('ecash.success.lnurlWithdrawDetected'))
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : t('ecash.error.failedToFetchLnurlDetails')
-      )
-      setIsLNURLWithdrawMode(false)
-      setLnurlWithdrawCode(null)
-      setLnurlWithdrawDetails(null)
-    } finally {
-      setIsFetchingLNURL(false)
+      const decoded = getDecodedToken(cleanText)
+      setDecodedToken(decoded)
+    } catch {
+      setDecodedToken(null)
     }
   }, [])
+
+  useEffect(() => {
+    if (!tokenParam) return
+    const tokenValue = Array.isArray(tokenParam) ? tokenParam[0] : tokenParam
+    if (!tokenValue) return
+    setToken(tokenValue)
+    setActiveTab('ecash')
+    handleTokenChange(tokenValue)
+  }, [tokenParam, handleTokenChange])
 
   const handleRedeemToken = useCallback(async () => {
     if (!token) {
@@ -280,23 +235,6 @@ export default function EcashReceivePage() {
     lnurlWithdrawCode
   ])
 
-  const handleTokenChange = useCallback((text: string) => {
-    setToken(text)
-    setDecodedToken(null) // Clear previous decode
-
-    const cleanText = text.trim()
-    if (!cleanText) return
-
-    if (cleanText.toLowerCase().startsWith('cashu')) {
-      try {
-        const decoded = getDecodedToken(cleanText)
-        setDecodedToken(decoded as EcashToken)
-      } catch {
-        setDecodedToken(null)
-      }
-    }
-  }, [])
-
   const handlePasteToken = useCallback(async () => {
     try {
       const clipboardText = await Clipboard.getStringAsync()
@@ -326,26 +264,12 @@ export default function EcashReceivePage() {
     setCameraModalVisible(true)
   }
 
-  const handleQRCodeScanned = useCallback(
-    ({ data }: { data: string }) => {
+  const handleContentScanned = useCallback(
+    (content: DetectedContent) => {
       setCameraModalVisible(false)
-      const cleanData = data.trim()
-
-      if (activeTab === 'ecash') {
-        // Handle ecash token
-        const tokenData = cleanData.replace(/^cashu:/i, '')
-        handleTokenChange(tokenData)
-        toast.success(t('ecash.success.tokenScanned'))
-      } else if (activeTab === 'lightning') {
-        // Check if it's an LNURL-w code
-        const { isLNURL: isLNURLInput, type: lnurlType } =
-          getLNURLType(cleanData)
-        if (isLNURLInput && lnurlType === 'withdraw') {
-          handleLNURLWithdrawInput(cleanData)
-        } else {
-          toast.error(t('ecash.error.invalidLnurlType'))
-        }
-      }
+      const cleanData = content.cleaned.replace(/^cashu:/i, '')
+      handleTokenChange(cleanData)
+      toast.success(t('ecash.success.tokenScanned'))
     },
     [handleTokenChange, activeTab, handleLNURLWithdrawInput]
   )
@@ -400,7 +324,6 @@ export default function EcashReceivePage() {
 
       <ScrollView>
         <SSVStack gap="lg" style={{ paddingBottom: 60 }}>
-          {/* Tab Selector */}
           <SSHStack>
             <SSButton
               label={t('ecash.receive.ecashTab')}
@@ -430,7 +353,6 @@ export default function EcashReceivePage() {
                   style={styles.tokenInput}
                 />
               </SSVStack>
-
               <SSHStack gap="sm">
                 <SSButton
                   label={t('common.paste')}
@@ -526,23 +448,19 @@ export default function EcashReceivePage() {
                   }
                 />
               </SSVStack>
-
               {!mintQuote ? (
-                <SSVStack gap="sm">
-                  <SSHStack gap="sm">
-                    <SSButton
-                      label={t('common.paste')}
-                      onPress={handlePasteToken}
-                      variant="subtle"
-                      style={{ flex: 1 }}
-                    />
-                    <SSButton
-                      label={t('common.scan')}
-                      onPress={handleScanToken}
-                      variant="subtle"
-                      style={{ flex: 1 }}
-                    />
-                  </SSHStack>
+                <SSButton
+                  label={t('ecash.receive.createInvoice')}
+                  onPress={handleCreateInvoice}
+                  loading={isCreatingQuote}
+                  variant="gradient"
+                  gradientType="special"
+                />
+              ) : (
+                <SSVStack gap="md">
+                  <View style={styles.qrContainer}>
+                    <SSQRCode value={mintQuote.request} size={300} />
+                  </View>
                   <SSButton
                     label={
                       isLNURLWithdrawMode
@@ -567,7 +485,6 @@ export default function EcashReceivePage() {
                 </SSVStack>
               ) : (
                 <SSVStack gap="md">
-                  {/* Display Lightning Invoice - only show QR for non-LNURL-w */}
                   {!isLNURLWithdrawMode && (
                     <View style={styles.qrContainer}>
                       <SSQRCode value={mintQuote.request} size={300} />
@@ -587,8 +504,6 @@ export default function EcashReceivePage() {
                       variant="outline"
                     />
                   )}
-
-                  {/* Quote Status */}
                   <SSVStack gap="none">
                     <SSText style={{ color: getStatusColor(quoteStatus) }}>
                       {getStatusText(quoteStatus)}
@@ -610,28 +525,13 @@ export default function EcashReceivePage() {
           )}
         </SSVStack>
       </ScrollView>
-
-      {/* Camera Modal */}
-      <SSModal
+      <SSCameraModal
         visible={cameraModalVisible}
-        fullOpacity
         onClose={() => setCameraModalVisible(false)}
-      >
-        <SSText color="muted" uppercase>
-          {t('camera.scanQRCode')}
-        </SSText>
-        <CameraView
-          onBarcodeScanned={handleQRCodeScanned}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-          style={styles.camera}
-        />
-        {!permission?.granted && (
-          <SSButton
-            label={t('camera.enableCameraAccess')}
-            onPress={requestPermission}
-          />
-        )}
-      </SSModal>
+        onContentScanned={handleContentScanned}
+        context="ecash"
+        title="Scan Ecash Token"
+      />
     </SSMainLayout>
   )
 }
@@ -651,19 +551,5 @@ const styles = StyleSheet.create({
   qrContainer: {
     alignItems: 'center',
     paddingVertical: 20
-  },
-  camera: {
-    flex: 1,
-    width: '100%'
-  },
-  lnurlDetails: {
-    padding: 12,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 4
-  },
-  detailRow: {
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap'
   }
 })

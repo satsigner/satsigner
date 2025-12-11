@@ -2,8 +2,10 @@ import { decode } from 'bip21'
 import { networks } from 'bitcoinjs-lib'
 import bs58check from 'bs58check'
 
-import { type Network } from '@/types/settings/blockchain'
+import { type Network as AppNetwork } from '@/types/settings/blockchain'
 
+// TODO: delete this and replace all of its references with bitcoinjs-lib,
+// since it provides more reliable validation function
 // from https://stackoverflow.com/questions/21683680/regex-to-match-bitcoin-addresses + slightly modified to support testnet addresses
 function isBitcoinAddress(address: string): boolean {
   return /^(?:[13]{1}[a-km-zA-HJ-NP-Z1-9]{25,34}|(bc1|tb1)[a-z0-9]{39,59})$/i.test(
@@ -11,6 +13,7 @@ function isBitcoinAddress(address: string): boolean {
   )
 }
 
+// TODO: move it to utils/bip21
 function isBip21(uri: string) {
   try {
     const result = decode(uri)
@@ -21,6 +24,7 @@ function isBip21(uri: string) {
   }
 }
 
+// TODO: move it to utils/bip21
 function bip21decode(uri: string) {
   try {
     if (!uri) throw new Error('No URI provided')
@@ -33,7 +37,7 @@ function bip21decode(uri: string) {
 
 // Convert network notation used by our app (and by BDK enum too)
 // to the network interface used by bitcoinjs-lib
-function bitcoinjsNetwork(network: Network): networks.Network {
+function bitcoinjsNetwork(network: AppNetwork): networks.Network {
   switch (network) {
     case 'bitcoin':
       return networks['bitcoin']
@@ -43,6 +47,8 @@ function bitcoinjsNetwork(network: Network): networks.Network {
       return networks['testnet']
   }
 }
+
+// TODO: refactor all vibe code below, which is duplicate of other utils.
 
 // Define version bytes for different key formats and networks
 const KEY_VERSION_BYTES = {
@@ -59,7 +65,7 @@ const KEY_VERSION_BYTES = {
 }
 
 // Define key format mappings for each network
-const NETWORK_KEY_FORMATS: Record<Network, Record<string, string>> = {
+const NETWORK_KEY_FORMATS: Record<AppNetwork, Record<string, string>> = {
   bitcoin: {
     xpub: 'xpub', // Legacy P2PKH
     ypub: 'ypub', // P2SH-P2WPKH
@@ -86,7 +92,7 @@ const NETWORK_KEY_FORMATS: Record<Network, Record<string, string>> = {
 export function convertKeyFormat(
   key: string,
   targetFormat: string,
-  network: Network
+  network: AppNetwork
 ): string {
   if (!key || !targetFormat || !network) return key
 
@@ -137,7 +143,7 @@ export function convertKeyFormat(
  */
 export function getKeyFormatForScriptVersion(
   scriptVersion: string,
-  network: Network
+  network: AppNetwork
 ): string {
   const formatMappings: Record<string, string> = {
     P2PKH: 'xpub',
@@ -156,7 +162,7 @@ export function getKeyFormatForScriptVersion(
 /**
  * Detect the network from a key prefix
  */
-export function detectNetworkFromKey(key: string): Network | null {
+export function detectNetworkFromKey(key: string): AppNetwork | null {
   if (!key) return null
 
   const mainnetPrefixes = ['xpub', 'ypub', 'zpub']
@@ -182,7 +188,7 @@ export function detectNetworkFromKey(key: string): Network | null {
  */
 export function getDerivationPathFromScriptVersion(
   scriptVersion: string,
-  network: Network
+  network: AppNetwork
 ): string {
   // Determine coin type based on network
   const coinType = network === 'bitcoin' ? '0' : '1'
@@ -213,7 +219,7 @@ export function getDerivationPathFromScriptVersion(
  */
 export function getMultisigDerivationPathFromScriptVersion(
   scriptVersion: string,
-  network: Network
+  network: AppNetwork
 ): string {
   // Determine coin type based on network
   const coinType = network === 'bitcoin' ? '0' : '1'

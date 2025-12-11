@@ -3,6 +3,7 @@ import { Stack } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
@@ -19,7 +20,10 @@ import { formatNumber } from '@/utils/format'
 
 export default function EcashBackupPage() {
   const { mints, proofs, activeMint, transactions } = useEcash()
-  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+  const [currencyUnit, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  )
+  const zeroPadding = useZeroPadding || currencyUnit === 'btc'
   const [showBackupData, setShowBackupData] = useState(false)
   const [backupData, setBackupData] = useState('')
   const [includeTokenProofs, setIncludeTokenProofs] = useState(true)
@@ -136,9 +140,11 @@ export default function EcashBackupPage() {
                   {formatNumber(
                     proofs.reduce((sum, proof) => sum + proof.amount, 0),
                     0,
-                    useZeroPadding
+                    zeroPadding
                   )}{' '}
-                  sats
+                  {currencyUnit === 'btc'
+                    ? t('bitcoin.btc')
+                    : t('bitcoin.sats')}
                 </SSText>
               </SSHStack>
               <SSHStack>

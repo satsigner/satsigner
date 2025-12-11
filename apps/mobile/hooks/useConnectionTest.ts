@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
+import ElectrumClient from '@/api/electrum'
+import Esplora from '@/api/esplora'
 import {
   type Backend,
   type Network,
@@ -100,7 +102,6 @@ export function useConnectionTest() {
       const testPromise = (async () => {
         if (backend === 'electrum') {
           // Test Electrum connection and get server info
-          const ElectrumClient = (await import('@/api/electrum')).default
           const client = ElectrumClient.fromUrl(url, network)
 
           // Store current client for cleanup
@@ -143,7 +144,7 @@ export function useConnectionTest() {
                 return sum + (Array.isArray(item) && item[1] ? item[1] : 0)
               }, 0)
             }
-          } catch (_e) {
+          } catch {
             // Mempool info not available
           }
 
@@ -158,13 +159,12 @@ export function useConnectionTest() {
 
           try {
             client.close()
-          } catch (_closeError) {
+          } catch {
             // Silently handle close errors
           }
           return { success: true }
         } else if (backend === 'esplora') {
           // Test Esplora connection and get server info
-          const Esplora = (await import('@/api/esplora')).default
           const client = new Esplora(url)
 
           // Store current client for cleanup

@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   type ViewStyle
 } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -67,7 +68,9 @@ function SSTransactionCard({
   const { type, received, sent } = transaction
   const amount = type === 'receive' ? received : sent - received
 
-  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+  const [currencyUnit, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  )
 
   useEffect(() => {
     const { prices } = transaction
@@ -177,6 +180,7 @@ function SSTransactionCard({
                   amount={amount}
                   decimals={0}
                   useZeroPadding={useZeroPadding}
+                  currency={currencyUnit}
                   type={transaction.type}
                   textSize={smallView ? 'xl' : '4xl'}
                   noColor={false}
@@ -184,7 +188,9 @@ function SSTransactionCard({
                   letterSpacing={smallView ? 0 : -0.5}
                 />
                 <SSText color="muted" size={smallView ? 'xs' : 'sm'}>
-                  {t('bitcoin.sats').toLowerCase()}
+                  {currencyUnit === 'btc'
+                    ? t('bitcoin.btc')
+                    : t('bitcoin.sats')}
                 </SSText>
               </SSHStack>
             </SSHStack>
@@ -195,12 +201,15 @@ function SSTransactionCard({
                     amount={walletBalance}
                     decimals={0}
                     useZeroPadding={useZeroPadding}
+                    currency={currencyUnit}
                     type={transaction.type}
                     textSize={smallView ? 'xs' : 'sm'}
                   />
                 </SSText>
                 <SSText size="xs" color="muted">
-                  {t('bitcoin.sats').toLowerCase()}
+                  {currencyUnit === 'btc'
+                    ? t('bitcoin.btc')
+                    : t('bitcoin.sats')}
                 </SSText>
               </SSHStack>
             )}
@@ -316,7 +325,7 @@ const styles = StyleSheet.create({
     color: Colors.warning
   },
   confirmedEnough: {
-    color: Colors.success
+    color: Colors.softBarGreen
   }
 })
 

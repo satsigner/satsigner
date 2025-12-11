@@ -5,11 +5,14 @@ import {
   Line,
   LinearGradient,
   matchFont,
+  Paragraph,
   Path,
   Rect,
   rect,
   Skia,
+  type SkParagraph,
   Text,
+  TextAlign,
   TileMode,
   useFonts,
   vec
@@ -721,6 +724,46 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
     fontSize: 10
   } as const
 
+  const labelParagraphs = useMemo(() => {
+    if (!customFontManager) return new Map<string, SkParagraph>()
+    const paragraphs = new Map<string, SkParagraph>()
+
+    txInfoLabels.forEach((label) => {
+      if (label.type === 'end') return
+      const text =
+        (showLabel && label.memo!) ||
+        (showAmount && numberCommaFormatter(label.amount!)) ||
+        ''
+
+      const para = Skia.ParagraphBuilder.Make(
+        {
+          maxLines: 1,
+          textAlign: TextAlign.Left
+        },
+        customFontManager
+      )
+        .pushStyle({
+          color: Skia.Color(label.type === 'receive' ? '#A7FFAF' : '#FF7171'),
+          fontFamilies: ['SF Pro Text'],
+          fontSize: 10
+        })
+        .addText(text)
+        .pop()
+        .build()
+
+      para.layout(1000)
+      paragraphs.set(label.index, para)
+    })
+
+    return paragraphs
+  }, [
+    txInfoLabels,
+    customFontManager,
+    showLabel,
+    showAmount,
+    numberCommaFormatter
+  ])
+
   let previousDate: string = ''
 
   function YScaleRendrer() {
@@ -983,7 +1026,15 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
         (showLabel && label.memo!) ||
         (showAmount && numberCommaFormatter(label.amount!)) ||
         ''
-      const textWidth = font.measureText(text).width
+
+      const paragraph = labelParagraphs.get(label.index)
+      const textWidth = paragraph
+        ? Math.max(
+            paragraph.getMinIntrinsicWidth(),
+            font.measureText(text).width
+          )
+        : font.measureText(text).width
+
       labelRectRef.current.push({
         rect: {
           left: label.type === 'receive' ? label.x - textWidth : label.x,
@@ -993,10 +1044,28 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
         },
         id: label.id
       })
+
+      if (paragraph) {
+        const xPos = label.type === 'receive' ? label.x - textWidth : label.x
+        const clampedX = Math.max(0, xPos)
+        return (
+          <Fragment key={index}>
+            <Paragraph
+              paragraph={paragraph}
+              x={clampedX}
+              y={label.y - 10}
+              width={textWidth}
+            />
+          </Fragment>
+        )
+      }
+
+      const xPos = label.type === 'receive' ? label.x - textWidth : label.x
+      const clampedX = Math.max(0, xPos)
       return (
         <Fragment key={index}>
           <Text
-            x={label.type === 'receive' ? label.x - textWidth : label.x}
+            x={clampedX}
             y={label.y}
             text={text}
             font={font}

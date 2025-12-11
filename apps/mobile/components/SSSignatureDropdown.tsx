@@ -403,7 +403,7 @@ function SSSignatureDropdown({
             <SSButton
               variant="outline"
               disabled={!messageId}
-              label={t('transaction.preview.showQR')}
+              label={t('common.showQR')}
               style={{ width: '48%' }}
               onPress={() => {
                 onShowQR()
@@ -479,7 +479,7 @@ function SSSignatureDropdown({
               }}
             />
             <SSButton
-              label={t('transaction.preview.showQR')}
+              label={t('common.scanQR')}
               style={{ width: '48%' }}
               variant="outline"
               onPress={() => {

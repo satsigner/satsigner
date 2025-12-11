@@ -64,11 +64,13 @@ import SSIconMultiSignature from './SSIconMultiSignature'
 import SSIconNetwork from './SSIconNetwork'
 import SSIconOutgoing from './SSIconOutgoing'
 import SSIconOutgoingLightning from './SSIconOutgoingLightning'
+import SSIconPasteClipboard from './SSIconPasteClipboard'
 import SSIconPencil from './SSIconPencil'
 import SSIconPlus from './SSIconPlus'
 import SSIconRefresh from './SSIconRefresh'
 import SSIconRemove from './SSIconRemove'
 import SSIconScan from './SSIconScan'
+import SSIconScanNFC from './SSIconScanNFC'
 import SSIconScriptsP2pkh from './SSIconScriptsP2pkh'
 import SSIconSeed from './SSIconSeed'
 import SSIconServer from './SSIconServer'
@@ -78,7 +80,9 @@ import SSIconSigner from './SSIconSigner'
 import SSIconSignerActive from './SSIconSignerActive'
 import SSIconSingleSignature from './SSIconSingleSignature'
 import SSIconSuccess from './SSIconSuccess'
+import SSIconTable from './SSIconTable'
 import SSIconTime from './SSIconTime'
+import SSIconTrash from './SSIconTrash'
 import SSIconWalletEye from './SSIconWalletEye'
 import SSIconWarning from './SSIconWarning'
 import SSIconX from './SSIconX'
@@ -152,11 +156,13 @@ export {
   SSIconNetwork,
   SSIconOutgoing,
   SSIconOutgoingLightning,
+  SSIconPasteClipboard,
   SSIconPencil,
   SSIconPlus,
   SSIconRefresh,
   SSIconRemove,
   SSIconScan,
+  SSIconScanNFC,
   SSIconScriptsP2pkh,
   SSIconSeed,
   SSIconServer,
@@ -166,7 +172,9 @@ export {
   SSIconSignerActive,
   SSIconSingleSignature,
   SSIconSuccess,
+  SSIconTable,
   SSIconTime,
+  SSIconTrash,
   SSIconWalletEye,
   SSIconWarning,
   SSIconX,
