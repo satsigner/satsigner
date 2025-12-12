@@ -8,6 +8,7 @@ import {
   SSIconECash,
   SSIconGreenIndicator
 } from '@/components/icons'
+import SSButton from '@/components/SSButton'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSEcashTransactionCard from '@/components/SSEcashTransactionCard'
@@ -32,7 +33,7 @@ import { formatFiatPrice } from '@/utils/format'
 
 export default function EcashLanding() {
   const router = useRouter()
-  const { activeMint, proofs, transactions } = useEcash()
+  const { mints, activeMint, proofs, transactions } = useEcash()
   const ecashStatus = useEcashStore((state) => state.status)
   const [currencyUnit, useZeroPadding] = useSettingsStore(
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
@@ -53,6 +54,8 @@ export default function EcashLanding() {
   }, [fetchPrices, fiatCurrency, mempoolUrl])
 
   const handleSettingsPress = () => router.navigate('/signer/ecash/settings')
+  const handleConnectMintPress = () =>
+    router.navigate('/signer/ecash/settings/mint')
 
   function getConnectionErrorMessage(error?: string): string {
     if (!error) {
@@ -111,68 +114,90 @@ export default function EcashLanding() {
         }}
       />
       <Animated.View>
-        <SSVStack itemsCenter gap="none" style={{ paddingBottom: '4%' }}>
-          <SSVStack style={styles.balanceContainer} gap="xs">
-            <SSText color="muted" size="xs" uppercase>
-              {t('ecash.mint.balance')}
-            </SSText>
-            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-              <SSStyledSatText
-                amount={totalBalance}
-                decimals={0}
-                useZeroPadding={useZeroPadding}
-                currency={currencyUnit}
-                textSize={totalBalance > 1_000_000_000 ? '4xl' : '6xl'}
-                weight="ultralight"
-                letterSpacing={-1}
-              />
-              <SSText size="xl" color="muted">
-                {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
+        {mints.length === 0 ? (
+          <SSVStack itemsCenter gap="lg" style={styles.noMintContainer}>
+            <SSVStack itemsCenter gap="sm">
+              <SSText size="lg" weight="medium">
+                {t('ecash.mint.noMintSelected')}
               </SSText>
-            </SSHStack>
-            {btcPrice > 0 && (
+              <SSText color="muted" center>
+                {t('ecash.mint.noMintSelectedDescription')}
+              </SSText>
+            </SSVStack>
+            <SSButton
+              label={t('ecash.mint.connect')}
+              onPress={handleConnectMintPress}
+              variant="gradient"
+              gradientType="special"
+              style={styles.connectButton}
+            />
+          </SSVStack>
+        ) : (
+          <SSVStack itemsCenter gap="none" style={{ paddingBottom: '4%' }}>
+            <SSVStack style={styles.balanceContainer} gap="xs">
+              <SSText color="muted" size="xs" uppercase>
+                {t('ecash.mint.balance')}
+              </SSText>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSText color="muted">
-                  {formatFiatPrice(totalBalance, btcPrice)}
-                </SSText>
-                <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                  {fiatCurrency}
+                <SSStyledSatText
+                  amount={totalBalance}
+                  decimals={0}
+                  useZeroPadding={useZeroPadding}
+                  currency={currencyUnit}
+                  textSize={totalBalance > 1_000_000_000 ? '4xl' : '6xl'}
+                  weight="ultralight"
+                  letterSpacing={-1}
+                />
+                <SSText size="xl" color="muted">
+                  {currencyUnit === 'btc'
+                    ? t('bitcoin.btc')
+                    : t('bitcoin.sats')}
                 </SSText>
               </SSHStack>
-            )}
-            {activeMint && (
-              <SSVStack style={styles.statusContainer} gap="xs">
-                <SSHStack gap="xs" style={{ alignItems: 'center' }}>
-                  {activeMint.isConnected ? (
-                    <SSIconGreenIndicator height={12} width={12} />
-                  ) : (
-                    <SSIconBlackIndicator height={12} width={12} />
-                  )}
-                  <SSText color="muted" size="sm">
-                    {activeMint.name || activeMint.url}
+              {btcPrice > 0 && (
+                <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                  <SSText color="muted">
+                    {formatFiatPrice(totalBalance, btcPrice)}
+                  </SSText>
+                  <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                    {fiatCurrency}
                   </SSText>
                 </SSHStack>
-                {!activeMint.isConnected && (
-                  <SSText
-                    size="xs"
-                    style={[styles.errorText, { color: Colors.error }]}
-                  >
-                    {getConnectionErrorMessage(ecashStatus.lastError)}
-                  </SSText>
-                )}
-              </SSVStack>
-            )}
+              )}
+              {activeMint && (
+                <SSVStack style={styles.statusContainer} gap="xs">
+                  <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+                    {activeMint.isConnected ? (
+                      <SSIconGreenIndicator height={12} width={12} />
+                    ) : (
+                      <SSIconBlackIndicator height={12} width={12} />
+                    )}
+                    <SSText color="muted" size="sm">
+                      {activeMint.name || activeMint.url}
+                    </SSText>
+                  </SSHStack>
+                  {!activeMint.isConnected && (
+                    <SSText
+                      size="xs"
+                      style={[styles.errorText, { color: Colors.error }]}
+                    >
+                      {getConnectionErrorMessage(ecashStatus.lastError)}
+                    </SSText>
+                  )}
+                </SSVStack>
+              )}
+            </SSVStack>
+            <SSButtonActionsGroup
+              context="ecash"
+              nfcAvailable={contentHandler.nfcAvailable}
+              onSend={contentHandler.handleSend}
+              onPaste={contentHandler.handlePaste}
+              onCamera={contentHandler.handleCamera}
+              onNFC={contentHandler.handleNFC}
+              onReceive={contentHandler.handleReceive}
+            />
           </SSVStack>
-          <SSButtonActionsGroup
-            context="ecash"
-            nfcAvailable={contentHandler.nfcAvailable}
-            onSend={contentHandler.handleSend}
-            onPaste={contentHandler.handlePaste}
-            onCamera={contentHandler.handleCamera}
-            onNFC={contentHandler.handleNFC}
-            onReceive={contentHandler.handleReceive}
-          />
-        </SSVStack>
+        )}
       </Animated.View>
       <ScrollView showsVerticalScrollIndicator={false}>
         <SSVStack style={{ paddingBottom: 60 }}>
@@ -234,5 +259,13 @@ const styles = StyleSheet.create({
   errorText: {
     paddingTop: 4,
     textAlign: 'center'
+  },
+  noMintContainer: {
+    paddingVertical: 60,
+    paddingHorizontal: 20
+  },
+  connectButton: {
+    width: '100%',
+    maxWidth: 280
   }
 })

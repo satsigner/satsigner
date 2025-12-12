@@ -105,6 +105,17 @@ export default function EcashMintPage() {
         }}
       />
       <ScrollView>
+        {mints.length === 0 && (
+          <SSVStack gap="md" style={styles.emptyState}>
+            <SSText color="muted" center>
+              No mints connected yet
+            </SSText>
+            <SSText color="muted" size="sm" center>
+              Connect to a mint to start using ecash
+            </SSText>
+          </SSVStack>
+        )}
+
         <SSVStack gap="lg">
           <SSVStack gap="md">
             {mints.length > 0 && (
@@ -117,6 +128,73 @@ export default function EcashMintPage() {
                 </SSText>
               </SSVStack>
             )}
+
+            {mints.length > 0 && (
+              <SSVStack gap="md">
+                <SSText uppercase>Connected Mint</SSText>
+                {mints.map((mint) => (
+                  <View key={mint.url} style={styles.mintCard}>
+                    <SSVStack gap="sm">
+                      <SSText weight="medium">{mint.name || mint.url}</SSText>
+                      <SSText color="muted" size="sm">
+                        {mint.url}
+                      </SSText>
+                      <SSHStack gap="md">
+                        <SSVStack gap="xs">
+                          <SSText color="muted" size="xs" uppercase>
+                            {t('ecash.mint.balance')}
+                          </SSText>
+                          <SSText weight="medium">
+                            {formatNumber(mint.balance, 0, zeroPadding)}{' '}
+                            {currencyUnit === 'btc'
+                              ? t('bitcoin.btc')
+                              : t('bitcoin.sats')}
+                          </SSText>
+                        </SSVStack>
+                        <SSVStack gap="xs">
+                          <SSText color="muted" size="xs" uppercase>
+                            {t('ecash.mint.status')}
+                          </SSText>
+                          <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+                            {mint.isConnected ? (
+                              <SSIconGreenIndicator height={12} width={12} />
+                            ) : (
+                              <SSIconBlackIndicator height={12} width={12} />
+                            )}
+                            <SSText
+                              style={{
+                                color: mint.isConnected
+                                  ? Colors.success
+                                  : Colors.gray[500]
+                              }}
+                            >
+                              {mint.isConnected
+                                ? t('common.connected')
+                                : t('common.notConnected')}
+                            </SSText>
+                          </SSHStack>
+                        </SSVStack>
+                      </SSHStack>
+                      {!mint.isConnected && (
+                        <SSText
+                          size="xs"
+                          style={[styles.errorText, { color: Colors.error }]}
+                        >
+                          {getConnectionErrorMessage(ecashStatus.lastError)}
+                        </SSText>
+                      )}
+                      <SSButton
+                        label={t('common.remove')}
+                        onPress={() => handleRemoveMint(mint.url)}
+                        variant="danger"
+                        style={styles.removeButton}
+                      />
+                    </SSVStack>
+                  </View>
+                ))}
+              </SSVStack>
+            )}
+
             <SSVStack gap="xs">
               <SSText uppercase>{t('ecash.mint.url')}</SSText>
               <SSTextInput
@@ -134,81 +212,7 @@ export default function EcashMintPage() {
               gradientType="special"
             />
           </SSVStack>
-          {mints.length > 0 && (
-            <SSVStack gap="md">
-              <SSText uppercase>Connected Mint</SSText>
-              {mints.map((mint) => (
-                <View key={mint.url} style={styles.mintCard}>
-                  <SSVStack gap="sm">
-                    <SSText weight="medium">{mint.name || mint.url}</SSText>
-                    <SSText color="muted" size="sm">
-                      {mint.url}
-                    </SSText>
-                    <SSHStack gap="md">
-                      <SSVStack gap="xs">
-                        <SSText color="muted" size="xs" uppercase>
-                          {t('ecash.mint.balance')}
-                        </SSText>
-                        <SSText weight="medium">
-                          {formatNumber(mint.balance, 0, zeroPadding)}{' '}
-                          {currencyUnit === 'btc'
-                            ? t('bitcoin.btc')
-                            : t('bitcoin.sats')}
-                        </SSText>
-                      </SSVStack>
-                      <SSVStack gap="xs">
-                        <SSText color="muted" size="xs" uppercase>
-                          {t('ecash.mint.status')}
-                        </SSText>
-                        <SSHStack gap="xs" style={{ alignItems: 'center' }}>
-                          {mint.isConnected ? (
-                            <SSIconGreenIndicator height={12} width={12} />
-                          ) : (
-                            <SSIconBlackIndicator height={12} width={12} />
-                          )}
-                          <SSText
-                            style={{
-                              color: mint.isConnected
-                                ? Colors.success
-                                : Colors.gray[500]
-                            }}
-                          >
-                            {mint.isConnected
-                              ? t('common.connected')
-                              : t('common.notConnected')}
-                          </SSText>
-                        </SSHStack>
-                      </SSVStack>
-                    </SSHStack>
-                    {!mint.isConnected && (
-                      <SSText
-                        size="xs"
-                        style={[styles.errorText, { color: Colors.error }]}
-                      >
-                        {getConnectionErrorMessage(ecashStatus.lastError)}
-                      </SSText>
-                    )}
-                    <SSButton
-                      label={t('common.remove')}
-                      onPress={() => handleRemoveMint(mint.url)}
-                      variant="danger"
-                      style={styles.removeButton}
-                    />
-                  </SSVStack>
-                </View>
-              ))}
-            </SSVStack>
-          )}
-          {mints.length === 0 && (
-            <SSVStack gap="md" style={styles.emptyState}>
-              <SSText color="muted" center>
-                No mints connected yet
-              </SSText>
-              <SSText color="muted" size="sm" center>
-                Connect to a mint to start using ecash
-              </SSText>
-            </SSVStack>
-          )}
+
           <SSVStack gap="md">
             <SSText uppercase>{t('ecash.mint.defaultMints')}</SSText>
             <SSVStack gap="xs">
