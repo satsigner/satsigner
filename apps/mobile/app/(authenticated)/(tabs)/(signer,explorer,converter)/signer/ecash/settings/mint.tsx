@@ -38,7 +38,6 @@ export default function EcashMintPage() {
   )
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
 
-
   function getConnectionErrorMessage(error?: string): string {
     if (!error) {
       return t('ecash.error.mintNotConnected')
