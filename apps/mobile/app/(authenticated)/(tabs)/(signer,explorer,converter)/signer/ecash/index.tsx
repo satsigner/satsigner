@@ -3,7 +3,11 @@ import { useEffect } from 'react'
 import { Animated, ScrollView, StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconECash } from '@/components/icons'
+import {
+  SSIconBlackIndicator,
+  SSIconECash,
+  SSIconGreenIndicator
+} from '@/components/icons'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSEcashTransactionCard from '@/components/SSEcashTransactionCard'
@@ -28,7 +32,8 @@ import { formatFiatPrice } from '@/utils/format'
 
 export default function EcashLanding() {
   const router = useRouter()
-  const { mints, activeMint, proofs, transactions } = useEcash()
+  const { activeMint, proofs, transactions } = useEcash()
+  const ecashStatus = useEcashStore((state) => state.status)
   const [currencyUnit, useZeroPadding] = useSettingsStore(
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
@@ -44,23 +49,10 @@ export default function EcashLanding() {
   )
 
   useEffect(() => {
-    if (activeMint && mints.length > 0) {
-      const mintFromArray = mints.find((m) => m.url === activeMint.url)
-      if (mintFromArray && mintFromArray !== activeMint) {
-        setActiveMint(mintFromArray)
-      }
-    } else if (!activeMint && mints.length > 0) {
-      setActiveMint(mints[0])
-    }
-  }, [mints, activeMint, setActiveMint])
-
-  useEffect(() => {
     fetchPrices(mempoolUrl)
   }, [fetchPrices, fiatCurrency, mempoolUrl])
 
   const handleSettingsPress = () => router.navigate('/signer/ecash/settings')
-  const handleAddMintPress = () =>
-    router.navigate('/signer/ecash/settings/mint')
 
   function getConnectionErrorMessage(error?: string): string {
     if (!error) {
@@ -148,29 +140,25 @@ export default function EcashLanding() {
                 </SSText>
               </SSHStack>
             )}
-            {mints.length > 0 && (
+            {activeMint && (
               <SSVStack style={styles.statusContainer} gap="xs">
-                {activeMint && (
-                  <>
-                    <SSHStack gap="xs" style={{ alignItems: 'center' }}>
-                      {activeMint.isConnected ? (
-                        <SSIconGreenIndicator height={12} width={12} />
-                      ) : (
-                        <SSIconBlackIndicator height={12} width={12} />
-                      )}
-                      <SSText color="muted" size="sm">
-                        {activeMint.name || activeMint.url}
-                      </SSText>
-                    </SSHStack>
-                    {!activeMint.isConnected && (
-                      <SSText
-                        size="xs"
-                        style={[styles.errorText, { color: Colors.error }]}
-                      >
-                        {getConnectionErrorMessage(ecashStatus.lastError)}
-                      </SSText>
-                    )}
-                  </>
+                <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+                  {activeMint.isConnected ? (
+                    <SSIconGreenIndicator height={12} width={12} />
+                  ) : (
+                    <SSIconBlackIndicator height={12} width={12} />
+                  )}
+                  <SSText color="muted" size="sm">
+                    {activeMint.name || activeMint.url}
+                  </SSText>
+                </SSHStack>
+                {!activeMint.isConnected && (
+                  <SSText
+                    size="xs"
+                    style={[styles.errorText, { color: Colors.error }]}
+                  >
+                    {getConnectionErrorMessage(ecashStatus.lastError)}
+                  </SSText>
                 )}
               </SSVStack>
             )}
@@ -212,7 +200,7 @@ export default function EcashLanding() {
         onClose={contentHandler.closeCameraModal}
         onContentScanned={contentHandler.handleContentScanned}
         context="ecash"
-        title="Scan Ecash Content"
+        title={t('ecash.scan.title')}
       />
       <SSNFCModal
         visible={contentHandler.nfcModalVisible}
@@ -231,25 +219,9 @@ export default function EcashLanding() {
 }
 
 const styles = StyleSheet.create({
-  actionButton: {
-    backgroundColor: Colors.gray[925],
-    marginLeft: 2,
-    borderTopWidth: 1,
-    borderTopColor: '#242424',
-    borderRadius: 3
-  },
   balanceContainer: {
     alignItems: 'center',
     paddingBottom: 12
-  },
-  camera: {
-    flex: 1,
-    width: 340,
-    height: 340
-  },
-  headerContainer: {},
-  headerText: {
-    color: Colors.white
   },
   statusContainer: {
     paddingBottom: 20,
@@ -258,21 +230,6 @@ const styles = StyleSheet.create({
   moreTransactions: {
     textAlign: 'center',
     paddingVertical: 8
-  },
-  noMintContainer: {
-    paddingTop: 20,
-    paddingBottom: 10
-  },
-  noMintMessage: {
-    alignItems: 'center'
-  },
-  addMintButton: {
-    marginTop: 8
-  },
-  noTransactionsContainer: {
-    paddingTop: 20,
-    paddingBottom: 10,
-    alignItems: 'center'
   },
   errorText: {
     paddingTop: 4,

@@ -1,6 +1,6 @@
 import { getDecodedToken } from '@cashu/cashu-ts'
 import * as Clipboard from 'expo-clipboard'
-import { Stack, useLocalSearchParams } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
@@ -18,12 +18,24 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
+import { Colors } from '@/styles'
 import { error, success, warning, white } from '@/styles/colors'
 import { type EcashToken } from '@/types/models/Ecash'
 import { type DetectedContent } from '@/utils/contentDetector'
+import {
+  decodeLNURL,
+  fetchLNURLWithdrawDetails,
+  getLNURLType,
+  type LNURLWithdrawDetails,
+  requestLNURLWithdrawInvoice
+} from '@/utils/lnurl'
 
 export default function EcashReceivePage() {
-  const { token: tokenParam } = useLocalSearchParams()
+  const router = useRouter()
+  const { token: tokenParam, lnurl: lnurlParam } = useLocalSearchParams<{
+    token?: string
+    lnurl?: string
+  }>()
   const [activeTab, setActiveTab] = useState<'ecash' | 'lightning'>('ecash')
   const [token, setToken] = useState('')
   const [decodedToken, setDecodedToken] = useState<EcashToken | null>(null)
@@ -38,6 +50,13 @@ export default function EcashReceivePage() {
   const [isRedeeming, setIsRedeeming] = useState(false)
   const [isCreatingQuote, setIsCreatingQuote] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
+  const [lnurlWithdrawCode, setLnurlWithdrawCode] = useState<string | null>(
+    null
+  )
+  const [lnurlWithdrawDetails, setLnurlWithdrawDetails] =
+    useState<LNURLWithdrawDetails | null>(null)
+  const [isLNURLWithdrawMode, setIsLNURLWithdrawMode] = useState(false)
+  const [isFetchingLNURL, setIsFetchingLNURL] = useState(false)
 
   const {
     activeMint,
@@ -74,21 +93,66 @@ export default function EcashReceivePage() {
     const cleanText = text.trim()
     if (!cleanText || !cleanText.toLowerCase().startsWith('cashu')) return
     try {
-      const decoded = getDecodedToken(cleanText)
+      const decoded = getDecodedToken(cleanText) as EcashToken
       setDecodedToken(decoded)
     } catch {
       setDecodedToken(null)
     }
   }, [])
 
+  // Handle LNURL-w input
+  const handleLNURLWithdrawInput = useCallback(async (input: string) => {
+    const cleanInput = input.trim()
+    if (!cleanInput) return
+
+    const { isLNURL: isLNURLInput, type: lnurlType } = getLNURLType(cleanInput)
+
+    if (!isLNURLInput || lnurlType !== 'withdraw') {
+      toast.error(t('ecash.error.invalidLnurlType'))
+      return
+    }
+
+    setIsFetchingLNURL(true)
+    setIsLNURLWithdrawMode(true)
+    setLnurlWithdrawCode(cleanInput)
+
+    try {
+      const url = decodeLNURL(cleanInput)
+      const details = await fetchLNURLWithdrawDetails(url)
+      setLnurlWithdrawDetails(details)
+      // Auto-populate amount with max withdrawable (in sats)
+      setAmount(Math.floor(details.maxWithdrawable / 1000).toString())
+      toast.success(t('ecash.success.lnurlWithdrawDetected'))
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t('ecash.error.failedToFetchLnurlDetails')
+      )
+      setIsLNURLWithdrawMode(false)
+      setLnurlWithdrawCode(null)
+      setLnurlWithdrawDetails(null)
+    } finally {
+      setIsFetchingLNURL(false)
+    }
+  }, [])
+
+  // Handle URL params
   useEffect(() => {
-    if (!tokenParam) return
-    const tokenValue = Array.isArray(tokenParam) ? tokenParam[0] : tokenParam
-    if (!tokenValue) return
-    setToken(tokenValue)
-    setActiveTab('ecash')
-    handleTokenChange(tokenValue)
-  }, [tokenParam, handleTokenChange])
+    if (tokenParam) {
+      const tokenValue = Array.isArray(tokenParam) ? tokenParam[0] : tokenParam
+      if (tokenValue) {
+        setActiveTab('ecash')
+        handleTokenChange(tokenValue)
+      }
+    } else if (lnurlParam) {
+      const lnurlValue = Array.isArray(lnurlParam) ? lnurlParam[0] : lnurlParam
+      if (lnurlValue) {
+        setActiveTab('lightning')
+        handleLNURLWithdrawInput(lnurlValue)
+      }
+    }
+  }, [tokenParam, lnurlParam, handleTokenChange, handleLNURLWithdrawInput])
 
   const handleRedeemToken = useCallback(async () => {
     if (!token) {
@@ -240,14 +304,14 @@ export default function EcashReceivePage() {
       const clipboardText = await Clipboard.getStringAsync()
       if (clipboardText) {
         if (activeTab === 'ecash') {
-          await handleTokenChange(clipboardText)
+          handleTokenChange(clipboardText)
           toast.success(t('ecash.success.tokenPasted'))
         } else if (activeTab === 'lightning') {
           // Check if it's an LNURL-w code
           const { isLNURL: isLNURLInput, type: lnurlType } =
             getLNURLType(clipboardText)
           if (isLNURLInput && lnurlType === 'withdraw') {
-            await handleLNURLWithdrawInput(clipboardText)
+            handleLNURLWithdrawInput(clipboardText)
           } else {
             toast.error(t('ecash.error.invalidLnurlType'))
           }
@@ -267,9 +331,22 @@ export default function EcashReceivePage() {
   const handleContentScanned = useCallback(
     (content: DetectedContent) => {
       setCameraModalVisible(false)
-      const cleanData = content.cleaned.replace(/^cashu:/i, '')
-      handleTokenChange(cleanData)
-      toast.success(t('ecash.success.tokenScanned'))
+
+      if (activeTab === 'ecash') {
+        const cleanData = content.cleaned.replace(/^cashu:/i, '')
+        handleTokenChange(cleanData)
+        toast.success(t('ecash.success.tokenScanned'))
+      } else if (activeTab === 'lightning') {
+        // Check if it's an LNURL-w code
+        const { isLNURL: isLNURLInput, type: lnurlType } = getLNURLType(
+          content.cleaned
+        )
+        if (isLNURLInput && lnurlType === 'withdraw') {
+          handleLNURLWithdrawInput(content.cleaned)
+        } else {
+          toast.error(t('ecash.error.invalidLnurlType'))
+        }
+      }
     },
     [handleTokenChange, activeTab, handleLNURLWithdrawInput]
   )
@@ -403,7 +480,7 @@ export default function EcashReceivePage() {
                         {Math.floor(
                           lnurlWithdrawDetails.maxWithdrawable / 1000
                         )}{' '}
-                        sats
+                        {t('bitcoin.sats')}
                       </SSText>
                     </SSHStack>
                   </SSVStack>
@@ -449,18 +526,21 @@ export default function EcashReceivePage() {
                 />
               </SSVStack>
               {!mintQuote ? (
-                <SSButton
-                  label={t('ecash.receive.createInvoice')}
-                  onPress={handleCreateInvoice}
-                  loading={isCreatingQuote}
-                  variant="gradient"
-                  gradientType="special"
-                />
-              ) : (
-                <SSVStack gap="md">
-                  <View style={styles.qrContainer}>
-                    <SSQRCode value={mintQuote.request} size={300} />
-                  </View>
+                <SSVStack gap="sm">
+                  <SSHStack gap="sm">
+                    <SSButton
+                      label={t('common.paste')}
+                      onPress={handlePasteToken}
+                      variant="subtle"
+                      style={{ flex: 1 }}
+                    />
+                    <SSButton
+                      label={t('common.scan')}
+                      onPress={handleScanToken}
+                      variant="subtle"
+                      style={{ flex: 1 }}
+                    />
+                  </SSHStack>
                   <SSButton
                     label={
                       isLNURLWithdrawMode
@@ -530,16 +610,13 @@ export default function EcashReceivePage() {
         onClose={() => setCameraModalVisible(false)}
         onContentScanned={handleContentScanned}
         context="ecash"
-        title="Scan Ecash Token"
+        title={t('ecash.scan.title')}
       />
     </SSMainLayout>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 20
-  },
   tokenInput: {
     height: 'auto',
     minHeight: 100,
@@ -551,5 +628,15 @@ const styles = StyleSheet.create({
   qrContainer: {
     alignItems: 'center',
     paddingVertical: 20
+  },
+  lnurlDetails: {
+    padding: 12,
+    backgroundColor: Colors.gray[900],
+    borderRadius: 4
+  },
+  detailRow: {
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap'
   }
 })

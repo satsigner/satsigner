@@ -740,6 +740,7 @@
     "scan.lnurlScanned": "LNURL scanned",
     "scan.lnurlWithdrawScanned": "LNURL-withdraw code scanned",
     "scan.qrCodeScanned": "QR code scanned successfully",
+    "scan.title": "Scan",
     "scan.tokenScanned": "Ecash token scanned",
     "send.amount": "Amount",
     "send.ecashTab": "Ecash",
@@ -809,7 +810,7 @@
     "transactionDetail.token": "Ecash Token",
     "transactionHistory.empty": "No transactions yet",
     "transactionHistory.title": "Transaction History",
-    "warning.noKeysetsFound": "No keysets found for mint: {{mint}}"
+    "warning.noKeysetsFound": "No keysets found for mint: {{mint}}",
     "warning.tokenTruncated": "Token was truncated due to NFC size limits"
   },
   "error": {
