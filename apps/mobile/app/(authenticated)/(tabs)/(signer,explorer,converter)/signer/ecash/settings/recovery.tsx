@@ -146,7 +146,8 @@ export default function EcashRecoveryPage() {
         options={{
           headerTitle: () => (
             <SSText uppercase>{t('ecash.recovery.title')}</SSText>
-          )
+          ),
+          headerRight: () => null
         }}
       />
       <ScrollView>

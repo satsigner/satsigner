@@ -120,7 +120,8 @@ export default function EcashBackupPage() {
         options={{
           headerTitle: () => (
             <SSText uppercase>{t('ecash.backup.title')}</SSText>
-          )
+          ),
+          headerRight: () => null
         }}
       />
       <ScrollView>
