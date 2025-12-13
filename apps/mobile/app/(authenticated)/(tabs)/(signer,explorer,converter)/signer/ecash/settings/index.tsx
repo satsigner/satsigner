@@ -49,7 +49,8 @@ export default function EcashSettingsPage() {
         options={{
           headerTitle: () => (
             <SSText uppercase>{t('ecash.settings.title')}</SSText>
-          )
+          ),
+          headerRight: () => null
         }}
       />
       <ScrollView showsVerticalScrollIndicator={false}>
