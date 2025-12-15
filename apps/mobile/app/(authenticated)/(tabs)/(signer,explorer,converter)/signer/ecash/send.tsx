@@ -21,7 +21,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
-import { type DecodedInvoice } from '@/types/lightning'
+import { type LNDecodedInvoice } from '@/types/lightning'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
   decodeLightningInvoice,
@@ -66,7 +66,7 @@ export default function EcashSendPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isMelting, setIsMelting] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
-  const [decodedInvoice, setDecodedInvoice] = useState<DecodedInvoice | null>(
+  const [decodedInvoice, setDecodedInvoice] = useState<LNDecodedInvoice | null>(
     null
   )
   const [isLNURLMode, setIsLNURLMode] = useState(false)
@@ -250,7 +250,7 @@ export default function EcashSendPage() {
   const decodeInvoice = useCallback(
     async (invoice: string) => {
       try {
-        const response = await typedMakeRequest<DecodedInvoice>(
+        const response = await typedMakeRequest<LNDecodedInvoice>(
           `/v1/payreq/${invoice}`
         )
         setDecodedInvoice(response)

@@ -175,13 +175,8 @@ export default function NodeDetailPage() {
   const router = useRouter()
   const { width } = useWindowDimensions()
   const params = useLocalSearchParams<{ alias: string; pubkey: string }>()
-  const {
-    getBalance,
-    channels,
-    isConnecting,
-    isConnected,
-    makeRequest
-  } = useLND()
+  const { getBalance, channels, isConnecting, isConnected, makeRequest } =
+    useLND()
 
   const lightningContentHandler = useLightningContentHandler()
 

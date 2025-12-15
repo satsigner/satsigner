@@ -5,23 +5,7 @@ import {
   type LNDNodeInfo,
   useLightningStore
 } from '@/store/lightning'
-
-interface LNDRequestOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
-  body?: unknown
-  headers?: Record<string, string>
-}
-
-interface LNDPaymentResponse {
-  payment_hash: string
-  payment_preimage: string
-  status: string
-}
-
-type MakeRequestFn = <T>(
-  endpoint: string,
-  options?: LNDRequestOptions
-) => Promise<T>
+import type { LNDRequest, LNDRequestOptions } from '@/types/lightning'
 
 export const useLND = () => {
   const {
@@ -62,7 +46,7 @@ export const useLND = () => {
     }
   }, [config, setNodeInfo, setConnected, updateLastSync])
 
-  const makeRequest: MakeRequestFn = useCallback(
+  const makeRequest: LNDRequest = useCallback(
     async <T>(endpoint: string, options: LNDRequestOptions = {}) => {
       if (!config) {
         throw new Error('No LND configuration available')

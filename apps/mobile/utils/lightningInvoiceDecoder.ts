@@ -1,6 +1,6 @@
 import { decode } from '@gandlaf21/bolt11-decode'
 
-import { type DecodedInvoice } from '@/types/lightning'
+import { type LNDecodedInvoice } from '@/types/lightning'
 
 type Bolt11Section = {
   name: string
@@ -59,7 +59,7 @@ function mapBolt11DecodeToDecodedInvoice(
   }
 }
 
-export function decodeLightningInvoice(invoice: string): DecodedInvoice {
+export function decodeLightningInvoice(invoice: string): LNDecodedInvoice {
   try {
     const bolt11Decoded = decode(invoice)
     return mapBolt11DecodeToDecodedInvoice(bolt11Decoded, invoice)

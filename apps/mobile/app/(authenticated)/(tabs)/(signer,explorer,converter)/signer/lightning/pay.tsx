@@ -16,7 +16,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { usePriceStore } from '@/store/price'
 import { Typography } from '@/styles'
-import { type DecodedInvoice } from '@/types/lightning'
+import { type LNDecodedInvoice } from '@/types/lightning'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
   decodeLNURL,
@@ -59,7 +59,7 @@ export default function PayPage() {
   const [lnurlDetails, setLNURLDetails] = useState<LNURLPayResponse | null>(
     null
   )
-  const [decodedInvoice, setDecodedInvoice] = useState<DecodedInvoice | null>(
+  const [decodedInvoice, setDecodedInvoice] = useState<LNDecodedInvoice | null>(
     null
   )
 
@@ -87,7 +87,7 @@ export default function PayPage() {
   const decodeInvoice = useCallback(
     async (invoice: string) => {
       try {
-        const response = await typedMakeRequest<DecodedInvoice>(
+        const response = await typedMakeRequest<LNDecodedInvoice>(
           '/v1/payreq/' + invoice
         )
 
