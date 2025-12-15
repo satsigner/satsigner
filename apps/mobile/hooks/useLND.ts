@@ -5,7 +5,7 @@ import {
   type LNDNodeInfo,
   useLightningStore
 } from '@/store/lightning'
-import type { LNDRequest, LNDRequestOptions } from '@/types/lightning'
+import type { LNDRequest, LNDRequestOptions } from '@/types/models/LND'
 
 export const useLND = () => {
   const {

@@ -7,7 +7,7 @@ import type {
   LNDConfig,
   LNDConnectionStatus,
   LNDNodeInfo
-} from '@/types/lightning'
+} from '@/types/models/LND'
 
 type LightningState = {
   config: LNDConfig | null

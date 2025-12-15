@@ -21,7 +21,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
-import { type LNDecodedInvoice } from '@/types/lightning'
+import { type LNDecodedInvoice } from '@/types/models/LND'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
   decodeLightningInvoice,
