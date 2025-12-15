@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { useCallback, useEffect } from 'react'
 
 import {
@@ -58,9 +57,6 @@ export const useLND = () => {
       updateLastSync()
       return info
     } catch (error) {
-      console.error('Failed to fetch node info:', {
-        error: error instanceof Error ? error.message : String(error)
-      })
       setConnected(false)
       throw error
     }
@@ -109,12 +105,6 @@ export const useLND = () => {
         const data = await response.json()
         return data as T
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error'
-        console.error('LND request failed:', {
-          endpoint,
-          error: errorMessage
-        })
         throw error
       } finally {
         setConnecting(false)
@@ -190,19 +180,12 @@ export const useLND = () => {
               if (error instanceof Error && error.message.includes('404')) {
                 return response
               }
-              console.error('Payment status check failed:', {
-                attempt: attempts,
-                error
-              })
             }
           }
         }
 
         return response
       } catch (error) {
-        console.error('LND payment failed:', {
-          error: error instanceof Error ? error.message : String(error)
-        })
         throw error
       }
     },
@@ -215,10 +198,7 @@ export const useLND = () => {
     try {
       await getInfo()
       return true
-    } catch (error) {
-      console.error('Connection verification failed:', {
-        error: error instanceof Error ? error.message : String(error)
-      })
+    } catch {
       return false
     }
   }, [config, getInfo])
