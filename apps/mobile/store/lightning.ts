@@ -74,7 +74,6 @@ export interface LNDChannel {
 export interface ConnectionStatus {
   isConnected: boolean
   isConnecting: boolean
-  lastError?: string
   nodeInfo?: LNDNodeInfo
   channels?: LNDChannel[]
   lastSync?: string
@@ -87,7 +86,6 @@ interface LightningState {
   clearConfig: () => void
   setConnecting: (isConnecting: boolean) => void
   setConnected: (isConnected: boolean) => void
-  setError: (error?: string) => void
   setNodeInfo: (info: LNDNodeInfo) => void
   setChannels: (channels: LNDChannel[]) => void
   updateLastSync: () => void
@@ -116,10 +114,6 @@ export const useLightningStore = create<LightningState>()(
       setConnected: (isConnected) =>
         set((state) => ({
           status: { ...state.status, isConnected, isConnecting: false }
-        })),
-      setError: (error) =>
-        set((state) => ({
-          status: { ...state.status, lastError: error }
         })),
       setNodeInfo: (nodeInfo) =>
         set((state) => ({

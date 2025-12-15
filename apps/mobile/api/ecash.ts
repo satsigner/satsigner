@@ -135,7 +135,6 @@ export async function createMintQuote(
 
     // Connection successful, update status to true
     useEcashStore.getState().updateMintConnection(mintUrl, true)
-    useEcashStore.getState().setError(undefined)
 
     return {
       quote: quote.quote,
@@ -161,7 +160,6 @@ export async function checkMintQuote(
 
     // Connection successful, update status to true
     useEcashStore.getState().updateMintConnection(mintUrl, true)
-    useEcashStore.getState().setError(undefined)
 
     return quoteStatus.state
   } catch (error) {
@@ -183,7 +181,6 @@ export async function mintProofs(
 
     // Connection successful, update status to true
     useEcashStore.getState().updateMintConnection(mintUrl, true)
-    useEcashStore.getState().setError(undefined)
 
     return {
       proofs,
@@ -244,7 +241,6 @@ export async function meltProofs(
 
     // Connection successful, update status to true
     useEcashStore.getState().updateMintConnection(mintUrl, true)
-    useEcashStore.getState().setError(undefined)
 
     return {
       paid: true, // If we get here without error, it was successful
@@ -270,7 +266,6 @@ export async function validateProofs(
 
     // Connection successful, update status to true
     useEcashStore.getState().updateMintConnection(mintUrl, true)
-    useEcashStore.getState().setError(undefined)
 
     const validProofs: EcashProof[] = []
     const spentProofs: EcashProof[] = []
@@ -292,9 +287,6 @@ export async function validateProofs(
       errorName === 'NetworkError' ||
       errorMsg.includes('Network request failed')
     ) {
-      useEcashStore
-        .getState()
-        .setError('Network request failed. Please check your connection.')
       useEcashStore.getState().updateMintConnection(mintUrl, false)
     }
 
@@ -347,7 +339,6 @@ export async function sendEcash(
 
     // Connection successful, update status to true
     useEcashStore.getState().updateMintConnection(mintUrl, true)
-    useEcashStore.getState().setError(undefined)
 
     const token = getEncodedTokenV4({
       mint: mintUrl,
@@ -387,7 +378,6 @@ export async function receiveEcash(
 
     // Connection successful, update status to true
     useEcashStore.getState().updateMintConnection(mintUrl, true)
-    useEcashStore.getState().setError(undefined)
 
     return {
       proofs,
@@ -442,7 +432,6 @@ export async function validateEcashToken(
 
     // Connection successful, update status to true
     useEcashStore.getState().updateMintConnection(mintUrl, true)
-    useEcashStore.getState().setError(undefined)
 
     const spentProofs = proofStates.filter((state) => state.state === 'SPENT')
     const unspentProofs = proofStates.filter(
@@ -522,20 +511,13 @@ export async function validateEcashToken(
             ? 'Connection blocked or forbidden. Please check mint access.'
             : `HTTP ${httpStatus}: ${errorMsg}`
 
-      useEcashStore.getState().setError(storeErrorMessage)
       useEcashStore.getState().updateMintConnection(mintUrl, false)
     } else if (isRateLimitError) {
-      useEcashStore
-        .getState()
-        .setError('Connection rate limited. Please wait before retrying.')
       useEcashStore.getState().updateMintConnection(mintUrl, false)
     } else if (
       errorName === 'NetworkError' ||
       errorMsg.includes('Network request failed')
     ) {
-      useEcashStore
-        .getState()
-        .setError('Network request failed. Please check your connection.')
       useEcashStore.getState().updateMintConnection(mintUrl, false)
     }
 

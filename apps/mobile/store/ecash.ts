@@ -34,7 +34,6 @@ type EcashAction = {
   removeProofs: (proofIds: string[]) => void
   setConnecting: (isConnecting: EcashState['status']['isConnecting']) => void
   setConnected: (isConnected: EcashState['status']['isConnected']) => void
-  setError: (error: EcashState['status']['lastError']) => void
   updateLastSync: () => void
   addMintQuote: (quote: MintQuote) => void
   removeMintQuote: (quoteId: string) => void
@@ -108,10 +107,6 @@ export const useEcashStore = create<EcashState & EcashAction>()(
       setConnected: (isConnected) =>
         set((state) => ({
           status: { ...state.status, isConnected, isConnecting: false }
-        })),
-      setError: (error) =>
-        set((state) => ({
-          status: { ...state.status, lastError: error }
         })),
       updateLastSync: () =>
         set((state) => ({

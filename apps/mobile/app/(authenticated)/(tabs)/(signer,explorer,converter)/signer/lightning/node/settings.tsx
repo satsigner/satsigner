@@ -39,7 +39,7 @@ export default function NodeSettingsPage() {
   const router = useRouter()
   const params = useLocalSearchParams<{ alias: string }>()
   const { config, clearConfig } = useLightningStore()
-  const { isConnected, isConnecting, lastError, nodeInfo, getInfo } = useLND()
+  const { isConnected, isConnecting, nodeInfo, getInfo } = useLND()
   const [isLoading, setIsLoading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -178,7 +178,6 @@ export default function NodeSettingsPage() {
                 </>
               )}
             </View>
-
             {/* Connection Status */}
             <View style={styles.section}>
               <SSText color="muted" size="sm" style={styles.sectionTitle}>
@@ -190,16 +189,7 @@ export default function NodeSettingsPage() {
                   {isConnected ? 'Connected' : 'Disconnected'}
                 </SSText>
               </View>
-              {lastError && (
-                <View style={styles.infoItem}>
-                  <SSText color="muted">Last Error</SSText>
-                  <SSText color="muted" size="sm">
-                    {lastError}
-                  </SSText>
-                </View>
-              )}
             </View>
-
             {/* Node Configuration */}
             <View style={styles.section}>
               <SSText color="muted" size="sm" style={styles.sectionTitle}>

@@ -180,7 +180,7 @@ export default function EcashMintPage() {
                           size="xs"
                           style={[styles.errorText, { color: Colors.error }]}
                         >
-                          {getConnectionErrorMessage(ecashStatus.lastError)}
+                          Not connected
                         </SSText>
                       )}
                       <SSButton

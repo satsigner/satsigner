@@ -30,7 +30,6 @@ export const useLND = () => {
     status,
     setConnecting,
     setConnected,
-    setError,
     setNodeInfo,
     setChannels,
     updateLastSync
@@ -77,7 +76,6 @@ export const useLND = () => {
 
       try {
         setConnecting(true)
-        setError(undefined)
 
         const response = await fetch(`${config.url}${endpoint}`, {
           method,
@@ -117,13 +115,12 @@ export const useLND = () => {
           endpoint,
           error: errorMessage
         })
-        setError(errorMessage)
         throw error
       } finally {
         setConnecting(false)
       }
     },
-    [config, setConnecting, setError, setConnected, getInfo]
+    [config, setConnecting, setConnected, getInfo]
   )
 
   const getBalance = useCallback(async () => {
@@ -239,7 +236,6 @@ export const useLND = () => {
   return {
     isConnected: status.isConnected,
     isConnecting: status.isConnecting,
-    lastError: status.lastError,
     nodeInfo: status.nodeInfo,
     channels: status.channels,
     lastSync: status.lastSync,

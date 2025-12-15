@@ -178,7 +178,6 @@ export default function NodeDetailPage() {
   const {
     getBalance,
     channels,
-    lastError,
     isConnecting,
     isConnected,
     makeRequest
@@ -938,11 +937,6 @@ export default function NodeDetailPage() {
                     onReceive={contentHandler.handleReceive}
                   />
                 </SSVStack>
-              )}
-              {lastError && (
-                <SSText color="muted" style={styles.error}>
-                  {lastError}
-                </SSText>
               )}
             </SSVStack>
           </Animated.View>
