@@ -1,6 +1,5 @@
-/* eslint-disable no-console */
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { Alert, ScrollView, StyleSheet, View } from 'react-native'
 
 import { SSIconChevronLeft, SSIconRefresh } from '@/components/icons'
@@ -12,22 +11,17 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { useLightningStore } from '@/store/lightning'
 
-// Format version to only keep first three numbers matching ##.##.## pattern
+// keep first three numbers matching ##.##.## pattern
 const formatVersion = (version: string) => {
-  // Remove any non-numeric characters except dots
   const cleanVersion = version.replace(/[^0-9.]/g, '')
-  // Split by dots and filter out empty strings
   const parts = cleanVersion.split('.').filter(Boolean)
 
-  // If we have at least 3 numbers
   if (parts.length >= 3) {
-    // Check if it matches our pattern (1-2 digits per part)
     const isValidPattern = parts
       .slice(0, 3)
       .every((part) => /^[0-9]{1,2}$/.test(part))
 
     if (isValidPattern) {
-      // Always take only first 3 numbers
       return parts.slice(0, 3).join('.')
     }
   }
@@ -43,23 +37,18 @@ export default function NodeSettingsPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const handleDisconnect = useCallback(async () => {
+  function handleDisconnect() {
     setIsLoading(true)
-    try {
-      clearConfig()
-      router.back()
-    } catch (error) {
-      console.error('Error disconnecting:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [clearConfig, router])
-
-  const handleBack = useCallback(() => {
+    clearConfig()
     router.back()
-  }, [router])
+    setIsLoading(false)
+  }
 
-  const handleDelete = useCallback(async () => {
+  function handleBack() {
+    router.back()
+  }
+
+  function handleDelete() {
     Alert.alert(
       'Clear Config',
       'Are you sure you want to clear this node configuration? This action cannot be undone.',
@@ -72,36 +61,21 @@ export default function NodeSettingsPage() {
           text: 'Clear',
           style: 'destructive',
           onPress: async () => {
-            setIsDeleting(true)
-            try {
-              clearConfig()
-              router.navigate('/signer/lightning')
-            } catch (error) {
-              console.error('Error clearing config:', error)
-              Alert.alert(
-                'Error',
-                'Failed to clear node configuration. Please try again.'
-              )
-            } finally {
-              setIsDeleting(false)
-            }
+            setIsDeleting(false)
+            clearConfig()
+            router.navigate('/signer/lightning')
           }
         }
       ]
     )
-  }, [clearConfig, router])
+  }
 
-  const handleRefresh = useCallback(async () => {
+  async function handleRefresh() {
     if (!isConnected) return
     setIsLoading(true)
-    try {
-      await getInfo()
-    } catch (error) {
-      console.error('Error refreshing node info:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [getInfo, isConnected])
+    await getInfo()
+    setIsLoading(false)
+  }
 
   return (
     <>
@@ -218,7 +192,6 @@ export default function NodeSettingsPage() {
                 </>
               )}
             </View>
-
             {/* Actions */}
             <SSVStack style={styles.actions} gap="sm">
               <SSButton
