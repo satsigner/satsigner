@@ -1,54 +1,5 @@
+import type { EsploraTx, EsploraUtxo } from '@/types/models/Esplora'
 import { parseHexToBytes } from '@/utils/parse'
-
-export type EsploraTx = {
-  txid: string
-  version: number
-  locktime: number
-  vin: {
-    txid: string
-    vout: number
-    prevout: {
-      scriptpubkey: string
-      scriptpubkey_asm: string
-      scriptpubkey_type: string
-      scriptpubkey_address: string
-      value: number
-    }
-    scriptsig: string
-    scriptsig_asm: string
-    witness: string[]
-    is_coinbase: boolean
-    sequence: number
-  }[]
-  vout: {
-    scriptpubkey: string
-    scriptpubkey_asm: string
-    scriptpubkey_type: string
-    scriptpubkey_address: string
-    value: number
-  }[]
-  size: number
-  weight: number
-  fee: number
-  status: {
-    confirmed: boolean
-    block_height: number
-    block_hash: string
-    block_time: number
-  }
-}
-
-export type EsploraUtxo = {
-  txid: string
-  vout: number
-  status: {
-    confirmed: boolean
-    block_height?: number
-    block_hash?: string
-    block_time?: number
-  }
-  value: number
-}
 
 export default class Esplora {
   public esploraUrl: string
@@ -83,28 +34,8 @@ export default class Esplora {
       } else {
         throw new Error(`Unsupported Content-Type: ${contentType}`)
       }
-    } catch (error: any) {
-      if (error.message && error.message.includes('InvalidCertificate')) {
-        throw new Error(
-          'TLS certificate validation failed. Please check the server configuration.'
-        )
-      }
-
-      if (error.message && error.message.includes('ConnectionFailed')) {
-        throw new Error(
-          'Connection failed. Please check your internet connection and server URL.'
-        )
-      }
-
-      if (
-        error.message &&
-        (error.message.includes('NetworkError') ||
-          error.message.includes('fetch'))
-      ) {
-        throw new Error('Network error. Please check your internet connection.')
-      }
-
-      throw new Error(error.message || 'Unknown error occurred')
+    } catch (e) {
+      throw new Error(getVerboseErrorMessage(e))
     }
   }
 
@@ -237,63 +168,57 @@ export default class Esplora {
   }
 
   static async test(url: string, timeout: number) {
-    // Suppress console warnings during test
-    // eslint-disable-next-line no-console
-    const originalConsoleWarn = console.warn
-    // eslint-disable-next-line no-console
-    const originalConsoleError = console.error
-    // eslint-disable-next-line no-console
-    console.warn = () => {}
-    // eslint-disable-next-line no-console
-    console.error = () => {}
-
     const esploraClient = new Esplora(url)
-    const fetchPromise = esploraClient.getLatestBlockHeight()
-    const timeoutPromise = new Promise((resolve, reject) =>
+    const fetchPromise = esploraClient.getLatestBlockHeight
+    const timeoutPromise = new Promise((_resolve, reject) =>
       setTimeout(() => {
         reject(new Error('timeout'))
       }, timeout)
     )
+
     try {
       const result = await Promise.race([fetchPromise, timeoutPromise])
-      if (result) {
-        return true
-      }
+      if (result) return true
       return false
-    } catch (error) {
-      // Handle connection test failures with specific error messages
-      if (error instanceof Error) {
-        if (error.message.includes('timeout')) {
-          throw new Error(
-            'Connection timeout - server may be slow or unreachable'
-          )
-        } else if (error.message.includes('Unable to resolve host')) {
-          throw new Error(
-            'Unable to resolve host - check server URL and internet connection'
-          )
-        } else if (error.message.includes('ECONNREFUSED')) {
-          throw new Error(
-            'Connection refused - server may be down or port is closed'
-          )
-        } else if (error.message.includes('ENOTFOUND')) {
-          throw new Error('Server not found - check the server URL')
-        } else if (error.message.includes('InvalidCertificate')) {
-          throw new Error(
-            'TLS certificate validation failed - check server configuration'
-          )
-        } else if (error.message.includes('NetworkError')) {
-          throw new Error('Network error - check your internet connection')
-        } else {
-          throw new Error(`Connection failed: ${error.message}`)
-        }
-      }
-      throw new Error('Unknown connection error')
-    } finally {
-      // Restore console functions
-      // eslint-disable-next-line no-console
-      console.warn = originalConsoleWarn
-      // eslint-disable-next-line no-console
-      console.error = originalConsoleError
+    } catch (e) {
+      throw new Error(getVerboseErrorMessage(e))
     }
   }
+}
+
+const verboseErrorMessages = [
+  {
+    error: 'timeout',
+    reason: 'Connection timeout - server may be slow or unreachable'
+  },
+  {
+    error: 'Unable to resolve host',
+    reason: 'Unable to resolve host - check server URL and internet connection'
+  },
+  {
+    error: 'ECONNREFUSED',
+    reason: 'Connection refused - server may be down or port is closed'
+  },
+  {
+    error: 'ENOTFOUND',
+    reason: 'Server not found - check the server URL'
+  },
+  {
+    error: 'InvalidCertificate',
+    reason: 'TLS certificate validation failed - check server configuration'
+  },
+  {
+    error: 'NetworkError',
+    reason: 'Network error - check your internet connection'
+  }
+]
+
+function getVerboseErrorMessage(error: unknown) {
+  if (!(error instanceof Error)) return 'Unkown error'
+  for (const errorType of verboseErrorMessages) {
+    if (error.message.match(errorType.error)) {
+      return errorType.reason
+    }
+  }
+  return error.message
 }
