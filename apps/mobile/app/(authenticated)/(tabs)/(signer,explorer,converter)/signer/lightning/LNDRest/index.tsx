@@ -8,8 +8,8 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import type { LNDConfig } from '@/store/lightning'
 import { useLightningStore } from '@/store/lightning'
+import type { LNDConfig } from '@/types/models/LND'
 import { type DetectedContent } from '@/utils/contentDetector'
 
 export default function LNDRestPage() {

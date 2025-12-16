@@ -1,11 +1,13 @@
 import { useCallback, useEffect } from 'react'
 
-import {
-  type LNDChannel,
-  type LNDNodeInfo,
-  useLightningStore
-} from '@/store/lightning'
-import type { LNDRequest, LNDRequestOptions } from '@/types/models/LND'
+import { useLightningStore } from '@/store/lightning'
+import type {
+  LNDChannel,
+  LNDNodeInfo,
+  LNDPaymentResponse,
+  LNDRequest,
+  LNDRequestOptions
+} from '@/types/models/LND'
 
 export const useLND = () => {
   const {
