@@ -167,8 +167,6 @@ class BaseElectrumClient {
     try {
       client = ElectrumClient.fromUrl(url, network)
 
-      client.client.reconnect = () => {}
-
       const pingPromise = client.client.initElectrum({
         client: 'satsigner',
         version: '1.4'
@@ -190,18 +188,6 @@ class BaseElectrumClient {
       return true
     } catch {
       return false
-    } finally {
-      if (timeoutId) {
-        clearTimeout(timeoutId)
-      }
-      if (client) {
-        try {
-          client.close()
-          if (client.client && client.client.socket) {
-            client.client.socket.destroy()
-          }
-        } catch {}
-      }
     }
   }
 
