@@ -500,21 +500,9 @@ export async function validateEcashToken(
       errorMsg.toLowerCase().includes('too many requests') ||
       errorMsg.toLowerCase().includes('429')
 
-    // Note: React Native's fetch doesn't expose HTTP status codes in NetworkError
-    // The @cashu/cashu-ts library uses fetch internally, so we can't definitively
-    // detect rate limiting (429) or blocked connections (403) from generic network errors
-    if (httpStatus) {
-      const storeErrorMessage =
-        httpStatus === 429
-          ? 'Connection rate limited. Please wait before retrying.'
-          : httpStatus === 403
-            ? 'Connection blocked or forbidden. Please check mint access.'
-            : `HTTP ${httpStatus}: ${errorMsg}`
-
-      useEcashStore.getState().updateMintConnection(mintUrl, false)
-    } else if (isRateLimitError) {
-      useEcashStore.getState().updateMintConnection(mintUrl, false)
-    } else if (
+    if (
+      httpStatus ||
+      isRateLimitError ||
       errorName === 'NetworkError' ||
       errorMsg.includes('Network request failed')
     ) {

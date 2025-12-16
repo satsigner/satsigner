@@ -25,7 +25,6 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import { useEcashStore } from '@/store/ecash'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
@@ -34,7 +33,6 @@ import { formatFiatPrice } from '@/utils/format'
 export default function EcashLanding() {
   const router = useRouter()
   const { mints, activeMint, proofs, transactions } = useEcash()
-  const ecashStatus = useEcashStore((state) => state.status)
   const [currencyUnit, useZeroPadding] = useSettingsStore(
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
@@ -56,34 +54,6 @@ export default function EcashLanding() {
   const handleSettingsPress = () => router.navigate('/signer/ecash/settings')
   const handleConnectMintPress = () =>
     router.navigate('/signer/ecash/settings/mint')
-
-  function getConnectionErrorMessage(error?: string): string {
-    if (!error) {
-      return t('ecash.error.mintNotConnected')
-    }
-
-    const errorLower = error.toLowerCase()
-
-    if (
-      errorLower.includes('429') ||
-      errorLower.includes('rate limit') ||
-      errorLower.includes('too many requests') ||
-      errorLower.includes('rate limited')
-    ) {
-      return t('ecash.error.mintRateLimited')
-    }
-
-    if (
-      errorLower.includes('403') ||
-      errorLower.includes('forbidden') ||
-      errorLower.includes('blocked') ||
-      errorLower.includes('access denied')
-    ) {
-      return t('ecash.error.mintBlocked')
-    }
-
-    return error || t('ecash.error.mintNotConnected')
-  }
 
   const ecashContentHandler = useEcashContentHandler()
 

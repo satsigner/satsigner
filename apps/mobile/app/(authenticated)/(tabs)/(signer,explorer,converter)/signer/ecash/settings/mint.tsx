@@ -13,7 +13,6 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useEcashStore } from '@/store/ecash'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { formatNumber } from '@/utils/format'
@@ -32,42 +31,10 @@ export default function EcashMintPage() {
 
   const { mints, connectToMint, disconnectMint } = useEcash()
 
-  const ecashStatus = useEcashStore((state) => state.status)
   const [currencyUnit, useZeroPadding] = useSettingsStore(
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
-
-  function getConnectionErrorMessage(error?: string): string {
-    if (!error) {
-      return t('ecash.error.mintNotConnected')
-    }
-
-    const errorLower = error.toLowerCase()
-
-    // Check for rate limiting (HTTP 429 or rate limit messages)
-    if (
-      errorLower.includes('429') ||
-      errorLower.includes('rate limit') ||
-      errorLower.includes('too many requests') ||
-      errorLower.includes('rate limited')
-    ) {
-      return t('ecash.error.mintRateLimited')
-    }
-
-    // Check for blocked/forbidden (HTTP 403 or blocked messages)
-    if (
-      errorLower.includes('403') ||
-      errorLower.includes('forbidden') ||
-      errorLower.includes('blocked') ||
-      errorLower.includes('access denied')
-    ) {
-      return t('ecash.error.mintBlocked')
-    }
-
-    // Default to showing the actual error message or generic not connected
-    return error || t('ecash.error.mintNotConnected')
-  }
 
   const handleConnectMint = useCallback(async () => {
     if (!mintUrl) {
