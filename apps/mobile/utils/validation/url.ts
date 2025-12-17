@@ -152,20 +152,18 @@ export function validateEsploraUrl(url: string): ValidationResult {
   if (!url.startsWith('https://')) {
     return {
       isValid: false,
-      error: 'Invalid URL. Esplora URLs must use HTTPS protocol'
+      error: 'Invalid URL: Esplora must use HTTPS protocol!'
     }
   }
 
-  try {
-    // eslint-disable-next-line no-new
-    new URL(url)
-    return { isValid: true }
-  } catch {
+  if (!URL.canParse(url)) {
     return {
       isValid: false,
       error: 'Invalid URL format'
     }
   }
+
+  return { isValid: true }
 }
 
 /**

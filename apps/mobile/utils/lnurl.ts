@@ -95,66 +95,35 @@ export function isLNURL(input: string): boolean {
 
 // Decode a LNURL from bech32 format
 export function decodeLNURL(input: string): string {
-  try {
-    // Remove 'lightning:' prefix if present (case insensitive)
-    let cleanInput = input.trim()
-    if (cleanInput.toLowerCase().startsWith('lightning:')) {
-      cleanInput = cleanInput.substring(10) // Remove 'lightning:' prefix
-    }
-
-    // Bech32 strings must be lowercase
-    cleanInput = cleanInput.toLowerCase()
-
-    // Basic validation - just check it starts with lnurl and has content
-    if (!cleanInput.startsWith('lnurl') || cleanInput.length < 6) {
-      throw new Error('Invalid LNURL format: must start with lnurl')
-    }
-
-    // Decode bech32 - let the library do the real validation
-    let decoded
-    try {
-      decoded = bech32.decode(cleanInput, 1023) // Increase max length
-    } catch (bech32Error) {
-      const errorMessage =
-        bech32Error instanceof Error ? bech32Error.message : String(bech32Error)
-      if (
-        errorMessage.includes('Invalid') ||
-        errorMessage.includes('invalid') ||
-        errorMessage.includes('Bech32') ||
-        errorMessage.includes('bech32')
-      ) {
-        throw new Error(`Bech32 string is not valid: ${errorMessage}`)
-      }
-      throw new Error(`Failed to decode bech32: ${errorMessage}`)
-    }
-
-    if (!decoded || !decoded.words || decoded.words.length === 0) {
-      throw new Error(
-        'Invalid LNURL format: bech32 decode returned empty result'
-      )
-    }
-
-    // Convert to bytes and then to string
-    const urlBytes = bech32.fromWords(decoded.words)
-    const url = Buffer.from(urlBytes).toString('utf8')
-
-    // Validate URL format
-    try {
-      // eslint-disable-next-line no-new
-      new URL(url)
-      return url
-    } catch {
-      throw new Error('Invalid URL in LNURL')
-    }
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error'
-    // If the error already contains "Bech32", pass it through
-    if (errorMessage.includes('Bech32') || errorMessage.includes('bech32')) {
-      throw error
-    }
-    throw new Error(`Failed to decode LNURL: ${errorMessage}`)
+  // Remove 'lightning:' prefix if present (case insensitive)
+  let cleanInput = input.trim().toLowerCase()
+  if (cleanInput.toLowerCase().startsWith('lightning:')) {
+    cleanInput = cleanInput.substring(10)
   }
+
+  // Basic validation - just check it starts with lnurl and has content
+  if (!cleanInput.startsWith('lnurl') || cleanInput.length < 6) {
+    throw new Error('Invalid LNURL format: must start with lnurl')
+  }
+
+  let decoded
+  try {
+    decoded = bech32.decode(cleanInput, 1023) // Increase max length
+  } catch {
+    throw new Error(`Failed to decode bech32`)
+  }
+
+  if (!decoded || !decoded.words || decoded.words.length === 0) {
+    throw new Error('Invalid LNURL format: bech32 decode returned empty result')
+  }
+
+  const urlBytes = bech32.fromWords(decoded.words)
+  const url = Buffer.from(urlBytes).toString('utf8')
+  if (!URL.canParse(url)) {
+    throw new Error('Unable to parse URL')
+  }
+
+  return url
 }
 
 // Fetch LNURL-pay details

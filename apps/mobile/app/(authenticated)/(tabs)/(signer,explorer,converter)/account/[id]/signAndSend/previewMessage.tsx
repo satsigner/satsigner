@@ -55,9 +55,9 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type PreviewMessageSearchParams } from '@/types/navigation/searchParams'
 import { extractKeyFingerprint } from '@/utils/account'
 import {
+  BBQRFileTypes,
   createBBQRChunks,
   decodeBBQRChunks,
-  FileType,
   isBBQRFragment
 } from '@/utils/bbqr'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'

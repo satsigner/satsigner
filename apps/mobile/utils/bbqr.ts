@@ -4,15 +4,11 @@
  * for large binary data like PSBTs, using the official BBQR library.
  */
 
-import {
-  type FileType as OfficialFileType,
-  joinQRs,
-  splitQRs,
-  type Version
-} from './bbrq'
+import type { FileType as OfficialFileType, Version } from './bbrq'
+import { joinQRs, splitQRs } from './bbrq'
 
 // Re-export the official FileType but with enum-like access for backward compatibility
-export const FileType = {
+export const BBQRFileTypes = {
   PSBT: 'P' as const,
   TXN: 'T' as const,
   JSON: 'J' as const,
@@ -23,8 +19,7 @@ export const FileType = {
 } as const
 
 // Export type for the FileType values
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export type FileType = (typeof FileType)[keyof typeof FileType]
+export type BBQRFileType = (typeof BBQRFileTypes)[keyof typeof BBQRFileTypes]
 
 /**
  * Check if a string is a BBQR fragment
@@ -77,7 +72,7 @@ export function isBBQRFragment(part: string): boolean {
  */
 export function createBBQRChunks(
   data: Uint8Array,
-  fileType: FileType = FileType.PSBT,
+  fileType: BBQRFileType = BBQRFileTypes.PSBT,
   maxChunkSize: number = 400
 ): string[] {
   try {
