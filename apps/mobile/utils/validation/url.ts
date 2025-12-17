@@ -18,31 +18,6 @@ export function isValidOnionAddress(host: string): boolean {
 }
 
 export function isValidDomainName(host: string): boolean {
-  // Check for .onion addresses first
-  if (isValidOnionAddress(host)) {
-    return true
-  }
-
-  // Check for double dots, leading/trailing hyphens, and consecutive hyphens
-  if (
-    host.includes('..') ||
-    host.startsWith('-') ||
-    host.endsWith('-') ||
-    host.includes('--')
-  ) {
-    return false
-  }
-
-  // Check for hyphen before or after dot
-  if (host.includes('-.') || host.includes('.-')) {
-    return false
-  }
-
-  return /^[a-z][a-z0-9.-]*[a-z0-9]$/i.test(host)
-}
-
-export function isDomainName(host: string): boolean {
-  // Validate host: allow domain names (starting with letter) or IP addresses
   return /^[a-z][a-z0-9.-]*[a-z0-9]$/i.test(host)
 }
 
