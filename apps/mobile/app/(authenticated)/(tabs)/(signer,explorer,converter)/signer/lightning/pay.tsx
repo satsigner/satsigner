@@ -87,19 +87,14 @@ export default function PayPage() {
   // Decode a bolt11 invoice
   const decodeInvoice = useCallback(
     async (invoice: string) => {
-      try {
-        const response = await typedMakeRequest<LNDecodedInvoice>(
-          '/v1/payreq/' + invoice
-        )
+      const response = await typedMakeRequest<LNDecodedInvoice>(
+        '/v1/payreq/' + invoice
+      )
 
-        // Update state with decoded invoice
-        setDecodedInvoice(response)
+      // Update state with decoded invoice
+      setDecodedInvoice(response)
 
-        return response
-      } catch (error) {
-        setDecodedInvoice(null)
-        throw error
-      }
+      return response
     },
     [typedMakeRequest]
   )

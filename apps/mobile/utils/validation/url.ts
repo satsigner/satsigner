@@ -1,7 +1,3 @@
-/**
- * Utility functions for URL validation
- */
-
 export type Protocol = 'tcp' | 'ssl' | 'tls'
 
 export type ValidationResult = {

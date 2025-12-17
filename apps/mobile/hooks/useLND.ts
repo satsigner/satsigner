@@ -55,46 +55,30 @@ export const useLND = () => {
       }
 
       const { method = 'GET', body, headers = {} } = options
+      setConnecting(true)
 
-      try {
-        setConnecting(true)
+      const response = await fetch(`${config.url}${endpoint}`, {
+        method,
+        headers: {
+          'Grpc-Metadata-macaroon': config.macaroon,
+          'Content-Type': 'application/json',
+          ...headers
+        },
+        body: body ? JSON.stringify(body) : undefined
+      })
 
-        const response = await fetch(`${config.url}${endpoint}`, {
-          method,
-          headers: {
-            'Grpc-Metadata-macaroon': config.macaroon,
-            'Content-Type': 'application/json',
-            ...headers
-          },
-          body: body ? JSON.stringify(body) : undefined
-        })
-
-        if (!response.ok) {
-          const errorText = await response.text()
-          const error = new Error(
-            `LND API error: ${response.status} ${errorText}`
-          )
-
-          if (response.status === 401 || response.status === 403) {
-            setConnected(false)
-          } else if (response.status >= 500) {
-            try {
-              await getInfo()
-            } catch {
-              setConnected(false)
-            }
-          }
-
-          throw error
-        }
-
-        const data = await response.json()
-        return data as T
-      } catch (error) {
+      if (!response.ok) {
+        setConnected(false)
+        const errorText = await response.text()
+        const error = new Error(
+          `LND API error: ${response.status} ${errorText}`
+        )
         throw error
-      } finally {
-        setConnecting(false)
       }
+
+      const data = await response.json()
+      setConnecting(false)
+      return data as T
     },
     [config, setConnecting, setConnected, getInfo]
   )
@@ -131,49 +115,45 @@ export const useLND = () => {
 
   const payInvoice = useCallback(
     async (paymentRequest: string) => {
-      try {
-        const response = await makeRequest<LNDPaymentResponse>(
-          '/v1/channels/transactions',
-          {
-            method: 'POST',
-            body: {
-              payment_request: paymentRequest
-            }
+      const response = await makeRequest<LNDPaymentResponse>(
+        '/v1/channels/transactions',
+        {
+          method: 'POST',
+          body: {
+            payment_request: paymentRequest
           }
-        )
+        }
+      )
 
-        const paymentHash = response.payment_hash
-        if (paymentHash) {
-          let attempts = 0
-          const maxAttempts = 30 // Poll for up to 30 seconds
-          const pollInterval = 1000 // Check every second
+      const paymentHash = response.payment_hash
+      if (paymentHash) {
+        let attempts = 0
+        const maxAttempts = 30 // Poll for up to 30 seconds
+        const pollInterval = 1000 // Check every second
 
-          while (attempts < maxAttempts) {
-            attempts++
-            await new Promise((resolve) => setTimeout(resolve, pollInterval))
+        while (attempts < maxAttempts) {
+          attempts++
+          await new Promise((resolve) => setTimeout(resolve, pollInterval))
 
-            try {
-              const statusResponse = await makeRequest<{ status: string }>(
-                `/v1/payments/${paymentHash}`
-              )
+          try {
+            const statusResponse = await makeRequest<{ status: string }>(
+              `/v1/payments/${paymentHash}`
+            )
 
-              if (statusResponse.status === 'SUCCEEDED') {
-                return response
-              } else if (statusResponse.status === 'FAILED') {
-                throw new Error('Payment failed')
-              }
-            } catch (error) {
-              if (error instanceof Error && error.message.includes('404')) {
-                return response
-              }
+            if (statusResponse.status === 'SUCCEEDED') {
+              return response
+            } else if (statusResponse.status === 'FAILED') {
+              throw new Error('Payment failed')
+            }
+          } catch (error) {
+            if (error instanceof Error && error.message.includes('404')) {
+              return response
             }
           }
         }
-
-        return response
-      } catch (error) {
-        throw error
       }
+
+      return response
     },
     [makeRequest]
   )

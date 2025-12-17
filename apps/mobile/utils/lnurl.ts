@@ -21,7 +21,6 @@ export function getLNURLType(input: string): {
     return { isLNURL: false }
   }
 
-  // Try to decode to check the URL
   try {
     const url = decodeLNURL(input)
 
@@ -238,7 +237,6 @@ export async function handleLNURLPay(
       )
     }
 
-    // Request and return the invoice
     const invoice = await requestLNURLPayInvoice(
       details.callback,
       amount,
