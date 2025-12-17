@@ -1,14 +1,11 @@
 import type { NDKKind, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import { Buffer } from 'buffer'
-import * as CBOR from 'cbor-js'
 import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
-import pako from 'pako'
 import crypto from 'react-native-aes-crypto'
 import { toast } from 'sonner-native'
 
-import type { NostrMessage } from '@/types/models/Nostr'
-import { base85Decode, base85Encode } from '@/utils/base58'
+import type { NostrKeys, NostrMessage } from '@/types/models/Nostr'
 
 const POOL_SIZE = 1024 // 1KB of random values
 
@@ -92,12 +89,6 @@ if (!global.crypto.getRandomBase64String) {
       )
     }
   }
-}
-
-export type NostrKeys = {
-  nsec: string
-  npub: string
-  secretNostrKey: Uint8Array
 }
 
 export class NostrAPI {
@@ -426,22 +417,4 @@ export class NostrAPI {
       throw new Error('Failed to publish after 3 attempts')
     }
   }
-}
-
-export function compressMessage(data: any): string {
-  const cborData = CBOR.encode(data)
-  const jsonUint8 = new Uint8Array(cborData)
-  const compressedData = pako.deflate(jsonUint8)
-  const compressedBuffer = Buffer.from(compressedData)
-  return base85Encode(compressedBuffer)
-}
-
-export function decompressMessage(compressedString: string): unknown {
-  const compressedBytes = base85Decode(compressedString)
-  const cborBytes = pako.inflate(new Uint8Array(compressedBytes))
-  const bufferSlice = cborBytes.buffer.slice(
-    cborBytes.byteOffset,
-    cborBytes.byteOffset + cborBytes.byteLength
-  )
-  return CBOR.decode(bufferSlice as unknown as Uint8Array)
 }

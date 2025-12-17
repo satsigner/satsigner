@@ -5,7 +5,7 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
-import { compressMessage, decompressMessage, NostrAPI } from '@/api/nostr'
+import { NostrAPI } from '@/api/nostr'
 import { PIN_KEY } from '@/config/auth'
 import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
@@ -19,6 +19,7 @@ import {
   labelsToJSONL
 } from '@/utils/bip329'
 import { aesDecrypt, sha256 } from '@/utils/crypto'
+import { compressMessage, decompressMessage } from '@/utils/nostr'
 import { parseDescriptor } from '@/utils/parse'
 
 function useNostrSync() {

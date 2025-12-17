@@ -16,7 +16,7 @@ import {
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { compressMessage, NostrAPI } from '@/api/nostr'
+import { NostrAPI } from '@/api/nostr'
 import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
 import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
@@ -31,7 +31,7 @@ import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatDate } from '@/utils/date'
-import { generateColorFromNpub } from '@/utils/nostr'
+import { compressMessage, generateColorFromNpub } from '@/utils/nostr'
 
 export default function NostrSync() {
   // Account and store hooks

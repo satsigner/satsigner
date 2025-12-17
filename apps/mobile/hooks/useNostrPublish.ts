@@ -1,8 +1,9 @@
 import { toast } from 'sonner-native'
 
-import { compressMessage, NostrAPI } from '@/api/nostr'
+import { NostrAPI } from '@/api/nostr'
 import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
+import { compressMessage } from '@/utils/nostr'
 
 function getTrustedDevices(accountId: string): string[] {
   const account = useAccountsStore

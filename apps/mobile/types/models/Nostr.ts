@@ -36,3 +36,9 @@ export type NostrAccount = {
   trustedMemberDevices: string[]
   relayStatuses?: Record<string, 'connected' | 'connecting' | 'disconnected'>
 }
+
+export type NostrKeys = {
+  nsec: string
+  npub: string
+  secretNostrKey: Uint8Array
+}
