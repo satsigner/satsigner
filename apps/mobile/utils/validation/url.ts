@@ -36,47 +36,40 @@ export function isValidProtocol(protocol: string): protocol is Protocol {
 }
 
 export function validateElectrumUrl(url: string): ValidationResult {
-  try {
-    // Check if URL has the expected format
-    if (!url.includes('://') || !url.includes(':')) {
-      return {
-        isValid: false,
-        error: 'Invalid URL format'
-      }
-    }
-
-    const port = url.replace(/.*:/, '')
-    const protocol = url.replace(/:\/\/.*/, '')
-    const host = url.replace(`${protocol}://`, '').replace(`:${port}`, '')
-
-    if (!isValidProtocol(protocol)) {
-      return {
-        isValid: false,
-        error: 'Invalid protocol. Must be tcp, ssl, or tls'
-      }
-    }
-
-    if (!isValidDomainName(host) && !isValidIPAddress(host)) {
-      return {
-        isValid: false,
-        error: 'Invalid host. Must be a valid domain name or IP address'
-      }
-    }
-
-    if (!isValidPort(port)) {
-      return {
-        isValid: false,
-        error: 'Invalid port. Must be a valid number'
-      }
-    }
-
-    return { isValid: true }
-  } catch {
+  // Check if URL has the expected format
+  if (!url.includes('://') || !url.includes(':')) {
     return {
       isValid: false,
       error: 'Invalid URL format'
     }
   }
+
+  const port = url.replace(/.*:/, '')
+  const protocol = url.replace(/:\/\/.*/, '')
+  const host = url.replace(`${protocol}://`, '').replace(`:${port}`, '')
+
+  if (!isValidProtocol(protocol)) {
+    return {
+      isValid: false,
+      error: 'Invalid protocol. Must be tcp, ssl, or tls'
+    }
+  }
+
+  if (!isValidDomainName(host) && !isValidIPAddress(host)) {
+    return {
+      isValid: false,
+      error: 'Invalid host. Must be a valid domain name or IP address'
+    }
+  }
+
+  if (!isValidPort(port)) {
+    return {
+      isValid: false,
+      error: 'Invalid port. Must be a valid number'
+    }
+  }
+
+  return { isValid: true }
 }
 
 export function validateEsploraUrl(url: string): ValidationResult {

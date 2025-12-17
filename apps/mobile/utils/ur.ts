@@ -46,78 +46,68 @@ export function getURFragmentsFromPSBT(
   format: 'base64' | 'hex' = 'hex',
   fragmentSize = 400 // Smaller fragments for better camera compatibility
 ): string[] {
-  try {
-    if (!psbt || psbt.trim() === '') {
-      throw new Error('PSBT input is empty or null')
-    }
-
-    const psbtBytes = Buffer.from(psbt, format)
-    if (psbtBytes.length === 0) {
-      throw new Error('Empty PSBT data after parsing')
-    }
-
-    // Create manual CBOR structure to avoid @ngraveio/bc-ur library encoding issues
-    const cborData = createCryptoPsbtCBOR(psbtBytes)
-
-    // Create UR directly with the manually crafted CBOR data
-    const ur = new UR(Buffer.from(Array.from(cborData)), 'crypto-psbt')
-
-    // Use appropriate fragment size for reliable camera scanning
-    const finalFragmentSize = fragmentSize // Use the specified fragment size for multiple chunks
-
-    const encoder = new UREncoder(ur, finalFragmentSize)
-
-    const fragments: string[] = []
-    for (let i = 0; i < encoder.fragments.length; i++) {
-      const fragment = encoder.nextPart()
-
-      if (!fragment.toLowerCase().startsWith('ur:crypto-psbt/')) {
-        throw new Error(
-          `Invalid UR fragment at index ${i}: ${fragment.substring(0, 100)}`
-        )
-      }
-
-      // Convert to uppercase to match SeedSigner expected format (like Sparrow example)
-      const uppercaseFragment = fragment.toUpperCase()
-      fragments.push(uppercaseFragment)
-    }
-
-    if (fragments.length === 0) {
-      throw new Error('No fragments were generated')
-    }
-
-    return fragments
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`Failed to generate UR fragments: ${message}`)
+  if (!psbt || psbt.trim() === '') {
+    throw new Error('PSBT input is empty or null')
   }
+
+  const psbtBytes = Buffer.from(psbt, format)
+  if (psbtBytes.length === 0) {
+    throw new Error('Empty PSBT data after parsing')
+  }
+
+  // Create manual CBOR structure to avoid @ngraveio/bc-ur library encoding issues
+  const cborData = createCryptoPsbtCBOR(psbtBytes)
+
+  // Create UR directly with the manually crafted CBOR data
+  const ur = new UR(Buffer.from(Array.from(cborData)), 'crypto-psbt')
+
+  // Use appropriate fragment size for reliable camera scanning
+  const finalFragmentSize = fragmentSize // Use the specified fragment size for multiple chunks
+
+  const encoder = new UREncoder(ur, finalFragmentSize)
+
+  const fragments: string[] = []
+  for (let i = 0; i < encoder.fragments.length; i++) {
+    const fragment = encoder.nextPart()
+
+    if (!fragment.toLowerCase().startsWith('ur:crypto-psbt/')) {
+      throw new Error(
+        `Invalid UR fragment at index ${i}: ${fragment.substring(0, 100)}`
+      )
+    }
+
+    // Convert to uppercase to match SeedSigner expected format (like Sparrow example)
+    const uppercaseFragment = fragment.toUpperCase()
+    fragments.push(uppercaseFragment)
+  }
+
+  if (fragments.length === 0) {
+    throw new Error('No fragments were generated')
+  }
+
+  return fragments
 }
 
 export function decodeURToPSBT(ur: string): string {
-  try {
-    // Try using URDecoder for proper UR parsing
-    const decoder = new URDecoder()
-    decoder.receivePart(ur)
+  // Try using URDecoder for proper UR parsing
+  const decoder = new URDecoder()
+  decoder.receivePart(ur)
 
-    if (decoder.isComplete()) {
-      const result = decoder.resultUR()
-      const cborData = result.cbor
-      const psbtBytes = parseCBORByteString(new Uint8Array(cborData))
-      const psbtHex = Buffer.from(Array.from(psbtBytes)).toString('hex')
+  if (decoder.isComplete()) {
+    const result = decoder.resultUR()
+    const cborData = result.cbor
+    const psbtBytes = parseCBORByteString(new Uint8Array(cborData))
+    const psbtHex = Buffer.from(Array.from(psbtBytes)).toString('hex')
 
-      // For UR format, return the PSBT hex directly instead of trying to extract final transaction
-      // This ensures we preserve all the witness data and signatures
-      if (psbtHex.toLowerCase().startsWith('70736274')) {
-        return psbtHex
-      } else {
-        return psbtHex
-      }
+    // For UR format, return the PSBT hex directly instead of trying to extract final transaction
+    // This ensures we preserve all the witness data and signatures
+    if (psbtHex.toLowerCase().startsWith('70736274')) {
+      return psbtHex
     } else {
-      throw new Error('UR decoder not complete after receiving part')
+      return psbtHex
     }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`Failed to decode UR to PSBT: ${message}`)
+  } else {
+    throw new Error('UR decoder not complete after receiving part')
   }
 }
 
@@ -220,119 +210,93 @@ export function decodeURGeneric(ur: string) {
 export async function decodeMultiPartURToPSBT(
   urFragments: string[]
 ): Promise<string> {
-  try {
-    // Use URDecoder for proper multi-part UR parsing
-    const decoder = new URDecoder()
+  // Use URDecoder for proper multi-part UR parsing
+  const decoder = new URDecoder()
 
-    // Sort fragments by sequence number first (following Java implementation pattern)
-    // Use a more memory-efficient sorting approach
-    const sortedFragments = urFragments.sort((a, b) => {
-      // Extract sequence number from fragments like "UR:CRYPTO-PSBT/881-13/..."
-      const aMatch = a.match(/ur:crypto-psbt\/(\d+)-(\d+)\//i)
-      const bMatch = b.match(/ur:crypto-psbt\/(\d+)-(\d+)\//i)
+  // Sort fragments by sequence number first (following Java implementation pattern)
+  // Use a more memory-efficient sorting approach
+  const sortedFragments = urFragments.sort((a, b) => {
+    // Extract sequence number from fragments like "UR:CRYPTO-PSBT/881-13/..."
+    const aMatch = a.match(/ur:crypto-psbt\/(\d+)-(\d+)\//i)
+    const bMatch = b.match(/ur:crypto-psbt\/(\d+)-(\d+)\//i)
 
-      if (aMatch && bMatch) {
-        const aSeq = parseInt(aMatch[1], 10)
-        const bSeq = parseInt(bMatch[1], 10)
-        return aSeq - bSeq
-      }
-
-      return 0
-    })
-
-    // Feed all fragments to the decoder in sequence order
-    // Process in smaller batches to reduce memory pressure
-    const batchSize = 10
-    for (let i = 0; i < sortedFragments.length; i += batchSize) {
-      const batch = sortedFragments.slice(i, i + batchSize)
-
-      for (const fragment of batch) {
-        const success = decoder.receivePart(fragment)
-
-        if (!success) {
-          continue
-        }
-      }
-      if (i + batchSize < sortedFragments.length) {
-        await new Promise((resolve) => setTimeout(resolve, 1))
-      }
+    if (aMatch && bMatch) {
+      const aSeq = parseInt(aMatch[1], 10)
+      const bSeq = parseInt(bMatch[1], 10)
+      return aSeq - bSeq
     }
 
-    // For fountain encoding, check if decoder is actually complete, not just the expected fragment count
-    const isDecoderComplete = decoder.isComplete()
-    const progress = decoder.estimatedPercentComplete()
+    return 0
+  })
 
-    // Try to get result even if isComplete() returns undefined or false
-    // Some UR implementations complete at different thresholds
-    const shouldTryDecoding =
-      isDecoderComplete === true ||
-      (isDecoderComplete === undefined && progress > 0.9) ||
-      progress >= 1.0
+  // Feed all fragments to the decoder in sequence order
+  // Process in smaller batches to reduce memory pressure
+  const batchSize = 10
+  for (let i = 0; i < sortedFragments.length; i += batchSize) {
+    const batch = sortedFragments.slice(i, i + batchSize)
 
-    if (shouldTryDecoding) {
-      try {
-        const result = decoder.resultUR()
-        if (result && result.cbor) {
-          const cborData = result.cbor
-          const psbtBytes = parseCBORByteString(new Uint8Array(cborData))
-          const psbtHex = Buffer.from(Array.from(psbtBytes)).toString('hex')
+    for (const fragment of batch) {
+      const success = decoder.receivePart(fragment)
 
-          // For UR format, return the PSBT hex directly instead of trying to extract final transaction
-          // This ensures we preserve all the witness data and signatures
-          if (psbtHex.toLowerCase().startsWith('70736274')) {
-            return psbtHex
-          } else {
-            return psbtHex
-          }
-        }
-      } catch (_resultError) {
-        // Continue to error handling
+      if (!success) {
+        continue
       }
     }
-
-    // If we get here, the decoder isn't ready yet
-    if (progress < 0.3) {
-      throw new Error(
-        `UR decoder needs more fragments: ${Math.round(
-          progress * 100
-        )}% complete`
-      )
-    } else if (progress < 0.8) {
-      throw new Error(
-        `UR decoder needs more fragments: ${Math.round(
-          progress * 100
-        )}% complete (fountain encoding requires more fragments)`
-      )
-    } else {
-      // Try to force extraction even if not 100% complete
-      try {
-        const result = decoder.resultUR()
-        if (result && result.cbor) {
-          const cborData = result.cbor
-          const psbtBytes = parseCBORByteString(new Uint8Array(cborData))
-          const psbtHex = Buffer.from(Array.from(psbtBytes)).toString('hex')
-
-          if (psbtHex.toLowerCase().startsWith('70736274')) {
-            return psbtHex
-          } else {
-            return psbtHex
-          }
-        }
-      } catch (_forceError) {
-        // Continue to final error
-      }
-
-      throw new Error(
-        `UR decoder not ready: ${Math.round(progress * 100)}% complete`
-      )
+    if (i + batchSize < sortedFragments.length) {
+      await new Promise((resolve) => setTimeout(resolve, 1))
     }
-  } catch (error) {
+  }
+
+  // For fountain encoding, check if decoder is actually complete, not just the expected fragment count
+  const isDecoderComplete = decoder.isComplete()
+  const progress = decoder.estimatedPercentComplete()
+
+  // Try to get result even if isComplete() returns undefined or false
+  // Some UR implementations complete at different thresholds
+  const shouldTryDecoding =
+    isDecoderComplete === true ||
+    (isDecoderComplete === undefined && progress > 0.9) ||
+    progress >= 1.0
+
+  if (shouldTryDecoding) {
+    const result = decoder.resultUR()
+    if (result && result.cbor) {
+      const cborData = result.cbor
+      const psbtBytes = parseCBORByteString(new Uint8Array(cborData))
+      const psbtHex = Buffer.from(Array.from(psbtBytes)).toString('hex')
+
+      // For UR format, return the PSBT hex directly instead of trying to extract final transaction
+      // This ensures we preserve all the witness data and signatures
+      if (psbtHex.toLowerCase().startsWith('70736274')) {
+        return psbtHex
+      } else {
+        return psbtHex
+      }
+    }
+  }
+
+  // If we get here, the decoder isn't ready yet
+  if (progress < 0.8) {
     throw new Error(
-      `UR decoding failed: ${
-        error instanceof Error ? error.message : String(error)
-      }`
+      `UR decoder needs more fragments: ${Math.round(progress * 100)}% complete`
     )
   }
+
+  // Try to force extraction even if not 100% complete
+  const result = decoder.resultUR()
+  if (result && result.cbor) {
+    const cborData = result.cbor
+    const psbtBytes = parseCBORByteString(new Uint8Array(cborData))
+    const psbtHex = Buffer.from(Array.from(psbtBytes)).toString('hex')
+
+    if (psbtHex.toLowerCase().startsWith('70736274')) {
+      return psbtHex
+    } else {
+      return psbtHex
+    }
+  }
+
+  throw new Error('UR decoder failed')
 }
 
 function processURGenericBytes(cborData: Uint8Array) {

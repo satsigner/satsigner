@@ -53,17 +53,13 @@ export async function generateColorFromNpub(npub: string): Promise<string> {
 export function parseNostrTransactionMessage(
   message: string
 ): TransactionData | null {
-  try {
-    if (message.trim().startsWith('cHNidP')) {
-      const transactionData: TransactionData = {
-        combinedPsbt: message.trim()
-      }
-      return transactionData
+  if (message.trim().startsWith('cHNidP')) {
+    const transactionData: TransactionData = {
+      combinedPsbt: message.trim()
     }
-    return null
-  } catch {
-    return null
+    return transactionData
   }
+  return null
 }
 
 export function compressMessage(data: any): string {

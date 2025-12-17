@@ -44,12 +44,6 @@ export const formatDate = (timestamp: number | undefined): string => {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
-/**
- * Safely format an account creation date
- * Handles both Date objects and string/number timestamps
- * @param createdAt The creation date (Date, string, or number)
- * @returns Formatted date string or 'Invalid date' if invalid
- */
 export function formatAccountCreationDate(
   createdAt: Date | string | number | undefined
 ): string {
@@ -57,17 +51,13 @@ export function formatAccountCreationDate(
     return 'Invalid date'
   }
 
-  try {
-    if (createdAt instanceof Date) {
-      return formatDateUtil(createdAt)
-    } else {
-      const date = new Date(createdAt)
-      if (isNaN(date.getTime())) {
-        return 'Invalid date'
-      }
-      return formatDateUtil(date)
+  if (createdAt instanceof Date) {
+    return formatDateUtil(createdAt)
+  } else {
+    const date = new Date(createdAt)
+    if (isNaN(date.getTime())) {
+      return 'Invalid date'
     }
-  } catch {
-    return 'Invalid date'
+    return formatDateUtil(date)
   }
 }
