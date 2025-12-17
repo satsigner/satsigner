@@ -992,13 +992,13 @@ function PreviewMessage() {
                 const bbqrChunkSize = Math.max(100, 30 * 12) // Use maximum density (460 characters per chunk)
                 bbqrChunks = createBBQRChunks(
                   new Uint8Array(psbtBuffer),
-                  FileType.PSBT,
+                  BBQRFileTypes.PSBT,
                   bbqrChunkSize
                 )
               } else {
                 bbqrChunks = createBBQRChunks(
                   new Uint8Array(psbtBuffer),
-                  FileType.PSBT,
+                  BBQRFileTypes.PSBT,
                   psbtBuffer.length * 10
                 )
               }
@@ -1009,7 +1009,7 @@ function PreviewMessage() {
 
               bbqrChunks = createBBQRChunks(
                 new Uint8Array(psbtBuffer),
-                FileType.PSBT,
+                BBQRFileTypes.PSBT,
                 bbqrChunkSize
               )
             }
