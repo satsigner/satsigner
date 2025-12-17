@@ -3,7 +3,7 @@ import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import { Buffer } from 'buffer'
 import * as CBOR from 'cbor-js'
 import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
-import * as pako from 'pako'
+import pako from 'pako'
 import crypto from 'react-native-aes-crypto'
 import { toast } from 'sonner-native'
 
@@ -28,16 +28,12 @@ initializeRandomPool()
 
 // Then asynchronously refill with better random values
 async function refillRandomPool() {
-  try {
-    const randomHex = await crypto.randomKey(POOL_SIZE)
-    const newPool = new Uint8Array(Buffer.from(randomHex, 'hex'))
-    // Only update if we haven't used too many values
-    if (randomPoolIndex < POOL_SIZE / 2) {
-      randomPool = newPool
-      randomPoolIndex = 0
-    }
-  } catch (_error) {
-    // Error refilling random pool
+  const randomHex = await crypto.randomKey(POOL_SIZE)
+  const newPool = new Uint8Array(Buffer.from(randomHex, 'hex'))
+  // Only update if we haven't used too many values
+  if (randomPoolIndex < POOL_SIZE / 2) {
+    randomPool = newPool
+    randomPoolIndex = 0
   }
 }
 
@@ -97,7 +93,7 @@ if (!global.crypto.getRandomBase64String) {
   }
 }
 
-export interface NostrKeys {
+export type NostrKeys = {
   nsec: string
   npub: string
   secretNostrKey: Uint8Array
@@ -137,97 +133,82 @@ export class NostrAPI {
   }
 
   async connect() {
-    try {
-      if (!this.ndk) {
-        this.ndk = new NDK({
-          explicitRelayUrls: this.relays
-        })
-      }
+    if (!this.ndk) {
+      this.ndk = new NDK({
+        explicitRelayUrls: this.relays
+      })
+    }
 
-      await this.ndk.connect()
+    await this.ndk.connect()
 
-      if (!this.ndk.pool) {
-        throw new Error('NDK pool not initialized')
-      }
+    if (!this.ndk.pool) {
+      throw new Error('NDK pool not initialized')
+    }
 
-      await this.ndk.pool.connect()
+    await this.ndk.pool.connect()
 
-      const connectedRelays = Array.from(this.ndk.pool.relays.keys())
+    const connectedRelays = Array.from(this.ndk.pool.relays.keys())
 
-      if (connectedRelays.length === 0) {
-        throw new Error(
-          'No relays could be connected. Please check your relay URLs and internet connection.'
-        )
-      }
-
-      const relayStatus = await Promise.all(
-        connectedRelays.map(async (url) => {
-          for (let attempt = 0; attempt < 3; attempt++) {
-            try {
-              const relay = this.ndk?.pool.relays.get(url)
-              if (!relay) {
-                return { url, status: 'not_found' }
-              }
-
-              const testEvent = await this.ndk?.fetchEvent(
-                { kinds: [1], limit: 1 },
-                // @ts-ignore - relayUrl is used by NDK but not in types
-                { relayUrl: url }
-              )
-
-              return { url, status: 'connected', testEvent: testEvent !== null }
-            } catch (_error) {
-              if (attempt === 2) {
-                return { url, status: 'error' }
-              }
-              await new Promise((resolve) =>
-                setTimeout(resolve, 1000 * (attempt + 1))
-              )
-            }
-          }
-          return { url, status: 'error' }
-        })
-      )
-
-      const workingRelays = relayStatus.filter((r) => r.status === 'connected')
-      if (workingRelays.length === 0) {
-        throw new Error(
-          'No relays are responding. Please check your internet connection and try again.'
-        )
-      }
-
-      return true
-    } catch (_error) {
-      this.ndk = null
+    if (connectedRelays.length === 0) {
       throw new Error(
-        'Failed to connect to relays: ' +
-          (_error instanceof Error ? _error.message : 'Unknown error')
+        'No relays could be connected. Please check your relay URLs and internet connection.'
       )
     }
+
+    const relayStatus = await Promise.all(
+      connectedRelays.map(async (url) => {
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            const relay = this.ndk?.pool.relays.get(url)
+            if (!relay) {
+              return { url, status: 'not_found' }
+            }
+
+            const testEvent = await this.ndk?.fetchEvent(
+              { kinds: [1], limit: 1 },
+              // @ts-ignore - relayUrl is used by NDK but not in types
+              { relayUrl: url }
+            )
+
+            return { url, status: 'connected', testEvent: testEvent !== null }
+          } catch (_error) {
+            if (attempt === 2) {
+              return { url, status: 'error' }
+            }
+            await new Promise((resolve) =>
+              setTimeout(resolve, 1000 * (attempt + 1))
+            )
+          }
+        }
+        return { url, status: 'error' }
+      })
+    )
+
+    const workingRelays = relayStatus.filter((r) => r.status === 'connected')
+    if (workingRelays.length === 0) {
+      throw new Error(
+        'No relays are responding. Please check your internet connection and try again.'
+      )
+    }
+
+    return true
   }
 
   static async generateNostrKeys(): Promise<NostrKeys> {
-    try {
-      // Generate random bytes using react-native-aes-crypto
-      const randomHex = await crypto.randomKey(32)
-      const randomBytesArray = new Uint8Array(Buffer.from(randomHex, 'hex'))
+    // Generate random bytes using react-native-aes-crypto
+    const randomHex = await crypto.randomKey(32)
+    const randomBytesArray = new Uint8Array(Buffer.from(randomHex, 'hex'))
 
-      // Use the private key directly with NDKPrivateKeySigner
-      const signer = new NDKPrivateKeySigner(randomBytesArray)
-      const user = await signer.user()
-      const nsec = nip19.nsecEncode(randomBytesArray)
-      const npub = user.npub
+    // Use the private key directly with NDKPrivateKeySigner
+    const signer = new NDKPrivateKeySigner(randomBytesArray)
+    const user = await signer.user()
+    const nsec = nip19.nsecEncode(randomBytesArray)
+    const npub = user.npub
 
-      return {
-        nsec,
-        npub,
-        secretNostrKey: randomBytesArray
-      }
-    } catch (_error) {
-      throw new Error(
-        'Failed to generate Nostr keys: ' +
-          (_error instanceof Error ? _error.message : 'Unknown error')
-      )
+    return {
+      nsec,
+      npub,
+      secretNostrKey: randomBytesArray
     }
   }
 
@@ -270,72 +251,63 @@ export class NostrAPI {
     this.setLoading(true)
     this._callback = _callback
 
-    try {
-      const { data: recipientSecretNostrKey } = nip19.decode(recipientNsec)
-      const { data: recipientPubKey } = nip19.decode(recipientNpub)
+    const { data: recipientSecretNostrKey } = nip19.decode(recipientNsec)
+    const { data: recipientPubKey } = nip19.decode(recipientNpub)
 
-      const TWO_DAYS = 48 * 60 * 60
-      const bufferedSince = since ? since - TWO_DAYS : undefined
+    const TWO_DAYS = 48 * 60 * 60
+    const bufferedSince = since ? since - TWO_DAYS : undefined
 
-      const subscriptionQuery = {
-        kinds: [1059 as NDKKind],
-        //'#p': [recipientPubKeyFromNsec, recipientPubKey.toString()],
-        '#p': [recipientPubKey.toString()],
-        ...(limit && { limit }),
-        since: bufferedSince
-      }
-
-      const subscription = this.ndk?.subscribe(subscriptionQuery)
-      if (subscription) {
-        this.activeSubscriptions.add(subscription)
-      }
-
-      subscription?.on('event', async (event) => {
-        try {
-          const rawEvent = await event.toNostrEvent()
-          const unwrappedEvent = nip59.unwrapEvent(
-            rawEvent as unknown as Event,
-            recipientSecretNostrKey as Uint8Array
-          )
-
-          // Only queue if not already processed
-          if (!this.processedMessageIds.has(unwrappedEvent.id)) {
-            const message = {
-              id: unwrappedEvent.id,
-              content: unwrappedEvent,
-              created_at: unwrappedEvent.created_at,
-              pubkey: event.pubkey
-            }
-
-            this.eventQueue.push(message)
-            this.processQueue()
-          }
-        } catch {
-          toast.error('Failed to process message')
-        }
-      })
-
-      subscription?.on('eose', () => {
-        onEOSE?.(recipientNsec)
-        this.setLoading(false)
-      })
-
-      subscription?.on('close', () => {
-        this.activeSubscriptions.delete(subscription)
-      })
-    } catch (_error) {
-      this.setLoading(false)
-      throw _error
+    const subscriptionQuery = {
+      kinds: [1059 as NDKKind],
+      //'#p': [recipientPubKeyFromNsec, recipientPubKey.toString()],
+      '#p': [recipientPubKey.toString()],
+      ...(limit && { limit }),
+      since: bufferedSince
     }
+
+    const subscription = this.ndk?.subscribe(subscriptionQuery)
+    if (subscription) {
+      this.activeSubscriptions.add(subscription)
+    }
+
+    subscription?.on('event', async (event) => {
+      try {
+        const rawEvent = await event.toNostrEvent()
+        const unwrappedEvent = nip59.unwrapEvent(
+          rawEvent as unknown as Event,
+          recipientSecretNostrKey as Uint8Array
+        )
+
+        // Only queue if not already processed
+        if (!this.processedMessageIds.has(unwrappedEvent.id)) {
+          const message = {
+            id: unwrappedEvent.id,
+            content: unwrappedEvent,
+            created_at: unwrappedEvent.created_at,
+            pubkey: event.pubkey
+          }
+
+          this.eventQueue.push(message)
+          this.processQueue()
+        }
+      } catch {
+        toast.error('Failed to process message')
+      }
+    })
+
+    subscription?.on('eose', () => {
+      onEOSE?.(recipientNsec)
+      this.setLoading(false)
+    })
+
+    subscription?.on('close', () => {
+      this.activeSubscriptions.delete(subscription)
+    })
   }
 
   async closeAllSubscriptions() {
     for (const subscription of this.activeSubscriptions) {
-      try {
-        subscription.stop()
-      } catch {
-        toast.error('Failed to close subscription')
-      }
+      subscription.stop()
     }
     this.activeSubscriptions.clear()
     this.eventQueue = []
@@ -399,63 +371,58 @@ export class NostrAPI {
   }
 
   async publishEvent(event: NDKEvent): Promise<void> {
-    try {
-      if (!this.ndk) {
-        await this.connect()
-      }
-      if (!this.ndk) {
-        throw new Error('Failed to initialize NDK')
-      }
+    if (!this.ndk) {
+      await this.connect()
+    }
 
-      const connectedRelays = Array.from(this.ndk.pool.relays.keys())
+    if (!this.ndk) {
+      throw new Error('Failed to initialize NDK')
+    }
 
-      if (event.ndk !== this.ndk) {
-        event.ndk = this.ndk
+    const connectedRelays = Array.from(this.ndk.pool.relays.keys())
+
+    if (event.ndk !== this.ndk) {
+      event.ndk = this.ndk
+    }
+    if (!event.sig) {
+      const signer = this.ndk.signer
+      if (!signer) {
+        throw new Error('No signer available for event')
       }
-      if (!event.sig) {
-        const signer = this.ndk.signer
-        if (!signer) {
-          throw new Error('No signer available for event')
-        }
-        await event.sign(signer)
-      }
+      await event.sign(signer)
+    }
 
-      let published = false
-      for (let i = 0; i < 3; i++) {
-        try {
-          const publishPromises = connectedRelays.map(async (url) => {
-            try {
-              const relay = this.ndk?.pool.relays.get(url)
-              if (!relay) {
-                return { url, success: false, error: 'Relay not found' }
-              }
-
-              await relay.publish(event)
-              return { url, success: true }
-            } catch (_error) {
-              return { url, success: false, error: _error }
+    let published = false
+    for (let i = 0; i < 3; i++) {
+      try {
+        const publishPromises = connectedRelays.map(async (url) => {
+          try {
+            const relay = this.ndk?.pool.relays.get(url)
+            if (!relay) {
+              return { url, success: false, error: 'Relay not found' }
             }
-          })
-          const results = await Promise.all(publishPromises)
-          const successfulPublishes = results.filter((r) => r.success)
-          if (successfulPublishes.length > 0) {
-            published = true
-            break
+
+            await relay.publish(event)
+            return { url, success: true }
+          } catch (_error) {
+            return { url, success: false, error: _error }
           }
-        } catch (_err) {
-          if (i < 2) {
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-          }
+        })
+        const results = await Promise.all(publishPromises)
+        const successfulPublishes = results.filter((r) => r.success)
+        if (successfulPublishes.length > 0) {
+          published = true
+          break
+        }
+      } catch (_err) {
+        if (i < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 1000))
         }
       }
+    }
 
-      if (!published) {
-        throw new Error('Failed to publish after 3 attempts')
-      }
-    } catch (_error) {
-      const errorMessage =
-        _error instanceof Error ? _error.message : 'Unknown error'
-      throw new Error(`Failed to publish event: ${errorMessage}`)
+    if (!published) {
+      throw new Error('Failed to publish after 3 attempts')
     }
   }
 }
@@ -519,16 +486,11 @@ function base85Decode(str: string): Buffer {
 }
 
 export function compressMessage(data: any): string {
-  try {
-    const cborData = CBOR.encode(data)
-    const jsonUint8 = new Uint8Array(cborData)
-
-    const compressedData = pako.deflate(jsonUint8)
-    const compressedBuffer = Buffer.from(compressedData)
-    return base85Encode(compressedBuffer)
-  } catch (_error) {
-    throw new Error('Failed to compress data')
-  }
+  const cborData = CBOR.encode(data)
+  const jsonUint8 = new Uint8Array(cborData)
+  const compressedData = pako.deflate(jsonUint8)
+  const compressedBuffer = Buffer.from(compressedData)
+  return base85Encode(compressedBuffer)
 }
 
 export function decompressMessage(compressedString: string): unknown {
