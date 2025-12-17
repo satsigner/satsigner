@@ -9,11 +9,6 @@ export type ValidationResult = {
   error?: string
 }
 
-/**
- * Validates if a host is a valid .onion address
- * @param host - The host string to validate
- * @returns true if valid .onion address
- */
 export function isValidOnionAddress(host: string): boolean {
   if (!host.endsWith('.onion')) {
     return false
@@ -26,11 +21,6 @@ export function isValidOnionAddress(host: string): boolean {
   return /^[a-z2-7]{16}$|^[a-z2-7]{56}$/i.test(onionPart)
 }
 
-/**
- * Validates if a host is a valid domain name
- * @param host - The host string to validate
- * @returns true if valid domain name
- */
 export function isValidDomainName(host: string): boolean {
   // Check for .onion addresses first
   if (isValidOnionAddress(host)) {
@@ -55,50 +45,25 @@ export function isValidDomainName(host: string): boolean {
   return /^[a-z][a-z0-9.-]*[a-z0-9]$/i.test(host)
 }
 
-/**
- * Validates if a host is a valid domain name (legacy function)
- * @param host - The host string to validate
- * @returns true if valid domain name
- */
 export function isDomainName(host: string): boolean {
   // Validate host: allow domain names (starting with letter) or IP addresses
   return /^[a-z][a-z0-9.-]*[a-z0-9]$/i.test(host)
 }
 
-/**
- * Validates if a host is a valid IP address
- * @param host - The host string to validate
- * @returns true if valid IP address
- */
 export function isValidIPAddress(host: string): boolean {
   return /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(
     host
   )
 }
 
-/**
- * Validates if a port is a valid number
- * @param port - The port string to validate
- * @returns true if valid port
- */
 export function isValidPort(port: string): boolean {
   return /^[0-9]+$/.test(port)
 }
 
-/**
- * Validates if a protocol is supported
- * @param protocol - The protocol to validate
- * @returns true if supported protocol
- */
 export function isValidProtocol(protocol: string): protocol is Protocol {
   return protocol === 'ssl' || protocol === 'tls' || protocol === 'tcp'
 }
 
-/**
- * Validates an Electrum URL
- * @param url - The URL to validate
- * @returns ValidationResult with isValid and optional error message
- */
 export function validateElectrumUrl(url: string): ValidationResult {
   try {
     // Check if URL has the expected format
@@ -143,11 +108,6 @@ export function validateElectrumUrl(url: string): ValidationResult {
   }
 }
 
-/**
- * Validates an Esplora URL
- * @param url - The URL to validate
- * @returns ValidationResult with isValid and optional error message
- */
 export function validateEsploraUrl(url: string): ValidationResult {
   if (!url.startsWith('https://')) {
     return {
@@ -166,11 +126,6 @@ export function validateEsploraUrl(url: string): ValidationResult {
   return { isValid: true }
 }
 
-/**
- * Validates if a proxy host is valid
- * @param host - The proxy host string to validate
- * @returns true if valid proxy host
- */
 export function isValidProxyHost(host: string): boolean {
   // Allow localhost, IP addresses, and domain names
   return (
@@ -178,12 +133,6 @@ export function isValidProxyHost(host: string): boolean {
   )
 }
 
-/**
- * Validates proxy configuration
- * @param host - The proxy host
- * @param port - The proxy port
- * @returns ValidationResult with isValid and optional error message
- */
 export function validateProxyConfig(
   host: string,
   port: string
