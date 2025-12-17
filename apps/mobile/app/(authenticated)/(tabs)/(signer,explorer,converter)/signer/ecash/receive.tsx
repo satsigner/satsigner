@@ -21,12 +21,12 @@ import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { error, success, warning, white } from '@/styles/colors'
 import { type EcashToken } from '@/types/models/Ecash'
+import type { LNURLWithdrawDetails } from '@/types/models/LNURL'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
   decodeLNURL,
   fetchLNURLWithdrawDetails,
   getLNURLType,
-  type LNURLWithdrawDetails,
   requestLNURLWithdrawInvoice
 } from '@/utils/lnurl'
 

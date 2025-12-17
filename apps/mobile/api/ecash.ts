@@ -297,6 +297,14 @@ export async function receiveEcash(
     memo: decodedToken.memo
   }
 }
+
+export async function getMintBalance(
+  _mintUrl: string,
+  proofs: EcashProof[]
+): Promise<number> {
+  return proofs.reduce((sum, proof) => sum + proof.amount, 0)
+}
+
 export async function validateEcashToken(
   token: string,
   mintUrl: string
