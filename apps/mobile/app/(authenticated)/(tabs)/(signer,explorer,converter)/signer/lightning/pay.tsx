@@ -3,6 +3,7 @@ import { useFonts } from 'expo-font'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
@@ -117,8 +118,7 @@ export default function PayPage() {
       if (!isConnected) {
         const isStillConnected = await verifyConnection()
         if (!isStillConnected) {
-          Alert.alert(
-            'Connection Error',
+          toast.error(
             'Not connected to LND node. Please check your connection and try again.'
           )
           return
@@ -150,12 +150,12 @@ export default function PayPage() {
 
   const handleSendPayment = async () => {
     if (!paymentRequest) {
-      Alert.alert('Error', 'Please enter a payment request')
+      toast.error('Please enter a payment request')
       return
     }
 
     if (!isLNURLMode && !decodedInvoice) {
-      Alert.alert('Error', 'Please wait for the invoice to be decoded')
+      toast.error('Please wait for the invoice to be decoded')
       return
     }
     await processPayment()
@@ -167,7 +167,7 @@ export default function PayPage() {
     }
 
     if (!isLNURLMode && !decodedInvoice) {
-      Alert.alert('Error', 'Please try sending the payment again')
+      toast.error('Please try sending the payment again')
       return
     }
 
@@ -179,14 +179,14 @@ export default function PayPage() {
         invoice = paymentRequest
       } else {
         if (!amount) {
-          Alert.alert('Error', 'Please enter an amount')
+          toast.error('Please enter an amount')
           setIsProcessing(false)
           return
         }
 
         const amountSats = parseInt(amount, 10)
         if (isNaN(amountSats) || amountSats <= 0) {
-          Alert.alert('Error', 'Please enter a valid amount')
+          toast.error('Please enter a valid amount')
           setIsProcessing(false)
           return
         }
@@ -199,13 +199,8 @@ export default function PayPage() {
       }
 
       await payInvoice(invoice)
-
-      Alert.alert('Success', 'Payment sent successfully', [
-        {
-          text: 'OK',
-          onPress: () => router.back()
-        }
-      ])
+      toast.success('Payment sent successfully')
+      setTimeout(router.back, 2000)
     } catch (error) {
       let errorMessage = 'Failed to send payment'
       if (error instanceof Error) {
@@ -222,7 +217,7 @@ export default function PayPage() {
         }
       }
 
-      Alert.alert('Error', errorMessage)
+      toast.error(errorMessage)
     } finally {
       setIsProcessing(false)
     }
@@ -235,9 +230,8 @@ export default function PayPage() {
     if (cleanText.toLowerCase().startsWith('lnbc') || isLNURL(cleanText)) {
       handlePaymentRequestChange(cleanText)
     } else {
-      Alert.alert(
-        'Invalid QR Code',
-        'The scanned QR code is not a valid Lightning payment request or LNURL'
+      toast.error(
+        'Invalid QR Code: the scanned QR code is not a valid Lightning payment request or LNURL'
       )
     }
   }
@@ -246,7 +240,7 @@ export default function PayPage() {
     try {
       const text = await Clipboard.getStringAsync()
       if (!text) {
-        Alert.alert('Error', 'No text found in clipboard')
+        toast.error('No text found in clipboard')
         return
       }
 
@@ -255,13 +249,12 @@ export default function PayPage() {
       if (cleanText.toLowerCase().startsWith('lnbc') || isLNURL(cleanText)) {
         await handlePaymentRequestChange(cleanText)
       } else {
-        Alert.alert(
-          'Invalid Payment Request',
-          'The clipboard content is not a valid Lightning payment request or LNURL'
+        toast.error(
+          'Invalid Payment Request: the clipboard content is not a valid Lightning payment request or LNURL'
         )
       }
-    } catch (_error) {
-      Alert.alert('Error', 'Failed to read clipboard content')
+    } catch {
+      toast.error('Failed to read clipboard content')
     }
   }
 

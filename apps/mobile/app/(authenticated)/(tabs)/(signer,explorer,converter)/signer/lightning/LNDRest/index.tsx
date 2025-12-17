@@ -1,6 +1,7 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Alert, Clipboard, StyleSheet, TextInput } from 'react-native'
+import { Clipboard, StyleSheet, TextInput } from 'react-native'
+import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
@@ -83,22 +84,13 @@ export default function LNDRestPage() {
         setNodeInfo(nodeInfo)
         setConnected(true)
 
-        Alert.alert('Success', 'Successfully connected to LND node', [
-          {
-            text: 'OK',
-            onPress: () => {
-              router.back()
-            }
-          }
-        ])
+        toast.success('Successfully connected to LND node')
+        setTimeout(router.back, 2000)
       } else {
-        Alert.alert('Error', 'Failed to connect to LND node')
+        toast.error('Failed to connect to LND node')
       }
-    } catch (error) {
-      Alert.alert(
-        'Error',
-        error instanceof Error ? error.message : 'Failed to connect to LND node'
-      )
+    } catch {
+      toast.error('Failed to connect to LND node')
     } finally {
       setIsConnecting(false)
     }
@@ -111,9 +103,8 @@ export default function LNDRestPage() {
       setIsButtonEnabled(true)
       setCameraModalVisible(false)
     } else {
-      Alert.alert(
-        'Invalid QR Code',
-        'The scanned QR code is not a valid LND connection string'
+      toast.error(
+        'Invalid QR Code: the scanned QR code is not a valid LND connection string'
       )
     }
   }

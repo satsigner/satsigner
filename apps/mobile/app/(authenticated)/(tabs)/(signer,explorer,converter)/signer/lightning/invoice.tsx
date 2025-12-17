@@ -2,13 +2,13 @@ import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import {
-  Alert,
   Dimensions,
   ScrollView,
   StyleSheet,
   TextInput,
   View
 } from 'react-native'
+import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
@@ -87,10 +87,10 @@ export default function InvoicePage() {
 
       // If invoice is settled, show success message
       if (newStatus === 'settled' && invoiceStatus !== 'settled') {
-        Alert.alert('Success', 'Payment received!')
+        toast.success('Payment received!')
       }
     } catch {
-      // Error handling without console.error
+      // TODO: log error
     }
   }, [rHash, qrModalVisible, makeRequest, invoiceStatus])
 
@@ -133,9 +133,8 @@ export default function InvoicePage() {
     }
 
     if (lnurlType === 'pay') {
-      Alert.alert(
-        'Invalid LNURL Type',
-        'This is a LNURL-pay code. Please use the Send Payment page instead.'
+      toast.error(
+        'Invalid LNURL Type: this is a LNURL-pay code. Please use the Send Payment page instead.'
       )
       return false
     }
@@ -163,9 +162,8 @@ export default function InvoicePage() {
 
         return true
       } catch {
-        Alert.alert(
-          'Invalid LNURL Type',
-          'This LNURL appears to be a pay request. Please use the Send Payment page instead.'
+        toast.error(
+          'Invalid LNURL Type: this LNURL appears to be a pay request. Please use the Send Payment page instead.'
         )
         return false
       }
@@ -191,18 +189,14 @@ export default function InvoicePage() {
         }
 
         return true
-      } catch (error) {
-        Alert.alert(
-          'Error',
-          error instanceof Error ? error.message : 'Failed to process LNURL'
-        )
+      } catch {
+        toast.error('Failed to process LNURL')
         return false
       }
     }
 
-    Alert.alert(
-      'Invalid LNURL',
-      'This LNURL is not a withdraw request. Please use a valid LNURL-withdraw code.'
+    toast.error(
+      'Invalid LNURL: this LNURL is not a withdraw request. Please use a valid LNURL-withdraw code.'
     )
     return false
   }
@@ -211,7 +205,7 @@ export default function InvoicePage() {
     try {
       const text = await Clipboard.getStringAsync()
       if (!text) {
-        Alert.alert('Error', 'No text found in clipboard')
+        toast.error('No text found in clipboard')
         return
       }
 
@@ -224,13 +218,12 @@ export default function InvoicePage() {
       } else if (isLNURL(cleanText)) {
         await handleLNURLInput(cleanText)
       } else {
-        Alert.alert(
-          'Invalid Input',
-          'The clipboard content is not a valid Lightning invoice or LNURL'
+        toast.error(
+          'Invalid Input: the clipboard content is not a valid Lightning invoice or LNURL'
         )
       }
     } catch {
-      Alert.alert('Error', 'Failed to read clipboard content')
+      toast.error('Failed to read clipboard content')
     }
   }
 
@@ -245,22 +238,21 @@ export default function InvoicePage() {
     } else if (isLNURL(data)) {
       await handleLNURLInput(data)
     } else {
-      Alert.alert(
-        'Invalid QR Code',
-        'The scanned QR code is not a valid LNURL-withdraw or Lightning invoice'
+      toast.error(
+        'Invalid QR Code: the scanned QR code is not a valid LNURL-withdraw or Lightning invoice'
       )
     }
   }
 
   const handleCreateInvoice = async () => {
     if (!invoiceAmount || !invoiceDescription) {
-      Alert.alert('Error', 'Please fill in all fields')
+      toast.error('Please fill in all fields')
       return
     }
 
     const amount = parseInt(invoiceAmount, 10)
     if (isNaN(amount) || amount <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount')
+      toast.error('Please enter a valid amount')
       return
     }
 
@@ -322,11 +314,8 @@ export default function InvoicePage() {
       setRHash(invoice.r_hash || '')
       setInvoiceStatus('open')
       setQrModalVisible(true)
-    } catch (error) {
-      Alert.alert(
-        'Error',
-        error instanceof Error ? error.message : 'Failed to create invoice'
-      )
+    } catch {
+      toast.error('Failed to create invoice')
     } finally {
       setIsProcessing(false)
     }
@@ -334,7 +323,7 @@ export default function InvoicePage() {
 
   const handleCopyToClipboard = async () => {
     await Clipboard.setStringAsync(paymentRequest)
-    Alert.alert('Success', 'Payment request copied to clipboard')
+    toast.success('Payment request copied to clipboard')
   }
 
   return (
