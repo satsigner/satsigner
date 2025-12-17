@@ -80,7 +80,7 @@ export const useLND = () => {
       setConnecting(false)
       return data as T
     },
-    [config, setConnecting, setConnected, getInfo]
+    [config, setConnecting, setConnected]
   )
 
   const getBalance = useCallback(async () => {

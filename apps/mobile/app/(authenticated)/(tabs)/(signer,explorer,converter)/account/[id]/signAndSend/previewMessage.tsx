@@ -1458,7 +1458,7 @@ function PreviewMessage() {
       }
 
       if (result.txData) {
-        const txHex = Array.from(result.txData)
+        const txHex = Array.from(result.txData as Uint8Array)
           .map((b) => b.toString(16).padStart(2, '0'))
           .join('')
 
