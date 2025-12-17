@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard'
 import { useFonts } from 'expo-font'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native'
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
