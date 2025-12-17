@@ -18,13 +18,13 @@ import SSVStack from '@/layouts/SSVStack'
 import { usePriceStore } from '@/store/price'
 import { Typography } from '@/styles'
 import { type LNDecodedInvoice } from '@/types/models/LND'
+import type { LNURLPayResponse } from '@/types/models/LNURL'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
   decodeLNURL,
   fetchLNURLPayDetails,
   handleLNURLPay,
-  isLNURL,
-  type LNURLPayResponse
+  isLNURL
 } from '@/utils/lnurl'
 
 type MakeRequest = <T>(

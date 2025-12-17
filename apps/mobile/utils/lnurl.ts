@@ -1,40 +1,13 @@
 import { bech32 } from 'bech32'
 
-// Types for LNURL-pay response
-export interface LNURLPayResponse {
-  callback: string
-  maxSendable: number
-  minSendable: number
-  metadata: string
-  tag: 'payRequest'
-  commentAllowed?: number
-  nostrPubkey?: string
-  allowsNostr?: boolean
-}
+import type {
+  LNURLPayInvoiceResponse,
+  LNURLPayResponse,
+  LNURLType,
+  LNURLWithdrawDetails,
+  LNURLWithdrawResponse
+} from '@/types/models/LNURL'
 
-interface LNURLPayInvoiceResponse {
-  pr: string // bolt11 invoice
-  routes: unknown[] // payment routes, not used in our implementation
-}
-
-export type LNURLWithdrawDetails = {
-  callback: string
-  k1: string
-  minWithdrawable: number
-  maxWithdrawable: number
-  defaultDescription?: string
-  tag: 'withdrawRequest'
-}
-
-export type LNURLWithdrawResponse = {
-  status: 'OK' | 'ERROR'
-  pr?: string
-  reason?: string
-}
-
-export type LNURLType = 'pay' | 'withdraw'
-
-// Check if a string is a LNURL and determine its type
 export function getLNURLType(input: string): {
   isLNURL: boolean
   type?: LNURLType
