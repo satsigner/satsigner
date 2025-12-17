@@ -6,7 +6,6 @@ import {
   Wallet
 } from '@cashu/cashu-ts'
 
-import { useEcashStore } from '@/store/ecash'
 import type {
   EcashMeltResult,
   EcashMint,
@@ -27,9 +26,6 @@ type KeysetResponse = {
   active?: boolean
 }
 
-/**
- * Helper function to get keysets from wallet (v3.0.0)
- */
 export async function getKeysetsFromWallet(
   wallet: Wallet
 ): Promise<{ id: string; unit: 'sat'; active: boolean }[]> {
@@ -123,7 +119,6 @@ export async function createMintQuote(
   const wallet = getWallet(mintUrl)
   await wallet.loadMint()
   const quote = await wallet.createMintQuote(amount)
-  useEcashStore.getState().updateMintConnection(mintUrl, true)
   return {
     quote: quote.quote,
     request: quote.request,
@@ -139,7 +134,6 @@ export async function checkMintQuote(
   const wallet = getWallet(mintUrl)
   await wallet.loadMint()
   const quoteStatus = await wallet.checkMintQuote(quoteId)
-  useEcashStore.getState().updateMintConnection(mintUrl, true)
   return quoteStatus.state
 }
 
@@ -151,7 +145,6 @@ export async function mintProofs(
   const wallet = getWallet(mintUrl)
   await wallet.loadMint()
   const proofs = await wallet.mintProofs(amount, quoteId)
-  useEcashStore.getState().updateMintConnection(mintUrl, true)
   return {
     proofs,
     totalAmount: amount
@@ -196,9 +189,6 @@ export async function meltProofs(
   }
   const meltResult = result as MeltResult
 
-  // Connection successful, update status to true
-  useEcashStore.getState().updateMintConnection(mintUrl, true)
-
   return {
     paid: true, // If we get here without error, it was successful
     preimage: meltResult.preimage || meltResult.payment_preimage || undefined,
@@ -214,9 +204,6 @@ export async function validateProofs(
   await wallet.loadMint()
 
   const proofStates = await wallet.checkProofsStates(proofs)
-
-  // Connection successful, update status to true
-  useEcashStore.getState().updateMintConnection(mintUrl, true)
 
   const validProofs: EcashProof[] = []
   const spentProofs: EcashProof[] = []
@@ -274,9 +261,6 @@ export async function sendEcash(
     includeFees: true
   })
 
-  // Connection successful, update status to true
-  useEcashStore.getState().updateMintConnection(mintUrl, true)
-
   const token = getEncodedTokenV4({
     mint: mintUrl,
     proofs: send,
@@ -307,9 +291,6 @@ export async function receiveEcash(
   const proofs = await wallet.receive(token)
   const totalAmount = proofs.reduce((sum, proof) => sum + proof.amount, 0)
 
-  // Connection successful, update status to true
-  useEcashStore.getState().updateMintConnection(mintUrl, true)
-
   return {
     proofs,
     totalAmount,
@@ -334,9 +315,6 @@ export async function validateEcashToken(
     }
 
     const proofStates = await wallet.checkProofsStates(proofs)
-
-    // Connection successful, update status to true
-    useEcashStore.getState().updateMintConnection(mintUrl, true)
 
     const spentProofs = proofStates.filter((state) => state.state === 'SPENT')
     const unspentProofs = proofStates.filter(
