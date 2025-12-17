@@ -7,15 +7,15 @@ import {
 } from '@cashu/cashu-ts'
 
 import { useEcashStore } from '@/store/ecash'
-import {
-  type EcashMeltResult,
-  type EcashMint,
-  type EcashMintResult,
-  type EcashProof,
-  type EcashReceiveResult,
-  type EcashSendResult,
-  type MeltQuote,
-  type MintQuote
+import type {
+  EcashMeltResult,
+  EcashMint,
+  EcashMintResult,
+  EcashProof,
+  EcashReceiveResult,
+  EcashSendResult,
+  MeltQuote,
+  MintQuote
 } from '@/types/models/Ecash'
 
 // Cache for wallet instances
