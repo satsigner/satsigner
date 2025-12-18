@@ -11,7 +11,7 @@ import { NOSTR_RELAYS, RELAY_PROTOCOL_PREFIX } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
+import { t, tn } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import type { NostrRelay } from '@/types/models/Nostr'
@@ -23,6 +23,7 @@ type SSNostrRelayProps = {
   onPress: () => void
 }
 
+const tl = tn('account.nostrSync.relays')
 
 function SSNostrRelaysSelection() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -69,15 +70,13 @@ function SSNostrRelaysSelection() {
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>{t('account.nostrSync.selectRelays')}</SSText>
-          )
+          headerTitle: () => <SSText uppercase>{tl('title')}</SSText>
         }}
       />
       <SSMainLayout style={styles.mainLayout}>
         <SSVStack gap="lg">
           <SSVStack gap="sm">
-            <SSText uppercase>{t('account.nostrSync.relays.public')}</SSText>
+            <SSText uppercase>{tl('public')}</SSText>
             {NOSTR_RELAYS.map((relay) => (
               <SSNostrRelay
                 key={relay.url}
@@ -88,7 +87,7 @@ function SSNostrRelaysSelection() {
             ))}
           </SSVStack>
           <SSVStack gap="md">
-            <SSText uppercase>{t('account.nostrSync.relays.custom')}</SSText>
+            <SSText uppercase>{tl('custom')}</SSText>
             {selectedRelays
               .filter((url) => !NOSTR_RELAYS.some((relay) => relay.url === url))
               .map((url) => (
@@ -109,7 +108,7 @@ function SSNostrRelaysSelection() {
                 </SSText>
                 <View style={styles.relayInputContainer}>
                   <SSTextInput
-                    placeholder={t('account.nostrSync.relays.inputPlaceholder')}
+                    placeholder={tl('inputPlaceholder')}
                     value={customRelayUrl}
                     align="left"
                     onChangeText={setCustomRelayUrl}
@@ -117,7 +116,7 @@ function SSNostrRelaysSelection() {
                 </View>
               </SSHStack>
               <SSButton
-                label={t('account.nostrSync.relays.addCustomRelay')}
+                label={tl('addCustomRelay')}
                 variant="secondary"
                 onPress={handleAddCustomRelay}
                 disabled={!customRelayUrl.match(/^[a-z0-9]+\.[a-z0-9]+$/i)}

@@ -178,6 +178,7 @@
     "nostrSync.relays.custom": "Custom relays",
     "nostrSync.relays.inputPlaceholder": "your-relay.com",
     "nostrSync.relays.public": "Public relays",
+    "nostrSync.relays.title": "Select NOSTR Relays",
     "nostrSync.save": "Save",
     "nostrSync.selectRelays": "Select Relays",
     "nostrSync.setKeys": "Manage NOSTR keys",
