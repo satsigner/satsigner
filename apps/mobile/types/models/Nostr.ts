@@ -42,3 +42,9 @@ export type NostrKeys = {
   npub: string
   secretNostrKey: Uint8Array
 }
+
+export type NostrRelay = {
+  url: string
+  name: string
+}
+
