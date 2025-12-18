@@ -1,4 +1,5 @@
 import { Buffer } from 'buffer'
+import { setStringAsync } from 'expo-clipboard'
 import { useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, TouchableOpacity, View } from 'react-native'
@@ -24,7 +25,6 @@ import {
   validateSignedPSBT,
   validateSignedPSBTForCosigner
 } from '@/utils/psbt'
-import { setStringAsync } from 'expo-clipboard'
 
 type SSSignatureDropdownProps = {
   index: number

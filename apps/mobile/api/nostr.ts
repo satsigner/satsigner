@@ -72,8 +72,8 @@ if (!global.crypto.getRandomBase64String) {
   global.crypto.getRandomBase64String = async (
     length: number
   ): Promise<string> => {
-      const randomHex = await crypto.randomKey(length)
-      return Buffer.from(randomHex, 'hex').toString('base64')
+    const randomHex = await crypto.randomKey(length)
+    return Buffer.from(randomHex, 'hex').toString('base64')
   }
 }
 

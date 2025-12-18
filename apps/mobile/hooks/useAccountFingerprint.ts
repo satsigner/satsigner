@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { type Account } from '@/types/models/Account'
 import { extractAccountFingerprintWithDecryption } from '@/utils/account'
 function useAccountFingerprint(account: Account): string {
-
   const [fingerprint, setFingerprint] = useState<string>('')
 
   // Extract complex dependency to avoid linting issues
@@ -19,7 +18,7 @@ function useAccountFingerprint(account: Account): string {
       try {
         const result = await extractAccountFingerprintWithDecryption(account)
         setFingerprint(result)
-      } catch  {
+      } catch {
         setFingerprint('')
       }
     }

@@ -47,4 +47,3 @@ export type NostrRelay = {
   url: string
   name: string
 }
-
