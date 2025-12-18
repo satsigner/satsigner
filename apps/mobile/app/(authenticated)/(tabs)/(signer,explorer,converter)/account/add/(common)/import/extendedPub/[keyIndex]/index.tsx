@@ -1,5 +1,6 @@
 import { URDecoder } from '@ngraveio/bc-ur'
 import { Descriptor } from 'bdk-rn'
+import { Network } from 'bdk-rn/lib/lib/enums'
 import * as CBOR from 'cbor-js'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
@@ -34,9 +35,7 @@ type ImportExtendedPubSearchParams = {
   keyIndex: string
 }
 
-// Helper function to map local Network type to bdk-rn Network enum
 function mapNetworkToBdkNetwork(network: 'bitcoin' | 'testnet' | 'signet') {
-  const { Network } = require('bdk-rn/lib/lib/enums')
   switch (network) {
     case 'bitcoin':
       return Network.Bitcoin

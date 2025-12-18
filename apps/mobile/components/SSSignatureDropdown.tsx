@@ -24,6 +24,7 @@ import {
   validateSignedPSBT,
   validateSignedPSBTForCosigner
 } from '@/utils/psbt'
+import { setStringAsync } from 'expo-clipboard'
 
 type SSSignatureDropdownProps = {
   index: number
@@ -394,7 +395,6 @@ function SSSignatureDropdown({
               style={{ width: '48%' }}
               onPress={() => {
                 if (txBuilderResult?.psbt?.base64) {
-                  const { setStringAsync } = require('expo-clipboard')
                   setStringAsync(txBuilderResult.psbt.base64)
                   toast(t('common.copiedToClipboard'))
                 }

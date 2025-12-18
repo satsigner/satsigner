@@ -1,4 +1,5 @@
 import { FlashList } from '@shopify/flash-list'
+import { Network as BdkNetwork } from 'bdk-rn/lib/lib/enums'
 import { Stack, useFocusEffect, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, useWindowDimensions, View } from 'react-native'
@@ -58,16 +59,15 @@ import {
 
 // Helper function to map local Network type to bdk-rn Network enum
 function mapNetworkToBdkNetwork(network: 'bitcoin' | 'testnet' | 'signet') {
-  const { Network } = require('bdk-rn/lib/lib/enums')
   switch (network) {
     case 'bitcoin':
-      return Network.Bitcoin
+      return BdkNetwork.Bitcoin
     case 'testnet':
-      return Network.Testnet
+      return BdkNetwork.Testnet
     case 'signet':
-      return Network.Signet
+      return BdkNetwork.Signet
     default:
-      return Network.Bitcoin
+      return BdkNetwork.Bitcoin
   }
 }
 
