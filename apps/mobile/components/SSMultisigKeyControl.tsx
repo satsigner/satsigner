@@ -21,11 +21,7 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import {
-  type Key,
-  type ScriptVersionType,
-  type Secret
-} from '@/types/models/Account'
+import type { Key, Secret } from '@/types/models/Account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 
 type SSMultisigKeyControlProps = {
@@ -44,20 +40,36 @@ function SSMultisigKeyControl({
   accountId
 }: SSMultisigKeyControlProps) {
   const router = useRouter()
-  const [setKeyName, setCreationType, setNetwork, getAccountData] =
-    useAccountBuilderStore(
+  const [
+    setKeyName,
+    setCreationType,
+    setNetwork,
+    getAccountData,
+    resetKey,
+    dropSeedFromKey,
+    setMnemonicWordCount,
+    globalScriptVersion
+  ] = useAccountBuilderStore(
+    useShallow((state) => [
+      state.setKeyName,
+      state.setCreationType,
+      state.setNetwork,
+      state.getAccountData,
+      state.resetKey,
+      state.dropSeedFromKey,
+      state.setMnemonicWordCount,
+      state.scriptVersion
+    ])
+  )
+  const [updateKeyName, resetKeyExisting, dropSeedFromKeyExisting] =
+    useAccountsStore(
       useShallow((state) => [
-        state.setKeyName,
-        state.setCreationType,
-        state.setNetwork,
-        state.getAccountData
+        state.updateKeyName,
+        state.resetKey,
+        state.dropSeedFromKey
       ])
     )
   const network = useBlockchainStore((state) => state.selectedNetwork)
-  const globalScriptVersion = useAccountBuilderStore(
-    (state) => state.scriptVersion
-  ) as ScriptVersionType
-  const updateKeyName = useAccountsStore((state) => state.updateKeyName)
 
   // Use account's script version in settings mode, global script version in creation mode
   const scriptVersion =
@@ -180,12 +192,9 @@ function SSMultisigKeyControl({
 
   function handleWordCountSelection() {
     setWordCountModalVisible(false)
-    // Set the word count in the account builder store
-    const { setMnemonicWordCount } = useAccountBuilderStore.getState()
     setMnemonicWordCount(
       localMnemonicWordCount as NonNullable<Key['mnemonicWordCount']>
     )
-    // Navigate to import page with the selected word count
     router.navigate(`/account/add/import/mnemonic/${index}`)
   }
 
@@ -194,14 +203,11 @@ function SSMultisigKeyControl({
 
     setCreationType(type)
     setKeyName(localKeyName)
-    // scriptVersion is set only in the initial policy selection and never changed here
     setNetwork(network)
 
     if (type === 'generateMnemonic') {
-      // Navigate to each key policy type component
       router.navigate(`/account/add/multiSig/keySettings/${index}`)
     } else if (type === 'importMnemonic') {
-      // For import, first show the word count selection modal
       setWordCountModalVisible(true)
     } else if (type === 'importDescriptor') {
       router.navigate(`/account/add/(common)/import/descriptor/${index}`)
@@ -234,32 +240,17 @@ function SSMultisigKeyControl({
     if (!keyDetails) return
 
     try {
-      if (isSettingsMode && accountId) {
-        // Handle existing account (settings mode) using the new dropSeedFromKey function
-        const { dropSeedFromKey } = useAccountsStore.getState()
-        const result = await dropSeedFromKey(accountId, index)
-
-        if (result.success) {
-          // Set seedDropped to true to hide the button
-          setSeedDropped(true)
-          toast.success(result.message)
-          // Don't call onRefresh to keep the interface focused
-        } else {
-          toast.error(result.message)
-        }
+      const result =
+        isSettingsMode && accountId
+          ? await dropSeedFromKeyExisting(accountId, index)
+          : await dropSeedFromKey(index)
+      if (result.success) {
+        toast.success(result.message)
       } else {
-        // Handle account creation mode
-        const { dropSeedFromKey } = useAccountBuilderStore.getState()
-        const result = await dropSeedFromKey(index)
-
-        if (result.success) {
-          toast.success(result.message)
-          // Don't call onRefresh to keep the interface focused
-        } else {
-          toast.error(result.message)
-        }
+        toast.error(result.message)
       }
-    } catch (_error) {
+      setSeedDropped(true)
+    } catch {
       toast.error(t('account.seed.dropSeedError'))
     }
   }
@@ -270,8 +261,7 @@ function SSMultisigKeyControl({
     try {
       if (isSettingsMode && accountId) {
         // Handle existing account (settings mode) - reset the key
-        const { resetKey } = useAccountsStore.getState()
-        const result = await resetKey(accountId, index)
+        const result = await resetKeyExisting(accountId, index)
 
         if (result.success) {
           // Reset local state
@@ -283,8 +273,6 @@ function SSMultisigKeyControl({
           toast.error(result.message)
         }
       } else {
-        // Handle account creation mode
-        const { resetKey } = useAccountBuilderStore.getState()
         const result = await resetKey(index)
 
         if (result.success) {
@@ -297,7 +285,7 @@ function SSMultisigKeyControl({
           toast.error(result.message)
         }
       }
-    } catch (_error) {
+    } catch {
       toast.error('Failed to reset key')
     }
   }

@@ -239,8 +239,7 @@ function useNostrSync() {
   const dataExchangeSubscription = useCallback(
     async (account: Account, onLoadingChange?: (loading: boolean) => void) => {
       const { autoSync, deviceNsec, deviceNpub, relays } = account.nostr
-      const lastDataExchangeEOSE =
-        useNostrStore.getState().getLastDataExchangeEOSE(account.id) || 0
+      const lastDataExchangeEOSE = getLastDataExchangeEOSE(account.id) || 0
 
       if (!autoSync || !deviceNsec || !deviceNpub || relays.length === 0) {
         return null

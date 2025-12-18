@@ -387,8 +387,8 @@ export function useEcash() {
   }, [clearAllData])
 
   const checkPendingTransactionStatus = useCallback(async () => {
-    const currentTransactions = useEcashStore.getState().transactions
-    const currentCheckingIds = useEcashStore.getState().checkingTransactionIds
+    const currentTransactions = transactions
+    const currentCheckingIds = checkingTransactionIds
 
     // We check "invalid" to re-validate them and get proper status (e.g., if they were marked invalid due to rate limiting)
     const transactionsToCheck = currentTransactions.filter((tx) => {
@@ -409,7 +409,7 @@ export function useEcash() {
     }
 
     for (const transaction of transactionsToCheck) {
-      const stillChecking = useEcashStore.getState().checkingTransactionIds
+      const stillChecking = checkingTransactionIds
       if (stillChecking.includes(transaction.id)) {
         continue
       }
@@ -436,9 +436,7 @@ export function useEcash() {
           tokenStatus = 'pending'
         }
 
-        const currentTx = useEcashStore
-          .getState()
-          .transactions.find((t) => t.id === transaction.id)
+        const currentTx = transactions.find((t) => t.id === transaction.id)
         if (
           currentTx &&
           tokenStatus !== undefined &&
@@ -453,7 +451,7 @@ export function useEcash() {
         await new Promise((resolve) => setTimeout(resolve, 500))
       }
     }
-  }, [addCheckingTransaction, removeCheckingTransaction, updateTransaction])
+  }, [addCheckingTransaction, removeCheckingTransaction, updateTransaction]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const resumePollingForTransaction = useCallback(
     async (
