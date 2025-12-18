@@ -128,6 +128,7 @@ export function getDescriptorFromPubkey(
   }
 }
 
+// TODO: inspect if the P2SH and P2WSH are correct
 export function getDescriptorFromPrivateKey(
   pubkey: string,
   scriptVersion: ScriptVersionType,
