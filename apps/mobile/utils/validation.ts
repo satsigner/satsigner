@@ -5,6 +5,8 @@ import bitcoinjs from 'bitcoinjs-lib'
 
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 
+// TODO: bad file
+
 bitcoinjs.initEccLib(ecc)
 
 // Define valid key prefixes for each network

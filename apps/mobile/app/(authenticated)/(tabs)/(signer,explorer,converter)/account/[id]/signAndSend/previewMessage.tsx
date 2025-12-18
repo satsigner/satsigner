@@ -1,7 +1,7 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
-import * as bitcoinjs from 'bitcoinjs-lib'
+import bitcoinjs from 'bitcoinjs-lib'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
-import * as Clipboard from 'expo-clipboard'
+import Clipboard from 'expo-clipboard'
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {

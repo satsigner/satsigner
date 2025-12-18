@@ -1,4 +1,4 @@
-import * as bitcoinjs from 'bitcoinjs-lib'
+import bitcoinjs from 'bitcoinjs-lib'
 import BlueWalletElectrumClient from 'electrum-client'
 import TcpSocket from 'react-native-tcp-socket'
 

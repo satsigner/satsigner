@@ -1,7 +1,7 @@
 import { Descriptor } from 'bdk-rn'
 import { type Network as BdkNetwork } from 'bdk-rn/lib/lib/enums'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
-import * as Clipboard from 'expo-clipboard'
+import Clipboard from 'expo-clipboard'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'

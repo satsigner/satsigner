@@ -2,7 +2,7 @@ import { URDecoder } from '@ngraveio/bc-ur'
 import { Descriptor } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
-import * as Clipboard from 'expo-clipboard'
+import Clipboard from 'expo-clipboard'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {

@@ -61,7 +61,7 @@ export function isBBQRFragment(part: string): boolean {
     }
 
     return true
-  } catch (_e) {
+  } catch {
     return false
   }
 }
@@ -141,7 +141,7 @@ export function createBBQRChunks(
         minVersion: 5 as Version,
         maxVersion: 40 as Version
       })
-    } catch (_error) {
+    } catch {
       // If strict constraints fail, try with more flexibility
       let fallbackMinSplit = Math.max(1, Math.floor(targetChunks * 0.5))
       let fallbackMaxSplit = Math.min(50, Math.ceil(targetChunks * 1.5))
@@ -217,7 +217,7 @@ export function decodeBBQRChunks(chunks: string[]): Uint8Array | null {
     const result = joinQRs(chunks)
 
     return result.raw
-  } catch (_error) {
+  } catch {
     return null
   }
 }

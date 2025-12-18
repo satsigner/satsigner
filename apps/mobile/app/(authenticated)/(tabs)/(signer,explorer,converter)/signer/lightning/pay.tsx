@@ -1,4 +1,4 @@
-import * as Clipboard from 'expo-clipboard'
+import Clipboard from 'expo-clipboard'
 import { useFonts } from 'expo-font'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'

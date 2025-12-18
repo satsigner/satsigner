@@ -1,5 +1,5 @@
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
-import * as Clipboard from 'expo-clipboard'
+import Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'

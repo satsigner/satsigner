@@ -1,4 +1,4 @@
-import * as bitcoinjs from 'bitcoinjs-lib'
+import bitcoinjs from 'bitcoinjs-lib'
 import { useState } from 'react'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'

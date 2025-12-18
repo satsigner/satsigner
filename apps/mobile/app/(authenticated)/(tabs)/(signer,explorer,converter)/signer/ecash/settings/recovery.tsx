@@ -1,4 +1,4 @@
-import * as Clipboard from 'expo-clipboard'
+import Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { Alert, ScrollView, StyleSheet } from 'react-native'

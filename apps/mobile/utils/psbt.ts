@@ -1,13 +1,15 @@
-import * as ecc from '@bitcoinerlab/secp256k1'
+import ecc from '@bitcoinerlab/secp256k1'
 import BIP32Factory from 'bip32'
-import * as bip39 from 'bip39'
-import * as bitcoinjs from 'bitcoinjs-lib'
+import bip39 from 'bip39'
+import bitcoinjs from 'bitcoinjs-lib'
 import { toast } from 'sonner-native'
 
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { extractKeyFingerprint } from '@/utils/account'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
+
+// TODO: bad file
 
 // Initialize BIP32 with elliptic curve
 const bip32 = BIP32Factory(ecc)

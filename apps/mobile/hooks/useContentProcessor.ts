@@ -3,7 +3,7 @@ import {
   type TransactionDetails,
   type TxBuilderResult
 } from 'bdk-rn/lib/classes/Bindings'
-import * as bitcoinjs from 'bitcoinjs-lib'
+import bitcoinjs from 'bitcoinjs-lib'
 import { Buffer } from 'buffer'
 
 import { SATS_PER_BITCOIN } from '@/constants/btc'

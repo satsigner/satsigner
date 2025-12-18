@@ -1,5 +1,5 @@
-import * as FileSystem from 'expo-file-system'
-import * as Sharing from 'expo-sharing'
+import FileSystem from 'expo-file-system'
+import Sharing from 'expo-sharing'
 import DocumentPicker from 'react-native-document-picker'
 import RNFS from 'react-native-fs'
 

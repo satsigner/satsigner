@@ -1,4 +1,4 @@
-import * as bitcoinjs from 'bitcoinjs-lib' // Added for network definitions
+import bitcoinjs from 'bitcoinjs-lib' // Added for network definitions
 import { useCallback, useEffect, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 

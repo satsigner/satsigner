@@ -1,6 +1,6 @@
 import ecc from '@bitcoinerlab/secp256k1'
 import { HDKey } from '@scure/bip32' // TODO: remove @scure
-import * as bip39 from '@scure/bip39' // TODO: remove @scure
+import bip39 from '@scure/bip39' // TODO: remove @scure
 import { KeychainKind, Network as BDKNetwork } from 'bdk-rn/lib/lib/enums'
 import { BIP32Factory, type BIP32Interface } from 'bip32'
 
