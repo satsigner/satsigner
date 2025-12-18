@@ -1,4 +1,6 @@
 import ecc from '@bitcoinerlab/secp256k1'
+import { Descriptor } from 'bdk-rn'
+import { Network } from 'bdk-rn/lib/lib/enums'
 import bitcoinjs from 'bitcoinjs-lib'
 
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
@@ -41,76 +43,22 @@ export function validateFingerprint(fingerprint: string) {
 async function validateDescriptorChecksum(
   descriptor: string
 ): Promise<{ isValid: boolean; error?: string }> {
-  // Use a more lenient regex to detect truncated checksums
-  const checksumRegex = /#[a-z0-9]{1,8}$/
-  const hasChecksum = checksumRegex.test(descriptor)
-
-  if (!hasChecksum) {
-    return { isValid: true } // No checksum to validate
-  }
-
-  const checksumMatch = descriptor.match(checksumRegex)
-  if (!checksumMatch || !checksumMatch[0]) {
-    return { isValid: false, error: 'checksumFormat' }
-  }
-
-  const providedChecksum = checksumMatch[0].substring(1) // Remove the #
-
-  // Basic format validation - check if it's exactly 8 characters
-  if (!/^[a-z0-9]{8}$/.test(providedChecksum)) {
-    return { isValid: false, error: 'checksumFormat' }
-  }
-
-  // Use BDK to validate the checksum
   try {
-    const { Descriptor } = require('bdk-rn')
-    const { Network } = require('bdk-rn/lib/lib/enums')
+    await new Descriptor().create(descriptor, Network.Bitcoin)
+    return {
+      isValid: true
+    }
+  } catch {}
+  try {
+    await new Descriptor().create(descriptor, Network.Testnet)
+    return {
+      isValid: true
+    }
+  } catch {}
 
-    // Try to create a descriptor with BDK to validate checksum
-    // Try both Bitcoin and Testnet networks
-    try {
-      await new Descriptor().create(descriptor, Network.Bitcoin)
-      return { isValid: true }
-    } catch (bitcoinError) {
-      try {
-        await new Descriptor().create(descriptor, Network.Testnet)
-        return { isValid: true }
-      } catch (_testnetError) {
-        // If both fail, check if it's a checksum error
-        const errorMessage =
-          bitcoinError instanceof Error
-            ? bitcoinError.message
-            : String(bitcoinError)
-        if (
-          errorMessage.includes('checksum') ||
-          errorMessage.includes('Checksum') ||
-          errorMessage.includes('invalid')
-        ) {
-          return { isValid: false, error: 'checksumInvalid' }
-        }
-        // For other BDK errors, if the checksum format is valid, accept it
-        // This handles cases where BDK has issues with certain descriptor formats
-        if (/^[a-z0-9]{8}$/.test(providedChecksum)) {
-          return { isValid: true }
-        }
-        return { isValid: false, error: 'descriptorFormat' }
-      }
-    }
-  } catch (error) {
-    // If BDK throws an error, it's likely a checksum error
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    if (
-      errorMessage.includes('checksum') ||
-      errorMessage.includes('Checksum') ||
-      errorMessage.includes('invalid')
-    ) {
-      return { isValid: false, error: 'checksumInvalid' }
-    }
-    // For other BDK errors, if the checksum format is valid, accept it
-    if (/^[a-z0-9]{8}$/.test(providedChecksum)) {
-      return { isValid: true }
-    }
-    return { isValid: false, error: 'descriptorFormat' }
+  return {
+    isValid: false,
+    error: 'descriptorFormat'
   }
 }
 
@@ -470,7 +418,7 @@ export function separateCombinedDescriptor(combinedDescriptor: string): {
 export async function validateCombinedDescriptor(
   combinedDescriptor: string,
   scriptVersion?: string,
-  networkType?: string // 'bitcoin' | 'testnet' | 'regtest' | etc.
+  networkType?: string
 ): Promise<{
   isValid: boolean
   error?: string
@@ -528,33 +476,17 @@ export async function validateCombinedDescriptor(
   let networkValidation: { isValid: boolean; error?: string } = {
     isValid: true
   }
+
   if (networkType && combinedDescriptor) {
+    // Map networkType string to BDK Network enum
+    let bdkNetwork = Network.Bitcoin
+    if (networkType === 'testnet') bdkNetwork = Network.Testnet
+    if (networkType === 'regtest') bdkNetwork = Network.Regtest
+    if (networkType === 'signet') bdkNetwork = Network.Signet
     try {
-      const { Descriptor } = require('bdk-rn')
-      const { Network } = require('bdk-rn/lib/lib/enums')
-      // Map networkType string to BDK Network enum
-      let bdkNetwork = Network.Bitcoin
-      if (networkType === 'testnet') bdkNetwork = Network.Testnet
-      if (networkType === 'regtest') bdkNetwork = Network.Regtest
-      if (networkType === 'signet') bdkNetwork = Network.Signet
       await new Descriptor().create(combinedDescriptor, bdkNetwork)
       networkValidation = { isValid: true }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error)
-      if (
-        errorMessage.includes('Invalid network') ||
-        errorMessage.includes('network')
-      ) {
-        networkValidation = {
-          isValid: false,
-          error: 'networkIncompatible'
-        }
-      } else {
-        // For other BDK errors, still consider it valid for now
-        networkValidation = { isValid: true }
-      }
-    }
+    } catch {}
   }
 
   if (!networkValidation.isValid) {
@@ -565,11 +497,6 @@ export async function validateCombinedDescriptor(
       internalDescriptor: internalDesc
     }
   }
-
-  // Note: We don't need to validate the separated descriptors individually
-  // because the combined descriptor validation already includes all necessary validations
-  // (format, checksum, derivation path, script version, network compatibility)
-  // The validation result from the combined descriptor applies to both separated descriptors
 
   return {
     isValid: true,
