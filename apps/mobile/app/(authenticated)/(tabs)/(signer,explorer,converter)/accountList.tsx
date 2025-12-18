@@ -81,7 +81,7 @@ export default function AccountList() {
         state.selectedNetwork,
         state.setSelectedNetwork,
         state.configs[state.selectedNetwork].config.connectionMode,
-        state.configsMempool['bitcoin']
+        state.configsMempool[state.selectedNetwork]
       ])
     )
   const [accounts, updateAccount] = useAccountsStore(
