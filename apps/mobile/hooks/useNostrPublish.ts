@@ -1,19 +1,16 @@
 import { NostrAPI } from '@/api/nostr'
-import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
 import { compressMessage } from '@/utils/nostr'
 
-function getTrustedDevices(accountId: string): string[] {
-  const account = useAccountsStore
-    .getState()
-    .accounts.find((account) => account.id === accountId)
-  return account?.nostr?.trustedMemberDevices || []
-}
-
 export function useNostrPublish() {
+  function getTrustedDevices(account: Account): string[] {
+    return account.nostr?.trustedMemberDevices || []
+  }
+
   async function sendDM(account: Account, message: string) {
     if (!account?.nostr?.autoSync) return
     if (!account || !account.nostr) return
+
     const { commonNsec, commonNpub, deviceNsec, deviceNpub, relays } =
       account.nostr
 
@@ -44,7 +41,7 @@ export function useNostrPublish() {
     )
     await nostrApi.publishEvent(eventKind1059)
 
-    const trustedDevices = getTrustedDevices(account.id)
+    const trustedDevices = getTrustedDevices(account)
     for (const trustedDeviceNpub of trustedDevices) {
       if (!deviceNsec) continue
       eventKind1059 = await nostrApi.createKind1059(
@@ -83,7 +80,7 @@ export function useNostrPublish() {
     )
     await nostrApi.publishEvent(selfEvent)
 
-    const trustedDevices = getTrustedDevices(account.id)
+    const trustedDevices = getTrustedDevices(account)
     for (const trustedDeviceNpub of trustedDevices) {
       if (!deviceNsec) continue
       if (trustedDeviceNpub === deviceNpub) continue
