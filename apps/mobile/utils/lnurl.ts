@@ -21,48 +21,49 @@ export function getLNURLType(input: string): {
     return { isLNURL: false }
   }
 
-  try {
-    const url = decodeLNURL(input)
+  const url = decodeLNURL(input)
 
-    // Check for common LNURL patterns
-    const isPay =
-      url.includes('/lnurlp/') ||
-      url.includes('/.well-known/lnurlp/') ||
-      url.includes('/api/v1/lnurl/pay/') ||
-      url.includes('/pay/api/v1/lnurl/') ||
-      url.includes('/lnurl/pay/') ||
-      url.includes('/lnurlp/api/') ||
-      url.includes('/api/lnurlp/') ||
-      url.includes('/lnurlp/api/v1/') ||
-      url.includes('/api/v1/lnurlp/')
+  // Check for common LNURL patterns
+  const isPay = [
+    '/.well-known/lnurlp/',
+    '/api/lnurlp/',
+    '/api/v1/lnurl/pay/',
+    '/api/v1/lnurlp/',
+    '/lnurl/pay/',
+    '/lnurlp/',
+    '/lnurlp/api/',
+    '/lnurlp/api/v1/',
+    '/pay/api/v1/lnurl/'
+  ].some((path) => url.includes(path))
 
-    const isWithdraw =
-      url.includes('/lnurlw/') ||
-      url.includes('/.well-known/lnurlw/') ||
-      url.includes('/api/v1/lnurl/withdraw/') ||
-      url.includes('/withdraw/api/v1/lnurl/') ||
-      url.includes('/lnurl/withdraw/') ||
-      url.includes('/lnurlw/api/') ||
-      url.includes('/api/lnurlw/') ||
-      url.includes('/lnurlw/api/v1/') ||
-      url.includes('/api/v1/lnurlw/')
+  const isWithdraw = [
+    '/.well-known/lnurlw/',
+    '/api/lnurlw/',
+    '/api/v1/lnurl/withdraw/',
+    '/api/v1/lnurlw/',
+    '/lnurl/withdraw/',
+    '/lnurlw/',
+    '/lnurlw/api/',
+    '/lnurlw/api/v1/',
+    '/withdraw/api/v1/lnurl/'
+  ].some((path) => url.includes(path))
 
-    if (isPay) {
-      return { isLNURL: true, type: 'pay' }
-    } else if (isWithdraw) {
-      return { isLNURL: true, type: 'withdraw' }
-    }
-
-    return { isLNURL: true }
-  } catch {
-    // If decoding fails, just return that it's a LNURL without type
-    return { isLNURL: true }
+  if (isPay) {
+    return { isLNURL: true, type: 'pay' }
+  } else if (isWithdraw) {
+    return { isLNURL: true, type: 'withdraw' }
   }
+
+  return { isLNURL: true }
 }
 
 // Update isLNURL to use the new function
 export function isLNURL(input: string): boolean {
-  return getLNURLType(input).isLNURL
+  const lowercaseInput = input.toLowerCase()
+  return (
+    lowercaseInput.startsWith('lnurl') ||
+    lowercaseInput.startsWith('lightning:lnurl')
+  )
 }
 
 // Decode a LNURL from bech32 format
@@ -102,62 +103,54 @@ export function decodeLNURL(input: string): string {
 export async function fetchLNURLPayDetails(
   url: string
 ): Promise<LNURLPayResponse> {
-  try {
-    // Try to fetch from the base URL first
-    let response = await fetch(url)
+  // Try to fetch from the base URL first
+  let response = await fetch(url)
 
-    // If we get a 404, try with /api/v1/lnurl/pay/ prefix
-    if (response.status === 404) {
-      const apiUrl = new URL(url)
-      const pathParts = apiUrl.pathname.split('/')
-      const lastPart = pathParts[pathParts.length - 1]
+  // If we get a 404, try with /api/v1/lnurl/pay/ prefix
+  if (response.status === 404) {
+    const apiUrl = new URL(url)
+    const pathParts = apiUrl.pathname.split('/')
+    const lastPart = pathParts[pathParts.length - 1]
 
-      // Try different API URL patterns
-      const apiPatterns = [
-        `/api/v1/lnurl/pay/${lastPart}`,
-        `/api/lnurlp/${lastPart}`,
-        `/lnurlp/api/v1/${lastPart}`,
-        `/api/v1/lnurlp/${lastPart}`
-      ]
+    // Try different API URL patterns
+    const apiPatterns = [
+      `/api/v1/lnurl/pay/${lastPart}`,
+      `/api/lnurlp/${lastPart}`,
+      `/lnurlp/api/v1/${lastPart}`,
+      `/api/v1/lnurlp/${lastPart}`
+    ]
 
-      for (const pattern of apiPatterns) {
-        apiUrl.pathname = pattern
-        response = await fetch(apiUrl.toString())
+    for (const pattern of apiPatterns) {
+      apiUrl.pathname = pattern
+      response = await fetch(apiUrl.toString())
 
-        if (response.ok) {
-          break
-        }
+      if (response.ok) {
+        break
       }
     }
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`)
-    }
-
-    const data = await response.json()
-
-    // Validate response format
-    if (data.tag !== 'payRequest') {
-      throw new Error('Invalid LNURL response: not a pay request')
-    }
-
-    if (
-      !data.callback ||
-      !data.maxSendable ||
-      !data.minSendable ||
-      !data.metadata
-    ) {
-      throw new Error('Invalid LNURL response: missing required fields')
-    }
-
-    return data as LNURLPayResponse
-  } catch (error) {
-    throw new Error(
-      `Failed to fetch LNURL details: ${
-        error instanceof Error ? error.message : 'Unknown error'
-      }`
-    )
   }
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! Status: ${response.status}`)
+  }
+
+  const data = await response.json()
+
+  // Validate response format
+  if (data.tag !== 'payRequest') {
+    throw new Error('Invalid LNURL response: not a pay request')
+  }
+
+  if (
+    !data.callback ||
+    !data.maxSendable ||
+    !data.minSendable ||
+    !data.metadata
+  ) {
+    throw new Error('Invalid LNURL response: missing required fields')
+  }
+
+  return data as LNURLPayResponse
 }
 
 // Request a bolt11 invoice from LNURL-pay endpoint
@@ -167,44 +160,36 @@ export async function requestLNURLPayInvoice(
   comment?: string,
   details?: LNURLPayResponse
 ): Promise<string> {
-  try {
-    // Convert sats to millisats for the request
-    const amountMillisats = amount * 1000
+  // Convert sats to millisats for the request
+  const amountMillisats = amount * 1000
 
-    // Build callback URL with parameters
-    const url = new URL(callback)
-    url.searchParams.append('amount', amountMillisats.toString())
-    if (comment && details?.commentAllowed) {
-      if (comment.length > details.commentAllowed) {
-        throw new Error(
-          `Comment too long. Maximum length: ${details.commentAllowed}`
-        )
-      }
-      url.searchParams.append('comment', comment)
+  // Build callback URL with parameters
+  const url = new URL(callback)
+  url.searchParams.append('amount', amountMillisats.toString())
+  if (comment && details?.commentAllowed) {
+    if (comment.length > details.commentAllowed) {
+      throw new Error(
+        `Comment too long. Maximum length: ${details.commentAllowed}`
+      )
     }
-
-    // Request invoice
-    const response = await fetch(url.toString())
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`HTTP error! Status: ${response.status} - ${errorText}`)
-    }
-
-    const data = (await response.json()) as LNURLPayInvoiceResponse
-
-    if (!data.pr) {
-      throw new Error('Invalid response: no payment request received')
-    }
-
-    return data.pr
-  } catch (error) {
-    throw new Error(
-      `Failed to request invoice: ${
-        error instanceof Error ? error.message : 'Unknown error'
-      }`
-    )
+    url.searchParams.append('comment', comment)
   }
+
+  // Request invoice
+  const response = await fetch(url.toString())
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`HTTP error! Status: ${response.status} - ${errorText}`)
+  }
+
+  const data = (await response.json()) as LNURLPayInvoiceResponse
+
+  if (!data.pr) {
+    throw new Error('Invalid response: no payment request received')
+  }
+
+  return data.pr
 }
 
 // Main function to handle LNURL-pay flow
@@ -213,44 +198,36 @@ export async function handleLNURLPay(
   amount: number,
   comment?: string
 ): Promise<string> {
-  try {
-    // Clean the input first - remove any whitespace and lightning: prefix
-    const cleanLnurl = lnurl.trim().replace(/^lightning:/i, '')
+  // Clean the input first - remove any whitespace and lightning: prefix
+  const cleanLnurl = lnurl.trim().replace(/^lightning:/i, '')
 
-    // Decode LNURL if needed
-    const isLNURLInput = isLNURL(cleanLnurl)
-    const url = isLNURLInput ? decodeLNURL(cleanLnurl) : cleanLnurl
+  // Decode LNURL if needed
+  const isLNURLInput = isLNURL(cleanLnurl)
+  const url = isLNURLInput ? decodeLNURL(cleanLnurl) : cleanLnurl
 
-    // Get LNURL details and validate amount
-    const details = await fetchLNURLPayDetails(url)
-    const amountMillisats = amount * 1000
+  // Get LNURL details and validate amount
+  const details = await fetchLNURLPayDetails(url)
+  const amountMillisats = amount * 1000
 
-    // Validate amount is within allowed range
-    if (
-      amountMillisats < details.minSendable ||
-      amountMillisats > details.maxSendable
-    ) {
-      throw new Error(
-        `Amount must be between ${details.minSendable / 1000} and ${
-          details.maxSendable / 1000
-        } sats`
-      )
-    }
-
-    const invoice = await requestLNURLPayInvoice(
-      details.callback,
-      amount,
-      comment,
-      details
-    )
-    return invoice
-  } catch (error) {
+  // Validate amount is within allowed range
+  if (
+    amountMillisats < details.minSendable ||
+    amountMillisats > details.maxSendable
+  ) {
     throw new Error(
-      `LNURL-pay failed: ${
-        error instanceof Error ? error.message : 'Unknown error'
-      }`
+      `Amount must be between ${details.minSendable / 1000} and ${
+        details.maxSendable / 1000
+      } sats`
     )
   }
+
+  const invoice = await requestLNURLPayInvoice(
+    details.callback,
+    amount,
+    comment,
+    details
+  )
+  return invoice
 }
 
 export async function fetchLNURLWithdrawDetails(
