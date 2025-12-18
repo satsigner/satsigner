@@ -61,15 +61,8 @@ if (typeof global.crypto === 'undefined') {
       return array
     },
     getRandomBase64String: async (length: number): Promise<string> => {
-      try {
-        const randomHex = await crypto.randomKey(length)
-        return Buffer.from(randomHex, 'hex').toString('base64')
-      } catch (_error) {
-        throw new Error(
-          'Failed to generate secure random values: ' +
-            (_error instanceof Error ? _error.message : 'Unknown error')
-        )
-      }
+      const randomHex = await crypto.randomKey(length)
+      return Buffer.from(randomHex, 'hex').toString('base64')
     }
   } as Crypto
 }
@@ -79,15 +72,8 @@ if (!global.crypto.getRandomBase64String) {
   global.crypto.getRandomBase64String = async (
     length: number
   ): Promise<string> => {
-    try {
       const randomHex = await crypto.randomKey(length)
       return Buffer.from(randomHex, 'hex').toString('base64')
-    } catch (error) {
-      throw new Error(
-        'Failed to generate secure random values: ' +
-          (error instanceof Error ? error.message : 'Unknown error')
-      )
-    }
   }
 }
 

@@ -23,26 +23,43 @@ import { compressMessage, decompressMessage } from '@/utils/nostr'
 import { parseDescriptor } from '@/utils/parse'
 
 function useNostrSync() {
-  const [updateAccountNostr] = useAccountsStore(
-    useShallow((state) => [state.updateAccountNostr])
+  const [accounts, updateAccountNostr, importLabels] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts,
+      state.updateAccountNostr,
+      state.importLabels
+    ])
   )
-  const addMember = useNostrStore((state) => state.addMember)
-  const addSubscription = useNostrStore((state) => state.addSubscription)
-  const clearSubscriptions = useNostrStore((state) => state.clearSubscriptions)
-  const getActiveSubscriptions = useNostrStore(
-    (state) => state.getActiveSubscriptions
+  const [
+    addMember,
+    addSubscription,
+    addProcessedEvent,
+    clearSubscriptions,
+    getActiveSubscriptions,
+    getLastDataExchangeEOSE,
+    getLastProtocolEOSE,
+    setLastProtocolEOSE,
+    setLastDataExchangeEOSE,
+    processedEvents
+  ] = useNostrStore(
+    useShallow((state) => [
+      state.addMember,
+      state.addSubscription,
+      state.addProcessedEvent,
+      state.clearSubscriptions,
+      state.getActiveSubscriptions,
+      state.getLastDataExchangeEOSE,
+      state.getLastProtocolEOSE,
+      state.setLastProtocolEOSE,
+      state.setLastDataExchangeEOSE,
+      state.processedEvents
+    ])
   )
-
   const cleanupSubscriptions = useCallback(async () => {
-    const apisToCleanup = Array.from(getActiveSubscriptions())
+    const apisToCleanup = [...getActiveSubscriptions()]
     clearSubscriptions()
-
     for (const api of apisToCleanup) {
-      try {
-        await api.closeAllSubscriptions()
-      } catch {
-        // Error closing subscriptions
-      }
+      await api.closeAllSubscriptions()
     }
   }, [clearSubscriptions, getActiveSubscriptions])
 
@@ -54,226 +71,169 @@ function useNostrSync() {
         return
       }
 
-      try {
-        const newMessage = {
-          id: unwrappedEvent.id,
-          author: unwrappedEvent.pubkey,
-          created_at: eventContent.created_at,
+      const newMessage = {
+        id: unwrappedEvent.id,
+        author: unwrappedEvent.pubkey,
+        created_at: eventContent.created_at,
+        description: eventContent.description,
+        event: JSON.stringify(unwrappedEvent),
+        label: 1,
+        content: {
           description: eventContent.description,
-          event: JSON.stringify(unwrappedEvent),
-          label: 1,
-          content: {
-            description: eventContent.description,
-            created_at: eventContent.created_at,
-            pubkey: unwrappedEvent.pubkey
-          }
+          created_at: eventContent.created_at,
+          pubkey: unwrappedEvent.pubkey
         }
+      }
 
-        // Trigger notifcation only if message is recent and is not sent to self
-        const lastDataExchangeEOSE =
-          useNostrStore.getState().getLastDataExchangeEOSE(account.id) || 0
-        if (
-          eventContent.created_at > lastDataExchangeEOSE &&
-          account.nostr.deviceNpub !==
-            nip19.npubEncode(unwrappedEvent.pubkey) &&
-          eventContent.created_at < Date.now() / 1000 - 60 * 5
-        ) {
-          const npub = nip19.npubEncode(unwrappedEvent.pubkey)
-          const formatedAuthor = npub.slice(0, 12) + '...' + npub.slice(-4)
-          toast.info(formatedAuthor + ': ' + eventContent.description)
-        }
+      // Trigger notifcation only if message is recent and is not sent to self
+      const lastDataExchangeEOSE = getLastDataExchangeEOSE(account.id) || 0
+      if (
+        eventContent.created_at > lastDataExchangeEOSE &&
+        account.nostr.deviceNpub !== nip19.npubEncode(unwrappedEvent.pubkey) &&
+        eventContent.created_at < Date.now() / 1000 - 60 * 5
+      ) {
+        const npub = nip19.npubEncode(unwrappedEvent.pubkey)
+        const formatedAuthor = npub.slice(0, 12) + '...' + npub.slice(-4)
+        toast.info(formatedAuthor + ': ' + eventContent.description)
+      }
 
-        // Get the current state directly from the store to ensure we have the latest
-        const currentState = useAccountsStore.getState()
-        const currentAccount = currentState.accounts.find(
-          (a) => a.id === account.id
+      // Get the current state directly from the store to ensure we have the latest
+      const currentAccount = accounts.find((a) => a.id === account.id)
+      if (!currentAccount?.nostr) return
+
+      const currentDms = currentAccount.nostr.dms || []
+
+      // Check if message with same ID already exists
+      const messageExists = currentDms.some((m) => m.id === newMessage.id)
+
+      // If message doesn't exist, add it and sort by timestamp
+      if (!messageExists) {
+        const updatedDms = [...currentDms, newMessage].sort(
+          (a, b) => a.created_at - b.created_at
         )
-        if (!currentAccount?.nostr) return
 
-        const currentDms = currentAccount.nostr.dms || []
-
-        // Check if message with same ID already exists
-        const messageExists = currentDms.some((m) => m.id === newMessage.id)
-
-        // If message doesn't exist, add it and sort by timestamp
-        if (!messageExists) {
-          const updatedDms = [...currentDms, newMessage].sort(
-            (a, b) => a.created_at - b.created_at
-          )
-
-          // Update only the dms field, preserving all other nostr fields
-          updateAccountNostr(account.id, {
-            dms: updatedDms
-          })
-        }
-      } catch {
-        // Failed to store DM
+        // Update only the dms field, preserving all other nostr fields
+        updateAccountNostr(account.id, {
+          dms: updatedDms
+        })
       }
     },
-    [updateAccountNostr]
+    [updateAccountNostr] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const processEvent = useCallback(
     async (account: Account, unwrappedEvent: any): Promise<string> => {
       // Check for processed events at the very beginning
-      const processedEvents =
-        useNostrStore.getState().processedEvents[account.id] || []
-      if (processedEvents.includes(unwrappedEvent.id)) {
+      const accountProcessedEvejts = processedEvents[account.id] || []
+      if (accountProcessedEvejts.includes(unwrappedEvent.id)) {
         return ''
       }
 
       // Mark event as processed immediately to prevent duplicate processing
-      useNostrStore.getState().addProcessedEvent(account.id, unwrappedEvent.id)
+      addProcessedEvent(account.id, unwrappedEvent.id)
 
+      let eventContent: any
       try {
-        let eventContent: any
-        try {
-          eventContent = JSON.parse(unwrappedEvent.content)
-        } catch {
-          try {
-            eventContent = decompressMessage(unwrappedEvent.content)
-          } catch {
-            eventContent = unwrappedEvent.content
-          }
-        }
-
-        if (eventContent.data) {
-          const data_type = eventContent.data.data_type
-          if (data_type === 'LabelsBip329') {
-            try {
-              if (eventContent.data.data.length === 1) {
-                const label = eventContent.data.data[0].label
-                const ref = eventContent.data.data[0].ref
-                useAccountsStore.getState().setTxLabel(account.id, ref, label)
-              } else {
-                const labels = JSONLtoLabels(eventContent.data.data)
-                const store = useAccountsStore.getState()
-                const labelsAdded = store.importLabels(account.id, labels)
-                if (labelsAdded > 0) {
-                  toast.success(`Imported ${labelsAdded} labels`)
-                }
-              }
-            } catch (_error) {
-              toast.error('Failed to import labels')
-            }
-          } else if (data_type === 'Tx') {
-            // Handle Tx
-            toast.info(
-              'New Tx Recieve from: ' +
-                nip19.npubEncode(unwrappedEvent.pubkey).slice(0, 12) +
-                '...' +
-                nip19.npubEncode(unwrappedEvent.pubkey).slice(-4) +
-                ' - ' +
-                eventContent.data.data.slice(0, 12) +
-                '...'
-            )
-          } else if (data_type === 'PSBT') {
-            // Handle PSBT
-            toast.info(
-              'New PSBT Recieve from: ' +
-                nip19.npubEncode(unwrappedEvent.pubkey).slice(0, 12) +
-                '...' +
-                nip19.npubEncode(unwrappedEvent.pubkey).slice(-4) +
-                ' - ' +
-                eventContent.data.data.slice(0, 12) +
-                '...'
-            )
-            const psbtEventContent = {
-              created_at:
-                eventContent.created_at || Math.floor(Date.now() / 1000),
-              description: eventContent.data.data
-            }
-            await storeDM(account, unwrappedEvent, psbtEventContent)
-          } else if (data_type === 'SignMessageRequest') {
-            // POPUP Sign message request
-            toast.info(
-              'New Sign message request Recieve from: ' +
-                nip19.npubEncode(unwrappedEvent.pubkey).slice(0, 12) +
-                '...' +
-                nip19.npubEncode(unwrappedEvent.pubkey).slice(-4) +
-                ' - ' +
-                eventContent.data.data.slice(0, 12) +
-                '...'
-            )
-          }
-        } else if (eventContent.description && !eventContent.data) {
-          try {
-            //ignore if is sent to commonNpub
-            if (
-              account.nostr.commonNpub !==
-              nip19.npubEncode(unwrappedEvent.tags[0][1])
-            ) {
-              await storeDM(account, unwrappedEvent, eventContent)
-            }
-          } catch {}
-        } else if (eventContent.public_key_bech32) {
-          const newMember = eventContent.public_key_bech32
-          try {
-            addMember(account.id, newMember)
-          } catch {
-            // Failed to add member
-          }
-        }
-
-        return eventContent
+        eventContent = JSON.parse(unwrappedEvent.content)
       } catch {
-        // If processing fails, remove the event from processed events
-        const currentProcessedEvents =
-          useNostrStore.getState().processedEvents[account.id] || []
-        useNostrStore.getState().clearProcessedEvents(account.id)
-        const remainingEvents = currentProcessedEvents.filter(
-          (id) => id !== unwrappedEvent.id
-        )
-        remainingEvents.forEach((eventId) => {
-          useNostrStore.getState().addProcessedEvent(account.id, eventId)
-        })
-        return ''
+        try {
+          eventContent = decompressMessage(unwrappedEvent.content)
+        } catch {
+          eventContent = unwrappedEvent.content
+        }
       }
+
+      if (eventContent.data) {
+        const data_type = eventContent.data.data_type
+        if (data_type === 'LabelsBip329') {
+          const labels = JSONLtoLabels(eventContent.data.data)
+          const labelsAdded = importLabels(account.id, labels)
+          if (labelsAdded > 0) {
+            toast.success(`Imported ${labelsAdded} labels`)
+          }
+        } else if (data_type === 'Tx') {
+          // Handle Tx
+          toast.info(
+            'New Tx Recieve from: ' +
+              nip19.npubEncode(unwrappedEvent.pubkey).slice(0, 12) +
+              '...' +
+              nip19.npubEncode(unwrappedEvent.pubkey).slice(-4) +
+              ' - ' +
+              eventContent.data.data.slice(0, 12) +
+              '...'
+          )
+        } else if (data_type === 'PSBT') {
+          // Handle PSBT
+          toast.info(
+            'New PSBT Recieve from: ' +
+              nip19.npubEncode(unwrappedEvent.pubkey).slice(0, 12) +
+              '...' +
+              nip19.npubEncode(unwrappedEvent.pubkey).slice(-4) +
+              ' - ' +
+              eventContent.data.data.slice(0, 12) +
+              '...'
+          )
+          const psbtEventContent = {
+            created_at:
+              eventContent.created_at || Math.floor(Date.now() / 1000),
+            description: eventContent.data.data
+          }
+          await storeDM(account, unwrappedEvent, psbtEventContent)
+        } else if (data_type === 'SignMessageRequest') {
+          // POPUP Sign message request
+          toast.info(
+            'New Sign message request Recieve from: ' +
+              nip19.npubEncode(unwrappedEvent.pubkey).slice(0, 12) +
+              '...' +
+              nip19.npubEncode(unwrappedEvent.pubkey).slice(-4) +
+              ' - ' +
+              eventContent.data.data.slice(0, 12) +
+              '...'
+          )
+        }
+      } else if (eventContent.description && !eventContent.data) {
+        //ignore if is sent to commonNpub
+        if (
+          account.nostr.commonNpub !==
+          nip19.npubEncode(unwrappedEvent.tags[0][1])
+        ) {
+          await storeDM(account, unwrappedEvent, eventContent)
+        }
+      } else if (eventContent.public_key_bech32) {
+        const newMember = eventContent.public_key_bech32
+        addMember(account.id, newMember)
+      }
+
+      return eventContent
     },
-    [addMember, storeDM]
+    [addMember, storeDM] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const protocolSubscription = useCallback(
     async (account: Account, onLoadingChange?: (loading: boolean) => void) => {
       const { autoSync, commonNsec, commonNpub, relays } = account.nostr
-      const lastProtocolEOSE =
-        useNostrStore.getState().getLastProtocolEOSE(account.id) || 0
+      const lastProtocolEOSE = getLastProtocolEOSE(account.id) || 0
 
       if (!autoSync || !commonNsec || !commonNpub || relays.length === 0) {
         return null
       }
 
-      let nostrApi: NostrAPI | null = null
-      try {
-        nostrApi = new NostrAPI(relays)
-        if (onLoadingChange) {
-          nostrApi.setLoadingCallback(onLoadingChange)
-        }
-        await nostrApi.connect()
-        await nostrApi.subscribeToKind1059(
-          commonNsec as string,
-          commonNpub as string,
-          async (message) => {
-            try {
-              await processEvent(account, message.content)
-            } catch (_error) {
-              // Error processing message
-            }
-          },
-          undefined,
-          lastProtocolEOSE,
-          (nsec) => updateLasEOSETimestamp(account, nsec)
-        )
-        return nostrApi
-      } catch (_error) {
-        toast.error('Failed to subscribe to protocol events')
-        if (nostrApi) {
-          await nostrApi.closeAllSubscriptions()
-        }
-        return null
+      const nostrApi = new NostrAPI(relays)
+      if (onLoadingChange) {
+        nostrApi.setLoadingCallback(onLoadingChange)
       }
+      await nostrApi.connect()
+      await nostrApi.subscribeToKind1059(
+        commonNsec as string,
+        commonNpub as string,
+        async (message) => processEvent(account, message.content),
+        undefined,
+        lastProtocolEOSE,
+        (nsec) => updateLasEOSETimestamp(account, nsec)
+      )
+      return nostrApi
     },
-    [processEvent]
+    [processEvent] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const dataExchangeSubscription = useCallback(
@@ -287,36 +247,22 @@ function useNostrSync() {
       }
 
       let nostrApi: NostrAPI | null = null
-      try {
-        nostrApi = new NostrAPI(relays)
-        if (onLoadingChange) {
-          nostrApi.setLoadingCallback(onLoadingChange)
-        }
-        await nostrApi.connect()
-        await nostrApi.subscribeToKind1059(
-          deviceNsec as string,
-          deviceNpub as string,
-          async (message) => {
-            try {
-              await processEvent(account, message.content)
-            } catch (_error) {
-              // Error processing message
-            }
-          },
-          undefined,
-          lastDataExchangeEOSE,
-          (nsec) => updateLasEOSETimestamp(account, nsec)
-        )
-        return nostrApi
-      } catch (_error) {
-        toast.error('Failed to setup data exchange subscription:')
-        if (nostrApi) {
-          await nostrApi.closeAllSubscriptions()
-        }
-        return null
+      nostrApi = new NostrAPI(relays)
+      if (onLoadingChange) {
+        nostrApi.setLoadingCallback(onLoadingChange)
       }
+      await nostrApi.connect()
+      await nostrApi.subscribeToKind1059(
+        deviceNsec as string,
+        deviceNpub as string,
+        async (message) => processEvent(account, message.content),
+        undefined,
+        lastDataExchangeEOSE,
+        (nsec) => updateLasEOSETimestamp(account, nsec)
+      )
+      return nostrApi
     },
-    [processEvent]
+    [processEvent] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const nostrSyncSubscriptions = useCallback(
@@ -332,24 +278,18 @@ function useNostrSync() {
       // Cleanup existing subscriptions first
       await cleanupSubscriptions()
 
-      try {
-        // Start protocol subscription
-        const protocolApi = await protocolSubscription(account, onLoadingChange)
-        if (protocolApi) {
-          addSubscription(protocolApi)
-        }
+      const protocolApi = await protocolSubscription(account, onLoadingChange)
+      if (protocolApi) {
+        addSubscription(protocolApi)
+      }
 
-        // Start data exchange subscription
-        const dataExchangeApi = await dataExchangeSubscription(
-          account,
-          onLoadingChange
-        )
-        if (dataExchangeApi) {
-          addSubscription(dataExchangeApi)
-        }
-      } catch (_error) {
-        toast.error('Failed to start subscriptions')
-        await cleanupSubscriptions()
+      // Start data exchange subscription
+      const dataExchangeApi = await dataExchangeSubscription(
+        account,
+        onLoadingChange
+      )
+      if (dataExchangeApi) {
+        addSubscription(dataExchangeApi)
       }
     },
     [
@@ -398,50 +338,46 @@ function useNostrSync() {
       return
     }
 
-    try {
-      if (labels.length === 0) {
-        toast.error(t('account.nostrSync.errorMissingData'))
-        return
-      }
+    if (labels.length === 0) {
+      toast.error(t('account.nostrSync.errorMissingData'))
+      return
+    }
 
-      const labelPackage = labels.map((label) => ({
-        __class__: 'Label',
-        VERSION: '0.0.3',
-        type: label.type,
-        ref: label.ref,
-        label: label.label,
-        spendable: label.spendable,
-        timestamp: Math.floor(Date.now() / 1000)
-      }))
+    const labelPackage = labels.map((label) => ({
+      __class__: 'Label',
+      VERSION: '0.0.3',
+      type: label.type,
+      ref: label.ref,
+      label: label.label,
+      spendable: label.spendable,
+      timestamp: Math.floor(Date.now() / 1000)
+    }))
 
-      const labelPackageJSONL = labelsToJSONL(labelPackage)
-      const messageContent = {
-        created_at: Math.floor(Date.now() / 1000),
-        label: 1,
-        description: 'Here come some labels',
-        data: { data: labelPackageJSONL, data_type: 'LabelsBip329' }
-      }
+    const labelPackageJSONL = labelsToJSONL(labelPackage)
+    const messageContent = {
+      created_at: Math.floor(Date.now() / 1000),
+      label: 1,
+      description: 'Here come some labels',
+      data: { data: labelPackageJSONL, data_type: 'LabelsBip329' }
+    }
 
-      const compressedMessage = compressMessage(messageContent)
-      const nostrApi = new NostrAPI(relays)
-      await nostrApi.connect()
+    const compressedMessage = compressMessage(messageContent)
+    const nostrApi = new NostrAPI(relays)
+    await nostrApi.connect()
 
-      const deviceNsec = account.nostr.deviceNsec
-      const trustedDevices =
-        useAccountsStore.getState().accounts.find((a) => a.id === account.id)
-          ?.nostr?.trustedMemberDevices || []
+    const deviceNsec = account.nostr.deviceNsec
+    const trustedDevices =
+      accounts.find((a) => a.id === account.id)?.nostr?.trustedMemberDevices ||
+      []
 
-      for (const trustedDeviceNpub of trustedDevices) {
-        if (!deviceNsec) continue
-        const eventKind1059 = await nostrApi.createKind1059(
-          deviceNsec,
-          trustedDeviceNpub,
-          compressedMessage
-        )
-        await nostrApi.publishEvent(eventKind1059)
-      }
-    } catch {
-      toast.error('Failed to send message')
+    for (const trustedDeviceNpub of trustedDevices) {
+      if (!deviceNsec) continue
+      const eventKind1059 = await nostrApi.createKind1059(
+        deviceNsec,
+        trustedDeviceNpub,
+        compressedMessage
+      )
+      await nostrApi.publishEvent(eventKind1059)
     }
   }
 
@@ -466,65 +402,60 @@ function useNostrSync() {
     const pin = await getItem(PIN_KEY)
     if (!pin) return
 
-    try {
-      const isImportAddress = account.keys[0].creationType === 'importAddress'
-      const temporaryAccount = JSON.parse(JSON.stringify(account)) as Account
+    const isImportAddress = account.keys[0].creationType === 'importAddress'
+    const temporaryAccount = JSON.parse(JSON.stringify(account)) as Account
 
-      for (const key of temporaryAccount.keys) {
-        const decryptedSecretString = await aesDecrypt(
-          key.secret as string,
-          pin,
-          key.iv
-        )
-        const decryptedSecret = JSON.parse(decryptedSecretString) as Secret
-        key.secret = decryptedSecret
-      }
-
-      if (isImportAddress) {
-        const secret = temporaryAccount.keys[0].secret as Secret
-        return {
-          externalDescriptor: secret.externalDescriptor,
-          internalDescriptor: undefined
-        }
-      }
-
-      const walletData = await getWalletData(
-        temporaryAccount,
-        temporaryAccount.network as Network
+    for (const key of temporaryAccount.keys) {
+      const decryptedSecretString = await aesDecrypt(
+        key.secret as string,
+        pin,
+        key.iv
       )
-      if (!walletData) {
-        throw new Error('Failed to get wallet data')
-      }
+      const decryptedSecret = JSON.parse(decryptedSecretString) as Secret
+      key.secret = decryptedSecret
+    }
 
-      const descriptor = walletData.externalDescriptor
-      const { hardenedPath, xpubs } = parseDescriptor(descriptor)
-      const totalString = `${hardenedPath}${xpubs.join('')}`
-
-      const firstHash = await sha256(totalString)
-      const doubleHash = await sha256(firstHash)
-
-      const privateKeyBytes = new Uint8Array(Buffer.from(doubleHash, 'hex'))
-      const publicKey = getPublicKey(privateKeyBytes)
-      const commonNsec = nip19.nsecEncode(privateKeyBytes)
-      const commonNpub = nip19.npubEncode(publicKey)
-
+    if (isImportAddress) {
+      const secret = temporaryAccount.keys[0].secret as Secret
       return {
-        commonNsec,
-        commonNpub,
-        privateKeyBytes
+        externalDescriptor: secret.externalDescriptor,
+        internalDescriptor: undefined
       }
-    } catch {
-      toast.error('Failed to generate common Nostr keys')
-      return null
+    }
+
+    const walletData = await getWalletData(
+      temporaryAccount,
+      temporaryAccount.network as Network
+    )
+    if (!walletData) {
+      throw new Error('Failed to get wallet data')
+    }
+
+    const descriptor = walletData.externalDescriptor
+    const { hardenedPath, xpubs } = parseDescriptor(descriptor)
+    const totalString = `${hardenedPath}${xpubs.join('')}`
+
+    const firstHash = await sha256(totalString)
+    const doubleHash = await sha256(firstHash)
+
+    const privateKeyBytes = new Uint8Array(Buffer.from(doubleHash, 'hex'))
+    const publicKey = getPublicKey(privateKeyBytes)
+    const commonNsec = nip19.nsecEncode(privateKeyBytes)
+    const commonNpub = nip19.npubEncode(publicKey)
+
+    return {
+      commonNsec,
+      commonNpub,
+      privateKeyBytes
     }
   }
 
   function updateLasEOSETimestamp(account: Account, nsec: string) {
     const timestamp = Math.floor(Date.now() / 1000) - 3600 // Subtract 1 hour
     if (nsec === account.nostr.commonNsec) {
-      useNostrStore.getState().setLastProtocolEOSE(account.id, timestamp)
+      setLastProtocolEOSE(account.id, timestamp)
     } else if (nsec === account.nostr.deviceNsec) {
-      useNostrStore.getState().setLastDataExchangeEOSE(account.id, timestamp)
+      setLastDataExchangeEOSE(account.id, timestamp)
     }
   }
 
@@ -539,25 +470,21 @@ function useNostrSync() {
     }
 
     let nostrApi: NostrAPI | null = null
-    try {
-      const messageContent = {
-        created_at: Math.floor(Date.now() / 1000),
-        public_key_bech32: deviceNpub
-      }
-
-      const compressedMessage = compressMessage(messageContent)
-      nostrApi = new NostrAPI(relays)
-      await nostrApi.connect()
-
-      const eventKind1059 = await nostrApi.createKind1059(
-        commonNsec,
-        commonNpub,
-        compressedMessage
-      )
-      await nostrApi.publishEvent(eventKind1059)
-    } catch {
-      toast.error('Failed to send device announcement')
+    const messageContent = {
+      created_at: Math.floor(Date.now() / 1000),
+      public_key_bech32: deviceNpub
     }
+
+    const compressedMessage = compressMessage(messageContent)
+    nostrApi = new NostrAPI(relays)
+    await nostrApi.connect()
+
+    const eventKind1059 = await nostrApi.createKind1059(
+      commonNsec,
+      commonNpub,
+      compressedMessage
+    )
+    await nostrApi.publishEvent(eventKind1059)
   }, [])
 
   return {
@@ -572,7 +499,6 @@ function useNostrSync() {
     cleanupSubscriptions,
     deviceAnnouncement,
     nostrSyncSubscriptions,
-    addProcessedMessageId: useNostrStore.getState().addProcessedEvent,
     getActiveSubscriptions
   }
 }
