@@ -2,7 +2,6 @@ import ecc from '@bitcoinerlab/secp256k1'
 import BIP32Factory from 'bip32'
 import bip39 from 'bip39'
 import bitcoinjs from 'bitcoinjs-lib'
-import { toast } from 'sonner-native'
 
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
@@ -1130,7 +1129,6 @@ function validateCosignerSignature(
   psbt: bitcoinjs.Psbt,
   cosignerKey: any
 ): boolean {
-  try {
     const cosignerPublicKey = extractCosignerPublicKey(psbt, cosignerKey)
 
     if (!cosignerPublicKey) {
@@ -1140,10 +1138,6 @@ function validateCosignerSignature(
     const hasSignature = checkSignatureForPublicKey(psbt, cosignerPublicKey)
 
     return hasSignature
-  } catch {
-    toast.error('Error validating cosigner signature')
-    return false
-  }
 }
 
 /**
