@@ -113,7 +113,6 @@ export function decodeURToPSBT(ur: string): string {
 
 /**
  * Generic UR decoder that can handle any UR type (BYTES, CRYPTO-PSBT, etc.)
- * Returns the raw decoded data as a string
  */
 function isCBORByteStringLike(cborData: Uint8Array): boolean {
   if (cborData.length < 2) {

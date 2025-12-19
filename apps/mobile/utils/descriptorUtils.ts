@@ -5,19 +5,11 @@ import { validateCombinedDescriptor } from '@/utils/validation'
 // we implement it ourselves.
 
 export const DescriptorUtils = {
-  /**
-   * Extract fingerprint from descriptor string
-   * Handles both h notation (84h) and ' notation (84') in derivation paths
-   */
   extractFingerprint(descriptor: string): string {
     const fingerprintMatch = descriptor.match(/\[([0-9a-fA-F]{8})([0-9'/h]+)\]/)
     return fingerprintMatch ? fingerprintMatch[1] : ''
   },
 
-  /**
-   * Extract fingerprint from xpub with prefix [fingerprint/derivation]xpub
-   * Tries multiple patterns for compatibility
-   */
   extractFingerprintFromXpub(xpubWithPrefix: string): string | null {
     // Pattern 1: [fingerprint/derivation]xpub (with slash separator)
     const fingerprintMatch1 = xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})\//)
@@ -34,17 +26,11 @@ export const DescriptorUtils = {
     return null
   },
 
-  /**
-   * Extract clean xpub from xpub with prefix
-   */
   extractCleanXpub(xpubWithPrefix: string): string {
     const xpubMatch = xpubWithPrefix.match(/\]([txyzuv]pub[a-zA-Z0-9]{107})$/)
     return xpubMatch ? xpubMatch[1] : xpubWithPrefix
   },
 
-  /**
-   * Determine script version from derivation path
-   */
   getScriptVersionFromDerivation(derivationPath: string): ScriptVersionType {
     if (derivationPath.includes("84'")) return 'P2WPKH'
     if (derivationPath.includes("49'")) return 'P2SH-P2WPKH'
@@ -52,9 +38,6 @@ export const DescriptorUtils = {
     return 'P2WPKH' // Default fallback
   },
 
-  /**
-   * Create descriptor from xpub and script version
-   */
   createDescriptorFromXpub(
     xpubWithPrefix: string,
     scriptVersion: ScriptVersionType
@@ -86,9 +69,6 @@ export const DescriptorUtils = {
     }
   },
 
-  /**
-   * Parse JSON descriptor and extract external/internal descriptors
-   */
   parseJsonDescriptor(text: string): {
     external: string
     internal: string
@@ -112,9 +92,6 @@ export const DescriptorUtils = {
     }
   },
 
-  /**
-   * Parse legacy multi-line descriptor format
-   */
   parseLegacyDescriptor(text: string): {
     external: string
     internal: string
@@ -128,16 +105,10 @@ export const DescriptorUtils = {
     }
   },
 
-  /**
-   * Remove checksum from descriptor for separated validation
-   */
   removeChecksum(descriptor: string): string {
     return descriptor.replace(/#[a-z0-9]+$/, '')
   },
 
-  /**
-   * Process combined descriptor and return separated parts
-   */
   async processCombinedDescriptor(
     descriptor: string,
     scriptVersion: ScriptVersionType

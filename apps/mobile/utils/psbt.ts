@@ -8,12 +8,8 @@ import { type Utxo } from '@/types/models/Utxo'
 import { extractKeyFingerprint } from '@/utils/account'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 
-// TODO: bad file
-
-// Initialize BIP32 with elliptic curve
 const bip32 = BIP32Factory(ecc)
 
-// Configure bitcoinjs-lib to use the React Native compatible elliptic curve library
 bitcoinjs.initEccLib(ecc)
 
 export type TransactionData = {
@@ -180,13 +176,6 @@ export function storeTransactionData(data: TransactionData): void {
   }
 }
 
-/**
- * Sign PSBT with seed words
- * @param psbtBase64 - The PSBT in base64 format
- * @param seedWords - Space-separated seed words
- * @param scriptType - Script type ('P2WSH', 'P2SH', 'P2SH-P2WSH')
- * @returns Signing result
- */
 export function signPSBTWithSeed(
   psbtBase64: string,
   seedWords: string,
@@ -965,9 +954,6 @@ function validateMultisigInput(input: any): boolean {
   return validateSignatureFormat(input.partialSig)
 }
 
-/**
- * Validate a single single-sig input
- */
 function validateSinglesigInput(input: any): boolean {
   if (!input.witnessUtxo && !input.nonWitnessUtxo) {
     return false
@@ -985,9 +971,6 @@ function validateSinglesigInput(input: any): boolean {
   return validateSignatureFormat(input.partialSig)
 }
 
-/**
- * Validate inputs and outputs structure
- */
 function validateInputsAndOutputs(psbt: bitcoinjs.Psbt): boolean {
   try {
     const inputsValid = psbt.data.inputs.every(validateInput)
@@ -1030,9 +1013,6 @@ function isValidNonWitnessUtxo(nonWitnessUtxo: any): boolean {
   return !!(nonWitnessUtxo && nonWitnessUtxo.length > 0)
 }
 
-/**
- * Parse witness script to extract threshold and public key information
- */
 function parseWitnessScript(
   witnessScript: Buffer
 ): { threshold: number; totalKeys: number } | null {
@@ -1056,9 +1036,6 @@ function parseWitnessScript(
   }
 }
 
-/**
- * Check if op code is valid for multisig
- */
 function isValidOpCode(op: any): boolean {
   return typeof op === 'number' && op >= 81 && op <= 96
 }
@@ -1083,9 +1060,6 @@ function isValidScriptInfo(scriptInfo: {
   )
 }
 
-/**
- * Check if multisig signature count is valid
- */
 function isValidMultisigSignatureCount(
   signatureCount: number,
   totalKeys: number
@@ -1110,9 +1084,6 @@ function validateSignatureFormat(partialSig: any[] | any): boolean {
   return sigs.every(isValidSignature)
 }
 
-/**
- * Check if a single signature is valid
- */
 function isValidSignature(sig: any): boolean {
   if (!sig.pubkey || !sig.signature) {
     return false
@@ -1122,9 +1093,6 @@ function isValidSignature(sig: any): boolean {
   return sigLength >= 64 && sigLength <= 72
 }
 
-/**
- * Validate that a signed PSBT contains signatures from the specific cosigner
- */
 function validateCosignerSignature(
   psbt: bitcoinjs.Psbt,
   cosignerKey: any
@@ -1140,9 +1108,6 @@ function validateCosignerSignature(
     return hasSignature
 }
 
-/**
- * Extract cosigner public key from key details and PSBT derivations
- */
 function extractCosignerPublicKey(
   psbt: bitcoinjs.Psbt,
   cosignerKey: any

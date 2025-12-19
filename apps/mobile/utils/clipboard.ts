@@ -5,13 +5,10 @@ import { isValidBitcoinContent } from './bitcoinContent'
 export async function setClipboard(value: string): Promise<void> {
   try {
     await Clipboard.setStringAsync(value)
-  } catch {
-    // TO DO: add error logger
-  }
+  } catch { }
 }
 
 export async function getBitcoinAddressFromClipboard(): Promise<string | void> {
-  ///
   try {
     if (!(await Clipboard.hasStringAsync())) {
       return

@@ -21,14 +21,6 @@ type UtxoOptions = {
   changeOutputSize: number
 }
 
-/**
- * Efficient UTXO Selection Algorithm
- * @param {Array} utxos - Array of available UTXOs
- * @param {Number} targetAmount - Amount to send in satoshis
- * @param {Number} feeRate - Fee rate in satoshis per byte
- * @param {Object} options - Additional options
- * @returns {Object} Selected UTXOs and change
- */
 function selectEfficientUtxos(
   utxos: _Utxo[],
   targetAmount: number,
@@ -133,11 +125,6 @@ function selectEfficientUtxos(
   }
 }
 
-/**
- * Branch and Bound UTXO selection algorithm
- * Selects UTXOs from a pool to meet a target value (payment amount) while keeping the transaction efficient by avoiding unnecessary change outputs when possible.
- * effectiveValue - used to determine the actual value that can be utilized from a group of UTXOs once fees are deducted
- */
 function branchAndBoundUtxoSelection(
   utxos: _Utxo[],
   targetAmount: number,
@@ -317,12 +304,6 @@ type StonewallOptions = {
  * Optimized for privacy by creating transactions that resemble multi-party transactions
  * Ideally, it should support only P2WPKH and P2PKH script types
  * Returns two UTxo sets with similar values
- *
- * @param {Array} utxos - Array of available UTXOs
- * @param {Number} targetAmount - Amount to send in satoshis
- * @param {Number} feeRate - Fee rate in satoshis per byte
- * @param {Object} options - Additional options
- * @returns {Object} Selected UTXOs, change outputs and metadata
  */
 function selectStonewallUtxos(
   utxos: _Utxo[],

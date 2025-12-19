@@ -2,10 +2,6 @@ import { type Secret } from '@/types/models/Account'
 
 /**
  * Returns a shuffled 3 word list that contains the correct seed word
- *
- * @param currentWord - The current seed word
- * @param seedWords - String of seed words separated by space
- * @returns A list with 3 candidate words
  */
 function getConfirmWordCandidates(
   currentWord: string,

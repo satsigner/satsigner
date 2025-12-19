@@ -21,12 +21,8 @@ export const BBQRFileTypes = {
 // Export type for the FileType values
 export type BBQRFileType = (typeof BBQRFileTypes)[keyof typeof BBQRFileTypes]
 
-/**
- * Check if a string is a BBQR fragment
- */
 export function isBBQRFragment(part: string): boolean {
   try {
-    // BBQR fragments start with 'B$' followed by encoding and file type
     if (part.length < 8 || !part.startsWith('B$')) {
       return false
     }
@@ -66,10 +62,6 @@ export function isBBQRFragment(part: string): boolean {
   }
 }
 
-/**
- * Create BBQR chunks from binary data
- * This function maintains backward compatibility with the original API
- */
 export function createBBQRChunks(
   data: Uint8Array,
   fileType: BBQRFileType = BBQRFileTypes.PSBT,
@@ -203,13 +195,8 @@ export function createBBQRChunks(
   }
 }
 
-/**
- * Decode BBQR chunks back to binary data
- * This function maintains backward compatibility with the original API
- */
 export function decodeBBQRChunks(chunks: string[]): Uint8Array | null {
   try {
-    // Validate all chunks are BBQR fragments
     if (!chunks.every(isBBQRFragment)) {
       return null
     }

@@ -31,10 +31,7 @@ async function doubleShaEncrypt(text: string) {
   return crypto.sha256(first)
 }
 
-/**
- * Gets the appropriate PIN for decryption based on user settings.
- * If skipPin is true, returns the default PIN; otherwise returns the stored PIN.
- */
+// FIX: me 
 async function getPinForDecryption(skipPin = false): Promise<string | null> {
   if (skipPin) {
     return DEFAULT_PIN

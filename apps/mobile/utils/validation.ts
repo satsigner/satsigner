@@ -51,6 +51,7 @@ async function validateDescriptorChecksum(
       isValid: true
     }
   } catch {}
+
   try {
     await new Descriptor().create(descriptor, Network.Testnet)
     return {

@@ -101,10 +101,6 @@ export function estimateTransactionSize(
  *    - If its output is directly used as a selected input: set depthH to max calculated depthH
  *    - Otherwise: set depthH to 1
  * 2. If a transaction has dependencies, it gets a depthH of (max depthH of dependencies + 2)
- *
- * @param transactions Map of transaction IDs to transaction objects
- * @param selectedInputs Map of selected input UTXOs
- * @returns The updated map of transactions with recalculated depthH values
  */
 
 export function recalculateDepthH<T extends ExtendedTransaction>(
