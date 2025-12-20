@@ -60,13 +60,8 @@ function mapBolt11DecodeToDecodedInvoice(
 }
 
 export function decodeLightningInvoice(invoice: string): LNDecodedInvoice {
-  try {
-    const bolt11Decoded = decode(invoice)
-    return mapBolt11DecodeToDecodedInvoice(bolt11Decoded, invoice)
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`Failed to decode Lightning invoice: ${message}`)
-  }
+  const bolt11Decoded = decode(invoice)
+  return mapBolt11DecodeToDecodedInvoice(bolt11Decoded, invoice)
 }
 
 export function isLightningInvoice(invoice: string) {
