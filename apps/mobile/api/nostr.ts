@@ -371,32 +371,25 @@ export class NostrAPI {
     }
 
     let published = false
-    for (let i = 0; i < 3; i++) {
-      try {
-        const publishPromises = connectedRelays.map(async (url) => {
-          try {
-            const relay = this.ndk?.pool.relays.get(url)
-            if (!relay) {
-              return { url, success: false, error: 'Relay not found' }
-            }
+    const publishPromises = connectedRelays.map((url) => {
+      return new Promise(async () => {
+        const relay = this.ndk?.pool.relays.get(url)
+        if (!relay) {
+          return { url, success: false, error: 'Relay not found' }
+        }
 
-            await relay.publish(event)
-            return { url, success: true }
-          } catch (_error) {
-            return { url, success: false, error: _error }
-          }
-        })
-        const results = await Promise.all(publishPromises)
-        const successfulPublishes = results.filter((r) => r.success)
-        if (successfulPublishes.length > 0) {
-          published = true
-          break
+        try {
+          await relay.publish(event)
+          return { url, success: true }
+        } catch (error) {
+          return { url, success: false, error }
         }
-      } catch (_err) {
-        if (i < 2) {
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-        }
-      }
+      }) as Promise<{ url: string; success: boolean; error?: string }>
+    })
+    const results = await Promise.all(publishPromises)
+    const successfulPublishes = results.filter((r) => r.success)
+    if (successfulPublishes.length > 0) {
+      published = true
     }
 
     if (!published) {

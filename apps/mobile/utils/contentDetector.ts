@@ -18,17 +18,8 @@ bitcoinjs.initEccLib(ecc)
 // TODO: bad file
 
 function isBitcoinTransaction(data: string): boolean {
-  const trimmed = data.trim()
-
-  if (!/^[0-9a-fA-F]+$/.test(trimmed)) return false
-  if (trimmed.length % 2 !== 0) return false
-
-  if (trimmed.length === 64) {
-    return true
-  }
-
   try {
-    bitcoinjs.Transaction.fromHex(trimmed)
+    bitcoinjs.Transaction.fromHex(data.trim())
     return true
   } catch {
     return false
