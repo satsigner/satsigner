@@ -124,85 +124,74 @@ export function useQRCodeHandler({
     }
   }, [])
 
-  const assembleMultiPartQR = useCallback(
-    async (
-      type: QRCodeType,
-      chunks: Map<number, string>
-    ): Promise<string | null> => {
-      try {
-        switch (type) {
-          case 'raw': {
-            // Assemble RAW format chunks
-            const sortedChunks = Array.from(chunks.entries())
-              .sort(([a], [b]) => a - b)
-              .map(([, content]) => content)
-            const assembled = sortedChunks.join('')
+  async function assembleMultiPartQR(
+    type: QRCodeType,
+    chunks: Map<number, string>
+  ): Promise<string | null> {
+    switch (type) {
+      case 'raw': {
+        // Assemble RAW format chunks
+        const sortedChunks = Array.from(chunks.entries())
+          .sort(([a], [b]) => a - b)
+          .map(([, content]) => content)
+        const assembled = sortedChunks.join('')
 
-            // Convert base64 to hex for RAW format
-            try {
-              const hexResult = Buffer.from(assembled, 'base64').toString('hex')
-              return hexResult
-            } catch (_error) {
-              return assembled
-            }
-          }
-
-          case 'bbqr': {
-            // Assemble BBQR format chunks
-            const sortedChunks = Array.from(chunks.entries())
-              .sort(([a], [b]) => a - b)
-              .map(([, content]) => content)
-
-            const decoded = decodeBBQRChunks(sortedChunks)
-
-            if (decoded) {
-              // Convert binary PSBT to hex for consistency with RAW format
-              const hexResult = Buffer.from(decoded).toString('hex')
-              return hexResult
-            }
-
-            return null
-          }
-
-          case 'ur': {
-            // UR format assembly using proper UR decoder
-            const sortedChunks = Array.from(chunks.entries())
-              .sort(([a], [b]) => a - b)
-              .map(([, content]) => content)
-
-            let result: string
-            if (sortedChunks.length === 1) {
-              // Single UR chunk
-              result = decodeURToPSBT(sortedChunks[0])
-            } else {
-              // Multi-part UR
-              try {
-                result = await decodeMultiPartURToPSBT(sortedChunks)
-              } catch {
-                return null
-              }
-            }
-
-            if (!result) {
-              return null
-            }
-
-            return result
-          }
-
-          default:
-            return null
+        // Convert base64 to hex for RAW format
+        try {
+          const hexResult = Buffer.from(assembled, 'base64').toString('hex')
+          return hexResult
+        } catch {
+          return assembled
         }
-      } catch (error) {
-        if (showToast) {
-          toast.error(String(error))
+      }
+
+      case 'bbqr': {
+        // Assemble BBQR format chunks
+        const sortedChunks = Array.from(chunks.entries())
+          .sort(([a], [b]) => a - b)
+          .map(([, content]) => content)
+
+        const decoded = decodeBBQRChunks(sortedChunks)
+
+        if (decoded) {
+          // Convert binary PSBT to hex for consistency with RAW format
+          const hexResult = Buffer.from(decoded).toString('hex')
+          return hexResult
         }
-        onError?.(String(error))
+
         return null
       }
-    },
-    [showToast, onError]
-  )
+
+      case 'ur': {
+        // UR format assembly using proper UR decoder
+        const sortedChunks = Array.from(chunks.entries())
+          .sort(([a], [b]) => a - b)
+          .map(([, content]) => content)
+
+        let result: string
+        if (sortedChunks.length === 1) {
+          // Single UR chunk
+          result = decodeURToPSBT(sortedChunks[0])
+        } else {
+          // Multi-part UR
+          try {
+            result = await decodeMultiPartURToPSBT(sortedChunks)
+          } catch {
+            return null
+          }
+        }
+
+        if (!result) {
+          return null
+        }
+
+        return result
+      }
+
+      default:
+        return null
+    }
+  }
 
   const resetScanProgress = useCallback(() => {
     setScanProgress({
