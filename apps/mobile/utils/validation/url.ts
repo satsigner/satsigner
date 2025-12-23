@@ -77,4 +77,3 @@ export function validateEsploraUrl(url: string): ValidationResult {
 
   return { isValid: true }
 }
-

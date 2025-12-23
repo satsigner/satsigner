@@ -31,7 +31,7 @@ async function doubleShaEncrypt(text: string) {
   return crypto.sha256(first)
 }
 
-// FIX: me 
+// FIX: me
 async function getPinForDecryption(skipPin = false): Promise<string | null> {
   if (skipPin) {
     return DEFAULT_PIN
