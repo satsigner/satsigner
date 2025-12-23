@@ -266,9 +266,7 @@ export function useQRCodeHandler({
               return
             }
           }
-        } catch (_error) {
-          // Keep original content if conversion fails
-        }
+        } catch {}
 
         // Call the single QR handler
         onSingleQRScanned?.(finalContent)
