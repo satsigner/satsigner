@@ -5,18 +5,6 @@ export type ValidationResult = {
   error?: string
 }
 
-export function isValidOnionAddress(host: string): boolean {
-  if (!host.endsWith('.onion')) {
-    return false
-  }
-
-  const onionPart = host.replace('.onion', '')
-
-  // v2 .onion addresses are 16 characters (base32)
-  // v3 .onion addresses are 56 characters (base32)
-  return /^[a-z2-7]{16}$|^[a-z2-7]{56}$/i.test(onionPart)
-}
-
 export function isValidDomainName(host: string): boolean {
   return /^[a-z][a-z0-9.-]*[a-z0-9]$/i.test(host)
 }
@@ -90,45 +78,3 @@ export function validateEsploraUrl(url: string): ValidationResult {
   return { isValid: true }
 }
 
-export function isValidProxyHost(host: string): boolean {
-  // Allow localhost, IP addresses, and domain names
-  return (
-    host === 'localhost' || isValidIPAddress(host) || isValidDomainName(host)
-  )
-}
-
-export function validateProxyConfig(
-  host: string,
-  port: string
-): ValidationResult {
-  if (!host.trim()) {
-    return {
-      isValid: false,
-      error: 'Invalid proxy host'
-    }
-  }
-
-  if (!isValidProxyHost(host)) {
-    return {
-      isValid: false,
-      error: 'Invalid proxy host'
-    }
-  }
-
-  if (!isValidPort(port)) {
-    return {
-      isValid: false,
-      error: 'Invalid proxy port'
-    }
-  }
-
-  const portNum = parseInt(port, 10)
-  if (portNum < 1 || portNum > 65535) {
-    return {
-      isValid: false,
-      error: 'Invalid proxy port'
-    }
-  }
-
-  return { isValid: true }
-}

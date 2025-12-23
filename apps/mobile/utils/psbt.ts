@@ -132,46 +132,36 @@ export async function findMatchingAccount(
       const key = account.keys[keyIndex]
       const keyFingerprint = await extractKeyFingerprint(key)
 
-      if (keyFingerprint) {
-        accountFingerprints.push(keyFingerprint)
-        keyFingerprintMap.set(keyFingerprint, keyIndex)
-      }
+      if (!keyFingerprint) continue
+
+      accountFingerprints.push(keyFingerprint)
+      keyFingerprintMap.set(keyFingerprint, keyIndex)
     }
 
     const allFingerprintsMatch = psbtFingerprints.every((psbtFp) =>
       accountFingerprints.includes(psbtFp)
     )
 
-    if (allFingerprintsMatch) {
-      const firstMatchingDerivation = derivations.find((d) =>
-        accountFingerprints.includes(d.fingerprint)
-      )
+    if (!allFingerprintsMatch) continue
 
-      if (firstMatchingDerivation) {
-        const matchingKeyIndex = keyFingerprintMap.get(
-          firstMatchingDerivation.fingerprint
-        )!
-        return {
-          account,
-          cosignerIndex: matchingKeyIndex,
-          fingerprint: firstMatchingDerivation.fingerprint,
-          derivationPath: firstMatchingDerivation.derivationPath,
-          publicKey: firstMatchingDerivation.publicKey
-        }
-      }
+    const firstMatchingDerivation = derivations.find((d) =>
+      accountFingerprints.includes(d.fingerprint)
+    )
+
+    if (!firstMatchingDerivation) continue
+    const matchingKeyIndex = keyFingerprintMap.get(
+      firstMatchingDerivation.fingerprint
+    )!
+    return {
+      account,
+      cosignerIndex: matchingKeyIndex,
+      fingerprint: firstMatchingDerivation.fingerprint,
+      derivationPath: firstMatchingDerivation.derivationPath,
+      publicKey: firstMatchingDerivation.publicKey
     }
   }
 
   return null
-}
-
-const transactionDataStorage = new Map<string, TransactionData>()
-
-export function storeTransactionData(data: TransactionData): void {
-  const txId = extractTransactionIdFromPSBT(data.combinedPsbt)
-  if (txId) {
-    transactionDataStorage.set(txId, data)
-  }
 }
 
 export function signPSBTWithSeed(
@@ -747,25 +737,26 @@ export function validateSignedPSBT(
   psbtBase64: string,
   account: Account
 ): boolean {
+  let psbt: bitcoinjs.Psbt | undefined
   try {
-    const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
-
-    // Early returns for basic structure validation
-    if (!hasValidStructure(psbt)) {
-      return false
-    }
-
-    if (!validateInputsAndOutputs(psbt)) {
-      return false
-    }
-
-    // Route to appropriate validation based on account type
-    return account.policyType === 'multisig'
-      ? validateMultisigPSBT(psbt)
-      : validateSinglesigPSBT(psbt)
+    psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
   } catch {
     return false
   }
+
+  // Early returns for basic structure validation
+  if (!hasValidStructure(psbt)) {
+    return false
+  }
+
+  if (!validateInputsAndOutputs(psbt)) {
+    return false
+  }
+
+  // Route to appropriate validation based on account type
+  return account.policyType === 'multisig'
+    ? validateMultisigPSBT(psbt)
+    : validateSinglesigPSBT(psbt)
 }
 
 export function validateSignedPSBTForCosigner(

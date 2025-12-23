@@ -1,12 +1,4 @@
-/**
- * Custom Network Validation Hook
- *
- * TODO: Enhanced validation for pasted URLs
- * - Add validation for full URL format (ssl://host:port)
- * - Provide specific error messages for malformed URLs
- * - Validate protocol compatibility with selected backend
- * - Add real-time validation feedback for better UX
- */
+// TODO: functions in this file should be all refactor to @/utils
 
 import { useCallback } from 'react'
 import { toast } from 'sonner-native'

@@ -20,7 +20,6 @@ import { type Account, type Key } from '@/types/models/Account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import {
   combinePsbts,
-  storeTransactionData,
   type TransactionData,
   validateSignedPSBT,
   validateSignedPSBTForCosigner
@@ -128,8 +127,6 @@ function SSSignatureDropdown({
       const transactionData: TransactionData = {
         combinedPsbt
       }
-
-      storeTransactionData(transactionData)
 
       const message = combinedPsbt
 
