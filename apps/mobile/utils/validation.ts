@@ -41,50 +41,32 @@ export function validateFingerprint(fingerprint: string) {
 }
 
 // Function to validate descriptor checksum using BDK
-async function validateDescriptorChecksum(
-  descriptor: string
-): Promise<{ isValid: boolean; error?: string }> {
+async function validateDescriptorChecksum(descriptor: string) {
   try {
     await new Descriptor().create(descriptor, Network.Bitcoin)
-    return {
-      isValid: true
-    }
+    return true
   } catch {}
 
   try {
     await new Descriptor().create(descriptor, Network.Testnet)
-    return {
-      isValid: true
-    }
+    return true
   } catch {}
 
-  return {
-    isValid: false,
-    error: 'descriptorFormat'
-  }
+  return false
 }
 
-export async function validateDescriptor(descriptor: string): Promise<{
-  isValid: boolean
-  error?: string
-}> {
+export async function validateDescriptor(descriptor: string) {
   return validateDescriptorInternal(descriptor, true)
 }
 
-export async function validateDescriptorFormat(descriptor: string): Promise<{
-  isValid: boolean
-  error?: string
-}> {
+export async function validateDescriptorFormat(descriptor: string) {
   return validateDescriptorInternal(descriptor, false)
 }
 
 async function validateDescriptorInternal(
   descriptor: string,
   validateChecksum: boolean
-): Promise<{
-  isValid: boolean
-  error?: string
-}> {
+) {
   // regex expressions building blocks
   const kind = '(sh|wsh|pk|pkh|wpkh|combo|tr|addr|raw|rawtr)'
   const nestedKind = '(sh|wsh)'
@@ -114,9 +96,7 @@ async function validateDescriptorInternal(
   // Validate checksum first (only if validateChecksum is true)
   if (validateChecksum) {
     const checksumValidation = await validateDescriptorChecksum(descriptor)
-    if (!checksumValidation.isValid) {
-      return checksumValidation
-    }
+    if (!checksumValidation) return false
   }
 
   // Remove checksum if any.
@@ -126,14 +106,14 @@ async function validateDescriptorInternal(
 
   // Check for proper closing parenthesis
   if (!currentItem.endsWith(')')) {
-    return { isValid: false, error: 'missingParenthesis' }
+    return false
   }
 
   // Extract nested descriptor.
   // Example: wsh(sh(pkh(...))) -> pkh(...)
   while (nestedRegex.test(currentItem)) {
     // first, check if the current item is a single key sh/wsh descriptor
-    if (singleKeyRegex.test(currentItem)) return { isValid: true }
+    if (singleKeyRegex.test(currentItem)) return true
 
     // extract it
     currentItem = currentItem.replace(nestedKindRegex, '').replace(/\)$/, '')
@@ -149,7 +129,7 @@ async function validateDescriptorInternal(
     const fingerprintMatch = derivationPath.match(/\[([a-fA-F0-9]{8})/)
     if (fingerprintMatch && fingerprintMatch[1]) {
       if (!/^[a-fA-F0-9]{8}$/.test(fingerprintMatch[1])) {
-        return { isValid: false, error: 'fingerprintFormat' }
+        return false
       }
     }
 
@@ -158,7 +138,7 @@ async function validateDescriptorInternal(
     if (pathComponents) {
       for (const component of pathComponents) {
         if (!/^[0-9]+[h']?$/.test(component)) {
-          return { isValid: false, error: 'derivationPathComponent' }
+          return false
         }
       }
     }
@@ -177,11 +157,11 @@ async function validateDescriptorInternal(
         `^${kind}\\(\\[[a-fA-F0-9]{8}/[0-9]+[h']?/[0-9]+[h']?/[0-9]+[h']?\\][a-zA-Z0-9]+/<0[,;]1>/\\*\\)$`
       )
       if (exactWorkingPattern.test(currentItem)) {
-        return { isValid: true }
+        return true
       }
     }
     if (combinedPattern.test(currentItem)) {
-      return { isValid: true }
+      return true
     }
   }
 
@@ -196,7 +176,7 @@ async function validateDescriptorInternal(
       `^${kind}\\(\\[([a-fA-F0-9]{8})?([0-9]+[h']?/)*[0-9]+[h']?\\][a-zA-Z0-9]+(/[0-9*]|<0[,;]1>)*\\)$`
     )
     if (basicDescriptorPattern.test(currentItem)) {
-      return { isValid: true }
+      return true
     }
 
     // Check if it's a multi descriptor with public keys
@@ -204,7 +184,7 @@ async function validateDescriptorInternal(
       `^${multiKind}\\([1-9][0-9]*,([0-9]{2}[a-fA-F0-9]{64},)*[0-9]{2}[a-fA-F0-9]{64}\\)$`
     )
     if (multiPublicKeyPattern.test(currentItem)) {
-      return { isValid: true }
+      return true
     }
 
     // Check if it's a multi descriptor with extended public keys
@@ -216,37 +196,37 @@ async function validateDescriptorInternal(
       // Look for at least 2 key patterns (fingerprint + extended key)
       const keyPatterns = currentItem.match(/\[[a-fA-F0-9]{8}\/[^]]+\]/g)
       if (keyPatterns && keyPatterns.length >= 2) {
-        return { isValid: true }
+        return true
       }
       // Also accept if it contains tpub/xpub patterns (common extended key formats)
       const extendedKeyPatterns = currentItem.match(
         /(tpub|xpub|ypub|zpub|upub|vpub)[a-zA-Z0-9]+/g
       )
       if (extendedKeyPatterns && extendedKeyPatterns.length >= 2) {
-        return { isValid: true }
+        return true
       }
     }
 
     // Check for specific issues
     if (currentItem.includes('[') && !currentItem.includes(']')) {
-      return { isValid: false, error: 'derivationPathBracket' }
+      return false
     }
 
     if (currentItem.includes(']') && !currentItem.includes('[')) {
-      return { isValid: false, error: 'unexpectedBracket' }
+      return false
     }
 
     const foundScriptFunction = currentItem.match(
       /^(sh|wsh|pk|pkh|wpkh|combo|tr|addr|raw|rawtr|multi|sortedmulti)\(/
     )
     if (!foundScriptFunction) {
-      return { isValid: false, error: 'scriptFunctionInvalid' }
+      return false
     }
 
-    return { isValid: false, error: 'descriptorFormat' }
+    return false
   }
 
-  return { isValid: true }
+  return true
 }
 
 export function validateDescriptorScriptVersion(
@@ -314,14 +294,14 @@ export async function validateCombinedDescriptor(
   // Validate the full combined descriptor including checksum
   const combinedValidation = await validateDescriptor(combinedDescriptor)
 
-  if (!combinedValidation.isValid) {
+  if (!combinedValidation) {
     // If combined descriptor is invalid, return the error
     const { external, internal } =
       separateCombinedDescriptor(combinedDescriptor)
 
     return {
       isValid: false,
-      error: combinedValidation.error,
+      error: 'invalid descriptor',
       externalDescriptor: external,
       internalDescriptor: internal
     }

@@ -366,7 +366,7 @@ export default function WatchOnly() {
     const descriptorValidation = await validateDescriptorFormat(descriptor)
 
     const basicValidation =
-      descriptorValidation.isValid && !descriptor.match(/[txyz]priv/)
+      descriptorValidation && !descriptor.match(/[txyz]priv/)
 
     if (type === 'external') {
       setIsValidExternalDescriptor(!descriptor || basicValidation)
@@ -394,7 +394,7 @@ export default function WatchOnly() {
     const descriptorValidation = await validateDescriptor(descriptor)
 
     const basicValidation =
-      descriptorValidation.isValid && !descriptor.match(/[txyz]priv/)
+      descriptorValidation && !descriptor.match(/[txyz]priv/)
 
     // Network validation - check if descriptor is compatible with selected network
     let networkValidation: { isValid: boolean; error?: string } = {

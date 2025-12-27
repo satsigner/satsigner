@@ -58,7 +58,7 @@ async function detectBitcoinContent(
   const trimmed = data.trim()
 
   const descriptorValidation = await validateDescriptorFormat(trimmed)
-  if (descriptorValidation.isValid) {
+  if (descriptorValidation) {
     return {
       type: 'bitcoin_descriptor',
       raw: data,

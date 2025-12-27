@@ -158,7 +158,7 @@ export default function ImportDescriptor() {
       ? await validateDescriptorFormat(descriptor)
       : await validateDescriptor(descriptor)
     const basicValidation =
-      descriptorValidation.isValid && !descriptor.match(/[txyz]priv/)
+      descriptorValidation && !descriptor.match(/[txyz]priv/)
 
     // Network validation - check if descriptor is compatible with selected network
     // Skip network validation during confirm stage since it was already validated during input
@@ -187,10 +187,7 @@ export default function ImportDescriptor() {
     // Show error message if validation fails
     if (descriptor) {
       if (!basicValidation) {
-        // Show error for basic validation failures
-        const errorMessage = descriptorValidation.error
-          ? t(`account.import.error.${descriptorValidation.error}`)
-          : t('account.import.error.descriptorFormat')
+        const errorMessage = t('account.import.error.descriptorFormat')
         setExternalDescriptorError(errorMessage)
       } else if (basicValidation && !networkValidation.isValid) {
         // Show error for network validation failures
@@ -217,7 +214,7 @@ export default function ImportDescriptor() {
     const descriptorValidation = skipChecksumValidation
       ? await validateDescriptorFormat(descriptor)
       : await validateDescriptor(descriptor)
-    const basicValidation = descriptorValidation.isValid
+    const basicValidation = descriptorValidation
 
     // Network validation - check if descriptor is compatible with selected network
     // Skip network validation during confirm stage since it was already validated during input
@@ -247,9 +244,7 @@ export default function ImportDescriptor() {
     if (descriptor) {
       if (!basicValidation) {
         // Show error for basic validation failures
-        const errorMessage = descriptorValidation.error
-          ? t(`account.import.error.${descriptorValidation.error}`)
-          : t('account.import.error.descriptorFormat')
+        const errorMessage = t('account.import.error.descriptorFormat')
         setInternalDescriptorError(errorMessage)
       } else if (basicValidation && !networkValidation.isValid) {
         // Show error for network validation failures
