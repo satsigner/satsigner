@@ -375,17 +375,14 @@ export default function ImportDescriptor() {
     }
   }
 
-  function extractFingerprintFromDescriptor(descriptor: string): string {
+  function extractFingerprintFromDescriptor(descriptor: string) {
     // Use the same regex pattern as BDK API's parseDescriptor function
     // This handles both h notation (84h) and ' notation (84') in derivation paths
     const fingerprintMatch = descriptor.match(/\[([0-9a-fA-F]{8})([0-9'/h]+)\]/)
     return fingerprintMatch ? fingerprintMatch[1] : ''
   }
 
-  function extractDescriptorInfo(descriptor: string): {
-    extendedPublicKey: string
-    derivationPath: string
-  } {
+  function extractDescriptorInfo(descriptor: string) {
     // Extract extended public key using regex
     const xpubMatch = descriptor.match(/(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/)
     const extendedPublicKey = xpubMatch ? xpubMatch[0] : ''
@@ -396,7 +393,7 @@ export default function ImportDescriptor() {
     return { extendedPublicKey, derivationPath }
   }
 
-  function extractDerivationPathFromDescriptor(descriptor: string): string {
+  function extractDerivationPathFromDescriptor(descriptor: string) {
     // Primary method: Extract from [fingerprint/derivation] pattern
     // Look for the pattern: [fingerprint/derivation] where derivation contains slashes
     const bracketMatch = descriptor.match(

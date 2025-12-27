@@ -68,12 +68,7 @@ export type ExtractedTransactionData = {
   network: 'mainnet' | 'testnet' | 'signet'
 }
 
-export function extractPSBTDerivations(psbtBase64: string): {
-  fingerprint: string
-  derivationPath: string
-  publicKey: string
-  inputIndex: number
-}[] {
+export function extractPSBTDerivations(psbtBase64: string) {
   const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
   const derivations: {
     fingerprint: string

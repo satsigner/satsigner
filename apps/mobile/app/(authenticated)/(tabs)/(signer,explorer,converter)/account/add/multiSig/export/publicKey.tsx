@@ -62,10 +62,11 @@ export default function PublicKeyPage() {
   }, [getAccountData, network, keyIndex])
 
   // Get format button data based on script version and network
-  function getFormatButtons(
-    scriptVersion: string
-  ): { format: PublicKeyFormat; label: string }[] {
-    const formatButtons: { format: PublicKeyFormat; label: string }[] = []
+  function getFormatButtons(scriptVersion: string) {
+    const formatButtons: {
+      format: PublicKeyFormat
+      label: string
+    }[] = []
 
     // Handle multisig script types specifically
     if (scriptVersion === 'P2SH') {

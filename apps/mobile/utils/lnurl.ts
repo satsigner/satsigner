@@ -3,15 +3,11 @@ import { bech32 } from 'bech32'
 import type {
   LNURLPayInvoiceResponse,
   LNURLPayResponse,
-  LNURLType,
   LNURLWithdrawDetails,
   LNURLWithdrawResponse
 } from '@/types/models/LNURL'
 
-export function getLNURLType(input: string): {
-  isLNURL: boolean
-  type?: LNURLType
-} {
+export function getLNURLType(input: string) {
   const lowercaseInput = input.toLowerCase()
   const isLNURLInput =
     lowercaseInput.startsWith('lnurl') ||

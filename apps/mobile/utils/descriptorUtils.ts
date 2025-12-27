@@ -41,10 +41,7 @@ export const DescriptorUtils = {
   createDescriptorFromXpub(
     xpubWithPrefix: string,
     scriptVersion: ScriptVersionType
-  ): {
-    external: string
-    internal: string
-  } {
+  ) {
     switch (scriptVersion) {
       case 'P2WPKH':
         return {
@@ -69,11 +66,7 @@ export const DescriptorUtils = {
     }
   },
 
-  parseJsonDescriptor(text: string): {
-    external: string
-    internal: string
-    original: string
-  } | null {
+  parseJsonDescriptor(text: string) {
     try {
       const jsonData = JSON.parse(text)
       if (!jsonData.descriptor) return null
@@ -92,10 +85,7 @@ export const DescriptorUtils = {
     }
   },
 
-  parseLegacyDescriptor(text: string): {
-    external: string
-    internal: string
-  } | null {
+  parseLegacyDescriptor(text: string) {
     if (!text.includes('\n')) return null
 
     const lines = text.split('\n')
