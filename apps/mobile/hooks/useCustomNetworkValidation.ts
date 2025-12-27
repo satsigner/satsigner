@@ -44,13 +44,13 @@ export const useCustomNetworkValidation = (
 
     if (backend === 'electrum') {
       const validation = validateElectrumUrl(url)
-      if (!validation.isValid) {
-        return { isValid: false, error: validation.error || 'invalid.url' }
+      if (!validation) {
+        return { isValid: false, error: 'invalid.url' }
       }
     } else if (backend === 'esplora') {
       const validation = validateEsploraUrl(url)
-      if (!validation.isValid) {
-        return { isValid: false, error: validation.error || 'invalid.url' }
+      if (!validation) {
+        return { isValid: false, error: 'invalid.url' }
       }
     }
 

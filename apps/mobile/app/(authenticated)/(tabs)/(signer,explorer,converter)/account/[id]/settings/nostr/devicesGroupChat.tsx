@@ -54,7 +54,7 @@ async function formatNpub(
   } catch {
     return {
       text: pubkey.slice(0, 8),
-      color: '#404040',
+      color: '#404040'
     }
   }
 }

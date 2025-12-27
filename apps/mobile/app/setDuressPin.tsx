@@ -40,7 +40,7 @@ export default function SetPin() {
     confirmationPinArray.findIndex((text) => text === '') === -1
   const pinsMatch = pinArray.join('') === confirmationPinArray.join('')
 
-  async function setPin(pin: string): Promise<boolean> {
+  async function setPin(pin: string) {
     const salt = await getItem(SALT_KEY)
     const encryptedPin = await getItem(PIN_KEY)
     if (!salt || !encryptedPin) {

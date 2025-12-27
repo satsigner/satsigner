@@ -10,7 +10,7 @@ export const DescriptorUtils = {
     return fingerprintMatch ? fingerprintMatch[1] : ''
   },
 
-  extractFingerprintFromXpub(xpubWithPrefix: string): string | null {
+  extractFingerprintFromXpub(xpubWithPrefix: string) {
     // Pattern 1: [fingerprint/derivation]xpub (with slash separator)
     const fingerprintMatch1 = xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})\//)
     if (fingerprintMatch1) return fingerprintMatch1[1]
@@ -112,13 +112,7 @@ export const DescriptorUtils = {
   async processCombinedDescriptor(
     descriptor: string,
     scriptVersion: ScriptVersionType
-  ): Promise<{
-    success: boolean
-    external: string
-    internal: string
-    fingerprint?: string
-    error?: string
-  }> {
+  ) {
     const validation = await validateCombinedDescriptor(
       descriptor,
       scriptVersion
