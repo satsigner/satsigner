@@ -28,7 +28,7 @@ const colorCache = new Map<string, { text: string; color: string }>()
 async function formatNpub(
   pubkey: string,
   members: { npub: string; color: string }[]
-): Promise<{ text: string; color: string }> {
+) {
   if (!pubkey)
     return {
       text: t('account.nostrSync.devicesGroupChat.unknownSender'),
@@ -52,7 +52,10 @@ async function formatNpub(
     colorCache.set(pubkey, result)
     return result
   } catch {
-    return { text: pubkey.slice(0, 8), color: '#404040' }
+    return {
+      text: pubkey.slice(0, 8),
+      color: '#404040',
+    }
   }
 }
 

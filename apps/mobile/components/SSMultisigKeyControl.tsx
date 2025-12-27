@@ -240,14 +240,10 @@ function SSMultisigKeyControl({
     if (!keyDetails) return
 
     try {
-      const result =
-        isSettingsMode && accountId
-          ? await dropSeedFromKeyExisting(accountId, index)
-          : await dropSeedFromKey(index)
-      if (result.success) {
-        toast.success(result.message)
+      if (isSettingsMode && accountId) {
+        dropSeedFromKeyExisting(accountId, index)
       } else {
-        toast.error(result.message)
+        dropSeedFromKey(index)
       }
       setSeedDropped(true)
     } catch {
@@ -260,31 +256,14 @@ function SSMultisigKeyControl({
 
     try {
       if (isSettingsMode && accountId) {
-        // Handle existing account (settings mode) - reset the key
-        const result = await resetKeyExisting(accountId, index)
-
-        if (result.success) {
-          // Reset local state
-          setLocalKeyName('')
-          setExtractedPublicKey('')
-          setSeedDropped(false)
-          toast.success(result.message)
-        } else {
-          toast.error(result.message)
-        }
+        resetKeyExisting(accountId, index)
       } else {
-        const result = await resetKey(index)
-
-        if (result.success) {
-          // Reset local state
-          setLocalKeyName('')
-          setExtractedPublicKey('')
-          setSeedDropped(false)
-          toast.success(result.message)
-        } else {
-          toast.error(result.message)
-        }
+        resetKey(index)
       }
+      setLocalKeyName('')
+      setExtractedPublicKey('')
+      setSeedDropped(false)
+      toast.error('Key has been reset')
     } catch {
       toast.error('Failed to reset key')
     }
