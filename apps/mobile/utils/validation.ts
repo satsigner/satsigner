@@ -1,8 +1,9 @@
 import ecc from '@bitcoinerlab/secp256k1'
 import { Descriptor } from 'bdk-rn'
 import { Network } from 'bdk-rn/lib/lib/enums'
-import bitcoinjs from 'bitcoinjs-lib'
+import * as bitcoinjs from 'bitcoinjs-lib'
 
+import { type ScriptVersionType } from '@/types/models/Account'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 
 bitcoinjs.initEccLib(ecc)
@@ -250,60 +251,20 @@ async function validateDescriptorInternal(
 
 export function validateDescriptorScriptVersion(
   descriptor: string,
-  scriptVersion: string
-): { isValid: boolean; error?: string } {
-  // Remove checksum if present
+  scriptVersion: ScriptVersionType
+) {
   const cleanDescriptor = descriptor.replace(/#[a-z0-9]{8}$/, '')
-
-  // Extract the script type from the descriptor
-  const scriptTypeMatch = cleanDescriptor.match(
-    /^(sh|wsh|pk|pkh|wpkh|combo|tr|addr|raw|rawtr)\(/
-  )
-  if (!scriptTypeMatch) {
-    return { isValid: false, error: 'Invalid descriptor format' }
+  const compatibilityMatrix: Record<ScriptVersionType, string> = {
+    P2PKH: 'pkh',
+    'P2SH-P2WPKH': 'sh',
+    P2WPKH: 'wpkh',
+    P2TR: 'tr',
+    P2WSH: 'wsh',
+    'P2SH-P2WSH': 'sh',
+    P2SH: 'sh'
   }
-
-  const scriptType = scriptTypeMatch[1]
-
-  // Define compatibility matrix
-  const compatibilityMatrix: Record<string, string[]> = {
-    P2PKH: ['pkh'],
-    'P2SH-P2WPKH': ['sh'],
-    P2WPKH: ['wpkh'],
-    P2TR: ['tr'],
-    P2WSH: ['wsh'],
-    'P2SH-P2WSH': ['sh'],
-    P2SH: ['sh']
-  }
-
-  // Check if the script type is compatible with the target script version
-  const allowedScriptTypes = compatibilityMatrix[scriptVersion]
-  if (!allowedScriptTypes) {
-    return { isValid: false, error: `Unknown script version: ${scriptVersion}` }
-  }
-
-  // Special handling for nested descriptors
-  if (scriptVersion === 'P2SH-P2WSH') {
-    // For P2SH-P2WSH, we expect sh(wsh(...)) format
-    if (scriptType === 'sh' && cleanDescriptor.includes('wsh(')) {
-      return { isValid: true }
-    }
-    return {
-      isValid: false,
-      error: `Descriptor script type "${scriptType}" is not compatible with multisig script version "${scriptVersion}". Expected: sh(wsh(...))`
-    }
-  }
-
-  if (!allowedScriptTypes.includes(scriptType)) {
-    return {
-      isValid: false,
-      error: `Descriptor script type "${scriptType}" is not compatible with multisig script version "${scriptVersion}". Expected: ${allowedScriptTypes.join(
-        ', '
-      )}`
-    }
-  }
-
-  return { isValid: true }
+  const scriptPrefix = compatibilityMatrix[scriptVersion]
+  return cleanDescriptor.match(new RegExp(`^${scriptPrefix}\\(`)) !== null
 }
 
 export function validateAddress(address: string, network?: bitcoinjs.Network) {
@@ -326,81 +287,6 @@ export function validateAddress(address: string, network?: bitcoinjs.Network) {
   return false
 }
 
-export function validateDescriptorDerivationPath(descriptor: string): {
-  isValid: boolean
-  error?: string
-} {
-  // Remove checksum if present
-  const cleanDescriptor = descriptor.replace(/#[a-z0-9]{8}$/, '')
-
-  // Extract derivation path from the descriptor
-  // Look for the fingerprint and derivation path within brackets
-  const derivationPathMatch = cleanDescriptor.match(
-    /\[([a-fA-F0-9]{8})?([0-9]+[h']?\/)*[0-9]+[h']?\]/
-  )
-
-  // If no match found, try a more flexible pattern for descriptors with wildcards
-  if (!derivationPathMatch) {
-    const flexibleMatch = cleanDescriptor.match(
-      /\[([a-fA-F0-9]{8})?([0-9]+[h']?\/)*[0-9]+\]/
-    )
-    if (flexibleMatch) {
-      return { isValid: true }
-    }
-  }
-
-  // If still no match, check if there's any bracket pattern at all
-  if (!derivationPathMatch) {
-    const bracketMatch = cleanDescriptor.match(/\[.*\]/)
-    if (bracketMatch) {
-      // If we found brackets, assume it's valid for now
-      return { isValid: true }
-    }
-  }
-
-  if (!derivationPathMatch) {
-    return { isValid: false, error: 'missingDerivationPath' }
-  }
-
-  const derivationPath = derivationPathMatch[0]
-
-  // Validate fingerprint if present
-  const fingerprintMatch = derivationPath.match(/\[([a-fA-F0-9]{8})/)
-  if (fingerprintMatch && fingerprintMatch[1]) {
-    const fingerprint = fingerprintMatch[1]
-    // Validate that it's a proper hex fingerprint
-    if (!/^[a-fA-F0-9]{8}$/.test(fingerprint)) {
-      return { isValid: false, error: 'fingerprintFormat' }
-    }
-  }
-
-  // Check for invalid fingerprints (wrong length)
-  const invalidFingerprintMatch = derivationPath.match(
-    /\[([a-fA-F0-9]{1,7}|[a-fA-F0-9]{9,})\//
-  )
-  if (invalidFingerprintMatch && invalidFingerprintMatch[1]) {
-    return { isValid: false, error: 'fingerprintFormat' }
-  }
-
-  // Validate derivation path components
-  const pathComponents = derivationPath.match(/[0-9]+[h']?/g)
-  if (pathComponents) {
-    for (const component of pathComponents) {
-      // Skip fingerprint (8 hex characters)
-      if (/^[a-fA-F0-9]{8}$/.test(component)) {
-        continue
-      }
-      // Each component must end with h or ' to be valid
-      if (!/^[0-9]+[h']$/.test(component)) {
-        return { isValid: false, error: 'derivationPathComponent' }
-      }
-    }
-  }
-
-  return { isValid: true }
-}
-
-// Function to detect if a descriptor is a combined descriptor
 export function isCombinedDescriptor(descriptor: string): boolean {
   return /<0[,;]1>/.test(descriptor)
 }
@@ -415,10 +301,9 @@ export function separateCombinedDescriptor(combinedDescriptor: string): {
   return { external, internal }
 }
 
-// Function to validate combined descriptor and return validation result for both external and internal
 export async function validateCombinedDescriptor(
   combinedDescriptor: string,
-  scriptVersion?: string,
+  scriptVersion?: ScriptVersionType,
   networkType?: string
 ): Promise<{
   isValid: boolean
@@ -443,9 +328,7 @@ export async function validateCombinedDescriptor(
   }
 
   // Validate script function against selected script version
-  let scriptVersionValidation: { isValid: boolean; error?: string } = {
-    isValid: true
-  }
+  let scriptVersionValidation = false
   if (scriptVersion) {
     scriptVersionValidation = validateDescriptorScriptVersion(
       combinedDescriptor,
@@ -453,13 +336,13 @@ export async function validateCombinedDescriptor(
     )
   }
 
-  if (!scriptVersionValidation.isValid) {
+  if (!scriptVersionValidation) {
     const { external, internal } =
       separateCombinedDescriptor(combinedDescriptor)
 
     return {
       isValid: false,
-      error: scriptVersionValidation.error,
+      error: 'invalid script version',
       externalDescriptor: external,
       internalDescriptor: internal
     }
@@ -468,10 +351,6 @@ export async function validateCombinedDescriptor(
   // Separate the combined descriptor first
   const { external: externalDesc, internal: internalDesc } =
     separateCombinedDescriptor(combinedDescriptor)
-
-  // Note: We don't validate derivation path on separated descriptors individually
-  // because the combined descriptor validation already includes derivation path validation
-  // The validation result from the combined descriptor applies to both separated descriptors
 
   // Network validation - check if descriptor is compatible with selected network
   let networkValidation: { isValid: boolean; error?: string } = {

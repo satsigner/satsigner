@@ -101,11 +101,9 @@ export default function ImportDescriptor() {
           effectiveScriptVersion
         )
 
-        if (!scriptVersionValidation.isValid) {
+        if (!scriptVersionValidation) {
           setIsValidDescriptor(false)
-          setDescriptorError(
-            scriptVersionValidation.error || 'Invalid script version'
-          )
+          setDescriptorError('Invalid script version')
           return
         }
       }

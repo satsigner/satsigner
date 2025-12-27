@@ -309,7 +309,7 @@ export default function UnifiedImport() {
         // Validate the combined descriptor and get separated descriptors
         const combinedValidation = await validateCombinedDescriptor(
           text,
-          scriptVersion as string,
+          scriptVersion,
           network as string
         )
 
@@ -420,7 +420,7 @@ export default function UnifiedImport() {
           // Validate the combined descriptor and get separated descriptors
           const combinedValidation = await validateCombinedDescriptor(
             text,
-            scriptVersion as string,
+            scriptVersion,
             network as string
           )
 
@@ -522,7 +522,7 @@ export default function UnifiedImport() {
         // Validate the combined descriptor and get separated descriptors
         const combinedValidation = await validateCombinedDescriptor(
           data,
-          scriptVersion as string,
+          scriptVersion,
           network as string
         )
 

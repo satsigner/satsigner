@@ -20,6 +20,7 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
+import { type ScriptVersionType } from '@/types/models/Account'
 import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
 import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import {
@@ -166,9 +167,7 @@ export default function ImportDescriptor() {
     }
 
     // Script version validation for multisig
-    let scriptVersionValidation: { isValid: boolean; error?: string } = {
-      isValid: true
-    }
+    let scriptVersionValidation = true
     if (basicValidation && scriptVersion) {
       scriptVersionValidation = validateDescriptorScriptVersion(
         descriptor,
@@ -177,9 +176,7 @@ export default function ImportDescriptor() {
     }
 
     const validExternalDescriptor =
-      basicValidation &&
-      networkValidation.isValid &&
-      scriptVersionValidation.isValid
+      basicValidation && networkValidation.isValid && scriptVersionValidation
 
     setValidExternalDescriptor(!descriptor || validExternalDescriptor)
     setExternalDescriptor(descriptor)
@@ -201,11 +198,8 @@ export default function ImportDescriptor() {
           ? t(`account.import.error.${networkValidation.error}`)
           : t('account.import.error.networkIncompatible')
         setExternalDescriptorError(errorMessage)
-      } else if (basicValidation && !scriptVersionValidation.isValid) {
-        // Show error for script version validation failures
-        const errorMessage =
-          scriptVersionValidation.error ||
-          t('account.import.error.descriptorIncompatible')
+      } else if (basicValidation && !scriptVersionValidation) {
+        const errorMessage = t('account.import.error.descriptorIncompatible')
         setExternalDescriptorError(errorMessage)
       }
     }
@@ -232,9 +226,7 @@ export default function ImportDescriptor() {
     }
 
     // Script version validation for multisig
-    let scriptVersionValidation: { isValid: boolean; error?: string } = {
-      isValid: true
-    }
+    let scriptVersionValidation = true
     if (basicValidation && scriptVersion) {
       scriptVersionValidation = validateDescriptorScriptVersion(
         descriptor,
@@ -243,9 +235,7 @@ export default function ImportDescriptor() {
     }
 
     const validInternalDescriptor =
-      basicValidation &&
-      networkValidation.isValid &&
-      scriptVersionValidation.isValid
+      basicValidation && networkValidation.isValid && scriptVersionValidation
 
     setValidInternalDescriptor(!descriptor || validInternalDescriptor)
     setInternalDescriptor(descriptor)
@@ -267,11 +257,9 @@ export default function ImportDescriptor() {
           ? t(`account.import.error.${networkValidation.error}`)
           : t('account.import.error.networkIncompatible')
         setInternalDescriptorError(errorMessage)
-      } else if (basicValidation && !scriptVersionValidation.isValid) {
+      } else if (basicValidation && !scriptVersionValidation) {
         // Show error for script version validation failures
-        const errorMessage =
-          scriptVersionValidation.error ||
-          t('account.import.error.descriptorIncompatible')
+        const errorMessage = t('account.import.error.descriptorIncompatible')
         setInternalDescriptorError(errorMessage)
       }
     }
@@ -356,10 +344,6 @@ export default function ImportDescriptor() {
     urDecoderRef.current = new URDecoder()
   }
 
-  /**
-   * Extract information from descriptor string without re-validating checksum
-   * since it was already validated during input stage
-   */
   async function handleConfirm() {
     try {
       // Extract fingerprint from the descriptor if possible
@@ -389,18 +373,13 @@ export default function ImportDescriptor() {
       // Set the key data
       setKey(Number(keyIndex))
       setKeyDerivationPath(Number(keyIndex), derivationPath)
-
       clearKeyState()
       router.dismiss(1)
-    } catch (_error) {
+    } catch {
       toast.error(t('account.import.error'))
     }
   }
 
-  /**
-   * Extract fingerprint from descriptor string
-   * Handles both h notation (84h) and ' notation (84') in derivation paths
-   */
   function extractFingerprintFromDescriptor(descriptor: string): string {
     // Use the same regex pattern as BDK API's parseDescriptor function
     // This handles both h notation (84h) and ' notation (84') in derivation paths
@@ -408,9 +387,6 @@ export default function ImportDescriptor() {
     return fingerprintMatch ? fingerprintMatch[1] : ''
   }
 
-  /**
-   * Extract extended public key and derivation path from descriptor string
-   */
   function extractDescriptorInfo(descriptor: string): {
     extendedPublicKey: string
     derivationPath: string
@@ -425,9 +401,6 @@ export default function ImportDescriptor() {
     return { extendedPublicKey, derivationPath }
   }
 
-  /**
-   * Extract derivation path from descriptor string with smart fallbacks
-   */
   function extractDerivationPathFromDescriptor(descriptor: string): string {
     // Primary method: Extract from [fingerprint/derivation] pattern
     // Look for the pattern: [fingerprint/derivation] where derivation contains slashes
@@ -460,15 +433,12 @@ export default function ImportDescriptor() {
     return getDefaultDerivationPath()
   }
 
-  /**
-   * Handle combined descriptor import with smart validation and error handling
-   */
   async function handleCombinedDescriptorImport(combinedDescriptor: string) {
     try {
       // Validate the combined descriptor and get separated descriptors
       const combinedValidation = await validateCombinedDescriptor(
         combinedDescriptor,
-        scriptVersion as string,
+        scriptVersion as ScriptVersionType,
         network as string
       )
 
@@ -497,7 +467,7 @@ export default function ImportDescriptor() {
         setExternalDescriptorError(errorMessage)
         setInternalDescriptorError(errorMessage)
       }
-    } catch (_error) {
+    } catch {
       toast.error(t('account.import.error'))
     }
   }

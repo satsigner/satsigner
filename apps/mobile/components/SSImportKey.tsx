@@ -18,7 +18,10 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type CreationType } from '@/types/models/Account'
+import {
+  type CreationType,
+  type ScriptVersionType
+} from '@/types/models/Account'
 import { convertKeyFormat } from '@/utils/bitcoin'
 import {
   isCombinedDescriptor,
@@ -33,7 +36,7 @@ import {
 type ImportKeyProps = {
   importType: 'descriptor' | 'extendedPub' | 'importAddress'
   keyIndex?: number
-  scriptVersion?: string
+  scriptVersion?: ScriptVersionType
   onConfirm: (data: {
     externalDescriptor?: string
     internalDescriptor?: string
@@ -359,7 +362,7 @@ export default function SSImportKey({
           // Validate the combined descriptor and get separated descriptors
           const combinedValidation = await validateCombinedDescriptor(
             finalContent,
-            scriptVersion as string,
+            scriptVersion,
             network as string
           )
 
@@ -484,7 +487,7 @@ export default function SSImportKey({
             // Validate the combined descriptor and get separated descriptors
             const combinedValidation = await validateCombinedDescriptor(
               finalContent,
-              scriptVersion as string,
+              scriptVersion,
               network as string
             )
 
@@ -587,7 +590,7 @@ export default function SSImportKey({
         // Validate the combined descriptor and get separated descriptors
         const combinedValidation = await validateCombinedDescriptor(
           finalContent,
-          scriptVersion as string,
+          scriptVersion,
           network as string
         )
 
