@@ -1,5 +1,5 @@
 import { type TxBuilderResult } from 'bdk-rn/lib/classes/Bindings'
-import bitcoinjs from 'bitcoinjs-lib'
+import * as bitcoinjs from 'bitcoinjs-lib'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner-native'
 

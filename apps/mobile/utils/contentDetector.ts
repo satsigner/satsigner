@@ -1,6 +1,6 @@
 import ecc from '@bitcoinerlab/secp256k1'
 import { getDecodedToken } from '@cashu/cashu-ts'
-import bitcoinjs from 'bitcoinjs-lib'
+import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { isBBQRFragment } from '@/utils/bbqr'
 import { isBip21, isBitcoinAddress } from '@/utils/bitcoin'
@@ -14,8 +14,6 @@ import {
 } from '@/utils/validation'
 
 bitcoinjs.initEccLib(ecc)
-
-// TODO: bad file
 
 function isBitcoinTransaction(data: string): boolean {
   try {

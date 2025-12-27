@@ -1,4 +1,4 @@
-import bitcoinjs from 'bitcoinjs-lib'
+import * as bitcoinjs from 'bitcoinjs-lib'
 
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'

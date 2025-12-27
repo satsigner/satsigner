@@ -26,11 +26,13 @@ function isBip21(uri: string) {
 
 // TODO: move it to utils/bip21
 function bip21decode(uri: string) {
-  if (!uri) throw new Error('No URI provided')
-  const lowercaseData = uri.toLowerCase()
-  if (lowercaseData.startsWith('bitcoin:')) return decode(lowercaseData)
-  const isAddressValid = isBitcoinAddress(lowercaseData)
-  if (isAddressValid) return lowercaseData
+  try {
+    if (!uri) throw new Error('No URI provided')
+    const lowercaseData = uri.toLowerCase()
+    if (lowercaseData.startsWith('bitcoin:')) return decode(lowercaseData)
+    const isAddressValid = isBitcoinAddress(lowercaseData)
+    if (isAddressValid) return lowercaseData
+  } catch (_error) {}
 }
 
 // Convert network notation used by our app (and by BDK enum too)
@@ -91,38 +93,46 @@ export function convertKeyFormat(
 ): string {
   if (!key || !targetFormat || !network) return key
 
-  const decoded = bs58check.decode(key)
-  let version: Uint8Array
+  try {
+    const decoded = bs58check.decode(key)
+    let version: Uint8Array
 
-  // Determine the appropriate version bytes based on target format and network
-  switch (targetFormat) {
-    case 'xpub':
-      version =
-        network === 'bitcoin' ? KEY_VERSION_BYTES.xpub : KEY_VERSION_BYTES.tpub
-      break
-    case 'ypub':
-      version =
-        network === 'bitcoin' ? KEY_VERSION_BYTES.ypub : KEY_VERSION_BYTES.upub
-      break
-    case 'zpub':
-      version =
-        network === 'bitcoin'
-          ? KEY_VERSION_BYTES.zpub
-          : KEY_VERSION_BYTES.vpub_testnet
-      break
-    case 'vpub':
-      version =
-        network === 'bitcoin'
-          ? KEY_VERSION_BYTES.vpub_mainnet
-          : KEY_VERSION_BYTES.vpub_testnet
-      break
-    default:
-      return key
+    // Determine the appropriate version bytes based on target format and network
+    switch (targetFormat) {
+      case 'xpub':
+        version =
+          network === 'bitcoin'
+            ? KEY_VERSION_BYTES.xpub
+            : KEY_VERSION_BYTES.tpub
+        break
+      case 'ypub':
+        version =
+          network === 'bitcoin'
+            ? KEY_VERSION_BYTES.ypub
+            : KEY_VERSION_BYTES.upub
+        break
+      case 'zpub':
+        version =
+          network === 'bitcoin'
+            ? KEY_VERSION_BYTES.zpub
+            : KEY_VERSION_BYTES.vpub_testnet
+        break
+      case 'vpub':
+        version =
+          network === 'bitcoin'
+            ? KEY_VERSION_BYTES.vpub_mainnet
+            : KEY_VERSION_BYTES.vpub_testnet
+        break
+      default:
+        return key
+    }
+
+    // Create new decoded data with the target version
+    const newDecoded = new Uint8Array([...version, ...decoded.slice(4)])
+    return bs58check.encode(newDecoded)
+  } catch (_error) {
+    return key
   }
-
-  // Create new decoded data with the target version
-  const newDecoded = new Uint8Array([...version, ...decoded.slice(4)])
-  return bs58check.encode(newDecoded)
 }
 
 export function getKeyFormatForScriptVersion(

@@ -1,7 +1,7 @@
 import { HDKey } from '@scure/bip32'
 import type { KeychainKind } from 'bdk-rn/lib/lib/enums'
 import { Network } from 'bdk-rn/lib/lib/enums'
-import bip39 from 'bip39'
+import * as bip39 from 'bip39'
 
 import type {
   MnemonicEntropyBits,

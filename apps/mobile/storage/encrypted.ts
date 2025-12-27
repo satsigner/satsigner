@@ -1,4 +1,4 @@
-import SecureStore from 'expo-secure-store'
+import * as SecureStore from 'expo-secure-store'
 
 const VERSION = '1'
 

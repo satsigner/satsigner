@@ -17,7 +17,7 @@ import {
   useFonts,
   vec
 } from '@shopify/react-native-skia'
-import d3 from 'd3'
+import * as d3 from 'd3'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Fragment, useCallback, useMemo, useRef, useState } from 'react'
 import { type LayoutChangeEvent, StyleSheet, View } from 'react-native'

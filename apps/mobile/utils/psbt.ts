@@ -1,7 +1,7 @@
-import ecc from '@bitcoinerlab/secp256k1'
+import * as ecc from '@bitcoinerlab/secp256k1'
 import BIP32Factory from 'bip32'
-import bip39 from 'bip39'
-import bitcoinjs from 'bitcoinjs-lib'
+import * as bip39 from 'bip39'
+import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'

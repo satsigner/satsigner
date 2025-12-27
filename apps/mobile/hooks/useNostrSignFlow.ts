@@ -3,7 +3,7 @@ import {
   type TransactionDetails,
   type TxBuilderResult
 } from 'bdk-rn/lib/classes/Bindings'
-import bitcoinjs from 'bitcoinjs-lib'
+import * as bitcoinjs from 'bitcoinjs-lib'
 import { useRouter } from 'expo-router'
 import { toast } from 'sonner-native'
 

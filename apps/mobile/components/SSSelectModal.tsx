@@ -1,4 +1,4 @@
-import StatusBar from 'expo-status-bar'
+import * as StatusBar from 'expo-status-bar'
 import { useEffect } from 'react'
 import { Modal, Platform, SafeAreaView, ScrollView } from 'react-native'
 

@@ -1,5 +1,5 @@
 import ecc from '@bitcoinerlab/secp256k1'
-import bitcoinjs from 'bitcoinjs-lib'
+import * as bitcoinjs from 'bitcoinjs-lib'
 import varuint from 'varuint-bitcoin'
 
 bitcoinjs.initEccLib(ecc)

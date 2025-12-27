@@ -1,4 +1,4 @@
-import Clipboard from 'expo-clipboard'
+import * as Clipboard from 'expo-clipboard'
 import { useCallback } from 'react'
 import { toast } from 'sonner-native'
 

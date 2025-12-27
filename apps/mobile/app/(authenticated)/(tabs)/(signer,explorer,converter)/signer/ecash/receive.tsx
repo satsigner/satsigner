@@ -1,5 +1,5 @@
 import { getDecodedToken } from '@cashu/cashu-ts'
-import Clipboard from 'expo-clipboard'
+import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'

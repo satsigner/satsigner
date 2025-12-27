@@ -1,4 +1,4 @@
-import WebBrowser from 'expo-web-browser'
+import * as WebBrowser from 'expo-web-browser'
 import { useMemo } from 'react'
 import { Platform, StyleSheet, TouchableOpacity } from 'react-native'
 

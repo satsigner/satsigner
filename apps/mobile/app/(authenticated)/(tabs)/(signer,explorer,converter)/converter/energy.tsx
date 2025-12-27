@@ -1,5 +1,5 @@
 import Slider from '@react-native-community/slider'
-import bitcoin from 'bitcoinjs-lib'
+import * as bitcoin from 'bitcoinjs-lib'
 import { Stack } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Platform, ScrollView, StyleSheet, View } from 'react-native'
