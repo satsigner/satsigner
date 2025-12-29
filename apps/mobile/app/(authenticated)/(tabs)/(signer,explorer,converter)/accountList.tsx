@@ -168,8 +168,8 @@ export default function AccountList() {
   }, [network]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (connectionMode === 'auto') fetchPrices(mempoolUrl)
-  }, [connectionMode, fetchPrices, mempoolUrl])
+    fetchPrices(mempoolUrl)
+  }, [fetchPrices, mempoolUrl])
 
   useFocusEffect(() => {
     cleanupSubscriptions()
@@ -209,10 +209,8 @@ export default function AccountList() {
     setLoadingWallet(type)
     try {
       loadSampleWallet(type)
-    } catch (e) {
-      toast.error(
-        e instanceof Error ? e.message : 'failed to create sample wallet'
-      )
+    } catch {
+      toast.error('failed to create sample wallet')
     } finally {
       clearAccount()
       setLoadingWallet(undefined)
