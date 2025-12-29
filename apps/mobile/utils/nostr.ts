@@ -1,5 +1,5 @@
 import ecc from '@bitcoinerlab/secp256k1'
-import bitcoinjs from 'bitcoinjs-lib'
+import * as bitcoinjs from 'bitcoinjs-lib'
 import CBOR from 'cbor-js'
 import { nip19 } from 'nostr-tools'
 import pako from 'pako'

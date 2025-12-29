@@ -59,7 +59,11 @@ function useNostrSync() {
     const apisToCleanup = [...getActiveSubscriptions()]
     clearSubscriptions()
     for (const api of apisToCleanup) {
-      await api.closeAllSubscriptions()
+      try {
+        await api.closeAllSubscriptions()
+      } catch {
+        // TODO: log error
+      }
     }
   }, [clearSubscriptions, getActiveSubscriptions])
 
