@@ -55,7 +55,7 @@ import {
   sampleSignetXpub,
   sampleSignetXpubFingerprint,
   sampleTestnet4Address
-} from '@/utils/samples'
+} from '@/constants/samples'
 
 // Helper function to map local Network type to bdk-rn Network enum
 function mapNetworkToBdkNetwork(network: 'bitcoin' | 'testnet' | 'signet') {
