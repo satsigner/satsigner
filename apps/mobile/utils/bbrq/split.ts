@@ -151,7 +151,7 @@ export async function detectFileType(
     // otherwise, try to decode as text (could be contents of a file)
     try {
       decoded = new TextDecoder('utf-8', { fatal: true }).decode(raw)
-    } catch (_err) {
+    } catch {
       // not text, so fall back to generic binary
       return { fileType: 'B', raw }
     }
@@ -192,7 +192,7 @@ export async function detectFileType(
   try {
     JSON.parse(decoded)
     return { fileType: 'J', raw }
-  } catch (_err) {
+  } catch {
     // not JSON - fall back to generic Unicode
     return { fileType: 'U', raw }
   }

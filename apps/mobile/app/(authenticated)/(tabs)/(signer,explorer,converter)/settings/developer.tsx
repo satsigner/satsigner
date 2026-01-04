@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router'
-import { Alert } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
@@ -23,7 +23,7 @@ export default function Developer() {
   async function handleDeleteAccount() {
     deleteAccounts()
     deleteWallets()
-    Alert.alert(t('settings.developer.accountsDeleted'))
+    toast.error(t('settings.developer.accountsDeleted'))
   }
 
   return (

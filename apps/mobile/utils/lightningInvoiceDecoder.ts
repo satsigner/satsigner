@@ -1,6 +1,6 @@
 import { decode } from '@gandlaf21/bolt11-decode'
 
-import { type DecodedInvoice } from '@/types/lightning'
+import { type LNDecodedInvoice } from '@/types/models/LND'
 
 type Bolt11Section = {
   name: string
@@ -59,14 +59,9 @@ function mapBolt11DecodeToDecodedInvoice(
   }
 }
 
-export function decodeLightningInvoice(invoice: string): DecodedInvoice {
-  try {
-    const bolt11Decoded = decode(invoice)
-    return mapBolt11DecodeToDecodedInvoice(bolt11Decoded, invoice)
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`Failed to decode Lightning invoice: ${message}`)
-  }
+export function decodeLightningInvoice(invoice: string): LNDecodedInvoice {
+  const bolt11Decoded = decode(invoice)
+  return mapBolt11DecodeToDecodedInvoice(bolt11Decoded, invoice)
 }
 
 export function isLightningInvoice(invoice: string) {

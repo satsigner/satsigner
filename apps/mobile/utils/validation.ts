@@ -1,11 +1,10 @@
 import ecc from '@bitcoinerlab/secp256k1'
+import { Descriptor } from 'bdk-rn'
+import { Network } from 'bdk-rn/lib/lib/enums'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
+import { type ScriptVersionType } from '@/types/models/Account'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
-import { isDomainName } from '@/utils/validation/url'
-
-// Re-export for backward compatibility
-export { isDomainName }
 
 bitcoinjs.initEccLib(ecc)
 
@@ -42,103 +41,32 @@ export function validateFingerprint(fingerprint: string) {
 }
 
 // Function to validate descriptor checksum using BDK
-async function validateDescriptorChecksum(
-  descriptor: string
-): Promise<{ isValid: boolean; error?: string }> {
-  // Use a more lenient regex to detect truncated checksums
-  const checksumRegex = /#[a-z0-9]{1,8}$/
-  const hasChecksum = checksumRegex.test(descriptor)
-
-  if (!hasChecksum) {
-    return { isValid: true } // No checksum to validate
-  }
-
-  const checksumMatch = descriptor.match(checksumRegex)
-  if (!checksumMatch || !checksumMatch[0]) {
-    return { isValid: false, error: 'checksumFormat' }
-  }
-
-  const providedChecksum = checksumMatch[0].substring(1) // Remove the #
-
-  // Basic format validation - check if it's exactly 8 characters
-  if (!/^[a-z0-9]{8}$/.test(providedChecksum)) {
-    return { isValid: false, error: 'checksumFormat' }
-  }
-
-  // Use BDK to validate the checksum
+async function validateDescriptorChecksum(descriptor: string) {
   try {
-    const { Descriptor } = require('bdk-rn')
-    const { Network } = require('bdk-rn/lib/lib/enums')
+    await new Descriptor().create(descriptor, Network.Bitcoin)
+    return true
+  } catch {}
 
-    // Try to create a descriptor with BDK to validate checksum
-    // Try both Bitcoin and Testnet networks
-    try {
-      await new Descriptor().create(descriptor, Network.Bitcoin)
-      return { isValid: true }
-    } catch (bitcoinError) {
-      try {
-        await new Descriptor().create(descriptor, Network.Testnet)
-        return { isValid: true }
-      } catch (_testnetError) {
-        // If both fail, check if it's a checksum error
-        const errorMessage =
-          bitcoinError instanceof Error
-            ? bitcoinError.message
-            : String(bitcoinError)
-        if (
-          errorMessage.includes('checksum') ||
-          errorMessage.includes('Checksum') ||
-          errorMessage.includes('invalid')
-        ) {
-          return { isValid: false, error: 'checksumInvalid' }
-        }
-        // For other BDK errors, if the checksum format is valid, accept it
-        // This handles cases where BDK has issues with certain descriptor formats
-        if (/^[a-z0-9]{8}$/.test(providedChecksum)) {
-          return { isValid: true }
-        }
-        return { isValid: false, error: 'descriptorFormat' }
-      }
-    }
-  } catch (error) {
-    // If BDK throws an error, it's likely a checksum error
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    if (
-      errorMessage.includes('checksum') ||
-      errorMessage.includes('Checksum') ||
-      errorMessage.includes('invalid')
-    ) {
-      return { isValid: false, error: 'checksumInvalid' }
-    }
-    // For other BDK errors, if the checksum format is valid, accept it
-    if (/^[a-z0-9]{8}$/.test(providedChecksum)) {
-      return { isValid: true }
-    }
-    return { isValid: false, error: 'descriptorFormat' }
-  }
+  try {
+    await new Descriptor().create(descriptor, Network.Testnet)
+    return true
+  } catch {}
+
+  return false
 }
 
-export async function validateDescriptor(descriptor: string): Promise<{
-  isValid: boolean
-  error?: string
-}> {
+export async function validateDescriptor(descriptor: string) {
   return validateDescriptorInternal(descriptor, true)
 }
 
-export async function validateDescriptorFormat(descriptor: string): Promise<{
-  isValid: boolean
-  error?: string
-}> {
+export async function validateDescriptorFormat(descriptor: string) {
   return validateDescriptorInternal(descriptor, false)
 }
 
 async function validateDescriptorInternal(
   descriptor: string,
   validateChecksum: boolean
-): Promise<{
-  isValid: boolean
-  error?: string
-}> {
+) {
   // regex expressions building blocks
   const kind = '(sh|wsh|pk|pkh|wpkh|combo|tr|addr|raw|rawtr)'
   const nestedKind = '(sh|wsh)'
@@ -168,9 +96,7 @@ async function validateDescriptorInternal(
   // Validate checksum first (only if validateChecksum is true)
   if (validateChecksum) {
     const checksumValidation = await validateDescriptorChecksum(descriptor)
-    if (!checksumValidation.isValid) {
-      return checksumValidation
-    }
+    if (!checksumValidation) return false
   }
 
   // Remove checksum if any.
@@ -180,14 +106,14 @@ async function validateDescriptorInternal(
 
   // Check for proper closing parenthesis
   if (!currentItem.endsWith(')')) {
-    return { isValid: false, error: 'missingParenthesis' }
+    return false
   }
 
   // Extract nested descriptor.
   // Example: wsh(sh(pkh(...))) -> pkh(...)
   while (nestedRegex.test(currentItem)) {
     // first, check if the current item is a single key sh/wsh descriptor
-    if (singleKeyRegex.test(currentItem)) return { isValid: true }
+    if (singleKeyRegex.test(currentItem)) return true
 
     // extract it
     currentItem = currentItem.replace(nestedKindRegex, '').replace(/\)$/, '')
@@ -203,7 +129,7 @@ async function validateDescriptorInternal(
     const fingerprintMatch = derivationPath.match(/\[([a-fA-F0-9]{8})/)
     if (fingerprintMatch && fingerprintMatch[1]) {
       if (!/^[a-fA-F0-9]{8}$/.test(fingerprintMatch[1])) {
-        return { isValid: false, error: 'fingerprintFormat' }
+        return false
       }
     }
 
@@ -212,7 +138,7 @@ async function validateDescriptorInternal(
     if (pathComponents) {
       for (const component of pathComponents) {
         if (!/^[0-9]+[h']?$/.test(component)) {
-          return { isValid: false, error: 'derivationPathComponent' }
+          return false
         }
       }
     }
@@ -231,11 +157,11 @@ async function validateDescriptorInternal(
         `^${kind}\\(\\[[a-fA-F0-9]{8}/[0-9]+[h']?/[0-9]+[h']?/[0-9]+[h']?\\][a-zA-Z0-9]+/<0[,;]1>/\\*\\)$`
       )
       if (exactWorkingPattern.test(currentItem)) {
-        return { isValid: true }
+        return true
       }
     }
     if (combinedPattern.test(currentItem)) {
-      return { isValid: true }
+      return true
     }
   }
 
@@ -250,7 +176,7 @@ async function validateDescriptorInternal(
       `^${kind}\\(\\[([a-fA-F0-9]{8})?([0-9]+[h']?/)*[0-9]+[h']?\\][a-zA-Z0-9]+(/[0-9*]|<0[,;]1>)*\\)$`
     )
     if (basicDescriptorPattern.test(currentItem)) {
-      return { isValid: true }
+      return true
     }
 
     // Check if it's a multi descriptor with public keys
@@ -258,7 +184,7 @@ async function validateDescriptorInternal(
       `^${multiKind}\\([1-9][0-9]*,([0-9]{2}[a-fA-F0-9]{64},)*[0-9]{2}[a-fA-F0-9]{64}\\)$`
     )
     if (multiPublicKeyPattern.test(currentItem)) {
-      return { isValid: true }
+      return true
     }
 
     // Check if it's a multi descriptor with extended public keys
@@ -270,95 +196,55 @@ async function validateDescriptorInternal(
       // Look for at least 2 key patterns (fingerprint + extended key)
       const keyPatterns = currentItem.match(/\[[a-fA-F0-9]{8}\/[^]]+\]/g)
       if (keyPatterns && keyPatterns.length >= 2) {
-        return { isValid: true }
+        return true
       }
       // Also accept if it contains tpub/xpub patterns (common extended key formats)
       const extendedKeyPatterns = currentItem.match(
         /(tpub|xpub|ypub|zpub|upub|vpub)[a-zA-Z0-9]+/g
       )
       if (extendedKeyPatterns && extendedKeyPatterns.length >= 2) {
-        return { isValid: true }
+        return true
       }
     }
 
     // Check for specific issues
     if (currentItem.includes('[') && !currentItem.includes(']')) {
-      return { isValid: false, error: 'derivationPathBracket' }
+      return false
     }
 
     if (currentItem.includes(']') && !currentItem.includes('[')) {
-      return { isValid: false, error: 'unexpectedBracket' }
+      return false
     }
 
     const foundScriptFunction = currentItem.match(
       /^(sh|wsh|pk|pkh|wpkh|combo|tr|addr|raw|rawtr|multi|sortedmulti)\(/
     )
     if (!foundScriptFunction) {
-      return { isValid: false, error: 'scriptFunctionInvalid' }
+      return false
     }
 
-    return { isValid: false, error: 'descriptorFormat' }
+    return false
   }
 
-  return { isValid: true }
+  return true
 }
 
 export function validateDescriptorScriptVersion(
   descriptor: string,
-  scriptVersion: string
-): { isValid: boolean; error?: string } {
-  // Remove checksum if present
+  scriptVersion: ScriptVersionType
+) {
   const cleanDescriptor = descriptor.replace(/#[a-z0-9]{8}$/, '')
-
-  // Extract the script type from the descriptor
-  const scriptTypeMatch = cleanDescriptor.match(
-    /^(sh|wsh|pk|pkh|wpkh|combo|tr|addr|raw|rawtr)\(/
-  )
-  if (!scriptTypeMatch) {
-    return { isValid: false, error: 'Invalid descriptor format' }
+  const compatibilityMatrix: Record<ScriptVersionType, string> = {
+    P2PKH: 'pkh',
+    'P2SH-P2WPKH': 'sh',
+    P2WPKH: 'wpkh',
+    P2TR: 'tr',
+    P2WSH: 'wsh',
+    'P2SH-P2WSH': 'sh',
+    P2SH: 'sh'
   }
-
-  const scriptType = scriptTypeMatch[1]
-
-  // Define compatibility matrix
-  const compatibilityMatrix: Record<string, string[]> = {
-    P2PKH: ['pkh'],
-    'P2SH-P2WPKH': ['sh'],
-    P2WPKH: ['wpkh'],
-    P2TR: ['tr'],
-    P2WSH: ['wsh'],
-    'P2SH-P2WSH': ['sh'],
-    P2SH: ['sh']
-  }
-
-  // Check if the script type is compatible with the target script version
-  const allowedScriptTypes = compatibilityMatrix[scriptVersion]
-  if (!allowedScriptTypes) {
-    return { isValid: false, error: `Unknown script version: ${scriptVersion}` }
-  }
-
-  // Special handling for nested descriptors
-  if (scriptVersion === 'P2SH-P2WSH') {
-    // For P2SH-P2WSH, we expect sh(wsh(...)) format
-    if (scriptType === 'sh' && cleanDescriptor.includes('wsh(')) {
-      return { isValid: true }
-    }
-    return {
-      isValid: false,
-      error: `Descriptor script type "${scriptType}" is not compatible with multisig script version "${scriptVersion}". Expected: sh(wsh(...))`
-    }
-  }
-
-  if (!allowedScriptTypes.includes(scriptType)) {
-    return {
-      isValid: false,
-      error: `Descriptor script type "${scriptType}" is not compatible with multisig script version "${scriptVersion}". Expected: ${allowedScriptTypes.join(
-        ', '
-      )}`
-    }
-  }
-
-  return { isValid: true }
+  const scriptPrefix = compatibilityMatrix[scriptVersion]
+  return cleanDescriptor.match(new RegExp(`^${scriptPrefix}\\(`)) !== null
 }
 
 export function validateAddress(address: string, network?: bitcoinjs.Network) {
@@ -381,100 +267,21 @@ export function validateAddress(address: string, network?: bitcoinjs.Network) {
   return false
 }
 
-export function validateDescriptorDerivationPath(descriptor: string): {
-  isValid: boolean
-  error?: string
-} {
-  // Remove checksum if present
-  const cleanDescriptor = descriptor.replace(/#[a-z0-9]{8}$/, '')
-
-  // Extract derivation path from the descriptor
-  // Look for the fingerprint and derivation path within brackets
-  const derivationPathMatch = cleanDescriptor.match(
-    /\[([a-fA-F0-9]{8})?([0-9]+[h']?\/)*[0-9]+[h']?\]/
-  )
-
-  // If no match found, try a more flexible pattern for descriptors with wildcards
-  if (!derivationPathMatch) {
-    const flexibleMatch = cleanDescriptor.match(
-      /\[([a-fA-F0-9]{8})?([0-9]+[h']?\/)*[0-9]+\]/
-    )
-    if (flexibleMatch) {
-      return { isValid: true }
-    }
-  }
-
-  // If still no match, check if there's any bracket pattern at all
-  if (!derivationPathMatch) {
-    const bracketMatch = cleanDescriptor.match(/\[.*\]/)
-    if (bracketMatch) {
-      // If we found brackets, assume it's valid for now
-      return { isValid: true }
-    }
-  }
-
-  if (!derivationPathMatch) {
-    return { isValid: false, error: 'missingDerivationPath' }
-  }
-
-  const derivationPath = derivationPathMatch[0]
-
-  // Validate fingerprint if present
-  const fingerprintMatch = derivationPath.match(/\[([a-fA-F0-9]{8})/)
-  if (fingerprintMatch && fingerprintMatch[1]) {
-    const fingerprint = fingerprintMatch[1]
-    // Validate that it's a proper hex fingerprint
-    if (!/^[a-fA-F0-9]{8}$/.test(fingerprint)) {
-      return { isValid: false, error: 'fingerprintFormat' }
-    }
-  }
-
-  // Check for invalid fingerprints (wrong length)
-  const invalidFingerprintMatch = derivationPath.match(
-    /\[([a-fA-F0-9]{1,7}|[a-fA-F0-9]{9,})\//
-  )
-  if (invalidFingerprintMatch && invalidFingerprintMatch[1]) {
-    return { isValid: false, error: 'fingerprintFormat' }
-  }
-
-  // Validate derivation path components
-  const pathComponents = derivationPath.match(/[0-9]+[h']?/g)
-  if (pathComponents) {
-    for (const component of pathComponents) {
-      // Skip fingerprint (8 hex characters)
-      if (/^[a-fA-F0-9]{8}$/.test(component)) {
-        continue
-      }
-      // Each component must end with h or ' to be valid
-      if (!/^[0-9]+[h']$/.test(component)) {
-        return { isValid: false, error: 'derivationPathComponent' }
-      }
-    }
-  }
-
-  return { isValid: true }
-}
-
-// Function to detect if a descriptor is a combined descriptor
 export function isCombinedDescriptor(descriptor: string): boolean {
   return /<0[,;]1>/.test(descriptor)
 }
 
 // Function to separate a combined descriptor into external and internal descriptors
-export function separateCombinedDescriptor(combinedDescriptor: string): {
-  external: string
-  internal: string
-} {
+export function separateCombinedDescriptor(combinedDescriptor: string) {
   const external = combinedDescriptor.replace(/<0[,;]1>/, '0')
   const internal = combinedDescriptor.replace(/<0[,;]1>/, '1')
   return { external, internal }
 }
 
-// Function to validate combined descriptor and return validation result for both external and internal
 export async function validateCombinedDescriptor(
   combinedDescriptor: string,
-  scriptVersion?: string,
-  networkType?: string // 'bitcoin' | 'testnet' | 'regtest' | etc.
+  scriptVersion?: ScriptVersionType,
+  networkType?: string
 ): Promise<{
   isValid: boolean
   error?: string
@@ -484,23 +291,21 @@ export async function validateCombinedDescriptor(
   // Validate the full combined descriptor including checksum
   const combinedValidation = await validateDescriptor(combinedDescriptor)
 
-  if (!combinedValidation.isValid) {
+  if (!combinedValidation) {
     // If combined descriptor is invalid, return the error
     const { external, internal } =
       separateCombinedDescriptor(combinedDescriptor)
 
     return {
       isValid: false,
-      error: combinedValidation.error,
+      error: 'invalid descriptor',
       externalDescriptor: external,
       internalDescriptor: internal
     }
   }
 
   // Validate script function against selected script version
-  let scriptVersionValidation: { isValid: boolean; error?: string } = {
-    isValid: true
-  }
+  let scriptVersionValidation = false
   if (scriptVersion) {
     scriptVersionValidation = validateDescriptorScriptVersion(
       combinedDescriptor,
@@ -508,13 +313,13 @@ export async function validateCombinedDescriptor(
     )
   }
 
-  if (!scriptVersionValidation.isValid) {
+  if (!scriptVersionValidation) {
     const { external, internal } =
       separateCombinedDescriptor(combinedDescriptor)
 
     return {
       isValid: false,
-      error: scriptVersionValidation.error,
+      error: 'invalid script version',
       externalDescriptor: external,
       internalDescriptor: internal
     }
@@ -524,41 +329,21 @@ export async function validateCombinedDescriptor(
   const { external: externalDesc, internal: internalDesc } =
     separateCombinedDescriptor(combinedDescriptor)
 
-  // Note: We don't validate derivation path on separated descriptors individually
-  // because the combined descriptor validation already includes derivation path validation
-  // The validation result from the combined descriptor applies to both separated descriptors
-
   // Network validation - check if descriptor is compatible with selected network
   let networkValidation: { isValid: boolean; error?: string } = {
     isValid: true
   }
+
   if (networkType && combinedDescriptor) {
+    // Map networkType string to BDK Network enum
+    let bdkNetwork = Network.Bitcoin
+    if (networkType === 'testnet') bdkNetwork = Network.Testnet
+    if (networkType === 'regtest') bdkNetwork = Network.Regtest
+    if (networkType === 'signet') bdkNetwork = Network.Signet
     try {
-      const { Descriptor } = require('bdk-rn')
-      const { Network } = require('bdk-rn/lib/lib/enums')
-      // Map networkType string to BDK Network enum
-      let bdkNetwork = Network.Bitcoin
-      if (networkType === 'testnet') bdkNetwork = Network.Testnet
-      if (networkType === 'regtest') bdkNetwork = Network.Regtest
-      if (networkType === 'signet') bdkNetwork = Network.Signet
       await new Descriptor().create(combinedDescriptor, bdkNetwork)
       networkValidation = { isValid: true }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error)
-      if (
-        errorMessage.includes('Invalid network') ||
-        errorMessage.includes('network')
-      ) {
-        networkValidation = {
-          isValid: false,
-          error: 'networkIncompatible'
-        }
-      } else {
-        // For other BDK errors, still consider it valid for now
-        networkValidation = { isValid: true }
-      }
-    }
+    } catch {}
   }
 
   if (!networkValidation.isValid) {
@@ -569,11 +354,6 @@ export async function validateCombinedDescriptor(
       internalDescriptor: internalDesc
     }
   }
-
-  // Note: We don't need to validate the separated descriptors individually
-  // because the combined descriptor validation already includes all necessary validations
-  // (format, checksum, derivation path, script version, network compatibility)
-  // The validation result from the combined descriptor applies to both separated descriptors
 
   return {
     isValid: true,

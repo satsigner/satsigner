@@ -135,7 +135,7 @@ export default function UnifiedImport() {
       ? await validateDescriptorFormat(descriptor)
       : await validateDescriptor(descriptor)
     const basicValidation =
-      descriptorValidation.isValid && !descriptor.match(/[txyz]priv/)
+      descriptorValidation && !descriptor.match(/[txyz]priv/)
 
     // Network validation - check if descriptor is compatible with selected network
     let networkValidation: { isValid: boolean; error?: string } = {
@@ -184,7 +184,7 @@ export default function UnifiedImport() {
     const descriptorValidation = skipChecksumValidation
       ? await validateDescriptorFormat(descriptor)
       : await validateDescriptor(descriptor)
-    const basicValidation = descriptorValidation.isValid
+    const basicValidation = descriptorValidation
 
     // Network validation - check if descriptor is compatible with selected network
     let networkValidation: { isValid: boolean; error?: string } = {
@@ -309,7 +309,7 @@ export default function UnifiedImport() {
         // Validate the combined descriptor and get separated descriptors
         const combinedValidation = await validateCombinedDescriptor(
           text,
-          scriptVersion as string,
+          scriptVersion,
           network as string
         )
 
@@ -420,7 +420,7 @@ export default function UnifiedImport() {
           // Validate the combined descriptor and get separated descriptors
           const combinedValidation = await validateCombinedDescriptor(
             text,
-            scriptVersion as string,
+            scriptVersion,
             network as string
           )
 
@@ -522,7 +522,7 @@ export default function UnifiedImport() {
         // Validate the combined descriptor and get separated descriptors
         const combinedValidation = await validateCombinedDescriptor(
           data,
-          scriptVersion as string,
+          scriptVersion,
           network as string
         )
 

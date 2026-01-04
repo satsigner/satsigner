@@ -1,9 +1,5 @@
 import { getWordList } from '@/utils/bip39'
 
-/**
- * Converts a mnemonic phrase to a standard SeedQR format
- * Each word is represented by its index (from the BIP39 word list), zero-padded to four digits
- */
 export function encodeStandardSeedQR(
   mnemonic: string,
   wordList: string[]
@@ -18,10 +14,6 @@ export function encodeStandardSeedQR(
     .join('')
 }
 
-/**
- * Converts a mnemonic phrase to a compact SeedQR format
- * Each word is represented in binary (11 bits per word)
- */
 export function encodeCompactSeedQR(
   mnemonic: string,
   wordList: string[]
@@ -39,10 +31,6 @@ export function encodeCompactSeedQR(
   return words.length === 12 ? binaryString.slice(0, -4) : binaryString
 }
 
-/**
- * Decodes a standard SeedQR format back to mnemonic phrase
- * Each word is represented by its index (from the BIP39 word list), zero-padded to four digits
- */
 export function decodeStandardSeedQR(seedQR: string): string {
   const wordList = getWordList()
   const words: string[] = []
@@ -60,10 +48,6 @@ export function decodeStandardSeedQR(seedQR: string): string {
   return words.join(' ')
 }
 
-/**
- * Decodes a compact SeedQR format back to mnemonic phrase
- * Each word is represented in binary (11 bits per word)
- */
 export function decodeCompactSeedQR(seedQR: string): string {
   const wordList = getWordList()
   const words: string[] = []
@@ -85,28 +69,21 @@ export function decodeCompactSeedQR(seedQR: string): string {
   return words.join(' ')
 }
 
-/**
- * Detects if a string is a seed QR code and returns the decoded mnemonic
- */
 export function detectAndDecodeSeedQR(data: string): string | null {
-  try {
-    // Check if it's a standard seed QR (all digits, length divisible by 4)
-    if (/^\d+$/.test(data) && data.length % 4 === 0) {
-      return decodeStandardSeedQR(data)
-    }
-
-    // Check if it's a compact seed QR (all 0s and 1s, length divisible by 11)
-    if (/^[01]+$/.test(data) && data.length % 11 === 0) {
-      return decodeCompactSeedQR(data)
-    }
-
-    // Check if it's a plain mnemonic phrase (space-separated words)
-    if (/^[a-z\s]+$/.test(data) && data.split(' ').length >= 12) {
-      return data
-    }
-
-    return null
-  } catch {
-    return null
+  // Check if it's a standard seed QR (all digits, length divisible by 4)
+  if (/^\d+$/.test(data) && data.length % 4 === 0) {
+    return decodeStandardSeedQR(data)
   }
+
+  // Check if it's a compact seed QR (all 0s and 1s, length divisible by 11)
+  if (/^[01]+$/.test(data) && data.length % 11 === 0) {
+    return decodeCompactSeedQR(data)
+  }
+
+  // Check if it's a plain mnemonic phrase (space-separated words)
+  if (/^[a-z\s]+$/.test(data) && data.split(' ').length >= 12) {
+    return data
+  }
+
+  return null
 }

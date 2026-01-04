@@ -73,51 +73,41 @@ export default function ImportDescriptor() {
     setIsValidating(true)
     setDescriptorError('')
 
-    try {
-      // Basic descriptor validation
-      const descriptorValidation = await validateDescriptor(descriptorText)
+    // Basic descriptor validation
+    const descriptorValidation = await validateDescriptor(descriptorText)
 
-      if (!descriptorValidation.isValid) {
+    if (!descriptorValidation) {
+      setIsValidDescriptor(false)
+      setDescriptorError('Invalid descriptor')
+      return
+    }
+
+    // Script version validation for multisig
+    if (scriptVersion) {
+      // For multisig descriptors, we need to be more flexible with script version validation
+      // because the default script version might not be set correctly yet
+      let effectiveScriptVersion = scriptVersion
+
+      // If we're in a multisig context and the descriptor uses wsh, use P2WSH
+      if (policyType === 'multisig' && descriptorText.includes('wsh(')) {
+        effectiveScriptVersion = 'P2WSH'
+      }
+
+      const scriptVersionValidation = validateDescriptorScriptVersion(
+        descriptorText,
+        effectiveScriptVersion
+      )
+
+      if (!scriptVersionValidation) {
         setIsValidDescriptor(false)
-        setDescriptorError(
-          t(`account.import.error.${descriptorValidation.error}`)
-        )
+        setDescriptorError('Invalid script version')
         return
       }
-
-      // Script version validation for multisig
-      if (scriptVersion) {
-        // For multisig descriptors, we need to be more flexible with script version validation
-        // because the default script version might not be set correctly yet
-        let effectiveScriptVersion = scriptVersion
-
-        // If we're in a multisig context and the descriptor uses wsh, use P2WSH
-        if (policyType === 'multisig' && descriptorText.includes('wsh(')) {
-          effectiveScriptVersion = 'P2WSH'
-        }
-
-        const scriptVersionValidation = validateDescriptorScriptVersion(
-          descriptorText,
-          effectiveScriptVersion
-        )
-
-        if (!scriptVersionValidation.isValid) {
-          setIsValidDescriptor(false)
-          setDescriptorError(
-            scriptVersionValidation.error || 'Invalid script version'
-          )
-          return
-        }
-      }
-
-      setIsValidDescriptor(true)
-      setDescriptorError('')
-    } catch {
-      setIsValidDescriptor(false)
-      setDescriptorError(t('account.import.error.descriptorFormat'))
-    } finally {
-      setIsValidating(false)
     }
+
+    setIsValidDescriptor(true)
+    setDescriptorError('')
+    setIsValidating(false)
   }
 
   function handleDescriptorChange(text: string) {

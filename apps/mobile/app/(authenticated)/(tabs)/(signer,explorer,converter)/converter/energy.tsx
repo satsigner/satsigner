@@ -653,100 +653,80 @@ export default function Energy() {
         return null
       }
 
-      try {
-        // Validate template first
-        //validateBlockTemplate(template)
+      // Validate template first
+      //validateBlockTemplate(template)
 
-        // Validate coinbase value is within safe bounds
-        if (
-          template.coinbasevalue <= 0 ||
-          template.coinbasevalue > Number.MAX_SAFE_INTEGER
-        ) {
-          throw new Error('Invalid coinbase value: out of bounds')
-        }
+      // Validate coinbase value is within safe bounds
+      if (
+        template.coinbasevalue <= 0 ||
+        template.coinbasevalue > Number.MAX_SAFE_INTEGER
+      ) {
+        throw new Error('Invalid coinbase value: out of bounds')
+      }
 
-        const network = getNetworkFromAddress(miningAddress)
+      const network = getNetworkFromAddress(miningAddress)
 
-        const tx = new bitcoin.Transaction()
-        tx.version = 1
-        tx.locktime = 0
+      const tx = new bitcoin.Transaction()
+      tx.version = 1
+      tx.locktime = 0
 
-        // Create coinbase input with proper height encoding
-        // Use BIP34 compliant height encoding
-        const heightScript = encodeScriptNum(template.height)
+      // Create coinbase input with proper height encoding
+      // Use BIP34 compliant height encoding
+      const heightScript = encodeScriptNum(template.height)
 
-        // Create coinbase script with optional extra nonce
-        let coinbaseScript: Buffer
-        if (useExtraNonce) {
-          // Only add extra nonce when explicitly requested
-          const extraNonceBytes = Buffer.alloc(8)
-          extraNonceBytes.writeBigUInt64LE(BigInt(extraNonce), 0)
-          coinbaseScript = bitcoin.script.compile([
-            heightScript,
-            extraNonceBytes,
-            Buffer.from(`Satsigner ${Date.now()}`)
-          ])
-        } else {
-          // Basic coinbase script with just height and miner identifier
-          coinbaseScript = bitcoin.script.compile([
-            heightScript,
-            Buffer.from(`Satsigner ${Date.now()}`)
-          ])
-        }
+      // Create coinbase script with optional extra nonce
+      let coinbaseScript: Buffer
+      if (useExtraNonce) {
+        // Only add extra nonce when explicitly requested
+        const extraNonceBytes = Buffer.alloc(8)
+        extraNonceBytes.writeBigUInt64LE(BigInt(extraNonce), 0)
+        coinbaseScript = bitcoin.script.compile([
+          heightScript,
+          extraNonceBytes,
+          Buffer.from(`Satsigner ${Date.now()}`)
+        ])
+      } else {
+        // Basic coinbase script with just height and miner identifier
+        coinbaseScript = bitcoin.script.compile([
+          heightScript,
+          Buffer.from(`Satsigner ${Date.now()}`)
+        ])
+      }
 
-        tx.addInput(
-          Buffer.alloc(32), // Previous txid (32 bytes of zeros for coinbase)
-          0xffffffff, // Previous vout (0xffffffff for coinbase)
-          0xffffffff, // Sequence (0xffffffff for coinbase)
-          coinbaseScript
-        )
+      tx.addInput(
+        Buffer.alloc(32), // Previous txid (32 bytes of zeros for coinbase)
+        0xffffffff, // Previous vout (0xffffffff for coinbase)
+        0xffffffff, // Sequence (0xffffffff for coinbase)
+        coinbaseScript
+      )
 
-        try {
-          const outputScript = bitcoin.address.toOutputScript(
-            miningAddress,
-            network
-          )
-          // Ensure coinbase value is within safe bounds before adding output
-          const safeValue = Math.min(
-            template.coinbasevalue,
-            Number.MAX_SAFE_INTEGER
-          )
-          tx.addOutput(outputScript, safeValue)
-        } catch (error) {
-          /*
-          console.error('❌ Error creating output script:', {
-            error: error instanceof Error ? error.message : 'Unknown error',
-            address: miningAddress,
-            network: network.bech32 || 'unknown',
-            isRegtest: network === networks.regtest,
-            coinbaseValue: template.coinbasevalue
-          })
-          */
-          throw error
-        }
+      const outputScript = bitcoin.address.toOutputScript(
+        miningAddress,
+        network
+      )
+      // Ensure coinbase value is within safe bounds before adding output
+      const safeValue = Math.min(
+        template.coinbasevalue,
+        Number.MAX_SAFE_INTEGER
+      )
+      tx.addOutput(outputScript, safeValue)
 
-        if (opReturnContent) {
-          const data = Buffer.from(opReturnContent)
-          const script = bitcoin.script.compile([
-            bitcoin.opcodes.OP_RETURN,
-            data
-          ])
-          tx.addOutput(script, 0)
-        }
+      if (opReturnContent) {
+        const data = Buffer.from(opReturnContent)
+        const script = bitcoin.script.compile([bitcoin.opcodes.OP_RETURN, data])
+        tx.addOutput(script, 0)
+      }
 
-        // Verify transaction is valid
-        if (!tx.isCoinbase()) {
-          throw new Error('Generated transaction is not a valid coinbase')
-        }
+      // Verify transaction is valid
+      if (!tx.isCoinbase()) {
+        throw new Error('Generated transaction is not a valid coinbase')
+      }
 
-        return {
-          data: tx.toHex(),
-          hash: tx.getHash().toString('hex'),
-          txid: tx.getId(),
-          depends: []
-        }
-      } catch (error) {
-        throw error
+      return {
+        data: tx.toHex(),
+        hash: tx.getHash().toString('hex'),
+        txid: tx.getId(),
+        depends: []
       }
     },
     [miningAddress, opReturnContent]

@@ -97,28 +97,19 @@ export function useEcash() {
 
   const connectToMintHandler = useCallback(
     async (mintUrl: string): Promise<EcashMint> => {
-      try {
-        if (mints.length > 0) {
-          const existingMint = mints[0]
-          removeMint(existingMint.url)
-          clearWalletCache(existingMint.url)
-          toast.info(t('ecash.info.mintDisconnected'))
-        }
-
-        const mint = await connectToMint(mintUrl)
-        addMint(mint)
-        setActiveMint(mint)
-
-        toast.success(t('ecash.success.mintConnected'))
-        return mint
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : t('ecash.error.mintConnection')
-        toast.error(errorMessage)
-        throw error
+      if (mints.length > 0) {
+        const existingMint = mints[0]
+        removeMint(existingMint.url)
+        clearWalletCache(existingMint.url)
+        toast.info(t('ecash.info.mintDisconnected'))
       }
+
+      const mint = await connectToMint(mintUrl)
+      addMint(mint)
+      setActiveMint(mint)
+
+      toast.success(t('ecash.success.mintConnected'))
+      return mint
     },
     [addMint, mints, removeMint, setActiveMint]
   )
@@ -140,45 +131,31 @@ export function useEcash() {
       amount: number,
       memo?: string
     ): Promise<MintQuote> => {
-      try {
-        const quote = await createMintQuote(mintUrl, amount)
-        addMintQuote(quote)
+      const quote = await createMintQuote(mintUrl, amount)
+      addMintQuote(quote)
 
-        const transaction: EcashTransaction = {
-          id: quote.quote,
-          type: 'mint',
-          amount,
-          memo,
-          label: memo, // Use memo as the transaction label
-          mintUrl,
-          timestamp: new Date().toISOString(),
-          status: 'pending',
-          quoteId: quote.quote,
-          expiry: quote.expiry
-        }
-        addTransaction(transaction)
-
-        return quote
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : t('ecash.error.networkError')
-        toast.error(errorMessage)
-        throw error
+      const transaction: EcashTransaction = {
+        id: quote.quote,
+        type: 'mint',
+        amount,
+        memo,
+        label: memo, // Use memo as the transaction label
+        mintUrl,
+        timestamp: new Date().toISOString(),
+        status: 'pending',
+        quoteId: quote.quote,
+        expiry: quote.expiry
       }
+      addTransaction(transaction)
+
+      return quote
     },
     [addMintQuote, addTransaction]
   )
 
   const checkMintQuoteHandler = useCallback(
     async (mintUrl: string, quoteId: string): Promise<MintQuoteState> => {
-      try {
-        return await checkMintQuote(mintUrl, quoteId)
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : t('ecash.error.networkError')
-        toast.error(errorMessage)
-        throw error
-      }
+      return checkMintQuote(mintUrl, quoteId)
     },
     []
   )
@@ -189,44 +166,30 @@ export function useEcash() {
       amount: number,
       quoteId: string
     ): Promise<EcashMintResult> => {
-      try {
-        const result = await mintProofs(mintUrl, amount, quoteId)
-        addProofs(result.proofs)
-        removeMintQuote(quoteId)
-        updateMintBalance(
-          mintUrl,
-          await getMintBalance(mintUrl, [...proofs, ...result.proofs])
-        )
+      const result = await mintProofs(mintUrl, amount, quoteId)
+      addProofs(result.proofs)
+      removeMintQuote(quoteId)
+      updateMintBalance(
+        mintUrl,
+        await getMintBalance(mintUrl, [...proofs, ...result.proofs])
+      )
 
-        // Update existing transaction status to completed
-        updateTransaction(quoteId, {
-          status: 'completed'
-        })
+      // Update existing transaction status to completed
+      updateTransaction(quoteId, {
+        status: 'completed'
+      })
 
-        toast.success(t('ecash.success.tokensMinted'))
-        return result
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : t('ecash.error.networkError')
-        toast.error(errorMessage)
-        throw error
-      }
+      toast.success(t('ecash.success.tokensMinted'))
+      return result
     },
     [addProofs, removeMintQuote, updateMintBalance, proofs, updateTransaction]
   )
 
   const createMeltQuoteHandler = useCallback(
     async (mintUrl: string, invoice: string): Promise<MeltQuote> => {
-      try {
-        const quote = await createMeltQuote(mintUrl, invoice)
-        addMeltQuote(quote)
-        return quote
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : t('ecash.error.networkError')
-        toast.error(errorMessage)
-        throw error
-      }
+      const quote = await createMeltQuote(mintUrl, invoice)
+      addMeltQuote(quote)
+      return quote
     },
     [addMeltQuote]
   )
@@ -239,56 +202,49 @@ export function useEcash() {
       description?: string,
       originalInvoice?: string
     ): Promise<EcashMeltResult> => {
-      try {
-        const result = await meltProofs(
-          mintUrl,
-          quote,
-          proofsToMelt,
-          description,
-          originalInvoice
-        )
-        const proofIds = proofsToMelt.map((proof) => proof.id)
-        removeProofs(proofIds)
-        removeMeltQuote(quote.quote)
+      const result = await meltProofs(
+        mintUrl,
+        quote,
+        proofsToMelt,
+        description,
+        originalInvoice
+      )
+      const proofIds = proofsToMelt.map((proof) => proof.id)
+      removeProofs(proofIds)
+      removeMeltQuote(quote.quote)
 
-        if (result.change) {
-          addProofs(result.change)
-        }
-
-        updateMintBalance(
-          mintUrl,
-          await getMintBalance(
-            mintUrl,
-            proofs.filter((p) => !proofIds.includes(p.id))
-          )
-        )
-
-        // Mark received tokens as spent
-        markReceivedTokensAsSpent()
-
-        // Add transaction record
-        addTransaction({
-          id: `melt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          type: 'melt',
-          amount: quote.amount,
-          mintUrl,
-          timestamp: new Date().toISOString(),
-          status: 'settled',
-          invoice: quote.quote, // Store the invoice for reference
-          quoteId: quote.quote,
-          expiry: quote.expiry,
-          label: description, // Use description as the transaction label
-          memo: description // Also store as memo for backward compatibility
-        })
-
-        toast.success(t('ecash.success.tokensMelted'))
-        return result
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : t('ecash.error.networkError')
-        toast.error(errorMessage)
-        throw error
+      if (result.change) {
+        addProofs(result.change)
       }
+
+      updateMintBalance(
+        mintUrl,
+        await getMintBalance(
+          mintUrl,
+          proofs.filter((p) => !proofIds.includes(p.id))
+        )
+      )
+
+      // Mark received tokens as spent
+      markReceivedTokensAsSpent()
+
+      // Add transaction record
+      addTransaction({
+        id: `melt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        type: 'melt',
+        amount: quote.amount,
+        mintUrl,
+        timestamp: new Date().toISOString(),
+        status: 'settled',
+        invoice: quote.quote, // Store the invoice for reference
+        quoteId: quote.quote,
+        expiry: quote.expiry,
+        label: description, // Use description as the transaction label
+        memo: description // Also store as memo for backward compatibility
+      })
+
+      toast.success(t('ecash.success.tokensMelted'))
+      return result
     },
     [
       removeProofs,
@@ -339,8 +295,6 @@ export function useEcash() {
           errorMessage.includes('Token already spent') ||
           errorMessage.includes('spent')
         ) {
-          // Clear all proofs from the store since they may be invalid
-          // The user will need to reconnect to the mint to get fresh proofs
           removeProofs(proofs.map((proof) => proof.id))
           updateMintBalance(mintUrl, 0)
         }
@@ -421,17 +375,8 @@ export function useEcash() {
 
   const restoreFromBackupHandler = useCallback(
     (backupData: unknown) => {
-      try {
-        restoreFromBackup(backupData)
-        toast.success(t('ecash.success.backupRestored'))
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : t('ecash.error.backupRestore')
-        toast.error(errorMessage)
-        throw error
-      }
+      restoreFromBackup(backupData)
+      toast.success(t('ecash.success.backupRestored'))
     },
     [restoreFromBackup]
   )
@@ -442,8 +387,8 @@ export function useEcash() {
   }, [clearAllData])
 
   const checkPendingTransactionStatus = useCallback(async () => {
-    const currentTransactions = useEcashStore.getState().transactions
-    const currentCheckingIds = useEcashStore.getState().checkingTransactionIds
+    const currentTransactions = transactions
+    const currentCheckingIds = checkingTransactionIds
 
     // We check "invalid" to re-validate them and get proper status (e.g., if they were marked invalid due to rate limiting)
     const transactionsToCheck = currentTransactions.filter((tx) => {
@@ -464,7 +409,7 @@ export function useEcash() {
     }
 
     for (const transaction of transactionsToCheck) {
-      const stillChecking = useEcashStore.getState().checkingTransactionIds
+      const stillChecking = checkingTransactionIds
       if (stillChecking.includes(transaction.id)) {
         continue
       }
@@ -491,9 +436,7 @@ export function useEcash() {
           tokenStatus = 'pending'
         }
 
-        const currentTx = useEcashStore
-          .getState()
-          .transactions.find((t) => t.id === transaction.id)
+        const currentTx = transactions.find((t) => t.id === transaction.id)
         if (
           currentTx &&
           tokenStatus !== undefined &&
@@ -508,7 +451,7 @@ export function useEcash() {
         await new Promise((resolve) => setTimeout(resolve, 500))
       }
     }
-  }, [addCheckingTransaction, removeCheckingTransaction, updateTransaction])
+  }, [addCheckingTransaction, removeCheckingTransaction, updateTransaction]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const resumePollingForTransaction = useCallback(
     async (

@@ -119,14 +119,9 @@ export function validateSplitOptions(opts: SplitOptions) {
 }
 
 export function looksLikePsbt(data: Uint8Array) {
-  try {
-    // 'psbt' + 0xff
-    return new Uint8Array([0x70, 0x73, 0x62, 0x74, 0xff]).every(
-      (b, i) => b === data[i]
-    )
-  } catch (_err) {
-    return false
-  }
+  return new Uint8Array([0x70, 0x73, 0x62, 0x74, 0xff]).every(
+    (b, i) => b === data[i]
+  )
 }
 
 export function shuffled<T>(arr: T[]): T[] {

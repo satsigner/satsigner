@@ -28,7 +28,6 @@ function useAccountBuilderFinish() {
     ])
   )
   const addAccount = useAccountsStore((state) => state.addAccount)
-
   const [addAccountWallet, addAccountAddress] = useWalletsStore(
     useShallow((state) => [state.addAccountWallet, state.addAccountAddress])
   )
@@ -38,73 +37,72 @@ function useAccountBuilderFinish() {
 
   async function accountBuilderFinish(account: Account) {
     setLoading(true)
+    const isImportAddress = account.keys[0].creationType === 'importAddress'
+    const { policyType } = account
+    const { creationType } = account.keys[0]
 
-    try {
-      const isImportAddress = account.keys[0].creationType === 'importAddress'
-      const { policyType } = account
-      const { creationType } = account.keys[0]
+    const walletData = !isImportAddress
+      ? await getWalletData(account, network as Network)
+      : undefined
 
-      const walletData = !isImportAddress
-        ? await getWalletData(account, network as Network)
-        : undefined
+    if (!isImportAddress && !walletData) {
+      setLoading(false)
+      return
+    }
 
-      if (!isImportAddress && !walletData) {
+    for (const key of account.keys) {
+      const stringifiedSecret = JSON.stringify(key.secret)
+      const pin = await getItem(PIN_KEY)
+      if (!pin) {
         setLoading(false)
         return
       }
 
-      for (const key of account.keys) {
-        const stringifiedSecret = JSON.stringify(key.secret)
-        const pin = await getItem(PIN_KEY)
-        if (!pin) {
-          setLoading(false)
-          return
-        }
+      const encryptedSecret = await aesEncrypt(
+        stringifiedSecret,
+        pin,
+        account.keys[key.index].iv
+      )
 
-        const encryptedSecret = await aesEncrypt(
-          stringifiedSecret,
-          pin,
-          account.keys[key.index].iv
-        )
-
-        if (walletData) {
-          if (account.policyType === 'multisig' && walletData.keyFingerprints) {
-            // For multisig, use individual key fingerprints
-            walletData.keyFingerprints.forEach(
-              (fingerprint: string, index: number) => {
-                updateKeyFingerprint(index, fingerprint)
-              }
-            )
-          } else {
-            // For singlesig, use the single fingerprint
-            updateKeyFingerprint(key.index, walletData.fingerprint)
-          }
-          setKeyDerivationPath(key.index, walletData.derivationPath)
+      if (walletData) {
+        if (account.policyType === 'multisig' && walletData.keyFingerprints) {
+          // For multisig, use individual key fingerprints
+          walletData.keyFingerprints.forEach(
+            (fingerprint: string, index: number) => {
+              updateKeyFingerprint(index, fingerprint)
+            }
+          )
+        } else {
+          // For singlesig, use the single fingerprint
+          updateKeyFingerprint(key.index, walletData.fingerprint)
         }
-        updateKeySecret(key.index, encryptedSecret)
+        setKeyDerivationPath(key.index, walletData.derivationPath)
       }
 
-      const accountWithEncryptedSecret = getAccountData()
-      // Ensure policy type and creation type are preserved
-      accountWithEncryptedSecret.policyType = policyType
-      accountWithEncryptedSecret.keys[0].creationType = creationType
+      updateKeySecret(key.index, encryptedSecret)
+    }
 
-      addAccount(accountWithEncryptedSecret)
-      if (walletData)
-        addAccountWallet(accountWithEncryptedSecret.id, walletData.wallet)
-      if (isImportAddress && typeof account.keys[0].secret === 'object')
-        addAccountAddress(
-          accountWithEncryptedSecret.id,
-          parseAddressDescriptorToAddress(
-            account.keys[0].secret.externalDescriptor!
-          )
+    const accountWithEncryptedSecret = getAccountData()
+    accountWithEncryptedSecret.policyType = policyType
+    accountWithEncryptedSecret.keys[0].creationType = creationType
+
+    addAccount(accountWithEncryptedSecret)
+    if (walletData) {
+      addAccountWallet(accountWithEncryptedSecret.id, walletData.wallet)
+    }
+
+    if (isImportAddress && typeof account.keys[0].secret === 'object')
+      addAccountAddress(
+        accountWithEncryptedSecret.id,
+        parseAddressDescriptorToAddress(
+          account.keys[0].secret.externalDescriptor!
         )
+      )
 
-      setLoading(false)
-      return { wallet: walletData?.wallet, accountWithEncryptedSecret }
-    } catch (error) {
-      setLoading(false)
-      throw error
+    setLoading(false)
+    return {
+      wallet: walletData?.wallet,
+      accountWithEncryptedSecret
     }
   }
 

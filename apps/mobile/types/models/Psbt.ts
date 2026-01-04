@@ -14,5 +14,8 @@ export type MockTxBuilderResult = {
 
 export type PsbtInputWithSignatures = {
   witnessScript?: Buffer
-  partialSig?: { pubkey: Buffer; signature: Buffer }[]
+  partialSig?: {
+    pubkey: Buffer
+    signature: Buffer
+  }[]
 }

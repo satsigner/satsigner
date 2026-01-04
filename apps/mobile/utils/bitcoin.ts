@@ -86,9 +86,6 @@ const NETWORK_KEY_FORMATS: Record<AppNetwork, Record<string, string>> = {
   }
 }
 
-/**
- * Convert a key to the appropriate format for the given network
- */
 export function convertKeyFormat(
   key: string,
   targetFormat: string,
@@ -138,9 +135,6 @@ export function convertKeyFormat(
   }
 }
 
-/**
- * Get the appropriate key format for a given script version and network
- */
 export function getKeyFormatForScriptVersion(
   scriptVersion: string,
   network: AppNetwork
@@ -159,9 +153,6 @@ export function getKeyFormatForScriptVersion(
   return NETWORK_KEY_FORMATS[network][baseFormat] || baseFormat
 }
 
-/**
- * Detect the network from a key prefix
- */
 export function detectNetworkFromKey(key: string): AppNetwork | null {
   if (!key) return null
 
@@ -183,9 +174,6 @@ export function detectNetworkFromKey(key: string): AppNetwork | null {
   return null
 }
 
-/**
- * Get the appropriate derivation path for a given script version and network
- */
 export function getDerivationPathFromScriptVersion(
   scriptVersion: string,
   network: AppNetwork
@@ -213,10 +201,6 @@ export function getDerivationPathFromScriptVersion(
   }
 }
 
-/**
- * Get the appropriate derivation path for multisig accounts based on script version and network
- * This follows the multisig descriptor policy for different script types
- */
 export function getMultisigDerivationPathFromScriptVersion(
   scriptVersion: string,
   network: AppNetwork
@@ -251,10 +235,6 @@ export function getMultisigDerivationPathFromScriptVersion(
   }
 }
 
-/**
- * Map script version to the corresponding multisig script type for descriptor generation
- * This ensures that the correct multisig descriptor type is used based on the script version
- */
 export function getMultisigScriptTypeFromScriptVersion(
   scriptVersion: string
 ): string {

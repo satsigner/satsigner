@@ -16,7 +16,7 @@ import {
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { compressMessage, NostrAPI } from '@/api/nostr'
+import { NostrAPI } from '@/api/nostr'
 import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
 import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
@@ -31,7 +31,7 @@ import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatDate } from '@/utils/date'
-import { generateColorFromNpub } from '@/utils/nostr'
+import { compressMessage, generateColorFromNpub } from '@/utils/nostr'
 
 export default function NostrSync() {
   // Account and store hooks
@@ -494,78 +494,75 @@ export default function NostrSync() {
   ])
 
   useEffect(() => {
-    if (account && accountId && !isGeneratingKeys) {
-      // Initialize nostr object if it doesn't exist
-      if (!account.nostr) {
-        updateAccountNostrCallback(accountId, {
-          autoSync: false,
-          relays: [],
-          dms: [],
-          trustedMemberDevices: [],
-          commonNsec: '',
-          commonNpub: '',
-          deviceNsec: '',
-          deviceNpub: ''
-        })
-        return // Return early as we'll re-run this effect after the update
-      }
+    if (!account || !accountId || isGeneratingKeys) {
+      return
+    }
 
-      if (account.nostr.deviceNsec && account.nostr.deviceNpub) {
-        setDeviceNsec(account.nostr.deviceNsec)
-        setDeviceNpub(account.nostr.deviceNpub)
-        generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
-        setKeysGenerated(true)
-        return
-      }
+    // Initialize nostr object if it doesn't exist
+    if (!account.nostr) {
+      updateAccountNostrCallback(accountId, {
+        autoSync: false,
+        relays: [],
+        dms: [],
+        trustedMemberDevices: [],
+        commonNsec: '',
+        commonNpub: '',
+        deviceNsec: '',
+        deviceNpub: ''
+      })
+      return // Return early as we'll re-run this effect after the update
+    }
 
-      if (!keysGenerated) {
+    if (account.nostr.deviceNsec && account.nostr.deviceNpub) {
+      setDeviceNsec(account.nostr.deviceNsec)
+      setDeviceNpub(account.nostr.deviceNpub)
+      generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
+      setKeysGenerated(true)
+      return
+    }
+
+    if (keysGenerated) {
+      return
+    }
+
+    if (account?.nostr?.deviceNsec && account.nostr.deviceNpub) {
+      setDeviceNsec(account.nostr.deviceNsec)
+      setDeviceNpub(account.nostr.deviceNpub)
+      generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
+      setKeysGenerated(true)
+      return
+    }
+
+    setIsGeneratingKeys(true)
+    setKeysGenerated(true)
+
+    NostrAPI.generateNostrKeys()
+      .then((keys) => {
+        if (!keys) {
+          return
+        }
         if (account?.nostr?.deviceNsec && account.nostr.deviceNpub) {
           setDeviceNsec(account.nostr.deviceNsec)
           setDeviceNpub(account.nostr.deviceNpub)
           generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
-          setKeysGenerated(true)
-          return
+        } else if (account?.nostr) {
+          setDeviceNsec(keys.nsec)
+          setDeviceNpub(keys.npub)
+          generateColorFromNpub(keys.npub).then(setDeviceColor)
+          updateAccountNostrCallback(accountId, {
+            ...account.nostr,
+            deviceNpub: keys.npub,
+            deviceNsec: keys.nsec
+          })
         }
-
-        setIsGeneratingKeys(true)
-        setKeysGenerated(true)
-        NostrAPI.generateNostrKeys()
-          .then((keys) => {
-            if (keys) {
-              const latestAccount = useAccountsStore
-                .getState()
-                .accounts.find((account) => account.id === accountId)
-
-              if (
-                latestAccount?.nostr?.deviceNsec &&
-                latestAccount.nostr.deviceNpub
-              ) {
-                setDeviceNsec(latestAccount.nostr.deviceNsec)
-                setDeviceNpub(latestAccount.nostr.deviceNpub)
-                generateColorFromNpub(latestAccount.nostr.deviceNpub).then(
-                  setDeviceColor
-                )
-              } else if (latestAccount?.nostr) {
-                setDeviceNsec(keys.nsec)
-                setDeviceNpub(keys.npub)
-                generateColorFromNpub(keys.npub).then(setDeviceColor)
-                updateAccountNostrCallback(accountId, {
-                  ...latestAccount.nostr,
-                  deviceNpub: keys.npub,
-                  deviceNsec: keys.nsec
-                })
-              }
-            }
-          })
-          .catch(() => {
-            toast.error('Failed to generate device keys')
-            setKeysGenerated(false)
-          })
-          .finally(() => {
-            setIsGeneratingKeys(false)
-          })
-      }
-    }
+      })
+      .catch(() => {
+        toast.error('Failed to generate device keys')
+        setKeysGenerated(false)
+      })
+      .finally(() => {
+        setIsGeneratingKeys(false)
+      })
   }, [
     account,
     accountId,
@@ -637,35 +634,38 @@ export default function NostrSync() {
       )
 
       if (
-        hasNewRelay &&
-        account.nostr.autoSync &&
-        currentRelays.length > 0 &&
-        previousRelays.length > 0
+        !(
+          hasNewRelay &&
+          account.nostr.autoSync &&
+          currentRelays.length > 0 &&
+          previousRelays.length > 0
+        )
       ) {
-        setIsSyncing(true)
-        if (accountId) setSyncing(accountId, true)
-
-        const triggerAutoSync = async () => {
-          try {
-            await testRelaySync(currentRelays)
-            deviceAnnouncement(account)
-
-            await nostrSyncSubscriptions(account, (loading) => {
-              requestAnimationFrame(() => {
-                setIsSyncing(loading)
-                if (accountId) setSyncing(accountId, loading)
-              })
-            })
-          } catch {
-            toast.error('Failed to setup sync with new relay')
-          } finally {
-            setIsSyncing(false)
-            if (accountId) setSyncing(accountId, false)
-          }
-        }
-
-        triggerAutoSync()
+        return
       }
+
+      setIsSyncing(true)
+      if (accountId) setSyncing(accountId, true)
+
+      const triggerAutoSync = async () => {
+        try {
+          await testRelaySync(currentRelays)
+          deviceAnnouncement(account)
+          await nostrSyncSubscriptions(account, (loading) => {
+            requestAnimationFrame(() => {
+              setIsSyncing(loading)
+              if (accountId) setSyncing(accountId, loading)
+            })
+          })
+        } catch {
+          toast.error('Failed to setup sync with new relay')
+        } finally {
+          setIsSyncing(false)
+          if (accountId) setSyncing(accountId, false)
+        }
+      }
+
+      triggerAutoSync()
 
       previousRelaysRef.current = [...currentRelays]
     }, [

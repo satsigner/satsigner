@@ -57,14 +57,12 @@ type AccountsAction = {
     label: string
   ) => Account | undefined
   importLabels: (accountId: Account['id'], labels: Label[]) => number
+  // TODO: remove async code from this, and not deal with error handling
   dropSeedFromKey: (
     accountId: Account['id'],
     keyIndex: number
   ) => Promise<{ success: boolean; message: string }>
-  resetKey: (
-    accountId: Account['id'],
-    keyIndex: number
-  ) => Promise<{ success: boolean; message: string }>
+  resetKey: (accountId: Account['id'], keyIndex: number) => void
 }
 
 const useAccountsStore = create<AccountsState & AccountsAction>()(
@@ -627,35 +625,24 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         }
       },
       resetKey: async (accountId, keyIndex) => {
-        const state = get()
-        const account = state.accounts.find((acc) => acc.id === accountId)
-
-        if (!account || !account.keys[keyIndex]) {
-          return { success: false, message: 'Account or key not found' }
-        }
-
-        // Reset the key to its initial state
         set(
           produce((state) => {
             const accountIndex = state.accounts.findIndex(
               (acc: Account) => acc.id === accountId
             )
-            if (accountIndex !== -1) {
-              state.accounts[accountIndex].keys[keyIndex] = {
-                index: keyIndex,
-                name: '',
-                creationType: undefined,
-                secret: undefined,
-                iv: undefined,
-                fingerprint: undefined,
-                scriptVersion: undefined,
-                mnemonicWordCount: undefined
-              }
+            if (accountIndex === -1) return
+            state.accounts[accountIndex].keys[keyIndex] = {
+              index: keyIndex,
+              name: '',
+              creationType: undefined,
+              secret: undefined,
+              iv: undefined,
+              fingerprint: undefined,
+              scriptVersion: undefined,
+              mnemonicWordCount: undefined
             }
           })
         )
-
-        return { success: true, message: 'Key reset successfully' }
       }
     }),
     {

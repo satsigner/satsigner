@@ -20,6 +20,7 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
+import { type ScriptVersionType } from '@/types/models/Account'
 import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
 import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import {
@@ -157,7 +158,7 @@ export default function ImportDescriptor() {
       ? await validateDescriptorFormat(descriptor)
       : await validateDescriptor(descriptor)
     const basicValidation =
-      descriptorValidation.isValid && !descriptor.match(/[txyz]priv/)
+      descriptorValidation && !descriptor.match(/[txyz]priv/)
 
     // Network validation - check if descriptor is compatible with selected network
     // Skip network validation during confirm stage since it was already validated during input
@@ -166,9 +167,7 @@ export default function ImportDescriptor() {
     }
 
     // Script version validation for multisig
-    let scriptVersionValidation: { isValid: boolean; error?: string } = {
-      isValid: true
-    }
+    let scriptVersionValidation = true
     if (basicValidation && scriptVersion) {
       scriptVersionValidation = validateDescriptorScriptVersion(
         descriptor,
@@ -177,9 +176,7 @@ export default function ImportDescriptor() {
     }
 
     const validExternalDescriptor =
-      basicValidation &&
-      networkValidation.isValid &&
-      scriptVersionValidation.isValid
+      basicValidation && networkValidation.isValid && scriptVersionValidation
 
     setValidExternalDescriptor(!descriptor || validExternalDescriptor)
     setExternalDescriptor(descriptor)
@@ -190,10 +187,7 @@ export default function ImportDescriptor() {
     // Show error message if validation fails
     if (descriptor) {
       if (!basicValidation) {
-        // Show error for basic validation failures
-        const errorMessage = descriptorValidation.error
-          ? t(`account.import.error.${descriptorValidation.error}`)
-          : t('account.import.error.descriptorFormat')
+        const errorMessage = t('account.import.error.descriptorFormat')
         setExternalDescriptorError(errorMessage)
       } else if (basicValidation && !networkValidation.isValid) {
         // Show error for network validation failures
@@ -201,11 +195,8 @@ export default function ImportDescriptor() {
           ? t(`account.import.error.${networkValidation.error}`)
           : t('account.import.error.networkIncompatible')
         setExternalDescriptorError(errorMessage)
-      } else if (basicValidation && !scriptVersionValidation.isValid) {
-        // Show error for script version validation failures
-        const errorMessage =
-          scriptVersionValidation.error ||
-          t('account.import.error.descriptorIncompatible')
+      } else if (basicValidation && !scriptVersionValidation) {
+        const errorMessage = t('account.import.error.descriptorIncompatible')
         setExternalDescriptorError(errorMessage)
       }
     }
@@ -223,7 +214,7 @@ export default function ImportDescriptor() {
     const descriptorValidation = skipChecksumValidation
       ? await validateDescriptorFormat(descriptor)
       : await validateDescriptor(descriptor)
-    const basicValidation = descriptorValidation.isValid
+    const basicValidation = descriptorValidation
 
     // Network validation - check if descriptor is compatible with selected network
     // Skip network validation during confirm stage since it was already validated during input
@@ -232,9 +223,7 @@ export default function ImportDescriptor() {
     }
 
     // Script version validation for multisig
-    let scriptVersionValidation: { isValid: boolean; error?: string } = {
-      isValid: true
-    }
+    let scriptVersionValidation = true
     if (basicValidation && scriptVersion) {
       scriptVersionValidation = validateDescriptorScriptVersion(
         descriptor,
@@ -243,9 +232,7 @@ export default function ImportDescriptor() {
     }
 
     const validInternalDescriptor =
-      basicValidation &&
-      networkValidation.isValid &&
-      scriptVersionValidation.isValid
+      basicValidation && networkValidation.isValid && scriptVersionValidation
 
     setValidInternalDescriptor(!descriptor || validInternalDescriptor)
     setInternalDescriptor(descriptor)
@@ -257,9 +244,7 @@ export default function ImportDescriptor() {
     if (descriptor) {
       if (!basicValidation) {
         // Show error for basic validation failures
-        const errorMessage = descriptorValidation.error
-          ? t(`account.import.error.${descriptorValidation.error}`)
-          : t('account.import.error.descriptorFormat')
+        const errorMessage = t('account.import.error.descriptorFormat')
         setInternalDescriptorError(errorMessage)
       } else if (basicValidation && !networkValidation.isValid) {
         // Show error for network validation failures
@@ -267,11 +252,9 @@ export default function ImportDescriptor() {
           ? t(`account.import.error.${networkValidation.error}`)
           : t('account.import.error.networkIncompatible')
         setInternalDescriptorError(errorMessage)
-      } else if (basicValidation && !scriptVersionValidation.isValid) {
+      } else if (basicValidation && !scriptVersionValidation) {
         // Show error for script version validation failures
-        const errorMessage =
-          scriptVersionValidation.error ||
-          t('account.import.error.descriptorIncompatible')
+        const errorMessage = t('account.import.error.descriptorIncompatible')
         setInternalDescriptorError(errorMessage)
       }
     }
@@ -356,10 +339,6 @@ export default function ImportDescriptor() {
     urDecoderRef.current = new URDecoder()
   }
 
-  /**
-   * Extract information from descriptor string without re-validating checksum
-   * since it was already validated during input stage
-   */
   async function handleConfirm() {
     try {
       // Extract fingerprint from the descriptor if possible
@@ -389,32 +368,21 @@ export default function ImportDescriptor() {
       // Set the key data
       setKey(Number(keyIndex))
       setKeyDerivationPath(Number(keyIndex), derivationPath)
-
       clearKeyState()
       router.dismiss(1)
-    } catch (_error) {
+    } catch {
       toast.error(t('account.import.error'))
     }
   }
 
-  /**
-   * Extract fingerprint from descriptor string
-   * Handles both h notation (84h) and ' notation (84') in derivation paths
-   */
-  function extractFingerprintFromDescriptor(descriptor: string): string {
+  function extractFingerprintFromDescriptor(descriptor: string) {
     // Use the same regex pattern as BDK API's parseDescriptor function
     // This handles both h notation (84h) and ' notation (84') in derivation paths
     const fingerprintMatch = descriptor.match(/\[([0-9a-fA-F]{8})([0-9'/h]+)\]/)
     return fingerprintMatch ? fingerprintMatch[1] : ''
   }
 
-  /**
-   * Extract extended public key and derivation path from descriptor string
-   */
-  function extractDescriptorInfo(descriptor: string): {
-    extendedPublicKey: string
-    derivationPath: string
-  } {
+  function extractDescriptorInfo(descriptor: string) {
     // Extract extended public key using regex
     const xpubMatch = descriptor.match(/(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/)
     const extendedPublicKey = xpubMatch ? xpubMatch[0] : ''
@@ -425,10 +393,7 @@ export default function ImportDescriptor() {
     return { extendedPublicKey, derivationPath }
   }
 
-  /**
-   * Extract derivation path from descriptor string with smart fallbacks
-   */
-  function extractDerivationPathFromDescriptor(descriptor: string): string {
+  function extractDerivationPathFromDescriptor(descriptor: string) {
     // Primary method: Extract from [fingerprint/derivation] pattern
     // Look for the pattern: [fingerprint/derivation] where derivation contains slashes
     const bracketMatch = descriptor.match(
@@ -460,15 +425,12 @@ export default function ImportDescriptor() {
     return getDefaultDerivationPath()
   }
 
-  /**
-   * Handle combined descriptor import with smart validation and error handling
-   */
   async function handleCombinedDescriptorImport(combinedDescriptor: string) {
     try {
       // Validate the combined descriptor and get separated descriptors
       const combinedValidation = await validateCombinedDescriptor(
         combinedDescriptor,
-        scriptVersion as string,
+        scriptVersion as ScriptVersionType,
         network as string
       )
 
@@ -497,7 +459,7 @@ export default function ImportDescriptor() {
         setExternalDescriptorError(errorMessage)
         setInternalDescriptorError(errorMessage)
       }
-    } catch (_error) {
+    } catch {
       toast.error(t('account.import.error'))
     }
   }

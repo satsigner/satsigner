@@ -77,7 +77,7 @@ async function getWalletData(
         )
           throw new Error('Invalid secret')
 
-        const walletData = await getWalletFromMnemonic(
+        const walletData = await getWalletDataFromMnemonic(
           key.secret.mnemonic,
           key.scriptVersion,
           key.secret.passphrase,
@@ -422,115 +422,70 @@ async function getWalletData(
   }
 }
 
-async function getWalletFromMnemonic(
+async function getDescriptorObjectMultiSig(
+  mnemonic: NonNullable<Secret['mnemonic']>,
+  scriptVersion: NonNullable<Key['scriptVersion']>,
+  kind: KeychainKind,
+  passphrase: Secret['passphrase'],
+  network: Network
+) {
+  const parsedMnemonic = await new Mnemonic().fromString(mnemonic)
+  const descriptorSecretKey = await new DescriptorSecretKey().create(
+    network,
+    parsedMnemonic,
+    passphrase
+  )
+  const baseDescriptor = await new Descriptor().newBip84(
+    descriptorSecretKey,
+    kind,
+    network
+  )
+  const baseString = baseDescriptor ? await baseDescriptor.asString() : ''
+  const keyPart = baseString.replace(/^wpkh\(/, '').replace(/\)$/, '')
+
+  let descriptorString = ''
+
+  switch (scriptVersion) {
+    case 'P2WSH':
+      descriptorString = `wsh(${keyPart})`
+      break
+    case 'P2SH-P2WSH':
+      descriptorString = `sh(wsh(${keyPart}))`
+      break
+    case 'P2SH':
+      descriptorString = `sh(${keyPart})`
+      break
+    default:
+      throw new Error(`Unsupported script version: ${scriptVersion}`)
+  }
+
+  const descriptor = await new Descriptor().create(descriptorString, network)
+
+  return descriptor
+}
+
+async function getWalletDataFromMnemonic(
   mnemonic: NonNullable<Secret['mnemonic']>,
   scriptVersion: NonNullable<Key['scriptVersion']>,
   passphrase: Secret['passphrase'],
   network: Network
 ) {
-  let externalDescriptor: Descriptor
-  let internalDescriptor: Descriptor
+  const externalDescriptor = await getDescriptorObject(
+    mnemonic,
+    scriptVersion,
+    KeychainKind.External,
+    passphrase,
+    network
+  )
 
-  try {
-    externalDescriptor = await getDescriptorObject(
-      mnemonic,
-      scriptVersion,
-      KeychainKind.External,
-      passphrase,
-      network
-    )
+  const internalDescriptor = await getDescriptorObject(
+    mnemonic,
+    scriptVersion,
+    KeychainKind.Internal,
+    passphrase,
+    network
+  )
 
-    internalDescriptor = await getDescriptorObject(
-      mnemonic,
-      scriptVersion,
-      KeychainKind.Internal,
-      passphrase,
-      network
-    )
-  } catch (error) {
-    // Handle manual descriptor creation for multisig script types
-    if (
-      error instanceof Error &&
-      error.message.includes('Manual descriptor creation required')
-    ) {
-      // For multisig script types, we need to create descriptors manually
-      const parsedMnemonic = await new Mnemonic().fromString(mnemonic)
-      const descriptorSecretKey = await new DescriptorSecretKey().create(
-        network,
-        parsedMnemonic,
-        passphrase
-      )
-
-      // Create descriptors using the existing BDK methods for basic derivation
-      // and then manually construct the multisig descriptors
-      const baseExternalDescriptor = await new Descriptor().newBip84(
-        descriptorSecretKey,
-        KeychainKind.External,
-        network
-      )
-      const baseInternalDescriptor = await new Descriptor().newBip84(
-        descriptorSecretKey,
-        KeychainKind.Internal,
-        network
-      )
-
-      // Get the base descriptor strings
-      const baseExternalString = baseExternalDescriptor
-        ? await baseExternalDescriptor.asString()
-        : ''
-      const baseInternalString = baseInternalDescriptor
-        ? await baseInternalDescriptor.asString()
-        : ''
-
-      // Extract the key part (everything after the script function)
-      const externalKeyPart = baseExternalString
-        .replace(/^wpkh\(/, '')
-        .replace(/\)$/, '')
-      const internalKeyPart = baseInternalString
-        .replace(/^wpkh\(/, '')
-        .replace(/\)$/, '')
-
-      // Create multisig descriptor strings based on script version
-      let externalDescriptorString = ''
-      let internalDescriptorString = ''
-
-      switch (scriptVersion) {
-        case 'P2WSH':
-          externalDescriptorString = `wsh(${externalKeyPart})`
-          internalDescriptorString = `wsh(${internalKeyPart})`
-          break
-        case 'P2SH-P2WSH':
-          externalDescriptorString = `sh(wsh(${externalKeyPart}))`
-          internalDescriptorString = `sh(wsh(${internalKeyPart}))`
-          break
-        case 'P2SH':
-          externalDescriptorString = `sh(${externalKeyPart})`
-          internalDescriptorString = `sh(${internalKeyPart})`
-          break
-        default:
-          throw new Error(`Unsupported script version: ${scriptVersion}`)
-      }
-
-      // Create descriptors using BDK
-      externalDescriptor = await new Descriptor().create(
-        externalDescriptorString,
-        network
-      )
-      internalDescriptor = await new Descriptor().create(
-        internalDescriptorString,
-        network
-      )
-    } else {
-      throw error
-    }
-  }
-
-  // Ensure variables are assigned
-  if (!externalDescriptor || !internalDescriptor) {
-    throw new Error('Failed to create descriptors')
-  }
-
-  // TO DO: Try Promise.all() method instead Sequential one.
   const [{ fingerprint, derivationPath }, wallet] = await Promise.all([
     parseDescriptor(externalDescriptor),
     getWalletFromDescriptor(externalDescriptor, internalDescriptor, network)
@@ -556,18 +511,23 @@ async function getDescriptorObject(
   passphrase: Secret['passphrase'],
   network: Network
 ) {
-  switch (scriptVersion) {
-    case 'P2SH':
-    case 'P2SH-P2WSH':
-    case 'P2WSH':
-      // For multisig script types, we need to create descriptors manually
-      // since BDK doesn't have specific methods for these
-      throw new Error(
-        `Manual descriptor creation required for ${scriptVersion} - use getExtendedPublicKeyFromMnemonic instead`
-      )
-    default:
-      break
+  // TODO: inspect if extra multisig is really needed, since the
+  // getPrivateDescriptorFromMnemonic should work (in theory) for both
+  // scenarios.
+  if (
+    scriptVersion === 'P2SH' ||
+    scriptVersion === 'P2SH-P2WSH' ||
+    scriptVersion === 'P2WSH'
+  ) {
+    return getDescriptorObjectMultiSig(
+      mnemonic,
+      scriptVersion,
+      kind,
+      passphrase,
+      network
+    )
   }
+
   const descriptor = getPrivateDescriptorFromMnemonic(
     mnemonic,
     scriptVersion,
@@ -1077,7 +1037,7 @@ export {
   getWalletAddresses,
   getWalletData,
   getWalletFromDescriptor,
-  getWalletFromMnemonic,
+  getWalletDataFromMnemonic as getWalletFromMnemonic,
   getWalletOverview,
   parseDescriptor,
   signTransaction,

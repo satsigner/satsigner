@@ -17,7 +17,6 @@ export function updateAccountObjectLabels(account: Account) {
     addresses: account.addresses.map((a) => ({ ...a }))
   }
 
-  // utxo labels update
   for (const index in updatedAccount.utxos) {
     const utxo = updatedAccount.utxos[index]
     const utxoRef = getUtxoOutpoint(utxo)
@@ -39,7 +38,6 @@ export function updateAccountObjectLabels(account: Account) {
     updatedAccount.utxos[index].label = label || ''
   }
 
-  // TX label update
   for (const index in updatedAccount.transactions) {
     const tx = updatedAccount.transactions[index]
     const { id: txRef, vout, vin } = tx
@@ -94,14 +92,12 @@ export function updateAccountObjectLabels(account: Account) {
     })
   }
 
-  // address label update
   for (const index in updatedAccount.addresses) {
     const addressRef = updatedAccount.addresses[index].address
     const label = labels[addressRef]?.label
     updatedAccount.addresses[index].label = label || ''
   }
 
-  // update labels with possible new labels inherited from receive address
   updatedAccount.labels = { ...labels }
 
   return updatedAccount
@@ -230,14 +226,11 @@ export function checkWalletNeedsSync(
       // If it's a string or number, try to create a Date
       lastSync = new Date(lastSyncedAtValue)
 
-      // Check if the date is valid
       if (isNaN(lastSync.getTime())) {
-        // Invalid lastSyncedAt value, needs sync
         return true
       }
     }
   } catch {
-    // Error parsing lastSyncedAt, needs sync
     return true
   }
 

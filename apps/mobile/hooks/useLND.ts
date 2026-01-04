@@ -1,28 +1,13 @@
-/* eslint-disable no-console */
 import { useCallback, useEffect } from 'react'
 
-import {
-  type LNDChannel,
-  type LNDNodeInfo,
-  useLightningStore
-} from '@/store/lightning'
-
-interface LNDRequestOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
-  body?: unknown
-  headers?: Record<string, string>
-}
-
-interface LNDPaymentResponse {
-  payment_hash: string
-  payment_preimage: string
-  status: string
-}
-
-type MakeRequestFn = <T>(
-  endpoint: string,
-  options?: LNDRequestOptions
-) => Promise<T>
+import { useLightningStore } from '@/store/lightning'
+import type {
+  LNDChannel,
+  LNDNodeInfo,
+  LNDPaymentResponse,
+  LNDRequest,
+  LNDRequestOptions
+} from '@/types/models/LND'
 
 export const useLND = () => {
   const {
@@ -30,7 +15,6 @@ export const useLND = () => {
     status,
     setConnecting,
     setConnected,
-    setError,
     setNodeInfo,
     setChannels,
     updateLastSync
@@ -59,71 +43,44 @@ export const useLND = () => {
       updateLastSync()
       return info
     } catch (error) {
-      console.error('Failed to fetch node info:', {
-        error: error instanceof Error ? error.message : String(error)
-      })
       setConnected(false)
       throw error
     }
   }, [config, setNodeInfo, setConnected, updateLastSync])
 
-  const makeRequest: MakeRequestFn = useCallback(
+  const makeRequest: LNDRequest = useCallback(
     async <T>(endpoint: string, options: LNDRequestOptions = {}) => {
       if (!config) {
         throw new Error('No LND configuration available')
       }
 
       const { method = 'GET', body, headers = {} } = options
+      setConnecting(true)
 
-      try {
-        setConnecting(true)
-        setError(undefined)
+      const response = await fetch(`${config.url}${endpoint}`, {
+        method,
+        headers: {
+          'Grpc-Metadata-macaroon': config.macaroon,
+          'Content-Type': 'application/json',
+          ...headers
+        },
+        body: body ? JSON.stringify(body) : undefined
+      })
 
-        const response = await fetch(`${config.url}${endpoint}`, {
-          method,
-          headers: {
-            'Grpc-Metadata-macaroon': config.macaroon,
-            'Content-Type': 'application/json',
-            ...headers
-          },
-          body: body ? JSON.stringify(body) : undefined
-        })
-
-        if (!response.ok) {
-          const errorText = await response.text()
-          const error = new Error(
-            `LND API error: ${response.status} ${errorText}`
-          )
-
-          if (response.status === 401 || response.status === 403) {
-            setConnected(false)
-          } else if (response.status >= 500) {
-            try {
-              await getInfo()
-            } catch {
-              setConnected(false)
-            }
-          }
-
-          throw error
-        }
-
-        const data = await response.json()
-        return data as T
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error'
-        console.error('LND request failed:', {
-          endpoint,
-          error: errorMessage
-        })
-        setError(errorMessage)
+      if (!response.ok) {
+        setConnected(false)
+        const errorText = await response.text()
+        const error = new Error(
+          `LND API error: ${response.status} ${errorText}`
+        )
         throw error
-      } finally {
-        setConnecting(false)
       }
+
+      const data = await response.json()
+      setConnecting(false)
+      return data as T
     },
-    [config, setConnecting, setError, setConnected, getInfo]
+    [config, setConnecting, setConnected]
   )
 
   const getBalance = useCallback(async () => {
@@ -158,56 +115,45 @@ export const useLND = () => {
 
   const payInvoice = useCallback(
     async (paymentRequest: string) => {
-      try {
-        const response = await makeRequest<LNDPaymentResponse>(
-          '/v1/channels/transactions',
-          {
-            method: 'POST',
-            body: {
-              payment_request: paymentRequest
-            }
+      const response = await makeRequest<LNDPaymentResponse>(
+        '/v1/channels/transactions',
+        {
+          method: 'POST',
+          body: {
+            payment_request: paymentRequest
           }
-        )
+        }
+      )
 
-        const paymentHash = response.payment_hash
-        if (paymentHash) {
-          let attempts = 0
-          const maxAttempts = 30 // Poll for up to 30 seconds
-          const pollInterval = 1000 // Check every second
+      const paymentHash = response.payment_hash
+      if (paymentHash) {
+        let attempts = 0
+        const maxAttempts = 30 // Poll for up to 30 seconds
+        const pollInterval = 1000 // Check every second
 
-          while (attempts < maxAttempts) {
-            attempts++
-            await new Promise((resolve) => setTimeout(resolve, pollInterval))
+        while (attempts < maxAttempts) {
+          attempts++
+          await new Promise((resolve) => setTimeout(resolve, pollInterval))
 
-            try {
-              const statusResponse = await makeRequest<{ status: string }>(
-                `/v1/payments/${paymentHash}`
-              )
+          try {
+            const statusResponse = await makeRequest<{ status: string }>(
+              `/v1/payments/${paymentHash}`
+            )
 
-              if (statusResponse.status === 'SUCCEEDED') {
-                return response
-              } else if (statusResponse.status === 'FAILED') {
-                throw new Error('Payment failed')
-              }
-            } catch (error) {
-              if (error instanceof Error && error.message.includes('404')) {
-                return response
-              }
-              console.error('Payment status check failed:', {
-                attempt: attempts,
-                error
-              })
+            if (statusResponse.status === 'SUCCEEDED') {
+              return response
+            } else if (statusResponse.status === 'FAILED') {
+              throw new Error('Payment failed')
+            }
+          } catch (error) {
+            if (error instanceof Error && error.message.includes('404')) {
+              return response
             }
           }
         }
-
-        return response
-      } catch (error) {
-        console.error('LND payment failed:', {
-          error: error instanceof Error ? error.message : String(error)
-        })
-        throw error
       }
+
+      return response
     },
     [makeRequest]
   )
@@ -218,10 +164,7 @@ export const useLND = () => {
     try {
       await getInfo()
       return true
-    } catch (error) {
-      console.error('Connection verification failed:', {
-        error: error instanceof Error ? error.message : String(error)
-      })
+    } catch {
       return false
     }
   }, [config, getInfo])
@@ -239,7 +182,6 @@ export const useLND = () => {
   return {
     isConnected: status.isConnected,
     isConnecting: status.isConnecting,
-    lastError: status.lastError,
     nodeInfo: status.nodeInfo,
     channels: status.channels,
     lastSync: status.lastSync,

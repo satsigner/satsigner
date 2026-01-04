@@ -55,9 +55,9 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type PreviewMessageSearchParams } from '@/types/navigation/searchParams'
 import { extractKeyFingerprint } from '@/utils/account'
 import {
+  BBQRFileTypes,
   createBBQRChunks,
   decodeBBQRChunks,
-  FileType,
   isBBQRFragment
 } from '@/utils/bbqr'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
@@ -992,13 +992,13 @@ function PreviewMessage() {
                 const bbqrChunkSize = Math.max(100, 30 * 12) // Use maximum density (460 characters per chunk)
                 bbqrChunks = createBBQRChunks(
                   new Uint8Array(psbtBuffer),
-                  FileType.PSBT,
+                  BBQRFileTypes.PSBT,
                   bbqrChunkSize
                 )
               } else {
                 bbqrChunks = createBBQRChunks(
                   new Uint8Array(psbtBuffer),
-                  FileType.PSBT,
+                  BBQRFileTypes.PSBT,
                   psbtBuffer.length * 10
                 )
               }
@@ -1009,7 +1009,7 @@ function PreviewMessage() {
 
               bbqrChunks = createBBQRChunks(
                 new Uint8Array(psbtBuffer),
-                FileType.PSBT,
+                BBQRFileTypes.PSBT,
                 bbqrChunkSize
               )
             }
@@ -1458,7 +1458,7 @@ function PreviewMessage() {
       }
 
       if (result.txData) {
-        const txHex = Array.from(result.txData)
+        const txHex = Array.from(result.txData as Uint8Array)
           .map((b) => b.toString(16).padStart(2, '0'))
           .join('')
 

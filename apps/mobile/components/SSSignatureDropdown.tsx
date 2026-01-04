@@ -1,4 +1,5 @@
 import { Buffer } from 'buffer'
+import { setStringAsync } from 'expo-clipboard'
 import { useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, TouchableOpacity, View } from 'react-native'
@@ -19,7 +20,6 @@ import { type Account, type Key } from '@/types/models/Account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import {
   combinePsbts,
-  storeTransactionData,
   type TransactionData,
   validateSignedPSBT,
   validateSignedPSBTForCosigner
@@ -127,8 +127,6 @@ function SSSignatureDropdown({
       const transactionData: TransactionData = {
         combinedPsbt
       }
-
-      storeTransactionData(transactionData)
 
       const message = combinedPsbt
 
@@ -394,7 +392,6 @@ function SSSignatureDropdown({
               style={{ width: '48%' }}
               onPress={() => {
                 if (txBuilderResult?.psbt?.base64) {
-                  const { setStringAsync } = require('expo-clipboard')
                   setStringAsync(txBuilderResult.psbt.base64)
                   toast(t('common.copiedToClipboard'))
                 }

@@ -5,20 +5,12 @@ import { validateCombinedDescriptor } from '@/utils/validation'
 // we implement it ourselves.
 
 export const DescriptorUtils = {
-  /**
-   * Extract fingerprint from descriptor string
-   * Handles both h notation (84h) and ' notation (84') in derivation paths
-   */
   extractFingerprint(descriptor: string): string {
     const fingerprintMatch = descriptor.match(/\[([0-9a-fA-F]{8})([0-9'/h]+)\]/)
     return fingerprintMatch ? fingerprintMatch[1] : ''
   },
 
-  /**
-   * Extract fingerprint from xpub with prefix [fingerprint/derivation]xpub
-   * Tries multiple patterns for compatibility
-   */
-  extractFingerprintFromXpub(xpubWithPrefix: string): string | null {
+  extractFingerprintFromXpub(xpubWithPrefix: string) {
     // Pattern 1: [fingerprint/derivation]xpub (with slash separator)
     const fingerprintMatch1 = xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})\//)
     if (fingerprintMatch1) return fingerprintMatch1[1]
@@ -34,17 +26,11 @@ export const DescriptorUtils = {
     return null
   },
 
-  /**
-   * Extract clean xpub from xpub with prefix
-   */
   extractCleanXpub(xpubWithPrefix: string): string {
     const xpubMatch = xpubWithPrefix.match(/\]([txyzuv]pub[a-zA-Z0-9]{107})$/)
     return xpubMatch ? xpubMatch[1] : xpubWithPrefix
   },
 
-  /**
-   * Determine script version from derivation path
-   */
   getScriptVersionFromDerivation(derivationPath: string): ScriptVersionType {
     if (derivationPath.includes("84'")) return 'P2WPKH'
     if (derivationPath.includes("49'")) return 'P2SH-P2WPKH'
@@ -52,16 +38,10 @@ export const DescriptorUtils = {
     return 'P2WPKH' // Default fallback
   },
 
-  /**
-   * Create descriptor from xpub and script version
-   */
   createDescriptorFromXpub(
     xpubWithPrefix: string,
     scriptVersion: ScriptVersionType
-  ): {
-    external: string
-    internal: string
-  } {
+  ) {
     switch (scriptVersion) {
       case 'P2WPKH':
         return {
@@ -86,14 +66,7 @@ export const DescriptorUtils = {
     }
   },
 
-  /**
-   * Parse JSON descriptor and extract external/internal descriptors
-   */
-  parseJsonDescriptor(text: string): {
-    external: string
-    internal: string
-    original: string
-  } | null {
+  parseJsonDescriptor(text: string) {
     try {
       const jsonData = JSON.parse(text)
       if (!jsonData.descriptor) return null
@@ -112,13 +85,7 @@ export const DescriptorUtils = {
     }
   },
 
-  /**
-   * Parse legacy multi-line descriptor format
-   */
-  parseLegacyDescriptor(text: string): {
-    external: string
-    internal: string
-  } | null {
+  parseLegacyDescriptor(text: string) {
     if (!text.includes('\n')) return null
 
     const lines = text.split('\n')
@@ -128,26 +95,14 @@ export const DescriptorUtils = {
     }
   },
 
-  /**
-   * Remove checksum from descriptor for separated validation
-   */
   removeChecksum(descriptor: string): string {
     return descriptor.replace(/#[a-z0-9]+$/, '')
   },
 
-  /**
-   * Process combined descriptor and return separated parts
-   */
   async processCombinedDescriptor(
     descriptor: string,
     scriptVersion: ScriptVersionType
-  ): Promise<{
-    success: boolean
-    external: string
-    internal: string
-    fingerprint?: string
-    error?: string
-  }> {
+  ) {
     const validation = await validateCombinedDescriptor(
       descriptor,
       scriptVersion

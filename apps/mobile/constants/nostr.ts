@@ -1,7 +1,6 @@
-export type NostrRelay = {
-  url: string
-  name: string
-}
+import type { NostrRelay } from '@/types/models/Nostr'
+
+export const RELAY_PROTOCOL_PREFIX = 'wss://'
 
 export const NOSTR_RELAYS: NostrRelay[] = [
   { name: 'Angani', url: 'wss://nostr-1.nbo.angani.co' },

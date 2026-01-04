@@ -6,16 +6,15 @@ import {
   Wallet
 } from '@cashu/cashu-ts'
 
-import { useEcashStore } from '@/store/ecash'
-import {
-  type EcashMeltResult,
-  type EcashMint,
-  type EcashMintResult,
-  type EcashProof,
-  type EcashReceiveResult,
-  type EcashSendResult,
-  type MeltQuote,
-  type MintQuote
+import type {
+  EcashMeltResult,
+  EcashMint,
+  EcashMintResult,
+  EcashProof,
+  EcashReceiveResult,
+  EcashSendResult,
+  MeltQuote,
+  MintQuote
 } from '@/types/models/Ecash'
 
 // Cache for wallet instances
@@ -27,9 +26,6 @@ type KeysetResponse = {
   active?: boolean
 }
 
-/**
- * Helper function to get keysets from wallet (v3.0.0)
- */
 export async function getKeysetsFromWallet(
   wallet: Wallet
 ): Promise<{ id: string; unit: 'sat'; active: boolean }[]> {
@@ -84,7 +80,6 @@ export async function getKeysetsFromWallet(
   } catch {
     // Fallback failed, return empty array
   }
-
   return []
 }
 
@@ -98,29 +93,22 @@ export function getWallet(mintUrl: string): Wallet {
 }
 
 export async function connectToMint(mintUrl: string): Promise<EcashMint> {
-  try {
-    clearWalletCache(mintUrl)
-    const wallet = getWallet(mintUrl)
-    await wallet.loadMint()
-    const mintInfo = await wallet.getMintInfo()
-    const keysets = await getKeysetsFromWallet(wallet)
-
-    return {
-      url: mintUrl,
-      name: mintInfo.name || `Mint ${mintUrl}`,
-      isConnected: true,
-      keysets: keysets.map((ks) => ({
-        id: ks.id,
-        unit: ks.unit,
-        active: ks.active
-      })),
-      balance: 0, // Will be calculated from proofs
-      lastSync: new Date().toISOString()
-    }
-  } catch (error) {
-    throw new Error(
-      `Failed to connect to mint: ${error instanceof Error ? error.message : 'Unknown error'}`
-    )
+  clearWalletCache(mintUrl)
+  const wallet = getWallet(mintUrl)
+  await wallet.loadMint()
+  const mintInfo = wallet.getMintInfo()
+  const keysets = await getKeysetsFromWallet(wallet)
+  return {
+    url: mintUrl,
+    name: mintInfo.name || `Mint ${mintUrl}`,
+    isConnected: true,
+    keysets: keysets.map((ks) => ({
+      id: ks.id,
+      unit: ks.unit,
+      active: ks.active
+    })),
+    balance: 0, // Will be calculated from proofs
+    lastSync: new Date().toISOString()
   }
 }
 
@@ -128,25 +116,14 @@ export async function createMintQuote(
   mintUrl: string,
   amount: number
 ): Promise<MintQuote> {
-  try {
-    const wallet = getWallet(mintUrl)
-    await wallet.loadMint()
-    const quote = await wallet.createMintQuote(amount)
-
-    // Connection successful, update status to true
-    useEcashStore.getState().updateMintConnection(mintUrl, true)
-    useEcashStore.getState().setError(undefined)
-
-    return {
-      quote: quote.quote,
-      request: quote.request,
-      expiry: quote.expiry,
-      paid: false
-    }
-  } catch (error) {
-    throw new Error(
-      `Failed to create mint quote: ${error instanceof Error ? error.message : 'Unknown error'}`
-    )
+  const wallet = getWallet(mintUrl)
+  await wallet.loadMint()
+  const quote = await wallet.createMintQuote(amount)
+  return {
+    quote: quote.quote,
+    request: quote.request,
+    expiry: quote.expiry,
+    paid: false
   }
 }
 
@@ -154,21 +131,10 @@ export async function checkMintQuote(
   mintUrl: string,
   quoteId: string
 ): Promise<MintQuoteState> {
-  try {
-    const wallet = getWallet(mintUrl)
-    await wallet.loadMint()
-    const quoteStatus = await wallet.checkMintQuote(quoteId)
-
-    // Connection successful, update status to true
-    useEcashStore.getState().updateMintConnection(mintUrl, true)
-    useEcashStore.getState().setError(undefined)
-
-    return quoteStatus.state
-  } catch (error) {
-    throw new Error(
-      `Failed to check mint quote: ${error instanceof Error ? error.message : 'Unknown error'}`
-    )
-  }
+  const wallet = getWallet(mintUrl)
+  await wallet.loadMint()
+  const quoteStatus = await wallet.checkMintQuote(quoteId)
+  return quoteStatus.state
 }
 
 export async function mintProofs(
@@ -176,23 +142,12 @@ export async function mintProofs(
   amount: number,
   quoteId: string
 ): Promise<EcashMintResult> {
-  try {
-    const wallet = getWallet(mintUrl)
-    await wallet.loadMint()
-    const proofs = await wallet.mintProofs(amount, quoteId)
-
-    // Connection successful, update status to true
-    useEcashStore.getState().updateMintConnection(mintUrl, true)
-    useEcashStore.getState().setError(undefined)
-
-    return {
-      proofs,
-      totalAmount: amount
-    }
-  } catch (error) {
-    throw new Error(
-      `Failed to mint proofs: ${error instanceof Error ? error.message : 'Unknown error'}`
-    )
+  const wallet = getWallet(mintUrl)
+  await wallet.loadMint()
+  const proofs = await wallet.mintProofs(amount, quoteId)
+  return {
+    proofs,
+    totalAmount: amount
   }
 }
 
@@ -200,21 +155,14 @@ export async function createMeltQuote(
   mintUrl: string,
   invoice: string
 ): Promise<MeltQuote> {
-  try {
-    const wallet = getWallet(mintUrl)
-    const quote = await wallet.createMeltQuote(invoice)
-
-    return {
-      quote: quote.quote,
-      amount: quote.amount,
-      fee_reserve: quote.fee_reserve,
-      paid: false,
-      expiry: quote.expiry
-    }
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error'
-    throw new Error(`Failed to create melt quote: ${errorMessage}`)
+  const wallet = getWallet(mintUrl)
+  const quote = await wallet.createMeltQuote(invoice)
+  return {
+    quote: quote.quote,
+    amount: quote.amount,
+    fee_reserve: quote.fee_reserve,
+    paid: false,
+    expiry: quote.expiry
   }
 }
 
@@ -222,39 +170,29 @@ export async function meltProofs(
   mintUrl: string,
   quote: MeltQuote,
   proofs: EcashProof[],
-  description?: string,
+  _description?: string,
   originalInvoice?: string
 ): Promise<EcashMeltResult> {
-  try {
-    const wallet = getWallet(mintUrl)
-    await wallet.loadMint()
-    // v3.0.0: Need to recreate the quote object from the wallet
-    // The new API expects the quote object returned by createMeltQuote
-    // IMPORTANT: We need to use the original bolt11 invoice, not the quote ID
-    const invoiceToUse = originalInvoice || quote.quote
-    const meltQuote = await wallet.createMeltQuote(invoiceToUse)
-    const result = await wallet.meltProofs(meltQuote, proofs)
+  const wallet = getWallet(mintUrl)
+  await wallet.loadMint()
+  // v3.0.0: Need to recreate the quote object from the wallet
+  // The new API expects the quote object returned by createMeltQuote
+  // IMPORTANT: We need to use the original bolt11 invoice, not the quote ID
+  const invoiceToUse = originalInvoice || quote.quote
+  const meltQuote = await wallet.createMeltQuote(invoiceToUse)
+  const result = await wallet.meltProofs(meltQuote, proofs)
 
-    type MeltResult = {
-      preimage?: string
-      payment_preimage?: string
-      change?: EcashProof[]
-    }
-    const meltResult = result as MeltResult
+  type MeltResult = {
+    preimage?: string
+    payment_preimage?: string
+    change?: EcashProof[]
+  }
+  const meltResult = result as MeltResult
 
-    // Connection successful, update status to true
-    useEcashStore.getState().updateMintConnection(mintUrl, true)
-    useEcashStore.getState().setError(undefined)
-
-    return {
-      paid: true, // If we get here without error, it was successful
-      preimage: meltResult.preimage || meltResult.payment_preimage || undefined,
-      change: result.change
-    }
-  } catch (error) {
-    throw new Error(
-      `Failed to melt proofs: ${error instanceof Error ? error.message : 'Unknown error'}`
-    )
+  return {
+    paid: true, // If we get here without error, it was successful
+    preimage: meltResult.preimage || meltResult.payment_preimage || undefined,
+    change: result.change
   }
 }
 
@@ -262,44 +200,23 @@ export async function validateProofs(
   mintUrl: string,
   proofs: EcashProof[]
 ): Promise<{ validProofs: EcashProof[]; spentProofs: EcashProof[] }> {
-  try {
-    const wallet = getWallet(mintUrl)
-    await wallet.loadMint()
+  const wallet = getWallet(mintUrl)
+  await wallet.loadMint()
 
-    const proofStates = await wallet.checkProofsStates(proofs)
+  const proofStates = await wallet.checkProofsStates(proofs)
 
-    // Connection successful, update status to true
-    useEcashStore.getState().updateMintConnection(mintUrl, true)
-    useEcashStore.getState().setError(undefined)
+  const validProofs: EcashProof[] = []
+  const spentProofs: EcashProof[] = []
 
-    const validProofs: EcashProof[] = []
-    const spentProofs: EcashProof[] = []
-
-    proofStates.forEach((state, index) => {
-      if (state.state === 'UNSPENT' || state.state === 'PENDING') {
-        validProofs.push(proofs[index])
-      } else if (state.state === 'SPENT') {
-        spentProofs.push(proofs[index])
-      }
-    })
-
-    return { validProofs, spentProofs }
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-    const errorName = (error as { name?: string })?.name
-
-    if (
-      errorName === 'NetworkError' ||
-      errorMsg.includes('Network request failed')
-    ) {
-      useEcashStore
-        .getState()
-        .setError('Network request failed. Please check your connection.')
-      useEcashStore.getState().updateMintConnection(mintUrl, false)
+  proofStates.forEach((state, index) => {
+    if (state.state === 'UNSPENT' || state.state === 'PENDING') {
+      validProofs.push(proofs[index])
+    } else if (state.state === 'SPENT') {
+      spentProofs.push(proofs[index])
     }
+  })
 
-    throw new Error(`Failed to validate proofs: ${errorMsg}`)
-  }
+  return { validProofs, spentProofs }
 }
 
 export async function sendEcash(
@@ -308,63 +225,53 @@ export async function sendEcash(
   proofs: EcashProof[],
   memo?: string
 ): Promise<EcashSendResult> {
-  try {
-    if (!proofs || proofs.length === 0) {
-      throw new Error('No proofs available to send')
-    }
+  if (!proofs || proofs.length === 0) {
+    throw new Error('No proofs available to send')
+  }
 
-    // Validate proofs before attempting to send
-    const { validProofs, spentProofs } = await validateProofs(mintUrl, proofs)
+  // Validate proofs before attempting to send
+  const { validProofs, spentProofs } = await validateProofs(mintUrl, proofs)
 
-    if (spentProofs.length > 0) {
-      throw new Error(
-        `Token already spent. ${spentProofs.length} proof(s) have been spent.`
-      )
-    }
-
-    if (validProofs.length === 0) {
-      throw new Error('No valid proofs available to send')
-    }
-
-    const totalProofAmount = validProofs.reduce(
-      (sum, proof) => sum + proof.amount,
-      0
-    )
-
-    if (totalProofAmount < amount) {
-      throw new Error(
-        `Insufficient balance. Available: ${totalProofAmount} sats, Required: ${amount} sats`
-      )
-    }
-
-    const wallet = getWallet(mintUrl)
-    // Ensure wallet is loaded with mint keys
-    await wallet.loadMint()
-
-    const { keep, send } = await wallet.send(amount, validProofs, {
-      includeFees: true
-    })
-
-    // Connection successful, update status to true
-    useEcashStore.getState().updateMintConnection(mintUrl, true)
-    useEcashStore.getState().setError(undefined)
-
-    const token = getEncodedTokenV4({
-      mint: mintUrl,
-      proofs: send,
-      unit: 'sat',
-      memo
-    })
-
-    return {
-      token,
-      keep,
-      send
-    }
-  } catch (error) {
+  if (spentProofs.length > 0) {
     throw new Error(
-      `${error instanceof Error ? error.message : 'Unknown error'}`
+      `Token already spent. ${spentProofs.length} proof(s) have been spent.`
     )
+  }
+
+  if (validProofs.length === 0) {
+    throw new Error('No valid proofs available to send')
+  }
+
+  const totalProofAmount = validProofs.reduce(
+    (sum, proof) => sum + proof.amount,
+    0
+  )
+
+  if (totalProofAmount < amount) {
+    throw new Error(
+      `Insufficient balance. Available: ${totalProofAmount} sats, Required: ${amount} sats`
+    )
+  }
+
+  const wallet = getWallet(mintUrl)
+  // Ensure wallet is loaded with mint keys
+  await wallet.loadMint()
+
+  const { keep, send } = await wallet.send(amount, validProofs, {
+    includeFees: true
+  })
+
+  const token = getEncodedTokenV4({
+    mint: mintUrl,
+    proofs: send,
+    unit: 'sat',
+    memo
+  })
+
+  return {
+    token,
+    keep,
+    send
   }
 }
 
@@ -372,53 +279,30 @@ export async function receiveEcash(
   mintUrl: string,
   token: string
 ): Promise<EcashReceiveResult> {
-  try {
-    const wallet = getWallet(mintUrl)
-    await wallet.loadMint()
+  const wallet = getWallet(mintUrl)
+  await wallet.loadMint()
 
-    // Decode token to get mint URL and validate
-    const decodedToken = getDecodedToken(token)
-    if (decodedToken.mint !== mintUrl) {
-      throw new Error('Token mint URL does not match current mint')
-    }
+  // Decode token to get mint URL and validate
+  const decodedToken = getDecodedToken(token)
+  if (decodedToken.mint !== mintUrl) {
+    throw new Error('Token mint URL does not match current mint')
+  }
 
-    const proofs = await wallet.receive(token)
-    const totalAmount = proofs.reduce((sum, proof) => sum + proof.amount, 0)
+  const proofs = await wallet.receive(token)
+  const totalAmount = proofs.reduce((sum, proof) => sum + proof.amount, 0)
 
-    // Connection successful, update status to true
-    useEcashStore.getState().updateMintConnection(mintUrl, true)
-    useEcashStore.getState().setError(undefined)
-
-    return {
-      proofs,
-      totalAmount,
-      memo: decodedToken.memo
-    }
-  } catch (error) {
-    throw new Error(
-      `Failed to receive ecash: ${error instanceof Error ? error.message : 'Unknown error'}`
-    )
+  return {
+    proofs,
+    totalAmount,
+    memo: decodedToken.memo
   }
 }
 
 export async function getMintBalance(
-  mintUrl: string,
+  _mintUrl: string,
   proofs: EcashProof[]
 ): Promise<number> {
-  try {
-    // Filter proofs for this specific mint
-    const mintProofs = proofs.filter(() => {
-      // This would need to be enhanced to properly identify mint-specific proofs
-      // For now, we'll assume all proofs belong to the current mint
-      return true
-    })
-
-    return mintProofs.reduce((sum, proof) => sum + proof.amount, 0)
-  } catch (error) {
-    throw new Error(
-      `Failed to calculate mint balance: ${error instanceof Error ? error.message : 'Unknown error'}`
-    )
-  }
+  return proofs.reduce((sum, proof) => sum + proof.amount, 0)
 }
 
 export async function validateEcashToken(
@@ -439,10 +323,6 @@ export async function validateEcashToken(
     }
 
     const proofStates = await wallet.checkProofsStates(proofs)
-
-    // Connection successful, update status to true
-    useEcashStore.getState().updateMintConnection(mintUrl, true)
-    useEcashStore.getState().setError(undefined)
 
     const spentProofs = proofStates.filter((state) => state.state === 'SPENT')
     const unspentProofs = proofStates.filter(
@@ -477,71 +357,10 @@ export async function validateEcashToken(
         details: `Mixed state: ${spentProofs.length} spent, ${unspentProofs.length} unspent`
       }
     }
-  } catch (error) {
-    let httpStatus: number | undefined
-    if (error && typeof error === 'object') {
-      const errorAny = error as {
-        status?: number
-        statusCode?: number
-        response?: { status?: number; statusText?: string }
-        cause?: { status?: number; statusCode?: number }
-      }
-
-      httpStatus =
-        errorAny.status ||
-        errorAny.statusCode ||
-        errorAny.response?.status ||
-        errorAny.cause?.status ||
-        errorAny.cause?.statusCode
-    }
-
-    const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-    const errorName = (error as { name?: string })?.name
-    if (!httpStatus && errorMsg) {
-      const statusMatch = errorMsg.match(
-        /\b(429|403|401|404|500|502|503|504)\b/
-      )
-      if (statusMatch) {
-        httpStatus = parseInt(statusMatch[1], 10)
-      }
-    }
-
-    const isRateLimitError =
-      errorMsg.toLowerCase().includes('rate limit') ||
-      errorMsg.toLowerCase().includes('too many requests') ||
-      errorMsg.toLowerCase().includes('429')
-
-    // Note: React Native's fetch doesn't expose HTTP status codes in NetworkError
-    // The @cashu/cashu-ts library uses fetch internally, so we can't definitively
-    // detect rate limiting (429) or blocked connections (403) from generic network errors
-    if (httpStatus) {
-      const storeErrorMessage =
-        httpStatus === 429
-          ? 'Connection rate limited. Please wait before retrying.'
-          : httpStatus === 403
-            ? 'Connection blocked or forbidden. Please check mint access.'
-            : `HTTP ${httpStatus}: ${errorMsg}`
-
-      useEcashStore.getState().setError(storeErrorMessage)
-      useEcashStore.getState().updateMintConnection(mintUrl, false)
-    } else if (isRateLimitError) {
-      useEcashStore
-        .getState()
-        .setError('Connection rate limited. Please wait before retrying.')
-      useEcashStore.getState().updateMintConnection(mintUrl, false)
-    } else if (
-      errorName === 'NetworkError' ||
-      errorMsg.includes('Network request failed')
-    ) {
-      useEcashStore
-        .getState()
-        .setError('Network request failed. Please check your connection.')
-      useEcashStore.getState().updateMintConnection(mintUrl, false)
-    }
-
+  } catch {
     return {
       isValid: false,
-      details: `Failed to check proof states: ${error instanceof Error ? error.message : 'Unknown error'}`
+      details: `Failed to check proof states,.`
     }
   }
 }

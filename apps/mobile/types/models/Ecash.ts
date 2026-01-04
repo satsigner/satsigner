@@ -56,7 +56,6 @@ export type MeltQuoteState = 'PENDING' | 'PAID' | 'EXPIRED' | 'CANCELLED'
 export type EcashConnectionStatus = {
   isConnected: boolean
   isConnecting: boolean
-  lastError?: string
   lastSync?: string
 }
 
