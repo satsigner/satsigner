@@ -6,13 +6,13 @@
     "type": "git",
     "url": "https://github.com/satsigner/satsigner"
   },
-  "homepage": "https://satsigner.com/",
+  "homepage": "https://satsigner.com",
   "bugs": {
     "url": "https://github.com/satsigner/satsigner/issues"
   },
   "author": {
     "name": "Satsigner Team",
-    "url": "https://satsigner.com/",
+    "url": "https://satsigner.com",
     "email": "satsigner@pm.me"
   },
   "license": "MIT",
