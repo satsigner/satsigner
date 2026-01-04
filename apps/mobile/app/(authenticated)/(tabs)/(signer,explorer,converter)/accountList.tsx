@@ -19,6 +19,20 @@ import SSButton from '@/components/SSButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import { DEFAULT_PIN, PIN_KEY, SALT_KEY } from '@/config/auth'
+import {
+  sampleMultiAddressTether,
+  sampleSalvadorAddress,
+  sampleSegwitAddress,
+  sampleSignetAddress,
+  sampleSignetMultisigKey1,
+  sampleSignetMultisigKey2,
+  sampleSignetMultisigKey3Fingerprint,
+  sampleSignetMultisigKey3Xpub,
+  sampleSignetWalletSeed,
+  sampleSignetXpub,
+  sampleSignetXpubFingerprint,
+  sampleTestnet4Address
+} from '@/constants/samples'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
 import useNostrSync from '@/hooks/useNostrSync'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
@@ -42,20 +56,6 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
-import {
-  sampleMultiAddressTether,
-  sampleSalvadorAddress,
-  sampleSegwitAddress,
-  sampleSignetAddress,
-  sampleSignetMultisigKey1,
-  sampleSignetMultisigKey2,
-  sampleSignetMultisigKey3Fingerprint,
-  sampleSignetMultisigKey3Xpub,
-  sampleSignetWalletSeed,
-  sampleSignetXpub,
-  sampleSignetXpubFingerprint,
-  sampleTestnet4Address
-} from '@/constants/samples'
 
 // Helper function to map local Network type to bdk-rn Network enum
 function mapNetworkToBdkNetwork(network: 'bitcoin' | 'testnet' | 'signet') {
