@@ -56,13 +56,13 @@ function useNostrSync() {
     ])
   )
   const cleanupSubscriptions = useCallback(async () => {
-    const apisToCleanup = [...getActiveSubscriptions()]
+    const apisToCleanup = Array.from(getActiveSubscriptions())
     clearSubscriptions()
     for (const api of apisToCleanup) {
       try {
         await api.closeAllSubscriptions()
       } catch {
-        // TODO: log error
+        toast.error('Failed to clean subscription for: ' + api.getRelays().join(', '))
       }
     }
   }, [clearSubscriptions, getActiveSubscriptions])
@@ -122,9 +122,21 @@ function useNostrSync() {
         })
       }
     },
-    [updateAccountNostr] // eslint-disable-line react-hooks/exhaustive-deps
+    [] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
+  // TODO: update type
+  function getEventContent(unwrappedEvent: any) {
+    try {
+      return JSON.parse(unwrappedEvent.content)
+    } catch {}
+    try {
+      return decompressMessage(unwrappedEvent.content)
+    } catch {}
+    return unwrappedEvent.content
+  }
+
+  // TODO: update type
   const processEvent = useCallback(
     async (account: Account, unwrappedEvent: any): Promise<string> => {
       // Check for processed events at the very beginning
@@ -136,16 +148,7 @@ function useNostrSync() {
       // Mark event as processed immediately to prevent duplicate processing
       addProcessedEvent(account.id, unwrappedEvent.id)
 
-      let eventContent: any
-      try {
-        eventContent = JSON.parse(unwrappedEvent.content)
-      } catch {
-        try {
-          eventContent = decompressMessage(unwrappedEvent.content)
-        } catch {
-          eventContent = unwrappedEvent.content
-        }
-      }
+      const eventContent = getEventContent(unwrappedEvent)
 
       if (eventContent.data) {
         const data_type = eventContent.data.data_type
@@ -210,7 +213,7 @@ function useNostrSync() {
 
       return eventContent
     },
-    [addMember, storeDM] // eslint-disable-line react-hooks/exhaustive-deps
+    [] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const protocolSubscription = useCallback(
@@ -237,7 +240,7 @@ function useNostrSync() {
       )
       return nostrApi
     },
-    [processEvent] // eslint-disable-line react-hooks/exhaustive-deps
+    [] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const dataExchangeSubscription = useCallback(
@@ -265,7 +268,7 @@ function useNostrSync() {
       )
       return nostrApi
     },
-    [processEvent] // eslint-disable-line react-hooks/exhaustive-deps
+    [] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const nostrSyncSubscriptions = useCallback(
@@ -295,20 +298,11 @@ function useNostrSync() {
         addSubscription(dataExchangeApi)
       }
     },
-    [
-      protocolSubscription,
-      dataExchangeSubscription,
-      cleanupSubscriptions,
-      addSubscription,
-      getActiveSubscriptions
-    ]
+    [] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const sendLabelsToNostr = async (account?: Account, singleLabel?: Label) => {
-    if (!account?.nostr?.autoSync) {
-      return
-    }
-    if (!account || !account.nostr) {
+    if (!account || !account.nostr || !account.nostr.autoSync) {
       return
     }
     const { commonNsec, commonNpub, relays, deviceNpub } = account.nostr
@@ -397,7 +391,7 @@ function useNostrSync() {
         dms: []
       })
     },
-    [updateAccountNostr]
+    [] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   async function generateCommonNostrKeys(account?: Account) {
@@ -472,14 +466,13 @@ function useNostrSync() {
       return
     }
 
-    let nostrApi: NostrAPI | null = null
     const messageContent = {
       created_at: Math.floor(Date.now() / 1000),
       public_key_bech32: deviceNpub
     }
 
     const compressedMessage = compressMessage(messageContent)
-    nostrApi = new NostrAPI(relays)
+    const nostrApi = new NostrAPI(relays)
     await nostrApi.connect()
 
     const eventKind1059 = await nostrApi.createKind1059(
