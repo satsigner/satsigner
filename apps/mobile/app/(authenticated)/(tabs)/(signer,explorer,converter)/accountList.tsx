@@ -185,6 +185,7 @@ export default function AccountList() {
   }
 
   async function syncAccounts() {
+    if (connectionMode !== 'auto') return
     for (const account of accounts) {
       if (account.network !== tabs[tabIndex].key) continue
 
@@ -193,7 +194,7 @@ export default function AccountList() {
       if (isImportAddress && !addresses[account.id]) continue
       if (!isImportAddress && !wallets[account.id]) continue
 
-      if (connectionMode === 'auto' && account.syncStatus !== 'syncing') {
+      if (account.syncStatus !== 'syncing') {
         const updatedAccount =
           account.policyType === 'watchonly' &&
           account.keys[0].creationType === 'importAddress'
