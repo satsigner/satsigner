@@ -899,7 +899,9 @@ export default function WatchOnly() {
         updateAccount(data.accountWithEncryptedSecret)
         toast.success(t('watchonly.success.accountCreated'))
         router.dismissAll()
-        router.navigate(`/signer/bitcoin/account/${data.accountWithEncryptedSecret.id}`)
+        router.navigate(
+          `/signer/bitcoin/account/${data.accountWithEncryptedSecret.id}`
+        )
 
         // Start sync in background if auto mode is enabled
         if (connectionMode === 'auto') {

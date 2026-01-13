@@ -84,7 +84,9 @@ export default function DiceEntropy() {
         setMnemonic(mnemonic)
         const fingerprint = getFingerprintFromMnemonic(mnemonic)
         setFingerprint(fingerprint)
-        router.navigate(`/signer/bitcoin/account/add/generate/mnemonic/${index}`)
+        router.navigate(
+          `/signer/bitcoin/account/add/generate/mnemonic/${index}`
+        )
       }
     }
   }

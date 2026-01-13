@@ -206,13 +206,19 @@ function SSMultisigKeyControl({
     setNetwork(network)
 
     if (type === 'generateMnemonic') {
-      router.navigate(`/signer/bitcoin/account/add/multiSig/keySettings/${index}`)
+      router.navigate(
+        `/signer/bitcoin/account/add/multiSig/keySettings/${index}`
+      )
     } else if (type === 'importMnemonic') {
       setWordCountModalVisible(true)
     } else if (type === 'importDescriptor') {
-      router.navigate(`/signer/bitcoin/account/add/(common)/import/descriptor/${index}`)
+      router.navigate(
+        `/signer/bitcoin/account/add/(common)/import/descriptor/${index}`
+      )
     } else if (type === 'importExtendedPub') {
-      router.navigate(`/signer/bitcoin/account/add/(common)/import/extendedPub/${index}`)
+      router.navigate(
+        `/signer/bitcoin/account/add/(common)/import/extendedPub/${index}`
+      )
     }
   }
 

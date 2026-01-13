@@ -107,7 +107,9 @@ export function useBitcoinContentHandler({
   )
 
   const handleSend = useCallback(() => {
-    router.push(`/signer/bitcoin/account/${accountId}/signAndSend/selectUtxoList`)
+    router.push(
+      `/signer/bitcoin/account/${accountId}/signAndSend/selectUtxoList`
+    )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountId])
 

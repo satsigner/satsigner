@@ -234,7 +234,9 @@ async function processBitcoinContent(
     }
 
     case 'bitcoin_descriptor':
-      actions.navigate(`/signer/bitcoin/account/add/watchOnly?descriptor=${content.cleaned}`)
+      actions.navigate(
+        `/signer/bitcoin/account/add/watchOnly?descriptor=${content.cleaned}`
+      )
       break
 
     case 'extended_public_key':

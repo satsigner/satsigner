@@ -35,7 +35,9 @@ function SSUtxoCard({ utxo }: SSUtxoCardProps) {
   return (
     <TouchableOpacity
       onPress={() =>
-        router.navigate(`/signer/bitcoin/account/${id}/transaction/${txid}/utxo/${vout}`)
+        router.navigate(
+          `/signer/bitcoin/account/${id}/transaction/${txid}/utxo/${vout}`
+        )
       } // TODO: Refactor to receive as prop
     >
       <SSHStack
