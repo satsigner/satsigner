@@ -24,7 +24,8 @@ export default function Home() {
           params: { title: page.title }
         })
       } else {
-        router.navigate(`${segment}${page.url}`)
+        // Use the URL directly if it starts with /, otherwise prepend segment
+        router.navigate(page.url.startsWith('/') ? page.url : `${segment}${page.url}`)
       }
     },
     [router, segment]

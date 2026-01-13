@@ -480,7 +480,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
           )
           if (tappedRect !== undefined && showOutputField) {
             router.navigate(
-              `/account/${id}/transaction/${tappedRect.utxo.txid}/utxo/${tappedRect.utxo.vout}`
+              `/signer/bitcoin/account/${id}/transaction/${tappedRect.utxo.txid}/utxo/${tappedRect.utxo.vout}`
             )
             return
           }
@@ -492,7 +492,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
               y >= rect.top
           )
           if (tapLabelRect !== undefined && showTransactionInfo) {
-            router.navigate(`/account/${id}/transaction/${tapLabelRect.id}`)
+            router.navigate(`/signer/bitcoin/account/${id}/transaction/${tapLabelRect.id}`)
           }
         }
       }

@@ -136,7 +136,7 @@ function SSSignatureDropdown({
       })
 
       router.push({
-        pathname: `/account/${accountId}/settings/nostr/devicesGroupChat`
+        pathname: `/signer/bitcoin/account/${accountId}/settings/nostr/devicesGroupChat`
       })
     } catch {
       toast.error(t('account.nostrSync.failedToSendTransactionData'))

@@ -195,7 +195,7 @@ function SSMultisigKeyControl({
     setMnemonicWordCount(
       localMnemonicWordCount as NonNullable<Key['mnemonicWordCount']>
     )
-    router.navigate(`/account/add/import/mnemonic/${index}`)
+    router.navigate(`/signer/bitcoin/account/add/import/mnemonic/${index}`)
   }
 
   async function handleAction(type: NonNullable<Key['creationType']>) {
@@ -206,13 +206,13 @@ function SSMultisigKeyControl({
     setNetwork(network)
 
     if (type === 'generateMnemonic') {
-      router.navigate(`/account/add/multiSig/keySettings/${index}`)
+      router.navigate(`/signer/bitcoin/account/add/multiSig/keySettings/${index}`)
     } else if (type === 'importMnemonic') {
       setWordCountModalVisible(true)
     } else if (type === 'importDescriptor') {
-      router.navigate(`/account/add/(common)/import/descriptor/${index}`)
+      router.navigate(`/signer/bitcoin/account/add/(common)/import/descriptor/${index}`)
     } else if (type === 'importExtendedPub') {
-      router.navigate(`/account/add/(common)/import/extendedPub/${index}`)
+      router.navigate(`/signer/bitcoin/account/add/(common)/import/extendedPub/${index}`)
     }
   }
 
@@ -273,7 +273,7 @@ function SSMultisigKeyControl({
     if (accountId) {
       // In settings mode, use the existing account
       router.navigate(
-        `/account/${accountId}/settings/export/publicKey?keyIndex=${index}`
+        `/signer/bitcoin/account/${accountId}/settings/export/publicKey?keyIndex=${index}`
       )
     } else {
       // In creation mode, use account builder store data
@@ -287,7 +287,7 @@ function SSMultisigKeyControl({
 
       // Navigate to a temporary export page that works with account builder data
       router.navigate(
-        `/account/add/multiSig/export/publicKey?keyIndex=${index}`
+        `/signer/bitcoin/account/add/multiSig/export/publicKey?keyIndex=${index}`
       )
     }
   }
@@ -296,7 +296,7 @@ function SSMultisigKeyControl({
     if (accountId) {
       // In settings mode, use the existing account
       router.navigate(
-        `/account/${accountId}/settings/export/descriptor?keyIndex=${index}`
+        `/signer/bitcoin/account/${accountId}/settings/export/descriptor?keyIndex=${index}`
       )
     } else {
       // In creation mode, use account builder store data
@@ -310,7 +310,7 @@ function SSMultisigKeyControl({
 
       // Navigate to a temporary export page that works with account builder data
       router.navigate(
-        `/account/add/multiSig/export/descriptor?keyIndex=${index}`
+        `/signer/bitcoin/account/add/multiSig/export/descriptor?keyIndex=${index}`
       )
     }
   }
@@ -319,7 +319,7 @@ function SSMultisigKeyControl({
     if (accountId) {
       // In settings mode, use the existing account
       router.navigate(
-        `/account/${accountId}/settings/export/seedWords?keyIndex=${index}`
+        `/signer/bitcoin/account/${accountId}/settings/export/seedWords?keyIndex=${index}`
       )
     } else {
       // In creation mode, use account builder store data
@@ -333,7 +333,7 @@ function SSMultisigKeyControl({
 
       // Navigate to a temporary export page that works with account builder data
       router.navigate(
-        `/account/add/multiSig/export/seedWords?keyIndex=${index}`
+        `/signer/bitcoin/account/add/multiSig/export/seedWords?keyIndex=${index}`
       )
     }
   }
