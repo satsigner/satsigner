@@ -449,8 +449,8 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 state.accounts[index].transactions[txIndex].label = label
 
                 // also store label in vout property of transaction model
-                if (state.accounts[index].transaction[txIndex].vout[vout]) {
-                  state.accounts[index].transaction[txIndex].vout[vout].label =
+                if (state.accounts[index].transactions[txIndex].vout[vout]) {
+                  state.accounts[index].transactions[txIndex].vout[vout].label =
                     label
                 }
 
