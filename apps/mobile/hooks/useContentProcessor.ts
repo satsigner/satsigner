@@ -95,7 +95,7 @@ async function processBitcoinContent(
 
       const psbtParam = encodeURIComponent(psbtBase64)
       navigate(
-        `/account/${accountId}/signAndSend/previewMessage?psbt=${psbtParam}`
+        `/signer/bitcoin/account/${accountId}/signAndSend/previewMessage?psbt=${psbtParam}`
       )
 
       if (account) {
@@ -234,12 +234,14 @@ async function processBitcoinContent(
     }
 
     case 'bitcoin_descriptor':
-      actions.navigate(`/account/add/watchOnly?descriptor=${content.cleaned}`)
+      actions.navigate(
+        `/signer/bitcoin/account/add/watchOnly?descriptor=${content.cleaned}`
+      )
       break
 
     case 'extended_public_key':
       actions.navigate(
-        `/account/add/watchOnly?extendedPublicKey=${encodeURIComponent(
+        `/signer/bitcoin/account/add/watchOnly?extendedPublicKey=${encodeURIComponent(
           content.cleaned
         )}`
       )
@@ -247,7 +249,7 @@ async function processBitcoinContent(
 
     case 'bitcoin_transaction':
       navigate({
-        pathname: '/account/[id]/signAndSend/previewMessage',
+        pathname: '/signer/bitcoin/account/[id]/signAndSend/previewMessage',
         params: { id: accountId, signedPsbt: content.cleaned }
       })
       break
@@ -281,7 +283,7 @@ async function processBitcoinContent(
           }
 
           navigate({
-            pathname: '/account/[id]/signAndSend/ioPreview',
+            pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview',
             params: { id: accountId }
           })
         } else {
@@ -330,7 +332,7 @@ async function processBitcoinContent(
             }
 
             navigate({
-              pathname: '/account/[id]/signAndSend/ioPreview',
+              pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview',
               params: { id: accountId }
             })
           }
@@ -349,7 +351,7 @@ async function processBitcoinContent(
         }
 
         navigate({
-          pathname: '/account/[id]/signAndSend/ioPreview',
+          pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview',
           params: { id: accountId }
         })
       }
@@ -370,7 +372,7 @@ async function processBitcoinContent(
       }
 
       navigate({
-        pathname: '/account/[id]/signAndSend/ioPreview',
+        pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview',
         params: { id: accountId }
       })
       break

@@ -159,7 +159,7 @@ export function useNostrSignFlow() {
     setTxBuilderResult(txBuilderResult)
 
     router.replace(
-      `/account/${accountMatch.account.id}/signAndSend/previewMessage`
+      `/signer/bitcoin/account/${accountMatch.account.id}/signAndSend/previewMessage`
     )
 
     toast.success(
