@@ -3,6 +3,24 @@ import crypto from 'react-native-aes-crypto'
 import { DEFAULT_PIN, PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
 
+const MAX_UINT32 = 0xffffffff // 2^32 - 1
+
+function randomKey(length = 16) {
+  return crypto.randomKey(length)
+}
+
+function randomUuid() {
+  return crypto.randomUuid()
+}
+
+async function randomNum() {
+  const randomHex = await crypto.randomKey(32);
+  const random32BitsHex = randomHex.slice(0, 8)
+  const randomNumber = parseInt(random32BitsHex, 16)
+  const randomDecimal = randomNumber / (MAX_UINT32 + 1)
+  return randomDecimal
+}
+
 function sha256(text: string) {
   return crypto.sha256(text)
 }
@@ -47,5 +65,8 @@ export {
   generateSalt,
   getPinForDecryption,
   pbkdf2Encrypt,
+  randomKey,
+  randomNum,
+  randomUuid,
   sha256
 }

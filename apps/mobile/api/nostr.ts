@@ -2,10 +2,10 @@ import type { NDKKind, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import { Buffer } from 'buffer'
 import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
-import crypto from 'react-native-aes-crypto'
 import { toast } from 'sonner-native'
 
 import type { NostrKeys, NostrMessage } from '@/types/models/Nostr'
+import { randomNum, randomKey } from '@/utils/crypto'
 
 const POOL_SIZE = 1024 // 1KB of random values
 
@@ -16,7 +16,7 @@ let randomPoolIndex = 0
 // Synchronously initialize the random pool with Math.random
 function initializeRandomPool() {
   for (let i = 0; i < POOL_SIZE; i++) {
-    randomPool[i] = Math.floor(Math.random() * 256)
+    randomPool[i] = Math.floor(randomNum() * 256)
   }
   randomPoolIndex = 0
 }
@@ -26,7 +26,7 @@ initializeRandomPool()
 
 // Then asynchronously refill with better random values
 async function refillRandomPool() {
-  const randomHex = await crypto.randomKey(POOL_SIZE)
+  const randomHex = await randomKey(POOL_SIZE)
   const newPool = new Uint8Array(Buffer.from(randomHex, 'hex'))
   // Only update if we haven't used too many values
   if (randomPoolIndex < POOL_SIZE / 2) {
@@ -56,12 +56,12 @@ if (typeof global.crypto === 'undefined') {
         array.byteLength
       )
       for (let i = 0; i < uint8Array.length; i++) {
-        uint8Array[i] = Math.floor(Math.random() * 256)
+        uint8Array[i] = Math.floor(randomNum() * 256)
       }
       return array
     },
     getRandomBase64String: async (length: number): Promise<string> => {
-      const randomHex = await crypto.randomKey(length)
+      const randomHex = await randomKey(length)
       return Buffer.from(randomHex, 'hex').toString('base64')
     }
   } as Crypto
@@ -72,7 +72,7 @@ if (!global.crypto.getRandomBase64String) {
   global.crypto.getRandomBase64String = async (
     length: number
   ): Promise<string> => {
-    const randomHex = await crypto.randomKey(length)
+    const randomHex = await randomKey(length)
     return Buffer.from(randomHex, 'hex').toString('base64')
   }
 }
@@ -174,7 +174,7 @@ export class NostrAPI {
 
   static async generateNostrKeys(): Promise<NostrKeys> {
     // Generate random bytes using react-native-aes-crypto
-    const randomHex = await crypto.randomKey(32)
+    const randomHex = await randomKey(32)
     const randomBytesArray = new Uint8Array(Buffer.from(randomHex, 'hex'))
 
     // Use the private key directly with NDKPrivateKeySigner
@@ -305,7 +305,7 @@ export class NostrAPI {
     const getRandomBytes = (length: number): Uint8Array => {
       const bytes = new Uint8Array(length)
       for (let i = 0; i < length; i++) {
-        bytes[i] = Math.floor(Math.random() * 256)
+        bytes[i] = Math.floor(randomNum() * 256)
       }
       return bytes
     }

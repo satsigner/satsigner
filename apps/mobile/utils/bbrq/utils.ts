@@ -7,6 +7,8 @@
 import { base32 } from '@scure/base'
 import pako from 'pako'
 
+import { randomNum } from '@/utils/crypto'
+
 import { QR_DATA_CAPACITY } from './consts'
 import type { Encoding, SplitOptions, Version } from './types'
 
@@ -131,7 +133,7 @@ export function shuffled<T>(arr: T[]): T[] {
   arr = [...arr]
 
   for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
+    const j = Math.floor(randomNum() * (i + 1))
     const temp = arr[i]
     arr[i] = arr[j]
     arr[j] = temp
