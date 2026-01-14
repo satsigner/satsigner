@@ -4,7 +4,7 @@ import { randomNum } from '@/utils/crypto'
 /**
  * Returns a shuffled 3 word list that contains the correct seed word
  */
-function getConfirmWordCandidates(
+async function getConfirmWordCandidates(
   currentWord: string,
   seedWords: NonNullable<Secret['mnemonic']>
 ) {
@@ -15,7 +15,7 @@ function getConfirmWordCandidates(
 
   while (candidates.length < 3) {
     const newCandidate =
-      seedWordsArray[Math.floor(randomNum() * seedWordsArray.length)]
+      seedWordsArray[Math.floor((await randomNum()) * seedWordsArray.length)]
     if (!candidates.includes(newCandidate)) candidates.push(newCandidate)
   }
 
@@ -23,7 +23,7 @@ function getConfirmWordCandidates(
   let randomIndex: number
 
   while (currentIndex > 0) {
-    randomIndex = Math.floor(randomNum() * currentIndex)
+    randomIndex = Math.floor((await randomNum()) * currentIndex)
     currentIndex--
     ;[candidates[currentIndex], candidates[randomIndex]] = [
       candidates[randomIndex],
@@ -37,7 +37,7 @@ function getConfirmWordCandidates(
 /*
  * List of words that are prefixed of another, pre-computed ahead of time.
  */
-export const seedWordsPrefixOfAnother = {
+export const seedWordsPrefixOfAnother: Record<string, boolean> = {
   act: true,
   add: true,
   age: true,
@@ -87,6 +87,6 @@ export const seedWordsPrefixOfAnother = {
   van: true,
   win: true,
   you: true
-} as { [k: string]: boolean }
+}
 
 export { getConfirmWordCandidates }

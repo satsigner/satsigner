@@ -273,19 +273,21 @@ export class NostrAPI {
     const encodedContent = unescape(encodeURIComponent(content))
 
     // Create a simple synchronous random value generator
-    const getRandomBytes = (length: number): Uint8Array => {
+    const getRandomBytes = async (length: number): Promise<Uint8Array> => {
       const bytes = new Uint8Array(length)
       for (let i = 0; i < length; i++) {
-        bytes[i] = Math.floor(randomNum() * 256)
+        bytes[i] = Math.floor((await randomNum()) * 256)
       }
       return bytes
     }
 
     // Create a synchronous crypto object
     const syncCrypto = {
-      getRandomValues: <T extends ArrayBufferView | null>(array: T): T => {
+      getRandomValues: async <T extends ArrayBufferView | null>(
+        array: T
+      ): Promise<T> => {
         if (!array) return array
-        const bytes = getRandomBytes(array.byteLength)
+        const bytes = await getRandomBytes(array.byteLength)
         const uint8Array = new Uint8Array(
           array.buffer,
           array.byteOffset,
@@ -294,8 +296,8 @@ export class NostrAPI {
         uint8Array.set(bytes)
         return array
       },
-      getRandomBase64String: (length: number): string => {
-        const bytes = getRandomBytes(length)
+      getRandomBase64String: async (length: number): Promise<string> => {
+        const bytes = await getRandomBytes(length)
         return Buffer.from(bytes).toString('base64')
       }
     }
