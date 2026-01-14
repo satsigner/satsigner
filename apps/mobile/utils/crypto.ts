@@ -14,7 +14,7 @@ function randomUuid() {
 }
 
 async function randomNum() {
-  const randomHex = await crypto.randomKey(32);
+  const randomHex = await crypto.randomKey(32)
   const random32BitsHex = randomHex.slice(0, 8)
   const randomNumber = parseInt(random32BitsHex, 16)
   const randomDecimal = randomNumber / (MAX_UINT32 + 1)

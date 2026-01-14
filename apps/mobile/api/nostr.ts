@@ -5,38 +5,7 @@ import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
 import { toast } from 'sonner-native'
 
 import type { NostrKeys, NostrMessage } from '@/types/models/Nostr'
-import { randomNum, randomKey } from '@/utils/crypto'
-
-const POOL_SIZE = 1024 // 1KB of random values
-
-// Create a pool of random values - initialize with empty array to avoid null
-let randomPool = new Uint8Array(POOL_SIZE)
-let randomPoolIndex = 0
-
-// Synchronously initialize the random pool with Math.random
-function initializeRandomPool() {
-  for (let i = 0; i < POOL_SIZE; i++) {
-    randomPool[i] = Math.floor(randomNum() * 256)
-  }
-  randomPoolIndex = 0
-}
-
-// Initialize synchronously first
-initializeRandomPool()
-
-// Then asynchronously refill with better random values
-async function refillRandomPool() {
-  const randomHex = await randomKey(POOL_SIZE)
-  const newPool = new Uint8Array(Buffer.from(randomHex, 'hex'))
-  // Only update if we haven't used too many values
-  if (randomPoolIndex < POOL_SIZE / 2) {
-    randomPool = newPool
-    randomPoolIndex = 0
-  }
-}
-
-// Start refilling in the background
-refillRandomPool()
+import { randomKey, randomNum } from '@/utils/crypto'
 
 // Extend the Crypto interface to include getRandomBase64String
 declare global {
@@ -48,7 +17,9 @@ declare global {
 // Add global crypto polyfill with getRandomBase64String
 if (typeof global.crypto === 'undefined') {
   global.crypto = {
-    getRandomValues: <T extends ArrayBufferView | null>(array: T): T => {
+    getRandomValues: async <T extends ArrayBufferView | null>(
+      array: T
+    ): Promise<T> => {
       if (!array) return array
       const uint8Array = new Uint8Array(
         array.buffer,
@@ -56,7 +27,7 @@ if (typeof global.crypto === 'undefined') {
         array.byteLength
       )
       for (let i = 0; i < uint8Array.length; i++) {
-        uint8Array[i] = Math.floor(randomNum() * 256)
+        uint8Array[i] = Math.floor((await randomNum()) * 256)
       }
       return array
     },
