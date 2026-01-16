@@ -13,7 +13,6 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { parseLabel } from '@/utils/parse'
 
-import { SSIconInfo } from './icons'
 import SSText from './SSText'
 import SSStyledSatText from './SSStyledSatText'
 import SSTimeAgoText from './SSTimeAgoText'
@@ -67,12 +66,11 @@ function SSUtxoCard({ utxo }: SSUtxoCardProps) {
             <SSText style={{ color: Colors.gray[400] }}>{fiatCurrency}</SSText>
           </SSHStack>
         </SSVStack>
-        <SSVStack gap="none">
+        <SSVStack gap="none" style={{ alignItems: 'flex-end' }}>
           <SSHStack>
             <SSText>
               {utxo.addressTo && formatAddress(utxo.addressTo || '')}
             </SSText>
-            <SSIconInfo height={16} width={16} />
           </SSHStack>
           <SSText color="muted">
             {utxo.timestamp && (
