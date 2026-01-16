@@ -402,7 +402,9 @@ function DerivedAddresses({
     ({ item }: { item: Address }) => (
       <TouchableOpacity
         onPress={() =>
-          router.navigate(`/signer/bitcoin/account/${account.id}/address/${item.address}`)
+          router.navigate(
+            `/signer/bitcoin/account/${account.id}/address/${item.address}`
+          )
         }
       >
         <SSHStack style={addressListStyles.row}>
@@ -652,7 +654,9 @@ function DerivedAddresses({
           style={{ marginTop: 10 }}
           label={t('address.list.btn.manage')}
           onPress={() =>
-            router.navigate(`/signer/bitcoin/account/${account.id}/settings/manageAddresses`)
+            router.navigate(
+              `/signer/bitcoin/account/${account.id}/settings/manageAddresses`
+            )
           }
         />
       )}
@@ -688,6 +692,10 @@ function SpendableOutputs({
   const horizontalPadding = 48
   const GRAPH_HEIGHT = halfHeight
   const GRAPH_WIDTH = width - horizontalPadding
+
+  const totalBalance = useMemo(() => {
+    return account.utxos.reduce((sum, u) => sum + u.value, 0)
+  }, [account.utxos])
 
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>
@@ -735,8 +743,7 @@ function SpendableOutputs({
           <SSVStack style={{ marginBottom: 16 }}>
             {sortUtxos([...account.utxos]).map((utxo) => (
               <SSVStack gap="xs" key={getUtxoOutpoint(utxo)}>
-                <SSSeparator color="grayDark" />
-                <SSUtxoCard utxo={utxo} />
+                <SSUtxoCard utxo={utxo} totalBalance={totalBalance} />
               </SSVStack>
             ))}
           </SSVStack>
@@ -1143,7 +1150,9 @@ export default function AccountView() {
                 </SSIconButton>
               )}
               <SSIconButton
-                onPress={() => router.navigate(`/signer/bitcoin/account/${id}/settings`)}
+                onPress={() =>
+                  router.navigate(`/signer/bitcoin/account/${id}/settings`)
+                }
               >
                 <SSIconKeys height={18} width={18} />
               </SSIconButton>

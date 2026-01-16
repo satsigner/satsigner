@@ -16,12 +16,14 @@ import { parseLabel } from '@/utils/parse'
 import SSText from './SSText'
 import SSStyledSatText from './SSStyledSatText'
 import SSTimeAgoText from './SSTimeAgoText'
+import SSUtxoBar from './SSUtxoBar'
 
 type SSUtxoCardProps = {
   utxo: Utxo
+  totalBalance?: number
 }
 
-function SSUtxoCard({ utxo }: SSUtxoCardProps) {
+function SSUtxoCard({ utxo, totalBalance }: SSUtxoCardProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
@@ -42,6 +44,9 @@ function SSUtxoCard({ utxo }: SSUtxoCardProps) {
         )
       } // TODO: Refactor to receive as prop
     >
+      {totalBalance !== undefined && totalBalance > 0 && (
+        <SSUtxoBar utxoValue={utxo.value} totalBalance={totalBalance} />
+      )}
       <SSHStack
         justifyBetween
         style={{ paddingTop: 8, flex: 1, alignItems: 'stretch' }}
