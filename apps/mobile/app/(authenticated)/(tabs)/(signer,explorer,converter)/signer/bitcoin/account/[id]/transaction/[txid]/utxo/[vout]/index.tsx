@@ -98,6 +98,29 @@ function UtxoDetails({
   return (
     <ScrollView>
       <SSVStack gap="lg" style={styles.innerContainer}>
+        {utxo && allAccountUtxos.length > 0 && (
+          <>
+            <SSVStack>
+              <SSText uppercase weight="bold" size="md">
+                {t('bitcoin.utxo')}
+              </SSText>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <SSBubbleChart
+                  utxos={allAccountUtxos}
+                  canvasSize={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
+                  inputs={currentUtxoInputs}
+                  dimUnselected={true}
+                  onPress={({ txid, vout }: Utxo) =>
+                    router.navigate(
+                      `/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${vout}`
+                    )
+                  }
+                />
+              </GestureHandlerRootView>
+            </SSVStack>
+            <SSSeparator color="gradient" />
+          </>
+        )}
         <SSVStack>
           <SSLabelDetails
             label={utxo?.label || ''}
@@ -139,29 +162,6 @@ function UtxoDetails({
                   </SSHStack>
                 </SSVStack>
               </SSClipboardCopy>
-            </SSVStack>
-            <SSSeparator color="gradient" />
-          </>
-        )}
-        {utxo && allAccountUtxos.length > 0 && (
-          <>
-            <SSVStack>
-              <SSText uppercase weight="bold" size="md">
-                {t('bitcoin.utxos')}
-              </SSText>
-              <GestureHandlerRootView style={{ flex: 1 }}>
-                <SSBubbleChart
-                  utxos={allAccountUtxos}
-                  canvasSize={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
-                  inputs={currentUtxoInputs}
-                  dimUnselected={true}
-                  onPress={({ txid, vout }: Utxo) =>
-                    router.navigate(
-                      `/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${vout}`
-                    )
-                  }
-                />
-              </GestureHandlerRootView>
             </SSVStack>
             <SSSeparator color="gradient" />
           </>
