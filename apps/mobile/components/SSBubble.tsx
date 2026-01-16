@@ -81,6 +81,11 @@ function SSBubble({
 
   const descriptionOpacity = useDerivedValue(() => {
     const zoomedRadius = scale.value * radius
+    return withTiming(scale.value <= 0.3 || zoomedRadius <= 25 ? 0 : 1)
+  }, [scale, radius])
+
+  const dateAddressOpacity = useDerivedValue(() => {
+    const zoomedRadius = scale.value * radius
     return withTiming(scale.value <= 1 || zoomedRadius <= 100 ? 0 : 1)
   }, [scale, radius])
 
@@ -272,7 +277,7 @@ function SSBubble({
       />
       {utxo.value && customFontManager && (
         <Group>
-          <Group layer={<Paint opacity={descriptionOpacity} />}>
+          <Group layer={<Paint opacity={dateAddressOpacity} />}>
             <Paragraph
               paragraph={dateParagraph}
               x={dateX}
@@ -293,6 +298,8 @@ function SSBubble({
               y={memoY}
               width={150}
             />
+          </Group>
+          <Group layer={<Paint opacity={dateAddressOpacity} />}>
             <Paragraph
               paragraph={fromParagraph}
               x={memoX}
