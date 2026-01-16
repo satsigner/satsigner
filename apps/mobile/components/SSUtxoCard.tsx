@@ -15,6 +15,7 @@ import { parseLabel } from '@/utils/parse'
 
 import { SSIconInfo } from './icons'
 import SSText from './SSText'
+import SSStyledSatText from './SSStyledSatText'
 import SSTimeAgoText from './SSTimeAgoText'
 
 type SSUtxoCardProps = {
@@ -25,7 +26,9 @@ function SSUtxoCard({ utxo }: SSUtxoCardProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
-  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+  const [currencyUnit, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  )
 
   const router = useRouter()
 
@@ -35,7 +38,9 @@ function SSUtxoCard({ utxo }: SSUtxoCardProps) {
   return (
     <TouchableOpacity
       onPress={() =>
-        router.navigate(`/signer/bitcoin/account/${id}/transaction/${txid}/utxo/${vout}`)
+        router.navigate(
+          `/signer/bitcoin/account/${id}/transaction/${txid}/utxo/${vout}`
+        )
       } // TODO: Refactor to receive as prop
     >
       <SSHStack
@@ -44,10 +49,18 @@ function SSUtxoCard({ utxo }: SSUtxoCardProps) {
       >
         <SSVStack gap="none" style={{}}>
           <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
-            <SSText size="3xl" style={{ lineHeight: 30 }}>
-              {formatNumber(utxo.value, 0, useZeroPadding)}
+            <SSStyledSatText
+              amount={utxo.value}
+              decimals={0}
+              useZeroPadding={useZeroPadding}
+              currency={currencyUnit}
+              textSize="3xl"
+            />
+            <SSText color="muted">
+              {currencyUnit === 'btc'
+                ? t('bitcoin.btc').toLowerCase()
+                : t('bitcoin.sats').toLowerCase()}
             </SSText>
-            <SSText color="muted">{t('bitcoin.sats').toLowerCase()}</SSText>
           </SSHStack>
           <SSHStack>
             <SSText>{formatNumber(satsToFiat(utxo.value), 2)}</SSText>
