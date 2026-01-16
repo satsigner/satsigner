@@ -39,8 +39,9 @@ function UtxoDetails({
   onPressAddress,
   onPressTx,
   tx,
-  utxo
-}: UtxoDetailsProps) {
+  utxo,
+  allAccountUtxos
+}: UtxoDetailsProps & { allAccountUtxos: Utxo[] }) {
   const placeholder = '-'
   const [blockTime, setBlockTime] = useState(placeholder)
   const [blockHeight, setBlockHeight] = useState(placeholder)
@@ -53,7 +54,7 @@ function UtxoDetails({
   const GRAPH_HEIGHT = height * 0.44
   const GRAPH_WIDTH = width - outerContainerPadding * 2
 
-  const utxosArray = useMemo(() => {
+  const currentUtxoInputs = useMemo(() => {
     if (!utxo) return []
     return [utxo]
   }, [utxo])
@@ -92,7 +93,7 @@ function UtxoDetails({
           />
         </SSVStack>
         <SSSeparator color="gradient" />
-        {utxo && utxosArray.length > 0 && (
+        {utxo && allAccountUtxos.length > 0 && (
           <>
             <SSVStack>
               <SSText uppercase size="md" weight="bold">
@@ -100,9 +101,10 @@ function UtxoDetails({
               </SSText>
               <GestureHandlerRootView style={{ flex: 1 }}>
                 <SSBubbleChart
-                  utxos={utxosArray}
+                  utxos={allAccountUtxos}
                   canvasSize={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
-                  inputs={[]}
+                  inputs={currentUtxoInputs}
+                  dimUnselected={true}
                   onPress={({ txid, vout }: Utxo) =>
                     router.navigate(
                       `/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${vout}`
@@ -186,13 +188,15 @@ function UtxoDetails({
 function UtxoDetailsPage() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 
-  const tx = useAccountsStore((state) =>
-    state.accounts
-      .find((account) => account.id === accountId)
-      ?.transactions.find((tx) => tx.id === txid)
+  const account = useAccountsStore((state) =>
+    state.accounts.find((account) => account.id === accountId)
   )
 
+  const tx = account?.transactions.find((tx) => tx.id === txid)
+
   const utxo = useGetAccountTransactionOutput(accountId!, txid!, Number(vout!))
+
+  const allAccountUtxos = account?.utxos || []
 
   function navigateToTx() {
     if (!accountId || !txid) return
@@ -220,6 +224,7 @@ function UtxoDetailsPage() {
           onPressTx={navigateToTx}
           tx={tx}
           utxo={utxo}
+          allAccountUtxos={allAccountUtxos}
         />
       </View>
     </>

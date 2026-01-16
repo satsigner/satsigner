@@ -33,6 +33,7 @@ type SSBubbleProps = {
   customFontManager: SkTypefaceFontProvider | null
   scale: Readonly<SharedValue<number>>
   animationDelay?: number
+  dimmed?: boolean
 }
 
 function SSBubble({
@@ -44,9 +45,11 @@ function SSBubble({
   isZoomedIn,
   customFontManager,
   scale,
-  animationDelay = 0
+  animationDelay = 0,
+  dimmed = false
 }: SSBubbleProps) {
   const opacity = useSharedValue(0)
+  const dimmedOpacity = useSharedValue(dimmed ? 0.3 : 1)
 
   useEffect(() => {
     opacity.value = withDelay(
@@ -57,6 +60,10 @@ function SSBubble({
       )
     )
   }, [animationDelay, opacity])
+
+  useEffect(() => {
+    dimmedOpacity.value = withTiming(dimmed ? 0.3 : 1, { duration: 250 })
+  }, [dimmed, dimmedOpacity])
 
   const backgroundColor = useDerivedValue(() => {
     if (selected)
@@ -76,6 +83,10 @@ function SSBubble({
     const zoomedRadius = scale.value * radius
     return withTiming(scale.value <= 1 || zoomedRadius <= 100 ? 0 : 1)
   }, [scale, radius])
+
+  const finalOpacity = useDerivedValue(() => {
+    return opacity.value * dimmedOpacity.value
+  }, [opacity, dimmedOpacity])
 
   const fontSize = radius / 6
   const satsFontSize = fontSize / 1.5
@@ -250,7 +261,7 @@ function SSBubble({
   if (!customFontManager) return null
 
   return (
-    <Group layer={<Paint opacity={opacity} />}>
+    <Group layer={<Paint opacity={finalOpacity} />}>
       <Circle
         cx={x}
         cy={y}
