@@ -1,10 +1,9 @@
 import { type Secret } from '@/types/models/Account'
-import { randomNum } from '@/utils/crypto'
 
 /**
  * Returns a shuffled 3 word list that contains the correct seed word
  */
-async function getConfirmWordCandidates(
+function getConfirmWordCandidates(
   currentWord: string,
   seedWords: NonNullable<Secret['mnemonic']>
 ) {
@@ -15,7 +14,7 @@ async function getConfirmWordCandidates(
 
   while (candidates.length < 3) {
     const newCandidate =
-      seedWordsArray[Math.floor((await randomNum()) * seedWordsArray.length)]
+      seedWordsArray[Math.floor(Math.random() * seedWordsArray.length)]
     if (!candidates.includes(newCandidate)) candidates.push(newCandidate)
   }
 
@@ -23,7 +22,7 @@ async function getConfirmWordCandidates(
   let randomIndex: number
 
   while (currentIndex > 0) {
-    randomIndex = Math.floor((await randomNum()) * currentIndex)
+    randomIndex = Math.floor(Math.random() * currentIndex)
     currentIndex--
     ;[candidates[currentIndex], candidates[randomIndex]] = [
       candidates[randomIndex],

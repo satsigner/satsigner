@@ -62,7 +62,9 @@ function useNostrSync() {
       try {
         await api.closeAllSubscriptions()
       } catch {
-        toast.error('Failed to clean subscription for: ' + api.getRelays().join(', '))
+        toast.error(
+          'Failed to clean subscription for: ' + api.getRelays().join(', ')
+        )
       }
     }
   }, [clearSubscriptions, getActiveSubscriptions])

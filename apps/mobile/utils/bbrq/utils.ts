@@ -7,8 +7,6 @@
 import { base32 } from '@scure/base'
 import pako from 'pako'
 
-import { randomNum } from '@/utils/crypto'
-
 import { QR_DATA_CAPACITY } from './consts'
 import type { Encoding, SplitOptions, Version } from './types'
 
@@ -124,22 +122,6 @@ export function looksLikePsbt(data: Uint8Array) {
   return new Uint8Array([0x70, 0x73, 0x62, 0x74, 0xff]).every(
     (b, i) => b === data[i]
   )
-}
-
-export function shuffled<T>(arr: T[]): T[] {
-  // modern Fisher-Yates shuffle (https://en.wikipedia.org/wiki/Fisher–Yates_shuffle#The_modern_algorithm)
-
-  // create a copy so we don't mutate the original
-  arr = [...arr]
-
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(randomNum() * (i + 1))
-    const temp = arr[i]
-    arr[i] = arr[j]
-    arr[j] = temp
-  }
-
-  return arr
 }
 
 export function versionToChars(v: Version) {

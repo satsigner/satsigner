@@ -55,11 +55,8 @@ export default function Confirm() {
   )
   const { accountBuilderFinish } = useAccountBuilderFinish()
 
-  const candidateWords = useMemo(async () => {
-    return await getConfirmWordCandidates(
-      mnemonic[Number(index)],
-      mnemonic.join(' ')
-    )
+  const candidateWords = useMemo(() => {
+    return getConfirmWordCandidates(mnemonic[Number(index)], mnemonic.join(' '))
   }, [index]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [selectedCheckbox, setSelectedCheckbox] = useState<1 | 2 | 3>()

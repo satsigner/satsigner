@@ -161,7 +161,9 @@ function UtxoDetailsPage() {
 
   function navigateToAddress() {
     if (!accountId || !utxo || !utxo.addressTo) return
-    router.navigate(`/signer/bitcoin/account/${accountId}/address/${utxo.addressTo}`)
+    router.navigate(
+      `/signer/bitcoin/account/${accountId}/address/${utxo.addressTo}`
+    )
   }
 
   return (

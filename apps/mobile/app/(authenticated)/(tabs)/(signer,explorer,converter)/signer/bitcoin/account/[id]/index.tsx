@@ -402,7 +402,9 @@ function DerivedAddresses({
     ({ item }: { item: Address }) => (
       <TouchableOpacity
         onPress={() =>
-          router.navigate(`/signer/bitcoin/account/${account.id}/address/${item.address}`)
+          router.navigate(
+            `/signer/bitcoin/account/${account.id}/address/${item.address}`
+          )
         }
       >
         <SSHStack style={addressListStyles.row}>
@@ -652,7 +654,9 @@ function DerivedAddresses({
           style={{ marginTop: 10 }}
           label={t('address.list.btn.manage')}
           onPress={() =>
-            router.navigate(`/signer/bitcoin/account/${account.id}/settings/manageAddresses`)
+            router.navigate(
+              `/signer/bitcoin/account/${account.id}/settings/manageAddresses`
+            )
           }
         />
       )}
@@ -1143,7 +1147,9 @@ export default function AccountView() {
                 </SSIconButton>
               )}
               <SSIconButton
-                onPress={() => router.navigate(`/signer/bitcoin/account/${id}/settings`)}
+                onPress={() =>
+                  router.navigate(`/signer/bitcoin/account/${id}/settings`)
+                }
               >
                 <SSIconKeys height={18} width={18} />
               </SSIconButton>

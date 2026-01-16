@@ -329,7 +329,9 @@ export default function AccountSettings() {
             style={styles.button}
             label={t('account.nostrSync.sync')}
             onPress={() =>
-              router.navigate(`/signer/bitcoin/account/${currentAccountId}/settings/nostr`)
+              router.navigate(
+                `/signer/bitcoin/account/${currentAccountId}/settings/nostr`
+              )
             }
           />
         </SSVStack>
