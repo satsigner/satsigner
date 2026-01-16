@@ -33,11 +33,15 @@ const NODE_WIDTH = 98
 type SSTransactionChartProps = {
   transaction: Transaction
   ownAddresses?: Set<string> // NEW: prop for own addresses
+  selectedOutputIndex?: number // Index of the output to highlight (vout)
+  dimUnselected?: boolean // Dim non-selected outputs
 }
 
 function SSTransactionChart({
   transaction,
-  ownAddresses = new Set()
+  ownAddresses = new Set(),
+  selectedOutputIndex,
+  dimUnselected = false
 }: SSTransactionChartProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -140,21 +144,28 @@ function SSTransactionChart({
       }
     ]
 
-    const outputNodes: TxNode[] = outputs.map((output, index) => ({
-      id: String(index + 2 + inputs.length),
-      type: 'text',
-      depthH: 2,
-      ioData: {
-        value: output.value,
-        fiatValue: formatNumber(satsToFiat(output.value), 2),
-        fiatCurrency,
-        address: formatAddress(output.address, 6),
-        label: output.label ?? t('common.noLabel'),
-        text: t('common.to'),
-        isSelfSend: !!(output.address && ownAddresses.has(output.address))
-      },
-      value: output.value
-    }))
+    const outputNodes: TxNode[] = outputs.map((output, index) => {
+      const nodeId = String(index + 2 + inputs.length)
+      const isSelected =
+        selectedOutputIndex !== undefined && index === selectedOutputIndex
+
+      return {
+        id: nodeId,
+        type: 'text',
+        depthH: 2,
+        localId: `output-${index}`,
+        ioData: {
+          value: output.value,
+          fiatValue: formatNumber(satsToFiat(output.value), 2),
+          fiatCurrency,
+          address: formatAddress(output.address, 6),
+          label: output.label ?? t('common.noLabel'),
+          text: t('common.to'),
+          isSelfSend: !!(output.address && ownAddresses.has(output.address))
+        },
+        value: output.value
+      }
+    })
 
     const totalOutputValueWithAddresses = outputs
       .filter((output) => output.address && output.address.trim() !== '')
@@ -267,8 +278,23 @@ function SSTransactionChart({
             sankeyGenerator={sankeyGenerator}
             LINK_MAX_WIDTH={LINK_MAX_WIDTH}
             BLOCK_WIDTH={BLOCK_WIDTH}
+            selectedOutputNode={
+              selectedOutputIndex !== undefined
+                ? `output-${selectedOutputIndex}`
+                : undefined
+            }
+            dimUnselected={dimUnselected}
           />
-          <SSSankeyNodes nodes={nodes} sankeyGenerator={sankeyGenerator} />
+          <SSSankeyNodes
+            nodes={nodes}
+            sankeyGenerator={sankeyGenerator}
+            selectedOutputNode={
+              selectedOutputIndex !== undefined
+                ? `output-${selectedOutputIndex}`
+                : undefined
+            }
+            dimUnselected={dimUnselected}
+          />
         </Group>
       </Canvas>
     </View>

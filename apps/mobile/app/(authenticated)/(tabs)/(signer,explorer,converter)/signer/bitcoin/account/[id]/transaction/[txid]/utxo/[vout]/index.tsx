@@ -1,5 +1,6 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import {
   ScrollView,
   StyleSheet,
@@ -16,11 +17,16 @@ import SSLabelDetails from '@/components/SSLabelDetails'
 import SSScriptDecoded from '@/components/SSScriptDecoded'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
+import SSStyledSatText from '@/components/SSStyledSatText'
+import SSTransactionChart from '@/components/SSTransactionChart'
 import useGetAccountTransactionOutput from '@/hooks/useGetAccountTransactionOutput'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
+import { Colors } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type UtxoSearchParams } from '@/types/navigation/searchParams'
@@ -48,6 +54,13 @@ function UtxoDetails({
   const [amount, setAmount] = useState(placeholder)
   const [txid, setTxid] = useState(placeholder)
   const [vout, setVout] = useState(placeholder)
+
+  const [fiatCurrency, satsToFiat] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  )
+  const [currencyUnit, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  )
 
   const { width, height } = useWindowDimensions()
   const outerContainerPadding = 20
@@ -93,6 +106,43 @@ function UtxoDetails({
           />
         </SSVStack>
         <SSSeparator color="gradient" />
+        {utxo && (
+          <>
+            <SSVStack gap="sm">
+              <SSText weight="bold" uppercase>
+                {t('common.amount')}
+              </SSText>
+              <SSClipboardCopy text={utxo.value.toString()}>
+                <SSVStack gap="xs">
+                  <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                    <SSStyledSatText
+                      amount={utxo.value}
+                      decimals={0}
+                      useZeroPadding={useZeroPadding}
+                      currency={currencyUnit}
+                      textSize="4xl"
+                      weight="light"
+                    />
+                    <SSText color="muted">
+                      {currencyUnit === 'btc'
+                        ? t('bitcoin.btc')
+                        : t('bitcoin.sats')}
+                    </SSText>
+                  </SSHStack>
+                  <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                    <SSText color="muted">
+                      {formatNumber(satsToFiat(utxo.value), 2)}
+                    </SSText>
+                    <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                      {fiatCurrency}
+                    </SSText>
+                  </SSHStack>
+                </SSVStack>
+              </SSClipboardCopy>
+            </SSVStack>
+            <SSSeparator color="gradient" />
+          </>
+        )}
         {utxo && allAccountUtxos.length > 0 && (
           <>
             <SSVStack>
@@ -163,6 +213,21 @@ function UtxoDetails({
               <SSText color="muted">{txid}</SSText>
             </SSVStack>
           </TouchableOpacity>
+          {tx && (
+            <>
+              <SSSeparator color="gradient" />
+              <SSVStack>
+                <SSText uppercase weight="bold" size="md">
+                  {t('transaction.details.chart')}
+                </SSText>
+                <SSTransactionChart
+                  transaction={tx}
+                  selectedOutputIndex={utxo?.vout}
+                  dimUnselected={true}
+                />
+              </SSVStack>
+            </>
+          )}
           <SSSeparator color="gradient" />
           <SSClipboardCopy text={vout || ''}>
             <SSVStack gap="none">
