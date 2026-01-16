@@ -1,8 +1,16 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  useWindowDimensions,
+  View
+} from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
+import SSBubbleChart from '@/components/SSBubbleChart'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSLabelDetails from '@/components/SSLabelDetails'
 import SSScriptDecoded from '@/components/SSScriptDecoded'
@@ -40,6 +48,16 @@ function UtxoDetails({
   const [txid, setTxid] = useState(placeholder)
   const [vout, setVout] = useState(placeholder)
 
+  const { width, height } = useWindowDimensions()
+  const outerContainerPadding = 20
+  const GRAPH_HEIGHT = height * 0.44
+  const GRAPH_WIDTH = width - outerContainerPadding * 2
+
+  const utxosArray = useMemo(() => {
+    if (!utxo) return []
+    return [utxo]
+  }, [utxo])
+
   const updateInfo = () => {
     if (tx) {
       const { blockHeight, timestamp } = tx
@@ -73,8 +91,30 @@ function UtxoDetails({
             header={t('utxo.label')}
           />
         </SSVStack>
+        <SSSeparator color="gradient" />
+        {utxo && utxosArray.length > 0 && (
+          <>
+            <SSVStack>
+              <SSText uppercase size="md" weight="bold">
+                {t('bitcoin.utxos')}
+              </SSText>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <SSBubbleChart
+                  utxos={utxosArray}
+                  canvasSize={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
+                  inputs={[]}
+                  onPress={({ txid, vout }: Utxo) =>
+                    router.navigate(
+                      `/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${vout}`
+                    )
+                  }
+                />
+              </GestureHandlerRootView>
+            </SSVStack>
+            <SSSeparator color="gradient" />
+          </>
+        )}
         <SSVStack>
-          <SSSeparator color="gradient" />
           <SSHStack justifyBetween>
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
@@ -161,7 +201,9 @@ function UtxoDetailsPage() {
 
   function navigateToAddress() {
     if (!accountId || !utxo || !utxo.addressTo) return
-    router.navigate(`/signer/bitcoin/account/${accountId}/address/${utxo.addressTo}`)
+    router.navigate(
+      `/signer/bitcoin/account/${accountId}/address/${utxo.addressTo}`
+    )
   }
 
   return (
