@@ -146,7 +146,7 @@ function UtxoDetails({
         {utxo && allAccountUtxos.length > 0 && (
           <>
             <SSVStack>
-              <SSText uppercase size="md" weight="bold">
+              <SSText uppercase weight="bold" size="md">
                 {t('bitcoin.utxos')}
               </SSText>
               <GestureHandlerRootView style={{ flex: 1 }}>
@@ -196,21 +196,28 @@ function UtxoDetails({
             </SSVStack>
           </SSHStack>
           <SSSeparator color="gradient" />
-          <TouchableOpacity onPress={onPressAddress}>
+          <TouchableOpacity
+            onPress={onPressAddress}
+            activeOpacity={0.7}
+            disabled={!utxo?.addressTo || utxo.addressTo === '-'}
+          >
             <SSVStack gap="sm">
               <SSText weight="bold" uppercase>
                 {t('utxo.address')}
               </SSText>
-              <SSAddressDisplay address={utxo?.addressTo || '-'} />
+              <SSAddressDisplay
+                address={utxo?.addressTo || '-'}
+                copyToClipboard={false}
+              />
             </SSVStack>
           </TouchableOpacity>
           <SSSeparator color="gradient" />
-          <TouchableOpacity onPress={onPressTx}>
-            <SSVStack gap="none">
+          <TouchableOpacity onPress={onPressTx} activeOpacity={0.7}>
+            <SSVStack gap="sm">
               <SSText weight="bold" uppercase>
                 {t('transaction.id')}
               </SSText>
-              <SSText color="muted">{txid}</SSText>
+              <SSAddressDisplay address={txid} copyToClipboard={false} />
             </SSVStack>
           </TouchableOpacity>
           {tx && (
@@ -239,7 +246,7 @@ function UtxoDetails({
           </SSClipboardCopy>
           <SSSeparator color="gradient" />
           <SSVStack>
-            <SSText uppercase weight="bold">
+            <SSText weight="bold" uppercase>
               {t('utxo.unlockingScript')}
             </SSText>
             <SSScriptDecoded script={utxo?.script || []} />
@@ -269,7 +276,7 @@ function UtxoDetailsPage() {
   }
 
   function navigateToAddress() {
-    if (!accountId || !utxo || !utxo.addressTo) return
+    if (!accountId || !utxo || !utxo.addressTo || utxo.addressTo === '-') return
     router.navigate(
       `/signer/bitcoin/account/${accountId}/address/${utxo.addressTo}`
     )
