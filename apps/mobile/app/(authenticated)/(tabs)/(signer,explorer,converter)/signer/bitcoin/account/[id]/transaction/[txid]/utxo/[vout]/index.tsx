@@ -12,6 +12,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSBubbleChart from '@/components/SSBubbleChart'
+import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSLabelDetails from '@/components/SSLabelDetails'
 import SSScriptDecoded from '@/components/SSScriptDecoded'
@@ -26,6 +27,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -36,6 +38,7 @@ type UtxoDetailsProps = {
   accountId: string
   onPressAddress: () => void
   onPressTx: () => void
+  onSpendUtxo: () => void
   tx?: Transaction
   utxo?: Utxo
 }
@@ -44,6 +47,7 @@ function UtxoDetails({
   accountId,
   onPressAddress,
   onPressTx,
+  onSpendUtxo,
   tx,
   utxo,
   allAccountUtxos
@@ -251,6 +255,12 @@ function UtxoDetails({
             </SSText>
             <SSScriptDecoded script={utxo?.script || []} />
           </SSVStack>
+          <SSSeparator color="gradient" />
+          <SSButton
+            variant="secondary"
+            label={t('utxo.spend')}
+            onPress={onSpendUtxo}
+          />
         </SSVStack>
       </SSVStack>
     </ScrollView>
@@ -269,6 +279,7 @@ function UtxoDetailsPage() {
   const utxo = useGetAccountTransactionOutput(accountId!, txid!, Number(vout!))
 
   const allAccountUtxos = account?.utxos || []
+  const addInput = useTransactionBuilderStore((state) => state.addInput)
 
   function navigateToTx() {
     if (!accountId || !txid) return
@@ -279,6 +290,14 @@ function UtxoDetailsPage() {
     if (!accountId || !utxo || !utxo.addressTo || utxo.addressTo === '-') return
     router.navigate(
       `/signer/bitcoin/account/${accountId}/address/${utxo.addressTo}`
+    )
+  }
+
+  function handleSpendUtxo() {
+    if (!utxo || !accountId) return
+    addInput(utxo)
+    router.navigate(
+      `/signer/bitcoin/account/${accountId}/signAndSend/ioPreview`
     )
   }
 
@@ -297,6 +316,7 @@ function UtxoDetailsPage() {
           tx={tx}
           utxo={utxo}
           allAccountUtxos={allAccountUtxos}
+          onSpendUtxo={handleSpendUtxo}
         />
       </View>
     </>
