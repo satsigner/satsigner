@@ -611,8 +611,14 @@ function SSHistoryChart({
       .curve(d3.curveStepAfter)
   }, [chartHeight, scale, xScale, yScale])
 
-  const linePath = lineGenerator(validChartData)
-  const areaPath = areaGenerator(validChartData)
+  const linePath = useMemo(
+    () => lineGenerator(validChartData),
+    [lineGenerator, validChartData]
+  )
+  const areaPath = useMemo(
+    () => areaGenerator(validChartData),
+    [areaGenerator, validChartData]
+  )
 
   const yAxisFormatter = useMemo(() => {
     return d3.format('.3s')
@@ -1141,8 +1147,11 @@ function SSHistoryChart({
                 strokeWidth={2}
                 style="stroke"
               />
-              {!showOutputField && (
-                <MemoizedAreaPathRenderer areaPath={areaPath} />
+              {!showOutputField && areaPath && (
+                <MemoizedAreaPathRenderer
+                  key={`area-path-${showOutputField}`}
+                  areaPath={areaPath}
+                />
               )}
               <MemoizedCursorRenderer
                 customFontManager={customFontManager}
