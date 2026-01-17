@@ -19,7 +19,7 @@ import {
 } from '@shopify/react-native-skia'
 import * as d3 from 'd3'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { Fragment, useCallback, useMemo, useRef, useState } from 'react'
+import { Fragment, memo, useCallback, useMemo, useRef, useState } from 'react'
 import { type LayoutChangeEvent, StyleSheet, View } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
@@ -93,14 +93,141 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
     return addresses
   }, [transactions, utxos])
 
+  const chartData: HistoryChartData[] = useMemo(() => {
+    let sum = 0
+    return transactions.map((transaction) => {
+      const amount =
+        transaction.type === 'receive'
+          ? transaction?.received ?? 0
+          : (transaction?.received ?? 0) - (transaction?.sent ?? 0)
+      sum += amount
+      return {
+        memo: transaction.label ?? '',
+        date: new Date(transaction?.timestamp ?? currentDate.current),
+        type: transaction.type ?? 'receive',
+        balance: sum,
+        amount,
+        id: transaction.id
+      }
+    })
+  }, [transactions])
+
+  const timeOffset =
+    chartData.length > 0
+      ? new Date(currentDate.current).setDate(
+          currentDate.current.getDate() + 10
+        ) - chartData[0].date.getTime()
+      : 0
+  const margin = { top: 30, right: 10, bottom: 80, left: 40 }
+  const [containerSize, setContainersize] = useState({ width: 0, height: 0 })
+  const prevScale = useRef<number>(1)
+  const scaleRef = useRef<number>(1)
+  const [cursorX, setCursorX] = useState<Date | undefined>(undefined)
+  const [cursorY, setCursorY] = useState<number | undefined>(undefined)
+  const [{ endDate, scale }, setLocationState] = useState<{
+    endDate: Date
+    scale: number
+  }>({
+    endDate: new Date(
+      new Date(currentDate.current).setDate(currentDate.current.getDate() + 5)
+    ),
+    scale: 1
+  })
+  const endDateRef = useRef<Date>(
+    new Date(
+      new Date(currentDate.current).setDate(currentDate.current.getDate() + 5)
+    )
+  )
+  const prevEndDate = useRef<Date>(new Date(currentDate.current))
+  const [startY, setStartY] = useState<number>(0)
+  const startYRef = useRef<number>(0)
+  const prevStartY = useRef<number>(0)
+  const gestureUpdateAnimationFrameRef = useRef<number | null>(null)
+  const isGestureActiveRef = useRef<boolean>(false)
+
+  const startDate = useMemo<Date>(() => {
+    return new Date(endDate.getTime() - timeOffset / scale)
+  }, [endDate, scale, timeOffset])
+
+  const visibleTransactionsRange = useMemo(() => {
+    if (transactions.length === 0) return { startIndex: 0, endIndex: 0 }
+    const startIndex = transactions.findIndex(
+      (t) => new Date(t.timestamp ?? 0) >= startDate
+    )
+    const endIndex = transactions.findIndex(
+      (t) => new Date(t.timestamp ?? 0) > endDate
+    )
+    return {
+      startIndex: startIndex === -1 ? 0 : startIndex,
+      endIndex: endIndex === -1 ? transactions.length : endIndex
+    }
+  }, [transactions, startDate, endDate])
+
   const balanceHistory = useMemo(() => {
     const history = new Map<number, Map<string, Utxo>>()
     const pendingDeleteBalances = new Set<string>()
-    transactions.forEach((t, index) => {
+    const { startIndex, endIndex } = visibleTransactionsRange
+
+    for (let i = 0; i < startIndex; i++) {
+      const t = transactions[i]
+      if (i === 0) {
+        history.set(i, new Map())
+      } else {
+        const prevBalances = history.get(i - 1)!
+        const currentBalances = new Map<string, Utxo>()
+        prevBalances.forEach((value, key) =>
+          currentBalances.set(key, { ...value })
+        )
+        history.set(i, currentBalances)
+      }
+      if (t.type === 'receive') {
+        const currentBalances = history.get(i)!
+        t.vout.forEach((out, index) => {
+          if (walletAddresses.has(out.address)) {
+            const outName = t.id + '::' + index
+            currentBalances.set(outName, {
+              addressTo: out.address,
+              value: out.value,
+              vout: index,
+              label: '',
+              keychain: 'internal',
+              txid: t.id
+            })
+          }
+        })
+      } else if (t.type === 'send') {
+        const currentBalances = history.get(i)!
+        t.vin?.forEach((input) => {
+          const inputName =
+            input.previousOutput.txid + '::' + input.previousOutput.vout
+          if (currentBalances.has(inputName)) {
+            currentBalances.delete(inputName)
+          } else {
+            pendingDeleteBalances.add(inputName)
+          }
+        })
+        t.vout?.forEach((out, index) => {
+          if (walletAddresses.has(out.address)) {
+            const outName = t.id + '::' + index
+            currentBalances.set(outName, {
+              addressTo: out.address,
+              value: out.value,
+              vout: index,
+              txid: t.id,
+              keychain: 'internal',
+              label: ''
+            })
+          }
+        })
+      }
+    }
+
+    for (let i = startIndex; i < endIndex; i++) {
+      const t = transactions[i]
       const currentBalances = new Map<string, Utxo>()
-      if (index > 0) {
+      if (i > 0) {
         history
-          .get(index - 1)!
+          .get(i - 1)!
           .forEach((value, key) => currentBalances.set(key, { ...value }))
       }
       if (t.type === 'receive') {
@@ -141,8 +268,9 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
           }
         })
       }
-      history.set(index, currentBalances)
-    })
+      history.set(i, currentBalances)
+    }
+
     pendingDeleteBalances.forEach((value) => {
       Array.from(history.entries()).forEach(([, historyBalance]) => {
         if (historyBalance.has(value)) {
@@ -152,58 +280,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       pendingDeleteBalances.delete(value)
     })
     return history
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [walletAddresses])
-
-  const chartData: HistoryChartData[] = useMemo(() => {
-    let sum = 0
-    return transactions.map((transaction) => {
-      const amount =
-        transaction.type === 'receive'
-          ? transaction?.received ?? 0
-          : (transaction?.received ?? 0) - (transaction?.sent ?? 0)
-      sum += amount
-      return {
-        memo: transaction.label ?? '',
-        date: new Date(transaction?.timestamp ?? currentDate.current),
-        type: transaction.type ?? 'receive',
-        balance: sum,
-        amount,
-        id: transaction.id
-      }
-    })
-  }, [transactions])
-  const timeOffset =
-    new Date(currentDate.current).setDate(currentDate.current.getDate() + 10) -
-    chartData[0].date.getTime()
-  const margin = { top: 30, right: 10, bottom: 80, left: 40 }
-  const [containerSize, setContainersize] = useState({ width: 0, height: 0 })
-  const prevScale = useRef<number>(1)
-  const scaleRef = useRef<number>(1)
-  const [cursorX, setCursorX] = useState<Date | undefined>(undefined)
-  const [cursorY, setCursorY] = useState<number | undefined>(undefined)
-  const [{ endDate, scale }, setLocationState] = useState<{
-    endDate: Date
-    scale: number
-  }>({
-    endDate: new Date(
-      new Date(currentDate.current).setDate(currentDate.current.getDate() + 5)
-    ),
-    scale: 1
-  })
-  const endDateRef = useRef<Date>(
-    new Date(
-      new Date(currentDate.current).setDate(currentDate.current.getDate() + 5)
-    )
-  )
-  const prevEndDate = useRef<Date>(new Date(currentDate.current))
-  const [startY, setStartY] = useState<number>(0)
-  const startYRef = useRef<number>(0)
-  const prevStartY = useRef<number>(0)
-
-  const startDate = useMemo<Date>(() => {
-    return new Date(endDate.getTime() - timeOffset / scale)
-  }, [endDate, scale, timeOffset])
+  }, [walletAddresses, transactions, visibleTransactionsRange])
 
   const [maxBalance, validChartData] = useMemo(() => {
     const startBalance =
@@ -273,27 +350,53 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
     utxo: Utxo
     gradientType: number
   }[] = useMemo(() => {
-    return Array.from(balanceHistory.entries())
-      .flatMap(([index, balances]) => {
-        const x1 = xScale(
-          new Date(transactions.at(index)?.timestamp ?? currentDate.current)
+    const { startIndex, endIndex } = visibleTransactionsRange
+    const result: {
+      x1: number
+      x2: number
+      y1: number
+      y2: number
+      utxo: Utxo
+      gradientType: number
+    }[] = []
+
+    Array.from(balanceHistory.entries())
+      .filter(([index]) => index < endIndex)
+      .forEach(([index, balances]) => {
+        const txTimestamp = new Date(
+          transactions.at(index)?.timestamp ?? currentDate.current
         )
-        const x2 = xScale(
+        let nextTxTimestamp =
           index === transactions.length - 1
             ? currentDate.current
             : new Date(
                 transactions.at(index + 1)?.timestamp ?? currentDate.current
               )
-        )
-        if (x2 < 0 && x1 >= chartWidth) {
-          return []
+
+        if (index >= startIndex && nextTxTimestamp > endDate) {
+          nextTxTimestamp = endDate
+        }
+
+        let x1 = xScale(txTimestamp)
+        let x2 = xScale(nextTxTimestamp)
+
+        if (index < startIndex) {
+          x1 = 0
+        }
+
+        if (x2 <= 0 && x1 >= chartWidth) {
+          return
+        }
+        if (x1 >= chartWidth || x2 <= 0) {
+          return
         }
         let totalBalance = 0
-        return Array.from(balances.entries()).map(([, utxo]) => {
+        Array.from(balances.entries()).forEach(([, utxo]) => {
           const y1 = yScale(totalBalance)
           const y2 = yScale(totalBalance + utxo.value)
           let gradientType = 0
           totalBalance += utxo.value
+
           if (
             transactions.at(index + 1) !== undefined &&
             transactions.at(index + 1)?.type === 'send'
@@ -316,19 +419,32 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
               gradientType = -1
             }
           }
-          return {
-            x1,
-            x2,
-            y1,
-            y2,
-            utxo,
-            gradientType
+
+          const clampedX1 = Math.max(0, x1)
+          const clampedX2 = Math.min(chartWidth, x2)
+          if (clampedX1 < clampedX2 && y1 < chartHeight && y2 > 0) {
+            result.push({
+              x1: clampedX1,
+              x2: clampedX2,
+              y1,
+              y2,
+              utxo,
+              gradientType
+            })
           }
         })
       })
-      .filter((v) => v !== undefined)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [balanceHistory, xScale, yScale])
+
+    return result
+  }, [
+    balanceHistory,
+    xScale,
+    yScale,
+    transactions,
+    visibleTransactionsRange,
+    chartWidth,
+    chartHeight
+  ])
 
   const utxoLabels: {
     x1: number
@@ -344,39 +460,67 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       y2: number
       utxo: Utxo
     }[] = []
-    Array.from(balanceHistory.entries()).forEach(([index, balances]) => {
-      const x1 = xScale(
-        new Date(transactions.at(index)?.timestamp ?? currentDate.current)
-      )
-      const x2 = xScale(
-        index === transactions.length - 1
-          ? currentDate.current
-          : new Date(
-              transactions.at(index + 1)?.timestamp ?? currentDate.current
-            )
-      )
-      if (x2 < 0 && x1 >= chartWidth) {
-        return
-      }
-      let totalBalance = 0
-      Array.from(balances.entries()).forEach(([, utxo]) => {
-        const y1 = yScale(totalBalance)
-        const y2 = yScale(totalBalance + utxo.value)
-        totalBalance += utxo.value
-        if (utxo.txid === transactions.at(index)?.id) {
-          result.push({
-            x1,
-            x2,
-            y1,
-            y2,
-            utxo
-          })
+    const { startIndex, endIndex } = visibleTransactionsRange
+    Array.from(balanceHistory.entries())
+      .filter(([index]) => index < endIndex)
+      .forEach(([index, balances]) => {
+        const txTimestamp = new Date(
+          transactions.at(index)?.timestamp ?? currentDate.current
+        )
+        let nextTxTimestamp =
+          index === transactions.length - 1
+            ? currentDate.current
+            : new Date(
+                transactions.at(index + 1)?.timestamp ?? currentDate.current
+              )
+
+        if (index >= startIndex && nextTxTimestamp > endDate) {
+          nextTxTimestamp = endDate
         }
+
+        let x1 = xScale(txTimestamp)
+        let x2 = xScale(nextTxTimestamp)
+
+        if (index < startIndex) {
+          x1 = 0
+        }
+
+        if (x2 <= 0 && x1 >= chartWidth) {
+          return
+        }
+        if (x1 >= chartWidth || x2 <= 0) {
+          return
+        }
+        let totalBalance = 0
+        Array.from(balances.entries()).forEach(([, utxo]) => {
+          const y1 = yScale(totalBalance)
+          const y2 = yScale(totalBalance + utxo.value)
+          totalBalance += utxo.value
+          if (utxo.txid === transactions.at(index)?.id) {
+            const clampedX1 = Math.max(0, x1)
+            const clampedX2 = Math.min(chartWidth, x2)
+            if (clampedX1 < clampedX2 && y1 < chartHeight && y2 > 0) {
+              result.push({
+                x1: clampedX1,
+                x2: clampedX2,
+                y1,
+                y2,
+                utxo
+              })
+            }
+          }
+        })
       })
-    })
     return result
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [balanceHistory, xScale, yScale])
+  }, [
+    balanceHistory,
+    xScale,
+    yScale,
+    transactions,
+    visibleTransactionsRange,
+    chartWidth,
+    chartHeight
+  ])
 
   const xScaleTransactions = useMemo(() => {
     return transactions
@@ -388,10 +532,25 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       )
   }, [endDate, startDate, transactions])
 
+  const updateLocationState = useCallback(() => {
+    if (gestureUpdateAnimationFrameRef.current) {
+      cancelAnimationFrame(gestureUpdateAnimationFrameRef.current)
+    }
+    gestureUpdateAnimationFrameRef.current = requestAnimationFrame(() => {
+      setLocationState((prev) => ({
+        ...prev,
+        endDate: endDateRef.current,
+        scale: scaleRef.current
+      }))
+      gestureUpdateAnimationFrameRef.current = null
+    })
+  }, [])
+
   const panGesture = Gesture.Pan()
     .minDistance(1)
     .maxPointers(1)
     .onStart(() => {
+      isGestureActiveRef.current = true
       prevEndDate.current = endDate
       prevStartY.current = startY
     })
@@ -405,10 +564,9 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
               currentDate.current.getTime() + timeOffset / scale
             ).getTime()
           ),
-          new Date(transactions[0].timestamp!).getTime()
+          new Date(transactions[0]?.timestamp ?? 0).getTime()
         )
       )
-      setLocationState((prev) => ({ ...prev, endDate: endDateRef.current }))
       if (!lockZoomToXAxis) {
         startYRef.current = Math.max(
           Math.min(
@@ -420,28 +578,47 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
         )
         setStartY(startYRef.current)
       }
+      updateLocationState()
     })
     .onEnd(() => {
+      isGestureActiveRef.current = false
       prevEndDate.current = endDate
       prevStartY.current = startY
+      if (gestureUpdateAnimationFrameRef.current) {
+        cancelAnimationFrame(gestureUpdateAnimationFrameRef.current)
+        gestureUpdateAnimationFrameRef.current = null
+      }
+      setLocationState((prev) => ({
+        ...prev,
+        endDate: endDateRef.current
+      }))
     })
     .runOnJS(true)
 
   const pinchGesture = Gesture.Pinch()
+    .onStart(() => {
+      isGestureActiveRef.current = true
+    })
     .onUpdate((event) => {
       const cScale = Math.max(prevScale.current * event.scale, 1)
       const middleDate =
         endDateRef.current.getTime() - timeOffset / scaleRef.current / 2
       endDateRef.current = new Date(middleDate + timeOffset / cScale / 2)
       scaleRef.current = cScale
+      updateLocationState()
+    })
+    .onEnd(() => {
+      isGestureActiveRef.current = false
+      prevScale.current = scale
+      if (gestureUpdateAnimationFrameRef.current) {
+        cancelAnimationFrame(gestureUpdateAnimationFrameRef.current)
+        gestureUpdateAnimationFrameRef.current = null
+      }
       setLocationState((prev) => ({
         ...prev,
         endDate: endDateRef.current,
-        scale: cScale
+        scale: scaleRef.current
       }))
-    })
-    .onEnd(() => {
-      prevScale.current = scale
     })
     .runOnJS(true)
 
@@ -492,7 +669,9 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
               y >= rect.top
           )
           if (tapLabelRect !== undefined && showTransactionInfo) {
-            router.navigate(`/signer/bitcoin/account/${id}/transaction/${tapLabelRect.id}`)
+            router.navigate(
+              `/signer/bitcoin/account/${id}/transaction/${tapLabelRect.id}`
+            )
           }
         }
       }
@@ -612,8 +791,14 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       }
     })
     return result
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [walletAddresses, xScaleTransactions, xScale, showTransactionInfo])
+  }, [
+    walletAddresses,
+    xScaleTransactions,
+    xScale,
+    showTransactionInfo,
+    chartHeight,
+    numberCommaFormatter
+  ])
 
   const txInfoLabels = useMemo<
     {
@@ -645,6 +830,9 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       if (d.type === 'end') return
       const x = Math.round(xScale(d.date) + (d.type === 'receive' ? -5 : +5))
       const y = Math.round(yScale(d.balance) - 5)
+      if (x < 0 || x > chartWidth || y < 0 || y > chartHeight) {
+        return
+      }
       if (showLabel && d.memo) {
         const index = d.date.getTime().toString() + d.balance.toString() + 'L'
         const width = 40
@@ -696,21 +884,32 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
         })
       }
     })
+
     for (let i = 0; i < initialLabels.length - 1; i++) {
       const boundBoxA = initialLabels[i].boundBox
+      if (!boundBoxA) continue
       for (let j = i + 1; j < initialLabels.length; j++) {
         const boundBoxB = initialLabels[j].boundBox
-        if (boundBoxA !== undefined && boundBoxB !== undefined) {
-          if (isOverlapping(boundBoxA!, boundBoxB!)) {
-            initialLabels[j].y -= 30
-            initialLabels[j].boundBox!.top -= 30
-            initialLabels[j].boundBox!.bottom -= 30
+        if (boundBoxB && isOverlapping(boundBoxA, boundBoxB)) {
+          initialLabels[j].y -= 30
+          const labelBoundBox = initialLabels[j].boundBox
+          if (labelBoundBox) {
+            labelBoundBox.top -= 30
+            labelBoundBox.bottom -= 30
           }
         }
       }
     }
     return initialLabels
-  }, [showAmount, showLabel, validChartData, xScale, yScale])
+  }, [
+    showAmount,
+    showLabel,
+    validChartData,
+    xScale,
+    yScale,
+    chartWidth,
+    chartHeight
+  ])
 
   const customFontManager = useFonts({
     'SF Pro Text': [
@@ -730,6 +929,8 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
 
     txInfoLabels.forEach((label) => {
       if (label.type === 'end') return
+      const x = label.x
+      if (x < 0 || x > chartWidth) return
       const text =
         (showLabel && label.memo!) ||
         (showAmount && numberCommaFormatter(label.amount!)) ||
@@ -761,20 +962,133 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
     customFontManager,
     showLabel,
     showAmount,
-    numberCommaFormatter
+    numberCommaFormatter,
+    chartWidth
   ])
 
-  let previousDate: string = ''
+  const clipPathRect = rect(0, 0, chartWidth, chartHeight)
 
-  function YScaleRendrer() {
-    if (!customFontManager) {
-      return null
-    }
-    const font = matchFont(fontStyle, customFontManager)
-    return yScale.ticks(4).map((tick) => {
-      const yPosition = yScale(tick)
-      return (
-        yPosition <= chartHeight && (
+  if (!containerSize.width || !containerSize.height) {
+    return <View onLayout={handleLayout} style={styles.container} />
+  }
+
+  return (
+    <GestureDetector gesture={combinedGesture}>
+      <View style={styles.container} onLayout={handleLayout}>
+        <Canvas
+          style={{
+            width: containerSize.width,
+            height: containerSize.height,
+            flex: 1
+          }}
+          pointerEvents="box-none"
+        >
+          <Group
+            transform={[
+              { translateX: margin.left },
+              { translateY: margin.top }
+            ]}
+          >
+            <MemoizedYScaleRenderer
+              customFontManager={customFontManager}
+              fontStyle={fontStyle}
+              yScale={yScale}
+              chartHeight={chartHeight}
+              chartWidth={chartWidth}
+              yAxisFormatter={yAxisFormatter}
+            />
+            <MemoizedXScaleRenderer
+              customFontManager={customFontManager}
+              fontStyle={fontStyle}
+              showTransactionInfo={showTransactionInfo}
+              txXAxisLabels={txXAxisLabels}
+              chartHeight={chartHeight}
+            />
+            <MemoizedXAxisRenderer
+              customFontManager={customFontManager}
+              fontStyle={fontStyle}
+              xScale={xScale}
+              chartHeight={chartHeight}
+              showTransactionInfo={showTransactionInfo}
+            />
+            <Group clip={clipPathRect}>
+              {showOutputField && (
+                <>
+                  <MemoizedUtxoRectRenderer
+                    utxoRectangleData={utxoRectangleData}
+                    showOutputField={showOutputField}
+                  />
+                  <MemoizedUtxoLabelRenderer
+                    customFontManager={customFontManager}
+                    fontStyle={fontStyle}
+                    utxoLabels={utxoLabels}
+                    showOutputField={showOutputField}
+                  />
+                </>
+              )}
+              <MemoizedTransactionInfoRenderer
+                customFontManager={customFontManager}
+                fontStyle={fontStyle}
+                txInfoLabels={txInfoLabels}
+                labelParagraphs={labelParagraphs}
+                showLabel={showLabel}
+                showAmount={showAmount}
+                numberCommaFormatter={numberCommaFormatter}
+                labelRectRef={labelRectRef}
+              />
+              <Path
+                path={linePath ?? ''}
+                color="white"
+                strokeWidth={2}
+                style="stroke"
+              />
+              {!showOutputField && (
+                <MemoizedAreaPathRenderer areaPath={areaPath} />
+              )}
+              <MemoizedCursorRenderer
+                customFontManager={customFontManager}
+                fontStyle={fontStyle}
+                cursorX={cursorX}
+                cursorY={cursorY}
+                xScale={xScale}
+                chartHeight={chartHeight}
+                cursorFormatter={cursorFormatter}
+              />
+            </Group>
+          </Group>
+        </Canvas>
+      </View>
+    </GestureDetector>
+  )
+}
+
+type YScaleRendererProps = {
+  customFontManager: ReturnType<typeof useFonts>
+  fontStyle: { fontFamily: string; fontSize: number }
+  yScale: d3.ScaleLinear<number, number>
+  chartHeight: number
+  chartWidth: number
+  yAxisFormatter: (value: number) => string
+}
+
+function YScaleRenderer({
+  customFontManager,
+  fontStyle,
+  yScale,
+  chartHeight,
+  chartWidth,
+  yAxisFormatter
+}: YScaleRendererProps) {
+  if (!customFontManager) {
+    return null
+  }
+  const font = matchFont(fontStyle, customFontManager)
+  return (
+    <>
+      {yScale.ticks(4).map((tick) => {
+        const yPosition = yScale(tick)
+        if (yPosition > chartHeight) return null
+        return (
           <Fragment key={tick.toString()}>
             <Line
               p1={vec(0, yPosition)}
@@ -794,19 +1108,43 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
             />
           </Fragment>
         )
-      )
-    })
-  }
+      })}
+    </>
+  )
+}
 
-  function XScaleRenderer() {
-    if (!customFontManager) {
-      return null
-    }
-    const font = matchFont(fontStyle, customFontManager)
-    return (
-      showTransactionInfo &&
-      !!txXAxisLabels?.length &&
-      txXAxisLabels.map((t, index) => {
+const MemoizedYScaleRenderer = memo(YScaleRenderer)
+
+type XScaleRendererProps = {
+  customFontManager: ReturnType<typeof useFonts>
+  fontStyle: { fontFamily: string; fontSize: number }
+  showTransactionInfo: boolean
+  txXAxisLabels: {
+    textColor: string
+    x: number
+    index: number
+    amountString: string
+    type: 'send' | 'receive'
+    numberOfOutput: number
+    numberOfInput: number
+  }[]
+  chartHeight: number
+}
+
+function XScaleRenderer({
+  customFontManager,
+  fontStyle,
+  showTransactionInfo,
+  txXAxisLabels,
+  chartHeight
+}: XScaleRendererProps) {
+  if (!customFontManager || !showTransactionInfo || !txXAxisLabels?.length) {
+    return null
+  }
+  const font = matchFont(fontStyle, customFontManager)
+  return (
+    <>
+      {txXAxisLabels.map((t, index) => {
         const x = t.x
         return (
           <Fragment key={t.x + index.toString()}>
@@ -863,67 +1201,115 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
             </Group>
           </Fragment>
         )
-      })
-    )
-  }
+      })}
+    </>
+  )
+}
 
-  function XAxisRenderer() {
-    if (!customFontManager) {
+const MemoizedXScaleRenderer = memo(XScaleRenderer)
+
+type XAxisRendererProps = {
+  customFontManager: ReturnType<typeof useFonts>
+  fontStyle: { fontFamily: string; fontSize: number }
+  xScale: d3.ScaleTime<number, number>
+  chartHeight: number
+  showTransactionInfo: boolean
+}
+
+function XAxisRenderer({
+  customFontManager,
+  fontStyle,
+  xScale,
+  chartHeight,
+  showTransactionInfo
+}: XAxisRendererProps) {
+  if (!customFontManager) {
+    return null
+  }
+  const font = matchFont(fontStyle, customFontManager)
+  let previousDate = ''
+  return (
+    <>
+      {xScale.ticks(3).map((tick) => {
+        const currentDate = d3.timeFormat('%b %d')(tick)
+        const displayTime = previousDate === currentDate
+        previousDate = currentDate
+        const x = xScale(tick)
+        return (
+          <Group key={tick.getTime().toString()}>
+            <Text
+              x={x}
+              y={chartHeight + (showTransactionInfo ? 50 : 20)}
+              text={
+                displayTime ? d3.timeFormat('%b %d %H:%M')(tick) : currentDate
+              }
+              font={font}
+              color="#777777"
+            />
+          </Group>
+        )
+      })}
+    </>
+  )
+}
+
+const MemoizedXAxisRenderer = memo(XAxisRenderer)
+
+type AreaPathRendererProps = {
+  areaPath: string | null
+}
+
+function AreaPathRenderer({ areaPath }: AreaPathRendererProps) {
+  const path = useMemo(() => {
+    if (areaPath === null) {
       return null
     }
-    const font = matchFont(fontStyle, customFontManager)
-    return xScale.ticks(3).map((tick) => {
-      const currentDate = d3.timeFormat('%b %d')(tick)
-      const displayTime = previousDate === currentDate
-      previousDate = currentDate
-      const x = xScale(tick)
-      return (
-        <Group key={tick.getTime().toString()}>
-          <Text
-            x={x}
-            y={chartHeight + (showTransactionInfo ? 50 : 20)}
-            text={
-              displayTime ? d3.timeFormat('%b %d %H:%M')(tick) : currentDate
-            }
-            font={font}
-            color="#777777"
-          />
-        </Group>
-      )
-    })
+    return Skia.Path.MakeFromSVGString(areaPath)
+  }, [areaPath])
+
+  if (path === null) {
+    return null
   }
-
-  function AreaPathRenderer() {
-    const path = useMemo(() => {
-      if (areaPath === null) {
-        return null
-      }
-      return Skia.Path.MakeFromSVGString(areaPath)
-    }, [])
-
-    if (path === null) {
-      return null
-    }
-    const bounds = path.getBounds()
-    const gradientStart = vec(0, bounds.y)
-    const gradientEnd = vec(0, bounds.height + bounds.y)
-    const paint = Skia.Paint()
-    paint.setShader(
-      Skia.Shader.MakeLinearGradient(
-        gradientStart,
-        gradientEnd,
-        [Skia.Color('#FFFFFF88'), Skia.Color('#FFFFFF33')],
-        [0, 1],
-        TileMode.Clamp
-      )
+  const bounds = path.getBounds()
+  const gradientStart = vec(0, bounds.y)
+  const gradientEnd = vec(0, bounds.height + bounds.y)
+  const paint = Skia.Paint()
+  paint.setShader(
+    Skia.Shader.MakeLinearGradient(
+      gradientStart,
+      gradientEnd,
+      [Skia.Color('#FFFFFF88'), Skia.Color('#FFFFFF33')],
+      [0, 1],
+      TileMode.Clamp
     )
-    return <Path path={path} paint={paint} />
-  }
+  )
+  return <Path path={path} paint={paint} />
+}
 
-  function UtxoRectRenderer() {
-    return (
-      showOutputField &&
-      utxoRectangleData.map((data, index) => {
+const MemoizedAreaPathRenderer = memo(AreaPathRenderer)
+
+type UtxoRectRendererProps = {
+  utxoRectangleData: {
+    x1: number
+    x2: number
+    y1: number
+    y2: number
+    utxo: Utxo
+    gradientType: number
+  }[]
+  showOutputField: boolean
+}
+
+function UtxoRectRenderer({
+  utxoRectangleData,
+  showOutputField
+}: UtxoRectRendererProps) {
+  if (!showOutputField) {
+    return null
+  }
+  return (
+    <>
+      {utxoRectangleData.map((data, index) => {
         return (
           <Fragment key={getUtxoOutpoint(data.utxo) + index}>
             <Rect
@@ -976,183 +1362,203 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
             )}
           </Fragment>
         )
-      })
-    )
-  }
+      })}
+    </>
+  )
+}
 
-  function UtxoLabelRenderer() {
-    if (!customFontManager) {
-      return null
-    }
-    const font = matchFont(fontStyle, customFontManager)
-    return (
-      showOutputField &&
-      utxoLabels.map((data, index) => {
+const MemoizedUtxoRectRenderer = memo(UtxoRectRenderer)
+
+type UtxoLabelRendererProps = {
+  customFontManager: ReturnType<typeof useFonts>
+  fontStyle: { fontFamily: string; fontSize: number }
+  utxoLabels: {
+    x1: number
+    x2: number
+    y1: number
+    y2: number
+    utxo: Utxo
+  }[]
+  showOutputField: boolean
+}
+
+function UtxoLabelRenderer({
+  customFontManager,
+  fontStyle,
+  utxoLabels,
+  showOutputField
+}: UtxoLabelRendererProps) {
+  if (!customFontManager || !showOutputField) {
+    return null
+  }
+  const font = matchFont(fontStyle, customFontManager)
+  return (
+    <>
+      {utxoLabels.map((data, index) => {
         if (data.x2 - data.x1 >= 50 && data.y1 - data.y2 >= 10) {
           return (
             <Text
               key={getUtxoOutpoint(data.utxo) + index}
               x={data.x1 + 2}
               y={data.y2 + 10}
-              text={
-                data.utxo.txid.slice(0, 3) +
-                '...' +
-                data.utxo.txid.slice(-3) +
-                ':' +
-                data.utxo.vout
-              }
+              text={`${data.utxo.txid.slice(0, 3)}...${data.utxo.txid.slice(-3)}:${data.utxo.vout}`}
               font={font}
               color="white"
             />
           )
-        } else {
+        }
+        return null
+      })}
+    </>
+  )
+}
+
+const MemoizedUtxoLabelRenderer = memo(UtxoLabelRenderer)
+
+type TransactionInfoRendererProps = {
+  customFontManager: ReturnType<typeof useFonts>
+  fontStyle: { fontFamily: string; fontSize: number }
+  txInfoLabels: {
+    x: number
+    y: number
+    memo?: string
+    amount?: number
+    type: string
+    boundBox?: Rectangle
+    index: string
+    id: string
+  }[]
+  labelParagraphs: Map<string, SkParagraph>
+  showLabel: boolean
+  showAmount: boolean
+  numberCommaFormatter: (value: number) => string
+  labelRectRef: React.MutableRefObject<{ rect: Rectangle; id: string }[]>
+}
+
+function TransactionInfoRenderer({
+  customFontManager,
+  fontStyle,
+  txInfoLabels,
+  labelParagraphs,
+  showLabel,
+  showAmount,
+  numberCommaFormatter,
+  labelRectRef
+}: TransactionInfoRendererProps) {
+  if (!customFontManager) {
+    return null
+  }
+  const font = matchFont(fontStyle, customFontManager)
+  labelRectRef.current = []
+  return (
+    <>
+      {txInfoLabels.map((label, index) => {
+        if (label.type === 'end') {
           return null
         }
-      })
-    )
-  }
+        const text =
+          (showLabel && label.memo!) ||
+          (showAmount && numberCommaFormatter(label.amount!)) ||
+          ''
 
-  function TransactionInfoRenderer() {
-    if (!customFontManager) {
-      return null
-    }
-    const font = matchFont(fontStyle, customFontManager)
-    labelRectRef.current = []
-    return txInfoLabels.map((label, index) => {
-      if (label.type === 'end') {
-        return null
-      }
-      const text =
-        (showLabel && label.memo!) ||
-        (showAmount && numberCommaFormatter(label.amount!)) ||
-        ''
+        const paragraph = labelParagraphs.get(label.index)
+        const textWidth = paragraph
+          ? Math.max(
+              paragraph.getMinIntrinsicWidth(),
+              font.measureText(text).width
+            )
+          : font.measureText(text).width
 
-      const paragraph = labelParagraphs.get(label.index)
-      const textWidth = paragraph
-        ? Math.max(
-            paragraph.getMinIntrinsicWidth(),
-            font.measureText(text).width
+        labelRectRef.current.push({
+          rect: {
+            left: label.type === 'receive' ? label.x - textWidth : label.x,
+            right: label.type === 'receive' ? label.x : label.x + textWidth,
+            bottom: label.y,
+            top: label.y - 10
+          },
+          id: label.id
+        })
+
+        if (paragraph) {
+          const xPos = label.type === 'receive' ? label.x - textWidth : label.x
+          const clampedX = Math.max(0, xPos)
+          return (
+            <Fragment key={index}>
+              <Paragraph
+                paragraph={paragraph}
+                x={clampedX}
+                y={label.y - 10}
+                width={textWidth}
+              />
+            </Fragment>
           )
-        : font.measureText(text).width
+        }
 
-      labelRectRef.current.push({
-        rect: {
-          left: label.type === 'receive' ? label.x - textWidth : label.x,
-          right: label.type === 'receive' ? label.x : label.x + textWidth,
-          bottom: label.y,
-          top: label.y - 10
-        },
-        id: label.id
-      })
-
-      if (paragraph) {
         const xPos = label.type === 'receive' ? label.x - textWidth : label.x
         const clampedX = Math.max(0, xPos)
         return (
           <Fragment key={index}>
-            <Paragraph
-              paragraph={paragraph}
+            <Text
               x={clampedX}
-              y={label.y - 10}
-              width={textWidth}
+              y={label.y}
+              text={text}
+              font={font}
+              color={label.type === 'receive' ? '#A7FFAF' : '#FF7171'}
             />
           </Fragment>
         )
-      }
-
-      const xPos = label.type === 'receive' ? label.x - textWidth : label.x
-      const clampedX = Math.max(0, xPos)
-      return (
-        <Fragment key={index}>
-          <Text
-            x={clampedX}
-            y={label.y}
-            text={text}
-            font={font}
-            color={label.type === 'receive' ? '#A7FFAF' : '#FF7171'}
-          />
-        </Fragment>
-      )
-    })
-  }
-
-  function CursorRenderer() {
-    if (!customFontManager) {
-      return null
-    }
-    const font = matchFont(fontStyle, customFontManager)
-    return (
-      cursorX !== undefined && (
-        <Group>
-          <Line
-            p1={vec(xScale(cursorX), 20)}
-            p2={vec(xScale(cursorX), chartHeight)}
-            color="white"
-            style="stroke"
-          >
-            <DashPathEffect intervals={[10, 2]} phase={0} />
-          </Line>
-          <Text
-            x={xScale(cursorX)}
-            y={10}
-            text={cursorFormatter(cursorY ?? 0)}
-            font={font}
-            color="white"
-          />
-        </Group>
-      )
-    )
-  }
-
-  const clipPathRect = rect(0, 0, chartWidth, chartHeight)
-
-  if (!containerSize.width || !containerSize.height) {
-    return <View onLayout={handleLayout} style={styles.container} />
-  }
-
-  return (
-    <GestureDetector gesture={combinedGesture}>
-      <View style={styles.container} onLayout={handleLayout}>
-        <Canvas
-          style={{
-            width: containerSize.width,
-            height: containerSize.height,
-            flex: 1
-          }}
-          pointerEvents="box-none"
-        >
-          <Group
-            transform={[
-              { translateX: margin.left },
-              { translateY: margin.top }
-            ]}
-          >
-            <YScaleRendrer />
-            <XScaleRenderer />
-            <XAxisRenderer />
-            <Group clip={clipPathRect}>
-              {showOutputField && (
-                <>
-                  <UtxoRectRenderer />
-                  <UtxoLabelRenderer />
-                </>
-              )}
-              <TransactionInfoRenderer />
-              <Path
-                path={linePath ?? ''}
-                color="white"
-                strokeWidth={2}
-                style="stroke"
-              />
-              {!showOutputField && <AreaPathRenderer />}
-              <CursorRenderer />
-            </Group>
-          </Group>
-        </Canvas>
-      </View>
-    </GestureDetector>
+      })}
+    </>
   )
 }
+
+const MemoizedTransactionInfoRenderer = memo(TransactionInfoRenderer)
+
+type CursorRendererProps = {
+  customFontManager: ReturnType<typeof useFonts>
+  fontStyle: { fontFamily: string; fontSize: number }
+  cursorX: Date | undefined
+  cursorY: number | undefined
+  xScale: d3.ScaleTime<number, number>
+  chartHeight: number
+  cursorFormatter: (value: number) => string
+}
+
+function CursorRenderer({
+  customFontManager,
+  fontStyle,
+  cursorX,
+  cursorY,
+  xScale,
+  chartHeight,
+  cursorFormatter
+}: CursorRendererProps) {
+  if (!customFontManager || cursorX === undefined) {
+    return null
+  }
+  const font = matchFont(fontStyle, customFontManager)
+  return (
+    <Group>
+      <Line
+        p1={vec(xScale(cursorX), 20)}
+        p2={vec(xScale(cursorX), chartHeight)}
+        color="white"
+        style="stroke"
+      >
+        <DashPathEffect intervals={[10, 2]} phase={0} />
+      </Line>
+      <Text
+        x={xScale(cursorX)}
+        y={10}
+        text={cursorFormatter(cursorY ?? 0)}
+        font={font}
+        color="white"
+      />
+    </Group>
+  )
+}
+
+const MemoizedCursorRenderer = memo(CursorRenderer)
 
 const styles = StyleSheet.create({
   container: {
@@ -1161,4 +1567,9 @@ const styles = StyleSheet.create({
   }
 })
 
-export default SSHistoryChart
+export default memo(SSHistoryChart, (prevProps, nextProps) => {
+  return (
+    prevProps.transactions === nextProps.transactions &&
+    prevProps.utxos === nextProps.utxos
+  )
+})
