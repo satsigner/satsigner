@@ -25,13 +25,19 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
 import { useChartSettingStore } from '@/store/chartSettings'
+import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type Rectangle } from '@/types/ui/geometry'
 import { Colors } from '@/styles'
-import { formatConfirmations, formatNumber } from '@/utils/format'
+import {
+  formatConfirmations,
+  formatFiatPrice,
+  formatNumber,
+  formatPercentualChange
+} from '@/utils/format'
 import { isOverlapping } from '@/utils/geometry'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -62,14 +68,28 @@ function SSHistoryChart({
     showAmount,
     showTransactionInfo,
     showOutputField,
-    lockZoomToXAxis
+    lockZoomToXAxis,
+    showFiatOnChart,
+    showFiatAtTxTime,
+    showFiatPercentageChange
   ] = useChartSettingStore(
     useShallow((state) => [
       state.showLabel,
       state.showAmount,
       state.showTransactionInfo,
       state.showOutputField,
-      state.lockZoomToXAxis
+      state.lockZoomToXAxis,
+      state.showFiatOnChart,
+      state.showFiatAtTxTime,
+      state.showFiatPercentageChange
+    ])
+  )
+
+  const [fiatCurrency, btcPrice, satsToFiat] = usePriceStore(
+    useShallow((state) => [
+      state.fiatCurrency,
+      state.btcPrice,
+      state.satsToFiat
     ])
   )
 
@@ -707,12 +727,22 @@ function SSHistoryChart({
     blockchainHeight
   ])
 
+  const transactionsMap = useMemo(() => {
+    const map = new Map<string, Transaction>()
+    transactions.forEach((t) => {
+      map.set(t.id, t)
+    })
+    return map
+  }, [transactions])
+
   const txInfoLabels = useMemo<
     {
       x: number
       y: number
       memo?: string
       amount?: number
+      fiatValue?: number
+      historicalFiatValue?: number
       type: string
       boundBox?: Rectangle
       index: string
@@ -727,6 +757,8 @@ function SSHistoryChart({
       y: number
       memo?: string
       amount?: number
+      fiatValue?: number
+      historicalFiatValue?: number
       type: string
       boundBox?: Rectangle
       index: string
@@ -773,18 +805,38 @@ function SSHistoryChart({
         const right = Math.round(d.type === 'receive' ? x : x + width)
         const bottom = y
         const top = y - height
+        const transaction = transactionsMap.get(d.id)
+        const historicalPrice =
+          showFiatAtTxTime &&
+          transaction?.prices &&
+          transaction.prices[fiatCurrency]
+            ? transaction.prices[fiatCurrency]
+            : undefined
+        const historicalFiatValue =
+          historicalPrice && d.amount !== undefined
+            ? parseFloat(formatFiatPrice(d.amount, historicalPrice))
+            : undefined
+
         initialLabels.push({
           x,
-          y,
+          y: showFiatOnChart && btcPrice > 0 ? y - 10 : y,
           amount: d.amount,
+          fiatValue:
+            showFiatOnChart && btcPrice > 0 && d.amount !== undefined
+              ? satsToFiat(d.amount)
+              : undefined,
+          historicalFiatValue,
           type: d.type,
           boundBox: {
             left,
             right,
-            top,
-            bottom,
+            top: showFiatOnChart && btcPrice > 0 ? top - 10 : top,
+            bottom: showFiatOnChart && btcPrice > 0 ? bottom - 10 : bottom,
             width,
-            height
+            height:
+              showFiatOnChart && btcPrice > 0
+                ? height + (showFiatAtTxTime && historicalFiatValue ? 12 : 12)
+                : height
           },
           index,
           id: d.id
@@ -815,7 +867,13 @@ function SSHistoryChart({
     xScale,
     yScale,
     chartWidth,
-    chartHeight
+    chartHeight,
+    showFiatOnChart,
+    showFiatAtTxTime,
+    btcPrice,
+    satsToFiat,
+    fiatCurrency,
+    transactionsMap
   ])
 
   const customFontManager = useFonts({
@@ -846,9 +904,19 @@ function SSHistoryChart({
         fontSize: 10
       }
 
+      const transaction = transactionsMap.get(label.id)
+      const historicalPrice =
+        transaction?.prices && transaction.prices[fiatCurrency]
+          ? transaction.prices[fiatCurrency]
+          : undefined
+      const hasHistoricalPrice = historicalPrice && btcPrice > 0
+      const needsSecondLine =
+        (showFiatOnChart && label.fiatValue !== undefined) ||
+        (showFiatPercentageChange && hasHistoricalPrice)
+
       const para = Skia.ParagraphBuilder.Make(
         {
-          maxLines: 1,
+          maxLines: needsSecondLine ? 2 : 1,
           textAlign: TextAlign.Left
         },
         customFontManager
@@ -913,8 +981,70 @@ function SSHistoryChart({
         }
       }
 
+      if (
+        showFiatOnChart &&
+        label.fiatValue !== undefined &&
+        label.amount !== undefined
+      ) {
+        const currentPriceText = `≈ ${formatFiatPrice(label.amount, btcPrice)} ${fiatCurrency}`
+        const historicalPriceText =
+          showFiatAtTxTime && historicalPrice && label.amount !== undefined
+            ? ` (${formatFiatPrice(label.amount, historicalPrice)} ${fiatCurrency})`
+            : ''
+        const percentageChangeText =
+          showFiatPercentageChange && historicalPrice && btcPrice > 0
+            ? formatPercentualChange(btcPrice, historicalPrice)
+            : ''
+
+        para
+          .pushStyle({
+            color: Skia.Color('#666666'),
+            fontFamilies: ['SF Pro Text'],
+            fontSize: 8
+          })
+          .addText(`\n${currentPriceText}${historicalPriceText}`)
+          .pop()
+
+        if (percentageChangeText) {
+          const isPositive = percentageChangeText[0] === '+'
+          const baseColor = isPositive ? Colors.mainGreen : Colors.mainRed
+          const percentageColor = hexToRgba(baseColor, 0.7)
+
+          para
+            .pushStyle({
+              color: Skia.Color(percentageColor),
+              fontFamilies: ['SF Pro Text'],
+              fontSize: 8
+            })
+            .addText(` ${percentageChangeText}`)
+            .pop()
+        }
+      } else if (
+        showFiatPercentageChange &&
+        historicalPrice &&
+        btcPrice > 0 &&
+        label.amount !== undefined
+      ) {
+        const percentageChangeText = formatPercentualChange(
+          btcPrice,
+          historicalPrice
+        )
+        const isPositive = percentageChangeText[0] === '+'
+        const baseColor = isPositive ? Colors.mainGreen : Colors.mainRed
+        const percentageColor = hexToRgba(baseColor, 0.7)
+
+        para
+          .pushStyle({
+            color: Skia.Color(percentageColor),
+            fontFamilies: ['SF Pro Text'],
+            fontSize: 8
+          })
+          .addText(`\n ${percentageChangeText}`)
+          .pop()
+      }
+
       const builtPara = para.build()
-      builtPara.layout(5000)
+      builtPara.layout(10000)
       paragraphs.set(label.index, builtPara)
     })
 
@@ -925,7 +1055,13 @@ function SSHistoryChart({
     showLabel,
     showAmount,
     zeroPadding,
-    chartWidth
+    chartWidth,
+    showFiatOnChart,
+    showFiatAtTxTime,
+    showFiatPercentageChange,
+    btcPrice,
+    fiatCurrency,
+    transactionsMap
   ])
 
   const clipPathRect = rect(0, 0, chartWidth, chartHeight)
@@ -1602,8 +1738,9 @@ function TransactionInfoRenderer({
           ''
 
         const paragraph = labelParagraphs.get(label.index)
+        const paragraphWidth = paragraph ? paragraph.getMinIntrinsicWidth() : 0
         const textWidth = paragraph
-          ? paragraph.getMinIntrinsicWidth()
+          ? paragraphWidth
           : font.measureText(text).width
 
         labelRectRef.current.push({
@@ -1625,7 +1762,7 @@ function TransactionInfoRenderer({
                 paragraph={paragraph}
                 x={clampedX}
                 y={label.y - 10}
-                width={paragraph.getMinIntrinsicWidth() * 1.5}
+                width={Math.max(paragraphWidth * 3, 200)}
               />
             </Fragment>
           )

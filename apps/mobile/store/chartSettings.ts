@@ -9,14 +9,20 @@ type ChartSettingState = {
   showTransactionInfo: boolean
   showOutputField: boolean
   lockZoomToXAxis: boolean
+  showFiatOnChart: boolean
+  showFiatAtTxTime: boolean
+  showFiatPercentageChange: boolean
 }
 
 type ChartSettingAction = {
-  setShowLabel: (showLabel: boolean) => void
-  setShowAmount: (showAmount: boolean) => void
-  setShowTransactionInfo: (showTransactionInfo: boolean) => void
-  setShowOutputField: (showOutputField: boolean) => void
-  setLockZoomToXAxis: (lockZoomToXAxis: boolean) => void
+  setShowLabel: (showLabel: ChartSettingState['showLabel']) => void
+  setShowAmount: (showAmount: ChartSettingState['showAmount']) => void
+  setShowTransactionInfo: (showTransactionInfo: ChartSettingState['showTransactionInfo']) => void
+  setShowOutputField: (showOutputField: ChartSettingState['showOutputField']) => void
+  setLockZoomToXAxis: (lockZoomToXAxis: ChartSettingState['lockZoomToXAxis']) => void
+  setShowFiatOnChart: (showFiatOnChart: ChartSettingState['showFiatOnChart']) => void
+  setShowFiatAtTxTime: (showFiatAtTxTime: ChartSettingState['showFiatAtTxTime']) => void
+  setShowFiatPercentageChange: (showFiatPercentageChange: ChartSettingState['showFiatPercentageChange']) => void
 }
 
 const useChartSettingStore = create<ChartSettingState & ChartSettingAction>()(
@@ -27,6 +33,9 @@ const useChartSettingStore = create<ChartSettingState & ChartSettingAction>()(
       showTransactionInfo: true,
       showOutputField: false,
       lockZoomToXAxis: true,
+      showFiatOnChart: false,
+      showFiatAtTxTime: false,
+      showFiatPercentageChange: false,
       setShowLabel: (showLabel) => {
         set({ showLabel })
       },
@@ -41,6 +50,18 @@ const useChartSettingStore = create<ChartSettingState & ChartSettingAction>()(
       },
       setLockZoomToXAxis: (lockZoomToXAxis) => {
         set({ lockZoomToXAxis })
+      },
+      setShowFiatOnChart: (showFiatOnChart) => {
+        set({ showFiatOnChart })
+        if (!showFiatOnChart) {
+          set({ showFiatAtTxTime: false })
+        }
+      },
+      setShowFiatAtTxTime: (showFiatAtTxTime) => {
+        set({ showFiatAtTxTime })
+      },
+      setShowFiatPercentageChange: (showFiatPercentageChange) => {
+        set({ showFiatPercentageChange })
       }
     }),
     {
