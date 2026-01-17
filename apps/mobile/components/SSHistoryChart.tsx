@@ -25,10 +25,13 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
 import { useChartSettingStore } from '@/store/chartSettings'
+import { useSettingsStore } from '@/store/settings'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type Rectangle } from '@/types/ui/geometry'
+import { Colors } from '@/styles'
+import { formatConfirmations, formatNumber } from '@/utils/format'
 import { isOverlapping } from '@/utils/geometry'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -44,9 +47,14 @@ type HistoryChartData = {
 type SSHistoryChartProps = {
   transactions: Transaction[]
   utxos: Utxo[]
+  blockchainHeight?: number
 }
 
-function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
+function SSHistoryChart({
+  transactions,
+  utxos,
+  blockchainHeight
+}: SSHistoryChartProps) {
   const router = useRouter()
 
   const [
@@ -64,6 +72,11 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       state.lockZoomToXAxis
     ])
   )
+
+  const [currencyUnit, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  )
+  const zeroPadding = useZeroPadding || currencyUnit === 'btc'
 
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const currentDate = useRef<Date>(new Date())
@@ -605,6 +618,10 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       type: 'send' | 'receive'
       numberOfOutput: number
       numberOfInput: number
+      hasChange: boolean
+      fee?: number
+      confirmations?: string
+      label?: string
     }[]
   >(() => {
     if (!showTransactionInfo) {
@@ -613,35 +630,48 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
     const length = xScaleTransactions.length
     const xAxisLabels = xScaleTransactions.map((t) => {
       const amount = t.type === 'receive' ? t.received : t.received - t.sent
-      let numberOfOutput: number = 0
-      let numberOfInput: number = 0
-      if (t.type === 'receive') {
-        numberOfOutput =
-          t.vout.filter((out) => walletAddresses.has(out.address)).length ?? 0
-      } else if (t.type === 'send') {
-        numberOfInput = t.vin?.length ?? 0
-      }
+      const numberOfInput = t.vin?.length ?? 0
+      const numberOfOutput = t.vout?.length ?? 0
+      const hasChange =
+        t.type === 'send' &&
+        t.vout.some((out) => walletAddresses.has(out.address))
+      const confirmationsCount =
+        blockchainHeight && t.blockHeight
+          ? blockchainHeight - t.blockHeight + 1
+          : undefined
+      const confirmations =
+        confirmationsCount !== undefined
+          ? confirmationsCount <= 0
+            ? '0 confs'
+            : `${numberCommaFormatter(confirmationsCount)} confs`
+          : undefined
       return {
         x: xScale(new Date(t.timestamp ?? new Date())),
         index: t.index,
         textColor: '',
-        amountString: `${amount >= 0 ? '+' : ''}${numberCommaFormatter(
-          amount
+        amountString: `${amount >= 0 ? '+' : ''}${formatNumber(
+          amount,
+          0,
+          zeroPadding
         )}`,
         type: t.type,
         numberOfOutput,
-        numberOfInput
+        numberOfInput,
+        hasChange,
+        fee: t.fee,
+        confirmations,
+        label: t.label
       }
     })
     const boundaryBoxes: { [key: string]: Rectangle } = {}
     xAxisLabels.forEach((t) => {
       boundaryBoxes[t.index] = {
         left: t.x,
-        right: 40 + t.x,
+        right: 60 + t.x,
         top: chartHeight,
-        bottom: chartHeight + 30,
-        width: 40,
-        height: 30
+        bottom: chartHeight + 50,
+        width: 60,
+        height: 50
       }
     })
     const visible: { [key: string]: boolean } = {}
@@ -673,7 +703,8 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
     xScale,
     showTransactionInfo,
     chartHeight,
-    numberCommaFormatter
+    zeroPadding,
+    blockchainHeight
   ])
 
   const txInfoLabels = useMemo<
@@ -807,10 +838,13 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       if (label.type === 'end') return
       const x = label.x
       if (x < 0 || x > chartWidth) return
-      const text =
-        (showLabel && label.memo!) ||
-        (showAmount && numberCommaFormatter(label.amount!)) ||
-        ''
+
+      const baseColor = label.type === 'receive' ? '#A7FFAF' : '#FF7171'
+      const baseStyle = {
+        color: Skia.Color(baseColor),
+        fontFamilies: ['SF Pro Text'],
+        fontSize: 10
+      }
 
       const para = Skia.ParagraphBuilder.Make(
         {
@@ -819,17 +853,69 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
         },
         customFontManager
       )
-        .pushStyle({
-          color: Skia.Color(label.type === 'receive' ? '#A7FFAF' : '#FF7171'),
-          fontFamilies: ['SF Pro Text'],
-          fontSize: 10
-        })
-        .addText(text)
-        .pop()
-        .build()
 
-      para.layout(1000)
-      paragraphs.set(label.index, para)
+      if (showLabel && label.memo) {
+        para.pushStyle(baseStyle).addText(label.memo).pop()
+      } else if (showAmount && label.amount !== undefined) {
+        const amountString = `${label.amount >= 0 ? '+' : ''}${formatNumber(
+          label.amount,
+          0,
+          zeroPadding
+        )}`
+        const sign =
+          amountString.startsWith('+') || amountString.startsWith('-')
+            ? amountString[0]
+            : ''
+        const numberPart = sign ? amountString.substring(1) : amountString
+
+        if (sign) {
+          para.pushStyle(baseStyle).addText(sign).pop()
+        }
+
+        const firstNonZeroIndex = numberPart.search(/[1-9]/)
+        if (firstNonZeroIndex === -1) {
+          para
+            .pushStyle({
+              ...baseStyle,
+              color: Skia.Color(baseColor)
+            })
+            .addText(numberPart)
+            .pop()
+        } else {
+          const leadingZeros = numberPart.substring(0, firstNonZeroIndex)
+          const significantDigits = numberPart.substring(firstNonZeroIndex)
+          if (leadingZeros.length > 0) {
+            const baseColorRgb = baseColor.match(
+              /#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i
+            )
+            const opacityColor = baseColorRgb
+              ? Skia.Color(
+                  `rgba(${parseInt(baseColorRgb[1], 16)}, ${parseInt(baseColorRgb[2], 16)}, ${parseInt(baseColorRgb[3], 16)}, 0.4)`
+                )
+              : Skia.Color('#999999')
+            para
+              .pushStyle({
+                ...baseStyle,
+                color: opacityColor
+              })
+              .addText(leadingZeros)
+              .pop()
+          }
+          if (significantDigits.length > 0) {
+            para
+              .pushStyle({
+                ...baseStyle,
+                color: Skia.Color(baseColor)
+              })
+              .addText(significantDigits)
+              .pop()
+          }
+        }
+      }
+
+      const builtPara = para.build()
+      builtPara.layout(5000)
+      paragraphs.set(label.index, builtPara)
     })
 
     return paragraphs
@@ -838,7 +924,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
     customFontManager,
     showLabel,
     showAmount,
-    numberCommaFormatter,
+    zeroPadding,
     chartWidth
   ])
 
@@ -879,6 +965,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
               showTransactionInfo={showTransactionInfo}
               txXAxisLabels={txXAxisLabels}
               chartHeight={chartHeight}
+              zeroPadding={zeroPadding}
             />
             <MemoizedXAxisRenderer
               customFontManager={customFontManager}
@@ -909,7 +996,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
                 labelParagraphs={labelParagraphs}
                 showLabel={showLabel}
                 showAmount={showAmount}
-                numberCommaFormatter={numberCommaFormatter}
+                zeroPadding={zeroPadding}
                 labelRectRef={labelRectRef}
               />
               <Path
@@ -928,7 +1015,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
                 cursorY={cursorY}
                 xScale={xScale}
                 chartHeight={chartHeight}
-                cursorFormatter={cursorFormatter}
+                zeroPadding={zeroPadding}
               />
             </Group>
           </Group>
@@ -1003,8 +1090,113 @@ type XScaleRendererProps = {
     type: 'send' | 'receive'
     numberOfOutput: number
     numberOfInput: number
+    hasChange: boolean
+    fee?: number
+    confirmations?: string
+    label?: string
   }[]
   chartHeight: number
+  zeroPadding: boolean
+}
+
+function hexToRgba(hex: string, opacity: number): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`
+}
+
+function formatAmountWithLeadingZeros(
+  amountString: string,
+  font: ReturnType<typeof matchFont>,
+  baseColor: string = '#666666'
+): { text: string; color: string; x: number }[] {
+  if (!amountString) {
+    return []
+  }
+
+  const parts = amountString.split(' | ')
+  const segments: { text: string; color: string; x: number }[] = []
+  let currentX = 0
+
+  parts.forEach((part, partIndex) => {
+    if (partIndex > 0) {
+      segments.push({
+        text: ' | ',
+        color: '#666666',
+        x: currentX
+      })
+      currentX += font.measureText(' | ').width
+    }
+
+    if (part.startsWith('Fee: ')) {
+      const feePart = part.substring(5)
+      segments.push({ text: 'Fee: ', color: '#666666', x: currentX })
+      currentX += font.measureText('Fee: ').width
+
+      const firstNonZeroIndex = feePart.search(/[1-9]/)
+      if (firstNonZeroIndex === -1) {
+        segments.push({ text: feePart, color: '#666666', x: currentX })
+        currentX += font.measureText(feePart).width
+      } else {
+        if (firstNonZeroIndex > 0) {
+          segments.push({
+            text: feePart.substring(0, firstNonZeroIndex),
+            color: '#666666',
+            x: currentX
+          })
+          currentX += font.measureText(
+            feePart.substring(0, firstNonZeroIndex)
+          ).width
+        }
+        segments.push({
+          text: feePart.substring(firstNonZeroIndex),
+          color: '#999999',
+          x: currentX
+        })
+        currentX += font.measureText(feePart.substring(firstNonZeroIndex)).width
+      }
+    } else {
+      const sign = part.startsWith('+') || part.startsWith('-') ? part[0] : ''
+      const numberPart = sign ? part.substring(1) : part
+
+      if (sign) {
+        segments.push({ text: sign, color: baseColor, x: currentX })
+        currentX += font.measureText(sign).width
+      }
+
+      const firstNonZeroIndex = numberPart.search(/[1-9]/)
+      if (firstNonZeroIndex === -1) {
+        segments.push({
+          text: numberPart,
+          color: hexToRgba(baseColor, 0.4),
+          x: currentX
+        })
+        currentX += font.measureText(numberPart).width
+      } else {
+        if (firstNonZeroIndex > 0) {
+          segments.push({
+            text: numberPart.substring(0, firstNonZeroIndex),
+            color: hexToRgba(baseColor, 0.4),
+            x: currentX
+          })
+          currentX += font.measureText(
+            numberPart.substring(0, firstNonZeroIndex)
+          ).width
+        }
+        segments.push({
+          text: numberPart.substring(firstNonZeroIndex),
+          color: baseColor,
+          x: currentX
+        })
+        currentX += font.measureText(
+          numberPart.substring(firstNonZeroIndex)
+        ).width
+      }
+    }
+  })
+
+  return segments
 }
 
 function XScaleRenderer({
@@ -1012,7 +1204,8 @@ function XScaleRenderer({
   fontStyle,
   showTransactionInfo,
   txXAxisLabels,
-  chartHeight
+  chartHeight,
+  zeroPadding
 }: XScaleRendererProps) {
   if (!customFontManager || !showTransactionInfo || !txXAxisLabels?.length) {
     return null
@@ -1033,47 +1226,112 @@ function XScaleRenderer({
               >
                 <DashPathEffect intervals={[2, 2]} phase={0} />
               </Line>
-              <Text
-                x={x}
-                y={chartHeight + 10}
-                text={`TX ${t.index}`}
-                font={font}
-                color={t.textColor}
-              />
-              <Text
-                x={x}
-                y={chartHeight + 20}
-                text={t.amountString}
-                font={font}
-                color={t.textColor}
-              />
-              {t.type === 'receive' && (
+              {t.textColor === 'transparent' ? (
+                <Text
+                  x={x}
+                  y={chartHeight + 20}
+                  text={(() => {
+                    const parts: string[] = [
+                      t.label ? `${t.label} #${t.index}` : `TX ${t.index}`
+                    ]
+                    if (t.confirmations) {
+                      parts.push(t.confirmations)
+                    }
+                    return parts.join(' | ')
+                  })()}
+                  font={font}
+                  color="transparent"
+                />
+              ) : (
+                <Group>
+                  <Text
+                    x={x}
+                    y={chartHeight + 20}
+                    text={t.label ? `${t.label} #${t.index}` : `TX ${t.index}`}
+                    font={font}
+                    color="white"
+                  />
+                  {t.confirmations && (
+                    <>
+                      <Text
+                        x={
+                          x +
+                          font.measureText(
+                            t.label ? `${t.label} #${t.index}` : `TX ${t.index}`
+                          ).width
+                        }
+                        y={chartHeight + 20}
+                        text=" "
+                        font={font}
+                        color="#666666"
+                      />
+                      <Text
+                        x={
+                          x +
+                          font.measureText(
+                            `${t.label ? `${t.label} #${t.index}` : `TX ${t.index}`} | `
+                          ).width
+                        }
+                        y={chartHeight + 20}
+                        text={t.confirmations}
+                        font={font}
+                        color="#666666"
+                      />
+                    </>
+                  )}
+                </Group>
+              )}
+              {t.textColor === 'transparent' ? (
                 <Text
                   x={x}
                   y={chartHeight + 30}
-                  text={`${t.numberOfOutput} Output`}
+                  text={(() => {
+                    const parts: string[] = [t.amountString]
+                    if (t.type === 'send' && t.fee !== undefined) {
+                      parts.push(`Fee: ${formatNumber(t.fee, 0, zeroPadding)}`)
+                    }
+                    return parts.join(' | ')
+                  })()}
                   font={font}
-                  color={t.textColor}
+                  color="transparent"
                 />
+              ) : (
+                <Group>
+                  {formatAmountWithLeadingZeros(
+                    (() => {
+                      const parts: string[] = [t.amountString]
+                      if (t.type === 'send' && t.fee !== undefined) {
+                        parts.push(
+                          `Fee: ${formatNumber(t.fee, 0, zeroPadding)}`
+                        )
+                      }
+                      return parts.join(' | ')
+                    })(),
+                    font,
+                    t.type === 'receive' ? '#A7FFAF' : '#FF7171'
+                  ).map((segment, segIndex) => (
+                    <Text
+                      key={segIndex}
+                      x={x + segment.x}
+                      y={chartHeight + 30}
+                      text={segment.text}
+                      font={font}
+                      color={segment.color}
+                    />
+                  ))}
+                </Group>
               )}
-              {t.type === 'send' && (
-                <>
-                  <Text
-                    x={x}
-                    y={chartHeight + 30}
-                    text={`${t.numberOfInput} Input`}
-                    font={font}
-                    color={t.textColor}
-                  />
-                  <Text
-                    x={x}
-                    y={chartHeight + 40}
-                    text="+ change"
-                    font={font}
-                    color={t.textColor}
-                  />
-                </>
-              )}
+              <Text
+                x={x}
+                y={chartHeight + 40}
+                text={`${t.numberOfInput} in / ${t.numberOfOutput} out${
+                  t.hasChange ? ' + change' : ''
+                }`}
+                font={font}
+                color={
+                  t.textColor === 'transparent' ? 'transparent' : '#666666'
+                }
+              />
             </Group>
           </Fragment>
         )
@@ -1115,7 +1373,7 @@ function XAxisRenderer({
           <Group key={tick.getTime().toString()}>
             <Text
               x={x}
-              y={chartHeight + (showTransactionInfo ? 50 : 20)}
+              y={chartHeight + (showTransactionInfo ? 60 : 20)}
               text={
                 displayTime ? d3.timeFormat('%b %d %H:%M')(tick) : currentDate
               }
@@ -1307,7 +1565,7 @@ type TransactionInfoRendererProps = {
   labelParagraphs: Map<string, SkParagraph>
   showLabel: boolean
   showAmount: boolean
-  numberCommaFormatter: (value: number) => string
+  zeroPadding: boolean
   labelRectRef: React.MutableRefObject<{ rect: Rectangle; id: string }[]>
 }
 
@@ -1318,7 +1576,7 @@ function TransactionInfoRenderer({
   labelParagraphs,
   showLabel,
   showAmount,
-  numberCommaFormatter,
+  zeroPadding,
   labelRectRef
 }: TransactionInfoRendererProps) {
   if (!customFontManager) {
@@ -1334,15 +1592,18 @@ function TransactionInfoRenderer({
         }
         const text =
           (showLabel && label.memo!) ||
-          (showAmount && numberCommaFormatter(label.amount!)) ||
+          (showAmount &&
+            label.amount !== undefined &&
+            `${label.amount >= 0 ? '+' : ''}${formatNumber(
+              label.amount,
+              0,
+              zeroPadding
+            )}`) ||
           ''
 
         const paragraph = labelParagraphs.get(label.index)
         const textWidth = paragraph
-          ? Math.max(
-              paragraph.getMinIntrinsicWidth(),
-              font.measureText(text).width
-            )
+          ? paragraph.getMinIntrinsicWidth()
           : font.measureText(text).width
 
         labelRectRef.current.push({
@@ -1364,7 +1625,7 @@ function TransactionInfoRenderer({
                 paragraph={paragraph}
                 x={clampedX}
                 y={label.y - 10}
-                width={textWidth}
+                width={paragraph.getMinIntrinsicWidth() * 1.5}
               />
             </Fragment>
           )
@@ -1397,7 +1658,7 @@ type CursorRendererProps = {
   cursorY: number | undefined
   xScale: d3.ScaleTime<number, number>
   chartHeight: number
-  cursorFormatter: (value: number) => string
+  zeroPadding: boolean
 }
 
 function CursorRenderer({
@@ -1407,12 +1668,15 @@ function CursorRenderer({
   cursorY,
   xScale,
   chartHeight,
-  cursorFormatter
+  zeroPadding
 }: CursorRendererProps) {
   if (!customFontManager || cursorX === undefined) {
     return null
   }
   const font = matchFont(fontStyle, customFontManager)
+  const formattedAmount = formatNumber(cursorY ?? 0, 0, zeroPadding)
+  const segments = formatAmountWithLeadingZeros(formattedAmount, font)
+
   return (
     <Group>
       <Line
@@ -1423,13 +1687,16 @@ function CursorRenderer({
       >
         <DashPathEffect intervals={[10, 2]} phase={0} />
       </Line>
-      <Text
-        x={xScale(cursorX)}
-        y={10}
-        text={cursorFormatter(cursorY ?? 0)}
-        font={font}
-        color="white"
-      />
+      {segments.map((segment, segIndex) => (
+        <Text
+          key={segIndex}
+          x={xScale(cursorX) + segment.x}
+          y={10}
+          text={segment.text}
+          font={font}
+          color={segment.color}
+        />
+      ))}
     </Group>
   )
 }
