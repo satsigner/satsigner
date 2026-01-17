@@ -166,68 +166,11 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
   const balanceHistory = useMemo(() => {
     const history = new Map<number, Map<string, Utxo>>()
     const pendingDeleteBalances = new Set<string>()
-    const { startIndex, endIndex } = visibleTransactionsRange
-
-    for (let i = 0; i < startIndex; i++) {
-      const t = transactions[i]
-      if (i === 0) {
-        history.set(i, new Map())
-      } else {
-        const prevBalances = history.get(i - 1)!
-        const currentBalances = new Map<string, Utxo>()
-        prevBalances.forEach((value, key) =>
-          currentBalances.set(key, { ...value })
-        )
-        history.set(i, currentBalances)
-      }
-      if (t.type === 'receive') {
-        const currentBalances = history.get(i)!
-        t.vout.forEach((out, index) => {
-          if (walletAddresses.has(out.address)) {
-            const outName = t.id + '::' + index
-            currentBalances.set(outName, {
-              addressTo: out.address,
-              value: out.value,
-              vout: index,
-              label: '',
-              keychain: 'internal',
-              txid: t.id
-            })
-          }
-        })
-      } else if (t.type === 'send') {
-        const currentBalances = history.get(i)!
-        t.vin?.forEach((input) => {
-          const inputName =
-            input.previousOutput.txid + '::' + input.previousOutput.vout
-          if (currentBalances.has(inputName)) {
-            currentBalances.delete(inputName)
-          } else {
-            pendingDeleteBalances.add(inputName)
-          }
-        })
-        t.vout?.forEach((out, index) => {
-          if (walletAddresses.has(out.address)) {
-            const outName = t.id + '::' + index
-            currentBalances.set(outName, {
-              addressTo: out.address,
-              value: out.value,
-              vout: index,
-              txid: t.id,
-              keychain: 'internal',
-              label: ''
-            })
-          }
-        })
-      }
-    }
-
-    for (let i = startIndex; i < endIndex; i++) {
-      const t = transactions[i]
+    transactions.forEach((t, index) => {
       const currentBalances = new Map<string, Utxo>()
-      if (i > 0) {
+      if (index > 0) {
         history
-          .get(i - 1)!
+          .get(index - 1)!
           .forEach((value, key) => currentBalances.set(key, { ...value }))
       }
       if (t.type === 'receive') {
@@ -268,9 +211,8 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
           }
         })
       }
-      history.set(i, currentBalances)
-    }
-
+      history.set(index, currentBalances)
+    })
     pendingDeleteBalances.forEach((value) => {
       Array.from(history.entries()).forEach(([, historyBalance]) => {
         if (historyBalance.has(value)) {
@@ -280,7 +222,8 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       pendingDeleteBalances.delete(value)
     })
     return history
-  }, [walletAddresses, transactions, visibleTransactionsRange])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walletAddresses])
 
   const [maxBalance, validChartData] = useMemo(() => {
     const startBalance =
@@ -350,53 +293,27 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
     utxo: Utxo
     gradientType: number
   }[] = useMemo(() => {
-    const { startIndex, endIndex } = visibleTransactionsRange
-    const result: {
-      x1: number
-      x2: number
-      y1: number
-      y2: number
-      utxo: Utxo
-      gradientType: number
-    }[] = []
-
-    Array.from(balanceHistory.entries())
-      .filter(([index]) => index < endIndex)
-      .forEach(([index, balances]) => {
-        const txTimestamp = new Date(
-          transactions.at(index)?.timestamp ?? currentDate.current
+    return Array.from(balanceHistory.entries())
+      .flatMap(([index, balances]) => {
+        const x1 = xScale(
+          new Date(transactions.at(index)?.timestamp ?? currentDate.current)
         )
-        let nextTxTimestamp =
+        const x2 = xScale(
           index === transactions.length - 1
             ? currentDate.current
             : new Date(
                 transactions.at(index + 1)?.timestamp ?? currentDate.current
               )
-
-        if (index >= startIndex && nextTxTimestamp > endDate) {
-          nextTxTimestamp = endDate
-        }
-
-        let x1 = xScale(txTimestamp)
-        let x2 = xScale(nextTxTimestamp)
-
-        if (index < startIndex) {
-          x1 = 0
-        }
-
-        if (x2 <= 0 && x1 >= chartWidth) {
-          return
-        }
-        if (x1 >= chartWidth || x2 <= 0) {
-          return
+        )
+        if (x2 < 0 && x1 >= chartWidth) {
+          return []
         }
         let totalBalance = 0
-        Array.from(balances.entries()).forEach(([, utxo]) => {
+        return Array.from(balances.entries()).map(([, utxo]) => {
           const y1 = yScale(totalBalance)
           const y2 = yScale(totalBalance + utxo.value)
           let gradientType = 0
           totalBalance += utxo.value
-
           if (
             transactions.at(index + 1) !== undefined &&
             transactions.at(index + 1)?.type === 'send'
@@ -419,32 +336,19 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
               gradientType = -1
             }
           }
-
-          const clampedX1 = Math.max(0, x1)
-          const clampedX2 = Math.min(chartWidth, x2)
-          if (clampedX1 < clampedX2 && y1 < chartHeight && y2 > 0) {
-            result.push({
-              x1: clampedX1,
-              x2: clampedX2,
-              y1,
-              y2,
-              utxo,
-              gradientType
-            })
+          return {
+            x1,
+            x2,
+            y1,
+            y2,
+            utxo,
+            gradientType
           }
         })
       })
-
-    return result
-  }, [
-    balanceHistory,
-    xScale,
-    yScale,
-    transactions,
-    visibleTransactionsRange,
-    chartWidth,
-    chartHeight
-  ])
+      .filter((v) => v !== undefined)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [balanceHistory, xScale, yScale])
 
   const utxoLabels: {
     x1: number
@@ -460,67 +364,39 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       y2: number
       utxo: Utxo
     }[] = []
-    const { startIndex, endIndex } = visibleTransactionsRange
-    Array.from(balanceHistory.entries())
-      .filter(([index]) => index < endIndex)
-      .forEach(([index, balances]) => {
-        const txTimestamp = new Date(
-          transactions.at(index)?.timestamp ?? currentDate.current
-        )
-        let nextTxTimestamp =
-          index === transactions.length - 1
-            ? currentDate.current
-            : new Date(
-                transactions.at(index + 1)?.timestamp ?? currentDate.current
-              )
-
-        if (index >= startIndex && nextTxTimestamp > endDate) {
-          nextTxTimestamp = endDate
+    Array.from(balanceHistory.entries()).forEach(([index, balances]) => {
+      const x1 = xScale(
+        new Date(transactions.at(index)?.timestamp ?? currentDate.current)
+      )
+      const x2 = xScale(
+        index === transactions.length - 1
+          ? currentDate.current
+          : new Date(
+              transactions.at(index + 1)?.timestamp ?? currentDate.current
+            )
+      )
+      if (x2 < 0 && x1 >= chartWidth) {
+        return
+      }
+      let totalBalance = 0
+      Array.from(balances.entries()).forEach(([, utxo]) => {
+        const y1 = yScale(totalBalance)
+        const y2 = yScale(totalBalance + utxo.value)
+        totalBalance += utxo.value
+        if (utxo.txid === transactions.at(index)?.id) {
+          result.push({
+            x1,
+            x2,
+            y1,
+            y2,
+            utxo
+          })
         }
-
-        let x1 = xScale(txTimestamp)
-        let x2 = xScale(nextTxTimestamp)
-
-        if (index < startIndex) {
-          x1 = 0
-        }
-
-        if (x2 <= 0 && x1 >= chartWidth) {
-          return
-        }
-        if (x1 >= chartWidth || x2 <= 0) {
-          return
-        }
-        let totalBalance = 0
-        Array.from(balances.entries()).forEach(([, utxo]) => {
-          const y1 = yScale(totalBalance)
-          const y2 = yScale(totalBalance + utxo.value)
-          totalBalance += utxo.value
-          if (utxo.txid === transactions.at(index)?.id) {
-            const clampedX1 = Math.max(0, x1)
-            const clampedX2 = Math.min(chartWidth, x2)
-            if (clampedX1 < clampedX2 && y1 < chartHeight && y2 > 0) {
-              result.push({
-                x1: clampedX1,
-                x2: clampedX2,
-                y1,
-                y2,
-                utxo
-              })
-            }
-          }
-        })
       })
+    })
     return result
-  }, [
-    balanceHistory,
-    xScale,
-    yScale,
-    transactions,
-    visibleTransactionsRange,
-    chartWidth,
-    chartHeight
-  ])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [balanceHistory, xScale, yScale])
 
   const xScaleTransactions = useMemo(() => {
     return transactions
