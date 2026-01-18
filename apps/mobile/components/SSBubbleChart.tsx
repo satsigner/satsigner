@@ -38,6 +38,8 @@ type SSBubbleChartProps = {
   utxos: Utxo[]
   inputs: Utxo[]
   onPress: (utxo: Utxo) => void
+  showOnlySelected?: boolean
+  dimUnselected?: boolean
   style?: StyleProp<ViewStyle>
 }
 
@@ -46,6 +48,8 @@ function SSBubbleChart({
   utxos,
   inputs,
   onPress,
+  showOnlySelected = false,
+  dimUnselected = false,
   style
 }: SSBubbleChartProps) {
   const { height, width } = canvasSize
@@ -90,8 +94,19 @@ function SSBubbleChart({
 
     const createPack = pack<UtxoListBubble>().size([width, height]).padding(4)
 
-    return createPack(utxoHierarchy()).leaves()
-  }, [width, height, utxoList])
+    const allLeaves = createPack(utxoHierarchy()).leaves()
+
+    if (showOnlySelected && inputs.length > 0) {
+      const inputOutpoints = new Set(
+        inputs.map((input) => `${input.txid}:${input.vout}`)
+      )
+      return allLeaves.filter((leaf) =>
+        inputOutpoints.has(`${leaf.data.txid}:${leaf.data.vout}`)
+      )
+    }
+
+    return allLeaves
+  }, [width, height, utxoList, showOnlySelected, inputs])
 
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
   const { animatedStyle, gestures, transform, isZoomedIn, scale } = useGestures(
@@ -146,6 +161,10 @@ function SSBubbleChart({
               keychain: packedUtxo.data.keychain!
             }
 
+            const isSelected = inputs.some((input: any) => {
+              return getUtxoOutpoint(input) === getUtxoOutpoint(utxo)
+            })
+
             return (
               <SSBubble
                 key={packedUtxo.data.id}
@@ -153,13 +172,12 @@ function SSBubbleChart({
                 x={packedUtxo.x}
                 y={packedUtxo.y}
                 radius={packedUtxo.r}
-                selected={inputs.some((input: any) => {
-                  return getUtxoOutpoint(input) === getUtxoOutpoint(utxo)
-                })}
+                selected={isSelected}
                 isZoomedIn={isZoomedIn}
                 customFontManager={customFontManager}
                 scale={scale}
                 animationDelay={index * 50}
+                dimmed={dimUnselected && !isSelected}
               />
             )
           })}

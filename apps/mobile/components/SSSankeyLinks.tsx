@@ -49,13 +49,17 @@ interface SSSankeyLinksProps {
   sankeyGenerator: any
   LINK_MAX_WIDTH: number
   BLOCK_WIDTH: number
+  selectedOutputNode?: string
+  dimUnselected?: boolean
 }
 
 function SSSankeyLinks({
   links,
   nodes,
   sankeyGenerator,
-  BLOCK_WIDTH
+  BLOCK_WIDTH,
+  selectedOutputNode,
+  dimUnselected = false
 }: SSSankeyLinksProps) {
   const getLinkWidth = useCallback(
     (sourceNode: Node, targetNode: Node, type: string): number => {
@@ -188,6 +192,15 @@ function SSSankeyLinks({
         const isFromTransactionChart = maxDepthH === 2
         const isCurrentInput = isFromTransactionChart && sourceNode.depthH === 0
 
+        const isSelectedOutput =
+          selectedOutputNode !== undefined &&
+          targetNode.localId === selectedOutputNode
+        const shouldDim =
+          dimUnselected &&
+          selectedOutputNode !== undefined &&
+          !isSelectedOutput &&
+          targetNode.depthH === 2
+
         const y1 =
           sourceNode.type === 'block'
             ? getStackedYPosition(sourceNode, true, link)!
@@ -227,7 +240,7 @@ function SSSankeyLinks({
               path={path1}
               style="fill"
               color={isCurrentTx || isUnspent ? 'white' : gray[700]}
-              opacity={isCurrentTx || isUnspent ? 1 : 0.5}
+              opacity={shouldDim ? 0.2 : isCurrentTx || isUnspent ? 1 : 0.5}
             >
               {(isCurrentTx || isCurrentTxMinerFee) &&
               !isRemainingBalance &&

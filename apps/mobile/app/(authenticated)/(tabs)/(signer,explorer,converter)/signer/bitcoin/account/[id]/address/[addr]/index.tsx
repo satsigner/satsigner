@@ -1,7 +1,7 @@
 import { toOutputScript } from 'bitcoinjs-lib/src/address'
 import { toASM } from 'bitcoinjs-lib/src/script'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, useWindowDimensions } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
@@ -47,11 +47,21 @@ function AddressDetails() {
       ?.transactions.filter((tx) => address?.transactions.includes(tx.id))
   )
 
-  const utxos = useAccountsStore((state) =>
+  const addressUtxos = useAccountsStore((state) =>
     state.accounts
       .find((account: Account) => account.id === accountId)
       ?.utxos.filter((utxo) => address?.utxos.includes(getUtxoOutpoint(utxo)))
   )
+
+  const allAccountUtxos = useAccountsStore(
+    (state) =>
+      state.accounts.find((account: Account) => account.id === accountId)
+        ?.utxos || []
+  )
+
+  const addressUtxoInputs = useMemo(() => {
+    return addressUtxos || []
+  }, [addressUtxos])
 
   const getBlockchainHeight = useBlockchainStore(
     (state) => state.getBlockchainHeight
@@ -187,28 +197,34 @@ function AddressDetails() {
                 <SSSeparator />
               </>
             )}
-            {utxos && utxos.length > 0 && (
-              <>
-                <SSVStack>
-                  <SSText uppercase size="md" weight="bold">
-                    {t('bitcoin.utxos')}
-                  </SSText>
-                  <GestureHandlerRootView style={{ flex: 1 }}>
-                    <SSBubbleChart
-                      utxos={utxos}
-                      canvasSize={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
-                      inputs={[]}
-                      onPress={({ txid, vout }: Utxo) =>
-                        router.navigate(
-                          `/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${vout}`
-                        )
-                      }
-                    />
-                  </GestureHandlerRootView>
-                </SSVStack>
-                <SSSeparator />
-              </>
-            )}
+            {addressUtxos &&
+              addressUtxos.length > 0 &&
+              allAccountUtxos.length > 0 && (
+                <>
+                  <SSVStack>
+                    <SSText uppercase weight="bold" size="md">
+                      {t('bitcoin.utxos')}
+                    </SSText>
+                    <GestureHandlerRootView style={{ flex: 1 }}>
+                      <SSBubbleChart
+                        utxos={allAccountUtxos}
+                        canvasSize={{
+                          width: GRAPH_WIDTH,
+                          height: GRAPH_HEIGHT
+                        }}
+                        inputs={addressUtxoInputs}
+                        dimUnselected={true}
+                        onPress={({ txid, vout }: Utxo) =>
+                          router.navigate(
+                            `/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${vout}`
+                          )
+                        }
+                      />
+                    </GestureHandlerRootView>
+                  </SSVStack>
+                  <SSSeparator />
+                </>
+              )}
             <SSVStack gap="sm">
               <SSText uppercase weight="bold" size="md">
                 {t('address.details.encoding.title')}

@@ -59,6 +59,22 @@ export default function SelectUtxoList() {
 
   const hasSelectedUtxos = inputs.size > 0
   const selectedAllUtxos = inputs.size === account.utxos.length
+  const selectedCount = inputs.size
+
+  const buttonLabel = useMemo(() => {
+    if (!hasSelectedUtxos) {
+      return t('transaction.build.add.inputs.button.noSelection')
+    }
+    if (selectedAllUtxos) {
+      return t('transaction.build.add.inputs.button.allSelected')
+    }
+    if (selectedCount === 1) {
+      return t('transaction.build.add.inputs.button.oneSelected')
+    }
+    return t('transaction.build.add.inputs.button.multipleSelected', {
+      count: selectedCount
+    })
+  }, [hasSelectedUtxos, selectedAllUtxos, selectedCount])
 
   const largestValue = useMemo(
     () => Math.max(...account.utxos.map((utxo) => utxo.value)),
@@ -121,7 +137,9 @@ export default function SelectUtxoList() {
             </SSText>
             <SSIconButton
               onPress={() =>
-                router.navigate(`/signer/bitcoin/account/${id}/signAndSend/selectUtxoBubbles`)
+                router.navigate(
+                  `/signer/bitcoin/account/${id}/signAndSend/selectUtxoBubbles`
+                )
               }
             >
               <SSIconBubbles height={22} width={24} />
@@ -247,7 +265,7 @@ export default function SelectUtxoList() {
       </View>
       <SSMainLayout style={styles.absoluteSubmitContainer}>
         <SSButton
-          label={t('transaction.build.add.inputs.title.2')}
+          label={buttonLabel}
           variant="secondary"
           disabled={!hasSelectedUtxos}
           style={[
@@ -258,7 +276,9 @@ export default function SelectUtxoList() {
           ]}
           textStyle={[!hasSelectedUtxos && { color: Colors.gray[400] }]}
           onPress={() =>
-            router.navigate(`/signer/bitcoin/account/${id}/signAndSend/ioPreview`)
+            router.navigate(
+              `/signer/bitcoin/account/${id}/signAndSend/ioPreview`
+            )
           }
         />
       </SSMainLayout>
