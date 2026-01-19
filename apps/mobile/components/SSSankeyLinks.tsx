@@ -356,23 +356,16 @@ const generateCustomLink = (points: LinkPoints) => {
   // Build the path
   const moveToA = `M ${A[0]} ${A[1]}`
   const lineToB = `L ${B[0]} ${B[1]}`
-  
+
   // Bottom curve: B -> D
   const curveToD = `C ${bottomCurveCP1X} ${bottomCurveCP1Y}, ${bottomCurveCP2X} ${bottomCurveCP2Y}, ${D[0]} ${D[1]}`
-  
+
   const lineToC = `L ${C[0]} ${C[1]}`
-  
+
   // Top curve: C -> A
   const curveToA = `C ${topCurveCP1X} ${topCurveCP1Y}, ${topCurveCP2X} ${topCurveCP2Y}, ${A[0]} ${A[1]}`
 
-  return [
-    moveToA,
-    lineToB,
-    curveToD,
-    lineToC,
-    curveToA,
-    'Z'
-  ].join(' ')
+  return [moveToA, lineToB, curveToD, lineToC, curveToA, 'Z'].join(' ')
 }
 
 export default SSSankeyLinks

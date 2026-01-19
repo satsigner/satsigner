@@ -521,93 +521,16 @@ export default function IOPreview() {
           headerTitle: () => <SSText uppercase>{account.name}</SSText>
         }}
       />
-      <LinearGradient
-        style={{
-          width: '100%',
-          position: 'absolute',
-          paddingHorizontal: Layout.mainContainer.paddingHorizontal,
-          paddingTop: Layout.mainContainer.paddingTop,
-          zIndex: 0,
-          pointerEvents: 'none'
-        }}
-        onLayout={handleTopLayout}
-        locations={[0.19, 0.566, 0.77, 1]}
-        colors={['#131313FF', '#13131385', '#13131368', '#13131300']}
-      >
-        <SSVStack
-          itemsCenter
-          gap="sm"
+      {/* Chart rendered FIRST so it appears behind */}
+      {inputs.size > 0 && (
+        <View
           style={{
-            flex: 1
+            position: 'absolute',
+            width: '100%',
+            height: '100%'
           }}
+          pointerEvents="box-none"
         >
-          <SSVStack itemsCenter gap="xs">
-            <SSText>
-              {inputs.size} {t('common.of').toLowerCase()}{' '}
-              {account.utxos.length} {t('common.selected').toLowerCase()}
-            </SSText>
-            <SSHStack gap="xs">
-              <SSText size="xxs" style={{ color: Colors.gray[400] }}>
-                {t('common.total')}
-              </SSText>
-              <SSText size="xxs" style={{ color: Colors.gray[75] }}>
-                {formatNumber(utxosTotalValue, 0, zeroPadding)}
-              </SSText>
-              <SSText size="xxs" style={{ color: Colors.gray[400] }}>
-                {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
-              </SSText>
-              <SSText size="xxs" style={{ color: Colors.gray[75] }}>
-                {formatNumber(satsToFiat(utxosTotalValue), 2)}
-              </SSText>
-              <SSText size="xxs" style={{ color: Colors.gray[400] }}>
-                {fiatCurrency}
-              </SSText>
-            </SSHStack>
-          </SSVStack>
-          <SSVStack itemsCenter gap="none">
-            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-              <SSText
-                size="7xl"
-                color="white"
-                weight="ultralight"
-                style={{ lineHeight: 62 }}
-              >
-                {formatNumber(utxosSelectedValue, 0, zeroPadding)}
-              </SSText>
-              <SSText size="xl" color="muted">
-                {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
-              </SSText>
-            </SSHStack>
-            <SSHStack
-              gap="xs"
-              style={{ alignItems: 'baseline', marginTop: -5 }}
-            >
-              <SSText size="md" color="muted">
-                {formatNumber(satsToFiat(utxosSelectedValue), 2)}
-              </SSText>
-              <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                {fiatCurrency}
-              </SSText>
-            </SSHStack>
-          </SSVStack>
-        </SSVStack>
-      </LinearGradient>
-      <LinearGradient
-        style={{
-          width: '100%',
-          position: 'absolute',
-          paddingHorizontal: Layout.mainContainer.paddingHorizontal,
-          paddingTop: Layout.mainContainer.paddingTop,
-          zIndex: 10,
-          pointerEvents: 'none',
-          opacity: 0.7,
-          height: topGradientHeight
-        }}
-        locations={[0, 0.56, 0.77, 1]}
-        colors={['#131313FF', '#13131385', '#13131368', '#13131300']}
-      />
-      {inputs.size > 0 ? (
-        <View style={{ position: 'absolute', zIndex: -1 }}>
           {loadHistory ? (
             <SSMultipleSankeyDiagram
               onPressOutput={handleOnPressOutput}
@@ -628,7 +551,106 @@ export default function IOPreview() {
             />
           )}
         </View>
-      ) : null}
+      )}
+      {/* Balance rendered AFTER so it appears on top */}
+      <View
+        style={{
+          position: 'absolute',
+          width: '100%',
+          pointerEvents: 'box-none'
+        }}
+      >
+        <LinearGradient
+          style={{
+            width: '100%',
+            paddingHorizontal: Layout.mainContainer.paddingHorizontal,
+            paddingTop: Layout.mainContainer.paddingTop,
+            pointerEvents: 'none'
+          }}
+          onLayout={handleTopLayout}
+          locations={[0.19, 0.566, 0.77, 1]}
+          colors={['#131313FF', '#13131385', '#13131368', '#13131300']}
+        >
+          <SSVStack
+            itemsCenter
+            gap="sm"
+            style={{
+              flex: 1
+            }}
+          >
+            <SSVStack itemsCenter gap="xs">
+              <SSText>
+                {inputs.size} {t('common.of').toLowerCase()}{' '}
+                {account.utxos.length} {t('common.selected').toLowerCase()}
+              </SSText>
+              <SSHStack gap="xs">
+                <SSText size="xxs" style={{ color: Colors.gray[400] }}>
+                  {t('common.total')}
+                </SSText>
+                <SSText size="xxs" style={{ color: Colors.gray[75] }}>
+                  {formatNumber(utxosTotalValue, 0, zeroPadding)}
+                </SSText>
+                <SSText size="xxs" style={{ color: Colors.gray[400] }}>
+                  {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
+                </SSText>
+                <SSText size="xxs" style={{ color: Colors.gray[75] }}>
+                  {formatNumber(satsToFiat(utxosTotalValue), 2)}
+                </SSText>
+                <SSText size="xxs" style={{ color: Colors.gray[400] }}>
+                  {fiatCurrency}
+                </SSText>
+              </SSHStack>
+            </SSVStack>
+            <SSVStack itemsCenter gap="none">
+              <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                <SSText
+                  size="7xl"
+                  color="white"
+                  weight="ultralight"
+                  style={{ lineHeight: 62 }}
+                >
+                  {formatNumber(utxosSelectedValue, 0, zeroPadding)}
+                </SSText>
+                <SSText size="xl" color="muted">
+                  {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
+                </SSText>
+              </SSHStack>
+              <SSHStack
+                gap="xs"
+                style={{ alignItems: 'baseline', marginTop: -5 }}
+              >
+                <SSText size="md" color="muted">
+                  {formatNumber(satsToFiat(utxosSelectedValue), 2)}
+                </SSText>
+                <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                  {fiatCurrency}
+                </SSText>
+              </SSHStack>
+            </SSVStack>
+          </SSVStack>
+        </LinearGradient>
+      </View>
+      {/* Overlay gradient rendered LAST so it's on top */}
+      <View
+        style={{
+          position: 'absolute',
+          width: '100%',
+          pointerEvents: 'none',
+          opacity: 0.7,
+          height: topGradientHeight
+        }}
+      >
+        <LinearGradient
+          style={{
+            width: '100%',
+            paddingHorizontal: Layout.mainContainer.paddingHorizontal,
+            paddingTop: Layout.mainContainer.paddingTop,
+            height: topGradientHeight
+          }}
+          locations={[0, 0.56, 0.77, 1]}
+          colors={['#131313FF', '#13131385', '#13131368', '#13131300']}
+        />
+      </View>
       <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}
         style={{
