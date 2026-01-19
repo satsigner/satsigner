@@ -652,7 +652,7 @@ export default function IOPreview() {
         />
       </View>
       <LinearGradient
-        locations={[0, 0.1255, 0.2678, 1]}
+        locations={[0, 0.05, 0.15, 0.3, 1]}
         style={{
           position: 'absolute',
           bottom: 0,
@@ -662,7 +662,13 @@ export default function IOPreview() {
           backgroundColor: Colors.transparent,
           paddingBottom: 20
         }}
-        colors={['#13131300', '#1313134B', '#131313A6', '#131313F5']}
+        colors={[
+          '#13131300',
+          '#1313131A',
+          '#1313134B',
+          '#131313A6',
+          '#131313F5'
+        ]}
       >
         <SSVStack
           style={{
