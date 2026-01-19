@@ -1,4 +1,5 @@
 import aesCrypto from 'react-native-aes-crypto'
+import uuid from 'react-native-uuid'
 
 import { DEFAULT_PIN, PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
@@ -13,9 +14,13 @@ function randomUuid() {
   return aesCrypto.randomUuid()
 }
 
+function randomIv() {
+  return uuid.v4().replace(/-/g, '')
+}
+
 function randomNum() {
   // global variable from react-native-get-random-values
-  return crypto.getRandomValues(new Uint32Array(1))[0] / MAX_UINT32;
+  return crypto.getRandomValues(new Uint32Array(1))[0] / MAX_UINT32
 }
 
 function sha256(text: string) {
@@ -62,6 +67,7 @@ export {
   generateSalt,
   getPinForDecryption,
   pbkdf2Encrypt,
+  randomIv,
   randomKey,
   randomNum,
   randomUuid,

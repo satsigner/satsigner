@@ -29,6 +29,7 @@ import { type Address, type WatchedAddress } from '@/types/models/Address'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { getScriptVersionType } from '@/utils/address'
 import { validateAddress } from '@/utils/validation'
+import { randomIv } from '@/utils/crypto'
 
 type ManageAccountAddressesProps = {
   account: Account
@@ -191,7 +192,7 @@ export function ManageAccountAddresses({
         index,
         secret,
         creationType: 'importAddress',
-        iv: uuid.v4().replace(/-/g, '')
+        iv: randomIv(),
       }
       return key
     })

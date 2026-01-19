@@ -221,6 +221,8 @@ export default function AccountList() {
   async function loadSampleWallet(type: SampleWallet) {
     // Check if PIN is available, if not set a default one
     const pin = await getItem(PIN_KEY)
+
+    // TODO: remove DEFAULT_PIN
     if (!pin) {
       const salt = await generateSalt()
       const encryptedPin = await pbkdf2Encrypt(DEFAULT_PIN, salt)

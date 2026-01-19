@@ -1,5 +1,4 @@
 import { produce } from 'immer'
-import uuid from 'react-native-uuid'
 import { create } from 'zustand'
 
 import { PIN_KEY } from '@/config/auth'
@@ -7,7 +6,7 @@ import { getItem } from '@/storage/encrypted'
 import { type EntropyType } from '@/types/logic/entropy'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
-import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
+import { aesDecrypt, aesEncrypt, randomIv } from '@/utils/crypto'
 
 type AccountBuilderState = {
   name: Account['name']
@@ -224,7 +223,7 @@ const useAccountBuilderStore = create<
         ...(extendedPublicKey && { extendedPublicKey }),
         ...(fingerprint && { fingerprint })
       },
-      iv: uuid.v4().replace(/-/g, ''),
+      iv: randomIv(),
       scriptVersion
     }
 
