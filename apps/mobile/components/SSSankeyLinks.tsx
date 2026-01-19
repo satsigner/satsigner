@@ -35,7 +35,7 @@ interface Link {
 }
 
 interface LinkPoints {
-  souceWidth: number
+  sourceWidth: number
   targetWidth: number
   x1: number
   y1: number
@@ -212,7 +212,7 @@ function SSSankeyLinks({
             : targetNode.y0 ?? 0
 
         const points: LinkPoints = {
-          souceWidth: getLinkWidth(sourceNode, targetNode, 'source'),
+          sourceWidth: getLinkWidth(sourceNode, targetNode, 'source'),
           targetWidth: getLinkWidth(sourceNode, targetNode, 'target'),
           x1:
             sourceNode.type === 'block'
@@ -323,69 +323,56 @@ function SSSankeyLinks({
 }
 
 const generateCustomLink = (points: LinkPoints) => {
-  const { x1, y1, x2, y2, souceWidth, targetWidth } = points
+  const { x1, y1, x2, y2, sourceWidth, targetWidth } = points
 
   // Define the coordinates of the four points
-  const A = [x1, y1] // Point A
-  const B = [x1, y1 + souceWidth] // Point B
-  const C = [x2, y2] // Point C
-  const D = [x2, y2 + targetWidth] // Point D
+  const A = [x1, y1] // Top-left (source top)
+  const B = [x1, y1 + sourceWidth] // Bottom-left (source bottom)
+  const C = [x2, y2] // Top-right (target top)
+  const D = [x2, y2 + targetWidth] // Bottom-right (target bottom)
 
-  // Curve control point percentages - adjust these to experiment with curve shapes
-  const firstCurveFirstControlX = 0 // 0 means same as source point
-  const firstCurveSecondControlX = 0.3 // 0.3 of the way from source to target
-  const midpointX = 1 / 2 // Halfway between source and target
-  const midpointY = 1 / 2 // Halfway between source and target heights
-  const secondCurveSecondControlX = 0.7 // 0.7 of the way from source to target
+  // Calculate horizontal distance for adaptive control points
+  const horizontalDistance = Math.abs(x2 - x1)
 
-  // Solid line path
+  // Adaptive control point calculation based on distance
+  // Use a fraction of the horizontal distance for smoother curves
+  // Cap at 60px to prevent overly stretched curves on wide layouts
+  const controlPointOffset = Math.min(horizontalDistance * 0.4, 60)
+
+  // Control points for the curve from B to D (bottom curve)
+  // First control point extends horizontally from B, second from D
+  const bottomCurveCP1X = B[0] + controlPointOffset
+  const bottomCurveCP1Y = B[1]
+  const bottomCurveCP2X = D[0] - controlPointOffset
+  const bottomCurveCP2Y = D[1]
+
+  // Control points for the curve from C to A (top curve)
+  // First control point extends horizontally from C, second from A
+  const topCurveCP1X = C[0] - controlPointOffset
+  const topCurveCP1Y = C[1]
+  const topCurveCP2X = A[0] + controlPointOffset
+  const topCurveCP2Y = A[1]
+
+  // Build the path
   const moveToA = `M ${A[0]} ${A[1]}`
   const lineToB = `L ${B[0]} ${B[1]}`
-
-  let curveToCenterD = `C ${B[0] + (D[0] - B[0]) * firstCurveFirstControlX} ${
-    B[1]
-  }`
-  curveToCenterD += ` ${B[0] + (D[0] - B[0]) * firstCurveSecondControlX} ${
-    B[1]
-  }`
-  curveToCenterD += ` ${B[0] + (D[0] - B[0]) * midpointX} ${
-    B[1] + (D[1] - B[1]) * midpointY
-  }`
-
-  let curveToD = `C ${B[0] + (D[0] - B[0]) * midpointX} ${
-    B[1] + (D[1] - B[1]) * midpointY
-  }`
-  curveToD += ` ${B[0] + (D[0] - B[0]) * secondCurveSecondControlX} ${D[1]}`
-  curveToD += ` ${D[0]} ${D[1]}`
-
+  
+  // Bottom curve: B -> D
+  const curveToD = `C ${bottomCurveCP1X} ${bottomCurveCP1Y}, ${bottomCurveCP2X} ${bottomCurveCP2Y}, ${D[0]} ${D[1]}`
+  
   const lineToC = `L ${C[0]} ${C[1]}`
-
-  let curveToCenterA = `C ${C[0] + (A[0] - C[0]) * firstCurveFirstControlX} ${
-    C[1]
-  }`
-  curveToCenterA += ` ${C[0] + (A[0] - C[0]) * firstCurveSecondControlX} ${
-    C[1]
-  }`
-  curveToCenterA += ` ${C[0] + (A[0] - C[0]) * midpointX} ${
-    C[1] + (A[1] - C[1]) * midpointY
-  }`
-
-  let curveToA = `C ${C[0] + (A[0] - C[0]) * midpointX} ${
-    C[1] + (A[1] - C[1]) * midpointY
-  }`
-  curveToA += ` ${C[0] + (A[0] - C[0]) * secondCurveSecondControlX} ${A[1]}`
-  curveToA += ` ${A[0]} ${A[1]}`
+  
+  // Top curve: C -> A
+  const curveToA = `C ${topCurveCP1X} ${topCurveCP1Y}, ${topCurveCP2X} ${topCurveCP2Y}, ${A[0]} ${A[1]}`
 
   return [
     moveToA,
     lineToB,
-    curveToCenterD,
     curveToD,
     lineToC,
-    curveToCenterA,
     curveToA,
     'Z'
-  ].join('\n')
+  ].join(' ')
 }
 
 export default SSSankeyLinks
