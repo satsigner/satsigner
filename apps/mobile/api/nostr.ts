@@ -103,7 +103,6 @@ export class NostrAPI {
   }
 
   static async generateNostrKeys(): Promise<NostrKeys> {
-    // Generate random bytes using react-native-aes-crypto
     const randomHex = await randomKey(32)
     const randomBytesArray = new Uint8Array(Buffer.from(randomHex, 'hex'))
 
