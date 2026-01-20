@@ -52,7 +52,7 @@ import {
 } from '@/types/models/Psbt'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
-import { type PreviewMessageSearchParams } from '@/types/navigation/searchParams'
+import { type PreviewTransactionSearchParams } from '@/types/navigation/searchParams'
 import { extractKeyFingerprint } from '@/utils/account'
 import {
   BBQRFileTypes,
@@ -135,7 +135,7 @@ function createMockTxBuilderResult(
   }
 }
 
-function generateMessageId(psbtBase64: string): string {
+function generateTransactionId(psbtBase64: string): string {
   const extractedTxid = extractTransactionIdFromPSBT(psbtBase64)
   return extractedTxid || `PSBT-${Date.now().toString(36)}`
 }
@@ -163,9 +163,9 @@ function handlePsbtExtractionError(error: unknown) {
   }
 }
 
-function PreviewMessage() {
+function PreviewTransaction() {
   const router = useRouter()
-  const { id, psbt } = useLocalSearchParams<PreviewMessageSearchParams>()
+  const { id, psbt } = useLocalSearchParams<PreviewTransactionSearchParams>()
 
   const [
     inputs,
@@ -204,7 +204,7 @@ function PreviewMessage() {
   )
   const wallet = useGetAccountWallet(id!)
   const network = useBlockchainStore((state) => state.selectedNetwork)
-  const [messageId, setMessageId] = useState('')
+  const [transactionId, setTransactionId] = useState('')
   const [isLoadingPSBT, setIsLoadingPSBT] = useState(false)
 
   const [noKeyModalVisible, setNoKeyModalVisible] = useState(false)
@@ -297,8 +297,8 @@ function PreviewMessage() {
   }
 
   function processBasicPsbt(psbtBase64: string) {
-    const txid = generateMessageId(psbtBase64)
-    setMessageId(txid)
+    const txid = generateTransactionId(psbtBase64)
+    setTransactionId(txid)
     const mockResult = createMockTxBuilderResult(psbtBase64, txid, 0)
     setTxBuilderResult(mockResult as never)
     setIsLoadingPSBT(false)
@@ -322,8 +322,8 @@ function PreviewMessage() {
 
       processExtractedPsbtData(extractedData)
 
-      const txid = generateMessageId(psbtBase64)
-      setMessageId(txid)
+      const txid = generateTransactionId(psbtBase64)
+      setTransactionId(txid)
       const mockResult = createMockTxBuilderResult(
         psbtBase64,
         txid,
@@ -342,7 +342,7 @@ function PreviewMessage() {
       } catch {
         setIsLoadingPSBT(false)
         toast.error(t('common.error.processPSBT'))
-        setMessageId(`PSBT-ERROR-${Date.now().toString(36)}`)
+        setTransactionId(`PSBT-ERROR-${Date.now().toString(36)}`)
       }
     }
   }
@@ -354,7 +354,7 @@ function PreviewMessage() {
     } catch {
       setIsLoadingPSBT(false)
       toast.error(t('common.error.processPSBT'))
-      setMessageId(`PSBT-ERROR-${Date.now().toString(36)}`)
+      setTransactionId(`PSBT-ERROR-${Date.now().toString(36)}`)
     }
   }
 
@@ -824,8 +824,8 @@ function PreviewMessage() {
       label: output.label || ''
     }))
 
-    return { id: messageId, size, vsize, vin, vout } as never as Transaction
-  }, [inputs, outputs, messageId])
+    return { id: transactionId, size, vsize, vin, vout } as never as Transaction
+  }, [inputs, outputs, transactionId])
 
   useEffect(() => {
     if (signedPsbtsFromStore && signedPsbtsFromStore.size > 0) {
@@ -835,16 +835,16 @@ function PreviewMessage() {
 
   useEffect(() => {
     if (psbt && txBuilderResult?.txDetails?.txid) {
-      setMessageId(txBuilderResult.txDetails.txid)
+      setTransactionId(txBuilderResult.txDetails.txid)
     }
     if (psbt) return
 
     if (txBuilderResult?.txDetails?.txid) {
-      setMessageId(txBuilderResult.txDetails.txid)
+      setTransactionId(txBuilderResult.txDetails.txid)
       return
     }
 
-    async function getTransactionMessage() {
+    async function getTransaction() {
       if (!wallet) {
         toast.error(t('error.notFound.wallet'))
         return
@@ -858,7 +858,7 @@ function PreviewMessage() {
         const inputArray = Array.from(inputs.values())
         const outputArray = Array.from(outputs.values())
 
-        const transactionMessage = await buildTransaction(
+        const transaction = await buildTransaction(
           wallet,
           {
             inputs: inputArray,
@@ -869,8 +869,8 @@ function PreviewMessage() {
           network as Network
         )
 
-        setMessageId(transactionMessage.txDetails.txid)
-        setTxBuilderResult(transactionMessage)
+        setTransactionId(transaction.txDetails.txid)
+        setTxBuilderResult(transaction)
       } catch (err) {
         const errorMessage = String(err)
         if (errorMessage.includes('UTXO not found') && !psbt) {
@@ -883,7 +883,7 @@ function PreviewMessage() {
       }
     }
 
-    getTransactionMessage()
+    getTransaction()
   }, [
     wallet,
     inputs,
@@ -1895,7 +1895,7 @@ function PreviewMessage() {
                 <SSText size="lg" type="mono">
                   {isLoadingPSBT
                     ? t('common.loading')
-                    : messageId || `${t('common.loading')}...`}
+                    : transactionId || `${t('common.loading')}...`}
                 </SSText>
                 {isLoadingPSBT && (
                   <SSText color="muted" size="sm" style={{ marginTop: 8 }}>
@@ -1961,7 +1961,7 @@ function PreviewMessage() {
                           index={index}
                           totalKeys={account.keys?.length || 0}
                           keyDetails={key}
-                          messageId={messageId}
+                          transactionId={transactionId}
                           txBuilderResult={txBuilderResult}
                           serializedPsbt={serializedPsbt}
                           signedPsbt={signedPsbts.get(index) || ''}
@@ -2019,7 +2019,7 @@ function PreviewMessage() {
                   <SSButton
                     variant="secondary"
                     disabled={
-                      !messageId ||
+                      !transactionId ||
                       (account.policyType === 'multisig' &&
                         !hasAllRequiredSignatures())
                     }
@@ -2036,13 +2036,13 @@ function PreviewMessage() {
 
                         if (finalTransactionHex) {
                           router.navigate(
-                            `/signer/bitcoin/account/${id}/signAndSend/signMessage`
+                            `/signer/bitcoin/account/${id}/signAndSend/signTransaction`
                           )
                         }
                       } else {
                         // For non-multisig accounts, navigate directly
                         router.navigate(
-                          `/signer/bitcoin/account/${id}/signAndSend/signMessage`
+                          `/signer/bitcoin/account/${id}/signAndSend/signTransaction`
                         )
                       }
                     }}
@@ -2066,7 +2066,7 @@ function PreviewMessage() {
                     <SSHStack gap="xxs" justifyBetween>
                       <SSButton
                         variant="outline"
-                        disabled={!messageId}
+                        disabled={!transactionId}
                         label={t('common.copy')}
                         style={{ width: '48%' }}
                         onPress={() => {
@@ -2080,7 +2080,7 @@ function PreviewMessage() {
                       />
                       <SSButton
                         variant="outline"
-                        disabled={!messageId}
+                        disabled={!transactionId}
                         label="Show QR"
                         style={{ width: '48%' }}
                         onPress={() => {
@@ -2191,7 +2191,7 @@ function PreviewMessage() {
                       disabled={!signedPsbt}
                       onPress={() =>
                         router.navigate(
-                          `/signer/bitcoin/account/${id}/signAndSend/signMessage`
+                          `/signer/bitcoin/account/${id}/signAndSend/signTransaction`
                         )
                       }
                     />
@@ -2710,4 +2710,4 @@ const styles = StyleSheet.create({
   modalStack: { marginVertical: 32, width: '100%', paddingHorizontal: 32 }
 })
 
-export default PreviewMessage
+export default PreviewTransaction

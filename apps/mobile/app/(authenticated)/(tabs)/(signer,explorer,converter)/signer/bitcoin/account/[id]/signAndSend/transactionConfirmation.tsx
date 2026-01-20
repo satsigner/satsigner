@@ -17,7 +17,7 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type Label } from '@/utils/bip329'
 import { formatAddress } from '@/utils/format'
 
-export default function MessageConfirmation() {
+export default function TransactionConfirmation() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
@@ -127,7 +127,7 @@ export default function MessageConfirmation() {
   if (!broadcasted)
     return (
       <Redirect
-        href={`/signer/bitcoin/account/${id}/signAndSend/signMessage`}
+        href={`/signer/bitcoin/account/${id}/signAndSend/signTransaction`}
       />
     )
 

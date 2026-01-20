@@ -29,7 +29,7 @@ import { legacyEstimateTransactionSize } from '@/utils/transaction'
 
 const tn = _tn('transaction.build.sign')
 
-export default function SignMessage() {
+export default function SignTransaction() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
@@ -180,7 +180,7 @@ export default function SignMessage() {
       if (broadcastSuccess) {
         setBroadcasted(true)
         router.navigate(
-          `/signer/bitcoin/account/${id}/signAndSend/messageConfirmation`
+          `/signer/bitcoin/account/${id}/signAndSend/transactionConfirmation`
         )
       }
     } catch (err: Error | any) {
@@ -191,7 +191,7 @@ export default function SignMessage() {
   }
 
   useEffect(() => {
-    async function signTransactionMessage() {
+    async function signTransactionData() {
       // For multisig wallets, if we already have a finalized transaction, use it directly
       if (signedTx) {
         setSigned(true)
@@ -215,7 +215,7 @@ export default function SignMessage() {
       setRawTx(hex)
     }
 
-    signTransactionMessage()
+    signTransactionData()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!account || !txBuilderResult) return <Redirect href="/" />
@@ -270,7 +270,7 @@ export default function SignMessage() {
                   uppercase
                   style={{ marginBottom: -22 }}
                 >
-                  {tn('message')}
+                  {tn('transaction')}
                 </SSText>
                 {rawTx !== '' && (
                   <>

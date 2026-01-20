@@ -35,7 +35,7 @@ type NostrState = {
     [accountId: string]: boolean
   }
   transactionToShare: {
-    message: string
+    transaction: string
     transactionData: TransactionData
   } | null
 }
@@ -64,7 +64,7 @@ type NostrAction = {
   setSyncing: (accountId: string, isSyncing: boolean) => void
   isSyncing: (accountId: string) => boolean
   setTransactionToShare: (
-    data: { message: string; transactionData: TransactionData } | null
+    data: { transaction: string; transactionData: TransactionData } | null
   ) => void
 }
 

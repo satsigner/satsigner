@@ -493,7 +493,7 @@ export default function IOPreview() {
     }
 
     // Ok, go to the preview page.
-    router.navigate(`/signer/bitcoin/account/${id}/signAndSend/previewMessage`)
+    router.navigate(`/signer/bitcoin/account/${id}/signAndSend/previewTransaction`)
   }
 
   const handleTopLayout = (event: LayoutChangeEvent) => {
