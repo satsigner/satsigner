@@ -2,15 +2,18 @@
 
 **Privacy-first Bitcoin signer with complete UTXO control**
 
-<img width="594" alt="image" src="https://user-images.githubusercontent.com/807505/183712134-d1f56508-4576-4c6b-b262-3e09dee9cd31.png">
-https://twitter.com/pedromvpg/status/1553123963139756032
+<img width="3508" height="2480" alt="image" src="https://github.com/user-attachments/assets/5690172b-17db-4d51-8033-9b7ed07bef50" />
 
 ## Why work on this?
 
+Satsigner is a comprehensive Bitcoin wallet application built for users who demand complete control over their Bitcoin. Built on the Bitcoin Development Kit (BDK), Satsigner provides native support for single-signature, multi-signature, and watch-only accounts across mainnet, testnet, and signet networks. Focused on user experience for everyday use. It also allows easy movements between Bitcoin layers, enhancing the utility of your sats.
+
+**Why contribute?**
+
 - Help build a powerful native mobile Bitcoin signer management application
 - Contribute towards the integration, development and enhancement of Bitcoin UX design
-- Unlock coin insights via integrated onchain (privacy/provenance/economic) analyses and corresponding data visualization to help inform, encourage and automate better Bitcoin usage best-pratices
-- Advance Bitcoin understanding
+- Unlock coin insights via integrated onchain (privacy/provenance/economic) analyses and corresponding data visualization to help inform, encourage and automate better Bitcoin usage best-practices
+- Advance Bitcoin understanding through visual tools and Bitcoin-native terminology
 - Test market demand for bitcoin centric applications
 - Propagate open-source ethos
 - Build and support Bitcoin and related FOSS projects
@@ -18,35 +21,92 @@ https://twitter.com/pedromvpg/status/1553123963139756032
 
 ### Ethos/priorities/design philosophy
 
-- Bitcoin only
-- Sat denomination supremacy
-- Initial focus on on-chain bitcoin (coin-control/controlling sats)
-- Emphasis on privacy
-- Emphasis on personal labeling, tagging, and bookmarking
-- Application of visualization/visual-native UI aiming to build upon and develop new Bitcoin design primitives to help make more advanced/power-user Bitcoin UX/UI more intuitive and accessible
-- Take advantage of appropriate charts and graphic layouts for all data visualization
-- Security - targetting optimal hot-signer-level security initially (future support for watch-only cold, multisig, vaults etc)
-- Visually crafted and UX builds upon powerful feattures and improvements introoduced by the many existing brilliant open-soouurce FullyNoded, or Sparrow
-- An intuitive and powerful mobile bitcoin app
+- **Bitcoin On Chain First**: Full vertical support of all things sats with on chain as the safe layer of last resort
+- **Sat denomination supremacy**: Sats as the primary unit
+- **Complete UTXO control**: Full control over coin selection and spending
+- **Privacy first**: Emphasis on privacy-enhancing features and no tracking
+- **Visual-native UI**: Comprehensive visualization tools for all Bitcoin data
+- **Bitcoin-native terminology**: Using Bitcoin's true language (UTXOs, transactions, signers)
+- **Security focused**: PIN-protected encryption, seed dropping, multi-signature support
+- **Open source**: Fully auditable codebase with open-source dependencies only
+- **User sovereignty**: Complete control over keys, data, and privacy
+- **Educational**: Learn Bitcoin while using it with visual tools and explanations
+- **Design inspiration**: Builds upon powerful features from Sparrow, FullyNoded, and other brilliant open-source projects
 
 ## Features
 
-### Main features and goals
+### Core Bitcoin Features
 
-- Bitcoin centric language
-- Bitcoin specific UX patterns
-- Bitcoin technology education
-- Visual personal chain analysis
-- UTXO control
-- Fully open source
-- Easily reproducible
-- Open source dependencies only
-- Bitcoin interface exclusively via open source library
+- **Full UTXO Control**: Visual bubble charts and detailed selection tools for complete UTXO management
+- **Multi-Signature Support**: M-of-N multisig wallets with sortedmulti descriptors and per-cosigner PSBT tracking
+- **Account Types**: Single-signature, multi-signature, and watch-only accounts
+- **Script Versions**: Support for all Bitcoin script types (P2PKH, P2SH-P2WPKH, P2WPKH, P2TR, P2WSH, P2SH-P2WSH, P2SH)
+- **Network Support**: Mainnet, testnet, and signet
+- **Dual Backends**: Electrum Protocol and Esplora API support
+- **BIP329 Labeling**: Comprehensive labeling system for transactions, addresses, and UTXOs
+- **Advanced Transaction Building**: Manual fee control, RBF, time-locks, and custom output configuration
 
-### Forward looking ambitions
+### Security & Privacy
 
-- Mobile collaborative transaction interface (mobile joinmarket client?)
-- Native lightning support built with LDK (keeping with UX/Data visual-focus)
+- **PIN Protection**: AES-256-CBC encryption with PIN-protected access
+- **Seed Dropping**: Remove mnemonics after key extraction for enhanced security
+- **Duress PIN**: Support for duress scenarios
+- **Encrypted Storage**: All sensitive data encrypted at rest
+- **No Tracking**: No third-party tracking or analytics
+- **Open Source**: Fully auditable codebase
+
+### Visualization & Analysis
+
+- **UTXO Bubble Charts**: Interactive visual UTXO selection
+- **Sankey Diagrams**: Transaction flow visualization
+- **Transaction Charts**: Visual transaction analysis
+- **Fee Rate History**: Mempool statistics and fee rate charts
+- **Balance Evolution**: Timeline charts showing balance changes
+- **Network Statistics**: Difficulty charts and blockchain explorer
+
+### Multi-Signature Workflow
+
+- **Collaborative Signing**: Per-cosigner PSBT tracking and combination
+- **QR Code Seed Scanning**: Air-gapped signing with seed QR codes
+- **Signature Validation**: Automatic threshold verification
+- **Individual PSBT Export**: Export per-cosigner signed PSBTs
+- **Fingerprint Matching**: Account association verification
+
+### Export & Import
+
+- **Descriptors**: Export/import output descriptors with checksum validation
+- **Extended Public Keys**: Export/import xpub/ypub/zpub/vpub with format conversion
+- **BIP329 Labels**: Import/export labels in JSON, JSONL, and CSV formats
+- **PSBT Support**: Full PSBT import/export with QR code and NFC support
+- **Account Backup**: Comprehensive backup and recovery options
+
+### Lightning Network & eCash
+
+- **LND Integration**: Connect to LND nodes via REST API
+- **Lightning Payments**: Create and pay Lightning invoices
+- **eCash (Cashu)**: Private digital cash support with mint management
+- **Token Operations**: Receive, send, and manage eCash tokens
+
+### Nostr Integration
+
+- **Label Synchronization**: Decentralized label sync via Nostr DMs
+- **Auto-Sync**: Automatic label synchronization configuration
+- **Relay Management**: Add and manage Nostr relays
+- **Trusted Devices**: Manage trusted device list for secure sync
+
+### Explorer & Tools
+
+- **Blockchain Explorer**: View blocks, transactions, and network statistics
+- **Currency Converter**: Real-time fiat conversion with historical rates
+- **Energy Converter**: Bitcoin to energy unit conversions
+- **Network Analysis**: Difficulty charts and mining statistics
+
+### Developer Features
+
+- **Storybook Integration**: Component development in isolation
+- **TypeScript**: Full type safety throughout
+- **Comprehensive Testing**: Unit and integration tests
+- **Open Source**: MIT licensed, fully auditable codebase
 
 ## Stack
 
@@ -124,7 +184,7 @@ export PATH=${PATH}:${ANDROID_HOME}/tools:${ANDROID_HOME}/tools/bin:${ANDROID_HO
 On some Linux systems, `ANDROID_HOME` may be `/opt/android-sdk`. On Windows,
 it may be `/Users/username/Library/Android/sdk`. Set it accordingly.
 
-Install Java JDK 8 in order to donwload the images from the upstream.
+Install Java JDK 8 in order to download the images from the upstream.
 Also, make sure to enable JDK 8 before running `sdkmanager` commands,
 because they seem to work only with this version. To enable it on
 arch-based systems, run:
@@ -173,8 +233,6 @@ options that interfere with the building.
 
 ### Path issues
 
-You need to make sure the binaries
-
 #### Windows users
 
 Use `gitbash` as your shell instead of `powershell`. Then, create the
@@ -194,7 +252,7 @@ export PATH="/c/Program Files/Java/jdk-17/bin:$PATH"
 export ANDROID_HOME="/c/Users/user/AppData/Local/Android/Sdk"
 ```
 
-Of course. Change `user` to your username.
+Of course, change `user` to your username.
 
 This will update your environment variables to include the binaries from Android
 SDK and Java JDK 17, which you must have installed to develop satsigner.
@@ -219,7 +277,7 @@ and place the content of the previous code block there.
 
 Follow the expo documentation [here](https://docs.expo.dev/get-started/set-up-your-environment/)
 
-Make sure to select "Development build" and disabled "Build with Expo Application Services (EAS)"
+Make sure to select "Development build" and disable "Build with Expo Application Services (EAS)"
 
 Note: When starting a development server, do NOT run: `npx expo start`
 
