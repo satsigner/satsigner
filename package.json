@@ -1,7 +1,7 @@
 {
   "name": "satsigner",
   "version": "0.1.0",
-  "description": "UTXO Manager and Message Signer",
+  "description": "Privacy-first Bitcoin signer with complete UTXO control",
   "repository": {
     "type": "git",
     "url": "https://github.com/satsigner/satsigner"

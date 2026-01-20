@@ -1,6 +1,7 @@
 {
   "name": "@satsigner/mobile",
   "version": "1.0.0",
+  "description": "Privacy-first Bitcoin signer with complete UTXO control",
   "private": true,
   "engines": {
     "node": ">=22.4.0"

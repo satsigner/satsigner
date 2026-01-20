@@ -5,6 +5,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: 'satsigner',
   slug: 'satsigner',
   version: '0.1.0',
+  description: 'Privacy-first Bitcoin signer with complete UTXO control',
   orientation: 'portrait',
   icon: './assets/icon.png',
   scheme: 'satsigner',

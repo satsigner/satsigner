@@ -1,5 +1,7 @@
 # Satsigner
 
+**Privacy-first Bitcoin signer with complete UTXO control**
+
 <img width="594" alt="image" src="https://user-images.githubusercontent.com/807505/183712134-d1f56508-4576-4c6b-b262-3e09dee9cd31.png">
 https://twitter.com/pedromvpg/status/1553123963139756032
 
@@ -31,15 +33,7 @@ https://twitter.com/pedromvpg/status/1553123963139756032
 
 ### Main features and goals
 
-- Experimental bitcoin centric lexicon
-  - Send bitcoin -> Sign bitcoin messages
-  - Spend bitcoin -> Consume UTXO
-  - Bitcoin balance -> Total spendable sats
-  - Wallet -> Signer
-  - Private key -> Account
-  - Address -> Invoice
-  - Transaction -> Message
-  - (...)
+- Bitcoin centric language
 - Bitcoin specific UX patterns
 - Bitcoin technology education
 - Visual personal chain analysis
