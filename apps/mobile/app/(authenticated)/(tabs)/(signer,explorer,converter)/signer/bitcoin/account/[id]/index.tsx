@@ -414,6 +414,7 @@ function DerivedAddresses({
             {item.index}
           </SSText>
           <SSText
+            type="mono"
             style={[
               addressListStyles.addressText,
               addressListStyles.columnAddress
@@ -528,6 +529,21 @@ function DerivedAddresses({
               }`
             }}
             removeClippedSubviews
+            ListFooterComponent={
+              !isMultiAddressWatchOnly ? (
+                <SSButton
+                  variant="outline"
+                  uppercase
+                  style={{
+                    marginTop: 10,
+                    width: SCREEN_WIDTH * 0.88
+                  }}
+                  label={t('address.list.btn.loadMore')}
+                  disabled={isLoadingAddresses}
+                  onPress={loadMoreAddresses}
+                />
+              ) : null
+            }
           />
         </SSVStack>
       </ScrollView>
@@ -541,14 +557,24 @@ function DerivedAddresses({
           {addresses.map((address, index) => {
             const link = `/signer/bitcoin/account/${account.id}/address/${address.address}`
             return (
-              <TouchableOpacity
-                key={address.address}
-                onPress={() => router.navigate(link)}
-              >
-                <AddressCard address={{ index, ...address }} />
-              </TouchableOpacity>
+              <SSVStack key={address.address} gap="xs">
+                {index > 0 && <SSSeparator color="gradient" />}
+                <TouchableOpacity onPress={() => router.navigate(link)}>
+                  <AddressCard address={{ index, ...address }} />
+                </TouchableOpacity>
+              </SSVStack>
             )
           })}
+          {!isMultiAddressWatchOnly && (
+            <SSButton
+              variant="outline"
+              uppercase
+              style={{ marginTop: 10, alignSelf: 'stretch' }}
+              label={t('address.list.btn.loadMore')}
+              disabled={isLoadingAddresses}
+              onPress={loadMoreAddresses}
+            />
+          )}
         </SSVStack>
       </ScrollView>
     )
@@ -637,16 +663,6 @@ function DerivedAddresses({
           )}
         />
       )}
-      {!isMultiAddressWatchOnly && (
-        <SSButton
-          variant="outline"
-          uppercase
-          style={{ marginTop: 10 }}
-          label={t('address.list.btn.loadMore')}
-          disabled={isLoadingAddresses}
-          onPress={loadMoreAddresses}
-        />
-      )}
       {isMultiAddressWatchOnly && (
         <SSButton
           variant="outline"
@@ -692,6 +708,10 @@ function SpendableOutputs({
   const horizontalPadding = 48
   const GRAPH_HEIGHT = halfHeight
   const GRAPH_WIDTH = width - horizontalPadding
+
+  const totalBalance = useMemo(() => {
+    return account.utxos.reduce((sum, u) => sum + u.value, 0)
+  }, [account.utxos])
 
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>
@@ -739,8 +759,7 @@ function SpendableOutputs({
           <SSVStack style={{ marginBottom: 16 }}>
             {sortUtxos([...account.utxos]).map((utxo) => (
               <SSVStack gap="xs" key={getUtxoOutpoint(utxo)}>
-                <SSSeparator color="grayDark" />
-                <SSUtxoCard utxo={utxo} />
+                <SSUtxoCard utxo={utxo} totalBalance={totalBalance} />
               </SSVStack>
             ))}
           </SSVStack>
@@ -1300,14 +1319,14 @@ const addressListStyles = StyleSheet.create({
     textTransform: 'uppercase'
   },
   columnAddress: {
-    width: '20%'
+    width: '25%'
   },
   columnLabel: {
     width: '15%'
   },
   columnSats: {
     flexWrap: 'nowrap',
-    width: '20%',
+    width: '18%',
     textAlign: 'center'
   },
   columnTxs: {

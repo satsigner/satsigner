@@ -53,45 +53,49 @@ export function AddressCard({
       </SSHStack>
       <SSAddressDisplay address={address.address} />
       {!address.new && (
-        <SSVStack gap="xxs">
-          <SSText>
-            {tl('summary.balance')}{' '}
-            <SSStyledSatText
-              amount={address.summary.balance}
-              textSize="sm"
-              noColor
-            />
-            <SSText> {t('bitcoin.sats')}</SSText>
-          </SSText>
-          {address.summary.satsInMempool > 0 && (
+        <SSHStack justifyBetween gap="md">
+          <SSVStack gap="xxs" style={{ flex: 1 }}>
             <SSText>
-              {tl('summary.balanceUncofirmed')}{' '}
+              {tl('summary.balance')}{' '}
               <SSStyledSatText
-                amount={address.summary.satsInMempool}
+                amount={address.summary.balance}
                 textSize="sm"
                 noColor
               />
-              {t('bitcoin.sats')}
+              <SSText color="muted"> {t('bitcoin.sats')}</SSText>
             </SSText>
-          )}
-          <SSText>
-            {tl('summary.utxo')}{' '}
-            <SSText weight="bold">{address.summary.utxos}</SSText>
-          </SSText>
-          <SSText>
-            {tl('summary.tx')}{' '}
-            <SSText weight="bold">{address.summary.transactions}</SSText>
-          </SSText>
-          <SSText>
-            {t('common.label')}
-            {': '}
-            {address.label ? (
-              <SSText weight="bold">{address.label}</SSText>
-            ) : (
-              <SSText color="muted">{t('common.noLabel')}</SSText>
+            {address.summary.satsInMempool > 0 && (
+              <SSText>
+                {tl('summary.balanceUncofirmed')}{' '}
+                <SSStyledSatText
+                  amount={address.summary.satsInMempool}
+                  textSize="sm"
+                  noColor
+                />
+                <SSText color="muted"> {t('bitcoin.sats')}</SSText>
+              </SSText>
             )}
-          </SSText>
-        </SSVStack>
+            <SSText>
+              {tl('summary.utxo')}{' '}
+              <SSText weight="bold">{address.summary.utxos}</SSText>
+            </SSText>
+          </SSVStack>
+          <SSVStack gap="xxs" style={{ flex: 1 }}>
+            <SSText>
+              {tl('summary.tx')}{' '}
+              <SSText weight="bold">{address.summary.transactions}</SSText>
+            </SSText>
+            <SSText>
+              {t('common.label')}
+              {': '}
+              {address.label ? (
+                <SSText weight="bold">{address.label}</SSText>
+              ) : (
+                <SSText color="muted">{t('common.noLabel')}</SSText>
+              )}
+            </SSText>
+          </SSVStack>
+        </SSHStack>
       )}
     </SSVStack>
   )
