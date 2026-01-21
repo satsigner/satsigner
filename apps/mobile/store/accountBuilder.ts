@@ -6,7 +6,7 @@ import { getItem } from '@/storage/encrypted'
 import { type EntropyType } from '@/types/logic/entropy'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
-import { aesDecrypt, aesEncrypt, randomIv } from '@/utils/crypto'
+import { aesDecrypt, aesEncrypt, randomIv, randomUuid } from '@/utils/crypto'
 
 type AccountBuilderState = {
   name: Account['name']
@@ -278,7 +278,7 @@ const useAccountBuilderStore = create<
     const { name, network, policyType, keys, keyCount, keysRequired } = get()
 
     const account: Account = {
-      id: uuid.v4(),
+      id: randomUuid(),
       name,
       network,
       policyType,

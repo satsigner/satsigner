@@ -11,7 +11,7 @@ function randomKey(length = 16) {
 }
 
 function randomUuid() {
-  return aesCrypto.randomUuid()
+  return uuid.v4()
 }
 
 function randomIv() {
