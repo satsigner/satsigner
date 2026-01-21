@@ -535,18 +535,21 @@ export default function AccountList() {
               variant="subtle"
               onPress={() => handleLoadSampleWallet('watchonlySalvador')}
               loading={loadingWallet === 'watchonlySalvador'}
+              disabled={loadingWallet && loadingWallet !== 'watchonlySalvador'}
             />
             <SSButton
               label={t('account.load.sample.bitcoin.address.segwit')}
               variant="subtle"
               onPress={() => handleLoadSampleWallet('watchonlySegwit')}
               loading={loadingWallet === 'watchonlySegwit'}
+              disabled={loadingWallet && loadingWallet !== 'watchonlySegwit'}
             />
             <SSButton
               label={t('account.load.sample.bitcoin.address.tether')}
               variant="subtle"
               onPress={() => handleLoadSampleWallet('watchonlyTether')}
               loading={loadingWallet === 'watchonlyTether'}
+              disabled={loadingWallet && loadingWallet !== 'watchonlyTether'}
             />
           </SSVStack>
         )
@@ -567,6 +570,7 @@ export default function AccountList() {
               variant="subtle"
               onPress={() => handleLoadSampleWallet('watchonlyTestnet4')}
               loading={loadingWallet === 'watchonlyTestnet4'}
+              disabled={loadingWallet && loadingWallet !== 'watchonlyTestnet4'}
             />
           </SSVStack>
         )
@@ -587,30 +591,35 @@ export default function AccountList() {
               variant="subtle"
               onPress={() => handleLoadSampleWallet('segwit')}
               loading={loadingWallet === 'segwit'}
+              disabled={loadingWallet && loadingWallet !== 'segwit'}
             />
             <SSButton
               label={t('account.load.sample.signet.multisig')}
               variant="subtle"
               onPress={() => handleLoadSampleWallet('multisig')}
               loading={loadingWallet === 'multisig'}
+              disabled={loadingWallet && loadingWallet !== 'multisig'}
             />
             <SSButton
               label={t('account.load.sample.signet.legacy')}
               variant="subtle"
               onPress={() => handleLoadSampleWallet('legacy')}
               loading={loadingWallet === 'legacy'}
+              disabled={loadingWallet && loadingWallet !== 'legacy'}
             />
             <SSButton
               label={t('account.load.sample.signet.xpub')}
               variant="subtle"
               onPress={() => handleLoadSampleWallet('watchonlyXpub')}
               loading={loadingWallet === 'watchonlyXpub'}
+              disabled={loadingWallet && loadingWallet !== 'watchonlyXpub'}
             />
             <SSButton
               label={t('account.load.sample.signet.address')}
               variant="subtle"
               onPress={() => handleLoadSampleWallet('watchonlyAddress')}
               loading={loadingWallet === 'watchonlyAddress'}
+              disabled={loadingWallet && loadingWallet !== 'watchonlyAddress'}
             />
           </SSVStack>
         )
