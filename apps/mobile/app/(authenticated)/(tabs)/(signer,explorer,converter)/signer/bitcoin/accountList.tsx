@@ -209,7 +209,7 @@ export default function AccountList() {
   async function handleLoadSampleWallet(type: SampleWallet) {
     setLoadingWallet(type)
     try {
-      loadSampleWallet(type)
+      await loadSampleWallet(type)
     } catch {
       toast.error('failed to create sample wallet')
     } finally {
