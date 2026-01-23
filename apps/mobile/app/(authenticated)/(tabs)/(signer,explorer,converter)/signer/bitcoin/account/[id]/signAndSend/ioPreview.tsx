@@ -521,7 +521,6 @@ export default function IOPreview() {
           headerTitle: () => <SSText uppercase>{account.name}</SSText>
         }}
       />
-      {/* Chart rendered FIRST so it appears behind */}
       {inputs.size > 0 && (
         <View
           style={{
@@ -552,7 +551,6 @@ export default function IOPreview() {
           )}
         </View>
       )}
-      {/* Balance rendered AFTER so it appears on top */}
       <View
         style={{
           position: 'absolute',
