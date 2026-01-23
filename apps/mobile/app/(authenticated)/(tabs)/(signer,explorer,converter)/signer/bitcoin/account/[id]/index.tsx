@@ -833,10 +833,11 @@ export default function AccountView() {
       state.fetchPrices
     ])
   )
-  const [getBlockchainHeight, mempoolUrl] = useBlockchainStore(
+  const [getBlockchainHeight, mempoolUrl, connectionMode] = useBlockchainStore(
     useShallow((state) => [
       state.getBlockchainHeight,
-      state.configsMempool['bitcoin']
+      state.configsMempool['bitcoin'],
+      state.configs[state.selectedNetwork].config.connectionMode
     ])
   )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
@@ -890,7 +891,21 @@ export default function AccountView() {
   )
 
   useEffect(() => {
-    if (wallet) handleOnRefresh()
+    // do not auto-fetch wallet upon the following conditions:
+    // - variables have not been initalized
+    // - connection mode is manual
+    // - wallet was recently synced already
+    if (!wallet || !account || connectionMode !== 'auto') return
+
+    const { lastSyncedAt } = account
+    const now = new Date().getTime()
+    const delay = 1800 * 1000 // 30 minutes in milseconds
+    const lastAllowedSyncedAt = now - delay
+    if (lastSyncedAt && lastSyncedAt.getTime() < lastAllowedSyncedAt) {
+      return
+    }
+
+    handleOnRefresh()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!account) return <Redirect href="/" />
