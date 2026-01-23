@@ -912,7 +912,7 @@ function PreviewTransaction() {
 
       try {
         bitcoinjs.address.toOutputScript(output.to, network)
-      } catch (_error) {
+      } catch {
         // Only show error for clearly invalid addresses, not during editing
         // Check if the address looks like it might be incomplete (too short)
         if (output.to.length < 10) {
@@ -954,7 +954,7 @@ function PreviewTransaction() {
       psbtBuffer.fill(0)
 
       return psbtHex
-    } catch (_error) {
+    } catch {
       toast.error(t('error.psbt.serialization'))
       return null
     }
@@ -1013,7 +1013,7 @@ function PreviewTransaction() {
                 bbqrChunkSize
               )
             }
-          } catch (_bbqrError) {
+          } catch {
             bbqrChunks = []
           }
 
@@ -1074,7 +1074,7 @@ function PreviewTransaction() {
           setCurrentRawChunk(0)
           setCurrentUrChunk(0)
           setQrError(null)
-        } catch (_error) {
+        } catch {
           if (isMounted) {
             setQrError(t('error.qr.generation'))
             setQrChunks([])
@@ -1082,7 +1082,7 @@ function PreviewTransaction() {
             setRawPsbtChunks([])
           }
         }
-      } catch (_error) {
+      } catch {
         if (isMounted) {
           setQrError(t('error.psbt.notAvailable'))
           setQrChunks([])
@@ -1402,8 +1402,8 @@ function PreviewTransaction() {
     try {
       await emitNFCTag(serializedPsbt)
       toast.success(t('transaction.preview.nfcExported'))
-    } catch (_error) {
-      const errorMessage = (_error as Error).message
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
       if (errorMessage) {
         setNfcError(errorMessage)
         toast.error(errorMessage)
@@ -1598,7 +1598,7 @@ function PreviewTransaction() {
 
           // Combine this signed PSBT with the accumulated result
           combinedPsbt.combine(signedPsbt)
-        } catch (_error) {
+        } catch {
           toast.error(`Error combining signed PSBT ${i + 1}`)
           return null
         }

@@ -121,15 +121,16 @@ export default function TransactionConfirmation() {
     }
   }, [id, txBuilderResult, outputs, importLabels])
 
+  // Redirect if transaction hasn't been broadcasted
+  useEffect(() => {
+    if (!broadcasted && account && txBuilderResult) {
+      router.replace(`/signer/bitcoin/account/${id}/signAndSend/signTransaction`)
+    }
+  }, [broadcasted, account, txBuilderResult, id, router])
+
   if (!account || !txBuilderResult) return <Redirect href="/" />
 
-  // Redirect if transaction hasn't been broadcasted
-  if (!broadcasted)
-    return (
-      <Redirect
-        href={`/signer/bitcoin/account/${id}/signAndSend/signTransaction`}
-      />
-    )
+  if (!broadcasted) return null
 
   return (
     <>

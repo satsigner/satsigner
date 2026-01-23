@@ -183,8 +183,10 @@ export default function SignTransaction() {
           `/signer/bitcoin/account/${id}/signAndSend/transactionConfirmation`
         )
       }
-    } catch (err: Error | any) {
-      toast.error(err?.message || 'Failed to broadcast transaction')
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to broadcast transaction'
+      toast.error(errorMessage)
     } finally {
       setBroadcasting(false)
     }
