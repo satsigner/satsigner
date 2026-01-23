@@ -1,5 +1,11 @@
 import { useMemo } from 'react'
-import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import {
+  type StyleProp,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  type ViewStyle
+} from 'react-native'
 import BouncyCheckbox, {
   type BouncyCheckboxProps
 } from 'react-native-bouncy-checkbox'
@@ -7,10 +13,12 @@ import BouncyCheckbox, {
 import SSVStack from '@/layouts/SSVStack'
 import { Colors, Sizes } from '@/styles'
 
-import SSText from './SSText'
+import SSText, { type SSTextProps } from './SSText'
 
 type SSCheckboxProps = {
+  containerStyle?: StyleProp<ViewStyle>
   label?: string
+  labelProps?: SSTextProps
   description?: string
   selected: boolean
 } & BouncyCheckboxProps
@@ -20,6 +28,11 @@ function SSCheckbox({
   description,
   selected,
   onPress,
+  containerStyle = {},
+  labelProps = {
+    color: 'white',
+    size: 'lg'
+  },
   ...props
 }: SSCheckboxProps) {
   const innerIconStyle = useMemo(() => {
@@ -30,7 +43,7 @@ function SSCheckbox({
 
   return (
     <TouchableOpacity onPress={() => (onPress ? onPress(selected) : null)}>
-      <View style={styles.containerBase}>
+      <View style={[styles.containerBase, containerStyle]}>
         <BouncyCheckbox
           isChecked={selected}
           useBuiltInState={false}
@@ -45,9 +58,7 @@ function SSCheckbox({
         />
         {label && (
           <SSVStack gap="none" style={{ flex: 1 }}>
-            <SSText color="white" size="lg">
-              {label}
-            </SSText>
+            <SSText {...labelProps}>{label}</SSText>
             {description && <SSText color="muted">{description}</SSText>}
           </SSVStack>
         )}
