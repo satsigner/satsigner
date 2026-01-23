@@ -186,7 +186,18 @@ export default function AccountList() {
 
   async function syncAccounts() {
     if (connectionMode !== 'auto') return
+
+    const now = new Date().getTime()
+    const delay = 1800 * 1000 // 30 minutes in miliseconds
+    const lastAllowedSyncedAt = now - delay
+
     for (const account of accounts) {
+      const { lastSyncedAt } = account
+
+      if (lastSyncedAt && lastSyncedAt.getTime() > lastAllowedSyncedAt) {
+        continue
+      }
+
       if (account.network !== tabs[tabIndex].key) continue
 
       const isImportAddress = account.keys[0].creationType === 'importAddress'
