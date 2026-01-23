@@ -833,11 +833,12 @@ export default function AccountView() {
       state.fetchPrices
     ])
   )
-  const [getBlockchainHeight, mempoolUrl, connectionMode] = useBlockchainStore(
+  const [getBlockchainHeight, mempoolUrl, connectionMode, autoConnectDelay] = useBlockchainStore(
     useShallow((state) => [
       state.getBlockchainHeight,
       state.configsMempool['bitcoin'],
-      state.configs[state.selectedNetwork].config.connectionMode
+      state.configs[state.selectedNetwork].config.connectionMode,
+      state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
     ])
   )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
@@ -899,7 +900,7 @@ export default function AccountView() {
 
     const { lastSyncedAt } = account
     const now = new Date().getTime()
-    const delay = 1800 * 1000 // 30 minutes in milseconds
+    const delay = autoConnectDelay * 1000 // convert to milseconds
     const lastAllowedSyncedAt = now - delay
     if (lastSyncedAt && lastSyncedAt.getTime() < lastAllowedSyncedAt) {
       return

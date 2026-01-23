@@ -94,6 +94,28 @@ export default function NetworkSettings() {
                     })}
                   </SSVStack>
                   <SSVStack gap="xs">
+                    <SSText>{tn('timeDiffBeforeAutoSync')}</SSText>
+                    <SSVStack gap="none">
+                      <SSNumberInput
+                        value={tempConfigs[
+                          network
+                        ].timeDiffBeforeAutoSync.toString()}
+                        min={1}
+                        max={1440}
+                        onChangeText={(text) =>
+                          handleParamChange(
+                            network,
+                            'timeDiffBeforeAutoSync',
+                            Number(text)
+                          )
+                        }
+                      />
+                      <SSText color="muted" size="xs">
+                        {tn('connectionTestIntervalNotice')}
+                      </SSText>
+                    </SSVStack>
+                  </SSVStack>
+                  <SSVStack gap="xs">
                     <SSText>{tn('connectionTestInterval')}</SSText>
                     <SSVStack gap="none">
                       <SSNumberInput

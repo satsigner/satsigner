@@ -75,12 +75,13 @@ export default function AccountList() {
   const router = useRouter()
   const { width } = useWindowDimensions()
 
-  const [network, setSelectedNetwork, connectionMode, mempoolUrl] =
+  const [network, setSelectedNetwork, connectionMode, autoConnectDelay, mempoolUrl] =
     useBlockchainStore(
       useShallow((state) => [
         state.selectedNetwork,
         state.setSelectedNetwork,
         state.configs[state.selectedNetwork].config.connectionMode,
+        state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync,
         state.configsMempool[state.selectedNetwork]
       ])
     )
@@ -188,7 +189,7 @@ export default function AccountList() {
     if (connectionMode !== 'auto') return
 
     const now = new Date().getTime()
-    const delay = 1800 * 1000 // 30 minutes in miliseconds
+    const delay = autoConnectDelay * 1000 // convert to miliseconds
     const lastAllowedSyncedAt = now - delay
 
     for (const account of accounts) {
