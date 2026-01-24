@@ -23,7 +23,13 @@ export default function HistoryChart() {
     showOutputField,
     setShowOutputField,
     lockZoomToXAxis,
-    setLockZoomToXAxis
+    setLockZoomToXAxis,
+    showFiatOnChart,
+    setShowFiatOnChart,
+    showFiatAtTxTime,
+    setShowFiatAtTxTime,
+    showFiatPercentageChange,
+    setShowFiatPercentageChange
   ] = useChartSettingStore(
     useShallow((state) => [
       state.showLabel,
@@ -35,7 +41,13 @@ export default function HistoryChart() {
       state.showOutputField,
       state.setShowOutputField,
       state.lockZoomToXAxis,
-      state.setLockZoomToXAxis
+      state.setLockZoomToXAxis,
+      state.showFiatOnChart,
+      state.setShowFiatOnChart,
+      state.showFiatAtTxTime,
+      state.setShowFiatAtTxTime,
+      state.showFiatPercentageChange,
+      state.setShowFiatPercentageChange
     ])
   )
 
@@ -45,6 +57,12 @@ export default function HistoryChart() {
     useState(showTransactionInfo)
   const [selectedShowOutputField, setSelectedShowOutputField] =
     useState(showOutputField)
+  const [selectedShowFiatOnChart, setSelectedShowFiatOnChart] =
+    useState(showFiatOnChart)
+  const [selectedShowFiatAtTxTime, setSelectedShowFiatAtTxTime] =
+    useState(showFiatAtTxTime)
+  const [selectedShowFiatPercentageChange, setSelectedShowFiatPercentageChange] =
+    useState(showFiatPercentageChange)
   const [selectedLockZoomToXAxis, setSelectedLockZoomToXAxis] =
     useState(lockZoomToXAxis)
 
@@ -53,6 +71,9 @@ export default function HistoryChart() {
     setShowAmount(selectedShowAmount)
     setShowTransactionInfo(selectedShowTransactionInfo)
     setShowOutputField(selectedShowOutputField)
+    setShowFiatOnChart(selectedShowFiatOnChart)
+    setShowFiatAtTxTime(selectedShowFiatAtTxTime)
+    setShowFiatPercentageChange(selectedShowFiatPercentageChange)
     setLockZoomToXAxis(selectedLockZoomToXAxis)
     router.back()
   }
@@ -103,6 +124,37 @@ export default function HistoryChart() {
                 )}
                 selected={selectedShowOutputField}
                 onPress={() => setSelectedShowOutputField((prev) => !prev)}
+              />
+              <SSCheckbox
+                label={t(
+                  'settings.features.charts.historyChart.layers.showFiatOnChart'
+                )}
+                selected={selectedShowFiatOnChart}
+                onPress={() => {
+                  setSelectedShowFiatOnChart((prev) => !prev)
+                  if (selectedShowFiatOnChart) {
+                    setSelectedShowFiatAtTxTime(false)
+                  }
+                }}
+              />
+              <SSCheckbox
+                label={t(
+                  'settings.features.charts.historyChart.layers.showFiatAtTxTime'
+                )}
+                selected={selectedShowFiatAtTxTime}
+                disabled={!selectedShowFiatOnChart}
+                onPress={
+                  !selectedShowFiatOnChart
+                    ? undefined
+                    : () => setSelectedShowFiatAtTxTime((prev) => !prev)
+                }
+              />
+              <SSCheckbox
+                label={t(
+                  'settings.features.charts.historyChart.layers.showFiatPercentageChange'
+                )}
+                selected={selectedShowFiatPercentageChange}
+                onPress={() => setSelectedShowFiatPercentageChange((prev) => !prev)}
               />
             </SSVStack>
             <SSVStack>

@@ -194,6 +194,7 @@ function TotalTransactions({
           <SSHistoryChart
             transactions={chartTransactions}
             utxos={account.utxos}
+            blockchainHeight={blockchainHeight}
           />
         </View>
       ) : (
