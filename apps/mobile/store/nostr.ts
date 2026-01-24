@@ -159,12 +159,15 @@ const useNostrStore = create<NostrState & NostrAction>()(
       clearNostrState: (accountId) => {
         set((state) => ({
           members: {
+            ...state.members,
             [accountId]: []
           },
           processedMessageIds: {
+            ...state.processedMessageIds,
             [accountId]: []
           },
           processedEvents: {
+            ...state.processedEvents,
             [accountId]: []
           },
           lastProtocolEOSE: {
@@ -176,6 +179,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
             [accountId]: 0
           },
           trustedDevices: {
+            ...state.trustedDevices,
             [accountId]: []
           }
         }))
