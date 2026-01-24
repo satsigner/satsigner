@@ -1,7 +1,6 @@
+import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system'
 import * as Sharing from 'expo-sharing'
-import DocumentPicker from 'react-native-document-picker'
-import RNFS from 'react-native-fs'
 
 type ShareFileProps = {
   filename: string
@@ -24,13 +23,11 @@ export async function shareFile({
 
 export type PickFileProps = {
   type: 'application/json' | 'text/csv' | 'text/plain' | '*/*'
-  encodingOrOptions?: any
+  encodingOrOptions?: FileSystem.ReadingOptions
 }
 
-export async function pickFile({
-  type,
-  encodingOrOptions = null
-}: PickFileProps) {
-  const file = await DocumentPicker.pickSingle({ type })
-  return RNFS.readFile(file.uri, encodingOrOptions)
+export async function pickFile({ type, encodingOrOptions }: PickFileProps) {
+  const file = await DocumentPicker.getDocumentAsync({ type })
+  if (file.canceled || !file.assets?.[0]) return
+  return FileSystem.readAsStringAsync(file.assets[0].uri, encodingOrOptions)
 }
