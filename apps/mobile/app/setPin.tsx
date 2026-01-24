@@ -7,28 +7,31 @@ import { SSIconCheckCircleThin, SSIconCircleXThin } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import { DEFAULT_PIN, PIN_KEY, PIN_SIZE, SALT_KEY } from '@/config/auth'
+import { DEFAULT_PIN, PIN_KEY, PIN_SIZE } from '@/config/auth'
+import useReEncryptAccounts from '@/hooks/useReEncryptAccounts'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { setItem } from '@/storage/encrypted'
+import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Layout } from '@/styles'
-import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
 
 type Stage = 'set' | 're-enter'
 
 export default function SetPin() {
   const router = useRouter()
-  const [setFirstTime, setRequiresAuth, setSkipPin] = useAuthStore(
+  const [setPin, setFirstTime, setRequiresAuth, setSkipPin] = useAuthStore(
     useShallow((state) => [
+      state.setPin,
       state.setFirstTime,
       state.setRequiresAuth,
       state.setSkipPin
     ])
   )
   const showWarning = useSettingsStore((state) => state.showWarning)
+
+  const reEncryptAccounts = useReEncryptAccounts()
 
   const [loading, setLoading] = useState(false)
   const [stage, setStage] = useState<Stage>('set')
@@ -42,13 +45,6 @@ export default function SetPin() {
   const confirmationPinFilled =
     confirmationPinArray.findIndex((text) => text === '') === -1
   const pinsMatch = pinArray.join('') === confirmationPinArray.join('')
-
-  async function setPin(pin: string) {
-    const salt = await generateSalt()
-    const encryptedPin = await pbkdf2Encrypt(pin, salt)
-    await setItem(PIN_KEY, encryptedPin)
-    await setItem(SALT_KEY, salt)
-  }
 
   async function handleSetPinLater() {
     setFirstTime(false)
@@ -80,7 +76,18 @@ export default function SetPin() {
     if (pinArray.join('') !== confirmationPinArray.join('')) return
     setLoading(true)
     setSkipPin(false) // Disable skip PIN mode when user sets a custom PIN
+
+    const currentPinEncrypted = await getItem(PIN_KEY)
     await setPin(pinArray.join(''))
+    const newPinEncrypted = await getItem(PIN_KEY)
+    if (
+      currentPinEncrypted &&
+      newPinEncrypted &&
+      currentPinEncrypted !== newPinEncrypted
+    ) {
+      await reEncryptAccounts(currentPinEncrypted, newPinEncrypted)
+    }
+
     setLoading(false)
 
     if (showWarning) router.push('./warning')

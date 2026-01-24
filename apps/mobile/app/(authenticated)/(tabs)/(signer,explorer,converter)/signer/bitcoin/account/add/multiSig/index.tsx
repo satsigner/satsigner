@@ -91,7 +91,9 @@ export default function MultiSig() {
             label={t('account.import.descriptor')}
             variant="subtle"
             onPress={() =>
-              router.navigate('/signer/bitcoin/account/add/multiSig/importDescriptor')
+              router.navigate(
+                '/signer/bitcoin/account/add/multiSig/importDescriptor'
+              )
             }
           />
           <SSButton

@@ -10,7 +10,6 @@ import DraggableFlatList, {
   type RenderItemParams,
   ScaleDecorator
 } from 'react-native-draggable-flatlist'
-import uuid from 'react-native-uuid'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -28,6 +27,7 @@ import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Address, type WatchedAddress } from '@/types/models/Address'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { getScriptVersionType } from '@/utils/address'
+import { randomIv } from '@/utils/crypto'
 import { validateAddress } from '@/utils/validation'
 
 type ManageAccountAddressesProps = {
@@ -191,7 +191,7 @@ export function ManageAccountAddresses({
         index,
         secret,
         creationType: 'importAddress',
-        iv: uuid.v4().replace(/-/g, '')
+        iv: randomIv()
       }
       return key
     })

@@ -124,22 +124,6 @@ export function looksLikePsbt(data: Uint8Array) {
   )
 }
 
-export function shuffled<T>(arr: T[]): T[] {
-  // modern Fisher-Yates shuffle (https://en.wikipedia.org/wiki/Fisher–Yates_shuffle#The_modern_algorithm)
-
-  // create a copy so we don't mutate the original
-  arr = [...arr]
-
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    const temp = arr[i]
-    arr[i] = arr[j]
-    arr[j] = temp
-  }
-
-  return arr
-}
-
 export function versionToChars(v: Version) {
   // return number of **chars** that fit into indicated version QR
   // - assumes L for ECC

@@ -125,7 +125,11 @@ export default function MessageConfirmation() {
 
   // Redirect if transaction hasn't been broadcasted
   if (!broadcasted)
-    return <Redirect href={`/signer/bitcoin/account/${id}/signAndSend/signMessage`} />
+    return (
+      <Redirect
+        href={`/signer/bitcoin/account/${id}/signAndSend/signMessage`}
+      />
+    )
 
   return (
     <>

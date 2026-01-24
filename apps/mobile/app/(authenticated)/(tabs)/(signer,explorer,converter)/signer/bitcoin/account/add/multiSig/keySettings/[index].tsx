@@ -78,7 +78,9 @@ export default function MultiSigKeySettings() {
           setFingerprint(fingerprint)
 
           setLoading(false)
-          router.navigate(`/signer/bitcoin/account/add/generate/mnemonic/${index}`)
+          router.navigate(
+            `/signer/bitcoin/account/add/generate/mnemonic/${index}`
+          )
           break
         }
         case 'drawing': {

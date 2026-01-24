@@ -1,11 +1,11 @@
 import { type PartiallySignedTransaction } from 'bdk-rn'
 import { type TxBuilderResult } from 'bdk-rn/lib/classes/Bindings'
 import { enableMapSet, produce } from 'immer'
-import uuid from 'react-native-uuid'
 import { create } from 'zustand'
 
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
+import { randomUuid } from '@/utils/crypto'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 enableMapSet()
@@ -98,7 +98,7 @@ const useTransactionBuilderStore = create<
   addOutput: (output) => {
     set(
       produce((state: TransactionBuilderState) => {
-        state.outputs.push({ localId: uuid.v4(), ...output })
+        state.outputs.push({ localId: randomUuid(), ...output })
       })
     )
   },

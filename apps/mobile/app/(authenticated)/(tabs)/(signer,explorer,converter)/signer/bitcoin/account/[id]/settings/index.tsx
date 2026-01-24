@@ -71,6 +71,7 @@ export default function AccountSettings() {
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
   const [pin, setPin] = useState<string[]>(Array(4).fill(''))
   const [showPinEntry, setShowPinEntry] = useState(false)
+  const [pinEntryFocus, setPinEntryFocus] = useState(false)
 
   function getPolicyTypeButtonLabel() {
     switch (account?.policyType) {
@@ -92,6 +93,10 @@ export default function AccountSettings() {
       setPin(Array(4).fill(''))
       setShowPinEntry(true)
     }
+
+    // This will auto-focus the pin input after a little delay.
+    // The delay is needed because the modal has to have become visible first.
+    setTimeout(() => setPinEntryFocus(true), 200)
   }
 
   async function handlePinEntry(pinString: string) {
@@ -329,7 +334,9 @@ export default function AccountSettings() {
             style={styles.button}
             label={t('account.nostrSync.sync')}
             onPress={() =>
-              router.navigate(`/signer/bitcoin/account/${currentAccountId}/settings/nostr`)
+              router.navigate(
+                `/signer/bitcoin/account/${currentAccountId}/settings/nostr`
+              )
             }
           />
         </SSVStack>
@@ -561,6 +568,7 @@ export default function AccountSettings() {
           pin={pin}
           setPin={setPin}
           onFillEnded={handlePinEntry}
+          autoFocus={pinEntryFocus}
         />
       </SSModal>
     </ScrollView>
