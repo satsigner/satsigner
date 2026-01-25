@@ -833,14 +833,15 @@ export default function AccountView() {
       state.fetchPrices
     ])
   )
-  const [getBlockchainHeight, mempoolUrl, connectionMode, autoConnectDelay] = useBlockchainStore(
-    useShallow((state) => [
-      state.getBlockchainHeight,
-      state.configsMempool['bitcoin'],
-      state.configs[state.selectedNetwork].config.connectionMode,
-      state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
-    ])
-  )
+  const [getBlockchainHeight, mempoolUrl, connectionMode, autoConnectDelay] =
+    useBlockchainStore(
+      useShallow((state) => [
+        state.getBlockchainHeight,
+        state.configsMempool['bitcoin'],
+        state.configs[state.selectedNetwork].config.connectionMode,
+        state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
+      ])
+    )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { nostrSyncSubscriptions } = useNostrSync()

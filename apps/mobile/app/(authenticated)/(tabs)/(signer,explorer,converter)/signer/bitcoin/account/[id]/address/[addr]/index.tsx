@@ -213,7 +213,7 @@ function AddressDetails() {
                           height: GRAPH_HEIGHT
                         }}
                         inputs={addressUtxoInputs}
-                        dimUnselected={true}
+                        dimUnselected
                         onPress={({ txid, vout }: Utxo) =>
                           router.navigate(
                             `/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${vout}`

@@ -75,16 +75,21 @@ export default function AccountList() {
   const router = useRouter()
   const { width } = useWindowDimensions()
 
-  const [network, setSelectedNetwork, connectionMode, autoConnectDelay, mempoolUrl] =
-    useBlockchainStore(
-      useShallow((state) => [
-        state.selectedNetwork,
-        state.setSelectedNetwork,
-        state.configs[state.selectedNetwork].config.connectionMode,
-        state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync,
-        state.configsMempool[state.selectedNetwork]
-      ])
-    )
+  const [
+    network,
+    setSelectedNetwork,
+    connectionMode,
+    autoConnectDelay,
+    mempoolUrl
+  ] = useBlockchainStore(
+    useShallow((state) => [
+      state.selectedNetwork,
+      state.setSelectedNetwork,
+      state.configs[state.selectedNetwork].config.connectionMode,
+      state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync,
+      state.configsMempool[state.selectedNetwork]
+    ])
+  )
   const [accounts, updateAccount] = useAccountsStore(
     useShallow((state) => [state.accounts, state.updateAccount])
   )

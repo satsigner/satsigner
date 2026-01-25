@@ -13,8 +13,8 @@ import { formatAddress, formatDate, formatNumber } from '@/utils/format'
 import { parseLabel } from '@/utils/parse'
 
 import { SSIconPlus, SSIconX } from './icons'
-import SSText from './SSText'
 import SSStyledSatText from './SSStyledSatText'
+import SSText from './SSText'
 import SSUtxoSizeMeter from './SSUtxoSizeMeter'
 
 type SSUtxoItemProps = {
@@ -34,7 +34,6 @@ function SSUtxoItem({
   const [currencyUnit, useZeroPadding] = useSettingsStore(
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
-  const zeroPadding = useZeroPadding || currencyUnit === 'btc'
   const selectIconStyle = useMemo(() => {
     return StyleSheet.compose(styles.selectIconBase, {
       ...(selected

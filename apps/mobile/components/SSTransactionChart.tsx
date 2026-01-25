@@ -146,8 +146,6 @@ function SSTransactionChart({
 
     const outputNodes: TxNode[] = outputs.map((output, index) => {
       const nodeId = String(index + 2 + inputs.length)
-      const isSelected =
-        selectedOutputIndex !== undefined && index === selectedOutputIndex
 
       return {
         id: nodeId,

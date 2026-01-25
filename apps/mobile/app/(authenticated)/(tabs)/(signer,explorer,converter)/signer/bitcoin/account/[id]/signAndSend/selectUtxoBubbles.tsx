@@ -107,7 +107,9 @@ function SelectUtxoBubbles() {
             </SSText>
             <SSIconButton
               onPress={() =>
-                router.navigate(`/signer/bitcoin/account/${id}/signAndSend/selectUtxoList`)
+                router.navigate(
+                  `/signer/bitcoin/account/${id}/signAndSend/selectUtxoList`
+                )
               }
             >
               <SSIconList height={16} width={24} />
@@ -214,7 +216,9 @@ function SelectUtxoBubbles() {
             ]}
             textStyle={[!hasSelectedUtxos && { color: Colors.gray[400] }]}
             onPress={() =>
-              router.navigate(`/signer/bitcoin/account/${id}/signAndSend/ioPreview`)
+              router.navigate(
+                `/signer/bitcoin/account/${id}/signAndSend/ioPreview`
+              )
             }
           />
         </SSVStack>

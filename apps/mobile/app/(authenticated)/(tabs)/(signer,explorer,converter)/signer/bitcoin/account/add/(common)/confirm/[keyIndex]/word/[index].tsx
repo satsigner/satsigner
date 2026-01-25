@@ -86,7 +86,9 @@ export default function Confirm() {
       return setIncorrectWordModalVisible(true)
 
     if (Number(index) + 1 < mnemonicWordCount)
-      router.push(`/signer/bitcoin/account/add/confirm/${keyIndex}/word/${Number(index) + 1}`)
+      router.push(
+        `/signer/bitcoin/account/add/confirm/${keyIndex}/word/${Number(index) + 1}`
+      )
     else return handleFinishWordsConfirmation()
   }
 

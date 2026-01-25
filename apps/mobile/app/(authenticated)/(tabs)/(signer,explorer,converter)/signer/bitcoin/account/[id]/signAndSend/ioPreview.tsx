@@ -486,7 +486,9 @@ export default function IOPreview() {
     const needsSync = checkWalletNeedsSync(account)
 
     if (needsSync) {
-      router.navigate(`/signer/bitcoin/account/${id}/signAndSend/walletSyncedConfirmation`)
+      router.navigate(
+        `/signer/bitcoin/account/${id}/signAndSend/walletSyncedConfirmation`
+      )
       return
     }
 
@@ -681,7 +683,9 @@ export default function IOPreview() {
                 label={t('transaction.build.add.input.title')}
                 style={{ flex: 1 }}
                 onPress={() =>
-                  router.navigate(`/signer/bitcoin/account/${id}/signAndSend/selectUtxoList`)
+                  router.navigate(
+                    `/signer/bitcoin/account/${id}/signAndSend/selectUtxoList`
+                  )
                 }
               />
               <SSButton
@@ -876,7 +880,9 @@ export default function IOPreview() {
                 label={t('transaction.build.options.feeControl')}
                 variant="outline"
                 onPress={() =>
-                  router.navigate(`/signer/bitcoin/account/${id}/signAndSend/feeManagement`)
+                  router.navigate(
+                    `/signer/bitcoin/account/${id}/signAndSend/feeManagement`
+                  )
                 }
                 style={{ width: '45%', flexGrow: 1 }}
               />
@@ -884,7 +890,9 @@ export default function IOPreview() {
                 label={t('transaction.build.options.timelock')}
                 variant="outline"
                 onPress={() =>
-                  router.navigate(`/signer/bitcoin/account/${id}/signAndSend/timeLock`)
+                  router.navigate(
+                    `/signer/bitcoin/account/${id}/signAndSend/timeLock`
+                  )
                 }
                 style={{ width: '45%', flexGrow: 1 }}
               />
@@ -893,7 +901,9 @@ export default function IOPreview() {
               label={t('transaction.build.options.importOutputs.title')}
               variant="outline"
               onPress={() =>
-                router.navigate(`/signer/bitcoin/account/${id}/signAndSend/importOutputs`)
+                router.navigate(
+                  `/signer/bitcoin/account/${id}/signAndSend/importOutputs`
+                )
               }
             />
           </SSVStack>

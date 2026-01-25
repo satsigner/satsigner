@@ -179,7 +179,9 @@ export default function SignMessage() {
 
       if (broadcastSuccess) {
         setBroadcasted(true)
-        router.navigate(`/signer/bitcoin/account/${id}/signAndSend/messageConfirmation`)
+        router.navigate(
+          `/signer/bitcoin/account/${id}/signAndSend/messageConfirmation`
+        )
       }
     } catch (err: Error | any) {
       toast.error(err?.message || 'Failed to broadcast transaction')
