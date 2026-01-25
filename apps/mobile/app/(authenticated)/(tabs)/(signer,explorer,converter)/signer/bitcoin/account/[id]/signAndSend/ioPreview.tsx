@@ -493,7 +493,9 @@ export default function IOPreview() {
     }
 
     // Ok, go to the preview page.
-    router.navigate(`/signer/bitcoin/account/${id}/signAndSend/previewTransaction`)
+    router.navigate(
+      `/signer/bitcoin/account/${id}/signAndSend/previewTransaction`
+    )
   }
 
   const handleTopLayout = (event: LayoutChangeEvent) => {
@@ -591,7 +593,9 @@ export default function IOPreview() {
                   {formatNumber(utxosTotalValue, 0, zeroPadding)}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
-                  {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
+                  {currencyUnit === 'btc'
+                    ? t('bitcoin.btc')
+                    : t('bitcoin.sats')}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[75] }}>
                   {formatNumber(satsToFiat(utxosTotalValue), 2)}
@@ -612,7 +616,9 @@ export default function IOPreview() {
                   {formatNumber(utxosSelectedValue, 0, zeroPadding)}
                 </SSText>
                 <SSText size="xl" color="muted">
-                  {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
+                  {currencyUnit === 'btc'
+                    ? t('bitcoin.btc')
+                    : t('bitcoin.sats')}
                 </SSText>
               </SSHStack>
               <SSHStack

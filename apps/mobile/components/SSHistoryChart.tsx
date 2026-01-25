@@ -27,13 +27,12 @@ import { useShallow } from 'zustand/react/shallow'
 import { useChartSettingStore } from '@/store/chartSettings'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
+import { Colors } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type Rectangle } from '@/types/ui/geometry'
-import { Colors } from '@/styles'
 import {
-  formatConfirmations,
   formatFiatPrice,
   formatNumber,
   formatPercentualChange
@@ -181,20 +180,6 @@ function SSHistoryChart({
   const startDate = useMemo<Date>(() => {
     return new Date(endDate.getTime() - timeOffset / scale)
   }, [endDate, scale, timeOffset])
-
-  const visibleTransactionsRange = useMemo(() => {
-    if (transactions.length === 0) return { startIndex: 0, endIndex: 0 }
-    const startIndex = transactions.findIndex(
-      (t) => new Date(t.timestamp ?? 0) >= startDate
-    )
-    const endIndex = transactions.findIndex(
-      (t) => new Date(t.timestamp ?? 0) > endDate
-    )
-    return {
-      startIndex: startIndex === -1 ? 0 : startIndex,
-      endIndex: endIndex === -1 ? transactions.length : endIndex
-    }
-  }, [transactions, startDate, endDate])
 
   const balanceHistory = useMemo(() => {
     const history = new Map<number, Map<string, Utxo>>()
@@ -623,9 +608,6 @@ function SSHistoryChart({
   const yAxisFormatter = useMemo(() => {
     return d3.format('.3s')
   }, [])
-  const cursorFormatter = useMemo(() => {
-    return d3.format(',d')
-  }, [])
   const numberCommaFormatter = useMemo(() => {
     return d3.format(',')
   }, [])
@@ -730,6 +712,7 @@ function SSHistoryChart({
     showTransactionInfo,
     chartHeight,
     zeroPadding,
+    numberCommaFormatter,
     blockchainHeight
   ])
 

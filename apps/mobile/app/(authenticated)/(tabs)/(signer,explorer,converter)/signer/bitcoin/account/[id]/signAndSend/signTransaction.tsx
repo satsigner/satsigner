@@ -185,7 +185,9 @@ export default function SignTransaction() {
       }
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Failed to broadcast transaction'
+        error instanceof Error
+          ? error.message
+          : 'Failed to broadcast transaction'
       toast.error(errorMessage)
     } finally {
       setBroadcasting(false)

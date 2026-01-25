@@ -30,7 +30,10 @@ function SSCheckbox({
   }, [selected])
 
   const containerStyle = useMemo(() => {
-    return StyleSheet.compose(styles.containerBase, disabled ? styles.disabled : {})
+    return StyleSheet.compose(
+      styles.containerBase,
+      disabled ? styles.disabled : {}
+    )
   }, [disabled])
 
   return (

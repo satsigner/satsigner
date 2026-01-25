@@ -61,8 +61,10 @@ export default function HistoryChart() {
     useState(showFiatOnChart)
   const [selectedShowFiatAtTxTime, setSelectedShowFiatAtTxTime] =
     useState(showFiatAtTxTime)
-  const [selectedShowFiatPercentageChange, setSelectedShowFiatPercentageChange] =
-    useState(showFiatPercentageChange)
+  const [
+    selectedShowFiatPercentageChange,
+    setSelectedShowFiatPercentageChange
+  ] = useState(showFiatPercentageChange)
   const [selectedLockZoomToXAxis, setSelectedLockZoomToXAxis] =
     useState(lockZoomToXAxis)
 
@@ -154,7 +156,9 @@ export default function HistoryChart() {
                   'settings.features.charts.historyChart.layers.showFiatPercentageChange'
                 )}
                 selected={selectedShowFiatPercentageChange}
-                onPress={() => setSelectedShowFiatPercentageChange((prev) => !prev)}
+                onPress={() =>
+                  setSelectedShowFiatPercentageChange((prev) => !prev)
+                }
               />
             </SSVStack>
             <SSVStack>

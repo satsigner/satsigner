@@ -13,8 +13,8 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { parseLabel } from '@/utils/parse'
 
-import SSText from './SSText'
 import SSStyledSatText from './SSStyledSatText'
+import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
 import SSUtxoBar from './SSUtxoBar'
 

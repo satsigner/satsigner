@@ -1,6 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
-import { useShallow } from 'zustand/react/shallow'
 import {
   ScrollView,
   StyleSheet,
@@ -9,6 +8,7 @@ import {
   View
 } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSBubbleChart from '@/components/SSBubbleChart'
@@ -17,8 +17,8 @@ import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSLabelDetails from '@/components/SSLabelDetails'
 import SSScriptDecoded from '@/components/SSScriptDecoded'
 import SSSeparator from '@/components/SSSeparator'
-import SSText from '@/components/SSText'
 import SSStyledSatText from '@/components/SSStyledSatText'
+import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import useGetAccountTransactionOutput from '@/hooks/useGetAccountTransactionOutput'
 import SSHStack from '@/layouts/SSHStack'
@@ -113,7 +113,7 @@ function UtxoDetails({
                   utxos={allAccountUtxos}
                   canvasSize={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
                   inputs={currentUtxoInputs}
-                  dimUnselected={true}
+                  dimUnselected
                   onPress={({ txid, vout }: Utxo) =>
                     router.navigate(
                       `/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${vout}`
@@ -234,7 +234,7 @@ function UtxoDetails({
                 <SSTransactionChart
                   transaction={tx}
                   selectedOutputIndex={utxo?.vout}
-                  dimUnselected={true}
+                  dimUnselected
                 />
               </SSVStack>
             </>
