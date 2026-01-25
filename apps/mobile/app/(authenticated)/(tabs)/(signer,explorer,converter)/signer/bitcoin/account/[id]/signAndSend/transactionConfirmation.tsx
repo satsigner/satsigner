@@ -17,7 +17,7 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type Label } from '@/utils/bip329'
 import { formatAddress } from '@/utils/format'
 
-export default function MessageConfirmation() {
+export default function TransactionConfirmation() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
@@ -121,15 +121,16 @@ export default function MessageConfirmation() {
     }
   }, [id, txBuilderResult, outputs, importLabels])
 
+  // Redirect if transaction hasn't been broadcasted
+  useEffect(() => {
+    if (!broadcasted && account && txBuilderResult) {
+      router.replace(`/signer/bitcoin/account/${id}/signAndSend/signTransaction`)
+    }
+  }, [broadcasted, account, txBuilderResult, id, router])
+
   if (!account || !txBuilderResult) return <Redirect href="/" />
 
-  // Redirect if transaction hasn't been broadcasted
-  if (!broadcasted)
-    return (
-      <Redirect
-        href={`/signer/bitcoin/account/${id}/signAndSend/signMessage`}
-      />
-    )
+  if (!broadcasted) return null
 
   return (
     <>

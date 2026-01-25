@@ -95,7 +95,7 @@ async function processBitcoinContent(
 
       const psbtParam = encodeURIComponent(psbtBase64)
       navigate(
-        `/signer/bitcoin/account/${accountId}/signAndSend/previewMessage?psbt=${psbtParam}`
+        `/signer/bitcoin/account/${accountId}/signAndSend/previewTransaction?psbt=${psbtParam}`
       )
 
       if (account) {
@@ -249,7 +249,7 @@ async function processBitcoinContent(
 
     case 'bitcoin_transaction':
       navigate({
-        pathname: '/signer/bitcoin/account/[id]/signAndSend/previewMessage',
+        pathname: '/signer/bitcoin/account/[id]/signAndSend/previewTransaction',
         params: { id: accountId, signedPsbt: content.cleaned }
       })
       break

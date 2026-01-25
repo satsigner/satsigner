@@ -20,7 +20,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { parseNostrTransactionMessage } from '@/utils/nostr'
+import { parseNostrTransaction } from '@/utils/nostr'
 import { type TransactionData } from '@/utils/psbt'
 
 const colorCache = new Map<string, { text: string; color: string }>()
@@ -94,7 +94,7 @@ export default function DevicesGroupChat() {
     new Map<string, { sankey: boolean; status: boolean }>()
   )
   const [isShareModalVisible, setIsShareModalVisible] = useState(false)
-  const [messageToShare, setMessageToShare] = useState('')
+  const [transactionToShareLocal, setTransactionToShareLocal] = useState('')
   const [transactionDataForModal, setTransactionDataForModal] =
     useState<TransactionData | null>(null)
   const isAtBottomRef = useRef(true)
@@ -151,7 +151,7 @@ export default function DevicesGroupChat() {
 
   async function handleGoToSignFlowClick(messageContent: string) {
     try {
-      const transactionData = parseNostrTransactionMessage(messageContent)
+      const transactionData = parseNostrTransaction(messageContent)
       if (!transactionData) {
         toast.error(t('common.error.transactionDataParseFailed'))
         return
@@ -179,17 +179,17 @@ export default function DevicesGroupChat() {
   }
 
   async function handleShareInChat() {
-    if (!account || !messageToShare) return
+    if (!account || !transactionToShareLocal) return
 
     setIsLoading(true)
     try {
-      await sendPSBT(account, messageToShare)
+      await sendPSBT(account, transactionToShareLocal)
       toast.success(t('account.nostrSync.transactionDataSentToGroupChat'))
     } catch {
       toast.error(t('account.nostrSync.failedToSendTransactionData'))
     } finally {
       setIsShareModalVisible(false)
-      setMessageToShare('')
+      setTransactionToShareLocal('')
       setTransactionDataForModal(null)
       setIsLoading(false)
     }
@@ -197,7 +197,7 @@ export default function DevicesGroupChat() {
 
   function handleCancelShare() {
     setIsShareModalVisible(false)
-    setMessageToShare('')
+    setTransactionToShareLocal('')
     setTransactionDataForModal(null)
   }
 
@@ -280,7 +280,7 @@ export default function DevicesGroupChat() {
 
   useEffect(() => {
     if (transactionToShare) {
-      setMessageToShare(transactionToShare.message)
+      setTransactionToShareLocal(transactionToShare.transaction)
       setTransactionDataForModal(transactionToShare.transactionData)
       setIsShareModalVisible(true)
       setTransactionToShare(null)
@@ -407,7 +407,7 @@ export default function DevicesGroupChat() {
                 />
               ) : (
                 <SSText style={styles.modalMessageText}>
-                  {messageToShare}
+                  {transactionToShareLocal}
                 </SSText>
               )}
             </ScrollView>

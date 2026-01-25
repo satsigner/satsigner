@@ -52,12 +52,12 @@ export async function generateColorFromNpub(npub: string): Promise<string> {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`
 }
 
-export function parseNostrTransactionMessage(
-  message: string
+export function parseNostrTransaction(
+  transaction: string
 ): TransactionData | null {
-  if (message.trim().startsWith('cHNidP')) {
+  if (transaction.trim().startsWith('cHNidP')) {
     const transactionData: TransactionData = {
-      combinedPsbt: message.trim()
+      combinedPsbt: transaction.trim()
     }
     return transactionData
   }

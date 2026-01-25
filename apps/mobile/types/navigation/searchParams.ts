@@ -23,7 +23,7 @@ export type AccountSearchParams = {
   id: string
 }
 
-export type PreviewMessageSearchParams = AccountSearchParams & {
+export type PreviewTransactionSearchParams = AccountSearchParams & {
   psbt?: string
   signedPsbt?: string
 }
