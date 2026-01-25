@@ -94,6 +94,7 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import { compareTimestamp, sortTransactions } from '@/utils/sort'
+import { time } from '@/utils/time'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 type TotalTransactionsProps = {
@@ -900,10 +901,10 @@ export default function AccountView() {
     if (!wallet || !account || connectionMode !== 'auto') return
 
     const { lastSyncedAt } = account
-    const now = new Date().getTime()
-    const delay = autoConnectDelay * 1000 // convert to milseconds
-    const lastAllowedSyncedAt = now - delay
-    if (lastSyncedAt && lastSyncedAt.getTime() < lastAllowedSyncedAt) {
+    if (
+      lastSyncedAt &&
+      time.now() > time.minutesAfter(lastSyncedAt.getTime(), autoConnectDelay)
+    ) {
       return
     }
 

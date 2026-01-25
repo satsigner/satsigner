@@ -56,6 +56,7 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
+import { time } from '@/utils/time'
 
 // Helper function to map local Network type to bdk-rn Network enum
 function mapNetworkToBdkNetwork(network: 'bitcoin' | 'testnet' | 'signet') {
@@ -193,14 +194,13 @@ export default function AccountList() {
   async function syncAccounts() {
     if (connectionMode !== 'auto') return
 
-    const now = new Date().getTime()
-    const delay = autoConnectDelay * 1000 // convert to miliseconds
-    const lastAllowedSyncedAt = now - delay
-
     for (const account of accounts) {
       const { lastSyncedAt } = account
 
-      if (lastSyncedAt && lastSyncedAt.getTime() > lastAllowedSyncedAt) {
+      if (
+        lastSyncedAt &&
+        time.now() > time.minutesAfter(lastSyncedAt.getTime(), autoConnectDelay)
+      ) {
         continue
       }
 
