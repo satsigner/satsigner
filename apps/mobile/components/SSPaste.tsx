@@ -64,7 +64,18 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
   const validateContent = useCallback(
     async (text: string) => {
       try {
-        const detectedContent = await detectContentByContext(text, context)
+        // Strip "bitcoin:" prefix for validation but keep original for display
+        let processedText = text
+        if (
+          processedText.toLowerCase().startsWith('bitcoin:') &&
+          context === 'bitcoin'
+        ) {
+          processedText = processedText.substring(8)
+        }
+        const detectedContent = await detectContentByContext(
+          processedText,
+          context
+        )
         if (detectedContent.type === 'incompatible') {
           toast.error(t('paste.error.incompatibleContent'))
           setIsValidContent(false)
@@ -113,7 +124,19 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
 
       await new Promise((resolve) => setTimeout(resolve, 100))
 
-      const detectedContent = await detectContentByContext(content, context)
+      // Strip "bitcoin:" prefix for processing but keep original for display
+      let processedContent = content
+      if (
+        processedContent.toLowerCase().startsWith('bitcoin:') &&
+        context === 'bitcoin'
+      ) {
+        processedContent = processedContent.substring(8)
+      }
+
+      const detectedContent = await detectContentByContext(
+        processedContent,
+        context
+      )
 
       if (!detectedContent.isValid) {
         setIsProcessing(false)

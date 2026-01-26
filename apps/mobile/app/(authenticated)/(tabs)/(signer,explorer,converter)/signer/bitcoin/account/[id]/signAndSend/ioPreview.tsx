@@ -32,6 +32,9 @@ import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT } from '@/constants/btc'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { processContentForOutput } from '@/hooks/useContentProcessor'
+import { detectContentByContext } from '@/utils/contentDetector'
+import { bip21decode } from '@/utils/bitcoin'
+import { SATS_PER_BITCOIN } from '@/constants/btc'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -205,8 +208,115 @@ export default function IOPreview() {
   const [outputLabel, setOutputLabel] = useState('')
 
   const { pasteFromClipboard } = useClipboardPaste({
-    onPaste: (content) => {
-      setOutputTo(content)
+    onPaste: async (content) => {
+      try {
+        const trimmedContent = content.trim()
+
+        // Try direct BIP21 decode first (handles full URIs with "bitcoin:" prefix)
+        let uriToDecode = trimmedContent
+        if (!uriToDecode.toLowerCase().startsWith('bitcoin:')) {
+          uriToDecode = `bitcoin:${uriToDecode}`
+        }
+
+        const decodedData = bip21decode(uriToDecode)
+        if (decodedData && typeof decodedData === 'object') {
+          // Set only the clean address (without prefix and parameters)
+          setOutputTo(decodedData.address)
+
+          // Calculate amount in satoshis
+          const amountInBTC = decodedData.options.amount || 0
+          const amountInSats = Math.round(amountInBTC * SATS_PER_BITCOIN) || 1
+          setOutputAmount(amountInSats)
+          setOutputLabel(decodedData.options.label || '')
+          return
+        }
+
+        // If BIP21 decode fails, try to manually parse URI parameters
+        let processedContent = trimmedContent
+        const hasBitcoinPrefix = processedContent.toLowerCase().startsWith('bitcoin:')
+        if (hasBitcoinPrefix) {
+          processedContent = processedContent.substring(8)
+        }
+
+        // Try to extract address and parameters from URI format
+        const uriMatch = processedContent.match(/^([^?]+)(\?.*)?$/)
+        if (uriMatch) {
+          const addressPart = uriMatch[1]
+          const queryString = uriMatch[2]
+
+          // Check if address part is valid
+          const detectedContent = await detectContentByContext(
+            addressPart,
+            'bitcoin'
+          )
+
+          if (detectedContent.isValid && queryString) {
+            // Parse query parameters manually
+            const params = new URLSearchParams(queryString.substring(1))
+            const amountParam = params.get('amount')
+            const labelParam = params.get('label')
+
+            // Set clean address
+            setOutputTo(addressPart)
+
+            // Set amount if present
+            if (amountParam) {
+              const amountInBTC = parseFloat(amountParam)
+              if (!isNaN(amountInBTC) && amountInBTC > 0) {
+                const amountInSats = Math.round(amountInBTC * SATS_PER_BITCOIN)
+                setOutputAmount(amountInSats)
+              }
+            }
+
+            // Set label if present
+            if (labelParam) {
+              setOutputLabel(decodeURIComponent(labelParam))
+            }
+
+            return
+          }
+        }
+
+        // Try content detection for addresses without parameters
+        const detectedContent = await detectContentByContext(
+          processedContent,
+          'bitcoin'
+        )
+
+        if (detectedContent.isValid) {
+          // Use processContentForOutput to handle addresses
+          const success = processContentForOutput(detectedContent, {
+            setOutputTo: (address) => {
+              // Set only the clean address (without prefix)
+              setOutputTo(address)
+            },
+            setOutputAmount,
+            setOutputLabel,
+            onError: () => {
+              // If processing fails, strip prefix and set the content
+              setOutputTo(processedContent)
+            },
+            onWarning: () => {
+              // Warnings don't prevent setting the fields
+            },
+            remainingSats
+          })
+
+          if (success) {
+            return
+          }
+        }
+
+        // Final fallback: strip prefix if present and set as address
+        setOutputTo(processedContent)
+      } catch {
+        // If anything fails, strip prefix if present and set as address
+        let processedContent = content.trim()
+        if (processedContent.toLowerCase().startsWith('bitcoin:')) {
+          processedContent = processedContent.substring(8)
+        }
+        setOutputTo(processedContent)
+      }
     }
   })
 
@@ -338,7 +448,17 @@ export default function IOPreview() {
       (output) => output.localId === currentOutputLocalId
     )
 
-    const output = { to: outputTo, amount: outputAmount, label: outputLabel }
+    // Strip "bitcoin:" prefix before creating output
+    let processedAddress = outputTo
+    if (processedAddress.toLowerCase().startsWith('bitcoin:')) {
+      processedAddress = processedAddress.substring(8)
+    }
+
+    const output = {
+      to: processedAddress,
+      amount: outputAmount,
+      label: outputLabel
+    }
 
     if (outputIndex === -1) addOutput(output)
     else updateOutput(outputs[outputIndex].localId, output)
@@ -845,6 +965,7 @@ export default function IOPreview() {
                     label={t('transaction.build.remove.output.title')}
                     variant="danger"
                     style={{ flex: 1 }}
+                    disabled={!currentOutputLocalId}
                     onPress={handleRemoveOutput}
                   />
                   <SSButton

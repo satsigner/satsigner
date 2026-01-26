@@ -17,7 +17,12 @@ bitcoinjs.initEccLib(ecc)
 
 function isBitcoinTransaction(data: string): boolean {
   try {
-    bitcoinjs.Transaction.fromHex(data.trim())
+    let processedData = data.trim()
+    // Strip "bitcoin:" prefix if present (case-insensitive)
+    if (processedData.toLowerCase().startsWith('bitcoin:')) {
+      processedData = processedData.substring(8)
+    }
+    bitcoinjs.Transaction.fromHex(processedData)
     return true
   } catch {
     return false
@@ -79,11 +84,16 @@ async function detectBitcoinContent(
     }
   }
 
-  if (isBitcoinTransaction(trimmed)) {
+  // Check for transaction (strip "bitcoin:" prefix if present)
+  let transactionData = trimmed
+  if (transactionData.toLowerCase().startsWith('bitcoin:')) {
+    transactionData = transactionData.substring(8)
+  }
+  if (isBitcoinTransaction(transactionData)) {
     return {
       type: 'bitcoin_transaction',
       raw: data,
-      cleaned: trimmed,
+      cleaned: transactionData,
       isValid: true
     }
   }
@@ -112,7 +122,7 @@ async function detectBitcoinContent(
       return {
         type: 'bitcoin_uri',
         raw: data,
-        cleaned: trimmed,
+        cleaned: addressPart, // Strip "bitcoin:" prefix from cleaned
         isValid: true
       }
     }
