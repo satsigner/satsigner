@@ -21,7 +21,6 @@
     "descriptor.scriptVersion": "Script Version: %{version}",
     "descriptor.title": "Descriptor",
     "descriptors.noAvailable": "No descriptors available",
-    "duplicate.title": "Duplicate Account",
     "enter.pin": "Enter pin",
     "entropy.coin.desc.12": "To achieve 128 bits of entropy, you need to flip a fair coin about 128 times, as each flip provides 1 bit of randomness.",
     "entropy.coin.desc.15": "To achieve 160 bits of entropy, you need to flip a fair coin about 160 times, as each flip provides 1 bit of randomness.",
