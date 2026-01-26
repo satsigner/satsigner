@@ -117,12 +117,21 @@ async function detectBitcoinContent(
   }
 
   if (trimmed.toLowerCase().startsWith('bitcoin:')) {
-    const addressPart = trimmed.substring(8)
-    if (isBitcoinAddress(addressPart)) {
+    const uriPart = trimmed.substring(8)
+    if (isBip21(trimmed)) {
       return {
         type: 'bitcoin_uri',
         raw: data,
-        cleaned: addressPart, // Strip "bitcoin:" prefix from cleaned
+        cleaned: trimmed,
+        isValid: true
+      }
+    }
+    const addressMatch = uriPart.match(/^([^?]+)(\?.*)?$/)
+    if (addressMatch && isBitcoinAddress(addressMatch[1])) {
+      return {
+        type: 'bitcoin_uri',
+        raw: data,
+        cleaned: trimmed,
         isValid: true
       }
     }
