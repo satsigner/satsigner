@@ -33,6 +33,7 @@ function SSCheckbox({
     color: 'white',
     size: 'lg'
   },
+  disabled,
   ...props
 }: SSCheckboxProps) {
   const innerIconStyle = useMemo(() => {
@@ -41,9 +42,19 @@ function SSCheckbox({
     })
   }, [selected])
 
+  const containerBase = useMemo(() => {
+    return StyleSheet.compose(
+      styles.containerBase,
+      disabled ? styles.disabled : {}
+    )
+  }, [disabled])
+
   return (
-    <TouchableOpacity onPress={() => (onPress ? onPress(selected) : null)}>
-      <View style={[styles.containerBase, containerStyle]}>
+    <TouchableOpacity
+      onPress={() => (onPress && !disabled ? onPress(selected) : null)}
+      disabled={disabled === true}
+    >
+      <View style={[containerBase, containerStyle]}>
         <BouncyCheckbox
           isChecked={selected}
           useBuiltInState={false}
@@ -54,11 +65,14 @@ function SSCheckbox({
           style={{ width: Sizes.checkbox.height }}
           innerIconStyle={innerIconStyle}
           onPress={onPress}
+          disabled={disabled}
           {...props}
         />
         {label && (
           <SSVStack gap="none" style={{ flex: 1 }}>
-            <SSText {...labelProps}>{label}</SSText>
+            <SSText color={disabled ? 'muted' : 'white'} {...labelProps}>
+              {label}
+            </SSText>
             {description && <SSText color="muted">{description}</SSText>}
           </SSVStack>
         )}
@@ -79,6 +93,9 @@ const styles = StyleSheet.create({
   innerIconStyleBase: {
     borderWidth: Sizes.checkbox.borderWidth,
     borderRadius: Sizes.checkbox.borderRadius
+  },
+  disabled: {
+    opacity: 0.3
   }
 })
 

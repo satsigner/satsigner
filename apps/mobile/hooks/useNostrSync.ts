@@ -1,5 +1,5 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
-import { getPublicKey, nip19 } from 'nostr-tools'
+import { nip19 } from 'nostr-tools'
 import { useCallback } from 'react'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -19,8 +19,11 @@ import {
   labelsToJSONL
 } from '@/utils/bip329'
 import { aesDecrypt, sha256 } from '@/utils/crypto'
-import { compressMessage, decompressMessage } from '@/utils/nostr'
-import { parseDescriptor } from '@/utils/parse'
+import {
+  compressMessage,
+  decompressMessage,
+  deriveNostrKeysFromDescriptor
+} from '@/utils/nostr'
 
 function useNostrSync() {
   const [accounts, updateAccountNostr, importLabels] = useAccountsStore(
@@ -430,23 +433,7 @@ function useNostrSync() {
       throw new Error('Failed to get wallet data')
     }
 
-    const descriptor = walletData.externalDescriptor
-    const { hardenedPath, xpubs } = parseDescriptor(descriptor)
-    const totalString = `${hardenedPath}${xpubs.join('')}`
-
-    const firstHash = await sha256(totalString)
-    const doubleHash = await sha256(firstHash)
-
-    const privateKeyBytes = new Uint8Array(Buffer.from(doubleHash, 'hex'))
-    const publicKey = getPublicKey(privateKeyBytes)
-    const commonNsec = nip19.nsecEncode(privateKeyBytes)
-    const commonNpub = nip19.npubEncode(publicKey)
-
-    return {
-      commonNsec,
-      commonNpub,
-      privateKeyBytes
-    }
+    return deriveNostrKeysFromDescriptor(walletData.externalDescriptor)
   }
 
   function updateLasEOSETimestamp(account: Account, nsec: string) {

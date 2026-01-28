@@ -2,80 +2,10 @@ import type { NDKKind, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import { Buffer } from 'buffer'
 import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
-import crypto from 'react-native-aes-crypto'
 import { toast } from 'sonner-native'
 
 import type { NostrKeys, NostrMessage } from '@/types/models/Nostr'
-
-const POOL_SIZE = 1024 // 1KB of random values
-
-// Create a pool of random values - initialize with empty array to avoid null
-let randomPool = new Uint8Array(POOL_SIZE)
-let randomPoolIndex = 0
-
-// Synchronously initialize the random pool with Math.random
-function initializeRandomPool() {
-  for (let i = 0; i < POOL_SIZE; i++) {
-    randomPool[i] = Math.floor(Math.random() * 256)
-  }
-  randomPoolIndex = 0
-}
-
-// Initialize synchronously first
-initializeRandomPool()
-
-// Then asynchronously refill with better random values
-async function refillRandomPool() {
-  const randomHex = await crypto.randomKey(POOL_SIZE)
-  const newPool = new Uint8Array(Buffer.from(randomHex, 'hex'))
-  // Only update if we haven't used too many values
-  if (randomPoolIndex < POOL_SIZE / 2) {
-    randomPool = newPool
-    randomPoolIndex = 0
-  }
-}
-
-// Start refilling in the background
-refillRandomPool()
-
-// Extend the Crypto interface to include getRandomBase64String
-declare global {
-  interface Crypto {
-    getRandomBase64String(length: number): Promise<string>
-  }
-}
-
-// Add global crypto polyfill with getRandomBase64String
-if (typeof global.crypto === 'undefined') {
-  global.crypto = {
-    getRandomValues: <T extends ArrayBufferView | null>(array: T): T => {
-      if (!array) return array
-      const uint8Array = new Uint8Array(
-        array.buffer,
-        array.byteOffset,
-        array.byteLength
-      )
-      for (let i = 0; i < uint8Array.length; i++) {
-        uint8Array[i] = Math.floor(Math.random() * 256)
-      }
-      return array
-    },
-    getRandomBase64String: async (length: number): Promise<string> => {
-      const randomHex = await crypto.randomKey(length)
-      return Buffer.from(randomHex, 'hex').toString('base64')
-    }
-  } as Crypto
-}
-
-// Ensure getRandomBase64String is available even if crypto is already defined
-if (!global.crypto.getRandomBase64String) {
-  global.crypto.getRandomBase64String = async (
-    length: number
-  ): Promise<string> => {
-    const randomHex = await crypto.randomKey(length)
-    return Buffer.from(randomHex, 'hex').toString('base64')
-  }
-}
+import { randomKey } from '@/utils/crypto'
 
 export class NostrAPI {
   private ndk: NDK | null = null
@@ -173,8 +103,7 @@ export class NostrAPI {
   }
 
   static async generateNostrKeys(): Promise<NostrKeys> {
-    // Generate random bytes using react-native-aes-crypto
-    const randomHex = await crypto.randomKey(32)
+    const randomHex = await randomKey(32)
     const randomBytesArray = new Uint8Array(Buffer.from(randomHex, 'hex'))
 
     // Use the private key directly with NDKPrivateKeySigner
@@ -249,27 +178,23 @@ export class NostrAPI {
     }
 
     subscription?.on('event', async (event) => {
-      try {
-        const rawEvent = await event.toNostrEvent()
-        const unwrappedEvent = nip59.unwrapEvent(
-          rawEvent as unknown as Event,
-          recipientSecretNostrKey as Uint8Array
-        )
+      const rawEvent = await event.toNostrEvent()
+      const unwrappedEvent = nip59.unwrapEvent(
+        rawEvent as unknown as Event,
+        recipientSecretNostrKey as Uint8Array
+      )
 
-        // Only queue if not already processed
-        if (!this.processedMessageIds.has(unwrappedEvent.id)) {
-          const message = {
-            id: unwrappedEvent.id,
-            content: unwrappedEvent,
-            created_at: unwrappedEvent.created_at,
-            pubkey: event.pubkey
-          }
-
-          this.eventQueue.push(message)
-          this.processQueue()
+      // Only queue if not already processed
+      if (!this.processedMessageIds.has(unwrappedEvent.id)) {
+        const message = {
+          id: unwrappedEvent.id,
+          content: unwrappedEvent,
+          created_at: unwrappedEvent.created_at,
+          pubkey: event.pubkey
         }
-      } catch {
-        toast.error('Failed to process message')
+
+        this.eventQueue.push(message)
+        this.processQueue()
       }
     })
 
@@ -301,51 +226,14 @@ export class NostrAPI {
     const recipientPubkey = nip19.decode(recipientNpub) as { data: string }
     const encodedContent = unescape(encodeURIComponent(content))
 
-    // Create a simple synchronous random value generator
-    const getRandomBytes = (length: number): Uint8Array => {
-      const bytes = new Uint8Array(length)
-      for (let i = 0; i < length; i++) {
-        bytes[i] = Math.floor(Math.random() * 256)
-      }
-      return bytes
-    }
-
-    // Create a synchronous crypto object
-    const syncCrypto = {
-      getRandomValues: <T extends ArrayBufferView | null>(array: T): T => {
-        if (!array) return array
-        const bytes = getRandomBytes(array.byteLength)
-        const uint8Array = new Uint8Array(
-          array.buffer,
-          array.byteOffset,
-          array.byteLength
-        )
-        uint8Array.set(bytes)
-        return array
-      },
-      getRandomBase64String: (length: number): string => {
-        const bytes = getRandomBytes(length)
-        return Buffer.from(bytes).toString('base64')
-      }
-    }
-
-    // Store original crypto and replace with our sync version
-    const originalCrypto = global.crypto
-    Object.assign(global.crypto, syncCrypto)
-
-    try {
-      const wrap = nip17.wrapEvent(
-        secretNostrKey as Uint8Array,
-        { publicKey: recipientPubkey.data },
-        encodedContent
-      )
-      const tempNdk = new NDK()
-      const event = new NDKEvent(tempNdk, wrap)
-      return event
-    } finally {
-      // Restore original crypto
-      Object.assign(global.crypto, originalCrypto)
-    }
+    const wrap = nip17.wrapEvent(
+      secretNostrKey as Uint8Array,
+      { publicKey: recipientPubkey.data },
+      encodedContent
+    )
+    const tempNdk = new NDK()
+    const event = new NDKEvent(tempNdk, wrap)
+    return event
   }
 
   async publishEvent(event: NDKEvent): Promise<void> {

@@ -29,7 +29,7 @@ type SSSignatureDropdownProps = {
   index: number
   totalKeys: number
   keyDetails: Key
-  messageId: string
+  transactionId: string
   txBuilderResult: any
   serializedPsbt: string
   signedPsbt: string
@@ -56,7 +56,7 @@ function SSSignatureDropdown({
   index,
   totalKeys,
   keyDetails,
-  messageId,
+  transactionId,
   txBuilderResult,
   serializedPsbt,
   signedPsbt,
@@ -105,7 +105,7 @@ function SSSignatureDropdown({
       return
     }
 
-    if (!messageId || !txBuilderResult?.psbt?.base64) {
+    if (!transactionId || !txBuilderResult?.psbt?.base64) {
       toast.error(t('account.nostrSync.transactionDataNotAvailable'))
       return
     }
@@ -128,10 +128,10 @@ function SSSignatureDropdown({
         combinedPsbt
       }
 
-      const message = combinedPsbt
+      const transaction = combinedPsbt
 
       setTransactionToShare({
-        message,
+        transaction,
         transactionData
       })
 
@@ -143,7 +143,7 @@ function SSSignatureDropdown({
     }
   }, [
     account,
-    messageId,
+    transactionId,
     txBuilderResult,
     signedPsbts,
     router,
@@ -304,8 +304,8 @@ function SSSignatureDropdown({
     >
       <TouchableOpacity
         onPress={() => setIsExpanded(!isExpanded)}
-        disabled={!messageId}
-        style={[styles.header, !messageId && styles.headerDisabled]}
+        disabled={!transactionId}
+        style={[styles.header, !transactionId && styles.headerDisabled]}
       >
         <SSHStack justifyBetween>
           <SSHStack style={{ alignItems: 'center' }} gap="sm">
@@ -387,7 +387,7 @@ function SSSignatureDropdown({
           <SSHStack gap="xxs" justifyBetween>
             <SSButton
               variant="outline"
-              disabled={!messageId}
+              disabled={!transactionId}
               label={t('common.copy')}
               style={{ width: '48%' }}
               onPress={() => {
@@ -399,7 +399,7 @@ function SSSignatureDropdown({
             />
             <SSButton
               variant="outline"
-              disabled={!messageId}
+              disabled={!transactionId}
               label={t('common.showQR')}
               style={{ width: '48%' }}
               onPress={() => {
@@ -431,7 +431,7 @@ function SSSignatureDropdown({
           <SSButton
             label={t('transaction.preview.nip17group')}
             variant="outline"
-            disabled={!messageId || !account?.nostr?.autoSync}
+            disabled={!transactionId || !account?.nostr?.autoSync}
             onPress={handleSendTransactionToGroup}
           />
           <SSText

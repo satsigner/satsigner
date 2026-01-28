@@ -29,6 +29,7 @@ import {
   type MintQuote,
   type MintQuoteState
 } from '@/types/models/Ecash'
+import { randomKey } from '@/utils/crypto'
 
 const POLL_INTERVAL = 1500
 const MAX_POLL_ATTEMPTS = 120
@@ -230,7 +231,7 @@ export function useEcash() {
 
       // Add transaction record
       addTransaction({
-        id: `melt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `melt_${Date.now()}_${randomKey(9)}`,
         type: 'melt',
         amount: quote.amount,
         mintUrl,
@@ -275,7 +276,7 @@ export function useEcash() {
 
         // Add transaction record
         addTransaction({
-          id: `send_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `send_${Date.now()}_${randomKey(9)}`,
           type: 'send',
           amount,
           memo,
@@ -325,7 +326,7 @@ export function useEcash() {
 
         // Add transaction record
         addTransaction({
-          id: `receive_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `receive_${Date.now()}_${randomKey(9)}`,
           type: 'receive',
           amount: result.totalAmount,
           mintUrl,
@@ -344,7 +345,7 @@ export function useEcash() {
 
         // Add failed transaction record
         addTransaction({
-          id: `receive_failed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `receive_failed_${Date.now()}_${randomKey(9)}`,
           type: 'receive',
           amount: 0, // Unknown amount for failed transactions
           mintUrl,
