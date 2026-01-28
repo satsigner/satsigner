@@ -194,12 +194,14 @@ export default function AccountList() {
   async function syncAccounts() {
     if (connectionMode !== 'auto') return
 
+    const now = time.now()
+
     for (const account of accounts) {
       const { lastSyncedAt } = account
 
       if (
         lastSyncedAt &&
-        time.now() > time.minutesAfter(lastSyncedAt.getTime(), autoConnectDelay)
+        now > time.minutesAfter(lastSyncedAt, autoConnectDelay)
       ) {
         continue
       }

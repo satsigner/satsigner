@@ -901,9 +901,10 @@ export default function AccountView() {
     if (!wallet || !account || connectionMode !== 'auto') return
 
     const { lastSyncedAt } = account
+    const now = time.now()
     if (
       lastSyncedAt &&
-      time.now() > time.minutesAfter(lastSyncedAt.getTime(), autoConnectDelay)
+      now > time.minutesAfter(lastSyncedAt, autoConnectDelay)
     ) {
       return
     }
