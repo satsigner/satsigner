@@ -45,6 +45,10 @@ function ExplorerBlock() {
   }
 
   async function fetchBlock() {
+    const newBlock = Number(inputHeight)
+    if (newBlock === block?.height || newBlock > maxBlockHeight || newBlock < 0)
+      return
+
     setLoading(true)
     try {
       const block = await mempoolOracle.getBlockAtHeight(Number(inputHeight))
@@ -133,7 +137,12 @@ function ExplorerBlock() {
                 />
               </SSIconButton>
             </SSHStack>
-            <SSButton disabled={loading} label="Fetch" onPress={fetchBlock} />
+            <SSButton
+              loading={loading}
+              disabled={Number(inputHeight) === block?.height}
+              label="Fetch"
+              onPress={fetchBlock}
+            />
           </SSVStack>
         </SSVStack>
       </SSMainLayout>
