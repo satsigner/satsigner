@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { toast } from 'sonner-native'
 
 import { MempoolOracle } from '@/api/blockchain'
 import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
@@ -46,8 +47,10 @@ function ExplorerBlock() {
 
   async function fetchBlock() {
     const newBlock = Number(inputHeight)
-    if (newBlock === block?.height || newBlock > maxBlockHeight || newBlock < 0)
+    if (newBlock === block?.height || newBlock > maxBlockHeight || newBlock < 0) {
+      toast.error('Invalid block height')
       return
+    }
 
     setLoading(true)
     try {
@@ -55,7 +58,7 @@ function ExplorerBlock() {
       setBlock(block)
       setInputHeight(block.height.toString())
     } catch {
-      //
+      toast.error(`Failed to fetch block ${block}`)
     } finally {
       setLoading(false)
     }
