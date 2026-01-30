@@ -6,6 +6,7 @@ import { isBBQRFragment } from '@/utils/bbqr'
 import { isBip21, isBitcoinAddress } from '@/utils/bitcoin'
 import { isPSBT } from '@/utils/bitcoinContent'
 import { isLNURL } from '@/utils/lnurl'
+import { stripBitcoinPrefix } from '@/utils/parse'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import {
   isCombinedDescriptor,
@@ -17,11 +18,7 @@ bitcoinjs.initEccLib(ecc)
 
 function isBitcoinTransaction(data: string): boolean {
   try {
-    let processedData = data.trim()
-    // Strip "bitcoin:" prefix if present (case-insensitive)
-    if (processedData.toLowerCase().startsWith('bitcoin:')) {
-      processedData = processedData.substring(8)
-    }
+    const processedData = stripBitcoinPrefix(data.trim())
     bitcoinjs.Transaction.fromHex(processedData)
     return true
   } catch {
@@ -84,11 +81,8 @@ async function detectBitcoinContent(
     }
   }
 
-  // Check for transaction (strip "bitcoin:" prefix if present)
-  let transactionData = trimmed
-  if (transactionData.toLowerCase().startsWith('bitcoin:')) {
-    transactionData = transactionData.substring(8)
-  }
+  // Check for transaction
+  const transactionData = stripBitcoinPrefix(trimmed)
   if (isBitcoinTransaction(transactionData)) {
     return {
       type: 'bitcoin_transaction',

@@ -50,6 +50,7 @@ import {
   getDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
 import { DescriptorUtils } from '@/utils/descriptorUtils'
+import { stripBitcoinPrefix } from '@/utils/parse'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 import {
   isCombinedDescriptor,
@@ -256,11 +257,7 @@ export default function WatchOnly() {
   ])
 
   function updateAddress(address: string) {
-    // Strip "bitcoin:" prefix for validation but keep original for display
-    let processedAddress = address
-    if (processedAddress.toLowerCase().startsWith('bitcoin:')) {
-      processedAddress = processedAddress.substring(8)
-    }
+    const processedAddress = stripBitcoinPrefix(address)
 
     const isValidAddress =
       validateAddress(processedAddress, bitcoinjsNetwork(network)) &&
@@ -277,11 +274,7 @@ export default function WatchOnly() {
   }
 
   function addAddress(address: string) {
-    // Strip "bitcoin:" prefix before adding to addresses list
-    let processedAddress = address
-    if (processedAddress.toLowerCase().startsWith('bitcoin:')) {
-      processedAddress = processedAddress.substring(8)
-    }
+    const processedAddress = stripBitcoinPrefix(address)
     setAddresses([...addresses, processedAddress])
     setAddressInput('')
   }
@@ -612,23 +605,13 @@ export default function WatchOnly() {
 
       // handle pasting multiple addresses at once
       const lines = text.split('\n').filter((line) => line !== '')
-      const hasAddresses = lines.every((line) => {
-        // Strip "bitcoin:" prefix for validation
-        let processedLine = line
-        if (processedLine.toLowerCase().startsWith('bitcoin:')) {
-          processedLine = processedLine.substring(8)
-        }
-        return validateAddress(processedLine, bitcoinjsNetwork(network))
-      })
+      const hasAddresses = lines.every((line) =>
+        validateAddress(stripBitcoinPrefix(line), bitcoinjsNetwork(network))
+      )
 
-      // use Set to prevent duplicates, strip "bitcoin:" prefix before adding
+      // use Set to prevent duplicates
       if (hasAddresses) {
-        const processedLines = lines.map((line) => {
-          if (line.toLowerCase().startsWith('bitcoin:')) {
-            return line.substring(8)
-          }
-          return line
-        })
+        const processedLines = lines.map(stripBitcoinPrefix)
         setAddresses([...new Set([...addresses, ...processedLines])])
       }
 

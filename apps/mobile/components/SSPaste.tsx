@@ -16,6 +16,7 @@ import {
   detectContentByContext,
   type DetectedContent
 } from '@/utils/contentDetector'
+import { stripBitcoinPrefix } from '@/utils/parse'
 
 type SSPasteProps = {
   visible: boolean
@@ -64,14 +65,8 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
   const validateContent = useCallback(
     async (text: string) => {
       try {
-        // Strip "bitcoin:" prefix for validation but keep original for display
-        let processedText = text
-        if (
-          processedText.toLowerCase().startsWith('bitcoin:') &&
-          context === 'bitcoin'
-        ) {
-          processedText = processedText.substring(8)
-        }
+        const processedText =
+          context === 'bitcoin' ? stripBitcoinPrefix(text) : text
         const detectedContent = await detectContentByContext(
           processedText,
           context
@@ -124,14 +119,8 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
 
       await new Promise((resolve) => setTimeout(resolve, 100))
 
-      // Strip "bitcoin:" prefix for processing but keep original for display
-      let processedContent = content
-      if (
-        processedContent.toLowerCase().startsWith('bitcoin:') &&
-        context === 'bitcoin'
-      ) {
-        processedContent = processedContent.substring(8)
-      }
+      const processedContent =
+        context === 'bitcoin' ? stripBitcoinPrefix(content) : content
 
       const detectedContent = await detectContentByContext(
         processedContent,
