@@ -55,20 +55,15 @@ export default function ImportLabels() {
   const [importCountTotal, setImportCountTotal] = useState(0)
 
   function tryImportLabels(content: string) {
-    try {
-      const labels = bip329parser[importType](content)
-      const currentLabels = Object.values(account?.labels || [])
-      const conflicts = detectConflcits(currentLabels, labels)
-      if (conflicts.length > 0) {
-        setPendingLabels(labels)
-        setConflicts(conflicts)
-        setShowConflictSolver(true)
-      } else {
-        importLabels(labels)
-      }
-    } catch (error) {
-      toast.error(t('account.import.labelsInvalidFormat'))
-      setInvalidContent(true)
+    const labels = bip329parser[importType](content)
+    const currentLabels = Object.values(account?.labels || [])
+    const conflicts = detectConflcits(currentLabels, labels)
+    if (conflicts.length > 0) {
+      setPendingLabels(labels)
+      setConflicts(conflicts)
+      setShowConflictSolver(true)
+    } else {
+      importLabels(labels)
     }
   }
 
@@ -96,7 +91,7 @@ export default function ImportLabels() {
     }
     try {
       tryImportLabels(importContent)
-    } catch (error) {
+    } catch {
       toast.error(t('account.import.labelsInvalidFormat'))
     }
   }
