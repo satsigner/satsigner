@@ -94,6 +94,7 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import { compareTimestamp, sortTransactions } from '@/utils/sort'
+import { time } from '@/utils/time'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 type TotalTransactionsProps = {
@@ -834,12 +835,15 @@ export default function AccountView() {
       state.fetchPrices
     ])
   )
-  const [getBlockchainHeight, mempoolUrl] = useBlockchainStore(
-    useShallow((state) => [
-      state.getBlockchainHeight,
-      state.configsMempool['bitcoin']
-    ])
-  )
+  const [getBlockchainHeight, mempoolUrl, connectionMode, autoConnectDelay] =
+    useBlockchainStore(
+      useShallow((state) => [
+        state.getBlockchainHeight,
+        state.configsMempool['bitcoin'],
+        state.configs[state.selectedNetwork].config.connectionMode,
+        state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
+      ])
+    )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { nostrSyncSubscriptions } = useNostrSync()
@@ -891,7 +895,22 @@ export default function AccountView() {
   )
 
   useEffect(() => {
-    if (wallet) handleOnRefresh()
+    // do not auto-fetch wallet upon the following conditions:
+    // - variables have not been initalized
+    // - connection mode is manual
+    // - wallet was recently synced already
+    if (!wallet || !account || connectionMode !== 'auto') return
+
+    const { lastSyncedAt } = account
+    const now = time.now()
+    if (
+      lastSyncedAt &&
+      now > time.minutesAfter(lastSyncedAt, autoConnectDelay)
+    ) {
+      return
+    }
+
+    handleOnRefresh()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!account) return <Redirect href="/" />

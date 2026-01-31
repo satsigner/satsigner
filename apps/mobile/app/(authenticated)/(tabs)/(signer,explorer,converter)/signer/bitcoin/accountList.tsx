@@ -56,6 +56,7 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
+import { time } from '@/utils/time'
 
 // Helper function to map local Network type to bdk-rn Network enum
 function mapNetworkToBdkNetwork(network: 'bitcoin' | 'testnet' | 'signet') {
@@ -75,15 +76,21 @@ export default function AccountList() {
   const router = useRouter()
   const { width } = useWindowDimensions()
 
-  const [network, setSelectedNetwork, connectionMode, mempoolUrl] =
-    useBlockchainStore(
-      useShallow((state) => [
-        state.selectedNetwork,
-        state.setSelectedNetwork,
-        state.configs[state.selectedNetwork].config.connectionMode,
-        state.configsMempool[state.selectedNetwork]
-      ])
-    )
+  const [
+    network,
+    setSelectedNetwork,
+    connectionMode,
+    autoConnectDelay,
+    mempoolUrl
+  ] = useBlockchainStore(
+    useShallow((state) => [
+      state.selectedNetwork,
+      state.setSelectedNetwork,
+      state.configs[state.selectedNetwork].config.connectionMode,
+      state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync,
+      state.configsMempool[state.selectedNetwork]
+    ])
+  )
   const [accounts, updateAccount] = useAccountsStore(
     useShallow((state) => [state.accounts, state.updateAccount])
   )
@@ -186,7 +193,19 @@ export default function AccountList() {
 
   async function syncAccounts() {
     if (connectionMode !== 'auto') return
+
+    const now = time.now()
+
     for (const account of accounts) {
+      const { lastSyncedAt } = account
+
+      if (
+        lastSyncedAt &&
+        now > time.minutesAfter(lastSyncedAt, autoConnectDelay)
+      ) {
+        continue
+      }
+
       if (account.network !== tabs[tabIndex].key) continue
 
       const isImportAddress = account.keys[0].creationType === 'importAddress'
