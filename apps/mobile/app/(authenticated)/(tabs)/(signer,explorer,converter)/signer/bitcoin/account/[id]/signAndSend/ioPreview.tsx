@@ -13,7 +13,6 @@ import {
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { MempoolOracle } from '@/api/blockchain'
 import { SSIconChevronLeft } from '@/components/icons'
 import SSAmountInput from '@/components/SSAmountInput'
 import SSBottomSheet from '@/components/SSBottomSheet'
@@ -33,11 +32,11 @@ import { DUST_LIMIT } from '@/constants/btc'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { processContentForOutput } from '@/hooks/useContentProcessor'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
+import useMempoolOracle from '@/hooks/useMempoolOracle'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
@@ -93,14 +92,7 @@ export default function IOPreview() {
     ])
   )
 
-  const mempoolUrl = useBlockchainStore(
-    (state) => state.configsMempool[account?.network || 'bitcoin']
-  )
-  const mempoolOracle = useMemo(
-    () => new MempoolOracle(mempoolUrl),
-    [mempoolUrl]
-  )
-
+  const mempoolOracle = useMempoolOracle(account?.network || 'bitcoin')
   const wallet = useGetAccountWallet(id!)
   const [changeAddress, setChangeAddress] = useState('')
   const [shouldRemoveChange, setShouldRemoveChange] = useState(true)

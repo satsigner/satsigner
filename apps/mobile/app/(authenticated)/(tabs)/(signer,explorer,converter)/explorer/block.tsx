@@ -1,31 +1,24 @@
 import { Stack } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { toast } from 'sonner-native'
 
-import { MempoolOracle } from '@/api/blockchain'
 import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSExploreBlock from '@/components/SSExploreBlock'
 import SSIconButton from '@/components/SSIconButton'
 import SSNumberInput from '@/components/SSNumberInput'
 import SSText from '@/components/SSText'
+import useMempoolOracle from '@/hooks/useMempoolOracle'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Block } from '@/types/models/Blockchain'
 
 function ExplorerBlock() {
-  const mempoolUrl = useBlockchainStore(
-    (state) => state.configsMempool['bitcoin']
-  )
-  const mempoolOracle = useMemo(
-    () => new MempoolOracle(mempoolUrl),
-    [mempoolUrl]
-  )
+  const mempoolOracle = useMempoolOracle()
 
   const [inputHeight, setInputHeight] = useState('1')
   const [loading, setLoading] = useState(false)
