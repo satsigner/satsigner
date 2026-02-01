@@ -47,7 +47,11 @@ function ExplorerBlock() {
 
   async function fetchBlock() {
     const newBlock = Number(inputHeight)
-    if (newBlock === block?.height || newBlock > maxBlockHeight || newBlock < 0) {
+    if (
+      newBlock === block?.height ||
+      newBlock > maxBlockHeight ||
+      newBlock < 0
+    ) {
       toast.error('Invalid block height')
       return
     }

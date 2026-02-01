@@ -846,6 +846,7 @@
     "block.txCount": "Total transactions",
     "block.version": "Version",
     "block.weight": "Weight",
+    "block.percentage": "%{percentage}%\nfull",
     "chain.title": "Chain",
     "chaintip.title": "Chain Tip",
     "difficulty.avgBlock": "Average Block Time (current)",

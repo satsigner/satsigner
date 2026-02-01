@@ -1,10 +1,12 @@
+import { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { Colors } from '@/styles'
 import { type Block } from '@/types/models/Blockchain'
-import { formatDate, formatTime } from '@/utils/format'
+import { formatDate, formatNumber, formatTime } from '@/utils/format'
 
 import SSText from './SSText'
 
@@ -12,14 +14,50 @@ type SSExploreBlockProps = {
   block: Block | null
 }
 
+/**
+ * @param weight - The block weight in virtual bytes
+ * @returns Percentage of the maximum block weight
+ */
+function blockWeightPercentage(weight: number) {
+  return (100 * weight) / 4_000_000
+}
+
 function SSExploreBlock({ block }: SSExploreBlockProps) {
   const placeholder = '-'
+  const weight = useMemo(() => block?.weight || 0, [block])
   return (
     <SSVStack style={styles.centered} gap="none">
       <SSHStack gap="xs">
         <SSText weight="bold">{block?.height || '?'}</SSText>
       </SSHStack>
-      <View style={styles.whiteRectangle} />
+      <View style={{ marginBottom: 15, marginTop: 5 }}>
+        <View
+          style={[
+            styles.rectangle,
+            {
+              height: 100 - blockWeightPercentage(weight),
+              backgroundColor: Colors.white
+            }
+          ]}
+        />
+
+        <View
+          style={[
+            styles.rectangle,
+            {
+              height: blockWeightPercentage(weight),
+              backgroundColor: Colors.gray['300'],
+              justifyContent: 'center'
+            }
+          ]}
+        >
+          <SSText center size="xs">
+            {t('explorer.block.percentage', {
+              percentage: formatNumber(blockWeightPercentage(weight), 1)
+            })}
+          </SSText>
+        </View>
+      </View>
       <SSVStack gap="md">
         <SSVStack gap="none">
           <SSText uppercase color="muted">
@@ -119,11 +157,9 @@ function SSExploreBlock({ block }: SSExploreBlockProps) {
 }
 
 const styles = StyleSheet.create({
-  whiteRectangle: {
+  rectangle: {
     width: 100,
-    height: 100,
-    backgroundColor: 'white',
-    marginVertical: 15
+    backgroundColor: 'white'
   },
   centered: {
     alignItems: 'center'
