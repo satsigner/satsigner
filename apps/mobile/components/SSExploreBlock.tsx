@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -41,7 +40,7 @@ function SSExploreBlock({ block }: SSExploreBlockProps) {
             }
           ]}
         >
-          {percentageWeight <= 30 && (
+          {block && percentageWeight <= 30 && (
             <SSText center size="xs" color="black">
               {t('explorer.block.percentageEmpty', {
                 percentage: formatNumber(100 - percentageWeight, 1)
