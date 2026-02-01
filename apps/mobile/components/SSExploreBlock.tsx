@@ -24,7 +24,8 @@ function blockWeightPercentage(weight: number) {
 
 function SSExploreBlock({ block }: SSExploreBlockProps) {
   const placeholder = '-'
-  const weight = useMemo(() => block?.weight || 0, [block])
+  const weight = block?.weight || 0
+  const percentageWeight = blockWeightPercentage(weight)
   return (
     <SSVStack style={styles.centered} gap="none">
       <SSHStack gap="xs">
@@ -35,27 +36,37 @@ function SSExploreBlock({ block }: SSExploreBlockProps) {
           style={[
             styles.rectangle,
             {
-              height: 100 - blockWeightPercentage(weight),
+              height: 100 - percentageWeight,
               backgroundColor: Colors.white
             }
           ]}
-        />
+        >
+          {percentageWeight <= 30 && (
+            <SSText center size="xs" color="black">
+              {t('explorer.block.percentageEmpty', {
+                percentage: formatNumber(100 - percentageWeight, 1)
+              })}
+            </SSText>
+          )}
+        </View>
 
         <View
           style={[
             styles.rectangle,
             {
-              height: blockWeightPercentage(weight),
+              height: percentageWeight,
               backgroundColor: Colors.gray['300'],
               justifyContent: 'center'
             }
           ]}
         >
-          <SSText center size="xs">
-            {t('explorer.block.percentage', {
-              percentage: formatNumber(blockWeightPercentage(weight), 1)
-            })}
-          </SSText>
+          {percentageWeight > 30 && (
+            <SSText center size="xs">
+              {t('explorer.block.percentageFull', {
+                percentage: formatNumber(percentageWeight)
+              })}
+            </SSText>
+          )}
         </View>
       </View>
       <SSVStack gap="md">
@@ -159,7 +170,8 @@ function SSExploreBlock({ block }: SSExploreBlockProps) {
 const styles = StyleSheet.create({
   rectangle: {
     width: 100,
-    backgroundColor: 'white'
+    backgroundColor: 'white',
+    justifyContent: 'center'
   },
   centered: {
     alignItems: 'center'
