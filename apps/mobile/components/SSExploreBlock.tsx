@@ -1,3 +1,4 @@
+import { router } from 'expo-router'
 import { StyleSheet, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -7,6 +8,7 @@ import { Colors } from '@/styles'
 import { type Block } from '@/types/models/Blockchain'
 import { formatDate, formatNumber, formatTime } from '@/utils/format'
 
+import SSButton from './SSButton'
 import SSText from './SSText'
 
 type SSExploreBlockProps = {
@@ -109,6 +111,14 @@ function SSExploreBlock({ block }: SSExploreBlockProps) {
               {t('explorer.block.txCount')}
             </SSText>
             <SSText weight="bold">{block?.tx_count || placeholder}</SSText>
+            {block && (
+              <SSButton
+                label="view transactions"
+                onPress={() => {
+                  router.navigate(`/explorer/block/${block.id}/transactions`)
+                }}
+              />
+            )}
           </SSVStack>
           <SSVStack gap="none" style={styles.halfWidth}>
             <SSText uppercase color="muted">

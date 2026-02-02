@@ -83,7 +83,7 @@ export const navMenuGroups: NavMenuGroup[] = [
       {
         title: t('navigation.item.block'),
         icon: SSIconBlock,
-        url: '/explorer/block',
+        url: '/explorer/block/',
         isSoon: false,
         platform: PLATFORM.HYBRID
       },

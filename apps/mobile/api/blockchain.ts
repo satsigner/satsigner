@@ -41,6 +41,12 @@ export class MempoolOracle implements BlockchainOracle {
     )
   }
 
+  async getBinary(endpoint: string) {
+    return fetch(this.baseUrl + endpoint).then((response: any) =>
+      response.arrayBuffer()
+    )
+  }
+
   async getAddressUtxos(address: string): Promise<UTXO[]> {
     const data = await this.get(`/address/${address}/utxo`)
     return data as UTXO[]
@@ -49,6 +55,11 @@ export class MempoolOracle implements BlockchainOracle {
   async getBlock(blkid: string): Promise<Block> {
     const data = await this.get(`/block/${blkid}`)
     return data as Block
+  }
+
+  async getBlockRaw(blkid: string): Promise<ArrayBuffer> {
+    const data = await this.getBinary(`/block/${blkid}/raw`)
+    return data as ArrayBuffer
   }
 
   async getBlockAtHeight(height: number): Promise<Block> {
