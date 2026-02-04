@@ -609,7 +609,6 @@ export default function WatchOnly() {
         validateAddress(stripBitcoinPrefix(line), bitcoinjsNetwork(network))
       )
 
-      // use Set to prevent duplicates
       if (hasAddresses) {
         const processedLines = lines.map(stripBitcoinPrefix)
         setAddresses([...new Set([...addresses, ...processedLines])])

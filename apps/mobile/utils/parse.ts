@@ -222,9 +222,6 @@ export function parseDescriptor(descriptor: string) {
   return parseSinglesigDescriptor(descriptor)
 }
 
-/**
- * Strips the "bitcoin:" prefix from a string if present (case-insensitive)
- */
 function stripBitcoinPrefix(text: string): string {
   if (text.toLowerCase().startsWith('bitcoin:')) {
     return text.substring(8)
