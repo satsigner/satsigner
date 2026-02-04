@@ -50,6 +50,7 @@ import {
   getDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
 import { DescriptorUtils } from '@/utils/descriptorUtils'
+import { stripBitcoinPrefix } from '@/utils/parse'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 import {
   isCombinedDescriptor,
@@ -256,9 +257,11 @@ export default function WatchOnly() {
   ])
 
   function updateAddress(address: string) {
+    const processedAddress = stripBitcoinPrefix(address)
+
     const isValidAddress =
-      validateAddress(address, bitcoinjsNetwork(network)) &&
-      !addresses.includes(address)
+      validateAddress(processedAddress, bitcoinjsNetwork(network)) &&
+      !addresses.includes(processedAddress)
 
     setIsValidAddress(!address || isValidAddress)
 
@@ -266,11 +269,13 @@ export default function WatchOnly() {
       setIsDisabled(!isValidAddress)
     }
 
+    // Keep original address in input field (user can see "bitcoin:" prefix)
     setAddressInput(address)
   }
 
   function addAddress(address: string) {
-    setAddresses([...addresses, address])
+    const processedAddress = stripBitcoinPrefix(address)
+    setAddresses([...addresses, processedAddress])
     setAddressInput('')
   }
 
@@ -601,11 +606,13 @@ export default function WatchOnly() {
       // handle pasting multiple addresses at once
       const lines = text.split('\n').filter((line) => line !== '')
       const hasAddresses = lines.every((line) =>
-        validateAddress(line, bitcoinjsNetwork(network))
+        validateAddress(stripBitcoinPrefix(line), bitcoinjsNetwork(network))
       )
 
-      // use Set to prevent duplicates
-      if (hasAddresses) setAddresses([...new Set([...addresses, ...lines])])
+      if (hasAddresses) {
+        const processedLines = lines.map(stripBitcoinPrefix)
+        setAddresses([...new Set([...addresses, ...processedLines])])
+      }
 
       return
     }

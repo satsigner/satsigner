@@ -16,6 +16,7 @@ import {
   detectContentByContext,
   type DetectedContent
 } from '@/utils/contentDetector'
+import { stripBitcoinPrefix } from '@/utils/parse'
 
 type SSPasteProps = {
   visible: boolean
@@ -64,7 +65,12 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
   const validateContent = useCallback(
     async (text: string) => {
       try {
-        const detectedContent = await detectContentByContext(text, context)
+        const processedText =
+          context === 'bitcoin' ? stripBitcoinPrefix(text) : text
+        const detectedContent = await detectContentByContext(
+          processedText,
+          context
+        )
         if (detectedContent.type === 'incompatible') {
           toast.error(t('paste.error.incompatibleContent'))
           setIsValidContent(false)
@@ -113,7 +119,13 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
 
       await new Promise((resolve) => setTimeout(resolve, 100))
 
-      const detectedContent = await detectContentByContext(content, context)
+      const processedContent =
+        context === 'bitcoin' ? stripBitcoinPrefix(content) : content
+
+      const detectedContent = await detectContentByContext(
+        processedContent,
+        context
+      )
 
       if (!detectedContent.isValid) {
         setIsProcessing(false)
