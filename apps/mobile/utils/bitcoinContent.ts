@@ -1,5 +1,6 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
-import { bip21decode, isBip21 } from '@/utils/bitcoin'
+import { isBitcoinUri, parseBitcoinUri } from '@/utils/bip321'
+import { isBitcoinAddress } from '@/utils/bitcoin'
 import { validateAddress } from '@/utils/validation'
 
 type ProcessedBitcoinContent = {
@@ -32,11 +33,13 @@ export function isValidBitcoinContent(text: string) {
 
   if (validateAddress(trimmed)) return true
 
-  if (isBip21(trimmed)) return true
+  if (isBitcoinUri(trimmed)) return true
 
   if (trimmed.toLowerCase().startsWith('bitcoin:')) {
-    const addressPart = trimmed.substring(8)
-    if (validateAddress(addressPart)) return true
+    const addressPart = trimmed.substring(8).split('?')[0]
+    if (validateAddress(addressPart) || isBitcoinAddress(addressPart)) {
+      return true
+    }
   }
 
   return false
@@ -56,22 +59,22 @@ export function processBitcoinContent(
     }
   }
 
-  if (isBip21(trimmed)) {
-    const decodedData = bip21decode(trimmed)
-    if (!decodedData || typeof decodedData === 'string') return null
+  if (isBitcoinUri(trimmed)) {
+    const parsed = parseBitcoinUri(trimmed)
+    if (!parsed.isValid || !parsed.address) return null
 
     return {
       type: 'bip21',
-      address: decodedData.address,
-      amount: (decodedData.options.amount || 0) * SATS_PER_BITCOIN || 1,
-      label: decodedData.options.label || '',
+      address: parsed.address,
+      amount: (parsed.amount || 0) * SATS_PER_BITCOIN || 1,
+      label: parsed.label || '',
       content: trimmed
     }
   }
 
   let processedAddress = trimmed
   if (processedAddress.toLowerCase().startsWith('bitcoin:')) {
-    processedAddress = processedAddress.substring(8)
+    processedAddress = processedAddress.substring(8).split('?')[0]
   }
 
   if (validateAddress(processedAddress)) {

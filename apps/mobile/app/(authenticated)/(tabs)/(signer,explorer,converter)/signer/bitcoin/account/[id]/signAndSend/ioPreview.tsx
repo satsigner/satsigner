@@ -47,7 +47,7 @@ import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { checkWalletNeedsSync } from '@/utils/account'
-import { bip21decode } from '@/utils/bitcoin'
+import { parseBitcoinUri } from '@/utils/bip321'
 import { detectContentByContext } from '@/utils/contentDetector'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { formatNumber } from '@/utils/format'
@@ -235,12 +235,12 @@ export default function IOPreview() {
       uriToDecode = `bitcoin:${uriToDecode}`
     }
 
-    const decodedData = bip21decode(uriToDecode)
-    if (decodedData && typeof decodedData === 'object') {
+    const parsed = parseBitcoinUri(uriToDecode)
+    if (parsed.isValid) {
       return {
-        address: decodedData.address,
-        amount: decodedData.options.amount || 0,
-        label: decodedData.options.label || ''
+        address: parsed.address,
+        amount: parsed.amount || 0,
+        label: parsed.label || ''
       }
     }
     return null

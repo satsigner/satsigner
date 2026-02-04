@@ -1,38 +1,66 @@
-import { decode } from 'bip21'
 import { networks } from 'bitcoinjs-lib'
 import bs58check from 'bs58check'
 
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import { isBitcoinUri, parseBitcoinUri } from '@/utils/bip321'
 
 // TODO: delete this and replace all of its references with bitcoinjs-lib,
 // since it provides more reliable validation function
 // from https://stackoverflow.com/questions/21683680/regex-to-match-bitcoin-addresses + slightly modified to support testnet addresses
 function isBitcoinAddress(address: string): boolean {
-  return /^(?:[13]{1}[a-km-zA-HJ-NP-Z1-9]{25,34}|(bc1|tb1)[a-z0-9]{39,59})$/i.test(
+  return /^(?:[13]{1}[a-km-zA-HJ-NP-Z1-9]{25,34}|(bc1|tb1|bcrt1)[a-z0-9]{39,59})$/i.test(
     address
   )
 }
 
-// TODO: move it to utils/bip21
-function isBip21(uri: string) {
-  try {
-    const result = decode(uri)
-    if (!isBitcoinAddress(result.address)) return false
-    return true
-  } catch {
-    return false
+function isBip21(uri: string): boolean {
+  if (!uri) return false
+  const trimmed = uri.trim()
+
+  if (trimmed.toLowerCase().startsWith('bitcoin:')) {
+    return isBitcoinUri(trimmed)
+  }
+
+  return isBitcoinAddress(trimmed)
+}
+
+type Bip21DecodeResult = {
+  address: string
+  options: {
+    amount?: number
+    label?: string
+    message?: string
   }
 }
 
-// TODO: move it to utils/bip21
-function bip21decode(uri: string) {
+function bip21decode(uri: string): Bip21DecodeResult | string | undefined {
   try {
-    if (!uri) throw new Error('No URI provided')
-    const lowercaseData = uri.toLowerCase()
-    if (lowercaseData.startsWith('bitcoin:')) return decode(lowercaseData)
-    const isAddressValid = isBitcoinAddress(lowercaseData)
-    if (isAddressValid) return lowercaseData
-  } catch (_error) {}
+    if (!uri) return undefined
+    const trimmed = uri.trim()
+
+    if (trimmed.toLowerCase().startsWith('bitcoin:')) {
+      const parsed = parseBitcoinUri(trimmed)
+      if (parsed.isValid) {
+        return {
+          address: parsed.address,
+          options: {
+            amount: parsed.amount,
+            label: parsed.label,
+            message: parsed.message
+          }
+        }
+      }
+      return undefined
+    }
+
+    if (isBitcoinAddress(trimmed)) {
+      return trimmed
+    }
+
+    return undefined
+  } catch {
+    return undefined
+  }
 }
 
 // Convert network notation used by our app (and by BDK enum too)
