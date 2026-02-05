@@ -30,9 +30,9 @@ export class MempoolOracle implements BlockchainOracle {
   }
 
   async get(endpoint: string) {
-    return fetch(this.baseUrl + endpoint).then((response: any) =>
-      response.json()
-    )
+    return fetch(this.baseUrl + endpoint).then((response: any) => {
+      return response.json()
+    })
   }
 
   async getText(endpoint: string) {
@@ -82,6 +82,11 @@ export class MempoolOracle implements BlockchainOracle {
   async getBlockTransactions(blkid: string): Promise<Tx[]> {
     const data: any = await this.get(`/block/${blkid}/txs`)
     return data as Tx[]
+  }
+
+  async getBlockTransactionIds(blkid: string): Promise<Tx['txid'][]> {
+    const data: any = await this.get(`/block/${blkid}/txids`)
+    return data as Tx['txid'][]
   }
 
   async getCurrentBlockHeight(): Promise<number> {

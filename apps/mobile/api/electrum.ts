@@ -296,10 +296,16 @@ class ElectrumClient extends BaseElectrumClient {
     return { utxos, transactions, balance }
   }
 
+  async getBlock(height: number): Promise<bitcoinjs.Block> {
+    const blockHeaderRaw = await this.client.blockchainBlock_header(height)
+    const blockHeader = bitcoinjs.Block.fromHex(blockHeaderRaw)
+    return blockHeader
+  }
+
   async getBlockTimestamp(height: number): Promise<number> {
-    const blockHeader = await this.client.blockchainBlock_header(height)
-    const block = bitcoinjs.Block.fromHex(blockHeader)
-    return block.timestamp
+    const blockHeaderRaw = await this.client.blockchainBlock_header(height)
+    const blockHeader = bitcoinjs.Block.fromHex(blockHeaderRaw)
+    return blockHeader.timestamp
   }
 
   async getBlockTimestamps(heights: number[]): Promise<number[]> {
