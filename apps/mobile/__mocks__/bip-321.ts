@@ -154,7 +154,7 @@ export function parseBIP321(
 
 export function encodeBIP321(params: {
   address: string
-  amount?: string
+  amount?: number
   label?: string
   message?: string
   lightning?: string
