@@ -147,7 +147,7 @@ export default function BlockTransactions() {
             {txids.slice(0, visibleTxCount).map((txid, index) => {
               const tx = txs[txid]
               return (
-                <TouchableOpacity key={txid}>
+                <TouchableOpacity key={txid} onPress={() => loadTxData(txid)}>
                   <SSVStack gap="none">
                     <SSText size="xs" weight="bold">
                       #{index}
@@ -198,9 +198,8 @@ export default function BlockTransactions() {
                     >
                       {!requestStatuses[txid]?.status && (
                         <>
-                          <SSIconButton onPress={() => loadTxData(txid)}>
-                            <SSIconInfo height={16} width={16} />
-                          </SSIconButton>
+                          <SSIconInfo height={16} width={16} />
+
                           <SSText color="muted">load transaction data</SSText>
                         </>
                       )}
