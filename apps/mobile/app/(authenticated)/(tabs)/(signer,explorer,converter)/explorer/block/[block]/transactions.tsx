@@ -3,18 +3,17 @@ import { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView } from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
 
-import { SSIconExplorer, SSIconInfo, SSIconWarning } from '@/components/icons'
+import { SSIconWarning } from '@/components/icons'
 import SSButton from '@/components/SSButton'
-import SSIconButton from '@/components/SSIconButton'
-import SSStyledSatText from '@/components/SSStyledSatText'
+import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { Sizes } from '@/styles'
 import { type Block, type Tx } from '@/types/models/Blockchain'
 import { type ExplorerBlockSearchParams } from '@/types/navigation/searchParams'
+import { formatNumber } from '@/utils/format'
 
 type RequestIdentifier = string
 
@@ -26,7 +25,13 @@ type RequestStatus = Record<
   }
 >
 
-type Txs = Record<Tx['txid'], Tx & { amount: number }>
+type Txs = Record<
+  Tx['txid'],
+  Tx & {
+    amount: number
+    verbosity: 0 | 1 | 2 // verbosity shown
+  }
+>
 
 export default function BlockTransactions() {
   const { block: blockHash } = useLocalSearchParams<ExplorerBlockSearchParams>()
@@ -85,7 +90,8 @@ export default function BlockTransactions() {
       ...currentValue,
       [txid]: {
         ...data,
-        amount: data.vout.reduce((val, out) => val + out.value, 0)
+        amount: data.vout.reduce((val, out) => val + out.value, 0),
+        verbosity: 1
       }
     }))
 
@@ -140,55 +146,58 @@ export default function BlockTransactions() {
         <SSVStack>
           <SSVStack itemsCenter gap="none">
             <SSText center size="md">
-              Transactions block #${block?.height}
+              {`Transactions — Block #${block?.height}`}
             </SSText>
           </SSVStack>
           <SSVStack gap="md">
             {txids.slice(0, visibleTxCount).map((txid, index) => {
               const tx = txs[txid]
               return (
-                <TouchableOpacity key={txid} onPress={() => loadTxData(txid)}>
-                  <SSVStack gap="none">
-                    <SSText size="xs" weight="bold">
-                      #{index}
-                    </SSText>
+                <SSVStack key={txid} gap="sm">
+                  <SSText size="xs" weight="bold">
+                    {index !== 0 ? `#${index}` : `#${index} [MINER COINBASE]`}
+                  </SSText>
+                  <SSClipboardCopy text={txid}>
                     <SSText type="mono">{txid}</SSText>
-                  </SSVStack>
+                  </SSClipboardCopy>
+
                   {tx && (
-                    <SSVStack gap="sm">
+                    <SSVStack gap="xs">
                       <SSHStack gap="none">
-                        <SSVStack style={{ width: '50%' }} gap="xs">
-                          <SSText>Fee</SSText>
-                          <SSStyledSatText amount={tx.fee} textSize="sm" />
+                        <SSVStack style={{ width: '50%' }} gap="none">
+                          <SSText weight="bold">Amount</SSText>
+                          <SSText color="muted">
+                            {formatNumber(tx.amount)}
+                          </SSText>
                         </SSVStack>
-                        <SSVStack style={{ width: '50%' }} gap="xs">
-                          <SSText>Amount</SSText>
-                          <SSStyledSatText amount={tx.amount} textSize="sm" />
+                        <SSVStack style={{ width: '50%' }} gap="none">
+                          <SSText weight="bold">Fee</SSText>
+                          <SSText color="muted">{formatNumber(tx.fee)}</SSText>
                         </SSVStack>
                       </SSHStack>
                       <SSHStack gap="none">
                         <SSVStack style={{ width: '50%' }} gap="none">
-                          <SSText>Inputs</SSText>
-                          <SSText>{tx.vin.length}</SSText>
+                          <SSText weight="bold">Inputs</SSText>
+                          <SSText color="muted">{tx.vin.length}</SSText>
                         </SSVStack>
                         <SSVStack style={{ width: '50%' }} gap="none">
-                          <SSText>Outputs</SSText>
-                          <SSText>{tx.vout.length}</SSText>
+                          <SSText weight="bold">Outputs</SSText>
+                          <SSText color="muted">{tx.vout.length}</SSText>
                         </SSVStack>
                       </SSHStack>
                       <SSHStack gap="none">
                         <SSVStack style={{ width: '50%' }} gap="none">
-                          <SSText>Locktime</SSText>
-                          <SSText>{tx.locktime}</SSText>
+                          <SSText weight="bold">Locktime</SSText>
+                          <SSText color="muted">{tx.locktime}</SSText>
                         </SSVStack>
                         <SSVStack style={{ width: '50%' }} gap="none">
-                          <SSText>Version</SSText>
-                          <SSText>{tx.version}</SSText>
+                          <SSText weight="bold">Version</SSText>
+                          <SSText color="muted">{tx.version}</SSText>
                         </SSVStack>
                       </SSHStack>
                     </SSVStack>
                   )}
-                  {!txs[txid] && (
+                  {!tx && (
                     <SSHStack
                       gap="sm"
                       style={{
@@ -197,11 +206,9 @@ export default function BlockTransactions() {
                       }}
                     >
                       {!requestStatuses[txid]?.status && (
-                        <>
-                          <SSIconInfo height={16} width={16} />
-
-                          <SSText color="muted">load transaction data</SSText>
-                        </>
+                        <TouchableOpacity onPress={() => loadTxData(txid)}>
+                          <SSText color="muted">Show more</SSText>
+                        </TouchableOpacity>
                       )}
                       {requestStatuses[txid]?.status === 'pending' && (
                         <>
@@ -211,7 +218,7 @@ export default function BlockTransactions() {
                       )}
                     </SSHStack>
                   )}
-                </TouchableOpacity>
+                </SSVStack>
               )
             })}
           </SSVStack>
