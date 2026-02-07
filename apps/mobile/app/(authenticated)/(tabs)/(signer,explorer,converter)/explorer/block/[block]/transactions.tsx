@@ -2,15 +2,17 @@ import { useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView } from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
+import { useShallow } from 'zustand/react/shallow'
 
+import Esplora from '@/api/esplora'
 import { SSIconWarning } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
-import useMempoolOracle from '@/hooks/useMempoolOracle'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
+import { useBlockchainStore } from '@/store/blockchain'
 import { type Block, type Tx } from '@/types/models/Blockchain'
 import { type ExplorerBlockSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
@@ -35,7 +37,13 @@ type Txs = Record<
 
 export default function BlockTransactions() {
   const { block: blockHash } = useLocalSearchParams<ExplorerBlockSearchParams>()
-  const mempoolOracle = useMempoolOracle()
+  const [backend, backendUrl] = useBlockchainStore(
+    useShallow((state) => [
+      state.configs['bitcoin'].server.backend,
+      state.configs['bitcoin'].server.url
+    ])
+  )
+  const esploraClient = new Esplora(backendUrl)
 
   const [txids, setTxids] = useState<Tx['txid'][]>([])
   const [visibleTxCount, setVisibleTxCount] = useState(10)
@@ -50,7 +58,7 @@ export default function BlockTransactions() {
   // const [block, setBlock] = useState<bitcoinjs.Block | null>(null)
 
   async function fetchBlockHeight() {
-    const data = await mempoolOracle.getBlock(blockHash)
+    const data = await esploraClient.getBlockInfo(blockHash)
     setBlock(data)
   }
 
@@ -61,7 +69,7 @@ export default function BlockTransactions() {
         status: 'pending'
       }
     }))
-    const blockTxids = await mempoolOracle.getBlockTransactionIds(blockHash)
+    const blockTxids = await esploraClient.getBlockTransactionIds(blockHash)
     setTxids(blockTxids)
 
     setRequestStatuses((value) => ({
@@ -84,7 +92,7 @@ export default function BlockTransactions() {
       }
     }))
 
-    const data = await mempoolOracle.getTransaction(txid)
+    const data = await esploraClient.getTxInfo(txid)
 
     setTxs((currentValue) => ({
       ...currentValue,
@@ -114,9 +122,23 @@ export default function BlockTransactions() {
   }
 
   useEffect(() => {
+    if (!blockHash || backend !== 'esplora') return
     fetchBlockHeight()
     fetchBlockTransactions()
-  }, [blockHash]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [blockHash, backend]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (backend !== 'esplora') {
+    return (
+      <SSMainLayout>
+        <SSVStack>
+          <SSText>
+            This page is only available to Esplora backends. Please choose a
+            Esplora-compatible backend in Network Settings.
+          </SSText>
+        </SSVStack>
+      </SSMainLayout>
+    )
+  }
 
   if (requestStatuses['txs']?.status === 'error') {
     return (

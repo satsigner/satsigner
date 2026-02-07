@@ -125,7 +125,7 @@ function SSExploreBlock({ block }: SSExploreBlockProps) {
               }}
             >
               <SSText weight="bold">{block?.tx_count || placeholder}</SSText>
-              {block && (
+              {block?.tx_count && (
                 <TouchableOpacity
                   onPress={() => {
                     router.navigate(`/explorer/block/${block.id}/transactions`)
