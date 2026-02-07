@@ -29,7 +29,7 @@ type Txs = Record<
   Tx['txid'],
   Tx & {
     amount: number
-    verbosity: 0 | 1 | 2 // verbosity shown
+    verbosity: number
   }
 >
 
@@ -103,6 +103,16 @@ export default function BlockTransactions() {
     }))
   }
 
+  function setTxVerbosity(txid: Tx['txid'], verbosity: number) {
+    setTxs((value) => ({
+      ...value,
+      [txid]: {
+        ...value[txid],
+        verbosity
+      }
+    }))
+  }
+
   useEffect(() => {
     fetchBlockHeight()
     fetchBlockTransactions()
@@ -161,7 +171,7 @@ export default function BlockTransactions() {
                     <SSText type="mono">{txid}</SSText>
                   </SSClipboardCopy>
 
-                  {tx && (
+                  {tx && tx.verbosity > 0 && (
                     <SSVStack gap="xs">
                       <SSHStack gap="none">
                         <SSVStack style={{ width: '50%' }} gap="none">
@@ -197,27 +207,46 @@ export default function BlockTransactions() {
                       </SSHStack>
                     </SSVStack>
                   )}
-                  {!tx && (
-                    <SSHStack
-                      gap="sm"
-                      style={{
-                        alignItems: 'center',
-                        justifyContent: 'flex-start'
-                      }}
-                    >
-                      {!requestStatuses[txid]?.status && (
-                        <TouchableOpacity onPress={() => loadTxData(txid)}>
-                          <SSText color="muted">Show more</SSText>
-                        </TouchableOpacity>
-                      )}
-                      {requestStatuses[txid]?.status === 'pending' && (
-                        <>
-                          <ActivityIndicator />
-                          <SSText color="muted">Loading ...</SSText>
-                        </>
-                      )}
-                    </SSHStack>
+                  {tx && tx.verbosity > 1 && (
+                    <SSVStack>
+                      {tx.vin.map((vin, index) => {
+                        return (
+                          <SSVStack key={`${txid}:vin:${index}`}>
+                            <SSText>iNPUT {index}</SSText>
+                            <SSText>Prev Output Value</SSText>
+                            <SSText>{vin.prevout.value}</SSText>
+                          </SSVStack>
+                        )
+                      })}
+                    </SSVStack>
                   )}
+                  <SSVStack gap="none">
+                    {!tx && !requestStatuses[txid]?.status && (
+                      <TouchableOpacity onPress={() => loadTxData(txid)}>
+                        <SSText color="muted">Show more</SSText>
+                      </TouchableOpacity>
+                    )}
+                    {!tx && requestStatuses[txid]?.status === 'pending' && (
+                      <SSHStack gap="sm" style={{ alignItems: 'center' }}>
+                        <ActivityIndicator />
+                        <SSText color="muted">Loading ...</SSText>
+                      </SSHStack>
+                    )}
+                    {tx && tx.verbosity > 0 && (
+                      <TouchableOpacity
+                        onPress={() => setTxVerbosity(txid, tx.verbosity - 1)}
+                      >
+                        <SSText color="muted">Show less</SSText>
+                      </TouchableOpacity>
+                    )}
+                    {tx && tx.verbosity < 2 && (
+                      <TouchableOpacity
+                        onPress={() => setTxVerbosity(txid, tx.verbosity + 1)}
+                      >
+                        <SSText color="muted">Show more</SSText>
+                      </TouchableOpacity>
+                    )}
+                  </SSVStack>
                 </SSVStack>
               )
             })}

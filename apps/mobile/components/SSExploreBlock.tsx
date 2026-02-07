@@ -1,15 +1,23 @@
 import { router } from 'expo-router'
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet, TouchableOpacity, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type Block } from '@/types/models/Blockchain'
+import { type Block as BaseBlock } from '@/types/models/Blockchain'
 import { formatDate, formatNumber, formatTime } from '@/utils/format'
 
-import SSButton from './SSButton'
 import SSText from './SSText'
+
+type WithOptionalProps<T, K extends keyof T> = Omit<T, K> & {
+  [P in K]: T[P] | undefined
+}
+
+export type Block = WithOptionalProps<
+  BaseBlock,
+  'merkle_root' | 'mediantime' | 'tx_count' | 'previousblockhash'
+>
 
 type SSExploreBlockProps = {
   block: Block | null
@@ -97,7 +105,7 @@ function SSExploreBlock({ block }: SSExploreBlockProps) {
               {t('explorer.block.dateMedian')}
             </SSText>
             <SSText weight="bold">
-              {block
+              {block && block.mediantime
                 ? formatDate(block.mediantime * 1000) +
                   ' ' +
                   formatTime(new Date(block.mediantime * 1000))
@@ -110,15 +118,25 @@ function SSExploreBlock({ block }: SSExploreBlockProps) {
             <SSText uppercase color="muted">
               {t('explorer.block.txCount')}
             </SSText>
-            <SSText weight="bold">{block?.tx_count || placeholder}</SSText>
-            {block && (
-              <SSButton
-                label="view transactions"
-                onPress={() => {
-                  router.navigate(`/explorer/block/${block.id}/transactions`)
-                }}
-              />
-            )}
+            <SSHStack
+              style={{
+                justifyContent: 'space-between',
+                alignItems: 'baseline'
+              }}
+            >
+              <SSText weight="bold">{block?.tx_count || placeholder}</SSText>
+              {block && (
+                <TouchableOpacity
+                  onPress={() => {
+                    router.navigate(`/explorer/block/${block.id}/transactions`)
+                  }}
+                >
+                  <SSText color="muted" size="xs">
+                    (view transactions)
+                  </SSText>
+                </TouchableOpacity>
+              )}
+            </SSHStack>
           </SSVStack>
           <SSVStack gap="none" style={styles.halfWidth}>
             <SSText uppercase color="muted">

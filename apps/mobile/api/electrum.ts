@@ -153,7 +153,7 @@ class BaseElectrumClient {
 
   static async initClientFromUrl(
     url: string,
-    network: Network
+    network: Network = 'bitcoin'
   ): Promise<ElectrumClient> {
     const client = ElectrumClient.fromUrl(url, network)
     await client.init()
