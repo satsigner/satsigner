@@ -19,13 +19,13 @@ import { formatNumber } from '@/utils/format'
 
 type RequestIdentifier = string
 
-type RequestStatus = Record<
-  RequestIdentifier,
-  {
-    status?: 'unstarted' | 'pending' | 'success' | 'error'
-    error?: string
-  }
->
+type RequestStatus = {
+  id?: RequestIdentifier
+  status?: 'unstarted' | 'pending' | 'success' | 'error'
+  error?: string
+}
+
+type RequestStatuses = Record<RequestIdentifier, RequestStatus>
 
 type Txs = Record<
   Tx['txid'],
@@ -50,7 +50,7 @@ export default function BlockTransactions() {
   const [txs, setTxs] = useState<Txs>({})
   const [block, setBlock] = useState<Block | undefined>()
 
-  const [requestStatuses, setRequestStatuses] = useState<RequestStatus>({
+  const [requestStatuses, setRequestStatuses] = useState<RequestStatuses>({
     txs: {
       status: 'unstarted'
     }
