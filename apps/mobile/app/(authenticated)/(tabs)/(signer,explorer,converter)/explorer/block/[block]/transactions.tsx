@@ -10,6 +10,8 @@ import { SSIconWarning } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
+import SSTransactionVinList from '@/components/SSTransactionVinList'
+import SSTransactionVoutList from '@/components/SSTransactionVoutList'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -28,9 +30,6 @@ import {
   type PromiseStatuses,
   updatePromiseStatus
 } from '@/utils/promises'
-import SSTransactionVinList from '@/components/SSTransactionVinList'
-import SSTransactionVoutList from '@/components/SSTransactionVoutList'
-import { Transaction } from '@/types/models/Transaction'
 
 type Txs = Record<
   Tx['txid'],
@@ -216,8 +215,30 @@ export default function BlockTransactions() {
                   )}
                   {tx && tx.verbosity > 1 && (
                     <SSVStack>
-                      <SSTransactionVinList tx={tx as Transaction} />
-                      <SSTransactionVoutList tx={tx as Transaction} />
+                      <SSTransactionVinList
+                        vin={tx.vin.map((input) => {
+                          return {
+                            previousOutput: {
+                              txid: input.txid,
+                              vout: input.vout
+                            },
+                            sequence: input.sequence,
+                            scriptSig: input.scriptsig_asm,
+                            value: input.prevout.value,
+                            witness: []
+                          }
+                        })}
+                      />
+                      <SSTransactionVoutList
+                        vout={tx.vout.map((output) => {
+                          return {
+                            value: output.value,
+                            address: output.scriptpubkey_address || '',
+                            script: output.scriptpubkey_asm || []
+                          }
+                        })}
+                        txid={tx.txid}
+                      />
                     </SSVStack>
                   )}
                   <SSVStack gap="none">

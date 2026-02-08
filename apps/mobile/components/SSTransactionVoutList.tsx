@@ -14,12 +14,14 @@ import { type Transaction } from '@/types/models/Transaction'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 type SSTransactionVoutListProps = {
-  tx: Transaction | undefined
+  txid?: Transaction['id']
+  vout?: Transaction['vout']
   accountId?: string
 }
 
 export default function SSTransactionVoutList({
-  tx,
+  txid,
+  vout,
   accountId
 }: SSTransactionVoutListProps) {
   const account = useAccountsStore((state) =>
@@ -38,11 +40,11 @@ export default function SSTransactionVoutList({
     account.addresses.forEach((addr) => (addressDict[addr.address] = true))
     setUtxoDict(utxos)
 
-    if (!tx) return
+    if (!txid || !vout) return
 
     const labels: Record<number, string> = {}
-    tx.vout.forEach((output, index) => {
-      const utxoOutpoint = `${tx.id}:${index}`
+    vout.forEach((output, index) => {
+      const utxoOutpoint = `${txid}:${index}`
       const outputAddress = output.address
       const labelFromUtxo = account.labels[utxoOutpoint]
       const labelFromAddress = account.labels[outputAddress]
@@ -53,24 +55,24 @@ export default function SSTransactionVoutList({
     })
     setLabelsDict(labels)
     setUtxoDict(utxos)
-  }, [account, tx]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [account, txid, vout]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!tx || !tx.vout) return null
+  if (!txid || !vout) return null
 
   return (
     <SSVStack>
-      {tx.vout.map((output, index) => (
+      {vout.map((output, index) => (
         <TouchableOpacity
           key={index}
           onPress={() => {
-            if (utxoDict[`${tx.id}:${index}`]) {
+            if (utxoDict[`${txid}:${index}`]) {
               router.navigate(
-                `/signer/bitcoin/account/${accountId}/transaction/${tx.id}/utxo/${index}`
+                `/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${index}`
               )
             }
           }}
         >
-          <SSVStack key={`${tx.id}:${index}`}>
+          <SSVStack key={`${txid}:${index}`}>
             <SSSeparator color="gradient" />
             <SSText weight="bold" center>
               {t('transaction.output.title')} {index}

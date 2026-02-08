@@ -197,8 +197,12 @@ export default function TxDetails() {
           header={t('transaction.output.count')}
           text={outputsCount}
         />
-        <SSTransactionVinList tx={tx} />
-        <SSTransactionVoutList tx={tx} accountId={accountId} />
+        <SSTransactionVinList vin={tx.vin} />
+        <SSTransactionVoutList
+          vout={tx.vout}
+          txid={tx.id}
+          accountId={accountId}
+        />
       </SSVStack>
     </ScrollView>
   )

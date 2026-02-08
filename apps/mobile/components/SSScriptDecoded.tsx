@@ -8,14 +8,15 @@ import { getOpcodeDetails, getOpcodeWord } from '@/utils/scripts'
 import SSText from './SSText'
 
 type SSScriptDecodedProps = {
-  script: number[]
+  script: number[] | string
 }
 
 function SSScriptDecoded({ script }: SSScriptDecodedProps) {
   let decodedScript: string | undefined
 
   try {
-    decodedScript = bitcoinjs.script.toASM(Buffer.from(script))
+    if (typeof script === 'string') decodedScript = script
+    else decodedScript = bitcoinjs.script.toASM(Buffer.from(script))
   } catch {
     return <SSText>{t('transaction.decoded.error')}</SSText>
   }
