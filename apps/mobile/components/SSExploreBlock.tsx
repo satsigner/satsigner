@@ -1,6 +1,7 @@
 import { router } from 'expo-router'
 import { StyleSheet, TouchableOpacity, View } from 'react-native'
 
+import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -8,17 +9,16 @@ import { Colors } from '@/styles'
 import { type Block as BaseBlock } from '@/types/models/Blockchain'
 import { formatDate, formatNumber, formatTime } from '@/utils/format'
 
-import SSText from './SSText'
-
-type WithOptionalProps<T, K extends keyof T> = Omit<T, K> & {
+type SomePartial<T, K extends keyof T> = Omit<T, K> & {
   [P in K]: T[P] | undefined
 }
 
-export type Block = WithOptionalProps<
+export type Block = SomePartial<
   BaseBlock,
   'merkle_root' | 'mediantime' | 'tx_count' | 'previousblockhash'
 >
 
+// ouch
 type SSExploreBlockProps = {
   block: Block | null
 }
