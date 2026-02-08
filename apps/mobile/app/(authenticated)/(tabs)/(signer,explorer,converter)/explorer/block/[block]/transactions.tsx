@@ -28,6 +28,9 @@ import {
   type PromiseStatuses,
   updatePromiseStatus
 } from '@/utils/promises'
+import SSTransactionVinList from '@/components/SSTransactionVinList'
+import SSTransactionVoutList from '@/components/SSTransactionVoutList'
+import { Transaction } from '@/types/models/Transaction'
 
 type Txs = Record<
   Tx['txid'],
@@ -213,15 +216,8 @@ export default function BlockTransactions() {
                   )}
                   {tx && tx.verbosity > 1 && (
                     <SSVStack>
-                      {tx.vin.map((vin, index) => {
-                        return (
-                          <SSVStack key={`${txid}:vin:${index}`}>
-                            <SSText>iNPUT {index}</SSText>
-                            <SSText>Prev Output Value</SSText>
-                            <SSText>{vin.prevout.value}</SSText>
-                          </SSVStack>
-                        )
-                      })}
+                      <SSTransactionVinList tx={tx as Transaction} />
+                      <SSTransactionVoutList tx={tx as Transaction} />
                     </SSVStack>
                   )}
                   <SSVStack gap="none">
