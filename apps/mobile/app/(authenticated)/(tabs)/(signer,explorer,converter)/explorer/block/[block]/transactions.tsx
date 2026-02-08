@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, ScrollView } from 'react-native'
+import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -9,6 +9,7 @@ import Esplora from '@/api/esplora'
 import { SSIconWarning } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTransactionVinList from '@/components/SSTransactionVinList'
 import SSTransactionVoutList from '@/components/SSTransactionVoutList'
@@ -16,6 +17,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { useBlockchainStore } from '@/store/blockchain'
+import { Colors } from '@/styles'
 import type { Block, Tx } from '@/types/models/Blockchain'
 import type { ExplorerBlockSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
@@ -108,7 +110,7 @@ export default function BlockTransactions() {
   useEffect(() => {
     if (!blockHash || backend !== 'esplora') return
     if (!block) fetchBlock()
-    if (!blockTxs) fetchBlockTransactions()
+    if (Object.keys(blockTxs).length === 0) fetchBlockTransactions()
   }, [blockHash, backend]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (backend !== 'esplora') {
@@ -165,20 +167,19 @@ export default function BlockTransactions() {
               {`Transactions — Block #${block?.height}`}
             </SSText>
           </SSVStack>
-          <SSVStack gap="md">
+          <SSVStack gap="none">
             {blockTxids.slice(0, visibleTxCount).map((txid, index) => {
               const tx = blockTxs[txid]
               return (
-                <SSVStack key={txid} gap="sm">
-                  <SSText size="xs" weight="bold">
+                <SSVStack key={txid} gap="none" style={styles.txListItem}>
+                  <SSText weight="bold">
                     {index !== 0 ? `#${index}` : `#${index} [MINER COINBASE]`}
                   </SSText>
                   <SSClipboardCopy text={txid}>
                     <SSText type="mono">{txid}</SSText>
                   </SSClipboardCopy>
-
-                  {tx && tx.verbosity > 0 && (
-                    <SSVStack gap="xs">
+                  {tx?.verbosity > 0 && (
+                    <SSVStack gap="xs" style={{ marginVertical: 20 }}>
                       <SSHStack gap="none">
                         <SSVStack style={{ width: '50%' }} gap="none">
                           <SSText weight="bold">Amount</SSText>
@@ -213,22 +214,24 @@ export default function BlockTransactions() {
                       </SSHStack>
                     </SSVStack>
                   )}
-                  {tx && tx.verbosity > 1 && (
-                    <SSVStack>
-                      <SSTransactionVinList
-                        vin={tx.vin.map((input) => {
-                          return {
-                            previousOutput: {
-                              txid: input.txid,
-                              vout: input.vout
-                            },
-                            sequence: input.sequence,
-                            scriptSig: input.scriptsig_asm,
-                            value: input.prevout.value,
-                            witness: []
-                          }
-                        })}
-                      />
+                  {tx?.verbosity > 1 && (
+                    <SSVStack gap="xs" style={{ marginBottom: 20 }}>
+                      {index > 0 && (
+                        <SSTransactionVinList
+                          vin={tx.vin.map((input) => {
+                            return {
+                              previousOutput: {
+                                txid: input.txid,
+                                vout: input.vout
+                              },
+                              sequence: input.sequence,
+                              scriptSig: input.scriptsig_asm,
+                              value: input.prevout.value,
+                              witness: []
+                            }
+                          })}
+                        />
+                      )}
                       <SSTransactionVoutList
                         vout={tx.vout.map((output) => {
                           return {
@@ -244,27 +247,35 @@ export default function BlockTransactions() {
                   <SSVStack gap="none">
                     {!tx && !requestStatuses[txid]?.status && (
                       <TouchableOpacity onPress={() => loadTxData(txid)}>
-                        <SSText color="muted">Show more</SSText>
+                        <SSText size="xs" color="muted">
+                          Show more
+                        </SSText>
                       </TouchableOpacity>
                     )}
                     {!tx && requestStatuses[txid]?.status === 'pending' && (
                       <SSHStack gap="sm" style={{ alignItems: 'center' }}>
                         <ActivityIndicator />
-                        <SSText color="muted">Loading ...</SSText>
+                        <SSText size="xs" color="muted">
+                          Loading ...
+                        </SSText>
                       </SSHStack>
                     )}
                     {tx && tx.verbosity > 0 && (
                       <TouchableOpacity
                         onPress={() => setTxVerbosity(txid, tx.verbosity - 1)}
                       >
-                        <SSText color="muted">Show less</SSText>
+                        <SSText size="xs" color="muted">
+                          Show less
+                        </SSText>
                       </TouchableOpacity>
                     )}
                     {tx && tx.verbosity < 2 && (
                       <TouchableOpacity
                         onPress={() => setTxVerbosity(txid, tx.verbosity + 1)}
                       >
-                        <SSText color="muted">Show more</SSText>
+                        <SSText size="xs" color="muted">
+                          Show more
+                        </SSText>
                       </TouchableOpacity>
                     )}
                   </SSVStack>
@@ -278,3 +289,11 @@ export default function BlockTransactions() {
     </SSMainLayout>
   )
 }
+
+const styles = StyleSheet.create({
+  txListItem: {
+    borderTopColor: Colors.barGray,
+    paddingVertical: 8,
+    borderTopWidth: 1
+  }
+})
