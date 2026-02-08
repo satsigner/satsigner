@@ -2,6 +2,7 @@ import { useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView } from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import Esplora from '@/api/esplora'
@@ -13,19 +14,20 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type Block, type Tx } from '@/types/models/Blockchain'
-import { type ExplorerBlockSearchParams } from '@/types/navigation/searchParams'
+import type { Block, Tx } from '@/types/models/Blockchain'
+import type { ExplorerBlockSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
-
-type RequestIdentifier = string
-
-type RequestStatus = {
-  id?: RequestIdentifier
-  status?: 'unstarted' | 'pending' | 'success' | 'error'
-  error?: string
-}
-
-type RequestStatuses = Record<RequestIdentifier, RequestStatus>
+import {
+  updateNestedObject,
+  updateNestedObjectPartially
+} from '@/utils/objects'
+import {
+  markPromiseError,
+  markPromisePending,
+  markPromiseSuccessful,
+  type PromiseStatuses,
+  updatePromiseStatus
+} from '@/utils/promises'
 
 type Txs = Record<
   Tx['txid'],
@@ -37,47 +39,38 @@ type Txs = Record<
 
 export default function BlockTransactions() {
   const { block: blockHash } = useLocalSearchParams<ExplorerBlockSearchParams>()
-  const [backend, backendUrl] = useBlockchainStore(
+
+  const [backend, esploraClient] = useBlockchainStore(
     useShallow((state) => [
       state.configs['bitcoin'].server.backend,
-      state.configs['bitcoin'].server.url
+      new Esplora(state.configs['bitcoin'].server.url)
     ])
   )
-  const esploraClient = new Esplora(backendUrl)
 
-  const [txids, setTxids] = useState<Tx['txid'][]>([])
-  const [visibleTxCount, setVisibleTxCount] = useState(10)
-  const [txs, setTxs] = useState<Txs>({})
   const [block, setBlock] = useState<Block | undefined>()
-
-  const [requestStatuses, setRequestStatuses] = useState<RequestStatuses>({
-    txs: {
-      status: 'unstarted'
-    }
+  const [blockTxs, setBlockTxs] = useState<Txs>({})
+  const [blockTxids, setBlockTxids] = useState<Tx['txid'][]>([])
+  const [visibleTxCount, setVisibleTxCount] = useState(10)
+  const [requestStatuses, setRequestStatuses] = useState<PromiseStatuses>({
+    txs: { status: 'unstarted' }
   })
-  // const [block, setBlock] = useState<bitcoinjs.Block | null>(null)
 
-  async function fetchBlockHeight() {
+  async function fetchBlock() {
     const data = await esploraClient.getBlockInfo(blockHash)
     setBlock(data)
   }
 
   async function fetchBlockTransactions() {
-    setRequestStatuses((value) => ({
-      ...value,
-      txs: {
-        status: 'pending'
-      }
-    }))
-    const blockTxids = await esploraClient.getBlockTransactionIds(blockHash)
-    setTxids(blockTxids)
-
-    setRequestStatuses((value) => ({
-      ...value,
-      txs: {
-        status: 'success'
-      }
-    }))
+    setRequestStatuses((value) => updatePromiseStatus(value, 'tx', 'pending'))
+    try {
+      const blockTxids = await esploraClient.getBlockTransactionIds(blockHash)
+      setBlockTxids(blockTxids)
+      setRequestStatuses((value) => updatePromiseStatus(value, 'tx', 'success'))
+    } catch {
+      const err = 'Failed to fetch block transactions'
+      setRequestStatuses((value) => markPromiseError(value, 'txs', err))
+      toast.error(err)
+    }
   }
 
   function showMoreTxIds() {
@@ -85,45 +78,34 @@ export default function BlockTransactions() {
   }
 
   async function loadTxData(txid: Tx['txid']) {
-    setRequestStatuses((value) => ({
-      ...value,
-      [txid]: {
-        status: 'pending'
-      }
-    }))
+    setRequestStatuses((value) => markPromisePending(value, txid))
 
-    const data = await esploraClient.getTxInfo(txid)
-
-    setTxs((currentValue) => ({
-      ...currentValue,
-      [txid]: {
-        ...data,
-        amount: data.vout.reduce((val, out) => val + out.value, 0),
-        verbosity: 1
-      }
-    }))
-
-    setRequestStatuses((value) => ({
-      ...value,
-      [txid]: {
-        status: 'success'
-      }
-    }))
+    try {
+      const txInfo = await esploraClient.getTxInfo(txid)
+      setBlockTxs((txs) =>
+        updateNestedObject(txs, txid, {
+          ...txInfo,
+          amount: txInfo.vout.reduce((val, out) => val + out.value, 0),
+          verbosity: 1
+        })
+      )
+      setRequestStatuses((value) => markPromiseSuccessful(value, txid))
+    } catch {
+      const err = 'Failed to get tx info'
+      setRequestStatuses((value) => markPromiseError(value, txid, err))
+      toast.error(err)
+    }
   }
 
   function setTxVerbosity(txid: Tx['txid'], verbosity: number) {
-    setTxs((value) => ({
-      ...value,
-      [txid]: {
-        ...value[txid],
-        verbosity
-      }
-    }))
+    setBlockTxs((txs) =>
+      updateNestedObjectPartially(txs, txid, 'verbosity', verbosity)
+    )
   }
 
   useEffect(() => {
     if (!blockHash || backend !== 'esplora') return
-    fetchBlockHeight()
+    fetchBlock()
     fetchBlockTransactions()
   }, [blockHash, backend]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -182,8 +164,8 @@ export default function BlockTransactions() {
             </SSText>
           </SSVStack>
           <SSVStack gap="md">
-            {txids.slice(0, visibleTxCount).map((txid, index) => {
-              const tx = txs[txid]
+            {blockTxids.slice(0, visibleTxCount).map((txid, index) => {
+              const tx = blockTxs[txid]
               return (
                 <SSVStack key={txid} gap="sm">
                   <SSText size="xs" weight="bold">
