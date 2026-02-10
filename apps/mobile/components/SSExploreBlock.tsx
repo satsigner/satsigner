@@ -1,5 +1,4 @@
-import { router } from 'expo-router'
-import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
@@ -8,6 +7,8 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type Block as BaseBlock } from '@/types/models/Blockchain'
 import { formatDate, formatNumber, formatTime } from '@/utils/format'
+
+import SSDetailsList from './SSDetailsList'
 
 type SomePartial<T, K extends keyof T> = Omit<T, K> & {
   [P in K]: T[P] | undefined
@@ -18,7 +19,6 @@ export type Block = SomePartial<
   'merkle_root' | 'mediantime' | 'tx_count' | 'previousblockhash'
 >
 
-// ouch
 type SSExploreBlockProps = {
   block: Block | null
 }
@@ -31,8 +31,19 @@ function blockWeightPercentage(weight: number) {
   return (100 * weight) / 4_000_000
 }
 
+function formatBlockDate(timestamp?: number) {
+  if (!timestamp) return ''
+  return (
+    formatDate(timestamp * 1000) + ' ' + formatTime(new Date(timestamp * 1000))
+  )
+}
+
+function formatBlockHash(hash?: string) {
+  if (!hash) return ''
+  return hash.startsWith('0000') ? hash : hash.split('').reverse().join('')
+}
+
 function SSExploreBlock({ block }: SSExploreBlockProps) {
-  const placeholder = '-'
   const weight = block?.weight || 0
   const percentageWeight = blockWeightPercentage(weight)
   return (
@@ -50,7 +61,7 @@ function SSExploreBlock({ block }: SSExploreBlockProps) {
             }
           ]}
         >
-          {block && percentageWeight <= 30 && (
+          {block?.tx_count && percentageWeight <= 30 && (
             <SSText center size="xs" color="black">
               {t('explorer.block.percentageEmpty', {
                 percentage: formatNumber(100 - percentageWeight, 1)
@@ -58,7 +69,6 @@ function SSExploreBlock({ block }: SSExploreBlockProps) {
             </SSText>
           )}
         </View>
-
         <View
           style={[
             styles.rectangle,
@@ -69,7 +79,7 @@ function SSExploreBlock({ block }: SSExploreBlockProps) {
             }
           ]}
         >
-          {percentageWeight > 30 && (
+          {block?.tx_count && percentageWeight > 30 && (
             <SSText center size="xs">
               {t('explorer.block.percentageFull', {
                 percentage: formatNumber(percentageWeight)
@@ -78,118 +88,38 @@ function SSExploreBlock({ block }: SSExploreBlockProps) {
           )}
         </View>
       </View>
-      <SSVStack gap="md">
-        <SSVStack gap="none">
-          <SSText uppercase color="muted">
-            {t('explorer.block.id')}
-          </SSText>
-          <SSText weight="bold" type="mono">
-            {block?.id || placeholder}
-          </SSText>
-        </SSVStack>
-        <SSHStack justifyBetween>
-          <SSVStack gap="none" style={styles.halfWidth}>
-            <SSText uppercase color="muted">
-              {t('explorer.block.date')}
-            </SSText>
-            <SSText weight="bold">
-              {block
-                ? formatDate(block.timestamp * 1000) +
-                  ' ' +
-                  formatTime(new Date(block.timestamp * 1000))
-                : placeholder}
-            </SSText>
-          </SSVStack>
-          <SSVStack gap="none" style={styles.halfWidth}>
-            <SSText uppercase color="muted">
-              {t('explorer.block.dateMedian')}
-            </SSText>
-            <SSText weight="bold">
-              {block && block.mediantime
-                ? formatDate(block.mediantime * 1000) +
-                  ' ' +
-                  formatTime(new Date(block.mediantime * 1000))
-                : placeholder}
-            </SSText>
-          </SSVStack>
-        </SSHStack>
-        <SSHStack justifyBetween>
-          <SSVStack gap="none" style={styles.halfWidth}>
-            <SSText uppercase color="muted">
-              {t('explorer.block.txCount')}
-            </SSText>
-            <SSHStack
-              style={{
-                justifyContent: 'space-between',
-                alignItems: 'baseline'
-              }}
-            >
-              <SSText weight="bold">{block?.tx_count || placeholder}</SSText>
-              {block?.tx_count && (
-                <TouchableOpacity
-                  onPress={() => {
-                    router.navigate(`/explorer/block/${block.id}/transactions`)
-                  }}
-                >
-                  <SSText color="muted" size="xs">
-                    (view transactions)
-                  </SSText>
-                </TouchableOpacity>
-              )}
-            </SSHStack>
-          </SSVStack>
-          <SSVStack gap="none" style={styles.halfWidth}>
-            <SSText uppercase color="muted">
-              {t('explorer.block.version')}
-            </SSText>
-            <SSText weight="bold">{block?.version || placeholder}</SSText>
-          </SSVStack>
-        </SSHStack>
-        <SSHStack justifyBetween>
-          <SSVStack gap="none" style={styles.halfWidth}>
-            <SSText uppercase color="muted">
-              {t('explorer.block.nonce')}
-            </SSText>
-            <SSText weight="bold">{block?.nonce || placeholder}</SSText>
-          </SSVStack>
-          <SSVStack gap="none" style={styles.halfWidth}>
-            <SSText uppercase color="muted">
-              {t('explorer.block.difficulty')}
-            </SSText>
-            <SSText weight="bold">{block?.difficulty || placeholder}</SSText>
-          </SSVStack>
-        </SSHStack>
-        <SSHStack justifyBetween>
-          <SSVStack gap="none" style={styles.halfWidth}>
-            <SSText uppercase color="muted">
-              {t('explorer.block.size')}
-            </SSText>
-            <SSText weight="bold">{block?.size || placeholder}</SSText>
-          </SSVStack>
-          <SSVStack gap="none" style={styles.halfWidth}>
-            <SSText uppercase color="muted">
-              {t('explorer.block.weight')}
-            </SSText>
-            <SSText weight="bold">{block?.weight || placeholder}</SSText>
-          </SSVStack>
-        </SSHStack>
-        <SSVStack gap="none">
-          <SSText uppercase color="muted">
-            {t('explorer.block.merkleRoot')}
-          </SSText>
-          <SSText weight="bold" type="mono">
-            {block?.merkle_root || placeholder}
-          </SSText>
-        </SSVStack>
-        <SSVStack gap="none">
-          <SSText uppercase color="muted">
-            {t('explorer.block.prevHash')}
-          </SSText>
-          <SSText weight="bold" type="mono">
-            {block?.previousblockhash || placeholder}
-          </SSText>
-        </SSVStack>
-      </SSVStack>
+      <SSDetailsList
+        columns={2}
+        items={[
+          [
+            t('explorer.block.id'),
+            formatBlockHash(block?.id),
+            { width: '100%', copyToClipboard: true }
+          ],
+          [t('explorer.block.date'), formatBlockDate(block?.timestamp)],
+          [t('explorer.block.dateMedian'), formatBlockDate(block?.mediantime)],
+          [
+            t('explorer.block.txCount'),
+            block?.tx_count ? `${block.tx_count} (view transactions)` : '',
+            { navigateToLink: `/explorer/block/${block?.id}/transactions` }
+          ],
+          [t('explorer.block.version'), block?.version],
+          [t('explorer.block.nonce'), block?.nonce],
+          [t('explorer.block.difficulty'), block?.difficulty],
+          [t('explorer.block.size'), block?.size],
+          [t('explorer.block.weight'), block?.weight],
+          [
+            t('explorer.block.merkleRoot'),
+            block?.merkle_root,
+            { width: '100%' }
+          ],
+          [
+            t('explorer.block.prevHash'),
+            formatBlockHash(block?.previousblockhash),
+            { width: '100%' }
+          ]
+        ]}
+      />
     </SSVStack>
   )
 }

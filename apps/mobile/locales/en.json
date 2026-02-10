@@ -845,7 +845,7 @@
     "block.prevHash": "Previous block hash",
     "block.size": "Size",
     "block.title": "Block Details",
-    "block.txCount": "Total transactions",
+    "block.txCount": "Transactions",
     "block.version": "Version",
     "block.weight": "Weight",
     "block.percentageFull": "%{percentage}%\nfull",
