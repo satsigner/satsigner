@@ -8,7 +8,6 @@
 // ============================================================================
 
 export const addresses = {
-  // MAINNET - Real valid addresses
   mainnet: {
     p2pkh: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', // Satoshi's genesis address
     p2sh: '3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy',
@@ -59,9 +58,9 @@ export const bip321Uris = {
     amountWholeNumber:
       'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=1',
     amountManyDecimals:
-      'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.00000001', // 1 sat
+      'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.00000001',
     amountLarge:
-      'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=21000000', // 21M BTC
+      'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=21000000',
     amountWithZeros:
       'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.10000000',
 
@@ -80,8 +79,7 @@ export const bip321Uris = {
       'Bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.001',
 
     // Testnet
-    testnet:
-      'bitcoin:tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx?amount=0.001',
+    testnet: 'bitcoin:tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx?amount=0.001',
 
     // Regtest
     regtest: 'bitcoin:bcrt1q6rhpng9evdsfnn833a4f4vej0asu6dk5srld6x?amount=0.01',
@@ -169,10 +167,6 @@ export const lnurls = {
   }
 }
 
-// ============================================================================
-// CASHU TOKENS - For ecash context testing
-// ============================================================================
-
 export const cashuTokens = {
   valid: {
     v3: 'cashuAeyJ0b2tlbiI6W3sibWludCI6Imh0dHBzOi8vODMzMy5zcGFjZTozMzM4IiwicHJvb2ZzIjpbeyJpZCI6IjAwOWExZjI5MzI1M2U0MWUiLCJhbW91bnQiOjIsInNlY3JldCI6IjQwNzkxNWJjMjI3NzFhMjdlMjQzMWEwZDkwMDEzYTNjNGM2NjI3ZDY3MGI2ZjdlNGViMzM0NmFmMjMxYTc1NDMiLCJDIjoiMDJiYzkzY2MwYjI2OTlmN2U4YmZjM2M3NmE5NzVlOTU3YTI0NWE4NTAyNDg0NzlhNTFkNjFjODRlMjMwYjA1NjhiIn1dfV19',
@@ -193,10 +187,10 @@ export const amountConversions = {
   // BTC -> Sats conversions
   btcToSats: [
     { btc: '0.00000001', sats: 1 },
-    { btc: '0.00000546', sats: 546 }, // dust limit
+    { btc: '0.00000546', sats: 546 },
     { btc: '0.001', sats: 100000 },
     { btc: '1', sats: 100000000 },
-    { btc: '21000000', sats: 2100000000000000 }, // max supply
+    { btc: '21000000', sats: 21_000_000 * 100_000_000 },
     { btc: '0.12345678', sats: 12345678 }
   ],
   // Edge cases
@@ -206,10 +200,6 @@ export const amountConversions = {
     { btc: '0.00000000', sats: 0 }
   ]
 }
-
-// ============================================================================
-// WHITESPACE AND FORMATTING EDGE CASES
-// ============================================================================
 
 export const formattingEdgeCases = {
   // URIs with whitespace
@@ -232,10 +222,6 @@ export const formattingEdgeCases = {
       'LIGHTNING:lnbc10u1pnq9jt3pp5qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsdqqcqzzg'
   }
 }
-
-// ============================================================================
-// NETWORK DETECTION TEST CASES
-// ============================================================================
 
 export const networkDetection = {
   mainnet: {
