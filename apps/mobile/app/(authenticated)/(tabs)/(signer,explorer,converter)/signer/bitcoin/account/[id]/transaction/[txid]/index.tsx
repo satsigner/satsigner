@@ -5,8 +5,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { getTransactionInputValues } from '@/api/bdk'
 import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
-import SSClipboardCopy from '@/components/SSClipboardCopy'
-import SSDetailsList, { SSDetailsListItem } from '@/components/SSDetailsList'
+import SSDetailsList from '@/components/SSDetailsList'
 import SSLabelDetails from '@/components/SSLabelDetails'
 import SSSeparator from '@/components/SSSeparator'
 import SSStyledSatText from '@/components/SSStyledSatText'
@@ -134,18 +133,12 @@ export default function TxDetails() {
           <SSTransactionChart transaction={tx} />
         </SSVStack>
         <SSSeparator color="gradient" />
-        <SSClipboardCopy text={height}>
-          <SSDetailsListItem header={t('transaction.block')} text={height} />
-        </SSClipboardCopy>
-        <SSSeparator color="gradient" />
-        <SSClipboardCopy text={txid}>
-          <SSDetailsListItem header={t('transaction.hash')} text={txid} />
-        </SSClipboardCopy>
-        <SSSeparator color="gradient" />
         <SSDetailsList
           columns={3}
           headerSize="sm"
           items={[
+            [t('transaction.block'), height, { width: '100%' }],
+            [t('transaction.hash'), txid, { width: '100%', copyToClipboard: true }],
             [t('transaction.size'), size],
             [t('transaction.weight'), weight],
             [t('transaction.vsize'), vsize],
