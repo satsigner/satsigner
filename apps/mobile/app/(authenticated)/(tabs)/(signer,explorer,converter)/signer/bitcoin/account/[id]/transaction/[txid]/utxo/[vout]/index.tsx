@@ -14,6 +14,7 @@ import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSBubbleChart from '@/components/SSBubbleChart'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSDetailsList from '@/components/SSDetailsList'
 import SSLabelDetails from '@/components/SSLabelDetails'
 import SSScriptDecoded from '@/components/SSScriptDecoded'
 import SSSeparator from '@/components/SSSeparator'
@@ -52,18 +53,15 @@ function UtxoDetails({
   utxo,
   allAccountUtxos
 }: UtxoDetailsProps & { allAccountUtxos: Utxo[] }) {
-  const placeholder = '-'
-  const [blockTime, setBlockTime] = useState(placeholder)
-  const [blockHeight, setBlockHeight] = useState(placeholder)
-  const [amount, setAmount] = useState(placeholder)
-  const [txid, setTxid] = useState(placeholder)
-  const [vout, setVout] = useState(placeholder)
+  const [blockTime, setBlockTime] = useState('')
+  const [blockHeight, setBlockHeight] = useState('')
+  const [value, setValue] = useState('')
+  const [fiatValue, setFiatValue] = useState('')
+  const [txid, setTxid] = useState('')
+  const [vout, setVout] = useState('')
 
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
-  )
-  const [currencyUnit, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
 
   const { width, height } = useWindowDimensions()
@@ -85,9 +83,12 @@ function UtxoDetails({
     }
 
     if (utxo) {
-      const { value } = utxo
       setVout(utxo.vout.toString())
-      if (value) setAmount(formatNumber(value))
+      const { value } = utxo
+      if (value) {
+        setValue(formatNumber(value))
+        setFiatValue(formatNumber(satsToFiat(value), 2) + ' ' + fiatCurrency)
+      }
     }
   }
 
@@ -125,81 +126,13 @@ function UtxoDetails({
             <SSSeparator color="gradient" />
           </>
         )}
-        <SSVStack>
-          <SSLabelDetails
-            label={utxo?.label || ''}
-            link={`/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${vout}/label`}
-            header={t('utxo.label')}
-          />
-        </SSVStack>
+        <SSLabelDetails
+          label={utxo?.label || ''}
+          link={`/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${vout}/label`}
+          header={t('utxo.label')}
+        />
         <SSSeparator color="gradient" />
-        {utxo && (
-          <>
-            <SSVStack gap="sm">
-              <SSText weight="bold" uppercase>
-                {t('common.amount')}
-              </SSText>
-              <SSClipboardCopy text={utxo.value.toString()}>
-                <SSVStack gap="xs">
-                  <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                    <SSStyledSatText
-                      amount={utxo.value}
-                      decimals={0}
-                      useZeroPadding={useZeroPadding}
-                      currency={currencyUnit}
-                      textSize="4xl"
-                      weight="light"
-                    />
-                    <SSText color="muted">
-                      {currencyUnit === 'btc'
-                        ? t('bitcoin.btc')
-                        : t('bitcoin.sats')}
-                    </SSText>
-                  </SSHStack>
-                  <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                    <SSText color="muted">
-                      {formatNumber(satsToFiat(utxo.value), 2)}
-                    </SSText>
-                    <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                      {fiatCurrency}
-                    </SSText>
-                  </SSHStack>
-                </SSVStack>
-              </SSClipboardCopy>
-            </SSVStack>
-            <SSSeparator color="gradient" />
-          </>
-        )}
         <SSVStack>
-          <SSHStack justifyBetween>
-            <SSVStack gap="none">
-              <SSText weight="bold" uppercase>
-                {t('common.date')}
-              </SSText>
-              <SSText color="muted" uppercase>
-                {blockTime}
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText weight="bold" uppercase>
-                {t('bitcoin.block')}
-              </SSText>
-              <SSText color="muted" uppercase>
-                {blockHeight}
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText weight="bold" uppercase>
-                {t('common.amount')}
-              </SSText>
-              <SSClipboardCopy text={amount}>
-                <SSText color="muted" uppercase>
-                  {amount} {amount !== placeholder ? t('bitcoin.sats') : ''}
-                </SSText>
-              </SSClipboardCopy>
-            </SSVStack>
-          </SSHStack>
-          <SSSeparator color="gradient" />
           <TouchableOpacity
             onPress={onPressAddress}
             activeOpacity={0.7}
@@ -240,14 +173,16 @@ function UtxoDetails({
             </>
           )}
           <SSSeparator color="gradient" />
-          <SSClipboardCopy text={vout || ''}>
-            <SSVStack gap="none">
-              <SSText weight="bold" uppercase>
-                {t('utxo.outputIndex')}
-              </SSText>
-              <SSText color="muted">{vout}</SSText>
-            </SSVStack>
-          </SSClipboardCopy>
+          <SSDetailsList
+            columns={2}
+            items={[
+              [t('common.date'), blockTime],
+              [t('bitcoin.block'), blockHeight],
+              [t('common.value'), value],
+              [t('common.valueFiat'), fiatValue],
+              [t('utxo.outputIndex'), vout]
+            ]}
+          />
           <SSSeparator color="gradient" />
           <SSVStack>
             <SSText weight="bold" uppercase>

@@ -6,8 +6,8 @@ import { useShallow } from 'zustand/react/shallow'
 import { getTransactionInputValues } from '@/api/bdk'
 import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSDetailsList, { SSDetailsListItem } from '@/components/SSDetailsList'
 import SSLabelDetails from '@/components/SSLabelDetails'
-import SSListItem from '@/components/SSListItem'
 import SSSeparator from '@/components/SSSeparator'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
@@ -135,40 +135,25 @@ export default function TxDetails() {
         </SSVStack>
         <SSSeparator color="gradient" />
         <SSClipboardCopy text={height}>
-          <SSListItem header={t('transaction.block')} text={height} />
+          <SSDetailsListItem header={t('transaction.block')} text={height} />
         </SSClipboardCopy>
         <SSSeparator color="gradient" />
         <SSClipboardCopy text={txid}>
-          <SSListItem header={t('transaction.hash')} text={txid} />
+          <SSDetailsListItem header={t('transaction.hash')} text={txid} />
         </SSClipboardCopy>
         <SSSeparator color="gradient" />
-        <SSHStack>
-          <SSListItem header={t('transaction.size')} text={size} width="33%" />
-          <SSListItem
-            header={t('transaction.weight')}
-            text={weight}
-            width="33%"
-          />
-          <SSListItem
-            header={t('transaction.vsize')}
-            text={vsize}
-            width="33%"
-          />
-        </SSHStack>
-        <SSSeparator color="gradient" />
-        <SSHStack>
-          <SSListItem header={t('transaction.fee')} text={fee} width="33%" />
-          <SSListItem
-            header={t('transaction.feeBytes')}
-            text={feePerByte}
-            width="33%"
-          />
-          <SSListItem
-            header={t('transaction.feeVBytes')}
-            text={feePerVByte}
-            width="33%"
-          />
-        </SSHStack>
+        <SSDetailsList
+          columns={3}
+          headerSize="sm"
+          items={[
+            [t('transaction.size'), size],
+            [t('transaction.weight'), weight],
+            [t('transaction.vsize'), vsize],
+            [t('transaction.fee'), fee],
+            [t('transaction.feeBytes'), feePerByte],
+            [t('transaction.feeVBytes'), feePerVByte]
+          ]}
+        />
         <SSSeparator color="gradient" />
         <SSVStack gap="sm">
           <SSText
@@ -191,11 +176,13 @@ export default function TxDetails() {
             {t('transaction.details.title')}
           </SSText>
         </SSVStack>
-        <SSListItem header={t('transaction.version')} text={version} />
-        <SSListItem header={t('transaction.input.count')} text={inputsCount} />
-        <SSListItem
-          header={t('transaction.output.count')}
-          text={outputsCount}
+        <SSDetailsList
+          columns={3}
+          items={[
+            [t('transaction.version'), version],
+            [t('transaction.input.count'), inputsCount],
+            [t('transaction.output.count'), outputsCount]
+          ]}
         />
         <SSTransactionVinList vin={tx.vin} />
         <SSTransactionVoutList

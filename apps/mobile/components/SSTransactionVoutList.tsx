@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { TouchableOpacity } from 'react-native'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
-import SSListItem from '@/components/SSListItem'
+import { SSDetailsListItem } from '@/components/SSDetailsList'
 import SSScriptDecoded from '@/components/SSScriptDecoded'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
@@ -77,7 +77,10 @@ export default function SSTransactionVoutList({
             <SSText weight="bold" center>
               {t('transaction.output.title')} {index}
             </SSText>
-            <SSListItem header={t('transaction.value')} text={output.value} />
+            <SSDetailsListItem
+              header={t('transaction.value')}
+              text={output.value}
+            />
             <TouchableOpacity
               onPress={() => {
                 if (addressDict[output.address]) {

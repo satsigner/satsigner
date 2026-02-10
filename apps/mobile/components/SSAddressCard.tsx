@@ -9,6 +9,8 @@ import { t, tn } from '@/locales'
 import { type WatchedAddress } from '@/types/models/Address'
 
 import { SSIconEyeOn, SSIconTrash } from './icons'
+import SSDetailsList from './SSDetailsList'
+import { formatNumber } from '@/utils/format'
 
 type AddressCardProps = {
   address: WatchedAddress
@@ -53,49 +55,29 @@ export function AddressCard({
       </SSHStack>
       <SSAddressDisplay address={address.address} />
       {!address.new && (
-        <SSHStack justifyBetween gap="md">
-          <SSVStack gap="xxs" style={{ flex: 1 }}>
-            <SSText>
-              {tl('summary.balance')}{' '}
-              <SSStyledSatText
-                amount={address.summary.balance}
-                textSize="sm"
-                noColor
-              />
-              <SSText color="muted"> {t('bitcoin.sats')}</SSText>
-            </SSText>
-            {address.summary.satsInMempool > 0 && (
-              <SSText>
-                {tl('summary.balanceUncofirmed')}{' '}
-                <SSStyledSatText
-                  amount={address.summary.satsInMempool}
-                  textSize="sm"
-                  noColor
-                />
-                <SSText color="muted"> {t('bitcoin.sats')}</SSText>
-              </SSText>
-            )}
-            <SSText>
-              {tl('summary.utxo')}{' '}
-              <SSText weight="bold">{address.summary.utxos}</SSText>
-            </SSText>
-          </SSVStack>
-          <SSVStack gap="xxs" style={{ flex: 1 }}>
-            <SSText>
-              {tl('summary.tx')}{' '}
-              <SSText weight="bold">{address.summary.transactions}</SSText>
-            </SSText>
-            <SSText>
-              {t('common.label')}
-              {': '}
-              {address.label ? (
-                <SSText weight="bold">{address.label}</SSText>
-              ) : (
-                <SSText color="muted">{t('common.noLabel')}</SSText>
-              )}
-            </SSText>
-          </SSVStack>
-        </SSHStack>
+        <SSDetailsList
+          columns={2}
+          items={[
+            [tl('summary.balance'), address.summary.balance],
+            [
+              tl('summary.balanceUncofirmed'),
+              formatNumber(address.summary.satsInMempool)
+            ],
+            [
+              tl('summary.tx'),
+              formatNumber(address.summary.transactions)
+            ],
+            [
+              tl('summary.utxo'),
+              formatNumber(address.summary.utxos)
+            ],
+            [
+              t('common.label'),
+              address.label,
+              { width: '100%' },
+            ],
+          ]}
+        />
       )}
     </SSVStack>
   )
