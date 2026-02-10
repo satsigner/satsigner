@@ -23,10 +23,6 @@ type SSExploreBlockProps = {
   block: Block | null
 }
 
-/**
- * @param weight - The block weight in virtual bytes
- * @returns Percentage of the maximum block weight
- */
 function blockWeightPercentage(weight: number) {
   return (100 * weight) / 4_000_000
 }

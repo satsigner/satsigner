@@ -13,7 +13,6 @@ import SSLabelDetails from '@/components/SSLabelDetails'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
-import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -259,8 +258,8 @@ function AddressDetails() {
               <SSDetailsList
                 columns={1}
                 items={[
-                  [t('address.details.key.public')],
-                  [t('address.details.key.private')],
+                  [t('address.details.key.public'), ''],
+                  [t('address.details.key.private'), '']
                 ]}
               />
             </SSVStack>

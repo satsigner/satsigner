@@ -1,4 +1,3 @@
-import type { Block } from '@/types/models/Blockchain'
 import type { EsploraTx, EsploraUtxo } from '@/types/models/Esplora'
 import { parseHexToBytes } from '@/utils/parse'
 

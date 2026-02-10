@@ -138,7 +138,11 @@ export default function TxDetails() {
           headerSize="sm"
           items={[
             [t('transaction.block'), height, { width: '100%' }],
-            [t('transaction.hash'), txid, { width: '100%', copyToClipboard: true }],
+            [
+              t('transaction.hash'),
+              txid,
+              { width: '100%', copyToClipboard: true }
+            ],
             [t('transaction.size'), size],
             [t('transaction.weight'), weight],
             [t('transaction.vsize'), vsize],

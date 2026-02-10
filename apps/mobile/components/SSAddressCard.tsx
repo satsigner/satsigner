@@ -1,16 +1,15 @@
 import { TouchableOpacity } from 'react-native'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
-import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn } from '@/locales'
 import { type WatchedAddress } from '@/types/models/Address'
+import { formatNumber } from '@/utils/format'
 
 import { SSIconEyeOn, SSIconTrash } from './icons'
 import SSDetailsList from './SSDetailsList'
-import { formatNumber } from '@/utils/format'
 
 type AddressCardProps = {
   address: WatchedAddress
@@ -63,19 +62,9 @@ export function AddressCard({
               tl('summary.balanceUncofirmed'),
               formatNumber(address.summary.satsInMempool)
             ],
-            [
-              tl('summary.tx'),
-              formatNumber(address.summary.transactions)
-            ],
-            [
-              tl('summary.utxo'),
-              formatNumber(address.summary.utxos)
-            ],
-            [
-              t('common.label'),
-              address.label,
-              { width: '100%' },
-            ],
+            [tl('summary.tx'), formatNumber(address.summary.transactions)],
+            [tl('summary.utxo'), formatNumber(address.summary.utxos)],
+            [t('common.label'), address.label, { width: '100%' }]
           ]}
         />
       )}
