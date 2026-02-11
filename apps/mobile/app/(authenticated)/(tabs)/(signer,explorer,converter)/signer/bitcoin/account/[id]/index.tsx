@@ -539,7 +539,7 @@ function DerivedAddresses({
                     marginTop: 10,
                     width: SCREEN_WIDTH * 0.88
                   }}
-                  label={t('address.list.btn.loadMore')}
+                  label={t('common.loadMore')}
                   disabled={isLoadingAddresses}
                   onPress={loadMoreAddresses}
                 />
@@ -571,7 +571,7 @@ function DerivedAddresses({
               variant="outline"
               uppercase
               style={{ marginTop: 10, alignSelf: 'stretch' }}
-              label={t('address.list.btn.loadMore')}
+              label={t('common.loadMore')}
               disabled={isLoadingAddresses}
               onPress={loadMoreAddresses}
             />
