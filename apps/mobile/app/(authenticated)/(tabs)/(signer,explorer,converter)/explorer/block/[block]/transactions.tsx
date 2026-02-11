@@ -15,6 +15,7 @@ import SSTransactionVoutList from '@/components/SSTransactionVoutList'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import type { Block, Tx } from '@/types/models/Blockchain'
@@ -172,7 +173,9 @@ export default function BlockTransactions() {
               return (
                 <SSVStack key={txid} gap="none" style={styles.txListItem}>
                   <SSText weight="bold">
-                    {index !== 0 ? `#${index}` : `#${index} [MINER COINBASE]`}
+                    {index !== 0
+                      ? `#${index}`
+                      : `#${index} [${t('transaction.coinbase')}]`}
                   </SSText>
                   <SSClipboardCopy text={txid}>
                     <SSText type="mono">{txid}</SSText>
@@ -181,33 +184,39 @@ export default function BlockTransactions() {
                     <SSVStack gap="xs" style={{ marginVertical: 20 }}>
                       <SSHStack gap="none">
                         <SSVStack style={{ width: '50%' }} gap="none">
-                          <SSText weight="bold">Amount</SSText>
+                          <SSText weight="bold">{t('common.amount')}</SSText>
                           <SSText color="muted">
                             {formatNumber(tx.amount)}
                           </SSText>
                         </SSVStack>
                         <SSVStack style={{ width: '50%' }} gap="none">
-                          <SSText weight="bold">Fee</SSText>
+                          <SSText weight="bold">{t('preview.fee')}</SSText>
                           <SSText color="muted">{formatNumber(tx.fee)}</SSText>
                         </SSVStack>
                       </SSHStack>
                       <SSHStack gap="none">
                         <SSVStack style={{ width: '50%' }} gap="none">
-                          <SSText weight="bold">Inputs</SSText>
+                          <SSText weight="bold">
+                            {t('preview.inputPlural')}
+                          </SSText>
                           <SSText color="muted">{tx.vin.length}</SSText>
                         </SSVStack>
                         <SSVStack style={{ width: '50%' }} gap="none">
-                          <SSText weight="bold">Outputs</SSText>
+                          <SSText weight="bold">{t('preview.outputs')}</SSText>
                           <SSText color="muted">{tx.vout.length}</SSText>
                         </SSVStack>
                       </SSHStack>
                       <SSHStack gap="none">
                         <SSVStack style={{ width: '50%' }} gap="none">
-                          <SSText weight="bold">Locktime</SSText>
+                          <SSText weight="bold">
+                            {t('transaction.decoded.label.locktime')}
+                          </SSText>
                           <SSText color="muted">{tx.locktime}</SSText>
                         </SSVStack>
                         <SSVStack style={{ width: '50%' }} gap="none">
-                          <SSText weight="bold">Version</SSText>
+                          <SSText weight="bold">
+                            {t('transaction.decoded.label.version')}
+                          </SSText>
                           <SSText color="muted">{tx.version}</SSText>
                         </SSVStack>
                       </SSHStack>
@@ -247,7 +256,7 @@ export default function BlockTransactions() {
                     {!tx && !requestStatuses[txid]?.status && (
                       <TouchableOpacity onPress={() => loadTxData(txid)}>
                         <SSText size="xs" color="muted">
-                          Show more
+                          {t('common.showMore')}
                         </SSText>
                       </TouchableOpacity>
                     )}
@@ -255,7 +264,7 @@ export default function BlockTransactions() {
                       <SSHStack gap="sm" style={{ alignItems: 'center' }}>
                         <ActivityIndicator />
                         <SSText size="xs" color="muted">
-                          Loading ...
+                          {t('common.loadingx')}
                         </SSText>
                       </SSHStack>
                     )}
@@ -264,7 +273,7 @@ export default function BlockTransactions() {
                         onPress={() => setTxVerbosity(txid, tx.verbosity - 1)}
                       >
                         <SSText size="xs" color="muted">
-                          Show less
+                          {t('common.showLess')}
                         </SSText>
                       </TouchableOpacity>
                     )}
@@ -273,7 +282,7 @@ export default function BlockTransactions() {
                         onPress={() => setTxVerbosity(txid, tx.verbosity + 1)}
                       >
                         <SSText size="xs" color="muted">
-                          Show more
+                          {t('common.showMore')}
                         </SSText>
                       </TouchableOpacity>
                     )}
@@ -282,7 +291,7 @@ export default function BlockTransactions() {
               )
             })}
           </SSVStack>
-          <SSButton label="Load more" onPress={showMoreTxIds} />
+          <SSButton label={t('common.loadMore')} onPress={showMoreTxIds} />
         </SSVStack>
       </ScrollView>
     </SSMainLayout>

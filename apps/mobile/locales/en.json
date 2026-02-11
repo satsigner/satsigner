@@ -849,6 +849,7 @@
     "block.txCount": "Transactions",
     "block.version": "Version",
     "block.weight": "Weight",
+    "block.transactions.title": "Transactions - Block %{block}",
     "chain.title": "Chain",
     "chaintip.title": "Chain Tip",
     "difficulty.avgBlock": "Average Block Time (current)",
