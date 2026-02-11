@@ -8,6 +8,7 @@ import { type Network } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { parseHexToBytes } from '@/utils/parse'
 import { bytesToHex } from '@/utils/scripts'
+import { time } from '@/utils/time'
 import { TxDecoded } from '@/utils/txDecoded'
 import { isValidDomainName, isValidIPAddress } from '@/utils/validation/url'
 
@@ -90,7 +91,7 @@ class ModifiedClient extends BlueWalletElectrumClient {
   // INFO: Override the default timeout for keeping client alive
   keepAlive() {
     if (this.timeout != null) clearTimeout(this.timeout)
-    const now = new Date().getTime()
+    const now = time.now()
     this.timeout = setTimeout(() => {
       if (this.timeLastCall !== 0 && now > this.timeLastCall + 500_000) {
         const pingTimer = setTimeout(() => {

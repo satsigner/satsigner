@@ -62,7 +62,8 @@ const createDefaultNetworkConfig = (
     retries: DEFAULT_RETRIES,
     stopGap: DEFAULT_STOP_GAP,
     connectionMode: 'auto',
-    connectionTestInterval: 60
+    connectionTestInterval: 60,
+    timeDiffBeforeAutoSync: 30
   }
 })
 

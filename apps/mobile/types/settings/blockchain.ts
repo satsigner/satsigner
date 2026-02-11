@@ -21,5 +21,8 @@ export type Config = {
   retries: number
   stopGap: number
   connectionMode: 'auto' | 'manual'
+  /* INFO: seconds before testing current connection */
   connectionTestInterval: number
+  /* INFO: minutes before next auto-sync given last sync timestamp */
+  timeDiffBeforeAutoSync: number
 }
