@@ -33,12 +33,9 @@ import {
   updatePromiseStatus
 } from '@/utils/promises'
 
-type Txs = Record<
+type Transations = Record<
   Tx['txid'],
-  Tx & {
-    amount: number
-    verbosity: number
-  }
+  Tx & { amount: number; verbosity: number }
 >
 
 export default function BlockTransactions() {
@@ -52,7 +49,7 @@ export default function BlockTransactions() {
   )
 
   const [block, setBlock] = useState<Block | undefined>()
-  const [blockTxs, setBlockTxs] = useState<Txs>({})
+  const [blockTxs, setBlockTxs] = useState<Transations>({})
   const [blockTxids, setBlockTxids] = useState<Tx['txid'][]>([])
   const [visibleTxCount, setVisibleTxCount] = useState(10)
   const [requestStatuses, setRequestStatuses] = useState<PromiseStatuses>({

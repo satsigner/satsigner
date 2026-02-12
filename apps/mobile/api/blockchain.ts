@@ -31,35 +31,35 @@ export class MempoolOracle implements BlockchainOracle {
 
   async get(endpoint: string) {
     return fetch(this.baseUrl + endpoint).then((response: any) => {
-      return response.json()
+      return response.json() as any
     })
   }
 
   async getText(endpoint: string) {
-    return fetch(this.baseUrl + endpoint).then((response: any) =>
-      response.text()
-    )
+    return fetch(this.baseUrl + endpoint).then((response: any) => {
+      return response.text() as string
+    })
   }
 
   async getBinary(endpoint: string) {
-    return fetch(this.baseUrl + endpoint).then((response: any) =>
-      response.arrayBuffer()
-    )
+    return fetch(this.baseUrl + endpoint).then((response: any) => {
+      return response.arrayBuffer() as ArrayBuffer
+    })
   }
 
-  async getAddressUtxos(address: string): Promise<UTXO[]> {
-    const data = await this.get(`/address/${address}/utxo`)
-    return data as UTXO[]
+  async getAddressUtxos(address: string) {
+    const data: UTXO[] = await this.get(`/address/${address}/utxo`)
+    return data
   }
 
-  async getBlock(blkid: string): Promise<Block> {
-    const data = await this.get(`/block/${blkid}`)
-    return data as Block
+  async getBlock(blkid: string) {
+    const data: Block = await this.get(`/block/${blkid}`)
+    return data
   }
 
-  async getBlockRaw(blkid: string): Promise<ArrayBuffer> {
-    const data = await this.getBinary(`/block/${blkid}/raw`)
-    return data as ArrayBuffer
+  async getBlockRaw(blkid: string) {
+    const data: ArrayBuffer = await this.getBinary(`/block/${blkid}/raw`)
+    return data
   }
 
   async getBlockAtHeight(height: number): Promise<Block> {
@@ -67,49 +67,51 @@ export class MempoolOracle implements BlockchainOracle {
     return this.getBlock(blockHash)
   }
 
-  async getBlockAt(timestamp: number): Promise<Block> {
+  async getBlockAt(timestamp: number) {
     const data: any = await this.get(`/v1/mining/blocks/timestamp/${timestamp}`)
     const blockId = data.hash
     const block = await this.getBlock(blockId)
     return block
   }
 
-  async getBlockStatus(blkid: string): Promise<BlockStatus> {
-    const data: any = await this.get(`/block/${blkid}/status`)
-    return data as BlockStatus
+  async getBlockStatus(blkid: string) {
+    const data: BlockStatus = await this.get(`/block/${blkid}/status`)
+    return data
   }
 
-  async getBlockTransactions(blkid: string): Promise<Tx[]> {
-    const data: any = await this.get(`/block/${blkid}/txs`)
-    return data as Tx[]
+  async getBlockTransactions(blkid: string) {
+    const data: Tx[] = await this.get(`/block/${blkid}/txs`)
+    return data
   }
 
-  async getBlockTransactionIds(blkid: string): Promise<Tx['txid'][]> {
-    const data: any = await this.get(`/block/${blkid}/txids`)
-    return data as Tx['txid'][]
+  async getBlockTransactionIds(blkid: string) {
+    const data: Tx['txid'][] = await this.get(`/block/${blkid}/txids`)
+    return data
   }
 
-  async getCurrentBlockHeight(): Promise<number> {
+  async getCurrentBlockHeight() {
     const height = await this.getText(`/blocks/tip/height`)
     return Number(height)
   }
 
-  async getCurrentBlockHash(): Promise<string> {
+  async getCurrentBlockHash() {
     return this.getText(`/blocks/tip/hash`)
   }
 
-  async getCurrentFeeRate(priority: TxPriority): Promise<number> {
+  async getCurrentFeeRate(priority: TxPriority) {
     const feeRates: MemPoolFees = await this.getMemPoolFees()
     return feeRates[priority]
   }
 
-  async getBlockFeeRates(period: string): Promise<BlockFeeRates[]> {
-    const data: any = await this.get(`/v1/mining/blocks/fee-rates/${period}`)
+  async getBlockFeeRates(period: string) {
+    const data: BlockFeeRates = await this.get(
+      `/v1/mining/blocks/fee-rates/${period}`
+    )
     return data
   }
 
-  async getMempoolStatistics(period: string): Promise<MempoolStatistics[]> {
-    const data: any = await this.get(`/v1/statistics/${period}`)
+  async getMempoolStatistics(period: string) {
+    const data: MempoolStatistics = await this.get(`/v1/statistics/${period}`)
     return data
   }
 
@@ -124,13 +126,15 @@ export class MempoolOracle implements BlockchainOracle {
   }
 
   async getDifficultyAdjustment(): Promise<DifficultyAdjustment> {
-    const data: any = await this.get(`/v1/difficulty-adjustment`)
-    return data as DifficultyAdjustment
+    const data: DifficultyAdjustment = await this.get(
+      `/v1/difficulty-adjustment`
+    )
+    return data
   }
 
   async getMemPool(): Promise<MemPool> {
-    const data: any = await this.get(`/mempool`)
-    return data as MemPool
+    const data: MemPool = await this.get(`/mempool`)
+    return data
   }
 
   async getMemPoolFees(): Promise<MemPoolFees> {
@@ -144,7 +148,7 @@ export class MempoolOracle implements BlockchainOracle {
     return fees
   }
 
-  async getMemPoolBlocks(): Promise<MemPoolBlock[]> {
+  async getMemPoolBlocks() {
     const data: MemPoolBlock[] = await this.get(`/v1/fees/mempool-blocks`)
     return data
   }
@@ -220,10 +224,7 @@ export class MempoolOracle implements BlockchainOracle {
     return priceValues
   }
 
-  async getPricesTxInputs(
-    currency: Currency,
-    txid: string
-  ): Promise<PriceValue[]> {
+  async getPricesTxInputs(currency: Currency, txid: string) {
     const tx: Tx = await this.getTransaction(txid)
     const timestamp = tx.status.block_time
     const fiatPrice = await this.getPriceAt(currency, timestamp)
@@ -236,10 +237,7 @@ export class MempoolOracle implements BlockchainOracle {
     return priceValues
   }
 
-  async getPricesTxOuputs(
-    currency: Currency,
-    txid: string
-  ): Promise<PriceValue[]> {
+  async getPricesTxOuputs(currency: Currency, txid: string) {
     const tx: Tx = await this.getTransaction(txid)
     const timestamp = tx.status.block_time
     const fiatPrice = await this.getPriceAt(currency, timestamp)
@@ -252,23 +250,23 @@ export class MempoolOracle implements BlockchainOracle {
     return priceValues
   }
 
-  async getTransaction(txid: string): Promise<Tx> {
-    const data: any = await this.get(`/tx/${txid}`)
-    return data as Tx
+  async getTransaction(txid: string) {
+    const data: Tx = await this.get(`/tx/${txid}`)
+    return data
   }
 
-  async getTransactionHex(txid: string): Promise<string> {
+  async getTransactionHex(txid: string) {
     const data: string = await this.getText(`/tx/${txid}`)
     return data
   }
 
-  async getTransactionOutspends(txid: string): Promise<TxOutspend[]> {
-    const data: any = await this.getText(`/tx/${txid}/outspends`)
-    return data as TxOutspend[]
+  async getTransactionOutspends(txid: string) {
+    const data: TxOutspend[] = await this.get(`/tx/${txid}/outspends`)
+    return data
   }
 
   async getTransactionStatus(txid: string): Promise<TxStatus> {
-    const data: any = await this.getText(`/tx/${txid}/status`)
-    return data as TxStatus
+    const data: TxStatus = await this.get(`/tx/${txid}/status`)
+    return data
   }
 }
