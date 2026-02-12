@@ -83,7 +83,12 @@ export default function AccountSettings() {
         total: account?.addresses?.length || 0
       }
     }
-  }, [account?.labels, account?.transactions, account?.utxos, account?.addresses])
+  }, [
+    account?.labels,
+    account?.transactions,
+    account?.utxos,
+    account?.addresses
+  ])
 
   function getPolicyTypeButtonLabel() {
     switch (account?.policyType) {
