@@ -10,7 +10,18 @@ export type PromiseStatusObj = {
 
 export type PromiseStatuses = Record<PromiseName, PromiseStatusObj>
 
-export function updatePromiseStatus(
+export function initPromiseStatuses(promiseNames: string[]) {
+  return promiseNames.reduce((initialStatuses, promiseName) => {
+    return {
+      ...initialStatuses,
+      [promiseName]: {
+        status: 'idle'
+      }
+    }
+  }, {}) as PromiseStatuses
+}
+
+export function setPromiseStatus(
   statuses: PromiseStatuses,
   name: PromiseName,
   newStatus: PromiseStatus
@@ -24,33 +35,33 @@ export function updatePromiseStatus(
   }
 }
 
-export function markPromisePending(
+export function setPromisePending(
   statuses: PromiseStatuses,
   name: PromiseName
 ) {
   return {
     ...statuses,
     [name]: {
-      name,
+      ...(statuses[name] || {}),
       status: 'pending'
     }
   } as PromiseStatuses
 }
 
-export function markPromiseSuccessful(
+export function setPromiseSuccessful(
   statuses: PromiseStatuses,
   name: PromiseName
 ) {
   return {
     ...statuses,
     [name]: {
-      name,
+      ...(statuses[name] || {}),
       status: 'success'
     }
   } as PromiseStatuses
 }
 
-export function markPromiseError(
+export function setPromiseError(
   statuses: PromiseStatuses,
   name: PromiseName,
   error?: string
@@ -58,7 +69,7 @@ export function markPromiseError(
   return {
     ...statuses,
     [name]: {
-      name,
+      ...(statuses[name] || {}),
       status: 'error',
       error: error || ''
     }

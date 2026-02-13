@@ -1,8 +1,8 @@
 import { useLocalSearchParams } from 'expo-router'
+import { produce } from 'immer'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
-import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import Esplora from '@/api/esplora'
@@ -12,6 +12,7 @@ import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import SSTransactionVinList from '@/components/SSTransactionVinList'
 import SSTransactionVoutList from '@/components/SSTransactionVoutList'
+import { usePromiseStatuses } from '@/hooks/usePromiseStatus'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -21,17 +22,6 @@ import { Colors } from '@/styles'
 import type { Block, Tx } from '@/types/models/Blockchain'
 import type { ExplorerBlockSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
-import {
-  updateNestedObject,
-  updateNestedObjectPartially
-} from '@/utils/objects'
-import {
-  markPromiseError,
-  markPromisePending,
-  markPromiseSuccessful,
-  type PromiseStatuses,
-  updatePromiseStatus
-} from '@/utils/promises'
 
 type Transations = Record<
   Tx['txid'],
@@ -52,9 +42,8 @@ export default function BlockTransactions() {
   const [blockTxs, setBlockTxs] = useState<Transations>({})
   const [blockTxids, setBlockTxids] = useState<Tx['txid'][]>([])
   const [visibleTxCount, setVisibleTxCount] = useState(10)
-  const [requestStatuses, setRequestStatuses] = useState<PromiseStatuses>({
-    txs: { status: 'unstarted' }
-  })
+  const { statuses: requestStatuses, runPromise: runRequest } =
+    usePromiseStatuses(['tx'])
 
   async function fetchBlock() {
     const data = await esploraClient.getBlockInfo(blockHash)
@@ -62,16 +51,14 @@ export default function BlockTransactions() {
   }
 
   async function fetchBlockTransactions() {
-    setRequestStatuses((value) => updatePromiseStatus(value, 'tx', 'pending'))
-    try {
-      const blockTxids = await esploraClient.getBlockTransactionIds(blockHash)
-      setBlockTxids(blockTxids)
-      setRequestStatuses((value) => updatePromiseStatus(value, 'tx', 'success'))
-    } catch {
-      const err = 'Failed to fetch block transactions'
-      setRequestStatuses((value) => markPromiseError(value, 'txs', err))
-      toast.error(err)
-    }
+    await runRequest({
+      name: 'tx',
+      callback: async () => {
+        const blockTxids = await esploraClient.getBlockTransactionIds(blockHash)
+        setBlockTxids(blockTxids)
+      },
+      errorMessage: 'Failed to fetch block transactions'
+    })
   }
 
   function showMoreTxIds() {
@@ -79,28 +66,29 @@ export default function BlockTransactions() {
   }
 
   async function loadTxData(txid: Tx['txid']) {
-    setRequestStatuses((value) => markPromisePending(value, txid))
-
-    try {
-      const txInfo = await esploraClient.getTxInfo(txid)
-      setBlockTxs((txs) =>
-        updateNestedObject(txs, txid, {
-          ...txInfo,
-          amount: txInfo.vout.reduce((val, out) => val + out.value, 0),
-          verbosity: 1
-        })
-      )
-      setRequestStatuses((value) => markPromiseSuccessful(value, txid))
-    } catch {
-      const err = 'Failed to get tx info'
-      setRequestStatuses((value) => markPromiseError(value, txid, err))
-      toast.error(err)
-    }
+    await runRequest({
+      name: txid,
+      callback: async () => {
+        const txInfo = await esploraClient.getTxInfo(txid)
+        setBlockTxs((txs) =>
+          produce(txs, (draft) => {
+            draft[txid] = {
+              ...txInfo,
+              amount: txInfo.vout.reduce((val, out) => val + out.value, 0),
+              verbosity: 1
+            }
+          })
+        )
+      },
+      errorMessage: 'Failed to get tx info'
+    })
   }
 
   function setTxVerbosity(txid: Tx['txid'], verbosity: number) {
     setBlockTxs((txs) =>
-      updateNestedObjectPartially(txs, txid, 'verbosity', verbosity)
+      produce(txs, (draft) => {
+        draft[txid]['verbosity'] = verbosity
+      })
     )
   }
 
