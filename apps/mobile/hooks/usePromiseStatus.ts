@@ -46,8 +46,8 @@ export function usePromiseStatuses(promiseNames: string[] = []) {
     }
   }
 
-  return {
-    statuses,
-    runPromise
-  }
+  return [statuses, runPromise] as [
+    PromiseStatuses,
+    (args: runPromiseProps) => Promise<void>
+  ]
 }

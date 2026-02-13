@@ -43,8 +43,7 @@ export default function BlockTransactions() {
   const [blockTxs, setBlockTxs] = useState<Transations>({})
   const [blockTxids, setBlockTxids] = useState<Tx['txid'][]>([])
   const [visibleTxCount, setVisibleTxCount] = useState(10)
-  const { statuses: requestStatuses, runPromise: runRequest } =
-    usePromiseStatuses(['tx'])
+  const [requestStatuses, runRequest] = usePromiseStatuses(['tx'])
 
   async function fetchBlock() {
     const data = await esploraClient.getBlockInfo(blockHash)
