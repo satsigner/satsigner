@@ -59,9 +59,7 @@ describe('parse utils', () => {
     })
 
     it('should parse address with amount and label', () => {
-      const result = parseUriParameters(
-        'bc1qtest123?amount=0.001&label=Coffee'
-      )
+      const result = parseUriParameters('bc1qtest123?amount=0.001&label=Coffee')
       expect(result).toEqual({
         address: 'bc1qtest123',
         amount: 0.001,
@@ -83,7 +81,6 @@ describe('parse utils', () => {
       })
     })
   })
-
 
   describe('parseLabel', () => {
     it('should return label with no tags', () => {
