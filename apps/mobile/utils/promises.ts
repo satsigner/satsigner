@@ -1,6 +1,6 @@
 export type PromiseName = string
 
-export type PromiseStatus = 'unstarted' | 'pending' | 'success' | 'error'
+export type PromiseStatus = 'idle' | 'pending' | 'success' | 'error'
 
 export type PromiseStatusObj = {
   name?: PromiseName
@@ -59,7 +59,7 @@ export function markPromiseError(
     ...statuses,
     [name]: {
       name,
-      status: 'errir',
+      status: 'error',
       error: error || ''
     }
   } as PromiseStatuses

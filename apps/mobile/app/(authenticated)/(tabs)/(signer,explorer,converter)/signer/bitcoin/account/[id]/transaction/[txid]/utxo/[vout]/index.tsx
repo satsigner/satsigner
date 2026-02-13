@@ -82,7 +82,8 @@ function UtxoDetails({
       const { value } = utxo
       if (value) {
         setValue(formatNumber(value))
-        setFiatValue(formatNumber(satsToFiat(value), 2) + ' ' + fiatCurrency)
+        const fiatValue = formatNumber(satsToFiat(value), 2)
+        setFiatValue(`${fiatValue} ${fiatCurrency}`)
       }
     }
   }

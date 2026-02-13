@@ -26,9 +26,9 @@ function blockWeightPercentage(weight: number) {
 
 function formatBlockDate(timestamp?: number) {
   if (!timestamp) return ''
-  return (
-    formatDate(timestamp * 1000) + ' ' + formatTime(new Date(timestamp * 1000))
-  )
+  const date = formatDate(timestamp * 1000)
+  const time = formatTime(new Date(timestamp * 1000))
+  return `${date} ${time}`
 }
 
 function formatBlockHash(hash?: string) {
