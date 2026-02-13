@@ -6,15 +6,12 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type Block as BaseBlock } from '@/types/models/Blockchain'
+import type { PartialSome } from '@/types/utils'
 import { formatDate, formatNumber, formatTime } from '@/utils/format'
 
 import SSDetailsList from './SSDetailsList'
 
-type SomePartial<T, K extends keyof T> = Omit<T, K> & {
-  [P in K]: T[P] | undefined
-}
-
-export type Block = SomePartial<
+export type Block = PartialSome<
   BaseBlock,
   'merkle_root' | 'mediantime' | 'tx_count' | 'previousblockhash'
 >
