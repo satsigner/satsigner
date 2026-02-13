@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from 'expo-router'
 import { produce } from 'immer'
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -9,6 +9,7 @@ import Esplora from '@/api/esplora'
 import { SSIconWarning } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSDetailsList from '@/components/SSDetailsList'
 import SSText from '@/components/SSText'
 import SSTransactionVinList from '@/components/SSTransactionVinList'
 import SSTransactionVoutList from '@/components/SSTransactionVoutList'
@@ -102,10 +103,7 @@ export default function BlockTransactions() {
     return (
       <SSMainLayout>
         <SSVStack>
-          <SSText>
-            This page is only available to Esplora backends. Please choose a
-            Esplora-compatible backend in Network Settings.
-          </SSText>
+          <SSText>{t('explorer.block.transactions.wrongBackend')}</SSText>
         </SSVStack>
       </SSMainLayout>
     )
@@ -120,13 +118,12 @@ export default function BlockTransactions() {
             gap="sm"
           >
             <SSIconWarning height={16} width={16} />
-            <SSText>Error while fetching transactions</SSText>
-            <SSIconWarning height={16} width={16} />
+            <SSText>{requestStatuses['txs'].error}</SSText>
           </SSHStack>
-          <SSText center type="mono">
-            {requestStatuses['txs'].error}
-          </SSText>
-          <SSButton label="FETCH" onPress={fetchBlockTransactions} />
+          <SSButton
+            label={t('common.fetch')}
+            onPress={fetchBlockTransactions}
+          />
         </SSVStack>
       </SSMainLayout>
     )
@@ -136,7 +133,7 @@ export default function BlockTransactions() {
     return (
       <SSMainLayout>
         <SSVStack itemsCenter>
-          <SSText size="md">Loading block transactions... </SSText>
+          <SSText size="md">{t('common.loadingX')}</SSText>
           <ActivityIndicator size="large" />
         </SSVStack>
       </SSMainLayout>
@@ -149,7 +146,9 @@ export default function BlockTransactions() {
         <SSVStack>
           <SSVStack itemsCenter gap="none">
             <SSText center size="md">
-              {`Transactions — Block #${block?.height}`}
+              {t('explorer.block.transactions.title', {
+                block: block?.height || '?'
+              })}
             </SSText>
           </SSVStack>
           <SSVStack gap="none">
@@ -166,46 +165,17 @@ export default function BlockTransactions() {
                     <SSText type="mono">{txid}</SSText>
                   </SSClipboardCopy>
                   {tx?.verbosity > 0 && (
-                    <SSVStack gap="xs" style={{ marginVertical: 20 }}>
-                      <SSHStack gap="none">
-                        <SSVStack style={{ width: '50%' }} gap="none">
-                          <SSText weight="bold">{t('common.amount')}</SSText>
-                          <SSText color="muted">
-                            {formatNumber(tx.amount)}
-                          </SSText>
-                        </SSVStack>
-                        <SSVStack style={{ width: '50%' }} gap="none">
-                          <SSText weight="bold">{t('preview.fee')}</SSText>
-                          <SSText color="muted">{formatNumber(tx.fee)}</SSText>
-                        </SSVStack>
-                      </SSHStack>
-                      <SSHStack gap="none">
-                        <SSVStack style={{ width: '50%' }} gap="none">
-                          <SSText weight="bold">
-                            {t('preview.inputPlural')}
-                          </SSText>
-                          <SSText color="muted">{tx.vin.length}</SSText>
-                        </SSVStack>
-                        <SSVStack style={{ width: '50%' }} gap="none">
-                          <SSText weight="bold">{t('preview.outputs')}</SSText>
-                          <SSText color="muted">{tx.vout.length}</SSText>
-                        </SSVStack>
-                      </SSHStack>
-                      <SSHStack gap="none">
-                        <SSVStack style={{ width: '50%' }} gap="none">
-                          <SSText weight="bold">
-                            {t('transaction.decoded.label.locktime')}
-                          </SSText>
-                          <SSText color="muted">{tx.locktime}</SSText>
-                        </SSVStack>
-                        <SSVStack style={{ width: '50%' }} gap="none">
-                          <SSText weight="bold">
-                            {t('transaction.decoded.label.version')}
-                          </SSText>
-                          <SSText color="muted">{tx.version}</SSText>
-                        </SSVStack>
-                      </SSHStack>
-                    </SSVStack>
+                    <View style={{ marginVertical: 20 }}>
+                      <SSDetailsList
+                        columns={2}
+                        items={[
+                          [t('common.amount'), formatNumber(tx.amount)],
+                          [t('preview.fee'), formatNumber(tx.fee)],
+                          [t('preview.inputPlural'), tx.vin.length],
+                          [t('preview.outputs'), tx.vout.length]
+                        ]}
+                      />
+                    </View>
                   )}
                   {tx?.verbosity > 1 && (
                     <SSVStack gap="xs" style={{ marginBottom: 20 }}>
