@@ -289,7 +289,7 @@ describe('nostr store', () => {
     it('sets and clears transaction data', () => {
       const { setTransactionToShare } = useNostrStore.getState()
       const txData = {
-        message: 'Please sign this transaction',
+        transaction: 'Please sign this transaction',
         transactionData: { combinedPsbt: psbts.simple }
       }
 
@@ -304,16 +304,16 @@ describe('nostr store', () => {
       const { setTransactionToShare } = useNostrStore.getState()
 
       setTransactionToShare({
-        message: 'First transaction',
+        transaction: 'First transaction',
         transactionData: { combinedPsbt: psbts.simple }
       })
 
       setTransactionToShare({
-        message: 'Second transaction',
+        transaction: 'Second transaction',
         transactionData: { combinedPsbt: psbts.multisig }
       })
 
-      expect(useNostrStore.getState().transactionToShare?.message).toBe(
+      expect(useNostrStore.getState().transactionToShare?.transaction).toBe(
         'Second transaction'
       )
     })
