@@ -11,7 +11,11 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type Transaction } from '@/types/models/Transaction'
+import { setClipboard } from '@/utils/clipboard'
+import { formatNumber } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
+
+import SSStyledSatText from './SSStyledSatText'
 
 type SSTransactionVoutListProps = {
   txid?: Transaction['id']
@@ -79,7 +83,9 @@ export default function SSTransactionVoutList({
             </SSText>
             <SSDetailsListItem
               header={t('transaction.value')}
-              text={output.value}
+              text={formatNumber(output.value, 0, false, ' ')}
+              headerSize="sm"
+              textSize="sm"
             />
             <TouchableOpacity
               onPress={() => {
@@ -87,11 +93,13 @@ export default function SSTransactionVoutList({
                   router.navigate(
                     `/signer/bitcoin/account/${accountId}/address/${output.address}`
                   )
+                } else {
+                  setClipboard(output.address)
                 }
               }}
             >
               <SSVStack gap="sm">
-                <SSText uppercase weight="bold" size="md">
+                <SSText uppercase weight="bold">
                   {t('bitcoin.address')}
                 </SSText>
                 <SSAddressDisplay
@@ -99,7 +107,7 @@ export default function SSTransactionVoutList({
                   copyToClipboard={false}
                   variant="bare"
                   color="muted"
-                  size="md"
+                  size="sm"
                 />
               </SSVStack>
             </TouchableOpacity>
@@ -114,7 +122,7 @@ export default function SSTransactionVoutList({
               </SSVStack>
             )}
             <SSVStack>
-              <SSText uppercase weight="bold" size="md">
+              <SSText uppercase weight="bold" size="sm">
                 {t('transaction.unlockingScript')}
               </SSText>
               <SSScriptDecoded script={output.script || []} />
