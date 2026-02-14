@@ -43,13 +43,8 @@ function SSScriptDecoded({ script }: SSScriptDecodedProps) {
                 {item}
               </SSText>
             )}
-            <SSText>
-              <SSText size="xs" weight="bold">
-                {t('common.description')}:{' '}
-              </SSText>
-              <SSText size="xs" color="muted">
-                {t(`opcode.${opcodeWord}`)}
-              </SSText>
+            <SSText size="xs" color="muted">
+              {t(`opcode.${opcodeWord}`)}
             </SSText>
           </SSVStack>
         )
