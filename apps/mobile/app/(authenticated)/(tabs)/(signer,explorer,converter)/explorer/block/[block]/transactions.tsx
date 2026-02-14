@@ -43,7 +43,7 @@ export default function BlockTransactions() {
   const [blockTxs, setBlockTxs] = useState<Transations>({})
   const [blockTxids, setBlockTxids] = useState<Tx['txid'][]>([])
   const [visibleTxCount, setVisibleTxCount] = useState(10)
-  const [requestStatuses, runRequest] = usePromiseStatuses(['tx'])
+  const [requestStatuses, runRequest] = usePromiseStatuses(['txs'])
 
   async function fetchBlock() {
     const data = await esploraClient.getBlockInfo(blockHash)
@@ -52,7 +52,7 @@ export default function BlockTransactions() {
 
   async function fetchBlockTransactions() {
     await runRequest({
-      name: 'tx',
+      name: 'txs',
       callback: async () => {
         const blockTxids = await esploraClient.getBlockTransactionIds(blockHash)
         setBlockTxids(blockTxids)
@@ -128,11 +128,14 @@ export default function BlockTransactions() {
     )
   }
 
-  if (requestStatuses['txs']?.status === 'pending') {
+  if (
+    requestStatuses['txs']?.status === 'idle' ||
+    requestStatuses['txs']?.status === 'pending'
+  ) {
     return (
       <SSMainLayout>
         <SSVStack itemsCenter>
-          <SSText size="md">{t('common.loadingX')}</SSText>
+          <SSText size="md">{t('common.loadingDots')}</SSText>
           <ActivityIndicator size="large" />
         </SSVStack>
       </SSMainLayout>
@@ -171,7 +174,7 @@ export default function BlockTransactions() {
                           [t('common.amount'), formatNumber(tx.amount)],
                           [t('preview.fee'), formatNumber(tx.fee)],
                           [t('preview.inputPlural'), tx.vin.length],
-                          [t('preview.outputs'), tx.vout.length]
+                          [t('preview.outputPlural'), tx.vout.length]
                         ]}
                       />
                     </View>
@@ -218,7 +221,7 @@ export default function BlockTransactions() {
                       <SSHStack gap="sm" style={{ alignItems: 'center' }}>
                         <ActivityIndicator />
                         <SSText size="xs" color="muted">
-                          {t('common.loadingx')}
+                          {t('common.loadingDots')}
                         </SSText>
                       </SSHStack>
                     )}
