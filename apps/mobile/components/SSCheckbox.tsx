@@ -52,7 +52,6 @@ function SSCheckbox({
   return (
     <TouchableOpacity
       onPress={() => (onPress && !disabled ? onPress(selected) : null)}
-      disabled={disabled === true}
     >
       <View style={[containerBase, containerStyle]}>
         <BouncyCheckbox

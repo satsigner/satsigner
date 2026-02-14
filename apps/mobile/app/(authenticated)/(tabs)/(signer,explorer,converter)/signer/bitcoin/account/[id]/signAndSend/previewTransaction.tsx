@@ -733,7 +733,7 @@ function PreviewTransaction() {
           const totalChunks = dataChunks.length
           for (let i = 0; i < totalChunks; i++) {
             const header = `p${i + 1}of${totalChunks}`
-            chunks.push(header + ' ' + dataChunks[i])
+            chunks.push(`${header} ${dataChunks[i]}`)
           }
 
           return chunks
@@ -759,7 +759,7 @@ function PreviewTransaction() {
       const totalChunks = dataChunks.length
       for (let i = 0; i < totalChunks; i++) {
         const header = `p${i + 1}of${totalChunks}`
-        chunks.push(header + ' ' + dataChunks[i])
+        chunks.push(`${header} ${dataChunks[i]}`)
       }
 
       return chunks
