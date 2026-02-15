@@ -74,8 +74,13 @@ describe('encryption utils', () => {
 
       expect(aesCrypto.sha256).toHaveBeenCalledTimes(2)
       expect(aesCrypto.sha256).toHaveBeenNthCalledWith(1, text)
-      expect(aesCrypto.sha256).toHaveBeenNthCalledWith(2, `hashed:${text}`)
-      expect(result).toBe(`hashed:hashed:${text}`)
+
+      const sha256Mock = aesCrypto.sha256 as jest.Mock
+      const firstHash = await sha256Mock.mock.results[0].value
+      expect(aesCrypto.sha256).toHaveBeenNthCalledWith(2, firstHash)
+
+      const secondHash = await sha256Mock.mock.results[1].value
+      expect(result).toBe(secondHash)
     })
   })
 })
