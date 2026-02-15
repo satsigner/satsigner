@@ -13,7 +13,6 @@ import {
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { MempoolOracle } from '@/api/blockchain'
 import { SSIconChevronLeft } from '@/components/icons'
 import SSAmountInput from '@/components/SSAmountInput'
 import SSBottomSheet from '@/components/SSBottomSheet'
@@ -29,15 +28,15 @@ import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { DUST_LIMIT } from '@/constants/btc'
+import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { processContentForOutput } from '@/hooks/useContentProcessor'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
+import useMempoolOracle from '@/hooks/useMempoolOracle'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
@@ -47,8 +46,15 @@ import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { checkWalletNeedsSync } from '@/utils/account'
+import { bip21decode } from '@/utils/bitcoin'
+import { detectContentByContext } from '@/utils/contentDetector'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { formatNumber } from '@/utils/format'
+import {
+  type ParsedUriParams,
+  parseUriParameters,
+  stripBitcoinPrefix
+} from '@/utils/parse'
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
 import { selectEfficientUtxos } from '@/utils/utxo'
@@ -93,14 +99,7 @@ export default function IOPreview() {
     ])
   )
 
-  const mempoolUrl = useBlockchainStore(
-    (state) => state.configsMempool[account?.network || 'bitcoin']
-  )
-  const mempoolOracle = useMemo(
-    () => new MempoolOracle(mempoolUrl),
-    [mempoolUrl]
-  )
-
+  const mempoolOracle = useMempoolOracle(account?.network || 'bitcoin')
   const wallet = useGetAccountWallet(id!)
   const [changeAddress, setChangeAddress] = useState('')
   const [shouldRemoveChange, setShouldRemoveChange] = useState(true)
@@ -204,18 +203,104 @@ export default function IOPreview() {
   const [originalOutputAmount, setOriginalOutputAmount] = useState(0)
   const [outputLabel, setOutputLabel] = useState('')
 
-  const { pasteFromClipboard } = useClipboardPaste({
-    onPaste: (content) => {
-      setOutputTo(content)
-    }
-  })
-
   const remainingSats = useMemo(
     () =>
       utxosSelectedValue -
       outputs.reduce((acc, output) => acc + output.amount, 0),
     [utxosSelectedValue, outputs]
   )
+
+  function applyParsedOutput(parsed: ParsedUriParams) {
+    setOutputTo(parsed.address)
+    if (parsed.amount !== undefined && parsed.amount > 0) {
+      const amountInSats = Math.round(parsed.amount * SATS_PER_BITCOIN)
+      setOutputAmount(amountInSats)
+    }
+    if (parsed.label !== undefined) {
+      setOutputLabel(parsed.label)
+    }
+  }
+
+  function tryDecodeBip21(content: string): ParsedUriParams | null {
+    let uriToDecode = content
+    if (!uriToDecode.toLowerCase().startsWith('bitcoin:')) {
+      uriToDecode = `bitcoin:${uriToDecode}`
+    }
+
+    const decodedData = bip21decode(uriToDecode)
+    if (decodedData && typeof decodedData === 'object') {
+      return {
+        address: decodedData.address,
+        amount: decodedData.options.amount || 0,
+        label: decodedData.options.label || ''
+      }
+    }
+    return null
+  }
+
+  async function tryParseUriWithValidation(
+    content: string
+  ): Promise<ParsedUriParams | null> {
+    const parsed = parseUriParameters(content)
+    if (!parsed) return null
+
+    const detectedContent = await detectContentByContext(
+      parsed.address,
+      'bitcoin'
+    )
+    if (!detectedContent.isValid) return null
+
+    return parsed
+  }
+
+  async function handlePasteFromClipboard(content: string) {
+    const trimmedContent = content.trim()
+
+    // Step 1: Try BIP21 decode
+    const bip21Result = tryDecodeBip21(trimmedContent)
+    if (bip21Result) {
+      applyParsedOutput(bip21Result)
+      return
+    }
+
+    // Step 2: Try manual URI parsing with validation
+    const processedContent = stripBitcoinPrefix(trimmedContent)
+    const uriResult = await tryParseUriWithValidation(processedContent)
+    if (uriResult && uriResult.amount !== undefined) {
+      applyParsedOutput(uriResult)
+      return
+    }
+
+    // Step 3: Try content detection
+    const detectedContent = await detectContentByContext(
+      processedContent,
+      'bitcoin'
+    )
+    if (detectedContent.isValid) {
+      const success = processContentForOutput(detectedContent, {
+        setOutputTo,
+        setOutputAmount,
+        setOutputLabel,
+        onError: () => setOutputTo(processedContent),
+        onWarning: () => {},
+        remainingSats
+      })
+      if (success) return
+    }
+
+    // Step 4: Fallback - set as plain address
+    setOutputTo(processedContent)
+  }
+
+  const { pasteFromClipboard } = useClipboardPaste({
+    onPaste: async (content) => {
+      try {
+        await handlePasteFromClipboard(content)
+      } catch {
+        setOutputTo(stripBitcoinPrefix(content.trim()))
+      }
+    }
+  })
 
   const transactionSize = useMemo(() => {
     const { size, vsize } = estimateTransactionSize(
@@ -338,7 +423,11 @@ export default function IOPreview() {
       (output) => output.localId === currentOutputLocalId
     )
 
-    const output = { to: outputTo, amount: outputAmount, label: outputLabel }
+    const output = {
+      to: stripBitcoinPrefix(outputTo),
+      amount: outputAmount,
+      label: outputLabel
+    }
 
     if (outputIndex === -1) addOutput(output)
     else updateOutput(outputs[outputIndex].localId, output)
@@ -845,6 +934,7 @@ export default function IOPreview() {
                     label={t('transaction.build.remove.output.title')}
                     variant="danger"
                     style={{ flex: 1 }}
+                    disabled={!currentOutputLocalId}
                     onPress={handleRemoveOutput}
                   />
                   <SSButton

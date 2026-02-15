@@ -1,11 +1,14 @@
 import { Stack } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
-import { MempoolOracle } from '@/api/blockchain'
+import ElectrumClient from '@/api/electrum'
+import Esplora from '@/api/esplora'
 import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
 import SSButton from '@/components/SSButton'
-import SSExploreBlock from '@/components/SSExploreBlock'
+import SSExploreBlock, { type Block } from '@/components/SSExploreBlock'
 import SSIconButton from '@/components/SSIconButton'
 import SSNumberInput from '@/components/SSNumberInput'
 import SSText from '@/components/SSText'
@@ -15,26 +18,99 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type Block } from '@/types/models/Blockchain'
+
+function getDifficultyFromBits(bits: number): number {
+  const exponent = bits >>> 24
+  const mantissa = bits & 0x007fffff
+  let target = BigInt(mantissa)
+  const shift = 8 * (exponent - 3)
+  if (shift >= 0) {
+    target = target * (BigInt(1) << BigInt(shift))
+  } else {
+    target = target / (BigInt(1) << BigInt(-shift))
+  }
+  const maxTarget = BigInt(
+    '0x00000000ffff0000000000000000000000000000000000000000000000000000'
+  )
+  return Number(maxTarget) / Number(target)
+}
 
 function ExplorerBlock() {
-  const mempoolUrl = useBlockchainStore(
-    (state) => state.configsMempool['bitcoin']
+  const [getBlockchainHeight, backendUrl, backend] = useBlockchainStore(
+    useShallow((state) => [
+      state.getBlockchainHeight,
+      state.configs['bitcoin'].server.url,
+      state.configs['bitcoin'].server.backend
+    ])
   )
-  const mempoolOracle = useMemo(
-    () => new MempoolOracle(mempoolUrl),
-    [mempoolUrl]
-  )
+
+  const { height: windowHeight } = useWindowDimensions()
+  const padding = 120
+  const minPageHeight = windowHeight - padding
 
   const [inputHeight, setInputHeight] = useState('1')
   const [loading, setLoading] = useState(false)
   const [maxBlockHeight, setMaxBlockHeight] = useState(890_000)
-
-  const { height } = useWindowDimensions()
-  const padding = 120
-  const minHeight = height - padding
-
   const [block, setBlock] = useState<Block | null>(null)
+
+  async function fetchBlockEsplora(height: number): Promise<Block> {
+    const esplora = new Esplora(backendUrl)
+    const blockHash = await esplora.getBlockAtHeight(height)
+    const block = await esplora.getBlockInfo(blockHash)
+    return block
+  }
+
+  async function fetchBlockElectrum(height: number): Promise<Block> {
+    const electrum = await ElectrumClient.initClientFromUrl(backendUrl)
+    const block = await electrum.getBlock(height)
+    electrum.close()
+    return {
+      id: block.getId(),
+      height,
+      merkle_root: block.merkleRoot?.toString('hex'),
+      previousblockhash: block.prevHash?.toString('hex'),
+      timestamp: block.timestamp,
+      weight: block.weight(),
+      size: block.weight() * 4,
+      version: block.version,
+      nonce: block.nonce,
+      difficulty: getDifficultyFromBits(block.bits),
+      tx_count: block.transactions?.length,
+      mediantime: undefined
+    }
+  }
+
+  async function fetchBlock(height: number) {
+    setLoading(true)
+    try {
+      const block =
+        backend === 'esplora'
+          ? await fetchBlockEsplora(height)
+          : await fetchBlockElectrum(height)
+      setBlock(block)
+      setInputHeight(height.toString())
+      return block
+    } catch {
+      toast.error(`Failed to fetch block ${block}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function fetchLatestBlock() {
+    const tipHeight = await getBlockchainHeight('bitcoin')
+    setMaxBlockHeight(tipHeight)
+    await fetchBlock(tipHeight)
+  }
+
+  async function fetchBlockFromInput() {
+    const height = Number(inputHeight)
+    if (height === block?.height || height > maxBlockHeight || height < 0) {
+      toast.error('Invalid block height')
+      return
+    }
+    fetchBlock(height)
+  }
 
   function nextBlockHeight() {
     setInputHeight(Math.min(maxBlockHeight, Number(inputHeight) + 1).toString())
@@ -42,27 +118,6 @@ function ExplorerBlock() {
 
   function prevBlockHeight() {
     setInputHeight(Math.max(1, Number(inputHeight) - 1).toString())
-  }
-
-  async function fetchBlock() {
-    setLoading(true)
-    try {
-      const block = await mempoolOracle.getBlockAtHeight(Number(inputHeight))
-      setBlock(block)
-      setInputHeight(block.height.toString())
-    } catch {
-      //
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function fetchLatestBlock() {
-    const tipHash = await mempoolOracle.getCurrentBlockHash()
-    const block = await mempoolOracle.getBlock(tipHash)
-    setBlock(block)
-    setMaxBlockHeight(block.height)
-    setInputHeight(block.height.toString())
   }
 
   useEffect(() => {
@@ -79,7 +134,7 @@ function ExplorerBlock() {
         }}
       />
       <SSMainLayout style={{ paddingBottom: 20, paddingTop: 0 }}>
-        <SSVStack justifyBetween style={{ minHeight }}>
+        <SSVStack justifyBetween style={{ minHeight: minPageHeight }}>
           <SSExploreBlock block={block} />
           <SSVStack>
             <SSHStack justifyBetween>
@@ -133,7 +188,12 @@ function ExplorerBlock() {
                 />
               </SSIconButton>
             </SSHStack>
-            <SSButton disabled={loading} label="Fetch" onPress={fetchBlock} />
+            <SSButton
+              loading={loading}
+              disabled={Number(inputHeight) === block?.height}
+              label="Fetch"
+              onPress={fetchBlockFromInput}
+            />
           </SSVStack>
         </SSVStack>
       </SSMainLayout>

@@ -19,6 +19,10 @@ export type ImportDescriptorSearchParams = {
   keyIndex: string
 }
 
+export type ExplorerBlockSearchParams = {
+  block: string
+}
+
 export type AccountSearchParams = {
   id: string
 }

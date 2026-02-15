@@ -604,17 +604,23 @@ function PreviewTransaction() {
   // Helper function to convert PSBT to final transaction if needed
   const processScannedData = (data: string): string => {
     try {
+      // Strip "bitcoin:" prefix if present (case-insensitive)
+      let processedData = data
+      if (processedData.toLowerCase().startsWith('bitcoin:')) {
+        processedData = processedData.substring(8)
+      }
+
       // Check if data is a PSBT and convert to final transaction
-      if (data.toLowerCase().startsWith('70736274ff')) {
+      if (processedData.toLowerCase().startsWith('70736274ff')) {
         // Only attempt conversion if we have the original PSBT context
         if (txBuilderResult?.psbt?.base64) {
-          const convertedResult = convertPsbtToFinalTransaction(data)
+          const convertedResult = convertPsbtToFinalTransaction(processedData)
           return convertedResult
         } else {
-          return data
+          return processedData
         }
       }
-      return data
+      return processedData
     } catch {
       return data
     }
@@ -727,7 +733,7 @@ function PreviewTransaction() {
           const totalChunks = dataChunks.length
           for (let i = 0; i < totalChunks; i++) {
             const header = `p${i + 1}of${totalChunks}`
-            chunks.push(header + ' ' + dataChunks[i])
+            chunks.push(`${header} ${dataChunks[i]}`)
           }
 
           return chunks
@@ -753,7 +759,7 @@ function PreviewTransaction() {
       const totalChunks = dataChunks.length
       for (let i = 0; i < totalChunks; i++) {
         const header = `p${i + 1}of${totalChunks}`
-        chunks.push(header + ' ' + dataChunks[i])
+        chunks.push(`${header} ${dataChunks[i]}`)
       }
 
       return chunks

@@ -470,7 +470,7 @@ export default function NostrSync() {
         } else {
           generateCommonNostrKeys(account)
             .then((keys) => {
-              if (keys) {
+              if (keys && 'commonNsec' in keys) {
                 setCommonNsec(keys.commonNsec as string)
                 updateAccountNostrCallback(accountId, {
                   ...account.nostr,

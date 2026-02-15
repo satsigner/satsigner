@@ -3,7 +3,7 @@ import {
   decompressMessage,
   deriveNostrKeysFromDescriptor,
   generateColorFromNpub,
-  parseNostrTransactionMessage
+  parseNostrTransaction
 } from '@/utils/nostr'
 
 import { descriptors, nostrKeys, nostrMessages, psbts } from './nostr_samples'
@@ -11,21 +11,21 @@ import { descriptors, nostrKeys, nostrMessages, psbts } from './nostr_samples'
 jest.mock('nostr-tools')
 jest.mock('react-native-aes-crypto')
 
-describe('parseNostrTransactionMessage', () => {
+describe('parseNostrTransaction', () => {
   it('returns TransactionData for valid PSBT', () => {
-    const result = parseNostrTransactionMessage(psbts.simple)
+    const result = parseNostrTransaction(psbts.simple)
     expect(result).not.toBeNull()
     expect(result?.combinedPsbt).toBe(psbts.simple)
   })
 
   it('handles PSBT with whitespace', () => {
-    const result = parseNostrTransactionMessage(psbts.withWhitespace)
+    const result = parseNostrTransaction(psbts.withWhitespace)
     expect(result).not.toBeNull()
     expect(result?.combinedPsbt).toBe(psbts.withWhitespace.trim())
   })
 
   it('handles PSBT with newlines', () => {
-    const result = parseNostrTransactionMessage(psbts.withNewlines)
+    const result = parseNostrTransaction(psbts.withNewlines)
     expect(result).not.toBeNull()
     expect(result?.combinedPsbt).toBe(psbts.withNewlines.trim())
   })
@@ -40,7 +40,7 @@ describe('parseNostrTransactionMessage', () => {
       'bitcoin:bc1qtest?amount=0.001'
     ]
     for (const input of invalidInputs) {
-      expect(parseNostrTransactionMessage(input)).toBeNull()
+      expect(parseNostrTransaction(input)).toBeNull()
     }
   })
 })

@@ -488,22 +488,32 @@ export function processContentForOutput(
 
   if (content.type === 'bitcoin_uri') {
     try {
-      const decodedData = bip21decode(content.cleaned)
+      let uriToDecode = content.cleaned
+      if (!uriToDecode.toLowerCase().startsWith('bitcoin:')) {
+        uriToDecode = `bitcoin:${uriToDecode}`
+      }
+
+      const decodedData = bip21decode(uriToDecode)
       if (decodedData && typeof decodedData === 'object') {
         actions.setOutputTo(decodedData.address)
 
-        const amount = (decodedData.options.amount || 0) * SATS_PER_BITCOIN || 1
-        if (amount > 1) {
-          if (actions.remainingSats && amount > actions.remainingSats) {
-            actions.onWarning(t('error.insufficientFundsForAmount'))
+        if (decodedData.options && decodedData.options.amount !== undefined) {
+          const amountInBTC = Number(decodedData.options.amount)
+          if (!isNaN(amountInBTC) && amountInBTC > 0) {
+            const amountInSats = Math.round(amountInBTC * SATS_PER_BITCOIN)
+            if (actions.remainingSats && amountInSats > actions.remainingSats) {
+              actions.onWarning(t('error.insufficientFundsForAmount'))
+            } else {
+              actions.setOutputAmount(amountInSats)
+            }
           } else {
-            actions.setOutputAmount(amount)
+            actions.setOutputAmount(1)
           }
         } else {
           actions.setOutputAmount(1)
         }
 
-        actions.setOutputLabel(decodedData.options.label || '')
+        actions.setOutputLabel(decodedData.options?.label || '')
         return true
       }
     } catch {

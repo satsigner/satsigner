@@ -8,11 +8,11 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSBubbleChart from '@/components/SSBubbleChart'
+import SSDetailsList from '@/components/SSDetailsList'
 import SSLabelDetails from '@/components/SSLabelDetails'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
-import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -129,43 +129,24 @@ function AddressDetails() {
             />
             <SSSeparator />
             <SSVStack gap="sm">
-              <SSText uppercase weight="bold" size="md">
-                {t('address.details.balance.title')}
-              </SSText>
-              <SSHStack>
-                <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
-                  <SSText color="muted" uppercase>
-                    {t('address.details.balance.confirmed')}
-                  </SSText>
-                  <SSText>{formatNumber(address.summary.balance)}</SSText>
-                </SSVStack>
-                <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
-                  <SSText color="muted" uppercase>
-                    {t('bitcoin.confirmations.unconfirmed')}
-                  </SSText>
-                  <SSText>{formatNumber(address.summary.satsInMempool)}</SSText>
-                </SSVStack>
-              </SSHStack>
-            </SSVStack>
-            <SSSeparator />
-            <SSVStack gap="sm">
-              <SSText uppercase weight="bold" size="md">
-                {t('address.details.history.title')}
-              </SSText>
-              <SSHStack>
-                <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
-                  <SSText color="muted" uppercase>
-                    {t('block.txCount')}
-                  </SSText>
-                  <SSText>{address?.summary.transactions}</SSText>
-                </SSVStack>
-                <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
-                  <SSText color="muted" uppercase>
-                    {t('address.details.history.utxo')}
-                  </SSText>
-                  <SSText>{address?.summary.utxos}</SSText>
-                </SSVStack>
-              </SSHStack>
+              <SSDetailsList
+                columns={2}
+                items={[
+                  [
+                    t('address.details.balance.confirmed'),
+                    formatNumber(address.summary.balance)
+                  ],
+                  [
+                    t('bitcoin.confirmations.unconfirmed'),
+                    formatNumber(address.summary.satsInMempool)
+                  ],
+                  [
+                    t('address.details.history.tx'),
+                    address?.summary.transactions
+                  ],
+                  [t('address.details.history.utxo'), address?.summary.utxos]
+                ]}
+              />
             </SSVStack>
             <SSSeparator />
             {transactions && transactions.length > 0 && (
@@ -229,25 +210,21 @@ function AddressDetails() {
               <SSText uppercase weight="bold" size="md">
                 {t('address.details.encoding.title')}
               </SSText>
-              <SSHStack>
-                <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
-                  <SSText color="muted" uppercase>
-                    {t('address.details.encoding.scriptVersion')}
-                  </SSText>
-                  <SSText uppercase>{address.scriptVersion || '-'}</SSText>
-                </SSVStack>
-                <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
-                  <SSText color="muted" uppercase>
-                    {t('address.details.encoding.network')}
-                  </SSText>
-                  <SSText uppercase>{address.network || '-'}</SSText>
-                </SSVStack>
-              </SSHStack>
+              <SSDetailsList
+                columns={2}
+                items={[
+                  [
+                    t('address.details.encoding.scriptVersion'),
+                    address.scriptVersion
+                  ],
+                  [t('address.details.encoding.network'), address.network]
+                ]}
+              />
               <SSVStack gap="xs">
-                <SSText color="muted" uppercase>
+                <SSText uppercase weight="bold">
                   {t('address.details.encoding.script')}
                 </SSText>
-                <SSText type="mono" uppercase>
+                <SSText type="mono" uppercase color="muted">
                   {script}
                 </SSText>
               </SSVStack>
@@ -257,56 +234,34 @@ function AddressDetails() {
               <SSText uppercase weight="bold" size="md">
                 {t('address.details.derivation.title')}
               </SSText>
-              <SSHStack>
-                <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
-                  <SSText color="muted" uppercase>
-                    {t('address.details.derivation.path')}
-                  </SSText>
-                  <SSText uppercase>{address.derivationPath || '-'}</SSText>
-                </SSVStack>
-                <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
-                  <SSText color="muted" uppercase>
-                    {t('address.details.derivation.index')}
-                  </SSText>
-                  <SSText uppercase>
-                    {address.index !== undefined ? address.index : '-'}
-                  </SSText>
-                </SSVStack>
-              </SSHStack>
-              <SSHStack>
-                <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
-                  <SSText color="muted" uppercase>
-                    {t('address.details.derivation.fingerprint')}
-                  </SSText>
-                  <SSText uppercase>
-                    {getAccountFingerprint(account) || '-'}
-                  </SSText>
-                </SSVStack>
-                <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
-                  <SSText color="muted" uppercase>
-                    {t('address.details.derivation.keychain')}
-                  </SSText>
-                  <SSText uppercase>{address.keychain || '-'}</SSText>
-                </SSVStack>
-              </SSHStack>
+              <SSDetailsList
+                columns={2}
+                items={[
+                  [
+                    t('address.details.derivation.path'),
+                    address.derivationPath
+                  ],
+                  [t('address.details.derivation.index'), address.index],
+                  [
+                    t('address.details.derivation.fingerprint'),
+                    getAccountFingerprint(account)
+                  ],
+                  [t('address.details.derivation.keychain'), address.keychain]
+                ]}
+              />
             </SSVStack>
             <SSSeparator />
             <SSVStack>
               <SSText uppercase weight="bold" size="md">
                 {t('address.details.key.title')}
               </SSText>
-              <SSVStack gap="xs">
-                <SSText uppercase color="muted">
-                  {t('address.details.key.public')}
-                </SSText>
-                <SSText type="mono">-</SSText>
-              </SSVStack>
-              <SSVStack gap="xs">
-                <SSText uppercase color="muted">
-                  {t('address.details.key.private')}
-                </SSText>
-                <SSText type="mono">-</SSText>
-              </SSVStack>
+              <SSDetailsList
+                columns={1}
+                items={[
+                  [t('address.details.key.public'), ''],
+                  [t('address.details.key.private'), '']
+                ]}
+              />
             </SSVStack>
           </SSVStack>
         </SSMainLayout>

@@ -1,5 +1,5 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -10,10 +10,7 @@ import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
 import SSPinEntry from '@/components/SSPinEntry'
-import SSRadioButton from '@/components/SSRadioButton'
-import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSeedQR from '@/components/SSSeedQR'
-import SSSelectModal from '@/components/SSSelectModal'
 import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -63,15 +60,35 @@ export default function AccountSettings() {
   const [localMnemonic, setLocalMnemonic] = useState('')
   const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
 
-  const [scriptVersionModalVisible, setScriptVersionModalVisible] =
-    useState(false)
-  const [networkModalVisible, setNetworkModalVisible] = useState(false)
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [mnemonicModalVisible, setMnemonicModalVisible] = useState(false)
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
   const [pin, setPin] = useState<string[]>(Array(4).fill(''))
   const [showPinEntry, setShowPinEntry] = useState(false)
   const [pinEntryFocus, setPinEntryFocus] = useState(false)
+
+  const labelCounts = useMemo(() => {
+    const labels = account?.labels ? Object.values(account.labels) : []
+    return {
+      transactions: {
+        labeled: labels.filter((l) => l.type === 'tx').length,
+        total: account?.transactions?.length || 0
+      },
+      utxos: {
+        labeled: labels.filter((l) => l.type === 'output').length,
+        total: account?.utxos?.length || 0
+      },
+      addresses: {
+        labeled: labels.filter((l) => l.type === 'addr').length,
+        total: account?.addresses?.length || 0
+      }
+    }
+  }, [
+    account?.labels,
+    account?.transactions,
+    account?.utxos,
+    account?.addresses
+  ])
 
   function getPolicyTypeButtonLabel() {
     switch (account?.policyType) {
@@ -215,20 +232,66 @@ export default function AccountSettings() {
         <SSText center uppercase color="muted">
           {t('account.settings.title')}
         </SSText>
-        <SSVStack itemsCenter gap="none">
+        <SSFormLayout>
+          <SSFormLayout.Item>
+            <SSFormLayout.Label label={t('account.name')} />
+            <SSTextInput value={accountName} onChangeText={setAccountName} />
+          </SSFormLayout.Item>
+        </SSFormLayout>
+        <SSVStack gap="xs" style={styles.infoTable}>
           {account.policyType !== 'multisig' && (
-            <SSHStack gap="sm">
+            <SSHStack justifyBetween>
               <SSText color="muted">{t('account.fingerprint')}</SSText>
               <SSText>
                 {getAccountFingerprint(account, decryptedKeys) || '-'}
               </SSText>
             </SSHStack>
           )}
-          <SSHStack gap="sm">
+          <SSHStack justifyBetween>
             <SSText color="muted">{t('account.createdOn')}</SSText>
-            {account && account.createdAt && (
-              <SSText>{formatAccountCreationDate(account.createdAt)}</SSText>
-            )}
+            <SSText>
+              {account?.createdAt
+                ? formatAccountCreationDate(account.createdAt)
+                : '-'}
+            </SSText>
+          </SSHStack>
+          <SSHStack justifyBetween>
+            <SSText color="muted">{t('account.network.title')}</SSText>
+            <SSText>{network}</SSText>
+          </SSHStack>
+          <SSHStack justifyBetween>
+            <SSText color="muted">{t('account.policy.title')}</SSText>
+            <SSText>{getPolicyTypeButtonLabel()}</SSText>
+          </SSHStack>
+          {account.policyType === 'singlesig' && (
+            <SSHStack justifyBetween>
+              <SSText color="muted">{t('account.script')}</SSText>
+              <SSText>{getScriptVersionDisplayName(scriptVersion)}</SSText>
+            </SSHStack>
+          )}
+          <SSHStack justifyBetween>
+            <SSText color="muted">{t('account.labeledTransactions')}</SSText>
+            <SSHStack gap="xs">
+              <SSText>{labelCounts.transactions.labeled}</SSText>
+              <SSText color="muted">of</SSText>
+              <SSText>{labelCounts.transactions.total}</SSText>
+            </SSHStack>
+          </SSHStack>
+          <SSHStack justifyBetween>
+            <SSText color="muted">{t('account.labeledUtxos')}</SSText>
+            <SSHStack gap="xs">
+              <SSText>{labelCounts.utxos.labeled}</SSText>
+              <SSText color="muted">of</SSText>
+              <SSText>{labelCounts.utxos.total}</SSText>
+            </SSHStack>
+          </SSHStack>
+          <SSHStack justifyBetween>
+            <SSText color="muted">{t('account.labeledAddresses')}</SSText>
+            <SSHStack gap="xs">
+              <SSText>{labelCounts.addresses.labeled}</SSText>
+              <SSText color="muted">of</SSText>
+              <SSText>{labelCounts.addresses.total}</SSText>
+            </SSHStack>
           </SSHStack>
         </SSVStack>
         {account.policyType === 'multisig' && (
@@ -340,37 +403,8 @@ export default function AccountSettings() {
             }
           />
         </SSVStack>
-        <SSFormLayout>
-          <SSFormLayout.Item>
-            <SSFormLayout.Label label={t('account.name')} />
-            <SSTextInput value={accountName} onChangeText={setAccountName} />
-          </SSFormLayout.Item>
-          <SSFormLayout.Item>
-            <SSFormLayout.Label label={t('account.network.title')} />
-            <SSButton
-              label={network}
-              // onPress={() => setNetworkModalVisible(true)}
-              withSelect
-            />
-          </SSFormLayout.Item>
-          <SSFormLayout.Item>
-            <SSFormLayout.Label label={t('account.policy.title')} />
-            <SSButton label={getPolicyTypeButtonLabel()} withSelect />
-          </SSFormLayout.Item>
-          {account.policyType === 'singlesig' && (
-            <SSFormLayout.Item>
-              <SSFormLayout.Label label={t('account.script')} />
-              <SSButton
-                label={getScriptVersionDisplayName(scriptVersion)}
-                onPress={() => setScriptVersionModalVisible(true)}
-                withSelect
-              />
-            </SSFormLayout.Item>
-          )}
-        </SSFormLayout>
 
         <SSVStack style={styles.actionsContainer}>
-          <SSButton label={t('account.duplicate.title')} />
           <SSButton
             label={t('account.delete.title')}
             style={styles.deleteButton}
@@ -383,40 +417,6 @@ export default function AccountSettings() {
           />
         </SSVStack>
       </SSVStack>
-      <SSScriptVersionModal
-        visible={scriptVersionModalVisible}
-        scriptVersion={scriptVersion}
-        policyType={account?.policyType}
-        onSelect={(scriptVersion) => {
-          setScriptVersion(scriptVersion)
-          setScriptVersionModalVisible(false)
-        }}
-        onCancel={() => setScriptVersionModalVisible(false)}
-      />
-      <SSSelectModal
-        visible={networkModalVisible}
-        title={t('account.network.title')}
-        selectedText={network.toUpperCase()}
-        selectedDescription={t('account.network.description', { network })}
-        onSelect={() => setNetworkModalVisible(false)}
-        onCancel={() => setNetworkModalVisible(false)}
-      >
-        <SSRadioButton
-          label={t('bitcoin.network.mainnet')}
-          selected={network === 'bitcoin'}
-          onPress={() => setNetwork('bitcoin')}
-        />
-        <SSRadioButton
-          label={t('bitcoin.network.signet')}
-          selected={network === 'signet'}
-          onPress={() => setNetwork('signet')}
-        />
-        <SSRadioButton
-          label={t('bitcoin.network.testnet')}
-          selected={network === 'testnet'}
-          onPress={() => setNetwork('testnet')}
-        />
-      </SSSelectModal>
       <SSModal
         visible={deleteModalVisible}
         onClose={() => setDeleteModalVisible(false)}
@@ -584,6 +584,9 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     backgroundColor: Colors.error
+  },
+  infoTable: {
+    width: '100%'
   },
   deleteModalInnerContainer: {
     flexWrap: 'wrap'

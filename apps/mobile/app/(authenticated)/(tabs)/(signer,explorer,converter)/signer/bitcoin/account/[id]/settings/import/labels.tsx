@@ -2,6 +2,7 @@ import * as Clipboard from 'expo-clipboard'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconEyeOn } from '@/components/icons'
@@ -82,42 +83,72 @@ export default function ImportLabels() {
     setShowConflictSolver(false)
   }
 
-  function importLabelsFromClipboard() {
-    tryImportLabels(importContent)
+  function handleImport() {
+    if (!importContent) return
+    if (invalidContent) {
+      toast.error(t('account.import.labelsInvalidFormat'))
+      return
+    }
+    try {
+      tryImportLabels(importContent)
+    } catch {
+      toast.error(t('account.import.labelsInvalidFormat'))
+    }
   }
 
   async function importLabelsFromFile() {
     const type = bip329mimes[importType]
     const fileContent = await pickFile({ type })
     if (!fileContent) return
-    tryImportLabels(fileContent)
+    setImportContent(fileContent)
+
+    // Validate the content
+    try {
+      bip329parser[importType](fileContent)
+      setInvalidContent(false)
+    } catch {
+      setInvalidContent(true)
+      toast.error(t('account.import.labelsInvalidFormat'))
+    }
   }
 
   async function pasteFromClipboard() {
     const text = await Clipboard.getStringAsync()
-    if (!text) return
+    if (!text) {
+      toast.error(t('account.import.labelsEmptyClipboard'))
+      return
+    }
     setImportContent(text)
 
     // try guessing import type
+    let foundValidType = false
     for (const type of bip329FileTypes) {
       try {
         bip329parser[type](text)
         setImportType(type)
         setInvalidContent(false)
+        foundValidType = true
         break
       } catch {
         //
       }
     }
+
+    if (!foundValidType) {
+      setInvalidContent(true)
+      toast.error(t('account.import.labelsInvalidFormat'))
+    }
   }
 
   function updateImportType(type: Bip329FileType) {
     setImportType(type)
+    if (!importContent) return
     try {
       bip329parser[type](importContent)
       setInvalidContent(false)
     } catch {
       setInvalidContent(true)
+      toast.error(t('account.import.labelsInvalidFormat'))
     }
   }
 
@@ -138,11 +169,11 @@ export default function ImportLabels() {
           headerRight: undefined
         }}
       />
-      <SSVStack style={{ padding: 40 }}>
+      <SSVStack style={{ padding: 20 }}>
         <SSText center uppercase color="muted">
           {t('account.import.labels')}
         </SSText>
-        <SSHStack>
+        <SSHStack gap="sm" style={{ paddingHorizontal: 20 }}>
           {bip329FileTypes.map((type) => (
             <View
               key={type}
@@ -164,34 +195,49 @@ export default function ImportLabels() {
                 backgroundColor: Colors.gray[950],
                 borderRadius: 5,
                 borderWidth: 1,
-                borderColor: invalidContent ? Colors.error : Colors.gray[950]
+                borderColor: invalidContent ? Colors.error : Colors.gray[800]
               }}
             >
-              <SSText color="white" size="md" type="mono">
+              <SSText color="white" size="sm" type="mono">
                 {importContent}
               </SSText>
             </View>
+          </SSVStack>
+        )}
+        {importContent && !invalidContent ? (
+          <SSVStack gap="sm">
             <SSButton
-              label={t('common.importFromClipboard')}
-              onPress={importLabelsFromClipboard}
-              disabled={invalidContent}
+              label={t('common.import')}
+              variant="secondary"
+              onPress={handleImport}
+            />
+            <SSButton
+              label={t('common.cancel')}
+              variant="ghost"
+              onPress={() => {
+                setImportContent('')
+                setInvalidContent(false)
+              }}
+            />
+          </SSVStack>
+        ) : (
+          <SSVStack gap="sm">
+            <SSButton
+              label={t('common.pasteFromClipboard')}
+              onPress={pasteFromClipboard}
+            />
+            <SSButton
+              label={t('import.from', { name: importType })}
+              variant="secondary"
+              onPress={importLabelsFromFile}
+            />
+            <SSButton
+              label={t('common.cancel')}
+              variant="ghost"
+              onPress={() => router.back()}
             />
           </SSVStack>
         )}
-        <SSButton
-          label={t('common.pasteFromClipboard')}
-          onPress={pasteFromClipboard}
-        />
-        <SSButton
-          label={t('import.from', { name: importType })}
-          variant="secondary"
-          onPress={importLabelsFromFile}
-        />
-        <SSButton
-          label={t('common.cancel')}
-          variant="ghost"
-          onPress={() => router.back()}
-        />
       </SSVStack>
       <SSModal
         visible={showConflictSolver}

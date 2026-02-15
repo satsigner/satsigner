@@ -6,6 +6,7 @@ import { isBBQRFragment } from '@/utils/bbqr'
 import { isBip21, isBitcoinAddress } from '@/utils/bitcoin'
 import { isPSBT } from '@/utils/bitcoinContent'
 import { isLNURL } from '@/utils/lnurl'
+import { stripBitcoinPrefix } from '@/utils/parse'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import {
   isCombinedDescriptor,
@@ -17,7 +18,8 @@ bitcoinjs.initEccLib(ecc)
 
 function isBitcoinTransaction(data: string): boolean {
   try {
-    bitcoinjs.Transaction.fromHex(data.trim())
+    const processedData = stripBitcoinPrefix(data.trim())
+    bitcoinjs.Transaction.fromHex(processedData)
     return true
   } catch {
     return false
@@ -79,11 +81,13 @@ async function detectBitcoinContent(
     }
   }
 
-  if (isBitcoinTransaction(trimmed)) {
+  // Check for transaction
+  const transactionData = stripBitcoinPrefix(trimmed)
+  if (isBitcoinTransaction(transactionData)) {
     return {
       type: 'bitcoin_transaction',
       raw: data,
-      cleaned: trimmed,
+      cleaned: transactionData,
       isValid: true
     }
   }
@@ -107,8 +111,17 @@ async function detectBitcoinContent(
   }
 
   if (trimmed.toLowerCase().startsWith('bitcoin:')) {
-    const addressPart = trimmed.substring(8)
-    if (isBitcoinAddress(addressPart)) {
+    const uriPart = trimmed.substring(8)
+    if (isBip21(trimmed)) {
+      return {
+        type: 'bitcoin_uri',
+        raw: data,
+        cleaned: trimmed,
+        isValid: true
+      }
+    }
+    const addressMatch = uriPart.match(/^([^?]+)(\?.*)?$/)
+    if (addressMatch && isBitcoinAddress(addressMatch[1])) {
       return {
         type: 'bitcoin_uri',
         raw: data,

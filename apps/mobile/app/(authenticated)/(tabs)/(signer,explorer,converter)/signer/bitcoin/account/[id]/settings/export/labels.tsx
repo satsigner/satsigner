@@ -86,7 +86,7 @@ export default function ExportLabels() {
             <SSText center uppercase color="muted">
               {t('account.export.labels')}
             </SSText>
-            <SSHStack>
+            <SSHStack gap="sm" style={{ paddingHorizontal: 20 }}>
               {bip329FileTypes.map((ext) => (
                 <View
                   key={ext}
@@ -104,10 +104,12 @@ export default function ExportLabels() {
               style={{
                 padding: 10,
                 backgroundColor: Colors.gray[950],
-                borderRadius: 5
+                borderRadius: 5,
+                borderWidth: 1,
+                borderColor: Colors.gray[800]
               }}
             >
-              <SSText color="white" size="md" type="mono">
+              <SSText color="white" size="sm" type="mono">
                 {exportContent}
               </SSText>
             </View>
