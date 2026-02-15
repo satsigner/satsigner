@@ -6,8 +6,8 @@ import { useShallow } from 'zustand/react/shallow'
 import { getWalletData } from '@/api/bdk'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
-import { type Account, type Key, type Secret } from '@/types/models/Account'
-import { decryptAllAccountKeySecrets } from '@/utils/account'
+import { type Account } from '@/types/models/Account'
+import { getAccountWithDecryptedKeys } from '@/utils/account'
 
 const useGetAccountWallet = (id: Account['id']) => {
   const [wallet, addAccountWallet] = useWalletsStore(
@@ -32,16 +32,9 @@ const useGetAccountWallet = (id: Account['id']) => {
     }
 
     try {
-      const secrets = await decryptAllAccountKeySecrets(account)
-      const temporaryAccount = {
-        ...account,
-        keys: account.keys.map((key, index) => {
-          const decryptedKey: Key = { ...key, secret: secrets[index] }
-          return decryptedKey
-        })
-      }
+      const tmpAccount = await getAccountWithDecryptedKeys(account)
       const walletData = await getWalletData(
-        temporaryAccount,
+        tmpAccount,
         account.network as Network
       )
 

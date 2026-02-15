@@ -17,9 +17,9 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import type { Account, Key } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { decryptAllAccountKeySecrets } from '@/utils/account'
+import { getAccountWithDecryptedKeys } from '@/utils/account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { shareFile } from '@/utils/filesystem'
 
@@ -65,22 +65,14 @@ export default function ExportPubkeys() {
       setIsLoading(true)
       try {
         const isImportAddress = account.keys[0].creationType === 'importAddress'
-        const secrets = await decryptAllAccountKeySecrets(account)
-        const temporaryAccount: Account = {
-          ...account,
-          keys: account.keys.map((key, index) => {
-            const decryptedKey: Key = { ...key, secret: secrets[index] }
-            return decryptedKey
-          })
-        }
-
+        const tmpAccount: Account = await getAccountWithDecryptedKeys(account)
         const walletData = !isImportAddress
-          ? await getWalletData(temporaryAccount, network as Network)
+          ? await getWalletData(tmpAccount, network as Network)
           : undefined
 
         // For each key in the account, get its public key from the wallet data
         const pubkeys = await Promise.all(
-          temporaryAccount.keys.map(async (key) => {
+          tmpAccount.keys.map(async (key) => {
             if (isImportAddress) {
               // For watch-only accounts, we can get the extended public key from the secret
               const keyInfo =

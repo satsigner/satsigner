@@ -9,8 +9,8 @@ import { NostrAPI } from '@/api/nostr'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
-import type { Account, Key, Secret } from '@/types/models/Account'
-import { decryptAllAccountKeySecrets } from '@/utils/account'
+import type { Account, Secret } from '@/types/models/Account'
+import { getAccountWithDecryptedKeys } from '@/utils/account'
 import {
   formatAccountLabels,
   JSONLtoLabels,
@@ -402,15 +402,7 @@ function useNostrSync() {
     if (!account) return
 
     const isImportAddress = account.keys[0].creationType === 'importAddress'
-    const secrets = await decryptAllAccountKeySecrets(account)
-    const tmpAccount = {
-      ...account,
-      keys: account.keys.map((key, index) => {
-        const decryptedKey: Key = { ...key, secret: secrets[index] }
-        return decryptedKey
-      })
-    }
-
+    const tmpAccount = await getAccountWithDecryptedKeys(account)
     if (isImportAddress) {
       const secret = tmpAccount.keys[0].secret as Secret
       return {

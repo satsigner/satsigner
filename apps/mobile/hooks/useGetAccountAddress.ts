@@ -2,13 +2,11 @@ import { useEffect } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
-import { PIN_KEY } from '@/config/auth'
-import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useWalletsStore } from '@/store/wallets'
 import { type Account, type Secret } from '@/types/models/Account'
-import { aesDecrypt } from '@/utils/crypto'
+import { getAccountWithDecryptedKeys } from '@/utils/account'
 
 const useGetAccountAddress = (id: Account['id']) => {
   const [address, addAccountAddress] = useWalletsStore(
@@ -22,46 +20,30 @@ const useGetAccountAddress = (id: Account['id']) => {
   const network = useBlockchainStore((state) => state.selectedNetwork)
 
   async function addAddress() {
+    if (!account || account.keys.length === 0) return
+
     try {
-      if (!account || account.keys.length === 0) return
+      const temporaryAccount = await getAccountWithDecryptedKeys(account)
 
-      // Create a temporary account with decrypted secrets
-      const temporaryAccount = JSON.parse(JSON.stringify(account)) as Account
-      const pin = await getItem(PIN_KEY)
-      if (!pin) return
-
-      for (const key of temporaryAccount.keys) {
-        if (typeof key.secret === 'string') {
-          const decryptedSecretString = await aesDecrypt(
-            key.secret,
-            pin,
-            key.iv
-          )
-          const decryptedSecret = JSON.parse(decryptedSecretString) as Secret
-          key.secret = decryptedSecret
-        }
-      }
-
-      // Handle import address case
       if (account.keys[0].creationType === 'importAddress') {
         const secret = temporaryAccount.keys[0].secret as Secret
-        if (secret.externalDescriptor) {
-          // Try to extract address from descriptor
-          // It could be in format addr(address) or just a plain address
-          let address: string
-          if (
-            secret.externalDescriptor.startsWith('addr(') &&
-            secret.externalDescriptor.endsWith(')')
-          ) {
-            // Extract address from addr(address) format
-            address = secret.externalDescriptor.slice(5, -1)
-          } else {
-            // Assume it's a plain address
-            address = secret.externalDescriptor
-          }
-          addAccountAddress(account.id, address)
-          return
+        if (!secret.externalDescriptor) return
+
+        // Try to extract address from descriptor
+        // It could be in format addr(address) or just a plain address
+        let address: string
+        if (
+          secret.externalDescriptor.startsWith('addr(') &&
+          secret.externalDescriptor.endsWith(')')
+        ) {
+          // Extract address from addr(address) format
+          address = secret.externalDescriptor.slice(5, -1)
+        } else {
+          // Assume it's a plain address
+          address = secret.externalDescriptor
         }
+        addAccountAddress(account.id, address)
+        return
       }
 
       // For all other account types, use BDK to generate wallet and get first address
@@ -78,18 +60,16 @@ const useGetAccountAddress = (id: Account['id']) => {
       const addressInfo = await walletData.wallet.getAddress(0)
       const address = addressInfo?.address
       const firstAddress = address ? await address.asString() : ''
-
       addAccountAddress(account.id, firstAddress)
-    } catch (_error) {
-      // Silently handle errors
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : 'unknown reason'
+      throw new Error(`Failed to get account address: ${reason}`)
     }
   }
 
   useEffect(() => {
     if (!address) {
-      addAddress().catch(() => {
-        // Silently handle errors
-      })
+      addAddress()
     }
   }, [address, id, account]) // eslint-disable-line react-hooks/exhaustive-deps
 

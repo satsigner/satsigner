@@ -239,6 +239,21 @@ export async function decryptAllAccountKeySecrets(account: Account) {
   }
 }
 
+export async function getAccountWithDecryptedKeys(account: Account) {
+  const decryptedSecrets = await decryptAllAccountKeySecrets(account)
+  const decryptedAccount: Account = {
+    ...account,
+    keys: account.keys.map((key, index) => {
+      const decryptedKey: Key = {
+        ...key,
+        secret: decryptedSecrets[index],
+      }
+      return decryptedKey
+    })
+  }
+  return decryptedAccount
+}
+
 export function getAccountFingerprint(
   account: Account,
   decryptedKeys?: Key[]
