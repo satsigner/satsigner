@@ -23,7 +23,7 @@ import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
-import { extractAccountFingerprint } from '@/utils/account'
+import { getAccountFingerprint } from '@/utils/account'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { formatNumber } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
@@ -279,7 +279,7 @@ function AddressDetails() {
                     {t('address.details.derivation.fingerprint')}
                   </SSText>
                   <SSText uppercase>
-                    {extractAccountFingerprint(account) || '-'}
+                    {getAccountFingerprint(account) || '-'}
                   </SSText>
                 </SSVStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>

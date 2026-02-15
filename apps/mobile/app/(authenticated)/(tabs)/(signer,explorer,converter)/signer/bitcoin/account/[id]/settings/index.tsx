@@ -30,7 +30,7 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { extractAccountFingerprint } from '@/utils/account'
+import { getAccountFingerprint } from '@/utils/account'
 import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
 import { formatAccountCreationDate } from '@/utils/date'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
@@ -220,7 +220,7 @@ export default function AccountSettings() {
             <SSHStack gap="sm">
               <SSText color="muted">{t('account.fingerprint')}</SSText>
               <SSText>
-                {extractAccountFingerprint(account, decryptedKeys) || '-'}
+                {getAccountFingerprint(account, decryptedKeys) || '-'}
               </SSText>
             </SSHStack>
           )}

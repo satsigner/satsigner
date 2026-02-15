@@ -53,7 +53,7 @@ import {
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type PreviewTransactionSearchParams } from '@/types/navigation/searchParams'
-import { extractKeyFingerprint } from '@/utils/account'
+import { getKeyFingerprint } from '@/utils/account'
 import {
   BBQRFileTypes,
   createBBQRChunks,
@@ -411,7 +411,7 @@ function PreviewTransaction() {
       const keyFingerprintToCosignerIndex = new Map<string, number>()
       await Promise.all(
         currentAccount.keys.map(async (key, index) => {
-          const fp = await extractKeyFingerprint(key)
+          const fp = await getKeyFingerprint(key)
           if (fp) keyFingerprintToCosignerIndex.set(fp, index)
         })
       )
