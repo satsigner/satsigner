@@ -1,6 +1,12 @@
 import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
-import type { Account, Key, Secret } from '@/types/models/Account'
+import type {
+  Account,
+  DecryptedAccount,
+  DecryptedKey,
+  Key,
+  Secret
+} from '@/types/models/Account'
 import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -241,12 +247,12 @@ export async function decryptAllAccountKeySecrets(account: Account) {
 
 export async function getAccountWithDecryptedKeys(account: Account) {
   const decryptedSecrets = await decryptAllAccountKeySecrets(account)
-  const decryptedAccount: Account = {
+  const decryptedAccount: DecryptedAccount = {
     ...account,
     keys: account.keys.map((key, index) => {
-      const decryptedKey: Key = {
+      const decryptedKey: DecryptedKey = {
         ...key,
-        secret: decryptedSecrets[index],
+        secret: decryptedSecrets[index]
       }
       return decryptedKey
     })

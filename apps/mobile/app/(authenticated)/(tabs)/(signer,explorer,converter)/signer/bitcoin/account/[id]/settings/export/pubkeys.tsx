@@ -17,7 +17,6 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import type { Account } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { getAccountWithDecryptedKeys } from '@/utils/account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
@@ -65,7 +64,7 @@ export default function ExportPubkeys() {
       setIsLoading(true)
       try {
         const isImportAddress = account.keys[0].creationType === 'importAddress'
-        const tmpAccount: Account = await getAccountWithDecryptedKeys(account)
+        const tmpAccount = await getAccountWithDecryptedKeys(account)
         const walletData = !isImportAddress
           ? await getWalletData(tmpAccount, network as Network)
           : undefined
@@ -75,9 +74,7 @@ export default function ExportPubkeys() {
           tmpAccount.keys.map(async (key) => {
             if (isImportAddress) {
               // For watch-only accounts, we can get the extended public key from the secret
-              const keyInfo =
-                typeof key.secret === 'object' ? key.secret : undefined
-              return keyInfo?.extendedPublicKey || 'N/A'
+              return key.secret.extendedPublicKey || 'N/A'
             } else {
               // For regular accounts, we need to extract the extended public key from the descriptor
               if (!walletData?.externalDescriptor) return 'N/A'

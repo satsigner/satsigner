@@ -2,8 +2,6 @@ import { produce } from 'immer'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import { PIN_KEY } from '@/config/auth'
-import { getItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
 import {
   type Account,
@@ -15,7 +13,6 @@ import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { dropSeedFromKey } from '@/utils/account'
 import { type Label } from '@/utils/bip329'
-import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 type AccountsState = {

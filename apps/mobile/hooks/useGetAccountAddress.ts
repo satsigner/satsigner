@@ -5,7 +5,7 @@ import { getWalletData } from '@/api/bdk'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useWalletsStore } from '@/store/wallets'
-import { type Account, type Secret } from '@/types/models/Account'
+import { type Account } from '@/types/models/Account'
 import { getAccountWithDecryptedKeys } from '@/utils/account'
 
 const useGetAccountAddress = (id: Account['id']) => {
@@ -26,7 +26,7 @@ const useGetAccountAddress = (id: Account['id']) => {
       const temporaryAccount = await getAccountWithDecryptedKeys(account)
 
       if (account.keys[0].creationType === 'importAddress') {
-        const secret = temporaryAccount.keys[0].secret as Secret
+        const secret = temporaryAccount.keys[0].secret
         if (!secret.externalDescriptor) return
 
         // Try to extract address from descriptor
@@ -68,9 +68,7 @@ const useGetAccountAddress = (id: Account['id']) => {
   }
 
   useEffect(() => {
-    if (!address) {
-      addAddress()
-    }
+    if (!address) addAddress()
   }, [address, id, account]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return address

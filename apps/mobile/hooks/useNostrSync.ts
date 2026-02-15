@@ -9,7 +9,7 @@ import { NostrAPI } from '@/api/nostr'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
-import type { Account, Secret } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { getAccountWithDecryptedKeys } from '@/utils/account'
 import {
   formatAccountLabels,
@@ -404,7 +404,7 @@ function useNostrSync() {
     const isImportAddress = account.keys[0].creationType === 'importAddress'
     const tmpAccount = await getAccountWithDecryptedKeys(account)
     if (isImportAddress) {
-      const secret = tmpAccount.keys[0].secret as Secret
+      const secret = tmpAccount.keys[0].secret
       return {
         externalDescriptor: secret.externalDescriptor,
         internalDescriptor: undefined

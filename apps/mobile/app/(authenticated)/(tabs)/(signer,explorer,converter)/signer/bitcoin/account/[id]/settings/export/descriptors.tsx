@@ -101,7 +101,7 @@ export default function ExportDescriptors() {
               descriptorString =
                 'No key data available for single signature account'
             } else {
-              const secret = key.secret as Secret
+              const secret = key.secret
               let extendedPublicKey = ''
               let fingerprint = ''
 
@@ -520,9 +520,7 @@ export default function ExportDescriptors() {
         setExportContent(exportString)
       } catch (err) {
         const reason = err instanceof Error ? err.message : 'unknown reason'
-        setExportContent(
-          `Error generating descriptors: ${reason}`
-        )
+        setExportContent(`Error generating descriptors: ${reason}`)
       } finally {
         setIsLoading(false)
       }
