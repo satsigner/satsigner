@@ -377,6 +377,9 @@ const useAccountBuilderStore = create<
     })
   },
   dropSeedFromKey: async (index) => {
+    // TODO: store should not be the one responsible for validation & error
+    // handling, it should only care about updating current state. Also, ideally
+    // this should be synchronous code and not async.
     const state = get()
     if (!state.keys[index] || !state.keys[index].secret) {
       return {

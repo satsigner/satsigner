@@ -13,6 +13,7 @@ import {
 import { type Address } from '@/types/models/Address'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
+import { dropSeedFromKey } from '@/utils/account'
 import { type Label } from '@/utils/bip329'
 import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 import { getUtxoOutpoint } from '@/utils/utxo'
@@ -558,70 +559,39 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         return labelsAdded
       },
       dropSeedFromKey: async (accountId, keyIndex) => {
+        // TODO: store should not be the one doing validation or error handling.
+        // It should be handled by the one calling the store methods.
         const state = get()
         const account = state.accounts.find((acc) => acc.id === accountId)
 
         if (!account || !account.keys[keyIndex]) {
-          return { success: false, message: 'Account or key not found' }
-        }
-
-        const key = account.keys[keyIndex]
-
-        if (!key.secret) {
-          return { success: false, message: 'Key secret not found' }
+          return {
+            success: false,
+            message: 'Account or key not found'
+          }
         }
 
         try {
-          const pin = await getItem(PIN_KEY)
-          if (!pin) {
-            return { success: false, message: 'PIN not found for decryption' }
-          }
-
-          // Decrypt the key's secret
-          let decryptedSecret: any
-          if (typeof key.secret === 'string') {
-            const decryptedSecretString = await aesDecrypt(
-              key.secret,
-              pin,
-              key.iv
-            )
-            decryptedSecret = JSON.parse(decryptedSecretString)
-          } else {
-            decryptedSecret = key.secret
-          }
-
-          // Remove mnemonic and passphrase, keep other fields
-          const cleanedSecret = {
-            extendedPublicKey: decryptedSecret.extendedPublicKey,
-            externalDescriptor: decryptedSecret.externalDescriptor,
-            internalDescriptor: decryptedSecret.internalDescriptor,
-            fingerprint: decryptedSecret.fingerprint
-          }
-
-          // Re-encrypt the cleaned secret
-          const stringifiedSecret = JSON.stringify(cleanedSecret)
-          const encryptedSecret = await aesEncrypt(
-            stringifiedSecret,
-            pin,
-            key.iv
-          )
-
-          // Update the account with the new encrypted secret
+          const newKey = await dropSeedFromKey(account.keys[keyIndex])
           set(
             produce((state) => {
               const accountIndex = state.accounts.findIndex(
                 (acc: Account) => acc.id === accountId
               )
-              if (accountIndex !== -1) {
-                state.accounts[accountIndex].keys[keyIndex].secret =
-                  encryptedSecret
-              }
+              if (accountIndex !== -1) throw new Error('Account not found')
+              state.accounts[accountIndex].keys[keyIndex] = newKey
             })
           )
-
-          return { success: true, message: 'Seed dropped successfully' }
-        } catch {
-          return { success: false, message: 'Failed to drop seed' }
+          return {
+            success: true,
+            message: 'Seed dropped successfully'
+          }
+        } catch (err) {
+          const reason = err instanceof Error ? err.message : 'unknown reason'
+          return {
+            success: false,
+            message: `Failed to drop seed: ${reason}`
+          }
         }
       },
       resetKey: async (accountId, keyIndex) => {
