@@ -9,18 +9,16 @@ import SSModal from '@/components/SSModal'
 import SSPinEntry from '@/components/SSPinEntry'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSText from '@/components/SSText'
-import { PIN_KEY } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { aesDecrypt } from '@/utils/crypto'
+import { decryptKeySecret } from '@/utils/account'
 
 export default function SeedWordsPage() {
   const { id: accountId, keyIndex } = useLocalSearchParams<
@@ -46,51 +44,14 @@ export default function SeedWordsPage() {
     if (!account || !key) return
 
     try {
-      const pinHash = await getItem(PIN_KEY)
-      if (!pinHash) {
-        toast.error(t('account.seed.unableToDecrypt'))
-        return
-      }
-      if (typeof key.secret === 'string') {
-        const decryptedSecretString = await aesDecrypt(
-          key.secret,
-          pinHash,
-          key.iv
-        )
-        const decryptedSecret = JSON.parse(decryptedSecretString)
-
-        if (decryptedSecret.mnemonic) {
-          setMnemonic(decryptedSecret.mnemonic)
-          setShowPinEntry(false)
-
-          // Clear sensitive data from memory
-          decryptedSecret.mnemonic = ''
-        } else {
-          setNoMnemonicAvailable(true)
-          setShowPinEntry(false)
-        }
-      } else if (typeof key.secret === 'object' && key.secret.mnemonic) {
-        // Secret is already decrypted
-        const decryptedMnemonic = await aesDecrypt(
-          key.secret.mnemonic,
-          pinHash,
-          key.iv
-        )
-        if (decryptedMnemonic) {
-          setMnemonic(decryptedMnemonic)
-          setShowPinEntry(false)
-
-          // Clear sensitive data from memory
-          decryptedMnemonic.replace(/./g, '0')
-        } else {
-          toast.error(t('account.seed.unableToDecrypt'))
-        }
-      } else {
-        setNoMnemonicAvailable(true)
-        setShowPinEntry(false)
-      }
-    } catch (_error) {
-      toast.error(t('account.seed.unableToDecrypt'))
+      const secret = await decryptKeySecret(key)
+      setMnemonic(secret.mnemonic || '')
+      setNoMnemonicAvailable(!secret.mnemonic)
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : 'unknown reason'
+      toast.error(`${t('account.seed.unableToDecrypt')}: ${reason}`)
+    } finally {
+      setShowPinEntry(false)
     }
   }, [account, key])
 
