@@ -15,8 +15,6 @@ import { setClipboard } from '@/utils/clipboard'
 import { formatNumber } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
-import SSStyledSatText from './SSStyledSatText'
-
 type SSTransactionVoutListProps = {
   txid?: Transaction['id']
   vout?: Transaction['vout']
