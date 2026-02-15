@@ -27,7 +27,10 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { getAccountFingerprint } from '@/utils/account'
+import {
+  decryptAllAccountKeySecrets,
+  getAccountFingerprint
+} from '@/utils/account'
 import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
 import { formatAccountCreationDate } from '@/utils/date'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
@@ -158,40 +161,24 @@ export default function AccountSettings() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    async function decryptKeys() {
-      const pin = await getItem(PIN_KEY)
-      if (!account || !pin) return
-
-      try {
-        const decryptedKeysData = await Promise.all(
-          account.keys.map(async (key) => {
-            if (typeof key.secret === 'string') {
-              // Decrypt the key's secret
-              const decryptedSecretString = await aesDecrypt(
-                key.secret,
-                pin,
-                key.iv
-              )
-              const decryptedSecret = JSON.parse(
-                decryptedSecretString
-              ) as Secret
-
-              return {
-                ...key,
-                secret: decryptedSecret
-              }
-            } else {
-              return key
-            }
-          })
-        )
-
-        setDecryptedKeys(decryptedKeysData)
-      } catch {
-        toast.error('Failed to decrypt keys')
-      }
+    async function decryptCurrentAccountKeys() {
+      if (!account) return
+      const secrets = await decryptAllAccountKeySecrets(account)
+      const decryptedKeyData = account.keys.map((key, index) => {
+        const newKey: Key = {
+          ...key,
+          secret: secrets[index]
+        }
+        return newKey
+      })
+      setDecryptedKeys(decryptedKeyData)
     }
-    decryptKeys()
+
+    try {
+      decryptCurrentAccountKeys()
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to decrypt account keys')
+    }
   }, [account])
 
   // Update network when account changes
