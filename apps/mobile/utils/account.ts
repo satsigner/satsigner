@@ -1,7 +1,7 @@
 import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
 import type { Account, Key, Secret } from '@/types/models/Account'
-import { aesDecrypt } from '@/utils/crypto'
+import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 const MAX_DAYS_WITHOUT_SYNCING = 3
@@ -160,6 +160,25 @@ export async function decryptKeySecretUsingPin(key: Key, pin: string) {
   return secretObject as Secret
 }
 
+export async function dropSeedFromKey(key: Key) {
+  const pin = await getPin()
+  const decryptedSecret = await decryptKeySecretUsingPin(key, pin)
+  const secretWithoutSeed: Secret = {
+    extendedPublicKey: decryptedSecret.extendedPublicKey,
+    externalDescriptor: decryptedSecret.externalDescriptor,
+    internalDescriptor: decryptedSecret.internalDescriptor,
+    fingerprint: decryptedSecret.fingerprint
+  }
+  const stringifiedSecret = JSON.stringify(secretWithoutSeed)
+  const encryptedSecret = await aesEncrypt(stringifiedSecret, pin, key.iv)
+  stringifiedSecret.replace(/./g, '0')
+  const newKey: Key = {
+    ...key,
+    secret: encryptedSecret
+  }
+  return newKey
+}
+
 // decrypt key secret without account context using PIN from store
 export async function decryptKeySecret(key: Key) {
   const pin = await getPin()
@@ -167,7 +186,7 @@ export async function decryptKeySecret(key: Key) {
 }
 
 // decrypt key secret knowing account context
-async function decryptKeySecretAt(
+export async function decryptKeySecretAt(
   keys: Account['keys'],
   keyIndex: number,
   pin: string

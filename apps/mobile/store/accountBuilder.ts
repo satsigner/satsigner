@@ -1,12 +1,11 @@
 import { produce } from 'immer'
 import { create } from 'zustand'
 
-import { PIN_KEY } from '@/config/auth'
-import { getItem } from '@/storage/encrypted'
 import { type EntropyType } from '@/types/logic/entropy'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
-import { aesDecrypt, aesEncrypt, randomIv, randomUuid } from '@/utils/crypto'
+import { dropSeedFromKey } from '@/utils/account'
+import { randomIv, randomUuid } from '@/utils/crypto'
 
 type AccountBuilderState = {
   name: Account['name']
@@ -379,60 +378,31 @@ const useAccountBuilderStore = create<
   },
   dropSeedFromKey: async (index) => {
     const state = get()
-    if (state.keys[index] && state.keys[index].secret) {
-      if (typeof state.keys[index].secret === 'object') {
-        set(
-          produce((state: AccountBuilderState) => {
-            const secret = state.keys[index].secret as any
-            state.keys[index].secret = {
-              extendedPublicKey: secret.extendedPublicKey,
-              externalDescriptor: secret.externalDescriptor,
-              internalDescriptor: secret.internalDescriptor,
-              fingerprint: secret.fingerprint
-            }
-          })
-        )
-        return { success: true, message: 'Seed dropped successfully' }
-      } else if (typeof state.keys[index].secret === 'string') {
-        try {
-          const pin = await getItem(PIN_KEY)
-          if (!pin) {
-            return { success: false, message: 'PIN not found for decryption' }
-          }
-          const decryptedSecretString = await aesDecrypt(
-            state.keys[index].secret as string,
-            pin,
-            state.keys[index].iv
-          )
-          const decryptedSecret = JSON.parse(decryptedSecretString) as Secret
-          const cleanedSecret: Secret = {
-            extendedPublicKey: decryptedSecret.extendedPublicKey,
-            externalDescriptor: decryptedSecret.externalDescriptor,
-            internalDescriptor: decryptedSecret.internalDescriptor,
-            fingerprint: decryptedSecret.fingerprint
-          }
-          const stringifiedSecret = JSON.stringify(cleanedSecret)
-          const encryptedSecret = await aesEncrypt(
-            stringifiedSecret,
-            pin,
-            state.keys[index].iv
-          )
-
-          stringifiedSecret.replace(/./g, '0')
-
-          set(
-            produce((state: AccountBuilderState) => {
-              state.keys[index].secret = encryptedSecret
-            })
-          )
-
-          return { success: true, message: 'Seed dropped successfully' }
-        } catch {
-          return { success: false, message: 'Failed to drop seed' }
-        }
+    if (!state.keys[index] || !state.keys[index].secret) {
+      return {
+        success: false,
+        message: 'Key not found or invalid'
       }
     }
-    return { success: false, message: 'Key not found or invalid' }
+
+    try {
+      const newKey = await dropSeedFromKey(state.keys[index])
+      set(
+        produce((state: AccountBuilderState) => {
+          state.keys[index] = newKey
+        })
+      )
+      return {
+        success: true,
+        message: 'Seed dropped successfully'
+      }
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : 'unknown reason'
+      return {
+        success: false,
+        message: `Failed to drop seed: ${reason}`
+      }
+    }
   },
   resetKey: (index) => {
     set(
