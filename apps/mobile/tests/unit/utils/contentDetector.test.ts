@@ -224,7 +224,10 @@ describe('contentDetector', () => {
 
     describe('LNURL', () => {
       it('should detect LNURL pay', async () => {
-        const result = await detectContentByContext(lnurls.valid.pay, 'lightning')
+        const result = await detectContentByContext(
+          lnurls.valid.pay,
+          'lightning'
+        )
         expect(result.type).toBe('lnurl')
         expect(result.isValid).toBe(true)
       })
@@ -407,16 +410,18 @@ describe('contentDetector', () => {
       })
 
       it('should not support bitcoin_address', () => {
-        expect(isContentTypeSupportedInContext('bitcoin_address', 'ecash')).toBe(
-          false
-        )
+        expect(
+          isContentTypeSupportedInContext('bitcoin_address', 'ecash')
+        ).toBe(false)
       })
     })
   })
 
   describe('getContentTypeDescription', () => {
     it('should return correct description for bitcoin_address', () => {
-      expect(getContentTypeDescription('bitcoin_address')).toBe('Bitcoin Address')
+      expect(getContentTypeDescription('bitcoin_address')).toBe(
+        'Bitcoin Address'
+      )
     })
 
     it('should return correct description for bitcoin_uri', () => {

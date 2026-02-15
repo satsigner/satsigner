@@ -32,10 +32,7 @@ export type BIP321EncodeResult = {
   errors?: string[]
 }
 
-export function parseBIP321(
-  uri: string,
-  _expectedNetwork?: Network
-): BIP321ParseResult {
+export function parseBIP321(uri: string): BIP321ParseResult {
   const base = {
     paymentMethods: [] as PaymentMethod[],
     requiredParams: [],
@@ -91,7 +88,11 @@ export function parseBIP321(
     result.message = params.get('message') ?? undefined
     const lightning = params.get('lightning')
     if (lightning) {
-      result.paymentMethods.push({ type: 'lightning', value: lightning, valid: true })
+      result.paymentMethods.push({
+        type: 'lightning',
+        value: lightning,
+        valid: true
+      })
     }
   }
   return result
@@ -105,28 +106,30 @@ export function encodeBIP321(params: {
   lightning?: string
 }): BIP321EncodeResult {
   const ok =
-    params.address &&
-    params.address.length >= 26 &&
-    params.address.length <= 90
+    params.address && params.address.length >= 26 && params.address.length <= 90
   if (!ok) {
     return { valid: false, errors: ['Invalid address'] }
   }
   let uri = `bitcoin:${params.address}`
   const parts: string[] = []
   if (params.amount !== undefined && params.amount > 0) {
-    parts.push(`amount=${params.amount < 0.0001 ? params.amount.toFixed(8).replace(/\.?0+$/, '') : params.amount}`)
+    parts.push(
+      `amount=${params.amount < 0.0001 ? params.amount.toFixed(8).replace(/\.?0+$/, '') : params.amount}`
+    )
   }
   if (params.label) parts.push(`label=${encodeURIComponent(params.label)}`)
-  if (params.message) parts.push(`message=${encodeURIComponent(params.message)}`)
+  if (params.message)
+    parts.push(`message=${encodeURIComponent(params.message)}`)
   if (params.lightning) parts.push(`lightning=${params.lightning}`)
   if (parts.length) uri += `?${parts.join('&')}`
   return { valid: true, uri }
 }
 
-export function validateBitcoinAddress(
-  address: string,
-  _expectedNetwork?: Network
-): { valid: boolean; network?: Network; error?: string } {
+export function validateBitcoinAddress(address: string): {
+  valid: boolean
+  network?: Network
+  error?: string
+} {
   const ok = address && address.length >= 26 && address.length <= 90
   if (!ok) return { valid: false, error: 'Invalid address format' }
   const network: Network | undefined = address.startsWith('bcrt1')

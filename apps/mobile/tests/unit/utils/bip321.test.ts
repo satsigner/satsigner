@@ -151,7 +151,9 @@ describe('bip321 utils', () => {
     })
 
     it('should convert 1 sat correctly', () => {
-      const result = parseBitcoinUriWithSats(bip321Uris.valid.amountManyDecimals)
+      const result = parseBitcoinUriWithSats(
+        bip321Uris.valid.amountManyDecimals
+      )
       expect(result.isValid).toBe(true)
       expect(result.amountSats).toBe(1)
     })
@@ -259,25 +261,18 @@ describe('bip321 utils', () => {
 
   describe('validateBitcoinAddressWithNetwork', () => {
     it('should validate mainnet address', () => {
-      const result = validateBitcoinAddressWithNetwork(
-        addresses.mainnet.p2wpkh,
-        'bitcoin'
-      )
+      const result = validateBitcoinAddressWithNetwork(addresses.mainnet.p2wpkh)
       expect(result.isValid).toBe(true)
     })
 
     it('should validate testnet address', () => {
-      const result = validateBitcoinAddressWithNetwork(
-        addresses.testnet.p2wpkh,
-        'testnet'
-      )
+      const result = validateBitcoinAddressWithNetwork(addresses.testnet.p2wpkh)
       expect(result.isValid).toBe(true)
     })
 
     it('should reject invalid address', () => {
       const result = validateBitcoinAddressWithNetwork(
-        addresses.invalid.tooShort,
-        'bitcoin'
+        addresses.invalid.tooShort
       )
       expect(result.isValid).toBe(false)
     })
@@ -349,9 +344,9 @@ describe('bip321 utils', () => {
         )
         // Zero amounts may not be included in the URI, so check if undefined or 0
         if (sats === 0) {
-          expect(parsed.amountSats === undefined || parsed.amountSats === 0).toBe(
-            true
-          )
+          expect(
+            parsed.amountSats === undefined || parsed.amountSats === 0
+          ).toBe(true)
         } else {
           expect(parsed.amountSats).toBe(sats)
         }

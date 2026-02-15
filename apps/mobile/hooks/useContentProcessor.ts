@@ -263,8 +263,7 @@ async function processBitcoinContent(
 
         const parsed = parseBitcoinUri(uriToDecode)
         if (parsed.isValid && parsed.address) {
-          const amount =
-            (parsed.amount || 0) * SATS_PER_BITCOIN || 1
+          const amount = (parsed.amount || 0) * SATS_PER_BITCOIN || 1
 
           if (account && account.summary && amount > account.summary.balance) {
             return

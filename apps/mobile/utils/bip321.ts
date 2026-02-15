@@ -1,11 +1,11 @@
 import {
+  type BIP321ParseResult,
   encodeBIP321,
+  type Network as Bip321Network,
   parseBIP321,
   validateBitcoinAddress,
   validateBolt12Offer,
-  validateLightningInvoice,
-  type BIP321ParseResult,
-  type Network as Bip321Network
+  validateLightningInvoice
 } from 'bip-321'
 
 import { SATS_PER_BITCOIN } from '@/constants/btc'
@@ -224,8 +224,7 @@ export function getAddressFromUri(uri: string): string | null {
 }
 
 export function validateBitcoinAddressWithNetwork(
-  address: string,
-  _expectedNetwork?: AppNetwork
+  address: string
 ): BitcoinAddressValidationResult {
   const result = validateBitcoinAddress(address)
   return {
