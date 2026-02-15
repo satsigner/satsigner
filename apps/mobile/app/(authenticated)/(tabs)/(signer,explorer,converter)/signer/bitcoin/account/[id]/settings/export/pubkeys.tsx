@@ -11,18 +11,16 @@ import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
-import { PIN_KEY } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type Account, type Secret } from '@/types/models/Account'
+import type { Account, Key } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { decryptAllAccountKeySecrets } from '@/utils/account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
-import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
 
 export default function ExportPubkeys() {
@@ -65,21 +63,15 @@ export default function ExportPubkeys() {
     async function getPubkeys() {
       if (!account) return
       setIsLoading(true)
-      const pin = await getItem(PIN_KEY)
-      if (!pin) return
       try {
         const isImportAddress = account.keys[0].creationType === 'importAddress'
-
-        const temporaryAccount = JSON.parse(JSON.stringify(account)) as Account
-
-        for (const key of temporaryAccount.keys) {
-          const decryptedSecretString = await aesDecrypt(
-            key.secret as string,
-            pin,
-            key.iv
-          )
-          const decryptedSecret = JSON.parse(decryptedSecretString) as Secret
-          key.secret = decryptedSecret
+        const secrets = await decryptAllAccountKeySecrets(account)
+        const temporaryAccount: Account = {
+          ...account,
+          keys: account.keys.map((key, index) => {
+            const decryptedKey: Key = { ...key, secret: secrets[index] }
+            return decryptedKey
+          })
         }
 
         const walletData = !isImportAddress
@@ -107,8 +99,9 @@ export default function ExportPubkeys() {
 
         setRawPubkeys(pubkeys)
         setExportContent(pubkeys.join('\n'))
-      } catch {
-        // TODO: Handle error
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : 'unknown reason'
+        toast.error(`Failed to get account public keys: ${reason}`)
       } finally {
         setIsLoading(false)
       }
