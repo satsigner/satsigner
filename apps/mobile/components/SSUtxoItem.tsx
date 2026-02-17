@@ -13,6 +13,7 @@ import { formatAddress, formatDate, formatNumber } from '@/utils/format'
 import { parseLabel } from '@/utils/parse'
 
 import { SSIconPlus, SSIconX } from './icons'
+import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 import SSUtxoSizeMeter from './SSUtxoSizeMeter'
 
@@ -33,7 +34,6 @@ function SSUtxoItem({
   const [currencyUnit, useZeroPadding] = useSettingsStore(
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
-  const zeroPadding = useZeroPadding || currencyUnit === 'btc'
   const selectIconStyle = useMemo(() => {
     return StyleSheet.compose(styles.selectIconBase, {
       ...(selected
@@ -64,9 +64,13 @@ function SSUtxoItem({
             </View>
             <SSVStack gap="xs">
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSText size="md" color="white">
-                  {formatNumber(utxo.value, 0, zeroPadding)}
-                </SSText>
+                <SSStyledSatText
+                  amount={utxo.value}
+                  decimals={0}
+                  useZeroPadding={useZeroPadding}
+                  currency={currencyUnit}
+                  textSize="md"
+                />
                 <SSText size="xs" color="muted">
                   {currencyUnit === 'btc'
                     ? t('bitcoin.btc')
@@ -79,7 +83,7 @@ function SSUtxoItem({
                 </SSText>
                 <SSText color="muted">{priceStore.fiatCurrency}</SSText>
               </SSHStack>
-              <SSText>{label && `${t('utxo.label')}: ${label}`}</SSText>
+              <SSText>{label}</SSText>
             </SSVStack>
           </SSHStack>
           <SSVStack gap="xs" style={{ alignSelf: 'flex-start' }}>

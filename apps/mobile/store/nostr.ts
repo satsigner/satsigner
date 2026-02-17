@@ -35,7 +35,7 @@ type NostrState = {
     [accountId: string]: boolean
   }
   transactionToShare: {
-    message: string
+    transaction: string
     transactionData: TransactionData
   } | null
 }
@@ -64,7 +64,7 @@ type NostrAction = {
   setSyncing: (accountId: string, isSyncing: boolean) => void
   isSyncing: (accountId: string) => boolean
   setTransactionToShare: (
-    data: { message: string; transactionData: TransactionData } | null
+    data: { transaction: string; transactionData: TransactionData } | null
   ) => void
 }
 
@@ -159,12 +159,15 @@ const useNostrStore = create<NostrState & NostrAction>()(
       clearNostrState: (accountId) => {
         set((state) => ({
           members: {
+            ...state.members,
             [accountId]: []
           },
           processedMessageIds: {
+            ...state.processedMessageIds,
             [accountId]: []
           },
           processedEvents: {
+            ...state.processedEvents,
             [accountId]: []
           },
           lastProtocolEOSE: {
@@ -176,6 +179,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
             [accountId]: 0
           },
           trustedDevices: {
+            ...state.trustedDevices,
             [accountId]: []
           }
         }))

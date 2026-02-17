@@ -35,10 +35,10 @@ function SSLabelDetails({
   return (
     <SSHStack justifyBetween style={{ alignItems: 'flex-start' }}>
       <SSVStack gap="sm" style={{ maxWidth: '80%' }}>
-        <SSText uppercase size="md" weight="bold">
+        <SSText uppercase weight="bold">
           {header}
         </SSText>
-        {label && <SSText>{label}</SSText>}
+        {label && <SSText size="2xl">{label}</SSText>}
         {!label && <SSText color="muted">{t('transaction.noLabel')}</SSText>}
         {tags.length > 0 && (
           <SSHStack gap="sm">

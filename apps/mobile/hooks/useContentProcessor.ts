@@ -11,7 +11,7 @@ import { t } from '@/locales'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { extractKeyFingerprint } from '@/utils/account'
-import { bip21decode } from '@/utils/bitcoin'
+import { parseBitcoinUri } from '@/utils/bip321'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
   combinePsbts,
@@ -95,7 +95,7 @@ async function processBitcoinContent(
 
       const psbtParam = encodeURIComponent(psbtBase64)
       navigate(
-        `/account/${accountId}/signAndSend/previewMessage?psbt=${psbtParam}`
+        `/signer/bitcoin/account/${accountId}/signAndSend/previewTransaction?psbt=${psbtParam}`
       )
 
       if (account) {
@@ -234,12 +234,14 @@ async function processBitcoinContent(
     }
 
     case 'bitcoin_descriptor':
-      actions.navigate(`/account/add/watchOnly?descriptor=${content.cleaned}`)
+      actions.navigate(
+        `/signer/bitcoin/account/add/watchOnly?descriptor=${content.cleaned}`
+      )
       break
 
     case 'extended_public_key':
       actions.navigate(
-        `/account/add/watchOnly?extendedPublicKey=${encodeURIComponent(
+        `/signer/bitcoin/account/add/watchOnly?extendedPublicKey=${encodeURIComponent(
           content.cleaned
         )}`
       )
@@ -247,7 +249,7 @@ async function processBitcoinContent(
 
     case 'bitcoin_transaction':
       navigate({
-        pathname: '/account/[id]/signAndSend/previewMessage',
+        pathname: '/signer/bitcoin/account/[id]/signAndSend/previewTransaction',
         params: { id: accountId, signedPsbt: content.cleaned }
       })
       break
@@ -259,10 +261,9 @@ async function processBitcoinContent(
           uriToDecode = `bitcoin:${uriToDecode}`
         }
 
-        const decodedData = bip21decode(uriToDecode)
-        if (decodedData && typeof decodedData === 'object') {
-          const amount =
-            (decodedData.options.amount || 0) * SATS_PER_BITCOIN || 1
+        const parsed = parseBitcoinUri(uriToDecode)
+        if (parsed.isValid && parsed.address) {
+          const amount = (parsed.amount || 0) * SATS_PER_BITCOIN || 1
 
           if (account && account.summary && amount > account.summary.balance) {
             return
@@ -271,8 +272,8 @@ async function processBitcoinContent(
           if (addOutput) {
             addOutput({
               amount,
-              label: decodedData.options.label || '',
-              to: decodedData.address
+              label: parsed.label || '',
+              to: parsed.address
             })
           }
 
@@ -281,7 +282,7 @@ async function processBitcoinContent(
           }
 
           navigate({
-            pathname: '/account/[id]/signAndSend/ioPreview',
+            pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview',
             params: { id: accountId }
           })
         } else {
@@ -330,7 +331,7 @@ async function processBitcoinContent(
             }
 
             navigate({
-              pathname: '/account/[id]/signAndSend/ioPreview',
+              pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview',
               params: { id: accountId }
             })
           }
@@ -349,7 +350,7 @@ async function processBitcoinContent(
         }
 
         navigate({
-          pathname: '/account/[id]/signAndSend/ioPreview',
+          pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview',
           params: { id: accountId }
         })
       }
@@ -370,7 +371,7 @@ async function processBitcoinContent(
       }
 
       navigate({
-        pathname: '/account/[id]/signAndSend/ioPreview',
+        pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview',
         params: { id: accountId }
       })
       break
@@ -486,22 +487,32 @@ export function processContentForOutput(
 
   if (content.type === 'bitcoin_uri') {
     try {
-      const decodedData = bip21decode(content.cleaned)
-      if (decodedData && typeof decodedData === 'object') {
-        actions.setOutputTo(decodedData.address)
+      let uriToDecode = content.cleaned
+      if (!uriToDecode.toLowerCase().startsWith('bitcoin:')) {
+        uriToDecode = `bitcoin:${uriToDecode}`
+      }
 
-        const amount = (decodedData.options.amount || 0) * SATS_PER_BITCOIN || 1
-        if (amount > 1) {
-          if (actions.remainingSats && amount > actions.remainingSats) {
-            actions.onWarning(t('error.insufficientFundsForAmount'))
+      const parsed = parseBitcoinUri(uriToDecode)
+      if (parsed.isValid && parsed.address) {
+        actions.setOutputTo(parsed.address)
+
+        if (parsed.amount !== undefined) {
+          const amountInBTC = Number(parsed.amount)
+          if (!isNaN(amountInBTC) && amountInBTC > 0) {
+            const amountInSats = Math.round(amountInBTC * SATS_PER_BITCOIN)
+            if (actions.remainingSats && amountInSats > actions.remainingSats) {
+              actions.onWarning(t('error.insufficientFundsForAmount'))
+            } else {
+              actions.setOutputAmount(amountInSats)
+            }
           } else {
-            actions.setOutputAmount(amount)
+            actions.setOutputAmount(1)
           }
         } else {
           actions.setOutputAmount(1)
         }
 
-        actions.setOutputLabel(decodedData.options.label || '')
+        actions.setOutputLabel(parsed.label || '')
         return true
       }
     } catch {

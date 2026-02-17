@@ -2,8 +2,6 @@ export type Backend = 'electrum' | 'esplora'
 
 export type Network = 'bitcoin' | 'testnet' | 'signet'
 
-export type ServerType = 'CUSTOM' | 'PUBLIC'
-
 export type ProxyConfig = {
   enabled: boolean
   host: string
@@ -23,5 +21,8 @@ export type Config = {
   retries: number
   stopGap: number
   connectionMode: 'auto' | 'manual'
+  /* INFO: seconds before testing current connection */
   connectionTestInterval: number
+  /* INFO: minutes before next auto-sync given last sync timestamp */
+  timeDiffBeforeAutoSync: number
 }

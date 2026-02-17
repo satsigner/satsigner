@@ -2,7 +2,7 @@ import { create } from 'zustand'
 
 import { MempoolOracle } from '@/api/blockchain'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
-import { type Currency, type Prices } from '@/types/models/Blockchain'
+import type { Currency, Prices } from '@/types/models/Blockchain'
 
 type PriceState = {
   prices: Prices

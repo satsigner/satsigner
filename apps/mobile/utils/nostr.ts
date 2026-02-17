@@ -1,10 +1,12 @@
 import ecc from '@bitcoinerlab/secp256k1'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import CBOR from 'cbor-js'
-import { nip19 } from 'nostr-tools'
+import { getPublicKey, nip19 } from 'nostr-tools'
 import pako from 'pako'
 
 import { base85Decode, base85Encode } from '@/utils/base58'
+import { sha256 } from '@/utils/crypto'
+import { parseDescriptor } from '@/utils/parse'
 import { type TransactionData } from '@/utils/psbt'
 
 // Initialize ECC library
@@ -50,12 +52,12 @@ export async function generateColorFromNpub(npub: string): Promise<string> {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`
 }
 
-export function parseNostrTransactionMessage(
-  message: string
+export function parseNostrTransaction(
+  transaction: string
 ): TransactionData | null {
-  if (message.trim().startsWith('cHNidP')) {
+  if (transaction.trim().startsWith('cHNidP')) {
     const transactionData: TransactionData = {
-      combinedPsbt: message.trim()
+      combinedPsbt: transaction.trim()
     }
     return transactionData
   }
@@ -78,4 +80,22 @@ export function decompressMessage(compressedString: string): unknown {
     cborBytes.byteOffset + cborBytes.byteLength
   )
   return CBOR.decode(bufferSlice as unknown as Uint8Array)
+}
+
+export async function deriveNostrKeysFromDescriptor(
+  externalDescriptor: string
+): Promise<{
+  commonNsec: string
+  commonNpub: string
+  privateKeyBytes: Uint8Array
+}> {
+  const { hardenedPath, xpubs } = parseDescriptor(externalDescriptor)
+  const totalString = `${hardenedPath}${xpubs.join('')}`
+  const firstHash = await sha256(totalString)
+  const doubleHash = await sha256(firstHash)
+  const privateKeyBytes = new Uint8Array(Buffer.from(doubleHash, 'hex'))
+  const publicKey = getPublicKey(privateKeyBytes)
+  const commonNsec = nip19.nsecEncode(privateKeyBytes)
+  const commonNpub = nip19.npubEncode(publicKey)
+  return { commonNsec, commonNpub, privateKeyBytes }
 }
