@@ -732,22 +732,13 @@ export default function NostrSync() {
                 </SSText>
               </SSHStack>
             )}
-            <SSHStack gap="md">
-              <SSButton
-                style={{ flex: 0.9 }}
-                label={t('account.nostrSync.setKeys')}
-                onPress={goToNostrKeyPage}
-                disabled={isSyncing}
-              />
-              <SSButton
-                style={{ flex: 0.9 }}
-                label={t('account.nostrSync.manageRelays', {
-                  count: selectedRelays.length
-                })}
-                onPress={goToSelectRelaysPage}
-                disabled={isSyncing}
-              />
-            </SSHStack>
+            <SSButton
+              label={t('account.nostrSync.manageRelays', {
+                count: selectedRelays.length
+              })}
+              onPress={goToSelectRelaysPage}
+              disabled={isSyncing}
+            />
             {selectedRelays.length === 0 && account?.nostr?.autoSync && (
               <SSText color="white" weight="bold" center>
                 {t('account.nostrSync.noRelaysWarning')}
@@ -819,6 +810,11 @@ export default function NostrSync() {
                 )}
               </SSVStack>
             </SSVStack>
+            <SSButton
+              label={t('account.nostrSync.setKeys')}
+              onPress={goToNostrKeyPage}
+              disabled={isSyncing}
+            />
             <SSButton
               style={{ marginTop: 30, marginBottom: 10 }}
               variant="secondary"
