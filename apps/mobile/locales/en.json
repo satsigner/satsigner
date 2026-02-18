@@ -131,7 +131,7 @@
     "network.title": "Network",
     "nostrSync.autoSync": "Auto Sync",
     "nostrSync.autoSyncMustBeEnabled": "Auto-sync must be enabled to send transaction data",
-    "nostrSync.commonNostrKeys": "Shared Descriptior Keys",
+    "nostrSync.commonNostrKeys": "Shared Descriptor Keys",
     "nostrSync.deriveNsec": "Derive nsec",
     "nostrSync.deviceAlias.alias": "Alias",
     "nostrSync.deviceAlias.aliasPlaceholder": "Enter alias (e.g., bitcoin safe)",
