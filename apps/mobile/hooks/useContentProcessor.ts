@@ -11,7 +11,7 @@ import { t } from '@/locales'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { getKeyFingerprint } from '@/utils/account'
-import { bip21decode } from '@/utils/bitcoin'
+import { parseBitcoinUri } from '@/utils/bip321'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
   combinePsbts,
