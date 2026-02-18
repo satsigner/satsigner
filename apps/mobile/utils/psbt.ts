@@ -913,7 +913,7 @@ function parseWitnessScript(witnessScript: Buffer) {
   return { threshold, totalKeys }
 }
 
-function isValidOpCode(op: any): boolean {
+function isValidOpCode(op: number | Buffer): boolean {
   return typeof op === 'number' && op >= 81 && op <= 96
 }
 
