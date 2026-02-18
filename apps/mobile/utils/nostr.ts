@@ -52,12 +52,24 @@ export async function generateColorFromNpub(npub: string): Promise<string> {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`
 }
 
-export function parseNostrTransaction(
-  transaction: string
+export function deriveNpubFromNsec(nsec: string): string | null {
+  if (!nsec?.trim()) return null
+  try {
+    const decoded = nip19.decode(nsec.trim())
+    if (!decoded || decoded.type !== 'nsec') return null
+    const publicKey = getPublicKey(decoded.data as Uint8Array)
+    return nip19.npubEncode(publicKey)
+  } catch {
+    return null
+  }
+}
+
+export function parseNostrTransactionMessage(
+  message: string
 ): TransactionData | null {
-  if (transaction.trim().startsWith('cHNidP')) {
+  if (message.trim().startsWith('cHNidP')) {
     const transactionData: TransactionData = {
-      combinedPsbt: transaction.trim()
+      combinedPsbt: message.trim()
     }
     return transactionData
   }

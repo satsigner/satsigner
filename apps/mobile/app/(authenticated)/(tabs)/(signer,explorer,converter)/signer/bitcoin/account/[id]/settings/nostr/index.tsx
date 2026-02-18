@@ -749,12 +749,23 @@ export default function NostrSync() {
               <SSText center>{t('account.nostrSync.deviceKeys')}</SSText>
               <SSVStack gap="xxs" style={styles.keysContainer}>
                 {deviceNsec && deviceNpub ? (
-                  <>
-                    <SSVStack gap="xxs">
-                      <SSText color="muted" center>
-                        {t('account.nostrSync.nsec')}
-                      </SSText>
-                      <SSTextClipboard text={deviceNsec || ''}>
+                  <SSVStack gap="xxs">
+                    <SSText color="muted" center>
+                      {t('account.nostrSync.npub')}
+                    </SSText>
+                    <SSHStack gap="xxs" style={{ flex: 0.7 }}>
+                      <View
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: 10,
+                          backgroundColor: deviceColor,
+                          marginTop: 3,
+                          marginLeft: 30,
+                          marginRight: -30
+                        }}
+                      />
+                      <SSTextClipboard text={deviceNpub || ''}>
                         <SSText
                           center
                           size="xl"
@@ -762,44 +773,13 @@ export default function NostrSync() {
                           style={styles.keyText}
                           selectable
                         >
-                          {deviceNsec.slice(0, 12) +
+                          {deviceNpub.slice(0, 12) +
                             '...' +
-                            deviceNsec.slice(-4)}
+                            deviceNpub.slice(-4)}
                         </SSText>
                       </SSTextClipboard>
-                    </SSVStack>
-                    <SSVStack gap="xxs">
-                      <SSText color="muted" center>
-                        {t('account.nostrSync.npub')}
-                      </SSText>
-                      <SSHStack gap="xxs" style={{ flex: 0.7 }}>
-                        <View
-                          style={{
-                            width: 10,
-                            height: 10,
-                            borderRadius: 10,
-                            backgroundColor: deviceColor,
-                            marginTop: 3,
-                            marginLeft: 30,
-                            marginRight: -30
-                          }}
-                        />
-                        <SSTextClipboard text={deviceNpub || ''}>
-                          <SSText
-                            center
-                            size="xl"
-                            type="mono"
-                            style={styles.keyText}
-                            selectable
-                          >
-                            {deviceNpub.slice(0, 12) +
-                              '...' +
-                              deviceNpub.slice(-4)}
-                          </SSText>
-                        </SSTextClipboard>
-                      </SSHStack>
-                    </SSVStack>
-                  </>
+                    </SSHStack>
+                  </SSVStack>
                 ) : (
                   <SSHStack style={styles.keyContainerLoading}>
                     <ActivityIndicator color={Colors.white} />
