@@ -1,11 +1,11 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useState } from 'react'
-import { StyleSheet } from 'react-native'
+import { useEffect, useState } from 'react'
+import { ActivityIndicator, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { NostrAPI } from '@/api/nostr'
 import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
+import useNostrSync from '@/hooks/useNostrSync'
 import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
@@ -28,36 +28,50 @@ function NostrKeys() {
     ])
   )
 
+  const { generateCommonNostrKeys } = useNostrSync()
+
   const [deviceNsec, setNsec] = useState<string>(
     account?.nostr?.deviceNsec ?? ''
   )
   const [deviceNpub, setNpub] = useState<string>(
     account?.nostr?.deviceNpub ?? ''
   )
-  const [loadingDefaultKeys, setLoadingDefaultKeys] = useState(false)
+  const [loadingCommonKeys, setLoadingCommonKeys] = useState(false)
 
-  async function loadDefaultNostrKeys() {
-    if (loadingDefaultKeys || !account || !accountId) return
+  async function loadCommonNostrKeys() {
+    if (loadingCommonKeys || !account || !accountId) return
 
-    setLoadingDefaultKeys(true)
+    setLoadingCommonKeys(true)
     try {
-      const keys = await NostrAPI.generateNostrKeys()
-      if (keys) {
-        setNsec(keys.nsec)
-        setNpub(keys.npub)
+      const keys = await generateCommonNostrKeys(account)
+      if (keys && 'commonNsec' in keys && 'commonNpub' in keys) {
         updateAccountNostr(accountId, {
           ...account.nostr,
-          deviceNsec: keys.nsec,
-          deviceNpub: keys.npub,
+          commonNsec: keys.commonNsec,
+          commonNpub: keys.commonNpub,
           lastUpdated: new Date()
         })
+      } else if (keys && 'externalDescriptor' in keys) {
+        toast.error('Common keys are not available for watch-only accounts')
       }
     } catch (_error) {
-      toast.error('Failed to generate device keys')
+      toast.error('Failed to generate common keys')
     } finally {
-      setLoadingDefaultKeys(false)
+      setLoadingCommonKeys(false)
     }
   }
+
+  useEffect(() => {
+    if (
+      account &&
+      accountId &&
+      account.nostr &&
+      !account.nostr.commonNsec &&
+      !account.nostr.commonNpub
+    ) {
+      loadCommonNostrKeys()
+    }
+  }, [accountId])
 
   function saveChanges() {
     if (!accountId || !account?.nostr) return
@@ -132,11 +146,12 @@ function NostrKeys() {
                   </SSVStack>
                 </>
               ) : (
-                <SSButton
-                  label={t('account.nostrSync.generateCommonKeys')}
-                  onPress={loadDefaultNostrKeys}
-                  disabled={loadingDefaultKeys}
-                />
+                <SSHStack style={styles.keyContainerLoading} gap="sm">
+                  <ActivityIndicator color={Colors.white} />
+                  <SSText uppercase color="white">
+                    {t('account.nostrSync.loadingKeys')}
+                  </SSText>
+                </SSHStack>
               )}
             </SSVStack>
           </SSVStack>
