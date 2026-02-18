@@ -46,7 +46,7 @@ export default function BlockTransactions() {
   const [requestStatuses, runRequest] = usePromiseStatuses(['txs'])
 
   async function fetchBlock() {
-    const data = await esploraClient.getBlockInfo(blockHash)
+    const data = await esploraClient.getBlockInfo(blockHash!)
     setBlock(data)
   }
 
@@ -54,7 +54,9 @@ export default function BlockTransactions() {
     await runRequest({
       name: 'txs',
       callback: async () => {
-        const blockTxids = await esploraClient.getBlockTransactionIds(blockHash)
+        const blockTxids = await esploraClient.getBlockTransactionIds(
+          blockHash!
+        )
         setBlockTxids(blockTxids)
       },
       errorMessage: 'Failed to fetch block transactions'

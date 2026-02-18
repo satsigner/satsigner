@@ -261,10 +261,9 @@ async function processBitcoinContent(
           uriToDecode = `bitcoin:${uriToDecode}`
         }
 
-        const decodedData = bip21decode(uriToDecode)
-        if (decodedData && typeof decodedData === 'object') {
-          const amount =
-            (decodedData.options.amount || 0) * SATS_PER_BITCOIN || 1
+        const parsed = parseBitcoinUri(uriToDecode)
+        if (parsed.isValid && parsed.address) {
+          const amount = (parsed.amount || 0) * SATS_PER_BITCOIN || 1
 
           if (account && account.summary && amount > account.summary.balance) {
             return
@@ -273,8 +272,8 @@ async function processBitcoinContent(
           if (addOutput) {
             addOutput({
               amount,
-              label: decodedData.options.label || '',
-              to: decodedData.address
+              label: parsed.label || '',
+              to: parsed.address
             })
           }
 
@@ -493,12 +492,12 @@ export function processContentForOutput(
         uriToDecode = `bitcoin:${uriToDecode}`
       }
 
-      const decodedData = bip21decode(uriToDecode)
-      if (decodedData && typeof decodedData === 'object') {
-        actions.setOutputTo(decodedData.address)
+      const parsed = parseBitcoinUri(uriToDecode)
+      if (parsed.isValid && parsed.address) {
+        actions.setOutputTo(parsed.address)
 
-        if (decodedData.options && decodedData.options.amount !== undefined) {
-          const amountInBTC = Number(decodedData.options.amount)
+        if (parsed.amount !== undefined) {
+          const amountInBTC = Number(parsed.amount)
           if (!isNaN(amountInBTC) && amountInBTC > 0) {
             const amountInSats = Math.round(amountInBTC * SATS_PER_BITCOIN)
             if (actions.remainingSats && amountInSats > actions.remainingSats) {
@@ -513,7 +512,7 @@ export function processContentForOutput(
           actions.setOutputAmount(1)
         }
 
-        actions.setOutputLabel(decodedData.options?.label || '')
+        actions.setOutputLabel(parsed.label || '')
         return true
       }
     } catch {

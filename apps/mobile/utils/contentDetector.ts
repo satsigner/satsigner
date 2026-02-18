@@ -3,7 +3,8 @@ import { getDecodedToken } from '@cashu/cashu-ts'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { isBBQRFragment } from '@/utils/bbqr'
-import { isBip21, isBitcoinAddress } from '@/utils/bitcoin'
+import { isBitcoinUri, validateBolt12, validateLightning } from '@/utils/bip321'
+import { isBitcoinAddress } from '@/utils/bitcoin'
 import { isPSBT } from '@/utils/bitcoinContent'
 import { isLNURL } from '@/utils/lnurl'
 import { stripBitcoinPrefix } from '@/utils/parse'
@@ -101,7 +102,7 @@ async function detectBitcoinContent(
     }
   }
 
-  if (isBip21(trimmed)) {
+  if (isBitcoinUri(trimmed)) {
     return {
       type: 'bitcoin_uri',
       raw: data,
@@ -112,7 +113,7 @@ async function detectBitcoinContent(
 
   if (trimmed.toLowerCase().startsWith('bitcoin:')) {
     const uriPart = trimmed.substring(8)
-    if (isBip21(trimmed)) {
+    if (isBitcoinUri(trimmed)) {
       return {
         type: 'bitcoin_uri',
         raw: data,
@@ -157,26 +158,59 @@ async function detectBitcoinContent(
 }
 
 function detectLightningContent(data: string): DetectedContent | null {
-  const trimmed = data.trim().toLowerCase()
+  const trimmed = data.trim()
+  const lowerTrimmed = trimmed.toLowerCase()
 
+  // Check for BOLT11 invoices using bip-321 validation
+  // This handles all networks: mainnet (lnbc), testnet (lntb), regtest (lnbcrt), signet (lntbs)
   if (
-    trimmed.startsWith('lnbc') ||
-    trimmed.startsWith('lntb') ||
-    trimmed.startsWith('lnbcrt')
+    lowerTrimmed.startsWith('lnbc') ||
+    lowerTrimmed.startsWith('lntb') ||
+    lowerTrimmed.startsWith('lnbcrt') ||
+    lowerTrimmed.startsWith('lntbs')
   ) {
+    const validation = validateLightning(lowerTrimmed)
+    if (validation.isValid) {
+      return {
+        type: 'lightning_invoice',
+        raw: data,
+        cleaned: trimmed,
+        metadata: {
+          network: validation.appNetwork
+        },
+        isValid: true
+      }
+    }
+    // Even if validation fails, still detect as lightning invoice
+    // to allow the user to see the content type
     return {
       type: 'lightning_invoice',
       raw: data,
-      cleaned: data.trim(),
+      cleaned: trimmed,
       isValid: true
     }
   }
 
-  if (isLNURL(trimmed)) {
+  // Check for BOLT12 offers (lno prefix)
+  if (lowerTrimmed.startsWith('lno')) {
+    const validation = validateBolt12(lowerTrimmed)
+    return {
+      type: 'lightning_invoice',
+      raw: data,
+      cleaned: trimmed,
+      metadata: {
+        isBolt12: true,
+        isValid: validation.isValid
+      },
+      isValid: validation.isValid
+    }
+  }
+
+  if (isLNURL(lowerTrimmed)) {
     return {
       type: 'lnurl',
       raw: data,
-      cleaned: data.trim(),
+      cleaned: trimmed,
       isValid: true
     }
   }
@@ -204,11 +238,14 @@ function detectEcashContent(data: string): DetectedContent | null {
         }
       }
     } catch {
+      const isV4 = trimmed.startsWith('cashuB')
       return {
         type: 'ecash_token',
         raw: data,
         cleaned: trimmed,
-        isValid: false
+        metadata: { version: isV4 ? 'v4' : 'v3' },
+        // v4 often needs keysets to decode (short keyset ID, key type); treat as valid when format is v4
+        isValid: isV4
       }
     }
   }
