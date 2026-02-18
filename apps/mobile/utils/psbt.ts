@@ -917,13 +917,8 @@ function isValidOpCode(op: any): boolean {
   return typeof op === 'number' && op >= 81 && op <= 96
 }
 
-function countPublicKeysInScript(script: any[]): number {
-  return script.filter(
-    (item) =>
-      item &&
-      typeof item === 'object' &&
-      (Buffer.isBuffer(item) || (item as any).type === 'Buffer')
-  ).length
+function countPublicKeysInScript(script: (number | Buffer)[]): number {
+  return script.filter((item): item is Buffer => Buffer.isBuffer(item)).length
 }
 
 function isValidScriptInfo(scriptInfo: {
