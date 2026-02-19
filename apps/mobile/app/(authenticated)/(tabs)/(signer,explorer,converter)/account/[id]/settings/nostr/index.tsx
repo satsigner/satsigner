@@ -29,6 +29,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
+import type { NostrAccount } from '@/types/models/Nostr'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatDate } from '@/utils/date'
 import { compressMessage, generateColorFromNpub } from '@/utils/nostr'
@@ -44,11 +45,10 @@ export default function NostrSync() {
   )
 
   const [isGeneratingKeys, setIsGeneratingKeys] = useState(false)
-
   const [keysGenerated, setKeysGenerated] = useState(false)
 
   const updateAccountNostrCallback = useCallback(
-    (accountId: string, nostrData: any) => {
+    (accountId: string, nostrData: Partial<NostrAccount>) => {
       updateAccountNostr(accountId, nostrData)
     },
     [updateAccountNostr]
@@ -266,7 +266,6 @@ export default function NostrSync() {
     try {
       if (!accountId || !account) return
 
-      // Initialize nostr object if it doesn't exist
       if (!account.nostr) {
         updateAccountNostrCallback(accountId, {
           autoSync: false,
@@ -288,12 +287,10 @@ export default function NostrSync() {
         setIsSyncing(true)
         if (accountId) setSyncing(accountId, true)
 
-        // Cleanup all subscriptions first
         await cleanupSubscriptions().catch(() => {
           toast.error('Failed to cleanup subscriptions')
         })
 
-        // Set all relays to "disconnected" when turning sync off
         const allRelaysDisconnected: Record<
           string,
           'connected' | 'connecting' | 'disconnected'
@@ -305,7 +302,6 @@ export default function NostrSync() {
         }
         setRelayConnectionStatuses(allRelaysDisconnected)
 
-        // Then update state
         updateAccountNostrCallback(accountId, {
           ...account.nostr,
           autoSync: false,
@@ -343,11 +339,8 @@ export default function NostrSync() {
           setIsSyncing(true)
           if (accountId) setSyncing(accountId, true)
           try {
-            // Test relay sync first
             await testRelaySync(updatedAccount.nostr.relays)
-
             deviceAnnouncement(updatedAccount)
-            // Start both subscriptions using the new function
             await nostrSyncSubscriptions(updatedAccount, (loading) => {
               requestAnimationFrame(() => {
                 setIsSyncing(loading)
@@ -464,25 +457,23 @@ export default function NostrSync() {
         return // Return early as we'll re-run this effect after the update
       }
 
-      if (!commonNsec) {
-        if (account.nostr.commonNsec && account.nostr.commonNpub) {
+      // Always check account state first, not local state
+      if (account.nostr.commonNsec && account.nostr.commonNpub) {
+        if (!commonNsec) {
           setCommonNsec(account.nostr.commonNsec)
-        } else {
-          generateCommonNostrKeys(account)
-            .then((keys) => {
-              if (keys) {
-                setCommonNsec(keys.commonNsec as string)
-                updateAccountNostrCallback(accountId, {
-                  ...account.nostr,
-                  commonNsec: keys.commonNsec,
-                  commonNpub: keys.commonNpub
-                })
-              }
-            })
-            .catch(() => {
-              throw new Error('Error loading common Nostr keys')
-            })
         }
+      } else {
+        generateCommonNostrKeys(account)
+          .then((keys) => {
+            if (keys && keys.commonNsec && keys.commonNpub) {
+              setCommonNsec(keys.commonNsec as string)
+              updateAccountNostrCallback(accountId, {
+                commonNsec: keys.commonNsec,
+                commonNpub: keys.commonNpub
+              })
+            }
+          })
+          .catch(() => {})
       }
     }
   }, [
