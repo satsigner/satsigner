@@ -24,6 +24,13 @@ import {
   deriveNostrKeysFromDescriptor
 } from '@/utils/nostr'
 
+type UnwrappedNostrEvent = {
+  id: string
+  pubkey: string
+  content: string
+  tags?: unknown[][]
+}
+
 function useNostrSync() {
   const [accounts, updateAccountNostr, importLabels] = useAccountsStore(
     useShallow((state) => [
@@ -72,23 +79,28 @@ function useNostrSync() {
   }, [clearSubscriptions, getActiveSubscriptions])
 
   const storeDM = useCallback(
-    async (account?: Account, unwrappedEvent?: any, eventContent?: any) => {
-      if (!account || !unwrappedEvent) return
+    async (
+      account?: Account,
+      unwrappedEvent?: UnwrappedNostrEvent,
+      eventContent?: Record<string, unknown>
+    ) => {
+      if (!account || !unwrappedEvent || !eventContent) return
 
-      if (eventContent.created_at > Date.now() / 1000 + 60 * 5) {
+      const created_at = eventContent.created_at as number
+      if (created_at > Date.now() / 1000 + 60 * 5) {
         return
       }
-
+      const description = (eventContent.description as string) ?? ''
       const newMessage = {
         id: unwrappedEvent.id,
         author: unwrappedEvent.pubkey,
-        created_at: eventContent.created_at,
-        description: eventContent.description,
+        created_at,
+        description,
         event: JSON.stringify(unwrappedEvent),
         label: 1,
         content: {
-          description: eventContent.description,
-          created_at: eventContent.created_at,
+          description,
+          created_at,
           pubkey: unwrappedEvent.pubkey
         }
       }
@@ -96,13 +108,13 @@ function useNostrSync() {
       // Trigger notifcation only if message is recent and is not sent to self
       const lastDataExchangeEOSE = getLastDataExchangeEOSE(account.id) || 0
       if (
-        eventContent.created_at > lastDataExchangeEOSE &&
+        created_at > lastDataExchangeEOSE &&
         account.nostr.deviceNpub !== nip19.npubEncode(unwrappedEvent.pubkey) &&
-        eventContent.created_at < Date.now() / 1000 - 60 * 5
+        created_at < Date.now() / 1000 - 60 * 5
       ) {
         const npub = nip19.npubEncode(unwrappedEvent.pubkey)
         const formatedAuthor = npub.slice(0, 12) + '...' + npub.slice(-4)
-        toast.info(formatedAuthor + ': ' + eventContent.description)
+        toast.info(`${formatedAuthor}: ${description}`)
       }
 
       // Get the current state directly from the store to ensure we have the latest
@@ -142,11 +154,14 @@ function useNostrSync() {
 
   // TODO: update type
   const processEvent = useCallback(
-    async (account: Account, unwrappedEvent: any): Promise<string> => {
+    async (
+      account: Account,
+      unwrappedEvent: UnwrappedNostrEvent
+    ): Promise<void> => {
       // Check for processed events at the very beginning
       const accountProcessedEvejts = processedEvents[account.id] || []
       if (accountProcessedEvejts.includes(unwrappedEvent.id)) {
-        return ''
+        return
       }
 
       // Mark event as processed immediately to prevent duplicate processing
@@ -154,68 +169,56 @@ function useNostrSync() {
 
       const eventContent = getEventContent(unwrappedEvent)
 
-      if (eventContent.data) {
-        const data_type = eventContent.data.data_type
+      const data = eventContent.data as
+        | { data_type?: string; data?: unknown }
+        | undefined
+      if (data) {
+        const data_type = data.data_type
         if (data_type === 'LabelsBip329') {
-          const labels = JSONLtoLabels(eventContent.data.data)
+          const labels = JSONLtoLabels(String(data.data ?? ''))
           const labelsAdded = importLabels(account.id, labels)
           if (labelsAdded > 0) {
             toast.success(`Imported ${labelsAdded} labels`)
           }
         } else if (data_type === 'Tx') {
-          // Handle Tx
+          const dataStr = String(data.data ?? '')
           toast.info(
-            'New Tx Recieve from: ' +
-              nip19.npubEncode(unwrappedEvent.pubkey).slice(0, 12) +
-              '...' +
-              nip19.npubEncode(unwrappedEvent.pubkey).slice(-4) +
-              ' - ' +
-              eventContent.data.data.slice(0, 12) +
-              '...'
+            `New Tx Recieve from: ${nip19.npubEncode(unwrappedEvent.pubkey).slice(0, 12)}...${nip19.npubEncode(unwrappedEvent.pubkey).slice(-4)} - ${dataStr.slice(0, 12)}...`
           )
         } else if (data_type === 'PSBT') {
-          // Handle PSBT
+          const dataStr = String(data.data ?? '')
           toast.info(
-            'New PSBT Recieve from: ' +
-              nip19.npubEncode(unwrappedEvent.pubkey).slice(0, 12) +
-              '...' +
-              nip19.npubEncode(unwrappedEvent.pubkey).slice(-4) +
-              ' - ' +
-              eventContent.data.data.slice(0, 12) +
-              '...'
+            `New PSBT Recieve from: ${nip19.npubEncode(unwrappedEvent.pubkey).slice(0, 12)}...${nip19.npubEncode(unwrappedEvent.pubkey).slice(-4)} - ${dataStr.slice(0, 12)}...`
           )
-          const psbtEventContent = {
+          const psbtEventContent: Record<string, unknown> = {
             created_at:
-              eventContent.created_at || Math.floor(Date.now() / 1000),
-            description: eventContent.data.data
+              (eventContent.created_at as number) ||
+              Math.floor(Date.now() / 1000),
+            description: data.data
           }
           await storeDM(account, unwrappedEvent, psbtEventContent)
         } else if (data_type === 'SignMessageRequest') {
-          // POPUP Sign message request
+          const dataStr = String(data.data ?? '')
           toast.info(
-            'New Sign message request Recieve from: ' +
-              nip19.npubEncode(unwrappedEvent.pubkey).slice(0, 12) +
-              '...' +
-              nip19.npubEncode(unwrappedEvent.pubkey).slice(-4) +
-              ' - ' +
-              eventContent.data.data.slice(0, 12) +
-              '...'
+            `New Sign message request Recieve from: ${nip19.npubEncode(unwrappedEvent.pubkey).slice(0, 12)}...${nip19.npubEncode(unwrappedEvent.pubkey).slice(-4)} - ${dataStr.slice(0, 12)}...`
           )
         }
-      } else if (eventContent.description && !eventContent.data) {
-        //ignore if is sent to commonNpub
+      } else if (
+        eventContent.description != null &&
+        eventContent.description !== '' &&
+        !data
+      ) {
+        const tags = unwrappedEvent.tags
         if (
-          account.nostr.commonNpub !==
-          nip19.npubEncode(unwrappedEvent.tags[0][1])
+          tags?.[0]?.[1] != null &&
+          account.nostr.commonNpub !== nip19.npubEncode(tags[0][1] as string)
         ) {
           await storeDM(account, unwrappedEvent, eventContent)
         }
       } else if (eventContent.public_key_bech32) {
-        const newMember = eventContent.public_key_bech32
+        const newMember = eventContent.public_key_bech32 as string
         addMember(account.id, newMember)
       }
-
-      return eventContent
     },
     [] // eslint-disable-line react-hooks/exhaustive-deps
   )
@@ -237,7 +240,8 @@ function useNostrSync() {
       await nostrApi.subscribeToKind1059(
         commonNsec as string,
         commonNpub as string,
-        async (message) => processEvent(account, message.content),
+        async (message) =>
+          processEvent(account, message.content as UnwrappedNostrEvent),
         undefined,
         lastProtocolEOSE,
         (nsec) => updateLasEOSETimestamp(account, nsec)
@@ -265,7 +269,8 @@ function useNostrSync() {
       await nostrApi.subscribeToKind1059(
         deviceNsec as string,
         deviceNpub as string,
-        async (message) => processEvent(account, message.content),
+        async (message) =>
+          processEvent(account, message.content as UnwrappedNostrEvent),
         undefined,
         lastDataExchangeEOSE,
         (nsec) => updateLasEOSETimestamp(account, nsec)

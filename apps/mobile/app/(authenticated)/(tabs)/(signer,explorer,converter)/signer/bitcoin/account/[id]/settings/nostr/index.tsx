@@ -20,7 +20,6 @@ import { NostrAPI } from '@/api/nostr'
 import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
 import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
-import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
@@ -30,6 +29,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
+import type { NostrAccount } from '@/types/models/Nostr'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatDate } from '@/utils/date'
 import { compressMessage, generateColorFromNpub } from '@/utils/nostr'
@@ -48,7 +48,7 @@ export default function NostrSync() {
   const [keysGenerated, setKeysGenerated] = useState(false)
 
   const updateAccountNostrCallback = useCallback(
-    (accountId: string, nostrData: any) => {
+    (accountId: string, nostrData: Partial<NostrAccount>) => {
       updateAccountNostr(accountId, nostrData)
     },
     [updateAccountNostr]
