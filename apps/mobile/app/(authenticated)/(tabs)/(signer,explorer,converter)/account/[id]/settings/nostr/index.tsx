@@ -20,6 +20,7 @@ import { NostrAPI } from '@/api/nostr'
 import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
 import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
+import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
@@ -31,7 +32,6 @@ import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatDate } from '@/utils/date'
-import { runNetworkDiagnostics } from '@/utils/networkDiagnostics'
 import { compressMessage, generateColorFromNpub } from '@/utils/nostr'
 
 export default function NostrSync() {
@@ -45,8 +45,6 @@ export default function NostrSync() {
   )
 
   const [isGeneratingKeys, setIsGeneratingKeys] = useState(false)
-  const [isRunningDiagnostics, setIsRunningDiagnostics] = useState(false)
-
   const [keysGenerated, setKeysGenerated] = useState(false)
 
   const updateAccountNostrCallback = useCallback(
@@ -199,36 +197,6 @@ export default function NostrSync() {
     },
     []
   )
-
-  /**
-   * Run network diagnostics to troubleshoot connectivity issues
-   */
-  const handleRunDiagnostics = async () => {
-    setIsRunningDiagnostics(true)
-
-    try {
-      const report = await runNetworkDiagnostics()
-
-      if (report.summary.failed === 0) {
-        toast.success(
-          `Network OK: ${report.summary.passed}/${report.summary.total} tests passed`
-        )
-      } else {
-        const failedTests = report.results
-          .filter((r) => !r.success)
-          .map((r) => r.test)
-          .join(', ')
-        toast.error(
-          `Network issues: ${report.summary.failed} failed - ${failedTests}`
-        )
-      }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error)
-      toast.error(`Diagnostics failed: ${errorMsg}`)
-    } finally {
-      setIsRunningDiagnostics(false)
-    }
-  }
 
   /**
    * Clears all cached messages and processed events
@@ -996,17 +964,6 @@ export default function NostrSync() {
               label="Clear Caches"
               onPress={handleClearCaches}
               disabled={isLoading}
-              variant="subtle"
-              style={{ flex: 1 }}
-            />
-          </SSHStack>
-          <SSHStack gap="xs" style={{ marginTop: 10 }}>
-            <SSButton
-              label={
-                isRunningDiagnostics ? 'Running...' : 'Network Diagnostics'
-              }
-              onPress={handleRunDiagnostics}
-              disabled={isRunningDiagnostics}
               variant="subtle"
               style={{ flex: 1 }}
             />
