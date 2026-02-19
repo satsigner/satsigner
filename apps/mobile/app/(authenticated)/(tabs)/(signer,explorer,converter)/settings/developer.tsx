@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router'
+import { useState } from 'react'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -12,6 +13,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { useWalletsStore } from '@/store/wallets'
+import { runNetworkDiagnostics } from '@/utils/networkDiagnostics'
 
 export default function Developer() {
   const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
@@ -19,11 +21,35 @@ export default function Developer() {
   const [skipPin, setSkipPin] = useAuthStore(
     useShallow((state) => [state.skipPin, state.setSkipPin])
   )
+  const [isRunningDiagnostics, setIsRunningDiagnostics] = useState(false)
 
   async function handleDeleteAccount() {
     deleteAccounts()
     deleteWallets()
     toast.error(t('settings.developer.accountsDeleted'))
+  }
+
+  async function handleRunDiagnostics() {
+    setIsRunningDiagnostics(true)
+    try {
+      const report = await runNetworkDiagnostics()
+      if (report.summary.failed === 0) {
+        toast.success(
+          `Network OK: ${report.summary.passed}/${report.summary.total} passed`
+        )
+      } else {
+        const failedTests = report.results
+          .filter((r) => !r.success)
+          .map((r) => r.test)
+          .join(', ')
+        toast.error(`Network issues: ${failedTests}`)
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      toast.error(`Diagnostics failed: ${errorMsg}`)
+    } finally {
+      setIsRunningDiagnostics(false)
+    }
   }
 
   return (
@@ -54,6 +80,22 @@ export default function Developer() {
               position="right"
               onToggle={() => setSkipPin(!skipPin)}
             />
+          </SSVStack>
+          <SSSeparator color="gradient" />
+          <SSVStack>
+            <SSText center color="muted">
+              Network Diagnostics
+            </SSText>
+            <SSButton
+              label={
+                isRunningDiagnostics ? 'Running...' : 'Run Network Diagnostics'
+              }
+              onPress={handleRunDiagnostics}
+              disabled={isRunningDiagnostics}
+            />
+            <SSText size="xs" color="muted" center>
+              Tests HTTP, WebSocket, TCP, and DNS connectivity
+            </SSText>
           </SSVStack>
         </SSVStack>
       </SSMainLayout>

@@ -402,6 +402,7 @@ function useNostrSync() {
 
   async function generateCommonNostrKeys(account?: Account) {
     if (!account) return
+
     const pin = await getItem(PIN_KEY)
     if (!pin) return
 

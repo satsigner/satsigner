@@ -34,14 +34,6 @@ import { formatDate } from '@/utils/date'
 import { runNetworkDiagnostics } from '@/utils/networkDiagnostics'
 import { compressMessage, generateColorFromNpub } from '@/utils/nostr'
 
-const NOSTR_SYNC_DEBUG = __DEV__
-
-function nostrSyncLog(message: string, ...args: unknown[]) {
-  if (NOSTR_SYNC_DEBUG) {
-    console.warn('[NostrSync]', message, ...args)
-  }
-}
-
 export default function NostrSync() {
   // Account and store hooks
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -213,12 +205,10 @@ export default function NostrSync() {
    */
   const handleRunDiagnostics = async () => {
     setIsRunningDiagnostics(true)
-    nostrSyncLog('Running network diagnostics...')
 
     try {
       const report = await runNetworkDiagnostics()
 
-      // Show summary toast
       if (report.summary.failed === 0) {
         toast.success(
           `Network OK: ${report.summary.passed}/${report.summary.total} tests passed`
@@ -232,13 +222,9 @@ export default function NostrSync() {
           `Network issues: ${report.summary.failed} failed - ${failedTests}`
         )
       }
-
-      // Log detailed results
-      nostrSyncLog('Diagnostics complete:', report)
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error)
       toast.error(`Diagnostics failed: ${errorMsg}`)
-      nostrSyncLog('Diagnostics error:', errorMsg)
     } finally {
       setIsRunningDiagnostics(false)
     }
@@ -309,18 +295,10 @@ export default function NostrSync() {
    * Toggles auto-sync functionality and manages subscriptions
    */
   const handleToggleAutoSync = useCallback(async () => {
-    nostrSyncLog('handleToggleAutoSync: called')
     try {
-      if (!accountId || !account) {
-        nostrSyncLog('handleToggleAutoSync: no accountId or account, returning')
-        return
-      }
+      if (!accountId || !account) return
 
-      nostrSyncLog('handleToggleAutoSync: account.nostr =', account.nostr)
-
-      // Initialize nostr object if it doesn't exist
       if (!account.nostr) {
-        nostrSyncLog('handleToggleAutoSync: no account.nostr, initializing')
         updateAccountNostrCallback(accountId, {
           autoSync: false,
           relays: [],
@@ -341,12 +319,10 @@ export default function NostrSync() {
         setIsSyncing(true)
         if (accountId) setSyncing(accountId, true)
 
-        // Cleanup all subscriptions first
         await cleanupSubscriptions().catch(() => {
           toast.error('Failed to cleanup subscriptions')
         })
 
-        // Set all relays to "disconnected" when turning sync off
         const allRelaysDisconnected: Record<
           string,
           'connected' | 'connecting' | 'disconnected'
@@ -358,7 +334,6 @@ export default function NostrSync() {
         }
         setRelayConnectionStatuses(allRelaysDisconnected)
 
-        // Then update state
         updateAccountNostrCallback(accountId, {
           ...account.nostr,
           autoSync: false,
@@ -370,12 +345,6 @@ export default function NostrSync() {
         if (accountId) setSyncing(accountId, false)
       } else {
         // Turn sync ON
-        nostrSyncLog('handleToggleAutoSync: turning sync ON')
-        nostrSyncLog(
-          'handleToggleAutoSync: current autoSync =',
-          account.nostr.autoSync
-        )
-
         const newNostrState = {
           ...account.nostr,
           autoSync: true,
@@ -388,59 +357,34 @@ export default function NostrSync() {
           nostr: newNostrState
         }
 
-        nostrSyncLog('handleToggleAutoSync: checking device keys', {
-          deviceNsec: !!updatedAccount?.nostr?.deviceNsec,
-          deviceNpub: !!updatedAccount?.nostr?.deviceNpub
-        })
-
         if (
           !updatedAccount?.nostr?.deviceNsec ||
           !updatedAccount?.nostr?.deviceNpub
         ) {
-          nostrSyncLog('handleToggleAutoSync: missing device keys!')
           toast.error('Missing required Nostr configuration')
         }
-
-        nostrSyncLog('handleToggleAutoSync: checking relays', {
-          relays: updatedAccount?.nostr?.relays,
-          count: updatedAccount?.nostr?.relays?.length
-        })
 
         if (
           updatedAccount?.nostr?.relays &&
           updatedAccount.nostr.relays.length > 0
         ) {
-          nostrSyncLog('handleToggleAutoSync: has relays, starting sync setup')
           setIsSyncing(true)
           if (accountId) setSyncing(accountId, true)
           try {
-            // Test relay sync first
-            nostrSyncLog('handleToggleAutoSync: calling testRelaySync')
             await testRelaySync(updatedAccount.nostr.relays)
-            nostrSyncLog('handleToggleAutoSync: testRelaySync done')
-
-            nostrSyncLog('handleToggleAutoSync: calling deviceAnnouncement')
             deviceAnnouncement(updatedAccount)
-            nostrSyncLog('handleToggleAutoSync: deviceAnnouncement done')
-
-            // Start both subscriptions using the new function
-            nostrSyncLog('handleToggleAutoSync: calling nostrSyncSubscriptions')
             await nostrSyncSubscriptions(updatedAccount, (loading) => {
               requestAnimationFrame(() => {
                 setIsSyncing(loading)
                 if (accountId) setSyncing(accountId, loading)
               })
             })
-            nostrSyncLog('handleToggleAutoSync: nostrSyncSubscriptions done')
-          } catch (err) {
-            nostrSyncLog('handleToggleAutoSync: ERROR', err)
+          } catch {
             toast.error('Failed to setup sync')
           } finally {
             setIsSyncing(false)
             if (accountId) setSyncing(accountId, false)
           }
-        } else {
-          nostrSyncLog('handleToggleAutoSync: no relays configured!')
         }
       }
     } catch {
@@ -545,25 +489,23 @@ export default function NostrSync() {
         return // Return early as we'll re-run this effect after the update
       }
 
-      if (!commonNsec) {
-        if (account.nostr.commonNsec && account.nostr.commonNpub) {
+      // Always check account state first, not local state
+      if (account.nostr.commonNsec && account.nostr.commonNpub) {
+        if (!commonNsec) {
           setCommonNsec(account.nostr.commonNsec)
-        } else {
-          generateCommonNostrKeys(account)
-            .then((keys) => {
-              if (keys) {
-                setCommonNsec(keys.commonNsec as string)
-                updateAccountNostrCallback(accountId, {
-                  ...account.nostr,
-                  commonNsec: keys.commonNsec,
-                  commonNpub: keys.commonNpub
-                })
-              }
-            })
-            .catch(() => {
-              throw new Error('Error loading common Nostr keys')
-            })
         }
+      } else {
+        generateCommonNostrKeys(account)
+          .then((keys) => {
+            if (keys && keys.commonNsec && keys.commonNpub) {
+              setCommonNsec(keys.commonNsec as string)
+              updateAccountNostrCallback(accountId, {
+                commonNsec: keys.commonNsec,
+                commonNpub: keys.commonNpub
+              })
+            }
+          })
+          .catch(() => {})
       }
     }
   }, [

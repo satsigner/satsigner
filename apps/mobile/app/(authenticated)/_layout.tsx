@@ -108,9 +108,13 @@ export default function AuthenticatedLayout() {
             key.secret = decryptedSecret
           }
 
-          const walletData = !isImportAddress
-            ? await getWalletData(temporaryAccount, account.network as Network)
-            : undefined
+          let walletData
+          if (!isImportAddress) {
+            walletData = await getWalletData(
+              temporaryAccount,
+              account.network as Network
+            )
+          }
 
           if (walletData) addAccountWallet(account.id, walletData.wallet)
           if (
@@ -124,9 +128,17 @@ export default function AuthenticatedLayout() {
               )
             )
 
-          const updatedAccount = !isImportAddress
-            ? await syncAccountWithWallet(account, walletData!.wallet)
-            : await syncAccountWithAddress(account)
+          let updatedAccount
+          if (!isImportAddress) {
+            if (!walletData) continue
+            updatedAccount = await syncAccountWithWallet(
+              account,
+              walletData.wallet
+            )
+          } else {
+            updatedAccount = await syncAccountWithAddress(account)
+          }
+
           updateAccount(updatedAccount)
         }
       } catch (error) {

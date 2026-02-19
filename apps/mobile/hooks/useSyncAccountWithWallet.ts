@@ -55,24 +55,18 @@ function useSyncAccountWithWallet() {
       updatedAccount.addresses = walletSummary.addresses
       updatedAccount.summary = walletSummary.summary
 
-      // attach additional information to the account addresses
       updatedAccount.addresses = parseAccountAddressesDetails(updatedAccount)
-
-      // labels update for new transactions, utxos, addresses
       updatedAccount = updateAccountObjectLabels(updatedAccount)
 
-      // extract timestamps
       const timestamps = updatedAccount.transactions
         .filter((transaction) => transaction.timestamp)
         .map((transaction) => formatTimestamp(transaction.timestamp!))
 
-      // fetch prices
-      const network = 'bitcoin' // always use mainnet when fetching prices
+      const network = 'bitcoin'
       const mempoolUrl = configsMempol[network]
       const oracle = new MempoolOracle(mempoolUrl)
       const prices = await oracle.getPricesAt('USD', timestamps)
 
-      // transaction prices update
       for (const index in updatedAccount.transactions) {
         updatedAccount.transactions[index].prices = { USD: prices[index] }
       }

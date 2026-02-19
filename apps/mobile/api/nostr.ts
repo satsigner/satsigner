@@ -348,6 +348,9 @@ export class NostrAPI {
     }
   }
 
+  // 20 second timeout per relay for publish operations
+  private static readonly PUBLISH_TIMEOUT_MS = 20000
+
   async publishEvent(event: NDKEvent): Promise<void> {
     if (!this.ndk) {
       await this.connect()
@@ -358,6 +361,10 @@ export class NostrAPI {
     }
 
     const connectedRelays = Array.from(this.ndk.pool.relays.keys())
+
+    if (connectedRelays.length === 0) {
+      throw new Error('No relays connected')
+    }
 
     if (event.ndk !== this.ndk) {
       event.ndk = this.ndk
@@ -370,30 +377,41 @@ export class NostrAPI {
       await event.sign(signer)
     }
 
-    let published = false
-    const publishPromises = connectedRelays.map((url) => {
-      return new Promise(async () => {
-        const relay = this.ndk?.pool.relays.get(url)
-        if (!relay) {
-          return { url, success: false, error: 'Relay not found' }
-        }
+    const publishPromises = connectedRelays.map(async (url) => {
+      const relay = this.ndk?.pool.relays.get(url)
+      if (!relay) {
+        return { url, success: false as const, error: 'Relay not found' }
+      }
 
-        try {
-          await relay.publish(event)
-          return { url, success: true }
-        } catch (error) {
-          return { url, success: false, error }
-        }
-      }) as Promise<{ url: string; success: boolean; error?: string }>
+      try {
+        // Add timeout to prevent indefinite hanging
+        await Promise.race([
+          relay.publish(event),
+          new Promise<never>((_, reject) =>
+            setTimeout(
+              () =>
+                reject(
+                  new Error(
+                    `Publish timeout after ${NostrAPI.PUBLISH_TIMEOUT_MS}ms`
+                  )
+                ),
+              NostrAPI.PUBLISH_TIMEOUT_MS
+            )
+          )
+        ])
+        return { url, success: true as const }
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error)
+        return { url, success: false as const, error: errorMsg }
+      }
     })
+
     const results = await Promise.all(publishPromises)
     const successfulPublishes = results.filter((r) => r.success)
-    if (successfulPublishes.length > 0) {
-      published = true
-    }
 
-    if (!published) {
-      throw new Error('Failed to publish after 3 attempts')
+    if (successfulPublishes.length === 0) {
+      const errors = results.map((r) => `${r.url}: ${r.error}`).join('; ')
+      throw new Error(`Failed to publish to any relay: ${errors}`)
     }
   }
 }

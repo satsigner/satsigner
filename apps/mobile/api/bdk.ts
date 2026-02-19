@@ -872,8 +872,13 @@ async function parseTransactionDetailsToTransaction(
     for (const index in outputs) {
       const { value, script: scriptObj } = outputs[index]
       const script = await scriptObj.toBytes()
-      const addressObj = await new Address().fromScript(scriptObj, network)
-      const address = addressObj ? await addressObj.asString() : ''
+      let address = ''
+      try {
+        const addressObj = await new Address().fromScript(scriptObj, network)
+        address = addressObj ? await addressObj.asString() : ''
+      } catch {
+        // Non-standard scripts (OP_RETURN, bare multisig, etc.) can't be converted to addresses
+      }
       vout.push({ value, address, script })
     }
   }
@@ -930,9 +935,14 @@ async function parseLocalUtxoToUtxo(
 }
 
 async function getAddress(utxo: LocalUtxo, network: Network) {
-  const script = utxo.txout.script
-  const address = await new Address().fromScript(script, network)
-  return address ? address.asString() : ''
+  try {
+    const script = utxo.txout.script
+    const address = await new Address().fromScript(script, network)
+    return address ? address.asString() : ''
+  } catch {
+    // Non-standard scripts (OP_RETURN, bare multisig, etc.) can't be converted to addresses
+    return ''
+  }
 }
 
 async function getTransactionInputValues(

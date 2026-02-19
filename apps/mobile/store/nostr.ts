@@ -307,7 +307,26 @@ const useNostrStore = create<NostrState & NostrAction>()(
     }),
     {
       name: 'satsigner-nostr',
-      storage: createJSONStorage(() => mmkvStorage)
+      storage: createJSONStorage(() => mmkvStorage),
+      partialize: (state) => ({
+        // Exclude runtime state that can't be serialized (Set, WebSocket connections)
+        // Only persist serializable data
+        members: state.members,
+        processedMessageIds: state.processedMessageIds,
+        processedEvents: state.processedEvents,
+        lastProtocolEOSE: state.lastProtocolEOSE,
+        lastDataExchangeEOSE: state.lastDataExchangeEOSE,
+        trustedDevices: state.trustedDevices
+        // Excluded: activeSubscriptions (Set), syncingAccounts (runtime), transactionToShare (runtime)
+      }),
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...(persistedState as Partial<NostrState>),
+        // Always ensure these are fresh runtime values
+        activeSubscriptions: new Set<NostrAPI>(),
+        syncingAccounts: {},
+        transactionToShare: null
+      })
     }
   )
 )
