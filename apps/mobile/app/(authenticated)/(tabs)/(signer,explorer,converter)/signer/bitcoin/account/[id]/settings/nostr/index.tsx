@@ -31,7 +31,16 @@ import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatDate } from '@/utils/date'
+import { runNetworkDiagnostics } from '@/utils/networkDiagnostics'
 import { compressMessage, generateColorFromNpub } from '@/utils/nostr'
+
+const NOSTR_SYNC_DEBUG = __DEV__
+
+function nostrSyncLog(message: string, ...args: unknown[]) {
+  if (NOSTR_SYNC_DEBUG) {
+    console.warn('[NostrSync]', message, ...args)
+  }
+}
 
 export default function NostrSync() {
   // Account and store hooks
@@ -44,6 +53,7 @@ export default function NostrSync() {
   )
 
   const [isGeneratingKeys, setIsGeneratingKeys] = useState(false)
+  const [isRunningDiagnostics, setIsRunningDiagnostics] = useState(false)
 
   const [keysGenerated, setKeysGenerated] = useState(false)
 
@@ -199,6 +209,42 @@ export default function NostrSync() {
   )
 
   /**
+   * Run network diagnostics to troubleshoot connectivity issues
+   */
+  const handleRunDiagnostics = async () => {
+    setIsRunningDiagnostics(true)
+    nostrSyncLog('Running network diagnostics...')
+
+    try {
+      const report = await runNetworkDiagnostics()
+
+      // Show summary toast
+      if (report.summary.failed === 0) {
+        toast.success(
+          `Network OK: ${report.summary.passed}/${report.summary.total} tests passed`
+        )
+      } else {
+        const failedTests = report.results
+          .filter((r) => !r.success)
+          .map((r) => r.test)
+          .join(', ')
+        toast.error(
+          `Network issues: ${report.summary.failed} failed - ${failedTests}`
+        )
+      }
+
+      // Log detailed results
+      nostrSyncLog('Diagnostics complete:', report)
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      toast.error(`Diagnostics failed: ${errorMsg}`)
+      nostrSyncLog('Diagnostics error:', errorMsg)
+    } finally {
+      setIsRunningDiagnostics(false)
+    }
+  }
+
+  /**
    * Clears all cached messages and processed events
    */
   const handleClearCaches = async () => {
@@ -263,11 +309,18 @@ export default function NostrSync() {
    * Toggles auto-sync functionality and manages subscriptions
    */
   const handleToggleAutoSync = useCallback(async () => {
+    nostrSyncLog('handleToggleAutoSync: called')
     try {
-      if (!accountId || !account) return
+      if (!accountId || !account) {
+        nostrSyncLog('handleToggleAutoSync: no accountId or account, returning')
+        return
+      }
+
+      nostrSyncLog('handleToggleAutoSync: account.nostr =', account.nostr)
 
       // Initialize nostr object if it doesn't exist
       if (!account.nostr) {
+        nostrSyncLog('handleToggleAutoSync: no account.nostr, initializing')
         updateAccountNostrCallback(accountId, {
           autoSync: false,
           relays: [],
@@ -317,6 +370,12 @@ export default function NostrSync() {
         if (accountId) setSyncing(accountId, false)
       } else {
         // Turn sync ON
+        nostrSyncLog('handleToggleAutoSync: turning sync ON')
+        nostrSyncLog(
+          'handleToggleAutoSync: current autoSync =',
+          account.nostr.autoSync
+        )
+
         const newNostrState = {
           ...account.nostr,
           autoSync: true,
@@ -329,37 +388,59 @@ export default function NostrSync() {
           nostr: newNostrState
         }
 
+        nostrSyncLog('handleToggleAutoSync: checking device keys', {
+          deviceNsec: !!updatedAccount?.nostr?.deviceNsec,
+          deviceNpub: !!updatedAccount?.nostr?.deviceNpub
+        })
+
         if (
           !updatedAccount?.nostr?.deviceNsec ||
           !updatedAccount?.nostr?.deviceNpub
         ) {
+          nostrSyncLog('handleToggleAutoSync: missing device keys!')
           toast.error('Missing required Nostr configuration')
         }
+
+        nostrSyncLog('handleToggleAutoSync: checking relays', {
+          relays: updatedAccount?.nostr?.relays,
+          count: updatedAccount?.nostr?.relays?.length
+        })
 
         if (
           updatedAccount?.nostr?.relays &&
           updatedAccount.nostr.relays.length > 0
         ) {
+          nostrSyncLog('handleToggleAutoSync: has relays, starting sync setup')
           setIsSyncing(true)
           if (accountId) setSyncing(accountId, true)
           try {
             // Test relay sync first
+            nostrSyncLog('handleToggleAutoSync: calling testRelaySync')
             await testRelaySync(updatedAccount.nostr.relays)
+            nostrSyncLog('handleToggleAutoSync: testRelaySync done')
 
+            nostrSyncLog('handleToggleAutoSync: calling deviceAnnouncement')
             deviceAnnouncement(updatedAccount)
+            nostrSyncLog('handleToggleAutoSync: deviceAnnouncement done')
+
             // Start both subscriptions using the new function
+            nostrSyncLog('handleToggleAutoSync: calling nostrSyncSubscriptions')
             await nostrSyncSubscriptions(updatedAccount, (loading) => {
               requestAnimationFrame(() => {
                 setIsSyncing(loading)
                 if (accountId) setSyncing(accountId, loading)
               })
             })
-          } catch {
+            nostrSyncLog('handleToggleAutoSync: nostrSyncSubscriptions done')
+          } catch (err) {
+            nostrSyncLog('handleToggleAutoSync: ERROR', err)
             toast.error('Failed to setup sync')
           } finally {
             setIsSyncing(false)
             if (accountId) setSyncing(accountId, false)
           }
+        } else {
+          nostrSyncLog('handleToggleAutoSync: no relays configured!')
         }
       }
     } catch {
@@ -973,6 +1054,17 @@ export default function NostrSync() {
               label="Clear Caches"
               onPress={handleClearCaches}
               disabled={isLoading}
+              variant="subtle"
+              style={{ flex: 1 }}
+            />
+          </SSHStack>
+          <SSHStack gap="xs" style={{ marginTop: 10 }}>
+            <SSButton
+              label={
+                isRunningDiagnostics ? 'Running...' : 'Network Diagnostics'
+              }
+              onPress={handleRunDiagnostics}
+              disabled={isRunningDiagnostics}
               variant="subtle"
               style={{ flex: 1 }}
             />
