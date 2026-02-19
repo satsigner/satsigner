@@ -507,12 +507,14 @@ function SSCameraModal({
             )}
           </SSVStack>
         )}
-        {!permission?.granted && (
-          <SSButton
-            label={t('camera.enableCameraAccess')}
-            onPress={requestPermission}
-          />
-        )}
+        <SSVStack>
+          {!permission?.granted && (
+            <SSButton
+              label={t('camera.enableCameraAccess')}
+              onPress={requestPermission}
+            />
+          )}
+        </SSVStack>
         {scanProgress.type && (
           <SSButton
             label={t('qrcode.scan.reset')}

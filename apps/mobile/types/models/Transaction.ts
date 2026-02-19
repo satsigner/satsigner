@@ -23,7 +23,7 @@ export type Transaction = {
       vout: number
     }
     sequence: number
-    scriptSig: number[]
+    scriptSig: number[] | string
     witness: number[][]
     value?: number
     label?: string
@@ -31,7 +31,7 @@ export type Transaction = {
   vout: {
     value: number
     address: string
-    script: number[]
+    script: number[] | string
     label?: string
   }[]
   prices: Prices

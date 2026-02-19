@@ -19,11 +19,15 @@ export type ImportDescriptorSearchParams = {
   keyIndex: string
 }
 
+export type ExplorerBlockSearchParams = {
+  block: string
+}
+
 export type AccountSearchParams = {
   id: string
 }
 
-export type PreviewMessageSearchParams = AccountSearchParams & {
+export type PreviewTransactionSearchParams = AccountSearchParams & {
   psbt?: string
   signedPsbt?: string
 }

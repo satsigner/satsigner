@@ -27,6 +27,7 @@ interface ISSankeyNodes {
   nodes: any[]
   sankeyGenerator: any
   selectedOutputNode?: string
+  dimUnselected?: boolean
 }
 
 const BASE_FONT_SIZE = 13
@@ -41,7 +42,8 @@ const NODE_MARGIN_LEFT = 1
 function SSSankeyNodes({
   nodes,
   sankeyGenerator,
-  selectedOutputNode
+  selectedOutputNode,
+  dimUnselected = false
 }: ISSankeyNodes) {
   const customFontManager = useFonts({
     'SF Pro Text': [
@@ -59,6 +61,14 @@ function SSSankeyNodes({
   const renderNode = (node: Node, index: number) => {
     const isHigherCurrentMinerFee =
       node.localId === 'current-minerFee' && node.ioData?.higherFee
+
+    const isSelectedOutput =
+      selectedOutputNode !== undefined && node.localId === selectedOutputNode
+    const shouldDim =
+      dimUnselected &&
+      selectedOutputNode !== undefined &&
+      !isSelectedOutput &&
+      node.depthH === 2
 
     // Calculate dynamic height for block nodes
 
@@ -128,7 +138,7 @@ function SSSankeyNodes({
     }
 
     return (
-      <Group key={index}>
+      <Group key={index} opacity={shouldDim ? 0.3 : 1}>
         {blockNode()}
         <NodeText
           isBlock={node.depthH % 2 !== 0}
@@ -569,7 +579,7 @@ function NodeText({
           width={87}
         />
       ) : null}
-      {isUnspent && selectedOutputNode === localId ? (
+      {selectedOutputNode === localId ? (
         <Group>
           <RoundedRect
             x={groupBaseX - RECT_PADDING}

@@ -13,19 +13,23 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { parseLabel } from '@/utils/parse'
 
-import { SSIconInfo } from './icons'
+import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
+import SSUtxoBar from './SSUtxoBar'
 
 type SSUtxoCardProps = {
   utxo: Utxo
+  totalBalance?: number
 }
 
-function SSUtxoCard({ utxo }: SSUtxoCardProps) {
+function SSUtxoCard({ utxo, totalBalance }: SSUtxoCardProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
-  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+  const [currencyUnit, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  )
 
   const router = useRouter()
 
@@ -35,31 +39,43 @@ function SSUtxoCard({ utxo }: SSUtxoCardProps) {
   return (
     <TouchableOpacity
       onPress={() =>
-        router.navigate(`/account/${id}/transaction/${txid}/utxo/${vout}`)
+        router.navigate(
+          `/signer/bitcoin/account/${id}/transaction/${txid}/utxo/${vout}`
+        )
       } // TODO: Refactor to receive as prop
     >
+      {totalBalance !== undefined && totalBalance > 0 && (
+        <SSUtxoBar utxoValue={utxo.value} totalBalance={totalBalance} />
+      )}
       <SSHStack
         justifyBetween
         style={{ paddingTop: 8, flex: 1, alignItems: 'stretch' }}
       >
         <SSVStack gap="none" style={{}}>
           <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
-            <SSText size="3xl" style={{ lineHeight: 30 }}>
-              {formatNumber(utxo.value, 0, useZeroPadding)}
+            <SSStyledSatText
+              amount={utxo.value}
+              decimals={0}
+              useZeroPadding={useZeroPadding}
+              currency={currencyUnit}
+              textSize="3xl"
+            />
+            <SSText color="muted">
+              {currencyUnit === 'btc'
+                ? t('bitcoin.btc').toLowerCase()
+                : t('bitcoin.sats').toLowerCase()}
             </SSText>
-            <SSText color="muted">{t('bitcoin.sats').toLowerCase()}</SSText>
           </SSHStack>
           <SSHStack>
             <SSText>{formatNumber(satsToFiat(utxo.value), 2)}</SSText>
             <SSText style={{ color: Colors.gray[400] }}>{fiatCurrency}</SSText>
           </SSHStack>
         </SSVStack>
-        <SSVStack gap="none">
+        <SSVStack gap="none" style={{ alignItems: 'flex-end' }}>
           <SSHStack>
             <SSText>
               {utxo.addressTo && formatAddress(utxo.addressTo || '')}
             </SSText>
-            <SSIconInfo height={16} width={16} />
           </SSHStack>
           <SSText color="muted">
             {utxo.timestamp && (

@@ -1,5 +1,5 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
-import { getPublicKey, nip19 } from 'nostr-tools'
+import { nip19 } from 'nostr-tools'
 import { useCallback } from 'react'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -19,8 +19,11 @@ import {
   labelsToJSONL
 } from '@/utils/bip329'
 import { aesDecrypt, sha256 } from '@/utils/crypto'
-import { compressMessage, decompressMessage } from '@/utils/nostr'
-import { parseDescriptor } from '@/utils/parse'
+import {
+  compressMessage,
+  decompressMessage,
+  deriveNostrKeysFromDescriptor
+} from '@/utils/nostr'
 
 type UnwrappedNostrEvent = {
   id: string
@@ -63,13 +66,15 @@ function useNostrSync() {
     ])
   )
   const cleanupSubscriptions = useCallback(async () => {
-    const apisToCleanup = [...getActiveSubscriptions()]
+    const apisToCleanup = Array.from(getActiveSubscriptions())
     clearSubscriptions()
     for (const api of apisToCleanup) {
       try {
         await api.closeAllSubscriptions()
       } catch {
-        // TODO: log error
+        toast.error(
+          'Failed to clean subscription for: ' + api.getRelays().join(', ')
+        )
       }
     }
   }, [clearSubscriptions, getActiveSubscriptions])
@@ -134,39 +139,36 @@ function useNostrSync() {
         })
       }
     },
-    [updateAccountNostr] // eslint-disable-line react-hooks/exhaustive-deps
+    [] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
+  // TODO: update type
+  function getEventContent(unwrappedEvent: any) {
+    try {
+      return JSON.parse(unwrappedEvent.content)
+    } catch {}
+    try {
+      return decompressMessage(unwrappedEvent.content)
+    } catch {}
+    return unwrappedEvent.content
+  }
+
+  // TODO: update type
   const processEvent = useCallback(
     async (
       account: Account,
       unwrappedEvent: UnwrappedNostrEvent
     ): Promise<void> => {
       // Check for processed events at the very beginning
-      const accountProcessedEvejts = processedEvents[account.id] || []
-      if (accountProcessedEvejts.includes(unwrappedEvent.id)) {
+      const accountProcessedEvents = processedEvents[account.id] || []
+      if (accountProcessedEvents.includes(unwrappedEvent.id)) {
         return
       }
 
       // Mark event as processed immediately to prevent duplicate processing
       addProcessedEvent(account.id, unwrappedEvent.id)
 
-      let eventContent: Record<string, unknown>
-      try {
-        eventContent = JSON.parse(unwrappedEvent.content) as Record<
-          string,
-          unknown
-        >
-      } catch {
-        try {
-          eventContent = decompressMessage(unwrappedEvent.content) as Record<
-            string,
-            unknown
-          >
-        } catch {
-          eventContent = { raw: unwrappedEvent.content }
-        }
-      }
+      const eventContent = getEventContent(unwrappedEvent)
 
       const data = eventContent.data as
         | { data_type?: string; data?: unknown }
@@ -219,7 +221,7 @@ function useNostrSync() {
         addMember(account.id, newMember)
       }
     },
-    [addMember, storeDM] // eslint-disable-line react-hooks/exhaustive-deps
+    [] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const protocolSubscription = useCallback(
@@ -247,7 +249,7 @@ function useNostrSync() {
       )
       return nostrApi
     },
-    [processEvent] // eslint-disable-line react-hooks/exhaustive-deps
+    [] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const dataExchangeSubscription = useCallback(
@@ -276,7 +278,7 @@ function useNostrSync() {
       )
       return nostrApi
     },
-    [processEvent] // eslint-disable-line react-hooks/exhaustive-deps
+    [] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const nostrSyncSubscriptions = useCallback(
@@ -306,20 +308,11 @@ function useNostrSync() {
         addSubscription(dataExchangeApi)
       }
     },
-    [
-      protocolSubscription,
-      dataExchangeSubscription,
-      cleanupSubscriptions,
-      addSubscription,
-      getActiveSubscriptions
-    ]
+    [] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const sendLabelsToNostr = async (account?: Account, singleLabel?: Label) => {
-    if (!account?.nostr?.autoSync) {
-      return
-    }
-    if (!account || !account.nostr) {
+    if (!account || !account.nostr || !account.nostr.autoSync) {
       return
     }
     const { commonNsec, commonNpub, relays, deviceNpub } = account.nostr
@@ -408,7 +401,7 @@ function useNostrSync() {
         dms: []
       })
     },
-    [updateAccountNostr]
+    [] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   async function generateCommonNostrKeys(account?: Account) {
@@ -446,23 +439,7 @@ function useNostrSync() {
       throw new Error('Failed to get wallet data')
     }
 
-    const descriptor = walletData.externalDescriptor
-    const { hardenedPath, xpubs } = parseDescriptor(descriptor)
-    const totalString = `${hardenedPath}${xpubs.join('')}`
-
-    const firstHash = await sha256(totalString)
-    const doubleHash = await sha256(firstHash)
-
-    const privateKeyBytes = new Uint8Array(Buffer.from(doubleHash, 'hex'))
-    const publicKey = getPublicKey(privateKeyBytes)
-    const commonNsec = nip19.nsecEncode(privateKeyBytes)
-    const commonNpub = nip19.npubEncode(publicKey)
-
-    return {
-      commonNsec,
-      commonNpub,
-      privateKeyBytes
-    }
+    return deriveNostrKeysFromDescriptor(walletData.externalDescriptor)
   }
 
   function updateLasEOSETimestamp(account: Account, nsec: string) {
@@ -484,14 +461,13 @@ function useNostrSync() {
       return
     }
 
-    let nostrApi: NostrAPI | null = null
     const messageContent = {
       created_at: Math.floor(Date.now() / 1000),
       public_key_bech32: deviceNpub
     }
 
     const compressedMessage = compressMessage(messageContent)
-    nostrApi = new NostrAPI(relays)
+    const nostrApi = new NostrAPI(relays)
     await nostrApi.connect()
 
     const eventKind1059 = await nostrApi.createKind1059(

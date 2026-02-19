@@ -171,20 +171,6 @@ export type DifficultyAdjustment = {
   timeOffset: number
 }
 
-export type HashRateInfo = {
-  hashrate: {
-    timestamp: number
-    avgHashRate: number
-  }[]
-  difficulty: {
-    timestamp: number
-    difficulty: number
-    height: number
-  }[]
-  currentHashRate: number
-  currentDifficulty: number
-}
-
 export type BlockFeeRates = {
   avgHeight: number
   timestamp: number

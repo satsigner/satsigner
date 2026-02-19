@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { t } from '@/locales'
 import { type Account } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
-import { parseNostrTransactionMessage } from '@/utils/nostr'
+import { parseNostrTransaction } from '@/utils/nostr'
 
 type UseNostrMessageParams = {
   msg: NostrDM
@@ -40,7 +40,7 @@ export function useNostrMessage({
             ? msg.content
             : t('account.nostrSync.devicesGroupChat.displayError')
 
-      const transactionData = parseNostrTransactionMessage(messageContent)
+      const transactionData = parseNostrTransaction(messageContent)
       const hasSignFlow = transactionData !== null
 
       const formattedDate = new Date(msg.created_at * 1000).toLocaleString(

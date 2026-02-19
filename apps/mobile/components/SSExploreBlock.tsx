@@ -1,129 +1,127 @@
 import { StyleSheet, View } from 'react-native'
 
+import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { type Block } from '@/types/models/Blockchain'
-import { formatDate, formatTime } from '@/utils/format'
+import { Colors } from '@/styles'
+import { type Block as BaseBlock } from '@/types/models/Blockchain'
+import type { PartialSome } from '@/types/utils'
+import { formatDate, formatNumber, formatTime } from '@/utils/format'
 
-import SSText from './SSText'
+import SSDetailsList from './SSDetailsList'
+
+export type Block = PartialSome<
+  BaseBlock,
+  'merkle_root' | 'mediantime' | 'tx_count' | 'previousblockhash'
+>
 
 type SSExploreBlockProps = {
   block: Block | null
 }
 
+function blockWeightPercentage(weight: number) {
+  return (100 * weight) / 4_000_000
+}
+
+function formatBlockDate(timestamp?: number) {
+  if (!timestamp) return ''
+  const date = formatDate(timestamp * 1000)
+  const time = formatTime(new Date(timestamp * 1000))
+  return `${date} ${time}`
+}
+
+function formatBlockHash(hash?: string) {
+  if (!hash) return ''
+  return hash.startsWith('0000') ? hash : hash.split('').reverse().join('')
+}
+
 function SSExploreBlock({ block }: SSExploreBlockProps) {
-  const placeholder = '-'
+  const weight = block?.weight || 0
+  const percentageWeight = blockWeightPercentage(weight)
   return (
     <SSVStack style={styles.centered} gap="none">
       <SSHStack gap="xs">
         <SSText weight="bold">{block?.height || '?'}</SSText>
       </SSHStack>
-      <View style={styles.whiteRectangle} />
-      <SSVStack gap="md">
-        <SSVStack gap="none">
-          <SSText uppercase color="muted">
-            {t('explorer.block.id')}
-          </SSText>
-          <SSText weight="bold" type="mono">
-            {block?.id || placeholder}
-          </SSText>
-        </SSVStack>
-        <SSHStack justifyBetween>
-          <SSVStack gap="none" style={styles.halfWidth}>
-            <SSText uppercase color="muted">
-              {t('explorer.block.date')}
+      <View style={{ marginBottom: 15, marginTop: 5 }}>
+        <View
+          style={[
+            styles.rectangle,
+            {
+              height: 100 - percentageWeight,
+              backgroundColor: Colors.white
+            }
+          ]}
+        >
+          {block?.tx_count && percentageWeight <= 30 && (
+            <SSText center size="xs" color="black">
+              {t('explorer.block.percentageEmpty', {
+                percentage: formatNumber(100 - percentageWeight, 1)
+              })}
             </SSText>
-            <SSText weight="bold">
-              {block
-                ? formatDate(block.timestamp * 1000) +
-                  ' ' +
-                  formatTime(new Date(block.timestamp * 1000))
-                : placeholder}
+          )}
+        </View>
+        <View
+          style={[
+            styles.rectangle,
+            {
+              height: percentageWeight,
+              backgroundColor: Colors.gray['300'],
+              justifyContent: 'center'
+            }
+          ]}
+        >
+          {block?.tx_count && percentageWeight > 30 && (
+            <SSText center size="xs">
+              {t('explorer.block.percentageFull', {
+                percentage: formatNumber(percentageWeight)
+              })}
             </SSText>
-          </SSVStack>
-          <SSVStack gap="none" style={styles.halfWidth}>
-            <SSText uppercase color="muted">
-              {t('explorer.block.dateMedian')}
-            </SSText>
-            <SSText weight="bold">
-              {block
-                ? formatDate(block.mediantime * 1000) +
-                  ' ' +
-                  formatTime(new Date(block.mediantime * 1000))
-                : placeholder}
-            </SSText>
-          </SSVStack>
-        </SSHStack>
-        <SSHStack justifyBetween>
-          <SSVStack gap="none" style={styles.halfWidth}>
-            <SSText uppercase color="muted">
-              {t('explorer.block.txCount')}
-            </SSText>
-            <SSText weight="bold">{block?.tx_count || placeholder}</SSText>
-          </SSVStack>
-          <SSVStack gap="none" style={styles.halfWidth}>
-            <SSText uppercase color="muted">
-              {t('explorer.block.version')}
-            </SSText>
-            <SSText weight="bold">{block?.version || placeholder}</SSText>
-          </SSVStack>
-        </SSHStack>
-        <SSHStack justifyBetween>
-          <SSVStack gap="none" style={styles.halfWidth}>
-            <SSText uppercase color="muted">
-              {t('explorer.block.nonce')}
-            </SSText>
-            <SSText weight="bold">{block?.nonce || placeholder}</SSText>
-          </SSVStack>
-          <SSVStack gap="none" style={styles.halfWidth}>
-            <SSText uppercase color="muted">
-              {t('explorer.block.difficulty')}
-            </SSText>
-            <SSText weight="bold">{block?.difficulty || placeholder}</SSText>
-          </SSVStack>
-        </SSHStack>
-        <SSHStack justifyBetween>
-          <SSVStack gap="none" style={styles.halfWidth}>
-            <SSText uppercase color="muted">
-              {t('explorer.block.size')}
-            </SSText>
-            <SSText weight="bold">{block?.size || placeholder}</SSText>
-          </SSVStack>
-          <SSVStack gap="none" style={styles.halfWidth}>
-            <SSText uppercase color="muted">
-              {t('explorer.block.weight')}
-            </SSText>
-            <SSText weight="bold">{block?.weight || placeholder}</SSText>
-          </SSVStack>
-        </SSHStack>
-        <SSVStack gap="none">
-          <SSText uppercase color="muted">
-            {t('explorer.block.merkleRoot')}
-          </SSText>
-          <SSText weight="bold" type="mono">
-            {block?.merkle_root || placeholder}
-          </SSText>
-        </SSVStack>
-        <SSVStack gap="none">
-          <SSText uppercase color="muted">
-            {t('explorer.block.prevHash')}
-          </SSText>
-          <SSText weight="bold" type="mono">
-            {block?.previousblockhash || placeholder}
-          </SSText>
-        </SSVStack>
-      </SSVStack>
+          )}
+        </View>
+      </View>
+      <SSDetailsList
+        columns={2}
+        items={[
+          [
+            t('explorer.block.id'),
+            formatBlockHash(block?.id),
+            { width: '100%', copyToClipboard: true }
+          ],
+          [t('explorer.block.date'), formatBlockDate(block?.timestamp)],
+          [t('explorer.block.dateMedian'), formatBlockDate(block?.mediantime)],
+          [
+            t('explorer.block.txCount'),
+            block?.tx_count ? `${block.tx_count} (view transactions)` : '',
+            { navigateToLink: `/explorer/block/${block?.id}/transactions` }
+          ],
+          [t('explorer.block.version'), block?.version],
+          [t('explorer.block.nonce'), block?.nonce],
+          [t('explorer.block.difficulty'), block?.difficulty],
+          [t('explorer.block.size'), block?.size],
+          [t('explorer.block.weight'), block?.weight],
+          [
+            t('explorer.block.merkleRoot'),
+            block?.merkle_root,
+            { width: '100%' }
+          ],
+          [
+            t('explorer.block.prevHash'),
+            formatBlockHash(block?.previousblockhash),
+            { width: '100%' }
+          ]
+        ]}
+      />
     </SSVStack>
   )
 }
 
 const styles = StyleSheet.create({
-  whiteRectangle: {
+  rectangle: {
     width: 100,
-    height: 100,
     backgroundColor: 'white',
-    marginVertical: 15
+    justifyContent: 'center'
   },
   centered: {
     alignItems: 'center'
