@@ -7,6 +7,8 @@
 import NetInfo from '@react-native-community/netinfo'
 import TcpSocket from 'react-native-tcp-socket'
 
+import ElectrumClient from '@/api/electrum'
+
 export interface DiagnosticResult {
   test: string
   success: boolean
@@ -373,6 +375,239 @@ async function testTcpSocket(
 }
 
 /**
+ * Test Electrum protocol - sends server.version request and waits for response
+ */
+async function testElectrumProtocol(
+  host: string,
+  port: number,
+  label: string,
+  useTls = true
+): Promise<DiagnosticResult> {
+  log(`Testing Electrum Protocol: ${label} (${host}:${port})...`)
+  const startTime = Date.now()
+
+  return new Promise((resolve) => {
+    let resolved = false
+    let dataBuffer = ''
+
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true
+        log(`Electrum ${label}: TIMEOUT after 15000ms`)
+        resolve({
+          test: `Electrum: ${label}`,
+          success: false,
+          timing: 15000,
+          error: 'Protocol timeout (15s)'
+        })
+      }
+    }, 15000)
+
+    try {
+      const options: { host: string; port: number; tls?: boolean } = {
+        host,
+        port
+      }
+      if (useTls) {
+        options.tls = true
+      }
+
+      const socket = TcpSocket.createConnection(options, () => {
+        log(`Electrum ${label}: Connected, sending server.version...`)
+        // Send Electrum JSON-RPC server.version request
+        const request = JSON.stringify({
+          id: 1,
+          method: 'server.version',
+          params: ['SatSigner', '1.4']
+        })
+        socket.write(request + '\n')
+      })
+
+      socket.on('data', (data: Buffer | string) => {
+        if (resolved) return
+
+        dataBuffer += data.toString()
+
+        // Check if we have a complete JSON response
+        if (dataBuffer.includes('\n')) {
+          try {
+            const response = JSON.parse(dataBuffer.split('\n')[0])
+            if (response.result) {
+              resolved = true
+              clearTimeout(timeout)
+              const timing = Date.now() - startTime
+              const serverVersion = Array.isArray(response.result)
+                ? response.result.join(' ')
+                : response.result
+              log(`Electrum ${label}: OK in ${timing}ms - ${serverVersion}`)
+              socket.destroy()
+              resolve({
+                test: `Electrum: ${label}`,
+                success: true,
+                timing,
+                details: serverVersion
+              })
+            }
+          } catch {
+            // Not valid JSON yet, wait for more data
+          }
+        }
+      })
+
+      socket.on('error', (error: Error) => {
+        if (!resolved) {
+          resolved = true
+          clearTimeout(timeout)
+          const timing = Date.now() - startTime
+          log(`Electrum ${label}: ERROR - ${error.message}`)
+          socket.destroy()
+          resolve({
+            test: `Electrum: ${label}`,
+            success: false,
+            timing,
+            error: error.message
+          })
+        }
+      })
+
+      socket.on('close', () => {
+        if (!resolved) {
+          resolved = true
+          clearTimeout(timeout)
+          const timing = Date.now() - startTime
+          log(`Electrum ${label}: CLOSED unexpectedly`)
+          resolve({
+            test: `Electrum: ${label}`,
+            success: false,
+            timing,
+            error: 'Connection closed before response'
+          })
+        }
+      })
+    } catch (error) {
+      if (!resolved) {
+        resolved = true
+        clearTimeout(timeout)
+        const errorMsg = error instanceof Error ? error.message : String(error)
+        log(`Electrum ${label}: EXCEPTION - ${errorMsg}`)
+        resolve({
+          test: `Electrum: ${label}`,
+          success: false,
+          error: errorMsg
+        })
+      }
+    }
+  })
+}
+
+/**
+ * Test using the app's actual ElectrumClient - this matches how the app connects
+ */
+async function testAppElectrumClient(
+  url: string,
+  network: 'bitcoin' | 'signet' | 'testnet',
+  label: string
+): Promise<DiagnosticResult> {
+  log(`Testing App ElectrumClient: ${label} (${url})...`)
+  const startTime = Date.now()
+
+  try {
+    // Use 15 second timeout to match app behavior
+    const result = await ElectrumClient.test(url, network, 15000)
+    const timing = Date.now() - startTime
+
+    if (result) {
+      log(`App Electrum ${label}: OK in ${timing}ms`)
+      return {
+        test: `App Electrum: ${label}`,
+        success: true,
+        timing
+      }
+    } else {
+      log(`App Electrum ${label}: FAILED in ${timing}ms`)
+      return {
+        test: `App Electrum: ${label}`,
+        success: false,
+        timing,
+        error: 'Connection failed'
+      }
+    }
+  } catch (error) {
+    const timing = Date.now() - startTime
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    log(`App Electrum ${label}: ERROR - ${errorMsg}`)
+    return {
+      test: `App Electrum: ${label}`,
+      success: false,
+      timing,
+      error: errorMsg
+    }
+  }
+}
+
+/**
+ * Test fetching actual wallet data - checks if we can get balance for a sample segwit address
+ */
+async function testSegwitWalletData(
+  url: string,
+  network: 'bitcoin' | 'signet' | 'testnet',
+  label: string
+): Promise<DiagnosticResult> {
+  log(`Testing Segwit Wallet Data: ${label}...`)
+  const startTime = Date.now()
+
+  // Sample segwit addresses for each network with known activity
+  const sampleAddresses: Record<string, string> = {
+    // Mempool.space donation address (mainnet native segwit)
+    bitcoin: 'bc1qgdjqv0av3q56jvd82tkdjpy7gdp9ut8tlqmgrpmv24sq90ecnvqqjwvw97',
+    // Signet faucet address
+    signet: 'tb1pn202yeugfa25nssxk2hv902kmxrnp7g9xt487u256n20jgahuwasdcjfdw',
+    // Testnet faucet address
+    testnet: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
+  }
+
+  const address = sampleAddresses[network]
+  if (!address) {
+    return {
+      test: `Wallet Data: ${label}`,
+      success: false,
+      error: `No sample address for network: ${network}`
+    }
+  }
+
+  try {
+    const client = ElectrumClient.fromUrl(url, network)
+    await client.init()
+
+    const balance = await client.getAddressBalance(address)
+    const timing = Date.now() - startTime
+
+    client.close()
+
+    log(
+      `Wallet Data ${label}: OK in ${timing}ms - confirmed=${balance.confirmed}, unconfirmed=${balance.unconfirmed}`
+    )
+
+    return {
+      test: `Wallet Data: ${label}`,
+      success: true,
+      timing,
+      details: `confirmed=${balance.confirmed}, unconfirmed=${balance.unconfirmed}`
+    }
+  } catch (error) {
+    const timing = Date.now() - startTime
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    log(`Wallet Data ${label}: ERROR - ${errorMsg}`)
+    return {
+      test: `Wallet Data: ${label}`,
+      success: false,
+      timing,
+      error: errorMsg
+    }
+  }
+}
+
+/**
  * Test 6: XMLHttpRequest (alternative to fetch)
  */
 async function testXHR(url: string): Promise<DiagnosticResult> {
@@ -463,21 +698,91 @@ export async function runNetworkDiagnostics(): Promise<NetworkDiagnosticsReport>
   // Test 4: XMLHttpRequest
   results.push(await testXHR('https://httpbin.org/get'))
 
-  // Test 5: TCP Socket tests (Electrum uses TCP)
-  const tcpTests = [
-    { host: '1.1.1.1', port: 443, label: 'Cloudflare IP' },
-    {
-      host: 'electrum.blockstream.info',
-      port: 50002,
-      label: 'Blockstream Electrum'
-    }
-  ]
+  // Test 5: TCP Socket tests
+  const tcpTests = [{ host: '1.1.1.1', port: 443, label: 'Cloudflare IP' }]
 
   for (const test of tcpTests) {
     results.push(await testTcpSocket(test.host, test.port, test.label))
   }
 
-  // Test 6: WebSocket tests
+  // Test 6: Electrum Protocol tests (mainnet, testnet, signet)
+  // These test actual Electrum JSON-RPC communication, not just TCP
+  const electrumTests = [
+    {
+      host: 'electrum.blockstream.info',
+      port: 50002,
+      label: 'Mainnet (Blockstream)',
+      tls: true
+    },
+    {
+      host: 'mempool.space',
+      port: 50002,
+      label: 'Mainnet (Mempool)',
+      tls: true
+    },
+    {
+      host: 'electrum.blockstream.info',
+      port: 60002,
+      label: 'Testnet (Blockstream)',
+      tls: true
+    },
+    {
+      host: 'mempool.space',
+      port: 60602,
+      label: 'Signet (Mempool)',
+      tls: true
+    }
+  ]
+
+  for (const test of electrumTests) {
+    results.push(
+      await testElectrumProtocol(test.host, test.port, test.label, test.tls)
+    )
+  }
+
+  // Test 7: App Electrum Client tests (uses the actual BlueWalletElectrumClient)
+  // This tests the same connection method the app uses for wallet syncing
+  const appElectrumTests: {
+    url: string
+    network: 'bitcoin' | 'signet' | 'testnet'
+    label: string
+  }[] = [
+    {
+      url: 'ssl://mempool.space:60602',
+      network: 'signet',
+      label: 'Signet (Mempool)'
+    },
+    {
+      url: 'ssl://electrum.blockstream.info:50002',
+      network: 'bitcoin',
+      label: 'Mainnet (Blockstream)'
+    }
+  ]
+
+  for (const test of appElectrumTests) {
+    results.push(
+      await testAppElectrumClient(test.url, test.network, test.label)
+    )
+  }
+
+  // Test 8: Segwit Wallet Data fetch (tests actual wallet data retrieval)
+  const walletDataTests: {
+    url: string
+    network: 'bitcoin' | 'signet' | 'testnet'
+    label: string
+  }[] = [
+    {
+      url: 'ssl://mempool.space:60602',
+      network: 'signet',
+      label: 'Signet Balance'
+    }
+  ]
+
+  for (const test of walletDataTests) {
+    results.push(await testSegwitWalletData(test.url, test.network, test.label))
+  }
+
+  // Test 9: WebSocket tests
   const wsTests = [
     { url: 'wss://relay.damus.io', label: 'relay.damus.io' },
     { url: 'wss://relay.primal.net', label: 'relay.primal.net' },
