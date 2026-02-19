@@ -13,13 +13,13 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSIconEyeOff from '@/components/icons/SSIconEyeOff'
 import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
-import useNostrSync from '@/hooks/useNostrSync'
 import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
-import SSText from '@/components/SSText'
-import SSTextInput from '@/components/SSTextInput'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
+import SSText from '@/components/SSText'
+import SSTextInput from '@/components/SSTextInput'
+import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -102,6 +102,7 @@ function NostrKeys() {
     ) {
       loadCommonNostrKeys()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run only when accountId changes to avoid re-running on account ref change
   }, [accountId])
 
   async function pasteNsec() {
