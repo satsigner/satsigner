@@ -77,7 +77,6 @@ function NostrKeys() {
       const keys = await generateCommonNostrKeys(account)
       if (keys && 'commonNsec' in keys && 'commonNpub' in keys) {
         updateAccountNostr(accountId, {
-          ...account.nostr,
           commonNsec: keys.commonNsec,
           commonNpub: keys.commonNpub,
           lastUpdated: new Date()

@@ -54,7 +54,6 @@ export default function DeviceAliasPage() {
     }
 
     updateAccountNostr(accountId, {
-      ...account.nostr,
       npubAliases:
         Object.keys(updatedAliases).length > 0 ? updatedAliases : undefined,
       lastUpdated: new Date()
@@ -71,7 +70,6 @@ export default function DeviceAliasPage() {
     delete updatedAliases[npub]
 
     updateAccountNostr(accountId, {
-      ...account.nostr,
       npubAliases:
         Object.keys(updatedAliases).length > 0 ? updatedAliases : undefined,
       lastUpdated: new Date()
