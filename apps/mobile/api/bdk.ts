@@ -877,7 +877,7 @@ async function parseTransactionDetailsToTransaction(
         const addressObj = await new Address().fromScript(scriptObj, network)
         address = addressObj ? await addressObj.asString() : ''
       } catch {
-        // Non-standard scripts (OP_RETURN, bare multisig, etc.) can't be converted to addresses
+        // Intentionally ignore: non-standard scripts (OP_RETURN, bare multisig, etc.) can't be converted to addresses; leave address empty
       }
       vout.push({ value, address, script })
     }
@@ -940,7 +940,7 @@ async function getAddress(utxo: LocalUtxo, network: Network) {
     const address = await new Address().fromScript(script, network)
     return address ? address.asString() : ''
   } catch {
-    // Non-standard scripts (OP_RETURN, bare multisig, etc.) can't be converted to addresses
+    // Intentionally ignore: non-standard scripts (OP_RETURN, bare multisig, etc.) can't be converted to addresses
     return ''
   }
 }

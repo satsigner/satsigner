@@ -473,7 +473,9 @@ export default function NostrSync() {
               })
             }
           })
-          .catch(() => {})
+          .catch(() => {
+            toast.error(t('account.nostrSync.errorLoadingCommonKeys'))
+          })
       }
     }
   }, [
