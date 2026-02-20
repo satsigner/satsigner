@@ -56,7 +56,6 @@ export default function DeviceAliasPage() {
   async function fetchKind0Profile() {
     if (!npub || !accountId || !account?.nostr || loadingFetchKind0) return
 
-    const t0 = performance.now()
     setLoadingFetchKind0(true)
     try {
       const relays =
@@ -93,7 +92,6 @@ export default function DeviceAliasPage() {
           : t('account.nostrSync.fetchKind0Error')
       )
     } finally {
-      console.log('[Nostr:Perf] device [npub] fetchKind0Profile', `${(performance.now() - t0).toFixed(0)}ms`)
       setLoadingFetchKind0(false)
     }
   }

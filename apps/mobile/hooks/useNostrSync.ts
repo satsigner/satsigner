@@ -66,22 +66,17 @@ function useNostrSync() {
     ])
   )
   const cleanupSubscriptions = useCallback(async () => {
-    const t0 = performance.now()
-    console.log('[Nostr:Perf] cleanupSubscriptions start', `${(performance.now() - t0).toFixed(0)}ms`)
     const apisToCleanup = Array.from(getActiveSubscriptions())
     clearSubscriptions()
     for (const api of apisToCleanup) {
       try {
-        const tClose = performance.now()
         await api.closeAllSubscriptions()
-        console.log('[Nostr:Perf] closeAllSubscriptions', `${(performance.now() - tClose).toFixed(0)}ms`)
       } catch {
         toast.error(
           'Failed to clean subscription for: ' + api.getRelays().join(', ')
         )
       }
     }
-    console.log('[Nostr:Perf] cleanupSubscriptions end', `${(performance.now() - t0).toFixed(0)}ms`)
   }, [clearSubscriptions, getActiveSubscriptions])
 
   const storeDM = useCallback(
@@ -90,17 +85,10 @@ function useNostrSync() {
       unwrappedEvent?: UnwrappedNostrEvent,
       eventContent?: Record<string, unknown>
     ) => {
-      const t0 = performance.now()
-      if (!account || !unwrappedEvent || !eventContent) {
-        console.log('[Nostr:Perf] storeDM (skip no args)', `${(performance.now() - t0).toFixed(0)}ms`)
-        return
-      }
+      if (!account || !unwrappedEvent || !eventContent) return
 
       const created_at = eventContent.created_at as number
-      if (created_at > Date.now() / 1000 + 60 * 5) {
-        console.log('[Nostr:Perf] storeDM (skip future)', `${(performance.now() - t0).toFixed(0)}ms`)
-        return
-      }
+      if (created_at > Date.now() / 1000 + 60 * 5) return
       const description = (eventContent.description as string) ?? ''
       const newMessage = {
         id: unwrappedEvent.id,
@@ -148,7 +136,6 @@ function useNostrSync() {
           dms: updatedDms
         })
       }
-      console.log('[Nostr:Perf] storeDM', `${(performance.now() - t0).toFixed(0)}ms`)
     },
     [] // eslint-disable-line react-hooks/exhaustive-deps
   )
@@ -195,7 +182,6 @@ function useNostrSync() {
       account: Account,
       messages: Array<{ id: string; content: unknown; created_at: number }>
     ): Promise<void> => {
-      const t0 = performance.now()
       const pendingDms: PendingDM[] = []
 
       for (const msg of messages) {
@@ -261,10 +247,7 @@ function useNostrSync() {
         }
       }
 
-      if (pendingDms.length === 0) {
-        console.log('[Nostr:Perf] processEventBatch', `${(performance.now() - t0).toFixed(0)}ms`, `n=${messages.length}`)
-        return
-      }
+      if (pendingDms.length === 0) return
 
       const currentAccount = accounts.find((a) => a.id === account.id)
       if (!currentAccount?.nostr) return
@@ -296,7 +279,6 @@ function useNostrSync() {
 
       const updatedDms = currentDms.sort((a, b) => a.created_at - b.created_at)
       updateAccountNostr(account.id, { dms: updatedDms })
-      console.log('[Nostr:Perf] processEventBatch', `${(performance.now() - t0).toFixed(0)}ms`, `n=${messages.length} dms=${pendingDms.length}`)
     },
     [] // eslint-disable-line react-hooks/exhaustive-deps
   )
@@ -319,7 +301,6 @@ function useNostrSync() {
 
   const protocolSubscription = useCallback(
     async (account: Account, onLoadingChange?: (loading: boolean) => void) => {
-      const t0 = performance.now()
       const { autoSync, commonNsec, commonNpub, relays } = account.nostr
       const lastProtocolEOSE = getLastProtocolEOSE(account.id) || 0
 
@@ -331,10 +312,7 @@ function useNostrSync() {
       if (onLoadingChange) {
         nostrApi.setLoadingCallback(onLoadingChange)
       }
-      const tConnect = performance.now()
       await nostrApi.connect()
-      console.log('[Nostr:Perf] protocolSubscription connect', `${(performance.now() - tConnect).toFixed(0)}ms`)
-      const tSub = performance.now()
       await nostrApi.subscribeToKind1059(
         commonNsec as string,
         commonNpub as string,
@@ -343,8 +321,6 @@ function useNostrSync() {
         lastProtocolEOSE,
         (nsec) => updateLasEOSETimestamp(account, nsec)
       )
-      console.log('[Nostr:Perf] protocolSubscription subscribe', `${(performance.now() - tSub).toFixed(0)}ms`)
-      console.log('[Nostr:Perf] protocolSubscription total', `${(performance.now() - t0).toFixed(0)}ms`)
       return nostrApi
     },
     [] // eslint-disable-line react-hooks/exhaustive-deps
@@ -352,7 +328,6 @@ function useNostrSync() {
 
   const dataExchangeSubscription = useCallback(
     async (account: Account, onLoadingChange?: (loading: boolean) => void) => {
-      const t0 = performance.now()
       const { autoSync, deviceNsec, deviceNpub, relays } = account.nostr
       const lastDataExchangeEOSE = getLastDataExchangeEOSE(account.id) || 0
 
@@ -365,10 +340,7 @@ function useNostrSync() {
       if (onLoadingChange) {
         nostrApi.setLoadingCallback(onLoadingChange)
       }
-      const tConnect = performance.now()
       await nostrApi.connect()
-      console.log('[Nostr:Perf] dataExchangeSubscription connect', `${(performance.now() - tConnect).toFixed(0)}ms`)
-      const tSub = performance.now()
       await nostrApi.subscribeToKind1059(
         deviceNsec as string,
         deviceNpub as string,
@@ -377,8 +349,6 @@ function useNostrSync() {
         lastDataExchangeEOSE,
         (nsec) => updateLasEOSETimestamp(account, nsec)
       )
-      console.log('[Nostr:Perf] dataExchangeSubscription subscribe', `${(performance.now() - tSub).toFixed(0)}ms`)
-      console.log('[Nostr:Perf] dataExchangeSubscription total', `${(performance.now() - t0).toFixed(0)}ms`)
       return nostrApi
     },
     [] // eslint-disable-line react-hooks/exhaustive-deps
@@ -386,29 +356,17 @@ function useNostrSync() {
 
   const nostrSyncSubscriptions = useCallback(
     async (account?: Account, onLoadingChange?: (loading: boolean) => void) => {
-      const t0 = performance.now()
-      if (!account || !account.nostr) {
-        return
-      }
+      if (!account || !account.nostr) return
 
-      if (getActiveSubscriptions().size > 0) {
-        console.log('[Nostr:Perf] nostrSyncSubscriptions (skip, already active)', `${(performance.now() - t0).toFixed(0)}ms`)
-        return
-      }
+      if (getActiveSubscriptions().size > 0) return
 
-      // Cleanup existing subscriptions first
-      const tClean = performance.now()
       await cleanupSubscriptions()
-      console.log('[Nostr:Perf] nostrSyncSubscriptions cleanup', `${(performance.now() - tClean).toFixed(0)}ms`)
 
-      const tProtocol = performance.now()
       const protocolApi = await protocolSubscription(account, onLoadingChange)
       if (protocolApi) {
         addSubscription(protocolApi)
       }
-      console.log('[Nostr:Perf] nostrSyncSubscriptions protocol', `${(performance.now() - tProtocol).toFixed(0)}ms`)
 
-      const tData = performance.now()
       const dataExchangeApi = await dataExchangeSubscription(
         account,
         onLoadingChange
@@ -416,17 +374,12 @@ function useNostrSync() {
       if (dataExchangeApi) {
         addSubscription(dataExchangeApi)
       }
-      console.log('[Nostr:Perf] nostrSyncSubscriptions dataExchange', `${(performance.now() - tData).toFixed(0)}ms`)
-      console.log('[Nostr:Perf] nostrSyncSubscriptions total', `${(performance.now() - t0).toFixed(0)}ms`)
     },
     [] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const sendLabelsToNostr = async (account?: Account, singleLabel?: Label) => {
-    const t0 = performance.now()
-    if (!account || !account.nostr || !account.nostr.autoSync) {
-      return
-    }
+    if (!account || !account.nostr || !account.nostr.autoSync) return
     const { commonNsec, commonNpub, relays, deviceNpub } = account.nostr
 
     if (
@@ -482,16 +435,13 @@ function useNostrSync() {
 
     const compressedMessage = compressMessage(messageContent)
     const nostrApi = new NostrAPI(relays)
-    const tConnect = performance.now()
     await nostrApi.connect()
-    console.log('[Nostr:Perf] sendLabelsToNostr connect', `${(performance.now() - tConnect).toFixed(0)}ms`)
 
     const deviceNsec = account.nostr.deviceNsec
     const trustedDevices =
       accounts.find((a) => a.id === account.id)?.nostr?.trustedMemberDevices ||
       []
 
-    const tPublish = performance.now()
     for (const trustedDeviceNpub of trustedDevices) {
       if (!deviceNsec) continue
       const eventKind1059 = await nostrApi.createKind1059(
@@ -501,8 +451,6 @@ function useNostrSync() {
       )
       await nostrApi.publishEvent(eventKind1059)
     }
-    console.log('[Nostr:Perf] sendLabelsToNostr publish loop', `${(performance.now() - tPublish).toFixed(0)}ms`)
-    console.log('[Nostr:Perf] sendLabelsToNostr total', `${(performance.now() - t0).toFixed(0)}ms`)
   }
 
   async function loadStoredDMs(account?: Account) {
@@ -520,7 +468,6 @@ function useNostrSync() {
   )
 
   const generateCommonNostrKeys = useCallback(async (account?: Account) => {
-    const t0 = performance.now()
     if (!account) return
 
     const isImportAddress = account.keys[0].creationType === 'importAddress'
@@ -533,7 +480,6 @@ function useNostrSync() {
       }
     }
 
-    const tWallet = performance.now()
     const walletData = await getWalletData(
       tmpAccount,
       tmpAccount.network as Network
@@ -541,13 +487,8 @@ function useNostrSync() {
     if (!walletData) {
       throw new Error('Failed to get wallet data')
     }
-    console.log('[Nostr:Perf] generateCommonNostrKeys getWalletData', `${(performance.now() - tWallet).toFixed(0)}ms`)
 
-    const tDerive = performance.now()
-    const result = deriveNostrKeysFromDescriptor(walletData.externalDescriptor)
-    console.log('[Nostr:Perf] generateCommonNostrKeys derive', `${(performance.now() - tDerive).toFixed(0)}ms`)
-    console.log('[Nostr:Perf] generateCommonNostrKeys total', `${(performance.now() - t0).toFixed(0)}ms`)
-    return result
+    return deriveNostrKeysFromDescriptor(walletData.externalDescriptor)
   }, [])
 
   function updateLasEOSETimestamp(account: Account, nsec: string) {
@@ -560,7 +501,6 @@ function useNostrSync() {
   }
 
   const deviceAnnouncement = useCallback(async (account?: Account) => {
-    const t0 = performance.now()
     if (!account?.nostr?.autoSync) return
     if (!account || !account.nostr) return
     const { commonNsec, commonNpub, deviceNpub, relays } = account.nostr
@@ -577,19 +517,14 @@ function useNostrSync() {
 
     const compressedMessage = compressMessage(messageContent)
     const nostrApi = new NostrAPI(relays)
-    const tConnect = performance.now()
     await nostrApi.connect()
-    console.log('[Nostr:Perf] deviceAnnouncement connect', `${(performance.now() - tConnect).toFixed(0)}ms`)
 
     const eventKind1059 = await nostrApi.createKind1059(
       commonNsec,
       commonNpub,
       compressedMessage
     )
-    const tPublish = performance.now()
     await nostrApi.publishEvent(eventKind1059)
-    console.log('[Nostr:Perf] deviceAnnouncement publish', `${(performance.now() - tPublish).toFixed(0)}ms`)
-    console.log('[Nostr:Perf] deviceAnnouncement total', `${(performance.now() - t0).toFixed(0)}ms`)
   }, [])
 
   return {
