@@ -49,7 +49,8 @@ function useNostrSync() {
     getLastDataExchangeEOSE,
     getLastProtocolEOSE,
     setLastProtocolEOSE,
-    setLastDataExchangeEOSE
+    setLastDataExchangeEOSE,
+    processedEvents
   ] = useNostrStore(
     useShallow((state) => [
       state.addMember,
@@ -60,7 +61,8 @@ function useNostrSync() {
       state.getLastDataExchangeEOSE,
       state.getLastProtocolEOSE,
       state.setLastProtocolEOSE,
-      state.setLastDataExchangeEOSE
+      state.setLastDataExchangeEOSE,
+      state.processedEvents
     ])
   )
   const cleanupSubscriptions = useCallback(async () => {
@@ -157,11 +159,9 @@ function useNostrSync() {
       account: Account,
       unwrappedEvent: UnwrappedNostrEvent
     ): Promise<void> => {
-      // Check for processed events at the very beginning using getState() to avoid re-renders
-      // O(1) lookup using object property access
-      const accountProcessedEvents =
-        useNostrStore.getState().processedEvents[account.id] || {}
-      if (accountProcessedEvents[unwrappedEvent.id]) {
+      // Check for processed events at the very beginning
+      const accountProcessedEvents = processedEvents[account.id] || []
+      if (accountProcessedEvents.includes(unwrappedEvent.id)) {
         return
       }
 
