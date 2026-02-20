@@ -114,6 +114,26 @@ export default function NostrSync() {
 
   const previousRelaysRef = useRef<string[]>([])
 
+  // Prefer store for device keys so we show updated values immediately after saving on manage-keys page (no stale local state)
+  const displayDeviceNpub = account?.nostr?.deviceNpub ?? deviceNpub
+  const displayDeviceNsec = account?.nostr?.deviceNsec ?? deviceNsec
+
+  // When returning from manage-keys (or any focus), align local with store so we don't briefly show old key then new
+  useFocusEffect(
+    useCallback(() => {
+      if (
+        !account?.nostr?.deviceNpub ||
+        !account.nostr.deviceNsec ||
+        account.nostr.deviceNpub === deviceNpub
+      ) {
+        return
+      }
+      setDeviceNsec(account.nostr.deviceNsec)
+      setDeviceNpub(account.nostr.deviceNpub)
+      generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
+    }, [account?.nostr?.deviceNpub, account?.nostr?.deviceNsec, deviceNpub])
+  )
+
   const testRelaySync = useCallback(
     async (relays: string[]) => {
       const statuses: Record<
@@ -207,10 +227,7 @@ export default function NostrSync() {
     try {
       setIsLoading(true)
       await clearStoredDMs(account)
-      updateAccountNostrCallback(accountId, {
-        ...account.nostr,
-        dms: []
-      })
+      updateAccountNostrCallback(accountId, { dms: [] })
       clearNostrState(accountId)
       clearProcessedMessageIds(accountId)
       clearProcessedEvents(accountId)
@@ -303,7 +320,6 @@ export default function NostrSync() {
         setRelayConnectionStatuses(allRelaysDisconnected)
 
         updateAccountNostrCallback(accountId, {
-          ...account.nostr,
           autoSync: false,
           relayStatuses: allRelaysDisconnected,
           lastUpdated: new Date()
@@ -312,17 +328,15 @@ export default function NostrSync() {
         setIsSyncing(false)
         if (accountId) setSyncing(accountId, false)
       } else {
-        // Turn sync ON
-        const newNostrState = {
-          ...account.nostr,
+        // Turn sync ON – only update these fields so we never overwrite device keys
+        updateAccountNostrCallback(accountId, {
           autoSync: true,
           lastUpdated: new Date()
-        }
-        updateAccountNostrCallback(accountId, newNostrState)
+        })
 
         const updatedAccount = {
           ...account,
-          nostr: newNostrState
+          nostr: { ...account.nostr, autoSync: true, lastUpdated: new Date() }
         }
 
         if (
@@ -467,7 +481,6 @@ export default function NostrSync() {
               if (keys && 'commonNsec' in keys) {
                 setCommonNsec(keys.commonNsec as string)
                 updateAccountNostrCallback(accountId, {
-                  ...account.nostr,
                   commonNsec: keys.commonNsec,
                   commonNpub: keys.commonNpub
                 })
@@ -521,23 +534,18 @@ export default function NostrSync() {
       return // Return early as we'll re-run this effect after the update
     }
 
+    // Store has device keys: only sync to local when local is empty (initial load). Avoid overwriting on every account ref change so we don't trigger re-render loops; display uses store via displayDeviceNpub.
     if (account.nostr.deviceNsec && account.nostr.deviceNpub) {
-      setDeviceNsec(account.nostr.deviceNsec)
-      setDeviceNpub(account.nostr.deviceNpub)
-      generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
+      if (!deviceNpub) {
+        setDeviceNsec(account.nostr.deviceNsec)
+        setDeviceNpub(account.nostr.deviceNpub)
+        generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
+      }
       setKeysGenerated(true)
       return
     }
 
     if (keysGenerated) {
-      return
-    }
-
-    if (account?.nostr?.deviceNsec && account.nostr.deviceNpub) {
-      setDeviceNsec(account.nostr.deviceNsec)
-      setDeviceNpub(account.nostr.deviceNpub)
-      generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
-      setKeysGenerated(true)
       return
     }
 
@@ -574,16 +582,19 @@ export default function NostrSync() {
   }, [
     account,
     accountId,
+    deviceNpub,
     isGeneratingKeys,
-    updateAccountNostrCallback,
-    keysGenerated
+    keysGenerated,
+    updateAccountNostrCallback
   ])
 
   useEffect(() => {
-    if (deviceNpub && deviceColor === '#404040') {
-      generateColorFromNpub(deviceNpub).then(setDeviceColor)
+    if (displayDeviceNpub) {
+      generateColorFromNpub(displayDeviceNpub).then(setDeviceColor)
+    } else {
+      setDeviceColor('#404040')
     }
-  }, [deviceNpub, deviceColor])
+  }, [displayDeviceNpub])
 
   useEffect(() => {
     if (account) {
@@ -756,7 +767,7 @@ export default function NostrSync() {
             <SSVStack gap="sm">
               <SSText center>{t('account.nostrSync.deviceKeys')}</SSText>
               <SSVStack gap="xxs" style={styles.keysContainer}>
-                {deviceNsec && deviceNpub ? (
+                {displayDeviceNsec && displayDeviceNpub ? (
                   <SSVStack gap="xxs">
                     <SSText color="muted" center>
                       {t('account.nostrSync.npub')}
@@ -773,7 +784,7 @@ export default function NostrSync() {
                           marginRight: -30
                         }}
                       />
-                      <SSTextClipboard text={deviceNpub || ''}>
+                      <SSTextClipboard text={displayDeviceNpub || ''}>
                         <SSText
                           center
                           size="xl"
@@ -781,9 +792,9 @@ export default function NostrSync() {
                           style={styles.keyText}
                           selectable
                         >
-                          {deviceNpub.slice(0, 12) +
+                          {displayDeviceNpub.slice(0, 12) +
                             '...' +
-                            deviceNpub.slice(-4)}
+                            displayDeviceNpub.slice(-4)}
                         </SSText>
                       </SSTextClipboard>
                     </SSHStack>
@@ -816,7 +827,7 @@ export default function NostrSync() {
               {members && members.length > 0 ? (
                 <SSVStack gap="md" style={styles.membersContainer}>
                   {members
-                    .filter((member) => member.npub !== deviceNpub)
+                    .filter((member) => member.npub !== displayDeviceNpub)
                     .map((member, index) => (
                       <SSVStack key={index} gap="md">
                         {member?.npub && (

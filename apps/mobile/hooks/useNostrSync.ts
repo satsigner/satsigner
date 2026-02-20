@@ -396,10 +396,8 @@ function useNostrSync() {
   const clearStoredDMs = useCallback(
     async (account?: Account) => {
       if (!account?.nostr) return
-      updateAccountNostr(account.id, {
-        ...account.nostr,
-        dms: []
-      })
+      // Only update dms so we never overwrite device keys (e.g. from stale account ref)
+      updateAccountNostr(account.id, { dms: [] })
     },
     [] // eslint-disable-line react-hooks/exhaustive-deps
   )
