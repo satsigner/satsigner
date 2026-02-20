@@ -474,7 +474,7 @@ export default function NostrSync() {
               }
             })
             .catch(() => {
-              throw new Error('Error loading common Nostr keys')
+              toast.error(t('account.nostrSync.errorLoadingCommonKeys'))
             })
         }
       } else {
@@ -488,7 +488,9 @@ export default function NostrSync() {
               })
             }
           })
-          .catch(() => {})
+          .catch(() => {
+            toast.error(t('account.nostrSync.errorLoadingCommonKeys'))
+          })
       }
     }
   }, [
