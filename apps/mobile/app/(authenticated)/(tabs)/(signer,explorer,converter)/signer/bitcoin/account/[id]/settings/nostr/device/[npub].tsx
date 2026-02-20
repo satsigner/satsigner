@@ -183,16 +183,23 @@ export default function DeviceAliasPage() {
             <SSText center color="muted">
               {t('account.nostrSync.npub')}
             </SSText>
-            <SSHStack gap="xxs" style={styles.npubRow}>
-              <View
-                style={[styles.colorDot, { backgroundColor: memberColor }]}
-              />
-              <SSTextClipboard text={npub}>
-                <SSText size="xl" type="mono" selectable style={styles.npubText}>
-                  {npub.slice(0, 12) + '...' + npub.slice(-4)}
-                </SSText>
-              </SSTextClipboard>
-            </SSHStack>
+            <View style={styles.npubRowWrapper}>
+              <SSHStack gap="xxs" style={styles.npubRow}>
+                <View
+                  style={[styles.colorDot, { backgroundColor: memberColor }]}
+                />
+                <SSTextClipboard text={npub}>
+                  <SSText
+                    size="xl"
+                    type="mono"
+                    selectable
+                    style={styles.npubText}
+                  >
+                    {npub.slice(0, 12) + '...' + npub.slice(-4)}
+                  </SSText>
+                </SSTextClipboard>
+              </SSHStack>
+            </View>
             <SSButton
               label={t('account.nostrSync.fetchKind0')}
               onPress={fetchKind0Profile}
@@ -244,10 +251,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     flex: 1
   },
-  npubRow: {
+  npubRowWrapper: {
+    width: '100%',
     alignItems: 'center',
-    alignSelf: 'center',
-    flexDirection: 'row'
+    justifyContent: 'center'
+  },
+  npubRow: {
+    flexDirection: 'row',
+    alignItems: 'center'
   },
   colorDot: {
     width: 10,
