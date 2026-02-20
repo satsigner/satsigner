@@ -33,6 +33,7 @@ export type NostrAccount = {
   lastBackupFingerprint?: string
   lastUpdated: Date
   npubAliases?: Record<string, string>
+  npubProfiles?: Record<string, { displayName?: string; picture?: string }>
   relays: string[]
   syncStart: Date
   trustedMemberDevices: string[]
