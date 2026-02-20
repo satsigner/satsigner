@@ -3,6 +3,7 @@ import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -24,8 +25,10 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { NostrAPI } from '@/api/nostr'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
+import type { NostrKind0Profile } from '@/types/models/Nostr'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { deriveNpubFromNsec, generateColorFromNpub } from '@/utils/nostr'
 
@@ -60,6 +63,16 @@ function NostrKeys() {
 
   const [deviceColor, setDeviceColor] = useState('#404040')
   const [qrModal, setQrModal] = useState<QrModalContent | null>(null)
+  const [kind0Profile, setKind0Profile] = useState<NostrKind0Profile | null>(
+    () =>
+      account?.nostr?.deviceDisplayName || account?.nostr?.devicePicture
+        ? {
+            displayName: account.nostr.deviceDisplayName,
+            picture: account.nostr.devicePicture
+          }
+        : null
+  )
+  const [loadingFetchKind0, setLoadingFetchKind0] = useState(false)
 
   useEffect(() => {
     if (derivedNpub) {
@@ -68,6 +81,51 @@ function NostrKeys() {
       setDeviceColor('#404040')
     }
   }, [derivedNpub])
+
+  useEffect(() => {
+    if (
+      account?.nostr?.deviceDisplayName ||
+      account?.nostr?.devicePicture
+    ) {
+      setKind0Profile({
+        displayName: account.nostr.deviceDisplayName,
+        picture: account.nostr.devicePicture
+      })
+    }
+  }, [account?.nostr?.deviceDisplayName, account?.nostr?.devicePicture])
+
+  async function fetchKind0Profile() {
+    if (!derivedNpub || loadingFetchKind0) return
+
+    setLoadingFetchKind0(true)
+    try {
+      const relays =
+        (account?.nostr?.relays?.length ?? 0) > 0
+          ? (account?.nostr?.relays ?? [])
+          : []
+      const api = new NostrAPI(relays)
+      const profile = await api.fetchKind0(derivedNpub)
+      if (profile && (profile.displayName || profile.picture)) {
+        setKind0Profile(profile)
+        toast.success(t('account.nostrSync.fetchKind0Success'))
+      } else {
+        toast.info(t('account.nostrSync.fetchKind0NotFound'))
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      const isNoRelay =
+        message.includes('No relay') ||
+        message.includes('relays could be connected') ||
+        message.includes('relays are responding')
+      toast.error(
+        isNoRelay
+          ? t('account.nostrSync.fetchKind0NoRelay')
+          : t('account.nostrSync.fetchKind0Error')
+      )
+    } finally {
+      setLoadingFetchKind0(false)
+    }
+  }
 
   async function loadCommonNostrKeys() {
     if (loadingCommonKeys || !account || !accountId) return
@@ -124,6 +182,10 @@ function NostrKeys() {
       ...account.nostr,
       deviceNsec,
       deviceNpub: derivedNpub,
+      ...(kind0Profile && {
+        deviceDisplayName: kind0Profile.displayName,
+        devicePicture: kind0Profile.picture
+      }),
       lastUpdated: new Date()
     })
     router.back()
@@ -242,6 +304,22 @@ function NostrKeys() {
               <SSText center>{t('account.nostrSync.deviceKeys')}</SSText>
               <SSVStack gap="xxs" style={styles.keysContainer}>
                 <SSVStack gap="xxs">
+                  {kind0Profile && (kind0Profile.displayName || kind0Profile.picture) && (
+                    <SSVStack gap="xs" style={styles.kind0Profile}>
+                      {kind0Profile.picture && (
+                        <Image
+                          source={{ uri: kind0Profile.picture }}
+                          style={styles.kind0Picture}
+                          resizeMode="cover"
+                        />
+                      )}
+                      {kind0Profile.displayName && (
+                        <SSText center size="lg">
+                          {kind0Profile.displayName}
+                        </SSText>
+                      )}
+                    </SSVStack>
+                  )}
                   <SSText color="muted" center>
                     {t('account.nostrSync.npub')}
                   </SSText>
@@ -273,14 +351,31 @@ function NostrKeys() {
                     </SSText>
                   )}
                   {derivedNpub && (
-                    <SSButton
-                      variant="default"
-                      label={t('common.showQR')}
-                      onPress={() =>
-                        setQrModal({ type: 'npub', value: derivedNpub })
-                      }
-                      style={styles.showQrButton}
-                    />
+                    <SSHStack gap="sm" style={styles.npubActions}>
+                      <SSButton
+                        variant="default"
+                        label={t('common.showQR')}
+                        onPress={() =>
+                          setQrModal({ type: 'npub', value: derivedNpub })
+                        }
+                        style={styles.showQrButton}
+                      />
+                      <SSButton
+                        variant="secondary"
+                        label={t('account.nostrSync.fetchKind0')}
+                        onPress={fetchKind0Profile}
+                        disabled={loadingFetchKind0}
+                        style={styles.showQrButton}
+                      />
+                    </SSHStack>
+                  )}
+                  {loadingFetchKind0 && (
+                    <SSHStack gap="sm" style={styles.kind0Loading}>
+                      <ActivityIndicator size="small" color={Colors.white} />
+                      <SSText color="muted">
+                        {t('account.nostrSync.fetchKind0Loading')}
+                      </SSText>
+                    </SSHStack>
                   )}
                 </SSVStack>
               </SSVStack>
@@ -486,6 +581,23 @@ const styles = StyleSheet.create({
   npubRow: {
     alignItems: 'center',
     justifyContent: 'center'
+  },
+  npubActions: {
+    flexWrap: 'wrap',
+    justifyContent: 'center'
+  },
+  kind0Loading: {
+    justifyContent: 'center',
+    paddingVertical: 8
+  },
+  kind0Profile: {
+    marginTop: 8,
+    alignItems: 'center'
+  },
+  kind0Picture: {
+    width: 64,
+    height: 64,
+    borderRadius: 32
   },
   showQrButton: {
     marginTop: 20

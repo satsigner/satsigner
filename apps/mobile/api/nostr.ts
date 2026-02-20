@@ -4,7 +4,11 @@ import { Buffer } from 'buffer'
 import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
 import { toast } from 'sonner-native'
 
-import type { NostrKeys, NostrMessage } from '@/types/models/Nostr'
+import type {
+  NostrKeys,
+  NostrMessage,
+  NostrKind0Profile
+} from '@/types/models/Nostr'
 import { randomKey } from '@/utils/crypto'
 
 export class NostrAPI {
@@ -100,6 +104,47 @@ export class NostrAPI {
     }
 
     return true
+  }
+
+  /**
+   * Fetches kind 0 (metadata) event for the given npub from relays.
+   * Returns display name (name) and picture URL if available.
+   */
+  async fetchKind0(npub: string): Promise<NostrKind0Profile | null> {
+    const decoded = nip19.decode(npub)
+    if (!decoded || decoded.type !== 'npub') {
+      return null
+    }
+    const hexPubkey =
+      typeof decoded.data === 'string'
+        ? decoded.data
+        : Buffer.from(decoded.data as Uint8Array).toString('hex')
+
+    await this.connect()
+    if (!this.ndk) return null
+
+    const event = await this.ndk.fetchEvent({
+      kinds: [0 as NDKKind],
+      authors: [hexPubkey]
+    })
+
+    if (!event?.content) return null
+
+    try {
+      const content = JSON.parse(event.content) as Record<string, unknown>
+      const displayName =
+        typeof content.name === 'string'
+          ? content.name
+          : typeof content.display_name === 'string'
+            ? content.display_name
+            : undefined
+      const picture =
+        typeof content.picture === 'string' ? content.picture : undefined
+      if (!displayName && !picture) return null
+      return { displayName, picture }
+    } catch {
+      return null
+    }
   }
 
   static async generateNostrKeys(): Promise<NostrKeys> {

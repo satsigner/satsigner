@@ -27,6 +27,8 @@ export type NostrAccount = {
   commonNsec: string
   deviceNpub?: string
   deviceNsec?: string
+  deviceDisplayName?: string
+  devicePicture?: string
   dms: NostrDM[]
   lastBackupFingerprint?: string
   lastUpdated: Date
@@ -35,6 +37,11 @@ export type NostrAccount = {
   syncStart: Date
   trustedMemberDevices: string[]
   relayStatuses?: Record<string, 'connected' | 'connecting' | 'disconnected'>
+}
+
+export type NostrKind0Profile = {
+  displayName?: string
+  picture?: string
 }
 
 export type NostrKeys = {
