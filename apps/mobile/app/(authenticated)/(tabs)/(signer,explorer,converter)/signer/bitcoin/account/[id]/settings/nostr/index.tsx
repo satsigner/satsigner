@@ -356,14 +356,12 @@ export default function NostrSync() {
           try {
             await testRelaySync(updatedAccount.nostr.relays)
             deviceAnnouncement(updatedAccount)
-            const tSync = performance.now()
             await nostrSyncSubscriptions(updatedAccount, (loading) => {
               requestAnimationFrame(() => {
                 setIsSyncing(loading)
                 if (accountId) setSyncing(accountId, loading)
               })
             })
-            console.log('[Nostr:Perf] index toggleAutoSync nostrSyncSubscriptions', `${(performance.now() - tSync).toFixed(0)}ms`)
           } catch {
             toast.error('Failed to setup sync')
           } finally {
@@ -600,7 +598,6 @@ export default function NostrSync() {
     const startAutoSync = async () => {
       if (!account?.nostr?.autoSync || !account?.nostr?.relays?.length) return
 
-      const t0 = performance.now()
       setIsSyncing(true)
       if (accountId) setSyncing(accountId, true)
       deviceAnnouncement(account)
@@ -613,7 +610,6 @@ export default function NostrSync() {
         toast.error('Failed to setup sync')
       })
 
-      console.log('[Nostr:Perf] index useFocusEffect startAutoSync total', `${(performance.now() - t0).toFixed(0)}ms`)
       setIsSyncing(false)
       if (accountId) setSyncing(accountId, false)
     }
@@ -662,7 +658,6 @@ export default function NostrSync() {
       if (accountId) setSyncing(accountId, true)
 
       const triggerAutoSync = async () => {
-        const t0 = performance.now()
         try {
           await testRelaySync(currentRelays)
           deviceAnnouncement(account)
@@ -672,7 +667,6 @@ export default function NostrSync() {
               if (accountId) setSyncing(accountId, loading)
             })
           })
-          console.log('[Nostr:Perf] index useFocusEffect newRelay total', `${(performance.now() - t0).toFixed(0)}ms`)
         } catch {
           toast.error('Failed to setup sync with new relay')
         } finally {

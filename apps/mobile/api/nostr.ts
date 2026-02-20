@@ -48,7 +48,6 @@ export class NostrAPI {
   }
 
   async connect() {
-    const t0 = performance.now()
     if (!this.ndk) {
       this.ndk = new NDK({
         explicitRelayUrls: this.relays
@@ -107,7 +106,6 @@ export class NostrAPI {
       )
     }
 
-    console.log('[Nostr:Perf] connect', `${(performance.now() - t0).toFixed(0)}ms`)
     return true
   }
 
@@ -116,7 +114,6 @@ export class NostrAPI {
    * Returns display name (name) and picture URL if available.
    */
   async fetchKind0(npub: string): Promise<NostrKind0Profile | null> {
-    const t0 = performance.now()
     const decoded = nip19.decode(npub)
     if (!decoded || decoded.type !== 'npub') {
       return null
@@ -126,22 +123,15 @@ export class NostrAPI {
         ? decoded.data
         : Buffer.from(decoded.data as Uint8Array).toString('hex')
 
-    const tConnect = performance.now()
     await this.connect()
     if (!this.ndk) return null
-    console.log('[Nostr:Perf] fetchKind0 connect', `${(performance.now() - tConnect).toFixed(0)}ms`)
 
-    const tFetch = performance.now()
     const event = await this.ndk.fetchEvent({
       kinds: [0 as NDKKind],
       authors: [hexPubkey]
     })
-    console.log('[Nostr:Perf] fetchKind0 fetchEvent', `${(performance.now() - tFetch).toFixed(0)}ms`)
 
-    if (!event?.content) {
-      console.log('[Nostr:Perf] fetchKind0 total', `${(performance.now() - t0).toFixed(0)}ms`)
-      return null
-    }
+    if (!event?.content) return null
 
     try {
       const content = JSON.parse(event.content) as Record<string, unknown>
@@ -153,14 +143,9 @@ export class NostrAPI {
             : undefined
       const picture =
         typeof content.picture === 'string' ? content.picture : undefined
-      if (!displayName && !picture) {
-        console.log('[Nostr:Perf] fetchKind0 total', `${(performance.now() - t0).toFixed(0)}ms`)
-        return null
-      }
-      console.log('[Nostr:Perf] fetchKind0 total', `${(performance.now() - t0).toFixed(0)}ms`)
+      if (!displayName && !picture) return null
       return { displayName, picture }
     } catch {
-      console.log('[Nostr:Perf] fetchKind0 total', `${(performance.now() - t0).toFixed(0)}ms`)
       return null
     }
   }
@@ -185,7 +170,6 @@ export class NostrAPI {
   private async processQueue() {
     if (this.isProcessingQueue || this.eventQueue.length === 0) return
 
-    const t0 = performance.now()
     this.isProcessingQueue = true
     const batch = this.eventQueue.splice(0, this.BATCH_SIZE)
     const toProcess = batch.filter(
@@ -205,7 +189,6 @@ export class NostrAPI {
     }
 
     this.isProcessingQueue = false
-    console.log('[Nostr:Perf] processQueue', `${(performance.now() - t0).toFixed(0)}ms`, `batch=${batch.length}`)
     if (this.eventQueue.length > 0) {
       setTimeout(() => this.processQueue(), this.PROCESSING_INTERVAL)
     }
@@ -223,11 +206,8 @@ export class NostrAPI {
     since?: number,
     onEOSE?: (nsec: string) => void
   ): Promise<void> {
-    const t0 = performance.now()
-    const tConnect = performance.now()
     await this.connect()
     if (!this.ndk) throw new Error('Failed to connect to relays')
-    console.log('[Nostr:Perf] subscribeToKind1059 connect', `${(performance.now() - tConnect).toFixed(0)}ms`)
 
     this.setLoading(true)
     this._callback = _callback
@@ -253,20 +233,15 @@ export class NostrAPI {
     }
 
     subscription?.on('event', async (event) => {
-      const tEvent = performance.now()
       const rawEvent = await event.toNostrEvent()
       const rawId = (rawEvent as { id?: string }).id
 
-      if (rawId && this.processedRawEventIds.has(rawId)) {
-        console.log('[Nostr:Perf] subscribe event skip (already seen raw)', `${(performance.now() - tEvent).toFixed(0)}ms`)
-        return
-      }
+      if (rawId && this.processedRawEventIds.has(rawId)) return
 
       const unwrappedEvent = nip59.unwrapEvent(
         rawEvent as unknown as Event,
         recipientSecretNostrKey as Uint8Array
       )
-      console.log('[Nostr:Perf] subscribe event unwrap', `${(performance.now() - tEvent).toFixed(0)}ms`)
 
       if (rawId) {
         if (this.processedRawEventIds.size >= MAX_PROCESSED_RAW_IDS) {
@@ -296,7 +271,6 @@ export class NostrAPI {
     subscription?.on('close', () => {
       this.activeSubscriptions.delete(subscription)
     })
-    console.log('[Nostr:Perf] subscribeToKind1059 total', `${(performance.now() - t0).toFixed(0)}ms`)
   }
 
   async closeAllSubscriptions() {
