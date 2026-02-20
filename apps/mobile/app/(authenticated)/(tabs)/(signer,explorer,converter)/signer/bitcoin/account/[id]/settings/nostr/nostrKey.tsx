@@ -587,6 +587,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   kind0Loading: {
+    alignSelf: 'stretch',
     justifyContent: 'center',
     paddingVertical: 8
   },
