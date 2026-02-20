@@ -365,6 +365,9 @@ export class NostrAPI {
 
     if (successfulPublishes.length === 0) {
       const errors = results.map((r) => `${r.url}: ${r.error}`).join('; ')
+      toast.error('Failed to publish to any relay', {
+        description: errors
+      })
       throw new Error(`Failed to publish to any relay: ${errors}`)
     }
   }
