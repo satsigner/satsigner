@@ -33,6 +33,21 @@ type UnwrappedNostrEvent = {
   tags?: unknown[][]
 }
 
+// Wrapped events / other devices may have clock skew; reject only if created_at
+// is far in the future (match 48h subscription padding).
+const DM_FUTURE_TOLERANCE_SEC = 48 * 60 * 60
+
+/** Unix seconds for sync start (Bitcoin Safe: skip notifications for messages before this). */
+function getSyncStartSeconds(account: Account): number {
+  const syncStart = account.nostr?.syncStart
+  if (!syncStart) return 0
+  const ms =
+    syncStart instanceof Date
+      ? syncStart.getTime()
+      : new Date(syncStart as string).getTime()
+  return Math.floor(ms / 1000)
+}
+
 function useNostrSync() {
   const [accounts, updateAccountNostr, importLabels] = useAccountsStore(
     useShallow((state) => [
@@ -89,7 +104,7 @@ function useNostrSync() {
       if (!account || !unwrappedEvent || !eventContent) return
 
       const created_at = eventContent.created_at as number
-      if (created_at > Date.now() / 1000 + 60 * 5) return
+      if (created_at > Date.now() / 1000 + DM_FUTURE_TOLERANCE_SEC) return
       const description = (eventContent.description as string) ?? ''
       const newMessage = {
         id: unwrappedEvent.id,
@@ -105,9 +120,12 @@ function useNostrSync() {
         }
       }
 
-      // Trigger notifcation only if message is recent and is not sent to self
+      // Trigger notification only if message is from this session (Bitcoin Safe:
+      // skip if created before sync_start) and not from self
       const lastDataExchangeEOSE = getLastDataExchangeEOSE(account.id) || 0
+      const syncStartSec = getSyncStartSeconds(account)
       if (
+        created_at >= syncStartSec &&
         created_at > lastDataExchangeEOSE &&
         account.nostr.deviceNpub !== nip19.npubEncode(unwrappedEvent.pubkey) &&
         created_at < Date.now() / 1000 - 60 * 5
@@ -117,8 +135,10 @@ function useNostrSync() {
         toast.info(`${formatedAuthor}: ${description}`)
       }
 
-      // Get the current state directly from the store to ensure we have the latest
-      const currentAccount = accounts.find((a) => a.id === account.id)
+      // Read latest accounts from store to avoid stale closure
+      const currentAccount = useAccountsStore
+        .getState()
+        .accounts.find((a) => a.id === account.id)
       if (!currentAccount?.nostr) return
 
       const currentDms = currentAccount.nostr.dms || []
@@ -131,7 +151,6 @@ function useNostrSync() {
         const updatedDms = [...currentDms, newMessage].sort(
           (a, b) => a.created_at - b.created_at
         )
-
         // Update only the dms field, preserving all other nostr fields
         updateAccountNostr(account.id, {
           dms: updatedDms
@@ -235,13 +254,10 @@ function useNostrSync() {
           eventContent.description !== '' &&
           !data
         ) {
-          const tags = unwrappedEvent.tags
-          if (
-            tags?.[0]?.[1] != null &&
-            account.nostr.commonNpub !== nip19.npubEncode(tags[0][1] as string)
-          ) {
-            pendingDms.push({ unwrappedEvent, eventContent })
-          }
+          // Plain DMs: include all. Both protocol and data-exchange subscriptions
+          // use this handler; we no longer filter by tag so DMs from other
+          // trusted devices always show in the chat.
+          pendingDms.push({ unwrappedEvent, eventContent })
         } else if (eventContent.public_key_bech32) {
           const newMember = eventContent.public_key_bech32 as string
           addMember(account.id, newMember)
@@ -250,7 +266,11 @@ function useNostrSync() {
 
       if (pendingDms.length === 0) return
 
-      const currentAccount = accounts.find((a) => a.id === account.id)
+      // Read latest accounts from store to avoid stale closure (subscription
+      // callback may run with old accounts and overwrite dms with a shorter list)
+      const currentAccount = useAccountsStore
+        .getState()
+        .accounts.find((a) => a.id === account.id)
       if (!currentAccount?.nostr) return
 
       const currentDms = [...(currentAccount.nostr.dms || [])]
@@ -259,7 +279,7 @@ function useNostrSync() {
 
       for (const { unwrappedEvent, eventContent } of pendingDms) {
         const created_at = eventContent.created_at as number
-        if (created_at > Date.now() / 1000 + 60 * 5) continue
+        if (created_at > Date.now() / 1000 + DM_FUTURE_TOLERANCE_SEC) continue
 
         const newMessage = buildNewMessage(unwrappedEvent, eventContent)
         if (existingIds.has(newMessage.id)) continue
@@ -267,7 +287,9 @@ function useNostrSync() {
         currentDms.push(newMessage)
 
         const description = (eventContent.description as string) ?? ''
+        const syncStartSec = getSyncStartSeconds(account)
         if (
+          created_at >= syncStartSec &&
           created_at > lastDataExchangeEOSE &&
           account.nostr.deviceNpub !== nip19.npubEncode(unwrappedEvent.pubkey) &&
           created_at < Date.now() / 1000 - 60 * 5
@@ -363,6 +385,10 @@ function useNostrSync() {
 
       await cleanupSubscriptions()
 
+      // Bitcoin Safe: set sync_start when starting this session so we only notify
+      // for messages created after this moment (ignore replayed/historical).
+      updateAccountNostr(account.id, { syncStart: new Date() })
+
       const protocolApi = await protocolSubscription(account, onLoadingChange)
       if (protocolApi) {
         addSubscription(protocolApi)
@@ -443,14 +469,18 @@ function useNostrSync() {
       accounts.find((a) => a.id === account.id)?.nostr?.trustedMemberDevices ||
       []
 
-    for (const trustedDeviceNpub of trustedDevices) {
-      if (!deviceNsec) continue
-      const eventKind1059 = await nostrApi.createKind1059(
-        deviceNsec,
-        trustedDeviceNpub,
-        compressedMessage
-      )
-      await nostrApi.publishEvent(eventKind1059)
+    try {
+      for (const trustedDeviceNpub of trustedDevices) {
+        if (!deviceNsec) continue
+        const eventKind1059 = await nostrApi.createKind1059(
+          deviceNsec,
+          trustedDeviceNpub,
+          compressedMessage
+        )
+        await nostrApi.publishEvent(eventKind1059)
+      }
+    } catch {
+      // Error already shown as toast in NostrAPI.publishEvent
     }
   }
 
@@ -534,12 +564,16 @@ function useNostrSync() {
     const nostrApi = new NostrAPI(relays)
     await nostrApi.connect()
 
-    const eventKind1059 = await nostrApi.createKind1059(
-      commonNsec,
-      commonNpub,
-      compressedMessage
-    )
-    await nostrApi.publishEvent(eventKind1059)
+    try {
+      const eventKind1059 = await nostrApi.createKind1059(
+        commonNsec,
+        commonNpub,
+        compressedMessage
+      )
+      await nostrApi.publishEvent(eventKind1059)
+    } catch {
+      // Error already shown as toast in NostrAPI.publishEvent
+    }
   }, [])
 
   return {
