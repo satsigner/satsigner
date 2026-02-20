@@ -356,12 +356,14 @@ export default function NostrSync() {
           try {
             await testRelaySync(updatedAccount.nostr.relays)
             deviceAnnouncement(updatedAccount)
+            const tSync = performance.now()
             await nostrSyncSubscriptions(updatedAccount, (loading) => {
               requestAnimationFrame(() => {
                 setIsSyncing(loading)
                 if (accountId) setSyncing(accountId, loading)
               })
             })
+            console.log('[Nostr:Perf] index toggleAutoSync nostrSyncSubscriptions', `${(performance.now() - tSync).toFixed(0)}ms`)
           } catch {
             toast.error('Failed to setup sync')
           } finally {
@@ -456,60 +458,50 @@ export default function NostrSync() {
   }, [members, account?.nostr?.trustedMemberDevices])
 
   useEffect(() => {
-    if (account && accountId) {
-      // Initialize nostr object if it doesn't exist
-      if (!account.nostr) {
-        updateAccountNostrCallback(accountId, {
-          autoSync: false,
-          relays: [],
-          dms: [],
-          trustedMemberDevices: [],
-          commonNsec: '',
-          commonNpub: '',
-          deviceNsec: '',
-          deviceNpub: ''
-        })
-        return // Return early as we'll re-run this effect after the update
-      }
+    if (!account || !accountId) return
 
-      // Always check account state first, not local state
-      if (account.nostr.commonNsec && account.nostr.commonNpub) {
-        if (!commonNsec) {
-          setCommonNsec(account.nostr.commonNsec)
-        } else {
-          generateCommonNostrKeys(account)
-            .then((keys) => {
-              if (keys && 'commonNsec' in keys) {
-                setCommonNsec(keys.commonNsec as string)
-                updateAccountNostrCallback(accountId, {
-                  commonNsec: keys.commonNsec,
-                  commonNpub: keys.commonNpub
-                })
-              }
-            })
-            .catch(() => {
-              toast.error(t('account.nostrSync.errorLoadingCommonKeys'))
-            })
-        }
-      } else {
-        generateCommonNostrKeys(account)
-          .then((keys) => {
-            if (keys && 'commonNsec' in keys && 'commonNpub' in keys) {
-              setCommonNsec(keys.commonNsec as string)
-              updateAccountNostrCallback(accountId, {
-                commonNsec: keys.commonNsec,
-                commonNpub: keys.commonNpub
-              })
-            }
-          })
-          .catch(() => {
-            toast.error(t('account.nostrSync.errorLoadingCommonKeys'))
-          })
-      }
+    if (!account.nostr) {
+      updateAccountNostrCallback(accountId, {
+        autoSync: false,
+        relays: [],
+        dms: [],
+        trustedMemberDevices: [],
+        commonNsec: '',
+        commonNpub: '',
+        deviceNsec: '',
+        deviceNpub: ''
+      })
+      return
     }
+
+    const hasCommonKeys =
+      !!account.nostr.commonNsec && !!account.nostr.commonNpub
+
+    if (hasCommonKeys) {
+      if (!commonNsec) {
+        setCommonNsec(account.nostr.commonNsec)
+      }
+      return
+    }
+
+    generateCommonNostrKeys(account)
+      .then((keys) => {
+        if (keys && 'commonNsec' in keys && 'commonNpub' in keys) {
+          setCommonNsec(keys.commonNsec as string)
+          updateAccountNostrCallback(accountId, {
+            commonNsec: keys.commonNsec,
+            commonNpub: keys.commonNpub
+          })
+        }
+      })
+      .catch(() => {
+        toast.error(t('account.nostrSync.errorLoadingCommonKeys'))
+      })
   }, [
-    account,
     accountId,
+    account?.id,
+    account?.nostr?.commonNsec,
+    account?.nostr?.commonNpub,
     generateCommonNostrKeys,
     updateAccountNostrCallback,
     commonNsec
@@ -608,6 +600,7 @@ export default function NostrSync() {
     const startAutoSync = async () => {
       if (!account?.nostr?.autoSync || !account?.nostr?.relays?.length) return
 
+      const t0 = performance.now()
       setIsSyncing(true)
       if (accountId) setSyncing(accountId, true)
       deviceAnnouncement(account)
@@ -620,6 +613,7 @@ export default function NostrSync() {
         toast.error('Failed to setup sync')
       })
 
+      console.log('[Nostr:Perf] index useFocusEffect startAutoSync total', `${(performance.now() - t0).toFixed(0)}ms`)
       setIsSyncing(false)
       if (accountId) setSyncing(accountId, false)
     }
@@ -668,6 +662,7 @@ export default function NostrSync() {
       if (accountId) setSyncing(accountId, true)
 
       const triggerAutoSync = async () => {
+        const t0 = performance.now()
         try {
           await testRelaySync(currentRelays)
           deviceAnnouncement(account)
@@ -677,6 +672,7 @@ export default function NostrSync() {
               if (accountId) setSyncing(accountId, loading)
             })
           })
+          console.log('[Nostr:Perf] index useFocusEffect newRelay total', `${(performance.now() - t0).toFixed(0)}ms`)
         } catch {
           toast.error('Failed to setup sync with new relay')
         } finally {

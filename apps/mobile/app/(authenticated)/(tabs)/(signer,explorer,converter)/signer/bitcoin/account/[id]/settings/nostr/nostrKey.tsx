@@ -97,6 +97,7 @@ function NostrKeys() {
   async function fetchKind0Profile() {
     if (!derivedNpub || loadingFetchKind0) return
 
+    const t0 = performance.now()
     setLoadingFetchKind0(true)
     try {
       const relays =
@@ -123,6 +124,7 @@ function NostrKeys() {
           : t('account.nostrSync.fetchKind0Error')
       )
     } finally {
+      console.log('[Nostr:Perf] nostrKey fetchKind0Profile', `${(performance.now() - t0).toFixed(0)}ms`)
       setLoadingFetchKind0(false)
     }
   }
@@ -130,6 +132,7 @@ function NostrKeys() {
   async function loadCommonNostrKeys() {
     if (loadingCommonKeys || !account || !accountId) return
 
+    const t0 = performance.now()
     setLoadingCommonKeys(true)
     try {
       const keys = await generateCommonNostrKeys(account)
@@ -145,6 +148,7 @@ function NostrKeys() {
     } catch (_error) {
       toast.error('Failed to generate common keys')
     } finally {
+      console.log('[Nostr:Perf] nostrKey loadCommonNostrKeys', `${(performance.now() - t0).toFixed(0)}ms`)
       setLoadingCommonKeys(false)
     }
   }
@@ -177,6 +181,7 @@ function NostrKeys() {
   }
 
   function saveChanges() {
+    const t0 = performance.now()
     if (!accountId || !account?.nostr || !derivedNpub) return
     updateAccountNostr(accountId, {
       ...account.nostr,
@@ -188,6 +193,7 @@ function NostrKeys() {
       }),
       lastUpdated: new Date()
     })
+    console.log('[Nostr:Perf] nostrKey saveChanges', `${(performance.now() - t0).toFixed(0)}ms`)
     router.back()
   }
 

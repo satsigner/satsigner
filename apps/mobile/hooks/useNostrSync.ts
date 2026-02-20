@@ -29,6 +29,7 @@ type UnwrappedNostrEvent = {
   id: string
   pubkey: string
   content: string
+  created_at?: number
   tags?: unknown[][]
 }
 
@@ -66,17 +67,22 @@ function useNostrSync() {
     ])
   )
   const cleanupSubscriptions = useCallback(async () => {
+    const t0 = performance.now()
+    console.log('[Nostr:Perf] cleanupSubscriptions start', `${(performance.now() - t0).toFixed(0)}ms`)
     const apisToCleanup = Array.from(getActiveSubscriptions())
     clearSubscriptions()
     for (const api of apisToCleanup) {
       try {
+        const tClose = performance.now()
         await api.closeAllSubscriptions()
+        console.log('[Nostr:Perf] closeAllSubscriptions', `${(performance.now() - tClose).toFixed(0)}ms`)
       } catch {
         toast.error(
           'Failed to clean subscription for: ' + api.getRelays().join(', ')
         )
       }
     }
+    console.log('[Nostr:Perf] cleanupSubscriptions end', `${(performance.now() - t0).toFixed(0)}ms`)
   }, [clearSubscriptions, getActiveSubscriptions])
 
   const storeDM = useCallback(
@@ -85,10 +91,15 @@ function useNostrSync() {
       unwrappedEvent?: UnwrappedNostrEvent,
       eventContent?: Record<string, unknown>
     ) => {
-      if (!account || !unwrappedEvent || !eventContent) return
+      const t0 = performance.now()
+      if (!account || !unwrappedEvent || !eventContent) {
+        console.log('[Nostr:Perf] storeDM (skip no args)', `${(performance.now() - t0).toFixed(0)}ms`)
+        return
+      }
 
       const created_at = eventContent.created_at as number
       if (created_at > Date.now() / 1000 + 60 * 5) {
+        console.log('[Nostr:Perf] storeDM (skip future)', `${(performance.now() - t0).toFixed(0)}ms`)
         return
       }
       const description = (eventContent.description as string) ?? ''
@@ -138,6 +149,7 @@ function useNostrSync() {
           dms: updatedDms
         })
       }
+      console.log('[Nostr:Perf] storeDM', `${(performance.now() - t0).toFixed(0)}ms`)
     },
     [] // eslint-disable-line react-hooks/exhaustive-deps
   )
@@ -153,79 +165,162 @@ function useNostrSync() {
     return unwrappedEvent.content
   }
 
-  // TODO: update type
+  type PendingDM = {
+    unwrappedEvent: UnwrappedNostrEvent
+    eventContent: Record<string, unknown>
+  }
+
+  function buildNewMessage(
+    unwrappedEvent: UnwrappedNostrEvent,
+    eventContent: Record<string, unknown>
+  ) {
+    const created_at = eventContent.created_at as number
+    const description = (eventContent.description as string) ?? ''
+    return {
+      id: unwrappedEvent.id,
+      author: unwrappedEvent.pubkey,
+      created_at,
+      description,
+      event: JSON.stringify(unwrappedEvent),
+      label: 1,
+      content: {
+        description,
+        created_at,
+        pubkey: unwrappedEvent.pubkey
+      }
+    }
+  }
+
+  const processEventBatch = useCallback(
+    async (
+      account: Account,
+      messages: Array<{ id: string; content: unknown; created_at: number }>
+    ): Promise<void> => {
+      const t0 = performance.now()
+      const pendingDms: PendingDM[] = []
+
+      for (const msg of messages) {
+        const unwrappedEvent = msg.content as UnwrappedNostrEvent
+        const accountProcessedEvents = processedEvents[account.id]
+        if (accountProcessedEvents?.[unwrappedEvent.id]) continue
+
+        addProcessedEvent(account.id, unwrappedEvent.id)
+        const eventContent = getEventContent(unwrappedEvent)
+
+        const data = eventContent.data as
+          | { data_type?: string; data?: unknown }
+          | undefined
+        if (data) {
+          const data_type = data.data_type
+          if (data_type === 'LabelsBip329') {
+            const labels = JSONLtoLabels(String(data.data ?? ''))
+            const labelsAdded = importLabels(account.id, labels)
+            if (labelsAdded > 0) {
+              toast.success(`Imported ${labelsAdded} labels`)
+            }
+          } else if (data_type === 'Tx') {
+            const dataStr = String(data.data ?? '')
+            toast.info(
+              `New Tx Recieve from: ${nip19.npubEncode(unwrappedEvent.pubkey).slice(0, 12)}...${nip19.npubEncode(unwrappedEvent.pubkey).slice(-4)} - ${dataStr.slice(0, 12)}...`
+            )
+          } else if (data_type === 'PSBT') {
+            const dataStr = String(data.data ?? '')
+            toast.info(
+              `New PSBT Recieve from: ${nip19.npubEncode(unwrappedEvent.pubkey).slice(0, 12)}...${nip19.npubEncode(unwrappedEvent.pubkey).slice(-4)} - ${dataStr.slice(0, 12)}...`
+            )
+            const psbtEventContent: Record<string, unknown> = {
+              created_at:
+                (eventContent.created_at as number) ||
+                Math.floor(Date.now() / 1000),
+              description: data.data
+            }
+            pendingDms.push({
+              unwrappedEvent,
+              eventContent: psbtEventContent
+            })
+          } else if (data_type === 'SignMessageRequest') {
+            const dataStr = String(data.data ?? '')
+            toast.info(
+              `New Sign message request Recieve from: ${nip19.npubEncode(unwrappedEvent.pubkey).slice(0, 12)}...${nip19.npubEncode(unwrappedEvent.pubkey).slice(-4)} - ${dataStr.slice(0, 12)}...`
+            )
+          }
+        } else if (
+          eventContent.description != null &&
+          eventContent.description !== '' &&
+          !data
+        ) {
+          const tags = unwrappedEvent.tags
+          if (
+            tags?.[0]?.[1] != null &&
+            account.nostr.commonNpub !== nip19.npubEncode(tags[0][1] as string)
+          ) {
+            pendingDms.push({ unwrappedEvent, eventContent })
+          }
+        } else if (eventContent.public_key_bech32) {
+          const newMember = eventContent.public_key_bech32 as string
+          addMember(account.id, newMember)
+        }
+      }
+
+      if (pendingDms.length === 0) {
+        console.log('[Nostr:Perf] processEventBatch', `${(performance.now() - t0).toFixed(0)}ms`, `n=${messages.length}`)
+        return
+      }
+
+      const currentAccount = accounts.find((a) => a.id === account.id)
+      if (!currentAccount?.nostr) return
+
+      const currentDms = [...(currentAccount.nostr.dms || [])]
+      const existingIds = new Set(currentDms.map((m) => m.id))
+      const lastDataExchangeEOSE = getLastDataExchangeEOSE(account.id) || 0
+
+      for (const { unwrappedEvent, eventContent } of pendingDms) {
+        const created_at = eventContent.created_at as number
+        if (created_at > Date.now() / 1000 + 60 * 5) continue
+
+        const newMessage = buildNewMessage(unwrappedEvent, eventContent)
+        if (existingIds.has(newMessage.id)) continue
+        existingIds.add(newMessage.id)
+        currentDms.push(newMessage)
+
+        const description = (eventContent.description as string) ?? ''
+        if (
+          created_at > lastDataExchangeEOSE &&
+          account.nostr.deviceNpub !== nip19.npubEncode(unwrappedEvent.pubkey) &&
+          created_at < Date.now() / 1000 - 60 * 5
+        ) {
+          const npub = nip19.npubEncode(unwrappedEvent.pubkey)
+          const formatedAuthor = npub.slice(0, 12) + '...' + npub.slice(-4)
+          toast.info(`${formatedAuthor}: ${description}`)
+        }
+      }
+
+      const updatedDms = currentDms.sort((a, b) => a.created_at - b.created_at)
+      updateAccountNostr(account.id, { dms: updatedDms })
+      console.log('[Nostr:Perf] processEventBatch', `${(performance.now() - t0).toFixed(0)}ms`, `n=${messages.length} dms=${pendingDms.length}`)
+    },
+    [] // eslint-disable-line react-hooks/exhaustive-deps
+  )
+
   const processEvent = useCallback(
     async (
       account: Account,
       unwrappedEvent: UnwrappedNostrEvent
     ): Promise<void> => {
-      // Check for processed events at the very beginning
-      const accountProcessedEvents = processedEvents[account.id] || []
-      if (accountProcessedEvents.includes(unwrappedEvent.id)) {
-        return
-      }
-
-      // Mark event as processed immediately to prevent duplicate processing
-      addProcessedEvent(account.id, unwrappedEvent.id)
-
-      const eventContent = getEventContent(unwrappedEvent)
-
-      const data = eventContent.data as
-        | { data_type?: string; data?: unknown }
-        | undefined
-      if (data) {
-        const data_type = data.data_type
-        if (data_type === 'LabelsBip329') {
-          const labels = JSONLtoLabels(String(data.data ?? ''))
-          const labelsAdded = importLabels(account.id, labels)
-          if (labelsAdded > 0) {
-            toast.success(`Imported ${labelsAdded} labels`)
-          }
-        } else if (data_type === 'Tx') {
-          const dataStr = String(data.data ?? '')
-          toast.info(
-            `New Tx Recieve from: ${nip19.npubEncode(unwrappedEvent.pubkey).slice(0, 12)}...${nip19.npubEncode(unwrappedEvent.pubkey).slice(-4)} - ${dataStr.slice(0, 12)}...`
-          )
-        } else if (data_type === 'PSBT') {
-          const dataStr = String(data.data ?? '')
-          toast.info(
-            `New PSBT Recieve from: ${nip19.npubEncode(unwrappedEvent.pubkey).slice(0, 12)}...${nip19.npubEncode(unwrappedEvent.pubkey).slice(-4)} - ${dataStr.slice(0, 12)}...`
-          )
-          const psbtEventContent: Record<string, unknown> = {
-            created_at:
-              (eventContent.created_at as number) ||
-              Math.floor(Date.now() / 1000),
-            description: data.data
-          }
-          await storeDM(account, unwrappedEvent, psbtEventContent)
-        } else if (data_type === 'SignMessageRequest') {
-          const dataStr = String(data.data ?? '')
-          toast.info(
-            `New Sign message request Recieve from: ${nip19.npubEncode(unwrappedEvent.pubkey).slice(0, 12)}...${nip19.npubEncode(unwrappedEvent.pubkey).slice(-4)} - ${dataStr.slice(0, 12)}...`
-          )
+      await processEventBatch(account, [
+        {
+          id: unwrappedEvent.id,
+          content: unwrappedEvent,
+          created_at: unwrappedEvent.created_at ?? 0
         }
-      } else if (
-        eventContent.description != null &&
-        eventContent.description !== '' &&
-        !data
-      ) {
-        const tags = unwrappedEvent.tags
-        if (
-          tags?.[0]?.[1] != null &&
-          account.nostr.commonNpub !== nip19.npubEncode(tags[0][1] as string)
-        ) {
-          await storeDM(account, unwrappedEvent, eventContent)
-        }
-      } else if (eventContent.public_key_bech32) {
-        const newMember = eventContent.public_key_bech32 as string
-        addMember(account.id, newMember)
-      }
+      ])
     },
-    [] // eslint-disable-line react-hooks/exhaustive-deps
+    [processEventBatch]
   )
 
   const protocolSubscription = useCallback(
     async (account: Account, onLoadingChange?: (loading: boolean) => void) => {
+      const t0 = performance.now()
       const { autoSync, commonNsec, commonNpub, relays } = account.nostr
       const lastProtocolEOSE = getLastProtocolEOSE(account.id) || 0
 
@@ -237,16 +332,20 @@ function useNostrSync() {
       if (onLoadingChange) {
         nostrApi.setLoadingCallback(onLoadingChange)
       }
+      const tConnect = performance.now()
       await nostrApi.connect()
+      console.log('[Nostr:Perf] protocolSubscription connect', `${(performance.now() - tConnect).toFixed(0)}ms`)
+      const tSub = performance.now()
       await nostrApi.subscribeToKind1059(
         commonNsec as string,
         commonNpub as string,
-        async (message) =>
-          processEvent(account, message.content as UnwrappedNostrEvent),
+        (messages) => processEventBatch(account, messages),
         undefined,
         lastProtocolEOSE,
         (nsec) => updateLasEOSETimestamp(account, nsec)
       )
+      console.log('[Nostr:Perf] protocolSubscription subscribe', `${(performance.now() - tSub).toFixed(0)}ms`)
+      console.log('[Nostr:Perf] protocolSubscription total', `${(performance.now() - t0).toFixed(0)}ms`)
       return nostrApi
     },
     [] // eslint-disable-line react-hooks/exhaustive-deps
@@ -254,6 +353,7 @@ function useNostrSync() {
 
   const dataExchangeSubscription = useCallback(
     async (account: Account, onLoadingChange?: (loading: boolean) => void) => {
+      const t0 = performance.now()
       const { autoSync, deviceNsec, deviceNpub, relays } = account.nostr
       const lastDataExchangeEOSE = getLastDataExchangeEOSE(account.id) || 0
 
@@ -266,16 +366,20 @@ function useNostrSync() {
       if (onLoadingChange) {
         nostrApi.setLoadingCallback(onLoadingChange)
       }
+      const tConnect = performance.now()
       await nostrApi.connect()
+      console.log('[Nostr:Perf] dataExchangeSubscription connect', `${(performance.now() - tConnect).toFixed(0)}ms`)
+      const tSub = performance.now()
       await nostrApi.subscribeToKind1059(
         deviceNsec as string,
         deviceNpub as string,
-        async (message) =>
-          processEvent(account, message.content as UnwrappedNostrEvent),
+        (messages) => processEventBatch(account, messages),
         undefined,
         lastDataExchangeEOSE,
         (nsec) => updateLasEOSETimestamp(account, nsec)
       )
+      console.log('[Nostr:Perf] dataExchangeSubscription subscribe', `${(performance.now() - tSub).toFixed(0)}ms`)
+      console.log('[Nostr:Perf] dataExchangeSubscription total', `${(performance.now() - t0).toFixed(0)}ms`)
       return nostrApi
     },
     [] // eslint-disable-line react-hooks/exhaustive-deps
@@ -283,23 +387,29 @@ function useNostrSync() {
 
   const nostrSyncSubscriptions = useCallback(
     async (account?: Account, onLoadingChange?: (loading: boolean) => void) => {
+      const t0 = performance.now()
       if (!account || !account.nostr) {
         return
       }
 
       if (getActiveSubscriptions().size > 0) {
+        console.log('[Nostr:Perf] nostrSyncSubscriptions (skip, already active)', `${(performance.now() - t0).toFixed(0)}ms`)
         return
       }
 
       // Cleanup existing subscriptions first
+      const tClean = performance.now()
       await cleanupSubscriptions()
+      console.log('[Nostr:Perf] nostrSyncSubscriptions cleanup', `${(performance.now() - tClean).toFixed(0)}ms`)
 
+      const tProtocol = performance.now()
       const protocolApi = await protocolSubscription(account, onLoadingChange)
       if (protocolApi) {
         addSubscription(protocolApi)
       }
+      console.log('[Nostr:Perf] nostrSyncSubscriptions protocol', `${(performance.now() - tProtocol).toFixed(0)}ms`)
 
-      // Start data exchange subscription
+      const tData = performance.now()
       const dataExchangeApi = await dataExchangeSubscription(
         account,
         onLoadingChange
@@ -307,11 +417,14 @@ function useNostrSync() {
       if (dataExchangeApi) {
         addSubscription(dataExchangeApi)
       }
+      console.log('[Nostr:Perf] nostrSyncSubscriptions dataExchange', `${(performance.now() - tData).toFixed(0)}ms`)
+      console.log('[Nostr:Perf] nostrSyncSubscriptions total', `${(performance.now() - t0).toFixed(0)}ms`)
     },
     [] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const sendLabelsToNostr = async (account?: Account, singleLabel?: Label) => {
+    const t0 = performance.now()
     if (!account || !account.nostr || !account.nostr.autoSync) {
       return
     }
@@ -370,13 +483,16 @@ function useNostrSync() {
 
     const compressedMessage = compressMessage(messageContent)
     const nostrApi = new NostrAPI(relays)
+    const tConnect = performance.now()
     await nostrApi.connect()
+    console.log('[Nostr:Perf] sendLabelsToNostr connect', `${(performance.now() - tConnect).toFixed(0)}ms`)
 
     const deviceNsec = account.nostr.deviceNsec
     const trustedDevices =
       accounts.find((a) => a.id === account.id)?.nostr?.trustedMemberDevices ||
       []
 
+    const tPublish = performance.now()
     for (const trustedDeviceNpub of trustedDevices) {
       if (!deviceNsec) continue
       const eventKind1059 = await nostrApi.createKind1059(
@@ -386,6 +502,8 @@ function useNostrSync() {
       )
       await nostrApi.publishEvent(eventKind1059)
     }
+    console.log('[Nostr:Perf] sendLabelsToNostr publish loop', `${(performance.now() - tPublish).toFixed(0)}ms`)
+    console.log('[Nostr:Perf] sendLabelsToNostr total', `${(performance.now() - t0).toFixed(0)}ms`)
   }
 
   async function loadStoredDMs(account?: Account) {
@@ -402,11 +520,14 @@ function useNostrSync() {
     [] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
-  async function generateCommonNostrKeys(account?: Account) {
+  const generateCommonNostrKeys = useCallback(async (account?: Account) => {
+    const t0 = performance.now()
     if (!account) return
 
+    const tPin = performance.now()
     const pin = await getItem(PIN_KEY)
     if (!pin) return
+    console.log('[Nostr:Perf] generateCommonNostrKeys getItem(PIN)', `${(performance.now() - tPin).toFixed(0)}ms`)
 
     const isImportAddress = account.keys[0].creationType === 'importAddress'
     const temporaryAccount = JSON.parse(JSON.stringify(account)) as Account
@@ -429,6 +550,7 @@ function useNostrSync() {
       }
     }
 
+    const tWallet = performance.now()
     const walletData = await getWalletData(
       temporaryAccount,
       temporaryAccount.network as Network
@@ -436,9 +558,14 @@ function useNostrSync() {
     if (!walletData) {
       throw new Error('Failed to get wallet data')
     }
+    console.log('[Nostr:Perf] generateCommonNostrKeys getWalletData', `${(performance.now() - tWallet).toFixed(0)}ms`)
 
-    return deriveNostrKeysFromDescriptor(walletData.externalDescriptor)
-  }
+    const tDerive = performance.now()
+    const result = deriveNostrKeysFromDescriptor(walletData.externalDescriptor)
+    console.log('[Nostr:Perf] generateCommonNostrKeys derive', `${(performance.now() - tDerive).toFixed(0)}ms`)
+    console.log('[Nostr:Perf] generateCommonNostrKeys total', `${(performance.now() - t0).toFixed(0)}ms`)
+    return result
+  }, [])
 
   function updateLasEOSETimestamp(account: Account, nsec: string) {
     const timestamp = Math.floor(Date.now() / 1000) - 3600 // Subtract 1 hour
@@ -450,6 +577,7 @@ function useNostrSync() {
   }
 
   const deviceAnnouncement = useCallback(async (account?: Account) => {
+    const t0 = performance.now()
     if (!account?.nostr?.autoSync) return
     if (!account || !account.nostr) return
     const { commonNsec, commonNpub, deviceNpub, relays } = account.nostr
@@ -466,14 +594,19 @@ function useNostrSync() {
 
     const compressedMessage = compressMessage(messageContent)
     const nostrApi = new NostrAPI(relays)
+    const tConnect = performance.now()
     await nostrApi.connect()
+    console.log('[Nostr:Perf] deviceAnnouncement connect', `${(performance.now() - tConnect).toFixed(0)}ms`)
 
     const eventKind1059 = await nostrApi.createKind1059(
       commonNsec,
       commonNpub,
       compressedMessage
     )
+    const tPublish = performance.now()
     await nostrApi.publishEvent(eventKind1059)
+    console.log('[Nostr:Perf] deviceAnnouncement publish', `${(performance.now() - tPublish).toFixed(0)}ms`)
+    console.log('[Nostr:Perf] deviceAnnouncement total', `${(performance.now() - t0).toFixed(0)}ms`)
   }, [])
 
   return {
