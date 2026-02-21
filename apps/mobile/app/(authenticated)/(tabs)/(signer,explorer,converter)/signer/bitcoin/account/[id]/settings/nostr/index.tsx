@@ -33,7 +33,7 @@ import { Colors } from '@/styles'
 import type { NostrAccount } from '@/types/models/Nostr'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatDate } from '@/utils/date'
-import { compressMessage, generateColorFromNpub } from '@/utils/nostr'
+import { generateColorFromNpub } from '@/utils/nostr'
 
 export default function NostrSync() {
   // Account and store hooks
@@ -147,36 +147,13 @@ export default function NostrSync() {
       })
       setRelayConnectionStatuses(statuses)
 
+      // Test connectivity only - don't publish events here to avoid rate limiting
+      // Device announcement is sent separately via deviceAnnouncement()
       for (const relay of relays) {
         try {
           const nostrApi = new NostrAPI([relay])
           await nostrApi.connect()
-
-          if (
-            account?.nostr?.commonNsec &&
-            account.nostr.commonNpub &&
-            account.nostr.deviceNpub
-          ) {
-            try {
-              const testMessage = {
-                created_at: Math.floor(Date.now() / 1000),
-                public_key_bech32: account.nostr.deviceNpub
-              }
-              const compressedMessage = compressMessage(testMessage)
-              const testEvent = await nostrApi.createKind1059(
-                account.nostr.commonNsec,
-                account.nostr.commonNpub,
-                compressedMessage
-              )
-              await nostrApi.publishEvent(testEvent)
-              statuses[relay] = 'connected'
-            } catch {
-              toast.error('Failed to publish device announcement')
-              statuses[relay] = 'disconnected'
-            }
-          } else {
-            statuses[relay] = 'connected'
-          }
+          statuses[relay] = 'connected'
         } catch {
           toast.error('Failed to connect to relay ' + relay)
           statuses[relay] = 'disconnected'
@@ -191,7 +168,7 @@ export default function NostrSync() {
         })
       }
     },
-    [account?.nostr, accountId, updateAccountNostrCallback]
+    [accountId, updateAccountNostrCallback]
   )
 
   const getRelayConnectionInfo = useCallback(
@@ -243,39 +220,42 @@ export default function NostrSync() {
   }
 
   /**
-   * Loads Nostr account data
+   * Loads Nostr account data from store. Accepts account so it can be called
+   * with fresh store state without being in effect deps (avoids update loops).
    */
-  const loadNostrAccountData = useCallback(() => {
-    if (!account || !accountId) return
+  const loadNostrAccountData = useCallback(
+    (acc: NonNullable<typeof account>) => {
+      if (!acc || !accountId) return
 
-    // Initialize nostr object if it doesn't exist
-    if (!account.nostr) {
-      updateAccountNostrCallback(accountId, {
-        autoSync: false,
-        relays: [],
-        dms: [],
-        trustedMemberDevices: [],
-        commonNsec: '',
-        commonNpub: '',
-        deviceNsec: '',
-        deviceNpub: ''
-      })
-      setSelectedRelays([])
-      previousRelaysRef.current = []
-      return
-    }
+      if (!acc.nostr) {
+        updateAccountNostrCallback(accountId, {
+          autoSync: false,
+          relays: [],
+          dms: [],
+          trustedMemberDevices: [],
+          commonNsec: '',
+          commonNpub: '',
+          deviceNsec: '',
+          deviceNpub: ''
+        })
+        setSelectedRelays([])
+        previousRelaysRef.current = []
+        return
+      }
 
-    const currentRelays = account.nostr.relays || []
-    setSelectedRelays(currentRelays)
+      const currentRelays = acc.nostr.relays || []
+      setSelectedRelays(currentRelays)
 
-    if (previousRelaysRef.current.length === 0 && currentRelays.length > 0) {
-      previousRelaysRef.current = [...currentRelays]
-    }
+      if (previousRelaysRef.current.length === 0 && currentRelays.length > 0) {
+        previousRelaysRef.current = [...currentRelays]
+      }
 
-    if (account.nostr.relayStatuses) {
-      setRelayConnectionStatuses(account.nostr.relayStatuses)
-    }
-  }, [account, accountId, updateAccountNostrCallback])
+      if (acc.nostr.relayStatuses) {
+        setRelayConnectionStatuses(acc.nostr.relayStatuses)
+      }
+    },
+    [accountId, updateAccountNostrCallback]
+  )
 
   /**
    * Toggles auto-sync functionality and manages subscriptions
@@ -329,16 +309,16 @@ export default function NostrSync() {
         setIsSyncing(false)
         if (accountId) setSyncing(accountId, false)
       } else {
-        // Turn sync ON – only update these fields so we never overwrite device keys
+        // Turn sync ON – set syncStart so DMs from this session are distinguished; caller must set before subscribe to avoid effect loops
         updateAccountNostrCallback(accountId, {
           autoSync: true,
+          syncStart: new Date(),
           lastUpdated: new Date()
         })
 
-        const updatedAccount = {
-          ...account,
-          nostr: { ...account.nostr, autoSync: true, lastUpdated: new Date() }
-        }
+        const updatedAccount = useAccountsStore
+          .getState()
+          .accounts.find((a) => a.id === accountId)
 
         if (
           !updatedAccount?.nostr?.deviceNsec ||
@@ -448,12 +428,18 @@ export default function NostrSync() {
     })
   }
 
-  // Effects
+  // Effects – use stable deps so we don't re-run on every account ref change
+  const trustedDevicesKey = JSON.stringify(
+    account?.nostr?.trustedMemberDevices ?? []
+  )
   useEffect(() => {
-    if (account?.nostr?.trustedMemberDevices) {
-      setSelectedMembers(new Set(account.nostr.trustedMemberDevices))
+    const acc = useAccountsStore
+      .getState()
+      .accounts.find((a) => a.id === accountId)
+    if (acc?.nostr?.trustedMemberDevices) {
+      setSelectedMembers(new Set(acc.nostr.trustedMemberDevices))
     }
-  }, [members, account?.nostr?.trustedMemberDevices])
+  }, [accountId, members, trustedDevicesKey])
 
   useEffect(() => {
     if (!account || !accountId) return
@@ -506,11 +492,9 @@ export default function NostrSync() {
   ])
 
   useEffect(() => {
-    if (!account || !accountId || isGeneratingKeys) {
-      return
-    }
+    if (!account || !accountId) return
 
-    // Initialize nostr object if it doesn't exist
+    // Initialize nostr object if it doesn't exist, then generate device keys in the same run
     if (!account.nostr) {
       updateAccountNostrCallback(accountId, {
         autoSync: false,
@@ -522,10 +506,34 @@ export default function NostrSync() {
         deviceNsec: '',
         deviceNpub: ''
       })
-      return // Return early as we'll re-run this effect after the update
+      setIsGeneratingKeys(true)
+      NostrAPI.generateNostrKeys()
+        .then((keys) => {
+          if (!keys) return
+          const current = useAccountsStore
+            .getState()
+            .accounts.find((a) => a.id === accountId)
+          if (current?.nostr) {
+            updateAccountNostrCallback(accountId, {
+              ...current.nostr,
+              deviceNpub: keys.npub,
+              deviceNsec: keys.nsec,
+              lastUpdated: new Date()
+            })
+          }
+          setDeviceNsec(keys.nsec)
+          setDeviceNpub(keys.npub)
+          generateColorFromNpub(keys.npub).then(setDeviceColor)
+          setKeysGenerated(true)
+        })
+        .catch(() => {
+          toast.error('Failed to generate device keys')
+        })
+        .finally(() => setIsGeneratingKeys(false))
+      return
     }
 
-    // Store has device keys: only sync to local when local is empty (initial load). Avoid overwriting on every account ref change so we don't trigger re-render loops; display uses store via displayDeviceNpub.
+    // Store already has device keys: sync to local when local is empty
     if (account.nostr.deviceNsec && account.nostr.deviceNpub) {
       if (!deviceNpub) {
         setDeviceNsec(account.nostr.deviceNsec)
@@ -536,40 +544,40 @@ export default function NostrSync() {
       return
     }
 
-    if (keysGenerated) {
-      return
-    }
+    // No device keys yet and we're not already generating: generate once
+    if (isGeneratingKeys || keysGenerated) return
 
     setIsGeneratingKeys(true)
     setKeysGenerated(true)
-
     NostrAPI.generateNostrKeys()
       .then((keys) => {
-        if (!keys) {
-          return
-        }
+        if (!keys) return
         if (account?.nostr?.deviceNsec && account.nostr.deviceNpub) {
           setDeviceNsec(account.nostr.deviceNsec)
           setDeviceNpub(account.nostr.deviceNpub)
           generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
-        } else if (account?.nostr) {
+        } else {
+          const current = useAccountsStore
+            .getState()
+            .accounts.find((a) => a.id === accountId)
+          if (current?.nostr) {
+            updateAccountNostrCallback(accountId, {
+              ...current.nostr,
+              deviceNpub: keys.npub,
+              deviceNsec: keys.nsec,
+              lastUpdated: new Date()
+            })
+          }
           setDeviceNsec(keys.nsec)
           setDeviceNpub(keys.npub)
           generateColorFromNpub(keys.npub).then(setDeviceColor)
-          updateAccountNostrCallback(accountId, {
-            ...account.nostr,
-            deviceNpub: keys.npub,
-            deviceNsec: keys.nsec
-          })
         }
       })
       .catch(() => {
         toast.error('Failed to generate device keys')
         setKeysGenerated(false)
       })
-      .finally(() => {
-        setIsGeneratingKeys(false)
-      })
+      .finally(() => setIsGeneratingKeys(false))
   }, [
     account,
     accountId,
@@ -587,41 +595,60 @@ export default function NostrSync() {
     }
   }, [displayDeviceNpub])
 
+  // Run when accountId, nostr presence, or relay list changes; read account from store to avoid full account in deps (prevents update cascade).
   useEffect(() => {
-    if (account) {
-      loadNostrAccountData()
+    const acc = useAccountsStore
+      .getState()
+      .accounts.find((a) => a.id === accountId)
+    if (acc) loadNostrAccountData(acc)
+  }, [
+    accountId,
+    !!account?.nostr,
+    account?.nostr?.relays?.length,
+    loadNostrAccountData
+  ])
+
+  // When opening screen with sync already ON: only subscribe once. Use refs for
+  // callbacks so this effect does not re-run every render (which caused subscribe
+  // to be invoked in a loop and OOM). Only run when accountId/autoSync/relays change.
+  const nostrSyncSubscriptionsRef = useRef(nostrSyncSubscriptions)
+  const setSyncingRef = useRef(setSyncing)
+  nostrSyncSubscriptionsRef.current = nostrSyncSubscriptions
+  setSyncingRef.current = setSyncing
+
+  const lastAutoSyncKeyRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!account?.nostr?.autoSync || !account?.nostr?.relays?.length) {
+      lastAutoSyncKeyRef.current = null
+      return
     }
-  }, [account, loadNostrAccountData])
 
-  // Add effect to handle auto-sync on mount
-  useEffect(() => {
-    const startAutoSync = async () => {
-      if (!account?.nostr?.autoSync || !account?.nostr?.relays?.length) return
+    const autoSyncKey = `${accountId}-${(account.nostr.relays || []).sort().join(',')}`
+    if (lastAutoSyncKeyRef.current === autoSyncKey) return
+    lastAutoSyncKeyRef.current = autoSyncKey
 
-      setIsSyncing(true)
-      if (accountId) setSyncing(accountId, true)
-      deviceAnnouncement(account)
-      await nostrSyncSubscriptions(account, (loading) => {
+    const current = useAccountsStore
+      .getState()
+      .accounts.find((a) => a.id === accountId)
+    if (!current?.nostr) return
+
+    setIsSyncing(true)
+    setSyncingRef.current(accountId, true)
+    nostrSyncSubscriptionsRef
+      .current(current, (loading) => {
         requestAnimationFrame(() => {
           setIsSyncing(loading)
-          if (accountId) setSyncing(accountId, loading)
+          setSyncingRef.current(accountId, loading)
         })
-      }).catch(() => {
+      })
+      .catch(() => {
         toast.error('Failed to setup sync')
       })
-
-      setIsSyncing(false)
-      if (accountId) setSyncing(accountId, false)
-    }
-
-    startAutoSync()
-  }, [
-    account,
-    accountId,
-    deviceAnnouncement,
-    nostrSyncSubscriptions,
-    setSyncing
-  ])
+      .finally(() => {
+        setIsSyncing(false)
+        setSyncingRef.current(accountId, false)
+      })
+  }, [accountId, account?.nostr?.autoSync, account?.nostr?.relays?.length])
 
   // Auto-trigger sync when a new relay is added and sync is ON
   useFocusEffect(
@@ -864,9 +891,8 @@ export default function NostrSync() {
                                   style={{ opacity: isSyncing ? 0.5 : 1 }}
                                 >
                                   <SSHStack gap="sm" style={styles.memberRow}>
-                                    {account?.nostr?.npubProfiles?.[
-                                      member.npub
-                                    ]?.picture && (
+                                    {account?.nostr?.npubProfiles?.[member.npub]
+                                      ?.picture && (
                                       <Image
                                         source={{
                                           uri: account.nostr.npubProfiles[

@@ -12,6 +12,7 @@ import {
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { NostrAPI } from '@/api/nostr'
 import SSIconEyeOff from '@/components/icons/SSIconEyeOff'
 import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
 import SSButton from '@/components/SSButton'
@@ -25,7 +26,6 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { NostrAPI } from '@/api/nostr'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import type { NostrKind0Profile } from '@/types/models/Nostr'
@@ -83,10 +83,7 @@ function NostrKeys() {
   }, [derivedNpub])
 
   useEffect(() => {
-    if (
-      account?.nostr?.deviceDisplayName ||
-      account?.nostr?.devicePicture
-    ) {
+    if (account?.nostr?.deviceDisplayName || account?.nostr?.devicePicture) {
       setKind0Profile({
         displayName: account.nostr.deviceDisplayName,
         picture: account.nostr.devicePicture
@@ -95,14 +92,25 @@ function NostrKeys() {
   }, [account?.nostr?.deviceDisplayName, account?.nostr?.devicePicture])
 
   async function fetchKind0Profile() {
-    if (!derivedNpub || loadingFetchKind0) return
+    if (loadingFetchKind0) return
+
+    // Show feedback when we can't fetch: no device key, sync off, or no relays
+    if (!derivedNpub) {
+      toast.error(t('account.nostrSync.fetchKind0NoRelay'))
+      return
+    }
+    if (!account?.nostr?.autoSync) {
+      toast.error(t('account.nostrSync.fetchKind0NoRelay'))
+      return
+    }
+    const relays = account.nostr.relays ?? []
+    if (relays.length === 0) {
+      toast.error(t('account.nostrSync.fetchKind0NoRelay'))
+      return
+    }
 
     setLoadingFetchKind0(true)
     try {
-      const relays =
-        (account?.nostr?.relays?.length ?? 0) > 0
-          ? (account?.nostr?.relays ?? [])
-          : []
       const api = new NostrAPI(relays)
       const profile = await api.fetchKind0(derivedNpub)
       if (profile && (profile.displayName || profile.picture)) {
@@ -304,22 +312,23 @@ function NostrKeys() {
               <SSText center>{t('account.nostrSync.deviceKeys')}</SSText>
               <SSVStack gap="xxs" style={styles.keysContainer}>
                 <SSVStack gap="xxs">
-                  {kind0Profile && (kind0Profile.displayName || kind0Profile.picture) && (
-                    <SSVStack gap="xs" style={styles.kind0Profile}>
-                      {kind0Profile.picture && (
-                        <Image
-                          source={{ uri: kind0Profile.picture }}
-                          style={styles.kind0Picture}
-                          resizeMode="cover"
-                        />
-                      )}
-                      {kind0Profile.displayName && (
-                        <SSText center size="lg">
-                          {kind0Profile.displayName}
-                        </SSText>
-                      )}
-                    </SSVStack>
-                  )}
+                  {kind0Profile &&
+                    (kind0Profile.displayName || kind0Profile.picture) && (
+                      <SSVStack gap="xs" style={styles.kind0Profile}>
+                        {kind0Profile.picture && (
+                          <Image
+                            source={{ uri: kind0Profile.picture }}
+                            style={styles.kind0Picture}
+                            resizeMode="cover"
+                          />
+                        )}
+                        {kind0Profile.displayName && (
+                          <SSText center size="lg">
+                            {kind0Profile.displayName}
+                          </SSText>
+                        )}
+                      </SSVStack>
+                    )}
                   <SSText color="muted" center>
                     {t('account.nostrSync.npub')}
                   </SSText>

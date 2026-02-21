@@ -19,6 +19,8 @@ export type NostrDM = {
     created_at: number
     pubkey?: string
   }
+  /** True when message was sent from this device but not yet confirmed from relay */
+  pending?: boolean
 }
 
 export type NostrAccount = {
