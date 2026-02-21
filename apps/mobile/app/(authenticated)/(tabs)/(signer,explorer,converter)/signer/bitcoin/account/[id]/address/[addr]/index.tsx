@@ -23,7 +23,7 @@ import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
-import { extractAccountFingerprint } from '@/utils/account'
+import { getAccountFingerprint } from '@/utils/account'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { formatNumber } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
@@ -244,7 +244,7 @@ function AddressDetails() {
                   [t('address.details.derivation.index'), address.index],
                   [
                     t('address.details.derivation.fingerprint'),
-                    extractAccountFingerprint(account)
+                    getAccountFingerprint(account)
                   ],
                   [t('address.details.derivation.keychain'), address.keychain]
                 ]}

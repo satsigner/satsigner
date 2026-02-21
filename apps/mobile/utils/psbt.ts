@@ -5,7 +5,7 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
-import { extractKeyFingerprint } from '@/utils/account'
+import { getKeyFingerprint } from '@/utils/account'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 
 const bip32 = BIP32Factory(ecc)
@@ -125,7 +125,7 @@ export async function findMatchingAccount(
 
     for (let keyIndex = 0; keyIndex < account.keys.length; keyIndex++) {
       const key = account.keys[keyIndex]
-      const keyFingerprint = await extractKeyFingerprint(key)
+      const keyFingerprint = await getKeyFingerprint(key)
 
       if (!keyFingerprint) continue
 
@@ -913,17 +913,12 @@ function parseWitnessScript(witnessScript: Buffer) {
   return { threshold, totalKeys }
 }
 
-function isValidOpCode(op: any): boolean {
+function isValidOpCode(op: number | Buffer): boolean {
   return typeof op === 'number' && op >= 81 && op <= 96
 }
 
-function countPublicKeysInScript(script: any[]): number {
-  return script.filter(
-    (item) =>
-      item &&
-      typeof item === 'object' &&
-      (Buffer.isBuffer(item) || (item as any).type === 'Buffer')
-  ).length
+function countPublicKeysInScript(script: (number | Buffer)[]): number {
+  return script.filter((item): item is Buffer => Buffer.isBuffer(item)).length
 }
 
 function isValidScriptInfo(scriptInfo: {
