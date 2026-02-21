@@ -5,7 +5,7 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
-import { extractKeyFingerprint } from '@/utils/account'
+import { getKeyFingerprint } from '@/utils/account'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 
 const bip32 = BIP32Factory(ecc)
@@ -125,7 +125,7 @@ export async function findMatchingAccount(
 
     for (let keyIndex = 0; keyIndex < account.keys.length; keyIndex++) {
       const key = account.keys[keyIndex]
-      const keyFingerprint = await extractKeyFingerprint(key)
+      const keyFingerprint = await getKeyFingerprint(key)
 
       if (!keyFingerprint) continue
 

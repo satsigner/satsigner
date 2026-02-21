@@ -12,17 +12,15 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
 import SSNavMenu from '@/components/SSNavMenu'
-import { PIN_KEY } from '@/config/auth'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
-import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useWalletsStore } from '@/store/wallets'
-import { type Account, type Secret } from '@/types/models/Account'
+import type { Account, Key } from '@/types/models/Account'
 import { type PageRoute } from '@/types/navigation/page'
-import { aesDecrypt } from '@/utils/crypto'
+import { decryptAllAccountKeySecrets } from '@/utils/account'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 
 export default function AuthenticatedLayout() {
@@ -82,58 +80,47 @@ export default function AuthenticatedLayout() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadWallets() {
-    if (justUnlocked || skipPin) {
-      const pin = await getItem(PIN_KEY)
-      if (!pin) return
-      try {
-        for (const account of accounts) {
-          const isImportAddress =
-            account.keys[0].creationType === 'importAddress'
-          const existsWallet = !isImportAddress
-            ? !!wallets[account.id]
-            : !!addresses[account.id]
-          if (existsWallet) continue
+    if (!(justUnlocked || skipPin)) return
 
-          const temporaryAccount = JSON.parse(
-            JSON.stringify(account)
-          ) as Account
+    try {
+      for (const account of accounts) {
+        const isImportAddress = account.keys[0].creationType === 'importAddress'
+        const existsWallet = !isImportAddress
+          ? !!wallets[account.id]
+          : !!addresses[account.id]
+        if (existsWallet) continue
 
-          for (const key of temporaryAccount.keys) {
-            const decryptedSecretString = await aesDecrypt(
-              key.secret as string,
-              pin,
-              key.iv
-            )
-            const decryptedSecret = JSON.parse(decryptedSecretString) as Secret
-            key.secret = decryptedSecret
-          }
-
-          const walletData = !isImportAddress
-            ? await getWalletData(temporaryAccount, account.network as Network)
-            : undefined
-
-          if (walletData) addAccountWallet(account.id, walletData.wallet)
-          if (
-            isImportAddress &&
-            typeof temporaryAccount.keys[0].secret === 'object'
-          )
-            addAccountAddress(
-              account.id,
-              parseAddressDescriptorToAddress(
-                temporaryAccount.keys[0].secret.externalDescriptor!
-              )
-            )
-
-          const updatedAccount = !isImportAddress
-            ? await syncAccountWithWallet(account, walletData!.wallet)
-            : await syncAccountWithAddress(account)
-          updateAccount(updatedAccount)
+        const secrets = await decryptAllAccountKeySecrets(account)
+        const tmpAccount: Account = {
+          ...account,
+          keys: account.keys.map((key, index) => {
+            const decryptedKey: Key = { ...key, secret: secrets[index] }
+            return decryptedKey
+          })
         }
-      } catch (error) {
-        toast.error((error as Error).message)
-      } finally {
-        setJustUnlocked(false)
+
+        const walletData = !isImportAddress
+          ? await getWalletData(tmpAccount, account.network as Network)
+          : undefined
+        if (walletData) addAccountWallet(account.id, walletData.wallet)
+
+        if (isImportAddress && typeof tmpAccount.keys[0].secret === 'object')
+          addAccountAddress(
+            account.id,
+            parseAddressDescriptorToAddress(
+              tmpAccount.keys[0].secret.externalDescriptor!
+            )
+          )
+
+        const updatedAccount = !isImportAddress
+          ? await syncAccountWithWallet(account, walletData!.wallet)
+          : await syncAccountWithAddress(account)
+        updateAccount(updatedAccount)
       }
+    } catch (error) {
+      toast.error((error as Error).message)
+    } finally {
+      setJustUnlocked(false)
     }
   }
 

@@ -10,7 +10,7 @@ import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { t } from '@/locales'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
-import { extractKeyFingerprint } from '@/utils/account'
+import { getKeyFingerprint } from '@/utils/account'
 import { parseBitcoinUri } from '@/utils/bip321'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
@@ -124,7 +124,7 @@ async function processBitcoinContent(
               const keyFingerprintToCosignerIndex = new Map<string, number>()
               await Promise.all(
                 accountMatch.account.keys.map(async (key, index) => {
-                  const fp = await extractKeyFingerprint(key)
+                  const fp = await getKeyFingerprint(key)
                   if (fp) keyFingerprintToCosignerIndex.set(fp, index)
                 })
               )
