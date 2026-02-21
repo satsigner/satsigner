@@ -864,14 +864,25 @@ async function parseTransactionDetailsToTransaction(
 
     for (const index in inputs) {
       const input = inputs[index]
-      const script = await input.scriptSig.toBytes()
-      input.scriptSig = script
-      vin.push(input)
+      if (!input?.scriptSig) continue
+      try {
+        const script = await input.scriptSig.toBytes()
+        input.scriptSig = script
+        vin.push(input)
+      } catch {
+        // BDK native toBytes can NPE if scriptSig is invalid; skip this input
+      }
     }
 
     for (const index in outputs) {
       const { value, script: scriptObj } = outputs[index]
-      const script = await scriptObj.toBytes()
+      if (!scriptObj) continue
+      let script: number[] = []
+      try {
+        script = await scriptObj.toBytes()
+      } catch {
+        // BDK native toBytes can NPE if script is invalid; use empty
+      }
       let address = ''
       try {
         const addressObj = await new Address().fromScript(scriptObj, network)
@@ -918,7 +929,14 @@ async function parseLocalUtxoToUtxo(
   const transactionDetails = transactionsDetails.find(
     (transactionDetails) => transactionDetails.txid === transactionId
   )
-  const script = await localUtxo.txout.script.toBytes()
+  let script: number[] = []
+  if (localUtxo?.txout?.script) {
+    try {
+      script = await localUtxo.txout.script.toBytes()
+    } catch {
+      // BDK native toBytes can NPE if script is invalid
+    }
+  }
 
   return {
     txid: transactionId,

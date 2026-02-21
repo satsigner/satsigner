@@ -72,9 +72,16 @@ function SSNostrMessage({
               t('account.nostrSync.devicesGroupChat.youSuffix')}
           </SSText>
         </SSHStack>
-        <SSText size="xs" color="muted">
-          {formattedDate}
-        </SSText>
+        <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+          <SSText size="xs" color="muted">
+            {formattedDate}
+          </SSText>
+          {msg.pending && (
+            <SSText size="xs" color="muted">
+              ({t('account.nostrSync.devicesGroupChat.sending')})
+            </SSText>
+          )}
+        </SSHStack>
       </SSHStack>
       {hasSignFlow && transactionData ? (
         <SSTransactionDetails

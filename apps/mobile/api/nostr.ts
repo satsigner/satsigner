@@ -6,12 +6,22 @@ import { toast } from 'sonner-native'
 
 import type {
   NostrKeys,
-  NostrMessage,
-  NostrKind0Profile
+  NostrKind0Profile,
+  NostrMessage
 } from '@/types/models/Nostr'
 import { randomKey } from '@/utils/crypto'
 
 const MAX_PROCESSED_RAW_IDS = 5000
+const MAX_QUEUE_SIZE = 300
+const PROCESSING_INTERVAL_MS = 350
+/** Request enough kind 1059 events to discover all device announcements (members). Relays often default to ~100. */
+export const PROTOCOL_SUBSCRIPTION_LIMIT = 1500
+
+function nostrSyncLog(...args: unknown[]) {
+  if (__DEV__) {
+    console.log('[NostrSync]', ...args)
+  }
+}
 
 export class NostrAPI {
   private ndk: NDK | null = null
@@ -21,7 +31,6 @@ export class NostrAPI {
   private eventQueue: NostrMessage[] = []
   private isProcessingQueue = false
   private readonly BATCH_SIZE = 10
-  private readonly PROCESSING_INTERVAL = 200 // ms
   private onLoadingChange?: (isLoading: boolean) => void
 
   constructor(private relays: string[]) {
@@ -172,10 +181,15 @@ export class NostrAPI {
 
     this.isProcessingQueue = true
     const batch = this.eventQueue.splice(0, this.BATCH_SIZE)
-    const toProcess = batch.filter(
-      (m) => !this.processedMessageIds.has(m.id)
-    )
+    const toProcess = batch.filter((m) => !this.processedMessageIds.has(m.id))
     toProcess.forEach((m) => this.processedMessageIds.add(m.id))
+
+    nostrSyncLog(
+      'processQueue batch',
+      toProcess.length,
+      'remaining',
+      this.eventQueue.length
+    )
 
     if (toProcess.length > 0 && this._callback) {
       try {
@@ -183,20 +197,21 @@ export class NostrAPI {
         if (result instanceof Promise) {
           await result
         }
-      } catch {
+      } catch (err) {
+        nostrSyncLog('processQueue callback error', err)
         toast.error('Failed to process message')
       }
     }
 
     this.isProcessingQueue = false
     if (this.eventQueue.length > 0) {
-      setTimeout(() => this.processQueue(), this.PROCESSING_INTERVAL)
+      setTimeout(() => this.processQueue(), PROCESSING_INTERVAL_MS)
+    } else {
+      nostrSyncLog('processQueue idle')
     }
   }
 
-  private _callback?: (
-    messages: NostrMessage[]
-  ) => void | Promise<void>
+  private _callback?: (messages: NostrMessage[]) => void | Promise<void>
 
   async subscribeToKind1059(
     recipientNsec: string,
@@ -206,64 +221,115 @@ export class NostrAPI {
     since?: number,
     onEOSE?: (nsec: string) => void
   ): Promise<void> {
+    nostrSyncLog('subscribeToKind1059 start', { limit, since: !!since })
     await this.connect()
     if (!this.ndk) throw new Error('Failed to connect to relays')
 
+    let recipientSecretNostrKey: Uint8Array | string
+    let recipientPubKeyHex: string
+    try {
+      const decodedNsec = nip19.decode(recipientNsec)
+      const decodedNpub = nip19.decode(recipientNpub)
+      if (!decodedNsec?.data || !decodedNpub?.data) {
+        nostrSyncLog('subscribeToKind1059 skip: invalid decode')
+        return
+      }
+      recipientSecretNostrKey = decodedNsec.data as Uint8Array
+      recipientPubKeyHex =
+        typeof decodedNpub.data === 'string'
+          ? decodedNpub.data
+          : Buffer.from(decodedNpub.data as Uint8Array).toString('hex')
+      // NDK requires non-empty filter; avoid "No filters to merge" by ensuring valid hex pubkey (64 chars)
+      if (
+        !recipientPubKeyHex ||
+        typeof recipientPubKeyHex !== 'string' ||
+        recipientPubKeyHex.length !== 64 ||
+        !/^[0-9a-fA-F]+$/.test(recipientPubKeyHex)
+      ) {
+        nostrSyncLog('subscribeToKind1059 skip: invalid pubkey hex')
+        return
+      }
+    } catch (e) {
+      nostrSyncLog('subscribeToKind1059 decode error', e)
+      return
+    }
+
+    nostrSyncLog('subscribeToKind1059 subscribing')
     this.setLoading(true)
     this._callback = _callback
 
-    const { data: recipientSecretNostrKey } = nip19.decode(recipientNsec)
-    const { data: recipientPubKey } = nip19.decode(recipientNpub)
-
     const TWO_DAYS = 48 * 60 * 60
-    const sinceTimestamp =
-      since && since > 0 ? since - TWO_DAYS : undefined
+    const sinceTimestamp = since && since > 0 ? since - TWO_DAYS : undefined
 
     const subscriptionQuery = {
       kinds: [1059 as NDKKind],
-      //'#p': [recipientPubKeyFromNsec, recipientPubKey.toString()],
-      '#p': [recipientPubKey.toString()],
+      '#p': [recipientPubKeyHex],
       ...(limit && { limit }),
       ...(sinceTimestamp !== undefined && { since: sinceTimestamp })
     }
 
-    const subscription = this.ndk?.subscribe(subscriptionQuery)
+    let subscription: NDKSubscription | undefined
+    try {
+      subscription = this.ndk?.subscribe(subscriptionQuery) as
+        | NDKSubscription
+        | undefined
+    } catch {
+      this.setLoading(false)
+      return
+    }
     if (subscription) {
       this.activeSubscriptions.add(subscription)
     }
 
     subscription?.on('event', async (event) => {
-      const rawEvent = await event.toNostrEvent()
-      const rawId = (rawEvent as { id?: string }).id
+      try {
+        const rawEvent = await event.toNostrEvent()
+        const rawId = (rawEvent as { id?: string }).id
 
-      if (rawId && this.processedRawEventIds.has(rawId)) return
+        if (rawId && this.processedRawEventIds.has(rawId)) return
 
-      const unwrappedEvent = nip59.unwrapEvent(
-        rawEvent as unknown as Event,
-        recipientSecretNostrKey as Uint8Array
-      )
-
-      if (rawId) {
-        if (this.processedRawEventIds.size >= MAX_PROCESSED_RAW_IDS) {
-          this.processedRawEventIds.clear()
-        }
-        this.processedRawEventIds.add(rawId)
-      }
-
-      if (!this.processedMessageIds.has(unwrappedEvent.id)) {
-        const message = {
-          id: unwrappedEvent.id,
-          content: unwrappedEvent,
-          created_at: unwrappedEvent.created_at,
-          pubkey: event.pubkey
+        let unwrappedEvent: { id: string; content: string; pubkey: string; created_at?: number }
+        try {
+          unwrappedEvent = nip59.unwrapEvent(
+            rawEvent as unknown as Event,
+            recipientSecretNostrKey as Uint8Array
+          )
+        } catch (err) {
+          nostrSyncLog('unwrapEvent failed', err)
+          return
         }
 
-        this.eventQueue.push(message)
-        this.processQueue()
+        if (rawId) {
+          if (this.processedRawEventIds.size >= MAX_PROCESSED_RAW_IDS) {
+            this.processedRawEventIds.clear()
+          }
+          this.processedRawEventIds.add(rawId)
+        }
+
+        if (!this.processedMessageIds.has(unwrappedEvent.id)) {
+          if (this.eventQueue.length >= MAX_QUEUE_SIZE) {
+            nostrSyncLog(
+              'event queue full, dropping oldest',
+              this.eventQueue.length
+            )
+            this.eventQueue.shift()
+          }
+          const message = {
+            id: unwrappedEvent.id,
+            content: unwrappedEvent,
+            created_at: unwrappedEvent.created_at ?? 0,
+            pubkey: event.pubkey
+          }
+          this.eventQueue.push(message)
+          this.processQueue()
+        }
+      } catch (err) {
+        nostrSyncLog('subscription event handler error', err)
       }
     })
 
     subscription?.on('eose', () => {
+      nostrSyncLog('eose received')
       onEOSE?.(recipientNsec)
       this.setLoading(false)
     })
@@ -271,6 +337,13 @@ export class NostrAPI {
     subscription?.on('close', () => {
       this.activeSubscriptions.delete(subscription)
     })
+  }
+
+  async flushQueue(): Promise<void> {
+    while (this.eventQueue.length > 0 && this._callback) {
+      await this.processQueue()
+      await new Promise((r) => setTimeout(r, 50))
+    }
   }
 
   async closeAllSubscriptions() {

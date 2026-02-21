@@ -54,14 +54,25 @@ export default function DeviceAliasPage() {
   const [loadingFetchKind0, setLoadingFetchKind0] = useState(false)
 
   async function fetchKind0Profile() {
-    if (!npub || !accountId || !account?.nostr || loadingFetchKind0) return
+    if (loadingFetchKind0) return
+    if (!npub || !accountId || !account?.nostr) {
+      toast.error(t('account.nostrSync.fetchKind0NoRelay'))
+      return
+    }
+
+    // Show feedback when sync off or no relays
+    if (!account.nostr.autoSync) {
+      toast.error(t('account.nostrSync.fetchKind0NoRelay'))
+      return
+    }
+    const relays = account.nostr.relays ?? []
+    if (relays.length === 0) {
+      toast.error(t('account.nostrSync.fetchKind0NoRelay'))
+      return
+    }
 
     setLoadingFetchKind0(true)
     try {
-      const relays =
-        (account.nostr.relays?.length ?? 0) > 0
-          ? account.nostr.relays ?? []
-          : []
       const api = new NostrAPI(relays)
       const profile = await api.fetchKind0(npub)
       if (profile && (profile.displayName || profile.picture)) {

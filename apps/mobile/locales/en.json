@@ -149,6 +149,7 @@
     "nostrSync.devicesGroupChat.newMessages": "New messages",
     "nostrSync.devicesGroupChat.noMessages": "No messages yet",
     "nostrSync.devicesGroupChat.sendButton": "Send",
+    "nostrSync.devicesGroupChat.sending": "Sending…",
     "nostrSync.devicesGroupChat.syncOff": " (Sync Off)",
     "nostrSync.devicesGroupChat.syncOn": " (Sync On)",
     "nostrSync.devicesGroupChat.title": "Devices Group Chat",

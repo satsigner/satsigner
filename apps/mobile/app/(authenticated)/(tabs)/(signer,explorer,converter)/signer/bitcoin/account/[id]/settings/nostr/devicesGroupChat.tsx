@@ -1,6 +1,11 @@
-import { Redirect, Stack, useLocalSearchParams } from 'expo-router'
+import {
+  Redirect,
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams
+} from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -11,6 +16,7 @@ import SSNostrMessage from '@/components/SSNostrMessage'
 import SSText from '@/components/SSText'
 import SSTransactionDetails from '@/components/SSTransactionDetails'
 import { useNostrPublish } from '@/hooks/useNostrPublish'
+import useNostrSync from '@/hooks/useNostrSync'
 import { useNostrSignFlow } from '@/hooks/useNostrSignFlow'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -19,6 +25,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
+import { type NostrDM } from '@/types/models/Nostr'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { parseNostrTransaction } from '@/utils/nostr'
 import { type TransactionData } from '@/utils/psbt'
@@ -64,12 +71,14 @@ export default function DevicesGroupChat() {
   const flatListRef = useRef<FlatList>(null)
   const formattedAuthorsRef = useRef(new Set<string>())
   const { sendDM, sendPSBT } = useNostrPublish()
+  const { subscribe, getActiveSubscriptions } = useNostrSync()
   const { handleGoToSignFlow } = useNostrSignFlow()
 
-  const [accounts, account] = useAccountsStore(
+  const [accounts, account, updateAccountNostr] = useAccountsStore(
     useShallow((state) => [
       state.accounts,
-      state.accounts.find((acc) => acc.id === accountId)
+      state.accounts.find((acc) => acc.id === accountId),
+      state.updateAccountNostr
     ])
   )
 
@@ -118,6 +127,28 @@ export default function DevicesGroupChat() {
     [members]
   )
 
+  // Keep a data-exchange subscription active while chat is open so we receive DMs from other clients
+  useFocusEffect(
+    useCallback(() => {
+      if (!accountId) return
+      const acc = useAccountsStore
+        .getState()
+        .accounts.find((a) => a.id === accountId)
+      if (
+        !acc?.nostr?.autoSync ||
+        !acc.nostr.relays?.length ||
+        !acc.nostr.deviceNsec ||
+        !acc.nostr.deviceNpub
+      )
+        return
+      if (getActiveSubscriptions().size === 0) {
+        subscribe(acc).catch(() => {
+          toast.error('Failed to setup sync')
+        })
+      }
+    }, [accountId, subscribe, getActiveSubscriptions])
+  )
+
   async function handleSendMessage() {
     if (!messageInput.trim()) {
       toast.error(t('common.error.messageCannotBeEmpty'))
@@ -138,12 +169,69 @@ export default function DevicesGroupChat() {
       return
     }
 
-    setIsLoading(true)
+    const trimmed = messageInput.trim()
+    let pendingId: string | null = null
     try {
-      await sendDM(account, messageInput.trim())
+      const decoded = nip19.decode(account.nostr.deviceNpub)
+      const devicePubkeyHex =
+        decoded?.type === 'npub' && typeof decoded.data === 'string'
+          ? decoded.data
+          : null
+      if (!devicePubkeyHex) {
+        toast.error(t('common.error.missingRequiredNostrConfig'))
+        return
+      }
+      const created_at = Math.floor(Date.now() / 1000)
+      pendingId = `pending-${Date.now()}`
+      const optimisticMessage: NostrDM = {
+        id: pendingId,
+        author: devicePubkeyHex,
+        created_at,
+        description: trimmed,
+        event: '',
+        label: 1,
+        content: {
+          description: trimmed,
+          created_at,
+          pubkey: devicePubkeyHex
+        },
+        pending: true
+      }
+      updateAccountNostr(accountId!, {
+        dms: [...(account.nostr?.dms ?? []), optimisticMessage].sort(
+          (a, b) => a.created_at - b.created_at
+        )
+      })
       setMessageInput('')
     } catch {
       toast.error(t('common.error.failedToSendMessage'))
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      await sendDM(account, trimmed)
+      // Mark as sent: many relays don't echo events back to the sender, so we
+      // clear pending when publish succeeds instead of waiting for the echo.
+      if (pendingId && accountId) {
+        const current = useAccountsStore
+          .getState()
+          .accounts.find((a) => a.id === accountId)
+        const dms = (current?.nostr?.dms ?? []).map((m) =>
+          m.id === pendingId ? { ...m, pending: false } : m
+        )
+        useAccountsStore.getState().updateAccountNostr(accountId, { dms })
+      }
+    } catch {
+      toast.error(t('common.error.failedToSendMessage'))
+      if (pendingId && accountId) {
+        const current = useAccountsStore
+          .getState()
+          .accounts.find((a) => a.id === accountId)
+        const dms = (current?.nostr?.dms ?? []).filter((m) => m.id !== pendingId)
+        useAccountsStore.getState().updateAccountNostr(accountId, { dms })
+      }
+      setMessageInput(trimmed)
     } finally {
       setIsLoading(false)
     }
