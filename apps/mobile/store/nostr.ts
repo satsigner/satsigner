@@ -14,6 +14,23 @@ type Member = {
 // Object-based storage for O(1) lookups (instead of arrays which require O(n) includes())
 type ProcessedIdsMap = Record<string, true>
 
+// Sync status for tracking per-account sync state
+type SyncStatus = 'idle' | 'connecting' | 'syncing' | 'error'
+
+interface NostrSyncStatus {
+  status: SyncStatus
+  lastError?: string
+  lastSyncAt?: number
+  messagesReceived: number
+  messagesProcessed: number
+}
+
+const DEFAULT_SYNC_STATUS: NostrSyncStatus = {
+  status: 'idle',
+  messagesReceived: 0,
+  messagesProcessed: 0
+}
+
 // Max number of processed events/messages to keep per account (prevents unbounded memory growth)
 const MAX_PROCESSED_ITEMS = 2000
 
@@ -54,6 +71,9 @@ type NostrState = {
   trustedDevices: {
     [accountId: string]: string[]
   }
+  syncStatus: {
+    [accountId: string]: NostrSyncStatus
+  }
   activeSubscriptions: Set<NostrAPI>
   syncingAccounts: {
     [accountId: string]: boolean
@@ -82,6 +102,10 @@ type NostrAction = {
   addTrustedDevice: (accountId: string, deviceNpub: string) => void
   removeTrustedDevice: (accountId: string, deviceNpub: string) => void
   getTrustedDevices: (accountId: string) => string[]
+  setSyncStatus: (accountId: string, status: Partial<NostrSyncStatus>) => void
+  getSyncStatus: (accountId: string) => NostrSyncStatus
+  incrementMessagesReceived: (accountId: string, count?: number) => void
+  incrementMessagesProcessed: (accountId: string, count?: number) => void
   addSubscription: (subscription: NostrAPI) => void
   clearSubscriptions: () => void
   getActiveSubscriptions: () => Set<NostrAPI>
@@ -115,6 +139,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
       lastProtocolEOSE: {},
       lastDataExchangeEOSE: {},
       trustedDevices: {},
+      syncStatus: {},
       transactionToShare: null,
       activeSubscriptions: new Set<NostrAPI>(),
       syncingAccounts: {},
@@ -205,6 +230,10 @@ const useNostrStore = create<NostrState & NostrAction>()(
           trustedDevices: {
             ...state.trustedDevices,
             [accountId]: []
+          },
+          syncStatus: {
+            ...state.syncStatus,
+            [accountId]: DEFAULT_SYNC_STATUS
           }
         }))
       },
@@ -313,6 +342,48 @@ const useNostrStore = create<NostrState & NostrAction>()(
       getTrustedDevices: (accountId) => {
         return get().trustedDevices[accountId] || []
       },
+      setSyncStatus: (accountId, status) => {
+        set((state) => {
+          const currentStatus = state.syncStatus[accountId] || DEFAULT_SYNC_STATUS
+          return {
+            syncStatus: {
+              ...state.syncStatus,
+              [accountId]: { ...currentStatus, ...status }
+            }
+          }
+        })
+      },
+      getSyncStatus: (accountId) => {
+        return get().syncStatus[accountId] || DEFAULT_SYNC_STATUS
+      },
+      incrementMessagesReceived: (accountId, count = 1) => {
+        set((state) => {
+          const currentStatus = state.syncStatus[accountId] || DEFAULT_SYNC_STATUS
+          return {
+            syncStatus: {
+              ...state.syncStatus,
+              [accountId]: {
+                ...currentStatus,
+                messagesReceived: currentStatus.messagesReceived + count
+              }
+            }
+          }
+        })
+      },
+      incrementMessagesProcessed: (accountId, count = 1) => {
+        set((state) => {
+          const currentStatus = state.syncStatus[accountId] || DEFAULT_SYNC_STATUS
+          return {
+            syncStatus: {
+              ...state.syncStatus,
+              [accountId]: {
+                ...currentStatus,
+                messagesProcessed: currentStatus.messagesProcessed + count
+              }
+            }
+          }
+        })
+      },
       addSubscription: (subscription: NostrAPI) => {
         set((state) => {
           const newSubscriptions = new Set(state.activeSubscriptions)
@@ -350,7 +421,8 @@ const useNostrStore = create<NostrState & NostrAction>()(
         processedEvents: state.processedEvents,
         lastProtocolEOSE: state.lastProtocolEOSE,
         lastDataExchangeEOSE: state.lastDataExchangeEOSE,
-        trustedDevices: state.trustedDevices
+        trustedDevices: state.trustedDevices,
+        syncStatus: state.syncStatus
         // Excluded: activeSubscriptions (Set), syncingAccounts (runtime), transactionToShare (runtime)
       }),
       merge: (persistedState, currentState) => {
@@ -358,6 +430,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
           // Allow for legacy array format during migration
           processedEvents?: Record<string, ProcessedIdsMap | string[]>
           processedMessageIds?: Record<string, ProcessedIdsMap | string[]>
+          syncStatus?: Record<string, NostrSyncStatus>
         }
 
         // Migrate processedEvents from array to object format
@@ -394,11 +467,25 @@ const useNostrStore = create<NostrState & NostrAction>()(
           }
         }
 
+        // Reset sync status to idle on app restart (connections are not persisted)
+        const resetSyncStatus: Record<string, NostrSyncStatus> = {}
+        if (persisted.syncStatus) {
+          for (const accountId of Object.keys(persisted.syncStatus)) {
+            resetSyncStatus[accountId] = {
+              ...DEFAULT_SYNC_STATUS,
+              // Preserve message counts for analytics
+              messagesReceived: persisted.syncStatus[accountId]?.messagesReceived || 0,
+              messagesProcessed: persisted.syncStatus[accountId]?.messagesProcessed || 0
+            }
+          }
+        }
+
         return {
           ...currentState,
           ...persisted,
           processedEvents: migratedProcessedEvents,
           processedMessageIds: migratedProcessedMessageIds,
+          syncStatus: resetSyncStatus,
           // Always ensure these are fresh runtime values
           activeSubscriptions: new Set<NostrAPI>(),
           syncingAccounts: {},
@@ -410,4 +497,4 @@ const useNostrStore = create<NostrState & NostrAction>()(
 )
 
 export { useNostrStore }
-export type { Message }
+export type { Message, NostrSyncStatus, SyncStatus }

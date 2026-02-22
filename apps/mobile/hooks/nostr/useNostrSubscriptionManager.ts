@@ -40,7 +40,9 @@ function useNostrSubscriptionManager() {
 
   const updateLastEOSETimestamp = useCallback(
     (account: Account, nsec: string): void => {
-      const timestamp = Math.floor(Date.now() / 1000) - 3600 // Subtract 1 hour
+      // NIP-17 compliance: The 2-day time uncertainty is already handled in api/nostr.ts
+      // when constructing the subscription filter. We store the current timestamp here.
+      const timestamp = Math.floor(Date.now() / 1000)
       if (nsec === account.nostr.commonNsec) {
         setLastProtocolEOSE(account.id, timestamp)
       } else if (nsec === account.nostr.deviceNsec) {

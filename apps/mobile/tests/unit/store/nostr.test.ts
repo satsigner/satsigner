@@ -38,6 +38,7 @@ describe('nostr store', () => {
       lastProtocolEOSE: {},
       lastDataExchangeEOSE: {},
       trustedDevices: {},
+      syncStatus: {},
       activeSubscriptions: new Set(),
       syncingAccounts: {},
       transactionToShare: null
@@ -319,6 +320,91 @@ describe('nostr store', () => {
     })
   })
 
+  describe('sync status tracking', () => {
+    it('tracks status per account', () => {
+      const { setSyncStatus, getSyncStatus } = useNostrStore.getState()
+
+      setSyncStatus(accountIds.primary, { status: 'syncing' })
+      setSyncStatus(accountIds.secondary, {
+        status: 'error',
+        lastError: 'Network failed'
+      })
+
+      expect(getSyncStatus(accountIds.primary).status).toBe('syncing')
+      expect(getSyncStatus(accountIds.secondary).status).toBe('error')
+      expect(getSyncStatus(accountIds.secondary).lastError).toBe('Network failed')
+    })
+
+    it('tracks message counts', () => {
+      const { setSyncStatus, getSyncStatus, incrementMessagesReceived, incrementMessagesProcessed } =
+        useNostrStore.getState()
+
+      setSyncStatus(accountIds.primary, {
+        messagesReceived: 10,
+        messagesProcessed: 8
+      })
+
+      const status = getSyncStatus(accountIds.primary)
+      expect(status.messagesReceived).toBe(10)
+      expect(status.messagesProcessed).toBe(8)
+    })
+
+    it('increments message counts', () => {
+      const { incrementMessagesReceived, incrementMessagesProcessed, getSyncStatus } =
+        useNostrStore.getState()
+
+      incrementMessagesReceived(accountIds.primary, 5)
+      incrementMessagesProcessed(accountIds.primary, 3)
+
+      const status = getSyncStatus(accountIds.primary)
+      expect(status.messagesReceived).toBe(5)
+      expect(status.messagesProcessed).toBe(3)
+
+      incrementMessagesReceived(accountIds.primary, 2)
+      incrementMessagesProcessed(accountIds.primary, 2)
+
+      const updated = getSyncStatus(accountIds.primary)
+      expect(updated.messagesReceived).toBe(7)
+      expect(updated.messagesProcessed).toBe(5)
+    })
+
+    it('returns default status for unknown account', () => {
+      const { getSyncStatus } = useNostrStore.getState()
+
+      const status = getSyncStatus(accountIds.nonexistent)
+
+      expect(status.status).toBe('idle')
+      expect(status.messagesReceived).toBe(0)
+      expect(status.messagesProcessed).toBe(0)
+    })
+
+    it('tracks lastSyncAt timestamp', () => {
+      const { setSyncStatus, getSyncStatus } = useNostrStore.getState()
+      const now = Date.now()
+
+      setSyncStatus(accountIds.primary, { status: 'syncing', lastSyncAt: now })
+
+      expect(getSyncStatus(accountIds.primary).lastSyncAt).toBe(now)
+    })
+
+    it('preserves existing fields when updating status', () => {
+      const { setSyncStatus, getSyncStatus } = useNostrStore.getState()
+
+      setSyncStatus(accountIds.primary, {
+        status: 'syncing',
+        messagesReceived: 10
+      })
+
+      setSyncStatus(accountIds.primary, {
+        status: 'idle'
+      })
+
+      const status = getSyncStatus(accountIds.primary)
+      expect(status.status).toBe('idle')
+      expect(status.messagesReceived).toBe(10) // Preserved
+    })
+  })
+
   describe('clearNostrState', () => {
     it('resets all state for account', async () => {
       const store = useNostrStore.getState()
@@ -330,6 +416,7 @@ describe('nostr store', () => {
       store.setLastProtocolEOSE(accountIds.primary, timestamps.recent)
       store.setLastDataExchangeEOSE(accountIds.primary, timestamps.recent)
       store.addTrustedDevice(accountIds.primary, nostrKeys.bob.npub)
+      store.setSyncStatus(accountIds.primary, { status: 'syncing', messagesReceived: 100 })
 
       // Clear state
       store.clearNostrState(accountIds.primary)
@@ -341,6 +428,8 @@ describe('nostr store', () => {
       expect(store.getLastProtocolEOSE(accountIds.primary)).toBe(0)
       expect(store.getLastDataExchangeEOSE(accountIds.primary)).toBe(0)
       expect(store.getTrustedDevices(accountIds.primary)).toEqual([])
+      expect(store.getSyncStatus(accountIds.primary).status).toBe('idle')
+      expect(store.getSyncStatus(accountIds.primary).messagesReceived).toBe(0)
     })
 
     it('does not affect other accounts', async () => {

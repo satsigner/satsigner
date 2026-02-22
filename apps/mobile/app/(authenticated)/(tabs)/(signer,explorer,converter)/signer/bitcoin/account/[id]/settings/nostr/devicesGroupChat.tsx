@@ -16,8 +16,8 @@ import SSNostrMessage from '@/components/SSNostrMessage'
 import SSText from '@/components/SSText'
 import SSTransactionDetails from '@/components/SSTransactionDetails'
 import { useNostrPublish } from '@/hooks/useNostrPublish'
-import useNostrSync from '@/hooks/useNostrSync'
 import { useNostrSignFlow } from '@/hooks/useNostrSignFlow'
+import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -71,7 +71,7 @@ export default function DevicesGroupChat() {
   const flatListRef = useRef<FlatList>(null)
   const formattedAuthorsRef = useRef(new Set<string>())
   const { sendDM, sendPSBT } = useNostrPublish()
-  const { subscribe, getActiveSubscriptions } = useNostrSync()
+  const { startSync, stopSync, hasActiveSubscription } = useNostrSync()
   const { handleGoToSignFlow } = useNostrSignFlow()
 
   const [accounts, account, updateAccountNostr] = useAccountsStore(
@@ -128,25 +128,34 @@ export default function DevicesGroupChat() {
   )
 
   // Keep a data-exchange subscription active while chat is open so we receive DMs from other clients
+  // Clean up subscription when screen loses focus
   useFocusEffect(
     useCallback(() => {
       if (!accountId) return
+
       const acc = useAccountsStore
         .getState()
         .accounts.find((a) => a.id === accountId)
+
       if (
         !acc?.nostr?.autoSync ||
         !acc.nostr.relays?.length ||
         !acc.nostr.deviceNsec ||
         !acc.nostr.deviceNpub
-      )
+      ) {
         return
-      if (getActiveSubscriptions().size === 0) {
-        subscribe(acc).catch(() => {
-          toast.error('Failed to setup sync')
-        })
       }
-    }, [accountId, subscribe, getActiveSubscriptions])
+
+      // Start sync when screen gains focus (fire-and-forget)
+      if (!hasActiveSubscription(accountId)) {
+        startSync(acc)
+      }
+
+      // Stop sync when screen loses focus
+      return () => {
+        stopSync(accountId)
+      }
+    }, [accountId, startSync, stopSync, hasActiveSubscription])
   )
 
   async function handleSendMessage() {

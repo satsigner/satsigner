@@ -5,8 +5,7 @@ import {
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, useGlobalSearchParams } from 'expo-router'
 import Drawer from 'expo-router/drawer'
-import { useEffect, useRef } from 'react'
-import { AppState, type AppStateStatus } from 'react-native'
+import { useEffect } from 'react'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -14,7 +13,6 @@ import { useShallow } from 'zustand/react/shallow'
 import { getWalletData } from '@/api/bdk'
 import SSNavMenu from '@/components/SSNavMenu'
 import { PIN_KEY } from '@/config/auth'
-import useNostrSync from '@/hooks/useNostrSync'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import { getItem } from '@/storage/encrypted'
@@ -67,60 +65,13 @@ export default function AuthenticatedLayout() {
   ])
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
-  const { subscribe, getActiveSubscriptions } = useNostrSync()
 
   const routeName = getFocusedRouteNameFromRoute(useRoute()) || ''
-  const appState = useRef(AppState.currentState)
 
-  // When autoSync is ON for any account, keep a subscription active for new messages and devices
-  // Also handles app lifecycle (foreground/background) and periodic health checks
-  // Skip if app is locked to avoid blocking the PIN screen
-  const isLocked = requiresAuth && lockTriggered && !skipPin
-  useEffect(() => {
-    // Don't start subscriptions while app is locked
-    if (isLocked) return
-
-    const checkSubscriptions = () => {
-      if (getActiveSubscriptions().size > 0) return
-
-      const accountWithSync = accounts.find(
-        (acc) =>
-          acc.nostr?.autoSync &&
-          acc.nostr?.relays?.length &&
-          acc.nostr?.deviceNsec &&
-          acc.nostr?.deviceNpub
-      )
-      if (accountWithSync) {
-        subscribe(accountWithSync).catch(() => {})
-      }
-    }
-
-    // Initial check
-    checkSubscriptions()
-
-    // Periodic health check every 30 seconds
-    const interval = setInterval(checkSubscriptions, 30000)
-
-    // App state listener for foreground/background transitions
-    const subscription = AppState.addEventListener(
-      'change',
-      (nextState: AppStateStatus) => {
-        if (
-          nextState === 'active' &&
-          appState.current.match(/inactive|background/)
-        ) {
-          // App returning to foreground - check subscription health
-          checkSubscriptions()
-        }
-        appState.current = nextState
-      }
-    )
-
-    return () => {
-      clearInterval(interval)
-      subscription.remove()
-    }
-  }, [accounts, subscribe, getActiveSubscriptions, isLocked])
+  // Nostr subscriptions are now managed by:
+  // 1. NostrSyncService singleton with automatic retry and lifecycle management
+  // 2. Screen-level useFocusEffect hooks (e.g., devicesGroupChat)
+  // This removes the global polling and app state management from the layout
 
   useEffect(() => {
     if (lockTriggered && skipPin) {
