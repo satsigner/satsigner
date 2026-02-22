@@ -20,7 +20,11 @@ const labelsHandler: MessageHandler = {
       .importLabels(account.id, labels)
 
     if (labelsAdded > 0) {
-      toast.success(`Imported ${labelsAdded} labels`)
+      toast.success(
+        labelsAdded === 1
+          ? `Imported ${labelsAdded} label`
+          : `Imported ${labelsAdded} labels`
+      )
     }
   }
 }

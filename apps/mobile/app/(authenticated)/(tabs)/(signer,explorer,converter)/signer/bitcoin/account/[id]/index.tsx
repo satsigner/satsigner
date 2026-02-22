@@ -846,7 +846,7 @@ export default function AccountView() {
     )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
-  const { nostrSyncSubscriptions } = useNostrSync()
+  const { fetchOnce } = useNostrSync()
 
   const [refreshing, setRefreshing] = useState(false)
   const [expand, setExpand] = useState(false)
@@ -1003,10 +1003,11 @@ export default function AccountView() {
     }
   }
 
-  async function refreshAccountLabels() {
+  function refreshAccountLabels() {
     if (!account) return
-    if (account.nostr.autoSync) {
-      await nostrSyncSubscriptions(account)
+    // Fire-and-forget - don't block refresh completion for Nostr sync
+    if (account.nostr?.autoSync) {
+      fetchOnce(account)
     }
   }
 
@@ -1015,7 +1016,8 @@ export default function AccountView() {
     await fetchPrices(mempoolUrl)
     await refreshBlockchainHeight()
     await refreshAccount()
-    await refreshAccountLabels()
+    // Fire-and-forget - don't block refresh completion for Nostr sync
+    refreshAccountLabels()
     setRefreshing(false)
   }
 

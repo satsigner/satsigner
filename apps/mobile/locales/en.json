@@ -198,6 +198,7 @@
     "nostrSync.setKeys": "Manage NOSTR keys",
     "nostrSync.shareInChat": "Share in Chat",
     "nostrSync.shareTransactionTitle": "Share Transaction",
+    "nostrSync.shareWithGroup": "Share with Nostr group",
     "nostrSync.success": "Labels sent to relays",
     "nostrSync.sync": "Nostr Sync",
     "nostrSync.syncNow": "Sync now",
