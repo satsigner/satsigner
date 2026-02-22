@@ -68,6 +68,11 @@ export default function AuthenticatedLayout() {
 
   const routeName = getFocusedRouteNameFromRoute(useRoute()) || ''
 
+  // Nostr subscriptions are now managed by:
+  // 1. NostrSyncService singleton with automatic retry and lifecycle management
+  // 2. Screen-level useFocusEffect hooks (e.g., devicesGroupChat)
+  // This removes the global polling and app state management from the layout
+
   useEffect(() => {
     if (lockTriggered && skipPin) {
       setLockTriggered(false)
@@ -108,9 +113,13 @@ export default function AuthenticatedLayout() {
             key.secret = decryptedSecret
           }
 
-          const walletData = !isImportAddress
-            ? await getWalletData(temporaryAccount, account.network as Network)
-            : undefined
+          let walletData
+          if (!isImportAddress) {
+            walletData = await getWalletData(
+              temporaryAccount,
+              account.network as Network
+            )
+          }
 
           if (walletData) addAccountWallet(account.id, walletData.wallet)
           if (
@@ -124,9 +133,17 @@ export default function AuthenticatedLayout() {
               )
             )
 
-          const updatedAccount = !isImportAddress
-            ? await syncAccountWithWallet(account, walletData!.wallet)
-            : await syncAccountWithAddress(account)
+          let updatedAccount
+          if (!isImportAddress) {
+            if (!walletData) continue
+            updatedAccount = await syncAccountWithWallet(
+              account,
+              walletData.wallet
+            )
+          } else {
+            updatedAccount = await syncAccountWithAddress(account)
+          }
+
           updateAccount(updatedAccount)
         }
       } catch (error) {

@@ -19,6 +19,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useNostrStore } from '@/store/nostr'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
@@ -56,6 +57,9 @@ export default function SignTransaction() {
   )
   const account = useAccountsStore(
     useShallow((state) => state.accounts.find((account) => account.id === id))
+  )
+  const setTransactionToShare = useNostrStore(
+    (state) => state.setTransactionToShare
   )
   const wallet = useGetAccountWallet(id!)
   const [selectedNetwork, configs] = useBlockchainStore(
@@ -192,6 +196,25 @@ export default function SignTransaction() {
     } finally {
       setBroadcasting(false)
     }
+  }
+
+  function handleShareWithNostrGroup() {
+    if (!account?.nostr?.autoSync) {
+      toast.error(t('account.nostrSync.autoSyncMustBeEnabled'))
+      return
+    }
+    const txString = psbt?.base64 ?? signedTx ?? ''
+    if (!txString) {
+      toast.error(t('account.nostrSync.transactionDataNotAvailable'))
+      return
+    }
+    setTransactionToShare({
+      transaction: txString,
+      transactionData: { combinedPsbt: txString }
+    })
+    router.push({
+      pathname: `/signer/bitcoin/account/${id}/settings/nostr/devicesGroupChat`
+    })
   }
 
   useEffect(() => {
@@ -333,6 +356,14 @@ export default function SignTransaction() {
                 handleBroadcastTransaction()
               }}
             />
+            {signed && account?.nostr?.autoSync && (psbt?.base64 ?? signedTx) && (
+              <SSButton
+                variant="ghost"
+                label={t('account.nostrSync.shareWithGroup')}
+                disabled={broadcasting}
+                onPress={handleShareWithNostrGroup}
+              />
+            )}
           </SSVStack>
         </ScrollView>
       </SSMainLayout>

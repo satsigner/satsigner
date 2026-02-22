@@ -642,7 +642,7 @@ function useSyncAccountWithAddress() {
     } catch {
       setSyncStatus(account.id, 'error')
       setLoading(false)
-      throw new Error('sync failed')
+      throw new Error('Sync failed')
     }
   }
 

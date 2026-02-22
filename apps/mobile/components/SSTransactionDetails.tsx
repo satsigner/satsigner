@@ -67,6 +67,7 @@ function SSTransactionDetails({
 
   const keysRequired = multisigInfo?.required || 0
   const keyCount = multisigInfo?.total || 0
+  const isMultisig = keyCount > 1
 
   const matchedAccount = accountMatch?.account || account
 
@@ -134,31 +135,34 @@ function SSTransactionDetails({
             />
           )}
 
-          {visibility?.status ? (
-            <SSSignatureRequiredDisplay
-              requiredNumber={keysRequired}
-              totalNumber={keyCount}
-              collectedSignatures={collectedSignatures}
-            />
-          ) : (
-            <SSButton
-              label={t('transaction.checkStatus')}
-              onPress={() => onToggleVisibility('status')}
-            />
-          )}
+          {isMultisig &&
+            (visibility?.status ? (
+              <SSSignatureRequiredDisplay
+                requiredNumber={keysRequired}
+                totalNumber={keyCount}
+                collectedSignatures={collectedSignatures}
+              />
+            ) : (
+              <SSButton
+                label={t('transaction.checkStatus')}
+                onPress={() => onToggleVisibility('status')}
+              />
+            ))}
         </>
       ) : (
         <>
           <View style={styles.chartContainer}>
             <SSTransactionChart transaction={transaction} />
           </View>
-          <View style={styles.signatureContainer}>
-            <SSSignatureRequiredDisplay
-              requiredNumber={keysRequired}
-              totalNumber={keyCount}
-              collectedSignatures={collectedSignatures}
-            />
-          </View>
+          {isMultisig && (
+            <View style={styles.signatureContainer}>
+              <SSSignatureRequiredDisplay
+                requiredNumber={keysRequired}
+                totalNumber={keyCount}
+                collectedSignatures={collectedSignatures}
+              />
+            </View>
+          )}
         </>
       )}
       {onGoToSignFlow && (
@@ -177,7 +181,8 @@ const styles = StyleSheet.create({
   chartContainer: {
     width: '100%',
     overflow: 'hidden',
-    paddingHorizontal: 2
+    paddingLeft: 8,
+    paddingRight: 16
   },
   signatureContainer: {
     alignItems: 'center'

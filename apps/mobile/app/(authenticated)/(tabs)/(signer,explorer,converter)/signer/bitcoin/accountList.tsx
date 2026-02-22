@@ -1,6 +1,6 @@
 import { FlashList } from '@shopify/flash-list'
 import { Network as BdkNetwork } from 'bdk-rn/lib/lib/enums'
-import { Stack, useFocusEffect, useRouter } from 'expo-router'
+import { Stack, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, useWindowDimensions, View } from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
@@ -34,7 +34,6 @@ import {
   sampleTestnet4Address
 } from '@/constants/samples'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
-import useNostrSync from '@/hooks/useNostrSync'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
@@ -136,7 +135,6 @@ export default function AccountList() {
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { accountBuilderFinish } = useAccountBuilderFinish()
-  const { cleanupSubscriptions } = useNostrSync()
 
   type SampleWallet =
     | 'segwit'
@@ -177,10 +175,6 @@ export default function AccountList() {
   useEffect(() => {
     fetchPrices(mempoolUrl)
   }, [fetchPrices, mempoolUrl])
-
-  useFocusEffect(() => {
-    cleanupSubscriptions()
-  })
 
   function handleOnNavigateToAddAccount() {
     clearAccount()

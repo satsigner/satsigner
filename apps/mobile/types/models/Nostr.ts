@@ -19,6 +19,8 @@ export type NostrDM = {
     created_at: number
     pubkey?: string
   }
+  /** True when message was sent from this device but not yet confirmed from relay */
+  pending?: boolean
 }
 
 export type NostrAccount = {
@@ -27,14 +29,22 @@ export type NostrAccount = {
   commonNsec: string
   deviceNpub?: string
   deviceNsec?: string
+  deviceDisplayName?: string
+  devicePicture?: string
   dms: NostrDM[]
   lastBackupFingerprint?: string
   lastUpdated: Date
   npubAliases?: Record<string, string>
+  npubProfiles?: Record<string, { displayName?: string; picture?: string }>
   relays: string[]
   syncStart: Date
   trustedMemberDevices: string[]
   relayStatuses?: Record<string, 'connected' | 'connecting' | 'disconnected'>
+}
+
+export type NostrKind0Profile = {
+  displayName?: string
+  picture?: string
 }
 
 export type NostrKeys = {

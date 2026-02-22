@@ -38,6 +38,7 @@ import { t, tn as _tn } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useNostrStore } from '@/store/nostr'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Typography } from '@/styles'
 import {
@@ -201,6 +202,9 @@ function PreviewTransaction() {
 
   const account = useAccountsStore((state) =>
     state.accounts.find((account) => account.id === id)
+  )
+  const setTransactionToShare = useNostrStore(
+    (state) => state.setTransactionToShare
   )
   const wallet = useGetAccountWallet(id!)
   const network = useBlockchainStore((state) => state.selectedNetwork)
@@ -1558,6 +1562,25 @@ function PreviewTransaction() {
     handleNFCScan(-1) // Use -1 to indicate watch-only
   }
 
+  const handleShareWithNostrGroup = () => {
+    if (!account?.nostr?.autoSync) {
+      toast.error(t('account.nostrSync.autoSyncMustBeEnabled'))
+      return
+    }
+    const base64 = txBuilderResult?.psbt?.base64
+    if (!base64) {
+      toast.error(t('account.nostrSync.transactionDataNotAvailable'))
+      return
+    }
+    setTransactionToShare({
+      transaction: base64,
+      transactionData: { combinedPsbt: base64 }
+    })
+    router.push({
+      pathname: `/signer/bitcoin/account/${id}/settings/nostr/devicesGroupChat`
+    })
+  }
+
   const hasAllRequiredSignatures = () => {
     if (!account || account.policyType !== 'multisig' || !account.keys) {
       return false
@@ -2054,6 +2077,13 @@ function PreviewTransaction() {
                       }
                     }}
                   />
+                  {account?.nostr?.autoSync && txBuilderResult?.psbt?.base64 && (
+                    <SSButton
+                      variant="ghost"
+                      label={t('account.nostrSync.shareWithGroup')}
+                      onPress={handleShareWithNostrGroup}
+                    />
+                  )}
                 </>
               ) : (
                 account.keys &&

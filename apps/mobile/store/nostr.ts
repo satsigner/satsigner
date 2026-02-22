@@ -11,15 +11,56 @@ type Member = {
   color: string
 }
 
+// Object-based storage for O(1) lookups (instead of arrays which require O(n) includes())
+type ProcessedIdsMap = Record<string, true>
+
+// Sync status for tracking per-account sync state
+type SyncStatus = 'idle' | 'connecting' | 'syncing' | 'error'
+
+interface NostrSyncStatus {
+  status: SyncStatus
+  lastError?: string
+  lastSyncAt?: number
+  messagesReceived: number
+  messagesProcessed: number
+}
+
+const DEFAULT_SYNC_STATUS: NostrSyncStatus = {
+  status: 'idle',
+  messagesReceived: 0,
+  messagesProcessed: 0
+}
+
+// Max number of processed events/messages to keep per account (prevents unbounded memory growth)
+const MAX_PROCESSED_ITEMS = 2000
+
+// Prune oldest entries from a ProcessedIdsMap when it exceeds the limit
+// JavaScript objects maintain insertion order for string keys, so Object.keys() returns them in order
+function pruneProcessedIds(
+  ids: ProcessedIdsMap,
+  maxSize: number
+): ProcessedIdsMap {
+  const keys = Object.keys(ids)
+  if (keys.length <= maxSize) return ids
+
+  // Keep only the most recent entries (last maxSize keys)
+  const keysToKeep = keys.slice(-maxSize)
+  const pruned: ProcessedIdsMap = {}
+  for (const key of keysToKeep) {
+    pruned[key] = true
+  }
+  return pruned
+}
+
 type NostrState = {
   members: {
     [accountId: string]: Member[]
   }
   processedMessageIds: {
-    [accountId: string]: string[]
+    [accountId: string]: ProcessedIdsMap
   }
   processedEvents: {
-    [accountId: string]: string[]
+    [accountId: string]: ProcessedIdsMap
   }
   lastProtocolEOSE: {
     [accountId: string]: number
@@ -29,6 +70,9 @@ type NostrState = {
   }
   trustedDevices: {
     [accountId: string]: string[]
+  }
+  syncStatus: {
+    [accountId: string]: NostrSyncStatus
   }
   activeSubscriptions: Set<NostrAPI>
   syncingAccounts: {
@@ -58,6 +102,10 @@ type NostrAction = {
   addTrustedDevice: (accountId: string, deviceNpub: string) => void
   removeTrustedDevice: (accountId: string, deviceNpub: string) => void
   getTrustedDevices: (accountId: string) => string[]
+  setSyncStatus: (accountId: string, status: Partial<NostrSyncStatus>) => void
+  getSyncStatus: (accountId: string) => NostrSyncStatus
+  incrementMessagesReceived: (accountId: string, count?: number) => void
+  incrementMessagesProcessed: (accountId: string, count?: number) => void
   addSubscription: (subscription: NostrAPI) => void
   clearSubscriptions: () => void
   getActiveSubscriptions: () => Set<NostrAPI>
@@ -91,6 +139,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
       lastProtocolEOSE: {},
       lastDataExchangeEOSE: {},
       trustedDevices: {},
+      syncStatus: {},
       transactionToShare: null,
       activeSubscriptions: new Set<NostrAPI>(),
       syncingAccounts: {},
@@ -164,11 +213,11 @@ const useNostrStore = create<NostrState & NostrAction>()(
           },
           processedMessageIds: {
             ...state.processedMessageIds,
-            [accountId]: []
+            [accountId]: {}
           },
           processedEvents: {
             ...state.processedEvents,
-            [accountId]: []
+            [accountId]: {}
           },
           lastProtocolEOSE: {
             ...state.lastProtocolEOSE,
@@ -181,56 +230,66 @@ const useNostrStore = create<NostrState & NostrAction>()(
           trustedDevices: {
             ...state.trustedDevices,
             [accountId]: []
+          },
+          syncStatus: {
+            ...state.syncStatus,
+            [accountId]: DEFAULT_SYNC_STATUS
           }
         }))
       },
       addProcessedMessageId: (accountId, messageId) => {
         set((state) => {
-          const currentIds = state.processedMessageIds[accountId] || []
-          if (!currentIds.includes(messageId)) {
-            return {
-              processedMessageIds: {
-                ...state.processedMessageIds,
-                [accountId]: [...currentIds, messageId]
-              }
+          const currentIds = state.processedMessageIds[accountId] || {}
+          if (currentIds[messageId]) {
+            return state
+          }
+          const updated = { ...currentIds, [messageId]: true as const }
+          const pruned = pruneProcessedIds(updated, MAX_PROCESSED_ITEMS)
+          return {
+            processedMessageIds: {
+              ...state.processedMessageIds,
+              [accountId]: pruned
             }
           }
-          return state
         })
       },
       getProcessedMessageIds: (accountId) => {
-        return get().processedMessageIds[accountId] || []
+        const idsMap = get().processedMessageIds[accountId] || {}
+        return Object.keys(idsMap)
       },
       clearProcessedMessageIds: (accountId) => {
         set((state) => ({
           processedMessageIds: {
             ...state.processedMessageIds,
-            [accountId]: []
+            [accountId]: {}
           }
         }))
       },
       addProcessedEvent: (accountId, eventId) => {
         set((state) => {
-          const currentEvents = state.processedEvents[accountId] || []
-          if (!currentEvents.includes(eventId)) {
-            return {
-              processedEvents: {
-                ...state.processedEvents,
-                [accountId]: [...currentEvents, eventId]
-              }
+          const currentEvents = state.processedEvents[accountId] || {}
+          if (currentEvents[eventId]) {
+            return state
+          }
+          const updated = { ...currentEvents, [eventId]: true as const }
+          const pruned = pruneProcessedIds(updated, MAX_PROCESSED_ITEMS)
+          return {
+            processedEvents: {
+              ...state.processedEvents,
+              [accountId]: pruned
             }
           }
-          return state
         })
       },
       getProcessedEvents: (accountId) => {
-        return get().processedEvents[accountId] || []
+        const eventsMap = get().processedEvents[accountId] || {}
+        return Object.keys(eventsMap)
       },
       clearProcessedEvents: (accountId) => {
         set((state) => ({
           processedEvents: {
             ...state.processedEvents,
-            [accountId]: []
+            [accountId]: {}
           }
         }))
       },
@@ -283,6 +342,48 @@ const useNostrStore = create<NostrState & NostrAction>()(
       getTrustedDevices: (accountId) => {
         return get().trustedDevices[accountId] || []
       },
+      setSyncStatus: (accountId, status) => {
+        set((state) => {
+          const currentStatus = state.syncStatus[accountId] || DEFAULT_SYNC_STATUS
+          return {
+            syncStatus: {
+              ...state.syncStatus,
+              [accountId]: { ...currentStatus, ...status }
+            }
+          }
+        })
+      },
+      getSyncStatus: (accountId) => {
+        return get().syncStatus[accountId] || DEFAULT_SYNC_STATUS
+      },
+      incrementMessagesReceived: (accountId, count = 1) => {
+        set((state) => {
+          const currentStatus = state.syncStatus[accountId] || DEFAULT_SYNC_STATUS
+          return {
+            syncStatus: {
+              ...state.syncStatus,
+              [accountId]: {
+                ...currentStatus,
+                messagesReceived: currentStatus.messagesReceived + count
+              }
+            }
+          }
+        })
+      },
+      incrementMessagesProcessed: (accountId, count = 1) => {
+        set((state) => {
+          const currentStatus = state.syncStatus[accountId] || DEFAULT_SYNC_STATUS
+          return {
+            syncStatus: {
+              ...state.syncStatus,
+              [accountId]: {
+                ...currentStatus,
+                messagesProcessed: currentStatus.messagesProcessed + count
+              }
+            }
+          }
+        })
+      },
       addSubscription: (subscription: NostrAPI) => {
         set((state) => {
           const newSubscriptions = new Set(state.activeSubscriptions)
@@ -311,10 +412,89 @@ const useNostrStore = create<NostrState & NostrAction>()(
     }),
     {
       name: 'satsigner-nostr',
-      storage: createJSONStorage(() => mmkvStorage)
+      storage: createJSONStorage(() => mmkvStorage),
+      partialize: (state) => ({
+        // Exclude runtime state that can't be serialized (Set, WebSocket connections)
+        // Only persist serializable data
+        members: state.members,
+        processedMessageIds: state.processedMessageIds,
+        processedEvents: state.processedEvents,
+        lastProtocolEOSE: state.lastProtocolEOSE,
+        lastDataExchangeEOSE: state.lastDataExchangeEOSE,
+        trustedDevices: state.trustedDevices,
+        syncStatus: state.syncStatus
+        // Excluded: activeSubscriptions (Set), syncingAccounts (runtime), transactionToShare (runtime)
+      }),
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<NostrState> & {
+          // Allow for legacy array format during migration
+          processedEvents?: Record<string, ProcessedIdsMap | string[]>
+          processedMessageIds?: Record<string, ProcessedIdsMap | string[]>
+          syncStatus?: Record<string, NostrSyncStatus>
+        }
+
+        // Migrate processedEvents from array to object format
+        const migratedProcessedEvents: Record<string, ProcessedIdsMap> = {}
+        if (persisted.processedEvents) {
+          for (const [accountId, events] of Object.entries(
+            persisted.processedEvents
+          )) {
+            if (Array.isArray(events)) {
+              // Migrate from array to object
+              migratedProcessedEvents[accountId] = Object.fromEntries(
+                events.map((id) => [id, true as const])
+              )
+            } else {
+              migratedProcessedEvents[accountId] = events
+            }
+          }
+        }
+
+        // Migrate processedMessageIds from array to object format
+        const migratedProcessedMessageIds: Record<string, ProcessedIdsMap> = {}
+        if (persisted.processedMessageIds) {
+          for (const [accountId, ids] of Object.entries(
+            persisted.processedMessageIds
+          )) {
+            if (Array.isArray(ids)) {
+              // Migrate from array to object
+              migratedProcessedMessageIds[accountId] = Object.fromEntries(
+                ids.map((id) => [id, true as const])
+              )
+            } else {
+              migratedProcessedMessageIds[accountId] = ids
+            }
+          }
+        }
+
+        // Reset sync status to idle on app restart (connections are not persisted)
+        const resetSyncStatus: Record<string, NostrSyncStatus> = {}
+        if (persisted.syncStatus) {
+          for (const accountId of Object.keys(persisted.syncStatus)) {
+            resetSyncStatus[accountId] = {
+              ...DEFAULT_SYNC_STATUS,
+              // Preserve message counts for analytics
+              messagesReceived: persisted.syncStatus[accountId]?.messagesReceived || 0,
+              messagesProcessed: persisted.syncStatus[accountId]?.messagesProcessed || 0
+            }
+          }
+        }
+
+        return {
+          ...currentState,
+          ...persisted,
+          processedEvents: migratedProcessedEvents,
+          processedMessageIds: migratedProcessedMessageIds,
+          syncStatus: resetSyncStatus,
+          // Always ensure these are fresh runtime values
+          activeSubscriptions: new Set<NostrAPI>(),
+          syncingAccounts: {},
+          transactionToShare: null
+        }
+      }
     }
   )
 )
 
 export { useNostrStore }
-export type { Message }
+export type { Message, NostrSyncStatus, SyncStatus }
