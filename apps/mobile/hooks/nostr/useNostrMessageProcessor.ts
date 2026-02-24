@@ -4,9 +4,6 @@ import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
 import { decompressMessage } from '@/utils/nostr'
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function nostrSyncLog(..._args: unknown[]) {}
-
 import { deviceAnnouncementHandler } from './handlers/deviceAnnouncementHandler'
 import { dmHandler } from './handlers/dmHandler'
 import {
@@ -66,8 +63,6 @@ function useNostrMessageProcessor() {
       account: Account,
       messages: { id: string; content: unknown; created_at: number }[]
     ): Promise<void> => {
-      nostrSyncLog('processEventBatch start', messages.length, 'messages')
-
       // Each batch gets its own local accumulator — no module-level state,
       // so concurrent batches and hot-reloads cannot interfere.
       const pendingDms: PendingDM[] = []
@@ -114,10 +109,6 @@ function useNostrMessageProcessor() {
       if (pendingDms.length > 0) {
         await dmStorage.storeBatch(account, pendingDms)
       }
-      nostrSyncLog('processEventBatch done', {
-        processed,
-        pendingDms: pendingDms.length
-      })
     },
     [dmStorage]
   )

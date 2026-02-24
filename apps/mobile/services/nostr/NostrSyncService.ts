@@ -31,9 +31,6 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
   jitterFactor: 0.2
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function nostrServiceLog(..._args: unknown[]) {}
-
 /**
  * Singleton service for managing Nostr sync operations.
  * All operations are fire-and-forget (non-blocking) with event-based status updates.
@@ -90,9 +87,7 @@ class NostrSyncService extends EventEmitter {
     account: Account,
     onLoadingChange?: (loading: boolean) => void
   ): void {
-    nostrServiceLog('startSync called', account.id)
     this.doStartSync(account, onLoadingChange).catch((err) => {
-      nostrServiceLog('startSync error', err)
       this.emitStatus(
         account.id,
         'error',
@@ -110,9 +105,7 @@ class NostrSyncService extends EventEmitter {
     account: Account,
     onLoadingChange?: (loading: boolean) => void
   ): void {
-    nostrServiceLog('fetchOnce called', account.id)
     this.doFetchOnce(account, onLoadingChange).catch((err) => {
-      nostrServiceLog('fetchOnce error', err)
       this.emitStatus(
         account.id,
         'error',
@@ -125,7 +118,6 @@ class NostrSyncService extends EventEmitter {
    * Stop sync for a specific account
    */
   stopSync(accountId: string): void {
-    nostrServiceLog('stopSync called', accountId)
     this.cleanupSubscription(accountId)
     this.cancelRetry(accountId)
     this.emitStatus(accountId, 'idle')
@@ -140,7 +132,6 @@ class NostrSyncService extends EventEmitter {
     account: Account,
     onLoadingChange?: (loading: boolean) => void
   ): void {
-    nostrServiceLog('restartSync called', account.id)
     this.stopSync(account.id)
     this.startSync(account, onLoadingChange)
   }
@@ -149,7 +140,6 @@ class NostrSyncService extends EventEmitter {
    * Stop all syncs
    */
   stopAll(): void {
-    nostrServiceLog('stopAll called')
     const accountIds = Array.from(this.subscriptions.keys())
     for (const accountId of accountIds) {
       this.stopSync(accountId)
@@ -188,32 +178,17 @@ class NostrSyncService extends EventEmitter {
     const { autoSync, commonNsec, commonNpub, deviceNsec, deviceNpub, relays } =
       account.nostr || {}
 
-    if (!autoSync) {
-      nostrServiceLog('doStartSync skip: autoSync disabled')
-      return
-    }
+    if (!autoSync) return
 
-    if (!relays?.length) {
-      nostrServiceLog('doStartSync skip: no relays')
-      return
-    }
+    if (!relays?.length) return
 
-    if (!commonNsec || !commonNpub || !deviceNsec || !deviceNpub) {
-      nostrServiceLog('doStartSync skip: missing keys')
-      return
-    }
+    if (!commonNsec || !commonNpub || !deviceNsec || !deviceNpub) return
 
     // Guard against concurrent subscriptions
-    if (this.isSubscribingMap.get(account.id)) {
-      nostrServiceLog('doStartSync skip: already subscribing')
-      return
-    }
+    if (this.isSubscribingMap.get(account.id)) return
 
     // Check if we already have valid subscriptions
-    if (this.subscriptions.has(account.id)) {
-      nostrServiceLog('doStartSync skip: subscription exists')
-      return
-    }
+    if (this.subscriptions.has(account.id)) return
 
     this.isSubscribingMap.set(account.id, true)
     this.emitStatus(account.id, 'connecting')
@@ -243,8 +218,6 @@ class NostrSyncService extends EventEmitter {
       // Update store
       useNostrStore.getState().setSyncing(account.id, true)
       this.emitStatus(account.id, 'syncing')
-
-      nostrServiceLog('doStartSync complete', account.id)
     } finally {
       this.isSubscribingMap.set(account.id, false)
     }
@@ -257,15 +230,9 @@ class NostrSyncService extends EventEmitter {
     const { autoSync, commonNsec, commonNpub, deviceNsec, deviceNpub, relays } =
       account.nostr || {}
 
-    if (!autoSync) {
-      nostrServiceLog('doFetchOnce skip: autoSync disabled')
-      return
-    }
+    if (!autoSync) return
 
-    if (!relays?.length || !commonNsec || !commonNpub) {
-      nostrServiceLog('doFetchOnce skip: missing config')
-      return
-    }
+    if (!relays?.length || !commonNsec || !commonNpub) return
 
     this.emitStatus(account.id, 'syncing')
 
@@ -350,8 +317,6 @@ class NostrSyncService extends EventEmitter {
         Promise.race([dataExchangeEosePromise, timeout(EOSE_TIMEOUT_MS)])
       ])
 
-      nostrServiceLog('doFetchOnce eose complete, flushing queue')
-
       // Flush and close both
       await Promise.all([
         protocolApi.flushQueue(),
@@ -363,7 +328,6 @@ class NostrSyncService extends EventEmitter {
       ])
 
       this.emitStatus(account.id, 'idle')
-      nostrServiceLog('doFetchOnce complete', account.id)
     } catch (err) {
       await Promise.allSettled([
         protocolApi.closeAllSubscriptions(),
@@ -467,7 +431,6 @@ class NostrSyncService extends EventEmitter {
     }
 
     await Promise.allSettled(cleanupPromises)
-    nostrServiceLog('cleanupSubscription done', accountId)
   }
 
   private scheduleRetry(
@@ -478,21 +441,11 @@ class NostrSyncService extends EventEmitter {
     const currentAttempt = this.retryAttempts.get(account.id) || 0
 
     if (currentAttempt >= config.maxRetries) {
-      nostrServiceLog('scheduleRetry max attempts reached', account.id)
       this.emitStatus(account.id, 'error', 'Max retry attempts reached')
       return
     }
 
     const delay = calculateRetryDelay(currentAttempt, config)
-    nostrServiceLog(
-      'scheduleRetry',
-      account.id,
-      'attempt',
-      currentAttempt + 1,
-      'delay',
-      delay
-    )
-
     this.cancelRetry(account.id)
 
     const timer = setTimeout(() => {
