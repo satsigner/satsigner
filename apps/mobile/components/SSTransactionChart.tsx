@@ -1,18 +1,22 @@
 import { Canvas, Group } from '@shopify/react-native-skia'
 import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useWindowDimensions, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { useLayout } from '@/hooks/useLayout'
 import type { TxNode } from '@/hooks/useNodesAndLinks'
+import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { type Transaction } from '@/types/models/Transaction'
 import { formatAddress, formatNumber } from '@/utils/format'
 
+import { SSIconWarning } from './icons'
+import SSButton from './SSButton'
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
+import SSText from './SSText'
 
 interface Node extends SankeyNodeMinimal<object, object> {
   id: string
@@ -29,6 +33,7 @@ interface Node extends SankeyNodeMinimal<object, object> {
 const LINK_MAX_WIDTH = 60
 const BLOCK_WIDTH = 50
 const NODE_WIDTH = 98
+const SAFE_LIMIT_OF_INPUTS_OUTPUTS = 12
 
 type SSTransactionChartProps = {
   transaction: Transaction
@@ -43,6 +48,28 @@ function SSTransactionChart({
   selectedOutputIndex,
   dimUnselected = false
 }: SSTransactionChartProps) {
+  const [forceDisplayTx, setForceDisplayTx] = useState(false)
+
+  if (
+    transaction.vin.length + transaction.vout.length >
+      SAFE_LIMIT_OF_INPUTS_OUTPUTS &&
+    !forceDisplayTx
+  ) {
+    return (
+      <View style={{ flex: 1 }}>
+        <SSVStack itemsCenter>
+          <SSIconWarning height={16} width={16} />
+          <SSText>{t('transaction.chart.warning')}</SSText>
+          <SSButton
+            variant="subtle"
+            label={t('transaction.chart.warningDismiss')}
+            onPress={() => setForceDisplayTx(true)}
+          />
+        </SSVStack>
+      </View>
+    )
+  }
+
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
