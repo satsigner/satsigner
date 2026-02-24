@@ -24,6 +24,7 @@ export type MessageHandlerContext = {
   data?: NostrMessageData
   lastDataExchangeEOSE: number
   syncStartSec: number
+  onPendingDM: (dm: PendingDM) => void
 }
 
 export type MessageHandler = {
@@ -34,6 +35,9 @@ export type MessageHandler = {
 export type PendingDM = {
   unwrappedEvent: UnwrappedNostrEvent
   eventContent: Record<string, unknown>
+  /** Set to true when the handler already showed its own toast (e.g. PSBT).
+   *  storeBatch will skip the generic "New Device Message" toast. */
+  skipToast?: boolean
 }
 
 export type NostrMessage = {

@@ -5,6 +5,11 @@ import { toast } from 'sonner-native'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
+import {
+  TOAST_CONTENT_MAX,
+  TOAST_DURATION,
+  getAuthorDisplayName
+} from './handlers/notifyUtils'
 
 import {
   DM_FUTURE_TOLERANCE_SEC,
@@ -80,20 +85,24 @@ function useNostrDMStorage() {
 
       const newMessage = buildNewMessage(unwrappedEvent, eventContent)
 
-      // Trigger notification only if message is from this session (Bitcoin Safe:
-      // skip if created before sync_start) and not from self
-      const lastDataExchangeEOSE =
-        useNostrStore.getState().getLastDataExchangeEOSE(account.id) || 0
+      // Notify for messages sent after the last sync started, not from self,
+      // and no older than 5 minutes. We intentionally do NOT filter against
+      // lastDataExchangeEOSE here: that timestamp is set when EOSE arrives,
+      // which is AFTER all historical events have been queued — so comparing
+      // created_at against it would suppress every message from the initial
+      // batch, even ones the user genuinely hasn't seen yet.
       const syncStartSec = getSyncStartSeconds(account)
       if (
         created_at >= syncStartSec &&
-        created_at > lastDataExchangeEOSE &&
         account.nostr?.deviceNpub !== nip19.npubEncode(unwrappedEvent.pubkey) &&
         created_at > Date.now() / 1000 - 60 * 5
       ) {
-        const npub = nip19.npubEncode(unwrappedEvent.pubkey)
-        const formatedAuthor = npub.slice(0, 12) + '...' + npub.slice(-4)
-        toast.info(`${formatedAuthor}: ${newMessage.description}`)
+        const author = getAuthorDisplayName(unwrappedEvent.pubkey)
+        const preview = newMessage.description.slice(0, TOAST_CONTENT_MAX)
+        toast.info('New Device Message', {
+          description: `${author}\n${preview}`,
+          duration: TOAST_DURATION
+        })
       }
 
       // Read latest accounts from store to avoid stale closure
@@ -155,12 +164,10 @@ function useNostrDMStorage() {
 
       let currentDms = [...(currentAccount.nostr.dms || [])]
       const existingIds = new Set(currentDms.map((m) => m.id))
-      const lastDataExchangeEOSE =
-        useNostrStore.getState().getLastDataExchangeEOSE(account.id) || 0
-      const syncStartSec = getSyncStartSeconds(account)
+      const syncStartSec = getSyncStartSeconds(currentAccount)
       const deviceHex = getDevicePubkeyHex(currentAccount)
 
-      for (const { unwrappedEvent, eventContent } of pendingDms) {
+      for (const { unwrappedEvent, eventContent, skipToast } of pendingDms) {
         const created_at = eventContent.created_at as number
         if (created_at > Date.now() / 1000 + DM_FUTURE_TOLERANCE_SEC) continue
 
@@ -190,15 +197,18 @@ function useNostrDMStorage() {
 
         const description = (eventContent.description as string) ?? ''
         if (
+          !skipToast &&
           created_at >= syncStartSec &&
-          created_at > lastDataExchangeEOSE &&
-          account.nostr?.deviceNpub !==
+          currentAccount.nostr?.deviceNpub !==
             nip19.npubEncode(unwrappedEvent.pubkey) &&
           created_at > Date.now() / 1000 - 60 * 5
         ) {
-          const npub = nip19.npubEncode(unwrappedEvent.pubkey)
-          const formatedAuthor = npub.slice(0, 12) + '...' + npub.slice(-4)
-          toast.info(`${formatedAuthor}: ${description}`)
+          const author = getAuthorDisplayName(unwrappedEvent.pubkey)
+          const preview = description.slice(0, TOAST_CONTENT_MAX)
+          toast.info('New Device Message', {
+            description: `${author}\n${preview}`,
+            duration: TOAST_DURATION
+          })
         }
       }
 

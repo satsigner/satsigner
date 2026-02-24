@@ -1,7 +1,11 @@
-import { nip19 } from 'nostr-tools'
 import { toast } from 'sonner-native'
 
 import { type MessageHandler } from '../types'
+import {
+  TOAST_CONTENT_MAX,
+  TOAST_DURATION,
+  getAuthorDisplayName
+} from './notifyUtils'
 
 const txHandler: MessageHandler = {
   canHandle: (context) => {
@@ -13,12 +17,13 @@ const txHandler: MessageHandler = {
     if (!data) return
 
     const dataStr = String(data.data ?? '')
-    const npub = nip19.npubEncode(unwrappedEvent.pubkey)
-    const formattedAuthor = `${npub.slice(0, 12)}...${npub.slice(-4)}`
+    const author = getAuthorDisplayName(unwrappedEvent.pubkey)
+    const preview = dataStr.slice(0, TOAST_CONTENT_MAX)
 
-    toast.info(
-      `New Tx Recieve from: ${formattedAuthor} - ${dataStr.slice(0, 12)}...`
-    )
+    toast.info('New Transaction', {
+      description: `${author}\n${preview}`,
+      duration: TOAST_DURATION
+    })
   }
 }
 

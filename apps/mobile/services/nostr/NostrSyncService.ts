@@ -121,6 +121,17 @@ class NostrSyncService extends EventEmitter {
   }
 
   /**
+   * Restart sync for an account — stops any existing subscriptions and
+   * immediately starts new ones using the current relay list on the account.
+   * Use this when the relay list changes while autoSync is ON.
+   */
+  restartSync(account: Account, onLoadingChange?: (loading: boolean) => void): void {
+    nostrServiceLog('restartSync called', account.id)
+    this.stopSync(account.id)
+    this.startSync(account, onLoadingChange)
+  }
+
+  /**
    * Stop all syncs
    */
   stopAll(): void {
@@ -228,7 +239,8 @@ class NostrSyncService extends EventEmitter {
     account: Account,
     onLoadingChange?: (loading: boolean) => void
   ): Promise<void> {
-    const { autoSync, commonNsec, commonNpub, relays } = account.nostr || {}
+    const { autoSync, commonNsec, commonNpub, deviceNsec, deviceNpub, relays } =
+      account.nostr || {}
 
     if (!autoSync) {
       nostrServiceLog('doFetchOnce skip: autoSync disabled')
@@ -247,36 +259,98 @@ class NostrSyncService extends EventEmitter {
       throw new Error('No message processor registered for account')
     }
 
-    const nostrApi = new NostrAPI(relays)
+    const protocolApi = new NostrAPI(relays)
+    const dataExchangeApi = deviceNsec && deviceNpub ? new NostrAPI(relays) : null
+
     if (onLoadingChange) {
-      nostrApi.setLoadingCallback(onLoadingChange)
+      protocolApi.setLoadingCallback(onLoadingChange)
+      dataExchangeApi?.setLoadingCallback(onLoadingChange)
     }
 
+    // 15 s safety valve so we never hang if a relay never sends EOSE
+    const EOSE_TIMEOUT_MS = 15000
+
     try {
-      await nostrApi.connect()
+      const lastProtocolEOSE =
+        useNostrStore.getState().getLastProtocolEOSE(account.id) || 0
+      const lastDataExchangeEOSE =
+        useNostrStore.getState().getLastDataExchangeEOSE(account.id) || 0
 
-      const lastProtocolEOSE = useNostrStore.getState().getLastProtocolEOSE(account.id) || 0
-
-      await nostrApi.subscribeToKind1059(
-        commonNsec,
-        commonNpub,
-        processor,
-        PROTOCOL_SUBSCRIPTION_LIMIT,
-        lastProtocolEOSE,
-        () => {
-          const timestamp = Math.floor(Date.now() / 1000)
-          useNostrStore.getState().setLastProtocolEOSE(account.id, timestamp)
-        }
+      // Build EOSE promises BEFORE subscribing so the callbacks can resolve them
+      let resolveProtocolEose!: () => void
+      const protocolEosePromise = new Promise<void>(
+        (resolve) => (resolveProtocolEose = resolve)
       )
 
-      // Flush and close
-      await nostrApi.flushQueue()
-      await nostrApi.closeAllSubscriptions()
+      let resolveDataExchangeEose!: () => void
+      const dataExchangeEosePromise = dataExchangeApi
+        ? new Promise<void>((resolve) => (resolveDataExchangeEose = resolve))
+        : Promise.resolve()
+
+      await Promise.all([
+        protocolApi.connect().then(() =>
+          protocolApi.subscribeToKind1059(
+            commonNsec,
+            commonNpub,
+            processor,
+            PROTOCOL_SUBSCRIPTION_LIMIT,
+            lastProtocolEOSE,
+            () => {
+              const timestamp = Math.floor(Date.now() / 1000)
+              useNostrStore.getState().setLastProtocolEOSE(account.id, timestamp)
+              resolveProtocolEose()
+            }
+          )
+        ),
+        dataExchangeApi
+          ? dataExchangeApi.connect().then(() =>
+              dataExchangeApi.subscribeToKind1059(
+                deviceNsec!,
+                deviceNpub!,
+                processor,
+                undefined,
+                lastDataExchangeEOSE,
+                () => {
+                  const timestamp = Math.floor(Date.now() / 1000)
+                  useNostrStore
+                    .getState()
+                    .setLastDataExchangeEOSE(account.id, timestamp)
+                  resolveDataExchangeEose()
+                }
+              )
+            )
+          : Promise.resolve()
+      ])
+
+      // Wait for EOSE from both subscriptions before reading the queue.
+      // A per-subscription timeout guards against relays that never send EOSE.
+      const timeout = (ms: number) =>
+        new Promise<void>((resolve) => setTimeout(resolve, ms))
+
+      await Promise.all([
+        Promise.race([protocolEosePromise, timeout(EOSE_TIMEOUT_MS)]),
+        Promise.race([dataExchangeEosePromise, timeout(EOSE_TIMEOUT_MS)])
+      ])
+
+      nostrServiceLog('doFetchOnce eose complete, flushing queue')
+
+      // Flush and close both
+      await Promise.all([
+        protocolApi.flushQueue(),
+        dataExchangeApi?.flushQueue()
+      ])
+      await Promise.all([
+        protocolApi.closeAllSubscriptions(),
+        dataExchangeApi?.closeAllSubscriptions()
+      ])
 
       this.emitStatus(account.id, 'idle')
       nostrServiceLog('doFetchOnce complete', account.id)
     } catch (err) {
-      await nostrApi.closeAllSubscriptions().catch(() => {})
+      await Promise.allSettled([
+        protocolApi.closeAllSubscriptions(),
+        dataExchangeApi?.closeAllSubscriptions()
+      ])
       throw err
     }
   }
@@ -304,7 +378,7 @@ class NostrSyncService extends EventEmitter {
       commonNsec,
       commonNpub,
       processor,
-      PROTOCOL_SUBSCRIPTION_LIMIT,
+      undefined,
       lastProtocolEOSE,
       () => {
         const timestamp = Math.floor(Date.now() / 1000)

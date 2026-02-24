@@ -270,9 +270,9 @@ export class NostrAPI {
 
     let subscription: NDKSubscription | undefined
     try {
-      subscription = this.ndk?.subscribe(subscriptionQuery) as
-        | NDKSubscription
-        | undefined
+      subscription = this.ndk?.subscribe(subscriptionQuery, {
+        closeOnEose: false
+      }) as NDKSubscription | undefined
     } catch {
       this.setLoading(false)
       return
@@ -301,7 +301,10 @@ export class NostrAPI {
 
         if (rawId) {
           if (this.processedRawEventIds.size >= MAX_PROCESSED_RAW_IDS) {
-            this.processedRawEventIds.clear()
+            const entries = Array.from(this.processedRawEventIds)
+            entries
+              .slice(0, Math.floor(entries.length / 2))
+              .forEach((id) => this.processedRawEventIds.delete(id))
           }
           this.processedRawEventIds.add(rawId)
         }

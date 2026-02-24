@@ -97,7 +97,8 @@ export default function NostrSync() {
     generateCommonNostrKeys,
     deviceAnnouncement,
     cleanupSubscriptions,
-    nostrSyncSubscriptions
+    nostrSyncSubscriptions,
+    restartSync
   } = useNostrSync()
 
   // State management
@@ -608,112 +609,26 @@ export default function NostrSync() {
     loadNostrAccountData
   ])
 
-  // When opening screen with sync already ON: only subscribe once. Use refs for
-  // callbacks so this effect does not re-run every render (which caused subscribe
-  // to be invoked in a loop and OOM). Only run when accountId/autoSync/relays change.
-  const nostrSyncSubscriptionsRef = useRef(nostrSyncSubscriptions)
-  const setSyncingRef = useRef(setSyncing)
-  nostrSyncSubscriptionsRef.current = nostrSyncSubscriptions
-  setSyncingRef.current = setSyncing
-
-  const lastAutoSyncKeyRef = useRef<string | null>(null)
+  // Restart sync whenever autoSync is ON and the relay list changes (additions,
+  // removals, or swaps). Using a serialized relay string as the dep catches
+  // same-length changes that .length alone would miss.
+  const relayKey = (account?.nostr?.relays ?? []).slice().sort().join(',')
   useEffect(() => {
-    if (!account?.nostr?.autoSync || !account?.nostr?.relays?.length) {
-      lastAutoSyncKeyRef.current = null
-      return
-    }
-
-    const autoSyncKey = `${accountId}-${(account.nostr.relays || []).sort().join(',')}`
-    if (lastAutoSyncKeyRef.current === autoSyncKey) return
-    lastAutoSyncKeyRef.current = autoSyncKey
+    if (!account?.nostr?.autoSync || !account?.nostr?.relays?.length) return
+    if (!accountId) return
 
     const current = useAccountsStore
       .getState()
       .accounts.find((a) => a.id === accountId)
     if (!current?.nostr) return
 
-    setIsSyncing(true)
-    setSyncingRef.current(accountId, true)
-    nostrSyncSubscriptionsRef
-      .current(current, (loading) => {
-        requestAnimationFrame(() => {
-          setIsSyncing(loading)
-          setSyncingRef.current(accountId, loading)
-        })
+    restartSync(current, (loading) => {
+      requestAnimationFrame(() => {
+        setIsSyncing(loading)
+        setSyncing(accountId, loading)
       })
-      .catch(() => {
-        toast.error('Failed to setup sync')
-      })
-      .finally(() => {
-        setIsSyncing(false)
-        setSyncingRef.current(accountId, false)
-      })
-  }, [accountId, account?.nostr?.autoSync, account?.nostr?.relays?.length])
-
-  // Auto-trigger sync when a new relay is added and sync is ON
-  useFocusEffect(
-    useCallback(() => {
-      if (!accountId || !account?.nostr) {
-        previousRelaysRef.current = []
-        return
-      }
-
-      const currentRelays = account.nostr.relays || []
-      const previousRelays = previousRelaysRef.current
-
-      if (previousRelays.length === 0) {
-        previousRelaysRef.current = [...currentRelays]
-        return
-      }
-
-      const hasNewRelay = currentRelays.some(
-        (relay) => !previousRelays.includes(relay)
-      )
-
-      if (
-        !(
-          hasNewRelay &&
-          account.nostr.autoSync &&
-          currentRelays.length > 0 &&
-          previousRelays.length > 0
-        )
-      ) {
-        return
-      }
-
-      setIsSyncing(true)
-      if (accountId) setSyncing(accountId, true)
-
-      const triggerAutoSync = async () => {
-        try {
-          await testRelaySync(currentRelays)
-          deviceAnnouncement(account)
-          await nostrSyncSubscriptions(account, (loading) => {
-            requestAnimationFrame(() => {
-              setIsSyncing(loading)
-              if (accountId) setSyncing(accountId, loading)
-            })
-          })
-        } catch {
-          toast.error('Failed to setup sync with new relay')
-        } finally {
-          setIsSyncing(false)
-          if (accountId) setSyncing(accountId, false)
-        }
-      }
-
-      triggerAutoSync()
-
-      previousRelaysRef.current = [...currentRelays]
-    }, [
-      account,
-      accountId,
-      deviceAnnouncement,
-      nostrSyncSubscriptions,
-      setSyncing,
-      testRelaySync
-    ])
-  )
+    })
+  }, [accountId, account?.nostr?.autoSync, relayKey])
 
   if (!accountId || !account) return <Redirect href="/" />
 
