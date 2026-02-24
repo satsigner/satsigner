@@ -2,9 +2,9 @@
 import { toast } from 'sonner-native'
 
 import { deviceAnnouncementHandler } from '@/hooks/nostr/handlers/deviceAnnouncementHandler'
-import { createDMHandler } from '@/hooks/nostr/handlers/dmHandler'
+import { dmHandler } from '@/hooks/nostr/handlers/dmHandler'
 import { labelsHandler } from '@/hooks/nostr/handlers/labelsHandler'
-import { createPSBTHandler } from '@/hooks/nostr/handlers/psbtHandler'
+import { psbtHandler } from '@/hooks/nostr/handlers/psbtHandler'
 import { signMessageHandler } from '@/hooks/nostr/handlers/signMessageHandler'
 import { txHandler } from '@/hooks/nostr/handlers/txHandler'
 import { type MessageHandlerContext, type PendingDM } from '@/hooks/nostr/types'
@@ -111,6 +111,7 @@ describe('message handlers', () => {
     eventContent: {},
     lastDataExchangeEOSE: 0,
     syncStartSec: 0,
+    onPendingDM: jest.fn(),
     ...overrides
   })
 
@@ -203,10 +204,10 @@ describe('message handlers', () => {
       await txHandler.handle(context)
 
       expect(mockToast.info).toHaveBeenCalledWith(
-        expect.stringContaining('New Tx Recieve from:')
-      )
-      expect(mockToast.info).toHaveBeenCalledWith(
-        expect.stringContaining('abcdef123456'.slice(0, 12))
+        'New Transaction',
+        expect.objectContaining({
+          description: expect.stringContaining('abcdef123456')
+        })
       )
     })
   })
@@ -234,7 +235,10 @@ describe('message handlers', () => {
       await signMessageHandler.handle(context)
 
       expect(mockToast.info).toHaveBeenCalledWith(
-        expect.stringContaining('New Sign message request Recieve from:')
+        'New Sign Request',
+        expect.objectContaining({
+          description: expect.stringContaining('Please sign this')
+        })
       )
     })
   })
@@ -272,40 +276,36 @@ describe('message handlers', () => {
     })
   })
 
-  describe('createPSBTHandler', () => {
+  describe('psbtHandler', () => {
     it('canHandle returns true for PSBT data_type', () => {
-      const onPendingDM = jest.fn()
-      const handler = createPSBTHandler(onPendingDM)
-
       const context = createMockContext({
         data: { data_type: 'PSBT', data: 'cHNidP8...' }
       })
-      expect(handler.canHandle(context)).toBe(true)
+      expect(psbtHandler.canHandle(context)).toBe(true)
     })
 
     it('canHandle returns false for other data_types', () => {
-      const onPendingDM = jest.fn()
-      const handler = createPSBTHandler(onPendingDM)
-
       const context = createMockContext({
         data: { data_type: 'Tx', data: 'somedata' }
       })
-      expect(handler.canHandle(context)).toBe(false)
+      expect(psbtHandler.canHandle(context)).toBe(false)
     })
 
-    it('handle shows toast and calls onPendingDM', async () => {
+    it('handle shows toast and calls onPendingDM via context', async () => {
       const onPendingDM = jest.fn()
-      const handler = createPSBTHandler(onPendingDM)
-
       const context = createMockContext({
         eventContent: { created_at: 1704067200 },
-        data: { data_type: 'PSBT', data: 'cHNidP8base64data' }
+        data: { data_type: 'PSBT', data: 'cHNidP8base64data' },
+        onPendingDM
       })
 
-      await handler.handle(context)
+      await psbtHandler.handle(context)
 
       expect(mockToast.info).toHaveBeenCalledWith(
-        expect.stringContaining('New PSBT Recieve from:')
+        'New PSBT',
+        expect.objectContaining({
+          description: expect.stringContaining('cHNidP8base64data')
+        })
       )
       expect(onPendingDM).toHaveBeenCalledWith({
         unwrappedEvent: context.unwrappedEvent,
@@ -318,15 +318,14 @@ describe('message handlers', () => {
 
     it('handle uses current time when created_at is missing', async () => {
       const onPendingDM = jest.fn()
-      const handler = createPSBTHandler(onPendingDM)
-
       const context = createMockContext({
         eventContent: {},
-        data: { data_type: 'PSBT', data: 'cHNidP8...' }
+        data: { data_type: 'PSBT', data: 'cHNidP8...' },
+        onPendingDM
       })
 
       const beforeTime = Math.floor(Date.now() / 1000)
-      await handler.handle(context)
+      await psbtHandler.handle(context)
       const afterTime = Math.floor(Date.now() / 1000)
 
       const call = onPendingDM.mock.calls[0][0] as PendingDM
@@ -336,60 +335,47 @@ describe('message handlers', () => {
     })
   })
 
-  describe('createDMHandler', () => {
+  describe('dmHandler', () => {
     it('canHandle returns true for messages with description and no data', () => {
-      const onPendingDM = jest.fn()
-      const handler = createDMHandler(onPendingDM)
-
       const context = createMockContext({
         eventContent: { description: 'Hello world' },
         data: undefined
       })
-      expect(handler.canHandle(context)).toBe(true)
+      expect(dmHandler.canHandle(context)).toBe(true)
     })
 
     it('canHandle returns false for empty description', () => {
-      const onPendingDM = jest.fn()
-      const handler = createDMHandler(onPendingDM)
-
       const context = createMockContext({
         eventContent: { description: '' },
         data: undefined
       })
-      expect(handler.canHandle(context)).toBe(false)
+      expect(dmHandler.canHandle(context)).toBe(false)
     })
 
     it('canHandle returns false for null description', () => {
-      const onPendingDM = jest.fn()
-      const handler = createDMHandler(onPendingDM)
-
       const context = createMockContext({
         eventContent: { description: null },
         data: undefined
       })
-      expect(handler.canHandle(context)).toBe(false)
+      expect(dmHandler.canHandle(context)).toBe(false)
     })
 
     it('canHandle returns false when data is present', () => {
-      const onPendingDM = jest.fn()
-      const handler = createDMHandler(onPendingDM)
-
       const context = createMockContext({
         eventContent: { description: 'Hello' },
         data: { data_type: 'LabelsBip329', data: '{}' }
       })
-      expect(handler.canHandle(context)).toBe(false)
+      expect(dmHandler.canHandle(context)).toBe(false)
     })
 
-    it('handle calls onPendingDM with event and content', async () => {
+    it('handle calls onPendingDM via context with event and content', async () => {
       const onPendingDM = jest.fn()
-      const handler = createDMHandler(onPendingDM)
-
       const context = createMockContext({
-        eventContent: { description: 'Hello world', created_at: 1704067200 }
+        eventContent: { description: 'Hello world', created_at: 1704067200 },
+        onPendingDM
       })
 
-      await handler.handle(context)
+      await dmHandler.handle(context)
 
       expect(onPendingDM).toHaveBeenCalledWith({
         unwrappedEvent: context.unwrappedEvent,

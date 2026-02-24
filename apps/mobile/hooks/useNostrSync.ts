@@ -80,6 +80,21 @@ function useNostrSync() {
   }, [])
 
   /**
+   * Restart sync for an account - fire-and-forget (non-blocking)
+   * Use this when the relay list changes while autoSync is ON
+   */
+  const restartSync = useCallback(
+    (account: Account, onLoadingChange?: (loading: boolean) => void) => {
+      nostrSyncService.setMessageProcessor(
+        account.id,
+        (msgs) => messages.processEventBatch(account, msgs)
+      )
+      nostrSyncService.restartSync(account, onLoadingChange)
+    },
+    [messages]
+  )
+
+  /**
    * Check if an account has active subscriptions
    */
   const hasActiveSubscription = useCallback((accountId: string) => {
@@ -145,6 +160,7 @@ function useNostrSync() {
     startSync,
     fetchOnce,
     stopSync,
+    restartSync,
     hasActiveSubscription,
     getStatus,
 

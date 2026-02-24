@@ -9,7 +9,7 @@ function nostrSyncLog(...args: unknown[]) {
 }
 
 import { deviceAnnouncementHandler } from './handlers/deviceAnnouncementHandler'
-import { createDMHandler } from './handlers/dmHandler'
+import { dmHandler } from './handlers/dmHandler'
 import {
   isInitialized,
   processMessage,
@@ -17,12 +17,11 @@ import {
   setInitialized
 } from './handlers/index'
 import { labelsHandler } from './handlers/labelsHandler'
-import { createPSBTHandler } from './handlers/psbtHandler'
+import { psbtHandler } from './handlers/psbtHandler'
 import { signMessageHandler } from './handlers/signMessageHandler'
 import { txHandler } from './handlers/txHandler'
 import {
   type MessageHandlerContext,
-  type NostrMessageData,
   type PendingDM,
   type UnwrappedNostrEvent
 } from './types'
@@ -40,22 +39,10 @@ function getEventContent(
   return unwrappedEvent.content as unknown as Record<string, unknown>
 }
 
-// Module-level pending DMs collector (shared across all hook instances)
-let sharedPendingDms: PendingDM[] = []
-
-function collectPendingDM(dm: PendingDM): void {
-  sharedPendingDms.push(dm)
-}
-
-function clearPendingDms(): void {
-  sharedPendingDms = []
-}
-
-function getPendingDms(): PendingDM[] {
-  return sharedPendingDms
-}
-
-// Initialize handlers once at module level
+// Initialize handlers once at module level.
+// Handlers no longer hold a closure over collectPendingDM — they receive
+// onPendingDM through the per-batch context, so hot-reloads of this file
+// cannot disconnect the callback from the pending-DM accumulator.
 function initializeHandlers(): void {
   if (isInitialized()) return
   setInitialized(true)
@@ -63,9 +50,9 @@ function initializeHandlers(): void {
   // Register handlers in priority order
   registerHandler(labelsHandler)
   registerHandler(txHandler)
-  registerHandler(createPSBTHandler(collectPendingDM))
+  registerHandler(psbtHandler)
   registerHandler(signMessageHandler)
-  registerHandler(createDMHandler(collectPendingDM))
+  registerHandler(dmHandler)
   registerHandler(deviceAnnouncementHandler)
 }
 
@@ -81,7 +68,10 @@ function useNostrMessageProcessor() {
       messages: { id: string; content: unknown; created_at: number }[]
     ): Promise<void> => {
       nostrSyncLog('processEventBatch start', messages.length, 'messages')
-      clearPendingDms()
+
+      // Each batch gets its own local accumulator — no module-level state,
+      // so concurrent batches and hot-reloads cannot interfere.
+      const pendingDms: PendingDM[] = []
 
       const processedEvents = useNostrStore.getState().processedEvents
       const lastDataExchangeEOSE =
@@ -104,7 +94,9 @@ function useNostrMessageProcessor() {
           .addProcessedEvent(account.id, unwrappedEvent.id)
         const eventContent = getEventContent(unwrappedEvent)
 
-        const data = eventContent.data as NostrMessageData | undefined
+        const data = eventContent.data as
+          | { data_type: string; data?: unknown }
+          | undefined
 
         const context: MessageHandlerContext = {
           account,
@@ -112,18 +104,21 @@ function useNostrMessageProcessor() {
           eventContent,
           data,
           lastDataExchangeEOSE,
-          syncStartSec
+          syncStartSec,
+          onPendingDM: (dm) => pendingDms.push(dm)
         }
 
         await processMessage(context)
         processed++
       }
 
-      const pendingDms = getPendingDms()
       if (pendingDms.length > 0) {
         await dmStorage.storeBatch(account, pendingDms)
       }
-      nostrSyncLog('processEventBatch done', { processed, pendingDms: pendingDms.length })
+      nostrSyncLog('processEventBatch done', {
+        processed,
+        pendingDms: pendingDms.length
+      })
     },
     [dmStorage]
   )

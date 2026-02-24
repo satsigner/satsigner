@@ -1,46 +1,43 @@
-import { nip19 } from 'nostr-tools'
 import { toast } from 'sonner-native'
 
-import { type MessageHandler, type PendingDM } from '../types'
+import { type MessageHandler } from '../types'
+import {
+  TOAST_CONTENT_MAX,
+  TOAST_DURATION,
+  getAuthorDisplayName
+} from './notifyUtils'
 
-type PSBTHandlerResult = {
-  pendingDM?: PendingDM
-}
+const psbtHandler: MessageHandler = {
+  canHandle: (context) => {
+    return context.data?.data_type === 'PSBT'
+  },
 
-function createPSBTHandler(
-  onPendingDM: (dm: PendingDM) => void
-): MessageHandler {
-  return {
-    canHandle: (context) => {
-      return context.data?.data_type === 'PSBT'
-    },
+  handle: async (context) => {
+    const { unwrappedEvent, eventContent, data, onPendingDM } = context
+    if (!data) return
 
-    handle: async (context) => {
-      const { unwrappedEvent, eventContent, data } = context
-      if (!data) return
+    const dataStr = String(data.data ?? '')
+    const author = getAuthorDisplayName(unwrappedEvent.pubkey)
+    const preview = dataStr.slice(0, TOAST_CONTENT_MAX)
 
-      const dataStr = String(data.data ?? '')
-      const npub = nip19.npubEncode(unwrappedEvent.pubkey)
-      const formattedAuthor = `${npub.slice(0, 12)}...${npub.slice(-4)}`
+    toast.info('New PSBT', {
+      description: `${author}\n${preview}`,
+      duration: TOAST_DURATION
+    })
 
-      toast.info(
-        `New PSBT received from: ${formattedAuthor} - ${dataStr.slice(0, 12)}...`
-      )
-
-      // Store PSBT as DM for display
-      const psbtEventContent: Record<string, unknown> = {
-        created_at:
-          (eventContent.created_at as number) || Math.floor(Date.now() / 1000),
-        description: data.data
-      }
-
-      onPendingDM({
-        unwrappedEvent,
-        eventContent: psbtEventContent
-      })
+    // Store PSBT as DM for display
+    const psbtEventContent: Record<string, unknown> = {
+      created_at:
+        (eventContent.created_at as number) || Math.floor(Date.now() / 1000),
+      description: data.data
     }
+
+    onPendingDM({
+      unwrappedEvent,
+      eventContent: psbtEventContent,
+      skipToast: true
+    })
   }
 }
 
-export { createPSBTHandler }
-export type { PSBTHandlerResult }
+export { psbtHandler }

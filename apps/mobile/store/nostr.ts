@@ -11,6 +11,10 @@ type Member = {
   color: string
 }
 
+type NostrProfile = {
+  displayName?: string
+}
+
 // Object-based storage for O(1) lookups (instead of arrays which require O(n) includes())
 type ProcessedIdsMap = Record<string, true>
 
@@ -56,6 +60,9 @@ type NostrState = {
   members: {
     [accountId: string]: Member[]
   }
+  profiles: {
+    [npub: string]: NostrProfile
+  }
   processedMessageIds: {
     [accountId: string]: ProcessedIdsMap
   }
@@ -85,6 +92,8 @@ type NostrState = {
 }
 
 type NostrAction = {
+  setProfile: (npub: string, profile: NostrProfile) => void
+  getProfile: (npub: string) => NostrProfile | undefined
   addMember: (accountId: string, npub: string) => void
   removeMember: (accountId: string, npub: string) => void
   getMembers: (accountId: string) => Member[]
@@ -120,6 +129,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
   persist(
     (set, get) => ({
       members: {},
+      profiles: {},
       processedMessageIds: {},
       processedEvents: {},
       lastProtocolEOSE: {},
@@ -129,6 +139,17 @@ const useNostrStore = create<NostrState & NostrAction>()(
       transactionToShare: null,
       activeSubscriptions: new Set<NostrAPI>(),
       syncingAccounts: {},
+      setProfile: (npub, profile) => {
+        set((state) => ({
+          profiles: {
+            ...state.profiles,
+            [npub]: { ...state.profiles[npub], ...profile }
+          }
+        }))
+      },
+      getProfile: (npub) => {
+        return get().profiles[npub]
+      },
       addMember: async (accountId, npub) => {
         try {
           const color = await generateColorFromNpub(npub)
@@ -403,6 +424,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
         // Exclude runtime state that can't be serialized (Set, WebSocket connections)
         // Only persist serializable data
         members: state.members,
+        profiles: state.profiles,
         processedMessageIds: state.processedMessageIds,
         processedEvents: state.processedEvents,
         lastProtocolEOSE: state.lastProtocolEOSE,
@@ -469,6 +491,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
         return {
           ...currentState,
           ...persisted,
+          profiles: persisted.profiles || {},
           processedEvents: migratedProcessedEvents,
           processedMessageIds: migratedProcessedMessageIds,
           syncStatus: resetSyncStatus,
@@ -483,4 +506,4 @@ const useNostrStore = create<NostrState & NostrAction>()(
 )
 
 export { useNostrStore }
-export type { Message, NostrSyncStatus, SyncStatus }
+export type { Message, NostrProfile, NostrSyncStatus, SyncStatus }

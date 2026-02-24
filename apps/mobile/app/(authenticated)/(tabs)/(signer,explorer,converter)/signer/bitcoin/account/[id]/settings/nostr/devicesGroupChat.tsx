@@ -27,49 +27,44 @@ import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
 import { type NostrDM } from '@/types/models/Nostr'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { NostrAPI } from '@/api/nostr'
 import { parseNostrTransaction } from '@/utils/nostr'
 import { type TransactionData } from '@/utils/psbt'
 
-const colorCache = new Map<string, { text: string; color: string }>()
+// In-memory color cache; keyed by pubkey hex.
+// Display text is NOT cached here — it's recomputed whenever profiles update.
+const colorCache = new Map<string, string>()
 
-async function formatNpub(
+function getAuthorColor(
   pubkey: string,
   members: { npub: string; color: string }[]
-) {
-  if (!pubkey)
-    return {
-      text: t('account.nostrSync.devicesGroupChat.unknownSender'),
-      color: '#666666'
-    }
-
+): string {
   const cached = colorCache.get(pubkey)
-  if (cached) {
-    return cached
-  }
+  if (cached) return cached
 
   try {
     const npub = nip19.npubEncode(pubkey)
     const member = members.find((m) => m.npub === npub)
-
     const color = member?.color || '#404040'
-    const result = {
-      text: `${npub.slice(0, 12)}...${npub.slice(-4)}`,
-      color
-    }
-    colorCache.set(pubkey, result)
-    return result
+    colorCache.set(pubkey, color)
+    return color
   } catch {
-    return {
-      text: pubkey.slice(0, 8),
-      color: '#404040'
-    }
+    return '#404040'
+  }
+}
+
+function formatNpubText(pubkey: string): string {
+  try {
+    const npub = nip19.npubEncode(pubkey)
+    return `${npub.slice(0, 12)}...${npub.slice(-4)}`
+  } catch {
+    return pubkey.slice(0, 8)
   }
 }
 
 export default function DevicesGroupChat() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const flatListRef = useRef<FlatList>(null)
-  const formattedAuthorsRef = useRef(new Set<string>())
   const { sendDM, sendPSBT } = useNostrPublish()
   const { startSync, stopSync, hasActiveSubscription } = useNostrSync()
   const { handleGoToSignFlow } = useNostrSignFlow()
@@ -84,6 +79,9 @@ export default function DevicesGroupChat() {
 
   const members = useNostrStore(
     (state) => (accountId && state.members?.[accountId]) || []
+  )
+  const [profiles, setProfile] = useNostrStore(
+    useShallow((state) => [state.profiles, state.setProfile])
   )
   const [transactionToShare, setTransactionToShare] = useNostrStore(
     useShallow((state) => [
@@ -298,27 +296,65 @@ export default function DevicesGroupChat() {
     setTransactionDataForModal(null)
   }
 
+  // Rebuild formatted display names whenever messages, members, or profiles change.
+  // We intentionally do NOT cache these by author in a ref because profiles can
+  // arrive after the initial render and we need to re-compute the display text.
   useEffect(() => {
-    async function formatNpubs() {
-      const newFormattedNpubs = new Map()
-      let hasNewAuthors = false
+    const newFormattedNpubs = new Map<string, { text: string; color: string }>()
 
-      for (const msg of memoizedMessages) {
-        if (!formattedAuthorsRef.current.has(msg.author)) {
-          const formatted = await formatNpub(msg.author, membersList)
-          newFormattedNpubs.set(msg.author, formatted)
-          formattedAuthorsRef.current.add(msg.author)
-          hasNewAuthors = true
-        }
+    for (const msg of memoizedMessages) {
+      if (!msg.author) continue
+      const color = getAuthorColor(msg.author, membersList)
+      let npub: string
+      try {
+        npub = nip19.npubEncode(msg.author)
+      } catch {
+        npub = ''
       }
-
-      if (hasNewAuthors) {
-        setFormattedNpubs((prev) => new Map([...prev, ...newFormattedNpubs]))
-      }
+      const profile = npub ? profiles[npub] : undefined
+      const npubShort = npub ? formatNpubText(msg.author) : msg.author.slice(0, 8)
+      const text = profile?.displayName
+        ? `${profile.displayName}\n${npubShort}`
+        : npubShort
+      newFormattedNpubs.set(msg.author, { text, color })
     }
 
-    formatNpubs()
-  }, [memoizedMessages, membersList])
+    setFormattedNpubs(newFormattedNpubs)
+  }, [memoizedMessages, membersList, profiles])
+
+  // Fetch kind0 profiles for authors we haven't resolved yet.
+  // Fire-and-forget: results land in the persisted nostr store.
+  useEffect(() => {
+    if (!account?.nostr?.relays?.length) return
+
+    const relays = account.nostr.relays
+    const fetchedRef = new Set<string>()
+
+    for (const msg of memoizedMessages) {
+      if (!msg.author) continue
+      let npub: string
+      try {
+        npub = nip19.npubEncode(msg.author)
+      } catch {
+        continue
+      }
+      // Skip if we already have a displayName or are already fetching this run
+      if (profiles[npub]?.displayName || fetchedRef.has(npub)) continue
+      fetchedRef.add(npub)
+
+      const api = new NostrAPI(relays)
+      api
+        .fetchKind0(npub)
+        .then((result) => {
+          if (result?.displayName) {
+            setProfile(npub, { displayName: result.displayName })
+          }
+        })
+        .catch(() => {
+          // ignore fetch errors — truncated npub remains as fallback
+        })
+    }
+  }, [memoizedMessages, profiles, account?.nostr?.relays, setProfile])
 
   useEffect(() => {
     if (messages.length > 0 && account?.nostr?.relays?.length) {
