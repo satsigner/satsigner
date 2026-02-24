@@ -29,6 +29,7 @@ type AccountsAction = {
     id: Account['id'],
     nostr: Partial<Account['nostr']>
   ) => void
+  markDmsAsRead: (id: Account['id']) => void
   setLastSyncedAt: (id: Account['id'], date: Date) => void
   setSyncStatus: (id: Account['id'], syncStatus: SyncStatus) => void
   setSyncProgress: (id: Account['id'], syncProgress: SyncProgress) => void
@@ -119,6 +120,19 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               ...state.accounts[index].nostr,
               ...nostr
             }
+          })
+        )
+      },
+      markDmsAsRead: (id) => {
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.id === id
+            )
+            if (index === -1 || !state.accounts[index].nostr) return
+            state.accounts[index].nostr.dms = state.accounts[index].nostr.dms.map(
+              (dm) => (dm.read === false ? { ...dm, read: true } : dm)
+            )
           })
         )
       },

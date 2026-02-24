@@ -17,11 +17,8 @@ const PROCESSING_INTERVAL_MS = 350
 /** Request enough kind 1059 events to discover all device announcements (members). Relays often default to ~100. */
 export const PROTOCOL_SUBSCRIPTION_LIMIT = 1500
 
-function nostrSyncLog(...args: unknown[]) {
-  if (__DEV__) {
-    console.log('[NostrSync]', ...args)
-  }
-}
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function nostrSyncLog(..._args: unknown[]) {}
 
 export class NostrAPI {
   private ndk: NDK | null = null

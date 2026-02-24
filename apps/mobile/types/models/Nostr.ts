@@ -21,6 +21,9 @@ export type NostrDM = {
   }
   /** True when message was sent from this device but not yet confirmed from relay */
   pending?: boolean
+  /** False when this incoming message has not yet been viewed in the chat.
+   *  Undefined means the message predates the unread-tracking feature (treat as read). */
+  read?: boolean
 }
 
 export type NostrAccount = {

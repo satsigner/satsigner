@@ -813,6 +813,11 @@ export default function AccountView() {
     id ? state.isSyncing(id) : false
   )
 
+  const hasUnreadMessages = useMemo(
+    () => account?.nostr?.dms?.some((dm) => dm.read === false) ?? false,
+    [account?.nostr?.dms]
+  )
+
   const wallet = useGetAccountWallet(id!)
   const watchOnlyWalletAddress = useGetAccountAddress(id!)
 
@@ -846,7 +851,7 @@ export default function AccountView() {
     )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
-  const { fetchOnce } = useNostrSync()
+  const { fetchOnce, startSync, stopSync } = useNostrSync()
 
   const [refreshing, setRefreshing] = useState(false)
   const [expand, setExpand] = useState(false)
@@ -912,6 +917,71 @@ export default function AccountView() {
 
     handleOnRefresh()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep the Nostr subscription open for the entire account session.
+  // index.tsx stays mounted (not just focused) while navigating deeper into
+  // the account stack, so useEffect cleanup only fires on true account exit.
+  useEffect(() => {
+    const acc = account
+    if (
+      acc?.nostr?.autoSync &&
+      acc.nostr.relays?.length &&
+      acc.nostr.deviceNsec &&
+      acc.nostr.deviceNpub
+    ) {
+      startSync(acc)
+    }
+
+    return () => {
+      if (id) stopSync(id)
+    }
+    // startSync / stopSync are stable – only re-run if the account id changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
+
+  // Memoize headerRight so React Navigation doesn't receive a new function
+  // reference on every DM update, which would interrupt in-progress tap gestures.
+  const headerRight = useCallback(
+    () => (
+      <SSHStack gap="md">
+        {account?.nostr?.autoSync && (
+          <SSIconButton
+            onPress={() =>
+              router.navigate(
+                `/signer/bitcoin/account/${id}/settings/nostr/devicesGroupChat`
+              )
+            }
+          >
+            <View style={{ position: 'relative' }}>
+              <SSIconChatBubble height={15} width={15} />
+              {hasUnreadMessages && (
+                <View
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute',
+                    top: -4,
+                    right: -4,
+                    width: 8,
+                    height: 8,
+                    borderRadius: 5,
+                    backgroundColor: Colors.error
+                  }}
+                />
+              )}
+            </View>
+          </SSIconButton>
+        )}
+        <SSIconButton
+          onPress={() =>
+            router.navigate(`/signer/bitcoin/account/${id}/settings`)
+          }
+        >
+          <SSIconKeys height={18} width={18} />
+        </SSIconButton>
+      </SSHStack>
+    ),
+    [account?.nostr?.autoSync, hasUnreadMessages, id] // eslint-disable-line react-hooks/exhaustive-deps
+  )
 
   if (!account) return <Redirect href="/" />
 
@@ -1173,29 +1243,7 @@ export default function AccountView() {
               }}
             />
           ),
-          headerRight: () => (
-            <SSHStack gap="md">
-              {account?.nostr?.autoSync && (
-                <SSIconButton
-                  disabled={isNostrSyncing}
-                  onPress={() =>
-                    router.navigate(
-                      `/signer/bitcoin/account/${id}/settings/nostr/devicesGroupChat`
-                    )
-                  }
-                >
-                  <SSIconChatBubble height={15} width={15} />
-                </SSIconButton>
-              )}
-              <SSIconButton
-                onPress={() =>
-                  router.navigate(`/signer/bitcoin/account/${id}/settings`)
-                }
-              >
-                <SSIconKeys height={18} width={18} />
-              </SSIconButton>
-            </SSHStack>
-          )
+          headerRight
         }}
       />
       <TouchableOpacity

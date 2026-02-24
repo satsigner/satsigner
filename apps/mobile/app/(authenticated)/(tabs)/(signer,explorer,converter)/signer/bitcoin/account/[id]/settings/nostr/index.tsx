@@ -98,7 +98,8 @@ export default function NostrSync() {
     deviceAnnouncement,
     cleanupSubscriptions,
     nostrSyncSubscriptions,
-    restartSync
+    restartSync,
+    stopSync
   } = useNostrSync()
 
   // State management
@@ -286,6 +287,7 @@ export default function NostrSync() {
         setIsSyncing(true)
         if (accountId) setSyncing(accountId, true)
 
+        if (accountId) stopSync(accountId)
         await cleanupSubscriptions().catch(() => {
           toast.error('Failed to cleanup subscriptions')
         })
@@ -361,6 +363,7 @@ export default function NostrSync() {
     accountId,
     testRelaySync,
     cleanupSubscriptions,
+    stopSync,
     deviceAnnouncement,
     nostrSyncSubscriptions,
     updateAccountNostrCallback,

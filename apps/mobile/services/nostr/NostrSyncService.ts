@@ -31,11 +31,8 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
   jitterFactor: 0.2
 }
 
-function nostrServiceLog(...args: unknown[]) {
-  if (__DEV__) {
-    console.log('[NostrSyncService]', ...args)
-  }
-}
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function nostrServiceLog(..._args: unknown[]) {}
 
 /**
  * Singleton service for managing Nostr sync operations.
