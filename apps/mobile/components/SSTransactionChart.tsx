@@ -33,7 +33,7 @@ interface Node extends SankeyNodeMinimal<object, object> {
 const LINK_MAX_WIDTH = 60
 const BLOCK_WIDTH = 50
 const NODE_WIDTH = 98
-const SAFE_LIMIT_OF_INPUTS_OUTPUTS = 10
+const SAFE_LIMIT_OF_INPUTS_OUTPUTS = 12
 
 type SSTransactionChartProps = {
   transaction: Transaction
@@ -56,15 +56,17 @@ function SSTransactionChart({
     !forceDisplayTx
   ) {
     return (
-      <SSVStack itemsCenter>
-        <SSIconWarning height={16} width={16} />
-        <SSText>{t('transaction.chart.warning')}</SSText>
-        <SSButton
-          variant="subtle"
-          label={t('transaction.chart.warningDismiss')}
-          onPress={() => setForceDisplayTx(true)}
-        />
-      </SSVStack>
+      <View style={{ flex: 1 }}>
+        <SSVStack itemsCenter>
+          <SSIconWarning height={16} width={16} />
+          <SSText>{t('transaction.chart.warning')}</SSText>
+          <SSButton
+            variant="subtle"
+            label={t('transaction.chart.warningDismiss')}
+            onPress={() => setForceDisplayTx(true)}
+          />
+        </SSVStack>
+      </View>
     )
   }
 
