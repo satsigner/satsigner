@@ -1,18 +1,43 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
+import { useState } from 'react'
 
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { OP_CODE_WORD } from '@/types/logic/opcode'
 import { getOpcodeDetails, getOpcodeWord } from '@/utils/scripts'
 
+import { SSIconWarning } from './icons'
+import SSButton from './SSButton'
 import SSText from './SSText'
 
 type SSScriptDecodedProps = {
   script: number[] | string
 }
 
+const SAFE_SCRIPT_SIZE = 512
+
 function SSScriptDecoded({ script }: SSScriptDecodedProps) {
+  const [forceDecodeScript, setForceDecodeScript] = useState(false)
   let decodedScript: string | undefined
+
+  if (
+    Array.isArray(script) &&
+    Buffer.from(script).byteLength > SAFE_SCRIPT_SIZE &&
+    !forceDecodeScript
+  ) {
+    return (
+      <SSVStack>
+        <SSIconWarning height={16} width={16} />
+        <SSText>
+          Script is too big. Trying to decode it may freeze the app.
+        </SSText>
+        <SSButton
+          label="Proceed anyway"
+          onPress={() => setForceDecodeScript(true)}
+        />
+      </SSVStack>
+    )
+  }
 
   try {
     if (typeof script === 'string') decodedScript = script
