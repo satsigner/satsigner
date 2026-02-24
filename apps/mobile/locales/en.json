@@ -1503,6 +1503,8 @@
     "build.unspent": "Unspent",
     "build.update.fee.title": "Change fee",
     "build.update.outputs": "Remove or decrease outputs",
+    "chart.warning": "Transaction has too many inputs and/or outputs. Trying to display it may freeze the app.",
+    "chart.warningDismiss": "Display it anyway",
     "checkStatus": "Check Status",
     "coinbase": "Coinbase",
     "decoded.btnCollapse": "Collapse",
