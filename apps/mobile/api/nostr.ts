@@ -288,7 +288,12 @@ export class NostrAPI {
 
         if (rawId && this.processedRawEventIds.has(rawId)) return
 
-        let unwrappedEvent: { id: string; content: string; pubkey: string; created_at?: number }
+        let unwrappedEvent: {
+          id: string
+          content: string
+          pubkey: string
+          created_at?: number
+        }
         try {
           unwrappedEvent = nip59.unwrapEvent(
             rawEvent as unknown as Event,
