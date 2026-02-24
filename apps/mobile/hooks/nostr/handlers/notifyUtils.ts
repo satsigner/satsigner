@@ -5,6 +5,19 @@ import { useNostrStore } from '@/store/nostr'
 export const TOAST_DURATION = 8000
 export const TOAST_CONTENT_MAX = 200
 
+// Module-level variable: set to the account ID whose chat screen is currently
+// focused. Toast notifications are suppressed for that account while the user
+// can already see the messages arriving in real-time.
+let activeChatAccountId: string | null = null
+
+export function setActiveChatAccount(accountId: string | null): void {
+  activeChatAccountId = accountId
+}
+
+export function isChatActive(accountId: string): boolean {
+  return activeChatAccountId === accountId
+}
+
 export function getAuthorDisplayName(pubkeyHex: string): string {
   try {
     const npub = nip19.npubEncode(pubkeyHex)

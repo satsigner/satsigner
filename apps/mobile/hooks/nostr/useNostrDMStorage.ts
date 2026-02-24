@@ -8,7 +8,8 @@ import { type Account } from '@/types/models/Account'
 import {
   TOAST_CONTENT_MAX,
   TOAST_DURATION,
-  getAuthorDisplayName
+  getAuthorDisplayName,
+  isChatActive
 } from './handlers/notifyUtils'
 
 import {
@@ -93,6 +94,7 @@ function useNostrDMStorage() {
       // batch, even ones the user genuinely hasn't seen yet.
       const syncStartSec = getSyncStartSeconds(account)
       if (
+        !isChatActive(account.id) &&
         created_at >= syncStartSec &&
         account.nostr?.deviceNpub !== nip19.npubEncode(unwrappedEvent.pubkey) &&
         created_at > Date.now() / 1000 - 60 * 5
@@ -119,7 +121,9 @@ function useNostrDMStorage() {
 
       // If this is our own message (echo from relay), replace any matching pending
       const deviceHex = getDevicePubkeyHex(currentAccount)
-      if (deviceHex && samePubkey(newMessage.author, deviceHex)) {
+      const isOwnMessage = !!(deviceHex && samePubkey(newMessage.author, deviceHex))
+
+      if (isOwnMessage) {
         const pendingIdx = currentDms.findIndex(
           (m) =>
             m.pending &&
@@ -141,7 +145,10 @@ function useNostrDMStorage() {
         }
       }
 
-      const updatedDms = [...currentDms, newMessage].sort(
+      const incomingMessage = isOwnMessage
+        ? newMessage
+        : { ...newMessage, read: false }
+      const updatedDms = [...currentDms, incomingMessage].sort(
         (a, b) => a.created_at - b.created_at
       )
       useAccountsStore.getState().updateAccountNostr(account.id, {
@@ -176,7 +183,8 @@ function useNostrDMStorage() {
         existingIds.add(newMessage.id)
 
         // If this is our own message, replace matching pending instead of dup
-        if (deviceHex && samePubkey(newMessage.author, deviceHex)) {
+        const isOwnMsg = !!(deviceHex && samePubkey(newMessage.author, deviceHex))
+        if (isOwnMsg) {
           const pendingIdx = currentDms.findIndex(
             (m) =>
               m.pending &&
@@ -192,12 +200,13 @@ function useNostrDMStorage() {
             currentDms.push(newMessage)
           }
         } else {
-          currentDms.push(newMessage)
+          currentDms.push({ ...newMessage, read: false })
         }
 
         const description = (eventContent.description as string) ?? ''
         if (
           !skipToast &&
+          !isChatActive(currentAccount.id) &&
           created_at >= syncStartSec &&
           currentAccount.nostr?.deviceNpub !==
             nip19.npubEncode(unwrappedEvent.pubkey) &&

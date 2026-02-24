@@ -4,9 +4,8 @@ import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
 import { decompressMessage } from '@/utils/nostr'
 
-function nostrSyncLog(...args: unknown[]) {
-  if (__DEV__) console.log('[NostrSync]', ...args)
-}
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function nostrSyncLog(..._args: unknown[]) {}
 
 import { deviceAnnouncementHandler } from './handlers/deviceAnnouncementHandler'
 import { dmHandler } from './handlers/dmHandler'

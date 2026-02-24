@@ -1,9 +1,4 @@
-import {
-  Redirect,
-  Stack,
-  useFocusEffect,
-  useLocalSearchParams
-} from 'expo-router'
+import { Redirect, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, ScrollView, StyleSheet, TextInput, View } from 'react-native'
@@ -15,9 +10,9 @@ import SSModal from '@/components/SSModal'
 import SSNostrMessage from '@/components/SSNostrMessage'
 import SSText from '@/components/SSText'
 import SSTransactionDetails from '@/components/SSTransactionDetails'
+import { setActiveChatAccount } from '@/hooks/nostr/handlers/notifyUtils'
 import { useNostrPublish } from '@/hooks/useNostrPublish'
 import { useNostrSignFlow } from '@/hooks/useNostrSignFlow'
-import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -66,15 +61,27 @@ export default function DevicesGroupChat() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const flatListRef = useRef<FlatList>(null)
   const { sendDM, sendPSBT } = useNostrPublish()
-  const { startSync, stopSync, hasActiveSubscription } = useNostrSync()
   const { handleGoToSignFlow } = useNostrSignFlow()
 
-  const [accounts, account, updateAccountNostr] = useAccountsStore(
+  const [accounts, account, updateAccountNostr, markDmsAsRead] = useAccountsStore(
     useShallow((state) => [
       state.accounts,
       state.accounts.find((acc) => acc.id === accountId),
-      state.updateAccountNostr
+      state.updateAccountNostr,
+      state.markDmsAsRead
     ])
+  )
+
+  useFocusEffect(
+    useCallback(() => {
+      if (accountId) {
+        setActiveChatAccount(accountId)
+        markDmsAsRead(accountId)
+      }
+      return () => {
+        setActiveChatAccount(null)
+      }
+    }, [accountId, markDmsAsRead])
   )
 
   const members = useNostrStore(
@@ -123,37 +130,6 @@ export default function DevicesGroupChat() {
         color: member.color || '#404040'
       })),
     [members]
-  )
-
-  // Keep a data-exchange subscription active while chat is open so we receive DMs from other clients
-  // Clean up subscription when screen loses focus
-  useFocusEffect(
-    useCallback(() => {
-      if (!accountId) return
-
-      const acc = useAccountsStore
-        .getState()
-        .accounts.find((a) => a.id === accountId)
-
-      if (
-        !acc?.nostr?.autoSync ||
-        !acc.nostr.relays?.length ||
-        !acc.nostr.deviceNsec ||
-        !acc.nostr.deviceNpub
-      ) {
-        return
-      }
-
-      // Start sync when screen gains focus (fire-and-forget)
-      if (!hasActiveSubscription(accountId)) {
-        startSync(acc)
-      }
-
-      // Stop sync when screen loses focus
-      return () => {
-        stopSync(accountId)
-      }
-    }, [accountId, startSync, stopSync, hasActiveSubscription])
   )
 
   async function handleSendMessage() {

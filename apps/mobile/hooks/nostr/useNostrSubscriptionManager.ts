@@ -7,9 +7,8 @@ import {
   PROTOCOL_SUBSCRIPTION_LIMIT
 } from '@/api/nostr'
 
-function nostrSyncLog(...args: unknown[]) {
-  if (__DEV__) console.log('[NostrSync]', ...args)
-}
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function nostrSyncLog(..._args: unknown[]) {}
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
 

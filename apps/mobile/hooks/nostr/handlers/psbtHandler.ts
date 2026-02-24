@@ -4,7 +4,8 @@ import { type MessageHandler } from '../types'
 import {
   TOAST_CONTENT_MAX,
   TOAST_DURATION,
-  getAuthorDisplayName
+  getAuthorDisplayName,
+  isChatActive
 } from './notifyUtils'
 
 const psbtHandler: MessageHandler = {
@@ -13,17 +14,19 @@ const psbtHandler: MessageHandler = {
   },
 
   handle: async (context) => {
-    const { unwrappedEvent, eventContent, data, onPendingDM } = context
+    const { unwrappedEvent, eventContent, data, onPendingDM, account } = context
     if (!data) return
 
     const dataStr = String(data.data ?? '')
     const author = getAuthorDisplayName(unwrappedEvent.pubkey)
     const preview = dataStr.slice(0, TOAST_CONTENT_MAX)
 
-    toast.info('New PSBT', {
-      description: `${author}\n${preview}`,
-      duration: TOAST_DURATION
-    })
+    if (!isChatActive(account.id)) {
+      toast.info('New PSBT', {
+        description: `${author}\n${preview}`,
+        duration: TOAST_DURATION
+      })
+    }
 
     // Store PSBT as DM for display
     const psbtEventContent: Record<string, unknown> = {
