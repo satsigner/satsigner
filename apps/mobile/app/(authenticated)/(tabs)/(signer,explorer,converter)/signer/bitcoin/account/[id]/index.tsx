@@ -952,20 +952,12 @@ export default function AccountView() {
               )
             }
           >
-            <View style={{ position: 'relative' }}>
+            <View style={addressListStyles.unreadBadgeWrapper}>
               <SSIconChatBubble height={15} width={15} />
               {hasUnreadMessages && (
                 <View
                   pointerEvents="none"
-                  style={{
-                    position: 'absolute',
-                    top: -4,
-                    right: -4,
-                    width: 8,
-                    height: 8,
-                    borderRadius: 5,
-                    backgroundColor: Colors.error
-                  }}
+                  style={addressListStyles.unreadBadgeDot}
                 />
               )}
             </View>
@@ -1444,5 +1436,17 @@ const addressListStyles = StyleSheet.create({
     display: 'flex',
     width: '100%',
     marginTop: 10
+  },
+  unreadBadgeWrapper: {
+    position: 'relative'
+  },
+  unreadBadgeDot: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: Colors.error
   }
 })

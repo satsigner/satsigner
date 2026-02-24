@@ -2,13 +2,7 @@ import { useCallback, useRef } from 'react'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import {
-  NostrAPI,
-  PROTOCOL_SUBSCRIPTION_LIMIT
-} from '@/api/nostr'
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function nostrSyncLog(..._args: unknown[]) {}
+import { NostrAPI, PROTOCOL_SUBSCRIPTION_LIMIT } from '@/api/nostr'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
 
@@ -113,7 +107,6 @@ function useNostrSubscriptionManager() {
 
   const cleanup = useCallback(async () => {
     const apisToCleanup = Array.from(getActiveSubscriptions())
-    nostrSyncLog('cleanup start', apisToCleanup.length, 'subscriptions')
     clearSubscriptions()
 
     const cleanupPromises = apisToCleanup.map(async (api) => {
@@ -121,28 +114,20 @@ function useNostrSubscriptionManager() {
         await api.closeAllSubscriptions()
       } catch {
         toast.error(
-          'Failed to clean subscription for: ' + api.getRelays().join(', ')
+          `Failed to clean subscription for: ${api.getRelays().join(', ')}`
         )
       }
     })
 
     await Promise.allSettled(cleanupPromises)
-    nostrSyncLog('cleanup done')
   }, [clearSubscriptions, getActiveSubscriptions])
 
   const isSubscribingRef = useRef(false)
   const subscribe = useCallback(
     async (account?: Account, onLoadingChange?: (loading: boolean) => void) => {
-      if (!account || !account.nostr) {
-        nostrSyncLog('subscribe skip: no account or nostr')
-        return
-      }
-      if (isSubscribingRef.current) {
-        nostrSyncLog('subscribe skip: already in progress')
-        return
-      }
+      if (!account || !account.nostr) return
+      if (isSubscribingRef.current) return
       isSubscribingRef.current = true
-      nostrSyncLog('subscribe start', account.id)
       try {
         const existingApis = Array.from(getActiveSubscriptions())
         const currentRelays = account?.nostr?.relays || []
@@ -157,10 +142,7 @@ function useNostrSubscriptionManager() {
           )
         })
 
-        if (hasValidSubscription) {
-          nostrSyncLog('subscribe skip: valid subscription exists')
-          return
-        }
+        if (hasValidSubscription) return
 
         // Process any pending events before cleanup
         for (const api of existingApis) {
@@ -169,21 +151,13 @@ function useNostrSubscriptionManager() {
 
         await cleanup()
 
-        nostrSyncLog('subscribe creating protocol + dataExchange')
         const [protocolApi, dataExchangeApi] = await Promise.all([
           createProtocolSubscription(account, onLoadingChange),
           createDataExchangeSubscription(account, onLoadingChange)
         ])
 
-        if (protocolApi) {
-          addSubscription(protocolApi)
-          nostrSyncLog('subscribe protocol added')
-        }
-        if (dataExchangeApi) {
-          addSubscription(dataExchangeApi)
-          nostrSyncLog('subscribe dataExchange added')
-        }
-        nostrSyncLog('subscribe done')
+        if (protocolApi) addSubscription(protocolApi)
+        if (dataExchangeApi) addSubscription(dataExchangeApi)
       } finally {
         isSubscribingRef.current = false
       }

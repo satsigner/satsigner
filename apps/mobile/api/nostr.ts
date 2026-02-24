@@ -17,9 +17,6 @@ const PROCESSING_INTERVAL_MS = 350
 /** Request enough kind 1059 events to discover all device announcements (members). Relays often default to ~100. */
 export const PROTOCOL_SUBSCRIPTION_LIMIT = 1500
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function nostrSyncLog(..._args: unknown[]) {}
-
 export class NostrAPI {
   private ndk: NDK | null = null
   private activeSubscriptions: Set<NDKSubscription> = new Set()
@@ -181,21 +178,13 @@ export class NostrAPI {
     const toProcess = batch.filter((m) => !this.processedMessageIds.has(m.id))
     toProcess.forEach((m) => this.processedMessageIds.add(m.id))
 
-    nostrSyncLog(
-      'processQueue batch',
-      toProcess.length,
-      'remaining',
-      this.eventQueue.length
-    )
-
     if (toProcess.length > 0 && this._callback) {
       try {
         const result = this._callback(toProcess)
         if (result instanceof Promise) {
           await result
         }
-      } catch (err) {
-        nostrSyncLog('processQueue callback error', err)
+      } catch {
         toast.error('Failed to process message')
       }
     }
@@ -203,8 +192,6 @@ export class NostrAPI {
     this.isProcessingQueue = false
     if (this.eventQueue.length > 0) {
       setTimeout(() => this.processQueue(), PROCESSING_INTERVAL_MS)
-    } else {
-      nostrSyncLog('processQueue idle')
     }
   }
 
@@ -218,7 +205,6 @@ export class NostrAPI {
     since?: number,
     onEOSE?: (nsec: string) => void
   ): Promise<void> {
-    nostrSyncLog('subscribeToKind1059 start', { limit, since: !!since })
     await this.connect()
     if (!this.ndk) throw new Error('Failed to connect to relays')
 
@@ -227,10 +213,7 @@ export class NostrAPI {
     try {
       const decodedNsec = nip19.decode(recipientNsec)
       const decodedNpub = nip19.decode(recipientNpub)
-      if (!decodedNsec?.data || !decodedNpub?.data) {
-        nostrSyncLog('subscribeToKind1059 skip: invalid decode')
-        return
-      }
+      if (!decodedNsec?.data || !decodedNpub?.data) return
       recipientSecretNostrKey = decodedNsec.data as Uint8Array
       recipientPubKeyHex =
         typeof decodedNpub.data === 'string'
@@ -243,15 +226,12 @@ export class NostrAPI {
         recipientPubKeyHex.length !== 64 ||
         !/^[0-9a-fA-F]+$/.test(recipientPubKeyHex)
       ) {
-        nostrSyncLog('subscribeToKind1059 skip: invalid pubkey hex')
         return
       }
-    } catch (e) {
-      nostrSyncLog('subscribeToKind1059 decode error', e)
+    } catch {
       return
     }
 
-    nostrSyncLog('subscribeToKind1059 subscribing')
     this.setLoading(true)
     this._callback = _callback
 
@@ -296,8 +276,7 @@ export class NostrAPI {
             rawEvent as unknown as Event,
             recipientSecretNostrKey as Uint8Array
           )
-        } catch (err) {
-          nostrSyncLog('unwrapEvent failed', err)
+        } catch {
           return
         }
 
@@ -313,10 +292,6 @@ export class NostrAPI {
 
         if (!this.processedMessageIds.has(unwrappedEvent.id)) {
           if (this.eventQueue.length >= MAX_QUEUE_SIZE) {
-            nostrSyncLog(
-              'event queue full, dropping oldest',
-              this.eventQueue.length
-            )
             this.eventQueue.shift()
           }
           const message = {
@@ -328,13 +303,10 @@ export class NostrAPI {
           this.eventQueue.push(message)
           this.processQueue()
         }
-      } catch (err) {
-        nostrSyncLog('subscription event handler error', err)
-      }
+      } catch {}
     })
 
     subscription?.on('eose', () => {
-      nostrSyncLog('eose received')
       onEOSE?.(recipientNsec)
       this.setLoading(false)
     })
@@ -359,6 +331,18 @@ export class NostrAPI {
     this.eventQueue = []
     this.processedRawEventIds.clear()
     this._callback = undefined
+
+    // Disconnect every relay in the pool to release WebSocket connections and
+    // their underlying OS threads. Without this, each startSync/stopSync cycle
+    // leaks an NDK instance with live relay connections, eventually exhausting
+    // the Android thread limit (pthread_create OOM).
+    if (this.ndk) {
+      for (const relay of this.ndk.pool.relays.values()) {
+        try {
+          relay.disconnect()
+        } catch {}
+      }
+    }
   }
 
   async createKind1059(

@@ -168,10 +168,10 @@ class BaseElectrumClient {
     try {
       client = ElectrumClient.fromUrl(url, network)
 
-      const pingPromise = client.client.initElectrum({
-        client: 'satsigner',
-        version: '1.4'
-      })
+      const pingPromise = client.client.initElectrum(
+        { client: 'satsigner', version: '1.4' },
+        { maxRetry: 0, callback: null }
+      )
 
       const timeoutPromise = new Promise((_resolve, reject) => {
         timeoutId = setTimeout(() => {
@@ -193,10 +193,14 @@ class BaseElectrumClient {
   }
 
   async init() {
-    await this.client.initElectrum({
-      client: 'satsigner',
-      version: '1.4'
-    })
+    // maxRetry: 0 disables the library's built-in reconnect loop.
+    // The library's reconnect() resets maxRetry to 1000 on every call,
+    // creating an unbounded loop that leaks a new OS thread per attempt
+    // and causes pthread_create OOM on Android.
+    await this.client.initElectrum(
+      { client: 'satsigner', version: '1.4' },
+      { maxRetry: 0, callback: null }
+    )
   }
 
   close() {

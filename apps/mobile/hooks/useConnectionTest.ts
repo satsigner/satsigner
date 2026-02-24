@@ -72,10 +72,10 @@ export function useConnectionTest() {
         // Store current client for cleanup
         setCurrentClient(client)
 
-        const serverInfo = await client.client.initElectrum({
-          client: 'satsigner',
-          version: '0.0'
-        })
+        const serverInfo = await client.client.initElectrum(
+          { client: 'satsigner', version: '0.0' },
+          { maxRetry: 0, callback: null }
+        )
 
         const responseTime = Date.now() - startTime
 
