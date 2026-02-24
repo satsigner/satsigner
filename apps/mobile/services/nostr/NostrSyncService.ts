@@ -1,9 +1,6 @@
 import { EventEmitter } from 'events'
 
-import {
-  NostrAPI,
-  PROTOCOL_SUBSCRIPTION_LIMIT
-} from '@/api/nostr'
+import { NostrAPI, PROTOCOL_SUBSCRIPTION_LIMIT } from '@/api/nostr'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
@@ -50,7 +47,10 @@ class NostrSyncService extends EventEmitter {
   private retryTimers: Map<string, NodeJS.Timeout> = new Map()
   private retryAttempts: Map<string, number> = new Map()
   private isSubscribingMap: Map<string, boolean> = new Map()
-  private messageProcessors: Map<string, (messages: NostrMessage[]) => void | Promise<void>> = new Map()
+  private messageProcessors: Map<
+    string,
+    (messages: NostrMessage[]) => void | Promise<void>
+  > = new Map()
 
   private constructor() {
     super()
@@ -89,11 +89,18 @@ class NostrSyncService extends EventEmitter {
    * Fire-and-forget sync start - returns immediately
    * Starts both protocol and data-exchange subscriptions
    */
-  startSync(account: Account, onLoadingChange?: (loading: boolean) => void): void {
+  startSync(
+    account: Account,
+    onLoadingChange?: (loading: boolean) => void
+  ): void {
     nostrServiceLog('startSync called', account.id)
-    this.doStartSync(account, onLoadingChange).catch(err => {
+    this.doStartSync(account, onLoadingChange).catch((err) => {
       nostrServiceLog('startSync error', err)
-      this.emitStatus(account.id, 'error', err instanceof Error ? err.message : String(err))
+      this.emitStatus(
+        account.id,
+        'error',
+        err instanceof Error ? err.message : String(err)
+      )
       this.scheduleRetry(account, onLoadingChange)
     })
   }
@@ -102,11 +109,18 @@ class NostrSyncService extends EventEmitter {
    * One-shot fetch for wallet sync - fire-and-forget
    * Does not maintain persistent subscription
    */
-  fetchOnce(account: Account, onLoadingChange?: (loading: boolean) => void): void {
+  fetchOnce(
+    account: Account,
+    onLoadingChange?: (loading: boolean) => void
+  ): void {
     nostrServiceLog('fetchOnce called', account.id)
-    this.doFetchOnce(account, onLoadingChange).catch(err => {
+    this.doFetchOnce(account, onLoadingChange).catch((err) => {
       nostrServiceLog('fetchOnce error', err)
-      this.emitStatus(account.id, 'error', err instanceof Error ? err.message : String(err))
+      this.emitStatus(
+        account.id,
+        'error',
+        err instanceof Error ? err.message : String(err)
+      )
     })
   }
 
@@ -125,7 +139,10 @@ class NostrSyncService extends EventEmitter {
    * immediately starts new ones using the current relay list on the account.
    * Use this when the relay list changes while autoSync is ON.
    */
-  restartSync(account: Account, onLoadingChange?: (loading: boolean) => void): void {
+  restartSync(
+    account: Account,
+    onLoadingChange?: (loading: boolean) => void
+  ): void {
     nostrServiceLog('restartSync called', account.id)
     this.stopSync(account.id)
     this.startSync(account, onLoadingChange)
@@ -171,7 +188,8 @@ class NostrSyncService extends EventEmitter {
     account: Account,
     onLoadingChange?: (loading: boolean) => void
   ): Promise<void> {
-    const { autoSync, commonNsec, commonNpub, deviceNsec, deviceNpub, relays } = account.nostr || {}
+    const { autoSync, commonNsec, commonNpub, deviceNsec, deviceNpub, relays } =
+      account.nostr || {}
 
     if (!autoSync) {
       nostrServiceLog('doStartSync skip: autoSync disabled')
@@ -260,7 +278,8 @@ class NostrSyncService extends EventEmitter {
     }
 
     const protocolApi = new NostrAPI(relays)
-    const dataExchangeApi = deviceNsec && deviceNpub ? new NostrAPI(relays) : null
+    const dataExchangeApi =
+      deviceNsec && deviceNpub ? new NostrAPI(relays) : null
 
     if (onLoadingChange) {
       protocolApi.setLoadingCallback(onLoadingChange)
@@ -297,7 +316,9 @@ class NostrSyncService extends EventEmitter {
             lastProtocolEOSE,
             () => {
               const timestamp = Math.floor(Date.now() / 1000)
-              useNostrStore.getState().setLastProtocolEOSE(account.id, timestamp)
+              useNostrStore
+                .getState()
+                .setLastProtocolEOSE(account.id, timestamp)
               resolveProtocolEose()
             }
           )
@@ -366,7 +387,8 @@ class NostrSyncService extends EventEmitter {
       return null
     }
 
-    const lastProtocolEOSE = useNostrStore.getState().getLastProtocolEOSE(account.id) || 0
+    const lastProtocolEOSE =
+      useNostrStore.getState().getLastProtocolEOSE(account.id) || 0
 
     const nostrApi = new NostrAPI(relays)
     if (onLoadingChange) {
@@ -400,7 +422,8 @@ class NostrSyncService extends EventEmitter {
       return null
     }
 
-    const lastDataExchangeEOSE = useNostrStore.getState().getLastDataExchangeEOSE(account.id) || 0
+    const lastDataExchangeEOSE =
+      useNostrStore.getState().getLastDataExchangeEOSE(account.id) || 0
 
     const nostrApi = new NostrAPI(relays)
     if (onLoadingChange) {
@@ -464,7 +487,14 @@ class NostrSyncService extends EventEmitter {
     }
 
     const delay = calculateRetryDelay(currentAttempt, config)
-    nostrServiceLog('scheduleRetry', account.id, 'attempt', currentAttempt + 1, 'delay', delay)
+    nostrServiceLog(
+      'scheduleRetry',
+      account.id,
+      'attempt',
+      currentAttempt + 1,
+      'delay',
+      delay
+    )
 
     this.cancelRetry(account.id)
 
