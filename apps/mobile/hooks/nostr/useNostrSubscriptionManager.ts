@@ -2,7 +2,11 @@ import { useCallback, useRef } from 'react'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { NostrAPI, PROTOCOL_SUBSCRIPTION_LIMIT } from '@/api/nostr'
+import {
+  NostrAPI,
+  PROTOCOL_SUBSCRIPTION_LIMIT,
+  PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN
+} from '@/api/nostr'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
 
@@ -62,11 +66,15 @@ function useNostrSubscriptionManager() {
         nostrApi.setLoadingCallback(onLoadingChange)
       }
       await nostrApi.connect()
+      const isFullRescan = lastProtocolEOSE === 0
+      const limit = isFullRescan
+        ? PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN
+        : PROTOCOL_SUBSCRIPTION_LIMIT
       await nostrApi.subscribeToKind1059(
         commonNsec as string,
         commonNpub as string,
         (messages) => messageProcessor.processEventBatch(account, messages),
-        PROTOCOL_SUBSCRIPTION_LIMIT,
+        limit,
         lastProtocolEOSE,
         (nsec) => updateLastEOSETimestamp(account, nsec)
       )

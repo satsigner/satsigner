@@ -10,6 +10,7 @@ import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -29,6 +30,14 @@ export default function DeviceAliasPage() {
     ])
   )
 
+  const clearProcessedEvents = useNostrStore(
+    (state) => state.clearProcessedEvents
+  )
+  const setLastDataExchangeEOSE = useNostrStore(
+    (state) => state.setLastDataExchangeEOSE
+  )
+  const { restartSync } = useNostrSync()
+
   const memberColor = useNostrStore(
     useShallow((state) => {
       if (!accountId || !npub) return '#404040'
@@ -46,13 +55,21 @@ export default function DeviceAliasPage() {
   )
 
   const accountProfile = npub ? account?.nostr?.npubProfiles?.[npub] : undefined
+  const isThisDevice = npub === account?.nostr?.deviceNpub
+  const deviceProfile = isThisDevice
+    ? {
+        displayName: account?.nostr?.deviceDisplayName,
+        picture: account?.nostr?.devicePicture
+      }
+    : undefined
   const displayName =
-    accountProfile?.displayName ?? globalProfile?.displayName
-  const picture = accountProfile?.picture ?? globalProfile?.picture
+    accountProfile?.displayName ??
+    deviceProfile?.displayName ??
+    globalProfile?.displayName
+  const picture =
+    accountProfile?.picture ?? deviceProfile?.picture ?? globalProfile?.picture
   const memberProfile =
-    npub && (displayName || picture)
-      ? { displayName, picture }
-      : undefined
+    npub && (displayName || picture) ? { displayName, picture } : undefined
 
   const currentAlias =
     npub && account?.nostr?.npubAliases?.[npub]
@@ -91,10 +108,15 @@ export default function DeviceAliasPage() {
             picture: profile.picture
           }
         }
-        updateAccountNostr(accountId, {
+        const payload: Parameters<typeof updateAccountNostr>[1] = {
           npubProfiles: updated,
           lastUpdated: new Date()
-        })
+        }
+        if (npub === account.nostr.deviceNpub) {
+          payload.deviceDisplayName = profile.displayName
+          payload.devicePicture = profile.picture
+        }
+        updateAccountNostr(accountId, payload)
         toast.success(t('account.nostrSync.fetchKind0Success'))
       } else {
         toast.info(t('account.nostrSync.fetchKind0NotFound'))
@@ -119,11 +141,15 @@ export default function DeviceAliasPage() {
     if (!accountId || !account?.nostr || !npub) return
     const profiles = { ...(account.nostr.npubProfiles || {}) }
     delete profiles[npub]
-    updateAccountNostr(accountId, {
-      npubProfiles:
-        Object.keys(profiles).length > 0 ? profiles : undefined,
+    const payload: Parameters<typeof updateAccountNostr>[1] = {
+      npubProfiles: Object.keys(profiles).length > 0 ? profiles : undefined,
       lastUpdated: new Date()
-    })
+    }
+    if (npub === account.nostr.deviceNpub) {
+      payload.deviceDisplayName = undefined
+      payload.devicePicture = undefined
+    }
+    updateAccountNostr(accountId, payload)
     toast.success(t('account.nostrSync.clearKind0Success'))
   }
 
@@ -153,7 +179,7 @@ export default function DeviceAliasPage() {
       lastUpdated: new Date()
     })
 
-    toast.success('Alias saved')
+    toast.success(t('account.nostrSync.deviceAlias.aliasSaved'))
     router.back()
   }
 
@@ -170,13 +196,19 @@ export default function DeviceAliasPage() {
         ),
         lastUpdated: new Date()
       })
-      toast.success('Device distrusted')
+      toast.success(t('account.nostrSync.deviceDistrusted'))
     } else {
       updateAccountNostr(accountId, {
         trustedMemberDevices: [...account.nostr.trustedMemberDevices, npub],
         lastUpdated: new Date()
       })
-      toast.success('Device trusted')
+      clearProcessedEvents(accountId)
+      setLastDataExchangeEOSE(accountId, 0)
+      const current = useAccountsStore
+        .getState()
+        .accounts.find((a) => a.id === accountId)
+      if (current) restartSync(current, () => {})
+      toast.success(t('account.nostrSync.deviceTrusted'))
     }
   }
 
@@ -240,7 +272,9 @@ export default function DeviceAliasPage() {
                 variant="subtle"
                 label={t('account.nostrSync.clearKind0')}
                 onPress={clearKind0Profile}
-                disabled={!memberProfile?.displayName && !memberProfile?.picture}
+                disabled={
+                  !memberProfile?.displayName && !memberProfile?.picture
+                }
                 style={styles.saveClearButton}
               />
               <SSButton

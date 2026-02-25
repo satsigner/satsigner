@@ -2077,13 +2077,14 @@ function PreviewTransaction() {
                       }
                     }}
                   />
-                  {account?.nostr?.autoSync && txBuilderResult?.psbt?.base64 && (
-                    <SSButton
-                      variant="ghost"
-                      label={t('account.nostrSync.shareWithGroup')}
-                      onPress={handleShareWithNostrGroup}
-                    />
-                  )}
+                  {account?.nostr?.autoSync &&
+                    txBuilderResult?.psbt?.base64 && (
+                      <SSButton
+                        variant="ghost"
+                        label={t('account.nostrSync.shareWithGroup')}
+                        onPress={handleShareWithNostrGroup}
+                      />
+                    )}
                 </>
               ) : (
                 account.keys &&

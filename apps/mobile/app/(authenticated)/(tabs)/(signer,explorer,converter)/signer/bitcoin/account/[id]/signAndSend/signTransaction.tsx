@@ -356,14 +356,16 @@ export default function SignTransaction() {
                 handleBroadcastTransaction()
               }}
             />
-            {signed && account?.nostr?.autoSync && (psbt?.base64 ?? signedTx) && (
-              <SSButton
-                variant="ghost"
-                label={t('account.nostrSync.shareWithGroup')}
-                disabled={broadcasting}
-                onPress={handleShareWithNostrGroup}
-              />
-            )}
+            {signed &&
+              account?.nostr?.autoSync &&
+              (psbt?.base64 ?? signedTx) && (
+                <SSButton
+                  variant="ghost"
+                  label={t('account.nostrSync.shareWithGroup')}
+                  disabled={broadcasting}
+                  onPress={handleShareWithNostrGroup}
+                />
+              )}
           </SSVStack>
         </ScrollView>
       </SSMainLayout>

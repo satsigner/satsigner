@@ -5,12 +5,14 @@ import {
   useFocusEffect,
   useLocalSearchParams
 } from 'expo-router'
+import { nip19 } from 'nostr-tools'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Image,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   View
 } from 'react-native'
@@ -19,8 +21,10 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { NostrAPI } from '@/api/nostr'
 import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
+import SSIconWarning from '@/components/icons/SSIconWarning'
 import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
+import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
@@ -64,6 +68,12 @@ export default function NostrSync() {
     (state) => state.clearProcessedEvents
   )
   const setSyncing = useNostrStore((state) => state.setSyncing)
+  const setLastDataExchangeEOSE = useNostrStore(
+    (state) => state.setLastDataExchangeEOSE
+  )
+  const setLastProtocolEOSE = useNostrStore(
+    (state) => state.setLastProtocolEOSE
+  )
   const lastProtocolEOSE = useNostrStore((state) =>
     accountId ? state.lastProtocolEOSE[accountId] : undefined
   )
@@ -114,6 +124,8 @@ export default function NostrSync() {
   const [relayConnectionStatuses, setRelayConnectionStatuses] = useState<
     Record<string, 'connected' | 'connecting' | 'disconnected'>
   >({})
+  const [deletionModalVisible, setDeletionModalVisible] = useState(false)
+  const [clearCachesModalVisible, setClearCachesModalVisible] = useState(false)
 
   const previousRelaysRef = useRef<string[]>([])
 
@@ -199,23 +211,127 @@ export default function NostrSync() {
   )
 
   /**
-   * Clears all cached messages and processed events
+   * Full reset: stop sync, clear relays, DMs, Kind 0 data, and processed state.
    */
   const handleClearCaches = async () => {
-    if (!accountId || !account) return
+    if (!accountId || !account?.nostr) return
 
     try {
       setIsLoading(true)
+      setClearCachesModalVisible(false)
+      stopSync(accountId)
+      await clearStoredDMs(account)
+      updateAccountNostrCallback(accountId, {
+        autoSync: false,
+        dms: [],
+        relays: [],
+        npubProfiles: undefined,
+        npubAliases: undefined,
+        deviceDisplayName: undefined,
+        devicePicture: undefined,
+        trustedMemberDevices: [],
+        syncStart: new Date()
+      })
+      clearNostrState(accountId)
+      clearProcessedMessageIds(accountId)
+      clearProcessedEvents(accountId)
+      setSelectedMembers(new Set())
+      setSelectedRelays([])
+      setRelayConnectionStatuses({})
+      previousRelaysRef.current = []
+      toast.success(t('account.nostrSync.clearCachesSuccess'))
+    } catch {
+      toast.error('Failed to clear local Nostr data')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const eventCount = account?.nostr?.dms?.length ?? 0
+
+  function getDevicePubkeyHex(): string | null {
+    const npub = account?.nostr?.deviceNpub
+    if (!npub) return null
+    try {
+      const decoded = nip19.decode(npub)
+      if (decoded?.type !== 'npub' || !decoded.data) return null
+      const data = decoded.data
+      return (
+        typeof data === 'string'
+          ? data
+          : Buffer.from(data as Uint8Array).toString('hex')
+      ).toLowerCase()
+    } catch {
+      return null
+    }
+  }
+
+  async function handleBackupEvents() {
+    if (!account?.nostr) {
+      toast.error(t('account.nostrSync.backupError'))
+      return
+    }
+    try {
+      const payload = JSON.stringify(
+        {
+          exportedAt: new Date().toISOString(),
+          dms: account.nostr.dms ?? []
+        },
+        null,
+        2
+      )
+      await Share.share({
+        message: payload,
+        title: t('account.nostrSync.backupEvents')
+      })
+      toast.success(t('account.nostrSync.backupSuccess'))
+    } catch {
+      toast.error(t('account.nostrSync.backupError'))
+    }
+  }
+
+  async function handleRequestDeletion() {
+    if (
+      !accountId ||
+      !account?.nostr?.deviceNsec ||
+      !account.nostr.relays?.length
+    ) {
+      toast.error(t('account.nostrSync.deletionError'))
+      return
+    }
+    const deviceHex = getDevicePubkeyHex()
+    if (!deviceHex) {
+      toast.error(t('account.nostrSync.deletionError'))
+      return
+    }
+    const ourEventIds = (account.nostr.dms ?? [])
+      .filter(
+        (dm) =>
+          !dm.pending &&
+          dm.author &&
+          dm.author.toLowerCase() === deviceHex &&
+          typeof dm.id === 'string' &&
+          /^[a-f0-9]{64}$/i.test(dm.id)
+      )
+      .map((dm) => dm.id)
+    if (ourEventIds.length === 0) {
+      toast.info(t('account.nostrSync.noEventsToDelete'))
+      setDeletionModalVisible(false)
+      return
+    }
+    try {
+      setIsLoading(true)
+      const api = new NostrAPI(account.nostr.relays)
+      await api.requestDeletion(ourEventIds, account.nostr.deviceNsec)
       await clearStoredDMs(account)
       updateAccountNostrCallback(accountId, { dms: [] })
       clearNostrState(accountId)
       clearProcessedMessageIds(accountId)
       clearProcessedEvents(accountId)
-      setSelectedMembers(new Set())
-      await new Promise((resolve) => setTimeout(resolve, 100))
-      toast.success('Messages cleared successfully')
+      setDeletionModalVisible(false)
+      toast.success(t('account.nostrSync.deletionSuccess'))
     } catch {
-      toast.error('Failed to clear messages')
+      toast.error(t('account.nostrSync.deletionError'))
     } finally {
       setIsLoading(false)
     }
@@ -400,14 +516,23 @@ export default function NostrSync() {
           trustedMemberDevices: [...account.nostr.trustedMemberDevices, npub],
           lastUpdated: new Date()
         })
-
-        router.push({
-          pathname: `/signer/bitcoin/account/${accountId}/settings/nostr/device/[npub]`,
-          params: { npub }
-        })
+        clearProcessedEvents(accountId)
+        setLastDataExchangeEOSE(accountId, 0)
+        const current = useAccountsStore
+          .getState()
+          .accounts.find((a) => a.id === accountId)
+        if (current) restartSync(current, () => {})
       }
     },
-    [accountId, account?.nostr, selectedMembers, updateAccountNostrCallback]
+    [
+      accountId,
+      account?.nostr,
+      clearProcessedEvents,
+      restartSync,
+      selectedMembers,
+      setLastDataExchangeEOSE,
+      updateAccountNostrCallback
+    ]
   )
 
   // Navigation functions
@@ -485,6 +610,7 @@ export default function NostrSync() {
       .catch(() => {
         toast.error(t('account.nostrSync.errorLoadingCommonKeys'))
       })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run when common keys or account id change; omit full account to avoid re-run on ref change
   }, [
     accountId,
     account?.id,
@@ -599,22 +725,45 @@ export default function NostrSync() {
     }
   }, [displayDeviceNpub])
 
-  // Run when accountId, nostr presence, or relay list changes; read account from store to avoid full account in deps (prevents update cascade).
+  const hasNostr = !!account?.nostr
+  const relayCount = account?.nostr?.relays?.length ?? 0
   useEffect(() => {
     const acc = useAccountsStore
       .getState()
       .accounts.find((a) => a.id === accountId)
     if (acc) loadNostrAccountData(acc)
-  }, [
-    accountId,
-    !!account?.nostr,
-    account?.nostr?.relays?.length,
-    loadNostrAccountData
-  ])
+  }, [accountId, hasNostr, relayCount, loadNostrAccountData])
 
   // Restart sync whenever autoSync is ON and the relay list changes (additions,
   // removals, or swaps). Using a serialized relay string as the dep catches
   // same-length changes that .length alone would miss.
+  const handleLookForMoreMembers = useCallback(() => {
+    if (
+      !accountId ||
+      !account?.nostr?.autoSync ||
+      !account.nostr.relays?.length
+    )
+      return
+    setLastProtocolEOSE(accountId, 0)
+    const current = useAccountsStore
+      .getState()
+      .accounts.find((a) => a.id === accountId)
+    if (!current?.nostr) return
+    restartSync(current, (loading) => {
+      requestAnimationFrame(() => {
+        setIsSyncing(loading)
+        setSyncing(accountId, loading)
+      })
+    })
+  }, [
+    accountId,
+    account?.nostr?.autoSync,
+    account?.nostr?.relays?.length,
+    setLastProtocolEOSE,
+    setSyncing,
+    restartSync
+  ])
+
   const relayKey = (account?.nostr?.relays ?? []).slice().sort().join(',')
   useEffect(() => {
     if (!account?.nostr?.autoSync || !account?.nostr?.relays?.length) return
@@ -631,7 +780,14 @@ export default function NostrSync() {
         setSyncing(accountId, loading)
       })
     })
-  }, [accountId, account?.nostr?.autoSync, relayKey])
+  }, [
+    accountId,
+    account?.nostr?.autoSync,
+    account?.nostr?.relays?.length,
+    relayKey,
+    restartSync,
+    setSyncing
+  ])
 
   if (!accountId || !account) return <Redirect href="/" />
 
@@ -904,6 +1060,18 @@ export default function NostrSync() {
                   {t('account.nostrSync.noMembers')}
                 </SSText>
               )}
+              {account?.nostr?.autoSync &&
+                selectedRelays.length > 0 &&
+                account.nostr.deviceNsec &&
+                account.nostr.deviceNpub && (
+                  <SSButton
+                    label={t('account.nostrSync.lookForMoreMembers')}
+                    onPress={handleLookForMoreMembers}
+                    disabled={isSyncing}
+                    variant="subtle"
+                    style={{ marginTop: 8 }}
+                  />
+                )}
             </SSVStack>
             {selectedRelays.length > 0 && (
               <SSVStack gap="sm">
@@ -961,15 +1129,94 @@ export default function NostrSync() {
           </SSVStack>
           <SSHStack gap="xs" style={{ marginTop: 30 }}>
             <SSButton
-              label="Clear Caches"
-              onPress={handleClearCaches}
+              label={t('account.nostrSync.clearCaches')}
+              onPress={() => setClearCachesModalVisible(true)}
               disabled={isLoading}
               variant="subtle"
               style={{ flex: 1 }}
             />
           </SSHStack>
+          <SSButton
+            label={t('account.nostrSync.requestToDeletion')}
+            onPress={() => setDeletionModalVisible(true)}
+            disabled={isLoading || isSyncing}
+            variant="subtle"
+            style={{ marginTop: 12, marginBottom: 20 }}
+          />
         </SSVStack>
       </ScrollView>
+      <SSModal
+        visible={deletionModalVisible}
+        onClose={() => setDeletionModalVisible(false)}
+        label={t('common.cancel')}
+        closeButtonVariant="ghost"
+        fullOpacity
+      >
+        <SSVStack gap="lg" style={styles.deletionModalContent}>
+          <SSText center>
+            {eventCount === 0
+              ? t('account.nostrSync.deletionModalZeroEvents')
+              : t('account.nostrSync.deletionModalMessage', {
+                  count: eventCount
+                })}
+          </SSText>
+          <SSVStack gap="xs" style={styles.deletionModalWarningRow}>
+            <SSIconWarning
+              height={20}
+              width={20}
+              fill="transparent"
+              stroke={Colors.gray[400]}
+            />
+            <SSText center color="muted">
+              {t('account.nostrSync.deletionModalRelayWarning')}
+            </SSText>
+          </SSVStack>
+          <SSText center weight="bold">
+            {t('account.nostrSync.deletionModalActionsPrompt')}
+          </SSText>
+          <SSVStack gap="sm">
+            <SSButton
+              label={t('account.nostrSync.backupEvents')}
+              onPress={handleBackupEvents}
+              variant="secondary"
+              disabled={isLoading}
+            />
+            <SSButton
+              label={t('account.nostrSync.requestDeletionConfirm')}
+              onPress={handleRequestDeletion}
+              variant="danger"
+              disabled={isLoading}
+            />
+          </SSVStack>
+        </SSVStack>
+      </SSModal>
+      <SSModal
+        visible={clearCachesModalVisible}
+        onClose={() => setClearCachesModalVisible(false)}
+        label={t('common.cancel')}
+        closeButtonVariant="ghost"
+        fullOpacity
+      >
+        <SSVStack gap="lg" style={styles.deletionModalContent}>
+          <SSVStack gap="xs" style={styles.deletionModalWarningRow}>
+            <SSIconWarning
+              height={20}
+              width={20}
+              fill="transparent"
+              stroke={Colors.gray[400]}
+            />
+            <SSText center color="muted">
+              {t('account.nostrSync.clearCachesModalMessage')}
+            </SSText>
+          </SSVStack>
+          <SSButton
+            label={t('account.nostrSync.clearCachesConfirm')}
+            onPress={handleClearCaches}
+            variant="danger"
+            disabled={isLoading}
+          />
+        </SSVStack>
+      </SSModal>
     </SSMainLayout>
   )
 }
@@ -1041,5 +1288,11 @@ const styles = StyleSheet.create({
   memberNpubText: {
     letterSpacing: 1,
     color: Colors.gray[400]
+  },
+  deletionModalContent: {
+    paddingVertical: 8
+  },
+  deletionModalWarningRow: {
+    alignItems: 'center'
   }
 })

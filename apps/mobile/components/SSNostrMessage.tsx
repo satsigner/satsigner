@@ -1,14 +1,16 @@
 import { router } from 'expo-router'
 import { Image, Pressable, StyleSheet, View } from 'react-native'
 
-import { Colors } from '@/styles'
-
 import SSText from '@/components/SSText'
 import SSTransactionDetails from '@/components/SSTransactionDetails'
-import { useNostrMessage } from '@/hooks/useNostrMessage'
+import {
+  type AuthorDisplayInfo,
+  useNostrMessage
+} from '@/hooks/useNostrMessage'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
 
@@ -16,10 +18,7 @@ type SSNostrMessageProps = {
   item: NostrDM
   account: Account | undefined
   accounts: Account[]
-  formattedNpubs: Map<
-    string,
-    import('@/hooks/useNostrMessage').AuthorDisplayInfo
-  >
+  formattedNpubs: Map<string, AuthorDisplayInfo>
   visibleComponents: Map<string, { sankey: boolean; status: boolean }>
   onToggleVisibility: (msgId: string, component: 'sankey' | 'status') => void
   onGoToSignFlow: (messageContent: string) => void
@@ -97,52 +96,52 @@ function SSNostrMessage({
               />
             )}
             <SSVStack gap="xxs" style={styles.authorBlock}>
-            <SSHStack gap="xxs" style={{ alignItems: 'center' }}>
-              {authorDisplayName.displayName ? (
-                <>
-                  <SSText size="sm" style={styles.authorName}>
-                    {authorDisplayName.displayName}
-                  </SSText>
-                  {authorDisplayName.alias ? (
-                    <SSText size="sm" color="muted">
-                      ({authorDisplayName.alias})
+              <SSHStack gap="xxs" style={{ alignItems: 'center' }}>
+                {authorDisplayName.displayName ? (
+                  <>
+                    <SSText size="sm" style={styles.authorName}>
+                      {authorDisplayName.displayName}
                     </SSText>
-                  ) : null}
-                </>
-              ) : authorDisplayName.alias ? (
-                <SSText size="sm" style={styles.authorName}>
-                  {authorDisplayName.alias}
-                </SSText>
-              ) : (
-                <SSText size="sm" color="muted">
-                  {authorDisplayName.npubShort}
-                </SSText>
-              )}
-              {isDeviceMessage && (
-                <SSText size="sm" color="muted">
-                  {t('account.nostrSync.devicesGroupChat.youSuffix')}
-                </SSText>
-              )}
-            </SSHStack>
-            {(authorDisplayName.displayName || authorDisplayName.alias) && (
-              <SSHStack
-                gap="xxs"
-                style={[styles.npubRow, { alignItems: 'center' }]}
-              >
-                {authorDisplayName.picture ? (
-                  <View
-                    style={[
-                      styles.authorIndicatorSmall,
-                      { backgroundColor: authorDisplayName.color }
-                    ]}
-                  />
-                ) : null}
-                <SSText size="xs" color="muted">
-                  {authorDisplayName.npubShort}
-                </SSText>
+                    {authorDisplayName.alias ? (
+                      <SSText size="sm" color="muted">
+                        ({authorDisplayName.alias})
+                      </SSText>
+                    ) : null}
+                  </>
+                ) : authorDisplayName.alias ? (
+                  <SSText size="sm" style={styles.authorName}>
+                    {authorDisplayName.alias}
+                  </SSText>
+                ) : (
+                  <SSText size="sm" color="muted">
+                    {authorDisplayName.npubShort}
+                  </SSText>
+                )}
+                {isDeviceMessage && (
+                  <SSText size="sm" color="muted">
+                    {t('account.nostrSync.devicesGroupChat.youSuffix')}
+                  </SSText>
+                )}
               </SSHStack>
-            )}
-          </SSVStack>
+              {(authorDisplayName.displayName || authorDisplayName.alias) && (
+                <SSHStack
+                  gap="xxs"
+                  style={[styles.npubRow, { alignItems: 'center' }]}
+                >
+                  {authorDisplayName.picture ? (
+                    <View
+                      style={[
+                        styles.authorIndicatorSmall,
+                        { backgroundColor: authorDisplayName.color }
+                      ]}
+                    />
+                  ) : null}
+                  <SSText size="xs" color="muted">
+                    {authorDisplayName.npubShort}
+                  </SSText>
+                </SSHStack>
+              )}
+            </SSVStack>
           </SSHStack>
         </Pressable>
         <SSHStack gap="xs" style={{ alignItems: 'center' }}>

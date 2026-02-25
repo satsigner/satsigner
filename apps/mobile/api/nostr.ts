@@ -14,8 +14,12 @@ import { randomKey } from '@/utils/crypto'
 const MAX_PROCESSED_RAW_IDS = 5000
 const MAX_QUEUE_SIZE = 300
 const PROCESSING_INTERVAL_MS = 350
-/** Request enough kind 1059 events to discover all device announcements (members). Relays often default to ~100. */
-export const PROTOCOL_SUBSCRIPTION_LIMIT = 1500
+/** Request enough kind 1059 events to discover all device announcements (members). Relays often default to ~100.
+ *  Use a high limit because relay event order is not guaranteed (some return oldest-first); otherwise we can
+ *  miss recent announcements when the relay returns oldest events first and we hit the limit. */
+export const PROTOCOL_SUBSCRIPTION_LIMIT = 5000
+/** When doing a full rescan (since=0), request more events to reduce chance of missing new announcements. */
+export const PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN = 10000
 
 export class NostrAPI {
   private ndk: NDK | null = null
@@ -144,29 +148,13 @@ export class NostrAPI {
       authors: [hexPubkey],
       limit: 10
     }
-    const poolRelays = this.ndk.pool
-      ? Array.from(this.ndk.pool.relays.keys())
-      : []
-    console.log('[fetchKind0] relay URLs (config):', this.relays)
-    console.log('[fetchKind0] relay URLs (pool):', poolRelays)
-    console.log('[fetchKind0] relay query:', JSON.stringify(filter, null, 2))
-
     const FETCH_KIND0_TIMEOUT_MS = 15000
     const events = await Promise.race([
       this.ndk.fetchEvents(filter, { groupable: false }),
       new Promise<Set<NDKEvent>>((resolve) => {
-        setTimeout(() => {
-          console.log(
-            '[fetchKind0] timeout after',
-            FETCH_KIND0_TIMEOUT_MS,
-            'ms'
-          )
-          resolve(new Set())
-        }, FETCH_KIND0_TIMEOUT_MS)
+        setTimeout(() => resolve(new Set()), FETCH_KIND0_TIMEOUT_MS)
       })
     ])
-
-    console.log('[fetchKind0] events received:', events.size)
 
     const event =
       events.size === 0
@@ -409,6 +397,37 @@ export class NostrAPI {
 
   // 20 second timeout per relay for publish operations
   private static readonly PUBLISH_TIMEOUT_MS = 20000
+
+  /**
+   * Request deletion of events from relays (NIP-09). Sends a kind 5 event.
+   * Only events authored by the signer can be deleted by relays.
+   * eventIds should be 64-char hex Nostr event ids.
+   */
+  async requestDeletion(eventIds: string[], deviceNsec: string): Promise<void> {
+    const hexIds = eventIds.filter(
+      (id) => typeof id === 'string' && /^[a-f0-9]{64}$/i.test(id)
+    )
+    if (hexIds.length === 0) return
+
+    const decoded = nip19.decode(deviceNsec)
+    if (!decoded?.data) throw new Error('Invalid nsec')
+    const secretKey = decoded.data as Uint8Array
+    const signer = new NDKPrivateKeySigner(secretKey)
+
+    await this.connect()
+    if (!this.ndk) throw new Error('Failed to connect to relays')
+
+    const tempNdk = new NDK({ explicitRelayUrls: this.relays })
+    tempNdk.signer = signer
+    const event = new NDKEvent(tempNdk, {
+      kind: 5,
+      content: '',
+      tags: hexIds.map((id) => ['e', id])
+    })
+    await event.sign(signer)
+    event.ndk = this.ndk
+    await this.publishEvent(event)
+  }
 
   async publishEvent(event: NDKEvent): Promise<void> {
     if (!this.ndk) {

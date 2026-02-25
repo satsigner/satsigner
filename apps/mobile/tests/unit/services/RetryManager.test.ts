@@ -1,7 +1,7 @@
 import {
   calculateRetryDelay,
-  RetryManager,
-  DEFAULT_RETRY_CONFIG
+  DEFAULT_RETRY_CONFIG,
+  RetryManager
 } from '@/services/nostr/RetryManager'
 
 describe('calculateRetryDelay', () => {

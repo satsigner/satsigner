@@ -46,9 +46,8 @@ function useNostrSync() {
   const startSync = useCallback(
     (account: Account, onLoadingChange?: (loading: boolean) => void) => {
       // Register the message processor for this account
-      nostrSyncService.setMessageProcessor(
-        account.id,
-        (msgs) => messages.processEventBatch(account, msgs)
+      nostrSyncService.setMessageProcessor(account.id, (msgs) =>
+        messages.processEventBatch(account, msgs)
       )
       // Fire-and-forget - returns immediately
       nostrSyncService.startSync(account, onLoadingChange)
@@ -63,9 +62,8 @@ function useNostrSync() {
   const fetchOnce = useCallback(
     (account: Account, onLoadingChange?: (loading: boolean) => void) => {
       // Register the message processor for this account
-      nostrSyncService.setMessageProcessor(
-        account.id,
-        (msgs) => messages.processEventBatch(account, msgs)
+      nostrSyncService.setMessageProcessor(account.id, (msgs) =>
+        messages.processEventBatch(account, msgs)
       )
       // Fire-and-forget - returns immediately
       nostrSyncService.fetchOnce(account, onLoadingChange)
@@ -87,9 +85,8 @@ function useNostrSync() {
    */
   const restartSync = useCallback(
     (account: Account, onLoadingChange?: (loading: boolean) => void) => {
-      nostrSyncService.setMessageProcessor(
-        account.id,
-        (msgs) => messages.processEventBatch(account, msgs)
+      nostrSyncService.setMessageProcessor(account.id, (msgs) =>
+        messages.processEventBatch(account, msgs)
       )
       nostrSyncService.restartSync(account, onLoadingChange)
     },
@@ -159,7 +156,8 @@ function useNostrSync() {
   const nostrSyncSubscriptions = subscriptionManager.subscribe
   const cleanupSubscriptions = subscriptionManager.cleanup
   const protocolSubscription = subscriptionManager.createProtocolSubscription
-  const dataExchangeSubscription = subscriptionManager.createDataExchangeSubscription
+  const dataExchangeSubscription =
+    subscriptionManager.createDataExchangeSubscription
   const getActiveSubscriptions = subscriptionManager.getActiveSubscriptions
 
   const sendLabelsToNostr = useCallback(

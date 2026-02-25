@@ -63,14 +63,22 @@ function NostrKeys() {
 
   const [deviceColor, setDeviceColor] = useState('#404040')
   const [qrModal, setQrModal] = useState<QrModalContent | null>(null)
+  const deviceNpubForProfile = account?.nostr?.deviceNpub ?? derivedNpub
   const [kind0Profile, setKind0Profile] = useState<NostrKind0Profile | null>(
-    () =>
-      account?.nostr?.deviceDisplayName || account?.nostr?.devicePicture
-        ? {
-            displayName: account.nostr.deviceDisplayName,
-            picture: account.nostr.devicePicture
-          }
+    () => {
+      if (account?.nostr?.deviceDisplayName || account?.nostr?.devicePicture) {
+        return {
+          displayName: account.nostr.deviceDisplayName,
+          picture: account.nostr.devicePicture
+        }
+      }
+      const fromNpub =
+        deviceNpubForProfile &&
+        account?.nostr?.npubProfiles?.[deviceNpubForProfile]
+      return fromNpub && (fromNpub.displayName || fromNpub.picture)
+        ? { displayName: fromNpub.displayName, picture: fromNpub.picture }
         : null
+    }
   )
   const [loadingFetchKind0, setLoadingFetchKind0] = useState(false)
 
@@ -88,8 +96,24 @@ function NostrKeys() {
         displayName: account.nostr.deviceDisplayName,
         picture: account.nostr.devicePicture
       })
+    } else if (
+      deviceNpubForProfile &&
+      account?.nostr?.npubProfiles?.[deviceNpubForProfile]
+    ) {
+      const p = account.nostr.npubProfiles[deviceNpubForProfile]
+      if (p?.displayName || p?.picture) {
+        setKind0Profile({
+          displayName: p.displayName,
+          picture: p.picture
+        })
+      }
     }
-  }, [account?.nostr?.deviceDisplayName, account?.nostr?.devicePicture])
+  }, [
+    account?.nostr?.deviceDisplayName,
+    account?.nostr?.devicePicture,
+    account?.nostr?.npubProfiles,
+    deviceNpubForProfile
+  ])
 
   async function fetchKind0Profile() {
     if (loadingFetchKind0) return
@@ -115,6 +139,19 @@ function NostrKeys() {
       const profile = await api.fetchKind0(derivedNpub)
       if (profile && (profile.displayName || profile.picture)) {
         setKind0Profile(profile)
+        const npubProfiles = {
+          ...(account.nostr.npubProfiles || {}),
+          [derivedNpub]: {
+            displayName: profile.displayName,
+            picture: profile.picture
+          }
+        }
+        updateAccountNostr(accountId, {
+          deviceDisplayName: profile.displayName,
+          devicePicture: profile.picture,
+          npubProfiles,
+          lastUpdated: new Date()
+        })
         toast.success(t('account.nostrSync.fetchKind0Success'))
       } else {
         toast.info(t('account.nostrSync.fetchKind0NotFound'))

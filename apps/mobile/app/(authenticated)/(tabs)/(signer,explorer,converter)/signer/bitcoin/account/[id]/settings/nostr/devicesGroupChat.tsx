@@ -1,10 +1,16 @@
-import { Redirect, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router'
+import {
+  Redirect,
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams
+} from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSNostrMessage from '@/components/SSNostrMessage'
@@ -23,7 +29,6 @@ import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
 import { type NostrDM } from '@/types/models/Nostr'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { NostrAPI } from '@/api/nostr'
 import { parseNostrTransaction } from '@/utils/nostr'
 import { type TransactionData } from '@/utils/psbt'
 
@@ -64,14 +69,15 @@ export default function DevicesGroupChat() {
   const { sendDM, sendPSBT } = useNostrPublish()
   const { handleGoToSignFlow } = useNostrSignFlow()
 
-  const [accounts, account, updateAccountNostr, markDmsAsRead] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts,
-      state.accounts.find((acc) => acc.id === accountId),
-      state.updateAccountNostr,
-      state.markDmsAsRead
-    ])
-  )
+  const [accounts, account, updateAccountNostr, markDmsAsRead] =
+    useAccountsStore(
+      useShallow((state) => [
+        state.accounts,
+        state.accounts.find((acc) => acc.id === accountId),
+        state.updateAccountNostr,
+        state.markDmsAsRead
+      ])
+    )
 
   useFocusEffect(
     useCallback(() => {
@@ -212,7 +218,9 @@ export default function DevicesGroupChat() {
         const current = useAccountsStore
           .getState()
           .accounts.find((a) => a.id === accountId)
-        const dms = (current?.nostr?.dms ?? []).filter((m) => m.id !== pendingId)
+        const dms = (current?.nostr?.dms ?? []).filter(
+          (m) => m.id !== pendingId
+        )
         useAccountsStore.getState().updateAccountNostr(accountId, { dms })
       }
       setMessageInput(trimmed)
@@ -290,7 +298,9 @@ export default function DevicesGroupChat() {
         npub = ''
       }
       const profile = npub ? profiles[npub] : undefined
-      const accountProfile = npub ? account?.nostr?.npubProfiles?.[npub] : undefined
+      const accountProfile = npub
+        ? account?.nostr?.npubProfiles?.[npub]
+        : undefined
       const isCurrentDevice = npub === account?.nostr?.deviceNpub
       const deviceDisplayName = isCurrentDevice
         ? account?.nostr?.deviceDisplayName
@@ -299,7 +309,9 @@ export default function DevicesGroupChat() {
         ? account?.nostr?.devicePicture
         : undefined
       const alias = npub ? (aliases[npub] ?? '').trim() : ''
-      const npubShort = npub ? formatNpubText(msg.author) : msg.author.slice(0, 8)
+      const npubShort = npub
+        ? formatNpubText(msg.author)
+        : msg.author.slice(0, 8)
       newFormattedNpubs.set(msg.author, {
         displayName:
           profile?.displayName ??
