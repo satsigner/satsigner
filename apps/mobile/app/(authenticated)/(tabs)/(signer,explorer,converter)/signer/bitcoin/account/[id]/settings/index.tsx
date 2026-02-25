@@ -327,6 +327,18 @@ export default function AccountSettings() {
         )}
 
         <SSVStack>
+          <SSButton
+            style={styles.button}
+            label={t('account.nostrSync.sync')}
+            variant="outline"
+            onPress={() =>
+              router.navigate(
+                `/signer/bitcoin/account/${currentAccountId}/settings/nostr`
+              )
+            }
+          />
+        </SSVStack>
+        <SSVStack>
           <SSHStack>
             <SSButton
               style={styles.button}
@@ -380,15 +392,6 @@ export default function AccountSettings() {
               }
             />
           </SSHStack>
-          <SSButton
-            style={styles.button}
-            label={t('account.nostrSync.sync')}
-            onPress={() =>
-              router.navigate(
-                `/signer/bitcoin/account/${currentAccountId}/settings/nostr`
-              )
-            }
-          />
         </SSVStack>
 
         <SSVStack style={styles.actionsContainer}>
