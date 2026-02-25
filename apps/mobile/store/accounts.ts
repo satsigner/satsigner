@@ -222,8 +222,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
         if (!account) return undefined
 
-        let updatedAccount = { ...account }
-
         const addrIndex = account.addresses.findIndex(
           (address) => address.address === addr
         )
@@ -289,11 +287,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               return newTx
             })
 
-            updatedAccount = { ...state.accounts[index] }
           })
         )
 
-        return updatedAccount
+        return get().accounts.find((a) => a.id === accountId)
       },
       setTxLabel: (accountId, txid, label) => {
         const account = get().accounts.find(
@@ -301,8 +298,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
 
         if (!account) return undefined
-
-        let updatedAccount = { ...account }
 
         const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
 
@@ -400,11 +395,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               }
             )
 
-            updatedAccount = { ...state.accounts[index] }
           })
         )
 
-        return updatedAccount
+        return get().accounts.find((a) => a.id === accountId)
       },
       setUtxoLabel: (accountId, txid, vout, label) => {
         const account = get().accounts.find(
@@ -412,8 +406,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
 
         if (!account) return undefined
-
-        let updatedAccount = { ...account }
 
         const txIndex = account.transactions.findIndex((tx) => {
           return tx.id === txid
@@ -501,11 +493,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               }
             }
 
-            updatedAccount = { ...state.accounts[index] }
           })
         )
 
-        return updatedAccount
+        return get().accounts.find((a) => a.id === accountId)
       },
       importLabels: (accountId: string, labels: Label[]) => {
         const account = get().accounts.find(
