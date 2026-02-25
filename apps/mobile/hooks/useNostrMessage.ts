@@ -6,10 +6,18 @@ import { type Account } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
 import { parseNostrTransaction } from '@/utils/nostr'
 
+export type AuthorDisplayInfo = {
+  displayName?: string
+  alias?: string
+  npubShort: string
+  color: string
+  picture?: string
+}
+
 type UseNostrMessageParams = {
   msg: NostrDM
   account: Account | undefined
-  formattedNpubs: Map<string, { text: string; color: string }>
+  formattedNpubs: Map<string, AuthorDisplayInfo>
 }
 
 export function useNostrMessage({
@@ -29,7 +37,7 @@ export function useNostrMessage({
 
       const isDeviceMessage = msgAuthorNpub === account?.nostr?.deviceNpub
       const authorDisplayName = formattedNpubs.get(msg.author) || {
-        text: `${msgAuthorNpub.slice(0, 12)}...${msgAuthorNpub.slice(-4)}`,
+        npubShort: `${msgAuthorNpub.slice(0, 12)}...${msgAuthorNpub.slice(-4)}`,
         color: '#404040'
       }
 
@@ -55,6 +63,7 @@ export function useNostrMessage({
       )
 
       return {
+        authorNpub: msgAuthorNpub,
         isDeviceMessage,
         authorDisplayName,
         messageContent,
@@ -65,8 +74,9 @@ export function useNostrMessage({
       }
     } catch (error) {
       return {
+        authorNpub: '',
         isDeviceMessage: false,
-        authorDisplayName: { text: '', color: '' },
+        authorDisplayName: { npubShort: '', color: '' },
         messageContent: '',
         transactionData: null,
         hasSignFlow: false,

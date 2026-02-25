@@ -115,24 +115,65 @@ export class NostrAPI {
   /**
    * Fetches kind 0 (metadata) event for the given npub from relays.
    * Returns display name (name) and picture URL if available.
+   * npub must decode to a 64-char hex pubkey (not a Bitcoin address or other format).
    */
   async fetchKind0(npub: string): Promise<NostrKind0Profile | null> {
     const decoded = nip19.decode(npub)
     if (!decoded || decoded.type !== 'npub') {
       return null
     }
-    const hexPubkey =
+    const rawHex =
       typeof decoded.data === 'string'
         ? decoded.data
         : Buffer.from(decoded.data as Uint8Array).toString('hex')
+    const hexPubkey = (rawHex ?? '').toLowerCase().replace(/^0x/, '')
+
+    if (
+      !hexPubkey ||
+      !/^[0-9a-f]+$/.test(hexPubkey) ||
+      (hexPubkey.length !== 64 && hexPubkey.length !== 65)
+    ) {
+      return null
+    }
 
     await this.connect()
     if (!this.ndk) return null
 
-    const event = await this.ndk.fetchEvent({
+    const filter = {
       kinds: [0 as NDKKind],
-      authors: [hexPubkey]
-    })
+      authors: [hexPubkey],
+      limit: 10
+    }
+    const poolRelays = this.ndk.pool
+      ? Array.from(this.ndk.pool.relays.keys())
+      : []
+    console.log('[fetchKind0] relay URLs (config):', this.relays)
+    console.log('[fetchKind0] relay URLs (pool):', poolRelays)
+    console.log('[fetchKind0] relay query:', JSON.stringify(filter, null, 2))
+
+    const FETCH_KIND0_TIMEOUT_MS = 15000
+    const events = await Promise.race([
+      this.ndk.fetchEvents(filter, { groupable: false }),
+      new Promise<Set<NDKEvent>>((resolve) => {
+        setTimeout(() => {
+          console.log(
+            '[fetchKind0] timeout after',
+            FETCH_KIND0_TIMEOUT_MS,
+            'ms'
+          )
+          resolve(new Set())
+        }, FETCH_KIND0_TIMEOUT_MS)
+      })
+    ])
+
+    console.log('[fetchKind0] events received:', events.size)
+
+    const event =
+      events.size === 0
+        ? null
+        : Array.from(events).sort(
+            (a, b) => (b.created_at ?? 0) - (a.created_at ?? 0)
+          )[0]
 
     if (!event?.content) return null
 
@@ -143,7 +184,9 @@ export class NostrAPI {
           ? content.name
           : typeof content.display_name === 'string'
             ? content.display_name
-            : undefined
+            : typeof content.username === 'string'
+              ? content.username
+              : undefined
       const picture =
         typeof content.picture === 'string' ? content.picture : undefined
       if (!displayName && !picture) return null

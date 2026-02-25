@@ -13,6 +13,7 @@ type Member = {
 
 type NostrProfile = {
   displayName?: string
+  picture?: string
 }
 
 // Object-based storage for O(1) lookups (instead of arrays which require O(n) includes())
