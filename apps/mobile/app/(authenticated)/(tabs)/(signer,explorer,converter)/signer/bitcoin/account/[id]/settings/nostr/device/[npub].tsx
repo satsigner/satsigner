@@ -41,9 +41,17 @@ export default function DeviceAliasPage() {
     })
   )
 
+  const globalProfile = useNostrStore(
+    useShallow((state) => (npub ? state.profiles[npub] : undefined))
+  )
+
+  const accountProfile = npub ? account?.nostr?.npubProfiles?.[npub] : undefined
+  const displayName =
+    accountProfile?.displayName ?? globalProfile?.displayName
+  const picture = accountProfile?.picture ?? globalProfile?.picture
   const memberProfile =
-    npub && account?.nostr?.npubProfiles?.[npub]
-      ? account.nostr.npubProfiles[npub]
+    npub && (displayName || picture)
+      ? { displayName, picture }
       : undefined
 
   const currentAlias =
@@ -107,6 +115,18 @@ export default function DeviceAliasPage() {
     }
   }
 
+  function clearKind0Profile() {
+    if (!accountId || !account?.nostr || !npub) return
+    const profiles = { ...(account.nostr.npubProfiles || {}) }
+    delete profiles[npub]
+    updateAccountNostr(accountId, {
+      npubProfiles:
+        Object.keys(profiles).length > 0 ? profiles : undefined,
+      lastUpdated: new Date()
+    })
+    toast.success(t('account.nostrSync.clearKind0Success'))
+  }
+
   useEffect(() => {
     const aliasValue =
       npub && account?.nostr?.npubAliases?.[npub]
@@ -137,21 +157,27 @@ export default function DeviceAliasPage() {
     router.back()
   }
 
-  function handleRemoveAlias() {
+  const isTrusted =
+    account?.nostr?.trustedMemberDevices?.includes(npub ?? '') ?? false
+
+  function handleTrustToggle() {
     if (!accountId || !account?.nostr || !npub) return
 
-    const updatedAliases = { ...(account.nostr.npubAliases || {}) }
-    delete updatedAliases[npub]
-
-    updateAccountNostr(accountId, {
-      npubAliases:
-        Object.keys(updatedAliases).length > 0 ? updatedAliases : undefined,
-      lastUpdated: new Date()
-    })
-
-    setAlias('')
-    toast.success('Alias removed')
-    router.back()
+    if (isTrusted) {
+      updateAccountNostr(accountId, {
+        trustedMemberDevices: account.nostr.trustedMemberDevices.filter(
+          (m) => m !== npub
+        ),
+        lastUpdated: new Date()
+      })
+      toast.success('Device distrusted')
+    } else {
+      updateAccountNostr(accountId, {
+        trustedMemberDevices: [...account.nostr.trustedMemberDevices, npub],
+        lastUpdated: new Date()
+      })
+      toast.success('Device trusted')
+    }
   }
 
   if (!accountId || !account || !npub) return <Redirect href="/" />
@@ -209,11 +235,21 @@ export default function DeviceAliasPage() {
                 </SSText>
               </SSTextClipboard>
             </SSHStack>
-            <SSButton
-              label={t('account.nostrSync.fetchKind0')}
-              onPress={fetchKind0Profile}
-              disabled={loadingFetchKind0}
-            />
+            <SSHStack gap="md" style={styles.kind0Row}>
+              <SSButton
+                variant="subtle"
+                label={t('account.nostrSync.clearKind0')}
+                onPress={clearKind0Profile}
+                disabled={!memberProfile?.displayName && !memberProfile?.picture}
+                style={styles.saveClearButton}
+              />
+              <SSButton
+                label={t('account.nostrSync.fetchKind0')}
+                onPress={fetchKind0Profile}
+                disabled={loadingFetchKind0}
+                style={styles.saveClearButton}
+              />
+            </SSHStack>
             {loadingFetchKind0 && (
               <SSHStack gap="sm" style={styles.loadingRow}>
                 <ActivityIndicator size="small" color="#fff" />
@@ -233,17 +269,33 @@ export default function DeviceAliasPage() {
               placeholder={t('account.nostrSync.deviceAlias.aliasPlaceholder')}
             />
           </SSVStack>
-          {alias.trim() && (
+          <SSHStack gap="md" style={styles.saveRemoveRow}>
             <SSButton
-              variant="danger"
-              label={t('account.nostrSync.deviceAlias.removeAlias')}
-              onPress={handleRemoveAlias}
+              variant="subtle"
+              label={t('common.clear')}
+              onPress={() => setAlias('')}
+              disabled={!alias?.trim()}
+              style={styles.saveClearButton}
             />
-          )}
+            <SSButton
+              label={t('account.nostrSync.save')}
+              onPress={handleSave}
+              variant="secondary"
+              disabled={alias.trim() === (currentAlias ?? '').trim()}
+              style={styles.saveClearButton}
+            />
+          </SSHStack>
           <SSButton
-            label={t('account.nostrSync.save')}
-            onPress={handleSave}
-            variant="secondary"
+            label={isTrusted ? 'Distrust' : 'Trust'}
+            onPress={handleTrustToggle}
+            variant={isTrusted ? 'danger' : 'outline'}
+            style={styles.trustButton}
+          />
+          <SSButton
+            variant="ghost"
+            label={t('common.cancel')}
+            onPress={() => router.back()}
+            style={styles.cancelButton}
           />
         </SSVStack>
       </SSVStack>
@@ -286,5 +338,21 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     alignItems: 'center',
     justifyContent: 'center'
+  },
+  trustButton: {
+    alignSelf: 'stretch'
+  },
+  kind0Row: {
+    alignSelf: 'stretch'
+  },
+  saveRemoveRow: {
+    alignSelf: 'stretch'
+  },
+  saveClearButton: {
+    flex: 1
+  },
+  cancelButton: {
+    alignSelf: 'stretch',
+    marginTop: 8
   }
 })

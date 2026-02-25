@@ -186,17 +186,41 @@ function NostrKeys() {
 
   function saveChanges() {
     if (!accountId || !account?.nostr || !derivedNpub) return
-    updateAccountNostr(accountId, {
+    const nsecChanged = account.nostr.deviceNsec !== deviceNsec
+    const updates: Parameters<typeof updateAccountNostr>[1] = {
       ...account.nostr,
       deviceNsec,
       deviceNpub: derivedNpub,
-      ...(kind0Profile && {
-        deviceDisplayName: kind0Profile.displayName,
-        devicePicture: kind0Profile.picture
-      }),
+      lastUpdated: new Date()
+    }
+    if (nsecChanged) {
+      updates.deviceDisplayName = undefined
+      updates.devicePicture = undefined
+      const profiles = { ...(account.nostr.npubProfiles || {}) }
+      if (account.nostr.deviceNpub) delete profiles[account.nostr.deviceNpub]
+      if (derivedNpub) delete profiles[derivedNpub]
+      updates.npubProfiles =
+        Object.keys(profiles).length > 0 ? profiles : undefined
+    } else if (kind0Profile) {
+      updates.deviceDisplayName = kind0Profile.displayName
+      updates.devicePicture = kind0Profile.picture
+    }
+    updateAccountNostr(accountId, updates)
+    router.back()
+  }
+
+  function clearKind0Profile() {
+    if (!accountId || !account?.nostr) return
+    setKind0Profile(null)
+    const profiles = { ...(account.nostr.npubProfiles || {}) }
+    if (derivedNpub) delete profiles[derivedNpub]
+    updateAccountNostr(accountId, {
+      deviceDisplayName: undefined,
+      devicePicture: undefined,
+      npubProfiles: Object.keys(profiles).length > 0 ? profiles : undefined,
       lastUpdated: new Date()
     })
-    router.back()
+    toast.success(t('account.nostrSync.clearKind0Success'))
   }
 
   if (!accountId || !account) return <Redirect href="/" />
@@ -333,14 +357,14 @@ function NostrKeys() {
                     {t('account.nostrSync.npub')}
                   </SSText>
                   {derivedNpub ? (
-                    <SSHStack gap="xxs" style={styles.npubRow}>
+                    <SSHStack gap="xs" style={styles.npubRow}>
                       <View
                         style={[
                           styles.deviceColorCircle,
                           { backgroundColor: deviceColor }
                         ]}
                       />
-                      <SSTextClipboard text={derivedNpub}>
+                      <SSTextClipboard text={derivedNpub} fullWidth={false}>
                         <SSText
                           center
                           size="xl"
@@ -360,7 +384,7 @@ function NostrKeys() {
                     </SSText>
                   )}
                   {derivedNpub && (
-                    <SSHStack gap="sm" style={styles.npubActions}>
+                    <SSVStack gap="sm">
                       <SSButton
                         variant="default"
                         label={t('common.showQR')}
@@ -369,14 +393,24 @@ function NostrKeys() {
                         }
                         style={styles.showQrButton}
                       />
-                      <SSButton
-                        variant="secondary"
-                        label={t('account.nostrSync.fetchKind0')}
-                        onPress={fetchKind0Profile}
-                        disabled={loadingFetchKind0}
-                        style={styles.showQrButton}
-                      />
-                    </SSHStack>
+                      <SSHStack gap="sm" style={styles.kind0Row}>
+                        <SSButton
+                          label={t('account.nostrSync.clearKind0')}
+                          onPress={clearKind0Profile}
+                          disabled={
+                            !kind0Profile?.displayName && !kind0Profile?.picture
+                          }
+                          style={styles.kind0RowButton}
+                        />
+                        <SSButton
+                          variant="secondary"
+                          label={t('account.nostrSync.fetchKind0')}
+                          onPress={fetchKind0Profile}
+                          disabled={loadingFetchKind0}
+                          style={styles.kind0RowButton}
+                        />
+                      </SSHStack>
+                    </SSVStack>
                   )}
                   {loadingFetchKind0 && (
                     <SSHStack gap="sm" style={styles.kind0Loading}>
@@ -588,8 +622,8 @@ const styles = StyleSheet.create({
     borderRadius: 5
   },
   npubRow: {
-    alignItems: 'center',
-    justifyContent: 'center'
+    alignSelf: 'center',
+    alignItems: 'center'
   },
   npubActions: {
     flexWrap: 'wrap',
@@ -608,6 +642,12 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32
+  },
+  kind0Row: {
+    alignSelf: 'stretch'
+  },
+  kind0RowButton: {
+    flex: 1
   },
   showQrButton: {
     marginTop: 20

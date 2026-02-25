@@ -11,6 +11,7 @@ import SSNostrMessage from '@/components/SSNostrMessage'
 import SSText from '@/components/SSText'
 import SSTransactionDetails from '@/components/SSTransactionDetails'
 import { setActiveChatAccount } from '@/hooks/nostr/handlers/notifyUtils'
+import { type AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import { useNostrPublish } from '@/hooks/useNostrPublish'
 import { useNostrSignFlow } from '@/hooks/useNostrSignFlow'
 import SSHStack from '@/layouts/SSHStack'
@@ -102,7 +103,7 @@ export default function DevicesGroupChat() {
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [messageInput, setMessageInput] = useState('')
   const [formattedNpubs, setFormattedNpubs] = useState<
-    Map<string, { text: string; color: string }>
+    Map<string, AuthorDisplayInfo>
   >(new Map())
   const [visibleComponents, setVisibleComponents] = useState(
     new Map<string, { sankey: boolean; status: boolean }>()
@@ -272,11 +273,12 @@ export default function DevicesGroupChat() {
     setTransactionDataForModal(null)
   }
 
-  // Rebuild formatted display names whenever messages, members, or profiles change.
+  // Rebuild formatted display names whenever messages, members, profiles, or aliases change.
   // We intentionally do NOT cache these by author in a ref because profiles can
   // arrive after the initial render and we need to re-compute the display text.
   useEffect(() => {
-    const newFormattedNpubs = new Map<string, { text: string; color: string }>()
+    const newFormattedNpubs = new Map<string, AuthorDisplayInfo>()
+    const aliases = account?.nostr?.npubAliases ?? {}
 
     for (const msg of memoizedMessages) {
       if (!msg.author) continue
@@ -288,15 +290,39 @@ export default function DevicesGroupChat() {
         npub = ''
       }
       const profile = npub ? profiles[npub] : undefined
+      const accountProfile = npub ? account?.nostr?.npubProfiles?.[npub] : undefined
+      const isCurrentDevice = npub === account?.nostr?.deviceNpub
+      const deviceDisplayName = isCurrentDevice
+        ? account?.nostr?.deviceDisplayName
+        : undefined
+      const devicePicture = isCurrentDevice
+        ? account?.nostr?.devicePicture
+        : undefined
+      const alias = npub ? (aliases[npub] ?? '').trim() : ''
       const npubShort = npub ? formatNpubText(msg.author) : msg.author.slice(0, 8)
-      const text = profile?.displayName
-        ? `${profile.displayName}\n${npubShort}`
-        : npubShort
-      newFormattedNpubs.set(msg.author, { text, color })
+      newFormattedNpubs.set(msg.author, {
+        displayName:
+          profile?.displayName ??
+          accountProfile?.displayName ??
+          deviceDisplayName,
+        alias: alias || undefined,
+        npubShort,
+        color,
+        picture: profile?.picture ?? accountProfile?.picture ?? devicePicture
+      })
     }
 
     setFormattedNpubs(newFormattedNpubs)
-  }, [memoizedMessages, membersList, profiles])
+  }, [
+    memoizedMessages,
+    membersList,
+    profiles,
+    account?.nostr?.npubAliases,
+    account?.nostr?.npubProfiles,
+    account?.nostr?.deviceNpub,
+    account?.nostr?.deviceDisplayName,
+    account?.nostr?.devicePicture
+  ])
 
   // Fetch kind0 profiles for authors we haven't resolved yet.
   // Fire-and-forget: results land in the persisted nostr store.
@@ -322,8 +348,11 @@ export default function DevicesGroupChat() {
       api
         .fetchKind0(npub)
         .then((result) => {
-          if (result?.displayName) {
-            setProfile(npub, { displayName: result.displayName })
+          if (result?.displayName || result?.picture) {
+            setProfile(npub, {
+              displayName: result.displayName,
+              picture: result.picture
+            })
           }
         })
         .catch(() => {

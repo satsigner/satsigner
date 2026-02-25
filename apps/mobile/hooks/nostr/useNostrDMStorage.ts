@@ -53,6 +53,18 @@ function samePubkey(a: string, b: string): boolean {
   return a.toLowerCase() === b.toLowerCase()
 }
 
+function isSenderAllowed(account: Account, senderPubkeyHex: string): boolean {
+  if (!account?.nostr) return false
+  const deviceHex = getDevicePubkeyHex(account)
+  if (deviceHex && samePubkey(senderPubkeyHex, deviceHex)) return true
+  try {
+    const senderNpub = nip19.npubEncode(senderPubkeyHex)
+    return (account.nostr.trustedMemberDevices || []).includes(senderNpub)
+  } catch {
+    return false
+  }
+}
+
 function buildNewMessage(
   unwrappedEvent: UnwrappedNostrEvent,
   eventContent: Record<string, unknown>
@@ -112,6 +124,8 @@ function useNostrDMStorage() {
         .getState()
         .accounts.find((a) => a.id === account.id)
       if (!currentAccount?.nostr) return
+
+      if (!isSenderAllowed(currentAccount, unwrappedEvent.pubkey)) return
 
       let currentDms = currentAccount.nostr.dms || []
 
@@ -175,6 +189,8 @@ function useNostrDMStorage() {
       const deviceHex = getDevicePubkeyHex(currentAccount)
 
       for (const { unwrappedEvent, eventContent, skipToast } of pendingDms) {
+        if (!isSenderAllowed(currentAccount, unwrappedEvent.pubkey)) continue
+
         const created_at = eventContent.created_at as number
         if (created_at > Date.now() / 1000 + DM_FUTURE_TOLERANCE_SEC) continue
 
