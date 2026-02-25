@@ -1,5 +1,5 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Image, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -37,6 +37,15 @@ export default function DeviceAliasPage() {
     (state) => state.setLastDataExchangeEOSE
   )
   const { restartSync } = useNostrSync()
+  const trustSyncRestartRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    return () => {
+      if (trustSyncRestartRef.current) {
+        clearTimeout(trustSyncRestartRef.current)
+        trustSyncRestartRef.current = null
+      }
+    }
+  }, [accountId])
 
   const memberColor = useNostrStore(
     useShallow((state) => {
@@ -202,12 +211,19 @@ export default function DeviceAliasPage() {
         trustedMemberDevices: [...account.nostr.trustedMemberDevices, npub],
         lastUpdated: new Date()
       })
-      clearProcessedEvents(accountId)
-      setLastDataExchangeEOSE(accountId, 0)
-      const current = useAccountsStore
-        .getState()
-        .accounts.find((a) => a.id === accountId)
-      if (current) restartSync(current, () => {})
+      if (trustSyncRestartRef.current) {
+        clearTimeout(trustSyncRestartRef.current)
+      }
+      const TRUST_SYNC_RESTART_DELAY_MS = 1500
+      trustSyncRestartRef.current = setTimeout(() => {
+        trustSyncRestartRef.current = null
+        clearProcessedEvents(accountId)
+        setLastDataExchangeEOSE(accountId, 0)
+        const current = useAccountsStore
+          .getState()
+          .accounts.find((a) => a.id === accountId)
+        if (current) restartSync(current, () => {})
+      }, TRUST_SYNC_RESTART_DELAY_MS)
       toast.success(t('account.nostrSync.deviceTrusted'))
     }
   }
@@ -263,7 +279,7 @@ export default function DeviceAliasPage() {
                   selectable
                   style={styles.npubText}
                 >
-                  {npub.slice(0, 12) + '...' + npub.slice(-4)}
+                  {`${npub.slice(0, 12)}...${npub.slice(-4)}`}
                 </SSText>
               </SSTextClipboard>
             </SSHStack>

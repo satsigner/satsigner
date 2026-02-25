@@ -36,8 +36,15 @@ import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
 import type { NostrAccount } from '@/types/models/Nostr'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatDate } from '@/utils/date'
+import { formatDateShort } from '@/utils/date'
 import { generateColorFromNpub } from '@/utils/nostr'
+
+const SYNCING_MESSAGE_KEYS = [
+  'account.nostrSync.syncingConnecting',
+  'account.nostrSync.syncingDiscovering',
+  'account.nostrSync.syncingFetching',
+  'account.nostrSync.syncingWithRelays'
+] as const
 
 export default function NostrSync() {
   // Account and store hooks
@@ -70,9 +77,6 @@ export default function NostrSync() {
   const setSyncing = useNostrStore((state) => state.setSyncing)
   const setLastDataExchangeEOSE = useNostrStore(
     (state) => state.setLastDataExchangeEOSE
-  )
-  const setLastProtocolEOSE = useNostrStore(
-    (state) => state.setLastProtocolEOSE
   )
   const lastProtocolEOSE = useNostrStore((state) =>
     accountId ? state.lastProtocolEOSE[accountId] : undefined
@@ -126,12 +130,45 @@ export default function NostrSync() {
   >({})
   const [deletionModalVisible, setDeletionModalVisible] = useState(false)
   const [clearCachesModalVisible, setClearCachesModalVisible] = useState(false)
+  const [syncingMessageIndex, setSyncingMessageIndex] = useState(0)
+  const syncingMessage = SYNCING_MESSAGE_KEYS[syncingMessageIndex]
+
+  useEffect(() => {
+    if (!isSyncing) {
+      setSyncingMessageIndex(0)
+      return
+    }
+    const interval = setInterval(() => {
+      setSyncingMessageIndex((i) =>
+        i + 1 >= SYNCING_MESSAGE_KEYS.length ? 0 : i + 1
+      )
+    }, 2500)
+    return () => clearInterval(interval)
+  }, [isSyncing])
 
   const previousRelaysRef = useRef<string[]>([])
+  const trustSyncRestartRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    return () => {
+      if (trustSyncRestartRef.current) {
+        clearTimeout(trustSyncRestartRef.current)
+        trustSyncRestartRef.current = null
+      }
+    }
+  }, [accountId])
 
   // Prefer store for device keys so we show updated values immediately after saving on manage-keys page (no stale local state)
   const displayDeviceNpub = account?.nostr?.deviceNpub ?? deviceNpub
   const displayDeviceNsec = account?.nostr?.deviceNsec ?? deviceNsec
+  const deviceKind0Picture =
+    account?.nostr?.devicePicture ??
+    (displayDeviceNpub &&
+      account?.nostr?.npubProfiles?.[displayDeviceNpub]?.picture)
+  const deviceKind0DisplayName =
+    account?.nostr?.deviceDisplayName ??
+    (displayDeviceNpub &&
+      account?.nostr?.npubProfiles?.[displayDeviceNpub]?.displayName)
+  const showDeviceKind0 = !!(deviceKind0Picture || deviceKind0DisplayName)
 
   // When returning from manage-keys (or any focus), align local with store so we don't briefly show old key then new
   useFocusEffect(
@@ -169,7 +206,7 @@ export default function NostrSync() {
           await nostrApi.connect()
           statuses[relay] = 'connected'
         } catch {
-          toast.error('Failed to connect to relay ' + relay)
+          toast.error(`Failed to connect to relay ${relay}`)
           statuses[relay] = 'disconnected'
         }
         setRelayConnectionStatuses({ ...statuses })
@@ -516,12 +553,19 @@ export default function NostrSync() {
           trustedMemberDevices: [...account.nostr.trustedMemberDevices, npub],
           lastUpdated: new Date()
         })
-        clearProcessedEvents(accountId)
-        setLastDataExchangeEOSE(accountId, 0)
-        const current = useAccountsStore
-          .getState()
-          .accounts.find((a) => a.id === accountId)
-        if (current) restartSync(current, () => {})
+        if (trustSyncRestartRef.current) {
+          clearTimeout(trustSyncRestartRef.current)
+        }
+        const TRUST_SYNC_RESTART_DELAY_MS = 1500
+        trustSyncRestartRef.current = setTimeout(() => {
+          trustSyncRestartRef.current = null
+          clearProcessedEvents(accountId)
+          setLastDataExchangeEOSE(accountId, 0)
+          const current = useAccountsStore
+            .getState()
+            .accounts.find((a) => a.id === accountId)
+          if (current) restartSync(current, () => {})
+        }, TRUST_SYNC_RESTART_DELAY_MS)
       }
     },
     [
@@ -734,36 +778,6 @@ export default function NostrSync() {
     if (acc) loadNostrAccountData(acc)
   }, [accountId, hasNostr, relayCount, loadNostrAccountData])
 
-  // Restart sync whenever autoSync is ON and the relay list changes (additions,
-  // removals, or swaps). Using a serialized relay string as the dep catches
-  // same-length changes that .length alone would miss.
-  const handleLookForMoreMembers = useCallback(() => {
-    if (
-      !accountId ||
-      !account?.nostr?.autoSync ||
-      !account.nostr.relays?.length
-    )
-      return
-    setLastProtocolEOSE(accountId, 0)
-    const current = useAccountsStore
-      .getState()
-      .accounts.find((a) => a.id === accountId)
-    if (!current?.nostr) return
-    restartSync(current, (loading) => {
-      requestAnimationFrame(() => {
-        setIsSyncing(loading)
-        setSyncing(accountId, loading)
-      })
-    })
-  }, [
-    accountId,
-    account?.nostr?.autoSync,
-    account?.nostr?.relays?.length,
-    setLastProtocolEOSE,
-    setSyncing,
-    restartSync
-  ])
-
   const relayKey = (account?.nostr?.relays ?? []).slice().sort().join(',')
   useEffect(() => {
     if (!account?.nostr?.autoSync || !account?.nostr?.relays?.length) return
@@ -832,14 +846,16 @@ export default function NostrSync() {
             {isSyncing && (
               <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
                 <ActivityIndicator size="small" color={Colors.white} />
-                <SSText color="muted">Syncing with Nostr relays</SSText>
+                <SSText color="muted">{t(syncingMessage)}</SSText>
               </SSHStack>
             )}
             {!isSyncing && (
               <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
                 <SSText color="muted">
                   Last sync:{' '}
-                  {lastProtocolEOSE ? formatDate(lastProtocolEOSE) : 'Never'}
+                  {lastProtocolEOSE
+                    ? formatDateShort(lastProtocolEOSE)
+                    : 'Never'}
                 </SSText>
               </SSHStack>
             )}
@@ -861,19 +877,18 @@ export default function NostrSync() {
               <SSVStack gap="xxs" style={styles.keysContainer}>
                 {displayDeviceNsec && displayDeviceNpub ? (
                   <SSVStack gap="xxs">
-                    {(account?.nostr?.devicePicture ||
-                      account?.nostr?.deviceDisplayName) && (
+                    {showDeviceKind0 && (
                       <SSVStack gap="xs" style={styles.deviceProfileRow}>
-                        {account?.nostr?.devicePicture && (
+                        {deviceKind0Picture && (
                           <Image
-                            source={{ uri: account.nostr.devicePicture }}
+                            source={{ uri: deviceKind0Picture }}
                             style={styles.deviceProfilePicture}
                             resizeMode="cover"
                           />
                         )}
-                        {account?.nostr?.deviceDisplayName && (
+                        {deviceKind0DisplayName && (
                           <SSText center size="lg">
-                            {account.nostr.deviceDisplayName}
+                            {deviceKind0DisplayName}
                           </SSText>
                         )}
                       </SSVStack>
@@ -901,9 +916,7 @@ export default function NostrSync() {
                           style={styles.keyText}
                           selectable
                         >
-                          {displayDeviceNpub.slice(0, 12) +
-                            '...' +
-                            displayDeviceNpub.slice(-4)}
+                          {`${displayDeviceNpub.slice(0, 12)}...${displayDeviceNpub.slice(-4)}`}
                         </SSText>
                       </SSTextClipboard>
                     </SSHStack>
@@ -942,95 +955,117 @@ export default function NostrSync() {
                         {member?.npub && (
                           <SSHStack gap="md">
                             <SSVStack gap="xxs" style={{ flex: 0.7 }}>
-                              <SSHStack gap="md">
-                                <View
-                                  style={{
-                                    width: 8,
-                                    height: 8,
-                                    borderRadius: 4,
-                                    backgroundColor: member.color || '#404040',
-                                    marginTop: 1,
-                                    marginLeft: 20,
-                                    marginRight: 0
-                                  }}
-                                />
-                                <Pressable
-                                  disabled={isSyncing}
-                                  onPress={() => {
-                                    router.push({
-                                      pathname: `/signer/bitcoin/account/${accountId}/settings/nostr/device/[npub]`,
-                                      params: { npub: member.npub }
-                                    })
-                                  }}
-                                  style={{ opacity: isSyncing ? 0.5 : 1 }}
-                                >
-                                  <SSHStack gap="sm" style={styles.memberRow}>
-                                    {account?.nostr?.npubProfiles?.[member.npub]
-                                      ?.picture && (
-                                      <Image
-                                        source={{
-                                          uri: account.nostr.npubProfiles[
-                                            member.npub
-                                          ].picture
-                                        }}
-                                        style={styles.memberAvatar}
-                                        resizeMode="cover"
-                                      />
-                                    )}
-                                    <SSVStack gap="none">
-                                      {(() => {
-                                        const displayName =
-                                          account?.nostr?.npubProfiles?.[
-                                            member.npub
-                                          ]?.displayName
-                                        const alias =
-                                          account?.nostr?.npubAliases?.[
-                                            member.npub
-                                          ]
-                                        const titleLine =
-                                          displayName && alias
-                                            ? `${displayName} (${alias})`
-                                            : displayName ?? alias ?? null
-                                        const npubShort =
-                                          member.npub.slice(0, 12) +
-                                          '...' +
-                                          member.npub.slice(-4)
-                                        if (titleLine) {
-                                          return (
-                                            <>
-                                              <SSText
-                                                size="md"
-                                                style={styles.memberText}
-                                                selectable
-                                              >
-                                                {titleLine}
-                                              </SSText>
+                              <Pressable
+                                disabled={isSyncing}
+                                onPress={() => {
+                                  router.push({
+                                    pathname: `/signer/bitcoin/account/${accountId}/settings/nostr/device/[npub]`,
+                                    params: { npub: member.npub }
+                                  })
+                                }}
+                                style={{ opacity: isSyncing ? 0.5 : 1 }}
+                              >
+                                <SSHStack gap="sm" style={styles.memberRow}>
+                                  {account?.nostr?.npubProfiles?.[member.npub]
+                                    ?.picture ? (
+                                    <Image
+                                      source={{
+                                        uri: account.nostr.npubProfiles[
+                                          member.npub
+                                        ].picture
+                                      }}
+                                      style={styles.memberAvatar}
+                                      resizeMode="cover"
+                                    />
+                                  ) : (
+                                    <View
+                                      style={[
+                                        styles.memberAvatarCircle,
+                                        {
+                                          backgroundColor:
+                                            member.color || '#404040'
+                                        }
+                                      ]}
+                                    />
+                                  )}
+                                  <SSVStack
+                                    gap="xxs"
+                                    style={styles.memberBlock}
+                                  >
+                                    {(() => {
+                                      const displayName =
+                                        account?.nostr?.npubProfiles?.[
+                                          member.npub
+                                        ]?.displayName
+                                      const alias =
+                                        account?.nostr?.npubAliases?.[
+                                          member.npub
+                                        ]
+                                      const titleLine =
+                                        displayName && alias
+                                          ? `${displayName} (${alias})`
+                                          : displayName ?? alias ?? null
+                                      const npubShort = `${member.npub.slice(0, 12)}...${member.npub.slice(-4)}`
+                                      const hasPicture =
+                                        !!account?.nostr?.npubProfiles?.[
+                                          member.npub
+                                        ]?.picture
+                                      return (
+                                        <>
+                                          {titleLine ? (
+                                            <SSText
+                                              size="sm"
+                                              style={styles.memberText}
+                                              selectable
+                                            >
+                                              {titleLine}
+                                            </SSText>
+                                          ) : (
+                                            <SSText
+                                              size="sm"
+                                              type="mono"
+                                              style={styles.memberText}
+                                              selectable
+                                            >
+                                              {npubShort}
+                                            </SSText>
+                                          )}
+                                          {titleLine ? (
+                                            <SSHStack
+                                              gap="xs"
+                                              style={styles.memberNpubRow}
+                                            >
+                                              {hasPicture && (
+                                                <View
+                                                  style={[
+                                                    styles.memberColorDot,
+                                                    {
+                                                      backgroundColor:
+                                                        member.color ||
+                                                        '#404040'
+                                                    }
+                                                  ]}
+                                                />
+                                              )}
                                               <SSText
                                                 size="sm"
                                                 type="mono"
-                                                style={styles.memberNpubText}
+                                                color="muted"
+                                                style={
+                                                  styles.memberNpubUnderAlias
+                                                }
                                                 selectable
                                               >
                                                 {npubShort}
                                               </SSText>
-                                            </>
-                                          )
-                                        }
-                                        return (
-                                          <SSText
-                                            size="md"
-                                            type="mono"
-                                            style={styles.memberText}
-                                            selectable
-                                          >
-                                            {npubShort}
-                                          </SSText>
-                                        )
-                                      })()}
-                                    </SSVStack>
-                                  </SSHStack>
-                                </Pressable>
-                              </SSHStack>
+                                            </SSHStack>
+                                          ) : null}
+                                        </>
+                                      )
+                                    })()}
+                                  </SSVStack>
+                                </SSHStack>
+                              </Pressable>
                             </SSVStack>
                             <SSButton
                               style={{
@@ -1060,18 +1095,6 @@ export default function NostrSync() {
                   {t('account.nostrSync.noMembers')}
                 </SSText>
               )}
-              {account?.nostr?.autoSync &&
-                selectedRelays.length > 0 &&
-                account.nostr.deviceNsec &&
-                account.nostr.deviceNpub && (
-                  <SSButton
-                    label={t('account.nostrSync.lookForMoreMembers')}
-                    onPress={handleLookForMoreMembers}
-                    disabled={isSyncing}
-                    variant="subtle"
-                    style={{ marginTop: 8 }}
-                  />
-                )}
             </SSVStack>
             {selectedRelays.length > 0 && (
               <SSVStack gap="sm">
@@ -1245,7 +1268,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderColor: Colors.white,
     paddingVertical: 15,
-    paddingHorizontal: 0
+    paddingLeft: 12
   },
   colorCircle: {
     width: 12,
@@ -1262,9 +1285,31 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   memberAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16
+    width: 24,
+    height: 24,
+    borderRadius: 12
+  },
+  memberAvatarCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12
+  },
+  memberBlock: {
+    gap: 0,
+    flex: 1,
+    marginLeft: 8
+  },
+  memberNpubRow: {
+    alignItems: 'center',
+    marginTop: 2
+  },
+  memberNpubUnderAlias: {
+    letterSpacing: 1
+  },
+  memberColorDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4
   },
   keyContainerLoading: {
     justifyContent: 'center',
