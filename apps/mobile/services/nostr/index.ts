@@ -1,4 +1,8 @@
-export { nostrSyncService, NostrSyncService } from './NostrSyncService'
 export type { SyncStatus, SyncStatusEvent } from './NostrSyncService'
-export { calculateRetryDelay, RetryManager, DEFAULT_RETRY_CONFIG } from './RetryManager'
+export { NostrSyncService, nostrSyncService } from './NostrSyncService'
 export type { RetryConfig } from './RetryManager'
+export {
+  calculateRetryDelay,
+  DEFAULT_RETRY_CONFIG,
+  RetryManager
+} from './RetryManager'

@@ -352,7 +352,8 @@ const useNostrStore = create<NostrState & NostrAction>()(
       },
       setSyncStatus: (accountId, status) => {
         set((state) => {
-          const currentStatus = state.syncStatus[accountId] || DEFAULT_SYNC_STATUS
+          const currentStatus =
+            state.syncStatus[accountId] || DEFAULT_SYNC_STATUS
           return {
             syncStatus: {
               ...state.syncStatus,
@@ -366,7 +367,8 @@ const useNostrStore = create<NostrState & NostrAction>()(
       },
       incrementMessagesReceived: (accountId, count = 1) => {
         set((state) => {
-          const currentStatus = state.syncStatus[accountId] || DEFAULT_SYNC_STATUS
+          const currentStatus =
+            state.syncStatus[accountId] || DEFAULT_SYNC_STATUS
           return {
             syncStatus: {
               ...state.syncStatus,
@@ -380,7 +382,8 @@ const useNostrStore = create<NostrState & NostrAction>()(
       },
       incrementMessagesProcessed: (accountId, count = 1) => {
         set((state) => {
-          const currentStatus = state.syncStatus[accountId] || DEFAULT_SYNC_STATUS
+          const currentStatus =
+            state.syncStatus[accountId] || DEFAULT_SYNC_STATUS
           return {
             syncStatus: {
               ...state.syncStatus,
@@ -483,8 +486,10 @@ const useNostrStore = create<NostrState & NostrAction>()(
             resetSyncStatus[accountId] = {
               ...DEFAULT_SYNC_STATUS,
               // Preserve message counts for analytics
-              messagesReceived: persisted.syncStatus[accountId]?.messagesReceived || 0,
-              messagesProcessed: persisted.syncStatus[accountId]?.messagesProcessed || 0
+              messagesReceived:
+                persisted.syncStatus[accountId]?.messagesReceived || 0,
+              messagesProcessed:
+                persisted.syncStatus[accountId]?.messagesProcessed || 0
             }
           }
         }

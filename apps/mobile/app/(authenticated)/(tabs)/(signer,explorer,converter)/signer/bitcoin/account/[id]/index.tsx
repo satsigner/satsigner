@@ -809,7 +809,7 @@ export default function AccountView() {
       ])
     )
 
-  const isNostrSyncing = useNostrStore((state) =>
+  const _isNostrSyncing = useNostrStore((state) =>
     id ? state.isSyncing(id) : false
   )
 

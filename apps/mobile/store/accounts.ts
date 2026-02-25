@@ -130,8 +130,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               (account) => account.id === id
             )
             if (index === -1 || !state.accounts[index].nostr) return
-            state.accounts[index].nostr.dms = state.accounts[index].nostr.dms.map(
-              (dm) => (dm.read === false ? { ...dm, read: true } : dm)
+            state.accounts[index].nostr.dms = state.accounts[
+              index
+            ].nostr.dms.map((dm) =>
+              dm.read === false ? { ...dm, read: true } : dm
             )
           })
         )
@@ -284,7 +286,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
               return newTx
             })
-
           })
         )
 
@@ -392,7 +393,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 // inheritance for the address of the previous output.
               }
             )
-
           })
         )
 
@@ -490,7 +490,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 }
               }
             }
-
           })
         )
 

@@ -1,4 +1,7 @@
-import { NostrSyncService, nostrSyncService } from '@/services/nostr/NostrSyncService'
+import {
+  NostrSyncService,
+  nostrSyncService
+} from '@/services/nostr/NostrSyncService'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
 

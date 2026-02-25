@@ -332,12 +332,18 @@ describe('nostr store', () => {
 
       expect(getSyncStatus(accountIds.primary).status).toBe('syncing')
       expect(getSyncStatus(accountIds.secondary).status).toBe('error')
-      expect(getSyncStatus(accountIds.secondary).lastError).toBe('Network failed')
+      expect(getSyncStatus(accountIds.secondary).lastError).toBe(
+        'Network failed'
+      )
     })
 
     it('tracks message counts', () => {
-      const { setSyncStatus, getSyncStatus, incrementMessagesReceived, incrementMessagesProcessed } =
-        useNostrStore.getState()
+      const {
+        setSyncStatus,
+        getSyncStatus,
+        incrementMessagesReceived: _incrementMessagesReceived,
+        incrementMessagesProcessed: _incrementMessagesProcessed
+      } = useNostrStore.getState()
 
       setSyncStatus(accountIds.primary, {
         messagesReceived: 10,
@@ -350,8 +356,11 @@ describe('nostr store', () => {
     })
 
     it('increments message counts', () => {
-      const { incrementMessagesReceived, incrementMessagesProcessed, getSyncStatus } =
-        useNostrStore.getState()
+      const {
+        incrementMessagesReceived,
+        incrementMessagesProcessed,
+        getSyncStatus
+      } = useNostrStore.getState()
 
       incrementMessagesReceived(accountIds.primary, 5)
       incrementMessagesProcessed(accountIds.primary, 3)
@@ -416,7 +425,10 @@ describe('nostr store', () => {
       store.setLastProtocolEOSE(accountIds.primary, timestamps.recent)
       store.setLastDataExchangeEOSE(accountIds.primary, timestamps.recent)
       store.addTrustedDevice(accountIds.primary, nostrKeys.bob.npub)
-      store.setSyncStatus(accountIds.primary, { status: 'syncing', messagesReceived: 100 })
+      store.setSyncStatus(accountIds.primary, {
+        status: 'syncing',
+        messagesReceived: 100
+      })
 
       // Clear state
       store.clearNostrState(accountIds.primary)

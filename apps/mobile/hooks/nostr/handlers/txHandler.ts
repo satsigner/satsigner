@@ -2,10 +2,10 @@ import { toast } from 'sonner-native'
 
 import { type MessageHandler } from '../types'
 import {
-  TOAST_CONTENT_MAX,
-  TOAST_DURATION,
   getAuthorDisplayName,
-  isChatActive
+  isChatActive,
+  TOAST_CONTENT_MAX,
+  TOAST_DURATION
 } from './notifyUtils'
 
 const txHandler: MessageHandler = {

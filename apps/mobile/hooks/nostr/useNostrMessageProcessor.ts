@@ -73,7 +73,6 @@ function useNostrMessageProcessor() {
       const syncStartSec = getSyncStartSeconds(account)
 
       const YIELD_EVERY = 5
-      let processed = 0
       for (let i = 0; i < messages.length; i++) {
         if (i > 0 && i % YIELD_EVERY === 0) {
           await new Promise((r) => setTimeout(r, 0))
@@ -103,7 +102,6 @@ function useNostrMessageProcessor() {
         }
 
         await processMessage(context)
-        processed++
       }
 
       if (pendingDms.length > 0) {

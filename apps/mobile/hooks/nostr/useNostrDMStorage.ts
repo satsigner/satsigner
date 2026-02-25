@@ -3,15 +3,14 @@ import { useCallback } from 'react'
 import { toast } from 'sonner-native'
 
 import { useAccountsStore } from '@/store/accounts'
-import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
-import {
-  TOAST_CONTENT_MAX,
-  TOAST_DURATION,
-  getAuthorDisplayName,
-  isChatActive
-} from './handlers/notifyUtils'
 
+import {
+  getAuthorDisplayName,
+  isChatActive,
+  TOAST_CONTENT_MAX,
+  TOAST_DURATION
+} from './handlers/notifyUtils'
 import {
   DM_FUTURE_TOLERANCE_SEC,
   type NostrMessage,
@@ -31,7 +30,9 @@ function getSyncStartSeconds(account: Account): number {
   return Math.floor(ms / 1000)
 }
 
-function getDevicePubkeyHex(account: Account | null | undefined): string | null {
+function getDevicePubkeyHex(
+  account: Account | null | undefined
+): string | null {
   const npub = account?.nostr?.deviceNpub
   if (!npub) return null
   try {
@@ -135,7 +136,9 @@ function useNostrDMStorage() {
 
       // If this is our own message (echo from relay), replace any matching pending
       const deviceHex = getDevicePubkeyHex(currentAccount)
-      const isOwnMessage = !!(deviceHex && samePubkey(newMessage.author, deviceHex))
+      const isOwnMessage = !!(
+        deviceHex && samePubkey(newMessage.author, deviceHex)
+      )
 
       if (isOwnMessage) {
         const pendingIdx = currentDms.findIndex(
@@ -199,7 +202,9 @@ function useNostrDMStorage() {
         existingIds.add(newMessage.id)
 
         // If this is our own message, replace matching pending instead of dup
-        const isOwnMsg = !!(deviceHex && samePubkey(newMessage.author, deviceHex))
+        const isOwnMsg = !!(
+          deviceHex && samePubkey(newMessage.author, deviceHex)
+        )
         if (isOwnMsg) {
           const pendingIdx = currentDms.findIndex(
             (m) =>
