@@ -822,59 +822,55 @@ export default function NostrSync() {
                                       />
                                     )}
                                     <SSVStack gap="none">
-                                      {account?.nostr?.npubAliases?.[
-                                        member.npub
-                                      ] ? (
-                                        <>
+                                      {(() => {
+                                        const displayName =
+                                          account?.nostr?.npubProfiles?.[
+                                            member.npub
+                                          ]?.displayName
+                                        const alias =
+                                          account?.nostr?.npubAliases?.[
+                                            member.npub
+                                          ]
+                                        const titleLine =
+                                          displayName && alias
+                                            ? `${displayName} (${alias})`
+                                            : displayName ?? alias ?? null
+                                        const npubShort =
+                                          member.npub.slice(0, 12) +
+                                          '...' +
+                                          member.npub.slice(-4)
+                                        if (titleLine) {
+                                          return (
+                                            <>
+                                              <SSText
+                                                size="md"
+                                                style={styles.memberText}
+                                                selectable
+                                              >
+                                                {titleLine}
+                                              </SSText>
+                                              <SSText
+                                                size="sm"
+                                                type="mono"
+                                                style={styles.memberNpubText}
+                                                selectable
+                                              >
+                                                {npubShort}
+                                              </SSText>
+                                            </>
+                                          )
+                                        }
+                                        return (
                                           <SSText
                                             size="md"
+                                            type="mono"
                                             style={styles.memberText}
                                             selectable
                                           >
-                                            {
-                                              account.nostr.npubAliases[
-                                                member.npub
-                                              ]
-                                            }
+                                            {npubShort}
                                           </SSText>
-                                          <SSText
-                                            size="sm"
-                                            type="mono"
-                                            style={styles.memberNpubText}
-                                            selectable
-                                          >
-                                            {member.npub.slice(0, 12) +
-                                              '...' +
-                                              member.npub.slice(-4)}
-                                          </SSText>
-                                        </>
-                                      ) : (
-                                        <SSText
-                                          size="md"
-                                          type="mono"
-                                          style={styles.memberText}
-                                          selectable
-                                        >
-                                          {member.npub.slice(0, 12) +
-                                            '...' +
-                                            member.npub.slice(-4)}
-                                        </SSText>
-                                      )}
-                                      {account?.nostr?.npubProfiles?.[
-                                        member.npub
-                                      ]?.displayName && (
-                                        <SSText
-                                          size="sm"
-                                          style={styles.memberDisplayName}
-                                          selectable
-                                        >
-                                          {
-                                            account.nostr.npubProfiles[
-                                              member.npub
-                                            ].displayName
-                                          }
-                                        </SSText>
-                                      )}
+                                        )
+                                      })()}
                                     </SSVStack>
                                   </SSHStack>
                                 </Pressable>
@@ -1022,10 +1018,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16
-  },
-  memberDisplayName: {
-    color: Colors.gray[400],
-    marginTop: 2
   },
   keyContainerLoading: {
     justifyContent: 'center',
