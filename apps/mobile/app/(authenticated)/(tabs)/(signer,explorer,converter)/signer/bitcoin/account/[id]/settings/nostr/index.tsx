@@ -994,7 +994,8 @@ const styles = StyleSheet.create({
   deviceProfilePicture: {
     width: 64,
     height: 64,
-    borderRadius: 32
+    borderRadius: 32,
+    marginTop: 12
   },
   membersContainer: {
     backgroundColor: '#1a1a1a',
