@@ -30,7 +30,9 @@ const usePriceStore = create<PriceState & PriceAction>()((set, get) => ({
   fiatCurrency: 'USD',
   btcPrice: 0,
   satsToFiat: (sats, btcPrice = 0) => {
+    if (!sats || sats <= 0) return 0
     const bitcoinPrice = btcPrice || get().btcPrice
+    if (bitcoinPrice <= 0) return 0
     return (sats / SATS_PER_BITCOIN) * bitcoinPrice
   },
   fetchPrices: async (mempoolUrl: string) => {

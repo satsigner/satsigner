@@ -24,8 +24,8 @@ type SSAccountCardProps = {
 
 function SSAccountCard({ account, onPress }: SSAccountCardProps) {
   const platform = Platform.OS
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat, state.btcPrice])
   )
   const [currencyUnit, useZeroPadding] = useSettingsStore(
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
@@ -199,7 +199,9 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
             }}
           >
             <SSText color="muted">
-              {formatNumber(satsToFiat(account.summary.balance), 2)}
+              {!btcPrice || btcPrice <= 0
+                ? '--'
+                : formatNumber(satsToFiat(account.summary.balance || 0), 2)}
             </SSText>
             <SSText size="xs" style={{ color: Colors.gray[500] }}>
               {fiatCurrency}

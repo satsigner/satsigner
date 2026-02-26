@@ -78,22 +78,27 @@ function SSTransactionCard({
 
     const oldPrice = prices ? prices[fiatCurrency] : null
 
-    if (btcPrice) {
-      itemsToDisplay.push(formatFiatPrice(amount, btcPrice))
+    // Only show current fiat price if btcPrice is valid (> 0)
+    if (btcPrice && btcPrice > 0) {
+      itemsToDisplay.push(formatFiatPrice(Math.abs(amount), btcPrice))
     }
 
-    if (prices && prices[fiatCurrency]) {
+    // Only show historical price if available and valid
+    if (prices && prices[fiatCurrency] && prices[fiatCurrency] > 0) {
       itemsToDisplay.push(
-        '(' + formatFiatPrice(amount, prices[fiatCurrency] || 0) + ')'
+        '(' + formatFiatPrice(Math.abs(amount), prices[fiatCurrency]) + ')'
       )
     }
 
-    if (btcPrice || oldPrice) {
+    if (itemsToDisplay.length > 0) {
       itemsToDisplay.push(fiatCurrency)
     }
 
-    if (btcPrice && oldPrice) {
+    // Only show percent change if both prices are valid
+    if (btcPrice && btcPrice > 0 && oldPrice && oldPrice > 0) {
       setPercentChange(formatPercentualChange(btcPrice, oldPrice))
+    } else {
+      setPercentChange('')
     }
 
     setPriceDisplay(itemsToDisplay.join(' '))
