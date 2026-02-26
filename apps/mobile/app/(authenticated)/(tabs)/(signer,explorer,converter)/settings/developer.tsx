@@ -65,7 +65,7 @@ export default function Developer() {
       })
 
       toast.success(t('settings.developer.backupSuccess'))
-    } catch {
+    } catch (_error) {
       toast.error(t('settings.developer.backupError'))
     }
   }
