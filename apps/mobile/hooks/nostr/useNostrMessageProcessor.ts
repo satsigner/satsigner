@@ -29,11 +29,15 @@ function getEventContent(
 ): Record<string, unknown> {
   try {
     return JSON.parse(unwrappedEvent.content)
-  } catch {}
+  } catch {
+    // JSON parse failed, try decompression
+  }
   try {
     return decompressMessage(unwrappedEvent.content) as Record<string, unknown>
-  } catch {}
-  return unwrappedEvent.content as unknown as Record<string, unknown>
+  } catch {
+    // Decompression failed, return safe fallback
+  }
+  return { raw: unwrappedEvent.content }
 }
 
 // Initialize handlers once at module level.

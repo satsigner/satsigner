@@ -86,7 +86,7 @@ describe('handler registry', () => {
     },
     unwrappedEvent: {
       id: 'event-123',
-      pubkey: nostrKeys.bob.privateKeyHex,
+      pubkey: nostrKeys.bob.publicKeyHex,
       content: JSON.stringify(nostrMessages.directMessage)
     },
     eventContent: nostrMessages.directMessage as unknown as Record<
