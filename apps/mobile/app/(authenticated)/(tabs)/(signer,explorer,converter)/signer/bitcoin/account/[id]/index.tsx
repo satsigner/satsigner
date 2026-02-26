@@ -833,11 +833,12 @@ export default function AccountView() {
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
 
-  const [fiatCurrency, satsToFiat, fetchPrices] = usePriceStore(
+  const [fiatCurrency, satsToFiat, fetchPrices, btcPrice] = usePriceStore(
     useShallow((state) => [
       state.fiatCurrency,
       state.satsToFiat,
-      state.fetchPrices
+      state.fetchPrices,
+      state.btcPrice
     ])
   )
   const [getBlockchainHeight, mempoolUrl, connectionMode, autoConnectDelay] =
@@ -1286,7 +1287,9 @@ export default function AccountView() {
               </SSHStack>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
                 <SSText color="muted">
-                  {formatNumber(satsToFiat(account.summary.balance || 0), 2)}
+                  {!btcPrice || btcPrice <= 0
+                    ? '--'
+                    : formatNumber(satsToFiat(account.summary.balance || 0), 2)}
                 </SSText>
                 <SSText size="xs" style={{ color: Colors.gray[500] }}>
                   {fiatCurrency}
