@@ -6,7 +6,7 @@ import {
   useLocalSearchParams
 } from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Image,
@@ -82,28 +82,28 @@ export default function NostrSync() {
     accountId ? state.lastProtocolEOSE[accountId] : undefined
   )
 
-  // Members management
-  const members = useNostrStore(
-    useShallow((state) => {
-      if (!accountId) return []
-      const accountMembers = state.members[accountId] || []
-      return accountMembers
-        .map((member) =>
-          typeof member === 'string'
-            ? { npub: member, color: '#404040' }
-            : member
-        )
-        .reduce(
-          (acc, member) => {
-            if (!acc.some((m) => m.npub === member.npub)) {
-              acc.push(member)
-            }
-            return acc
-          },
-          [] as { npub: string; color: string }[]
-        )
-    })
+  // Members management - subscribe to raw members array for reactivity
+  const rawMembers = useNostrStore((state) =>
+    accountId ? state.members[accountId] : undefined
   )
+
+  // Normalize members in a separate memo to avoid selector complexity
+  const members = useMemo(() => {
+    if (!rawMembers) return []
+    return rawMembers
+      .map((member) =>
+        typeof member === 'string' ? { npub: member, color: '#404040' } : member
+      )
+      .reduce(
+        (acc, member) => {
+          if (!acc.some((m) => m.npub === member.npub)) {
+            acc.push(member)
+          }
+          return acc
+        },
+        [] as { npub: string; color: string }[]
+      )
+  }, [rawMembers])
 
   // Nostr sync hooks
   const {
@@ -564,7 +564,17 @@ export default function NostrSync() {
           const current = useAccountsStore
             .getState()
             .accounts.find((a) => a.id === accountId)
-          if (current) restartSync(current, () => {})
+          if (current) {
+            toast.info(t('account.nostrSync.resyncingAfterTrust'))
+            setIsSyncing(true)
+            setSyncing(accountId, true)
+            restartSync(current, (loading) => {
+              requestAnimationFrame(() => {
+                setIsSyncing(loading)
+                setSyncing(accountId, loading)
+              })
+            })
+          }
         }, TRUST_SYNC_RESTART_DELAY_MS)
       }
     },
@@ -575,6 +585,7 @@ export default function NostrSync() {
       restartSync,
       selectedMembers,
       setLastDataExchangeEOSE,
+      setSyncing,
       updateAccountNostrCallback
     ]
   )

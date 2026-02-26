@@ -10,7 +10,7 @@ const deviceAnnouncementHandler: MessageHandler = {
   handle: async (context) => {
     const { account, eventContent } = context
     const newMember = eventContent.public_key_bech32 as string
-    useNostrStore.getState().addMember(account.id, newMember)
+    await useNostrStore.getState().addMember(account.id, newMember)
   }
 }
 

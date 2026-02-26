@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
@@ -127,10 +127,13 @@ function useNostrMessageProcessor() {
     [processEventBatch]
   )
 
-  return {
-    processEvent,
-    processEventBatch
-  }
+  return useMemo(
+    () => ({
+      processEvent,
+      processEventBatch
+    }),
+    [processEvent, processEventBatch]
+  )
 }
 
 export { getEventContent, useNostrMessageProcessor }

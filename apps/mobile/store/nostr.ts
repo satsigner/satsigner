@@ -3,6 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { type NostrAPI } from '@/api/nostr'
 import mmkvStorage from '@/storage/mmkv'
+import { gray } from '@/styles/colors'
 import { generateColorFromNpub } from '@/utils/nostr'
 import { type TransactionData } from '@/utils/psbt'
 
@@ -153,15 +154,26 @@ const useNostrStore = create<NostrState & NostrAction>()(
       },
       addMember: async (accountId, npub) => {
         try {
+          // Check if member already exists BEFORE generating color (expensive)
+          const existingMembers = get().members[accountId] || []
+          const alreadyExists = existingMembers.some(
+            (m) => (typeof m === 'string' ? m : m.npub) === npub
+          )
+          if (alreadyExists) {
+            return // Skip color generation for existing members
+          }
+
           const color = await generateColorFromNpub(npub)
+
           set((state) => {
-            const existingMembers = state.members[accountId] || []
-            const normalizedMembers = existingMembers.map((member) =>
+            const currentMembers = state.members[accountId] || []
+            const normalizedMembers = currentMembers.map((member) =>
               typeof member === 'string'
-                ? { npub: member, color: '#404040' }
+                ? { npub: member, color: gray[500] }
                 : member
             )
 
+            // Double-check in case another call added this member
             const existingNpubs = new Set(normalizedMembers.map((m) => m.npub))
             if (!existingNpubs.has(npub)) {
               normalizedMembers.push({ npub, color })
@@ -179,13 +191,13 @@ const useNostrStore = create<NostrState & NostrAction>()(
             const existingMembers = state.members[accountId] || []
             const normalizedMembers = existingMembers.map((member) =>
               typeof member === 'string'
-                ? { npub: member, color: '#404040' }
+                ? { npub: member, color: gray[500] }
                 : member
             )
 
             const existingNpubs = new Set(normalizedMembers.map((m) => m.npub))
             if (!existingNpubs.has(npub)) {
-              normalizedMembers.push({ npub, color: '#404040' })
+              normalizedMembers.push({ npub, color: gray[500] })
             }
 
             const newState = {

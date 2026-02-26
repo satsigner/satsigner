@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { toast } from 'sonner-native'
 
 import { NostrAPI } from '@/api/nostr'
@@ -45,9 +45,7 @@ function useNostrDeviceAnnouncement() {
     []
   )
 
-  return {
-    announce
-  }
+  return useMemo(() => ({ announce }), [announce])
 }
 
 export { useNostrDeviceAnnouncement }

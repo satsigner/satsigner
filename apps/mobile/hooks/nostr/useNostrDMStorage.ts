@@ -1,5 +1,5 @@
 import { nip19 } from 'nostr-tools'
-import { useCallback } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import { toast } from 'sonner-native'
 
 import { useAccountsStore } from '@/store/accounts'
@@ -87,7 +87,14 @@ function buildNewMessage(
   }
 }
 
+// Debounce delay for batching DM storage writes
+const DM_STORAGE_DEBOUNCE_MS = 500
+
 function useNostrDMStorage() {
+  // Accumulator for pending DMs across multiple storeBatch calls
+  const pendingDmsRef = useRef<Map<string, PendingDM[]>>(new Map())
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const store = useCallback(
     async (
       account: Account,
@@ -175,79 +182,102 @@ function useNostrDMStorage() {
     []
   )
 
+  // Flush all accumulated pending DMs to storage (the actual expensive operation)
+  const flushPendingDms = useCallback((accountId: string) => {
+    const pendingDms = pendingDmsRef.current.get(accountId) || []
+    if (pendingDms.length === 0) return
+
+    // Clear the accumulated DMs for this account
+    pendingDmsRef.current.delete(accountId)
+
+    const currentAccount = useAccountsStore
+      .getState()
+      .accounts.find((a) => a.id === accountId)
+    if (!currentAccount?.nostr) return
+
+    let currentDms = [...(currentAccount.nostr.dms || [])]
+    const existingIds = new Set(currentDms.map((m) => m.id))
+    const syncStartSec = getSyncStartSeconds(currentAccount)
+    const deviceHex = getDevicePubkeyHex(currentAccount)
+
+    for (const { unwrappedEvent, eventContent, skipToast } of pendingDms) {
+      if (!isSenderAllowed(currentAccount, unwrappedEvent.pubkey)) continue
+
+      const created_at = eventContent.created_at as number
+      if (created_at > Date.now() / 1000 + DM_FUTURE_TOLERANCE_SEC) continue
+
+      const newMessage = buildNewMessage(unwrappedEvent, eventContent)
+      if (existingIds.has(newMessage.id)) continue
+      existingIds.add(newMessage.id)
+
+      const isOwnMsg = !!(deviceHex && samePubkey(newMessage.author, deviceHex))
+      if (isOwnMsg) {
+        const pendingIdx = currentDms.findIndex(
+          (m) =>
+            m.pending &&
+            samePubkey(m.author, deviceHex) &&
+            m.description === newMessage.description &&
+            Math.abs(m.created_at - newMessage.created_at) <=
+              PENDING_MATCH_CREATED_AT_TOLERANCE_SEC
+        )
+        if (pendingIdx >= 0) {
+          currentDms = currentDms.slice()
+          currentDms[pendingIdx] = newMessage
+        } else {
+          currentDms.push(newMessage)
+        }
+      } else {
+        currentDms.push({ ...newMessage, read: false })
+      }
+
+      const description = (eventContent.description as string) ?? ''
+      if (
+        !skipToast &&
+        !isChatActive(currentAccount.id) &&
+        created_at >= syncStartSec &&
+        currentAccount.nostr?.deviceNpub !==
+          nip19.npubEncode(unwrappedEvent.pubkey) &&
+        created_at > Date.now() / 1000 - 60 * 5
+      ) {
+        const author = getAuthorDisplayName(unwrappedEvent.pubkey)
+        const preview = description.slice(0, TOAST_CONTENT_MAX)
+        toast.info('New Device Message', {
+          description: `${author}\n${preview}`,
+          duration: TOAST_DURATION
+        })
+      }
+    }
+
+    const updatedDms = currentDms.sort((a, b) => a.created_at - b.created_at)
+    useAccountsStore
+      .getState()
+      .updateAccountNostr(accountId, { dms: updatedDms })
+  }, [])
+
+  // Debounced storeBatch - accumulates DMs and writes to storage after delay
   const storeBatch = useCallback(
     async (account: Account, pendingDms: PendingDM[]) => {
       if (pendingDms.length === 0) return
 
-      // Read latest accounts from store to avoid stale closure (subscription
-      // callback may run with old accounts and overwrite dms with a shorter list)
-      const currentAccount = useAccountsStore
-        .getState()
-        .accounts.find((a) => a.id === account.id)
-      if (!currentAccount?.nostr) return
+      // Accumulate DMs for this account
+      const existing = pendingDmsRef.current.get(account.id) || []
+      pendingDmsRef.current.set(account.id, [...existing, ...pendingDms])
 
-      let currentDms = [...(currentAccount.nostr.dms || [])]
-      const existingIds = new Set(currentDms.map((m) => m.id))
-      const syncStartSec = getSyncStartSeconds(currentAccount)
-      const deviceHex = getDevicePubkeyHex(currentAccount)
-
-      for (const { unwrappedEvent, eventContent, skipToast } of pendingDms) {
-        if (!isSenderAllowed(currentAccount, unwrappedEvent.pubkey)) continue
-
-        const created_at = eventContent.created_at as number
-        if (created_at > Date.now() / 1000 + DM_FUTURE_TOLERANCE_SEC) continue
-
-        const newMessage = buildNewMessage(unwrappedEvent, eventContent)
-        if (existingIds.has(newMessage.id)) continue
-        existingIds.add(newMessage.id)
-
-        // If this is our own message, replace matching pending instead of dup
-        const isOwnMsg = !!(
-          deviceHex && samePubkey(newMessage.author, deviceHex)
-        )
-        if (isOwnMsg) {
-          const pendingIdx = currentDms.findIndex(
-            (m) =>
-              m.pending &&
-              samePubkey(m.author, deviceHex) &&
-              m.description === newMessage.description &&
-              Math.abs(m.created_at - newMessage.created_at) <=
-                PENDING_MATCH_CREATED_AT_TOLERANCE_SEC
-          )
-          if (pendingIdx >= 0) {
-            currentDms = currentDms.slice()
-            currentDms[pendingIdx] = newMessage
-          } else {
-            currentDms.push(newMessage)
-          }
-        } else {
-          currentDms.push({ ...newMessage, read: false })
-        }
-
-        const description = (eventContent.description as string) ?? ''
-        if (
-          !skipToast &&
-          !isChatActive(currentAccount.id) &&
-          created_at >= syncStartSec &&
-          currentAccount.nostr?.deviceNpub !==
-            nip19.npubEncode(unwrappedEvent.pubkey) &&
-          created_at > Date.now() / 1000 - 60 * 5
-        ) {
-          const author = getAuthorDisplayName(unwrappedEvent.pubkey)
-          const preview = description.slice(0, TOAST_CONTENT_MAX)
-          toast.info('New Device Message', {
-            description: `${author}\n${preview}`,
-            duration: TOAST_DURATION
-          })
-        }
+      // Cancel existing timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
       }
 
-      const updatedDms = currentDms.sort((a, b) => a.created_at - b.created_at)
-      useAccountsStore
-        .getState()
-        .updateAccountNostr(account.id, { dms: updatedDms })
+      // Set new debounced flush
+      debounceTimerRef.current = setTimeout(() => {
+        debounceTimerRef.current = null
+        // Flush all accounts that have pending DMs
+        for (const accountId of pendingDmsRef.current.keys()) {
+          flushPendingDms(accountId)
+        }
+      }, DM_STORAGE_DEBOUNCE_MS)
     },
-    []
+    [flushPendingDms]
   )
 
   const load = useCallback(async (account?: Account) => {
@@ -261,12 +291,15 @@ function useNostrDMStorage() {
     useAccountsStore.getState().updateAccountNostr(account.id, { dms: [] })
   }, [])
 
-  return {
-    store,
-    storeBatch,
-    load,
-    clear
-  }
+  return useMemo(
+    () => ({
+      store,
+      storeBatch,
+      load,
+      clear
+    }),
+    [store, storeBatch, load, clear]
+  )
 }
 
 export { buildNewMessage, getSyncStartSeconds, useNostrDMStorage }

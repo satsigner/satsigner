@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { toast } from 'sonner-native'
 
 import { NostrAPI } from '@/api/nostr'
@@ -98,9 +98,7 @@ function useNostrLabelSync() {
     }
   }, [])
 
-  return {
-    sync
-  }
+  return useMemo(() => ({ sync }), [sync])
 }
 
 export { useNostrLabelSync }

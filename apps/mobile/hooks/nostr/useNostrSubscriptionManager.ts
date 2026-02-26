@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -179,13 +179,22 @@ function useNostrSubscriptionManager() {
     ]
   )
 
-  return {
-    subscribe,
-    cleanup,
-    createProtocolSubscription,
-    createDataExchangeSubscription,
-    getActiveSubscriptions
-  }
+  return useMemo(
+    () => ({
+      subscribe,
+      cleanup,
+      createProtocolSubscription,
+      createDataExchangeSubscription,
+      getActiveSubscriptions
+    }),
+    [
+      subscribe,
+      cleanup,
+      createProtocolSubscription,
+      createDataExchangeSubscription,
+      getActiveSubscriptions
+    ]
+  )
 }
 
 export { useNostrSubscriptionManager }

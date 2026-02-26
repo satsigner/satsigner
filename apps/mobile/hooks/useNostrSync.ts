@@ -1,5 +1,5 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
@@ -30,12 +30,6 @@ function useNostrSync() {
   const [getSyncStatus] = useNostrStore(
     useShallow((state) => [state.getSyncStatus])
   )
-
-  // Register message processor with the service when this hook is used
-  useEffect(() => {
-    // This is a no-op effect that ensures the message processor is available
-    // The actual registration happens when startSync is called
-  }, [messages])
 
   /**
    * Start sync for an account - fire-and-forget (non-blocking)
@@ -153,38 +147,63 @@ function useNostrSync() {
   const processEvent = messages.processEvent
   const deviceAnnouncement = device.announce
 
-  return {
-    // New fire-and-forget API
-    startSync,
-    fetchOnce,
-    stopSync,
-    restartSync,
-    hasActiveSubscription,
-    getStatus,
+  return useMemo(
+    () => ({
+      // New fire-and-forget API
+      startSync,
+      fetchOnce,
+      stopSync,
+      restartSync,
+      hasActiveSubscription,
+      getStatus,
 
-    // Clean API from the plan
-    subscribe: subscriptionManager.subscribe,
-    cleanup: subscriptionManager.cleanup,
-    syncLabels: labels.sync,
-    storeDM: dms.store,
-    loadDMs: dms.load,
-    clearDMs: dms.clear,
-    announceDevice: device.announce,
-    generateKeys: generateCommonNostrKeys,
+      // Clean API from the plan
+      subscribe: subscriptionManager.subscribe,
+      cleanup: subscriptionManager.cleanup,
+      syncLabels: labels.sync,
+      storeDM: dms.store,
+      loadDMs: dms.load,
+      clearDMs: dms.clear,
+      announceDevice: device.announce,
+      generateKeys: generateCommonNostrKeys,
 
-    // Legacy API for backward compatibility
-    sendLabelsToNostr,
-    dataExchangeSubscription,
-    generateCommonNostrKeys,
-    loadStoredDMs,
-    clearStoredDMs,
-    processEvent,
-    protocolSubscription,
-    cleanupSubscriptions,
-    deviceAnnouncement,
-    nostrSyncSubscriptions,
-    getActiveSubscriptions
-  }
+      // Legacy API for backward compatibility
+      sendLabelsToNostr,
+      dataExchangeSubscription,
+      generateCommonNostrKeys,
+      loadStoredDMs,
+      clearStoredDMs,
+      processEvent,
+      protocolSubscription,
+      cleanupSubscriptions,
+      deviceAnnouncement,
+      nostrSyncSubscriptions,
+      getActiveSubscriptions
+    }),
+    [
+      startSync,
+      fetchOnce,
+      stopSync,
+      restartSync,
+      hasActiveSubscription,
+      getStatus,
+      subscriptionManager,
+      labels,
+      dms,
+      device,
+      generateCommonNostrKeys,
+      sendLabelsToNostr,
+      dataExchangeSubscription,
+      loadStoredDMs,
+      clearStoredDMs,
+      processEvent,
+      protocolSubscription,
+      cleanupSubscriptions,
+      deviceAnnouncement,
+      nostrSyncSubscriptions,
+      getActiveSubscriptions
+    ]
+  )
 }
 
 export default useNostrSync
