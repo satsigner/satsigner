@@ -35,13 +35,15 @@ type SSTransactionChartProps = {
   ownAddresses?: Set<string> // NEW: prop for own addresses
   selectedOutputIndex?: number // Index of the output to highlight (vout)
   dimUnselected?: boolean // Dim non-selected outputs
+  scale?: number // Scale factor for the chart (0-1)
 }
 
 function SSTransactionChart({
   transaction,
   ownAddresses = new Set(),
   selectedOutputIndex,
-  dimUnselected = false
+  dimUnselected = false,
+  scale = 1
 }: SSTransactionChartProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -91,19 +93,20 @@ function SSTransactionChart({
   // Fixed base height with dynamic scaling for larger transactions
   const FIXED_BASE_HEIGHT = 400
   const SCALING_THRESHOLD = 2.4 // Start scaling when more than 5 inputs or outputs
-  const GRAPH_HEIGHT =
+  const BASE_GRAPH_HEIGHT =
     maxInputOutputLength > SCALING_THRESHOLD
       ? FIXED_BASE_HEIGHT *
         (1 + (maxInputOutputLength - SCALING_THRESHOLD) * 0.5)
       : FIXED_BASE_HEIGHT
-  const GRAPH_WIDTH = width
+  const GRAPH_HEIGHT = BASE_GRAPH_HEIGHT * scale
+  const GRAPH_WIDTH = width * scale
 
   const sankeyGenerator = sankey()
-    .nodeWidth(NODE_WIDTH)
+    .nodeWidth(NODE_WIDTH * scale)
     .nodePadding(GRAPH_HEIGHT / 2)
     .extent([
-      [0, 20],
-      [width * 0.9, (GRAPH_HEIGHT * 0.65) / 2]
+      [0, 20 * scale],
+      [GRAPH_WIDTH * 0.9, (GRAPH_HEIGHT * 0.65) / 2]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 

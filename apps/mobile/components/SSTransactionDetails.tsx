@@ -116,18 +116,24 @@ function SSTransactionDetails({
       gap={onToggleVisibility ? 'md' : undefined}
       style={onToggleVisibility && { paddingTop: 10 }}
     >
-      <SSHStack justifyBetween>
+      <SSHStack justifyBetween style={{ alignItems: 'center' }}>
         <SSText size={textSize} weight="bold">
           {t('account.transaction.signRequest')}
         </SSText>
-        <SSText size={textSize} color="muted">
+        <SSText
+          size={onToggleVisibility ? 'xs' : textSize}
+          type={onToggleVisibility ? 'mono' : 'sans-serif'}
+          color="muted"
+        >
           {`${txid.slice(0, 6)}...${txid.slice(-6)}`}
         </SSText>
       </SSHStack>
       {onToggleVisibility ? (
         <>
           {visibility?.sankey ? (
-            <SSTransactionChart transaction={transaction} />
+            <View style={styles.chatChartContainer}>
+              <SSTransactionChart transaction={transaction} scale={0.75} />
+            </View>
           ) : (
             <SSButton
               label={t('transaction.loadSankey')}
@@ -183,6 +189,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     paddingLeft: 8,
     paddingRight: 16
+  },
+  chatChartContainer: {
+    backgroundColor: '#151515',
+    borderRadius: 8,
+    padding: 8,
+    paddingLeft: 46,
+    marginTop: 2,
+    alignItems: 'center'
   },
   signatureContainer: {
     alignItems: 'center'
