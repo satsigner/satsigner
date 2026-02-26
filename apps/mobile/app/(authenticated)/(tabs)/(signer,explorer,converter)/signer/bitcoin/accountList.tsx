@@ -80,14 +80,16 @@ export default function AccountList() {
     setSelectedNetwork,
     connectionMode,
     autoConnectDelay,
-    mempoolUrl
+    mempoolUrl,
+    mainnetMempoolUrl
   ] = useBlockchainStore(
     useShallow((state) => [
       state.selectedNetwork,
       state.setSelectedNetwork,
       state.configs[state.selectedNetwork].config.connectionMode,
       state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync,
-      state.configsMempool[state.selectedNetwork]
+      state.configsMempool[state.selectedNetwork],
+      state.configsMempool['bitcoin']
     ])
   )
   const [accounts, updateAccount] = useAccountsStore(
@@ -173,8 +175,8 @@ export default function AccountList() {
   }, [network]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    fetchPrices(mempoolUrl)
-  }, [fetchPrices, mempoolUrl])
+    fetchPrices(mainnetMempoolUrl)
+  }, [fetchPrices, mainnetMempoolUrl])
 
   function handleOnNavigateToAddAccount() {
     clearAccount()
