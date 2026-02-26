@@ -312,7 +312,8 @@ describe('message handlers', () => {
         eventContent: {
           created_at: 1704067200,
           description: 'cHNidP8base64data'
-        }
+        },
+        skipToast: true
       })
     })
 
