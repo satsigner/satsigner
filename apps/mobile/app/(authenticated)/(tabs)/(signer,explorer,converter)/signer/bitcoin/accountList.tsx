@@ -80,7 +80,6 @@ export default function AccountList() {
     setSelectedNetwork,
     connectionMode,
     autoConnectDelay,
-    mempoolUrl,
     mainnetMempoolUrl
   ] = useBlockchainStore(
     useShallow((state) => [
@@ -88,7 +87,6 @@ export default function AccountList() {
       state.setSelectedNetwork,
       state.configs[state.selectedNetwork].config.connectionMode,
       state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync,
-      state.configsMempool[state.selectedNetwork],
       state.configsMempool['bitcoin']
     ])
   )
