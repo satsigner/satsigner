@@ -76,7 +76,7 @@ export function parseNostrTransaction(
   return null
 }
 
-export function compressMessage(data: object): string {
+export function compressMessage(data: unknown): string {
   const cborData = CBOR.encode(data)
   const jsonUint8 = new Uint8Array(cborData)
   const compressedData = pako.deflate(jsonUint8)

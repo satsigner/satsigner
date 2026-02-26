@@ -146,7 +146,7 @@ function NostrKeys() {
             picture: profile.picture
           }
         }
-        updateAccountNostr(accountId, {
+        updateAccountNostr(account.id, {
           deviceDisplayName: profile.displayName,
           devicePicture: profile.picture,
           npubProfiles,
@@ -179,7 +179,7 @@ function NostrKeys() {
     try {
       const keys = await generateCommonNostrKeys(account)
       if (keys && 'commonNsec' in keys && 'commonNpub' in keys) {
-        updateAccountNostr(accountId, {
+        updateAccountNostr(account.id, {
           commonNsec: keys.commonNsec,
           commonNpub: keys.commonNpub,
           lastUpdated: new Date()

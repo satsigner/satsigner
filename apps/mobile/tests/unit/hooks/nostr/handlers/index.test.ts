@@ -95,6 +95,7 @@ describe('handler registry', () => {
     >,
     lastDataExchangeEOSE: 0,
     syncStartSec: 0,
+    onPendingDM: () => {},
     ...overrides
   })
 
