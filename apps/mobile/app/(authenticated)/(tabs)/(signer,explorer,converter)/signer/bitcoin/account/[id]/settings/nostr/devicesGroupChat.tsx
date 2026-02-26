@@ -352,8 +352,8 @@ export default function DevicesGroupChat() {
       } catch {
         continue
       }
-      // Skip if we already have a displayName or are already fetching this run
-      if (profiles[npub]?.displayName || fetchedRef.has(npub)) continue
+      // Skip if we already have profile data or are already fetching this run
+      if (profiles[npub]?.displayName || profiles[npub]?.picture || fetchedRef.has(npub)) continue
       fetchedRef.add(npub)
 
       const api = new NostrAPI(relays)

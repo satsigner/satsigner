@@ -106,17 +106,27 @@ function useNostrDMStorage() {
 
       const newMessage = buildNewMessage(unwrappedEvent, eventContent)
 
+      // Read latest accounts from store to avoid stale closure
+      const currentAccount = useAccountsStore
+        .getState()
+        .accounts.find((a) => a.id === account.id)
+      if (!currentAccount?.nostr) return
+
+      // Validate sender before showing toast or storing message
+      if (!isSenderAllowed(currentAccount, unwrappedEvent.pubkey)) return
+
       // Notify for messages sent after the last sync started, not from self,
       // and no older than 5 minutes. We intentionally do NOT filter against
       // lastDataExchangeEOSE here: that timestamp is set when EOSE arrives,
       // which is AFTER all historical events have been queued — so comparing
       // created_at against it would suppress every message from the initial
       // batch, even ones the user genuinely hasn't seen yet.
-      const syncStartSec = getSyncStartSeconds(account)
+      const syncStartSec = getSyncStartSeconds(currentAccount)
       if (
-        !isChatActive(account.id) &&
+        !isChatActive(currentAccount.id) &&
         created_at >= syncStartSec &&
-        account.nostr?.deviceNpub !== nip19.npubEncode(unwrappedEvent.pubkey) &&
+        currentAccount.nostr?.deviceNpub !==
+          nip19.npubEncode(unwrappedEvent.pubkey) &&
         created_at > Date.now() / 1000 - 60 * 5
       ) {
         const author = getAuthorDisplayName(unwrappedEvent.pubkey)
@@ -126,14 +136,6 @@ function useNostrDMStorage() {
           duration: TOAST_DURATION
         })
       }
-
-      // Read latest accounts from store to avoid stale closure
-      const currentAccount = useAccountsStore
-        .getState()
-        .accounts.find((a) => a.id === account.id)
-      if (!currentAccount?.nostr) return
-
-      if (!isSenderAllowed(currentAccount, unwrappedEvent.pubkey)) return
 
       let currentDms = currentAccount.nostr.dms || []
 

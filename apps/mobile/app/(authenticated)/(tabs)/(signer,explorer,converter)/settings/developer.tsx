@@ -85,7 +85,6 @@ export default function Developer() {
       setClearStorageModalVisible(false)
       toast.success(t('settings.developer.storageCleared'))
     } catch (error) {
-      console.error('clearAllStorage failed', error)
       const message = error instanceof Error ? error.message : String(error)
       toast.error(`${t('settings.developer.storageClearFailed')}: ${message}`)
     }
