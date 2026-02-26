@@ -18,6 +18,7 @@ import { signMessageHandler } from './handlers/signMessageHandler'
 import { txHandler } from './handlers/txHandler'
 import {
   type MessageHandlerContext,
+  type NostrMessageData,
   type PendingDM,
   type UnwrappedNostrEvent
 } from './types'
@@ -87,9 +88,7 @@ function useNostrMessageProcessor() {
           .addProcessedEvent(account.id, unwrappedEvent.id)
         const eventContent = getEventContent(unwrappedEvent)
 
-        const data = eventContent.data as
-          | { data_type: string; data?: unknown }
-          | undefined
+        const data = eventContent.data as NostrMessageData | undefined
 
         const context: MessageHandlerContext = {
           account,
