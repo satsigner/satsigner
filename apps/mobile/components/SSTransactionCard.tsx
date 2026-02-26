@@ -84,9 +84,10 @@ function SSTransactionCard({
     }
 
     // Only show historical price if available and valid
-    if (prices && prices[fiatCurrency] && prices[fiatCurrency] > 0) {
+    const historicalPrice = prices?.[fiatCurrency]
+    if (historicalPrice && historicalPrice > 0) {
       itemsToDisplay.push(
-        '(' + formatFiatPrice(Math.abs(amount), prices[fiatCurrency]) + ')'
+        '(' + formatFiatPrice(Math.abs(amount), historicalPrice) + ')'
       )
     }
 

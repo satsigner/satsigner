@@ -48,7 +48,7 @@ export default function Developer() {
         accounts: accounts.map((account) => ({
           id: account.id,
           name: account.name,
-          scriptVersion: account.scriptVersion,
+          network: account.network,
           policyType: account.policyType,
           keys: account.keys,
           summary: account.summary,
