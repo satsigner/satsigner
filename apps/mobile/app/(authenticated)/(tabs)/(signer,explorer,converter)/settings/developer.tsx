@@ -59,12 +59,14 @@ export default function Developer() {
 
       const payload = JSON.stringify(backupData, null, 2)
 
-      await Share.share({
+      const result = await Share.share({
         message: payload,
         title: t('settings.developer.backupData')
       })
 
-      toast.success(t('settings.developer.backupSuccess'))
+      if (result.action === Share.sharedAction) {
+        toast.success(t('settings.developer.backupSuccess'))
+      }
     } catch (_error) {
       toast.error(t('settings.developer.backupError'))
     }
@@ -77,10 +79,19 @@ export default function Developer() {
     toast.error(t('settings.developer.accountsDeleted'))
   }
 
-  function handleClearStorage() {
-    clearAllStorage()
-    setClearStorageModalVisible(false)
-    toast.success(t('settings.developer.storageCleared'))
+  async function handleClearStorage() {
+    try {
+      clearAllStorage()
+      setClearStorageModalVisible(false)
+      toast.success(t('settings.developer.storageCleared'))
+    } catch (error) {
+      console.error('clearAllStorage failed', error)
+      const message =
+        error instanceof Error ? error.message : String(error)
+      toast.error(
+        `${t('settings.developer.storageClearFailed')}: ${message}`
+      )
+    }
   }
 
   return (
