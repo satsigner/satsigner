@@ -86,11 +86,8 @@ export default function Developer() {
       toast.success(t('settings.developer.storageCleared'))
     } catch (error) {
       console.error('clearAllStorage failed', error)
-      const message =
-        error instanceof Error ? error.message : String(error)
-      toast.error(
-        `${t('settings.developer.storageClearFailed')}: ${message}`
-      )
+      const message = error instanceof Error ? error.message : String(error)
+      toast.error(`${t('settings.developer.storageClearFailed')}: ${message}`)
     }
   }
 
