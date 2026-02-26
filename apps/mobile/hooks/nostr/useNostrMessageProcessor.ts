@@ -33,9 +33,16 @@ function getEventContent(
     // JSON parse failed, try decompression
   }
   try {
-    return decompressMessage(unwrappedEvent.content) as Record<string, unknown>
+    const decoded = decompressMessage(unwrappedEvent.content)
+    if (
+      decoded !== null &&
+      typeof decoded === 'object' &&
+      !Array.isArray(decoded)
+    ) {
+      return decoded as Record<string, unknown>
+    }
   } catch {
-    // Decompression failed, return safe fallback
+    // Decompression failed, fall through to safe fallback
   }
   return { raw: unwrappedEvent.content }
 }

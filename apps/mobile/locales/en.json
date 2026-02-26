@@ -1346,6 +1346,7 @@
     "developer.description": "Available in dev mode only. Useful tools for developers for faster development",
     "developer.skipPin": "Skip PIN",
     "developer.storageCleared": "Storage cleared",
+    "developer.storageClearFailed": "Failed to clear storage",
     "developer.title": "Developer",
     "features.bip39.description": "Default language used in mnemonic from BIP39 word list",
     "features.bip39.longDescription": "Select the default language for the word list used in mnemonic seed from BIP39 when creating a new account.",
