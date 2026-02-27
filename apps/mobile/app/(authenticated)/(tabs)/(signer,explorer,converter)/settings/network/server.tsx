@@ -181,15 +181,27 @@ export default function NetworkSettings() {
                               }
                             >
                               <SSVStack gap="none" style={{ flexGrow: 1 }}>
-                                <SSText
-                                  style={{
-                                    lineHeight: 16,
-                                    textTransform: 'capitalize'
-                                  }}
-                                  size="md"
-                                >
-                                  {`${server.name} (${server.backend})`}
-                                </SSText>
+                                <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+                                  <SSText
+                                    style={{
+                                      lineHeight: 16,
+                                      textTransform: 'capitalize'
+                                    }}
+                                    size="md"
+                                  >
+                                    {server.name}
+                                  </SSText>
+                                  <SSText
+                                    style={{
+                                      lineHeight: 16,
+                                      textTransform: 'capitalize'
+                                    }}
+                                    size="md"
+                                    color="muted"
+                                  >
+                                    {server.backend}
+                                  </SSText>
+                                </SSHStack>
                                 <SSHStack gap="xs">
                                   {(() => {
                                     const isSelected =
