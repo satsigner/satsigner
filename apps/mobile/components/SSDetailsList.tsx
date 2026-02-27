@@ -85,10 +85,10 @@ export function SSDetailsListItem({
 
   const listItemComponent = (
     <SSVStack gap={gap}>
-      <SSText uppercase={uppercase} weight="bold" size={headerSize}>
+      <SSText uppercase={uppercase} color="muted" size={headerSize}>
         {header}
       </SSText>
-      <SSText color="muted" type={variant} size={textSize}>
+      <SSText type={variant} size={textSize}>
         {validText ? text : '-'}
       </SSText>
     </SSVStack>

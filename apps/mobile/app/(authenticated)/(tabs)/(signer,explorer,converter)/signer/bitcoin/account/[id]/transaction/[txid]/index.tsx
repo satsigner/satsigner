@@ -125,9 +125,9 @@ export default function TxDetails() {
           link={`/signer/bitcoin/account/${accountId}/transaction/${txid}/label`}
           header={t('transaction.label')}
         />
-        <SSSeparator color="gradient" />
-        <SSVStack>
-          <SSText uppercase weight="bold" size="md">
+        <SSVStack style={{ paddingTop: 50 }}>
+          <SSSeparator color="gradient" />
+          <SSText uppercase color="muted">
             {t('transaction.details.chart')}
           </SSText>
           <SSTransactionChart transaction={tx} />
@@ -136,6 +136,8 @@ export default function TxDetails() {
         <SSDetailsList
           columns={3}
           headerSize="sm"
+          textSize="md"
+          uppercase={false}
           items={[
             [t('transaction.block'), height, { width: '100%' }],
             [
@@ -148,16 +150,18 @@ export default function TxDetails() {
             [t('transaction.vsize'), vsize],
             [t('transaction.fee'), fee],
             [t('transaction.feeBytes'), feePerByte],
-            [t('transaction.feeVBytes'), feePerVByte]
+            [t('transaction.feeVBytes'), feePerVByte],
+            [t('transaction.version'), version],
+            [t('transaction.input.count'), inputsCount],
+            [t('transaction.output.count'), outputsCount]
           ]}
         />
         <SSSeparator color="gradient" />
         <SSVStack gap="sm">
           <SSText
             uppercase
-            weight="bold"
-            size="md"
-            style={{ marginBottom: -30 }}
+            color="muted"
+            style={{ marginBottom: -30, marginTop: 50 }}
           >
             {t('transaction.decoded.title')}
           </SSText>
@@ -167,20 +171,7 @@ export default function TxDetails() {
             <SSText>{placeholder}</SSText>
           )}
         </SSVStack>
-        <SSSeparator color="gradient" />
-        <SSVStack gap="none">
-          <SSText uppercase weight="bold" size="lg">
-            {t('transaction.details.title')}
-          </SSText>
-        </SSVStack>
-        <SSDetailsList
-          columns={3}
-          items={[
-            [t('transaction.version'), version],
-            [t('transaction.input.count'), inputsCount],
-            [t('transaction.output.count'), outputsCount]
-          ]}
-        />
+
         <SSTransactionVinList vin={tx.vin} />
         <SSTransactionVoutList
           vout={tx.vout}
@@ -246,10 +237,10 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
   return (
     <SSVStack gap="none" style={{ alignItems: 'center' }}>
       {tx?.timestamp && <SSTimeAgoText date={new Date(tx.timestamp)} />}
-      <SSHStack gap="sm" style={{ alignItems: 'center' }}>
-        {type === 'receive' && <SSIconIncoming height={12} width={12} />}
-        {type === 'send' && <SSIconOutgoing height={12} width={12} />}
-        <SSHStack gap="sm" style={{ alignItems: 'baseline' }}>
+      <SSVStack gap="xs" style={{ alignItems: 'center', marginTop: 16 }}>
+        <SSHStack gap="sm" style={{ alignItems: 'center' }}>
+          {type === 'receive' && <SSIconIncoming height={12} width={12} />}
+          {type === 'send' && <SSIconOutgoing height={12} width={12} />}
           <SSHStack gap="xs" style={{ alignItems: 'baseline', width: 'auto' }}>
             {amount !== 0 ? (
               <SSStyledSatText
@@ -267,15 +258,25 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
               {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
             </SSText>
           </SSHStack>
-          <SSHStack gap="xs">
-            {price && <SSText>{price}</SSText>}
-            {oldPrice && <SSText color="muted">({oldPrice})</SSText>}
-            {(price || oldPrice) && (
-              <SSText color="muted">{fiatCurrency}</SSText>
-            )}
-          </SSHStack>
         </SSHStack>
-      </SSHStack>
+        {(price || oldPrice) && (
+          <SSHStack gap="xs">
+            {price && (
+              <SSText color="muted" size="sm">
+                {price}
+              </SSText>
+            )}
+            {oldPrice && (
+              <SSText color="muted" size="sm">
+                ({oldPrice})
+              </SSText>
+            )}
+            <SSText color="muted" size="sm">
+              {fiatCurrency}
+            </SSText>
+          </SSHStack>
+        )}
+      </SSVStack>
       <SSHStack gap="sm">
         <SSText
           style={{
