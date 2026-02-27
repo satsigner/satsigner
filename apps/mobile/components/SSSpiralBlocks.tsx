@@ -27,6 +27,7 @@ import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
 import { Colors } from '@/styles'
 import { type BlockDifficulty } from '@/types/models/Blockchain'
+import SSLoader from '@/components/SSLoader'
 
 const FACTOR_BLOCK_DISTANCE = 0.055
 const RADIUS_SPIRAL_START = 1
@@ -263,23 +264,17 @@ function SSSpiralBlocks({
     ))
   }, [spiralBlocks, invisibleOverlayBlocks, data, onBlockPress])
 
-  // If still loading data, show a loading spinner (an outlined circle)
+  // If still loading data, show branded white-circle loader
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Canvas
-          style={[styles.canvas, { width: canvasWidth, height: canvasHeight }]}
-        >
-          <Circle
-            cx={canvasWidth / 2}
-            cy={canvasHeight / 2}
-            r={40}
-            color="transparent"
-            style="stroke"
-          >
-            <Paint color="white" strokeWidth={6} />
-          </Circle>
-        </Canvas>
+      <View
+        style={[
+          styles.container,
+          styles.loadingContainer,
+          { width: canvasWidth, height: canvasHeight }
+        ]}
+      >
+        <SSLoader size={120} />
       </View>
     )
   }
@@ -380,8 +375,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#000000',
     borderColor: 'yellow',
-    borderWidth: 1
   },
+  loadingContainer: {},
   canvas: {
     position: 'relative',
     backgroundColor: '#000'

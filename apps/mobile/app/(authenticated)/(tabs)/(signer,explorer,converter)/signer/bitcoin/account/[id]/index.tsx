@@ -17,7 +17,6 @@ import {
   useState
 } from 'react'
 import {
-  ActivityIndicator,
   Animated,
   Dimensions,
   Easing,
@@ -62,6 +61,7 @@ import SSHistoryChart from '@/components/SSHistoryChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSNFCModal from '@/components/SSNFCModal'
 import SSPaste from '@/components/SSPaste'
+import SSLoader from '@/components/SSLoader'
 import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSStyledSatText from '@/components/SSStyledSatText'
@@ -210,42 +210,54 @@ function TotalTransactions({
           }}
           gap={expand ? 'sm' : 'md'}
         >
-          <FlashList
-            data={sortedTransactions.slice().reverse()}
-            renderItem={({ item, index }) => (
-              <SSVStack gap="none">
-                <SSBalanceChangeBar
-                  transaction={item}
-                  balance={transactionBalances[index]}
-                  maxBalance={maxBalance}
+          <View style={styles.listWithLoader}>
+            <FlashList
+              data={sortedTransactions.slice().reverse()}
+              renderItem={({ item, index }) => (
+                <SSVStack gap="none">
+                  <SSBalanceChangeBar
+                    transaction={item}
+                    balance={transactionBalances[index]}
+                    maxBalance={maxBalance}
+                  />
+                  <SSTransactionCard
+                    btcPrice={btcPrice}
+                    fiatCurrency={fiatCurrency}
+                    transaction={item}
+                    expand={expand}
+                    walletBalance={transactionBalances[index]}
+                    blockHeight={blockchainHeight}
+                    link={`/signer/bitcoin/account/${account.id}/transaction/${item.id}`}
+                  />
+                </SSVStack>
+              )}
+              estimatedItemSize={120}
+              ListEmptyComponent={
+                <SSVStack>
+                  <SSText>No transactions</SSText>
+                </SSVStack>
+              }
+              keyExtractor={(item) => item.id}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={handleOnRefresh}
+                  tintColor={Colors.transparent}
+                  colors={[Colors.transparent]}
+                  progressBackgroundColor={Colors.transparent}
+                  progressViewOffset={9999}
                 />
-                <SSTransactionCard
-                  btcPrice={btcPrice}
-                  fiatCurrency={fiatCurrency}
-                  transaction={item}
-                  expand={expand}
-                  walletBalance={transactionBalances[index]}
-                  blockHeight={blockchainHeight}
-                  link={`/signer/bitcoin/account/${account.id}/transaction/${item.id}`}
-                />
-              </SSVStack>
+              }
+            />
+            {refreshing && (
+              <View
+                style={styles.loaderOverlay}
+                pointerEvents="none"
+              >
+                <SSLoader size={32} />
+              </View>
             )}
-            estimatedItemSize={120}
-            ListEmptyComponent={
-              <SSVStack>
-                <SSText>No transactions</SSText>
-              </SSVStack>
-            }
-            keyExtractor={(item) => item.id}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleOnRefresh}
-                colors={[Colors.gray[950]]}
-                progressBackgroundColor={Colors.white}
-              />
-            }
-          />
+          </View>
         </SSVStack>
       )}
     </SSMainLayout>
@@ -1333,7 +1345,7 @@ export default function AccountView() {
         totalTasks > 0 && (
           <View style={{ marginTop: 10, marginBottom: -10 }}>
             <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
-              <ActivityIndicator size={16} color="#fff" />
+              <SSLoader size={24} />
               <SSText center>
                 {t('account.syncProgress', { tasksDone, totalTasks })}
               </SSText>
@@ -1370,6 +1382,22 @@ export default function AccountView() {
     </>
   )
 }
+
+const styles = StyleSheet.create({
+  listWithLoader: {
+    flex: 1
+  },
+  loaderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    paddingTop: 16,
+    backgroundColor: 'transparent',
+    elevation: 0,
+    shadowOpacity: 0,
+    shadowRadius: 0
+  }
+})
 
 const addressListStyles = StyleSheet.create({
   container: {

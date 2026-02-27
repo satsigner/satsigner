@@ -1,6 +1,6 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, ScrollView, View } from 'react-native'
+import { ScrollView, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -9,6 +9,7 @@ import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
+import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
@@ -265,7 +266,7 @@ export default function SignTransaction() {
                 <SSIconSuccess width={159} height={159} variant="outline" />
               )}
               {!signed && !broadcasted && (
-                <ActivityIndicator size={160} color="#fff" />
+                <SSLoader size={160} />
               )}
               {broadcasted && (
                 <SSIconSuccess width={159} height={159} variant="filled" />

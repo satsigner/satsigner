@@ -851,46 +851,53 @@ async function parseTransactionDetailsToTransaction(
   const vout: Transaction['vout'] = []
 
   if (transaction) {
-    size = await transaction.size()
-    vsize = await transaction.vsize()
-    weight = await transaction.weight()
-    version = await transaction.version()
-    lockTime = await transaction.lockTime()
-    lockTimeEnabled = await transaction.isLockTimeEnabled()
-    raw = await transaction.serialize()
+    try {
+      // Skip transaction.size() / vsize() / weight() - bdk-rn native txSize can NPE and crash the app before JS catch runs
+      version = await transaction.version()
+      lockTime = await transaction.lockTime()
+      lockTimeEnabled = await transaction.isLockTimeEnabled()
+      raw = await transaction.serialize()
 
-    const inputs = await transaction.input()
-    const outputs = await transaction.output()
+      const inputs = await transaction.input()
+      const outputs = await transaction.output()
 
-    for (const index in inputs) {
-      const input = inputs[index]
-      if (!input?.scriptSig) continue
-      try {
-        const script = await input.scriptSig.toBytes()
-        input.scriptSig = script
-        vin.push(input)
-      } catch {
-        // BDK native toBytes can NPE if scriptSig is invalid; skip this input
+      for (const index in inputs) {
+        const input = inputs[index]
+        if (!input?.scriptSig) continue
+        try {
+          const script = await input.scriptSig.toBytes()
+          input.scriptSig = script
+          vin.push(input)
+        } catch {
+          // BDK native toBytes can NPE if scriptSig is invalid; skip this input
+        }
       }
-    }
 
-    for (const index in outputs) {
-      const { value, script: scriptObj } = outputs[index]
-      if (!scriptObj) continue
-      let script: number[] = []
-      try {
-        script = await scriptObj.toBytes()
-      } catch {
-        // BDK native toBytes can NPE if script is invalid; use empty
+      for (const index in outputs) {
+        const { value, script: scriptObj } = outputs[index]
+        if (!scriptObj) continue
+        let script: number[] = []
+        try {
+          script = await scriptObj.toBytes()
+        } catch {
+          // BDK native toBytes can NPE if script is invalid; use empty
+        }
+        let address = ''
+        try {
+          const addressObj = await new Address().fromScript(scriptObj, network)
+          address = addressObj ? await addressObj.asString() : ''
+        } catch {
+          // Intentionally ignore: non-standard scripts (OP_RETURN, bare multisig, etc.) can't be converted to addresses; leave address empty
+        }
+        vout.push({ value, address, script })
       }
-      let address = ''
-      try {
-        const addressObj = await new Address().fromScript(scriptObj, network)
-        address = addressObj ? await addressObj.asString() : ''
-      } catch {
-        // Intentionally ignore: non-standard scripts (OP_RETURN, bare multisig, etc.) can't be converted to addresses; leave address empty
+      if (raw?.length) {
+        weight = raw.length * 4
+        vsize = Math.ceil(weight / 3)
+        size = raw.length
       }
-      vout.push({ value, address, script })
+    } catch {
+      // BDK native can NPE when transaction handle is invalid; keep defaults (size 0, vsize 0, empty vin/vout)
     }
   }
 
