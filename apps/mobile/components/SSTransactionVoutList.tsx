@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { TouchableOpacity } from 'react-native'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
-import { SSDetailsListItem } from '@/components/SSDetailsList'
 import SSScriptDecoded from '@/components/SSScriptDecoded'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
@@ -74,17 +73,19 @@ export default function SSTransactionVoutList({
             }
           }}
         >
-          <SSVStack key={`${txid}:${index}`}>
+          <SSVStack style={{ paddingTop: 50 }}>
             <SSSeparator color="gradient" />
-            <SSText weight="bold" center>
+            <SSText size="lg">
               {t('transaction.output.title')} {index}
             </SSText>
-            <SSDetailsListItem
-              header={t('transaction.value')}
-              text={formatNumber(output.value, 0, false, ' ')}
-              headerSize="sm"
-              textSize="sm"
-            />
+            <SSVStack gap="none">
+              <SSText color="muted">
+                {t('transaction.value')}
+              </SSText>
+              <SSText size="lg">
+                {formatNumber(output.value, 0, false, ' ')}
+              </SSText>
+            </SSVStack>
             <TouchableOpacity
               onPress={() => {
                 if (addressDict[output.address]) {
@@ -96,8 +97,8 @@ export default function SSTransactionVoutList({
                 }
               }}
             >
-              <SSVStack gap="sm">
-                <SSText uppercase weight="bold">
+              <SSVStack gap="none">
+                <SSText color="muted">
                   {t('bitcoin.address')}
                 </SSText>
                 <SSAddressDisplay
@@ -111,16 +112,14 @@ export default function SSTransactionVoutList({
             </TouchableOpacity>
             {labelsDict[index] && (
               <SSVStack gap="none">
-                <SSText uppercase weight="bold" size="md">
+                <SSText color="muted">
                   {t('common.label')}
                 </SSText>
-                <SSText color="muted" size="md">
-                  {labelsDict[index]}
-                </SSText>
+                <SSText size="lg">{labelsDict[index]}</SSText>
               </SSVStack>
             )}
             <SSVStack>
-              <SSText uppercase weight="bold" size="sm">
+              <SSText color="muted">
                 {t('transaction.unlockingScript')}
               </SSText>
               <SSScriptDecoded script={output.script || []} />

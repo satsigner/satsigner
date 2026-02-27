@@ -282,7 +282,7 @@ function SSTransactionCard({
                   key={index}
                   size={smallView ? 'xxs' : 'xs'}
                   style={[
-                    { textAlign: 'right' },
+                    { textAlign: 'right', alignSelf: 'flex-start' },
                     {
                       backgroundColor: Colors.gray[700],
                       paddingVertical: 2,
