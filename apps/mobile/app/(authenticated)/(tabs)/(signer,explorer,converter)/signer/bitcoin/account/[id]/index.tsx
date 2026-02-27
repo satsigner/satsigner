@@ -72,6 +72,7 @@ import { useBitcoinContentHandler } from '@/hooks/useBitcoinContentHandler'
 import { useContentHandler } from '@/hooks/useContentHandler'
 import useGetAccountAddress from '@/hooks/useGetAccountAddress'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
+import { useNetworkInfo } from '@/hooks/useNetworkInfo'
 import useNostrSync from '@/hooks/useNostrSync'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
@@ -933,6 +934,7 @@ export default function AccountView() {
 
   const [connectionState, connectionString, isPrivateConnection, connectionParts] =
     useVerifyConnection()
+  const { blockHeight: networkBlockHeight, nextBlockFee } = useNetworkInfo()
 
   const bitcoinContentHandler = useBitcoinContentHandler({
     accountId: id!,
@@ -1299,38 +1301,70 @@ export default function AccountView() {
       <TouchableOpacity
         onPress={() => router.navigate('/settings/network/server')}
       >
-        <SSHStack style={{ justifyContent: 'center', gap: 0 }}>
-          {connectionState ? (
-            isPrivateConnection ? (
-              <SSIconYellowIndicator height={24} width={24} />
+        <SSVStack gap="none" style={{ alignItems: 'center' }}>
+          <SSHStack style={{ justifyContent: 'center', gap: 0 }}>
+            {connectionState ? (
+              isPrivateConnection ? (
+                <SSIconYellowIndicator height={24} width={24} />
+              ) : (
+                <SSIconGreenIndicator height={24} width={24} />
+              )
             ) : (
-              <SSIconGreenIndicator height={24} width={24} />
-            )
-          ) : (
-            <SSIconBlackIndicator height={24} width={24} />
-          )}
-          <SSHStack gap="xs" style={{ alignItems: 'center' }}>
-            <SSText
-              size="xxs"
-              uppercase
-              style={{
-                color: connectionState ? Colors.gray['200'] : Colors.gray['450']
-              }}
-            >
-              {`${connectionParts.network} - ${connectionParts.name}`}
-            </SSText>
-            <SSText
-              size="xxs"
-              uppercase
-              style={{
-                color: Colors.gray['500']
-              }}
-            >
-              {connectionParts.url}
-              {connectionParts.mode ? ` [${connectionParts.mode}]` : ''}
-            </SSText>
+              <SSIconBlackIndicator height={24} width={24} />
+            )}
+            <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+              <SSText
+                size="xxs"
+                uppercase
+                style={{
+                  color: connectionState ? Colors.gray['200'] : Colors.gray['450']
+                }}
+              >
+                {`${connectionParts.network} - ${connectionParts.name}`}
+              </SSText>
+              <SSText
+                size="xxs"
+                uppercase
+                style={{
+                  color: Colors.gray['500']
+                }}
+              >
+                {connectionParts.url}
+                {connectionParts.mode ? ` [${connectionParts.mode}]` : ''}
+              </SSText>
+            </SSHStack>
           </SSHStack>
-        </SSHStack>
+          {connectionState && (
+            <SSHStack style={{ justifyContent: 'center', gap: 0 }}>
+              <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
+                Block{' '}
+              </SSText>
+              <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
+                {networkBlockHeight?.toLocaleString() ?? '--'}
+              </SSText>
+              <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
+                {'    ~'}
+              </SSText>
+              <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
+                {nextBlockFee ?? '--'}
+              </SSText>
+              <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
+                {' sat/vB'}
+              </SSText>
+              <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
+                {'    '}
+              </SSText>
+              <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
+                {btcPrice > 0
+                  ? btcPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })
+                  : '--'}
+              </SSText>
+              <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
+                {` ${fiatCurrency}`}
+              </SSText>
+            </SSHStack>
+          )}
+        </SSVStack>
       </TouchableOpacity>
       {!expand && (
         <Animated.View style={{ paddingTop: 20 }}>
