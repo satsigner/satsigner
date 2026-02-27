@@ -97,6 +97,52 @@ import { compareTimestamp, sortTransactions } from '@/utils/sort'
 import { time } from '@/utils/time'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
+const TX_STAGGER_DELAY_MS = 70
+const TX_STAGGER_DURATION_MS = 320
+
+function TransactionStaggerItem({
+  index,
+  children
+}: {
+  index: number
+  children: React.ReactNode
+}) {
+  const opacity = useRef(new Animated.Value(0)).current
+  const translateY = useRef(new Animated.Value(12)).current
+
+  useEffect(() => {
+    const delay = index * TX_STAGGER_DELAY_MS
+    const timer = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: TX_STAGGER_DURATION_MS,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true
+        }),
+        Animated.timing(translateY, {
+          toValue: 0,
+          duration: TX_STAGGER_DURATION_MS,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true
+        })
+      ]).start()
+    }, delay)
+    return () => clearTimeout(timer)
+  }, [index, opacity, translateY])
+
+  return (
+    <Animated.View
+      style={{
+        opacity,
+        transform: [{ translateY }]
+      }}
+    >
+      {children}
+    </Animated.View>
+  )
+}
+
 type TotalTransactionsProps = {
   account: Account
   handleOnRefresh: () => Promise<void>
@@ -214,22 +260,24 @@ function TotalTransactions({
             <FlashList
               data={sortedTransactions.slice().reverse()}
               renderItem={({ item, index }) => (
-                <SSVStack gap="none">
-                  <SSBalanceChangeBar
-                    transaction={item}
-                    balance={transactionBalances[index]}
-                    maxBalance={maxBalance}
-                  />
-                  <SSTransactionCard
-                    btcPrice={btcPrice}
-                    fiatCurrency={fiatCurrency}
-                    transaction={item}
-                    expand={expand}
-                    walletBalance={transactionBalances[index]}
-                    blockHeight={blockchainHeight}
-                    link={`/signer/bitcoin/account/${account.id}/transaction/${item.id}`}
-                  />
-                </SSVStack>
+                <TransactionStaggerItem index={index}>
+                  <SSVStack gap="none">
+                    <SSBalanceChangeBar
+                      transaction={item}
+                      balance={transactionBalances[index]}
+                      maxBalance={maxBalance}
+                    />
+                    <SSTransactionCard
+                      btcPrice={btcPrice}
+                      fiatCurrency={fiatCurrency}
+                      transaction={item}
+                      expand={expand}
+                      walletBalance={transactionBalances[index]}
+                      blockHeight={blockchainHeight}
+                      link={`/signer/bitcoin/account/${account.id}/transaction/${item.id}`}
+                    />
+                  </SSVStack>
+                </TransactionStaggerItem>
               )}
               estimatedItemSize={120}
               ListEmptyComponent={
