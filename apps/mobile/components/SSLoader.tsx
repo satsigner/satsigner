@@ -1,14 +1,15 @@
 import { useEffect } from 'react'
 import { View } from 'react-native'
-import Animated from 'react-native-reanimated'
-import Svg, { Circle } from 'react-native-svg'
-import {
+import Animated, {
   Easing,
   useAnimatedProps,
   useSharedValue,
   withRepeat,
   withTiming
 } from 'react-native-reanimated'
+import Svg, { Circle } from 'react-native-svg'
+
+import { Colors } from '@/styles'
 
 const VIEWBOX_WIDTH = 120
 const VIEWBOX_HEIGHT = 60
@@ -25,7 +26,7 @@ type SSLoaderProps = {
   color?: string
 }
 
-function SSLoader({ size = 80, color = '#fff' }: SSLoaderProps) {
+function SSLoader({ size = 80, color = Colors.white }: SSLoaderProps) {
   const progress = useSharedValue(0)
 
   useEffect(() => {

@@ -242,11 +242,10 @@ export default function AccountList() {
 
   const ACCOUNT_CARD_HEIGHT = 160
   const SEPARATOR_VERTICAL = 32
-  const listItemCount = hasHydrated
-    ? Math.max(filteredAccounts.length, 1)
-    : 3
+  const listItemCount = hasHydrated ? Math.max(filteredAccounts.length, 1) : 3
   const listContainerMinHeight =
-    listItemCount * ACCOUNT_CARD_HEIGHT + (listItemCount - 1) * SEPARATOR_VERTICAL
+    listItemCount * ACCOUNT_CARD_HEIGHT +
+    (listItemCount - 1) * SEPARATOR_VERTICAL
 
   const [connectionState, connectionString, isPrivateConnection] =
     useVerifyConnection()
@@ -772,9 +771,9 @@ export default function AccountList() {
             label={t('account.add')}
             style={{
               borderTopWidth: 1,
-              borderTopColor: '#303030',
+              borderTopColor: Colors.gray[700],
               borderBottomWidth: 1,
-              borderBottomColor: '#222222',
+              borderBottomColor: Colors.gray[875],
               borderRadius: 0
             }}
             onPress={handleOnNavigateToAddAccount}

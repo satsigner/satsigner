@@ -79,9 +79,7 @@ export default function SSTransactionVoutList({
               {t('transaction.output.title')} {index}
             </SSText>
             <SSVStack gap="none">
-              <SSText color="muted">
-                {t('transaction.value')}
-              </SSText>
+              <SSText color="muted">{t('transaction.value')}</SSText>
               <SSText size="lg">
                 {formatNumber(output.value, 0, false, ' ')}
               </SSText>
@@ -98,9 +96,7 @@ export default function SSTransactionVoutList({
               }}
             >
               <SSVStack gap="none">
-                <SSText color="muted">
-                  {t('bitcoin.address')}
-                </SSText>
+                <SSText color="muted">{t('bitcoin.address')}</SSText>
                 <SSAddressDisplay
                   address={output.address}
                   copyToClipboard={false}
@@ -112,16 +108,12 @@ export default function SSTransactionVoutList({
             </TouchableOpacity>
             {labelsDict[index] && (
               <SSVStack gap="none">
-                <SSText color="muted">
-                  {t('common.label')}
-                </SSText>
+                <SSText color="muted">{t('common.label')}</SSText>
                 <SSText size="lg">{labelsDict[index]}</SSText>
               </SSVStack>
             )}
             <SSVStack>
-              <SSText color="muted">
-                {t('transaction.unlockingScript')}
-              </SSText>
+              <SSText color="muted">{t('transaction.unlockingScript')}</SSText>
               <SSScriptDecoded script={output.script || []} />
             </SSVStack>
           </SSVStack>

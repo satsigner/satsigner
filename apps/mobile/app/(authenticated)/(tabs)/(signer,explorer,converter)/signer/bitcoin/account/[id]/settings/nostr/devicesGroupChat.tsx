@@ -46,11 +46,11 @@ function getAuthorColor(
   try {
     const npub = nip19.npubEncode(pubkey)
     const member = members.find((m) => m.npub === npub)
-    const color = member?.color || '#404040'
+    const color = member?.color || Colors.gray[500]
     colorCache.set(pubkey, color)
     return color
   } catch {
-    return '#404040'
+    return Colors.gray[500]
   }
 }
 
@@ -142,7 +142,7 @@ export default function DevicesGroupChat() {
     () =>
       members.map((member: { npub: string; color?: string }) => ({
         npub: member.npub,
-        color: member.color || '#404040'
+        color: member.color || Colors.gray[500]
       })),
     [members]
   )
@@ -386,7 +386,6 @@ export default function DevicesGroupChat() {
     }
   }, [memoizedMessages, profiles, account?.nostr?.relays, setProfile])
 
-
   useEffect(() => {
     const prevCount = prevMessageCountRef.current
     if (messages.length > prevCount && !isAtBottomRef.current) {
@@ -583,7 +582,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8
   },
   message: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: Colors.gray[900],
     padding: 10,
     paddingBottom: 15,
     paddingTop: 5,
@@ -591,7 +590,7 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   deviceMessage: {
-    backgroundColor: '#2a2a2a'
+    backgroundColor: Colors.gray[800]
   },
   authorIndicator: {
     width: 8,
@@ -605,7 +604,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16
   },
   input: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: Colors.gray[900],
     color: Colors.white,
     padding: 10,
     borderRadius: 8,

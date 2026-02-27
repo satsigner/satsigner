@@ -265,9 +265,7 @@ export default function SignTransaction() {
               {signed && !broadcasted && (
                 <SSIconSuccess width={159} height={159} variant="outline" />
               )}
-              {!signed && !broadcasted && (
-                <SSLoader size={160} />
-              )}
+              {!signed && !broadcasted && <SSLoader size={160} />}
               {broadcasted && (
                 <SSIconSuccess width={159} height={159} variant="filled" />
               )}

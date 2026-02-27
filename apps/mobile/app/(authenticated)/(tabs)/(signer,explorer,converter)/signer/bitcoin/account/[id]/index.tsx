@@ -59,9 +59,9 @@ import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSHistoryChart from '@/components/SSHistoryChart'
 import SSIconButton from '@/components/SSIconButton'
+import SSLoader from '@/components/SSLoader'
 import SSNFCModal from '@/components/SSNFCModal'
 import SSPaste from '@/components/SSPaste'
-import SSLoader from '@/components/SSLoader'
 import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSStyledSatText from '@/components/SSStyledSatText'
@@ -298,10 +298,7 @@ function TotalTransactions({
               }
             />
             {refreshing && (
-              <View
-                style={styles.loaderOverlay}
-                pointerEvents="none"
-              >
+              <View style={styles.loaderOverlay} pointerEvents="none">
                 <SSLoader size={32} />
               </View>
             )}
