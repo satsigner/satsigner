@@ -1,8 +1,14 @@
 import { FlashList } from '@shopify/flash-list'
 import { Network as BdkNetwork } from 'bdk-rn/lib/lib/enums'
 import { Stack, useRouter } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
-import { ScrollView, useWindowDimensions, View } from 'react-native'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Animated,
+  Easing,
+  ScrollView,
+  useWindowDimensions,
+  View
+} from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
 import { TabView } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
@@ -70,6 +76,52 @@ function mapNetworkToBdkNetwork(network: 'bitcoin' | 'testnet' | 'signet') {
     default:
       return BdkNetwork.Bitcoin
   }
+}
+
+const STAGGER_DELAY_MS = 70
+const STAGGER_DURATION_MS = 320
+
+function AccountCardStaggerItem({
+  index,
+  children
+}: {
+  index: number
+  children: React.ReactNode
+}) {
+  const opacity = useRef(new Animated.Value(0)).current
+  const translateY = useRef(new Animated.Value(12)).current
+
+  useEffect(() => {
+    const delay = index * STAGGER_DELAY_MS
+    const timer = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: STAGGER_DURATION_MS,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true
+        }),
+        Animated.timing(translateY, {
+          toValue: 0,
+          duration: STAGGER_DURATION_MS,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true
+        })
+      ]).start()
+    }, delay)
+    return () => clearTimeout(timer)
+  }, [index, opacity, translateY])
+
+  return (
+    <Animated.View
+      style={{
+        opacity,
+        transform: [{ translateY }]
+      }}
+    >
+      {children}
+    </Animated.View>
+  )
 }
 
 export default function AccountList() {
@@ -151,6 +203,7 @@ export default function AccountList() {
   const [hasHydrated, setHasHydrated] = useState(() =>
     useAccountsStore.persist.hasHydrated()
   )
+  const sampleAccountsOpacity = useRef(new Animated.Value(0)).current
 
   useEffect(() => {
     if (useAccountsStore.persist.hasHydrated()) {
@@ -163,6 +216,20 @@ export default function AccountList() {
     return unsub
   }, [])
 
+  useEffect(() => {
+    if (!hasHydrated) return
+    sampleAccountsOpacity.setValue(0)
+    const timer = setTimeout(() => {
+      Animated.timing(sampleAccountsOpacity, {
+        toValue: 1,
+        duration: 320,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true
+      }).start()
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [hasHydrated]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
   const [tabIndex, setTabIndex] = useState(() => {
     const index = tabs.findIndex((tab) => tab.key === network)
@@ -172,6 +239,14 @@ export default function AccountList() {
   const filteredAccounts = useMemo(() => {
     return accounts.filter((acc) => acc.network === tabs[tabIndex].key)
   }, [accounts, tabIndex]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const ACCOUNT_CARD_HEIGHT = 160
+  const SEPARATOR_VERTICAL = 32
+  const listItemCount = hasHydrated
+    ? Math.max(filteredAccounts.length, 1)
+    : 3
+  const listContainerMinHeight =
+    listItemCount * ACCOUNT_CARD_HEIGHT + (listItemCount - 1) * SEPARATOR_VERTICAL
 
   const [connectionState, connectionString, isPrivateConnection] =
     useVerifyConnection()
@@ -718,7 +793,10 @@ export default function AccountList() {
               showsVerticalScrollIndicator={false}
             >
               {!hasHydrated ? (
-                <SSVStack gap="none">
+                <SSVStack
+                  gap="none"
+                  style={{ minHeight: listContainerMinHeight }}
+                >
                   {[1, 2, 3].map((i) => (
                     <SSVStack key={i}>
                       <SSAccountCardSkeleton />
@@ -732,16 +810,22 @@ export default function AccountList() {
                   ))}
                 </SSVStack>
               ) : (
-                <>
+                <Animated.View
+                  style={{
+                    minHeight: listContainerMinHeight
+                  }}
+                >
                   <FlashList
                     data={filteredAccounts}
-                    renderItem={({ item }) => (
-                      <SSVStack>
-                        <SSAccountCard
-                          account={item}
-                          onPress={() => handleGoToAccount(item.id)}
-                        />
-                      </SSVStack>
+                    renderItem={({ item, index }) => (
+                      <AccountCardStaggerItem index={index}>
+                        <SSVStack>
+                          <SSAccountCard
+                            account={item}
+                            onPress={() => handleGoToAccount(item.id)}
+                          />
+                        </SSVStack>
+                      </AccountCardStaggerItem>
                     )}
                     estimatedItemSize={20}
                     ItemSeparatorComponent={() => (
@@ -760,8 +844,10 @@ export default function AccountList() {
                     }
                     showsVerticalScrollIndicator={false}
                   />
-                  {renderSamplewallets()}
-                </>
+                  <Animated.View style={{ opacity: sampleAccountsOpacity }}>
+                    {renderSamplewallets()}
+                  </Animated.View>
+                </Animated.View>
               )}
             </ScrollView>
           )}
