@@ -144,7 +144,10 @@ function SSNostrMessage({
             </SSVStack>
           </SSHStack>
         </Pressable>
-        <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+        <SSHStack
+          gap="xs"
+          style={{ alignSelf: 'flex-start', alignItems: 'flex-start', marginTop: -2 }}
+        >
           <SSText size="xs" color="muted">
             {formattedDate}
           </SSText>

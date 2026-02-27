@@ -14,6 +14,7 @@ import {
   SSIconYellowIndicator
 } from '@/components/icons'
 import SSAccountCard from '@/components/SSAccountCard'
+import SSAccountCardSkeleton from '@/components/SSAccountCardSkeleton'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import SSSeparator from '@/components/SSSeparator'
@@ -147,6 +148,20 @@ export default function AccountList() {
     | 'watchonlyTether'
     | 'multisig'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
+  const [hasHydrated, setHasHydrated] = useState(() =>
+    useAccountsStore.persist.hasHydrated()
+  )
+
+  useEffect(() => {
+    if (useAccountsStore.persist.hasHydrated()) {
+      setHasHydrated(true)
+      return
+    }
+    const unsub = useAccountsStore.persist.onFinishHydration(() =>
+      setHasHydrated(true)
+    )
+    return unsub
+  }, [])
 
   const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
   const [tabIndex, setTabIndex] = useState(() => {
@@ -702,34 +717,52 @@ export default function AccountList() {
               style={{ marginTop: 16 }}
               showsVerticalScrollIndicator={false}
             >
-              <FlashList
-                data={filteredAccounts}
-                renderItem={({ item }) => (
-                  <SSVStack>
-                    <SSAccountCard
-                      account={item}
-                      onPress={() => handleGoToAccount(item.id)}
-                    />
-                  </SSVStack>
-                )}
-                estimatedItemSize={20}
-                ItemSeparatorComponent={() => (
-                  <SSSeparator
-                    style={{ marginVertical: 16 }}
-                    color="gradient"
+              {!hasHydrated ? (
+                <SSVStack gap="none">
+                  {[1, 2, 3].map((i) => (
+                    <SSVStack key={i}>
+                      <SSAccountCardSkeleton />
+                      {i < 3 && (
+                        <SSSeparator
+                          style={{ marginVertical: 16 }}
+                          color="gradient"
+                        />
+                      )}
+                    </SSVStack>
+                  ))}
+                </SSVStack>
+              ) : (
+                <>
+                  <FlashList
+                    data={filteredAccounts}
+                    renderItem={({ item }) => (
+                      <SSVStack>
+                        <SSAccountCard
+                          account={item}
+                          onPress={() => handleGoToAccount(item.id)}
+                        />
+                      </SSVStack>
+                    )}
+                    estimatedItemSize={20}
+                    ItemSeparatorComponent={() => (
+                      <SSSeparator
+                        style={{ marginVertical: 16 }}
+                        color="gradient"
+                      />
+                    )}
+                    ListEmptyComponent={
+                      <SSVStack
+                        itemsCenter
+                        style={{ paddingTop: 32, paddingBottom: 32 }}
+                      >
+                        <SSText uppercase>{t('accounts.empty')}</SSText>
+                      </SSVStack>
+                    }
+                    showsVerticalScrollIndicator={false}
                   />
-                )}
-                ListEmptyComponent={
-                  <SSVStack
-                    itemsCenter
-                    style={{ paddingTop: 32, paddingBottom: 32 }}
-                  >
-                    <SSText uppercase>{t('accounts.empty')}</SSText>
-                  </SSVStack>
-                }
-                showsVerticalScrollIndicator={false}
-              />
-              {renderSamplewallets()}
+                  {renderSamplewallets()}
+                </>
+              )}
             </ScrollView>
           )}
           onIndexChange={setTabIndex}
