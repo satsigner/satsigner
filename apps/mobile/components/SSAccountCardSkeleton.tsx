@@ -5,6 +5,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { Colors } from '@/styles'
 
 const SKELETON_COLOR = Colors.gray[700]
+const SKELETON_CARD_HEIGHT = 160
 
 function SkeletonBox({
   width,
@@ -32,7 +33,10 @@ function SkeletonBox({
 
 export default function SSAccountCardSkeleton() {
   return (
-    <SSHStack justifyBetween style={{ position: 'relative' }}>
+    <SSHStack
+      justifyBetween
+      style={{ height: SKELETON_CARD_HEIGHT, position: 'relative' }}
+    >
       <SSVStack gap="xxs">
         <SkeletonBox width={48} height={10} />
         <SkeletonBox width={120} height={18} style={{ marginTop: 4 }} />
