@@ -85,7 +85,46 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               (_account) => _account.id === account.id
             )
             if (index !== -1) {
-              state.accounts[index] = { ...account }
+              // Merge labels from current state with incoming account to prevent
+              // race condition where Nostr labels are overwritten by wallet sync
+              const currentLabels = state.accounts[index].labels || {}
+              const incomingLabels = account.labels || {}
+              const mergedLabels = { ...incomingLabels, ...currentLabels }
+
+              state.accounts[index] = {
+                ...account,
+                labels: mergedLabels
+              }
+
+              // Re-apply merged labels to transactions, utxos, and addresses
+              for (const ref in mergedLabels) {
+                const labelObj = mergedLabels[ref]
+                if (labelObj.type === 'tx') {
+                  const txIndex = state.accounts[index].transactions.findIndex(
+                    (tx: Transaction) => tx.id === ref
+                  )
+                  if (txIndex !== -1) {
+                    state.accounts[index].transactions[txIndex].label =
+                      labelObj.label
+                  }
+                } else if (labelObj.type === 'output') {
+                  const utxoIndex = state.accounts[index].utxos.findIndex(
+                    (utxo: Utxo) => getUtxoOutpoint(utxo) === ref
+                  )
+                  if (utxoIndex !== -1) {
+                    state.accounts[index].utxos[utxoIndex].label =
+                      labelObj.label
+                  }
+                } else if (labelObj.type === 'addr') {
+                  const addrIndex = state.accounts[index].addresses.findIndex(
+                    (addr: Address) => addr.address === ref
+                  )
+                  if (addrIndex !== -1) {
+                    state.accounts[index].addresses[addrIndex].label =
+                      labelObj.label
+                  }
+                }
+              }
             }
           })
         )

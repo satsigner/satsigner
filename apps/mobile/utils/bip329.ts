@@ -115,11 +115,38 @@ export function formatUtxoLabels(utxos: Utxo[]): Label[] {
 }
 
 export function formatAccountLabels(account: Account): Label[] {
-  return [
-    ...formatTransactionLabels(account.transactions),
-    ...formatUtxoLabels(account.utxos),
-    ...formatAddressLabels(account.addresses)
-  ]
+  // Start with labels from the dictionary (source of truth)
+  const labelsByRef = new Map<string, Label>()
+
+  // Add all labels from the account.labels dictionary
+  if (account.labels) {
+    for (const ref in account.labels) {
+      const label = account.labels[ref]
+      if (label && label.label) {
+        labelsByRef.set(ref, label)
+      }
+    }
+  }
+
+  // Also include labels from transaction/utxo/address objects
+  // (in case they have labels not in the dictionary)
+  for (const label of formatTransactionLabels(account.transactions)) {
+    if (!labelsByRef.has(label.ref)) {
+      labelsByRef.set(label.ref, label)
+    }
+  }
+  for (const label of formatUtxoLabels(account.utxos)) {
+    if (!labelsByRef.has(label.ref)) {
+      labelsByRef.set(label.ref, label)
+    }
+  }
+  for (const label of formatAddressLabels(account.addresses)) {
+    if (!labelsByRef.has(label.ref)) {
+      labelsByRef.set(label.ref, label)
+    }
+  }
+
+  return Array.from(labelsByRef.values())
 }
 
 export function labelsToCSV(labels: Label[]) {
