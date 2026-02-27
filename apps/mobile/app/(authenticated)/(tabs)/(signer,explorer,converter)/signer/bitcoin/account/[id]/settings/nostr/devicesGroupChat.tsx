@@ -529,7 +529,7 @@ export default function DevicesGroupChat() {
             placeholder={t(
               'account.nostrSync.devicesGroupChat.messagePlaceholder'
             )}
-            placeholderTextColor={Colors.white}
+            placeholderTextColor={Colors.gray[500]}
             multiline
             maxLength={500}
           />
@@ -609,7 +609,8 @@ const styles = StyleSheet.create({
     marginRight: 3
   },
   inputContainer: {
-    paddingHorizontal: 0
+    paddingHorizontal: 0,
+    paddingBottom: 16
   },
   input: {
     backgroundColor: '#1a1a1a',
