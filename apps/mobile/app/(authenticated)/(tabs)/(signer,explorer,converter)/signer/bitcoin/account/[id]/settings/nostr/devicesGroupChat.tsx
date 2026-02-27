@@ -63,6 +63,9 @@ function formatNpubText(pubkey: string): string {
   }
 }
 
+const INITIAL_PAGE_SIZE = 50
+const PAGE_SIZE = 50
+
 export default function DevicesGroupChat() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const flatListRef = useRef<FlatList>(null)
@@ -105,8 +108,6 @@ export default function DevicesGroupChat() {
   )
 
   const [isLoading, setIsLoading] = useState(false)
-  const [isContentLoaded, setIsContentLoaded] = useState(false)
-  const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [messageInput, setMessageInput] = useState('')
   const [formattedNpubs, setFormattedNpubs] = useState<
     Map<string, AuthorDisplayInfo>
@@ -120,10 +121,17 @@ export default function DevicesGroupChat() {
     useState<TransactionData | null>(null)
   const isAtBottomRef = useRef(true)
   const [showNewMessageButton, setShowNewMessageButton] = useState(false)
+  const [displayCount, setDisplayCount] = useState(INITIAL_PAGE_SIZE)
+  const lastLoadMoreAtRef = useRef(0)
 
   const messages = useMemo(
     () => account?.nostr?.dms || [],
     [account?.nostr?.dms]
+  )
+
+  const displayedMessages = useMemo(
+    () => messages.slice(-displayCount).reverse(),
+    [messages, displayCount]
   )
 
   const prevMessageCountRef = useRef(messages.length)
@@ -378,26 +386,6 @@ export default function DevicesGroupChat() {
     }
   }, [memoizedMessages, profiles, account?.nostr?.relays, setProfile])
 
-  useEffect(() => {
-    if (messages.length > 0 && account?.nostr?.relays?.length) {
-      if (isInitialLoad) {
-        setIsContentLoaded(false)
-        setTimeout(() => {
-          if (flatListRef.current) {
-            flatListRef.current.scrollToEnd({ animated: false })
-            setTimeout(() => {
-              flatListRef.current?.scrollToEnd({ animated: false })
-              setIsContentLoaded(true)
-              setIsInitialLoad(false)
-              isAtBottomRef.current = true
-            }, 200)
-          }
-        }, 100)
-      } else if (isAtBottomRef.current && flatListRef.current) {
-        flatListRef.current.scrollToEnd({ animated: false })
-      }
-    }
-  }, [messages.length, account?.nostr?.relays?.length, isInitialLoad])
 
   useEffect(() => {
     const prevCount = prevMessageCountRef.current
@@ -409,11 +397,13 @@ export default function DevicesGroupChat() {
 
   function handleScrollToBottom() {
     if (flatListRef.current) {
-      flatListRef.current.scrollToEnd({ animated: true })
+      flatListRef.current.scrollToOffset({ offset: 0, animated: true })
       isAtBottomRef.current = true
       setShowNewMessageButton(false)
     }
   }
+
+  const scrollThreshold = 40
 
   function handleListScroll(e: {
     nativeEvent: {
@@ -423,13 +413,22 @@ export default function DevicesGroupChat() {
     }
   }) {
     const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent
-    const threshold = 40
-    const atBottom =
-      contentOffset.y + layoutMeasurement.height >=
-      contentSize.height - threshold
+    const atBottom = contentOffset.y <= scrollThreshold
     if (isAtBottomRef.current !== atBottom) {
       isAtBottomRef.current = atBottom
       if (atBottom) setShowNewMessageButton(false)
+    }
+    const nearTop =
+      contentSize.height > layoutMeasurement.height &&
+      contentOffset.y >=
+        contentSize.height - layoutMeasurement.height - scrollThreshold
+    if (
+      nearTop &&
+      displayCount < messages.length &&
+      Date.now() - lastLoadMoreAtRef.current > 300
+    ) {
+      lastLoadMoreAtRef.current = Date.now()
+      setDisplayCount((c) => Math.min(c + PAGE_SIZE, messages.length))
     }
   }
 
@@ -469,7 +468,7 @@ export default function DevicesGroupChat() {
         </SSVStack>
 
         <View style={styles.messagesContainer}>
-          {!isContentLoaded && isInitialLoad && messages.length > 0 && (
+          {messages.length === 0 && (
             <View style={styles.loadingContainer}>
               <SSText center color="muted">
                 {t('account.nostrSync.devicesGroupChat.loadingMessages')}
@@ -478,7 +477,7 @@ export default function DevicesGroupChat() {
           )}
           <FlatList
             ref={flatListRef}
-            data={messages}
+            data={displayedMessages}
             renderItem={({ item }) => (
               <SSNostrMessage
                 item={item}
@@ -492,22 +491,15 @@ export default function DevicesGroupChat() {
             )}
             keyExtractor={(item) => item.id}
             ListEmptyComponent={
-              <SSText center color="muted">
-                {t('account.nostrSync.devicesGroupChat.noMessages')}
-              </SSText>
+              messages.length > 0 ? (
+                <SSText center color="muted">
+                  {t('account.nostrSync.devicesGroupChat.noMessages')}
+                </SSText>
+              ) : null
             }
-            inverted={false}
-            contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end' }}
-            onContentSizeChange={() => {
-              if (isAtBottomRef.current && flatListRef.current) {
-                flatListRef.current.scrollToEnd({ animated: false })
-              }
-            }}
-            onLayout={() => {
-              if (isAtBottomRef.current && flatListRef.current) {
-                flatListRef.current.scrollToEnd({ animated: false })
-              }
-            }}
+            inverted
+            initialNumToRender={25}
+            maxToRenderPerBatch={15}
             onScroll={handleListScroll}
             scrollEventThrottle={16}
           />
