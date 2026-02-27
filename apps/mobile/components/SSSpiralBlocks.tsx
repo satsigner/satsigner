@@ -23,11 +23,11 @@ import {
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 
+import SSLoader from '@/components/SSLoader'
 import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
 import { Colors } from '@/styles'
 import { type BlockDifficulty } from '@/types/models/Blockchain'
-import SSLoader from '@/components/SSLoader'
 
 const FACTOR_BLOCK_DISTANCE = 0.055
 const RADIUS_SPIRAL_START = 1
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#000000',
-    borderColor: 'yellow',
+    borderColor: 'yellow'
   },
   loadingContainer: {},
   canvas: {

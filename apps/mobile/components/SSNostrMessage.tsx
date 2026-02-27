@@ -146,7 +146,11 @@ function SSNostrMessage({
         </Pressable>
         <SSHStack
           gap="xs"
-          style={{ alignSelf: 'flex-start', alignItems: 'flex-start', marginTop: -2 }}
+          style={{
+            alignSelf: 'flex-start',
+            alignItems: 'flex-start',
+            marginTop: -2
+          }}
         >
           <SSText size="xs" color="muted">
             {formattedDate}
@@ -180,7 +184,7 @@ function SSNostrMessage({
 
 const styles = StyleSheet.create({
   message: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: Colors.gray[900],
     padding: 10,
     paddingBottom: 15,
     paddingTop: 5,
@@ -188,7 +192,7 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   deviceMessage: {
-    backgroundColor: '#2a2a2a'
+    backgroundColor: Colors.gray[800]
   },
   authorPressable: {
     alignSelf: 'flex-start'
