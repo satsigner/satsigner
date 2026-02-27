@@ -931,7 +931,7 @@ export default function AccountView() {
   const [tabIndex, setTabIndex] = useState(0)
   const animationValue = useRef(new Animated.Value(0)).current
 
-  const [connectionState, connectionString, isPrivateConnection] =
+  const [connectionState, connectionString, isPrivateConnection, connectionParts] =
     useVerifyConnection()
 
   const bitcoinContentHandler = useBitcoinContentHandler({
@@ -1309,15 +1309,27 @@ export default function AccountView() {
           ) : (
             <SSIconBlackIndicator height={24} width={24} />
           )}
-          <SSText
-            size="xxs"
-            uppercase
-            style={{
-              color: connectionState ? Colors.gray['200'] : Colors.gray['450']
-            }}
-          >
-            {connectionString}
-          </SSText>
+          <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+            <SSText
+              size="xxs"
+              uppercase
+              style={{
+                color: connectionState ? Colors.gray['200'] : Colors.gray['450']
+              }}
+            >
+              {`${connectionParts.network} - ${connectionParts.name}`}
+            </SSText>
+            <SSText
+              size="xxs"
+              uppercase
+              style={{
+                color: Colors.gray['500']
+              }}
+            >
+              {connectionParts.url}
+              {connectionParts.mode ? ` [${connectionParts.mode}]` : ''}
+            </SSText>
+          </SSHStack>
         </SSHStack>
       </TouchableOpacity>
       {!expand && (

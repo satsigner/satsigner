@@ -214,7 +214,7 @@
     "nostrSync.relays.public": "Public relays",
     "nostrSync.relays.title": "Select NOSTR Relays",
     "nostrSync.requestDeletionConfirm": "Request Event Deletion",
-    "nostrSync.requestToDeletion": "Request to Deletion",
+    "nostrSync.requestToDeletion": "Request for Deletion",
     "nostrSync.resyncingAfterTrust": "Re-syncing to fetch messages from trusted device...",
     "nostrSync.save": "Save",
     "nostrSync.selectRelays": "Select Relays",
