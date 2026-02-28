@@ -66,7 +66,7 @@ export default function AccountSettings() {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [mnemonicModalVisible, setMnemonicModalVisible] = useState(false)
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
-  const [pin, setPin] = useState<string[]>(Array(4).fill(''))
+  const [pin, setPin] = useState<string[]>(() => Array(4).fill(''))
   const [showPinEntry, setShowPinEntry] = useState(false)
   const [pinEntryFocus, setPinEntryFocus] = useState(false)
 
@@ -309,7 +309,7 @@ export default function AccountSettings() {
               {decryptedKeys.length > 0 ? (
                 decryptedKeys.map((key, index) => (
                   <SSMultisigKeyControl
-                    key={index}
+                    key={key.fingerprint ?? index}
                     index={index}
                     keyCount={account.keyCount}
                     keyDetails={key}

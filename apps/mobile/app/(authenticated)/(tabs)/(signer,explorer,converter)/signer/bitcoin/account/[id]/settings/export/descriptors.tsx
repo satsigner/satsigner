@@ -712,7 +712,7 @@ export default function ExportDescriptors() {
             {showSeparate ? (
               <SSVStack gap="md">
                 {descriptors.map((descriptor, index) => (
-                  <View key={index} style={{ alignItems: 'center' }}>
+                  <View key={descriptor} style={{ alignItems: 'center' }}>
                     <View
                       style={{
                         backgroundColor: Colors.white,
