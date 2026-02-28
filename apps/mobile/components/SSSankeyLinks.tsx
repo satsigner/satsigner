@@ -234,9 +234,8 @@ function SSSankeyLinks({
         }
 
         return (
-          <Group key={index}>
+          <Group key={`${link.source}-${link.target}-${index}`}>
             <Path
-              key={index}
               path={path1}
               style="fill"
               color={isCurrentTx || isUnspent ? 'white' : gray[700]}

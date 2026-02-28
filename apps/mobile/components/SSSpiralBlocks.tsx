@@ -251,7 +251,7 @@ function SSSpiralBlocks({
   const touchableBlocks = useMemo(() => {
     return spiralBlocks.map((_, index) => (
       <TouchableOpacity
-        key={index}
+        key={spiralBlocks[index]?.height ?? index}
         style={invisibleOverlayBlocks[index]}
         delayPressIn={0}
         delayPressOut={0}
@@ -296,7 +296,7 @@ function SSSpiralBlocks({
         >
           {/* Render paths in batches to reduce render operations */}
           {paths.map((path, index) => (
-            <Path key={index} path={path} color={spiralBlocks[index].color} />
+            <Path key={spiralBlocks[index]?.height ?? index} path={path} color={spiralBlocks[index].color} />
           ))}
 
           {/* Pre-calculate week ring circles */}

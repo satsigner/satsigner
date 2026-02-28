@@ -65,7 +65,7 @@ export default function SSTransactionVoutList({
     <SSVStack>
       {vout.map((output, index) => (
         <TouchableOpacity
-          key={index}
+          key={`${txid}:${index}`}
           onPress={() => {
             if (utxoDict[`${txid}:${index}`]) {
               router.navigate(
@@ -74,7 +74,7 @@ export default function SSTransactionVoutList({
             }
           }}
         >
-          <SSVStack key={`${txid}:${index}`}>
+          <SSVStack>
             <SSSeparator color="gradient" />
             <SSText weight="bold" center>
               {t('transaction.output.title')} {index}

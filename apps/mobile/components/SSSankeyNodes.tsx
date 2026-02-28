@@ -138,7 +138,7 @@ function SSSankeyNodes({
     }
 
     return (
-      <Group key={index} opacity={shouldDim ? 0.3 : 1}>
+      <Group key={node.id} opacity={shouldDim ? 0.3 : 1}>
         {blockNode()}
         <NodeText
           isBlock={node.depthH % 2 !== 0}

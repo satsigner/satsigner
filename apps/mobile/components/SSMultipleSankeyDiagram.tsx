@@ -265,7 +265,7 @@ function SSMultipleSankeyDiagram({
           >
             {nodeStyles.map((style, index) => (
               <TouchableOpacity
-                key={index}
+                key={style.localId ?? index}
                 style={[
                   styles.node,
                   {
