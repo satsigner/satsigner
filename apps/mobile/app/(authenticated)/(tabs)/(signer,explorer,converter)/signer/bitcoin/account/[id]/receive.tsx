@@ -36,10 +36,15 @@ export default function Receive() {
   )
   const wallet = useGetAccountWallet(id!)
 
-  const [localAddress, setLocalAddress] = useState<string>()
-  const [localAddressNumber, setLocalAddressNumber] = useState<number>()
-  const [localAddressQR, setLocalAddressQR] = useState<string>()
-  const [localAddressPath, setLocalAddressPath] = useState<string>()
+  const [addressData, setAddressData] = useState<{
+    localAddress?: string
+    localAddressNumber?: number
+    localAddressQR?: string
+    localAddressPath?: string
+  }>({})
+
+  const { localAddress, localAddressNumber, localAddressQR, localAddressPath } =
+    addressData
   const [localCustomAmount, setLocalCustomAmount] = useState<string>()
   const [localLabel, setLocalLabel] = useState<string>()
   const [isGenerating, setIsGenerating] = useState(false)
@@ -135,12 +140,12 @@ export default function Receive() {
         addressInfo.address.toQrUri()
       ])
 
-      setLocalAddress(address)
-      setLocalAddressNumber(addressInfo.index)
-      setLocalAddressQR(qrUri)
-      setLocalAddressPath(
-        `${account?.keys[0].derivationPath}/0/${addressInfo.index}`
-      )
+      setAddressData({
+        localAddress: address,
+        localAddressNumber: addressInfo.index,
+        localAddressQR: qrUri,
+        localAddressPath: `${account?.keys[0].derivationPath}/0/${addressInfo.index}`
+      })
 
       // Set existing label if found
       const existingAddress = account?.addresses.find(
@@ -169,10 +174,12 @@ export default function Receive() {
         newAddressInfo?.address ? newAddressInfo.address.toQrUri() : ''
       ])
 
-      setLocalAddress(address)
-      setLocalAddressNumber(nextIndex)
-      setLocalAddressQR(qrUri)
-      setLocalAddressPath(`${account.keys[0].derivationPath}/0/${nextIndex}`)
+      setAddressData({
+        localAddress: address,
+        localAddressNumber: nextIndex,
+        localAddressQR: qrUri,
+        localAddressPath: `${account.keys[0].derivationPath}/0/${nextIndex}`
+      })
 
       const existingAddress = account.addresses.find((addr) => {
         return addr.address === address
