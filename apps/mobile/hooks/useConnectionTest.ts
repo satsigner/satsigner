@@ -8,7 +8,7 @@ import {
   type ProxyConfig
 } from '@/types/settings/blockchain'
 
-export type NodeInfo = {
+type NodeInfo = {
   version?: string
   blockHeight?: number
   responseTime?: number

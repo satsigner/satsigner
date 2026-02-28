@@ -833,8 +833,8 @@ export default function NostrSync() {
                 <SSVStack gap="md" style={styles.membersContainer}>
                   {members
                     .filter((member) => member.npub !== deviceNpub)
-                    .map((member, index) => (
-                      <SSVStack key={index} gap="md">
+                    .map((member) => (
+                      <SSVStack key={member.npub} gap="md">
                         {member?.npub && (
                           <SSHStack gap="md">
                             <SSVStack gap="xxs" style={{ flex: 0.7 }}>
@@ -942,14 +942,14 @@ export default function NostrSync() {
               <SSVStack gap="sm">
                 <SSText center>{t('account.nostrSync.relayStatus')}</SSText>
                 <SSVStack gap="sm" style={styles.relayStatusContainer}>
-                  {selectedRelays.map((relay, index) => {
+                  {selectedRelays.map((relay) => {
                     const status =
                       relayConnectionStatuses[relay] || 'disconnected'
                     const statusInfo = getRelayConnectionInfo(status)
 
                     return (
                       <SSHStack
-                        key={index}
+                        key={relay}
                         gap="sm"
                         style={styles.relayStatusItem}
                       >

@@ -19,7 +19,7 @@ export const BBQRFileTypes = {
 } as const
 
 // Export type for the FileType values
-export type BBQRFileType = (typeof BBQRFileTypes)[keyof typeof BBQRFileTypes]
+type BBQRFileType = (typeof BBQRFileTypes)[keyof typeof BBQRFileTypes]
 
 export function isBBQRFragment(part: string): boolean {
   if (part.length < 8 || !part.startsWith('B$')) {

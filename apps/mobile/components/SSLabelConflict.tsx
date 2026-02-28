@@ -61,7 +61,7 @@ export function detectConflcits(
   return conflicts
 }
 
-export function solveConflict(
+function solveConflict(
   current: Label,
   incoming: Label,
   strategy: ConflictStrategy
@@ -84,10 +84,7 @@ export function solveConflict(
   return { ...current, ...incoming, label }
 }
 
-export function solveConflicts(
-  conflicts: Conflict[],
-  strategy: ConflictStrategy
-) {
+function solveConflicts(conflicts: Conflict[], strategy: ConflictStrategy) {
   return conflicts.map(([current, incoming]) =>
     solveConflict(current, incoming, strategy)
   )
@@ -103,7 +100,7 @@ function SSLabelConflictItem({
   onSelectStrategy
 }: SSLabelConflictItemProps) {
   return (
-    <SSVStack gap="md" style={[styles.labelItem]}>
+    <SSVStack gap="md" style={styles.labelItem}>
       <SSVStack gap="sm">
         <SSText uppercase weight="bold" size="lg">
           {tl('conflict', { index: index + 1 })}
@@ -262,10 +259,11 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
       )}
       {stage !== 'selection' && (
         <SSVStack>
-          {conflicts.map((conflict, index) => {
+          {conflicts.map(([current, incoming], index) => {
             return (
               <SSLabelConflictItem
-                conflict={conflict}
+                key={current.ref}
+                conflict={[current, incoming]}
                 conflictStrategyGlobal={conflictStrategy}
                 conflictStrategy={conflictStrategyPerLabel[index]}
                 finalLabel={results[index].label}

@@ -37,7 +37,7 @@ function getConfirmWordCandidates(
 /*
  * List of words that are prefixed of another, pre-computed ahead of time.
  */
-export const seedWordsPrefixOfAnother: Record<string, boolean> = {
+const seedWordsPrefixOfAnother: Record<string, boolean> = {
   act: true,
   add: true,
   age: true,

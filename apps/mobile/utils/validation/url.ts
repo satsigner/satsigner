@@ -8,11 +8,11 @@ export function isValidIPAddress(host: string) {
   )
 }
 
-export function isValidPort(port: string) {
+function isValidPort(port: string) {
   return /^[0-9]+$/.test(port)
 }
 
-export function isValidProtocol(protocol: string) {
+function isValidProtocol(protocol: string) {
   return protocol === 'ssl' || protocol === 'tls' || protocol === 'tcp'
 }
 

@@ -1,11 +1,7 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useMemo, useState } from 'react'
-import {
-  Clipboard,
-  SafeAreaView,
-  StyleSheet,
-  TouchableOpacity
-} from 'react-native'
+import { StyleSheet, TouchableOpacity } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import DraggableFlatList, {
   type RenderItemParams,
   ScaleDecorator
@@ -22,6 +18,7 @@ import SSTextInput from '@/components/SSTextInput'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn } from '@/locales'
+import { getAllClipboardContent } from '@/utils/clipboard'
 import { useAccountsStore } from '@/store/accounts'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Address, type WatchedAddress } from '@/types/models/Address'
@@ -147,7 +144,7 @@ export function ManageAccountAddresses({
   async function handleShowAddAddress() {
     setShowAddAddressModal(true)
     setAddressInput('')
-    const content = await Clipboard.getString()
+    const content = await getAllClipboardContent()
     if (content && validateAddress(content)) {
       setAddressInput(content)
       toast.info(tl('info.pasted'))

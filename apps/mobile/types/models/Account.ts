@@ -1,11 +1,10 @@
+import { type Address } from '@/types/models/Address'
+import { type NostrAccount } from '@/types/models/Nostr'
+import { type Transaction } from '@/types/models/Transaction'
+import { type Utxo } from '@/types/models/Utxo'
+import { type Network } from '@/types/settings/blockchain'
 import { type WordListName } from '@/utils/bip39'
 import { type Label } from '@/utils/bip329'
-
-import { type Network } from '../settings/blockchain'
-import { type Address } from './Address'
-import { type NostrAccount } from './Nostr'
-import { type Transaction } from './Transaction'
-import { type Utxo } from './Utxo'
 
 export type PolicyType = 'singlesig' | 'multisig' | 'watchonly'
 
@@ -67,6 +66,10 @@ export type Key = {
   derivationPath?: string
 }
 
+export type DecryptedKey = Omit<Key, 'secret'> & {
+  secret: Secret
+}
+
 export type Account = {
   id: string
   name: string
@@ -95,4 +98,8 @@ export type Account = {
   syncStatus: SyncStatus
   syncProgress?: SyncProgress
   nostr: NostrAccount
+}
+
+export type DecryptedAccount = Omit<Account, 'keys'> & {
+  keys: DecryptedKey[]
 }

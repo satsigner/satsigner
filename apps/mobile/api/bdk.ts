@@ -1036,8 +1036,6 @@ export {
   getTransactionInputValues,
   getWalletAddresses,
   getWalletData,
-  getWalletFromDescriptor,
-  getWalletDataFromMnemonic as getWalletFromMnemonic,
   getWalletOverview,
   parseDescriptor,
   signTransaction,

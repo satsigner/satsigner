@@ -78,13 +78,13 @@ function joinByteParts(parts: Uint8Array[]) {
   return rv
 }
 
-export function isValidVersion(v: number): v is Version {
+function isValidVersion(v: number): v is Version {
   // act as a TS type guard but also a runtime check
 
   return v in QR_DATA_CAPACITY
 }
 
-export function isValidSplit(s: number) {
+function isValidSplit(s: number) {
   return s >= 1 && s <= 1295
 }
 

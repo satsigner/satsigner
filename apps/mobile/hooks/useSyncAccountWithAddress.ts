@@ -6,17 +6,17 @@ import { useShallow } from 'zustand/react/shallow'
 import { MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
-import { PIN_KEY } from '@/config/auth'
-import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type Account, type Secret } from '@/types/models/Account'
+import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Network } from '@/types/settings/blockchain'
-import { updateAccountObjectLabels } from '@/utils/account'
+import {
+  decryptAllAccountKeySecrets,
+  updateAccountObjectLabels
+} from '@/utils/account'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
-import { aesDecrypt } from '@/utils/crypto'
 import { formatTimestamp } from '@/utils/format'
 import { parseAddressDescriptorToAddress, parseHexToBytes } from '@/utils/parse'
 import { getUtxoOutpoint } from '@/utils/utxo'
@@ -649,32 +649,10 @@ function useSyncAccountWithAddress() {
   async function decryptAccountAddressDescriptors(
     account: Account
   ): Promise<string[]> {
-    const addressDescriptors: string[] = []
-    const pin = await getItem(PIN_KEY)
-
-    if (!pin) return []
-
-    for (const key of account.keys) {
-      const secret = key.secret
-      let secretObject: Secret | undefined
-
-      if (typeof secret === 'string') {
-        const decryptedSecretString = await aesDecrypt(secret, pin, key.iv)
-        secretObject = JSON.parse(decryptedSecretString) as Secret
-      } else {
-        secretObject = secret as Secret
-      }
-
-      if (!secretObject) continue
-
-      const addressDescriptor = secretObject.externalDescriptor
-
-      if (!addressDescriptor) continue
-
-      addressDescriptors.push(addressDescriptor)
-    }
-
-    return addressDescriptors
+    const secrets = await decryptAllAccountKeySecrets(account)
+    return secrets
+      .map((secret) => secret.externalDescriptor || '')
+      .filter((descriptor) => descriptor.startsWith('addr'))
   }
 
   async function syncAccountWithAddress(account: Account): Promise<Account> {

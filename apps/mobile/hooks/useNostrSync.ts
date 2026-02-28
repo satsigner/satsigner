@@ -6,19 +6,18 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
 import { NostrAPI } from '@/api/nostr'
-import { PIN_KEY } from '@/config/auth'
 import { t } from '@/locales'
-import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
-import type { Account, Secret } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
+import { getAccountWithDecryptedKeys } from '@/utils/account'
 import {
   formatAccountLabels,
   JSONLtoLabels,
   type Label,
   labelsToJSONL
 } from '@/utils/bip329'
-import { aesDecrypt, sha256 } from '@/utils/crypto'
+import { sha256 } from '@/utils/crypto'
 import {
   compressMessage,
   decompressMessage,
@@ -107,7 +106,7 @@ function useNostrSync() {
       }
 
       // Get the current state directly from the store to ensure we have the latest
-      const currentAccount = accounts.find((a) => a.id === account.id)
+      const currentAccount = accounts.find((a: Account) => a.id === account.id)
       if (!currentAccount?.nostr) return
 
       const currentDms = currentAccount.nostr.dms || []
@@ -401,24 +400,11 @@ function useNostrSync() {
 
   async function generateCommonNostrKeys(account?: Account) {
     if (!account) return
-    const pin = await getItem(PIN_KEY)
-    if (!pin) return
 
     const isImportAddress = account.keys[0].creationType === 'importAddress'
-    const temporaryAccount = JSON.parse(JSON.stringify(account)) as Account
-
-    for (const key of temporaryAccount.keys) {
-      const decryptedSecretString = await aesDecrypt(
-        key.secret as string,
-        pin,
-        key.iv
-      )
-      const decryptedSecret = JSON.parse(decryptedSecretString) as Secret
-      key.secret = decryptedSecret
-    }
-
+    const tmpAccount = await getAccountWithDecryptedKeys(account)
     if (isImportAddress) {
-      const secret = temporaryAccount.keys[0].secret as Secret
+      const secret = tmpAccount.keys[0].secret
       return {
         externalDescriptor: secret.externalDescriptor,
         internalDescriptor: undefined
@@ -426,8 +412,8 @@ function useNostrSync() {
     }
 
     const walletData = await getWalletData(
-      temporaryAccount,
-      temporaryAccount.network as Network
+      tmpAccount,
+      tmpAccount.network as Network
     )
     if (!walletData) {
       throw new Error('Failed to get wallet data')
