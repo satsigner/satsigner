@@ -68,20 +68,6 @@ type NostrAction = {
   ) => void
 }
 
-type Message = {
-  id: string
-  author: string
-  created_at: number
-  description: string
-  event: string
-  label: number
-  content: {
-    description: string
-    created_at: number
-    pubkey?: string
-  }
-}
-
 const useNostrStore = create<NostrState & NostrAction>()(
   persist(
     (set, get) => ({
@@ -317,4 +303,3 @@ const useNostrStore = create<NostrState & NostrAction>()(
 )
 
 export { useNostrStore }
-export type { Message }
