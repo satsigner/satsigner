@@ -4,13 +4,16 @@ import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  Animated,
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  View
-} from 'react-native'
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import Animated, {
+  cancelAnimation,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming
+} from 'react-native-reanimated'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -244,7 +247,20 @@ function PreviewTransaction() {
   const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
 
   // Animation for NFC pulsating effect
-  const nfcPulseAnim = useRef(new Animated.Value(0)).current
+  const nfcPulseAnim = useSharedValue(0)
+
+  const nfcPulseStyle = useAnimatedStyle(() => ({
+    width: 200,
+    height: 200,
+    backgroundColor: interpolateColor(
+      nfcPulseAnim.value,
+      [0, 1],
+      [Colors.gray[800], Colors.gray[400]]
+    ),
+    borderRadius: 100,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const
+  }))
 
   // PSBT Management Hook
   const psbtManagement = usePSBTManagement({
@@ -1665,26 +1681,17 @@ function PreviewTransaction() {
   // NFC pulsating animation effect
   useEffect(() => {
     if (nfcModalVisible || nfcScanModalVisible) {
-      const pulseAnimation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(nfcPulseAnim, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: false
-          }),
-          Animated.timing(nfcPulseAnim, {
-            toValue: 0,
-            duration: 1000,
-            useNativeDriver: false
-          })
-        ])
+      nfcPulseAnim.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1000 }),
+          withTiming(0, { duration: 1000 })
+        ),
+        -1
       )
 
-      pulseAnimation.start()
-
       return () => {
-        pulseAnimation.stop()
-        nfcPulseAnim.setValue(0)
+        cancelAnimation(nfcPulseAnim)
+        nfcPulseAnim.value = 0
       }
     }
   }, [nfcModalVisible, nfcScanModalVisible, nfcPulseAnim])
@@ -1884,8 +1891,7 @@ function PreviewTransaction() {
   if (!id || !account) return <Redirect href="/" />
 
   // Calculate responsive dimensions
-  const screenWidth = Dimensions.get('window').width
-  const screenHeight = Dimensions.get('window').height
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions()
   const qrSize = Math.min(screenWidth * 0.9, screenHeight * 0.5, 700) // 80% of screen width, max 500px
   const containerPadding = screenWidth * 0.05 // 5% of screen width
 
@@ -1964,7 +1970,7 @@ function PreviewTransaction() {
                     <SSVStack gap="none">
                       {account.keys?.map((key, index) => (
                         <SSSignatureDropdown
-                          key={index}
+                          key={key.fingerprint ?? index}
                           index={index}
                           totalKeys={account.keys?.length || 0}
                           keyDetails={key}
@@ -2567,19 +2573,7 @@ function PreviewTransaction() {
                 </SSText>
               </SSVStack>
             ) : (
-              <Animated.View
-                style={{
-                  width: 200,
-                  height: 200,
-                  backgroundColor: nfcPulseAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [Colors.gray[800], Colors.gray[400]]
-                  }),
-                  borderRadius: 100,
-                  justifyContent: 'center',
-                  alignItems: 'center'
-                }}
-              >
+              <Animated.View style={nfcPulseStyle}>
                 <SSText uppercase>Emitting NFC</SSText>
               </Animated.View>
             )}
@@ -2597,19 +2591,7 @@ function PreviewTransaction() {
             <SSText center style={{ maxWidth: 300 }}>
               {nfcError ? t('common.error') : t('transaction.preview.nfcTip')}
             </SSText>
-            <Animated.View
-              style={{
-                width: 200,
-                height: 200,
-                backgroundColor: nfcPulseAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [Colors.gray[800], Colors.gray[400]]
-                }),
-                borderRadius: 100,
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}
-            >
+            <Animated.View style={nfcPulseStyle}>
               <SSText uppercase>{t('watchonly.read.scanning')}</SSText>
             </Animated.View>
           </SSVStack>
