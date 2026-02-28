@@ -1,7 +1,7 @@
 export const transparent = 'transparent'
 
 export const white = '#FFFFFF'
-const black = '#000000'
+export const black = '#000000'
 
 export const gray = {
   25: '#F5F5F5',

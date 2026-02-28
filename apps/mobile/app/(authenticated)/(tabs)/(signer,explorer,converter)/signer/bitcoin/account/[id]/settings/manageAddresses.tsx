@@ -1,11 +1,7 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useMemo, useState } from 'react'
-import {
-  Clipboard,
-  SafeAreaView,
-  StyleSheet,
-  TouchableOpacity
-} from 'react-native'
+import { Clipboard, StyleSheet, TouchableOpacity } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import DraggableFlatList, {
   type RenderItemParams,
   ScaleDecorator
