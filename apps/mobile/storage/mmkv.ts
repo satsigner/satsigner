@@ -27,4 +27,4 @@ function getLastBackgroundTimestamp() {
 }
 
 export default mmkvStorage
-export { getLastBackgroundTimestamp, mmkvStorage, setLastBackgroundTimestamp }
+export { getLastBackgroundTimestamp, setLastBackgroundTimestamp }
