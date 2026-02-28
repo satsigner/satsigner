@@ -8,7 +8,3 @@ export type NonPartial<T> = {
   [K in keyof T]-?: NonNullable<T[K]>
 }
 
-// Extends type T ensuring some (not all) keys are not null
-export type NonPartialSome<T, K extends keyof T> = Omit<T, K> & {
-  [P in K]-?: NonNullable<T[P]>
-}

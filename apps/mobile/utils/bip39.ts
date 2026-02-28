@@ -79,7 +79,7 @@ export function generateMnemonicFromEntropy(
   return bip39.entropyToMnemonic(entropy, wordlist)
 }
 
-export function getEntropyFromMnemonic(
+function getEntropyFromMnemonic(
   mnemonic: string,
   wordListName: WordListName = 'english'
 ) {

@@ -281,7 +281,7 @@ export const QR_DATA_CAPACITY = {
 
 // map version to size in modules
 // https://github.com/mnooner256/pyqrcode/blob/674a77b5eaf850d063f518bd90c243ee34ad6b5d/pyqrcode/tables.py#L71
-export const QR_SIZE: Record<Version, number> = {
+const QR_SIZE: Record<Version, number> = {
   1: 21,
   2: 25,
   3: 29,

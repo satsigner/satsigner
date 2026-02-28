@@ -24,7 +24,7 @@ export type AccountMatchResult = {
   publicKey: string
 }
 
-export type SigningResult = {
+type SigningResult = {
   success: boolean
   originalPSBT?: string
   signedPSBT?: string
@@ -68,7 +68,7 @@ export type ExtractedTransactionData = {
   network: 'mainnet' | 'testnet' | 'signet'
 }
 
-export function extractPSBTDerivations(psbtBase64: string) {
+function extractPSBTDerivations(psbtBase64: string) {
   const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
   const derivations: {
     fingerprint: string
@@ -309,7 +309,7 @@ export function signPSBTWithSeed(
   }
 }
 
-export function getSignedPSBTValidationInfo(signedPSBT: string) {
+function getSignedPSBTValidationInfo(signedPSBT: string) {
   const psbt = bitcoinjs.Psbt.fromBase64(signedPSBT)
   const validation = {
     isValid: true,
@@ -626,7 +626,7 @@ export function extractIndividualSignedPsbts(
   return individualSignedPsbts
 }
 
-export function validatePsbt(
+function validatePsbt(
   psbtBase64: string,
   utxos: Utxo[],
   accountKeyFingerprints: string[]
@@ -1085,7 +1085,7 @@ function hasSignatureFromPublicKey(input: any, publicKey: string): boolean {
   })
 }
 
-export type SignedPsbtMatch = {
+type SignedPsbtMatch = {
   cosignerIndex: number
   signedPsbtBase64: string
   matchMethod: 'pubkey' | 'validation'

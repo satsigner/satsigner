@@ -7,7 +7,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type PickFileProps } from './filesystem'
 import { getUtxoOutpoint } from './utxo'
 
-export type LabelType = 'tx' | 'addr' | 'pubkey' | 'input' | 'output' | 'xpub'
+type LabelType = 'tx' | 'addr' | 'pubkey' | 'input' | 'output' | 'xpub'
 
 export type Label = {
   type: LabelType
@@ -75,7 +75,7 @@ for (const key in bip329Aliases) {
   }
 }
 
-export function formatAddressLabels(addresses: Address[]): Label[] {
+function formatAddressLabels(addresses: Address[]): Label[] {
   return addresses
     .filter((address) => address.label)
     .map((address) => {
@@ -88,7 +88,7 @@ export function formatAddressLabels(addresses: Address[]): Label[] {
     })
 }
 
-export function formatTransactionLabels(transactions: Transaction[]): Label[] {
+function formatTransactionLabels(transactions: Transaction[]): Label[] {
   return transactions
     .filter((tx) => tx.label)
     .map((tx) => {
@@ -101,7 +101,7 @@ export function formatTransactionLabels(transactions: Transaction[]): Label[] {
     })
 }
 
-export function formatUtxoLabels(utxos: Utxo[]): Label[] {
+function formatUtxoLabels(utxos: Utxo[]): Label[] {
   return utxos
     .filter((utxo) => utxo.label)
     .map((utxo) => {
@@ -122,7 +122,7 @@ export function formatAccountLabels(account: Account): Label[] {
   ]
 }
 
-export function labelsToCSV(labels: Label[]) {
+function labelsToCSV(labels: Label[]) {
   const CsvHeaderItems = ['type', 'ref', 'spendable', 'label']
   const CsvHeader = CsvHeaderItems.join(',')
   const CsvRows = [] as string[]
@@ -201,11 +201,11 @@ export function CSVtoLabels(CsvText: string): Label[] {
   return labels
 }
 
-export function labelsToJSON(labels: Label[]): string {
+function labelsToJSON(labels: Label[]): string {
   return JSON.stringify(labels)
 }
 
-export function JSONtoLabels(JSONtext: string): Label[] {
+function JSONtoLabels(JSONtext: string): Label[] {
   return JSON.parse(JSONtext) as Label[]
 }
 

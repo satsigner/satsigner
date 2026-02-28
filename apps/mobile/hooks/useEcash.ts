@@ -634,7 +634,7 @@ export function useQuotePolling() {
   }
 }
 
-export function useMintBalance() {
+function useMintBalance() {
   const proofs = useEcashStore((state) => state.proofs)
 
   const balance = proofs.reduce((sum, proof) => {

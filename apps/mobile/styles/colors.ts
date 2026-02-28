@@ -1,7 +1,7 @@
 export const transparent = 'transparent'
 
 export const white = '#FFFFFF'
-export const black = '#000000'
+const black = '#000000'
 
 export const gray = {
   25: '#F5F5F5',
@@ -26,7 +26,7 @@ export const gray = {
 export const success = '#237C3C'
 export const warning = '#DCBB13'
 export const error = '#C13939'
-export const info = '#0AA4EB'
+const info = '#0AA4EB'
 export const softGreen = '#A7FFAF4F'
 export const mainGreen = '#A7FFAF'
 export const softRed = '#FF71714F'

@@ -45,7 +45,7 @@ export function isValidBitcoinContent(text: string) {
   return false
 }
 
-export function processBitcoinContent(
+function processBitcoinContent(
   text: string
 ): ProcessedBitcoinContent | null {
   if (!text || !isValidBitcoinContent(text)) return null

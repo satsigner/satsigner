@@ -51,7 +51,7 @@ const BIP32Networks: Record<BDKNetwork, BIP32Interface['network']> = {
   [BDKNetwork.Testnet]: BIP32NetworkTestnet
 }
 
-export function getStandardPath(
+function getStandardPath(
   scriptVersion: ScriptVersionType,
   network: BDKNetwork,
   isMultiSig = false
@@ -101,7 +101,7 @@ export function getPrivateDescriptorFromSeed(
   return descriptor
 }
 
-export function getDescriptorFromPubkey(
+function getDescriptorFromPubkey(
   pubkey: string,
   scriptVersion: ScriptVersionType,
   fingerprint: string,
@@ -129,7 +129,7 @@ export function getDescriptorFromPubkey(
 }
 
 // TODO: inspect if the P2SH and P2WSH are correct
-export function getDescriptorFromPrivateKey(
+function getDescriptorFromPrivateKey(
   pubkey: string,
   scriptVersion: ScriptVersionType,
   path: string,
@@ -155,7 +155,7 @@ export function getDescriptorFromPrivateKey(
   }
 }
 
-export function getScriptVersionPurpose(
+function getScriptVersionPurpose(
   scriptVersion: ScriptVersionType
 ): number {
   switch (scriptVersion) {
@@ -440,7 +440,7 @@ export function getXpubForScriptVersion(
   return xpubFunctions[scriptVersion](seed, network)
 }
 
-export function getAllXpubs(
+function getAllXpubs(
   mnemonic: string,
   passphrase: string = '',
   network: 'mainnet' | 'testnet'
