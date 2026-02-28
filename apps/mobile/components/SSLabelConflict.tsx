@@ -61,7 +61,7 @@ export function detectConflcits(
   return conflicts
 }
 
-export function solveConflict(
+function solveConflict(
   current: Label,
   incoming: Label,
   strategy: ConflictStrategy
@@ -84,10 +84,7 @@ export function solveConflict(
   return { ...current, ...incoming, label }
 }
 
-export function solveConflicts(
-  conflicts: Conflict[],
-  strategy: ConflictStrategy
-) {
+function solveConflicts(conflicts: Conflict[], strategy: ConflictStrategy) {
   return conflicts.map(([current, incoming]) =>
     solveConflict(current, incoming, strategy)
   )
