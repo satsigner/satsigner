@@ -20,7 +20,7 @@ function AddressDisplayContent({
   return (
     <SSHStack style={styles[variant ?? 'default']} gap="sm">
       {(address.match(/(.{1,4})/g) || []).map((bytes, index) => (
-        <SSText type="mono" size="md" {...props} key={index}>
+        <SSText type="mono" size="md" {...props} key={`${index}-${bytes}`}>
           {bytes}
         </SSText>
       ))}
