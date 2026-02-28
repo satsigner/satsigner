@@ -207,6 +207,7 @@ function PreviewTransaction() {
   )
   const wallet = useGetAccountWallet(id!)
   const network = useBlockchainStore((state) => state.selectedNetwork)
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions()
   const [transactionId, setTransactionId] = useState('')
   const [isLoadingPSBT, setIsLoadingPSBT] = useState(false)
 
@@ -1891,7 +1892,6 @@ function PreviewTransaction() {
   if (!id || !account) return <Redirect href="/" />
 
   // Calculate responsive dimensions
-  const { width: screenWidth, height: screenHeight } = useWindowDimensions()
   const qrSize = Math.min(screenWidth * 0.9, screenHeight * 0.5, 700) // 80% of screen width, max 500px
   const containerPadding = screenWidth * 0.05 // 5% of screen width
 
