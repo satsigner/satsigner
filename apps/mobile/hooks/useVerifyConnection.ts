@@ -121,7 +121,12 @@ function useVerifyConnection() {
     verifyConnection()
   }, [server.url, verifyConnection])
 
-  return [connectionState, connectionString, isPrivateConnection, connectionParts] as const
+  return [
+    connectionState,
+    connectionString,
+    isPrivateConnection,
+    connectionParts
+  ] as const
 }
 
 export default useVerifyConnection

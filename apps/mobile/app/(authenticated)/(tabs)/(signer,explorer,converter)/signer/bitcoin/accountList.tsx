@@ -183,7 +183,11 @@ export default function AccountList() {
     ])
   )
   const [fetchPrices, btcPrice, fiatCurrency] = usePriceStore(
-    useShallow((state) => [state.fetchPrices, state.btcPrice, state.fiatCurrency])
+    useShallow((state) => [
+      state.fetchPrices,
+      state.btcPrice,
+      state.fiatCurrency
+    ])
   )
   const [wallets, addresses] = useWalletsStore(
     useShallow((state) => [state.wallets, state.addresses])
@@ -250,7 +254,7 @@ export default function AccountList() {
     listItemCount * ACCOUNT_CARD_HEIGHT +
     (listItemCount - 1) * SEPARATOR_VERTICAL
 
-  const [connectionState, connectionString, isPrivateConnection, connectionParts] =
+  const [connectionState, , isPrivateConnection, connectionParts] =
     useVerifyConnection()
   const { blockHeight, nextBlockFee } = useNetworkInfo()
 
@@ -799,7 +803,9 @@ export default function AccountList() {
               </SSText>
               <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
                 {btcPrice > 0
-                  ? btcPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })
+                  ? btcPrice.toLocaleString(undefined, {
+                      maximumFractionDigits: 0
+                    })
                   : '--'}
               </SSText>
               <SSText size="xxs" style={{ color: Colors.gray['500'] }}>

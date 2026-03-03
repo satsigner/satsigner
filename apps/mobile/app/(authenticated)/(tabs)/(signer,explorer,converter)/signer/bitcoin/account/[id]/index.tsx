@@ -932,7 +932,7 @@ export default function AccountView() {
   const [tabIndex, setTabIndex] = useState(0)
   const animationValue = useRef(new Animated.Value(0)).current
 
-  const [connectionState, connectionString, isPrivateConnection, connectionParts] =
+  const [connectionState, , isPrivateConnection, connectionParts] =
     useVerifyConnection()
   const { blockHeight: networkBlockHeight, nextBlockFee } = useNetworkInfo()
 
@@ -1317,7 +1317,9 @@ export default function AccountView() {
                 size="xxs"
                 uppercase
                 style={{
-                  color: connectionState ? Colors.gray['200'] : Colors.gray['450']
+                  color: connectionState
+                    ? Colors.gray['200']
+                    : Colors.gray['450']
                 }}
               >
                 {`${connectionParts.network} - ${connectionParts.name}`}
@@ -1356,7 +1358,9 @@ export default function AccountView() {
               </SSText>
               <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
                 {btcPrice > 0
-                  ? btcPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })
+                  ? btcPrice.toLocaleString(undefined, {
+                      maximumFractionDigits: 0
+                    })
                   : '--'}
               </SSText>
               <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
