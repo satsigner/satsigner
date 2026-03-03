@@ -181,7 +181,10 @@ export default function NetworkSettings() {
                               }
                             >
                               <SSVStack gap="none" style={{ flexGrow: 1 }}>
-                                <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+                                <SSHStack
+                                  gap="xs"
+                                  style={{ alignItems: 'center' }}
+                                >
                                   <SSText
                                     style={{
                                       lineHeight: 16,
