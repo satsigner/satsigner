@@ -14,6 +14,7 @@ import { randomKey } from '@/utils/crypto'
 const MAX_PROCESSED_RAW_IDS = 5000
 const MAX_QUEUE_SIZE = 300
 const PROCESSING_INTERVAL_MS = 350
+const FLUSH_QUEUE_DELAY_MS = 50
 /** Request enough kind 1059 events to discover all device announcements (members). Relays often default to ~100.
  *  Use a high limit because relay event order is not guaranteed (some return oldest-first); otherwise we can
  *  miss recent announcements when the relay returns oldest events first and we hit the limit. */
@@ -334,7 +335,9 @@ export class NostrAPI {
           this.eventQueue.push(message)
           this.processQueue()
         }
-      } catch {}
+      } catch {
+        // Intentionally ignored: malformed wrapped events should not crash the subscription
+      }
     })
 
     subscription?.on('eose', () => {
@@ -350,7 +353,8 @@ export class NostrAPI {
   async flushQueue(): Promise<void> {
     while (this.eventQueue.length > 0 && this._callback) {
       await this.processQueue()
-      await new Promise((r) => setTimeout(r, 50))
+      // Small delay between batches to avoid blocking the JS thread
+      await new Promise((r) => setTimeout(r, FLUSH_QUEUE_DELAY_MS))
     }
   }
 
@@ -371,7 +375,9 @@ export class NostrAPI {
       for (const relay of this.ndk.pool.relays.values()) {
         try {
           relay.disconnect()
-        } catch {}
+        } catch {
+          // Intentionally ignored: relay may already be disconnected or in invalid state
+        }
       }
     }
   }
