@@ -27,12 +27,8 @@ export default function Developer() {
   const [skipPin, setSkipPin] = useAuthStore(
     useShallow((state) => [state.skipPin, state.setSkipPin])
   )
-  const settings = useSettingsStore(
-    useShallow((state) => ({
-      currencyUnit: state.currencyUnit,
-      useZeroPadding: state.useZeroPadding,
-      mnemonicWordList: state.mnemonicWordList
-    }))
+  const [currencyUnit, useZeroPadding, mnemonicWordList] = useSettingsStore(
+    useShallow((s) => [s.currencyUnit, s.useZeroPadding, s.mnemonicWordList])
   )
 
   const [deleteAccountsModalVisible, setDeleteAccountsModalVisible] =
@@ -54,7 +50,7 @@ export default function Developer() {
           summary: account.summary,
           nostr: account.nostr
         })),
-        settings
+        settings: { currencyUnit, useZeroPadding, mnemonicWordList }
       }
 
       const payload = JSON.stringify(backupData, null, 2)
