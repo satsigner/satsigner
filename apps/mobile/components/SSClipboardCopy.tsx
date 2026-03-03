@@ -17,7 +17,7 @@ type SSTextClipboardProps = {
 function SSClipboardCopy({
   text,
   withPopup = true,
-  fullWidth = true,
+  fullWidth = false,
   children,
   style
 }: SSTextClipboardProps) {
