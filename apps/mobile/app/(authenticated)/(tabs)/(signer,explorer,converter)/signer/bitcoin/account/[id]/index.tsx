@@ -978,26 +978,25 @@ export default function AccountView() {
     handleOnRefresh()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const hasNostrReady = Boolean(
+    account?.nostr?.autoSync &&
+      account?.nostr?.relays?.length &&
+      account?.nostr?.deviceNsec &&
+      account?.nostr?.deviceNpub
+  )
+
   // Keep the Nostr subscription open for the entire account session.
   // index.tsx stays mounted (not just focused) while navigating deeper into
   // the account stack, so useEffect cleanup only fires on true account exit.
   useEffect(() => {
-    const acc = account
-    if (
-      acc?.nostr?.autoSync &&
-      acc.nostr.relays?.length &&
-      acc.nostr.deviceNsec &&
-      acc.nostr.deviceNpub
-    ) {
-      startSync(acc)
+    if (hasNostrReady && account) {
+      startSync(account)
     }
 
     return () => {
       if (id) stopSync(id)
     }
-    // startSync / stopSync are stable – only re-run if the account id changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+  }, [id, account, hasNostrReady, startSync, stopSync])
 
   // Memoize headerRight so React Navigation doesn't receive a new function
   // reference on every DM update, which would interrupt in-progress tap gestures.
