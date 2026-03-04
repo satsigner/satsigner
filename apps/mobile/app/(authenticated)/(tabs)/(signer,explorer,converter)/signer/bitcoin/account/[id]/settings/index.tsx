@@ -385,6 +385,7 @@ export default function AccountSettings() {
             <SSButton
               style={styles.button}
               label={t('account.export.pubkeys')}
+              disabled={account.keys[0].creationType === 'importAddress'}
               onPress={() =>
                 router.navigate(
                   `/signer/bitcoin/account/${currentAccountId}/settings/export/pubkeys`
