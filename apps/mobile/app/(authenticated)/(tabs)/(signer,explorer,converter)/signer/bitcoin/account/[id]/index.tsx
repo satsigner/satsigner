@@ -282,8 +282,8 @@ function TotalTransactions({
               )}
               estimatedItemSize={120}
               ListEmptyComponent={
-                <SSVStack>
-                  <SSText>No transactions</SSText>
+                <SSVStack style={{ alignItems: 'center', paddingTop: 50 }}>
+                  <SSText color="muted">No transactions</SSText>
                 </SSVStack>
               }
               keyExtractor={(item) => item.id}
