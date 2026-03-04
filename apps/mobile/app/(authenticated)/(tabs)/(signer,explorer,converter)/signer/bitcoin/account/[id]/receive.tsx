@@ -14,6 +14,7 @@ import SSTextInput from '@/components/SSTextInput'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useGetFirstUnusedAddress from '@/hooks/useGetFirstUnusedAddress'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
+import useNostrSync from '@/hooks/useNostrSync'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -23,6 +24,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { type Label } from '@/utils/bip329'
 
 export default function Receive() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
@@ -35,6 +37,7 @@ export default function Receive() {
     ])
   )
   const wallet = useGetAccountWallet(id!)
+  const { sendLabelsToNostr } = useNostrSync()
 
   const [localAddress, setLocalAddress] = useState<string>()
   const [localAddressNumber, setLocalAddressNumber] = useState<number>()
@@ -205,11 +208,20 @@ export default function Receive() {
 
       saveLabelTimeoutRef.current = setTimeout(() => {
         if (localAddress && text.trim()) {
-          setAddrLabel(id!, localAddress, text.trim())
+          const updatedAccount = setAddrLabel(id!, localAddress, text.trim())
+          if (updatedAccount?.nostr?.autoSync) {
+            const singleLabelData: Label = {
+              label: text.trim(),
+              ref: localAddress,
+              type: 'addr',
+              spendable: true
+            }
+            sendLabelsToNostr(updatedAccount, singleLabelData)
+          }
         }
       }, 1000)
     },
-    [localAddress, id, setAddrLabel]
+    [localAddress, id, setAddrLabel, sendLabelsToNostr]
   )
 
   async function handleNFCExport() {
