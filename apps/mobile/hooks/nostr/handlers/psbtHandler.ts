@@ -28,11 +28,30 @@ const psbtHandler: MessageHandler = {
       })
     }
 
-    // Store PSBT as DM for display
+    // Normalize and validate external fields before storing
+    const rawCreatedAt = eventContent.created_at
+    const coercedCreatedAt = Number(rawCreatedAt)
+    const created_at =
+      typeof coercedCreatedAt === 'number' &&
+      !Number.isNaN(coercedCreatedAt) &&
+      coercedCreatedAt > 0
+        ? Math.floor(coercedCreatedAt)
+        : Math.floor(Date.now() / 1000)
+
+    const rawDescription = data.data
+    const description =
+      typeof rawDescription === 'string'
+        ? rawDescription.trim()
+        : String(rawDescription ?? '').trim()
+    const DESCRIPTION_MAX = 2000
+    const safeDescription =
+      description.length > DESCRIPTION_MAX
+        ? description.slice(0, DESCRIPTION_MAX)
+        : description || ''
+
     const psbtEventContent: Record<string, unknown> = {
-      created_at:
-        (eventContent.created_at as number) || Math.floor(Date.now() / 1000),
-      description: data.data
+      created_at,
+      description: safeDescription
     }
 
     onPendingDM({
