@@ -118,6 +118,39 @@ export class NostrAPI {
   }
 
   /**
+   * Lightweight connect for publishing — establishes the NDK/pool connection
+   * without the slow per-relay event-fetch verification that connect() performs.
+   * Use this when you only need to publish (not subscribe or verify relay health).
+   */
+  async connectForPublish(timeoutMs = 10000): Promise<void> {
+    if (!this.ndk) {
+      this.ndk = new NDK({ explicitRelayUrls: this.relays })
+    }
+
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`connectForPublish timed out after ${timeoutMs}ms`)),
+        timeoutMs
+      )
+    )
+
+    await Promise.race([this.ndk.connect(), timeout])
+
+    if (!this.ndk.pool) {
+      throw new Error('NDK pool not initialized')
+    }
+
+    await Promise.race([this.ndk.pool.connect(), timeout])
+
+    const connectedRelays = Array.from(this.ndk.pool.relays.keys())
+    if (connectedRelays.length === 0) {
+      throw new Error(
+        'No relays could be connected. Please check your relay URLs and internet connection.'
+      )
+    }
+  }
+
+  /**
    * Fetches kind 0 (metadata) event for the given npub from relays.
    * Returns display name (name) and picture URL if available.
    * npub must decode to a 64-char hex pubkey (not a Bitcoin address or other format).
