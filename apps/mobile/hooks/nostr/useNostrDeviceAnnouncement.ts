@@ -40,6 +40,8 @@ function useNostrDeviceAnnouncement() {
       } catch {
         // Error already shown as toast in NostrAPI.publishEvent
         return false
+      } finally {
+        await nostrApi.closeAllSubscriptions()
       }
     },
     []
