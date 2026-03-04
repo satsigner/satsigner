@@ -14,17 +14,21 @@ const labelsHandler: MessageHandler = {
     const { account, data } = context
     if (!data) return
 
-    const labels = JSONLtoLabels(String(data.data ?? ''))
-    const labelsAdded = useAccountsStore
-      .getState()
-      .importLabels(account.id, labels)
+    try {
+      const labels = JSONLtoLabels(String(data.data ?? ''))
+      const labelsAdded = useAccountsStore
+        .getState()
+        .importLabels(account.id, labels)
 
-    if (labelsAdded > 0) {
-      toast.success(
-        labelsAdded === 1
-          ? `Imported ${labelsAdded} label`
-          : `Imported ${labelsAdded} labels`
-      )
+      if (labelsAdded > 0) {
+        toast.success(
+          labelsAdded === 1
+            ? `Imported ${labelsAdded} label`
+            : `Imported ${labelsAdded} labels`
+        )
+      }
+    } catch {
+      toast.error('Failed to import labels')
     }
   }
 }
