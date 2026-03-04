@@ -138,10 +138,13 @@ export function useConnectionTest() {
       throw new Error('Unknown backend')
     }
 
-    async function timeoutPromise() {
-      setTimeout(() => {
-        throw new Error('Connection test timeout')
-      }, connectionTimeout)
+    function timeoutPromise(): Promise<never> {
+      return new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error('Connection test timeout')),
+          connectionTimeout
+        )
+      )
     }
 
     try {
