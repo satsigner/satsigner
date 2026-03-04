@@ -180,7 +180,7 @@ function SSTransactionCard({
               <SSHStack
                 gap="xxs"
                 style={{
-                  alignItems: 'flex-end'
+                  alignItems: 'baseline'
                 }}
               >
                 <SSStyledSatText
