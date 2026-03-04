@@ -874,7 +874,10 @@ export default function NostrSync() {
                           { backgroundColor: deviceColor }
                         ]}
                       />
-                      <SSTextClipboard text={displayDeviceNpub || ''} fullWidth={false}>
+                      <SSTextClipboard
+                        text={displayDeviceNpub || ''}
+                        fullWidth={false}
+                      >
                         <SSText
                           size="xl"
                           type="mono"
