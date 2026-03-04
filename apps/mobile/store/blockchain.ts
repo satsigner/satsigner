@@ -8,8 +8,8 @@ import {
   DEFAULT_RETRIES,
   DEFAULT_STOP_GAP,
   DEFAULT_TIME_OUT,
-  ELECTRUM_URL,
   getBlockchainConfig,
+  MEMPOOL_MAINNET_URL,
   MEMPOOL_SIGNET_URL,
   MEMPOOL_TESTNET_URL
 } from '@/config/servers'
@@ -74,9 +74,9 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
       configs: {
         bitcoin: createDefaultNetworkConfig(
           'bitcoin',
-          'electrum',
-          ELECTRUM_URL,
-          'Blockstream'
+          'esplora',
+          MEMPOOL_MAINNET_URL,
+          'Mempool'
         ),
         signet: createDefaultNetworkConfig(
           'signet',
