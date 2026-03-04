@@ -129,7 +129,8 @@ export class NostrAPI {
 
     const timeout = new Promise<never>((_, reject) =>
       setTimeout(
-        () => reject(new Error(`connectForPublish timed out after ${timeoutMs}ms`)),
+        () =>
+          reject(new Error(`connectForPublish timed out after ${timeoutMs}ms`)),
         timeoutMs
       )
     )
