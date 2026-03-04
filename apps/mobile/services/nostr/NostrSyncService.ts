@@ -131,8 +131,13 @@ class NostrSyncService extends EventEmitter {
     account: Account,
     onLoadingChange?: (loading: boolean) => void
   ): void {
-    this.stopSync(account.id)
-    this.startSync(account, onLoadingChange)
+    this.cleanupSubscription(account.id)
+      .catch(() => {})
+      .finally(() => {
+        this.cancelRetry(account.id)
+        this.emitStatus(account.id, 'idle')
+        this.startSync(account, onLoadingChange)
+      })
   }
 
   /**
