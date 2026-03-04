@@ -95,10 +95,11 @@ function SSTransactionCard({
       itemsToDisplay.push(fiatCurrency)
     }
 
-    // Only show percent change if both prices are valid
+    // Only show percent change if both prices are valid; only clear when there
+    // is no valid current fiat price so we don't hide the priceDisplay block
     if (btcPrice && btcPrice > 0 && oldPrice && oldPrice > 0) {
       setPercentChange(formatPercentualChange(btcPrice, oldPrice))
-    } else {
+    } else if (!(btcPrice && btcPrice > 0)) {
       setPercentChange('')
     }
 
@@ -221,7 +222,7 @@ function SSTransactionCard({
             )}
           </SSHStack>
 
-          {priceDisplay !== '' && percentChange !== '' && (
+          {priceDisplay !== '' && (
             <SSHStack justifyBetween>
               <SSHStack
                 gap="xs"
@@ -235,17 +236,19 @@ function SSTransactionCard({
                 >
                   {priceDisplay}
                 </SSText>
-                <SSText
-                  style={{
-                    color:
-                      percentChange[0] === '+'
-                        ? Colors.mainGreen
-                        : Colors.mainRed
-                  }}
-                  size={smallView ? 'xs' : 'sm'}
-                >
-                  {percentChange}
-                </SSText>
+                {percentChange !== '' && (
+                  <SSText
+                    style={{
+                      color:
+                        percentChange[0] === '+'
+                          ? Colors.mainGreen
+                          : Colors.mainRed
+                    }}
+                    size={smallView ? 'xs' : 'sm'}
+                  >
+                    {percentChange}
+                  </SSText>
+                )}
               </SSHStack>
             </SSHStack>
           )}
