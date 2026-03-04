@@ -57,7 +57,6 @@ export default function NostrSync() {
   )
 
   const [isGeneratingKeys, setIsGeneratingKeys] = useState(false)
-  const [keysGenerated, setKeysGenerated] = useState(false)
 
   const updateAccountNostrCallback = useCallback(
     (accountId: string, nostrData: Partial<NostrAccount>) => {
@@ -612,6 +611,39 @@ export default function NostrSync() {
     })
   }
 
+  const handleCreateNewKey = useCallback(async () => {
+    if (!accountId) return
+    setIsGeneratingKeys(true)
+    try {
+      const keys = await NostrAPI.generateNostrKeys()
+      if (!keys) return
+      const current = useAccountsStore
+        .getState()
+        .accounts.find((a) => a.id === accountId)
+      const nostrBase = current?.nostr ?? {
+        autoSync: false,
+        relays: [],
+        dms: [],
+        trustedMemberDevices: [],
+        commonNsec: '',
+        commonNpub: ''
+      }
+      updateAccountNostrCallback(accountId, {
+        ...nostrBase,
+        deviceNpub: keys.npub,
+        deviceNsec: keys.nsec,
+        lastUpdated: new Date()
+      })
+      setDeviceNsec(keys.nsec)
+      setDeviceNpub(keys.npub)
+      generateColorFromNpub(keys.npub).then(setDeviceColor)
+    } catch {
+      toast.error('Failed to generate device keys')
+    } finally {
+      setIsGeneratingKeys(false)
+    }
+  }, [accountId, updateAccountNostrCallback])
+
   // Effects – use stable deps so we don't re-run on every account ref change
   const trustedDevicesKey = JSON.stringify(
     account?.nostr?.trustedMemberDevices ?? []
@@ -679,7 +711,6 @@ export default function NostrSync() {
   useEffect(() => {
     if (!account || !accountId) return
 
-    // Initialize nostr object if it doesn't exist, then generate device keys in the same run
     if (!account.nostr) {
       updateAccountNostrCallback(accountId, {
         autoSync: false,
@@ -691,86 +722,15 @@ export default function NostrSync() {
         deviceNsec: '',
         deviceNpub: ''
       })
-      setIsGeneratingKeys(true)
-      NostrAPI.generateNostrKeys()
-        .then((keys) => {
-          if (!keys) return
-          const current = useAccountsStore
-            .getState()
-            .accounts.find((a) => a.id === accountId)
-          if (current?.nostr) {
-            updateAccountNostrCallback(accountId, {
-              ...current.nostr,
-              deviceNpub: keys.npub,
-              deviceNsec: keys.nsec,
-              lastUpdated: new Date()
-            })
-          }
-          setDeviceNsec(keys.nsec)
-          setDeviceNpub(keys.npub)
-          generateColorFromNpub(keys.npub).then(setDeviceColor)
-          setKeysGenerated(true)
-        })
-        .catch(() => {
-          toast.error('Failed to generate device keys')
-        })
-        .finally(() => setIsGeneratingKeys(false))
       return
     }
 
-    // Store already has device keys: sync to local when local is empty
-    if (account.nostr.deviceNsec && account.nostr.deviceNpub) {
-      if (!deviceNpub) {
-        setDeviceNsec(account.nostr.deviceNsec)
-        setDeviceNpub(account.nostr.deviceNpub)
-        generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
-      }
-      setKeysGenerated(true)
-      return
+    if (account.nostr.deviceNsec && account.nostr.deviceNpub && !deviceNpub) {
+      setDeviceNsec(account.nostr.deviceNsec)
+      setDeviceNpub(account.nostr.deviceNpub)
+      generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
     }
-
-    // No device keys yet and we're not already generating: generate once
-    if (isGeneratingKeys || keysGenerated) return
-
-    setIsGeneratingKeys(true)
-    setKeysGenerated(true)
-    NostrAPI.generateNostrKeys()
-      .then((keys) => {
-        if (!keys) return
-        if (account?.nostr?.deviceNsec && account.nostr.deviceNpub) {
-          setDeviceNsec(account.nostr.deviceNsec)
-          setDeviceNpub(account.nostr.deviceNpub)
-          generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
-        } else {
-          const current = useAccountsStore
-            .getState()
-            .accounts.find((a) => a.id === accountId)
-          if (current?.nostr) {
-            updateAccountNostrCallback(accountId, {
-              ...current.nostr,
-              deviceNpub: keys.npub,
-              deviceNsec: keys.nsec,
-              lastUpdated: new Date()
-            })
-          }
-          setDeviceNsec(keys.nsec)
-          setDeviceNpub(keys.npub)
-          generateColorFromNpub(keys.npub).then(setDeviceColor)
-        }
-      })
-      .catch(() => {
-        toast.error('Failed to generate device keys')
-        setKeysGenerated(false)
-      })
-      .finally(() => setIsGeneratingKeys(false))
-  }, [
-    account,
-    accountId,
-    deviceNpub,
-    isGeneratingKeys,
-    keysGenerated,
-    updateAccountNostrCallback
-  ])
+  }, [account, accountId, deviceNpub, updateAccountNostrCallback])
 
   useEffect(() => {
     if (displayDeviceNpub) {
@@ -907,21 +867,15 @@ export default function NostrSync() {
                     <SSText color="muted" center>
                       {t('account.nostrSync.npub')}
                     </SSText>
-                    <SSHStack gap="xxs" style={{ flex: 0.7 }}>
+                    <SSHStack gap="xs" style={styles.npubRow}>
                       <View
-                        style={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: 10,
-                          backgroundColor: deviceColor,
-                          marginTop: 3,
-                          marginLeft: 30,
-                          marginRight: -30
-                        }}
+                        style={[
+                          styles.deviceColorCircle,
+                          { backgroundColor: deviceColor }
+                        ]}
                       />
-                      <SSTextClipboard text={displayDeviceNpub || ''}>
+                      <SSTextClipboard text={displayDeviceNpub || ''} fullWidth={false}>
                         <SSText
-                          center
                           size="xl"
                           type="mono"
                           style={styles.keyText}
@@ -932,16 +886,27 @@ export default function NostrSync() {
                       </SSTextClipboard>
                     </SSHStack>
                   </SSVStack>
-                ) : (
+                ) : isGeneratingKeys ? (
                   <SSHStack style={styles.keyContainerLoading}>
                     <ActivityIndicator color={Colors.white} />
                     <SSText uppercase color="white">
                       {t('account.nostrSync.loadingKeys')}
                     </SSText>
                   </SSHStack>
+                ) : (
+                  <SSText center color="muted">
+                    {t('account.nostrSync.noNsec')}
+                  </SSText>
                 )}
               </SSVStack>
             </SSVStack>
+            {!displayDeviceNsec && (
+              <SSButton
+                label={t('account.nostrSync.createNewKey')}
+                onPress={handleCreateNewKey}
+                disabled={isSyncing || isGeneratingKeys}
+              />
+            )}
             <SSButton
               label={t('account.nostrSync.setKeys')}
               onPress={goToNostrKeyPage}
@@ -1328,6 +1293,15 @@ const styles = StyleSheet.create({
   },
   keyText: {
     letterSpacing: 1
+  },
+  npubRow: {
+    alignSelf: 'center',
+    alignItems: 'center'
+  },
+  deviceColorCircle: {
+    width: 10,
+    height: 10,
+    borderRadius: 5
   },
   autoSyncContainer: {
     marginBottom: 10
