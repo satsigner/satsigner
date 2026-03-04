@@ -207,6 +207,16 @@ function NostrKeys() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run only when accountId changes to avoid re-running on account ref change
   }, [accountId])
 
+  async function generateNewNsec() {
+    try {
+      const keys = await NostrAPI.generateNostrKeys()
+      if (!keys) return
+      setNsec(keys.nsec)
+    } catch {
+      toast.error('Failed to generate key')
+    }
+  }
+
   async function pasteNsec() {
     try {
       const text = await Clipboard.getStringAsync()
@@ -528,6 +538,11 @@ function NostrKeys() {
                 )}
               </SSVStack>
             </SSVStack>
+            <SSButton
+              variant="secondary"
+              label={t('account.nostrSync.newNsec')}
+              onPress={generateNewNsec}
+            />
             <SSButton
               label={t('account.nostrSync.save')}
               onPress={saveChanges}
