@@ -17,6 +17,28 @@ import type {
 } from '@/types/models/Nostr'
 import { randomKey } from '@/utils/crypto'
 
+function getProfileFromKind0Content(
+  contentJson: string
+): NostrKind0Profile | null {
+  try {
+    const content = JSON.parse(contentJson) as Record<string, unknown>
+    const displayName =
+      typeof content.name === 'string'
+        ? content.name
+        : typeof content.display_name === 'string'
+          ? content.display_name
+          : typeof content.username === 'string'
+            ? content.username
+            : undefined
+    const picture =
+      typeof content.picture === 'string' ? content.picture : undefined
+    if (!displayName && !picture) return null
+    return { displayName, picture }
+  } catch {
+    return null
+  }
+}
+
 export class NostrAPI {
   private ndk: NDK | null = null
   private activeSubscriptions: Set<NDKSubscription> = new Set()
@@ -195,23 +217,7 @@ export class NostrAPI {
 
     if (!event?.content) return null
 
-    try {
-      const content = JSON.parse(event.content) as Record<string, unknown>
-      const displayName =
-        typeof content.name === 'string'
-          ? content.name
-          : typeof content.display_name === 'string'
-            ? content.display_name
-            : typeof content.username === 'string'
-              ? content.username
-              : undefined
-      const picture =
-        typeof content.picture === 'string' ? content.picture : undefined
-      if (!displayName && !picture) return null
-      return { displayName, picture }
-    } catch {
-      return null
-    }
+    return getProfileFromKind0Content(event.content)
   }
 
   static async generateNostrKeys(): Promise<NostrKeys> {
