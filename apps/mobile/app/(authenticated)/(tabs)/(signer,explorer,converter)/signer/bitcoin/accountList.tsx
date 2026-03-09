@@ -21,6 +21,7 @@ import {
 } from '@/components/icons'
 import SSAccountCard from '@/components/SSAccountCard'
 import SSAccountCardSkeleton from '@/components/SSAccountCardSkeleton'
+import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import SSSeparator from '@/components/SSSeparator'
@@ -781,35 +782,13 @@ export default function AccountList() {
               {connectionParts.url}
             </SSText>
           </SSHStack>
-          {connectionState && (
-            <SSHStack gap="xs" style={{ justifyContent: 'center' }}>
-              <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
-                Block{' '}
-              </SSText>
-              <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
-                {blockHeight?.toLocaleString() ?? '--'}
-              </SSText>
-              <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
-                {' ~'}
-              </SSText>
-              <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
-                {nextBlockFee ?? '--'}
-              </SSText>
-              <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
-                {' sat/vB'}
-              </SSText>
-              <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
-                {btcPrice > 0
-                  ? btcPrice.toLocaleString(undefined, {
-                      maximumFractionDigits: 0
-                    })
-                  : '--'}
-              </SSText>
-              <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
-                {` ${fiatCurrency}`}
-              </SSText>
-            </SSHStack>
-          )}
+
+          <SSBlockFeePriceRow
+            blockHeight={blockHeight}
+            btcPrice={btcPrice}
+            fiatCurrency={fiatCurrency}
+            nextBlockFee={nextBlockFee}
+          />
         </SSVStack>
       </TouchableOpacity>
       <SSHStack style={{ paddingHorizontal: '5%' }}>

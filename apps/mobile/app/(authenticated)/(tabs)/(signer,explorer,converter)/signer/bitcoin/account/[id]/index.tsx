@@ -53,6 +53,7 @@ import SSActionButton from '@/components/SSActionButton'
 import { AddressCard } from '@/components/SSAddressCard'
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
+import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
 import SSBubbleChart from '@/components/SSBubbleChart'
 import SSButton from '@/components/SSButton'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
@@ -1331,35 +1332,12 @@ export default function AccountView() {
               </SSText>
             </SSHStack>
           </SSHStack>
-          {connectionState && (
-            <SSHStack gap="xs" style={{ justifyContent: 'center' }}>
-              <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
-                Block{' '}
-              </SSText>
-              <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
-                {networkBlockHeight?.toLocaleString() ?? '--'}
-              </SSText>
-              <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
-                {'    ~'}
-              </SSText>
-              <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
-                {nextBlockFee ?? '--'}
-              </SSText>
-              <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
-                {' sat/vB'}
-              </SSText>
-              <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
-                {btcPrice > 0
-                  ? btcPrice.toLocaleString(undefined, {
-                      maximumFractionDigits: 0
-                    })
-                  : '--'}
-              </SSText>
-              <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
-                {` ${fiatCurrency}`}
-              </SSText>
-            </SSHStack>
-          )}
+          <SSBlockFeePriceRow
+            blockHeight={networkBlockHeight}
+            btcPrice={btcPrice}
+            fiatCurrency={fiatCurrency}
+            nextBlockFee={nextBlockFee}
+          />
         </SSVStack>
       </TouchableOpacity>
       {!expand && (
