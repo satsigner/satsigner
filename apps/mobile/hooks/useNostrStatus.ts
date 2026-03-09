@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 
-import { nostrSyncService, type SyncStatusEvent } from '@/utils/nostrSyncService'
+import {
+  nostrSyncService,
+  type SyncStatusEvent
+} from '@/utils/nostrSyncService'
 import { type NostrSyncStatus, useNostrStore } from '@/store/nostr'
 
 /**

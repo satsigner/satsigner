@@ -245,8 +245,7 @@ async function doFetchOnce(
   }
 
   const protocolApi = new NostrAPI(relays)
-  const dataExchangeApi =
-    deviceNsec && deviceNpub ? new NostrAPI(relays) : null
+  const dataExchangeApi = deviceNsec && deviceNpub ? new NostrAPI(relays) : null
 
   if (onLoadingChange) {
     protocolApi.setLoadingCallback(onLoadingChange)
@@ -279,9 +278,7 @@ async function doFetchOnce(
           lastProtocolEOSE,
           () => {
             const timestamp = Math.floor(Date.now() / 1000)
-            useNostrStore
-              .getState()
-              .setLastProtocolEOSE(account.id, timestamp)
+            useNostrStore.getState().setLastProtocolEOSE(account.id, timestamp)
             resolveProtocolEose()
           }
         )
@@ -314,10 +311,7 @@ async function doFetchOnce(
       Promise.race([dataExchangeEosePromise, timeout(EOSE_TIMEOUT_MS)])
     ])
 
-    await Promise.all([
-      protocolApi.flushQueue(),
-      dataExchangeApi?.flushQueue()
-    ])
+    await Promise.all([protocolApi.flushQueue(), dataExchangeApi?.flushQueue()])
     await Promise.all([
       protocolApi.closeAllSubscriptions(),
       dataExchangeApi?.closeAllSubscriptions()
