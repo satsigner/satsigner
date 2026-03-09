@@ -13,7 +13,11 @@ jest.mock('@/api/nostr', () => ({
     flushQueue: jest.fn().mockResolvedValue(undefined),
     closeAllSubscriptions: jest.fn().mockResolvedValue(undefined),
     setLoadingCallback: jest.fn()
-  })),
+  }))
+}))
+
+jest.mock('@/constants/nostr', () => ({
+  ...jest.requireActual('@/constants/nostr'),
   PROTOCOL_SUBSCRIPTION_LIMIT: 1500
 }))
 

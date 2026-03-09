@@ -1,5 +1,15 @@
 import type { NostrRelay } from '@/types/models/Nostr'
 
+export const FLUSH_QUEUE_DELAY_MS = 50
+export const MAX_PROCESSED_RAW_IDS = 5000
+export const MAX_QUEUE_SIZE = 300
+/** Request enough kind 1059 events to discover all device announcements (members). Relays often default to ~100.
+ *  Use a high limit because relay event order is not guaranteed (some return oldest-first); otherwise we can
+ *  miss recent announcements when the relay returns oldest events first and we hit the limit. */
+export const PROTOCOL_SUBSCRIPTION_LIMIT = 5000
+/** When doing a full rescan (since=0), request more events to reduce chance of missing new announcements. */
+export const PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN = 10000
+export const PROCESSING_INTERVAL_MS = 350
 export const RELAY_PROTOCOL_PREFIX = 'wss://'
 
 export const NOSTR_RELAYS: NostrRelay[] = [

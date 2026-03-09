@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events'
 
-import { NostrAPI, PROTOCOL_SUBSCRIPTION_LIMIT } from '@/api/nostr'
+import { NostrAPI } from '@/api/nostr'
+import { PROTOCOL_SUBSCRIPTION_LIMIT } from '@/constants/nostr'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
 import { type NostrMessage } from '@/types/models/Nostr'

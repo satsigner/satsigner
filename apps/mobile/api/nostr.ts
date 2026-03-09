@@ -4,23 +4,18 @@ import { Buffer } from 'buffer'
 import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
 import { toast } from 'sonner-native'
 
+import {
+  FLUSH_QUEUE_DELAY_MS,
+  MAX_PROCESSED_RAW_IDS,
+  MAX_QUEUE_SIZE,
+  PROCESSING_INTERVAL_MS
+} from '@/constants/nostr'
 import type {
   NostrKeys,
   NostrKind0Profile,
   NostrMessage
 } from '@/types/models/Nostr'
 import { randomKey } from '@/utils/crypto'
-
-const MAX_PROCESSED_RAW_IDS = 5000
-const MAX_QUEUE_SIZE = 300
-const PROCESSING_INTERVAL_MS = 350
-const FLUSH_QUEUE_DELAY_MS = 50
-/** Request enough kind 1059 events to discover all device announcements (members). Relays often default to ~100.
- *  Use a high limit because relay event order is not guaranteed (some return oldest-first); otherwise we can
- *  miss recent announcements when the relay returns oldest events first and we hit the limit. */
-export const PROTOCOL_SUBSCRIPTION_LIMIT = 5000
-/** When doing a full rescan (since=0), request more events to reduce chance of missing new announcements. */
-export const PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN = 10000
 
 export class NostrAPI {
   private ndk: NDK | null = null
