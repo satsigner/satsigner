@@ -43,6 +43,24 @@ function getProfileFromKind0Content(
   }
 }
 
+type UnwrappedKind1059Event = {
+  id: string
+  content: string
+  pubkey: string
+  created_at?: number
+}
+
+function unwrapNip59EventOrNull(
+  rawEvent: Event,
+  secretKey: Uint8Array
+): UnwrappedKind1059Event | null {
+  try {
+    return nip59.unwrapEvent(rawEvent, secretKey) as UnwrappedKind1059Event
+  } catch {
+    return null
+  }
+}
+
 export class NostrAPI {
   private ndk: NDK | null = null
   private activeSubscriptions: Set<NDKSubscription> = new Set()
@@ -301,20 +319,11 @@ export class NostrAPI {
 
         if (rawId && this.processedRawEventIds.has(rawId)) return
 
-        let unwrappedEvent: {
-          id: string
-          content: string
-          pubkey: string
-          created_at?: number
-        }
-        try {
-          unwrappedEvent = nip59.unwrapEvent(
-            rawEvent as unknown as Event,
-            recipientSecretNostrKey
-          )
-        } catch {
-          return
-        }
+        const unwrappedEvent = unwrapNip59EventOrNull(
+          rawEvent as unknown as Event,
+          recipientSecretNostrKey
+        )
+        if (!unwrappedEvent) return
 
         if (rawId) {
           if (this.processedRawEventIds.size >= MAX_PROCESSED_RAW_IDS) {
