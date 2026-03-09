@@ -2,10 +2,17 @@ import { useCallback, useMemo } from 'react'
 
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
+import {
+  type MessageHandlerContext,
+  type NostrMessageData,
+  type PendingDM,
+  type UnwrappedNostrEvent
+} from '@/types/nostrMessageHandlers'
 import { decompressMessage } from '@/utils/nostr'
 
 import { deviceAnnouncementHandler } from './useNostrDeviceAnnouncementHandler'
 import { dmHandler } from './useNostrDMHandler'
+import { getSyncStartSeconds, useNostrDMStorage } from './useNostrDMStorage'
 import {
   isInitialized,
   processMessage,
@@ -16,13 +23,6 @@ import { labelsHandler } from './useNostrLabelsHandler'
 import { psbtHandler } from './useNostrPsbtHandler'
 import { signMessageHandler } from './useNostrSignMessageHandler'
 import { txHandler } from './useNostrTxHandler'
-import {
-  type MessageHandlerContext,
-  type NostrMessageData,
-  type PendingDM,
-  type UnwrappedNostrEvent
-} from '@/types/nostrMessageHandlers'
-import { getSyncStartSeconds, useNostrDMStorage } from './useNostrDMStorage'
 
 function getEventContent(
   unwrappedEvent: UnwrappedNostrEvent

@@ -4,14 +4,14 @@ import { toast } from 'sonner-native'
 
 import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
-import { getPubKeyHexFromNpub } from '@/utils/nostr'
-
 import {
   DM_FUTURE_TOLERANCE_SEC,
   type NostrMessage,
   type PendingDM,
   type UnwrappedNostrEvent
 } from '@/types/nostrMessageHandlers'
+import { getPubKeyHexFromNpub } from '@/utils/nostr'
+
 import {
   getAuthorDisplayName,
   isChatActive,

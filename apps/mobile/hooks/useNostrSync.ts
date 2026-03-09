@@ -3,12 +3,12 @@ import { useCallback, useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
-import { nostrSyncService } from '@/services/nostr'
 import { useNostrStore } from '@/store/nostr'
 import type { Account } from '@/types/models/Account'
 import { getAccountWithDecryptedKeys } from '@/utils/account'
 import { type Label } from '@/utils/bip329'
 import { deriveNostrKeysFromDescriptor } from '@/utils/nostr'
+import { nostrSyncService } from '@/utils/nostrSyncService'
 
 import { useNostrDeviceAnnouncement } from './useNostrDeviceAnnouncement'
 import { useNostrDMStorage } from './useNostrDMStorage'
