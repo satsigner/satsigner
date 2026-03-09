@@ -30,12 +30,33 @@ export default function DeviceAliasPage() {
     ])
   )
 
-  const clearProcessedEvents = useNostrStore(
-    (state) => state.clearProcessedEvents
+  const [
+    clearProcessedEvents,
+    setLastDataExchangeEOSE,
+    memberColor,
+    globalProfile
+  ] = useNostrStore(
+    useShallow((state) => {
+      const memberColorValue =
+        !accountId || !npub
+          ? '#404040'
+          : (() => {
+              const accountMembers = state.members[accountId] || []
+              const member = accountMembers.find(
+                (m) => (typeof m === 'string' ? m : m.npub) === npub
+              )
+              if (!member) return '#404040'
+              return typeof member === 'string' ? '#404040' : member.color
+            })()
+      return [
+        state.clearProcessedEvents,
+        state.setLastDataExchangeEOSE,
+        memberColorValue,
+        npub ? state.profiles[npub] : undefined
+      ]
+    })
   )
-  const setLastDataExchangeEOSE = useNostrStore(
-    (state) => state.setLastDataExchangeEOSE
-  )
+
   const { restartSync } = useNostrSync()
   const trustSyncRestartRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
@@ -46,22 +67,6 @@ export default function DeviceAliasPage() {
       }
     }
   }, [accountId])
-
-  const memberColor = useNostrStore(
-    useShallow((state) => {
-      if (!accountId || !npub) return '#404040'
-      const accountMembers = state.members[accountId] || []
-      const member = accountMembers.find(
-        (m) => (typeof m === 'string' ? m : m.npub) === npub
-      )
-      if (!member) return '#404040'
-      return typeof member === 'string' ? '#404040' : member.color
-    })
-  )
-
-  const globalProfile = useNostrStore(
-    useShallow((state) => (npub ? state.profiles[npub] : undefined))
-  )
 
   const accountProfile = npub ? account?.nostr?.npubProfiles?.[npub] : undefined
   const isThisDevice = npub === account?.nostr?.deviceNpub
