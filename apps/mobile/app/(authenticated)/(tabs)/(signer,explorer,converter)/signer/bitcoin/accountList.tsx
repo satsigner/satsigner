@@ -782,7 +782,7 @@ export default function AccountList() {
             </SSText>
           </SSHStack>
           {connectionState && (
-            <SSHStack style={{ justifyContent: 'center', gap: 0 }}>
+            <SSHStack gap="xs" style={{ justifyContent: 'center' }}>
               <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
                 Block{' '}
               </SSText>
@@ -790,16 +790,13 @@ export default function AccountList() {
                 {blockHeight?.toLocaleString() ?? '--'}
               </SSText>
               <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
-                {'    ~'}
+                {' ~'}
               </SSText>
               <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
                 {nextBlockFee ?? '--'}
               </SSText>
               <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
                 {' sat/vB'}
-              </SSText>
-              <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
-                {'    '}
               </SSText>
               <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
                 {btcPrice > 0
