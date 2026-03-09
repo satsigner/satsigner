@@ -24,6 +24,7 @@ import { deleteItem } from '@/storage/encrypted'
 import { clearAllStorage } from '@/storage/mmkv'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
+import { useNostrStore } from '@/store/nostr'
 import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
@@ -79,6 +80,8 @@ export default function Developer() {
   }
 
   function handleDeleteAccounts() {
+    resetNostrSync()
+    useNostrStore.getState().clearAllNostrState()
     deleteAccounts()
     deleteWallets()
     setDeleteAccountsModalVisible(false)
