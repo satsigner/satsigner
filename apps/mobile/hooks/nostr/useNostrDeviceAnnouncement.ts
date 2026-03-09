@@ -37,8 +37,10 @@ function useNostrDeviceAnnouncement() {
         )
         await nostrApi.publishEvent(eventKind1059)
         return true
-      } catch {
-        // Error already shown as toast in NostrAPI.publishEvent
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Failed to publish announcement'
+        toast.error('Failed to publish announcement', { description: message })
         return false
       } finally {
         await nostrApi.closeAllSubscriptions()

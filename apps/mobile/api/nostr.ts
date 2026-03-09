@@ -2,7 +2,6 @@ import type { NDKKind, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import { Buffer } from 'buffer'
 import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
-import { toast } from 'sonner-native'
 
 import {
   FLUSH_QUEUE_DELAY_MS,
@@ -259,7 +258,7 @@ export class NostrAPI {
           await result
         }
       } catch {
-        toast.error('Failed to process message')
+        // Callback error; caller is responsible for handling and surfacing to user
       }
     }
 
@@ -508,9 +507,6 @@ export class NostrAPI {
 
     if (successfulPublishes.length === 0) {
       const errors = results.map((r) => `${r.url}: ${r.error}`).join('; ')
-      toast.error('Failed to publish to any relay', {
-        description: errors
-      })
       throw new Error(`Failed to publish to any relay: ${errors}`)
     }
   }
