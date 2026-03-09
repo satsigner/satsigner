@@ -1332,7 +1332,7 @@ export default function AccountView() {
             </SSHStack>
           </SSHStack>
           {connectionState && (
-            <SSHStack style={{ justifyContent: 'center', gap: 0 }}>
+            <SSHStack gap="xs" style={{ justifyContent: 'center' }}>
               <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
                 Block{' '}
               </SSText>
@@ -1347,9 +1347,6 @@ export default function AccountView() {
               </SSText>
               <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
                 {' sat/vB'}
-              </SSText>
-              <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
-                {'    '}
               </SSText>
               <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
                 {btcPrice > 0
