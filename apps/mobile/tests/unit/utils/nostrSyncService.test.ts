@@ -1,7 +1,4 @@
-import {
-  nostrSyncService,
-  resetInstance
-} from '@/utils/nostrSyncService'
+import { nostrSyncService, resetInstance } from '@/utils/nostrSyncService'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
 
@@ -113,7 +110,9 @@ describe('nostrSyncService', () => {
     it('after reset, state is cleared and service is still usable', () => {
       nostrSyncService.setMessageProcessor(mockAccount.id, mockProcessor)
       nostrSyncService.startSync(mockAccount)
-      expect(nostrSyncService.getActiveSubscriptionCount()).toBeGreaterThanOrEqual(0)
+      expect(
+        nostrSyncService.getActiveSubscriptionCount()
+      ).toBeGreaterThanOrEqual(0)
       resetInstance()
       expect(nostrSyncService.getActiveSubscriptionCount()).toBe(0)
       nostrSyncService.setMessageProcessor(mockAccount.id, mockProcessor)
@@ -186,7 +185,9 @@ describe('nostrSyncService', () => {
 
       await jest.runAllTimersAsync()
 
-      expect(nostrSyncService.getActiveSubscriptionCount()).toBeLessThanOrEqual(1)
+      expect(nostrSyncService.getActiveSubscriptionCount()).toBeLessThanOrEqual(
+        1
+      )
     })
   })
 

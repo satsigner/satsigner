@@ -36,10 +36,7 @@ import { Colors } from '@/styles'
 import type { NostrAccount } from '@/types/models/Nostr'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatDateShort } from '@/utils/date'
-import {
-  generateColorFromNpub,
-  getPubKeyHexFromNpub
-} from '@/utils/nostr'
+import { generateColorFromNpub, getPubKeyHexFromNpub } from '@/utils/nostr'
 
 const SYNCING_MESSAGE_KEYS = [
   'account.nostrSync.syncingConnecting',

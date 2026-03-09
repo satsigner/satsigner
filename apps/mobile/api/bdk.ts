@@ -825,10 +825,14 @@ async function getWalletOverview(
 }
 
 type TransactionMetadataAndIo = {
-  inputs: Awaited<ReturnType<NonNullable<TransactionDetails['transaction']>['input']>>
+  inputs: Awaited<
+    ReturnType<NonNullable<TransactionDetails['transaction']>['input']>
+  >
   lockTime: number
   lockTimeEnabled: boolean
-  outputs: Awaited<ReturnType<NonNullable<TransactionDetails['transaction']>['output']>>
+  outputs: Awaited<
+    ReturnType<NonNullable<TransactionDetails['transaction']>['output']>
+  >
   raw: number[]
   version: number
 }
@@ -894,8 +898,11 @@ async function parseTransactionDetailsToTransaction(
   const vout: Transaction['vout'] = []
 
   if (transaction) {
-    const { inputs, outputs: outputsList, ...metadata } =
-      await getTransactionMetadataAndIo(transaction)
+    const {
+      inputs,
+      outputs: outputsList,
+      ...metadata
+    } = await getTransactionMetadataAndIo(transaction)
     version = metadata.version
     lockTime = metadata.lockTime
     lockTimeEnabled = metadata.lockTimeEnabled

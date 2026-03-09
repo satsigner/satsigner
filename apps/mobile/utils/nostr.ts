@@ -73,11 +73,7 @@ export function getPubKeyHexFromNpub(npub: string): string | null {
         ? decoded.data
         : Buffer.from(decoded.data as Uint8Array).toString('hex')
     const hex = (rawHex ?? '').toLowerCase().replace(/^0x/, '')
-    if (
-      hex.length !== 64 ||
-      !/^[0-9a-f]+$/.test(hex)
-    )
-      return null
+    if (hex.length !== 64 || !/^[0-9a-f]+$/.test(hex)) return null
     return hex
   } catch {
     return null

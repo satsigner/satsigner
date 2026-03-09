@@ -9,11 +9,7 @@ import {
   type MessageHandlerContext
 } from '@/types/nostrMessageHandlers'
 
-import {
-  accountIds,
-  nostrKeys,
-  nostrMessages
-} from '../utils/nostr_samples'
+import { accountIds, nostrKeys, nostrMessages } from '../utils/nostr_samples'
 
 // Mock dependencies
 jest.mock('@/store/accounts', () => ({
