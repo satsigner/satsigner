@@ -21,7 +21,7 @@ import {
   type NostrMessageData,
   type PendingDM,
   type UnwrappedNostrEvent
-} from './nostrTypes'
+} from '@/types/nostrMessageHandlers'
 import { getSyncStartSeconds, useNostrDMStorage } from './useNostrDMStorage'
 
 function getEventContent(

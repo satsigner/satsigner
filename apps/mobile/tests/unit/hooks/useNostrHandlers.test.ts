@@ -10,7 +10,7 @@ import { txHandler } from '@/hooks/useNostrTxHandler'
 import {
   type MessageHandlerContext,
   type PendingDM
-} from '@/hooks/nostrTypes'
+} from '@/types/nostrMessageHandlers'
 
 import { accountIds, nostrKeys } from '../utils/nostr_samples'
 
