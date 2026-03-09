@@ -466,32 +466,32 @@ export default function NostrSync() {
           .accounts.find((a) => a.id === accountId)
 
         if (
-          !updatedAccount?.nostr?.deviceNsec ||
-          !updatedAccount?.nostr?.deviceNpub
-        ) {
-          toast.error('Missing required Nostr configuration')
-        }
-
-        if (
           updatedAccount?.nostr?.relays &&
           updatedAccount.nostr.relays.length > 0
         ) {
-          setIsSyncing(true)
-          if (accountId) setSyncing(accountId, true)
-          try {
-            await testRelaySync(updatedAccount.nostr.relays)
-            deviceAnnouncement(updatedAccount)
-            await nostrSyncSubscriptions(updatedAccount, (loading) => {
-              requestAnimationFrame(() => {
-                setIsSyncing(loading)
-                if (accountId) setSyncing(accountId, loading)
+          if (
+            !updatedAccount.nostr.deviceNsec ||
+            !updatedAccount.nostr.deviceNpub
+          ) {
+            toast.error('Missing required Nostr configuration')
+          } else {
+            setIsSyncing(true)
+            if (accountId) setSyncing(accountId, true)
+            try {
+              await testRelaySync(updatedAccount.nostr.relays)
+              deviceAnnouncement(updatedAccount)
+              await nostrSyncSubscriptions(updatedAccount, (loading) => {
+                requestAnimationFrame(() => {
+                  setIsSyncing(loading)
+                  if (accountId) setSyncing(accountId, loading)
+                })
               })
-            })
-          } catch {
-            toast.error('Failed to setup sync')
-          } finally {
-            setIsSyncing(false)
-            if (accountId) setSyncing(accountId, false)
+            } catch {
+              toast.error('Failed to setup sync')
+            } finally {
+              setIsSyncing(false)
+              if (accountId) setSyncing(accountId, false)
+            }
           }
         }
       }
