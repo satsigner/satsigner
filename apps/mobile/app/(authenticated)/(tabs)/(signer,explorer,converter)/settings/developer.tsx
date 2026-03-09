@@ -10,15 +10,25 @@ import SSCheckbox from '@/components/SSCheckbox'
 import SSModal from '@/components/SSModal'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
+import {
+  DEFAULT_LOCK_DELTA_TIME_SECONDS,
+  DEFAULT_PIN_MAX_TRIES,
+  DURESS_PIN_KEY,
+  PIN_KEY,
+  SALT_KEY
+} from '@/config/auth'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { deleteItem } from '@/storage/encrypted'
 import { clearAllStorage } from '@/storage/mmkv'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
+import { DEFAULT_WORD_LIST } from '@/utils/bip39'
+import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 
 export default function Developer() {
   const accounts = useAccountsStore((state) => state.accounts)
@@ -78,6 +88,33 @@ export default function Developer() {
   async function handleClearStorage() {
     try {
       clearAllStorage()
+      await Promise.all([
+        deleteItem(PIN_KEY),
+        deleteItem(SALT_KEY),
+        deleteItem(DURESS_PIN_KEY)
+      ])
+      resetNostrSync()
+      deleteAccounts()
+      deleteWallets()
+      useAuthStore.setState({
+        duressPinEnabled: false,
+        firstTime: true,
+        justUnlocked: false,
+        lockDeltaTime: DEFAULT_LOCK_DELTA_TIME_SECONDS,
+        lockTriggered: false,
+        pageHistory: [],
+        pinMaxTries: DEFAULT_PIN_MAX_TRIES,
+        pinTries: 0,
+        requiresAuth: false,
+        skipPin: false
+      })
+      useSettingsStore.setState({
+        currencyUnit: 'sats',
+        mnemonicWordList: DEFAULT_WORD_LIST,
+        showWarning: true,
+        skipSeedConfirmation: true,
+        useZeroPadding: false
+      })
       setClearStorageModalVisible(false)
       toast.success(t('settings.developer.storageCleared'))
     } catch (error) {
