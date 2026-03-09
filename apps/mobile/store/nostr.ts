@@ -99,6 +99,7 @@ type NostrAction = {
   addMember: (accountId: string, npub: string) => void
   removeMember: (accountId: string, npub: string) => void
   getMembers: (accountId: string) => Member[]
+  clearAllNostrState: () => void
   clearNostrState: (accountId: string) => void
   addProcessedMessageId: (accountId: string, messageId: string) => void
   getProcessedMessageIds: (accountId: string) => string[]
@@ -224,6 +225,21 @@ const useNostrStore = create<NostrState & NostrAction>()(
       },
       getMembers: (accountId) => {
         return get().members[accountId] || []
+      },
+      clearAllNostrState: () => {
+        set({
+          activeSubscriptions: new Set(),
+          lastDataExchangeEOSE: {},
+          lastProtocolEOSE: {},
+          members: {},
+          processedEvents: {},
+          processedMessageIds: {},
+          profiles: {},
+          syncingAccounts: {},
+          syncStatus: {},
+          transactionToShare: null,
+          trustedDevices: {}
+        })
       },
       clearNostrState: (accountId) => {
         set((state) => ({
