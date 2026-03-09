@@ -1,9 +1,10 @@
-import { nip19 } from 'nostr-tools'
 import { useCallback, useMemo, useRef } from 'react'
 import { toast } from 'sonner-native'
 
 import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
+
+import { getPubKeyHexFromNpub } from '@/utils/nostr'
 
 import {
   getAuthorDisplayName,
@@ -34,20 +35,7 @@ function getDevicePubkeyHex(
   account: Account | null | undefined
 ): string | null {
   const npub = account?.nostr?.deviceNpub
-  if (!npub) return null
-  try {
-    const decoded = nip19.decode(npub)
-    if (decoded?.type !== 'npub' || !decoded.data) return null
-    const data = decoded.data
-    const hex =
-      typeof data === 'string'
-        ? data
-        : Buffer.from(data as Uint8Array).toString('hex')
-    return hex.toLowerCase()
-  } catch {
-    // ignore
-  }
-  return null
+  return npub ? getPubKeyHexFromNpub(npub) : null
 }
 
 function samePubkey(a: string, b: string): boolean {

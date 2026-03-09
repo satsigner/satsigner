@@ -15,6 +15,10 @@ import type {
   NostrKind0Profile,
   NostrMessage
 } from '@/types/models/Nostr'
+import {
+  getPubKeyHexFromNpub,
+  getSecretFromNsec
+} from '@/utils/nostr'
 import { randomKey } from '@/utils/crypto'
 
 function getProfileFromKind0Content(
@@ -174,23 +178,8 @@ export class NostrAPI {
    * npub must decode to a 64-char hex pubkey (not a Bitcoin address or other format).
    */
   async fetchKind0(npub: string): Promise<NostrKind0Profile | null> {
-    const decoded = nip19.decode(npub)
-    if (!decoded || decoded.type !== 'npub') {
-      return null
-    }
-    const rawHex =
-      typeof decoded.data === 'string'
-        ? decoded.data
-        : Buffer.from(decoded.data as Uint8Array).toString('hex')
-    const hexPubkey = (rawHex ?? '').toLowerCase().replace(/^0x/, '')
-
-    if (
-      !hexPubkey ||
-      !/^[0-9a-f]+$/.test(hexPubkey) ||
-      (hexPubkey.length !== 64 && hexPubkey.length !== 65)
-    ) {
-      return null
-    }
+    const hexPubkey = getPubKeyHexFromNpub(npub)
+    if (!hexPubkey) return null
 
     await this.connect()
     if (!this.ndk) return null
@@ -275,29 +264,9 @@ export class NostrAPI {
     await this.connect()
     if (!this.ndk) throw new Error('Failed to connect to relays')
 
-    let recipientSecretNostrKey: Uint8Array | string
-    let recipientPubKeyHex: string
-    try {
-      const decodedNsec = nip19.decode(recipientNsec)
-      const decodedNpub = nip19.decode(recipientNpub)
-      if (!decodedNsec?.data || !decodedNpub?.data) return
-      recipientSecretNostrKey = decodedNsec.data as Uint8Array
-      recipientPubKeyHex =
-        typeof decodedNpub.data === 'string'
-          ? decodedNpub.data
-          : Buffer.from(decodedNpub.data as Uint8Array).toString('hex')
-      // NDK requires non-empty filter; avoid "No filters to merge" by ensuring valid hex pubkey (64 chars)
-      if (
-        !recipientPubKeyHex ||
-        typeof recipientPubKeyHex !== 'string' ||
-        recipientPubKeyHex.length !== 64 ||
-        !/^[0-9a-fA-F]+$/.test(recipientPubKeyHex)
-      ) {
-        return
-      }
-    } catch {
-      return
-    }
+    const recipientSecretNostrKey = getSecretFromNsec(recipientNsec)
+    const recipientPubKeyHex = getPubKeyHexFromNpub(recipientNpub)
+    if (!recipientSecretNostrKey || !recipientPubKeyHex) return
 
     this.setLoading(true)
     this._callback = _callback
@@ -341,7 +310,7 @@ export class NostrAPI {
         try {
           unwrappedEvent = nip59.unwrapEvent(
             rawEvent as unknown as Event,
-            recipientSecretNostrKey as Uint8Array
+            recipientSecretNostrKey
           )
         } catch {
           return
@@ -422,13 +391,16 @@ export class NostrAPI {
     recipientNpub: string,
     content: string
   ): Promise<NDKEvent> {
-    const { data: secretNostrKey } = nip19.decode(nsec)
-    const recipientPubkey = nip19.decode(recipientNpub) as { data: string }
+    const secretNostrKey = getSecretFromNsec(nsec)
+    const recipientPubKeyHex = getPubKeyHexFromNpub(recipientNpub)
+    if (!secretNostrKey || !recipientPubKeyHex) {
+      throw new Error('Invalid nsec or recipient npub')
+    }
     const encodedContent = unescape(encodeURIComponent(content))
 
     const wrap = nip17.wrapEvent(
-      secretNostrKey as Uint8Array,
-      { publicKey: recipientPubkey.data },
+      secretNostrKey,
+      { publicKey: recipientPubKeyHex },
       encodedContent
     )
     const tempNdk = new NDK()
@@ -450,9 +422,8 @@ export class NostrAPI {
     )
     if (hexIds.length === 0) return
 
-    const decoded = nip19.decode(deviceNsec)
-    if (!decoded?.data) throw new Error('Invalid nsec')
-    const secretKey = decoded.data as Uint8Array
+    const secretKey = getSecretFromNsec(deviceNsec)
+    if (!secretKey) throw new Error('Invalid nsec')
     const signer = new NDKPrivateKeySigner(secretKey)
 
     await this.connect()
