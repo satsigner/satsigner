@@ -1,5 +1,12 @@
 import type { NostrRelay } from '@/types/models/Nostr'
 
+export const DEFAULT_RETRY_CONFIG = {
+  baseDelayMs: 1000,
+  jitterFactor: 0.2,
+  maxDelayMs: 60000,
+  maxRetries: 5
+}
+export const EOSE_TIMEOUT_MS = 15000
 export const FLUSH_QUEUE_DELAY_MS = 50
 export const MAX_PROCESSED_RAW_IDS = 5000
 export const MAX_QUEUE_SIZE = 300

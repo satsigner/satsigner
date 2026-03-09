@@ -1,7 +1,7 @@
 import {
-  NostrSyncService,
-  nostrSyncService
-} from '@/services/nostr/NostrSyncService'
+  nostrSyncService,
+  resetInstance
+} from '@/utils/nostrSyncService'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
 
@@ -76,18 +76,14 @@ const mockAccount: Account = {
   }
 }
 
-describe('NostrSyncService', () => {
-  let service: NostrSyncService
+describe('nostrSyncService', () => {
   let mockProcessor: jest.Mock
 
   beforeEach(() => {
     jest.useFakeTimers()
-    // Reset the singleton for each test
-    NostrSyncService.resetInstance()
-    service = NostrSyncService.getInstance()
+    resetInstance()
     mockProcessor = jest.fn()
 
-    // Reset store state
     useNostrStore.setState({
       members: {},
       processedMessageIds: {},
@@ -103,46 +99,48 @@ describe('NostrSyncService', () => {
   })
 
   afterEach(() => {
-    service.stopAll()
+    nostrSyncService.stopAll()
     jest.clearAllMocks()
     jest.useRealTimers()
   })
 
   describe('singleton pattern', () => {
-    it('returns the same instance', () => {
-      const instance1 = NostrSyncService.getInstance()
-      const instance2 = NostrSyncService.getInstance()
-      expect(instance1).toBe(instance2)
+    it('exports a single shared service object', () => {
+      expect(nostrSyncService).toBeDefined()
+      expect(typeof nostrSyncService.startSync).toBe('function')
     })
 
-    it('creates new instance after reset', () => {
-      const instance1 = NostrSyncService.getInstance()
-      NostrSyncService.resetInstance()
-      const instance2 = NostrSyncService.getInstance()
-      expect(instance1).not.toBe(instance2)
+    it('after reset, state is cleared and service is still usable', () => {
+      nostrSyncService.setMessageProcessor(mockAccount.id, mockProcessor)
+      nostrSyncService.startSync(mockAccount)
+      expect(nostrSyncService.getActiveSubscriptionCount()).toBeGreaterThanOrEqual(0)
+      resetInstance()
+      expect(nostrSyncService.getActiveSubscriptionCount()).toBe(0)
+      nostrSyncService.setMessageProcessor(mockAccount.id, mockProcessor)
+      expect(nostrSyncService.getActiveAccountIds()).toEqual([])
     })
   })
 
   describe('startSync', () => {
     it('returns immediately (non-blocking)', () => {
-      service.setMessageProcessor(mockAccount.id, mockProcessor)
+      nostrSyncService.setMessageProcessor(mockAccount.id, mockProcessor)
 
       const startTime = Date.now()
-      service.startSync(mockAccount)
+      nostrSyncService.startSync(mockAccount)
       const elapsed = Date.now() - startTime
 
-      // Should return immediately (< 10ms)
       expect(elapsed).toBeLessThan(10)
     })
 
     it('emits status events during sync', async () => {
       const statusEvents: string[] = []
-      service.on('status', (e) => statusEvents.push(e.status))
-      service.setMessageProcessor(mockAccount.id, mockProcessor)
+      nostrSyncService.on('status', (e: { status: string }) =>
+        statusEvents.push(e.status)
+      )
+      nostrSyncService.setMessageProcessor(mockAccount.id, mockProcessor)
 
-      service.startSync(mockAccount)
+      nostrSyncService.startSync(mockAccount)
 
-      // Allow promises to resolve
       await jest.runAllTimersAsync()
 
       expect(statusEvents).toContain('connecting')
@@ -153,13 +151,15 @@ describe('NostrSyncService', () => {
         ...mockAccount,
         nostr: { ...mockAccount.nostr, autoSync: false }
       }
-      service.setMessageProcessor(disabledAccount.id, mockProcessor)
+      nostrSyncService.setMessageProcessor(disabledAccount.id, mockProcessor)
 
-      service.startSync(disabledAccount)
+      nostrSyncService.startSync(disabledAccount)
 
       await jest.runAllTimersAsync()
 
-      expect(service.hasActiveSubscription(disabledAccount.id)).toBe(false)
+      expect(nostrSyncService.hasActiveSubscription(disabledAccount.id)).toBe(
+        false
+      )
     })
 
     it('skips if no relays configured', async () => {
@@ -167,120 +167,122 @@ describe('NostrSyncService', () => {
         ...mockAccount,
         nostr: { ...mockAccount.nostr, relays: [] }
       }
-      service.setMessageProcessor(noRelaysAccount.id, mockProcessor)
+      nostrSyncService.setMessageProcessor(noRelaysAccount.id, mockProcessor)
 
-      service.startSync(noRelaysAccount)
+      nostrSyncService.startSync(noRelaysAccount)
 
       await jest.runAllTimersAsync()
 
-      expect(service.hasActiveSubscription(noRelaysAccount.id)).toBe(false)
+      expect(nostrSyncService.hasActiveSubscription(noRelaysAccount.id)).toBe(
+        false
+      )
     })
 
     it('skips if already subscribing', async () => {
-      service.setMessageProcessor(mockAccount.id, mockProcessor)
+      nostrSyncService.setMessageProcessor(mockAccount.id, mockProcessor)
 
-      // Start two syncs immediately
-      service.startSync(mockAccount)
-      service.startSync(mockAccount)
+      nostrSyncService.startSync(mockAccount)
+      nostrSyncService.startSync(mockAccount)
 
       await jest.runAllTimersAsync()
 
-      // Should only have one subscription
-      expect(service.getActiveSubscriptionCount()).toBeLessThanOrEqual(1)
+      expect(nostrSyncService.getActiveSubscriptionCount()).toBeLessThanOrEqual(1)
     })
   })
 
   describe('stopSync', () => {
     it('stops sync and emits idle status', async () => {
       const statusEvents: string[] = []
-      service.on('status', (e) => statusEvents.push(e.status))
-      service.setMessageProcessor(mockAccount.id, mockProcessor)
+      nostrSyncService.on('status', (e: { status: string }) =>
+        statusEvents.push(e.status)
+      )
+      nostrSyncService.setMessageProcessor(mockAccount.id, mockProcessor)
 
-      service.startSync(mockAccount)
+      nostrSyncService.startSync(mockAccount)
       await jest.runAllTimersAsync()
 
-      service.stopSync(mockAccount.id)
+      nostrSyncService.stopSync(mockAccount.id)
 
       expect(statusEvents).toContain('idle')
-      expect(service.hasActiveSubscription(mockAccount.id)).toBe(false)
+      expect(nostrSyncService.hasActiveSubscription(mockAccount.id)).toBe(false)
     })
 
     it('cancels pending retry', async () => {
-      service.setMessageProcessor(mockAccount.id, mockProcessor)
+      nostrSyncService.setMessageProcessor(mockAccount.id, mockProcessor)
 
-      // Simulate an error that would trigger retry
       const { NostrAPI } = require('@/api/nostr')
       NostrAPI.mockImplementation(() => ({
         connect: jest.fn().mockRejectedValue(new Error('Network error')),
         setLoadingCallback: jest.fn()
       }))
 
-      service.startSync(mockAccount)
+      nostrSyncService.startSync(mockAccount)
       await jest.runAllTimersAsync()
 
-      // Stop should cancel any pending retry
-      service.stopSync(mockAccount.id)
+      nostrSyncService.stopSync(mockAccount.id)
 
-      // Advance timers - retry should not occur
       jest.advanceTimersByTime(60000)
 
-      expect(service.hasActiveSubscription(mockAccount.id)).toBe(false)
+      expect(nostrSyncService.hasActiveSubscription(mockAccount.id)).toBe(false)
     })
   })
 
   describe('stopAll', () => {
     it('stops all subscriptions', async () => {
       const account2 = { ...mockAccount, id: 'test-account-2' }
-      service.setMessageProcessor(mockAccount.id, mockProcessor)
-      service.setMessageProcessor(account2.id, mockProcessor)
+      nostrSyncService.setMessageProcessor(mockAccount.id, mockProcessor)
+      nostrSyncService.setMessageProcessor(account2.id, mockProcessor)
 
-      service.startSync(mockAccount)
-      service.startSync(account2)
+      nostrSyncService.startSync(mockAccount)
+      nostrSyncService.startSync(account2)
       await jest.runAllTimersAsync()
 
-      service.stopAll()
+      nostrSyncService.stopAll()
 
-      expect(service.getActiveSubscriptionCount()).toBe(0)
+      expect(nostrSyncService.getActiveSubscriptionCount()).toBe(0)
     })
   })
 
   describe('fetchOnce', () => {
     it('returns immediately (non-blocking)', () => {
-      service.setMessageProcessor(mockAccount.id, mockProcessor)
+      nostrSyncService.setMessageProcessor(mockAccount.id, mockProcessor)
 
       const startTime = Date.now()
-      service.fetchOnce(mockAccount)
+      nostrSyncService.fetchOnce(mockAccount)
       const elapsed = Date.now() - startTime
 
       expect(elapsed).toBeLessThan(10)
     })
 
     it('does not create persistent subscription', async () => {
-      service.setMessageProcessor(mockAccount.id, mockProcessor)
+      nostrSyncService.setMessageProcessor(mockAccount.id, mockProcessor)
 
-      service.fetchOnce(mockAccount)
+      nostrSyncService.fetchOnce(mockAccount)
       await jest.runAllTimersAsync()
 
-      // fetchOnce should not create a persistent subscription
-      expect(service.hasActiveSubscription(mockAccount.id)).toBe(false)
+      expect(nostrSyncService.hasActiveSubscription(mockAccount.id)).toBe(false)
     })
   })
 
   describe('hasActiveSubscription', () => {
     it('returns false for unknown account', () => {
-      expect(service.hasActiveSubscription('unknown')).toBe(false)
+      expect(nostrSyncService.hasActiveSubscription('unknown')).toBe(false)
     })
   })
 
   describe('getActiveAccountIds', () => {
     it('returns empty array when no subscriptions', () => {
-      expect(service.getActiveAccountIds()).toEqual([])
+      expect(nostrSyncService.getActiveAccountIds()).toEqual([])
     })
   })
 })
 
 describe('nostrSyncService export', () => {
-  it('exports a singleton instance', () => {
-    expect(nostrSyncService).toBeInstanceOf(NostrSyncService)
+  it('exports an object with EventEmitter methods and sync methods', () => {
+    expect(nostrSyncService).toBeDefined()
+    expect(typeof nostrSyncService.on).toBe('function')
+    expect(typeof nostrSyncService.emit).toBe('function')
+    expect(typeof nostrSyncService.startSync).toBe('function')
+    expect(typeof nostrSyncService.stopSync).toBe('function')
   })
 })

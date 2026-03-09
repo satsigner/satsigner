@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
 import { PIN_KEY } from '@/config/auth'
-import { nostrSyncService } from '@/services/nostr'
+import { nostrSyncService } from '@/utils/nostrSyncService'
 import { getItem } from '@/storage/encrypted'
 import { useNostrStore } from '@/store/nostr'
 import { type Account, type Secret } from '@/types/models/Account'
