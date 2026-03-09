@@ -64,6 +64,36 @@ export function deriveNpubFromNsec(nsec: string): string | null {
   }
 }
 
+export function getPubKeyHexFromNpub(npub: string): string | null {
+  try {
+    const decoded = nip19.decode(npub)
+    if (!decoded || decoded.type !== 'npub' || !decoded.data) return null
+    const rawHex =
+      typeof decoded.data === 'string'
+        ? decoded.data
+        : Buffer.from(decoded.data as Uint8Array).toString('hex')
+    const hex = (rawHex ?? '').toLowerCase().replace(/^0x/, '')
+    if (
+      hex.length !== 64 ||
+      !/^[0-9a-f]+$/.test(hex)
+    )
+      return null
+    return hex
+  } catch {
+    return null
+  }
+}
+
+export function getSecretFromNsec(nsec: string): Uint8Array | null {
+  try {
+    const decoded = nip19.decode(nsec)
+    if (!decoded || decoded.type !== 'nsec' || !decoded.data) return null
+    return decoded.data as Uint8Array
+  } catch {
+    return null
+  }
+}
+
 export function parseNostrTransaction(
   transaction: string
 ): TransactionData | null {

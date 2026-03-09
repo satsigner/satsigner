@@ -5,7 +5,6 @@ import {
   useFocusEffect,
   useLocalSearchParams
 } from 'expo-router'
-import { nip19 } from 'nostr-tools'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
@@ -37,7 +36,10 @@ import { Colors } from '@/styles'
 import type { NostrAccount } from '@/types/models/Nostr'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatDateShort } from '@/utils/date'
-import { generateColorFromNpub } from '@/utils/nostr'
+import {
+  generateColorFromNpub,
+  getPubKeyHexFromNpub
+} from '@/utils/nostr'
 
 const SYNCING_MESSAGE_KEYS = [
   'account.nostrSync.syncingConnecting',
@@ -287,19 +289,7 @@ export default function NostrSync() {
 
   function getDevicePubkeyHex(): string | null {
     const npub = account?.nostr?.deviceNpub
-    if (!npub) return null
-    try {
-      const decoded = nip19.decode(npub)
-      if (decoded?.type !== 'npub' || !decoded.data) return null
-      const data = decoded.data
-      return (
-        typeof data === 'string'
-          ? data
-          : Buffer.from(data as Uint8Array).toString('hex')
-      ).toLowerCase()
-    } catch {
-      return null
-    }
+    return npub ? getPubKeyHexFromNpub(npub) : null
   }
 
   async function handleBackupEvents() {
