@@ -14,6 +14,7 @@ import { getWalletData } from '@/api/bdk'
 import SSNavMenu from '@/components/SSNavMenu'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -22,6 +23,7 @@ import type { Account, Key } from '@/types/models/Account'
 import { type PageRoute } from '@/types/navigation/page'
 import { decryptAllAccountKeySecrets } from '@/utils/account'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
+import { performRecoverOverwrite } from '@/utils/recoverBackup'
 
 export default function AuthenticatedLayout() {
   const routeParams = useGlobalSearchParams()
@@ -33,7 +35,8 @@ export default function AuthenticatedLayout() {
     justUnlocked,
     setLockTriggered,
     markPageVisited,
-    setJustUnlocked
+    setJustUnlocked,
+    setPendingRecoverData
   ] = useAuthStore(
     useShallow((state) => [
       state.firstTime,
@@ -43,7 +46,8 @@ export default function AuthenticatedLayout() {
       state.justUnlocked,
       state.setLockTriggered,
       state.markPageVisited,
-      state.setJustUnlocked
+      state.setJustUnlocked,
+      state.setPendingRecoverData
     ])
   )
   const [accounts, updateAccount] = useAccountsStore(
@@ -130,7 +134,18 @@ export default function AuthenticatedLayout() {
   }
 
   useEffect(() => {
-    if (connectionMode === 'auto') loadWallets()
+    async function run() {
+      const { justUnlocked: ju, pendingRecoverData: pending } =
+        useAuthStore.getState()
+      if (ju && pending) {
+        const { success } = await performRecoverOverwrite(pending)
+        setPendingRecoverData(null)
+        if (success) toast.success(t('settings.developer.backupSuccess'))
+        else toast.error(t('settings.developer.recoverOverwriteError'))
+      }
+      if (connectionMode === 'auto') await loadWallets()
+    }
+    run()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Do not push index route
