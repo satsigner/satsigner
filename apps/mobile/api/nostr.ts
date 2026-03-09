@@ -349,7 +349,7 @@ export class NostrAPI {
           this.processQueue()
         }
       } catch {
-        // Intentionally ignored: malformed wrapped events should not crash the subscription
+        // TODO: log this error; malformed wrapped events should not crash the subscription
       }
     })
 
@@ -389,7 +389,7 @@ export class NostrAPI {
         try {
           relay.disconnect()
         } catch {
-          // Intentionally ignored: relay may already be disconnected or in invalid state
+          // TODO: log this error; relay may already be disconnected or in invalid state
         }
       }
     }
