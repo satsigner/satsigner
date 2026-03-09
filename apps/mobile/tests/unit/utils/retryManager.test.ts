@@ -1,12 +1,12 @@
+import { DEFAULT_RETRY_CONFIG } from '@/constants/nostr'
 import {
   calculateRetryDelay,
-  DEFAULT_RETRY_CONFIG,
-  RetryManager
-} from '@/services/nostr/RetryManager'
+  createRetryManager,
+  type RetryManagerHandle
+} from '@/utils/retryManager'
 
 describe('calculateRetryDelay', () => {
   beforeEach(() => {
-    // Mock Math.random to return consistent values for testing
     jest.spyOn(Math, 'random').mockReturnValue(0.5)
   })
 
@@ -21,11 +21,11 @@ describe('calculateRetryDelay', () => {
       calculateRetryDelay(attempt, config)
     )
 
-    expect(delays[0]).toBe(1000) // 1000 * 2^0
-    expect(delays[1]).toBe(2000) // 1000 * 2^1
-    expect(delays[2]).toBe(4000) // 1000 * 2^2
-    expect(delays[3]).toBe(8000) // 1000 * 2^3
-    expect(delays[4]).toBe(16000) // 1000 * 2^4
+    expect(delays[0]).toBe(1000)
+    expect(delays[1]).toBe(2000)
+    expect(delays[2]).toBe(4000)
+    expect(delays[3]).toBe(8000)
+    expect(delays[4]).toBe(16000)
   })
 
   it('caps at maxDelayMs', () => {
@@ -33,48 +33,42 @@ describe('calculateRetryDelay', () => {
 
     const delay = calculateRetryDelay(10, config)
 
-    // 1000 * 2^10 = 1024000, but capped at 60000
     expect(delay).toBe(60000)
   })
 
   it('adds jitter to prevent thundering herd', () => {
-    // With random = 0.5 and jitterFactor = 0.2:
-    // jitter = 1000 * 0.2 * 0.5 = 100
     const config = { baseDelayMs: 1000, maxDelayMs: 60000, jitterFactor: 0.2 }
 
     const delay = calculateRetryDelay(0, config)
 
-    expect(delay).toBe(1100) // 1000 + 100 jitter
+    expect(delay).toBe(1100)
   })
 
   it('uses default config values', () => {
     const delay = calculateRetryDelay(0)
 
-    // With defaults: baseDelayMs=1000, jitterFactor=0.2, random=0.5
-    // Expected: 1000 + (1000 * 0.2 * 0.5) = 1100
     expect(delay).toBe(1100)
   })
 
   it('varies jitter based on random value', () => {
     const config = { baseDelayMs: 1000, maxDelayMs: 60000, jitterFactor: 0.2 }
 
-    // Test with different random values
     jest.spyOn(Math, 'random').mockReturnValue(0)
     const delayMin = calculateRetryDelay(0, config)
-    expect(delayMin).toBe(1000) // No jitter when random = 0
+    expect(delayMin).toBe(1000)
 
     jest.spyOn(Math, 'random').mockReturnValue(1)
     const delayMax = calculateRetryDelay(0, config)
-    expect(delayMax).toBe(1200) // Max jitter when random = 1
+    expect(delayMax).toBe(1200)
   })
 })
 
-describe('RetryManager', () => {
-  let manager: RetryManager
+describe('createRetryManager', () => {
+  let manager: RetryManagerHandle
 
   beforeEach(() => {
     jest.useFakeTimers()
-    manager = new RetryManager({
+    manager = createRetryManager({
       baseDelayMs: 1000,
       maxDelayMs: 60000,
       maxRetries: 5,
@@ -116,17 +110,14 @@ describe('RetryManager', () => {
     it('increases delay with each attempt', () => {
       const callback = jest.fn()
 
-      // First attempt
       const result1 = manager.scheduleRetry('test-key', callback)
       expect(result1.delay).toBe(1000)
       jest.advanceTimersByTime(1000)
 
-      // Second attempt
       const result2 = manager.scheduleRetry('test-key', callback)
       expect(result2.delay).toBe(2000)
       jest.advanceTimersByTime(2000)
 
-      // Third attempt
       const result3 = manager.scheduleRetry('test-key', callback)
       expect(result3.delay).toBe(4000)
     })
@@ -134,10 +125,9 @@ describe('RetryManager', () => {
     it('returns not scheduled when max retries reached', () => {
       const callback = jest.fn()
 
-      // Exhaust all retries
       for (let i = 0; i < 5; i++) {
         manager.scheduleRetry('test-key', callback)
-        jest.advanceTimersByTime(100000) // Advance past any delay
+        jest.advanceTimersByTime(100000)
       }
 
       const result = manager.scheduleRetry('test-key', callback)
@@ -155,7 +145,6 @@ describe('RetryManager', () => {
 
       jest.advanceTimersByTime(1000)
 
-      // Only the second callback should be called
       expect(callback1).not.toHaveBeenCalled()
       expect(callback2).toHaveBeenCalledTimes(1)
     })
