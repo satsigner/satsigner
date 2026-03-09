@@ -867,10 +867,6 @@ export default function AccountView() {
       ])
     )
 
-  const _isNostrSyncing = useNostrStore((state) =>
-    id ? state.isSyncing(id) : false
-  )
-
   const hasUnreadMessages = useMemo(
     () => account?.nostr?.dms?.some((dm) => dm.read === false) ?? false,
     [account?.nostr?.dms]
