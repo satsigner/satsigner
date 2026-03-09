@@ -824,6 +824,49 @@ async function getWalletOverview(
   }
 }
 
+type TransactionMetadataAndIo = {
+  inputs: Awaited<ReturnType<NonNullable<TransactionDetails['transaction']>['input']>>
+  lockTime: number
+  lockTimeEnabled: boolean
+  outputs: Awaited<ReturnType<NonNullable<TransactionDetails['transaction']>['output']>>
+  raw: number[]
+  version: number
+}
+
+async function getTransactionMetadataAndIo(
+  transaction: NonNullable<TransactionDetails['transaction']>
+): Promise<TransactionMetadataAndIo> {
+  try {
+    const [version, lockTime, lockTimeEnabled, raw, inputs, outputs] =
+      await Promise.all([
+        transaction.version(),
+        transaction.lockTime(),
+        transaction.isLockTimeEnabled(),
+        transaction.serialize(),
+        transaction.input(),
+        transaction.output()
+      ])
+    return {
+      inputs: inputs ?? [],
+      lockTime,
+      lockTimeEnabled,
+      outputs: outputs ?? [],
+      raw: raw ?? [],
+      version
+    }
+  } catch {
+    // BDK native can NPE when transaction handle is invalid
+    return {
+      inputs: [],
+      lockTime: 0,
+      lockTimeEnabled: false,
+      outputs: [],
+      raw: [],
+      version: 0
+    }
+  }
+}
+
 async function parseTransactionDetailsToTransaction(
   transactionDetails: TransactionDetails,
   utxos: LocalUtxo[],
@@ -851,53 +894,48 @@ async function parseTransactionDetailsToTransaction(
   const vout: Transaction['vout'] = []
 
   if (transaction) {
-    try {
-      // Skip transaction.size() / vsize() / weight() - bdk-rn native txSize can NPE and crash the app before JS catch runs
-      version = await transaction.version()
-      lockTime = await transaction.lockTime()
-      lockTimeEnabled = await transaction.isLockTimeEnabled()
-      raw = await transaction.serialize()
+    const { inputs, outputs: outputsList, ...metadata } =
+      await getTransactionMetadataAndIo(transaction)
+    version = metadata.version
+    lockTime = metadata.lockTime
+    lockTimeEnabled = metadata.lockTimeEnabled
+    raw = metadata.raw
 
-      const inputs = await transaction.input()
-      const outputs = await transaction.output()
+    for (const index in inputs) {
+      const input = inputs[index]
+      if (!input?.scriptSig) continue
+      try {
+        const script = await input.scriptSig.toBytes()
+        input.scriptSig = script
+        vin.push(input)
+      } catch {
+        // BDK native toBytes can NPE if scriptSig is invalid; skip this input
+      }
+    }
 
-      for (const index in inputs) {
-        const input = inputs[index]
-        if (!input?.scriptSig) continue
-        try {
-          const script = await input.scriptSig.toBytes()
-          input.scriptSig = script
-          vin.push(input)
-        } catch {
-          // BDK native toBytes can NPE if scriptSig is invalid; skip this input
-        }
+    for (const index in outputsList) {
+      const { value, script: scriptObj } = outputsList[index]
+      if (!scriptObj) continue
+      let script: number[] = []
+      try {
+        script = await scriptObj.toBytes()
+      } catch {
+        // BDK native toBytes can NPE if script is invalid; use empty
       }
+      let outputAddress = ''
+      try {
+        const addressObj = await new Address().fromScript(scriptObj, network)
+        outputAddress = addressObj ? await addressObj.asString() : ''
+      } catch {
+        // Intentionally ignore: non-standard scripts (OP_RETURN, bare multisig, etc.) can't be converted to addresses; leave address empty
+      }
+      vout.push({ value, address: outputAddress, script })
+    }
 
-      for (const index in outputs) {
-        const { value, script: scriptObj } = outputs[index]
-        if (!scriptObj) continue
-        let script: number[] = []
-        try {
-          script = await scriptObj.toBytes()
-        } catch {
-          // BDK native toBytes can NPE if script is invalid; use empty
-        }
-        let address = ''
-        try {
-          const addressObj = await new Address().fromScript(scriptObj, network)
-          address = addressObj ? await addressObj.asString() : ''
-        } catch {
-          // Intentionally ignore: non-standard scripts (OP_RETURN, bare multisig, etc.) can't be converted to addresses; leave address empty
-        }
-        vout.push({ value, address, script })
-      }
-      if (raw?.length) {
-        weight = raw.length * 4
-        vsize = Math.ceil(weight / 3)
-        size = raw.length
-      }
-    } catch {
-      // BDK native can NPE when transaction handle is invalid; keep defaults (size 0, vsize 0, empty vin/vout)
+    if (raw?.length) {
+      weight = raw.length * 4
+      vsize = Math.ceil(weight / 3)
+      size = raw.length
     }
   }
 
