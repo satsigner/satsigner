@@ -7,7 +7,7 @@ import {
 import {
   type MessageHandler,
   type MessageHandlerContext
-} from '@/hooks/nostrTypes'
+} from '@/types/nostrMessageHandlers'
 
 import {
   accountIds,

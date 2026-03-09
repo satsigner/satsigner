@@ -11,7 +11,7 @@ import {
   type NostrMessage,
   type PendingDM,
   type UnwrappedNostrEvent
-} from './nostrTypes'
+} from '@/types/nostrMessageHandlers'
 import {
   getAuthorDisplayName,
   isChatActive,

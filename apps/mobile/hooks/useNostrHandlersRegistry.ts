@@ -1,4 +1,7 @@
-import { type MessageHandler, type MessageHandlerContext } from './nostrTypes'
+import {
+  type MessageHandler,
+  type MessageHandlerContext
+} from '@/types/nostrMessageHandlers'
 
 const handlers: MessageHandler[] = []
 let handlersInitialized = false
