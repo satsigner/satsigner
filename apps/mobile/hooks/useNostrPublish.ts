@@ -1,3 +1,5 @@
+import { toast } from 'sonner-native'
+
 import { NostrAPI } from '@/api/nostr'
 import { type Account } from '@/types/models/Account'
 import { compressMessage } from '@/utils/nostr'
@@ -60,8 +62,9 @@ function useNostrPublish() {
         await nostrApi!.publishEvent(eventKind1059)
       }
     } catch (err) {
-      // Toast already shown in NostrAPI.publishEvent; rethrow so caller
-      // knows publish failed and does not clear input / only adds to chat on success
+      const message =
+        err instanceof Error ? err.message : 'Failed to publish message'
+      toast.error('Failed to publish message', { description: message })
       throw err
     }
   }
@@ -107,7 +110,9 @@ function useNostrPublish() {
         await nostrApi.publishEvent(eventKind1059)
       }
     } catch (err) {
-      // Toast already shown in NostrAPI.publishEvent; rethrow so caller knows publish failed
+      const message =
+        err instanceof Error ? err.message : 'Failed to publish PSBT'
+      toast.error('Failed to publish PSBT', { description: message })
       throw err
     }
   }
