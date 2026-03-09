@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router'
 import { useState } from 'react'
-import { Share } from 'react-native'
+import { ScrollView, Share, StyleSheet, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -28,7 +28,16 @@ import { useNostrStore } from '@/store/nostr'
 import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
+import { type Key } from '@/types/models/Account'
 import { DEFAULT_WORD_LIST } from '@/utils/bip39'
+import {
+  aesDecrypt,
+  aesEncrypt,
+  generateSalt,
+  getPinForDecryption,
+  pbkdf2Encrypt,
+  randomIv
+} from '@/utils/crypto'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 
 export default function Developer() {
@@ -46,33 +55,115 @@ export default function Developer() {
     useState(false)
   const [clearStorageModalVisible, setClearStorageModalVisible] =
     useState(false)
+  const [backupPreviewVisible, setBackupPreviewVisible] = useState(false)
+  const [backupPreviewPayload, setBackupPreviewPayload] = useState<
+    string | null
+  >(null)
+  const [backupPassphrase, setBackupPassphrase] = useState('')
+
+  async function buildBackupWithSeeds(): Promise<string> {
+    const pin = await getPinForDecryption(skipPin)
+    const keysWithSeeds = async (keys: Key[]) => {
+      const result = []
+      for (const key of keys) {
+        const base = {
+          creationType: key.creationType,
+          derivationPath: key.derivationPath,
+          fingerprint: key.fingerprint,
+          index: key.index,
+          mnemonicWordCount: key.mnemonicWordCount,
+          mnemonicWordList: key.mnemonicWordList,
+          name: key.name,
+          scriptVersion: key.scriptVersion
+        }
+        let seedWords: string | undefined
+        let passphrase: string | undefined
+        if (typeof key.secret === 'string' && key.iv && pin) {
+          try {
+            const decrypted = await aesDecrypt(key.secret, pin, key.iv)
+            const secret = JSON.parse(decrypted) as {
+              mnemonic?: string
+              passphrase?: string
+            }
+            seedWords = secret.mnemonic
+            passphrase = secret.passphrase
+          } catch {
+            // leave seedWords/passphrase undefined
+          }
+        }
+        result.push({
+          ...base,
+          ...(passphrase !== undefined && { passphrase }),
+          ...(seedWords !== undefined && { seedWords })
+        })
+      }
+      return result
+    }
+
+    const accountsWithSeeds = await Promise.all(
+      accounts.map(async (account) => ({
+        id: account.id,
+        keys: await keysWithSeeds(account.keys),
+        name: account.name,
+        network: account.network,
+        nostr: account.nostr,
+        policyType: account.policyType,
+        summary: account.summary
+      }))
+    )
+
+    const backupData = {
+      accounts: accountsWithSeeds,
+      exportedAt: new Date().toISOString(),
+      settings: { currencyUnit, mnemonicWordList, useZeroPadding },
+      version: 1
+    }
+
+    return JSON.stringify(backupData, null, 2)
+  }
 
   async function handleBackupData() {
     try {
-      const backupData = {
-        exportedAt: new Date().toISOString(),
-        version: 1,
-        accounts: accounts.map((account) => ({
-          id: account.id,
-          name: account.name,
-          network: account.network,
-          policyType: account.policyType,
-          keys: account.keys,
-          summary: account.summary,
-          nostr: account.nostr
-        })),
-        settings: { currencyUnit, useZeroPadding, mnemonicWordList }
-      }
+      const payload = await buildBackupWithSeeds()
+      setBackupPreviewPayload(payload)
+      setBackupPreviewVisible(true)
+    } catch (_error) {
+      toast.error(t('settings.developer.backupError'))
+    }
+  }
 
-      const payload = JSON.stringify(backupData, null, 2)
+  /** Printable ASCII (space through tilde): letters, digits, space, symbols */
+  const PASSPHRASE_ALLOWED_REGEX = /^[\x20-\x7E]+$/
 
+  async function handleEncryptAndShare() {
+    if (!backupPreviewPayload) return
+    if (
+      backupPassphrase.length === 0 ||
+      !PASSPHRASE_ALLOWED_REGEX.test(backupPassphrase)
+    ) {
+      toast.error(t('settings.developer.backupPassphraseInvalid'))
+      return
+    }
+    try {
+      const salt = await generateSalt()
+      const key = await pbkdf2Encrypt(backupPassphrase, salt)
+      const iv = randomIv()
+      const cipher = await aesEncrypt(backupPreviewPayload, key, iv)
+      const encryptedPayload = JSON.stringify({
+        cipher,
+        iv,
+        salt,
+        v: 1
+      })
       const result = await Share.share({
-        message: payload,
+        message: encryptedPayload,
         title: t('settings.developer.backupData')
       })
-
       if (result.action === Share.sharedAction) {
         toast.success(t('settings.developer.backupSuccess'))
+        setBackupPreviewVisible(false)
+        setBackupPreviewPayload(null)
+        setBackupPassphrase('')
       }
     } catch (_error) {
       toast.error(t('settings.developer.backupError'))
@@ -232,6 +323,91 @@ export default function Developer() {
           </SSVStack>
         </SSVStack>
       </SSModal>
+      <SSModal
+        visible={backupPreviewVisible}
+        onClose={() => {
+          setBackupPreviewVisible(false)
+          setBackupPreviewPayload(null)
+          setBackupPassphrase('')
+        }}
+        label={t('common.cancel')}
+        closeButtonVariant="ghost"
+        fullOpacity
+      >
+        <SSVStack gap="lg" style={styles.backupPreviewModal}>
+          <SSText center size="lg" uppercase>
+            {t('settings.developer.backupModalTitle')}
+          </SSText>
+          <SSText center color="muted" size="sm">
+            {t('settings.developer.backupPreviewWarning')}
+          </SSText>
+          <ScrollView
+            style={styles.backupPreviewScroll}
+            contentContainerStyle={styles.backupPreviewScrollContent}
+          >
+            <TextInput
+              editable={false}
+              multiline
+              style={styles.backupPreviewText}
+              value={backupPreviewPayload ?? ''}
+            />
+          </ScrollView>
+          <SSVStack gap="xs">
+            <SSText color="muted" size="sm">
+              {t('settings.developer.backupPassphraseLabel')}
+            </SSText>
+            <TextInput
+              placeholder={t('settings.developer.backupPassphrasePlaceholder')}
+              secureTextEntry
+              style={styles.backupPassphraseInput}
+              value={backupPassphrase}
+              onChangeText={setBackupPassphrase}
+            />
+            <SSText color="muted" size="xs">
+              {t('settings.developer.backupPassphraseAllowed')}
+            </SSText>
+          </SSVStack>
+          <SSText color="muted" size="xs">
+            {t('settings.developer.backupEncryptionNote')}
+          </SSText>
+          <SSVStack gap="sm">
+            <SSButton
+              label={t('settings.developer.backupEncryptShare')}
+              onPress={handleEncryptAndShare}
+              variant="default"
+            />
+          </SSVStack>
+        </SSVStack>
+      </SSModal>
     </>
   )
 }
+
+const styles = StyleSheet.create({
+  backupPreviewModal: {
+    maxHeight: '80%',
+    paddingVertical: 8
+  },
+  backupPreviewScroll: {
+    borderColor: Colors.gray[500],
+    borderRadius: 8,
+    borderWidth: 1,
+    maxHeight: 320
+  },
+  backupPreviewScrollContent: {
+    paddingBottom: 16
+  },
+  backupPassphraseInput: {
+    borderColor: Colors.gray[500],
+    borderRadius: 8,
+    borderWidth: 1,
+    color: Colors.gray['200'],
+    padding: 12
+  },
+  backupPreviewText: {
+    color: Colors.gray['200'],
+    fontFamily: 'monospace',
+    fontSize: 11,
+    padding: 8
+  }
+})
