@@ -484,20 +484,18 @@ export class NostrAPI {
 
       try {
         // Add timeout to prevent indefinite hanging
-        await Promise.race([
-          relay.publish(event),
-          new Promise<never>((_, reject) =>
-            setTimeout(
-              () =>
-                reject(
-                  new Error(
-                    `Publish timeout after ${NostrAPI.PUBLISH_TIMEOUT_MS}ms`
-                  )
-                ),
-              NostrAPI.PUBLISH_TIMEOUT_MS
-            )
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(
+            () =>
+              reject(
+                new Error(
+                  `Publish timeout after ${NostrAPI.PUBLISH_TIMEOUT_MS}ms`
+                )
+              ),
+            NostrAPI.PUBLISH_TIMEOUT_MS
           )
-        ])
+        )
+        await Promise.race([relay.publish(event), timeoutPromise])
         return { url, success: true as const }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error)
