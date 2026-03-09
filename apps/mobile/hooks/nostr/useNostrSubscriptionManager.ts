@@ -2,11 +2,11 @@ import { useCallback, useMemo, useRef } from 'react'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { NostrAPI } from '@/api/nostr'
 import {
-  NostrAPI,
   PROTOCOL_SUBSCRIPTION_LIMIT,
   PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN
-} from '@/api/nostr'
+} from '@/constants/nostr'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
 
