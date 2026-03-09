@@ -1,5 +1,4 @@
 import { useNostrStore } from '@/store/nostr'
-
 import { type MessageHandler } from '@/types/nostrMessageHandlers'
 
 const deviceAnnouncementHandler: MessageHandler = {

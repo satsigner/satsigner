@@ -27,7 +27,7 @@ function SSBlockFeePriceRow({
       </SSText>
       <View style={{ width: 8 }} />
       <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
-        {'~'}
+        ~
         <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
           {nextBlockFee ?? '--'}
         </SSText>

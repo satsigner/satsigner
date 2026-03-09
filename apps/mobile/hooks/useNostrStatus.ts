@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 
+import { type NostrSyncStatus, useNostrStore } from '@/store/nostr'
 import {
   nostrSyncService,
   type SyncStatusEvent
 } from '@/utils/nostrSyncService'
-import { type NostrSyncStatus, useNostrStore } from '@/store/nostr'
 
 /**
  * Read-only hook for accessing Nostr sync status for an account.

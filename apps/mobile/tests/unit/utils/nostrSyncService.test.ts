@@ -1,6 +1,6 @@
-import { nostrSyncService, resetInstance } from '@/utils/nostrSyncService'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
+import { nostrSyncService, resetInstance } from '@/utils/nostrSyncService'
 
 // Mock dependencies
 jest.mock('@/api/nostr', () => ({

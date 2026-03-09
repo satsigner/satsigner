@@ -1,6 +1,7 @@
 import { toast } from 'sonner-native'
 
 import { type MessageHandler } from '@/types/nostrMessageHandlers'
+
 import {
   getAuthorDisplayName,
   isChatActive,

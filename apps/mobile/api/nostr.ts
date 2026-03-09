@@ -14,8 +14,8 @@ import type {
   NostrKind0Profile,
   NostrMessage
 } from '@/types/models/Nostr'
-import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
 import { randomKey } from '@/utils/crypto'
+import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
 
 function getProfileFromKind0Content(
   contentJson: string
