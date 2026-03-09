@@ -1,15 +1,18 @@
 // Mock sonner-native - use module factory that returns mock directly
 import { toast } from 'sonner-native'
 
-import { deviceAnnouncementHandler } from '@/hooks/nostr/handlers/deviceAnnouncementHandler'
-import { dmHandler } from '@/hooks/nostr/handlers/dmHandler'
-import { labelsHandler } from '@/hooks/nostr/handlers/labelsHandler'
-import { psbtHandler } from '@/hooks/nostr/handlers/psbtHandler'
-import { signMessageHandler } from '@/hooks/nostr/handlers/signMessageHandler'
-import { txHandler } from '@/hooks/nostr/handlers/txHandler'
-import { type MessageHandlerContext, type PendingDM } from '@/hooks/nostr/types'
+import { deviceAnnouncementHandler } from '@/hooks/useNostrDeviceAnnouncementHandler'
+import { dmHandler } from '@/hooks/useNostrDMHandler'
+import { labelsHandler } from '@/hooks/useNostrLabelsHandler'
+import { psbtHandler } from '@/hooks/useNostrPsbtHandler'
+import { signMessageHandler } from '@/hooks/useNostrSignMessageHandler'
+import { txHandler } from '@/hooks/useNostrTxHandler'
+import {
+  type MessageHandlerContext,
+  type PendingDM
+} from '@/hooks/nostrTypes'
 
-import { accountIds, nostrKeys } from '../../../utils/nostr_samples'
+import { accountIds, nostrKeys } from '../utils/nostr_samples'
 
 jest.mock('sonner-native', () => ({
   toast: {

@@ -1,6 +1,6 @@
 import { useNostrStore } from '@/store/nostr'
 
-import { type MessageHandler } from '../types'
+import { type MessageHandler } from './nostrTypes'
 
 const deviceAnnouncementHandler: MessageHandler = {
   canHandle: (context) => {

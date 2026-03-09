@@ -3,17 +3,17 @@ import {
   getHandlers,
   processMessage,
   registerHandler
-} from '@/hooks/nostr/handlers/index'
+} from '@/hooks/useNostrHandlersRegistry'
 import {
   type MessageHandler,
   type MessageHandlerContext
-} from '@/hooks/nostr/types'
+} from '@/hooks/nostrTypes'
 
 import {
   accountIds,
   nostrKeys,
   nostrMessages
-} from '../../../utils/nostr_samples'
+} from '../utils/nostr_samples'
 
 // Mock dependencies
 jest.mock('@/store/accounts', () => ({
