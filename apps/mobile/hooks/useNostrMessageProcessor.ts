@@ -4,24 +4,24 @@ import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
 import { decompressMessage } from '@/utils/nostr'
 
-import { deviceAnnouncementHandler } from './handlers/deviceAnnouncementHandler'
-import { dmHandler } from './handlers/dmHandler'
+import { deviceAnnouncementHandler } from './useNostrDeviceAnnouncementHandler'
+import { dmHandler } from './useNostrDMHandler'
 import {
   isInitialized,
   processMessage,
   registerHandler,
   setInitialized
-} from './handlers/index'
-import { labelsHandler } from './handlers/labelsHandler'
-import { psbtHandler } from './handlers/psbtHandler'
-import { signMessageHandler } from './handlers/signMessageHandler'
-import { txHandler } from './handlers/txHandler'
+} from './useNostrHandlersRegistry'
+import { labelsHandler } from './useNostrLabelsHandler'
+import { psbtHandler } from './useNostrPsbtHandler'
+import { signMessageHandler } from './useNostrSignMessageHandler'
+import { txHandler } from './useNostrTxHandler'
 import {
   type MessageHandlerContext,
   type NostrMessageData,
   type PendingDM,
   type UnwrappedNostrEvent
-} from './types'
+} from './nostrTypes'
 import { getSyncStartSeconds, useNostrDMStorage } from './useNostrDMStorage'
 
 function getEventContent(

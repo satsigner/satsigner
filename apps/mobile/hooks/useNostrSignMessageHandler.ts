@@ -1,12 +1,12 @@
 import { toast } from 'sonner-native'
 
-import { type MessageHandler } from '../types'
+import { type MessageHandler } from './nostrTypes'
 import {
   getAuthorDisplayName,
   isChatActive,
   TOAST_CONTENT_MAX,
   TOAST_DURATION
-} from './notifyUtils'
+} from './useNostrNotifyUtils'
 
 const signMessageHandler: MessageHandler = {
   canHandle: (context) => {

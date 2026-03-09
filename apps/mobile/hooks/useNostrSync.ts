@@ -12,11 +12,11 @@ import { type Label } from '@/utils/bip329'
 import { aesDecrypt } from '@/utils/crypto'
 import { deriveNostrKeysFromDescriptor } from '@/utils/nostr'
 
-import { useNostrDeviceAnnouncement } from './nostr/useNostrDeviceAnnouncement'
-import { useNostrDMStorage } from './nostr/useNostrDMStorage'
-import { useNostrLabelSync } from './nostr/useNostrLabelSync'
-import { useNostrMessageProcessor } from './nostr/useNostrMessageProcessor'
-import { useNostrSubscriptionManager } from './nostr/useNostrSubscriptionManager'
+import { useNostrDeviceAnnouncement } from './useNostrDeviceAnnouncement'
+import { useNostrDMStorage } from './useNostrDMStorage'
+import { useNostrLabelSync } from './useNostrLabelSync'
+import { useNostrMessageProcessor } from './useNostrMessageProcessor'
+import { useNostrSubscriptionManager } from './useNostrSubscriptionManager'
 
 /**
  * Hook for Nostr synchronization with fire-and-forget operations.

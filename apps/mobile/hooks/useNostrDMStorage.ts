@@ -1,23 +1,23 @@
+import { nip19 } from 'nostr-tools'
 import { useCallback, useMemo, useRef } from 'react'
 import { toast } from 'sonner-native'
 
 import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
-
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 
-import {
-  getAuthorDisplayName,
-  isChatActive,
-  TOAST_CONTENT_MAX,
-  TOAST_DURATION
-} from './handlers/notifyUtils'
 import {
   DM_FUTURE_TOLERANCE_SEC,
   type NostrMessage,
   type PendingDM,
   type UnwrappedNostrEvent
-} from './types'
+} from './nostrTypes'
+import {
+  getAuthorDisplayName,
+  isChatActive,
+  TOAST_CONTENT_MAX,
+  TOAST_DURATION
+} from './useNostrNotifyUtils'
 
 const PENDING_MATCH_CREATED_AT_TOLERANCE_SEC = 10
 

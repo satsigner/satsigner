@@ -3,7 +3,7 @@ import { toast } from 'sonner-native'
 import { useAccountsStore } from '@/store/accounts'
 import { JSONLtoLabels } from '@/utils/bip329'
 
-import { type MessageHandler } from '../types'
+import { type MessageHandler } from './nostrTypes'
 
 const labelsHandler: MessageHandler = {
   canHandle: (context) => {
