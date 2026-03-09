@@ -1,5 +1,3 @@
-import { toast } from 'sonner-native'
-
 import { NostrAPI } from '@/api/nostr'
 import { type Account } from '@/types/models/Account'
 import { compressMessage } from '@/utils/nostr'
@@ -32,40 +30,33 @@ function useNostrPublish() {
       return
     }
 
-    try {
-      let nostrApi: NostrAPI | null = null
-      const messageContent = {
-        created_at: Math.floor(Date.now() / 1000),
-        description: message
-      }
+    let nostrApi: NostrAPI | null = null
+    const messageContent = {
+      created_at: Math.floor(Date.now() / 1000),
+      description: message
+    }
 
-      const compressedMessage = compressMessage(messageContent)
-      nostrApi = new NostrAPI(relays)
-      await nostrApi.connect()
+    const compressedMessage = compressMessage(messageContent)
+    nostrApi = new NostrAPI(relays)
+    await nostrApi.connect()
 
-      let eventKind1059 = await nostrApi.createKind1059(
+    let eventKind1059 = await nostrApi.createKind1059(
+      deviceNsec,
+      deviceNpub,
+      compressedMessage
+    )
+    await nostrApi.publishEvent(eventKind1059)
+
+    const trustedDevices = getTrustedDevices(account)
+    for (const trustedDeviceNpub of trustedDevices) {
+      await delay(DELAY_BETWEEN_PUBLISHES_MS)
+      if (!deviceNsec) continue
+      eventKind1059 = await nostrApi!.createKind1059(
         deviceNsec,
-        deviceNpub,
+        trustedDeviceNpub,
         compressedMessage
       )
-      await nostrApi.publishEvent(eventKind1059)
-
-      const trustedDevices = getTrustedDevices(account)
-      for (const trustedDeviceNpub of trustedDevices) {
-        await delay(DELAY_BETWEEN_PUBLISHES_MS)
-        if (!deviceNsec) continue
-        eventKind1059 = await nostrApi!.createKind1059(
-          deviceNsec,
-          trustedDeviceNpub,
-          compressedMessage
-        )
-        await nostrApi!.publishEvent(eventKind1059)
-      }
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Failed to publish message'
-      toast.error('Failed to publish message', { description: message })
-      throw err
+      await nostrApi!.publishEvent(eventKind1059)
     }
   }
 
@@ -78,42 +69,35 @@ function useNostrPublish() {
       return
     }
 
-    try {
-      let nostrApi: NostrAPI | null = null
-      const messageContent = {
-        created_at: Math.floor(Date.now() / 1000),
-        description: 'PSBT for signing',
-        data: { data: psbt, data_type: 'PSBT' }
-      }
+    let nostrApi: NostrAPI | null = null
+    const messageContent = {
+      created_at: Math.floor(Date.now() / 1000),
+      description: 'PSBT for signing',
+      data: { data: psbt, data_type: 'PSBT' }
+    }
 
-      const compressedMessage = compressMessage(messageContent)
-      nostrApi = new NostrAPI(relays)
-      await nostrApi.connect()
+    const compressedMessage = compressMessage(messageContent)
+    nostrApi = new NostrAPI(relays)
+    await nostrApi.connect()
 
-      const selfEvent = await nostrApi.createKind1059(
+    const selfEvent = await nostrApi.createKind1059(
+      deviceNsec,
+      deviceNpub,
+      compressedMessage
+    )
+    await nostrApi.publishEvent(selfEvent)
+
+    const trustedDevices = getTrustedDevices(account)
+    for (const trustedDeviceNpub of trustedDevices) {
+      if (trustedDeviceNpub === deviceNpub) continue
+      await delay(DELAY_BETWEEN_PUBLISHES_MS)
+      if (!deviceNsec) continue
+      const eventKind1059 = await nostrApi.createKind1059(
         deviceNsec,
-        deviceNpub,
+        trustedDeviceNpub,
         compressedMessage
       )
-      await nostrApi.publishEvent(selfEvent)
-
-      const trustedDevices = getTrustedDevices(account)
-      for (const trustedDeviceNpub of trustedDevices) {
-        if (trustedDeviceNpub === deviceNpub) continue
-        await delay(DELAY_BETWEEN_PUBLISHES_MS)
-        if (!deviceNsec) continue
-        const eventKind1059 = await nostrApi.createKind1059(
-          deviceNsec,
-          trustedDeviceNpub,
-          compressedMessage
-        )
-        await nostrApi.publishEvent(eventKind1059)
-      }
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Failed to publish PSBT'
-      toast.error('Failed to publish PSBT', { description: message })
-      throw err
+      await nostrApi.publishEvent(eventKind1059)
     }
   }
 
