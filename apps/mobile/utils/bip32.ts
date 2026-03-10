@@ -101,6 +101,18 @@ export function getPrivateDescriptorFromSeed(
   return descriptor
 }
 
+export function getPrivateDescriptorFromSeedWithPath(
+  seed: Buffer,
+  scriptVersion: ScriptVersionType,
+  kind: KeychainKind,
+  network: BDKNetwork,
+  path: string
+): string {
+  const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
+  const privateKey = masterKey.toBase58()
+  return getDescriptorFromPrivateKey(privateKey, scriptVersion, path, kind)
+}
+
 export function getDescriptorFromPubkey(
   pubkey: string,
   scriptVersion: ScriptVersionType,

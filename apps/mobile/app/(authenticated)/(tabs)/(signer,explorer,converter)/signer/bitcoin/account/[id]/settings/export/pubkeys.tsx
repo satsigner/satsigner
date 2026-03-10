@@ -1,9 +1,7 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
-import bs58check from 'bs58check'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, ScrollView, View } from 'react-native'
-import { toast } from 'sonner-native'
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
 
 import { getWalletData } from '@/api/bdk'
 import { SSIconEyeOn } from '@/components/icons'
@@ -22,6 +20,8 @@ import { Colors } from '@/styles'
 import { type Account, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
+import { isElectrumDerivationPath } from '@/utils/bip39'
+import { convertKeyFormat } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
 
@@ -35,31 +35,19 @@ export default function ExportPubkeys() {
 
   const [exportContent, setExportContent] = useState('')
   const [isLoading, setIsLoading] = useState(true)
-  const [useVpubFormat, setUseVpubFormat] = useState(false)
+  const [pubkeyFormat, setPubkeyFormat] = useState<'xpub' | 'zpub' | 'vpub'>(
+    'xpub'
+  )
   const [rawPubkeys, setRawPubkeys] = useState<string[]>([])
-
-  function convertToVpub(xpub: string): string {
-    if (!xpub.startsWith('tpub')) return xpub
-
-    try {
-      const decoded = bs58check.decode(xpub)
-      const version = new Uint8Array([0x04, 0x5f, 0x1c, 0xf6])
-      const newDecoded = new Uint8Array([...version, ...decoded.slice(4)])
-      const result = bs58check.encode(newDecoded)
-      return result
-    } catch (error) {
-      toast.error(String(error))
-      return xpub
-    }
-  }
 
   useEffect(() => {
     if (!rawPubkeys.length) return
-    const formattedPubkeys = useVpubFormat
-      ? rawPubkeys.map(convertToVpub)
-      : rawPubkeys
+    const formattedPubkeys =
+      pubkeyFormat === 'xpub'
+        ? rawPubkeys
+        : rawPubkeys.map((key) => convertKeyFormat(key, pubkeyFormat, network))
     setExportContent(formattedPubkeys.join('\n'))
-  }, [useVpubFormat, rawPubkeys])
+  }, [pubkeyFormat, rawPubkeys, network])
 
   useEffect(() => {
     async function getPubkeys() {
@@ -150,18 +138,31 @@ export default function ExportPubkeys() {
         <SSText center uppercase color="muted">
           {t('account.export.pubkeys')}
         </SSText>
+        {isElectrumDerivationPath(account.keys[0]?.derivationPath || '') && (
+          <View style={styles.electrumWarning}>
+            <SSText style={styles.electrumWarningText}>
+              {t('bitcoin.electrumSeedNote')}
+            </SSText>
+          </View>
+        )}
         {!isLoading && rawPubkeys.length > 0 && (
           <SSHStack style={{ justifyContent: 'center', gap: 10 }}>
             <SSButton
               label={t('account.export.xpubFormat')}
-              variant={!useVpubFormat ? 'outline' : 'subtle'}
-              onPress={() => setUseVpubFormat(false)}
+              variant={pubkeyFormat === 'xpub' ? 'outline' : 'subtle'}
+              onPress={() => setPubkeyFormat('xpub')}
+              style={{ flex: 1 }}
+            />
+            <SSButton
+              label={t('account.export.zpubFormat')}
+              variant={pubkeyFormat === 'zpub' ? 'outline' : 'subtle'}
+              onPress={() => setPubkeyFormat('zpub')}
               style={{ flex: 1 }}
             />
             <SSButton
               label={t('account.export.vpubFormat')}
-              variant={useVpubFormat ? 'outline' : 'subtle'}
-              onPress={() => setUseVpubFormat(true)}
+              variant={pubkeyFormat === 'vpub' ? 'outline' : 'subtle'}
+              onPress={() => setPubkeyFormat('vpub')}
               style={{ flex: 1 }}
             />
           </SSHStack>
@@ -221,3 +222,15 @@ export default function ExportPubkeys() {
     </ScrollView>
   )
 }
+
+const styles = StyleSheet.create({
+  electrumWarning: {
+    borderWidth: 1,
+    borderColor: Colors.warning,
+    borderRadius: 5,
+    padding: 10
+  },
+  electrumWarningText: {
+    color: Colors.warning
+  }
+})

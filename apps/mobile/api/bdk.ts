@@ -36,7 +36,11 @@ import {
   getExtendedKeyFromDescriptor,
   getFingerprintFromExtendedPublicKey
 } from '@/utils/bip32'
-import { getPrivateDescriptorFromMnemonic } from '@/utils/bip39'
+import {
+  detectElectrumSeed,
+  getPrivateDescriptorFromElectrumMnemonic,
+  getPrivateDescriptorFromMnemonic
+} from '@/utils/bip39'
 import {
   getMultisigDerivationPathFromScriptVersion,
   getMultisigScriptTypeFromScriptVersion
@@ -511,6 +515,19 @@ async function getDescriptorObject(
   passphrase: Secret['passphrase'],
   network: Network
 ) {
+  // Check for Electrum seed — uses different seed derivation and path
+  const electrumType = await detectElectrumSeed(mnemonic)
+  if (electrumType) {
+    const descriptor = await getPrivateDescriptorFromElectrumMnemonic(
+      mnemonic,
+      electrumType,
+      kind,
+      passphrase || '',
+      network
+    )
+    return new Descriptor().create(descriptor, network)
+  }
+
   // TODO: inspect if extra multisig is really needed, since the
   // getPrivateDescriptorFromMnemonic should work (in theory) for both
   // scenarios.
