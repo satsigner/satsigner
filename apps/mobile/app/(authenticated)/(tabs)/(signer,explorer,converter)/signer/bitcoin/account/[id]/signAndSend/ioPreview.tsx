@@ -936,6 +936,8 @@ export default function IOPreview() {
                   align="left"
                   value={outputLabel}
                   onChangeText={(text) => setOutputLabel(text)}
+                  blurOnSubmit
+                  returnKeyType="done"
                   style={{
                     fontSize: 22,
                     height: 110,
