@@ -298,6 +298,7 @@ function NodeText({
       return Skia.ParagraphBuilder.Make(
         {
           maxLines: isSelfSend ? 6 : 5,
+          ellipsis: '…',
           textAlign: isBlock ? TextAlign.Center : TextAlign.Left,
           strutStyle: {
             strutEnabled: true,
