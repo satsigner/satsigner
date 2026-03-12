@@ -15,6 +15,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconChevronLeft } from '@/components/icons'
 import SSAmountInput from '@/components/SSAmountInput'
+import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
@@ -33,6 +34,7 @@ import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { processContentForOutput } from '@/hooks/useContentProcessor'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
+import { useNetworkInfo } from '@/hooks/useNetworkInfo'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -138,9 +140,15 @@ export default function IOPreview() {
     }
   }, [outputs, changeAddress, shouldRemoveChange, removeOutput])
 
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
+    useShallow((state) => [
+      state.fiatCurrency,
+      state.satsToFiat,
+      state.btcPrice
+    ])
   )
+
+  const { blockHeight, nextBlockFee } = useNetworkInfo()
 
   type AutoSelectUtxosAlgorithms = 'user' | 'privacy' | 'efficiency'
   const [selectedAutoSelectUtxos, setSelectedAutoSelectUtxos] =
@@ -669,6 +677,12 @@ export default function IOPreview() {
               flex: 1
             }}
           >
+            <SSBlockFeePriceRow
+              blockHeight={blockHeight}
+              btcPrice={btcPrice}
+              fiatCurrency={fiatCurrency}
+              nextBlockFee={nextBlockFee}
+            />
             <SSVStack itemsCenter gap="xs">
               <SSText>
                 {inputs.size} {t('common.of').toLowerCase()}{' '}
