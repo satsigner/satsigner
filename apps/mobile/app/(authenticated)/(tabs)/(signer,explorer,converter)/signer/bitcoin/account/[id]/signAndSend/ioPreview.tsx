@@ -190,8 +190,8 @@ export default function IOPreview() {
   }, [inputs, outputs])
 
   const baseMinerFee = useMemo(
-    () => Math.round(feeRate * baseTransactionSize.vsize),
-    [feeRate, baseTransactionSize.vsize]
+    () => Math.round(localFeeRate * baseTransactionSize.vsize),
+    [localFeeRate, baseTransactionSize.vsize]
   )
 
   // Calculate if we'll have change
@@ -320,8 +320,8 @@ export default function IOPreview() {
   }, [inputs, outputs, hasChange])
 
   const minerFee = useMemo(
-    () => Math.round(feeRate * transactionSize.vsize),
-    [feeRate, transactionSize.vsize]
+    () => Math.round(localFeeRate * transactionSize.vsize),
+    [localFeeRate, transactionSize.vsize]
   )
 
   const [selectedPeriod] = useState<SSFeeRateChartProps['timeRange']>('2hours')
@@ -380,7 +380,7 @@ export default function IOPreview() {
   }, [])
 
   useEffect(() => {
-    setFee(localFeeRate * transactionSize.vsize)
+    setFee(Math.round(localFeeRate * transactionSize.vsize))
   }, [localFeeRate, transactionSize, setFee])
 
   useEffect(() => {
@@ -551,6 +551,7 @@ export default function IOPreview() {
   }
 
   function handleGoToPreview() {
+    setFeeRate(localFeeRate)
     const totalOutputAmount = outputs.reduce(
       (acc, output) => acc + output.amount,
       0
