@@ -34,6 +34,7 @@ type UtxoDetailsProps = {
   onPressAddress: () => void
   onPressTx: () => void
   onSpendUtxo: () => void
+  ownAddresses?: Set<string>
   tx?: Transaction
   utxo?: Utxo
 }
@@ -43,6 +44,7 @@ function UtxoDetails({
   onPressAddress,
   onPressTx,
   onSpendUtxo,
+  ownAddresses = new Set(),
   tx,
   utxo,
   allAccountUtxos
@@ -156,6 +158,7 @@ function UtxoDetails({
                 </SSText>
                 <SSTransactionChart
                   transaction={tx}
+                  ownAddresses={ownAddresses}
                   selectedOutputIndex={utxo?.vout}
                   dimUnselected
                 />
@@ -209,6 +212,10 @@ function UtxoDetailsPage() {
   const utxo = useGetAccountTransactionOutput(accountId!, txid!, Number(vout!))
 
   const allAccountUtxos = account?.utxos || []
+  const ownAddresses = useMemo(
+    () => new Set(account?.addresses?.map((a) => a.address) ?? []),
+    [account]
+  )
   const addInput = useTransactionBuilderStore((state) => state.addInput)
 
   function navigateToTx() {
@@ -243,10 +250,11 @@ function UtxoDetailsPage() {
           accountId={accountId || ''}
           onPressAddress={navigateToAddress}
           onPressTx={navigateToTx}
+          onSpendUtxo={handleSpendUtxo}
+          ownAddresses={ownAddresses}
           tx={tx}
           utxo={utxo}
           allAccountUtxos={allAccountUtxos}
-          onSpendUtxo={handleSpendUtxo}
         />
       </View>
     </>

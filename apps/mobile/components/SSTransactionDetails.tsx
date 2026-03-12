@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
@@ -70,6 +70,11 @@ function SSTransactionDetails({
   const isMultisig = keyCount > 1
 
   const matchedAccount = accountMatch?.account || account
+  const ownAddresses = useMemo(
+    () =>
+      new Set(matchedAccount?.addresses?.map((a) => a.address) ?? []),
+    [matchedAccount]
+  )
 
   let extractedData = null
   if (originalPsbt && matchedAccount) {
@@ -132,7 +137,11 @@ function SSTransactionDetails({
         <>
           {visibility?.sankey ? (
             <View style={styles.chatChartContainer}>
-              <SSTransactionChart transaction={transaction} scale={0.75} />
+              <SSTransactionChart
+                transaction={transaction}
+                ownAddresses={ownAddresses}
+                scale={0.75}
+              />
             </View>
           ) : (
             <SSButton
@@ -158,7 +167,10 @@ function SSTransactionDetails({
       ) : (
         <>
           <View style={styles.chartContainer}>
-            <SSTransactionChart transaction={transaction} />
+            <SSTransactionChart
+              transaction={transaction}
+              ownAddresses={ownAddresses}
+            />
           </View>
           {isMultisig && (
             <View style={styles.signatureContainer}>

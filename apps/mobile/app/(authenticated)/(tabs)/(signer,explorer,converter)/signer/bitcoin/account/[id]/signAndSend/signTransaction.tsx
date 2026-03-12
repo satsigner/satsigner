@@ -59,6 +59,10 @@ export default function SignTransaction() {
   const account = useAccountsStore(
     useShallow((state) => state.accounts.find((account) => account.id === id))
   )
+  const ownAddresses = useMemo(
+    () => new Set(account?.addresses?.map((a) => a.address) ?? []),
+    [account]
+  )
   const setTransactionToShare = useNostrStore(
     (state) => state.setTransactionToShare
   )
@@ -285,7 +289,10 @@ export default function SignTransaction() {
                 </SSText>
                 {transaction && (
                   <View style={{ width: '100%' }}>
-                    <SSTransactionChart transaction={transaction} />
+                    <SSTransactionChart
+                      transaction={transaction}
+                      ownAddresses={ownAddresses}
+                    />
                   </View>
                 )}
               </SSVStack>

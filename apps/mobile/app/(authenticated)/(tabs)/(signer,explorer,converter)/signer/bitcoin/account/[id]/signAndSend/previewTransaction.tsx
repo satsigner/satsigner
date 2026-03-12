@@ -203,6 +203,10 @@ function PreviewTransaction() {
   const account = useAccountsStore((state) =>
     state.accounts.find((account) => account.id === id)
   )
+  const ownAddresses = useMemo(
+    () => new Set(account?.addresses?.map((a) => a.address) ?? []),
+    [account]
+  )
   const setTransactionToShare = useNostrStore(
     (state) => state.setTransactionToShare
   )
@@ -1937,7 +1941,10 @@ function PreviewTransaction() {
                 <SSText color="muted" size="sm" uppercase>
                   {tn('contents')}
                 </SSText>
-                <SSTransactionChart transaction={transaction} />
+                <SSTransactionChart
+                  transaction={transaction}
+                  ownAddresses={ownAddresses}
+                />
               </SSVStack>
               <SSVStack gap="xxs">
                 <SSText
