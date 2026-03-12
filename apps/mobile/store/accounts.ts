@@ -64,6 +64,14 @@ type AccountsAction = {
   resetKey: (accountId: Account['id'], keyIndex: number) => void
 }
 
+function resolveOutputAddress(
+  transactions: Transaction[],
+  txid: string,
+  vout: number
+): string | undefined {
+  return transactions.find((tx) => tx.id === txid)?.vout[vout]?.address
+}
+
 const useAccountsStore = create<AccountsState & AccountsAction>()(
   persist(
     (set, get) => ({
@@ -325,6 +333,33 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
               return newTx
             })
+
+            // Transactions that spent from this address also inherit its label
+            state.accounts[index].transactions.forEach(
+              (tx: Transaction, txIdx: number) => {
+                const spendFromAddr = tx.vin.some(
+                  (input: Transaction['vin'][number]) => {
+                    const resolved = resolveOutputAddress(
+                      state.accounts[index].transactions,
+                      input.previousOutput.txid,
+                      input.previousOutput.vout
+                    )
+                    return resolved === addr
+                  }
+                )
+                if (!spendFromAddr) return
+
+                const txHasLabel = state.accounts[index].labels[tx.id]
+                if (!txHasLabel) {
+                  state.accounts[index].labels[tx.id] = {
+                    type: 'tx',
+                    ref: tx.id,
+                    label
+                  }
+                  state.accounts[index].transactions[txIdx].label = label
+                }
+              }
+            )
           })
         )
 
@@ -426,10 +461,43 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                   // tx output)
                 }
 
-                // we cannot figure out the address of the input's previous
-                // output without making additional request to the backend or
-                // adding quite complicated logic. Therefore, we dismiss label
-                // inheritance for the address of the previous output.
+                // Update the vout object on the referenced transaction
+                const refTxIndex = state.accounts[index].transactions.findIndex(
+                  (tx: Transaction) => tx.id === txid
+                )
+                if (
+                  refTxIndex !== -1 &&
+                  state.accounts[index].transactions[refTxIndex].vout[vout]
+                ) {
+                  if (!outputHasLabel) {
+                    state.accounts[index].transactions[refTxIndex].vout[
+                      vout
+                    ].label = label
+                  }
+                }
+
+                // Cascade to the address of the input's previous output
+                const address = resolveOutputAddress(
+                  state.accounts[index].transactions,
+                  txid,
+                  vout
+                )
+                if (!address) return
+
+                const addressHasLabel = state.accounts[index].labels[address]
+                if (!addressHasLabel) {
+                  state.accounts[index].labels[address] = {
+                    type: 'addr',
+                    ref: address,
+                    label
+                  }
+                  const addrIdx = state.accounts[index].addresses.findIndex(
+                    (a: Address) => a.address === address
+                  )
+                  if (addrIdx !== -1) {
+                    state.accounts[index].addresses[addrIdx].label = label
+                  }
+                }
               }
             )
           })
@@ -483,7 +551,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const txHasLabel = state.accounts[index].labels[txid]
             if (!txHasLabel) {
               state.accounts[index].labels[txid] = {
-                type: 'output',
+                type: 'tx',
                 ref: txid,
                 label
               }
