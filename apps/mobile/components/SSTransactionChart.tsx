@@ -149,19 +149,23 @@ function SSTransactionChart({
 
     const outputNodes: TxNode[] = outputs.map((output, index) => {
       const nodeId = String(index + 2 + inputs.length)
+      const label = output.label ?? ''
+      const isChange =
+        label.includes('Change') || label.includes('[Change for]')
 
       return {
         id: nodeId,
         type: 'text',
         depthH: 2,
-        localId: `output-${index}`,
+        localId: isChange ? 'remainingBalance' : `output-${index}`,
         ioData: {
           value: output.value,
           fiatValue: formatNumber(satsToFiat(output.value), 2),
           fiatCurrency,
           address: formatAddress(output.address, 6),
-          label: output.label ?? t('common.noLabel'),
-          text: t('common.to'),
+          label: label || t('common.noLabel'),
+          text: t('transaction.build.unspent'),
+          isUnspent: true,
           isSelfSend: !!(output.address && ownAddresses.has(output.address))
         },
         value: output.value
