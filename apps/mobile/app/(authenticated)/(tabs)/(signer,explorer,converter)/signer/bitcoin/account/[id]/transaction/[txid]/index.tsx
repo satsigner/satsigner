@@ -202,8 +202,11 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
     state.btcPrice
   ])
 
-  const getBlockchainHeight = useBlockchainStore(
-    (state) => state.getBlockchainHeight
+  const [lastKnownBlockHeight, getBlockchainHeight] = useBlockchainStore(
+    useShallow((state) => [
+      state.lastKnownBlockHeight,
+      state.getBlockchainHeight
+    ])
   )
 
   const [currencyUnit, useZeroPadding] = useSettingsStore(
@@ -211,11 +214,15 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
   )
 
   const [amount, setAmount] = useState(0)
-  const [confirmations, setConfirmations] = useState(0)
   const [oldPrice, setOldPrice] = useState('')
   const [price, setPrice] = useState('')
   const [type, setType] = useState('')
   const [inputsCount, setInputsCount] = useState(0)
+
+  const confirmations =
+    tx?.blockHeight && lastKnownBlockHeight > 0
+      ? lastKnownBlockHeight - tx.blockHeight + 1
+      : 0
 
   const updateInfo = async () => {
     if (!tx) return
@@ -232,16 +239,14 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
 
     if (tx.vin) setInputsCount(tx.vin.length)
 
-    if (tx.blockHeight) {
-      const blockchainHeight = await getBlockchainHeight()
-      const confirmations = blockchainHeight - tx.blockHeight
-      setConfirmations(confirmations)
+    if (tx.blockHeight && lastKnownBlockHeight === 0) {
+      getBlockchainHeight()
     }
   }
 
   useEffect(() => {
     updateInfo()
-  }, [tx]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tx, lastKnownBlockHeight]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <SSVStack gap="none" style={{ alignItems: 'center' }}>

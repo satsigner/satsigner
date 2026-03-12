@@ -28,6 +28,7 @@ type NetworkConfig = {
 }
 
 type BlockchainState = {
+  lastKnownBlockHeight: number
   selectedNetwork: Network
   configs: Record<Network, NetworkConfig>
   configsMempool: Record<Network, Server['url']>
@@ -70,6 +71,7 @@ const createDefaultNetworkConfig = (
 const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
   persist(
     (set, get) => ({
+      lastKnownBlockHeight: 0,
       selectedNetwork: 'signet',
       configs: {
         bitcoin: createDefaultNetworkConfig(
@@ -141,11 +143,19 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
       },
       getBlockchainHeight: async (network = get().selectedNetwork) => {
         const blockchain = await get().getBlockchain(network)
-        return blockchain.getHeight()
+        const height = await blockchain.getHeight()
+        set({ lastKnownBlockHeight: height })
+        return height
       }
     }),
     {
       name: 'satsigner-blockchain',
+      partialize: (state) => ({
+        configs: state.configs,
+        configsMempool: state.configsMempool,
+        customServers: state.customServers,
+        selectedNetwork: state.selectedNetwork
+      }),
       storage: createJSONStorage(() => mmkvStorage)
     }
   )
