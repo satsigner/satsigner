@@ -546,6 +546,7 @@
     "of": "Of",
     "off": "Off",
     "on": "On",
+    "open": "Open",
     "optional": "Optional",
     "parts": "Parts",
     "paste": "Paste",
@@ -1336,7 +1337,9 @@
   "sent": {
     "broadcasted": "Transaction broadcasted",
     "copyTransactionId": "Copy transaction id",
-    "trackOnChain": "Track on chain"
+    "externalWebsiteWarning": "You are about to open an external website. Continue?",
+    "trackOnChain": "Track on chain",
+    "viewOnMempool": "View on mempool.space"
   },
   "settings": {
     "about.description": "App version and other versioning information",

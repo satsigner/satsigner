@@ -1,13 +1,16 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
@@ -20,6 +23,8 @@ import { formatAddress } from '@/utils/format'
 export default function TransactionConfirmation() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
+  const [externalWarningModalVisible, setExternalWarningModalVisible] =
+    useState(false)
 
   const [clearTransaction, txBuilderResult, broadcasted, outputs] =
     useTransactionBuilderStore(
@@ -44,6 +49,21 @@ export default function TransactionConfirmation() {
     const mempoolServerUrl = mempoolConfig[network]
     return mempoolServerUrl
   }, [account, mempoolConfig])
+
+  const mempoolTxUrl = useMemo(() => {
+    if (!webExplorerUrl || !txBuilderResult) return ''
+    const base = webExplorerUrl.replace(/\/api\/?$/, '')
+    return `${base}/tx/${txBuilderResult.txDetails.txid}`
+  }, [webExplorerUrl, txBuilderResult])
+
+  function handleViewOnMempool() {
+    setExternalWarningModalVisible(true)
+  }
+
+  function handleOpenExternalWebsite() {
+    if (mempoolTxUrl) WebBrowser.openBrowserAsync(mempoolTxUrl)
+    setExternalWarningModalVisible(false)
+  }
 
   function handleBackToHome() {
     clearTransaction()
@@ -156,12 +176,8 @@ export default function TransactionConfirmation() {
             </SSClipboardCopy>
             <SSButton
               variant="outline"
-              label={t('sent.trackOnChain')}
-              onPress={() =>
-                WebBrowser.openBrowserAsync(
-                  `${webExplorerUrl}/tx/${txBuilderResult.txDetails.txid}`
-                )
-              }
+              label={t('sent.viewOnMempool')}
+              onPress={handleViewOnMempool}
             />
             <SSButton
               variant="secondary"
@@ -171,6 +187,37 @@ export default function TransactionConfirmation() {
           </SSVStack>
         </SSVStack>
       </SSMainLayout>
+      <SSModal
+        fullOpacity
+        visible={externalWarningModalVisible}
+        label=""
+        onClose={() => setExternalWarningModalVisible(false)}
+      >
+        <SSVStack justifyBetween style={{ flex: 1, width: '100%' }}>
+          <View style={{ flex: 1, justifyContent: 'center' }}>
+            <SSVStack gap="lg" style={{ alignItems: 'center' }}>
+              <SSText uppercase weight="bold">
+                {t('common.warning')}
+              </SSText>
+              <SSText color="muted" center>
+                {t('sent.externalWebsiteWarning')}
+              </SSText>
+            </SSVStack>
+          </View>
+          <SSVStack gap="md">
+            <SSButton
+              variant="danger"
+              label={t('common.open')}
+              onPress={handleOpenExternalWebsite}
+            />
+            <SSButton
+              variant="ghost"
+              label={t('common.cancel')}
+              onPress={() => setExternalWarningModalVisible(false)}
+            />
+          </SSVStack>
+        </SSVStack>
+      </SSModal>
     </>
   )
 }
