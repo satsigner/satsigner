@@ -203,27 +203,41 @@ export default function SelectUtxoList() {
         </SSVStack>
       </SSMainLayout>
       <SSSeparator color="grayDark" style={{ width: '100%', marginTop: 12 }} />
-      <SSHStack justifyBetween style={{ paddingHorizontal: '5%' }}>
-        <SSButton
-          variant="ghost"
-          label={`${
-            selectedAllUtxos
-              ? t('common.deselectAll').toUpperCase()
-              : t('common.selectAll').toUpperCase()
-          } ${formatNumber(utxosTotalValue, 0, zeroPadding)} ${
-            currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')
-          }`}
-          style={{ width: 'auto' }}
-          textStyle={{
-            color: Colors.gray[75],
-            textTransform: 'none',
-            textDecorationLine: 'underline'
-          }}
-          onPress={() =>
-            selectedAllUtxos ? handleDeselectAllUtxos() : handleSelectAllUtxos()
-          }
-        />
-        <SSHStack gap="sm">
+      <SSHStack
+        justifyBetween
+        style={{
+          alignItems: 'center',
+          borderBottomColor: Colors.gray[900],
+          borderBottomWidth: 1,
+          paddingHorizontal: '5%',
+          width: '100%'
+        }}
+      >
+        <View style={{ flexShrink: 1, minWidth: 0 }}>
+          <SSButton
+            variant="ghost"
+            label={`${
+              selectedAllUtxos
+                ? t('common.deselectAll').toUpperCase()
+                : t('common.selectAll').toUpperCase()
+            } ${formatNumber(utxosTotalValue, 0, zeroPadding)} ${
+              currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')
+            }`}
+            style={{ alignSelf: 'flex-start', width: undefined }}
+            textStyle={{
+              color: Colors.gray[75],
+              textAlign: 'left',
+              textTransform: 'none',
+              textDecorationLine: 'underline'
+            }}
+            onPress={() =>
+              selectedAllUtxos
+                ? handleDeselectAllUtxos()
+                : handleSelectAllUtxos()
+            }
+          />
+        </View>
+        <SSHStack gap="sm" style={{ flexShrink: 0 }}>
           <SSSortDirectionToggle
             label={t('common.date')}
             showArrow={sortField === 'date'}
