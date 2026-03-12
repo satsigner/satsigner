@@ -21,7 +21,7 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { formatAddress } from '@/utils/format'
-import { parseLabel } from '@/utils/parse'
+import { normalizeUtxoLabelForDisplay } from '@/utils/parse'
 
 type SSBubbleProps = {
   utxo: Utxo
@@ -97,7 +97,7 @@ function SSBubble({
   const satsFontSize = fontSize / 1.5
   const descriptionFontSize = fontSize / 2.5
 
-  const label = parseLabel(utxo.label || '').label
+  const label = normalizeUtxoLabelForDisplay(utxo.label || '')
 
   // Utxo value
   const mainParagraph = useMemo(() => {

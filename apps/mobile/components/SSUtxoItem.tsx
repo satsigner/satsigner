@@ -10,7 +10,7 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { formatAddress, formatDate, formatNumber } from '@/utils/format'
-import { parseLabel } from '@/utils/parse'
+import { normalizeUtxoLabelForDisplay } from '@/utils/parse'
 
 import { SSIconPlus, SSIconX } from './icons'
 import SSStyledSatText from './SSStyledSatText'
@@ -42,7 +42,7 @@ function SSUtxoItem({
     })
   }, [selected])
 
-  const label = parseLabel(utxo.label || '').label
+  const label = normalizeUtxoLabelForDisplay(utxo.label || '')
 
   return (
     <View>
