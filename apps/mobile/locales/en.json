@@ -1499,7 +1499,7 @@
   },
   "sign": {
     "changeAddressLabelDefault": "Change",
-    "changeAddressLabelFinal": "Change for %{txlabel}",
+    "changeAddressLabelFinal": "[change] %{txlabel}",
     "transaction": "Sign transaction"
   },
   "time": {

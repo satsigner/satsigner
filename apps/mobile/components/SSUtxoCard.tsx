@@ -11,7 +11,7 @@ import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
-import { parseLabel } from '@/utils/parse'
+import { normalizeUtxoLabelForDisplay } from '@/utils/parse'
 
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
@@ -85,7 +85,7 @@ function SSUtxoCard({ utxo, totalBalance }: SSUtxoCardProps) {
         </SSVStack>
       </SSHStack>
       <SSText size="md" color={utxo.label ? 'white' : 'muted'}>
-        {parseLabel(utxo.label || t('utxo.noLabel'))['label']}
+        {normalizeUtxoLabelForDisplay(utxo.label || '') || t('utxo.noLabel')}
       </SSText>
     </TouchableOpacity>
   )

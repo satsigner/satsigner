@@ -123,7 +123,7 @@ export default function TransactionConfirmation() {
       if (changeOutputIndex !== -1) {
         const changeOutput = outputs[changeOutputIndex]
         const changeLabel = t('sign.changeAddressLabelFinal', {
-          label: txLabelText
+          txlabel: txLabelText
         })
         labels.push({
           ref: `${txid}:${changeOutputIndex}`,
