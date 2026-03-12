@@ -1796,6 +1796,8 @@
     "outputIndex": "Output Index",
     "spend": "SPEND UTXO",
     "unlockingScript": "Unlocking script",
+    "viewAddress": "View address",
+    "viewTransaction": "View transaction",
     "vout": "Output index"
   },
   "validation": {

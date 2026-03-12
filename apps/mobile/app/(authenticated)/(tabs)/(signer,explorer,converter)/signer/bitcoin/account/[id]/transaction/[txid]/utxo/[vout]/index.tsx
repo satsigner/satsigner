@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   useWindowDimensions,
   View
 } from 'react-native'
@@ -129,34 +128,29 @@ function UtxoDetails({
         />
         <SSSeparator color="gradient" />
         <SSVStack>
-          <TouchableOpacity
-            onPress={onPressAddress}
-            activeOpacity={0.7}
-            disabled={!utxo?.addressTo || utxo.addressTo === '-'}
-          >
-            <SSVStack gap="sm">
-              <SSText weight="bold" uppercase>
-                {t('utxo.address')}
-              </SSText>
-              <SSAddressDisplay
-                address={utxo?.addressTo || '-'}
-                copyToClipboard={false}
-              />
-            </SSVStack>
-          </TouchableOpacity>
+          <SSVStack gap="sm">
+            <SSText weight="bold" uppercase>
+              {t('utxo.address')}
+            </SSText>
+            <SSAddressDisplay address={utxo?.addressTo || '-'} />
+            <SSButton
+              variant="outline"
+              label={t('utxo.viewAddress')}
+              onPress={onPressAddress}
+              disabled={!utxo?.addressTo || utxo.addressTo === '-'}
+            />
+          </SSVStack>
           <SSSeparator color="gradient" />
-          <TouchableOpacity onPress={onPressTx} activeOpacity={0.7}>
-            <SSVStack gap="sm">
-              <SSText weight="bold" uppercase>
-                {t('transaction.id')}
-              </SSText>
-              <SSAddressDisplay address={txid} copyToClipboard={false} />
-            </SSVStack>
-          </TouchableOpacity>
+          <SSVStack gap="sm">
+            <SSText weight="bold" uppercase>
+              {t('transaction.id')}
+            </SSText>
+            <SSAddressDisplay address={txid} />
+          </SSVStack>
           {tx && (
             <>
               <SSSeparator color="gradient" />
-              <SSVStack>
+              <SSVStack gap="sm">
                 <SSText uppercase weight="bold" size="md">
                   {t('transaction.details.chart')}
                 </SSText>
@@ -164,6 +158,11 @@ function UtxoDetails({
                   transaction={tx}
                   selectedOutputIndex={utxo?.vout}
                   dimUnselected
+                />
+                <SSButton
+                  variant="outline"
+                  label={t('utxo.viewTransaction')}
+                  onPress={onPressTx}
                 />
               </SSVStack>
             </>
