@@ -288,33 +288,46 @@ export default function AccountList() {
 
     const now = time.now()
 
-    for (const account of accounts) {
-      const { lastSyncedAt } = account
-
+    const eligibleAccounts = accounts.filter((account) => {
+      if (account.network !== tabs[tabIndex].key) return false
+      if (account.syncStatus === 'syncing') return false
       if (
-        lastSyncedAt &&
-        now > time.minutesAfter(lastSyncedAt, autoConnectDelay)
-      ) {
-        continue
-      }
-
-      if (account.network !== tabs[tabIndex].key) continue
-
+        account.lastSyncedAt &&
+        now > time.minutesAfter(account.lastSyncedAt, autoConnectDelay)
+      )
+        return false
       const isImportAddress = account.keys[0].creationType === 'importAddress'
+      if (isImportAddress && !addresses[account.id]) return false
+      if (!isImportAddress && !wallets[account.id]) return false
+      return true
+    })
 
-      if (isImportAddress && !addresses[account.id]) continue
-      if (!isImportAddress && !wallets[account.id]) continue
+    // Address-based syncs are pure HTTP and safe to run in parallel.
+    // BDK wallet syncs use a native Rust module that is not thread-safe for
+    // concurrent calls, so those must remain sequential.
+    const addressAccounts = eligibleAccounts.filter(
+      (a) =>
+        a.policyType === 'watchonly' &&
+        a.keys[0].creationType === 'importAddress'
+    )
+    const walletAccounts = eligibleAccounts.filter(
+      (a) =>
+        !(
+          a.policyType === 'watchonly' &&
+          a.keys[0].creationType === 'importAddress'
+        )
+    )
 
-      if (account.syncStatus !== 'syncing') {
-        const updatedAccount =
-          account.policyType === 'watchonly' &&
-          account.keys[0].creationType === 'importAddress'
-            ? await syncAccountWithAddress(account)
-            : await syncAccountWithWallet(account, wallets[account.id]!)
-        updateAccount(updatedAccount)
-      }
+    await Promise.allSettled(
+      addressAccounts.map((account) =>
+        syncAccountWithAddress(account).then((u) => updateAccount(u))
+      )
+    )
+
+    for (const account of walletAccounts) {
+      const u = await syncAccountWithWallet(account, wallets[account.id]!)
+      updateAccount(u)
     }
-    // TO DO: Try Promise.all() method instead Sequential one.
   }
 
   async function handleLoadSampleWallet(type: SampleWallet) {
