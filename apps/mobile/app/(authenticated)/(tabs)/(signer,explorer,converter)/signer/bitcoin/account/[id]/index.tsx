@@ -865,10 +865,66 @@ function SpendableOutputs({
   )
 }
 
-function SatsInMempool() {
+function SatsInMempool({
+  account,
+  blockchainHeight
+}: {
+  account: Account
+  blockchainHeight: number
+}) {
+  const [btcPrice, fiatCurrency] = usePriceStore(
+    useShallow((state) => [state.btcPrice, state.fiatCurrency])
+  )
+
+  const mempoolTransactions = useMemo(
+    () => account.transactions.filter((tx) => !tx.blockHeight),
+    [account.transactions]
+  )
+
+  if (mempoolTransactions.length === 0) {
+    return (
+      <SSMainLayout>
+        <SSVStack style={{ flex: 1, alignItems: 'center', paddingTop: 50 }}>
+          <SSText color="muted">{t('accounts.noSatsOnMempool')}</SSText>
+        </SSVStack>
+      </SSMainLayout>
+    )
+  }
+
   return (
     <SSMainLayout>
-      <SSText>Being built...</SSText>
+      <FlashList
+        data={mempoolTransactions}
+        keyExtractor={(item) => item.id}
+        estimatedItemSize={160}
+        renderItem={({ item }) => (
+          <SSVStack gap="sm" style={{ paddingBottom: 16 }}>
+            <SSTransactionCard
+              transaction={item}
+              blockHeight={blockchainHeight}
+              btcPrice={btcPrice}
+              fiatCurrency={fiatCurrency}
+              expand={false}
+              link={`/signer/bitcoin/account/${account.id}/transaction/${item.id}`}
+            />
+            <SSHStack gap="sm">
+              <SSButton
+                label={t('bitcoin.rbf')}
+                variant="outline"
+                style={{ flex: 1 }}
+                onPress={() => {}}
+              />
+              <SSButton
+                label={t('bitcoin.accelerate')}
+                variant="outline"
+                style={{ flex: 1 }}
+                onPress={() => {}}
+              />
+            </SSHStack>
+            <SSSeparator />
+          </SSVStack>
+        )}
+      />
     </SSMainLayout>
   )
 }
@@ -1096,7 +1152,9 @@ export default function AccountView() {
           />
         )
       case 'satsInMempool':
-        return <SatsInMempool />
+        return (
+          <SatsInMempool account={account} blockchainHeight={blockchainHeight} />
+        )
       default:
         return null
     }
