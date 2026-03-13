@@ -43,7 +43,7 @@ function useVerifyConnection() {
   }, [server.url])
 
   const verifyConnection = useCallback(async () => {
-    if (!isConnectionAvailable.current || config.connectionMode === 'manual') {
+    if (!isConnectionAvailable.current) {
       setConnectionState(false)
       return
     }
@@ -66,16 +66,13 @@ function useVerifyConnection() {
     server.backend,
     server.network,
     config.timeout,
-    server.url,
-    config.connectionMode
+    server.url
   ])
 
   const checkConnection = useCallback(async () => {
-    if (config.connectionMode === 'manual') return
-
     const state = await NetInfo.fetch()
     isConnectionAvailable.current = state.isConnected
-  }, [config.connectionMode])
+  }, [])
 
   useEffect(() => {
     if (config.connectionMode === 'manual') return

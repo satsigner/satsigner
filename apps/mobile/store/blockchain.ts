@@ -42,6 +42,7 @@ type BlockchainAction = {
   updateConfigMempool: (network: Network, url: Server['url']) => void
   addCustomServer: (server: Server) => void
   removeCustomServer: (server: Server) => void
+  updateCustomServer: (oldServer: Server, newServer: Server) => void
   getBlockchain: (network?: Network) => Promise<Blockchain>
   getBlockchainHeight: (network?: Network) => Promise<number>
 }
@@ -125,6 +126,18 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
         const { customServers } = get()
         set({
           customServers: customServers.filter((sv) => sv !== server)
+        })
+      },
+      updateCustomServer: (oldServer, newServer) => {
+        const { customServers } = get()
+        set({
+          customServers: customServers.map((s) =>
+            s.url === oldServer.url &&
+            s.name === oldServer.name &&
+            s.network === oldServer.network
+              ? newServer
+              : s
+          )
         })
       },
       getBlockchain: async (network = get().selectedNetwork) => {

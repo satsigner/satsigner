@@ -40,14 +40,18 @@ import {
 } from '@/types/settings/blockchain'
 
 export default function CustomNetwork() {
-  const { network } = useLocalSearchParams()
+  const { network, editUrl } = useLocalSearchParams<{
+    network: string
+    editUrl?: string
+  }>()
   const router = useRouter()
   const {
     formData,
     updateField,
     updateProxyField,
     constructUrl,
-    constructTrimmedUrl
+    constructTrimmedUrl,
+    loadServer
   } = useCustomNetworkForm()
 
   const networkType = network as Network
@@ -55,16 +59,20 @@ export default function CustomNetwork() {
   const [
     selectedNetwork,
     configs,
+    customServers,
     setSelectedNetwork,
     updateServer,
-    addCustomServer
+    addCustomServer,
+    updateCustomServer
   ] = useBlockchainStore(
     useShallow((state) => [
       state.selectedNetwork,
       state.configs,
+      state.customServers,
       state.setSelectedNetwork,
       state.updateServer,
-      state.addCustomServer
+      state.addCustomServer,
+      state.updateCustomServer
     ])
   )
 
@@ -72,8 +80,20 @@ export default function CustomNetwork() {
     useVerifyConnection()
 
   const [testing, setTesting] = useState(false)
+  const [editingServer, setEditingServer] = useState<Server | null>(null)
   const [oldNetwork] = useState<Network>(selectedNetwork)
   const [oldServer] = useState<Server>(configs[networkType].server)
+
+  useEffect(() => {
+    if (editUrl && customServers.length > 0) {
+      const decoded = decodeURIComponent(editUrl)
+      const server = customServers.find((s) => s.url === decoded)
+      if (server) {
+        setEditingServer(server)
+        loadServer(server)
+      }
+    }
+  }, [editUrl, customServers.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const backends: Backend[] = ['electrum', 'esplora']
   const protocols = ['ssl', 'tcp'] as const
@@ -137,7 +157,7 @@ export default function CustomNetwork() {
     setTesting(true)
   }
 
-  function handleAdd() {
+  function handleSave() {
     if (isValid()) {
       if (!connectionState) {
         setSelectedNetwork(oldNetwork)
@@ -153,7 +173,11 @@ export default function CustomNetwork() {
         proxy: formData.proxy.enabled ? formData.proxy : undefined
       }
 
-      addCustomServer(server)
+      if (editingServer) {
+        updateCustomServer(editingServer, server)
+      } else {
+        addCustomServer(server)
+      }
       router.back()
     }
   }
@@ -331,8 +355,10 @@ export default function CustomNetwork() {
               />
               <SSButton
                 variant="secondary"
-                label={t('common.add')}
-                onPress={() => handleAdd()}
+                label={
+                  editingServer ? t('common.save') : t('common.add')
+                }
+                onPress={() => handleSave()}
               />
               <SSButton
                 variant="ghost"
