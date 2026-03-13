@@ -192,6 +192,7 @@ export default function ImportMnemonic() {
           showChecksum
           showFingerprint
           showPasteButton
+          showScanSeedQRButton
           showActionButton
           actionButtonLabel={t('account.import.title2')}
           actionButtonVariant="secondary"

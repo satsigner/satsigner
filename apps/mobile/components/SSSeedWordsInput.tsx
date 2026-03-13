@@ -5,6 +5,7 @@ import type { StyleProp, TextInput, ViewStyle } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSFingerprint from '@/components/SSFingerprint'
 import SSTextInput from '@/components/SSTextInput'
@@ -15,6 +16,7 @@ import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { type MnemonicWordCount } from '@/types/models/Account'
+import { type DetectedContent } from '@/utils/contentDetector'
 import { getFingerprintFromSeed } from '@/utils/bip32'
 import {
   detectElectrumSeed,
@@ -41,6 +43,7 @@ type SSSeedWordsInputProps = {
   showChecksum?: boolean
   showFingerprint?: boolean
   showPasteButton?: boolean
+  showScanSeedQRButton?: boolean
   showActionButton?: boolean
   actionButtonLabel?: string
   actionButtonVariant?:
@@ -83,6 +86,7 @@ export default function SSSeedWordsInput({
   showChecksum = true,
   showFingerprint = true,
   showPasteButton = true,
+  showScanSeedQRButton = true,
   showActionButton = true,
   actionButtonLabel = 'Continue',
   actionButtonVariant = 'secondary',
@@ -105,6 +109,7 @@ export default function SSSeedWordsInput({
   const [electrumSeedType, setElectrumSeedType] = useState<string | null>(null)
   const [fingerprint, setFingerprint] = useState('')
   const [passphrase, setPassphrase] = useState('')
+  const [cameraModalVisible, setCameraModalVisible] = useState(false)
 
   const wordList = getWordList(wordListName)
   const passphraseRef = useRef<TextInput>(null)
@@ -297,6 +302,26 @@ export default function SSSeedWordsInput({
     }
   }, [autoCheckClipboard]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const handleSeedQRScanned = useCallback(
+    (content: DetectedContent) => {
+      if (content.type !== 'seed_qr' || !content.metadata?.mnemonic) return
+      const mnemonic = content.metadata.mnemonic as string
+      const seed = mnemonic.trim().split(/\s+/)
+      if (seed.length !== wordCount) {
+        toast.error(
+          t('account.import.seedQRWordCountMismatch', {
+            count: wordCount
+          })
+        )
+        return
+      }
+      setCameraModalVisible(false)
+      fillOutSeedWords(seed)
+      toast.success(t('common.success.qrScanned'))
+    },
+    [wordCount, fillOutSeedWords]
+  )
+
   // Handle seed word input change
   const handleSeedWordChange = async (index: number, value: string) => {
     const newSeedWordsInfo = [...seedWordsInfo]
@@ -468,12 +493,25 @@ export default function SSSeedWordsInput({
         )}
       </SSFormLayout>
       <SSVStack gap="sm">
-        {showPasteButton && (
-          <SSButton
-            label="Paste from Clipboard"
-            variant="outline"
-            onPress={readSeedFromClipboard}
-          />
+        {(showPasteButton || showScanSeedQRButton) && (
+          <SSHStack gap="sm" style={{ width: '100%' }}>
+            {showPasteButton && (
+              <SSButton
+                label={t('common.paste')}
+                variant="outline"
+                onPress={readSeedFromClipboard}
+                style={{ flex: 1 }}
+              />
+            )}
+            {showScanSeedQRButton && (
+              <SSButton
+                label={t('account.import.scanSeedQR')}
+                variant="outline"
+                onPress={() => setCameraModalVisible(true)}
+                style={{ flex: 1 }}
+              />
+            )}
+          </SSHStack>
         )}
         {showActionButton && (
           <SSButton
@@ -494,6 +532,14 @@ export default function SSSeedWordsInput({
           />
         )}
       </SSVStack>
+      {showScanSeedQRButton && (
+        <SSCameraModal
+          context="bitcoin"
+          visible={cameraModalVisible}
+          onClose={() => setCameraModalVisible(false)}
+          onContentScanned={handleSeedQRScanned}
+        />
+      )}
     </SSVStack>
   )
 }

@@ -97,6 +97,8 @@
     "import.success": "Key imported successfully",
     "import.title": "Import existing seed",
     "import.title2": "Import Seed",
+    "import.scanSeedQR": "Scan Seed QR",
+    "import.seedQRWordCountMismatch": "Seed QR word count doesn't match (expected %{count} words)",
     "import.tpub": "Import TPub",
     "import.upub": "Import UPub",
     "import.vpub": "Import VPub",
