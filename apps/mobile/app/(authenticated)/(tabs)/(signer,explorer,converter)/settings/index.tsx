@@ -50,14 +50,12 @@ export default function Settings() {
             icon={<SSIconAbout height={26} width={26} />}
             onPress={() => router.navigate('/settings/about')}
           />
-          {__DEV__ && (
-            <SSSettingsCards
-              title={t('settings.developer.title')}
-              description={t('settings.developer.description')}
-              icon={<SSIconDev height={24} width={24} />}
-              onPress={() => router.navigate('/settings/developer')}
-            />
-          )}
+          <SSSettingsCards
+            title={t('settings.developer.title')}
+            description={t('settings.developer.description')}
+            icon={<SSIconDev height={24} width={24} />}
+            onPress={() => router.navigate('/settings/developer')}
+          />
         </SSVStack>
       </ScrollView>
     </>
