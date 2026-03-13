@@ -132,16 +132,26 @@ export default function NetworkSettings() {
     router.back()
   }
 
+  function handleEditCustomServer(network: Network, server: Server) {
+    router.push(
+      `./${network}?editUrl=${encodeURIComponent(server.url)}`
+    )
+  }
+
   return (
-    <SSMainLayout style={{ paddingTop: 0 }}>
+    <SSMainLayout style={{ paddingTop: 0, flex: 1 }}>
       <Stack.Screen
         options={{
           headerTitle: () => <SSText uppercase>{tn('title')}</SSText>,
           headerRight: undefined
         }}
       />
-      <SSVStack gap="md" justifyBetween>
-        <ScrollView showsVerticalScrollIndicator={false}>
+      <SSVStack style={{ flex: 1, minHeight: 0 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 24 }}
+        >
           <SSBitcoinNetworkExplanationLink />
           <SSVStack gap="xl" style={{ marginTop: 20 }}>
             {networks.map((network) => (
@@ -158,13 +168,29 @@ export default function NetworkSettings() {
                   <SSText color="muted">{tn(`type.${network}`)}</SSText>
                 </SSVStack>
                 <SSVStack gap="md">
-                  <SSVStack gap="md">
+                  <SSVStack gap="sm">
                     {servers
                       .concat(customServers)
                       .filter((server) => server.network === network)
                       .map((server, index) => (
-                        <SSHStack key={index} justifyBetween>
-                          <SSHStack>
+                        <SSHStack
+                          key={index}
+                          justifyBetween
+                          style={{
+                            alignItems: 'center',
+                            alignSelf: 'stretch',
+                            minHeight: 48,
+                            overflow: 'hidden'
+                          }}
+                        >
+                          <SSHStack
+                            gap="sm"
+                            style={{
+                              flex: 1,
+                              minWidth: 0,
+                              alignItems: 'flex-start'
+                            }}
+                          >
                             <SSCheckbox
                               onPress={() =>
                                 handleSelectServer(network, server)
@@ -177,10 +203,14 @@ export default function NetworkSettings() {
                             />
                             <TouchableOpacity
                               onPress={() =>
-                                handleSelectServer(network, server)
+                                customServers.includes(server)
+                                  ? handleEditCustomServer(network, server)
+                                  : handleSelectServer(network, server)
                               }
+                              style={{ flex: 1, minWidth: 0 }}
+                              activeOpacity={0.7}
                             >
-                              <SSVStack gap="none" style={{ flexGrow: 1 }}>
+                              <SSVStack gap="none" style={{ flex: 1 }}>
                                 <SSHStack
                                   gap="xs"
                                   style={{ alignItems: 'center' }}
@@ -248,6 +278,8 @@ export default function NetworkSettings() {
                                   <SSText
                                     style={{ lineHeight: 14 }}
                                     color="muted"
+                                    numberOfLines={1}
+                                    ellipsizeMode="tail"
                                   >
                                     {trimOnionAddress(server.url)}
                                   </SSText>
@@ -258,24 +290,32 @@ export default function NetworkSettings() {
                           {customServers.includes(server) && (
                             <SSIconButton
                               style={{
-                                padding: 6,
-                                borderWidth: 1,
-                                borderRadius: 400,
-                                borderColor: Colors.gray[600]
+                                padding: 8,
+                                marginLeft: 8,
+                                marginRight: 4,
+                                backgroundColor: Colors.gray[800],
+                                borderRadius: 8,
+                                width: 40,
+                                height: 40,
+                                alignItems: 'center',
+                                justifyContent: 'center'
                               }}
                               onPress={() => handleRemove(server)}
                             >
                               <SSIconCloseThin
-                                color={Colors.gray[200]}
-                                width={10}
-                                height={10}
+                                color={Colors.gray[100]}
+                                width={18}
+                                height={18}
                               />
                             </SSIconButton>
                           )}
                         </SSHStack>
                       ))}
                   </SSVStack>
-                  <SSHStack gap="sm">
+                  <SSHStack
+                    gap="sm"
+                    style={{ marginTop: 24, marginBottom: 8 }}
+                  >
                     <SSButton
                       label={tn('custom.add').toUpperCase()}
                       onPress={() => router.push(`./${network}`)}
@@ -304,12 +344,11 @@ export default function NetworkSettings() {
             ))}
           </SSVStack>
         </ScrollView>
-        <SSVStack>
+        <SSVStack gap="md" style={{ flexShrink: 0, paddingTop: 16 }}>
           <SSButton
             variant="secondary"
             label={t('common.save')}
             onPress={() => handleOnSave()}
-            style={{ marginTop: 30 }}
           />
           <SSButton
             variant="ghost"
