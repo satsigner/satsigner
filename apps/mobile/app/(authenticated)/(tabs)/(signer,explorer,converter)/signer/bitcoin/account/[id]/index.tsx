@@ -324,6 +324,143 @@ type DerivedAddressesProps = {
 const SCREEN_WIDTH = Dimensions.get('window').width
 const ADDRESS_TABLE_WIDTH = SCREEN_WIDTH * 1.2
 
+function SSAddressTable({
+  addresses,
+  renderItem,
+  isMultiAddressWatchOnly,
+  isLoadingAddresses,
+  onLoadMore
+}: {
+  addresses: Address[]
+  renderItem: ({ item }: { item: Address }) => React.ReactElement
+  isMultiAddressWatchOnly: boolean
+  isLoadingAddresses: boolean
+  onLoadMore: () => void
+}) {
+  return (
+    <ScrollView style={{ marginTop: 10 }} horizontal>
+      <SSVStack gap="none" style={{ width: ADDRESS_TABLE_WIDTH }}>
+        <SSHStack style={addressListStyles.headerRow}>
+          <SSText
+            style={[
+              addressListStyles.headerText,
+              addressListStyles.columnIndex
+            ]}
+          >
+            #
+          </SSText>
+          <SSText
+            style={[
+              addressListStyles.headerText,
+              addressListStyles.columnAddress
+            ]}
+          >
+            {t('bitcoin.address')}
+          </SSText>
+          <SSText
+            style={[
+              addressListStyles.headerText,
+              addressListStyles.columnLabel
+            ]}
+          >
+            {t('common.label')}
+          </SSText>
+          <SSText
+            style={[
+              addressListStyles.headerText,
+              addressListStyles.columnSats
+            ]}
+          >
+            {t('address.list.table.balance')}
+          </SSText>
+          <SSText
+            style={[
+              addressListStyles.headerText,
+              addressListStyles.columnTxs
+            ]}
+          >
+            {t('address.list.table.tx')}
+          </SSText>
+          <SSText
+            style={[
+              addressListStyles.headerText,
+              addressListStyles.columnUtxos
+            ]}
+          >
+            {t('address.list.table.utxo')}
+          </SSText>
+        </SSHStack>
+        <FlashList
+          data={addresses}
+          renderItem={renderItem}
+          estimatedItemSize={150}
+          keyExtractor={(item) =>
+            `${item.index || ''}:${item.address}:${item.keychain || ''}`
+          }
+          removeClippedSubviews
+          ListFooterComponent={
+            !isMultiAddressWatchOnly ? (
+              <SSButton
+                variant="outline"
+                uppercase
+                style={{
+                  marginTop: 10,
+                  width: SCREEN_WIDTH * 0.88
+                }}
+                label={t('common.loadMore')}
+                disabled={isLoadingAddresses}
+                onPress={onLoadMore}
+              />
+            ) : null
+          }
+        />
+      </SSVStack>
+    </ScrollView>
+  )
+}
+
+function SSAddressList({
+  addresses,
+  accountId,
+  isMultiAddressWatchOnly,
+  isLoadingAddresses,
+  onLoadMore
+}: {
+  addresses: Address[]
+  accountId: string
+  isMultiAddressWatchOnly: boolean
+  isLoadingAddresses: boolean
+  onLoadMore: () => void
+}) {
+  return (
+    <ScrollView>
+      <SSVStack style={{ paddingVertical: 10 }}>
+        {addresses.map((address, index) => {
+          const link = `/signer/bitcoin/account/${accountId}/address/${address.address}`
+          return (
+            <SSVStack key={address.address} gap="xs">
+              {index > 0 && <SSSeparator color="gradient" />}
+              <TouchableOpacity onPress={() => router.navigate(link)}>
+                <AddressCard address={{ index, ...address }} />
+              </TouchableOpacity>
+            </SSVStack>
+          )
+        })}
+        {!isMultiAddressWatchOnly && (
+          <SSButton
+            variant="outline"
+            uppercase
+            style={{ marginTop: 10, alignSelf: 'stretch' }}
+            label={t('common.loadMore')}
+            disabled={isLoadingAddresses}
+            onPress={onLoadMore}
+          />
+        )}
+      </SSVStack>
+    </ScrollView>
+  )
+}
+
 function DerivedAddresses({
   account,
   handleOnExpand,
@@ -339,17 +476,14 @@ function DerivedAddresses({
   ) as Network
   const updateAccount = useAccountsStore((state) => state.updateAccount)
 
-  // if the device height is greater than width (phone screens), the default
-  // view is list. Otherwise, in case of tablet screens, it will be table view.
   const { width, height } = useWindowDimensions()
-  const defaultView = height > width ? 'list' : 'table'
 
   const [addressPath, setAddressPath] = useState('')
   const [addressCount, setAddressCount] = useState(
     Math.max(1, Math.ceil(account.addresses.length / perPage)) * perPage
   )
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(false)
-  const [addressView, setAddressView] = useState<'table' | 'list'>(defaultView)
+  const [addressView, setAddressView] = useState<'table' | 'list'>('table')
 
   const isUpdatingAddresses = useRef(false)
   const isMultiAddressWatchOnly = useMemo(() => {
@@ -520,126 +654,6 @@ function DerivedAddresses({
     [] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
-  type SSAddressViewProps = {
-    addresses: Address[]
-  }
-
-  // TODO: in the refactor stage, move it to its own file
-  function SSAddressTable({ addresses }: SSAddressViewProps) {
-    return (
-      <ScrollView style={{ marginTop: 10 }} horizontal>
-        <SSVStack gap="none" style={{ width: ADDRESS_TABLE_WIDTH }}>
-          <SSHStack style={addressListStyles.headerRow}>
-            <SSText
-              style={[
-                addressListStyles.headerText,
-                addressListStyles.columnIndex
-              ]}
-            >
-              #
-            </SSText>
-            <SSText
-              style={[
-                addressListStyles.headerText,
-                addressListStyles.columnAddress
-              ]}
-            >
-              {t('bitcoin.address')}
-            </SSText>
-            <SSText
-              style={[
-                addressListStyles.headerText,
-                addressListStyles.columnLabel
-              ]}
-            >
-              {t('common.label')}
-            </SSText>
-            <SSText
-              style={[
-                addressListStyles.headerText,
-                addressListStyles.columnSats
-              ]}
-            >
-              {t('address.list.table.balance')}
-            </SSText>
-            <SSText
-              style={[
-                addressListStyles.headerText,
-                addressListStyles.columnTxs
-              ]}
-            >
-              {t('address.list.table.tx')}
-            </SSText>
-            <SSText
-              style={[
-                addressListStyles.headerText,
-                addressListStyles.columnUtxos
-              ]}
-            >
-              {t('address.list.table.utxo')}
-            </SSText>
-          </SSHStack>
-          <FlashList
-            data={addresses}
-            renderItem={renderItem}
-            estimatedItemSize={150}
-            keyExtractor={(item) => {
-              return `${item.index || ''}:${item.address}:${
-                item.keychain || ''
-              }`
-            }}
-            removeClippedSubviews
-            ListFooterComponent={
-              !isMultiAddressWatchOnly ? (
-                <SSButton
-                  variant="outline"
-                  uppercase
-                  style={{
-                    marginTop: 10,
-                    width: SCREEN_WIDTH * 0.88
-                  }}
-                  label={t('common.loadMore')}
-                  disabled={isLoadingAddresses}
-                  onPress={loadMoreAddresses}
-                />
-              ) : null
-            }
-          />
-        </SSVStack>
-      </ScrollView>
-    )
-  }
-
-  function SSAddressList({ addresses }: SSAddressViewProps) {
-    return (
-      <ScrollView>
-        <SSVStack style={{ paddingVertical: 10 }}>
-          {addresses.map((address, index) => {
-            const link = `/signer/bitcoin/account/${account.id}/address/${address.address}`
-            return (
-              <SSVStack key={address.address} gap="xs">
-                {index > 0 && <SSSeparator color="gradient" />}
-                <TouchableOpacity onPress={() => router.navigate(link)}>
-                  <AddressCard address={{ index, ...address }} />
-                </TouchableOpacity>
-              </SSVStack>
-            )
-          })}
-          {!isMultiAddressWatchOnly && (
-            <SSButton
-              variant="outline"
-              uppercase
-              style={{ marginTop: 10, alignSelf: 'stretch' }}
-              label={t('common.loadMore')}
-              disabled={isLoadingAddresses}
-              onPress={loadMoreAddresses}
-            />
-          )}
-        </SSVStack>
-      </ScrollView>
-    )
-  }
-
   return (
     <SSMainLayout style={addressListStyles.container}>
       <SSHStack justifyBetween style={addressListStyles.header}>
@@ -710,6 +724,10 @@ function DerivedAddresses({
                 ? address.keychain === 'internal'
                 : address.keychain === 'external')
           )}
+          renderItem={renderItem}
+          isMultiAddressWatchOnly={isMultiAddressWatchOnly}
+          isLoadingAddresses={isLoadingAddresses}
+          onLoadMore={loadMoreAddresses}
         />
       )}
       {addressView === 'list' && (
@@ -721,6 +739,10 @@ function DerivedAddresses({
                 ? address.keychain === 'internal'
                 : address.keychain === 'external')
           )}
+          accountId={account.id}
+          isMultiAddressWatchOnly={isMultiAddressWatchOnly}
+          isLoadingAddresses={isLoadingAddresses}
+          onLoadMore={loadMoreAddresses}
         />
       )}
       {isMultiAddressWatchOnly && (
