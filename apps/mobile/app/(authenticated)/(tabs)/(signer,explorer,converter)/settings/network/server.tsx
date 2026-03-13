@@ -290,22 +290,18 @@ export default function NetworkSettings() {
                           {customServers.includes(server) && (
                             <SSIconButton
                               style={{
-                                padding: 8,
+                                padding: 6,
                                 marginLeft: 8,
-                                marginRight: 4,
-                                backgroundColor: Colors.gray[800],
-                                borderRadius: 8,
-                                width: 40,
-                                height: 40,
-                                alignItems: 'center',
-                                justifyContent: 'center'
+                                borderWidth: 1,
+                                borderRadius: 400,
+                                borderColor: Colors.gray[600]
                               }}
                               onPress={() => handleRemove(server)}
                             >
                               <SSIconCloseThin
-                                color={Colors.gray[100]}
-                                width={18}
-                                height={18}
+                                color={Colors.gray[200]}
+                                width={10}
+                                height={10}
                               />
                             </SSIconButton>
                           )}
@@ -314,7 +310,7 @@ export default function NetworkSettings() {
                   </SSVStack>
                   <SSHStack
                     gap="sm"
-                    style={{ marginTop: 24, marginBottom: 8 }}
+                    style={{ marginTop: 12, marginBottom: 8 }}
                   >
                     <SSButton
                       label={tn('custom.add').toUpperCase()}
