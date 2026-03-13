@@ -2707,6 +2707,7 @@ function PreviewTransaction() {
                 showChecksum
                 showFingerprint
                 showPasteButton
+                showScanSeedQRButton
                 showActionButton
                 actionButtonLabel="Sign with Seed Words"
                 actionButtonVariant="secondary"
