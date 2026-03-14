@@ -188,9 +188,7 @@ export default function TransactionConfirmation() {
       prices: {}
     }
 
-    const spentOutpoints = new Set(
-      inputsList.map((u) => `${u.txid}:${u.vout}`)
-    )
+    const spentOutpoints = new Set(inputsList.map((u) => `${u.txid}:${u.vout}`))
     const remainingUtxos = account.utxos.filter(
       (u) => !spentOutpoints.has(`${u.txid}:${u.vout}`)
     )

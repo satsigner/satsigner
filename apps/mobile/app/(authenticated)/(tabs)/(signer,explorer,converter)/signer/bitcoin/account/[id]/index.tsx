@@ -148,7 +148,11 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
         >
           <SSHStack gap="sm" style={{ alignItems: 'center' }}>
             <SSIconOutgoing height={21} width={21} />
-            <SSText size="4xl" weight="light" style={{ color: Colors.gray[400] }}>
+            <SSText
+              size="4xl"
+              weight="light"
+              style={{ color: Colors.gray[400] }}
+            >
               {totalOut > 0 ? totalOut.toLocaleString() : '--'}
             </SSText>
             <SSText color="muted" size="sm">
@@ -159,7 +163,9 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
         <SSHStack justifyBetween style={{ marginTop: 2 }}>
           <SSText size="xs" color="muted">
             {inputs.size} {t('transaction.inputs')}
-            {outputs.length > 0 ? `, ${outputs.length} ${t('transaction.outputs')}` : ''}
+            {outputs.length > 0
+              ? `, ${outputs.length} ${t('transaction.outputs')}`
+              : ''}
             {fee > 0 ? `, ${fee.toLocaleString()} ${t('transaction.fee')}` : ''}
           </SSText>
           <TouchableOpacity
