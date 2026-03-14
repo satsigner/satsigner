@@ -1009,13 +1009,13 @@ function SatsInMempool({
                 label={t('bitcoin.rbf')}
                 variant="outline"
                 style={{ flex: 1 }}
-                onPress={() => {}}
+                onPress={() => toast.info(t('common.comingSoon'))}
               />
               <SSButton
                 label={t('bitcoin.accelerate')}
                 variant="outline"
                 style={{ flex: 1 }}
-                onPress={() => {}}
+                onPress={() => toast.info(t('common.comingSoon'))}
               />
             </SSHStack>
             <SSSeparator />
@@ -1423,7 +1423,10 @@ export default function AccountView() {
             </SSActionButton>
             <SSActionButton
               style={{ width: tabWidth }}
-              onPress={() => setTabIndex(3)}
+              onPress={() => {
+                toast.info(t('common.comingSoon'))
+                setTabIndex(3)
+              }}
             >
               <SSVStack gap="none">
                 <SSText center size="lg">

@@ -477,6 +477,7 @@
     "clipboardEmpty": "Clipboard is empty or doesn't contain a valid Bitcoin address, payment request, or PSBT",
     "clipboardHasContent": "Clipboard contains a Bitcoin address, payment request, or PSBT",
     "close": "Close",
+    "comingSoon": "Coming soon",
     "completed": "Completed",
     "confirm": "Confirm",
     "connected": "Connected",
