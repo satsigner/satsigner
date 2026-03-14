@@ -45,6 +45,7 @@ import {
   SSIconKeys,
   SSIconList,
   SSIconMenu,
+  SSIconOutgoing,
   SSIconRefresh,
   SSIconTable,
   SSIconYellowIndicator
@@ -86,6 +87,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Account } from '@/types/models/Account'
@@ -100,6 +102,82 @@ import { getUtxoOutpoint } from '@/utils/utxo'
 
 const TX_STAGGER_DELAY_MS = 70
 const TX_STAGGER_DURATION_MS = 320
+
+function DraftTransactionCard({ accountId }: { accountId: string }) {
+  const router = useRouter()
+  const [inputs, outputs, fee, clearTransaction] = useTransactionBuilderStore(
+    useShallow((state) => [
+      state.inputs,
+      state.outputs,
+      state.fee,
+      state.clearTransaction
+    ])
+  )
+
+  const totalOut = outputs.reduce((sum, o) => sum + o.amount, 0)
+
+  return (
+    <TouchableOpacity
+      onPress={() =>
+        router.navigate(
+          `/signer/bitcoin/account/${accountId}/signAndSend/ioPreview`
+        )
+      }
+      activeOpacity={0.7}
+    >
+      <SSVStack
+        gap="none"
+        style={{
+          paddingHorizontal: 0,
+          paddingTop: 4,
+          paddingBottom: 12,
+          opacity: 0.85
+        }}
+      >
+        <SSHStack justifyBetween>
+          <SSText color="muted" size="xs">
+            {t('transaction.draft')}
+          </SSText>
+          <SSText size="xs" style={{ color: Colors.warning }}>
+            {t('transaction.unsent')}
+          </SSText>
+        </SSHStack>
+        <SSHStack
+          justifyBetween
+          style={{ alignItems: 'flex-end', marginTop: 5 }}
+        >
+          <SSHStack gap="sm" style={{ alignItems: 'center' }}>
+            <SSIconOutgoing height={21} width={21} />
+            <SSText size="4xl" weight="light" style={{ color: Colors.gray[400] }}>
+              {totalOut > 0 ? totalOut.toLocaleString() : '--'}
+            </SSText>
+            <SSText color="muted" size="sm">
+              {t('bitcoin.sats')}
+            </SSText>
+          </SSHStack>
+        </SSHStack>
+        <SSHStack justifyBetween style={{ marginTop: 2 }}>
+          <SSText size="xs" color="muted">
+            {inputs.size} {t('transaction.inputs')}
+            {outputs.length > 0 ? `, ${outputs.length} ${t('transaction.outputs')}` : ''}
+            {fee > 0 ? `, ${fee.toLocaleString()} ${t('transaction.fee')}` : ''}
+          </SSText>
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation()
+              clearTransaction()
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <SSText size="xs" style={{ color: Colors.gray[500] }}>
+              {t('transaction.discard')}
+            </SSText>
+          </TouchableOpacity>
+        </SSHStack>
+      </SSVStack>
+    </TouchableOpacity>
+  )
+}
 
 function TransactionStaggerItem({
   index,
@@ -165,6 +243,20 @@ function TotalTransactions({
   blockchainHeight,
   sortDirection
 }: TotalTransactionsProps) {
+  const [draftAccountId, draftInputs, draftOutputs, draftBroadcasted] =
+    useTransactionBuilderStore(
+      useShallow((state) => [
+        state.accountId,
+        state.inputs,
+        state.outputs,
+        state.broadcasted
+      ])
+    )
+
+  const hasDraft =
+    draftAccountId === account.id &&
+    !draftBroadcasted &&
+    (draftInputs.size > 0 || draftOutputs.length > 0)
   const router = useRouter()
 
   const [btcPrice, fiatCurrency] = usePriceStore(
@@ -260,6 +352,11 @@ function TotalTransactions({
           <View style={styles.listWithLoader}>
             <FlashList
               data={sortedTransactions.slice().reverse()}
+              ListHeaderComponent={
+                hasDraft ? (
+                  <DraftTransactionCard accountId={account.id} />
+                ) : null
+              }
               renderItem={({ item, index }) => (
                 <TransactionStaggerItem index={index}>
                   <SSVStack gap="none">
@@ -366,18 +463,12 @@ function SSAddressTable({
             {t('common.label')}
           </SSText>
           <SSText
-            style={[
-              addressListStyles.headerText,
-              addressListStyles.columnSats
-            ]}
+            style={[addressListStyles.headerText, addressListStyles.columnSats]}
           >
             {t('address.list.table.balance')}
           </SSText>
           <SSText
-            style={[
-              addressListStyles.headerText,
-              addressListStyles.columnTxs
-            ]}
+            style={[addressListStyles.headerText, addressListStyles.columnTxs]}
           >
             {t('address.list.table.tx')}
           </SSText>
@@ -476,7 +567,7 @@ function DerivedAddresses({
   ) as Network
   const updateAccount = useAccountsStore((state) => state.updateAccount)
 
-  const { width, height } = useWindowDimensions()
+  const _windowDimensions = useWindowDimensions()
 
   const [addressPath, setAddressPath] = useState('')
   const [addressCount, setAddressCount] = useState(
@@ -1008,7 +1099,11 @@ export default function AccountView() {
 
   const [connectionState, , isPrivateConnection, connectionParts] =
     useVerifyConnection()
-  const { blockHeight: networkBlockHeight, nextBlockFee } = useNetworkInfo()
+  const {
+    blockHeight: networkBlockHeight,
+    nextBlockFee,
+    blockHeightSource
+  } = useNetworkInfo()
 
   const bitcoinContentHandler = useBitcoinContentHandler({
     accountId: id!,
@@ -1153,7 +1248,10 @@ export default function AccountView() {
         )
       case 'satsInMempool':
         return (
-          <SatsInMempool account={account} blockchainHeight={blockchainHeight} />
+          <SatsInMempool
+            account={account}
+            blockchainHeight={blockchainHeight}
+          />
         )
       default:
         return null
@@ -1373,10 +1471,10 @@ export default function AccountView() {
           headerRight
         }}
       />
-      <TouchableOpacity
-        onPress={() => router.navigate('/settings/network/server')}
-      >
-        <SSVStack gap="none" style={{ alignItems: 'center' }}>
+      <SSVStack gap="none" style={{ alignItems: 'center' }}>
+        <TouchableOpacity
+          onPress={() => router.navigate('/settings/network/server')}
+        >
           <SSHStack style={{ justifyContent: 'center', gap: 0 }}>
             {connectionState ? (
               isPrivateConnection ? (
@@ -1411,14 +1509,15 @@ export default function AccountView() {
               </SSText>
             </SSHStack>
           </SSHStack>
-          <SSBlockFeePriceRow
-            blockHeight={networkBlockHeight}
-            btcPrice={btcPrice}
-            fiatCurrency={fiatCurrency}
-            nextBlockFee={nextBlockFee}
-          />
-        </SSVStack>
-      </TouchableOpacity>
+        </TouchableOpacity>
+        <SSBlockFeePriceRow
+          blockHeight={networkBlockHeight}
+          btcPrice={btcPrice}
+          fiatCurrency={fiatCurrency}
+          nextBlockFee={nextBlockFee}
+          blockHeightSource={blockHeightSource}
+        />
+      </SSVStack>
       {!expand && (
         <Animated.View style={{ paddingTop: 20 }}>
           <SSVStack itemsCenter gap="none">

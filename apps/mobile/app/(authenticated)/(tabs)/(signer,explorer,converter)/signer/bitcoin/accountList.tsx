@@ -257,7 +257,7 @@ export default function AccountList() {
 
   const [connectionState, , isPrivateConnection, connectionParts] =
     useVerifyConnection()
-  const { blockHeight, nextBlockFee } = useNetworkInfo()
+  const { blockHeight, nextBlockFee, blockHeightSource } = useNetworkInfo()
 
   useEffect(() => {
     const currentNetwork = tabs[tabIndex].key as Network
@@ -360,7 +360,7 @@ export default function AccountList() {
       throw new Error('Failed to set or retrieve PIN')
     }
 
-    setName(`Sample Wallet (${type})`)
+    setName(`Sample (${type})`)
     setKeyCount(1)
     setKeysRequired(1)
 
@@ -761,10 +761,10 @@ export default function AccountList() {
           )
         }}
       />
-      <TouchableOpacity
-        onPress={() => router.navigate('/settings/network/server')}
-      >
-        <SSVStack gap="none" style={{ alignItems: 'center', marginBottom: 24 }}>
+      <SSVStack gap="none" style={{ alignItems: 'center', marginBottom: 24 }}>
+        <TouchableOpacity
+          onPress={() => router.navigate('/settings/network/server')}
+        >
           <SSHStack style={{ justifyContent: 'center', gap: 0 }}>
             {connectionState ? (
               isPrivateConnection ? (
@@ -795,15 +795,16 @@ export default function AccountList() {
               {connectionParts.url}
             </SSText>
           </SSHStack>
+        </TouchableOpacity>
 
-          <SSBlockFeePriceRow
-            blockHeight={blockHeight}
-            btcPrice={btcPrice}
-            fiatCurrency={fiatCurrency}
-            nextBlockFee={nextBlockFee}
-          />
-        </SSVStack>
-      </TouchableOpacity>
+        <SSBlockFeePriceRow
+          blockHeight={blockHeight}
+          btcPrice={btcPrice}
+          fiatCurrency={fiatCurrency}
+          nextBlockFee={nextBlockFee}
+          blockHeightSource={blockHeightSource}
+        />
+      </SSVStack>
       <SSHStack style={{ paddingHorizontal: '5%' }}>
         <View style={{ flex: 1 }}>
           <SSButton

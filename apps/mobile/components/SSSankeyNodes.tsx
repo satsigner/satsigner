@@ -527,7 +527,6 @@ function NodeText({
     ioData?.feePercentage,
     ioData?.address,
     ioData.label,
-    isPastMinerFee,
     isHigherCurrentMinerFee,
     isChange,
     isSelfSend

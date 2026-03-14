@@ -56,6 +56,11 @@ function SSTransactionDetails({
   }, [originalPsbt, accounts])
 
   const signedPsbts = extractIndividualSignedPsbts(combinedPsbt, originalPsbt)
+  const matchedAccount = accountMatch?.account || account
+  const ownAddresses = useMemo(
+    () => new Set(matchedAccount?.addresses?.map((a) => a.address) ?? []),
+    [matchedAccount]
+  )
 
   if (!txid) {
     return (
@@ -68,13 +73,6 @@ function SSTransactionDetails({
   const keysRequired = multisigInfo?.required || 0
   const keyCount = multisigInfo?.total || 0
   const isMultisig = keyCount > 1
-
-  const matchedAccount = accountMatch?.account || account
-  const ownAddresses = useMemo(
-    () =>
-      new Set(matchedAccount?.addresses?.map((a) => a.address) ?? []),
-    [matchedAccount]
-  )
 
   let extractedData = null
   if (originalPsbt && matchedAccount) {

@@ -8,7 +8,7 @@ import { type Backend, type ProxyConfig } from '@/types/settings/blockchain'
 const MEMPOOL_MAINNET_URL = 'https://mempool.space/api'
 const MEMPOOL_SIGNET_URL = 'ssl://mempool.space:60602'
 const MEMPOOL_TESTNET_URL = 'https://mempool.space/testnet4/api'
-const DEFAULT_TIME_OUT = 6
+const DEFAULT_TIME_OUT = 15
 const DEFAULT_RETRIES = 5
 const DEFAULT_STOP_GAP = 20
 

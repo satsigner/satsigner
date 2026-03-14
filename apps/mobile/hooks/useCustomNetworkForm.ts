@@ -128,13 +128,46 @@ export function useCustomNetworkForm() {
     }
   }, [])
 
+  function applyPastedUrl(urlString: string): boolean {
+    const raw = urlString.trim()
+    if (!raw) return false
+    const electrumMatch = raw.match(/^(ssl|tls|tcp):\/\/([^:/]+):(\d+)$/)
+    if (electrumMatch) {
+      const protocol =
+        electrumMatch[1] === 'ssl' || electrumMatch[1] === 'tls' ? 'ssl' : 'tcp'
+      setFormData((prev) => ({
+        ...prev,
+        backend: 'electrum',
+        protocol,
+        host: electrumMatch[2],
+        port: electrumMatch[3]
+      }))
+      return true
+    }
+    try {
+      const u = new URL(raw)
+      if (u.protocol !== 'https:') return false
+      const port = u.port && u.port !== '443' ? u.port : ''
+      setFormData((prev) => ({
+        ...prev,
+        backend: 'esplora',
+        host: u.hostname,
+        port
+      }))
+      return true
+    } catch {
+      return false
+    }
+  }
+
   return {
+    applyPastedUrl,
     formData,
+    loadServer,
+    resetForm,
     updateField,
     updateProxyField,
     constructUrl,
-    constructTrimmedUrl,
-    resetForm,
-    loadServer
+    constructTrimmedUrl
   }
 }

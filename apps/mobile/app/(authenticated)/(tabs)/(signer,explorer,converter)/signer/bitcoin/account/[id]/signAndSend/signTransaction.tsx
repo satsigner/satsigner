@@ -179,19 +179,19 @@ export default function SignTransaction() {
     setBroadcasting(true)
 
     try {
-      let broadcastSuccess = false
       if (signedTx) {
-        broadcastSuccess = await handleBroadcastMultiSig()
+        await handleBroadcastMultiSig()
       } else if (psbt) {
-        broadcastSuccess = await handleBroadcastSingleSig()
+        const success = await handleBroadcastSingleSig()
+        if (!success) throw new Error('Broadcast failed')
+      } else {
+        throw new Error('No transaction to broadcast')
       }
 
-      if (broadcastSuccess) {
-        setBroadcasted(true)
-        router.navigate(
-          `/signer/bitcoin/account/${id}/signAndSend/transactionConfirmation`
-        )
-      }
+      setBroadcasted(true)
+      router.navigate(
+        `/signer/bitcoin/account/${id}/signAndSend/transactionConfirmation`
+      )
     } catch (error) {
       const errorMessage =
         error instanceof Error

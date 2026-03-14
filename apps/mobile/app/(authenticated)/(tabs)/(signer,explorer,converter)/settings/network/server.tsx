@@ -114,7 +114,23 @@ export default function NetworkSettings() {
         })
         setTestingServer(null)
       }
-      // Success toast will be shown by useEffect when block height is captured
+      // Success toast is shown by the useEffect below when block height is
+      // captured. For Electrum servers that don't expose block height the
+      // useEffect never fires, so we show the toast here as a fallback after
+      // a short delay (giving the useEffect a chance to run first).
+      if (result.success && server.backend === 'electrum') {
+        setTimeout(() => {
+          setTestingServer((prev) => {
+            if (prev === server.url) {
+              toast.success(`${server.name} (${server.url})`, {
+                description: tn('tester.success')
+              })
+              return null
+            }
+            return prev
+          })
+        }, 500)
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : tn('tester.error')
@@ -133,9 +149,7 @@ export default function NetworkSettings() {
   }
 
   function handleEditCustomServer(network: Network, server: Server) {
-    router.push(
-      `./${network}?editUrl=${encodeURIComponent(server.url)}`
-    )
+    router.push(`./${network}?editUrl=${encodeURIComponent(server.url)}`)
   }
 
   return (
@@ -308,10 +322,7 @@ export default function NetworkSettings() {
                         </SSHStack>
                       ))}
                   </SSVStack>
-                  <SSHStack
-                    gap="sm"
-                    style={{ marginTop: 12, marginBottom: 8 }}
-                  >
+                  <SSHStack gap="sm" style={{ marginTop: 12, marginBottom: 8 }}>
                     <SSButton
                       label={tn('custom.add').toUpperCase()}
                       onPress={() => router.push(`./${network}`)}

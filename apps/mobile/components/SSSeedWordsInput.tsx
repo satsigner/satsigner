@@ -16,7 +16,6 @@ import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { type MnemonicWordCount } from '@/types/models/Account'
-import { type DetectedContent } from '@/utils/contentDetector'
 import { getFingerprintFromSeed } from '@/utils/bip32'
 import {
   detectElectrumSeed,
@@ -26,6 +25,7 @@ import {
   validateMnemonic,
   type WordListName
 } from '@/utils/bip39'
+import { type DetectedContent } from '@/utils/contentDetector'
 
 type SeedWordInfo = {
   value: string

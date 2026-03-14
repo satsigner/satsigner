@@ -27,12 +27,11 @@ export default class Esplora {
       // Handle different content types
       if (contentType.includes('application/json')) {
         return await response.json()
-      } else if (contentType.includes('text/')) {
-        return await response.text()
       } else if (contentType.includes('application/octet-stream')) {
-        return await response.arrayBuffer() // For binary data
+        return await response.arrayBuffer()
       } else {
-        throw new Error(`Unsupported Content-Type: ${contentType}`)
+        // text/plain, text/html, missing content-type, etc. — return as text
+        return await response.text()
       }
     } catch (e) {
       throw new Error(getVerboseErrorMessage(e))

@@ -106,9 +106,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={styles.container}>
         <Slot />
-        {privacyScreenVisible && (
-          <View style={styles.privacyScreen} />
-        )}
+        {privacyScreenVisible && <View style={styles.privacyScreen} />}
         <Toaster
           theme="dark"
           position="top-center"

@@ -171,10 +171,7 @@ export default function SetPin() {
             </SSText>
           </SSVStack>
           {stage === 'verify' && (
-            <SSPinInput
-              pin={currentPinArray}
-              setPin={handleCurrentPinChange}
-            />
+            <SSPinInput pin={currentPinArray} setPin={handleCurrentPinChange} />
           )}
           {stage === 'set' && (
             <SSPinInput pin={pinArray} setPin={setPinArray} />

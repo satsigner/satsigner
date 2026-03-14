@@ -62,12 +62,7 @@ function useVerifyConnection() {
     } catch {
       setConnectionState(false)
     }
-  }, [
-    server.backend,
-    server.network,
-    config.timeout,
-    server.url
-  ])
+  }, [server.backend, server.network, config.timeout, server.url])
 
   const checkConnection = useCallback(async () => {
     const state = await NetInfo.fetch()
