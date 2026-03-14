@@ -936,11 +936,26 @@ function SpendableOutputs({
           }
         >
           <SSVStack style={{ marginBottom: 16 }}>
-            {sortUtxos([...account.utxos]).map((utxo) => (
-              <SSVStack gap="xs" key={getUtxoOutpoint(utxo)}>
-                <SSUtxoCard utxo={utxo} totalBalance={totalBalance} />
-              </SSVStack>
-            ))}
+            {sortUtxos([...account.utxos]).map((utxo) => {
+              const idx = account.addresses.findIndex(
+                (a) =>
+                  (a.address || '').trim() === (utxo.addressTo || '').trim()
+              )
+              const addressEntry = idx >= 0 ? account.addresses[idx] : null
+              const addressIndex =
+                addressEntry !== null
+                  ? (addressEntry.index ?? idx)
+                  : undefined
+              return (
+                <SSVStack gap="xs" key={getUtxoOutpoint(utxo)}>
+                  <SSUtxoCard
+                    utxo={utxo}
+                    totalBalance={totalBalance}
+                    addressIndex={addressIndex}
+                  />
+                </SSVStack>
+              )
+            })}
           </SSVStack>
         </ScrollView>
       )}
@@ -1423,10 +1438,7 @@ export default function AccountView() {
             </SSActionButton>
             <SSActionButton
               style={{ width: tabWidth }}
-              onPress={() => {
-                toast.info(t('common.comingSoon'))
-                setTabIndex(3)
-              }}
+              onPress={() => setTabIndex(3)}
             >
               <SSVStack gap="none">
                 <SSText center size="lg">

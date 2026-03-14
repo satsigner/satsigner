@@ -270,14 +270,24 @@ export default function SelectUtxoList() {
         >
           <FlashList
             data={sortUtxos([...account.utxos])}
-            renderItem={({ item }) => (
-              <SSUtxoItem
-                utxo={item}
-                selected={hasInput(item)}
-                onToggleSelected={handleOnToggleSelected}
-                largestValue={largestValue}
-              />
-            )}
+            renderItem={({ item }) => {
+              const idx = account.addresses.findIndex(
+                (a) =>
+                  (a.address || '').trim() === (item.addressTo || '').trim()
+              )
+              const addressEntry = idx >= 0 ? account.addresses[idx] : null
+              const addressIndex =
+                addressEntry !== null ? (addressEntry.index ?? idx) : undefined
+              return (
+                <SSUtxoItem
+                  utxo={item}
+                  selected={hasInput(item)}
+                  onToggleSelected={handleOnToggleSelected}
+                  largestValue={largestValue}
+                  addressIndex={addressIndex}
+                />
+              )
+            }}
             estimatedItemSize={110}
           />
         </View>

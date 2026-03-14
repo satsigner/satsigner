@@ -740,6 +740,12 @@ async function getWalletAddressesUsingStopGap(
         satsInMempool: 0
       }
     })
+
+    // Extend stop-gap for internal (change) addresses too so high-index
+    // change UTXOs are always included in account.addresses
+    if (seenAddresses[changeAddr] !== undefined && i > lastIndexWithFunds) {
+      lastIndexWithFunds = i
+    }
   }
 
   return addresses

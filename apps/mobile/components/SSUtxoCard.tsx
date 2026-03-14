@@ -21,9 +21,10 @@ import SSUtxoBar from './SSUtxoBar'
 type SSUtxoCardProps = {
   utxo: Utxo
   totalBalance?: number
+  addressIndex?: number
 }
 
-function SSUtxoCard({ utxo, totalBalance }: SSUtxoCardProps) {
+function SSUtxoCard({ utxo, totalBalance, addressIndex }: SSUtxoCardProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
@@ -72,10 +73,15 @@ function SSUtxoCard({ utxo, totalBalance }: SSUtxoCardProps) {
           </SSHStack>
         </SSVStack>
         <SSVStack gap="none" style={{ alignItems: 'flex-end' }}>
-          <SSHStack>
+          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
             <SSText>
               {utxo.addressTo && formatAddress(utxo.addressTo || '')}
             </SSText>
+            {typeof addressIndex === 'number' && (
+              <SSText color="muted" size="sm">
+                ({addressIndex})
+              </SSText>
+            )}
           </SSHStack>
           <SSText color="muted">
             {utxo.timestamp && (
