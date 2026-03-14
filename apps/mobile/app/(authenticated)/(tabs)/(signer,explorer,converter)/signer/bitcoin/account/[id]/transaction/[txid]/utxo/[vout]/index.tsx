@@ -14,6 +14,7 @@ import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import useGetAccountTransactionOutput from '@/hooks/useGetAccountTransactionOutput'
+import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
@@ -32,6 +33,7 @@ type UtxoDetailsProps = {
   ownAddresses?: Set<string>
   tx?: Transaction
   utxo?: Utxo
+  addressIndex?: number
 }
 
 function UtxoDetails({
@@ -42,6 +44,7 @@ function UtxoDetails({
   ownAddresses = new Set(),
   tx,
   utxo,
+  addressIndex,
   allAccountUtxos
 }: UtxoDetailsProps & { allAccountUtxos: Utxo[] }) {
   const [blockTime, setBlockTime] = useState('')
@@ -126,9 +129,16 @@ function UtxoDetails({
         <SSSeparator color="gradient" />
         <SSVStack>
           <SSVStack gap="sm">
-            <SSText weight="bold" uppercase>
-              {t('utxo.address')}
-            </SSText>
+            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+              <SSText weight="bold" uppercase>
+                {t('utxo.address')}
+              </SSText>
+              {typeof addressIndex === 'number' && (
+                <SSText color="muted" size="sm" style={{ fontWeight: 'normal' }}>
+                  ({addressIndex})
+                </SSText>
+              )}
+            </SSHStack>
             <SSAddressDisplay address={utxo?.addressTo || '-'} />
             <SSButton
               variant="outline"
@@ -206,6 +216,17 @@ function UtxoDetailsPage() {
 
   const utxo = useGetAccountTransactionOutput(accountId!, txid!, Number(vout!))
 
+  const addressIndex = useMemo(() => {
+    if (!account || !utxo?.addressTo) return undefined
+    const idx = account.addresses.findIndex(
+      (a) =>
+        (a.address || '').trim() === (utxo.addressTo || '').trim()
+    )
+    if (idx < 0) return undefined
+    const addressEntry = account.addresses[idx]
+    return addressEntry?.index ?? idx
+  }, [account, utxo?.addressTo])
+
   const allAccountUtxos = account?.utxos || []
   const ownAddresses = useMemo(
     () => new Set(account?.addresses?.map((a) => a.address) ?? []),
@@ -249,6 +270,7 @@ function UtxoDetailsPage() {
           ownAddresses={ownAddresses}
           tx={tx}
           utxo={utxo}
+          addressIndex={addressIndex}
           allAccountUtxos={allAccountUtxos}
         />
       </View>

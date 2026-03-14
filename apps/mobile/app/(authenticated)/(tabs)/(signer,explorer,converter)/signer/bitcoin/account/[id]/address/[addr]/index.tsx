@@ -101,8 +101,13 @@ function AddressDetails() {
     }
   }, [address])
 
-  if (!account || !addr || !address) {
+  if (!account || !addr) {
     return <Redirect href="/" />
+  }
+
+  if (!address) {
+    router.back()
+    return null
   }
 
   return (

@@ -22,13 +22,15 @@ type SSUtxoItemProps = {
   selected: boolean
   largestValue: number
   onToggleSelected(utxo: Utxo): void
+  addressIndex?: number
 }
 
 function SSUtxoItem({
   utxo,
   selected,
   largestValue,
-  onToggleSelected
+  onToggleSelected,
+  addressIndex
 }: SSUtxoItemProps) {
   const priceStore = usePriceStore()
   const [currencyUnit, useZeroPadding] = useSettingsStore(
@@ -87,9 +89,16 @@ function SSUtxoItem({
             </SSVStack>
           </SSHStack>
           <SSVStack gap="xs" style={{ alignSelf: 'flex-start' }}>
-            <SSText>
-              {utxo.addressTo ? formatAddress(utxo.addressTo) : ''}
-            </SSText>
+            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+              <SSText>
+                {utxo.addressTo ? formatAddress(utxo.addressTo) : ''}
+              </SSText>
+              {typeof addressIndex === 'number' && (
+                <SSText color="muted" size="sm">
+                  ({addressIndex})
+                </SSText>
+              )}
+            </SSHStack>
             <SSText style={{ color: Colors.gray[100], alignSelf: 'flex-end' }}>
               {utxo.timestamp ? formatDate(utxo.timestamp) : ''}
             </SSText>
