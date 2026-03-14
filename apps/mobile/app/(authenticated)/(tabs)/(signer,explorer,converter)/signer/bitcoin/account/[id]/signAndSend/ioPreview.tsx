@@ -148,7 +148,7 @@ export default function IOPreview() {
     ])
   )
 
-  const { blockHeight, nextBlockFee } = useNetworkInfo()
+  const { blockHeight, nextBlockFee, blockHeightSource } = useNetworkInfo()
 
   type AutoSelectUtxosAlgorithms = 'user' | 'privacy' | 'efficiency'
   const [selectedAutoSelectUtxos, setSelectedAutoSelectUtxos] =
@@ -683,6 +683,7 @@ export default function IOPreview() {
               btcPrice={btcPrice}
               fiatCurrency={fiatCurrency}
               nextBlockFee={nextBlockFee}
+              blockHeightSource={blockHeightSource}
             />
             <SSVStack itemsCenter gap="xs">
               <SSText>

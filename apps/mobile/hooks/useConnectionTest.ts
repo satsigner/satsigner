@@ -73,27 +73,42 @@ export function useConnectionTest() {
         setCurrentClient(client)
 
         const serverInfo = await client.client.initElectrum(
-          { client: 'satsigner', version: '0.0' },
+          { client: 'satsigner', version: '1.4' },
           { maxRetry: 0, callback: null }
         )
 
         const responseTime = Date.now() - startTime
 
-        // Try to get additional blockchain info with available methods
+        // Try block height via headers subscribe
+        let blockHeight = 0
+        try {
+          const tip = await (client.client as any).blockchainHeaders_subscribe()
+          if (tip?.height) {
+            blockHeight = tip.height as number
+          }
+        } catch {
+          // optional — not all servers support headers subscribe
+        }
+
+        // Try mempool fee histogram for mempool size
         let mempoolSize
-        const mempoolInfo = await (client.client as any)
-          .mempool_get_fee_histogram?.()
-          .catch(() => null)
-        if (mempoolInfo && Array.isArray(mempoolInfo)) {
-          mempoolSize = mempoolInfo.reduce((sum: number, item: any) => {
-            return sum + (Array.isArray(item) && item[1] ? item[1] : 0)
-          }, 0)
+        try {
+          const mempoolInfo = await (
+            client.client as any
+          ).mempool_get_fee_histogram?.()
+          if (mempoolInfo && Array.isArray(mempoolInfo)) {
+            mempoolSize = mempoolInfo.reduce((sum: number, item: any) => {
+              return sum + (Array.isArray(item) && item[1] ? item[1] : 0)
+            }, 0)
+          }
+        } catch {
+          // optional
         }
 
         setNodeInfo({
           version: (serverInfo as any)?.[1] || 'Unknown',
           software: (serverInfo as any)?.[0] || 'Electrum',
-          blockHeight: 0, // blockHeight not available in this client
+          blockHeight,
           responseTime,
           network: network as string,
           mempoolSize

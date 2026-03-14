@@ -38,11 +38,7 @@ export default function TxDetails() {
   const [account, tx, loadTx] = useAccountsStore(
     useShallow((state) => {
       const acc = state.accounts.find((a) => a.id === accountId)
-      return [
-        acc,
-        acc?.transactions.find((t) => t.id === txid),
-        state.loadTx
-      ]
+      return [acc, acc?.transactions.find((t) => t.id === txid), state.loadTx]
     })
   )
   const ownAddresses = useMemo(
@@ -136,10 +132,7 @@ export default function TxDetails() {
           <SSText uppercase color="muted">
             {t('transaction.details.chart')}
           </SSText>
-          <SSTransactionChart
-            transaction={tx}
-            ownAddresses={ownAddresses}
-          />
+          <SSTransactionChart transaction={tx} ownAddresses={ownAddresses} />
         </SSVStack>
         <SSSeparator color="gradient" />
         <SSDetailsList

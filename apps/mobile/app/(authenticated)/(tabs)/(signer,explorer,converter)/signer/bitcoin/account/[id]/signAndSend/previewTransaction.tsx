@@ -78,7 +78,10 @@ import {
   validateSignedPSBTForCosigner
 } from '@/utils/psbt'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
-import { estimateTransactionSize, legacyEstimateTransactionSize } from '@/utils/transaction'
+import {
+  estimateTransactionSize,
+  legacyEstimateTransactionSize
+} from '@/utils/transaction'
 import {
   decodeMultiPartURToPSBT,
   decodeURToPSBT,
@@ -839,9 +842,10 @@ function PreviewTransaction() {
 
   const transaction = useMemo(() => {
     const inputArray = Array.from(inputs.values())
-    const { size, vsize } = inputArray.length > 0
-      ? estimateTransactionSize(inputArray, outputs)
-      : legacyEstimateTransactionSize(inputs.size, outputs.length)
+    const { size, vsize } =
+      inputArray.length > 0
+        ? estimateTransactionSize(inputArray, outputs)
+        : legacyEstimateTransactionSize(inputs.size, outputs.length)
 
     const vin = Array.from(inputs.values()).map((input: Utxo) => ({
       previousOutput: { txid: input.txid, vout: input.vout },
@@ -889,7 +893,7 @@ function PreviewTransaction() {
         const inputArray = Array.from(inputs.values())
         const outputArray = Array.from(outputs.values())
 
-            const transaction = await buildTransaction(
+        const transaction = await buildTransaction(
           wallet,
           {
             inputs: inputArray,
