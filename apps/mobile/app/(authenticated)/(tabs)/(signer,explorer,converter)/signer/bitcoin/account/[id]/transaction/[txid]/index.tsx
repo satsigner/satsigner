@@ -1,6 +1,12 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, InteractionManager, ScrollView, StyleSheet, View } from 'react-native'
+import {
+  ActivityIndicator,
+  InteractionManager,
+  ScrollView,
+  StyleSheet,
+  View
+} from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getTransactionInputValues } from '@/api/bdk'
@@ -146,7 +152,10 @@ export default function TxDetails() {
               <SSText uppercase color="muted">
                 {t('transaction.details.chart')}
               </SSText>
-              <SSTransactionChart transaction={tx} ownAddresses={ownAddresses} />
+              <SSTransactionChart
+                transaction={tx}
+                ownAddresses={ownAddresses}
+              />
             </SSVStack>
             <SSSeparator color="gradient" />
             <SSDetailsList

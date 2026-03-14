@@ -65,7 +65,9 @@ export function useNetworkInfo() {
       const mempoolUrl = configsMempool[selectedNetwork]
       const oracle = new MempoolOracle(mempoolUrl)
       const [mempoolHeight, fees] = await Promise.all([
-        height === null ? oracle.getCurrentBlockHeight() : Promise.resolve(null),
+        height === null
+          ? oracle.getCurrentBlockHeight()
+          : Promise.resolve(null),
         oracle.getMemPoolFees()
       ])
       if (height === null && mempoolHeight !== null) {

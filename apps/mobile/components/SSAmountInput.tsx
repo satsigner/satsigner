@@ -34,9 +34,7 @@ function SSAmountInput({
 }: SSAmountInputProps) {
   const [localValue, setLocalValue] = useState(value)
   const [amountMode, setAmountMode] = useState<'sats' | 'fiat'>('sats')
-  const [localFiatValue, setLocalFiatValue] = useState(
-    () => satsToFiat(value)
-  )
+  const [localFiatValue, setLocalFiatValue] = useState(() => satsToFiat(value))
 
   function handleSatsChange(text: string) {
     const sats = Number(text)
@@ -48,7 +46,10 @@ function SSAmountInput({
   function handleFiatChange(text: string) {
     const fiat = Number(text)
     if (isNaN(fiat) || !btcPrice || btcPrice <= 0) return
-    const sats = Math.max(min, Math.min(max, Math.round((fiat / btcPrice) * 1e8)))
+    const sats = Math.max(
+      min,
+      Math.min(max, Math.round((fiat / btcPrice) * 1e8))
+    )
     setLocalFiatValue(fiat)
     setLocalValue(sats)
     onValueChange(sats)
@@ -84,7 +85,7 @@ function SSAmountInput({
           min={fiatMin}
           max={fiatMax}
           suffix={fiatCurrency}
-          allowDecimal={true}
+          allowDecimal
           value={String(localFiatValue.toFixed(2))}
           onChangeText={handleFiatChange}
         />

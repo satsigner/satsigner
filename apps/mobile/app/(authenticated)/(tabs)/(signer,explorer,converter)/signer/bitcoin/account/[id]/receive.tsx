@@ -62,7 +62,11 @@ export default function Receive() {
   } = useNFCEmitter()
 
   const [fiatCurrency, btcPrice, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.btcPrice, state.satsToFiat])
+    useShallow((state) => [
+      state.fiatCurrency,
+      state.btcPrice,
+      state.satsToFiat
+    ])
   )
 
   const saveLabelTimeoutRef = useRef<NodeJS.Timeout>()
@@ -281,7 +285,9 @@ export default function Receive() {
 
   function handleFiatAmountChange(text: string) {
     // Allow digits and a single decimal point
-    const cleaned = text.replace(/[^0-9.]/g, '').replace(/^(\d*\.?\d*).*$/, '$1')
+    const cleaned = text
+      .replace(/[^0-9.]/g, '')
+      .replace(/^(\d*\.?\d*).*$/, '$1')
     setLocalFiatAmount(cleaned)
     const sats = getSatsFromFiat(cleaned)
     setLocalCustomAmount(sats !== null ? sats.toString() : undefined)
