@@ -1,6 +1,6 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
-import { ScrollView, StyleSheet } from 'react-native'
+import { ActivityIndicator, InteractionManager, ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getTransactionInputValues } from '@/api/bdk'
@@ -54,6 +54,7 @@ export default function TxDetails() {
 
   const placeholder = '-'
 
+  const [isReady, setIsReady] = useState(false)
   const [fee, setFee] = useState(placeholder)
   const [feePerByte, setFeePerByte] = useState(placeholder)
   const [feePerVByte, setFeePerVByte] = useState(placeholder)
@@ -65,6 +66,13 @@ export default function TxDetails() {
   const [version, setVersion] = useState(placeholder)
   const [vsize, setVsize] = useState(placeholder)
   const [weight, setWeight] = useState(placeholder)
+
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      setIsReady(true)
+    })
+    return () => task.cancel()
+  }, [])
 
   async function updateInfo() {
     if (!tx) return
@@ -127,59 +135,67 @@ export default function TxDetails() {
           link={`/signer/bitcoin/account/${accountId}/transaction/${txid}/label`}
           header={t('transaction.label')}
         />
-        <SSVStack style={{ paddingTop: 50 }}>
-          <SSSeparator color="gradient" />
-          <SSText uppercase color="muted">
-            {t('transaction.details.chart')}
-          </SSText>
-          <SSTransactionChart transaction={tx} ownAddresses={ownAddresses} />
-        </SSVStack>
-        <SSSeparator color="gradient" />
-        <SSDetailsList
-          columns={3}
-          headerSize="sm"
-          textSize="md"
-          uppercase={false}
-          items={[
-            [t('transaction.block'), height, { width: '100%' }],
-            [
-              t('transaction.hash'),
-              txid,
-              { width: '100%', copyToClipboard: true }
-            ],
-            [t('transaction.size'), size],
-            [t('transaction.weight'), weight],
-            [t('transaction.vsize'), vsize],
-            [t('transaction.fee'), fee],
-            [t('transaction.feeBytes'), feePerByte],
-            [t('transaction.feeVBytes'), feePerVByte],
-            [t('transaction.version'), version],
-            [t('transaction.input.count'), inputsCount],
-            [t('transaction.output.count'), outputsCount]
-          ]}
-        />
-        <SSSeparator color="gradient" />
-        <SSVStack gap="sm">
-          <SSText
-            uppercase
-            color="muted"
-            style={{ marginBottom: -30, marginTop: 50 }}
-          >
-            {t('transaction.decoded.title')}
-          </SSText>
-          {raw !== '' ? (
-            <SSTransactionDecoded txHex={raw} />
-          ) : (
-            <SSText>{placeholder}</SSText>
-          )}
-        </SSVStack>
+        {!isReady ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator color="white" size="large" />
+          </View>
+        ) : (
+          <>
+            <SSVStack style={{ paddingTop: 50 }}>
+              <SSSeparator color="gradient" />
+              <SSText uppercase color="muted">
+                {t('transaction.details.chart')}
+              </SSText>
+              <SSTransactionChart transaction={tx} ownAddresses={ownAddresses} />
+            </SSVStack>
+            <SSSeparator color="gradient" />
+            <SSDetailsList
+              columns={3}
+              headerSize="sm"
+              textSize="md"
+              uppercase={false}
+              items={[
+                [t('transaction.block'), height, { width: '100%' }],
+                [
+                  t('transaction.hash'),
+                  txid,
+                  { width: '100%', copyToClipboard: true }
+                ],
+                [t('transaction.size'), size],
+                [t('transaction.weight'), weight],
+                [t('transaction.vsize'), vsize],
+                [t('transaction.fee'), fee],
+                [t('transaction.feeBytes'), feePerByte],
+                [t('transaction.feeVBytes'), feePerVByte],
+                [t('transaction.version'), version],
+                [t('transaction.input.count'), inputsCount],
+                [t('transaction.output.count'), outputsCount]
+              ]}
+            />
+            <SSSeparator color="gradient" />
+            <SSVStack gap="sm">
+              <SSText
+                uppercase
+                color="muted"
+                style={{ marginBottom: -30, marginTop: 50 }}
+              >
+                {t('transaction.decoded.title')}
+              </SSText>
+              {raw !== '' ? (
+                <SSTransactionDecoded txHex={raw} />
+              ) : (
+                <SSText>{placeholder}</SSText>
+              )}
+            </SSVStack>
 
-        <SSTransactionVinList vin={tx.vin} />
-        <SSTransactionVoutList
-          vout={tx.vout}
-          txid={tx.id}
-          accountId={accountId}
-        />
+            <SSTransactionVinList vin={tx.vin} />
+            <SSTransactionVoutList
+              vout={tx.vout}
+              txid={tx.id}
+              accountId={accountId}
+            />
+          </>
+        )}
       </SSVStack>
     </ScrollView>
   )
@@ -317,5 +333,9 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     justifyContent: 'space-between',
     padding: 20
+  },
+  loadingContainer: {
+    paddingVertical: 60,
+    alignItems: 'center'
   }
 })
