@@ -895,6 +895,7 @@ export default function IOPreview() {
                         : remainingSats - minerFee
                     }
                     fiatCurrency={fiatCurrency}
+                    btcPrice={btcPrice}
                     satsToFiat={satsToFiat}
                     onValueChange={(value) => setOutputAmount(value)}
                   />
