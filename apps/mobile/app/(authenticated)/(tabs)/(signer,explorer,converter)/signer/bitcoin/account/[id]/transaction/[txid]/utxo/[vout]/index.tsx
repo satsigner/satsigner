@@ -169,6 +169,7 @@ function UtxoDetails({
                   ownAddresses={ownAddresses}
                   selectedOutputIndex={utxo?.vout}
                   dimUnselected
+                  scale={0.9}
                 />
                 <SSButton
                   variant="outline"

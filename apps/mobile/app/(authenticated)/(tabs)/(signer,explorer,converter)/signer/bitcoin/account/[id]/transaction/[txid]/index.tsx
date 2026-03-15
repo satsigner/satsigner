@@ -158,6 +158,7 @@ export default function TxDetails() {
               <SSTransactionChart
                 transaction={tx}
                 ownAddresses={ownAddresses}
+                scale={0.9}
               />
             </SSVStack>
             <SSSeparator color="gradient" />
