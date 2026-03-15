@@ -39,6 +39,7 @@ import {
   SSIconChatBubble,
   SSIconCollapse,
   SSIconExpand,
+  SSIconEyeOff,
   SSIconEyeOn,
   SSIconGreenIndicator,
   SSIconHistoryChart,
@@ -88,7 +89,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { Colors } from '@/styles'
+import { Colors, Sizes } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
@@ -1073,9 +1074,15 @@ export default function AccountView() {
     )
   }, [account])
 
-  const [currencyUnit, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
-  )
+  const [currencyUnit, useZeroPadding, privacyMode, togglePrivacyMode] =
+    useSettingsStore(
+      useShallow((state) => [
+        state.currencyUnit,
+        state.useZeroPadding,
+        state.privacyMode,
+        state.togglePrivacyMode
+      ])
+    )
 
   const [fiatCurrency, satsToFiat, fetchPrices, btcPrice] = usePriceStore(
     useShallow((state) => [
@@ -1192,7 +1199,7 @@ export default function AccountView() {
   // reference on every DM update, which would interrupt in-progress tap gestures.
   const headerRight = useCallback(
     () => (
-      <SSHStack gap="md">
+      <SSHStack gap="sm">
         {account?.nostr?.autoSync && (
           <SSIconButton
             onPress={() =>
@@ -1212,7 +1219,15 @@ export default function AccountView() {
             </View>
           </SSIconButton>
         )}
+        <SSIconButton onPress={togglePrivacyMode}>
+          {privacyMode ? (
+            <SSIconEyeOff height={18} width={18} />
+          ) : (
+            <SSIconEyeOn height={18} width={18} />
+          )}
+        </SSIconButton>
         <SSIconButton
+          style={{ marginRight: 8 }}
           onPress={() =>
             router.navigate(`/signer/bitcoin/account/${id}/settings`)
           }
@@ -1221,10 +1236,13 @@ export default function AccountView() {
         </SSIconButton>
       </SSHStack>
     ),
-    [account?.nostr?.autoSync, hasUnreadMessages, id] // eslint-disable-line react-hooks/exhaustive-deps
+    [account?.nostr?.autoSync, hasUnreadMessages, id, privacyMode, togglePrivacyMode] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   if (!account) return <Redirect href="/" />
+
+  const balanceTextSize =
+    account.summary.balance > 1_000_000_000 ? ('4xl' as const) : ('6xl' as const)
 
   const renderScene = ({
     route
@@ -1544,17 +1562,28 @@ export default function AccountView() {
           <SSVStack itemsCenter gap="none">
             <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSStyledSatText
-                  amount={account?.summary.balance || 0}
-                  decimals={0}
-                  useZeroPadding={useZeroPadding}
-                  currency={currencyUnit}
-                  textSize={
-                    account?.summary.balance > 1_000_000_000 ? '4xl' : '6xl'
-                  }
+                <SSText
+                  size={balanceTextSize}
+                  color="white"
                   weight="ultralight"
-                  letterSpacing={-1}
-                />
+                  style={{
+                    lineHeight: Sizes.text.fontSize[balanceTextSize]
+                  }}
+                >
+                  {privacyMode ? (
+                    '••••'
+                  ) : (
+                    <SSStyledSatText
+                      amount={account?.summary.balance || 0}
+                      decimals={0}
+                      useZeroPadding={useZeroPadding}
+                      currency={currencyUnit}
+                      textSize={balanceTextSize}
+                      weight="ultralight"
+                      letterSpacing={-1}
+                    />
+                  )}
+                </SSText>
                 <SSText size="xl" color="muted">
                   {currencyUnit === 'btc'
                     ? t('bitcoin.btc')
@@ -1565,7 +1594,12 @@ export default function AccountView() {
                 <SSText color="muted">
                   {!btcPrice || btcPrice <= 0
                     ? '--'
-                    : formatNumber(satsToFiat(account.summary.balance || 0), 2)}
+                    : privacyMode
+                      ? '••••'
+                      : formatNumber(
+                          satsToFiat(account.summary.balance || 0),
+                          2
+                        )}
                 </SSText>
                 <SSText size="xs" style={{ color: Colors.gray[500] }}>
                   {fiatCurrency}

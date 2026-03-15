@@ -19,6 +19,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -57,6 +58,7 @@ function UtxoDetails({
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
 
   const { width, height } = useWindowDimensions()
   const outerContainerPadding = 20
@@ -125,6 +127,7 @@ function UtxoDetails({
           label={utxo?.label || ''}
           link={`/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${vout}/label`}
           header={t('utxo.label')}
+          privacyMode={privacyMode}
         />
         <SSSeparator color="gradient" />
         <SSVStack>

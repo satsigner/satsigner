@@ -16,12 +16,14 @@ type SSLabelDetailsProps = {
   label: string
   link: string
   header: string
+  privacyMode?: boolean
 }
 
 function SSLabelDetails({
   label: originalLabel,
   link,
-  header
+  header,
+  privacyMode = false
 }: SSLabelDetailsProps) {
   const [label, setLabel] = useState('')
   const [tags, setTags] = useState<string[]>([])
@@ -38,9 +40,13 @@ function SSLabelDetails({
         <SSText uppercase color="muted">
           {header}
         </SSText>
-        {label && <SSText size="2xl">{label}</SSText>}
-        {!label && <SSText color="muted">{t('transaction.noLabel')}</SSText>}
-        {tags.length > 0 && (
+        {label && <SSText size="2xl">{privacyMode ? '••••' : label}</SSText>}
+        {!label && (
+          <SSText color="muted">
+            {privacyMode ? '••••' : t('transaction.noLabel')}
+          </SSText>
+        )}
+        {!privacyMode && tags.length > 0 && (
           <SSHStack gap="sm">
             {tags.map((tag) => (
               <Pressable
@@ -57,7 +63,7 @@ function SSLabelDetails({
             ))}
           </SSHStack>
         )}
-        {tags.length === 0 && (
+        {!privacyMode && tags.length === 0 && (
           <SSText color="muted">{t('transaction.noTags')}</SSText>
         )}
       </SSVStack>

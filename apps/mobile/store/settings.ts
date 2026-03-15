@@ -10,6 +10,7 @@ type SettingsState = {
   currencyUnit: 'sats' | 'btc'
   showWarning: boolean
   skipSeedConfirmation: boolean
+  privacyMode: boolean
 }
 
 type SettingsAction = {
@@ -18,6 +19,7 @@ type SettingsAction = {
   setShowWarning: (showWarning: SettingsState['showWarning']) => void
   setSkipSeedConfirmation: (skip: SettingsState['skipSeedConfirmation']) => void
   setMnemonicWordList: (wordList: SettingsState['mnemonicWordList']) => void
+  togglePrivacyMode: () => void
 }
 
 const useSettingsStore = create<SettingsState & SettingsAction>()(
@@ -28,6 +30,7 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       showWarning: true,
       skipSeedConfirmation: true,
       mnemonicWordList: DEFAULT_WORD_LIST,
+      privacyMode: false,
       setCurrencyUnit: (currencyUnit) => {
         set({ currencyUnit })
       },
@@ -42,7 +45,9 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       },
       setSkipSeedConfirmation: (skipSeedConfirmation) => {
         set({ skipSeedConfirmation })
-      }
+      },
+      togglePrivacyMode: () =>
+        set((state) => ({ privacyMode: !state.privacyMode }))
     }),
     { name: 'settings-store', storage: createJSONStorage(() => mmkvStorage) }
   )
