@@ -4,6 +4,7 @@ import CBOR from 'cbor-js'
 import { getPublicKey, nip19 } from 'nostr-tools'
 import pako from 'pako'
 
+import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
 import { base85Decode, base85Encode } from '@/utils/base58'
 import { sha256 } from '@/utils/crypto'
 import { parseDescriptor } from '@/utils/parse'
@@ -15,7 +16,7 @@ bitcoinjs.initEccLib(ecc)
 export async function generateColorFromNpub(npub: string): Promise<string> {
   const decoded = nip19.decode(npub)
   if (!decoded || decoded.type !== 'npub') {
-    return '#404040' // Default color for invalid npub
+    return NOSTR_FALLBACK_NPUB_COLOR
   }
   const pubkey = npub
 

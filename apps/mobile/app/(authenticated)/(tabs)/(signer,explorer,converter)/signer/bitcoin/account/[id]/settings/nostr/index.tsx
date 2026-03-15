@@ -25,6 +25,7 @@ import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
+import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
 import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -44,6 +45,63 @@ const SYNCING_MESSAGE_KEYS = [
   'account.nostrSync.syncingFetching',
   'account.nostrSync.syncingWithRelays'
 ] as const
+
+type MemberNameBlockProps = {
+  npub: string
+  displayName?: string
+  alias?: string
+  hasPicture: boolean
+  memberColor?: string
+}
+
+function MemberNameBlock({
+  npub,
+  displayName,
+  alias,
+  hasPicture,
+  memberColor
+}: MemberNameBlockProps) {
+  const titleLine =
+    displayName && alias
+      ? `${displayName} (${alias})`
+      : displayName ?? alias ?? null
+  const npubShort = `${npub.slice(0, 12)}...${npub.slice(-4)}`
+
+  return (
+    <>
+      {titleLine ? (
+        <SSText size="sm" style={styles.memberText} selectable>
+          {titleLine}
+        </SSText>
+      ) : (
+        <SSText size="sm" type="mono" style={styles.memberText} selectable>
+          {npubShort}
+        </SSText>
+      )}
+      {titleLine ? (
+        <SSHStack gap="xs" style={styles.memberNpubRow}>
+          {hasPicture && (
+            <View
+              style={[
+                styles.memberColorDot,
+                { backgroundColor: memberColor || NOSTR_FALLBACK_NPUB_COLOR }
+              ]}
+            />
+          )}
+          <SSText
+            size="sm"
+            type="mono"
+            color="muted"
+            style={styles.memberNpubUnderAlias}
+            selectable
+          >
+            {npubShort}
+          </SSText>
+        </SSHStack>
+      ) : null}
+    </>
+  )
+}
 
 export default function NostrSync() {
   // Account and store hooks
@@ -90,7 +148,9 @@ export default function NostrSync() {
     if (!rawMembers) return []
     return rawMembers
       .map((member) =>
-        typeof member === 'string' ? { npub: member, color: '#404040' } : member
+        typeof member === 'string'
+          ? { npub: member, color: NOSTR_FALLBACK_NPUB_COLOR }
+          : member
       )
       .reduce(
         (acc, member) => {
@@ -121,7 +181,7 @@ export default function NostrSync() {
   const [commonNsec, setCommonNsec] = useState('')
   const [deviceNsec, setDeviceNsec] = useState('')
   const [deviceNpub, setDeviceNpub] = useState('')
-  const [deviceColor, setDeviceColor] = useState('#404040')
+  const [deviceColor, setDeviceColor] = useState(NOSTR_FALLBACK_NPUB_COLOR)
   const [selectedRelays, setSelectedRelays] = useState<string[]>([])
   const [relayConnectionStatuses, setRelayConnectionStatuses] = useState<
     Record<string, 'connected' | 'connecting' | 'disconnected'>
@@ -723,7 +783,7 @@ export default function NostrSync() {
     if (displayDeviceNpub) {
       generateColorFromNpub(displayDeviceNpub).then(setDeviceColor)
     } else {
-      setDeviceColor('#404040')
+      setDeviceColor(NOSTR_FALLBACK_NPUB_COLOR)
     }
   }, [displayDeviceNpub])
 
@@ -949,7 +1009,8 @@ export default function NostrSync() {
                                         styles.memberAvatarCircle,
                                         {
                                           backgroundColor:
-                                            member.color || '#404040'
+                                            member.color ||
+                                            NOSTR_FALLBACK_NPUB_COLOR
                                         }
                                       ]}
                                     />
@@ -958,77 +1019,25 @@ export default function NostrSync() {
                                     gap="xxs"
                                     style={styles.memberBlock}
                                   >
-                                    {(() => {
-                                      const displayName =
+                                    <MemberNameBlock
+                                      npub={member.npub}
+                                      displayName={
                                         account?.nostr?.npubProfiles?.[
                                           member.npub
                                         ]?.displayName
-                                      const alias =
+                                      }
+                                      alias={
                                         account?.nostr?.npubAliases?.[
                                           member.npub
                                         ]
-                                      const titleLine =
-                                        displayName && alias
-                                          ? `${displayName} (${alias})`
-                                          : displayName ?? alias ?? null
-                                      const npubShort = `${member.npub.slice(0, 12)}...${member.npub.slice(-4)}`
-                                      const hasPicture =
+                                      }
+                                      hasPicture={
                                         !!account?.nostr?.npubProfiles?.[
                                           member.npub
                                         ]?.picture
-                                      return (
-                                        <>
-                                          {titleLine ? (
-                                            <SSText
-                                              size="sm"
-                                              style={styles.memberText}
-                                              selectable
-                                            >
-                                              {titleLine}
-                                            </SSText>
-                                          ) : (
-                                            <SSText
-                                              size="sm"
-                                              type="mono"
-                                              style={styles.memberText}
-                                              selectable
-                                            >
-                                              {npubShort}
-                                            </SSText>
-                                          )}
-                                          {titleLine ? (
-                                            <SSHStack
-                                              gap="xs"
-                                              style={styles.memberNpubRow}
-                                            >
-                                              {hasPicture && (
-                                                <View
-                                                  style={[
-                                                    styles.memberColorDot,
-                                                    {
-                                                      backgroundColor:
-                                                        member.color ||
-                                                        '#404040'
-                                                    }
-                                                  ]}
-                                                />
-                                              )}
-                                              <SSText
-                                                size="sm"
-                                                type="mono"
-                                                color="muted"
-                                                style={
-                                                  styles.memberNpubUnderAlias
-                                                }
-                                                selectable
-                                              >
-                                                {npubShort}
-                                              </SSText>
-                                            </SSHStack>
-                                          ) : null}
-                                        </>
-                                      )
-                                    })()}
+                                      }
+                                      memberColor={member.color}
+                                    />
                                   </SSVStack>
                                 </SSHStack>
                               </Pressable>

@@ -66,6 +66,8 @@ function formatNpubText(pubkey: string): string {
 const INITIAL_PAGE_SIZE = 50
 const PAGE_SIZE = 50
 
+const SCROLL_THRESHOLD = 40
+
 export default function DevicesGroupChat() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const flatListRef = useRef<FlatList>(null)
@@ -218,7 +220,7 @@ export default function DevicesGroupChat() {
         const dms = (current?.nostr?.dms ?? []).map((m) =>
           m.id === pendingId ? { ...m, pending: false } : m
         )
-        useAccountsStore.getState().updateAccountNostr(accountId, { dms })
+        updateAccountNostr(accountId, { dms })
       }
     } catch {
       toast.error(t('common.error.failedToSendMessage'))
@@ -229,7 +231,7 @@ export default function DevicesGroupChat() {
         const dms = (current?.nostr?.dms ?? []).filter(
           (m) => m.id !== pendingId
         )
-        useAccountsStore.getState().updateAccountNostr(accountId, { dms })
+        updateAccountNostr(accountId, { dms })
       }
       setMessageInput(trimmed)
     } finally {
@@ -352,38 +354,38 @@ export default function DevicesGroupChat() {
     const relays = account.nostr.relays
     const fetchedRef = new Set<string>()
 
-    for (const msg of memoizedMessages) {
-      if (!msg.author) continue
-      let npub: string
-      try {
-        npub = nip19.npubEncode(msg.author)
-      } catch {
-        continue
-      }
-      // Skip if we already have profile data or are already fetching this run
-      if (
-        profiles[npub]?.displayName ||
-        profiles[npub]?.picture ||
-        fetchedRef.has(npub)
-      )
-        continue
-      fetchedRef.add(npub)
+    void (async () => {
+      for (const msg of memoizedMessages) {
+        if (!msg.author) continue
+        let npub: string
+        try {
+          npub = nip19.npubEncode(msg.author)
+        } catch {
+          continue
+        }
+        // Skip if we already have profile data or are already fetching this run
+        if (
+          profiles[npub]?.displayName ||
+          profiles[npub]?.picture ||
+          fetchedRef.has(npub)
+        )
+          continue
+        fetchedRef.add(npub)
 
-      const api = new NostrAPI(relays)
-      api
-        .fetchKind0(npub)
-        .then((result) => {
+        try {
+          const api = new NostrAPI(relays)
+          const result = await api.fetchKind0(npub)
           if (result?.displayName || result?.picture) {
             setProfile(npub, {
               displayName: result.displayName,
               picture: result.picture
             })
           }
-        })
-        .catch(() => {
+        } catch {
           // ignore fetch errors — truncated npub remains as fallback
-        })
-    }
+        }
+      }
+    })()
   }, [memoizedMessages, profiles, account?.nostr?.relays, setProfile])
 
   useEffect(() => {
@@ -402,8 +404,6 @@ export default function DevicesGroupChat() {
     }
   }
 
-  const scrollThreshold = 40
-
   function handleListScroll(e: {
     nativeEvent: {
       contentOffset: { y: number }
@@ -412,7 +412,7 @@ export default function DevicesGroupChat() {
     }
   }) {
     const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent
-    const atBottom = contentOffset.y <= scrollThreshold
+    const atBottom = contentOffset.y <= SCROLL_THRESHOLD
     if (isAtBottomRef.current !== atBottom) {
       isAtBottomRef.current = atBottom
       if (atBottom) setShowNewMessageButton(false)
@@ -420,7 +420,7 @@ export default function DevicesGroupChat() {
     const nearTop =
       contentSize.height > layoutMeasurement.height &&
       contentOffset.y >=
-        contentSize.height - layoutMeasurement.height - scrollThreshold
+        contentSize.height - layoutMeasurement.height - SCROLL_THRESHOLD
     if (
       nearTop &&
       displayCount < messages.length &&

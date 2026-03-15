@@ -1,8 +1,7 @@
 import { NostrAPI } from '@/api/nostr'
+import { DELAY_BETWEEN_PUBLISHES_MS } from '@/constants/nostr'
 import { type Account } from '@/types/models/Account'
 import { compressMessage } from '@/utils/nostr'
-
-const DELAY_BETWEEN_PUBLISHES_MS = 400
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
