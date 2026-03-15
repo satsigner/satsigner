@@ -1,11 +1,17 @@
+import { useFont } from '@shopify/react-native-skia'
+import { useQuery } from '@tanstack/react-query'
 import { Stack } from 'expo-router'
-import { useEffect, useState } from 'react'
-import { ScrollView, StyleSheet } from 'react-native'
+import { useEffect, useMemo, useState } from 'react'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
+import { CartesianChart, Line } from 'victory-native'
 
 import { MempoolOracle } from '@/api/blockchain'
+
+const chartFont = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
+import SSFeeRateChart from '@/components/SSFeeRateChart'
 import SSText from '@/components/SSText'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import SSHStack from '@/layouts/SSHStack'
@@ -15,8 +21,13 @@ import { tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
-import type { Block, MemPoolFees } from '@/types/models/Blockchain'
+import type {
+  Block,
+  MemPoolFees,
+  MempoolStatistics
+} from '@/types/models/Blockchain'
 import { formatDate } from '@/utils/format'
+import { time } from '@/utils/time'
 
 const tn = _tn('explorer.chaintip')
 
@@ -42,6 +53,7 @@ export default function ChainTip() {
   const [feesSource, setFeesSource] = useState<SectionSource | null>(null)
   const [mempoolSource, setMempoolSource] = useState<SectionSource | null>(null)
   const [loading, setLoading] = useState(true)
+  const priceChartFont = useFont(chartFont, 10)
 
   useEffect(() => {
     async function fetchData() {
@@ -213,6 +225,70 @@ export default function ChainTip() {
     fetchData()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const [feeChartTimeRange] = useState<'week' | 'day' | '2hours'>('2hours')
+  const { data: mempoolStatistics } = useQuery<MempoolStatistics[]>({
+    queryKey: ['chaintip-statistics', feeChartTimeRange],
+    queryFn: () =>
+      fallbackOracle.getMempoolStatistics(
+        feeChartTimeRange === '2hours'
+          ? '2h'
+          : feeChartTimeRange === 'day'
+            ? '24h'
+            : '1w'
+      ),
+    staleTime: time.minutes(5)
+  })
+
+  const PRICE_CHART_DAYS = 7
+  const { data: priceHistoryResult } = useQuery<{
+    timestamps: number[]
+    prices: number[]
+  }>({
+    queryKey: ['chaintip-price-history', fiatCurrency],
+    queryFn: async () => {
+      const now = Math.floor(Date.now() / 1000)
+      const timestamps = Array.from({ length: PRICE_CHART_DAYS }, (_, i) =>
+        now - (PRICE_CHART_DAYS - 1 - i) * 86400
+      )
+      const prices = await fallbackOracle.getPricesAt(fiatCurrency, timestamps)
+      return { timestamps, prices }
+    },
+    staleTime: time.minutes(10)
+  })
+
+  const priceChartData = useMemo(() => {
+    if (
+      !priceHistoryResult?.timestamps?.length ||
+      !priceHistoryResult?.prices?.length
+    )
+      return []
+    const { timestamps, prices } = priceHistoryResult
+    return timestamps.map((ts, i) => ({ x: ts, price: prices[i] ?? 0 }))
+  }, [priceHistoryResult])
+
+  const priceChartDomain = useMemo(() => {
+    if (priceChartData.length === 0) return undefined
+    const prices = priceChartData.map((d) => d.price).filter((p) => p > 0)
+    const xValues = priceChartData.map((d) => d.x)
+    if (prices.length === 0 || xValues.length === 0) return undefined
+    const minY = Math.min(...prices)
+    const maxY = Math.max(...prices)
+    const padY = (maxY - minY) * 0.1 || 1
+    const minX = Math.min(...xValues)
+    const maxX = Math.max(...xValues)
+    return {
+      x: [minX, maxX] as [number, number],
+      y: [minY - padY, maxY + padY] as [number, number]
+    }
+  }, [priceChartData])
+
+  function formatPriceChartDate(timestampSeconds: number) {
+    return new Intl.DateTimeFormat(undefined, {
+      month: 'short',
+      day: 'numeric'
+    }).format(new Date(timestampSeconds * 1000))
+  }
+
   function formatBytes(bytes: number) {
     if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(2)} MB`
     if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(1)} KB`
@@ -233,7 +309,7 @@ export default function ChainTip() {
         }}
       />
       <ScrollView showsVerticalScrollIndicator={false}>
-        <SSVStack gap="xl" style={{ paddingTop: 20 }}>
+        <SSVStack gap="xl" style={{ paddingTop: 20, paddingBottom: 32 }}>
           {/* Latest Block */}
           <SSVStack gap="sm">
             <SectionHeader
@@ -254,29 +330,27 @@ export default function ChainTip() {
                 }
                 loading={loading}
               />
-              <Row
-                label={tn('transactions')}
-                value={(block as Block)?.tx_count?.toLocaleString() ?? '--'}
-                loading={loading}
-              />
-              <Row
-                label={tn('size')}
-                value={
-                  (block as Block)?.size
-                    ? formatBytes((block as Block).size)
-                    : '--'
-                }
-                loading={loading}
-              />
-              <Row
-                label={tn('weight')}
-                value={
-                  (block as Block)?.weight
-                    ? formatBytes((block as Block).weight)
-                    : '--'
-                }
-                loading={loading}
-              />
+              {(block as Block)?.tx_count != null && (
+                <Row
+                  label={tn('transactions')}
+                  value={(block as Block).tx_count.toLocaleString()}
+                  loading={loading}
+                />
+              )}
+              {(block as Block)?.size != null && (
+                <Row
+                  label={tn('size')}
+                  value={formatBytes((block as Block).size)}
+                  loading={loading}
+                />
+              )}
+              {(block as Block)?.weight != null && (
+                <Row
+                  label={tn('weight')}
+                  value={formatBytes((block as Block).weight)}
+                  loading={loading}
+                />
+              )}
               <SSVStack gap="none">
                 <SSText size="xs" style={styles.labelText}>
                   {tn('hash')}
@@ -315,6 +389,12 @@ export default function ChainTip() {
                 label={tn('feesNone')}
                 value={fees ? `${fees.none} sat/vB` : '--'}
                 loading={loading}
+              />
+            </SSVStack>
+            <SSVStack gap="sm" style={{ marginTop: 8 }}>
+              <SSFeeRateChart
+                mempoolStatistics={mempoolStatistics}
+                timeRange={feeChartTimeRange}
               />
             </SSVStack>
           </SSVStack>
@@ -367,6 +447,48 @@ export default function ChainTip() {
               }
               loading={false}
             />
+            {priceChartData.length > 0 && priceChartDomain && (
+              <View style={styles.priceChartWrapper}>
+                <SSText
+                  size="xxs"
+                  style={[styles.labelText, { marginBottom: 6 }]}
+                >
+                  {fiatCurrency} / BTC
+                </SSText>
+                <CartesianChart
+                  data={priceChartData}
+                  xKey="x"
+                  yKeys={['price']}
+                  domain={priceChartDomain}
+                  padding={{ left: 48, right: 16, top: 8, bottom: 32 }}
+                  axisOptions={{
+                    font: priceChartFont ?? undefined,
+                    formatXLabel: (v) =>
+                      formatPriceChartDate(Number(v)),
+                    formatYLabel: (v) =>
+                      `${Number(v).toLocaleString(undefined, {
+                        maximumFractionDigits: 0
+                      })} ${fiatCurrency}`,
+                    axisSide: { x: 'bottom', y: 'left' },
+                    labelColor: { x: '#787878', y: '#ffffff' },
+                    tickCount: { x: 7, y: 6 },
+                    labelOffset: { x: 6, y: 8 }
+                  }}
+                >
+                  {({ points }) =>
+                    points.price ? (
+                      <Line
+                        points={points.price}
+                        color={Colors.mainGreen}
+                        strokeWidth={2}
+                        curveType="natural"
+                        animate={{ type: 'spring' }}
+                      />
+                    ) : null
+                  }
+                </CartesianChart>
+              </View>
+            )}
           </SSVStack>
         </SSVStack>
       </ScrollView>
@@ -451,5 +573,14 @@ const styles = StyleSheet.create({
   },
   sourceMempool: {
     color: Colors.gray['500']
+  },
+  priceChartWrapper: {
+    borderColor: Colors.gray[700],
+    borderRadius: 8,
+    borderWidth: 1,
+    height: 200,
+    marginTop: 8,
+    overflow: 'hidden',
+    padding: 12
   }
 })
