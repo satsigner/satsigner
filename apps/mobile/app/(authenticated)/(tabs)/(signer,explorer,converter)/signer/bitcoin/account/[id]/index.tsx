@@ -944,9 +944,7 @@ function SpendableOutputs({
               )
               const addressEntry = idx >= 0 ? account.addresses[idx] : null
               const addressIndex =
-                addressEntry !== null
-                  ? (addressEntry.index ?? idx)
-                  : undefined
+                addressEntry !== null ? addressEntry.index ?? idx : undefined
               return (
                 <SSVStack gap="xs" key={getUtxoOutpoint(utxo)}>
                   <SSUtxoCard
@@ -1236,13 +1234,22 @@ export default function AccountView() {
         </SSIconButton>
       </SSHStack>
     ),
-    [account?.nostr?.autoSync, hasUnreadMessages, id, privacyMode, togglePrivacyMode] // eslint-disable-line react-hooks/exhaustive-deps
+    [
+      account?.nostr?.autoSync,
+      hasUnreadMessages,
+      id,
+      privacyMode,
+      router,
+      togglePrivacyMode
+    ] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   if (!account) return <Redirect href="/" />
 
   const balanceTextSize =
-    account.summary.balance > 1_000_000_000 ? ('4xl' as const) : ('6xl' as const)
+    account.summary.balance > 1_000_000_000
+      ? ('4xl' as const)
+      : ('6xl' as const)
 
   const renderScene = ({
     route

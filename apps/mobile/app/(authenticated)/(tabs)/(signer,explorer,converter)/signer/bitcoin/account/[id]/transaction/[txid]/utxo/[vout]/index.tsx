@@ -137,7 +137,11 @@ function UtxoDetails({
                 {t('utxo.address')}
               </SSText>
               {typeof addressIndex === 'number' && (
-                <SSText color="muted" size="sm" style={{ fontWeight: 'normal' }}>
+                <SSText
+                  color="muted"
+                  size="sm"
+                  style={{ fontWeight: 'normal' }}
+                >
                   ({addressIndex})
                 </SSText>
               )}
@@ -223,8 +227,7 @@ function UtxoDetailsPage() {
   const addressIndex = useMemo(() => {
     if (!account || !utxo?.addressTo) return undefined
     const idx = account.addresses.findIndex(
-      (a) =>
-        (a.address || '').trim() === (utxo.addressTo || '').trim()
+      (a) => (a.address || '').trim() === (utxo.addressTo || '').trim()
     )
     if (idx < 0) return undefined
     const addressEntry = account.addresses[idx]
