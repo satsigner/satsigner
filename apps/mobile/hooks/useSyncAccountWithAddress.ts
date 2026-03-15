@@ -51,10 +51,18 @@ function useSyncAccountWithAddress() {
     address: string,
     url: string
   ): Promise<AddressInfo> {
-    let confirmed = 0
-    let unconfirmed = 0
-
     const esploraClient = new Esplora(url)
+
+    // Build existing tx/utxo maps BEFORE fetching so they can be used for
+    // early-stop pagination and for preserving labels on existing UTXOs
+    const existingTxs: Record<Transaction['id'], number> = {}
+    const existingUtxos: Record<string, number> = {}
+    account.transactions.forEach((tx, index) => {
+      existingTxs[tx.id] = index
+    })
+    account.utxos.forEach((u, index) => {
+      existingUtxos[getUtxoOutpoint(u)] = index
+    })
 
     // update sync progress
     account.syncProgress = {
@@ -64,23 +72,18 @@ function useSyncAccountWithAddress() {
     account.syncProgress.totalTasks += 2
     setSyncProgress(account.id, account.syncProgress)
 
-    // make the request
-    const esploraTxs = await esploraClient.getAddressTxs(address)
+    // Fetch transactions using early-stop pagination: once a page contains only
+    // already-known txids we skip fetching older history
+    const existingTxidSet = new Set(Object.keys(existingTxs))
+    const esploraTxs = await esploraClient.getAddressTxs(
+      address,
+      existingTxidSet
+    )
     const esploraUtxos = await esploraClient.getAddressUtxos(address)
 
     // update sync progress
     account.syncProgress.tasksDone += 2
     setSyncProgress(account.id, account.syncProgress)
-
-    // track existing txs and utxos
-    const existingTxs: Record<Transaction['id'], number> = {}
-    const existingUtxos: Record<string, number> = {}
-    account.transactions.forEach((tx, index) => {
-      existingTxs[tx.id] = index
-    })
-    account.utxos.forEach((u, index) => {
-      existingUtxos[getUtxoOutpoint(u)] = index
-    })
 
     // compute new tx count and new utxo count
     let newTxsCount = 0
@@ -114,13 +117,26 @@ function useSyncAccountWithAddress() {
 
     const txDictionary: Record<string, number> = {}
 
-    for (let index = 0; index < esploraTxs.length; index++) {
-      const t = esploraTxs[index]
+    // Collect new transactions that need hex fetching
+    const newTxEntries = esploraTxs
+      .map((t, index) => ({ t, index }))
+      .filter(({ t }) => existingTxs[t.txid] === undefined)
 
-      if (existingTxs[t.txid] !== undefined) {
-        continue
-      }
+    // Pre-fetch all raw hex in parallel batches of 4 instead of sequentially
+    const rawHexMap: Record<string, string> = {}
+    const BATCH_SIZE = 4
+    for (let i = 0; i < newTxEntries.length; i += BATCH_SIZE) {
+      const batch = newTxEntries.slice(i, i + BATCH_SIZE)
+      const hexResults = await Promise.all(
+        batch.map(({ t }) => esploraClient.getTxHex(t.txid))
+      )
+      batch.forEach(({ t }, idx) => {
+        rawHexMap[t.txid] = hexResults[idx]
+      })
+    }
 
+    // Build transaction objects using pre-fetched hex
+    for (const { t, index } of newTxEntries) {
       const vin: Transaction['vin'] = []
       const vout: Transaction['vout'] = []
       let sent = 0
@@ -152,8 +168,6 @@ function useSyncAccountWithAddress() {
         }
       })
 
-      const raw = await esploraClient.getTxHex(t.txid)
-
       const tx: Transaction = {
         address,
         blockHeight: t.status.block_height,
@@ -163,7 +177,7 @@ function useSyncAccountWithAddress() {
         lockTime: t.locktime,
         lockTimeEnabled: t.locktime > 0,
         prices: {},
-        raw: parseHexToBytes(raw),
+        raw: parseHexToBytes(rawHexMap[t.txid]),
         received,
         sent,
         size: t.size,
@@ -185,41 +199,51 @@ function useSyncAccountWithAddress() {
       setSyncProgress(account.id, account.syncProgress)
     }
 
-    // update utxos
-    const newUtxos = esploraUtxos
-      .filter((u) => {
-        return existingUtxos[`${u.txid}:${u.vout}`] === undefined
-      })
-      .map((u) => {
-        if (u.status.confirmed) {
-          confirmed += u.value
-        } else {
-          unconfirmed += u.value
-        }
+    // Compute balance from the FULL current UTXO set returned by the API.
+    // This is correct even on re-sync because the API always returns the
+    // complete unspent set, and the outer caller resets balance to 0 before
+    // iterating descriptors.
+    let confirmed = 0
+    let unconfirmed = 0
+    esploraUtxos.forEach((u) => {
+      if (u.status.confirmed) confirmed += u.value
+      else unconfirmed += u.value
+    })
 
-        let script: number[] | undefined
+    // Replace the stored UTXOs for this address with the fresh set from the
+    // API. This handles both new UTXOs appearing and spent UTXOs disappearing.
+    // Existing UTXO objects are reused where possible to preserve labels.
+    const freshUtxos: Utxo[] = esploraUtxos.map((u) => {
+      const outpoint = `${u.txid}:${u.vout}`
+      if (existingUtxos[outpoint] !== undefined) {
+        return account.utxos[existingUtxos[outpoint]]
+      }
 
-        if (txDictionary[u.txid] !== undefined) {
-          const index = txDictionary[u.txid]
-          const tx = esploraTxs[index]
-          script = parseHexToBytes(tx.vout[u.vout].scriptpubkey)
-        }
+      let script: number[] | undefined
+      if (txDictionary[u.txid] !== undefined) {
+        const txIndex = txDictionary[u.txid]
+        const tx = esploraTxs[txIndex]
+        script = parseHexToBytes(tx.vout[u.vout].scriptpubkey)
+      }
 
-        const utxo: Utxo = {
-          txid: u.txid,
-          vout: u.vout,
-          value: u.value,
-          label: '',
-          addressTo: address,
-          keychain: 'external',
-          script,
-          timestamp: u.status.block_time
-            ? new Date(u.status.block_time * 1000)
-            : undefined
-        }
-        return utxo
-      })
-    account.utxos = [...account.utxos, ...newUtxos]
+      return {
+        txid: u.txid,
+        vout: u.vout,
+        value: u.value,
+        label: '',
+        addressTo: address,
+        keychain: 'external',
+        script,
+        timestamp: u.status.block_time
+          ? new Date(u.status.block_time * 1000)
+          : undefined
+      } as Utxo
+    })
+
+    const utxosFromOtherAddresses = account.utxos.filter(
+      (u) => u.addressTo !== address
+    )
+    account.utxos = [...utxosFromOtherAddresses, ...freshUtxos]
 
     // update account
     account.summary = {
@@ -547,8 +571,10 @@ function useSyncAccountWithAddress() {
       updatedAccount = updateAccountObjectLabels(updatedAccount)
 
       // Convert timestamps to Date objects and collect unix timestamps
+      // Skip transactions that already have a cached price — they are immutable
       const timestamps: number[] = []
       for (const transaction of updatedAccount.transactions) {
+        if (transaction.prices?.USD !== undefined) continue
         if (transaction.timestamp) {
           let date: Date
           if (typeof transaction.timestamp === 'string') {
@@ -642,7 +668,7 @@ function useSyncAccountWithAddress() {
     } catch {
       setSyncStatus(account.id, 'error')
       setLoading(false)
-      throw new Error('sync failed')
+      throw new Error('Sync failed')
     }
   }
 

@@ -17,31 +17,33 @@ export default function SSTransactionVinList({
   return (
     <SSVStack>
       {(vin || []).map((input, index) => (
-        <SSVStack key={index}>
+        <SSVStack key={index} style={{ paddingTop: 50 }}>
           <SSSeparator color="gradient" />
-          <SSText weight="bold" center>
+          <SSText size="lg">
             {t('transaction.input.title')} {index}
           </SSText>
           <SSVStack gap="none">
-            <SSText weight="bold">
+            <SSText color="muted">
               {t('transaction.input.previousOutput.transaction')}
             </SSText>
             <SSClipboardCopy text={input.previousOutput.txid}>
-              <SSText color="muted">{input.previousOutput.txid}</SSText>
+              <SSText type="mono" size="md">
+                {input.previousOutput.txid}
+              </SSText>
             </SSClipboardCopy>
           </SSVStack>
           <SSVStack gap="none">
-            <SSText weight="bold">
+            <SSText color="muted">
               {t('transaction.input.previousOutput.vout')}
             </SSText>
-            <SSText color="muted">{input.previousOutput.vout}</SSText>
+            <SSText size="lg">{input.previousOutput.vout}</SSText>
           </SSVStack>
           <SSVStack gap="none">
-            <SSText weight="bold">{t('transaction.input.sequence')}</SSText>
-            <SSText color="muted">{input.sequence}</SSText>
+            <SSText color="muted">{t('transaction.input.sequence')}</SSText>
+            <SSText size="lg">{input.sequence}</SSText>
           </SSVStack>
           <SSVStack>
-            <SSText weight="bold">{t('transaction.input.scriptSig')}</SSText>
+            <SSText color="muted">{t('transaction.input.scriptSig')}</SSText>
             <SSScriptDecoded script={input.scriptSig || []} />
           </SSVStack>
         </SSVStack>

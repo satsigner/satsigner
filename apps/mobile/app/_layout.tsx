@@ -2,13 +2,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Slot } from 'expo-router'
 import { setStatusBarStyle } from 'expo-status-bar'
 import * as SystemUI from 'expo-system-ui'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   AppState,
   type AppStateStatus,
   Platform,
   StyleSheet,
-  UIManager
+  UIManager,
+  View
 } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import NfcManager from 'react-native-nfc-manager'
@@ -43,6 +44,7 @@ export default function RootLayout() {
     )
 
   const appState = useRef(AppState.currentState)
+  const [privacyScreenVisible, setPrivacyScreenVisible] = useState(false)
 
   useEffect(() => {
     setTimeout(() => {
@@ -78,6 +80,7 @@ export default function RootLayout() {
 
   function handleAppStateChanged(nextAppState: AppStateStatus) {
     if (nextAppState === 'background' && requiresAuth) {
+      setPrivacyScreenVisible(true)
       setLastBackgroundTimestamp(Date.now())
     } else if (
       nextAppState === 'active' &&
@@ -88,6 +91,12 @@ export default function RootLayout() {
       const elapsed = (Date.now() - (inactivityStartTime || 0)) / 1000
 
       if (elapsed >= lockDeltaTime) setLockTriggered(true)
+
+      // Keep the overlay visible briefly so the /unlock redirect renders
+      // before the previous screen becomes visible
+      setTimeout(() => setPrivacyScreenVisible(false), 300)
+    } else if (nextAppState === 'active') {
+      setPrivacyScreenVisible(false)
     }
 
     appState.current = nextAppState
@@ -97,6 +106,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={styles.container}>
         <Slot />
+        {privacyScreenVisible && <View style={styles.privacyScreen} />}
         <Toaster
           theme="dark"
           position="top-center"
@@ -117,5 +127,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.gray[950]
+  },
+  privacyScreen: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Colors.gray[950],
+    zIndex: 999
   }
 })

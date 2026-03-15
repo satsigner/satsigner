@@ -44,6 +44,18 @@ export const formatDate = (timestamp: number | undefined): string => {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
+/** Same format as chat message cards: "Feb 22, 2025, 03:45 PM" */
+export function formatDateShort(timestamp: number | undefined): string {
+  if (typeof timestamp !== 'number') return ''
+  return new Date(timestamp * 1000).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
 export function formatAccountCreationDate(
   createdAt: Date | string | number | undefined
 ): string {

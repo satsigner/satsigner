@@ -5,11 +5,13 @@ import {
   useFocusEffect,
   useLocalSearchParams
 } from 'expo-router'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   View
 } from 'react-native'
@@ -18,9 +20,12 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { NostrAPI } from '@/api/nostr'
 import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
+import SSIconWarning from '@/components/icons/SSIconWarning'
 import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
+import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
+import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
 import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -29,9 +34,74 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
+import type { NostrAccount } from '@/types/models/Nostr'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatDate } from '@/utils/date'
-import { compressMessage, generateColorFromNpub } from '@/utils/nostr'
+import { formatDateShort } from '@/utils/date'
+import { generateColorFromNpub, getPubKeyHexFromNpub } from '@/utils/nostr'
+
+const SYNCING_MESSAGE_KEYS = [
+  'account.nostrSync.syncingConnecting',
+  'account.nostrSync.syncingDiscovering',
+  'account.nostrSync.syncingFetching',
+  'account.nostrSync.syncingWithRelays'
+] as const
+
+type MemberNameBlockProps = {
+  npub: string
+  displayName?: string
+  alias?: string
+  hasPicture: boolean
+  memberColor?: string
+}
+
+function MemberNameBlock({
+  npub,
+  displayName,
+  alias,
+  hasPicture,
+  memberColor
+}: MemberNameBlockProps) {
+  const titleLine =
+    displayName && alias
+      ? `${displayName} (${alias})`
+      : displayName ?? alias ?? null
+  const npubShort = `${npub.slice(0, 12)}...${npub.slice(-4)}`
+
+  return (
+    <>
+      {titleLine ? (
+        <SSText size="sm" style={styles.memberText} selectable>
+          {titleLine}
+        </SSText>
+      ) : (
+        <SSText size="sm" type="mono" style={styles.memberText} selectable>
+          {npubShort}
+        </SSText>
+      )}
+      {titleLine ? (
+        <SSHStack gap="xs" style={styles.memberNpubRow}>
+          {hasPicture && (
+            <View
+              style={[
+                styles.memberColorDot,
+                { backgroundColor: memberColor || NOSTR_FALLBACK_NPUB_COLOR }
+              ]}
+            />
+          )}
+          <SSText
+            size="sm"
+            type="mono"
+            color="muted"
+            style={styles.memberNpubUnderAlias}
+            selectable
+          >
+            {npubShort}
+          </SSText>
+        </SSHStack>
+      ) : null}
+    </>
+  )
+}
 
 export default function NostrSync() {
   // Account and store hooks
@@ -45,10 +115,8 @@ export default function NostrSync() {
 
   const [isGeneratingKeys, setIsGeneratingKeys] = useState(false)
 
-  const [keysGenerated, setKeysGenerated] = useState(false)
-
   const updateAccountNostrCallback = useCallback(
-    (accountId: string, nostrData: any) => {
+    (accountId: string, nostrData: Partial<NostrAccount>) => {
       updateAccountNostr(accountId, nostrData)
     },
     [updateAccountNostr]
@@ -63,32 +131,37 @@ export default function NostrSync() {
     (state) => state.clearProcessedEvents
   )
   const setSyncing = useNostrStore((state) => state.setSyncing)
+  const setLastDataExchangeEOSE = useNostrStore(
+    (state) => state.setLastDataExchangeEOSE
+  )
   const lastProtocolEOSE = useNostrStore((state) =>
     accountId ? state.lastProtocolEOSE[accountId] : undefined
   )
 
-  // Members management
-  const members = useNostrStore(
-    useShallow((state) => {
-      if (!accountId) return []
-      const accountMembers = state.members[accountId] || []
-      return accountMembers
-        .map((member) =>
-          typeof member === 'string'
-            ? { npub: member, color: '#404040' }
-            : member
-        )
-        .reduce(
-          (acc, member) => {
-            if (!acc.some((m) => m.npub === member.npub)) {
-              acc.push(member)
-            }
-            return acc
-          },
-          [] as { npub: string; color: string }[]
-        )
-    })
+  // Members management - subscribe to raw members array for reactivity
+  const rawMembers = useNostrStore((state) =>
+    accountId ? state.members[accountId] : undefined
   )
+
+  // Normalize members in a separate memo to avoid selector complexity
+  const members = useMemo(() => {
+    if (!rawMembers) return []
+    return rawMembers
+      .map((member) =>
+        typeof member === 'string'
+          ? { npub: member, color: NOSTR_FALLBACK_NPUB_COLOR }
+          : member
+      )
+      .reduce(
+        (acc, member) => {
+          if (!acc.some((m) => m.npub === member.npub)) {
+            acc.push(member)
+          }
+          return acc
+        },
+        [] as { npub: string; color: string }[]
+      )
+  }, [rawMembers])
 
   // Nostr sync hooks
   const {
@@ -96,7 +169,9 @@ export default function NostrSync() {
     generateCommonNostrKeys,
     deviceAnnouncement,
     cleanupSubscriptions,
-    nostrSyncSubscriptions
+    nostrSyncSubscriptions,
+    restartSync,
+    stopSync
   } = useNostrSync()
 
   // State management
@@ -106,13 +181,68 @@ export default function NostrSync() {
   const [commonNsec, setCommonNsec] = useState('')
   const [deviceNsec, setDeviceNsec] = useState('')
   const [deviceNpub, setDeviceNpub] = useState('')
-  const [deviceColor, setDeviceColor] = useState('#404040')
+  const [deviceColor, setDeviceColor] = useState(NOSTR_FALLBACK_NPUB_COLOR)
   const [selectedRelays, setSelectedRelays] = useState<string[]>([])
   const [relayConnectionStatuses, setRelayConnectionStatuses] = useState<
     Record<string, 'connected' | 'connecting' | 'disconnected'>
   >({})
+  const [deletionModalVisible, setDeletionModalVisible] = useState(false)
+  const [clearCachesModalVisible, setClearCachesModalVisible] = useState(false)
+  const [syncingMessageIndex, setSyncingMessageIndex] = useState(0)
+  const syncingMessage = SYNCING_MESSAGE_KEYS[syncingMessageIndex]
+
+  useEffect(() => {
+    if (!isSyncing) {
+      setSyncingMessageIndex(0)
+      return
+    }
+    const interval = setInterval(() => {
+      setSyncingMessageIndex((i) =>
+        i + 1 >= SYNCING_MESSAGE_KEYS.length ? 0 : i + 1
+      )
+    }, 2500)
+    return () => clearInterval(interval)
+  }, [isSyncing])
 
   const previousRelaysRef = useRef<string[]>([])
+  const trustSyncRestartRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    return () => {
+      if (trustSyncRestartRef.current) {
+        clearTimeout(trustSyncRestartRef.current)
+        trustSyncRestartRef.current = null
+      }
+    }
+  }, [accountId])
+
+  // Prefer store for device keys so we show updated values immediately after saving on manage-keys page (no stale local state)
+  const displayDeviceNpub = account?.nostr?.deviceNpub ?? deviceNpub
+  const displayDeviceNsec = account?.nostr?.deviceNsec ?? deviceNsec
+  const deviceKind0Picture =
+    account?.nostr?.devicePicture ??
+    (displayDeviceNpub &&
+      account?.nostr?.npubProfiles?.[displayDeviceNpub]?.picture)
+  const deviceKind0DisplayName =
+    account?.nostr?.deviceDisplayName ??
+    (displayDeviceNpub &&
+      account?.nostr?.npubProfiles?.[displayDeviceNpub]?.displayName)
+  const showDeviceKind0 = !!(deviceKind0Picture || deviceKind0DisplayName)
+
+  // When returning from manage-keys (or any focus), align local with store so we don't briefly show old key then new
+  useFocusEffect(
+    useCallback(() => {
+      if (
+        !account?.nostr?.deviceNpub ||
+        !account.nostr.deviceNsec ||
+        account.nostr.deviceNpub === deviceNpub
+      ) {
+        return
+      }
+      setDeviceNsec(account.nostr.deviceNsec)
+      setDeviceNpub(account.nostr.deviceNpub)
+      generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
+    }, [account?.nostr?.deviceNpub, account?.nostr?.deviceNsec, deviceNpub])
+  )
 
   const testRelaySync = useCallback(
     async (relays: string[]) => {
@@ -126,38 +256,15 @@ export default function NostrSync() {
       })
       setRelayConnectionStatuses(statuses)
 
+      // Test connectivity only - don't publish events here to avoid rate limiting
+      // Device announcement is sent separately via deviceAnnouncement()
       for (const relay of relays) {
         try {
           const nostrApi = new NostrAPI([relay])
           await nostrApi.connect()
-
-          if (
-            account?.nostr?.commonNsec &&
-            account.nostr.commonNpub &&
-            account.nostr.deviceNpub
-          ) {
-            try {
-              const testMessage = {
-                created_at: Math.floor(Date.now() / 1000),
-                public_key_bech32: account.nostr.deviceNpub
-              }
-              const compressedMessage = compressMessage(testMessage)
-              const testEvent = await nostrApi.createKind1059(
-                account.nostr.commonNsec,
-                account.nostr.commonNpub,
-                compressedMessage
-              )
-              await nostrApi.publishEvent(testEvent)
-              statuses[relay] = 'connected'
-            } catch {
-              toast.error('Failed to publish device announcement')
-              statuses[relay] = 'disconnected'
-            }
-          } else {
-            statuses[relay] = 'connected'
-          }
+          statuses[relay] = 'connected'
         } catch {
-          toast.error('Failed to connect to relay ' + relay)
+          toast.error(`Failed to connect to relay ${relay}`)
           statuses[relay] = 'disconnected'
         }
         setRelayConnectionStatuses({ ...statuses })
@@ -170,7 +277,7 @@ export default function NostrSync() {
         })
       }
     },
-    [account?.nostr, accountId, updateAccountNostrCallback]
+    [accountId, updateAccountNostrCallback]
   )
 
   const getRelayConnectionInfo = useCallback(
@@ -199,65 +306,157 @@ export default function NostrSync() {
   )
 
   /**
-   * Clears all cached messages and processed events
+   * Full reset: stop sync, clear relays, DMs, Kind 0 data, and processed state.
    */
   const handleClearCaches = async () => {
-    if (!accountId || !account) return
+    if (!accountId || !account?.nostr) return
 
     try {
       setIsLoading(true)
+      setClearCachesModalVisible(false)
+      stopSync(accountId)
       await clearStoredDMs(account)
       updateAccountNostrCallback(accountId, {
-        ...account.nostr,
-        dms: []
+        autoSync: false,
+        dms: [],
+        relays: [],
+        npubProfiles: undefined,
+        npubAliases: undefined,
+        deviceDisplayName: undefined,
+        devicePicture: undefined,
+        trustedMemberDevices: [],
+        syncStart: new Date()
       })
       clearNostrState(accountId)
       clearProcessedMessageIds(accountId)
       clearProcessedEvents(accountId)
       setSelectedMembers(new Set())
-      await new Promise((resolve) => setTimeout(resolve, 100))
-      toast.success('Messages cleared successfully')
+      setSelectedRelays([])
+      setRelayConnectionStatuses({})
+      previousRelaysRef.current = []
+      toast.success(t('account.nostrSync.clearCachesSuccess'))
     } catch {
-      toast.error('Failed to clear messages')
+      toast.error('Failed to clear local Nostr data')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const eventCount = account?.nostr?.dms?.length ?? 0
+
+  function getDevicePubkeyHex(): string | null {
+    const npub = account?.nostr?.deviceNpub
+    return npub ? getPubKeyHexFromNpub(npub) : null
+  }
+
+  async function handleBackupEvents() {
+    if (!account?.nostr) {
+      toast.error(t('account.nostrSync.backupError'))
+      return
+    }
+    try {
+      const payload = JSON.stringify(
+        {
+          exportedAt: new Date().toISOString(),
+          dms: account.nostr.dms ?? []
+        },
+        null,
+        2
+      )
+      await Share.share({
+        message: payload,
+        title: t('account.nostrSync.backupEvents')
+      })
+      toast.success(t('account.nostrSync.backupSuccess'))
+    } catch {
+      toast.error(t('account.nostrSync.backupError'))
+    }
+  }
+
+  async function handleRequestDeletion() {
+    if (
+      !accountId ||
+      !account?.nostr?.deviceNsec ||
+      !account.nostr.relays?.length
+    ) {
+      toast.error(t('account.nostrSync.deletionError'))
+      return
+    }
+    const deviceHex = getDevicePubkeyHex()
+    if (!deviceHex) {
+      toast.error(t('account.nostrSync.deletionError'))
+      return
+    }
+    const ourEventIds = (account.nostr.dms ?? [])
+      .filter(
+        (dm) =>
+          !dm.pending &&
+          dm.author &&
+          dm.author.toLowerCase() === deviceHex &&
+          typeof dm.id === 'string' &&
+          /^[a-f0-9]{64}$/i.test(dm.id)
+      )
+      .map((dm) => dm.id)
+    if (ourEventIds.length === 0) {
+      toast.info(t('account.nostrSync.noEventsToDelete'))
+      setDeletionModalVisible(false)
+      return
+    }
+    try {
+      setIsLoading(true)
+      const api = new NostrAPI(account.nostr.relays)
+      await api.requestDeletion(ourEventIds, account.nostr.deviceNsec)
+      await clearStoredDMs(account)
+      updateAccountNostrCallback(accountId, { dms: [] })
+      clearNostrState(accountId)
+      clearProcessedMessageIds(accountId)
+      clearProcessedEvents(accountId)
+      setDeletionModalVisible(false)
+      toast.success(t('account.nostrSync.deletionSuccess'))
+    } catch {
+      toast.error(t('account.nostrSync.deletionError'))
     } finally {
       setIsLoading(false)
     }
   }
 
   /**
-   * Loads Nostr account data
+   * Loads Nostr account data from store. Accepts account so it can be called
+   * with fresh store state without being in effect deps (avoids update loops).
    */
-  const loadNostrAccountData = useCallback(() => {
-    if (!account || !accountId) return
+  const loadNostrAccountData = useCallback(
+    (acc: NonNullable<typeof account>) => {
+      if (!acc || !accountId) return
 
-    // Initialize nostr object if it doesn't exist
-    if (!account.nostr) {
-      updateAccountNostrCallback(accountId, {
-        autoSync: false,
-        relays: [],
-        dms: [],
-        trustedMemberDevices: [],
-        commonNsec: '',
-        commonNpub: '',
-        deviceNsec: '',
-        deviceNpub: ''
-      })
-      setSelectedRelays([])
-      previousRelaysRef.current = []
-      return
-    }
+      if (!acc.nostr) {
+        updateAccountNostrCallback(accountId, {
+          autoSync: false,
+          relays: [],
+          dms: [],
+          trustedMemberDevices: [],
+          commonNsec: '',
+          commonNpub: '',
+          deviceNsec: '',
+          deviceNpub: ''
+        })
+        setSelectedRelays([])
+        previousRelaysRef.current = []
+        return
+      }
 
-    const currentRelays = account.nostr.relays || []
-    setSelectedRelays(currentRelays)
+      const currentRelays = acc.nostr.relays || []
+      setSelectedRelays(currentRelays)
 
-    if (previousRelaysRef.current.length === 0 && currentRelays.length > 0) {
-      previousRelaysRef.current = [...currentRelays]
-    }
+      if (previousRelaysRef.current.length === 0 && currentRelays.length > 0) {
+        previousRelaysRef.current = [...currentRelays]
+      }
 
-    if (account.nostr.relayStatuses) {
-      setRelayConnectionStatuses(account.nostr.relayStatuses)
-    }
-  }, [account, accountId, updateAccountNostrCallback])
+      if (acc.nostr.relayStatuses) {
+        setRelayConnectionStatuses(acc.nostr.relayStatuses)
+      }
+    },
+    [accountId, updateAccountNostrCallback]
+  )
 
   /**
    * Toggles auto-sync functionality and manages subscriptions
@@ -266,7 +465,6 @@ export default function NostrSync() {
     try {
       if (!accountId || !account) return
 
-      // Initialize nostr object if it doesn't exist
       if (!account.nostr) {
         updateAccountNostrCallback(accountId, {
           autoSync: false,
@@ -288,12 +486,11 @@ export default function NostrSync() {
         setIsSyncing(true)
         if (accountId) setSyncing(accountId, true)
 
-        // Cleanup all subscriptions first
+        if (accountId) stopSync(accountId)
         await cleanupSubscriptions().catch(() => {
           toast.error('Failed to cleanup subscriptions')
         })
 
-        // Set all relays to "disconnected" when turning sync off
         const allRelaysDisconnected: Record<
           string,
           'connected' | 'connecting' | 'disconnected'
@@ -305,9 +502,7 @@ export default function NostrSync() {
         }
         setRelayConnectionStatuses(allRelaysDisconnected)
 
-        // Then update state
         updateAccountNostrCallback(accountId, {
-          ...account.nostr,
           autoSync: false,
           relayStatuses: allRelaysDisconnected,
           lastUpdated: new Date()
@@ -316,49 +511,44 @@ export default function NostrSync() {
         setIsSyncing(false)
         if (accountId) setSyncing(accountId, false)
       } else {
-        // Turn sync ON
-        const newNostrState = {
-          ...account.nostr,
+        // Turn sync ON – set syncStart so DMs from this session are distinguished; caller must set before subscribe to avoid effect loops
+        updateAccountNostrCallback(accountId, {
           autoSync: true,
+          syncStart: new Date(),
           lastUpdated: new Date()
-        }
-        updateAccountNostrCallback(accountId, newNostrState)
+        })
 
-        const updatedAccount = {
-          ...account,
-          nostr: newNostrState
-        }
-
-        if (
-          !updatedAccount?.nostr?.deviceNsec ||
-          !updatedAccount?.nostr?.deviceNpub
-        ) {
-          toast.error('Missing required Nostr configuration')
-        }
+        const updatedAccount = useAccountsStore
+          .getState()
+          .accounts.find((a) => a.id === accountId)
 
         if (
           updatedAccount?.nostr?.relays &&
           updatedAccount.nostr.relays.length > 0
         ) {
-          setIsSyncing(true)
-          if (accountId) setSyncing(accountId, true)
-          try {
-            // Test relay sync first
-            await testRelaySync(updatedAccount.nostr.relays)
-
-            deviceAnnouncement(updatedAccount)
-            // Start both subscriptions using the new function
-            await nostrSyncSubscriptions(updatedAccount, (loading) => {
-              requestAnimationFrame(() => {
-                setIsSyncing(loading)
-                if (accountId) setSyncing(accountId, loading)
+          if (
+            !updatedAccount.nostr.deviceNsec ||
+            !updatedAccount.nostr.deviceNpub
+          ) {
+            toast.error('Missing required Nostr configuration')
+          } else {
+            setIsSyncing(true)
+            if (accountId) setSyncing(accountId, true)
+            try {
+              await testRelaySync(updatedAccount.nostr.relays)
+              deviceAnnouncement(updatedAccount)
+              await nostrSyncSubscriptions(updatedAccount, (loading) => {
+                requestAnimationFrame(() => {
+                  setIsSyncing(loading)
+                  if (accountId) setSyncing(accountId, loading)
+                })
               })
-            })
-          } catch {
-            toast.error('Failed to setup sync')
-          } finally {
-            setIsSyncing(false)
-            if (accountId) setSyncing(accountId, false)
+            } catch {
+              toast.error('Failed to setup sync')
+            } finally {
+              setIsSyncing(false)
+              if (accountId) setSyncing(accountId, false)
+            }
           }
         }
       }
@@ -372,6 +562,7 @@ export default function NostrSync() {
     accountId,
     testRelaySync,
     cleanupSubscriptions,
+    stopSync,
     deviceAnnouncement,
     nostrSyncSubscriptions,
     updateAccountNostrCallback,
@@ -408,14 +599,41 @@ export default function NostrSync() {
           trustedMemberDevices: [...account.nostr.trustedMemberDevices, npub],
           lastUpdated: new Date()
         })
-
-        router.push({
-          pathname: `/signer/bitcoin/account/${accountId}/settings/nostr/device/[npub]`,
-          params: { npub }
-        })
+        if (trustSyncRestartRef.current) {
+          clearTimeout(trustSyncRestartRef.current)
+        }
+        const TRUST_SYNC_RESTART_DELAY_MS = 1500
+        trustSyncRestartRef.current = setTimeout(() => {
+          trustSyncRestartRef.current = null
+          clearProcessedEvents(accountId)
+          setLastDataExchangeEOSE(accountId, 0)
+          const current = useAccountsStore
+            .getState()
+            .accounts.find((a) => a.id === accountId)
+          if (current) {
+            toast.info(t('account.nostrSync.resyncingAfterTrust'))
+            setIsSyncing(true)
+            setSyncing(accountId, true)
+            restartSync(current, (loading) => {
+              requestAnimationFrame(() => {
+                setIsSyncing(loading)
+                setSyncing(accountId, loading)
+              })
+            })
+          }
+        }, TRUST_SYNC_RESTART_DELAY_MS)
       }
     },
-    [accountId, account?.nostr, selectedMembers, updateAccountNostrCallback]
+    [
+      accountId,
+      account?.nostr,
+      clearProcessedEvents,
+      restartSync,
+      selectedMembers,
+      setLastDataExchangeEOSE,
+      setSyncing,
+      updateAccountNostrCallback
+    ]
   )
 
   // Navigation functions
@@ -440,65 +658,55 @@ export default function NostrSync() {
     })
   }
 
-  // Effects
-  useEffect(() => {
-    if (account?.nostr?.trustedMemberDevices) {
-      setSelectedMembers(new Set(account.nostr.trustedMemberDevices))
-    }
-  }, [members, account?.nostr?.trustedMemberDevices])
-
-  useEffect(() => {
-    if (account && accountId) {
-      // Initialize nostr object if it doesn't exist
-      if (!account.nostr) {
-        updateAccountNostrCallback(accountId, {
-          autoSync: false,
-          relays: [],
-          dms: [],
-          trustedMemberDevices: [],
-          commonNsec: '',
-          commonNpub: '',
-          deviceNsec: '',
-          deviceNpub: ''
-        })
-        return // Return early as we'll re-run this effect after the update
+  const handleCreateNewKey = useCallback(async () => {
+    if (!accountId) return
+    setIsGeneratingKeys(true)
+    try {
+      const keys = await NostrAPI.generateNostrKeys()
+      if (!keys) return
+      const current = useAccountsStore
+        .getState()
+        .accounts.find((a) => a.id === accountId)
+      const nostrBase = current?.nostr ?? {
+        autoSync: false,
+        relays: [],
+        dms: [],
+        trustedMemberDevices: [],
+        commonNsec: '',
+        commonNpub: ''
       }
-
-      if (!commonNsec) {
-        if (account.nostr.commonNsec && account.nostr.commonNpub) {
-          setCommonNsec(account.nostr.commonNsec)
-        } else {
-          generateCommonNostrKeys(account)
-            .then((keys) => {
-              if (keys && 'commonNsec' in keys) {
-                setCommonNsec(keys.commonNsec as string)
-                updateAccountNostrCallback(accountId, {
-                  ...account.nostr,
-                  commonNsec: keys.commonNsec,
-                  commonNpub: keys.commonNpub
-                })
-              }
-            })
-            .catch(() => {
-              throw new Error('Error loading common Nostr keys')
-            })
-        }
-      }
+      updateAccountNostrCallback(accountId, {
+        ...nostrBase,
+        deviceNpub: keys.npub,
+        deviceNsec: keys.nsec,
+        lastUpdated: new Date()
+      })
+      setDeviceNsec(keys.nsec)
+      setDeviceNpub(keys.npub)
+      generateColorFromNpub(keys.npub).then(setDeviceColor)
+    } catch {
+      toast.error('Failed to generate device keys')
+    } finally {
+      setIsGeneratingKeys(false)
     }
-  }, [
-    account,
-    accountId,
-    generateCommonNostrKeys,
-    updateAccountNostrCallback,
-    commonNsec
-  ])
+  }, [accountId, updateAccountNostrCallback])
+
+  // Effects – use stable deps so we don't re-run on every account ref change
+  const trustedDevicesKey = JSON.stringify(
+    account?.nostr?.trustedMemberDevices ?? []
+  )
+  useEffect(() => {
+    const acc = useAccountsStore
+      .getState()
+      .accounts.find((a) => a.id === accountId)
+    if (acc?.nostr?.trustedMemberDevices) {
+      setSelectedMembers(new Set(acc.nostr.trustedMemberDevices))
+    }
+  }, [accountId, members, trustedDevicesKey])
 
   useEffect(() => {
-    if (!account || !accountId || isGeneratingKeys) {
-      return
-    }
+    if (!account || !accountId) return
 
-    // Initialize nostr object if it doesn't exist
     if (!account.nostr) {
       updateAccountNostrCallback(accountId, {
         autoSync: false,
@@ -510,173 +718,108 @@ export default function NostrSync() {
         deviceNsec: '',
         deviceNpub: ''
       })
-      return // Return early as we'll re-run this effect after the update
-    }
-
-    if (account.nostr.deviceNsec && account.nostr.deviceNpub) {
-      setDeviceNsec(account.nostr.deviceNsec)
-      setDeviceNpub(account.nostr.deviceNpub)
-      generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
-      setKeysGenerated(true)
       return
     }
 
-    if (keysGenerated) {
+    const hasCommonKeys =
+      !!account.nostr.commonNsec && !!account.nostr.commonNpub
+
+    if (hasCommonKeys) {
+      if (!commonNsec) {
+        setCommonNsec(account.nostr.commonNsec)
+      }
       return
     }
 
-    if (account?.nostr?.deviceNsec && account.nostr.deviceNpub) {
-      setDeviceNsec(account.nostr.deviceNsec)
-      setDeviceNpub(account.nostr.deviceNpub)
-      generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
-      setKeysGenerated(true)
-      return
-    }
-
-    setIsGeneratingKeys(true)
-    setKeysGenerated(true)
-
-    NostrAPI.generateNostrKeys()
+    generateCommonNostrKeys(account)
       .then((keys) => {
-        if (!keys) {
-          return
-        }
-        if (account?.nostr?.deviceNsec && account.nostr.deviceNpub) {
-          setDeviceNsec(account.nostr.deviceNsec)
-          setDeviceNpub(account.nostr.deviceNpub)
-          generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
-        } else if (account?.nostr) {
-          setDeviceNsec(keys.nsec)
-          setDeviceNpub(keys.npub)
-          generateColorFromNpub(keys.npub).then(setDeviceColor)
+        if (keys && 'commonNsec' in keys && 'commonNpub' in keys) {
+          setCommonNsec(keys.commonNsec as string)
           updateAccountNostrCallback(accountId, {
-            ...account.nostr,
-            deviceNpub: keys.npub,
-            deviceNsec: keys.nsec
+            commonNsec: keys.commonNsec,
+            commonNpub: keys.commonNpub
           })
         }
       })
       .catch(() => {
-        toast.error('Failed to generate device keys')
-        setKeysGenerated(false)
+        toast.error(t('account.nostrSync.errorLoadingCommonKeys'))
       })
-      .finally(() => {
-        setIsGeneratingKeys(false)
-      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run when common keys or account id change; omit full account to avoid re-run on ref change
   }, [
-    account,
     accountId,
-    isGeneratingKeys,
+    account?.id,
+    account?.nostr?.commonNsec,
+    account?.nostr?.commonNpub,
+    generateCommonNostrKeys,
     updateAccountNostrCallback,
-    keysGenerated
+    commonNsec
   ])
 
   useEffect(() => {
-    if (deviceNpub && deviceColor === '#404040') {
-      generateColorFromNpub(deviceNpub).then(setDeviceColor)
-    }
-  }, [deviceNpub, deviceColor])
+    if (!account || !accountId) return
 
-  useEffect(() => {
-    if (account) {
-      loadNostrAccountData()
-    }
-  }, [account, loadNostrAccountData])
-
-  // Add effect to handle auto-sync on mount
-  useEffect(() => {
-    const startAutoSync = async () => {
-      if (!account?.nostr?.autoSync || !account?.nostr?.relays?.length) return
-
-      setIsSyncing(true)
-      if (accountId) setSyncing(accountId, true)
-      deviceAnnouncement(account)
-      await nostrSyncSubscriptions(account, (loading) => {
-        requestAnimationFrame(() => {
-          setIsSyncing(loading)
-          if (accountId) setSyncing(accountId, loading)
-        })
-      }).catch(() => {
-        toast.error('Failed to setup sync')
+    if (!account.nostr) {
+      updateAccountNostrCallback(accountId, {
+        autoSync: false,
+        relays: [],
+        dms: [],
+        trustedMemberDevices: [],
+        commonNsec: '',
+        commonNpub: '',
+        deviceNsec: '',
+        deviceNpub: ''
       })
-
-      setIsSyncing(false)
-      if (accountId) setSyncing(accountId, false)
+      return
     }
 
-    startAutoSync()
+    if (account.nostr.deviceNsec && account.nostr.deviceNpub && !deviceNpub) {
+      setDeviceNsec(account.nostr.deviceNsec)
+      setDeviceNpub(account.nostr.deviceNpub)
+      generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
+    }
+  }, [account, accountId, deviceNpub, updateAccountNostrCallback])
+
+  useEffect(() => {
+    if (displayDeviceNpub) {
+      generateColorFromNpub(displayDeviceNpub).then(setDeviceColor)
+    } else {
+      setDeviceColor(NOSTR_FALLBACK_NPUB_COLOR)
+    }
+  }, [displayDeviceNpub])
+
+  const hasNostr = !!account?.nostr
+  const relayCount = account?.nostr?.relays?.length ?? 0
+  useEffect(() => {
+    const acc = useAccountsStore
+      .getState()
+      .accounts.find((a) => a.id === accountId)
+    if (acc) loadNostrAccountData(acc)
+  }, [accountId, hasNostr, relayCount, loadNostrAccountData])
+
+  const relayKey = (account?.nostr?.relays ?? []).slice().sort().join(',')
+  useEffect(() => {
+    if (!account?.nostr?.autoSync || !account?.nostr?.relays?.length) return
+    if (!accountId) return
+
+    const current = useAccountsStore
+      .getState()
+      .accounts.find((a) => a.id === accountId)
+    if (!current?.nostr) return
+
+    restartSync(current, (loading) => {
+      requestAnimationFrame(() => {
+        setIsSyncing(loading)
+        setSyncing(accountId, loading)
+      })
+    })
   }, [
-    account,
     accountId,
-    deviceAnnouncement,
-    nostrSyncSubscriptions,
+    account?.nostr?.autoSync,
+    account?.nostr?.relays?.length,
+    relayKey,
+    restartSync,
     setSyncing
   ])
-
-  // Auto-trigger sync when a new relay is added and sync is ON
-  useFocusEffect(
-    useCallback(() => {
-      if (!accountId || !account?.nostr) {
-        previousRelaysRef.current = []
-        return
-      }
-
-      const currentRelays = account.nostr.relays || []
-      const previousRelays = previousRelaysRef.current
-
-      if (previousRelays.length === 0) {
-        previousRelaysRef.current = [...currentRelays]
-        return
-      }
-
-      const hasNewRelay = currentRelays.some(
-        (relay) => !previousRelays.includes(relay)
-      )
-
-      if (
-        !(
-          hasNewRelay &&
-          account.nostr.autoSync &&
-          currentRelays.length > 0 &&
-          previousRelays.length > 0
-        )
-      ) {
-        return
-      }
-
-      setIsSyncing(true)
-      if (accountId) setSyncing(accountId, true)
-
-      const triggerAutoSync = async () => {
-        try {
-          await testRelaySync(currentRelays)
-          deviceAnnouncement(account)
-          await nostrSyncSubscriptions(account, (loading) => {
-            requestAnimationFrame(() => {
-              setIsSyncing(loading)
-              if (accountId) setSyncing(accountId, loading)
-            })
-          })
-        } catch {
-          toast.error('Failed to setup sync with new relay')
-        } finally {
-          setIsSyncing(false)
-          if (accountId) setSyncing(accountId, false)
-        }
-      }
-
-      triggerAutoSync()
-
-      previousRelaysRef.current = [...currentRelays]
-    }, [
-      account,
-      accountId,
-      deviceAnnouncement,
-      nostrSyncSubscriptions,
-      setSyncing,
-      testRelaySync
-    ])
-  )
 
   if (!accountId || !account) return <Redirect href="/" />
 
@@ -721,33 +864,26 @@ export default function NostrSync() {
             {isSyncing && (
               <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
                 <ActivityIndicator size="small" color={Colors.white} />
-                <SSText color="muted">Syncing with Nostr relays</SSText>
+                <SSText color="muted">{t(syncingMessage)}</SSText>
               </SSHStack>
             )}
             {!isSyncing && (
               <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
                 <SSText color="muted">
                   Last sync:{' '}
-                  {lastProtocolEOSE ? formatDate(lastProtocolEOSE) : 'Never'}
+                  {lastProtocolEOSE
+                    ? formatDateShort(lastProtocolEOSE)
+                    : 'Never'}
                 </SSText>
               </SSHStack>
             )}
-            <SSHStack gap="md">
-              <SSButton
-                style={{ flex: 0.9 }}
-                label={t('account.nostrSync.setKeys')}
-                onPress={goToNostrKeyPage}
-                disabled={isSyncing}
-              />
-              <SSButton
-                style={{ flex: 0.9 }}
-                label={t('account.nostrSync.manageRelays', {
-                  count: selectedRelays.length
-                })}
-                onPress={goToSelectRelaysPage}
-                disabled={isSyncing}
-              />
-            </SSHStack>
+            <SSButton
+              label={t('account.nostrSync.manageRelays', {
+                count: selectedRelays.length
+              })}
+              onPress={goToSelectRelaysPage}
+              disabled={isSyncing}
+            />
             {selectedRelays.length === 0 && account?.nostr?.autoSync && (
               <SSText color="white" weight="bold" center>
                 {t('account.nostrSync.noRelaysWarning')}
@@ -757,68 +893,75 @@ export default function NostrSync() {
             <SSVStack gap="sm">
               <SSText center>{t('account.nostrSync.deviceKeys')}</SSText>
               <SSVStack gap="xxs" style={styles.keysContainer}>
-                {deviceNsec && deviceNpub ? (
-                  <>
-                    <SSVStack gap="xxs">
-                      <SSText color="muted" center>
-                        {t('account.nostrSync.nsec')}
-                      </SSText>
-                      <SSTextClipboard text={deviceNsec || ''}>
+                {displayDeviceNsec && displayDeviceNpub ? (
+                  <SSVStack gap="xxs">
+                    {showDeviceKind0 && (
+                      <SSVStack gap="xs" style={styles.deviceProfileRow}>
+                        {deviceKind0Picture && (
+                          <Image
+                            source={{ uri: deviceKind0Picture }}
+                            style={styles.deviceProfilePicture}
+                            resizeMode="cover"
+                          />
+                        )}
+                        {deviceKind0DisplayName && (
+                          <SSText center size="lg">
+                            {deviceKind0DisplayName}
+                          </SSText>
+                        )}
+                      </SSVStack>
+                    )}
+                    <SSText color="muted" center>
+                      {t('account.nostrSync.npub')}
+                    </SSText>
+                    <SSHStack gap="xs" style={styles.npubRow}>
+                      <View
+                        style={[
+                          styles.deviceColorCircle,
+                          { backgroundColor: deviceColor }
+                        ]}
+                      />
+                      <SSTextClipboard
+                        text={displayDeviceNpub || ''}
+                        fullWidth={false}
+                      >
                         <SSText
-                          center
                           size="xl"
                           type="mono"
                           style={styles.keyText}
                           selectable
                         >
-                          {deviceNsec.slice(0, 12) +
-                            '...' +
-                            deviceNsec.slice(-4)}
+                          {`${displayDeviceNpub.slice(0, 12)}...${displayDeviceNpub.slice(-4)}`}
                         </SSText>
                       </SSTextClipboard>
-                    </SSVStack>
-                    <SSVStack gap="xxs">
-                      <SSText color="muted" center>
-                        {t('account.nostrSync.npub')}
-                      </SSText>
-                      <SSHStack gap="xxs" style={{ flex: 0.7 }}>
-                        <View
-                          style={{
-                            width: 10,
-                            height: 10,
-                            borderRadius: 10,
-                            backgroundColor: deviceColor,
-                            marginTop: 3,
-                            marginLeft: 30,
-                            marginRight: -30
-                          }}
-                        />
-                        <SSTextClipboard text={deviceNpub || ''}>
-                          <SSText
-                            center
-                            size="xl"
-                            type="mono"
-                            style={styles.keyText}
-                            selectable
-                          >
-                            {deviceNpub.slice(0, 12) +
-                              '...' +
-                              deviceNpub.slice(-4)}
-                          </SSText>
-                        </SSTextClipboard>
-                      </SSHStack>
-                    </SSVStack>
-                  </>
-                ) : (
+                    </SSHStack>
+                  </SSVStack>
+                ) : isGeneratingKeys ? (
                   <SSHStack style={styles.keyContainerLoading}>
                     <ActivityIndicator color={Colors.white} />
                     <SSText uppercase color="white">
                       {t('account.nostrSync.loadingKeys')}
                     </SSText>
                   </SSHStack>
+                ) : (
+                  <SSText center color="muted">
+                    {t('account.nostrSync.noNsec')}
+                  </SSText>
                 )}
               </SSVStack>
             </SSVStack>
+            {!displayDeviceNsec && (
+              <SSButton
+                label={t('account.nostrSync.createNewKey')}
+                onPress={handleCreateNewKey}
+                disabled={isSyncing || isGeneratingKeys}
+              />
+            )}
+            <SSButton
+              label={t('account.nostrSync.setKeys')}
+              onPress={goToNostrKeyPage}
+              disabled={isSyncing}
+            />
             <SSButton
               style={{ marginTop: 30, marginBottom: 10 }}
               variant="secondary"
@@ -832,82 +975,72 @@ export default function NostrSync() {
               {members && members.length > 0 ? (
                 <SSVStack gap="md" style={styles.membersContainer}>
                   {members
-                    .filter((member) => member.npub !== deviceNpub)
+                    .filter((member) => member.npub !== displayDeviceNpub)
                     .map((member, index) => (
                       <SSVStack key={index} gap="md">
                         {member?.npub && (
                           <SSHStack gap="md">
                             <SSVStack gap="xxs" style={{ flex: 0.7 }}>
-                              <SSHStack gap="md">
-                                <View
-                                  style={{
-                                    width: 8,
-                                    height: 8,
-                                    borderRadius: 4,
-                                    backgroundColor: member.color || '#404040',
-                                    marginTop: 1,
-                                    marginLeft: 20,
-                                    marginRight: 0
-                                  }}
-                                />
-                                <Pressable
-                                  disabled={isSyncing}
-                                  onPress={() => {
-                                    router.push({
-                                      pathname: `/signer/bitcoin/account/${accountId}/settings/nostr/device/[npub]`,
-                                      params: { npub: member.npub }
-                                    })
-                                  }}
-                                  style={{ opacity: isSyncing ? 0.5 : 1 }}
-                                >
-                                  <SSVStack gap="none">
-                                    {account?.nostr?.npubAliases?.[
-                                      member.npub
-                                    ] ? (
-                                      <>
-                                        <SSText
-                                          size="md"
-                                          style={styles.memberText}
-                                          selectable
-                                        >
-                                          {
-                                            account.nostr.npubAliases[
-                                              member.npub
-                                            ]
-                                          }
-                                        </SSText>
-                                        <SSTextClipboard
-                                          text={member.npub || ''}
-                                        >
-                                          <SSText
-                                            size="sm"
-                                            type="mono"
-                                            style={styles.memberNpubText}
-                                            selectable
-                                          >
-                                            {member.npub.slice(0, 12) +
-                                              '...' +
-                                              member.npub.slice(-4)}
-                                          </SSText>
-                                        </SSTextClipboard>
-                                      </>
-                                    ) : (
-                                      <SSTextClipboard text={member.npub || ''}>
-                                        <SSText
-                                          size="md"
-                                          type="mono"
-                                          style={styles.memberText}
-                                          selectable
-                                        >
-                                          {member.npub.slice(0, 12) +
-                                            '...' +
-                                            member.npub.slice(-4)}
-                                        </SSText>
-                                      </SSTextClipboard>
-                                    )}
+                              <Pressable
+                                disabled={isSyncing}
+                                onPress={() => {
+                                  router.push({
+                                    pathname: `/signer/bitcoin/account/${accountId}/settings/nostr/device/[npub]`,
+                                    params: { npub: member.npub }
+                                  })
+                                }}
+                                style={{ opacity: isSyncing ? 0.5 : 1 }}
+                              >
+                                <SSHStack gap="sm" style={styles.memberRow}>
+                                  {account?.nostr?.npubProfiles?.[member.npub]
+                                    ?.picture ? (
+                                    <Image
+                                      source={{
+                                        uri: account.nostr.npubProfiles[
+                                          member.npub
+                                        ].picture
+                                      }}
+                                      style={styles.memberAvatar}
+                                      resizeMode="cover"
+                                    />
+                                  ) : (
+                                    <View
+                                      style={[
+                                        styles.memberAvatarCircle,
+                                        {
+                                          backgroundColor:
+                                            member.color ||
+                                            NOSTR_FALLBACK_NPUB_COLOR
+                                        }
+                                      ]}
+                                    />
+                                  )}
+                                  <SSVStack
+                                    gap="xxs"
+                                    style={styles.memberBlock}
+                                  >
+                                    <MemberNameBlock
+                                      npub={member.npub}
+                                      displayName={
+                                        account?.nostr?.npubProfiles?.[
+                                          member.npub
+                                        ]?.displayName
+                                      }
+                                      alias={
+                                        account?.nostr?.npubAliases?.[
+                                          member.npub
+                                        ]
+                                      }
+                                      hasPicture={
+                                        !!account?.nostr?.npubProfiles?.[
+                                          member.npub
+                                        ]?.picture
+                                      }
+                                      memberColor={member.color}
+                                    />
                                   </SSVStack>
-                                </Pressable>
-                              </SSHStack>
+                                </SSHStack>
+                              </Pressable>
                             </SSVStack>
                             <SSButton
                               style={{
@@ -994,15 +1127,94 @@ export default function NostrSync() {
           </SSVStack>
           <SSHStack gap="xs" style={{ marginTop: 30 }}>
             <SSButton
-              label="Clear Caches"
-              onPress={handleClearCaches}
+              label={t('account.nostrSync.clearCaches')}
+              onPress={() => setClearCachesModalVisible(true)}
               disabled={isLoading}
               variant="subtle"
               style={{ flex: 1 }}
             />
           </SSHStack>
+          <SSButton
+            label={t('account.nostrSync.requestToDeletion')}
+            onPress={() => setDeletionModalVisible(true)}
+            disabled={isLoading || isSyncing}
+            variant="subtle"
+            style={{ marginTop: 12, marginBottom: 20 }}
+          />
         </SSVStack>
       </ScrollView>
+      <SSModal
+        visible={deletionModalVisible}
+        onClose={() => setDeletionModalVisible(false)}
+        label={t('common.cancel')}
+        closeButtonVariant="ghost"
+        fullOpacity
+      >
+        <SSVStack gap="lg" style={styles.deletionModalContent}>
+          <SSText center>
+            {eventCount === 0
+              ? t('account.nostrSync.deletionModalZeroEvents')
+              : t('account.nostrSync.deletionModalMessage', {
+                  count: eventCount
+                })}
+          </SSText>
+          <SSVStack gap="xs" style={styles.deletionModalWarningRow}>
+            <SSIconWarning
+              height={20}
+              width={20}
+              fill="transparent"
+              stroke={Colors.gray[400]}
+            />
+            <SSText center color="muted">
+              {t('account.nostrSync.deletionModalRelayWarning')}
+            </SSText>
+          </SSVStack>
+          <SSText center weight="bold">
+            {t('account.nostrSync.deletionModalActionsPrompt')}
+          </SSText>
+          <SSVStack gap="sm">
+            <SSButton
+              label={t('account.nostrSync.backupEvents')}
+              onPress={handleBackupEvents}
+              variant="secondary"
+              disabled={isLoading}
+            />
+            <SSButton
+              label={t('account.nostrSync.requestDeletionConfirm')}
+              onPress={handleRequestDeletion}
+              variant="danger"
+              disabled={isLoading}
+            />
+          </SSVStack>
+        </SSVStack>
+      </SSModal>
+      <SSModal
+        visible={clearCachesModalVisible}
+        onClose={() => setClearCachesModalVisible(false)}
+        label={t('common.cancel')}
+        closeButtonVariant="ghost"
+        fullOpacity
+      >
+        <SSVStack gap="lg" style={styles.deletionModalContent}>
+          <SSVStack gap="xs" style={styles.deletionModalWarningRow}>
+            <SSIconWarning
+              height={20}
+              width={20}
+              fill="transparent"
+              stroke={Colors.gray[400]}
+            />
+            <SSText center color="muted">
+              {t('account.nostrSync.clearCachesModalMessage')}
+            </SSText>
+          </SSVStack>
+          <SSButton
+            label={t('account.nostrSync.clearCachesConfirm')}
+            onPress={handleClearCaches}
+            variant="danger"
+            disabled={isLoading}
+          />
+        </SSVStack>
+      </SSModal>
     </SSMainLayout>
   )
 }
@@ -1016,12 +1228,22 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     paddingHorizontal: 28
   },
+  deviceProfileRow: {
+    alignItems: 'center',
+    marginBottom: 4
+  },
+  deviceProfilePicture: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    marginTop: 12
+  },
   membersContainer: {
     backgroundColor: '#1a1a1a',
     borderRadius: 8,
     borderColor: Colors.white,
     paddingVertical: 15,
-    paddingHorizontal: 0
+    paddingLeft: 12
   },
   colorCircle: {
     width: 12,
@@ -1034,12 +1256,51 @@ const styles = StyleSheet.create({
     color: Colors.white,
     marginBottom: -4
   },
+  memberRow: {
+    alignItems: 'center'
+  },
+  memberAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12
+  },
+  memberAvatarCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12
+  },
+  memberBlock: {
+    gap: 0,
+    flex: 1,
+    marginLeft: 8
+  },
+  memberNpubRow: {
+    alignItems: 'center',
+    marginTop: 2
+  },
+  memberNpubUnderAlias: {
+    letterSpacing: 1
+  },
+  memberColorDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4
+  },
   keyContainerLoading: {
     justifyContent: 'center',
     paddingVertical: 10
   },
   keyText: {
     letterSpacing: 1
+  },
+  npubRow: {
+    alignSelf: 'center',
+    alignItems: 'center'
+  },
+  deviceColorCircle: {
+    width: 10,
+    height: 10,
+    borderRadius: 5
   },
   autoSyncContainer: {
     marginBottom: 10
@@ -1056,5 +1317,11 @@ const styles = StyleSheet.create({
   memberNpubText: {
     letterSpacing: 1,
     color: Colors.gray[400]
+  },
+  deletionModalContent: {
+    paddingVertical: 8
+  },
+  deletionModalWarningRow: {
+    alignItems: 'center'
   }
 })

@@ -3,7 +3,7 @@ import * as Print from 'expo-print'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import * as Sharing from 'expo-sharing'
 import { useEffect, useRef, useState } from 'react'
-import { ScrollView, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { captureRef } from 'react-native-view-shot'
 
 import { getExtendedPublicKeyFromAccountKey } from '@/api/bdk'
@@ -27,6 +27,7 @@ import {
   getExtendedKeyFromDescriptor,
   getFingerprintFromExtendedPublicKey
 } from '@/utils/bip32'
+import { isElectrumDerivationPath } from '@/utils/bip39'
 import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion,
@@ -716,6 +717,13 @@ export default function ExportDescriptors() {
         <SSText center uppercase color="muted">
           {t('account.export.descriptors')}
         </SSText>
+        {isElectrumDerivationPath(account.keys[0]?.derivationPath || '') && (
+          <View style={styles.electrumWarning}>
+            <SSText style={styles.electrumWarningText}>
+              {t('bitcoin.electrumSeedNote')}
+            </SSText>
+          </View>
+        )}
         {isLoading ? (
           <SSText center color="muted">
             {t('common.loadingX', { x: 'descriptors...' })}
@@ -824,3 +832,15 @@ export default function ExportDescriptors() {
     </ScrollView>
   )
 }
+
+const styles = StyleSheet.create({
+  electrumWarning: {
+    borderWidth: 1,
+    borderColor: Colors.warning,
+    borderRadius: 5,
+    padding: 10
+  },
+  electrumWarningText: {
+    color: Colors.warning
+  }
+})

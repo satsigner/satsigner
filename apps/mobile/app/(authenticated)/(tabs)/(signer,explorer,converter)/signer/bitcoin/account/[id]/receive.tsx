@@ -14,6 +14,7 @@ import SSTextInput from '@/components/SSTextInput'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useGetFirstUnusedAddress from '@/hooks/useGetFirstUnusedAddress'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
+import useNostrSync from '@/hooks/useNostrSync'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -23,6 +24,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { type Label } from '@/utils/bip329'
 
 export default function Receive() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
@@ -35,12 +37,15 @@ export default function Receive() {
     ])
   )
   const wallet = useGetAccountWallet(id!)
+  const { sendLabelsToNostr } = useNostrSync()
 
   const [localAddress, setLocalAddress] = useState<string>()
   const [localAddressNumber, setLocalAddressNumber] = useState<number>()
   const [localAddressQR, setLocalAddressQR] = useState<string>()
   const [localAddressPath, setLocalAddressPath] = useState<string>()
   const [localCustomAmount, setLocalCustomAmount] = useState<string>()
+  const [localFiatAmount, setLocalFiatAmount] = useState<string>()
+  const [amountMode, setAmountMode] = useState<'sats' | 'fiat'>('sats')
   const [localLabel, setLocalLabel] = useState<string>()
   const [isGenerating, setIsGenerating] = useState(false)
   const [includeLabel, setIncludeLabel] = useState(true)
@@ -56,8 +61,12 @@ export default function Receive() {
     cancelNFCScan
   } = useNFCEmitter()
 
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  const [fiatCurrency, btcPrice, satsToFiat] = usePriceStore(
+    useShallow((state) => [
+      state.fiatCurrency,
+      state.btcPrice,
+      state.satsToFiat
+    ])
   )
 
   const saveLabelTimeoutRef = useRef<NodeJS.Timeout>()
@@ -205,11 +214,20 @@ export default function Receive() {
 
       saveLabelTimeoutRef.current = setTimeout(() => {
         if (localAddress && text.trim()) {
-          setAddrLabel(id!, localAddress, text.trim())
+          const updatedAccount = setAddrLabel(id!, localAddress, text.trim())
+          if (updatedAccount?.nostr?.autoSync) {
+            const singleLabelData: Label = {
+              label: text.trim(),
+              ref: localAddress,
+              type: 'addr',
+              spendable: true
+            }
+            sendLabelsToNostr(updatedAccount, singleLabelData)
+          }
         }
       }, 1000)
     },
-    [localAddress, id, setAddrLabel]
+    [localAddress, id, setAddrLabel, sendLabelsToNostr]
   )
 
   async function handleNFCExport() {
@@ -234,6 +252,45 @@ export default function Receive() {
     if (!sats || isNaN(Number(sats)) || Number(sats) <= 0) return ''
     const fiatAmount = satsToFiat(Number(sats))
     return fiatAmount > 0 ? `≈ ${fiatAmount.toFixed(2)} ${fiatCurrency}` : ''
+  }
+
+  function getSatsFromFiat(fiat: string): number | null {
+    if (!fiat || isNaN(Number(fiat)) || Number(fiat) <= 0) return null
+    if (!btcPrice || btcPrice <= 0) return null
+    return Math.round((Number(fiat) / btcPrice) * 1e8)
+  }
+
+  function getSatsDisplay(fiat: string): string {
+    const sats = getSatsFromFiat(fiat)
+    if (sats === null) return ''
+    return `≈ ${sats.toLocaleString()} ${t('bitcoin.sats')}`
+  }
+
+  function handleSwitchToFiat() {
+    if (!btcPrice || btcPrice <= 0) return
+    if (localCustomAmount && Number(localCustomAmount) > 0) {
+      const fiat = satsToFiat(Number(localCustomAmount))
+      setLocalFiatAmount(fiat > 0 ? fiat.toFixed(2) : '')
+    }
+    setAmountMode('fiat')
+  }
+
+  function handleSwitchToSats() {
+    if (localFiatAmount) {
+      const sats = getSatsFromFiat(localFiatAmount)
+      if (sats !== null) setLocalCustomAmount(sats.toString())
+    }
+    setAmountMode('sats')
+  }
+
+  function handleFiatAmountChange(text: string) {
+    // Allow digits and a single decimal point
+    const cleaned = text
+      .replace(/[^0-9.]/g, '')
+      .replace(/^(\d*\.?\d*).*$/, '$1')
+    setLocalFiatAmount(cleaned)
+    const sats = getSatsFromFiat(cleaned)
+    setLocalCustomAmount(sats !== null ? sats.toString() : undefined)
   }
 
   function handleToggleLabel() {
@@ -373,24 +430,58 @@ export default function Receive() {
           <SSFormLayout>
             <SSFormLayout.Item>
               <SSFormLayout.Label
-                label={`${t('receive.customAmount')} (${t('bitcoin.sats')})`}
+                label={`${t('receive.customAmount')} (${amountMode === 'sats' ? t('bitcoin.sats') : fiatCurrency})`}
               />
-              <SSNumberInput
-                min={1}
-                max={2_100_000_000_000_000}
-                placeholder={t('receive.placeholder.sats')}
-                align="center"
-                keyboardType="numeric"
-                onChangeText={setLocalCustomAmount}
-                allowDecimal={false}
-                allowValidEmpty
-                alwaysTriggerOnChange
-                style={styles.amountTextInput}
-              />
-              {localCustomAmount && getFiatAmount(localCustomAmount) && (
-                <SSText color="muted" size="sm" center>
-                  {getFiatAmount(localCustomAmount)}
-                </SSText>
+              {amountMode === 'sats' ? (
+                <>
+                  <SSNumberInput
+                    min={1}
+                    max={2_100_000_000_000_000}
+                    placeholder={t('receive.placeholder.sats')}
+                    align="center"
+                    keyboardType="numeric"
+                    onChangeText={setLocalCustomAmount}
+                    allowDecimal={false}
+                    allowValidEmpty
+                    alwaysTriggerOnChange
+                    style={styles.amountTextInput}
+                  />
+                  {btcPrice > 0 && (
+                    <SSText
+                      color="muted"
+                      size="sm"
+                      center
+                      onPress={handleSwitchToFiat}
+                      style={styles.switchableAmount}
+                    >
+                      {localCustomAmount && getFiatAmount(localCustomAmount)
+                        ? getFiatAmount(localCustomAmount)
+                        : `${t('receive.enterIn')} ${fiatCurrency}`}
+                    </SSText>
+                  )}
+                </>
+              ) : (
+                <>
+                  <TextInput
+                    value={localFiatAmount}
+                    onChangeText={handleFiatAmountChange}
+                    keyboardType="decimal-pad"
+                    placeholder={`0.00 ${fiatCurrency}`}
+                    placeholderTextColor={Colors.gray[400]}
+                    style={[styles.amountTextInput, styles.fiatTextInput]}
+                  />
+                  <SSText
+                    color="muted"
+                    size="sm"
+                    center
+                    onPress={handleSwitchToSats}
+                    style={styles.switchableAmount}
+                  >
+                    {localFiatAmount && getSatsDisplay(localFiatAmount)
+                      ? getSatsDisplay(localFiatAmount)
+                      : `${t('receive.enterIn')} ${t('bitcoin.sats')}`}
+                  </SSText>
+                </>
               )}
               <SSButton
                 label={t('receive.pasteAmount')}
@@ -502,6 +593,18 @@ const styles = StyleSheet.create({
   },
   amountTextInput: {
     fontSize: 21
+  },
+  fiatTextInput: {
+    backgroundColor: Colors.gray[850],
+    borderRadius: 3,
+    color: Colors.white,
+    textAlign: 'center',
+    width: '100%',
+    height: 58,
+    paddingHorizontal: 12
+  },
+  switchableAmount: {
+    textDecorationLine: 'underline'
   },
   sectionSpacing: {
     marginVertical: 10

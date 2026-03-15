@@ -367,7 +367,6 @@ function SSCurrentTransactionChart({
             links={transformedLinks}
             nodes={nodes as Node[]}
             sankeyGenerator={sankeyGenerator}
-            LINK_MAX_WIDTH={LINK_MAX_WIDTH}
             BLOCK_WIDTH={BLOCK_WIDTH}
           />
           <SSSankeyNodes

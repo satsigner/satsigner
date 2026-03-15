@@ -48,6 +48,14 @@ function useSyncAccountWithWallet() {
         config.stopGap
       )
 
+      // Capture cached prices before overwriting transactions with fresh BDK data
+      const cachedPrices: Record<string, number | undefined> = {}
+      for (const tx of account.transactions) {
+        if (tx.prices?.USD !== undefined) {
+          cachedPrices[tx.id] = tx.prices.USD
+        }
+      }
+
       let updatedAccount: Account = { ...account }
 
       updatedAccount.transactions = walletSummary.transactions
@@ -55,26 +63,34 @@ function useSyncAccountWithWallet() {
       updatedAccount.addresses = walletSummary.addresses
       updatedAccount.summary = walletSummary.summary
 
-      // attach additional information to the account addresses
       updatedAccount.addresses = parseAccountAddressesDetails(updatedAccount)
-
-      // labels update for new transactions, utxos, addresses
       updatedAccount = updateAccountObjectLabels(updatedAccount)
 
-      // extract timestamps
-      const timestamps = updatedAccount.transactions
-        .filter((transaction) => transaction.timestamp)
-        .map((transaction) => formatTimestamp(transaction.timestamp!))
+      // Apply cached prices and collect timestamps only for unpriced transactions
+      const unpricedTimestamps: number[] = []
+      for (const tx of updatedAccount.transactions) {
+        if (cachedPrices[tx.id] !== undefined) {
+          tx.prices = { USD: cachedPrices[tx.id]! }
+        } else if (tx.timestamp) {
+          unpricedTimestamps.push(formatTimestamp(tx.timestamp))
+        }
+      }
 
-      // fetch prices
-      const network = 'bitcoin' // always use mainnet when fetching prices
-      const mempoolUrl = configsMempol[network]
-      const oracle = new MempoolOracle(mempoolUrl)
-      const prices = await oracle.getPricesAt('USD', timestamps)
-
-      // transaction prices update
-      for (const index in updatedAccount.transactions) {
-        updatedAccount.transactions[index].prices = { USD: prices[index] }
+      if (unpricedTimestamps.length > 0) {
+        const uniqueTimestamps = [...new Set(unpricedTimestamps)]
+        const mempoolUrl = configsMempol['bitcoin']
+        const oracle = new MempoolOracle(mempoolUrl)
+        const fetchedPrices = await oracle.getPricesAt('USD', uniqueTimestamps)
+        const priceMap: Record<number, number> = {}
+        uniqueTimestamps.forEach((ts, i) => {
+          priceMap[ts] = fetchedPrices[i]
+        })
+        for (const tx of updatedAccount.transactions) {
+          if (!tx.prices?.USD && tx.timestamp) {
+            const price = priceMap[formatTimestamp(tx.timestamp)]
+            if (price !== undefined) tx.prices = { USD: price }
+          }
+        }
       }
 
       updatedAccount.syncStatus = 'synced'

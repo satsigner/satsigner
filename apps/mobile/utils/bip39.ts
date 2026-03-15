@@ -1,3 +1,6 @@
+import { hmac } from '@noble/hashes/hmac'
+import { pbkdf2Async } from '@noble/hashes/pbkdf2'
+import { sha512 } from '@noble/hashes/sha512'
 import { HDKey } from '@scure/bip32'
 import type { KeychainKind } from 'bdk-rn/lib/lib/enums'
 import { Network } from 'bdk-rn/lib/lib/enums'
@@ -14,6 +17,7 @@ import {
   getExtendedPublicKeyFromSeed,
   getFingerprintFromSeed,
   getPrivateDescriptorFromSeed,
+  getPrivateDescriptorFromSeedWithPath,
   getPublicDescriptorFromSeed,
   getVersionsForNetwork,
   getXpubForScriptVersion,
@@ -55,6 +59,95 @@ export function validateMnemonic(
 ) {
   const wordlist = bip39.wordlists[wordListName]
   return bip39.validateMnemonic(mnemonic, wordlist)
+}
+
+// From ElectrumMnemonicCode.java: prefixLength = parseInt(hex[0]) + 2
+// Valid prefixes: "01" (standard), "100" (segwit), "101" (2fa-standard)
+const ELECTRUM_SEED_VERSIONS: Record<string, string> = {
+  '01': 'standard',
+  '100': 'segwit',
+  '101': '2fa-standard'
+}
+
+const enc = new TextEncoder()
+
+export async function detectElectrumSeed(
+  mnemonic: string
+): Promise<string | null> {
+  const normalized = mnemonic
+    .normalize('NFKD')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ')
+  try {
+    const result = hmac(
+      sha512,
+      enc.encode('Seed version'),
+      enc.encode(normalized)
+    )
+    const hmacHex = Buffer.from(result).toString('hex')
+    const firstDigit = parseInt(hmacHex[0], 16)
+    if (isNaN(firstDigit)) return null
+    const prefixLength = firstDigit + 2
+    const prefixSlice = hmacHex.slice(0, prefixLength).toLowerCase()
+    return ELECTRUM_SEED_VERSIONS[prefixSlice] ?? null
+  } catch {
+    return null
+  }
+}
+
+// Electrum seed derivation: PBKDF2(HMAC-SHA512, pass=NFKD(mnemonic), salt="electrum"+NFKD(passphrase), rounds=2048)
+export async function mnemonicToSeedElectrum(
+  mnemonic: string,
+  passphrase: string = ''
+): Promise<Uint8Array> {
+  const normalizedMnemonic = mnemonic
+    .normalize('NFKD')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ')
+  const salt = ('electrum' + passphrase).normalize('NFKD')
+  return pbkdf2Async(sha512, enc.encode(normalizedMnemonic), enc.encode(salt), {
+    c: 2048,
+    dkLen: 64
+  })
+}
+
+// Electrum derivation paths by seed type (from Sparrow's Electrum.java)
+export function getElectrumDerivationPath(seedType: string): string {
+  return seedType === 'segwit' ? "m/0'" : 'm'
+}
+
+// Matches m, m/0', m/0h — the only paths used by Electrum seeds
+export function isElectrumDerivationPath(path: string): boolean {
+  return /^m(\/0[h'])?$/.test(path)
+}
+
+// scriptVersion for Electrum seed type: segwit → P2WPKH, standard → P2PKH
+const ELECTRUM_SCRIPT_VERSION: Record<string, ScriptVersionType> = {
+  segwit: 'P2WPKH',
+  standard: 'P2PKH',
+  '2fa-standard': 'P2PKH'
+}
+
+export async function getPrivateDescriptorFromElectrumMnemonic(
+  mnemonic: string,
+  electrumType: string,
+  kind: KeychainKind,
+  passphrase: string = '',
+  network: Network
+): Promise<string> {
+  const seed = await mnemonicToSeedElectrum(mnemonic, passphrase)
+  const scriptVersion = ELECTRUM_SCRIPT_VERSION[electrumType] ?? 'P2WPKH'
+  // Strip leading "m/" — descriptor path format is just "0'" not "m/0'"
+  const path = getElectrumDerivationPath(electrumType).replace(/^m\/?/, '')
+  return getPrivateDescriptorFromSeedWithPath(
+    Buffer.from(seed),
+    scriptVersion,
+    kind,
+    network,
+    path
+  )
 }
 
 export function generateMnemonic(

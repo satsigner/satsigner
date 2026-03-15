@@ -114,7 +114,23 @@ export default function NetworkSettings() {
         })
         setTestingServer(null)
       }
-      // Success toast will be shown by useEffect when block height is captured
+      // Success toast is shown by the useEffect below when block height is
+      // captured. For Electrum servers that don't expose block height the
+      // useEffect never fires, so we show the toast here as a fallback after
+      // a short delay (giving the useEffect a chance to run first).
+      if (result.success && server.backend === 'electrum') {
+        setTimeout(() => {
+          setTestingServer((prev) => {
+            if (prev === server.url) {
+              toast.success(`${server.name} (${server.url})`, {
+                description: tn('tester.success')
+              })
+              return null
+            }
+            return prev
+          })
+        }, 500)
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : tn('tester.error')
@@ -132,16 +148,24 @@ export default function NetworkSettings() {
     router.back()
   }
 
+  function handleEditCustomServer(network: Network, server: Server) {
+    router.push(`./${network}?editUrl=${encodeURIComponent(server.url)}`)
+  }
+
   return (
-    <SSMainLayout style={{ paddingTop: 0 }}>
+    <SSMainLayout style={{ paddingTop: 0, flex: 1 }}>
       <Stack.Screen
         options={{
           headerTitle: () => <SSText uppercase>{tn('title')}</SSText>,
           headerRight: undefined
         }}
       />
-      <SSVStack gap="md" justifyBetween>
-        <ScrollView showsVerticalScrollIndicator={false}>
+      <SSVStack style={{ flex: 1, minHeight: 0 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 24 }}
+        >
           <SSBitcoinNetworkExplanationLink />
           <SSVStack gap="xl" style={{ marginTop: 20 }}>
             {networks.map((network) => (
@@ -158,13 +182,29 @@ export default function NetworkSettings() {
                   <SSText color="muted">{tn(`type.${network}`)}</SSText>
                 </SSVStack>
                 <SSVStack gap="md">
-                  <SSVStack gap="md">
+                  <SSVStack gap="sm">
                     {servers
                       .concat(customServers)
                       .filter((server) => server.network === network)
                       .map((server, index) => (
-                        <SSHStack key={index} justifyBetween>
-                          <SSHStack>
+                        <SSHStack
+                          key={index}
+                          justifyBetween
+                          style={{
+                            alignItems: 'center',
+                            alignSelf: 'stretch',
+                            minHeight: 48,
+                            overflow: 'hidden'
+                          }}
+                        >
+                          <SSHStack
+                            gap="sm"
+                            style={{
+                              flex: 1,
+                              minWidth: 0,
+                              alignItems: 'flex-start'
+                            }}
+                          >
                             <SSCheckbox
                               onPress={() =>
                                 handleSelectServer(network, server)
@@ -177,19 +217,38 @@ export default function NetworkSettings() {
                             />
                             <TouchableOpacity
                               onPress={() =>
-                                handleSelectServer(network, server)
+                                customServers.includes(server)
+                                  ? handleEditCustomServer(network, server)
+                                  : handleSelectServer(network, server)
                               }
+                              style={{ flex: 1, minWidth: 0 }}
+                              activeOpacity={0.7}
                             >
-                              <SSVStack gap="none" style={{ flexGrow: 1 }}>
-                                <SSText
-                                  style={{
-                                    lineHeight: 16,
-                                    textTransform: 'capitalize'
-                                  }}
-                                  size="md"
+                              <SSVStack gap="none" style={{ flex: 1 }}>
+                                <SSHStack
+                                  gap="xs"
+                                  style={{ alignItems: 'center' }}
                                 >
-                                  {`${server.name} (${server.backend})`}
-                                </SSText>
+                                  <SSText
+                                    style={{
+                                      lineHeight: 16,
+                                      textTransform: 'capitalize'
+                                    }}
+                                    size="md"
+                                  >
+                                    {server.name}
+                                  </SSText>
+                                  <SSText
+                                    style={{
+                                      lineHeight: 16,
+                                      textTransform: 'capitalize'
+                                    }}
+                                    size="md"
+                                    color="muted"
+                                  >
+                                    {server.backend}
+                                  </SSText>
+                                </SSHStack>
                                 <SSHStack gap="xs">
                                   {(() => {
                                     const isSelected =
@@ -233,6 +292,8 @@ export default function NetworkSettings() {
                                   <SSText
                                     style={{ lineHeight: 14 }}
                                     color="muted"
+                                    numberOfLines={1}
+                                    ellipsizeMode="tail"
                                   >
                                     {trimOnionAddress(server.url)}
                                   </SSText>
@@ -244,6 +305,7 @@ export default function NetworkSettings() {
                             <SSIconButton
                               style={{
                                 padding: 6,
+                                marginLeft: 8,
                                 borderWidth: 1,
                                 borderRadius: 400,
                                 borderColor: Colors.gray[600]
@@ -260,7 +322,7 @@ export default function NetworkSettings() {
                         </SSHStack>
                       ))}
                   </SSVStack>
-                  <SSHStack gap="sm">
+                  <SSHStack gap="sm" style={{ marginTop: 12, marginBottom: 8 }}>
                     <SSButton
                       label={tn('custom.add').toUpperCase()}
                       onPress={() => router.push(`./${network}`)}
@@ -289,12 +351,11 @@ export default function NetworkSettings() {
             ))}
           </SSVStack>
         </ScrollView>
-        <SSVStack>
+        <SSVStack gap="md" style={{ flexShrink: 0, paddingTop: 16 }}>
           <SSButton
             variant="secondary"
             label={t('common.save')}
             onPress={() => handleOnSave()}
-            style={{ marginTop: 30 }}
           />
           <SSButton
             variant="ghost"

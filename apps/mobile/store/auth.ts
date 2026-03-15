@@ -25,6 +25,8 @@ type AuthState = {
   skipPin: boolean
   duressPinEnabled: boolean
   justUnlocked: boolean
+  /** Decrypted backup JSON; when set, recovery runs after next unlock. Not persisted. */
+  pendingRecoverData: string | null
 }
 
 type AuthAction = {
@@ -44,6 +46,7 @@ type AuthAction = {
   getPagesHistory: () => string[]
   clearPageHistory: () => void
   setJustUnlocked: (justUnlocked: AuthState['justUnlocked']) => void
+  setPendingRecoverData: (data: string | null) => void
 }
 
 const useAuthStore = create<AuthState & AuthAction>()(
@@ -59,6 +62,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
       skipPin: false,
       duressPinEnabled: false,
       justUnlocked: false,
+      pendingRecoverData: null,
       setFirstTime: (firstTime: boolean) => {
         set({ firstTime })
       },
@@ -134,11 +138,18 @@ const useAuthStore = create<AuthState & AuthAction>()(
       },
       setJustUnlocked(justUnlocked) {
         set({ justUnlocked })
+      },
+      setPendingRecoverData(pendingRecoverData) {
+        set({ pendingRecoverData })
       }
     }),
     {
       name: 'satsigner-auth',
-      storage: createJSONStorage(() => mmkvStorage)
+      storage: createJSONStorage(() => mmkvStorage),
+      partialize: (state) => {
+        const { pendingRecoverData: _, ...rest } = state
+        return rest
+      }
     }
   )
 )

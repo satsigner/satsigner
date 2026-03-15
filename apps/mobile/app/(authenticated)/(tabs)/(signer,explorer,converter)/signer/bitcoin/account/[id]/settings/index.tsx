@@ -28,6 +28,7 @@ import { Colors } from '@/styles'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { extractAccountFingerprint } from '@/utils/account'
+import { isElectrumDerivationPath } from '@/utils/bip39'
 import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
 import { formatAccountCreationDate } from '@/utils/date'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
@@ -269,6 +270,18 @@ export default function AccountSettings() {
               <SSText>{getScriptVersionDisplayName(scriptVersion)}</SSText>
             </SSHStack>
           )}
+          {account.policyType !== 'multisig' &&
+            account.keys[0].derivationPath && (
+              <SSHStack justifyBetween>
+                <SSText color="muted">{t('account.derivationPath')}</SSText>
+                <SSHStack gap="xs">
+                  <SSText>{account.keys[0].derivationPath}</SSText>
+                  {/^m(\/0[h'])?$/.test(account.keys[0].derivationPath) && (
+                    <SSText style={{ color: Colors.warning }}>electrum</SSText>
+                  )}
+                </SSHStack>
+              </SSHStack>
+            )}
           <SSHStack justifyBetween>
             <SSText color="muted">{t('account.labeledTransactions')}</SSText>
             <SSHStack gap="xs">
@@ -340,6 +353,18 @@ export default function AccountSettings() {
         )}
 
         <SSVStack>
+          <SSButton
+            style={styles.button}
+            label={t('account.nostrSync.sync')}
+            variant="outline"
+            onPress={() =>
+              router.navigate(
+                `/signer/bitcoin/account/${currentAccountId}/settings/nostr`
+              )
+            }
+          />
+        </SSVStack>
+        <SSVStack>
           <SSHStack>
             <SSButton
               style={styles.button}
@@ -386,6 +411,7 @@ export default function AccountSettings() {
             <SSButton
               style={styles.button}
               label={t('account.export.pubkeys')}
+              disabled={account.keys[0].creationType === 'importAddress'}
               onPress={() =>
                 router.navigate(
                   `/signer/bitcoin/account/${currentAccountId}/settings/export/pubkeys`
@@ -393,15 +419,6 @@ export default function AccountSettings() {
               }
             />
           </SSHStack>
-          <SSButton
-            style={styles.button}
-            label={t('account.nostrSync.sync')}
-            onPress={() =>
-              router.navigate(
-                `/signer/bitcoin/account/${currentAccountId}/settings/nostr`
-              )
-            }
-          />
         </SSVStack>
 
         <SSVStack style={styles.actionsContainer}>
@@ -464,6 +481,15 @@ export default function AccountSettings() {
                   {t('account.seed.keepInSecret')}
                 </SSText>
               </SSHStack>
+              {isElectrumDerivationPath(
+                account.keys[0]?.derivationPath || ''
+              ) && (
+                <View style={styles.electrumWarning}>
+                  <SSText style={styles.electrumWarningText}>
+                    {t('bitcoin.electrumSeedNote')}
+                  </SSText>
+                </View>
+              )}
               <View style={styles.mnemonicWordsContainer}>
                 {account.keys[0].mnemonicWordCount && (
                   <SSSeedLayout count={account.keys[0].mnemonicWordCount}>
@@ -667,5 +693,14 @@ const styles = StyleSheet.create({
     width: '100%',
     borderWidth: 1,
     borderColor: Colors.gray[700]
+  },
+  electrumWarning: {
+    borderWidth: 1,
+    borderColor: Colors.warning,
+    borderRadius: 5,
+    padding: 10
+  },
+  electrumWarningText: {
+    color: Colors.warning
   }
 })

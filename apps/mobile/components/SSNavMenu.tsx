@@ -39,7 +39,7 @@ function SSNavMenu(props: SSNavMenuProps) {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={[Colors.transparent, Colors.gray[950]]}
+        colors={['rgba(19, 19, 19, 0)', Colors.black]}
         start={{ x: 0.8, y: 0 }}
         end={{ x: 0.99, y: 0 }}
         style={styles.gradientOverlay}

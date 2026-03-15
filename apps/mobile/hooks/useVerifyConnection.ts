@@ -25,6 +25,16 @@ function useVerifyConnection() {
     return `${server.network} - ${server.name} (${trimmedUrl}) [${config.connectionMode}]`
   }, [server.network, server.name, server.url, config.connectionMode])
 
+  const connectionParts = useMemo(() => {
+    const trimmedUrl = trimOnionAddress(server.url)
+    return {
+      network: server.network,
+      name: server.name,
+      url: trimmedUrl,
+      mode: config.connectionMode !== 'auto' ? config.connectionMode : null
+    }
+  }, [server.network, server.name, server.url, config.connectionMode])
+
   const isPrivateConnection = useMemo(() => {
     if (servers.findIndex((val) => val.url === server.url) === -1) {
       return false
@@ -33,7 +43,7 @@ function useVerifyConnection() {
   }, [server.url])
 
   const verifyConnection = useCallback(async () => {
-    if (!isConnectionAvailable.current || config.connectionMode === 'manual') {
+    if (!isConnectionAvailable.current) {
       setConnectionState(false)
       return
     }
@@ -52,20 +62,12 @@ function useVerifyConnection() {
     } catch {
       setConnectionState(false)
     }
-  }, [
-    server.backend,
-    server.network,
-    config.timeout,
-    server.url,
-    config.connectionMode
-  ])
+  }, [server.backend, server.network, config.timeout, server.url])
 
   const checkConnection = useCallback(async () => {
-    if (config.connectionMode === 'manual') return
-
     const state = await NetInfo.fetch()
     isConnectionAvailable.current = state.isConnected
-  }, [config.connectionMode])
+  }, [])
 
   useEffect(() => {
     if (config.connectionMode === 'manual') return
@@ -111,7 +113,12 @@ function useVerifyConnection() {
     verifyConnection()
   }, [server.url, verifyConnection])
 
-  return [connectionState, connectionString, isPrivateConnection]
+  return [
+    connectionState,
+    connectionString,
+    isPrivateConnection,
+    connectionParts
+  ] as const
 }
 
 export default useVerifyConnection

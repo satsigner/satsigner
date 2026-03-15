@@ -5,6 +5,7 @@ import {
   SSIconAbout,
   SSIconDev,
   SSIconFeature,
+  SSIconFiat,
   SSIconLock,
   SSIconNetwork
 } from '@/components/icons'
@@ -39,6 +40,12 @@ export default function Settings() {
             onPress={() => router.navigate('/settings/features')}
           />
           <SSSettingsCards
+            title={t('settings.fiat.title')}
+            description={t('settings.fiat.description')}
+            icon={<SSIconFiat height={16} width={24} />}
+            onPress={() => router.navigate('/settings/fiat')}
+          />
+          <SSSettingsCards
             title={t('settings.security.title')}
             description={t('settings.security.description')}
             icon={<SSIconLock height={32} width={24} />}
@@ -50,14 +57,12 @@ export default function Settings() {
             icon={<SSIconAbout height={26} width={26} />}
             onPress={() => router.navigate('/settings/about')}
           />
-          {__DEV__ && (
-            <SSSettingsCards
-              title={t('settings.developer.title')}
-              description={t('settings.developer.description')}
-              icon={<SSIconDev height={24} width={24} />}
-              onPress={() => router.navigate('/settings/developer')}
-            />
-          )}
+          <SSSettingsCards
+            title={t('settings.developer.title')}
+            description={t('settings.developer.description')}
+            icon={<SSIconDev height={24} width={24} />}
+            onPress={() => router.navigate('/settings/developer')}
+          />
         </SSVStack>
       </ScrollView>
     </>

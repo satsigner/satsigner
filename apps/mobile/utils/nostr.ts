@@ -4,6 +4,7 @@ import CBOR from 'cbor-js'
 import { getPublicKey, nip19 } from 'nostr-tools'
 import pako from 'pako'
 
+import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
 import { base85Decode, base85Encode } from '@/utils/base58'
 import { sha256 } from '@/utils/crypto'
 import { parseDescriptor } from '@/utils/parse'
@@ -15,7 +16,7 @@ bitcoinjs.initEccLib(ecc)
 export async function generateColorFromNpub(npub: string): Promise<string> {
   const decoded = nip19.decode(npub)
   if (!decoded || decoded.type !== 'npub') {
-    return '#404040' // Default color for invalid npub
+    return NOSTR_FALLBACK_NPUB_COLOR
   }
   const pubkey = npub
 
@@ -52,6 +53,44 @@ export async function generateColorFromNpub(npub: string): Promise<string> {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`
 }
 
+export function deriveNpubFromNsec(nsec: string): string | null {
+  if (!nsec?.trim()) return null
+  try {
+    const decoded = nip19.decode(nsec.trim())
+    if (!decoded || decoded.type !== 'nsec') return null
+    const publicKey = getPublicKey(decoded.data as Uint8Array)
+    return nip19.npubEncode(publicKey)
+  } catch {
+    return null
+  }
+}
+
+export function getPubKeyHexFromNpub(npub: string): string | null {
+  try {
+    const decoded = nip19.decode(npub)
+    if (!decoded || decoded.type !== 'npub' || !decoded.data) return null
+    const rawHex =
+      typeof decoded.data === 'string'
+        ? decoded.data
+        : Buffer.from(decoded.data as Uint8Array).toString('hex')
+    const hex = (rawHex ?? '').toLowerCase().replace(/^0x/, '')
+    if (hex.length !== 64 || !/^[0-9a-f]+$/.test(hex)) return null
+    return hex
+  } catch {
+    return null
+  }
+}
+
+export function getSecretFromNsec(nsec: string): Uint8Array | null {
+  try {
+    const decoded = nip19.decode(nsec)
+    if (!decoded || decoded.type !== 'nsec' || !decoded.data) return null
+    return decoded.data as Uint8Array
+  } catch {
+    return null
+  }
+}
+
 export function parseNostrTransaction(
   transaction: string
 ): TransactionData | null {
@@ -64,7 +103,7 @@ export function parseNostrTransaction(
   return null
 }
 
-export function compressMessage(data: any): string {
+export function compressMessage(data: unknown): string {
   const cborData = CBOR.encode(data)
   const jsonUint8 = new Uint8Array(cborData)
   const compressedData = pako.deflate(jsonUint8)

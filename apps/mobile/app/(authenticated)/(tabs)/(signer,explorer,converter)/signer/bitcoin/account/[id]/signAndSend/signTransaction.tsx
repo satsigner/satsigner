@@ -1,6 +1,6 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, ScrollView, View } from 'react-native'
+import { ScrollView, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -9,6 +9,7 @@ import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
+import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
@@ -19,6 +20,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useNostrStore } from '@/store/nostr'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
@@ -56,6 +58,13 @@ export default function SignTransaction() {
   )
   const account = useAccountsStore(
     useShallow((state) => state.accounts.find((account) => account.id === id))
+  )
+  const ownAddresses = useMemo(
+    () => new Set(account?.addresses?.map((a) => a.address) ?? []),
+    [account]
+  )
+  const setTransactionToShare = useNostrStore(
+    (state) => state.setTransactionToShare
   )
   const wallet = useGetAccountWallet(id!)
   const [selectedNetwork, configs] = useBlockchainStore(
@@ -170,19 +179,19 @@ export default function SignTransaction() {
     setBroadcasting(true)
 
     try {
-      let broadcastSuccess = false
       if (signedTx) {
-        broadcastSuccess = await handleBroadcastMultiSig()
+        await handleBroadcastMultiSig()
       } else if (psbt) {
-        broadcastSuccess = await handleBroadcastSingleSig()
+        const success = await handleBroadcastSingleSig()
+        if (!success) throw new Error('Broadcast failed')
+      } else {
+        throw new Error('No transaction to broadcast')
       }
 
-      if (broadcastSuccess) {
-        setBroadcasted(true)
-        router.navigate(
-          `/signer/bitcoin/account/${id}/signAndSend/transactionConfirmation`
-        )
-      }
+      setBroadcasted(true)
+      router.navigate(
+        `/signer/bitcoin/account/${id}/signAndSend/transactionConfirmation`
+      )
     } catch (error) {
       const errorMessage =
         error instanceof Error
@@ -192,6 +201,25 @@ export default function SignTransaction() {
     } finally {
       setBroadcasting(false)
     }
+  }
+
+  function handleShareWithNostrGroup() {
+    if (!account?.nostr?.autoSync) {
+      toast.error(t('account.nostrSync.autoSyncMustBeEnabled'))
+      return
+    }
+    const txString = psbt?.base64 ?? signedTx ?? ''
+    if (!txString) {
+      toast.error(t('account.nostrSync.transactionDataNotAvailable'))
+      return
+    }
+    setTransactionToShare({
+      transaction: txString,
+      transactionData: { combinedPsbt: txString }
+    })
+    router.push({
+      pathname: `/signer/bitcoin/account/${id}/settings/nostr/devicesGroupChat`
+    })
   }
 
   useEffect(() => {
@@ -241,9 +269,7 @@ export default function SignTransaction() {
               {signed && !broadcasted && (
                 <SSIconSuccess width={159} height={159} variant="outline" />
               )}
-              {!signed && !broadcasted && (
-                <ActivityIndicator size={160} color="#fff" />
-              )}
+              {!signed && !broadcasted && <SSLoader size={160} />}
               {broadcasted && (
                 <SSIconSuccess width={159} height={159} variant="filled" />
               )}
@@ -262,8 +288,12 @@ export default function SignTransaction() {
                   {t('transaction.build.preview.contents')}
                 </SSText>
                 {transaction && (
-                  <View style={{ width: '100%' }}>
-                    <SSTransactionChart transaction={transaction} />
+                  <View style={{ width: '100%', overflow: 'hidden' }}>
+                    <SSTransactionChart
+                      transaction={transaction}
+                      ownAddresses={ownAddresses}
+                      scale={0.9}
+                    />
                   </View>
                 )}
               </SSVStack>
@@ -333,6 +363,16 @@ export default function SignTransaction() {
                 handleBroadcastTransaction()
               }}
             />
+            {signed &&
+              account?.nostr?.autoSync &&
+              (psbt?.base64 ?? signedTx) && (
+                <SSButton
+                  variant="ghost"
+                  label={t('account.nostrSync.shareWithGroup')}
+                  disabled={broadcasting}
+                  onPress={handleShareWithNostrGroup}
+                />
+              )}
           </SSVStack>
         </ScrollView>
       </SSMainLayout>

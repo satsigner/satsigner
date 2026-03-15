@@ -27,12 +27,11 @@ export default class Esplora {
       // Handle different content types
       if (contentType.includes('application/json')) {
         return await response.json()
-      } else if (contentType.includes('text/')) {
-        return await response.text()
       } else if (contentType.includes('application/octet-stream')) {
-        return await response.arrayBuffer() // For binary data
+        return await response.arrayBuffer()
       } else {
-        throw new Error(`Unsupported Content-Type: ${contentType}`)
+        // text/plain, text/html, missing content-type, etc. — return as text
+        return await response.text()
       }
     } catch (e) {
       throw new Error(getVerboseErrorMessage(e))
@@ -119,7 +118,7 @@ export default class Esplora {
     return await this._call('/blocks/' + startHeight)
   }
 
-  async getAddressTxs(address: string) {
+  async getAddressTxs(address: string, stopAtTxids?: Set<string>) {
     const endpoint = `/address/${address}/txs`
     const transactions = (await this._call(endpoint)) as EsploraTx[]
 
@@ -127,15 +126,17 @@ export default class Esplora {
     // due to the rate limit (at least for MemPool; we need to confirm it for
     // other instances).
     const perPage = 50
-    let transactionCountLastFetchedPage = transactions.length
-    while (transactionCountLastFetchedPage >= perPage) {
+    let lastPage = transactions
+    while (lastPage.length >= perPage) {
+      // Early stop: if every txid on this page is already known, no need to paginate further
+      if (stopAtTxids && lastPage.every((tx) => stopAtTxids.has(tx.txid))) break
+
       const lastTxId = transactions[transactions.length - 1].txid
-      const endpoint = `/address/${address}/txs?after_txid=${lastTxId}`
-      const transactionsCurrentPage = (await this._call(
-        endpoint
+      const nextPage = (await this._call(
+        `/address/${address}/txs?after_txid=${lastTxId}`
       )) as EsploraTx[]
-      transactionCountLastFetchedPage = transactionsCurrentPage.length
-      transactions.push(...transactionsCurrentPage)
+      lastPage = nextPage
+      transactions.push(...nextPage)
     }
 
     return transactions
