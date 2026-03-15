@@ -288,10 +288,11 @@ export default function SignTransaction() {
                   {t('transaction.build.preview.contents')}
                 </SSText>
                 {transaction && (
-                  <View style={{ width: '100%' }}>
+                  <View style={{ width: '100%', overflow: 'hidden' }}>
                     <SSTransactionChart
                       transaction={transaction}
                       ownAddresses={ownAddresses}
+                      scale={0.9}
                     />
                   </View>
                 )}

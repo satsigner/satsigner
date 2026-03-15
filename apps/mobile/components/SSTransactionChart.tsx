@@ -26,7 +26,6 @@ interface Node extends SankeyNodeMinimal<object, object> {
   nextTx?: string
 }
 
-const LINK_MAX_WIDTH = 60
 const BLOCK_WIDTH = 50
 const NODE_WIDTH = 98
 
@@ -248,11 +247,11 @@ function SSTransactionChart({
   }, [inputs, outputs, minerFee])
 
   if (inputs.length === 0 || outputs.length === 0) {
-    return null
+    return <View style={{ height: GRAPH_HEIGHT / 2, overflow: 'hidden' }} />
   }
 
   if (transaction.vin.length === 0 || transaction.vout.length === 0) {
-    return null
+    return <View style={{ height: GRAPH_HEIGHT / 2, overflow: 'hidden' }} />
   }
 
   const { nodes, links } = sankeyGenerator({
@@ -267,11 +266,11 @@ function SSTransactionChart({
   }))
 
   if (!nodes?.length || !transformedLinks?.length) {
-    return null
+    return <View style={{ height: GRAPH_HEIGHT / 2, overflow: 'hidden' }} />
   }
 
   return (
-    <View style={{ flex: 1, height: GRAPH_HEIGHT / 2 }}>
+    <View style={{ flex: 1, height: GRAPH_HEIGHT / 2, overflow: 'hidden' }}>
       <Canvas
         style={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT / 2 }}
         onLayout={onCanvasLayout}
@@ -281,7 +280,6 @@ function SSTransactionChart({
             links={transformedLinks}
             nodes={nodes as Node[]}
             sankeyGenerator={sankeyGenerator}
-            LINK_MAX_WIDTH={LINK_MAX_WIDTH}
             BLOCK_WIDTH={BLOCK_WIDTH}
             selectedOutputNode={
               selectedOutputIndex !== undefined

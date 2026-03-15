@@ -14,7 +14,7 @@ import {
   useSVG,
   vec
 } from '@shopify/react-native-skia'
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 
 import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { t } from '@/locales'
@@ -79,7 +79,7 @@ function SSSankeyNodes({
       return 0
     }
 
-    const txSizeHeight = Math.max(getBlockNodeHeight(), 34)
+    const txSizeHeight = Math.min(Math.max(getBlockNodeHeight(), 34), 80)
 
     const heightBasedOnFlow = logAttenuation(node.value ?? 0)
 
@@ -657,4 +657,4 @@ function NodeText({
   )
 }
 
-export default SSSankeyNodes
+export default memo(SSSankeyNodes)

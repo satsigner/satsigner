@@ -1945,10 +1945,13 @@ function PreviewTransaction() {
                 <SSText color="muted" size="sm" uppercase>
                   {tn('contents')}
                 </SSText>
-                <SSTransactionChart
-                  transaction={transaction}
-                  ownAddresses={ownAddresses}
-                />
+                <View style={{ overflow: 'hidden' }}>
+                  <SSTransactionChart
+                    transaction={transaction}
+                    ownAddresses={ownAddresses}
+                    scale={0.9}
+                  />
+                </View>
               </SSVStack>
               <SSVStack gap="xxs">
                 <SSText
