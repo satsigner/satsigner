@@ -398,8 +398,14 @@ export default function InvoicePage() {
                   <SSText
                     color="muted"
                     size="sm"
-                    onPress={btcPrice && btcPrice > 0 ? handleSwitchToFiat : undefined}
-                    style={btcPrice && btcPrice > 0 ? styles.switchableAmount : undefined}
+                    onPress={
+                      btcPrice && btcPrice > 0 ? handleSwitchToFiat : undefined
+                    }
+                    style={
+                      btcPrice && btcPrice > 0
+                        ? styles.switchableAmount
+                        : undefined
+                    }
                   >
                     ≈{' '}
                     {invoiceAmount

@@ -193,8 +193,7 @@ function SSTransactionCard({
                     weight="light"
                     style={{
                       letterSpacing: smallView ? 0 : -0.5,
-                      lineHeight:
-                        Sizes.text.fontSize[smallView ? 'xl' : '4xl']
+                      lineHeight: Sizes.text.fontSize[smallView ? 'xl' : '4xl']
                     }}
                   >
                     ••••
@@ -227,8 +226,7 @@ function SSTransactionCard({
                       size={smallView ? 'xs' : 'sm'}
                       color="muted"
                       style={{
-                        lineHeight:
-                          Sizes.text.fontSize[smallView ? 'xs' : 'sm']
+                        lineHeight: Sizes.text.fontSize[smallView ? 'xs' : 'sm']
                       }}
                     >
                       ••••

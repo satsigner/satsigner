@@ -277,7 +277,7 @@ export default function SelectUtxoList() {
               )
               const addressEntry = idx >= 0 ? account.addresses[idx] : null
               const addressIndex =
-                addressEntry !== null ? (addressEntry.index ?? idx) : undefined
+                addressEntry !== null ? addressEntry.index ?? idx : undefined
               return (
                 <SSUtxoItem
                   utxo={item}

@@ -3,12 +3,10 @@ import { useQuery } from '@tanstack/react-query'
 import { Stack } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 import { CartesianChart, Line } from 'victory-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import { MempoolOracle } from '@/api/blockchain'
-
-const chartFont = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import SSFeeRateChart from '@/components/SSFeeRateChart'
@@ -28,6 +26,8 @@ import type {
 } from '@/types/models/Blockchain'
 import { formatDate } from '@/utils/format'
 import { time } from '@/utils/time'
+
+const chartFont = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
 
 const tn = _tn('explorer.chaintip')
 
@@ -247,8 +247,9 @@ export default function ChainTip() {
     queryKey: ['chaintip-price-history', fiatCurrency],
     queryFn: async () => {
       const now = Math.floor(Date.now() / 1000)
-      const timestamps = Array.from({ length: PRICE_CHART_DAYS }, (_, i) =>
-        now - (PRICE_CHART_DAYS - 1 - i) * 86400
+      const timestamps = Array.from(
+        { length: PRICE_CHART_DAYS },
+        (_, i) => now - (PRICE_CHART_DAYS - 1 - i) * 86400
       )
       const prices = await fallbackOracle.getPricesAt(fiatCurrency, timestamps)
       return { timestamps, prices }
@@ -463,8 +464,7 @@ export default function ChainTip() {
                   padding={{ left: 48, right: 16, top: 8, bottom: 32 }}
                   axisOptions={{
                     font: priceChartFont ?? undefined,
-                    formatXLabel: (v) =>
-                      formatPriceChartDate(Number(v)),
+                    formatXLabel: (v) => formatPriceChartDate(Number(v)),
                     formatYLabel: (v) =>
                       `${Number(v).toLocaleString(undefined, {
                         maximumFractionDigits: 0

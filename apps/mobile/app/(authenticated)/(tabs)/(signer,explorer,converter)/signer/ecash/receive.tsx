@@ -72,7 +72,11 @@ export default function EcashReceivePage() {
   const { isPolling, startPolling, stopPolling } = useQuotePolling()
 
   const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat, state.btcPrice])
+    useShallow((state) => [
+      state.fiatCurrency,
+      state.satsToFiat,
+      state.btcPrice
+    ])
   )
 
   // Cleanup polling when component unmounts or tab changes
@@ -538,8 +542,14 @@ export default function EcashReceivePage() {
                   <SSText
                     color="muted"
                     size="xs"
-                    onPress={btcPrice && btcPrice > 0 ? handleSwitchToFiat : undefined}
-                    style={btcPrice && btcPrice > 0 ? styles.switchableAmount : undefined}
+                    onPress={
+                      btcPrice && btcPrice > 0 ? handleSwitchToFiat : undefined
+                    }
+                    style={
+                      btcPrice && btcPrice > 0
+                        ? styles.switchableAmount
+                        : undefined
+                    }
                   >
                     ≈{' '}
                     {amount
@@ -553,7 +563,9 @@ export default function EcashReceivePage() {
                     onPress={handleSwitchToSats}
                     style={styles.switchableAmount}
                   >
-                    {amount ? `${amount} ${t('bitcoin.sats')}` : `0 ${t('bitcoin.sats')}`}
+                    {amount
+                      ? `${amount} ${t('bitcoin.sats')}`
+                      : `0 ${t('bitcoin.sats')}`}
                   </SSText>
                 )}
                 {isLNURLWithdrawMode &&
