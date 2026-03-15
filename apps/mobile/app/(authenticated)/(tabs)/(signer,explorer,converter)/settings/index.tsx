@@ -5,6 +5,7 @@ import {
   SSIconAbout,
   SSIconDev,
   SSIconFeature,
+  SSIconFiat,
   SSIconLock,
   SSIconNetwork
 } from '@/components/icons'
@@ -37,6 +38,12 @@ export default function Settings() {
             description={t('settings.features.description')}
             icon={<SSIconFeature height={24} width={24} />}
             onPress={() => router.navigate('/settings/features')}
+          />
+          <SSSettingsCards
+            title={t('settings.fiat.title')}
+            description={t('settings.fiat.description')}
+            icon={<SSIconFiat height={16} width={24} />}
+            onPress={() => router.navigate('/settings/fiat')}
           />
           <SSSettingsCards
             title={t('settings.security.title')}
