@@ -12,7 +12,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
+import { Colors, Sizes } from '@/styles'
 import { type Currency } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
 import {
@@ -68,8 +68,12 @@ function SSTransactionCard({
   const { type, received, sent } = transaction
   const amount = type === 'receive' ? received : sent - received
 
-  const [currencyUnit, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  const [currencyUnit, useZeroPadding, privacyMode] = useSettingsStore(
+    useShallow((state) => [
+      state.currencyUnit,
+      state.useZeroPadding,
+      state.privacyMode
+    ])
   )
 
   useEffect(() => {
@@ -183,17 +187,31 @@ function SSTransactionCard({
                   alignItems: 'baseline'
                 }}
               >
-                <SSStyledSatText
-                  amount={amount}
-                  decimals={0}
-                  useZeroPadding={useZeroPadding}
-                  currency={currencyUnit}
-                  type={transaction.type}
-                  textSize={smallView ? 'xl' : '4xl'}
-                  noColor={false}
-                  weight="light"
-                  letterSpacing={smallView ? 0 : -0.5}
-                />
+                {privacyMode ? (
+                  <SSText
+                    size={smallView ? 'xl' : '4xl'}
+                    weight="light"
+                    style={{
+                      letterSpacing: smallView ? 0 : -0.5,
+                      lineHeight:
+                        Sizes.text.fontSize[smallView ? 'xl' : '4xl']
+                    }}
+                  >
+                    ••••
+                  </SSText>
+                ) : (
+                  <SSStyledSatText
+                    amount={amount}
+                    decimals={0}
+                    useZeroPadding={useZeroPadding}
+                    currency={currencyUnit}
+                    type={transaction.type}
+                    textSize={smallView ? 'xl' : '4xl'}
+                    noColor={false}
+                    weight="light"
+                    letterSpacing={smallView ? 0 : -0.5}
+                  />
+                )}
                 <SSText color="muted" size={smallView ? 'xs' : 'sm'}>
                   {currencyUnit === 'btc'
                     ? t('bitcoin.btc')
@@ -204,14 +222,27 @@ function SSTransactionCard({
             {walletBalance !== undefined && (
               <SSHStack gap="xs">
                 <SSText color="muted">
-                  <SSStyledSatText
-                    amount={walletBalance}
-                    decimals={0}
-                    useZeroPadding={useZeroPadding}
-                    currency={currencyUnit}
-                    type={transaction.type}
-                    textSize={smallView ? 'xs' : 'sm'}
-                  />
+                  {privacyMode ? (
+                    <SSText
+                      size={smallView ? 'xs' : 'sm'}
+                      color="muted"
+                      style={{
+                        lineHeight:
+                          Sizes.text.fontSize[smallView ? 'xs' : 'sm']
+                      }}
+                    >
+                      ••••
+                    </SSText>
+                  ) : (
+                    <SSStyledSatText
+                      amount={walletBalance}
+                      decimals={0}
+                      useZeroPadding={useZeroPadding}
+                      currency={currencyUnit}
+                      type={transaction.type}
+                      textSize={smallView ? 'xs' : 'sm'}
+                    />
+                  )}
                 </SSText>
                 <SSText size="xs" color="muted">
                   {currencyUnit === 'btc'
@@ -234,9 +265,9 @@ function SSTransactionCard({
                   style={{ color: Colors.gray[400] }}
                   size={smallView ? 'xs' : 'sm'}
                 >
-                  {priceDisplay}
+                  {privacyMode ? '••••' : priceDisplay}
                 </SSText>
-                {percentChange !== '' && (
+                {!privacyMode && percentChange !== '' && (
                   <SSText
                     style={{
                       color:

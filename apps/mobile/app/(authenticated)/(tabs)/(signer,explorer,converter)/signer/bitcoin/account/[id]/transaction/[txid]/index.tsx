@@ -56,6 +56,8 @@ export default function TxDetails() {
     useShallow((state) => [state.selectedNetwork, state.configs])
   )
 
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
+
   const currentServer = configs[selectedNetwork].server
 
   const placeholder = '-'
@@ -140,6 +142,7 @@ export default function TxDetails() {
           label={tx.label || ''}
           link={`/signer/bitcoin/account/${accountId}/transaction/${txid}/label`}
           header={t('transaction.label')}
+          privacyMode={privacyMode}
         />
         {!isReady ? (
           <View style={styles.loadingContainer}>
