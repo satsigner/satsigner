@@ -6,8 +6,11 @@ export const DEFAULT_RETRY_CONFIG = {
   maxDelayMs: 60000,
   maxRetries: 5
 }
+export const DELAY_BETWEEN_PUBLISHES_MS = 400
 export const EOSE_TIMEOUT_MS = 15000
 export const FLUSH_QUEUE_DELAY_MS = 50
+/** Max number of processed events/messages to keep per account (prevents unbounded memory growth). */
+export const MAX_PROCESSED_ITEMS = 2000
 export const MAX_PROCESSED_RAW_IDS = 5000
 export const MAX_QUEUE_SIZE = 300
 /** Request enough kind 1059 events to discover all device announcements (members). Relays often default to ~100.
@@ -18,6 +21,8 @@ export const PROTOCOL_SUBSCRIPTION_LIMIT = 5000
 export const PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN = 10000
 export const PROCESSING_INTERVAL_MS = 350
 export const RELAY_PROTOCOL_PREFIX = 'wss://'
+/** Fallback color when npub is missing, invalid, or member has no color (e.g. device/member list UI). */
+export const NOSTR_FALLBACK_NPUB_COLOR = '#404040'
 
 export const NOSTR_RELAYS: NostrRelay[] = [
   { name: 'Angani', url: 'wss://nostr-1.nbo.angani.co' },

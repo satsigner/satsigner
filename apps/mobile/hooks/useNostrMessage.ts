@@ -1,6 +1,7 @@
 import { nip19 } from 'nostr-tools'
 import { useMemo } from 'react'
 
+import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
 import { t } from '@/locales'
 import { type Account } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
@@ -39,7 +40,7 @@ export function useNostrMessage({
       const isDeviceMessage = msgAuthorNpub === account?.nostr?.deviceNpub
       const authorDisplayName = formattedNpubs.get(msg.author) || {
         npubShort: `${msgAuthorNpub.slice(0, 12)}...${msgAuthorNpub.slice(-4)}`,
-        color: '#404040'
+        color: NOSTR_FALLBACK_NPUB_COLOR
       }
 
       const messageContent =

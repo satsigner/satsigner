@@ -66,6 +66,8 @@ import {
 import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
 import { time } from '@/utils/time'
 
+const ACCOUNT_SKELETON_COUNT = 3
+
 // Helper function to map local Network type to bdk-rn Network enum
 function mapNetworkToBdkNetwork(network: 'bitcoin' | 'testnet' | 'signet') {
   switch (network) {
@@ -836,17 +838,19 @@ export default function AccountList() {
                   gap="none"
                   style={{ minHeight: listContainerMinHeight }}
                 >
-                  {[1, 2, 3].map((i) => (
-                    <SSVStack key={i}>
-                      <SSAccountCardSkeleton />
-                      {i < 3 && (
-                        <SSSeparator
-                          style={{ marginVertical: 16 }}
-                          color="gradient"
-                        />
-                      )}
-                    </SSVStack>
-                  ))}
+                  {Array(ACCOUNT_SKELETON_COUNT)
+                    .fill(null)
+                    .map((_, i) => (
+                      <SSVStack key={i}>
+                        <SSAccountCardSkeleton />
+                        {i < ACCOUNT_SKELETON_COUNT - 1 && (
+                          <SSSeparator
+                            style={{ marginVertical: 16 }}
+                            color="gradient"
+                          />
+                        )}
+                      </SSVStack>
+                    ))}
                 </SSVStack>
               ) : (
                 <Animated.View

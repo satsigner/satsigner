@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { type NostrAPI } from '@/api/nostr'
+import { MAX_PROCESSED_ITEMS } from '@/constants/nostr'
 import mmkvStorage from '@/storage/mmkv'
 import { gray } from '@/styles/colors'
 import { generateColorFromNpub } from '@/utils/nostr'
@@ -36,9 +37,6 @@ const DEFAULT_SYNC_STATUS: NostrSyncStatus = {
   messagesReceived: 0,
   messagesProcessed: 0
 }
-
-// Max number of processed events/messages to keep per account (prevents unbounded memory growth)
-const MAX_PROCESSED_ITEMS = 2000
 
 // Prune oldest entries from a ProcessedIdsMap when it exceeds the limit
 // JavaScript objects maintain insertion order for string keys, so Object.keys() returns them in order
@@ -466,88 +464,42 @@ const useNostrStore = create<NostrState & NostrAction>()(
     {
       name: 'satsigner-nostr',
       storage: createJSONStorage(() => mmkvStorage),
+      version: 1,
       partialize: (state) => ({
-        // Exclude runtime state that can't be serialized (Set, WebSocket connections)
-        // Only persist serializable data
         members: state.members,
         profiles: state.profiles,
         processedMessageIds: state.processedMessageIds,
         processedEvents: state.processedEvents,
         lastProtocolEOSE: state.lastProtocolEOSE,
         lastDataExchangeEOSE: state.lastDataExchangeEOSE,
-        trustedDevices: state.trustedDevices,
-        syncStatus: state.syncStatus
-        // Excluded: activeSubscriptions (Set), syncingAccounts (runtime), transactionToShare (runtime)
+        trustedDevices: state.trustedDevices
+        // Excluded: syncStatus (runtime), activeSubscriptions (Set),
+        // syncingAccounts (runtime), transactionToShare (runtime)
       }),
-      merge: (persistedState, currentState) => {
-        const persisted = persistedState as Partial<NostrState> & {
-          // Allow for legacy array format during migration
+      migrate: (persistedState, version) => {
+        const state = persistedState as Record<string, unknown> & {
           processedEvents?: Record<string, ProcessedIdsMap | string[]>
           processedMessageIds?: Record<string, ProcessedIdsMap | string[]>
-          syncStatus?: Record<string, NostrSyncStatus>
         }
-
-        // Migrate processedEvents from array to object format
-        const migratedProcessedEvents: Record<string, ProcessedIdsMap> = {}
-        if (persisted.processedEvents) {
-          for (const [accountId, events] of Object.entries(
-            persisted.processedEvents
-          )) {
-            if (Array.isArray(events)) {
-              // Migrate from array to object
-              migratedProcessedEvents[accountId] = Object.fromEntries(
-                events.map((id) => [id, true as const])
-              )
-            } else {
-              migratedProcessedEvents[accountId] = events
+        if (version < 1) {
+          // v0 → v1: processedEvents and processedMessageIds changed from
+          // string[] to Record<string, true> for O(1) deduplication lookups
+          for (const field of [
+            'processedEvents',
+            'processedMessageIds'
+          ] as const) {
+            if (state[field]) {
+              for (const [accountId, value] of Object.entries(state[field]!)) {
+                if (Array.isArray(value)) {
+                  state[field]![accountId] = Object.fromEntries(
+                    value.map((id) => [id, true as const])
+                  )
+                }
+              }
             }
           }
         }
-
-        // Migrate processedMessageIds from array to object format
-        const migratedProcessedMessageIds: Record<string, ProcessedIdsMap> = {}
-        if (persisted.processedMessageIds) {
-          for (const [accountId, ids] of Object.entries(
-            persisted.processedMessageIds
-          )) {
-            if (Array.isArray(ids)) {
-              // Migrate from array to object
-              migratedProcessedMessageIds[accountId] = Object.fromEntries(
-                ids.map((id) => [id, true as const])
-              )
-            } else {
-              migratedProcessedMessageIds[accountId] = ids
-            }
-          }
-        }
-
-        // Reset sync status to idle on app restart (connections are not persisted)
-        const resetSyncStatus: Record<string, NostrSyncStatus> = {}
-        if (persisted.syncStatus) {
-          for (const accountId of Object.keys(persisted.syncStatus)) {
-            resetSyncStatus[accountId] = {
-              ...DEFAULT_SYNC_STATUS,
-              // Preserve message counts for analytics
-              messagesReceived:
-                persisted.syncStatus[accountId]?.messagesReceived || 0,
-              messagesProcessed:
-                persisted.syncStatus[accountId]?.messagesProcessed || 0
-            }
-          }
-        }
-
-        return {
-          ...currentState,
-          ...persisted,
-          profiles: persisted.profiles || {},
-          processedEvents: migratedProcessedEvents,
-          processedMessageIds: migratedProcessedMessageIds,
-          syncStatus: resetSyncStatus,
-          // Always ensure these are fresh runtime values
-          activeSubscriptions: new Set<NostrAPI>(),
-          syncingAccounts: {},
-          transactionToShare: null
-        }
+        return state
       }
     }
   )

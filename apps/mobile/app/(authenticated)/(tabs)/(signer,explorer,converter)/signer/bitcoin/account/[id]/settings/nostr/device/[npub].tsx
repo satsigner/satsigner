@@ -10,6 +10,7 @@ import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
 import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -39,14 +40,16 @@ export default function DeviceAliasPage() {
     useShallow((state) => {
       const memberColorValue =
         !accountId || !npub
-          ? '#404040'
+          ? NOSTR_FALLBACK_NPUB_COLOR
           : (() => {
               const accountMembers = state.members[accountId] || []
               const member = accountMembers.find(
                 (m) => (typeof m === 'string' ? m : m.npub) === npub
               )
-              if (!member) return '#404040'
-              return typeof member === 'string' ? '#404040' : member.color
+              if (!member) return NOSTR_FALLBACK_NPUB_COLOR
+              return typeof member === 'string'
+                ? NOSTR_FALLBACK_NPUB_COLOR
+                : member.color
             })()
       return [
         state.clearProcessedEvents,

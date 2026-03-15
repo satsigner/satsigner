@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react'
+import { InteractionManager } from 'react-native'
 
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
@@ -67,58 +68,79 @@ function initializeHandlers(): void {
 // Initialize handlers immediately when module is imported
 initializeHandlers()
 
+// Yields to the JS event loop without creating a timer.
+// setImmediate in React Native runs after the current event loop turn,
+// avoiding the overhead of creating a real OS timer like setTimeout.
+function yieldToJS(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve))
+}
+
+const CHUNK_SIZE = 20
+
 function useNostrMessageProcessor() {
   const dmStorage = useNostrDMStorage()
+  const addProcessedEvent = useNostrStore((state) => state.addProcessedEvent)
+  const getLastDataExchangeEOSE = useNostrStore(
+    (state) => state.getLastDataExchangeEOSE
+  )
 
   const processEventBatch = useCallback(
     async (
       account: Account,
       messages: { id: string; content: unknown; created_at: number }[]
     ): Promise<void> => {
+      if (messages.length === 0) return
+
+      // Defer until any in-progress interactions (animations, transitions)
+      // have finished so we don't block the UI thread during navigation.
+      await new Promise<void>((resolve) =>
+        InteractionManager.runAfterInteractions(resolve)
+      )
+
       // Each batch gets its own local accumulator — no module-level state,
       // so concurrent batches and hot-reloads cannot interfere.
       const pendingDms: PendingDM[] = []
-
-      const processedEvents = useNostrStore.getState().processedEvents
-      const lastDataExchangeEOSE =
-        useNostrStore.getState().getLastDataExchangeEOSE(account.id) || 0
+      const lastDataExchangeEOSE = getLastDataExchangeEOSE(account.id) || 0
       const syncStartSec = getSyncStartSeconds(account)
 
-      const YIELD_EVERY = 5
-      for (let i = 0; i < messages.length; i++) {
-        if (i > 0 && i % YIELD_EVERY === 0) {
-          await new Promise((r) => setTimeout(r, 0))
+      for (let i = 0; i < messages.length; i += CHUNK_SIZE) {
+        // Yield between chunks so the JS thread stays responsive.
+        if (i > 0) await yieldToJS()
+
+        const chunk = messages.slice(i, i + CHUNK_SIZE)
+        for (const msg of chunk) {
+          const unwrappedEvent = msg.content as UnwrappedNostrEvent
+
+          // Re-read processedEvents each chunk so deduplication stays accurate
+          // across concurrent batches that may have added events since we started.
+          const accountProcessedEvents =
+            useNostrStore.getState().processedEvents[account.id]
+          if (accountProcessedEvents?.[unwrappedEvent.id]) continue
+
+          addProcessedEvent(account.id, unwrappedEvent.id)
+
+          const eventContent = getEventContent(unwrappedEvent)
+          const data = eventContent.data as NostrMessageData | undefined
+
+          const context: MessageHandlerContext = {
+            account,
+            unwrappedEvent,
+            eventContent,
+            data,
+            lastDataExchangeEOSE,
+            syncStartSec,
+            onPendingDM: (dm) => pendingDms.push(dm)
+          }
+
+          await processMessage(context)
         }
-        const msg = messages[i]
-        const unwrappedEvent = msg.content as UnwrappedNostrEvent
-        const accountProcessedEvents = processedEvents[account.id]
-        if (accountProcessedEvents?.[unwrappedEvent.id]) continue
-
-        useNostrStore
-          .getState()
-          .addProcessedEvent(account.id, unwrappedEvent.id)
-        const eventContent = getEventContent(unwrappedEvent)
-
-        const data = eventContent.data as NostrMessageData | undefined
-
-        const context: MessageHandlerContext = {
-          account,
-          unwrappedEvent,
-          eventContent,
-          data,
-          lastDataExchangeEOSE,
-          syncStartSec,
-          onPendingDM: (dm) => pendingDms.push(dm)
-        }
-
-        await processMessage(context)
       }
 
       if (pendingDms.length > 0) {
         await dmStorage.storeBatch(account, pendingDms)
       }
     },
-    [dmStorage]
+    [addProcessedEvent, dmStorage, getLastDataExchangeEOSE]
   )
 
   const processEvent = useCallback(

@@ -21,6 +21,7 @@ import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
 import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -61,7 +62,7 @@ function NostrKeys() {
     [deviceNsec]
   )
 
-  const [deviceColor, setDeviceColor] = useState('#404040')
+  const [deviceColor, setDeviceColor] = useState(NOSTR_FALLBACK_NPUB_COLOR)
   const [qrModal, setQrModal] = useState<QrModalContent | null>(null)
   const deviceNpubForProfile = account?.nostr?.deviceNpub ?? derivedNpub
   const [kind0Profile, setKind0Profile] = useState<NostrKind0Profile | null>(
@@ -86,7 +87,7 @@ function NostrKeys() {
     if (derivedNpub) {
       generateColorFromNpub(derivedNpub).then(setDeviceColor)
     } else {
-      setDeviceColor('#404040')
+      setDeviceColor(NOSTR_FALLBACK_NPUB_COLOR)
     }
   }, [derivedNpub])
 
