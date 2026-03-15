@@ -36,6 +36,7 @@ import SSIconEdit from './SSIconEdit'
 import SSIconEditPencil from './SSIconEditPencil'
 import SSIconEllipsis from './SSIconEllipsis'
 import SSIconExpand from './SSIconExpand'
+import SSIconFiat from './SSIconFiat'
 import SSIconExplorer from './SSIconExplorer'
 import SSIconExplorerActive from './SSIconExplorerActive'
 import SSIconEyeOff from './SSIconEyeOff'
@@ -129,6 +130,7 @@ export {
   SSIconEllipsis,
   SSIconExpand,
   SSIconExplorer,
+  SSIconFiat,
   SSIconExplorerActive,
   SSIconEyeOff,
   SSIconEyeOn,
