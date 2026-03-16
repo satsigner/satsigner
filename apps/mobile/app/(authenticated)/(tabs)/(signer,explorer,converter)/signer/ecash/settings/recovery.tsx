@@ -11,6 +11,7 @@ import { useEcash } from '@/hooks/useEcash'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { formatNumber } from '@/utils/format'
 
 export default function EcashRecoveryPage() {
   const router = useRouter()
@@ -118,7 +119,7 @@ export default function EcashRecoveryPage() {
 
       Alert.alert(
         t('ecash.recovery.confirmRestore'),
-        `This will restore:\n• ${mintCount} mint(s)\n• ${proofCount} proof(s)\n• ${transactionCount} transaction(s)\n• ${totalBalance} sats total balance\n\nThis will replace all current ecash data. Continue?`,
+        `This will restore:\n• ${mintCount} mint(s)\n• ${proofCount} proof(s)\n• ${transactionCount} transaction(s)\n• ${formatNumber(totalBalance)} sats total balance\n\nThis will replace all current ecash data. Continue?`,
         [
           {
             text: t('common.cancel'),
