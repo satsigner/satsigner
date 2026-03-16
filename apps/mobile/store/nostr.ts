@@ -492,4 +492,4 @@ const useNostrStore = create<NostrState & NostrAction>()(
 )
 
 export { useNostrStore }
-export type { Message, NostrProfile, NostrSyncStatus, SyncStatus }
+export type { NostrProfile, NostrSyncStatus, SyncStatus }

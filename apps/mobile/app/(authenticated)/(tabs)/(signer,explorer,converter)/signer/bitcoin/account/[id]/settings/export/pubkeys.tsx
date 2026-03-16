@@ -2,6 +2,7 @@ import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
+import { toast } from 'sonner-native'
 
 import { getWalletData } from '@/api/bdk'
 import { SSIconEyeOn } from '@/components/icons'

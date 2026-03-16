@@ -91,6 +91,12 @@ export function getSecretFromNsec(nsec: string): Uint8Array | null {
   }
 }
 
+export function parseNostrTransaction(
+  message: string
+): TransactionData | null {
+  return parseNostrTransactionMessage(message)
+}
+
 export function parseNostrTransactionMessage(
   message: string
 ): TransactionData | null {
