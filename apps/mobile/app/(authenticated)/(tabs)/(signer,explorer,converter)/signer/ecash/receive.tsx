@@ -505,10 +505,14 @@ export default function EcashReceivePage() {
                         {t('ecash.receive.amountRange')}:
                       </SSText>
                       <SSText size="sm">
-                        {Math.ceil(lnurlWithdrawDetails.minWithdrawable / 1000)}{' '}
+                        {formatNumber(
+                          Math.ceil(lnurlWithdrawDetails.minWithdrawable / 1000)
+                        )}{' '}
                         -{' '}
-                        {Math.floor(
-                          lnurlWithdrawDetails.maxWithdrawable / 1000
+                        {formatNumber(
+                          Math.floor(
+                            lnurlWithdrawDetails.maxWithdrawable / 1000
+                          )
                         )}{' '}
                         {t('bitcoin.sats')}
                       </SSText>
@@ -523,8 +527,14 @@ export default function EcashReceivePage() {
                 </SSText>
                 {amountMode === 'sats' ? (
                   <SSTextInput
-                    value={amount}
-                    onChangeText={setAmount}
+                    value={
+                      amount
+                        ? formatNumber(parseInt(amount, 10)).toString()
+                        : ''
+                    }
+                    onChangeText={(text) =>
+                      setAmount(text.replace(/[^0-9]/g, ''))
+                    }
                     placeholder="0"
                     keyboardType="numeric"
                     editable={!isFetchingLNURL}
@@ -564,7 +574,7 @@ export default function EcashReceivePage() {
                     style={styles.switchableAmount}
                   >
                     {amount
-                      ? `${amount} ${t('bitcoin.sats')}`
+                      ? `${formatNumber(parseInt(amount, 10))} ${t('bitcoin.sats')}`
                       : `0 ${t('bitcoin.sats')}`}
                   </SSText>
                 )}

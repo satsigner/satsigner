@@ -378,7 +378,11 @@ export default function InvoicePage() {
                 {amountMode === 'sats' ? (
                   <TextInput
                     style={styles.input}
-                    value={invoiceAmount}
+                    value={
+                      invoiceAmount
+                        ? formatNumber(parseInt(invoiceAmount, 10)).toString()
+                        : ''
+                    }
                     onChangeText={handleAmountChange}
                     placeholder="Enter amount in satoshis"
                     placeholderTextColor="#666"
@@ -420,12 +424,17 @@ export default function InvoicePage() {
                     onPress={handleSwitchToSats}
                     style={styles.switchableAmount}
                   >
-                    {invoiceAmount ? `${invoiceAmount} sats` : '0 sats'}
+                    {invoiceAmount
+                      ? `${formatNumber(parseInt(invoiceAmount, 10))} sats`
+                      : '0 sats'}
                   </SSText>
                 )}
                 {isLNURLMode && lnurlDetails && (
                   <SSText color="muted" size="sm">
-                    Available: {Math.floor(lnurlDetails.maxWithdrawable / 1000)}{' '}
+                    Available:{' '}
+                    {formatNumber(
+                      Math.floor(lnurlDetails.maxWithdrawable / 1000)
+                    )}{' '}
                     sats
                   </SSText>
                 )}
@@ -493,7 +502,9 @@ export default function InvoicePage() {
                       Amount
                     </SSText>
                     <SSHStack gap="xs" style={styles.amountContainer}>
-                      <SSText weight="medium">{currentAmount} sats</SSText>
+                      <SSText weight="medium">
+                        {formatNumber(parseInt(currentAmount, 10))} sats
+                      </SSText>
                       <SSText color="muted" size="sm">
                         ≈{' '}
                         {formatNumber(
