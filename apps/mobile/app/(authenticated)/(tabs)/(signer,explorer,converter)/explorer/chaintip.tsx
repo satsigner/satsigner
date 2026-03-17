@@ -24,7 +24,7 @@ import type {
   MemPoolFees,
   MempoolStatistics
 } from '@/types/models/Blockchain'
-import { formatDate } from '@/utils/format'
+import { formatBytes, formatDate } from '@/utils/format'
 import { time } from '@/utils/time'
 
 const chartFont = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
@@ -288,12 +288,6 @@ export default function ChainTip() {
       month: 'short',
       day: 'numeric'
     }).format(new Date(timestampSeconds * 1000))
-  }
-
-  function formatBytes(bytes: number) {
-    if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(2)} MB`
-    if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(1)} KB`
-    return `${bytes} B`
   }
 
   function sourceLabel(src: SectionSource) {
