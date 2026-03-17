@@ -6,8 +6,8 @@ import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { setClipboard } from '@/utils/clipboard'
 import { getWordList, type WordListName } from '@/utils/bip39'
+import { setClipboard } from '@/utils/clipboard'
 import { encodeStandardSeedQR } from '@/utils/seedqr'
 
 type SSSeedQRProps = {
