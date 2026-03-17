@@ -626,7 +626,7 @@ export function extractIndividualSignedPsbts(
   return individualSignedPsbts
 }
 
-function validatePsbt(
+export function validatePsbt(
   psbtBase64: string,
   utxos: Utxo[],
   accountKeyFingerprints: string[]

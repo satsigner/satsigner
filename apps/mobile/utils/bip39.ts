@@ -142,7 +142,7 @@ export async function getPrivateDescriptorFromElectrumMnemonic(
   // Strip leading "m/" — descriptor path format is just "0'" not "m/0'"
   const path = getElectrumDerivationPath(electrumType).replace(/^m\/?/, '')
   return getPrivateDescriptorFromSeedWithPath(
-    Buffer.from(seed),
+    seed,
     scriptVersion,
     kind,
     network,
@@ -172,7 +172,7 @@ export function generateMnemonicFromEntropy(
   return bip39.entropyToMnemonic(entropy, wordlist)
 }
 
-function getEntropyFromMnemonic(
+export function getEntropyFromMnemonic(
   mnemonic: string,
   wordListName: WordListName = 'english'
 ) {
@@ -192,7 +192,7 @@ export function getPublicDescriptorFromMnemonic(
   passphrase: string | undefined,
   network: Network
 ): string {
-  const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
+  const seed = new Uint8Array(bip39.mnemonicToSeedSync(mnemonic, passphrase))
   return getPublicDescriptorFromSeed(seed, scriptVersion, kind, network)
 }
 
@@ -203,7 +203,7 @@ export function getPrivateDescriptorFromMnemonic(
   passphrase: string | undefined,
   network: Network
 ): string {
-  const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
+  const seed = new Uint8Array(bip39.mnemonicToSeedSync(mnemonic, passphrase))
   return getPrivateDescriptorFromSeed(seed, scriptVersion, kind, network)
 }
 
@@ -211,7 +211,7 @@ export function getFingerprintFromMnemonic(
   mnemonic: string,
   passphrase: Secret['passphrase'] = undefined
 ) {
-  const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
+  const seed = new Uint8Array(bip39.mnemonicToSeedSync(mnemonic, passphrase))
   return getFingerprintFromSeed(seed)
 }
 
@@ -221,7 +221,7 @@ export function getExtendedPublicKeyFromMnemonic(
   network: Network,
   scriptVersion: ScriptVersionType
 ) {
-  const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
+  const seed = new Uint8Array(bip39.mnemonicToSeedSync(mnemonic, passphrase))
   return getExtendedPublicKeyFromSeed(seed, network, scriptVersion)
 }
 /** Parse BIP32 path like "m/48'/0'/0'/2'" -> array of indexes (with hardened offset) */
@@ -271,7 +271,7 @@ function deriveXpubFromMnemonic(
   // Use the utils function for P2WSH xpub (default path)
 
   // For the detailed derivation steps, we still need to do manual derivation
-  const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
+  const seed = new Uint8Array(bip39.mnemonicToSeedSync(mnemonic, passphrase))
 
   // 2) master HDKey
   const versions = getVersionsForNetwork(network)

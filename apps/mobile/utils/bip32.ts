@@ -63,7 +63,7 @@ function getStandardPath(
 }
 
 export function getPublicDescriptorFromSeed(
-  seed: Buffer,
+  seed: Uint8Array,
   scriptVersion: ScriptVersionType,
   kind: KeychainKind,
   network: BDKNetwork
@@ -84,7 +84,7 @@ export function getPublicDescriptorFromSeed(
 }
 
 export function getPrivateDescriptorFromSeed(
-  seed: Buffer,
+  seed: Uint8Array,
   scriptVersion: ScriptVersionType,
   kind: KeychainKind,
   network: BDKNetwork
@@ -102,7 +102,7 @@ export function getPrivateDescriptorFromSeed(
 }
 
 export function getPrivateDescriptorFromSeedWithPath(
-  seed: Buffer,
+  seed: Uint8Array,
   scriptVersion: ScriptVersionType,
   kind: KeychainKind,
   network: BDKNetwork,
@@ -167,7 +167,7 @@ function getDescriptorFromPrivateKey(
   }
 }
 
-function getScriptVersionPurpose(
+export function getScriptVersionPurpose(
   scriptVersion: ScriptVersionType
 ): number {
   switch (scriptVersion) {
@@ -186,7 +186,7 @@ function getScriptVersionPurpose(
   }
 }
 
-export function getFingerprintFromSeed(seed: Buffer) {
+export function getFingerprintFromSeed(seed: Uint8Array) {
   // the master fingerprint does not depend upon network
   const masterKey = bip32.fromSeed(seed)
   const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
@@ -201,7 +201,7 @@ export function getFingerprintFromExtendedPublicKey(extendedPublicKey: string) {
 }
 
 export function getExtendedPublicKeyFromSeed(
-  seed: Buffer,
+  seed: Uint8Array,
   network: BDKNetwork,
   scriptVersion: ScriptVersionType
 ) {
@@ -452,7 +452,7 @@ export function getXpubForScriptVersion(
   return xpubFunctions[scriptVersion](seed, network)
 }
 
-function getAllXpubs(
+export function getAllXpubs(
   mnemonic: string,
   passphrase: string = '',
   network: 'mainnet' | 'testnet'
