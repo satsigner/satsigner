@@ -4,8 +4,6 @@
  * Constants and fixed values.
  */
 
-import { type Version } from './types'
-
 // Fixed-length header
 export const HEADER_LEN = 8
 
@@ -278,50 +276,3 @@ export const QR_DATA_CAPACITY = {
     H: { 0: 10208, 1: 3057, 2: 1852, 4: 1273, 8: 784 }
   }
 } as const
-
-// map version to size in modules
-// https://github.com/mnooner256/pyqrcode/blob/674a77b5eaf850d063f518bd90c243ee34ad6b5d/pyqrcode/tables.py#L71
-const QR_SIZE: Record<Version, number> = {
-  1: 21,
-  2: 25,
-  3: 29,
-  4: 33,
-  5: 37,
-  6: 41,
-  7: 45,
-  8: 49,
-  9: 53,
-  10: 57,
-  11: 61,
-  12: 65,
-  13: 69,
-  14: 73,
-  15: 77,
-  16: 81,
-  17: 85,
-  18: 89,
-  19: 93,
-  20: 97,
-  21: 101,
-  22: 105,
-  23: 109,
-  24: 113,
-  25: 117,
-  26: 121,
-  27: 125,
-  28: 129,
-  29: 133,
-  30: 137,
-  31: 141,
-  32: 145,
-  33: 149,
-  34: 153,
-  35: 157,
-  36: 161,
-  37: 165,
-  38: 169,
-  39: 173,
-  40: 177
-} as const
-
-// EOF

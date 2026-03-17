@@ -1714,7 +1714,7 @@ function TransactionInfoRenderer({
   labelRectRef.current = []
   return (
     <>
-      {txInfoLabels.map((label, index) => {
+      {txInfoLabels.map((label) => {
         if (label.type === 'end') {
           return null
         }

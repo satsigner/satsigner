@@ -58,7 +58,7 @@ function SSSankeyNodes({
     return Math.max(...nodes.map((node) => node.depthH))
   }, [nodes])
 
-  const renderNode = (node: Node, index: number) => {
+  const renderNode = (node: Node) => {
     const isHigherCurrentMinerFee =
       node.localId === 'current-minerFee' && node.ioData?.higherFee
 

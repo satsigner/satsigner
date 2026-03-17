@@ -1,11 +1,11 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { StyleSheet, TouchableOpacity } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import DraggableFlatList, {
   type RenderItemParams,
   ScaleDecorator
 } from 'react-native-draggable-flatlist'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -18,12 +18,12 @@ import SSTextInput from '@/components/SSTextInput'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn } from '@/locales'
-import { getAllClipboardContent } from '@/utils/clipboard'
 import { useAccountsStore } from '@/store/accounts'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Address, type WatchedAddress } from '@/types/models/Address'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { getScriptVersionType } from '@/utils/address'
+import { getAllClipboardContent } from '@/utils/clipboard'
 import { randomIv } from '@/utils/crypto'
 import { validateAddress } from '@/utils/validation'
 

@@ -223,7 +223,7 @@ export const formattingEdgeCases = {
   }
 }
 
-const networkDetection = {
+export const networkDetection = {
   mainnet: {
     addresses: [
       'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4',
