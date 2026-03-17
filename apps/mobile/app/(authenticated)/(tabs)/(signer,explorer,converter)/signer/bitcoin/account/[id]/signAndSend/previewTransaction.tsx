@@ -41,6 +41,7 @@ import { t, tn as _tn } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useNostrStore } from '@/store/nostr'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Typography } from '@/styles'
 import {
@@ -77,7 +78,10 @@ import {
   validateSignedPSBTForCosigner
 } from '@/utils/psbt'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
-import { legacyEstimateTransactionSize } from '@/utils/transaction'
+import {
+  estimateTransactionSize,
+  legacyEstimateTransactionSize
+} from '@/utils/transaction'
 import {
   decodeMultiPartURToPSBT,
   decodeURToPSBT,
@@ -204,6 +208,13 @@ function PreviewTransaction() {
 
   const account = useAccountsStore((state) =>
     state.accounts.find((account) => account.id === id)
+  )
+  const ownAddresses = useMemo(
+    () => new Set(account?.addresses?.map((a) => a.address) ?? []),
+    [account]
+  )
+  const setTransactionToShare = useNostrStore(
+    (state) => state.setTransactionToShare
   )
   const wallet = useGetAccountWallet(id!)
   const network = useBlockchainStore((state) => state.selectedNetwork)
@@ -830,10 +841,11 @@ function PreviewTransaction() {
   }, [account, inputs, outputs])
 
   const transaction = useMemo(() => {
-    const { size, vsize } = legacyEstimateTransactionSize(
-      inputs.size,
-      outputs.length
-    )
+    const inputArray = Array.from(inputs.values())
+    const { size, vsize } =
+      inputArray.length > 0
+        ? estimateTransactionSize(inputArray, outputs)
+        : legacyEstimateTransactionSize(inputs.size, outputs.length)
 
     const vin = Array.from(inputs.values()).map((input: Utxo) => ({
       previousOutput: { txid: input.txid, vout: input.vout },
@@ -1575,6 +1587,25 @@ function PreviewTransaction() {
     handleNFCScan(-1) // Use -1 to indicate watch-only
   }
 
+  const handleShareWithNostrGroup = () => {
+    if (!account?.nostr?.autoSync) {
+      toast.error(t('account.nostrSync.autoSyncMustBeEnabled'))
+      return
+    }
+    const base64 = txBuilderResult?.psbt?.base64
+    if (!base64) {
+      toast.error(t('account.nostrSync.transactionDataNotAvailable'))
+      return
+    }
+    setTransactionToShare({
+      transaction: base64,
+      transactionData: { combinedPsbt: base64 }
+    })
+    router.push({
+      pathname: `/signer/bitcoin/account/${id}/settings/nostr/devicesGroupChat`
+    })
+  }
+
   const hasAllRequiredSignatures = () => {
     if (!account || account.policyType !== 'multisig' || !account.keys) {
       return false
@@ -1920,7 +1951,13 @@ function PreviewTransaction() {
                 <SSText color="muted" size="sm" uppercase>
                   {tn('contents')}
                 </SSText>
-                <SSTransactionChart transaction={transaction} />
+                <View style={{ overflow: 'hidden' }}>
+                  <SSTransactionChart
+                    transaction={transaction}
+                    ownAddresses={ownAddresses}
+                    scale={0.9}
+                  />
+                </View>
               </SSVStack>
               <SSVStack gap="xxs">
                 <SSText
@@ -2060,6 +2097,14 @@ function PreviewTransaction() {
                       }
                     }}
                   />
+                  {account?.nostr?.autoSync &&
+                    txBuilderResult?.psbt?.base64 && (
+                      <SSButton
+                        variant="ghost"
+                        label={t('account.nostrSync.shareWithGroup')}
+                        onPress={handleShareWithNostrGroup}
+                      />
+                    )}
                 </>
               ) : (
                 account.keys &&
@@ -2669,6 +2714,7 @@ function PreviewTransaction() {
                 showChecksum
                 showFingerprint
                 showPasteButton
+                showScanSeedQRButton
                 showActionButton
                 actionButtonLabel="Sign with Seed Words"
                 actionButtonVariant="secondary"

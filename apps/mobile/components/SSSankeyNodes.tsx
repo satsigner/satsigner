@@ -14,7 +14,7 @@ import {
   useSVG,
   vec
 } from '@shopify/react-native-skia'
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 
 import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { t } from '@/locales'
@@ -79,7 +79,7 @@ function SSSankeyNodes({
       return 0
     }
 
-    const txSizeHeight = Math.max(getBlockNodeHeight(), 34)
+    const txSizeHeight = Math.min(Math.max(getBlockNodeHeight(), 34), 80)
 
     const heightBasedOnFlow = logAttenuation(node.value ?? 0)
 
@@ -298,6 +298,7 @@ function NodeText({
       return Skia.ParagraphBuilder.Make(
         {
           maxLines: isSelfSend ? 6 : 5,
+          ellipsis: '…',
           textAlign: isBlock ? TextAlign.Center : TextAlign.Left,
           strutStyle: {
             strutEnabled: true,
@@ -359,13 +360,13 @@ function NodeText({
         .addText(`sats\n`)
         .addText(`${ioData.fiatValue} ${ioData.fiatCurrency}\n`)
         .pushStyle({
-          // Style for the icon + text line
+          // Style for the icon + text line (red for both current and past miner fee)
           ...baseTextStyle,
           fontSize: XS_FONT_SIZE,
           fontStyle: {
             weight: 800
           },
-          color: isPastMinerFee ? Skia.Color(gray[300]) : Skia.Color(mainRed)
+          color: Skia.Color(mainRed)
         })
         // Add placeholder for the miner svg icon
         .addPlaceholder(
@@ -425,9 +426,9 @@ function NodeText({
           fontStyle: {
             weight: 800
           },
-          color: Skia.Color(isChange ? mainGreen : gray[300])
+          color: Skia.Color(isChange || isSelfSend ? mainGreen : gray[300])
         })
-        // Add placeholder for the svg icon
+        // Single placeholder for icon (change, self-send, or label)
         .addPlaceholder(
           ICON_SIZE,
           ICON_SIZE,
@@ -436,7 +437,11 @@ function NodeText({
           0
         )
         .addText(
-          isChange ? ` ${t('transaction.build.change')}` : ` ${ioData.label}`
+          isChange
+            ? ` ${t('transaction.build.change')}`
+            : isSelfSend
+              ? ` ${t('transaction.build.selfSend')}`
+              : ` ${ioData.label ?? ''}`
         )
         .pushStyle({
           ...baseTextStyle,
@@ -444,18 +449,9 @@ function NodeText({
           fontStyle: {
             weight: 800
           },
-          color: Skia.Color(mainGreen)
+          color: Skia.Color(gray[300])
         })
-        .addText(isSelfSend ? `\n` : ``)
-        // Add placeholder for the self-send svg icon
-        .addPlaceholder(
-          ICON_SIZE,
-          ICON_SIZE,
-          PlaceholderAlignment.Middle,
-          TextBaseline.Alphabetic,
-          0
-        )
-        .addText(isSelfSend ? ` ${t('transaction.build.selfSend')}` : ``)
+        .addText(isSelfSend && ioData?.label ? ` ${ioData.label}` : '')
         .pop()
 
       return para.build()
@@ -531,7 +527,6 @@ function NodeText({
     ioData?.feePercentage,
     ioData?.address,
     ioData.label,
-    isPastMinerFee,
     isHigherCurrentMinerFee,
     isChange,
     isSelfSend
@@ -605,9 +600,24 @@ function NodeText({
         />
       )}
       {isUnspent &&
+        changeIconSvg &&
+        placeholderRectsUnspentIcon.length > 0 &&
+        placeholderRectsUnspentIcon[0] &&
+        isChange && (
+          <ImageSVG
+            svg={changeIconSvg}
+            x={groupBaseX + placeholderRectsUnspentIcon[0].rect.x}
+            y={paragraphY + placeholderRectsUnspentIcon[0].rect.y}
+            width={placeholderRectsUnspentIcon[0].rect.width}
+            height={placeholderRectsUnspentIcon[0].rect.height}
+          />
+        )}
+      {isUnspent &&
         labelIconSvg &&
         placeholderRectsUnspentIcon.length > 0 &&
         placeholderRectsUnspentIcon[0] &&
+        !isChange &&
+        !isSelfSend &&
         ioData?.label && (
           <ImageSVG
             svg={labelIconSvg}
@@ -621,27 +631,13 @@ function NodeText({
         changeIconSvg &&
         placeholderRectsUnspentIcon.length > 0 &&
         placeholderRectsUnspentIcon[0] &&
-        !ioData?.label &&
-        isChange && (
+        isSelfSend && (
           <ImageSVG
             svg={changeIconSvg}
             x={groupBaseX + placeholderRectsUnspentIcon[0].rect.x}
             y={paragraphY + placeholderRectsUnspentIcon[0].rect.y}
             width={placeholderRectsUnspentIcon[0].rect.width}
             height={placeholderRectsUnspentIcon[0].rect.height}
-          />
-        )}
-      {isUnspent &&
-        changeIconSvg &&
-        placeholderRectsUnspentIcon.length > 1 &&
-        placeholderRectsUnspentIcon[1] &&
-        isSelfSend && (
-          <ImageSVG
-            svg={changeIconSvg}
-            x={groupBaseX + placeholderRectsUnspentIcon[1].rect.x}
-            y={paragraphY + placeholderRectsUnspentIcon[1].rect.y}
-            width={placeholderRectsUnspentIcon[1].rect.width}
-            height={placeholderRectsUnspentIcon[1].rect.height}
           />
         )}
       {isMiningFee &&
@@ -661,4 +657,4 @@ function NodeText({
   )
 }
 
-export default SSSankeyNodes
+export default memo(SSSankeyNodes)

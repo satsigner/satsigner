@@ -36,7 +36,11 @@ import {
   getExtendedKeyFromDescriptor,
   getFingerprintFromExtendedPublicKey
 } from '@/utils/bip32'
-import { getPrivateDescriptorFromMnemonic } from '@/utils/bip39'
+import {
+  detectElectrumSeed,
+  getPrivateDescriptorFromElectrumMnemonic,
+  getPrivateDescriptorFromMnemonic
+} from '@/utils/bip39'
 import {
   getMultisigDerivationPathFromScriptVersion,
   getMultisigScriptTypeFromScriptVersion
@@ -511,6 +515,19 @@ async function getDescriptorObject(
   passphrase: Secret['passphrase'],
   network: Network
 ) {
+  // Check for Electrum seed — uses different seed derivation and path
+  const electrumType = await detectElectrumSeed(mnemonic)
+  if (electrumType) {
+    const descriptor = await getPrivateDescriptorFromElectrumMnemonic(
+      mnemonic,
+      electrumType,
+      kind,
+      passphrase || '',
+      network
+    )
+    return new Descriptor().create(descriptor, network)
+  }
+
   // TODO: inspect if extra multisig is really needed, since the
   // getPrivateDescriptorFromMnemonic should work (in theory) for both
   // scenarios.
@@ -723,6 +740,12 @@ async function getWalletAddressesUsingStopGap(
         satsInMempool: 0
       }
     })
+
+    // Extend stop-gap for internal (change) addresses too so high-index
+    // change UTXOs are always included in account.addresses
+    if (seenAddresses[changeAddr] !== undefined && i > lastIndexWithFunds) {
+      lastIndexWithFunds = i
+    }
   }
 
   return addresses
@@ -824,6 +847,53 @@ async function getWalletOverview(
   }
 }
 
+type TransactionMetadataAndIo = {
+  inputs: Awaited<
+    ReturnType<NonNullable<TransactionDetails['transaction']>['input']>
+  >
+  lockTime: number
+  lockTimeEnabled: boolean
+  outputs: Awaited<
+    ReturnType<NonNullable<TransactionDetails['transaction']>['output']>
+  >
+  raw: number[]
+  version: number
+}
+
+async function getTransactionMetadataAndIo(
+  transaction: NonNullable<TransactionDetails['transaction']>
+): Promise<TransactionMetadataAndIo> {
+  try {
+    const [version, lockTime, lockTimeEnabled, raw, inputs, outputs] =
+      await Promise.all([
+        transaction.version(),
+        transaction.lockTime(),
+        transaction.isLockTimeEnabled(),
+        transaction.serialize(),
+        transaction.input(),
+        transaction.output()
+      ])
+    return {
+      inputs: inputs ?? [],
+      lockTime,
+      lockTimeEnabled,
+      outputs: outputs ?? [],
+      raw: raw ?? [],
+      version
+    }
+  } catch {
+    // BDK native can NPE when transaction handle is invalid
+    return {
+      inputs: [],
+      lockTime: 0,
+      lockTimeEnabled: false,
+      outputs: [],
+      raw: [],
+      version: 0
+    }
+  }
+}
+
 async function parseTransactionDetailsToTransaction(
   transactionDetails: TransactionDetails,
   utxos: LocalUtxo[],
@@ -851,30 +921,51 @@ async function parseTransactionDetailsToTransaction(
   const vout: Transaction['vout'] = []
 
   if (transaction) {
-    size = await transaction.size()
-    vsize = await transaction.vsize()
-    weight = await transaction.weight()
-    version = await transaction.version()
-    lockTime = await transaction.lockTime()
-    lockTimeEnabled = await transaction.isLockTimeEnabled()
-    raw = await transaction.serialize()
-
-    const inputs = await transaction.input()
-    const outputs = await transaction.output()
+    const {
+      inputs,
+      outputs: outputsList,
+      ...metadata
+    } = await getTransactionMetadataAndIo(transaction)
+    version = metadata.version
+    lockTime = metadata.lockTime
+    lockTimeEnabled = metadata.lockTimeEnabled
+    raw = metadata.raw
 
     for (const index in inputs) {
       const input = inputs[index]
-      const script = await input.scriptSig.toBytes()
-      input.scriptSig = script
-      vin.push(input)
+      if (!input?.scriptSig) continue
+      try {
+        const script = await input.scriptSig.toBytes()
+        input.scriptSig = script
+        vin.push(input)
+      } catch {
+        // BDK native toBytes can NPE if scriptSig is invalid; skip this input
+      }
     }
 
-    for (const index in outputs) {
-      const { value, script: scriptObj } = outputs[index]
-      const script = await scriptObj.toBytes()
-      const addressObj = await new Address().fromScript(scriptObj, network)
-      const address = addressObj ? await addressObj.asString() : ''
-      vout.push({ value, address, script })
+    for (const index in outputsList) {
+      const { value, script: scriptObj } = outputsList[index]
+      if (!scriptObj) continue
+      let script: number[] = []
+      try {
+        script = await scriptObj.toBytes()
+      } catch {
+        // BDK native toBytes can NPE if script is invalid; use empty
+      }
+      let outputAddress = ''
+      try {
+        const addressObj = await new Address().fromScript(scriptObj, network)
+        outputAddress = addressObj ? await addressObj.asString() : ''
+      } catch {
+        // Intentionally ignore: non-standard scripts (OP_RETURN, bare multisig, etc.) can't be converted to addresses; leave address empty
+      }
+      vout.push({ value, address: outputAddress, script })
+    }
+
+    if (raw?.length) {
+      weight = raw.length * 4
+      vsize = Math.ceil(weight / 3)
+      size = raw.length
     }
   }
 
@@ -913,7 +1004,14 @@ async function parseLocalUtxoToUtxo(
   const transactionDetails = transactionsDetails.find(
     (transactionDetails) => transactionDetails.txid === transactionId
   )
-  const script = await localUtxo.txout.script.toBytes()
+  let script: number[] = []
+  if (localUtxo?.txout?.script) {
+    try {
+      script = await localUtxo.txout.script.toBytes()
+    } catch {
+      // BDK native toBytes can NPE if script is invalid
+    }
+  }
 
   return {
     txid: transactionId,
@@ -930,9 +1028,14 @@ async function parseLocalUtxoToUtxo(
 }
 
 async function getAddress(utxo: LocalUtxo, network: Network) {
-  const script = utxo.txout.script
-  const address = await new Address().fromScript(script, network)
-  return address ? address.asString() : ''
+  try {
+    const script = utxo.txout.script
+    const address = await new Address().fromScript(script, network)
+    return address ? address.asString() : ''
+  } catch {
+    // Intentionally ignore: non-standard scripts (OP_RETURN, bare multisig, etc.) can't be converted to addresses
+    return ''
+  }
 }
 
 async function getTransactionInputValues(

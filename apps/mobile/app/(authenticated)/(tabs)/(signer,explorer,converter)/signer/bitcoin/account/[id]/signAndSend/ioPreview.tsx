@@ -15,6 +15,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconChevronLeft } from '@/components/icons'
 import SSAmountInput from '@/components/SSAmountInput'
+import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
@@ -33,6 +34,7 @@ import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { processContentForOutput } from '@/hooks/useContentProcessor'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
+import { useNetworkInfo } from '@/hooks/useNetworkInfo'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -138,9 +140,15 @@ export default function IOPreview() {
     }
   }, [outputs, changeAddress, shouldRemoveChange, removeOutput])
 
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
+    useShallow((state) => [
+      state.fiatCurrency,
+      state.satsToFiat,
+      state.btcPrice
+    ])
   )
+
+  const { blockHeight, nextBlockFee, blockHeightSource } = useNetworkInfo()
 
   type AutoSelectUtxosAlgorithms = 'user' | 'privacy' | 'efficiency'
   const [selectedAutoSelectUtxos, setSelectedAutoSelectUtxos] =
@@ -182,8 +190,8 @@ export default function IOPreview() {
   }, [inputs, outputs])
 
   const baseMinerFee = useMemo(
-    () => Math.round(feeRate * baseTransactionSize.vsize),
-    [feeRate, baseTransactionSize.vsize]
+    () => Math.round(localFeeRate * baseTransactionSize.vsize),
+    [localFeeRate, baseTransactionSize.vsize]
   )
 
   // Calculate if we'll have change
@@ -312,8 +320,8 @@ export default function IOPreview() {
   }, [inputs, outputs, hasChange])
 
   const minerFee = useMemo(
-    () => Math.round(feeRate * transactionSize.vsize),
-    [feeRate, transactionSize.vsize]
+    () => Math.round(localFeeRate * transactionSize.vsize),
+    [localFeeRate, transactionSize.vsize]
   )
 
   const [selectedPeriod] = useState<SSFeeRateChartProps['timeRange']>('2hours')
@@ -372,7 +380,7 @@ export default function IOPreview() {
   }, [])
 
   useEffect(() => {
-    setFee(localFeeRate * transactionSize.vsize)
+    setFee(Math.round(localFeeRate * transactionSize.vsize))
   }, [localFeeRate, transactionSize, setFee])
 
   useEffect(() => {
@@ -543,6 +551,7 @@ export default function IOPreview() {
   }
 
   function handleGoToPreview() {
+    setFeeRate(localFeeRate)
     const totalOutputAmount = outputs.reduce(
       (acc, output) => acc + output.amount,
       0
@@ -669,6 +678,13 @@ export default function IOPreview() {
               flex: 1
             }}
           >
+            <SSBlockFeePriceRow
+              blockHeight={blockHeight}
+              btcPrice={btcPrice}
+              fiatCurrency={fiatCurrency}
+              nextBlockFee={nextBlockFee}
+              blockHeightSource={blockHeightSource}
+            />
             <SSVStack itemsCenter gap="xs">
               <SSText>
                 {inputs.size} {t('common.of').toLowerCase()}{' '}
@@ -879,6 +895,7 @@ export default function IOPreview() {
                         : remainingSats - minerFee
                     }
                     fiatCurrency={fiatCurrency}
+                    btcPrice={btcPrice}
                     satsToFiat={satsToFiat}
                     onValueChange={(value) => setOutputAmount(value)}
                   />
@@ -922,6 +939,8 @@ export default function IOPreview() {
                   align="left"
                   value={outputLabel}
                   onChangeText={(text) => setOutputLabel(text)}
+                  blurOnSubmit
+                  returnKeyType="done"
                   style={{
                     fontSize: 22,
                     height: 110,

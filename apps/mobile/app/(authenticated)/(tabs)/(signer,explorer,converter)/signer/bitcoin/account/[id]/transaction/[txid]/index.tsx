@@ -1,6 +1,12 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
-import { ScrollView, StyleSheet } from 'react-native'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  ActivityIndicator,
+  InteractionManager,
+  ScrollView,
+  StyleSheet,
+  View
+} from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getTransactionInputValues } from '@/api/bdk'
@@ -35,23 +41,28 @@ import { bytesToHex } from '@/utils/scripts'
 export default function TxDetails() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
 
-  const [tx, loadTx] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts
-        .find((account) => account.id === accountId)
-        ?.transactions.find((tx) => tx.id === txid),
-      state.loadTx
-    ])
+  const [account, tx, loadTx] = useAccountsStore(
+    useShallow((state) => {
+      const acc = state.accounts.find((a) => a.id === accountId)
+      return [acc, acc?.transactions.find((t) => t.id === txid), state.loadTx]
+    })
+  )
+  const ownAddresses = useMemo(
+    () => new Set(account?.addresses?.map((a) => a.address) ?? []),
+    [account]
   )
 
   const [selectedNetwork, configs] = useBlockchainStore(
     useShallow((state) => [state.selectedNetwork, state.configs])
   )
 
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
+
   const currentServer = configs[selectedNetwork].server
 
   const placeholder = '-'
 
+  const [isReady, setIsReady] = useState(false)
   const [fee, setFee] = useState(placeholder)
   const [feePerByte, setFeePerByte] = useState(placeholder)
   const [feePerVByte, setFeePerVByte] = useState(placeholder)
@@ -63,6 +74,13 @@ export default function TxDetails() {
   const [version, setVersion] = useState(placeholder)
   const [vsize, setVsize] = useState(placeholder)
   const [weight, setWeight] = useState(placeholder)
+
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      setIsReady(true)
+    })
+    return () => task.cancel()
+  }, [])
 
   async function updateInfo() {
     if (!tx) return
@@ -124,69 +142,73 @@ export default function TxDetails() {
           label={tx.label || ''}
           link={`/signer/bitcoin/account/${accountId}/transaction/${txid}/label`}
           header={t('transaction.label')}
+          privacyMode={privacyMode}
         />
-        <SSSeparator color="gradient" />
-        <SSVStack>
-          <SSText uppercase weight="bold" size="md">
-            {t('transaction.details.chart')}
-          </SSText>
-          <SSTransactionChart transaction={tx} />
-        </SSVStack>
-        <SSSeparator color="gradient" />
-        <SSDetailsList
-          columns={3}
-          headerSize="sm"
-          items={[
-            [t('transaction.block'), height, { width: '100%' }],
-            [
-              t('transaction.hash'),
-              txid,
-              { width: '100%', copyToClipboard: true }
-            ],
-            [t('transaction.size'), size],
-            [t('transaction.weight'), weight],
-            [t('transaction.vsize'), vsize],
-            [t('transaction.fee'), fee],
-            [t('transaction.feeBytes'), feePerByte],
-            [t('transaction.feeVBytes'), feePerVByte]
-          ]}
-        />
-        <SSSeparator color="gradient" />
-        <SSVStack gap="sm">
-          <SSText
-            uppercase
-            weight="bold"
-            size="md"
-            style={{ marginBottom: -30 }}
-          >
-            {t('transaction.decoded.title')}
-          </SSText>
-          {raw !== '' ? (
-            <SSTransactionDecoded txHex={raw} />
-          ) : (
-            <SSText>{placeholder}</SSText>
-          )}
-        </SSVStack>
-        <SSSeparator color="gradient" />
-        <SSVStack gap="none">
-          <SSText uppercase weight="bold" size="lg">
-            {t('transaction.details.title')}
-          </SSText>
-        </SSVStack>
-        <SSDetailsList
-          columns={3}
-          items={[
-            [t('transaction.version'), version],
-            [t('transaction.input.count'), inputsCount],
-            [t('transaction.output.count'), outputsCount]
-          ]}
-        />
-        <SSTransactionVinList vin={tx.vin} />
-        <SSTransactionVoutList
-          vout={tx.vout}
-          txid={tx.id}
-          accountId={accountId}
-        />
+        {!isReady ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator color="white" size="large" />
+          </View>
+        ) : (
+          <>
+            <SSVStack style={{ paddingTop: 50 }}>
+              <SSSeparator color="gradient" />
+              <SSText uppercase color="muted">
+                {t('transaction.details.chart')}
+              </SSText>
+              <SSTransactionChart
+                transaction={tx}
+                ownAddresses={ownAddresses}
+                scale={0.9}
+              />
+            </SSVStack>
+            <SSSeparator color="gradient" />
+            <SSDetailsList
+              columns={3}
+              headerSize="sm"
+              textSize="md"
+              uppercase={false}
+              items={[
+                [t('transaction.block'), height, { width: '100%' }],
+                [
+                  t('transaction.hash'),
+                  txid,
+                  { width: '100%', copyToClipboard: true }
+                ],
+                [t('transaction.size'), size],
+                [t('transaction.weight'), weight],
+                [t('transaction.vsize'), vsize],
+                [t('transaction.fee'), fee],
+                [t('transaction.feeBytes'), feePerByte],
+                [t('transaction.feeVBytes'), feePerVByte],
+                [t('transaction.version'), version],
+                [t('transaction.input.count'), inputsCount],
+                [t('transaction.output.count'), outputsCount]
+              ]}
+            />
+            <SSSeparator color="gradient" />
+            <SSVStack gap="sm">
+              <SSText
+                uppercase
+                color="muted"
+                style={{ marginBottom: -30, marginTop: 50 }}
+              >
+                {t('transaction.decoded.title')}
+              </SSText>
+              {raw !== '' ? (
+                <SSTransactionDecoded txHex={raw} />
+              ) : (
+                <SSText>{placeholder}</SSText>
+              )}
+            </SSVStack>
+
+            <SSTransactionVinList vin={tx.vin} />
+            <SSTransactionVoutList
+              vout={tx.vout}
+              txid={tx.id}
+              accountId={accountId}
+            />
+          </>
+        )}
       </SSVStack>
     </ScrollView>
   )
@@ -202,8 +224,11 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
     state.btcPrice
   ])
 
-  const getBlockchainHeight = useBlockchainStore(
-    (state) => state.getBlockchainHeight
+  const [lastKnownBlockHeight, getBlockchainHeight] = useBlockchainStore(
+    useShallow((state) => [
+      state.lastKnownBlockHeight,
+      state.getBlockchainHeight
+    ])
   )
 
   const [currencyUnit, useZeroPadding] = useSettingsStore(
@@ -211,11 +236,15 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
   )
 
   const [amount, setAmount] = useState(0)
-  const [confirmations, setConfirmations] = useState(0)
   const [oldPrice, setOldPrice] = useState('')
   const [price, setPrice] = useState('')
   const [type, setType] = useState('')
   const [inputsCount, setInputsCount] = useState(0)
+
+  const confirmations =
+    tx?.blockHeight && lastKnownBlockHeight > 0
+      ? lastKnownBlockHeight - tx.blockHeight + 1
+      : 0
 
   const updateInfo = async () => {
     if (!tx) return
@@ -232,24 +261,22 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
 
     if (tx.vin) setInputsCount(tx.vin.length)
 
-    if (tx.blockHeight) {
-      const blockchainHeight = await getBlockchainHeight()
-      const confirmations = blockchainHeight - tx.blockHeight
-      setConfirmations(confirmations)
+    if (tx.blockHeight && lastKnownBlockHeight === 0) {
+      getBlockchainHeight()
     }
   }
 
   useEffect(() => {
     updateInfo()
-  }, [tx]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tx, lastKnownBlockHeight]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <SSVStack gap="none" style={{ alignItems: 'center' }}>
       {tx?.timestamp && <SSTimeAgoText date={new Date(tx.timestamp)} />}
-      <SSHStack gap="sm" style={{ alignItems: 'center' }}>
-        {type === 'receive' && <SSIconIncoming height={12} width={12} />}
-        {type === 'send' && <SSIconOutgoing height={12} width={12} />}
-        <SSHStack gap="sm" style={{ alignItems: 'baseline' }}>
+      <SSVStack gap="xs" style={{ alignItems: 'center', marginTop: 16 }}>
+        <SSHStack gap="sm" style={{ alignItems: 'center' }}>
+          {type === 'receive' && <SSIconIncoming height={12} width={12} />}
+          {type === 'send' && <SSIconOutgoing height={12} width={12} />}
           <SSHStack gap="xs" style={{ alignItems: 'baseline', width: 'auto' }}>
             {amount !== 0 ? (
               <SSStyledSatText
@@ -267,15 +294,25 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
               {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
             </SSText>
           </SSHStack>
-          <SSHStack gap="xs">
-            {price && <SSText>{price}</SSText>}
-            {oldPrice && <SSText color="muted">({oldPrice})</SSText>}
-            {(price || oldPrice) && (
-              <SSText color="muted">{fiatCurrency}</SSText>
-            )}
-          </SSHStack>
         </SSHStack>
-      </SSHStack>
+        {(price || oldPrice) && (
+          <SSHStack gap="xs">
+            {price && (
+              <SSText color="muted" size="sm">
+                {price}
+              </SSText>
+            )}
+            {oldPrice && (
+              <SSText color="muted" size="sm">
+                ({oldPrice})
+              </SSText>
+            )}
+            <SSText color="muted" size="sm">
+              {fiatCurrency}
+            </SSText>
+          </SSHStack>
+        )}
+      </SSVStack>
       <SSHStack gap="sm">
         <SSText
           style={{
@@ -309,5 +346,9 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     justifyContent: 'space-between',
     padding: 20
+  },
+  loadingContainer: {
+    paddingVertical: 60,
+    alignItems: 'center'
   }
 })

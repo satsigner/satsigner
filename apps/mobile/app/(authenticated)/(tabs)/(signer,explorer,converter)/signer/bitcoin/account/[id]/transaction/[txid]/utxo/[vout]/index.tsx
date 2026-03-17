@@ -1,12 +1,6 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
-import {
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  useWindowDimensions,
-  View
-} from 'react-native'
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -20,10 +14,12 @@ import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import useGetAccountTransactionOutput from '@/hooks/useGetAccountTransactionOutput'
+import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -35,8 +31,10 @@ type UtxoDetailsProps = {
   onPressAddress: () => void
   onPressTx: () => void
   onSpendUtxo: () => void
+  ownAddresses?: Set<string>
   tx?: Transaction
   utxo?: Utxo
+  addressIndex?: number
 }
 
 function UtxoDetails({
@@ -44,8 +42,10 @@ function UtxoDetails({
   onPressAddress,
   onPressTx,
   onSpendUtxo,
+  ownAddresses = new Set(),
   tx,
   utxo,
+  addressIndex,
   allAccountUtxos
 }: UtxoDetailsProps & { allAccountUtxos: Utxo[] }) {
   const [blockTime, setBlockTime] = useState('')
@@ -58,6 +58,7 @@ function UtxoDetails({
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
 
   const { width, height } = useWindowDimensions()
   const outerContainerPadding = 20
@@ -126,44 +127,58 @@ function UtxoDetails({
           label={utxo?.label || ''}
           link={`/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${vout}/label`}
           header={t('utxo.label')}
+          privacyMode={privacyMode}
         />
         <SSSeparator color="gradient" />
         <SSVStack>
-          <TouchableOpacity
-            onPress={onPressAddress}
-            activeOpacity={0.7}
-            disabled={!utxo?.addressTo || utxo.addressTo === '-'}
-          >
-            <SSVStack gap="sm">
+          <SSVStack gap="sm">
+            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
               <SSText weight="bold" uppercase>
                 {t('utxo.address')}
               </SSText>
-              <SSAddressDisplay
-                address={utxo?.addressTo || '-'}
-                copyToClipboard={false}
-              />
-            </SSVStack>
-          </TouchableOpacity>
+              {typeof addressIndex === 'number' && (
+                <SSText
+                  color="muted"
+                  size="sm"
+                  style={{ fontWeight: 'normal' }}
+                >
+                  ({addressIndex})
+                </SSText>
+              )}
+            </SSHStack>
+            <SSAddressDisplay address={utxo?.addressTo || '-'} />
+            <SSButton
+              variant="outline"
+              label={t('utxo.viewAddress')}
+              onPress={onPressAddress}
+              disabled={!utxo?.addressTo || utxo.addressTo === '-'}
+            />
+          </SSVStack>
           <SSSeparator color="gradient" />
-          <TouchableOpacity onPress={onPressTx} activeOpacity={0.7}>
-            <SSVStack gap="sm">
-              <SSText weight="bold" uppercase>
-                {t('transaction.id')}
-              </SSText>
-              <SSAddressDisplay address={txid} copyToClipboard={false} />
-            </SSVStack>
-          </TouchableOpacity>
+          <SSVStack gap="sm">
+            <SSText weight="bold" uppercase>
+              {t('transaction.id')}
+            </SSText>
+            <SSAddressDisplay address={txid} />
+          </SSVStack>
           {tx && (
             <>
               <SSSeparator color="gradient" />
-              <SSVStack>
+              <SSVStack gap="sm">
                 <SSText uppercase weight="bold" size="md">
                   {t('transaction.details.chart')}
                 </SSText>
                 <SSTransactionChart
                   transaction={tx}
+                  ownAddresses={ownAddresses}
                   selectedOutputIndex={utxo?.vout}
                   dimUnselected
+                  scale={0.9}
+                />
+                <SSButton
+                  variant="outline"
+                  label={t('utxo.viewTransaction')}
+                  onPress={onPressTx}
                 />
               </SSVStack>
             </>
@@ -209,7 +224,21 @@ function UtxoDetailsPage() {
 
   const utxo = useGetAccountTransactionOutput(accountId!, txid!, Number(vout!))
 
+  const addressIndex = useMemo(() => {
+    if (!account || !utxo?.addressTo) return undefined
+    const idx = account.addresses.findIndex(
+      (a) => (a.address || '').trim() === (utxo.addressTo || '').trim()
+    )
+    if (idx < 0) return undefined
+    const addressEntry = account.addresses[idx]
+    return addressEntry?.index ?? idx
+  }, [account, utxo?.addressTo])
+
   const allAccountUtxos = account?.utxos || []
+  const ownAddresses = useMemo(
+    () => new Set(account?.addresses?.map((a) => a.address) ?? []),
+    [account]
+  )
   const addInput = useTransactionBuilderStore((state) => state.addInput)
 
   function navigateToTx() {
@@ -244,10 +273,12 @@ function UtxoDetailsPage() {
           accountId={accountId || ''}
           onPressAddress={navigateToAddress}
           onPressTx={navigateToTx}
+          onSpendUtxo={handleSpendUtxo}
+          ownAddresses={ownAddresses}
           tx={tx}
           utxo={utxo}
+          addressIndex={addressIndex}
           allAccountUtxos={allAccountUtxos}
-          onSpendUtxo={handleSpendUtxo}
         />
       </View>
     </>

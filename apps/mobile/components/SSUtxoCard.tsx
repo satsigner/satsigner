@@ -11,7 +11,7 @@ import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
-import { parseLabel } from '@/utils/parse'
+import { normalizeUtxoLabelForDisplay } from '@/utils/parse'
 
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
@@ -21,9 +21,10 @@ import SSUtxoBar from './SSUtxoBar'
 type SSUtxoCardProps = {
   utxo: Utxo
   totalBalance?: number
+  addressIndex?: number
 }
 
-function SSUtxoCard({ utxo, totalBalance }: SSUtxoCardProps) {
+function SSUtxoCard({ utxo, totalBalance, addressIndex }: SSUtxoCardProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
@@ -72,10 +73,15 @@ function SSUtxoCard({ utxo, totalBalance }: SSUtxoCardProps) {
           </SSHStack>
         </SSVStack>
         <SSVStack gap="none" style={{ alignItems: 'flex-end' }}>
-          <SSHStack>
+          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
             <SSText>
               {utxo.addressTo && formatAddress(utxo.addressTo || '')}
             </SSText>
+            {typeof addressIndex === 'number' && (
+              <SSText color="muted" size="sm">
+                ({addressIndex})
+              </SSText>
+            )}
           </SSHStack>
           <SSText color="muted">
             {utxo.timestamp && (
@@ -85,7 +91,7 @@ function SSUtxoCard({ utxo, totalBalance }: SSUtxoCardProps) {
         </SSVStack>
       </SSHStack>
       <SSText size="md" color={utxo.label ? 'white' : 'muted'}>
-        {parseLabel(utxo.label || t('utxo.noLabel'))['label']}
+        {normalizeUtxoLabelForDisplay(utxo.label || '') || t('utxo.noLabel')}
       </SSText>
     </TouchableOpacity>
   )
