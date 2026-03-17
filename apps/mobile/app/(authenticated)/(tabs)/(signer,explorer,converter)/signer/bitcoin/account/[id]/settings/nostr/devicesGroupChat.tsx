@@ -354,7 +354,7 @@ export default function DevicesGroupChat() {
     const relays = account.nostr.relays
     const fetchedRef = new Set<string>()
 
-    void (async () => {
+    ;(async () => {
       for (const msg of memoizedMessages) {
         if (!msg.author) continue
         let npub: string
