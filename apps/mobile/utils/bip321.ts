@@ -251,4 +251,3 @@ export function validateBolt12(offer: string): Bolt12ValidationResult {
     error: result.error
   }
 }
-

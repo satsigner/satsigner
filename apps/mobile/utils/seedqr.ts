@@ -14,7 +14,7 @@ export function encodeStandardSeedQR(
     .join('')
 }
 
-function encodeCompactSeedQR(
+export function encodeCompactSeedQR(
   mnemonic: string,
   wordList: string[]
 ): string {

@@ -291,7 +291,11 @@ function SSSpiralBlocks({
         >
           {/* Render paths in batches to reduce render operations */}
           {paths.map((path, index) => (
-            <Path key={spiralBlocks[index]?.height ?? index} path={path} color={spiralBlocks[index].color} />
+            <Path
+              key={spiralBlocks[index]?.height ?? index}
+              path={path}
+              color={spiralBlocks[index].color}
+            />
           ))}
 
           {/* Pre-calculate week ring circles */}
