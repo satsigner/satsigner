@@ -17,7 +17,6 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import type { Network } from '@/types/settings/blockchain'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import type {
@@ -25,6 +24,7 @@ import type {
   MemPoolFees,
   MempoolStatistics
 } from '@/types/models/Blockchain'
+import type { Network } from '@/types/settings/blockchain'
 import { formatBytes, formatDate } from '@/utils/format'
 import { time } from '@/utils/time'
 
@@ -315,7 +315,9 @@ export default function ChainTip() {
               title={tn('latestBlock')}
               source={chainData?.blockSource ?? null}
               sourceLabel={
-                chainData?.blockSource ? sourceLabel(chainData.blockSource) : null
+                chainData?.blockSource
+                  ? sourceLabel(chainData.blockSource)
+                  : null
               }
             />
             <SSVStack gap="xs">
