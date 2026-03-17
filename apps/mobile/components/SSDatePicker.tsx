@@ -81,9 +81,7 @@ function SSDatePicker({
     setYears(years)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const pickerHeight: number = Math.round(
-    height || windowHeight / 3.5
-  )
+  const pickerHeight: number = Math.round(height || windowHeight / 3.5)
   const pickerWidth: number | string = width || '100%'
 
   const unexpectedDate: Date = new Date(years[0], 0, 1)

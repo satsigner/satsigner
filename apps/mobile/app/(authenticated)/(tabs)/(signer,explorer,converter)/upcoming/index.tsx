@@ -1,6 +1,12 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef } from 'react'
-import { Animated, Image, StyleSheet, useWindowDimensions, View } from 'react-native'
+import {
+  Animated,
+  Image,
+  StyleSheet,
+  useWindowDimensions,
+  View
+} from 'react-native'
 
 import SSText from '@/components/SSText'
 import { slides } from '@/constants/slides'
@@ -50,7 +56,9 @@ export default function UpComing() {
             pagingEnabled
             snapToInterval={SNAP_INTERVAL}
             decelerationRate="fast"
-            contentContainerStyle={{ paddingHorizontal: (width - CARD_WIDTH - SPACING) / 2 }}
+            contentContainerStyle={{
+              paddingHorizontal: (width - CARD_WIDTH - SPACING) / 2
+            }}
             onScroll={Animated.event(
               [{ nativeEvent: { contentOffset: { x: scrollX } } }],
               { useNativeDriver: false }

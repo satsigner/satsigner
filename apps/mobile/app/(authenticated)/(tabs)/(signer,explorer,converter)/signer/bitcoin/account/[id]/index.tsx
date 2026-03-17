@@ -442,7 +442,9 @@ function SSAddressTable({
   return (
     <ScrollView style={{ marginTop: 10 }} horizontal>
       <SSVStack gap="none" style={{ width: ADDRESS_TABLE_WIDTH }}>
-        <SSHStack style={[addressListStyles.headerRow, { width: ADDRESS_TABLE_WIDTH }]}>
+        <SSHStack
+          style={[addressListStyles.headerRow, { width: ADDRESS_TABLE_WIDTH }]}
+        >
           <SSText
             style={[
               addressListStyles.headerText,
