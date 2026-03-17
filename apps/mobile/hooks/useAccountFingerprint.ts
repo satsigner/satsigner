@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react'
 
 import { type Account } from '@/types/models/Account'
-import { extractAccountFingerprintWithDecryption } from '@/utils/account'
-function useAccountFingerprint(account: Account): string {
-  const [fingerprint, setFingerprint] = useState<string>('')
+import { getAccountFingerprintWithDecryption } from '@/utils/account'
 
-  // Extract complex dependency to avoid linting issues
-  const accountFingerprint = account?.keys?.[0]?.fingerprint
+function useAccountFingerprint(account: Account): string {
+  const [fingerprint, setFingerprint] = useState('')
 
   useEffect(() => {
     async function loadFingerprint() {
@@ -16,15 +14,15 @@ function useAccountFingerprint(account: Account): string {
       }
 
       try {
-        const result = await extractAccountFingerprintWithDecryption(account)
-        setFingerprint(result)
+        const fingerprint = await getAccountFingerprintWithDecryption(account)
+        setFingerprint(fingerprint)
       } catch {
         setFingerprint('')
       }
     }
 
     loadFingerprint()
-  }, [account, account?.id, accountFingerprint])
+  }, [account])
 
   return fingerprint
 }

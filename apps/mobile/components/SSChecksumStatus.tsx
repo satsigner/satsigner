@@ -7,11 +7,12 @@ import { Colors } from '@/styles'
 import SSText from './SSText'
 
 type SSChecksumStatusProps = {
-  valid: boolean
+  valid: boolean | 'electrum'
 }
 
 function SSChecksumStatus({ valid }: SSChecksumStatusProps) {
   const statusStyle = useMemo(() => {
+    if (valid === 'electrum') return { backgroundColor: Colors.warning }
     return { backgroundColor: valid ? Colors.success : Colors.error }
   }, [valid])
 
@@ -19,8 +20,9 @@ function SSChecksumStatus({ valid }: SSChecksumStatusProps) {
     <View style={styles.containerBase}>
       <View style={[styles.statusBase, statusStyle]} />
       <SSText style={styles.textBase}>
-        {valid ? t('common.valid') : t('common.invalid')}{' '}
-        {t('bitcoin.checksum')}
+        {valid === 'electrum'
+          ? t('bitcoin.electrumChecksum')
+          : `${valid ? t('common.valid') : t('common.invalid')} ${t('bitcoin.checksum')}`}
       </SSText>
     </View>
   )

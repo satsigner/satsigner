@@ -27,7 +27,11 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { extractAccountFingerprint } from '@/utils/account'
+import {
+  decryptAllAccountKeySecrets,
+  getAccountFingerprint
+} from '@/utils/account'
+import { isElectrumDerivationPath } from '@/utils/bip39'
 import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
 import { formatAccountCreationDate } from '@/utils/date'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
@@ -63,7 +67,7 @@ export default function AccountSettings() {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [mnemonicModalVisible, setMnemonicModalVisible] = useState(false)
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
-  const [pin, setPin] = useState<string[]>(Array(4).fill(''))
+  const [pin, setPin] = useState<string[]>(() => Array(4).fill(''))
   const [showPinEntry, setShowPinEntry] = useState(false)
   const [pinEntryFocus, setPinEntryFocus] = useState(false)
 
@@ -158,40 +162,24 @@ export default function AccountSettings() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    async function decryptKeys() {
-      const pin = await getItem(PIN_KEY)
-      if (!account || !pin) return
-
-      try {
-        const decryptedKeysData = await Promise.all(
-          account.keys.map(async (key) => {
-            if (typeof key.secret === 'string') {
-              // Decrypt the key's secret
-              const decryptedSecretString = await aesDecrypt(
-                key.secret,
-                pin,
-                key.iv
-              )
-              const decryptedSecret = JSON.parse(
-                decryptedSecretString
-              ) as Secret
-
-              return {
-                ...key,
-                secret: decryptedSecret
-              }
-            } else {
-              return key
-            }
-          })
-        )
-
-        setDecryptedKeys(decryptedKeysData)
-      } catch {
-        toast.error('Failed to decrypt keys')
-      }
+    async function decryptCurrentAccountKeys() {
+      if (!account) return
+      const secrets = await decryptAllAccountKeySecrets(account)
+      const decryptedKeyData = account.keys.map((key, index) => {
+        const newKey: Key = {
+          ...key,
+          secret: secrets[index]
+        }
+        return newKey
+      })
+      setDecryptedKeys(decryptedKeyData)
     }
-    decryptKeys()
+
+    try {
+      decryptCurrentAccountKeys()
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to decrypt account keys')
+    }
   }, [account])
 
   // Update network when account changes
@@ -243,7 +231,7 @@ export default function AccountSettings() {
             <SSHStack justifyBetween>
               <SSText color="muted">{t('account.fingerprint')}</SSText>
               <SSText>
-                {extractAccountFingerprint(account, decryptedKeys) || '-'}
+                {getAccountFingerprint(account, decryptedKeys) || '-'}
               </SSText>
             </SSHStack>
           )}
@@ -269,6 +257,18 @@ export default function AccountSettings() {
               <SSText>{getScriptVersionDisplayName(scriptVersion)}</SSText>
             </SSHStack>
           )}
+          {account.policyType !== 'multisig' &&
+            account.keys[0].derivationPath && (
+              <SSHStack justifyBetween>
+                <SSText color="muted">{t('account.derivationPath')}</SSText>
+                <SSHStack gap="xs">
+                  <SSText>{account.keys[0].derivationPath}</SSText>
+                  {/^m(\/0[h'])?$/.test(account.keys[0].derivationPath) && (
+                    <SSText style={{ color: Colors.warning }}>electrum</SSText>
+                  )}
+                </SSHStack>
+              </SSHStack>
+            )}
           <SSHStack justifyBetween>
             <SSText color="muted">{t('account.labeledTransactions')}</SSText>
             <SSHStack gap="xs">
@@ -322,7 +322,7 @@ export default function AccountSettings() {
               {decryptedKeys.length > 0 ? (
                 decryptedKeys.map((key, index) => (
                   <SSMultisigKeyControl
-                    key={index}
+                    key={key.fingerprint ?? index}
                     index={index}
                     keyCount={account.keyCount}
                     keyDetails={key}
@@ -339,6 +339,18 @@ export default function AccountSettings() {
           </>
         )}
 
+        <SSVStack>
+          <SSButton
+            style={styles.button}
+            label={t('account.nostrSync.sync')}
+            variant="outline"
+            onPress={() =>
+              router.navigate(
+                `/signer/bitcoin/account/${currentAccountId}/settings/nostr`
+              )
+            }
+          />
+        </SSVStack>
         <SSVStack>
           <SSHStack>
             <SSButton
@@ -386,6 +398,7 @@ export default function AccountSettings() {
             <SSButton
               style={styles.button}
               label={t('account.export.pubkeys')}
+              disabled={account.keys[0].creationType === 'importAddress'}
               onPress={() =>
                 router.navigate(
                   `/signer/bitcoin/account/${currentAccountId}/settings/export/pubkeys`
@@ -393,15 +406,6 @@ export default function AccountSettings() {
               }
             />
           </SSHStack>
-          <SSButton
-            style={styles.button}
-            label={t('account.nostrSync.sync')}
-            onPress={() =>
-              router.navigate(
-                `/signer/bitcoin/account/${currentAccountId}/settings/nostr`
-              )
-            }
-          />
         </SSVStack>
 
         <SSVStack style={styles.actionsContainer}>
@@ -464,6 +468,15 @@ export default function AccountSettings() {
                   {t('account.seed.keepInSecret')}
                 </SSText>
               </SSHStack>
+              {isElectrumDerivationPath(
+                account.keys[0]?.derivationPath || ''
+              ) && (
+                <View style={styles.electrumWarning}>
+                  <SSText style={styles.electrumWarningText}>
+                    {t('bitcoin.electrumSeedNote')}
+                  </SSText>
+                </View>
+              )}
               <View style={styles.mnemonicWordsContainer}>
                 {account.keys[0].mnemonicWordCount && (
                   <SSSeedLayout count={account.keys[0].mnemonicWordCount}>
@@ -667,5 +680,14 @@ const styles = StyleSheet.create({
     width: '100%',
     borderWidth: 1,
     borderColor: Colors.gray[700]
+  },
+  electrumWarning: {
+    borderWidth: 1,
+    borderColor: Colors.warning,
+    borderRadius: 5,
+    padding: 10
+  },
+  electrumWarningText: {
+    color: Colors.warning
   }
 })

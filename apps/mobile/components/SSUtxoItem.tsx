@@ -10,7 +10,7 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { formatAddress, formatDate, formatNumber } from '@/utils/format'
-import { parseLabel } from '@/utils/parse'
+import { normalizeUtxoLabelForDisplay } from '@/utils/parse'
 
 import { SSIconPlus, SSIconX } from './icons'
 import SSStyledSatText from './SSStyledSatText'
@@ -22,13 +22,15 @@ type SSUtxoItemProps = {
   selected: boolean
   largestValue: number
   onToggleSelected(utxo: Utxo): void
+  addressIndex?: number
 }
 
 function SSUtxoItem({
   utxo,
   selected,
   largestValue,
-  onToggleSelected
+  onToggleSelected,
+  addressIndex
 }: SSUtxoItemProps) {
   const priceStore = usePriceStore()
   const [currencyUnit, useZeroPadding] = useSettingsStore(
@@ -42,7 +44,7 @@ function SSUtxoItem({
     })
   }, [selected])
 
-  const label = parseLabel(utxo.label || '').label
+  const label = normalizeUtxoLabelForDisplay(utxo.label || '')
 
   return (
     <View>
@@ -87,9 +89,16 @@ function SSUtxoItem({
             </SSVStack>
           </SSHStack>
           <SSVStack gap="xs" style={{ alignSelf: 'flex-start' }}>
-            <SSText>
-              {utxo.addressTo ? formatAddress(utxo.addressTo) : ''}
-            </SSText>
+            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+              <SSText>
+                {utxo.addressTo ? formatAddress(utxo.addressTo) : ''}
+              </SSText>
+              {typeof addressIndex === 'number' && (
+                <SSText color="muted" size="sm">
+                  ({addressIndex})
+                </SSText>
+              )}
+            </SSHStack>
             <SSText style={{ color: Colors.gray[100], alignSelf: 'flex-end' }}>
               {utxo.timestamp ? formatDate(utxo.timestamp) : ''}
             </SSText>

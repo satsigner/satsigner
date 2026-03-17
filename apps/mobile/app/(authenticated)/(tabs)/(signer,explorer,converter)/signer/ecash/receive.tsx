@@ -23,6 +23,7 @@ import { error, success, warning, white } from '@/styles/colors'
 import { type EcashToken } from '@/types/models/Ecash'
 import type { LNURLWithdrawDetails } from '@/types/models/LNURL'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { formatNumber } from '@/utils/format'
 import {
   decodeLNURL,
   fetchLNURLWithdrawDetails,
@@ -40,6 +41,8 @@ export default function EcashReceivePage() {
   const [token, setToken] = useState('')
   const [decodedToken, setDecodedToken] = useState<EcashToken | null>(null)
   const [amount, setAmount] = useState('')
+  const [amountMode, setAmountMode] = useState<'sats' | 'fiat'>('sats')
+  const [localFiatAmount, setLocalFiatAmount] = useState('')
   const [memo, setMemo] = useState('')
   const [mintQuote, setMintQuote] = useState<{
     request: string
@@ -68,8 +71,12 @@ export default function EcashReceivePage() {
 
   const { isPolling, startPolling, stopPolling } = useQuotePolling()
 
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
+    useShallow((state) => [
+      state.fiatCurrency,
+      state.satsToFiat,
+      state.btcPrice
+    ])
   )
 
   // Cleanup polling when component unmounts or tab changes
@@ -176,6 +183,29 @@ export default function EcashReceivePage() {
       setIsRedeeming(false)
     }
   }, [token, activeMint, receiveEcash, router])
+
+  const handleFiatAmountChange = (text: string) => {
+    const cleaned = text.replace(/[^0-9.]/g, '')
+    setLocalFiatAmount(cleaned)
+    const fiat = Number(cleaned)
+    if (!isNaN(fiat) && btcPrice && btcPrice > 0) {
+      const sats = Math.round((fiat / btcPrice) * 1e8)
+      setAmount(sats > 0 ? sats.toString() : '')
+    }
+  }
+
+  const handleSwitchToFiat = () => {
+    if (!btcPrice || btcPrice <= 0) return
+    if (amount) {
+      const fiat = satsToFiat(parseInt(amount, 10))
+      setLocalFiatAmount(fiat > 0 ? fiat.toFixed(2) : '')
+    }
+    setAmountMode('fiat')
+  }
+
+  const handleSwitchToSats = () => {
+    setAmountMode('sats')
+  }
 
   const handleCreateInvoice = useCallback(async () => {
     if (!amount) {
@@ -475,10 +505,14 @@ export default function EcashReceivePage() {
                         {t('ecash.receive.amountRange')}:
                       </SSText>
                       <SSText size="sm">
-                        {Math.ceil(lnurlWithdrawDetails.minWithdrawable / 1000)}{' '}
+                        {formatNumber(
+                          Math.ceil(lnurlWithdrawDetails.minWithdrawable / 1000)
+                        )}{' '}
                         -{' '}
-                        {Math.floor(
-                          lnurlWithdrawDetails.maxWithdrawable / 1000
+                        {formatNumber(
+                          Math.floor(
+                            lnurlWithdrawDetails.maxWithdrawable / 1000
+                          )
                         )}{' '}
                         {t('bitcoin.sats')}
                       </SSText>
@@ -488,15 +522,62 @@ export default function EcashReceivePage() {
               )}
               <SSVStack gap="xs">
                 <SSText color="muted" size="xs" uppercase>
-                  {t('ecash.receive.amount')}
+                  {t('ecash.receive.amount')} (
+                  {amountMode === 'sats' ? t('bitcoin.sats') : fiatCurrency})
                 </SSText>
-                <SSTextInput
-                  value={amount}
-                  onChangeText={setAmount}
-                  placeholder="0"
-                  keyboardType="numeric"
-                  editable={!isFetchingLNURL}
-                />
+                {amountMode === 'sats' ? (
+                  <SSTextInput
+                    value={
+                      amount
+                        ? formatNumber(parseInt(amount, 10)).toString()
+                        : ''
+                    }
+                    onChangeText={(text) =>
+                      setAmount(text.replace(/[^0-9]/g, ''))
+                    }
+                    placeholder="0"
+                    keyboardType="numeric"
+                    editable={!isFetchingLNURL}
+                  />
+                ) : (
+                  <SSTextInput
+                    value={localFiatAmount}
+                    onChangeText={handleFiatAmountChange}
+                    placeholder="0"
+                    keyboardType="decimal-pad"
+                    editable={!isFetchingLNURL}
+                  />
+                )}
+                {amountMode === 'sats' ? (
+                  <SSText
+                    color="muted"
+                    size="xs"
+                    onPress={
+                      btcPrice && btcPrice > 0 ? handleSwitchToFiat : undefined
+                    }
+                    style={
+                      btcPrice && btcPrice > 0
+                        ? styles.switchableAmount
+                        : undefined
+                    }
+                  >
+                    ≈{' '}
+                    {amount
+                      ? `${formatNumber(satsToFiat(parseInt(amount, 10)), 2)} ${fiatCurrency}`
+                      : `0 ${fiatCurrency}`}
+                  </SSText>
+                ) : (
+                  <SSText
+                    color="muted"
+                    size="xs"
+                    onPress={handleSwitchToSats}
+                    style={styles.switchableAmount}
+                  >
+                    {amount
+                      ? `${formatNumber(parseInt(amount, 10))} ${t('bitcoin.sats')}`
+                      : `0 ${t('bitcoin.sats')}`}
+                  </SSText>
+                )}
                 {isLNURLWithdrawMode &&
                   lnurlWithdrawDetails &&
                   amount &&
@@ -638,5 +719,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     flexWrap: 'wrap'
+  },
+  switchableAmount: {
+    textDecorationLine: 'underline'
   }
 })

@@ -222,7 +222,6 @@ function SSMultipleSankeyDiagram({
             links={transformedLinks}
             nodes={nodes as Node[]}
             sankeyGenerator={sankeyGenerator}
-            LINK_MAX_WIDTH={LINK_MAX_WIDTH}
             BLOCK_WIDTH={BLOCK_WIDTH}
           />
           <SSSankeyNodes
@@ -265,7 +264,7 @@ function SSMultipleSankeyDiagram({
           >
             {nodeStyles.map((style, index) => (
               <TouchableOpacity
-                key={index}
+                key={style.localId ?? index}
                 style={[
                   styles.node,
                   {

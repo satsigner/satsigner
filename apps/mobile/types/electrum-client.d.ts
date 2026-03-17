@@ -16,7 +16,10 @@ declare module 'electrum-client' {
     reconnect(): void
     onError(error: Error): void
     server_ping(): Promise<void>
-    initElectrum(params: { client: string; version: string }): Promise<void>
+    initElectrum(
+      params: { client: string; version: string },
+      persistencePolicy?: { maxRetry: number; callback: null | (() => void) }
+    ): Promise<void>
     close(): void
     blockchainScripthash_getBalance(
       scriptHash: string

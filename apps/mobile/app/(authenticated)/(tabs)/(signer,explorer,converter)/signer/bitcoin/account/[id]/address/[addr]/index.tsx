@@ -19,11 +19,12 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
-import { extractAccountFingerprint } from '@/utils/account'
+import { getAccountFingerprint } from '@/utils/account'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { formatNumber } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
@@ -58,6 +59,8 @@ function AddressDetails() {
       state.accounts.find((account: Account) => account.id === accountId)
         ?.utxos || []
   )
+
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
 
   const addressUtxoInputs = useMemo(() => {
     return addressUtxos || []
@@ -101,8 +104,13 @@ function AddressDetails() {
     }
   }, [address])
 
-  if (!account || !addr || !address) {
+  if (!account || !addr) {
     return <Redirect href="/" />
+  }
+
+  if (!address) {
+    router.back()
+    return null
   }
 
   return (
@@ -126,6 +134,7 @@ function AddressDetails() {
               label={address.label}
               header={t('common.label').toUpperCase()}
               link={`/signer/bitcoin/account/${accountId}/address/${addr}/label`}
+              privacyMode={privacyMode}
             />
             <SSSeparator />
             <SSVStack gap="sm">
@@ -244,7 +253,7 @@ function AddressDetails() {
                   [t('address.details.derivation.index'), address.index],
                   [
                     t('address.details.derivation.fingerprint'),
-                    extractAccountFingerprint(account)
+                    getAccountFingerprint(account)
                   ],
                   [t('address.details.derivation.keychain'), address.keychain]
                 ]}

@@ -1,6 +1,6 @@
 import { FlashList } from '@shopify/flash-list'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Dimensions, Platform, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -40,16 +40,21 @@ export default function SelectUtxoList() {
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
-  const [inputs, getInputs, hasInput, addInput, removeInput] =
+  const [inputs, getInputs, hasInput, addInput, removeInput, setAccountId] =
     useTransactionBuilderStore(
       useShallow((state) => [
         state.inputs,
         state.getInputs,
         state.hasInput,
         state.addInput,
-        state.removeInput
+        state.removeInput,
+        state.setAccountId
       ])
     )
+
+  useEffect(() => {
+    if (id) setAccountId(id)
+  }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
@@ -203,27 +208,41 @@ export default function SelectUtxoList() {
         </SSVStack>
       </SSMainLayout>
       <SSSeparator color="grayDark" style={{ width: '100%', marginTop: 12 }} />
-      <SSHStack justifyBetween style={{ paddingHorizontal: '5%' }}>
-        <SSButton
-          variant="ghost"
-          label={`${
-            selectedAllUtxos
-              ? t('common.deselectAll').toUpperCase()
-              : t('common.selectAll').toUpperCase()
-          } ${formatNumber(utxosTotalValue, 0, zeroPadding)} ${
-            currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')
-          }`}
-          style={{ width: 'auto' }}
-          textStyle={{
-            color: Colors.gray[75],
-            textTransform: 'none',
-            textDecorationLine: 'underline'
-          }}
-          onPress={() =>
-            selectedAllUtxos ? handleDeselectAllUtxos() : handleSelectAllUtxos()
-          }
-        />
-        <SSHStack gap="sm">
+      <SSHStack
+        justifyBetween
+        style={{
+          alignItems: 'center',
+          borderBottomColor: Colors.gray[900],
+          borderBottomWidth: 1,
+          paddingHorizontal: '5%',
+          width: '100%'
+        }}
+      >
+        <View style={{ flexShrink: 1, minWidth: 0 }}>
+          <SSButton
+            variant="ghost"
+            label={`${
+              selectedAllUtxos
+                ? t('common.deselectAll').toUpperCase()
+                : t('common.selectAll').toUpperCase()
+            } ${formatNumber(utxosTotalValue, 0, zeroPadding)} ${
+              currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')
+            }`}
+            style={{ alignSelf: 'flex-start', width: undefined }}
+            textStyle={{
+              color: Colors.gray[75],
+              textAlign: 'left',
+              textTransform: 'none',
+              textDecorationLine: 'underline'
+            }}
+            onPress={() =>
+              selectedAllUtxos
+                ? handleDeselectAllUtxos()
+                : handleSelectAllUtxos()
+            }
+          />
+        </View>
+        <SSHStack gap="sm" style={{ flexShrink: 0 }}>
           <SSSortDirectionToggle
             label={t('common.date')}
             showArrow={sortField === 'date'}
@@ -251,14 +270,24 @@ export default function SelectUtxoList() {
         >
           <FlashList
             data={sortUtxos([...account.utxos])}
-            renderItem={({ item }) => (
-              <SSUtxoItem
-                utxo={item}
-                selected={hasInput(item)}
-                onToggleSelected={handleOnToggleSelected}
-                largestValue={largestValue}
-              />
-            )}
+            renderItem={({ item }) => {
+              const idx = account.addresses.findIndex(
+                (a) =>
+                  (a.address || '').trim() === (item.addressTo || '').trim()
+              )
+              const addressEntry = idx >= 0 ? account.addresses[idx] : null
+              const addressIndex =
+                addressEntry !== null ? addressEntry.index ?? idx : undefined
+              return (
+                <SSUtxoItem
+                  utxo={item}
+                  selected={hasInput(item)}
+                  onToggleSelected={handleOnToggleSelected}
+                  largestValue={largestValue}
+                  addressIndex={addressIndex}
+                />
+              )
+            }}
             estimatedItemSize={110}
           />
         </View>

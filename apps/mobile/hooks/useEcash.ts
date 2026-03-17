@@ -633,15 +633,3 @@ export function useQuotePolling() {
     stopPolling
   }
 }
-
-export function useMintBalance() {
-  const proofs = useEcashStore((state) => state.proofs)
-
-  const balance = proofs.reduce((sum, proof) => {
-    // TODO: Implement proper mint-specific proof filtering
-    // For now, assume all proofs belong to the current mint
-    return sum + proof.amount
-  }, 0)
-
-  return balance
-}

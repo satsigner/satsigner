@@ -1,14 +1,13 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { useEffect } from 'react'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
-import { PIN_KEY } from '@/config/auth'
-import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
-import { type Account, type Secret } from '@/types/models/Account'
-import { aesDecrypt } from '@/utils/crypto'
+import { type Account } from '@/types/models/Account'
+import { getAccountWithDecryptedKeys } from '@/utils/account'
 
 const useGetAccountWallet = (id: Account['id']) => {
   const [wallet, addAccountWallet] = useWalletsStore(
@@ -33,41 +32,18 @@ const useGetAccountWallet = (id: Account['id']) => {
     }
 
     try {
-      // Create a copy of the account to avoid mutating the original
-      const temporaryAccount = JSON.parse(JSON.stringify(account)) as Account
-
-      // Get PIN for decryption (might be null if no PIN is set)
-      const pin = await getItem(PIN_KEY)
-
-      // Decrypt secrets if they are encrypted strings
-      for (const key of temporaryAccount.keys) {
-        if (typeof key.secret === 'string' && pin) {
-          try {
-            const decryptedSecretString = await aesDecrypt(
-              key.secret,
-              pin,
-              key.iv
-            )
-            const decryptedSecret = JSON.parse(decryptedSecretString) as Secret
-            key.secret = decryptedSecret
-          } catch (_error) {
-            return // Cannot proceed without decrypted secrets
-          }
-        } else if (typeof key.secret === 'string' && !pin) {
-          return // Cannot proceed without decrypted secrets
-        }
-      }
-
+      const tmpAccount = await getAccountWithDecryptedKeys(account)
       const walletData = await getWalletData(
-        temporaryAccount,
+        tmpAccount,
         account.network as Network
       )
 
       if (!walletData) return
 
       addAccountWallet(id, walletData.wallet)
-    } catch (_error) {
-      // Handle error silently
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'unknown reason'
+      toast.error(`Failed to load wallet: ${reason}`)
     }
   }
 

@@ -3,6 +3,7 @@ import { t } from '@/locales'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type PageParams } from '@/types/navigation/page'
+import { bytes as _bytes } from '@/utils/bytes'
 
 function formatAddress(address: string, character: number = 8) {
   if (address.length <= 16) return address
@@ -170,6 +171,12 @@ function formatTxOutputToUtxo(
   }
 }
 
+function formatBytes(bytes: number) {
+  if (bytes >= 1_000_000) return `${_bytes.toMega(bytes).toFixed(2)} MB`
+  if (bytes >= 1_000) return `${_bytes.toKilo(bytes).toFixed(1)} KB`
+  return `${bytes} B`
+}
+
 function trimOnionAddress(url: string): string {
   const onionMatch = url.match(/([a-z2-7]{16,56}\.onion)(:\d+)?/i)
   if (!onionMatch) {
@@ -190,6 +197,7 @@ function trimOnionAddress(url: string): string {
 
 export {
   formatAddress,
+  formatBytes,
   formatConfirmations,
   formatDate,
   formatFiatPrice,

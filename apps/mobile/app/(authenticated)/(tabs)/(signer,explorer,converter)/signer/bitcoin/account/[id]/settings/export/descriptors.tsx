@@ -3,7 +3,7 @@ import * as Print from 'expo-print'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import * as Sharing from 'expo-sharing'
 import { useEffect, useRef, useState } from 'react'
-import { ScrollView, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { captureRef } from 'react-native-view-shot'
 
 import { getExtendedPublicKeyFromAccountKey } from '@/api/bdk'
@@ -13,26 +13,25 @@ import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSText from '@/components/SSText'
-import { PIN_KEY } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type Account, type Secret } from '@/types/models/Account'
+import { type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { getAccountWithDecryptedKeys } from '@/utils/account'
 import {
   getExtendedKeyFromDescriptor,
   getFingerprintFromExtendedPublicKey
 } from '@/utils/bip32'
+import { isElectrumDerivationPath } from '@/utils/bip39'
 import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion,
   getMultisigScriptTypeFromScriptVersion
 } from '@/utils/bitcoin'
-import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
 
 // Function to calculate checksum for descriptor using a simpler approach
@@ -85,36 +84,11 @@ export default function ExportDescriptors() {
   useEffect(() => {
     async function getDescriptors() {
       if (!account) return
-      const pin = await getItem(PIN_KEY)
-      if (!pin) return
       try {
         const isImportAddress =
           account.keys?.[0]?.creationType === 'importAddress'
 
-        const temporaryAccount = JSON.parse(JSON.stringify(account)) as Account
-
-        // Decrypt all keys and extract fingerprint, derivation path, and public key
-        for (const key of temporaryAccount.keys) {
-          if (typeof key.secret === 'string') {
-            // Decrypt the secret
-            const decryptedSecretString = await aesDecrypt(
-              key.secret,
-              pin,
-              key.iv
-            )
-            const decryptedSecret = JSON.parse(decryptedSecretString) as Secret
-            key.secret = decryptedSecret
-
-            // Extract fingerprint and derivation path from decrypted secret
-            // Use the same pattern as account settings: prefer top-level, fallback to secret
-            key.fingerprint = key.fingerprint || ''
-            key.derivationPath = key.derivationPath || ''
-          } else {
-            // Secret is already decrypted, ensure fingerprint and derivation path are set
-            key.fingerprint = key.fingerprint || ''
-            key.derivationPath = key.derivationPath || ''
-          }
-        }
+        const temporaryAccount = await getAccountWithDecryptedKeys(account)
 
         let descriptorString = ''
 
@@ -128,7 +102,7 @@ export default function ExportDescriptors() {
               descriptorString =
                 'No key data available for single signature account'
             } else {
-              const secret = key.secret as Secret
+              const secret = key.secret
               let extendedPublicKey = ''
               let fingerprint = ''
 
@@ -545,11 +519,9 @@ export default function ExportDescriptors() {
         // Compose export content - ensure it's always a string
         const exportString = descriptorString || 'No descriptor available'
         setExportContent(exportString)
-      } catch {
-        // Error generating descriptors
-        setExportContent(
-          'Error generating descriptors. Please check your account configuration.'
-        )
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : 'unknown reason'
+        setExportContent(`Error generating descriptors: ${reason}`)
       } finally {
         setIsLoading(false)
       }
@@ -716,6 +688,13 @@ export default function ExportDescriptors() {
         <SSText center uppercase color="muted">
           {t('account.export.descriptors')}
         </SSText>
+        {isElectrumDerivationPath(account.keys[0]?.derivationPath || '') && (
+          <View style={styles.electrumWarning}>
+            <SSText style={styles.electrumWarningText}>
+              {t('bitcoin.electrumSeedNote')}
+            </SSText>
+          </View>
+        )}
         {isLoading ? (
           <SSText center color="muted">
             {t('common.loadingX', { x: 'descriptors...' })}
@@ -741,7 +720,7 @@ export default function ExportDescriptors() {
             {showSeparate ? (
               <SSVStack gap="md">
                 {descriptors.map((descriptor, index) => (
-                  <View key={index} style={{ alignItems: 'center' }}>
+                  <View key={descriptor} style={{ alignItems: 'center' }}>
                     <View
                       style={{
                         backgroundColor: Colors.white,
@@ -824,3 +803,15 @@ export default function ExportDescriptors() {
     </ScrollView>
   )
 }
+
+const styles = StyleSheet.create({
+  electrumWarning: {
+    borderWidth: 1,
+    borderColor: Colors.warning,
+    borderRadius: 5,
+    padding: 10
+  },
+  electrumWarningText: {
+    color: Colors.warning
+  }
+})

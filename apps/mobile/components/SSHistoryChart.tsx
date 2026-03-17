@@ -1714,7 +1714,7 @@ function TransactionInfoRenderer({
   labelRectRef.current = []
   return (
     <>
-      {txInfoLabels.map((label, index) => {
+      {txInfoLabels.map((label) => {
         if (label.type === 'end') {
           return null
         }
@@ -1749,7 +1749,7 @@ function TransactionInfoRenderer({
           const xPos = label.type === 'receive' ? label.x - textWidth : label.x
           const clampedX = Math.max(0, xPos)
           return (
-            <Fragment key={index}>
+            <Fragment key={label.id}>
               <Paragraph
                 paragraph={paragraph}
                 x={clampedX}
@@ -1763,7 +1763,7 @@ function TransactionInfoRenderer({
         const xPos = label.type === 'receive' ? label.x - textWidth : label.x
         const clampedX = Math.max(0, xPos)
         return (
-          <Fragment key={index}>
+          <Fragment key={label.id}>
             <Text
               x={clampedX}
               y={label.y}

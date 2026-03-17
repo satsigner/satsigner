@@ -25,7 +25,7 @@ export type OnPanEndCallback = (
   success: boolean
 ) => void
 
-export type OnSingleTapCallback = (
+type OnSingleTapCallback = (
   event: GestureStateChangeEvent<TapGestureHandlerEventPayload>
 ) => void
 
@@ -34,7 +34,7 @@ export enum ZOOM_TYPE {
   ZOOM_OUT = 'ZOOM_OUT'
 }
 
-export type OnDoubleTapCallback = (zoomType: ZOOM_TYPE) => void
+type OnDoubleTapCallback = (zoomType: ZOOM_TYPE) => void
 
 export enum ANIMATION_VALUE {
   SCALE = 'SCALE',
@@ -55,7 +55,7 @@ export type OnResetAnimationEndCallback = (
   >
 ) => void
 
-export type ZoomProps = {
+type ZoomProps = {
   minScale?: number
   /**
    * The maximum scale allowed for zooming.

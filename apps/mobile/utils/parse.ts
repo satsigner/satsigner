@@ -142,6 +142,15 @@ function parseLabel(rawLabel: string) {
   return { label, tags }
 }
 
+/** Normalizes UTXO label for display; fixes broken "Change for %{txlabel}" interpolation. */
+function normalizeUtxoLabelForDisplay(rawLabel: string): string {
+  const { label } = parseLabel(rawLabel || '')
+  if (label.includes('[missing') && label.includes('txlabel')) {
+    return t('sign.changeAddressLabelDefault')
+  }
+  return label
+}
+
 function parseLabelTags(label: string, tags: string[]) {
   const trimmedLabel = label.trim()
   if (tags.length === 0) return trimmedLabel
@@ -271,5 +280,6 @@ export {
   parseUriParameters,
   stripBitcoinPrefix
 }
+export { normalizeUtxoLabelForDisplay }
 
 export type { ParsedUriParams }

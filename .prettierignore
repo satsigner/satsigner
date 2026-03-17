@@ -10,3 +10,4 @@ apps/mobile/expo-env.d.ts
 .agents/skills
 .claude/skills
 .cursor/skills
+dist

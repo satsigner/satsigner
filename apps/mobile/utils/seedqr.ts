@@ -31,7 +31,7 @@ export function encodeCompactSeedQR(
   return words.length === 12 ? binaryString.slice(0, -4) : binaryString
 }
 
-export function decodeStandardSeedQR(seedQR: string): string {
+function decodeStandardSeedQR(seedQR: string): string {
   const wordList = getWordList()
   const words: string[] = []
 
@@ -48,7 +48,7 @@ export function decodeStandardSeedQR(seedQR: string): string {
   return words.join(' ')
 }
 
-export function decodeCompactSeedQR(seedQR: string): string {
+function decodeCompactSeedQR(seedQR: string): string {
   const wordList = getWordList()
   const words: string[] = []
 

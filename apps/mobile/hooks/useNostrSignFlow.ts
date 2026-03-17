@@ -10,7 +10,7 @@ import { toast } from 'sonner-native'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { extractKeyFingerprint } from '@/utils/account'
+import { getKeyFingerprint } from '@/utils/account'
 import { parseHexToBytes } from '@/utils/parse'
 import {
   extractIndividualSignedPsbts,
@@ -107,7 +107,7 @@ export function useNostrSignFlow() {
 
       const cosignerPubkeys = await Promise.all(
         accountMatch.account.keys.map(async (key) => {
-          const secretFingerprint = await extractKeyFingerprint(key)
+          const secretFingerprint = await getKeyFingerprint(key)
           return findDerivedPublicKey(
             bitcoinjs.Psbt.fromBase64(originalPsbt),
             secretFingerprint

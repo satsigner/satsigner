@@ -41,6 +41,7 @@ import SSIconExplorerActive from './SSIconExplorerActive'
 import SSIconEyeOff from './SSIconEyeOff'
 import SSIconEyeOn from './SSIconEyeOn'
 import SSIconFeature from './SSIconFeature'
+import SSIconFiat from './SSIconFiat'
 import SSIconGreen from './SSIconGreen'
 import SSIconGreenIndicator from './SSIconGreenIndicator'
 import SSIconGreenNoSecret from './SSIconGreenNoSecret'
@@ -133,6 +134,7 @@ export {
   SSIconEyeOff,
   SSIconEyeOn,
   SSIconFeature,
+  SSIconFiat,
   SSIconGreen,
   SSIconGreenIndicator,
   SSIconGreenNoSecret,

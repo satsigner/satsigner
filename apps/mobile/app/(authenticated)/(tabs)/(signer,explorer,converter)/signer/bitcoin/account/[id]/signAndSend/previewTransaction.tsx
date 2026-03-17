@@ -4,13 +4,16 @@ import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  Animated,
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  View
-} from 'react-native'
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import Animated, {
+  cancelAnimation,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming
+} from 'react-native-reanimated'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -38,6 +41,7 @@ import { t, tn as _tn } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useNostrStore } from '@/store/nostr'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Typography } from '@/styles'
 import {
@@ -53,7 +57,7 @@ import {
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type PreviewTransactionSearchParams } from '@/types/navigation/searchParams'
-import { extractKeyFingerprint } from '@/utils/account'
+import { getKeyFingerprint } from '@/utils/account'
 import {
   BBQRFileTypes,
   createBBQRChunks,
@@ -74,7 +78,10 @@ import {
   validateSignedPSBTForCosigner
 } from '@/utils/psbt'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
-import { legacyEstimateTransactionSize } from '@/utils/transaction'
+import {
+  estimateTransactionSize,
+  legacyEstimateTransactionSize
+} from '@/utils/transaction'
 import {
   decodeMultiPartURToPSBT,
   decodeURToPSBT,
@@ -202,8 +209,16 @@ function PreviewTransaction() {
   const account = useAccountsStore((state) =>
     state.accounts.find((account) => account.id === id)
   )
+  const ownAddresses = useMemo(
+    () => new Set(account?.addresses?.map((a) => a.address) ?? []),
+    [account]
+  )
+  const setTransactionToShare = useNostrStore(
+    (state) => state.setTransactionToShare
+  )
   const wallet = useGetAccountWallet(id!)
   const network = useBlockchainStore((state) => state.selectedNetwork)
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions()
   const [transactionId, setTransactionId] = useState('')
   const [isLoadingPSBT, setIsLoadingPSBT] = useState(false)
 
@@ -244,7 +259,20 @@ function PreviewTransaction() {
   const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
 
   // Animation for NFC pulsating effect
-  const nfcPulseAnim = useRef(new Animated.Value(0)).current
+  const nfcPulseAnim = useSharedValue(0)
+
+  const nfcPulseStyle = useAnimatedStyle(() => ({
+    width: 200,
+    height: 200,
+    backgroundColor: interpolateColor(
+      nfcPulseAnim.value,
+      [0, 1],
+      [Colors.gray[800], Colors.gray[400]]
+    ),
+    borderRadius: 100,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const
+  }))
 
   // PSBT Management Hook
   const psbtManagement = usePSBTManagement({
@@ -411,7 +439,7 @@ function PreviewTransaction() {
       const keyFingerprintToCosignerIndex = new Map<string, number>()
       await Promise.all(
         currentAccount.keys.map(async (key, index) => {
-          const fp = await extractKeyFingerprint(key)
+          const fp = await getKeyFingerprint(key)
           if (fp) keyFingerprintToCosignerIndex.set(fp, index)
         })
       )
@@ -813,10 +841,11 @@ function PreviewTransaction() {
   }, [account, inputs, outputs])
 
   const transaction = useMemo(() => {
-    const { size, vsize } = legacyEstimateTransactionSize(
-      inputs.size,
-      outputs.length
-    )
+    const inputArray = Array.from(inputs.values())
+    const { size, vsize } =
+      inputArray.length > 0
+        ? estimateTransactionSize(inputArray, outputs)
+        : legacyEstimateTransactionSize(inputs.size, outputs.length)
 
     const vin = Array.from(inputs.values()).map((input: Utxo) => ({
       previousOutput: { txid: input.txid, vout: input.vout },
@@ -1558,6 +1587,25 @@ function PreviewTransaction() {
     handleNFCScan(-1) // Use -1 to indicate watch-only
   }
 
+  const handleShareWithNostrGroup = () => {
+    if (!account?.nostr?.autoSync) {
+      toast.error(t('account.nostrSync.autoSyncMustBeEnabled'))
+      return
+    }
+    const base64 = txBuilderResult?.psbt?.base64
+    if (!base64) {
+      toast.error(t('account.nostrSync.transactionDataNotAvailable'))
+      return
+    }
+    setTransactionToShare({
+      transaction: base64,
+      transactionData: { combinedPsbt: base64 }
+    })
+    router.push({
+      pathname: `/signer/bitcoin/account/${id}/settings/nostr/devicesGroupChat`
+    })
+  }
+
   const hasAllRequiredSignatures = () => {
     if (!account || account.policyType !== 'multisig' || !account.keys) {
       return false
@@ -1665,26 +1713,17 @@ function PreviewTransaction() {
   // NFC pulsating animation effect
   useEffect(() => {
     if (nfcModalVisible || nfcScanModalVisible) {
-      const pulseAnimation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(nfcPulseAnim, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: false
-          }),
-          Animated.timing(nfcPulseAnim, {
-            toValue: 0,
-            duration: 1000,
-            useNativeDriver: false
-          })
-        ])
+      nfcPulseAnim.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1000 }),
+          withTiming(0, { duration: 1000 })
+        ),
+        -1
       )
 
-      pulseAnimation.start()
-
       return () => {
-        pulseAnimation.stop()
-        nfcPulseAnim.setValue(0)
+        cancelAnimation(nfcPulseAnim)
+        nfcPulseAnim.value = 0
       }
     }
   }, [nfcModalVisible, nfcScanModalVisible, nfcPulseAnim])
@@ -1884,8 +1923,6 @@ function PreviewTransaction() {
   if (!id || !account) return <Redirect href="/" />
 
   // Calculate responsive dimensions
-  const screenWidth = Dimensions.get('window').width
-  const screenHeight = Dimensions.get('window').height
   const qrSize = Math.min(screenWidth * 0.9, screenHeight * 0.5, 700) // 80% of screen width, max 500px
   const containerPadding = screenWidth * 0.05 // 5% of screen width
 
@@ -1914,7 +1951,13 @@ function PreviewTransaction() {
                 <SSText color="muted" size="sm" uppercase>
                   {tn('contents')}
                 </SSText>
-                <SSTransactionChart transaction={transaction} />
+                <View style={{ overflow: 'hidden' }}>
+                  <SSTransactionChart
+                    transaction={transaction}
+                    ownAddresses={ownAddresses}
+                    scale={0.9}
+                  />
+                </View>
               </SSVStack>
               <SSVStack gap="xxs">
                 <SSText
@@ -1964,7 +2007,7 @@ function PreviewTransaction() {
                     <SSVStack gap="none">
                       {account.keys?.map((key, index) => (
                         <SSSignatureDropdown
-                          key={index}
+                          key={key.fingerprint ?? index}
                           index={index}
                           totalKeys={account.keys?.length || 0}
                           keyDetails={key}
@@ -2054,6 +2097,14 @@ function PreviewTransaction() {
                       }
                     }}
                   />
+                  {account?.nostr?.autoSync &&
+                    txBuilderResult?.psbt?.base64 && (
+                      <SSButton
+                        variant="ghost"
+                        label={t('account.nostrSync.shareWithGroup')}
+                        onPress={handleShareWithNostrGroup}
+                      />
+                    )}
                 </>
               ) : (
                 account.keys &&
@@ -2567,19 +2618,7 @@ function PreviewTransaction() {
                 </SSText>
               </SSVStack>
             ) : (
-              <Animated.View
-                style={{
-                  width: 200,
-                  height: 200,
-                  backgroundColor: nfcPulseAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [Colors.gray[800], Colors.gray[400]]
-                  }),
-                  borderRadius: 100,
-                  justifyContent: 'center',
-                  alignItems: 'center'
-                }}
-              >
+              <Animated.View style={nfcPulseStyle}>
                 <SSText uppercase>Emitting NFC</SSText>
               </Animated.View>
             )}
@@ -2597,19 +2636,7 @@ function PreviewTransaction() {
             <SSText center style={{ maxWidth: 300 }}>
               {nfcError ? t('common.error') : t('transaction.preview.nfcTip')}
             </SSText>
-            <Animated.View
-              style={{
-                width: 200,
-                height: 200,
-                backgroundColor: nfcPulseAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [Colors.gray[800], Colors.gray[400]]
-                }),
-                borderRadius: 100,
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}
-            >
+            <Animated.View style={nfcPulseStyle}>
               <SSText uppercase>{t('watchonly.read.scanning')}</SSText>
             </Animated.View>
           </SSVStack>
@@ -2687,6 +2714,7 @@ function PreviewTransaction() {
                 showChecksum
                 showFingerprint
                 showPasteButton
+                showScanSeedQRButton
                 showActionButton
                 actionButtonLabel="Sign with Seed Words"
                 actionButtonVariant="secondary"

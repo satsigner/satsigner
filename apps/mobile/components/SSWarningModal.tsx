@@ -1,6 +1,7 @@
 import * as StatusBar from 'expo-status-bar'
 import { useEffect } from 'react'
-import { Modal, Platform, SafeAreaView, ScrollView } from 'react-native'
+import { Modal, Platform, ScrollView } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 import SSMainLayout from '@/layouts/SSMainLayout'
 import { t } from '@/locales'

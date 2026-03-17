@@ -1,16 +1,24 @@
-import { Redirect, Stack, useLocalSearchParams } from 'expo-router'
+import {
+  Redirect,
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams
+} from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSNostrMessage from '@/components/SSNostrMessage'
 import SSText from '@/components/SSText'
 import SSTransactionDetails from '@/components/SSTransactionDetails'
-import { useNostrPublish } from '@/hooks/useNostrPublish'
+import { type AuthorDisplayInfo } from '@/hooks/useNostrMessage'
+import { setActiveChatAccount } from '@/hooks/useNostrNotifyUtils'
+import useNostrPublish from '@/hooks/useNostrPublish'
 import { useNostrSignFlow } from '@/hooks/useNostrSignFlow'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -19,62 +27,79 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
+import { type NostrDM } from '@/types/models/Nostr'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { parseNostrTransaction } from '@/utils/nostr'
 import { type TransactionData } from '@/utils/psbt'
 
-const colorCache = new Map<string, { text: string; color: string }>()
+// In-memory color cache; keyed by pubkey hex.
+// Display text is NOT cached here — it's recomputed whenever profiles update.
+const colorCache = new Map<string, string>()
 
-async function formatNpub(
+function getAuthorColor(
   pubkey: string,
   members: { npub: string; color: string }[]
-) {
-  if (!pubkey)
-    return {
-      text: t('account.nostrSync.devicesGroupChat.unknownSender'),
-      color: '#666666'
-    }
-
+): string {
   const cached = colorCache.get(pubkey)
-  if (cached) {
-    return cached
-  }
+  if (cached) return cached
 
   try {
     const npub = nip19.npubEncode(pubkey)
     const member = members.find((m) => m.npub === npub)
-
-    const color = member?.color || '#404040'
-    const result = {
-      text: `${npub.slice(0, 12)}...${npub.slice(-4)}`,
-      color
-    }
-    colorCache.set(pubkey, result)
-    return result
+    const color = member?.color || Colors.gray[500]
+    colorCache.set(pubkey, color)
+    return color
   } catch {
-    return {
-      text: pubkey.slice(0, 8),
-      color: '#404040'
-    }
+    return Colors.gray[500]
   }
 }
+
+function formatNpubText(pubkey: string): string {
+  try {
+    const npub = nip19.npubEncode(pubkey)
+    return `${npub.slice(0, 12)}...${npub.slice(-4)}`
+  } catch {
+    return pubkey.slice(0, 8)
+  }
+}
+
+const INITIAL_PAGE_SIZE = 50
+const PAGE_SIZE = 50
+const SCROLL_THRESHOLD = 40
 
 export default function DevicesGroupChat() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const flatListRef = useRef<FlatList>(null)
-  const formattedAuthorsRef = useRef(new Set<string>())
   const { sendDM, sendPSBT } = useNostrPublish()
   const { handleGoToSignFlow } = useNostrSignFlow()
 
-  const [accounts, account] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts,
-      state.accounts.find((acc) => acc.id === accountId)
-    ])
+  const [accounts, account, updateAccountNostr, markDmsAsRead] =
+    useAccountsStore(
+      useShallow((state) => [
+        state.accounts,
+        state.accounts.find((acc) => acc.id === accountId),
+        state.updateAccountNostr,
+        state.markDmsAsRead
+      ])
+    )
+
+  useFocusEffect(
+    useCallback(() => {
+      if (accountId) {
+        setActiveChatAccount(accountId)
+        markDmsAsRead(accountId)
+      }
+      return () => {
+        setActiveChatAccount(null)
+      }
+    }, [accountId, markDmsAsRead])
   )
 
   const members = useNostrStore(
     (state) => (accountId && state.members?.[accountId]) || []
+  )
+  const [profiles, setProfile] = useNostrStore(
+    useShallow((state) => [state.profiles, state.setProfile])
   )
   const [transactionToShare, setTransactionToShare] = useNostrStore(
     useShallow((state) => [
@@ -84,11 +109,9 @@ export default function DevicesGroupChat() {
   )
 
   const [isLoading, setIsLoading] = useState(false)
-  const [isContentLoaded, setIsContentLoaded] = useState(false)
-  const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [messageInput, setMessageInput] = useState('')
   const [formattedNpubs, setFormattedNpubs] = useState<
-    Map<string, { text: string; color: string }>
+    Map<string, AuthorDisplayInfo>
   >(new Map())
   const [visibleComponents, setVisibleComponents] = useState(
     new Map<string, { sankey: boolean; status: boolean }>()
@@ -99,10 +122,17 @@ export default function DevicesGroupChat() {
     useState<TransactionData | null>(null)
   const isAtBottomRef = useRef(true)
   const [showNewMessageButton, setShowNewMessageButton] = useState(false)
+  const [displayCount, setDisplayCount] = useState(INITIAL_PAGE_SIZE)
+  const lastLoadMoreAtRef = useRef(0)
 
   const messages = useMemo(
     () => account?.nostr?.dms || [],
     [account?.nostr?.dms]
+  )
+
+  const displayedMessages = useMemo(
+    () => messages.slice(-displayCount).reverse(),
+    [messages, displayCount]
   )
 
   const prevMessageCountRef = useRef(messages.length)
@@ -113,7 +143,7 @@ export default function DevicesGroupChat() {
     () =>
       members.map((member: { npub: string; color?: string }) => ({
         npub: member.npub,
-        color: member.color || '#404040'
+        color: member.color || Colors.gray[500]
       })),
     [members]
   )
@@ -138,12 +168,71 @@ export default function DevicesGroupChat() {
       return
     }
 
-    setIsLoading(true)
+    const trimmed = messageInput.trim()
+    let pendingId: string | null = null
     try {
-      await sendDM(account, messageInput.trim())
+      const decoded = nip19.decode(account.nostr.deviceNpub)
+      const devicePubkeyHex =
+        decoded?.type === 'npub' && typeof decoded.data === 'string'
+          ? decoded.data
+          : null
+      if (!devicePubkeyHex) {
+        toast.error(t('common.error.missingRequiredNostrConfig'))
+        return
+      }
+      const created_at = Math.floor(Date.now() / 1000)
+      pendingId = `pending-${Date.now()}`
+      const optimisticMessage: NostrDM = {
+        id: pendingId,
+        author: devicePubkeyHex,
+        created_at,
+        description: trimmed,
+        event: '',
+        label: 1,
+        content: {
+          description: trimmed,
+          created_at,
+          pubkey: devicePubkeyHex
+        },
+        pending: true
+      }
+      updateAccountNostr(accountId!, {
+        dms: [...(account.nostr?.dms ?? []), optimisticMessage].sort(
+          (a, b) => a.created_at - b.created_at
+        )
+      })
       setMessageInput('')
     } catch {
       toast.error(t('common.error.failedToSendMessage'))
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      await sendDM(account, trimmed)
+      // Mark as sent: many relays don't echo events back to the sender, so we
+      // clear pending when publish succeeds instead of waiting for the echo.
+      if (pendingId && accountId) {
+        const current = useAccountsStore
+          .getState()
+          .accounts.find((a) => a.id === accountId)
+        const dms = (current?.nostr?.dms ?? []).map((m) =>
+          m.id === pendingId ? { ...m, pending: false } : m
+        )
+        updateAccountNostr(accountId, { dms })
+      }
+    } catch {
+      toast.error(t('common.error.failedToSendMessage'))
+      if (pendingId && accountId) {
+        const current = useAccountsStore
+          .getState()
+          .accounts.find((a) => a.id === accountId)
+        const dms = (current?.nostr?.dms ?? []).filter(
+          (m) => m.id !== pendingId
+        )
+        updateAccountNostr(accountId, { dms })
+      }
+      setMessageInput(trimmed)
     } finally {
       setIsLoading(false)
     }
@@ -201,48 +290,102 @@ export default function DevicesGroupChat() {
     setTransactionDataForModal(null)
   }
 
+  // Rebuild formatted display names whenever messages, members, profiles, or aliases change.
+  // We intentionally do NOT cache these by author in a ref because profiles can
+  // arrive after the initial render and we need to re-compute the display text.
   useEffect(() => {
-    async function formatNpubs() {
-      const newFormattedNpubs = new Map()
-      let hasNewAuthors = false
+    const newFormattedNpubs = new Map<string, AuthorDisplayInfo>()
+    const aliases = account?.nostr?.npubAliases ?? {}
 
+    for (const msg of memoizedMessages) {
+      if (!msg.author) continue
+      const color = getAuthorColor(msg.author, membersList)
+      let npub: string
+      try {
+        npub = nip19.npubEncode(msg.author)
+      } catch {
+        npub = ''
+      }
+      const profile = npub ? profiles[npub] : undefined
+      const accountProfile = npub
+        ? account?.nostr?.npubProfiles?.[npub]
+        : undefined
+      const isCurrentDevice = npub === account?.nostr?.deviceNpub
+      const deviceDisplayName = isCurrentDevice
+        ? account?.nostr?.deviceDisplayName
+        : undefined
+      const devicePicture = isCurrentDevice
+        ? account?.nostr?.devicePicture
+        : undefined
+      const alias = npub ? (aliases[npub] ?? '').trim() : ''
+      const npubShort = npub
+        ? formatNpubText(msg.author)
+        : msg.author.slice(0, 8)
+      newFormattedNpubs.set(msg.author, {
+        displayName:
+          profile?.displayName ??
+          accountProfile?.displayName ??
+          deviceDisplayName,
+        alias: alias || undefined,
+        npubShort,
+        color,
+        picture: profile?.picture ?? accountProfile?.picture ?? devicePicture
+      })
+    }
+
+    setFormattedNpubs(newFormattedNpubs)
+  }, [
+    memoizedMessages,
+    membersList,
+    profiles,
+    account?.nostr?.npubAliases,
+    account?.nostr?.npubProfiles,
+    account?.nostr?.deviceNpub,
+    account?.nostr?.deviceDisplayName,
+    account?.nostr?.devicePicture
+  ])
+
+  // Fetch kind0 profiles for authors we haven't resolved yet.
+  // Fire-and-forget: results land in the persisted nostr store.
+  useEffect(() => {
+    if (!account?.nostr?.relays?.length) return
+
+    const relays = account.nostr.relays
+    const fetchedRef = new Set<string>()
+
+    ;(async () => {
       for (const msg of memoizedMessages) {
-        if (!formattedAuthorsRef.current.has(msg.author)) {
-          const formatted = await formatNpub(msg.author, membersList)
-          newFormattedNpubs.set(msg.author, formatted)
-          formattedAuthorsRef.current.add(msg.author)
-          hasNewAuthors = true
+        if (!msg.author) continue
+        let npub: string
+        try {
+          npub = nip19.npubEncode(msg.author)
+        } catch {
+          continue
+        }
+        // Skip if we already have profile data or are already fetching this run
+        if (
+          profiles[npub]?.displayName ||
+          profiles[npub]?.picture ||
+          fetchedRef.has(npub)
+        )
+          continue
+        fetchedRef.add(npub)
+
+        try {
+          const api = new NostrAPI(relays)
+          const result = await api.fetchKind0(npub)
+          if (result?.displayName || result?.picture) {
+            setProfile(npub, {
+              displayName: result.displayName,
+              picture: result.picture
+            })
+          }
+        } catch {
+          // ignore fetch errors — truncated npub remains as fallback
         }
       }
-
-      if (hasNewAuthors) {
-        setFormattedNpubs((prev) => new Map([...prev, ...newFormattedNpubs]))
-      }
-    }
-
-    formatNpubs()
-  }, [memoizedMessages, membersList])
-
-  useEffect(() => {
-    if (messages.length > 0 && account?.nostr?.relays?.length) {
-      if (isInitialLoad) {
-        setIsContentLoaded(false)
-        setTimeout(() => {
-          if (flatListRef.current) {
-            flatListRef.current.scrollToEnd({ animated: false })
-            setTimeout(() => {
-              flatListRef.current?.scrollToEnd({ animated: false })
-              setIsContentLoaded(true)
-              setIsInitialLoad(false)
-              isAtBottomRef.current = true
-            }, 200)
-          }
-        }, 100)
-      } else if (isAtBottomRef.current && flatListRef.current) {
-        flatListRef.current.scrollToEnd({ animated: false })
-      }
-    }
-  }, [messages.length, account?.nostr?.relays?.length, isInitialLoad])
+    })()
+  }, [memoizedMessages, profiles, account?.nostr?.relays, setProfile])
 
   useEffect(() => {
     const prevCount = prevMessageCountRef.current
@@ -254,7 +397,7 @@ export default function DevicesGroupChat() {
 
   function handleScrollToBottom() {
     if (flatListRef.current) {
-      flatListRef.current.scrollToEnd({ animated: true })
+      flatListRef.current.scrollToOffset({ offset: 0, animated: true })
       isAtBottomRef.current = true
       setShowNewMessageButton(false)
     }
@@ -268,13 +411,22 @@ export default function DevicesGroupChat() {
     }
   }) {
     const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent
-    const threshold = 40
-    const atBottom =
-      contentOffset.y + layoutMeasurement.height >=
-      contentSize.height - threshold
+    const atBottom = contentOffset.y <= SCROLL_THRESHOLD
     if (isAtBottomRef.current !== atBottom) {
       isAtBottomRef.current = atBottom
       if (atBottom) setShowNewMessageButton(false)
+    }
+    const nearTop =
+      contentSize.height > layoutMeasurement.height &&
+      contentOffset.y >=
+        contentSize.height - layoutMeasurement.height - SCROLL_THRESHOLD
+    if (
+      nearTop &&
+      displayCount < messages.length &&
+      Date.now() - lastLoadMoreAtRef.current > 300
+    ) {
+      lastLoadMoreAtRef.current = Date.now()
+      setDisplayCount((c) => Math.min(c + PAGE_SIZE, messages.length))
     }
   }
 
@@ -314,7 +466,7 @@ export default function DevicesGroupChat() {
         </SSVStack>
 
         <View style={styles.messagesContainer}>
-          {!isContentLoaded && isInitialLoad && messages.length > 0 && (
+          {messages.length === 0 && (
             <View style={styles.loadingContainer}>
               <SSText center color="muted">
                 {t('account.nostrSync.devicesGroupChat.loadingMessages')}
@@ -323,7 +475,7 @@ export default function DevicesGroupChat() {
           )}
           <FlatList
             ref={flatListRef}
-            data={messages}
+            data={displayedMessages}
             renderItem={({ item }) => (
               <SSNostrMessage
                 item={item}
@@ -337,22 +489,15 @@ export default function DevicesGroupChat() {
             )}
             keyExtractor={(item) => item.id}
             ListEmptyComponent={
-              <SSText center color="muted">
-                {t('account.nostrSync.devicesGroupChat.noMessages')}
-              </SSText>
+              messages.length > 0 ? (
+                <SSText center color="muted">
+                  {t('account.nostrSync.devicesGroupChat.noMessages')}
+                </SSText>
+              ) : null
             }
-            inverted={false}
-            contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end' }}
-            onContentSizeChange={() => {
-              if (isAtBottomRef.current && flatListRef.current) {
-                flatListRef.current.scrollToEnd({ animated: false })
-              }
-            }}
-            onLayout={() => {
-              if (isAtBottomRef.current && flatListRef.current) {
-                flatListRef.current.scrollToEnd({ animated: false })
-              }
-            }}
+            inverted
+            initialNumToRender={25}
+            maxToRenderPerBatch={15}
             onScroll={handleListScroll}
             scrollEventThrottle={16}
           />
@@ -374,7 +519,7 @@ export default function DevicesGroupChat() {
             placeholder={t(
               'account.nostrSync.devicesGroupChat.messagePlaceholder'
             )}
-            placeholderTextColor={Colors.white}
+            placeholderTextColor={Colors.gray[500]}
             multiline
             maxLength={500}
           />
@@ -436,7 +581,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8
   },
   message: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: Colors.gray[900],
     padding: 10,
     paddingBottom: 15,
     paddingTop: 5,
@@ -444,7 +589,7 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   deviceMessage: {
-    backgroundColor: '#2a2a2a'
+    backgroundColor: Colors.gray[800]
   },
   authorIndicator: {
     width: 8,
@@ -454,10 +599,11 @@ const styles = StyleSheet.create({
     marginRight: 3
   },
   inputContainer: {
-    paddingHorizontal: 0
+    paddingHorizontal: 0,
+    paddingBottom: 16
   },
   input: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: Colors.gray[900],
     color: Colors.white,
     padding: 10,
     borderRadius: 8,

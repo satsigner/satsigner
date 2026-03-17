@@ -1,8 +1,14 @@
 import { FlashList } from '@shopify/flash-list'
 import { Network as BdkNetwork } from 'bdk-rn/lib/lib/enums'
-import { Stack, useFocusEffect, useRouter } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
-import { ScrollView, useWindowDimensions, View } from 'react-native'
+import { Stack, useRouter } from 'expo-router'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Animated,
+  Easing,
+  ScrollView,
+  useWindowDimensions,
+  View
+} from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
 import { TabView } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
@@ -14,7 +20,9 @@ import {
   SSIconYellowIndicator
 } from '@/components/icons'
 import SSAccountCard from '@/components/SSAccountCard'
+import SSAccountCardSkeleton from '@/components/SSAccountCardSkeleton'
 import SSActionButton from '@/components/SSActionButton'
+import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
 import SSButton from '@/components/SSButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
@@ -34,7 +42,7 @@ import {
   sampleTestnet4Address
 } from '@/constants/samples'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
-import useNostrSync from '@/hooks/useNostrSync'
+import { useNetworkInfo } from '@/hooks/useNetworkInfo'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
@@ -58,6 +66,8 @@ import {
 import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
 import { time } from '@/utils/time'
 
+const ACCOUNT_SKELETON_COUNT = 3
+
 // Helper function to map local Network type to bdk-rn Network enum
 function mapNetworkToBdkNetwork(network: 'bitcoin' | 'testnet' | 'signet') {
   switch (network) {
@@ -72,6 +82,52 @@ function mapNetworkToBdkNetwork(network: 'bitcoin' | 'testnet' | 'signet') {
   }
 }
 
+const STAGGER_DELAY_MS = 70
+const STAGGER_DURATION_MS = 320
+
+function AccountCardStaggerItem({
+  index,
+  children
+}: {
+  index: number
+  children: React.ReactNode
+}) {
+  const opacity = useRef(new Animated.Value(0)).current
+  const translateY = useRef(new Animated.Value(12)).current
+
+  useEffect(() => {
+    const delay = index * STAGGER_DELAY_MS
+    const timer = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: STAGGER_DURATION_MS,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true
+        }),
+        Animated.timing(translateY, {
+          toValue: 0,
+          duration: STAGGER_DURATION_MS,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true
+        })
+      ]).start()
+    }, delay)
+    return () => clearTimeout(timer)
+  }, [index, opacity, translateY])
+
+  return (
+    <Animated.View
+      style={{
+        opacity,
+        transform: [{ translateY }]
+      }}
+    >
+      {children}
+    </Animated.View>
+  )
+}
+
 export default function AccountList() {
   const router = useRouter()
   const { width } = useWindowDimensions()
@@ -81,14 +137,14 @@ export default function AccountList() {
     setSelectedNetwork,
     connectionMode,
     autoConnectDelay,
-    mempoolUrl
+    mainnetMempoolUrl
   ] = useBlockchainStore(
     useShallow((state) => [
       state.selectedNetwork,
       state.setSelectedNetwork,
       state.configs[state.selectedNetwork].config.connectionMode,
       state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync,
-      state.configsMempool[state.selectedNetwork]
+      state.configsMempool['bitcoin']
     ])
   )
   const [accounts, updateAccount] = useAccountsStore(
@@ -129,14 +185,19 @@ export default function AccountList() {
       state.setNetwork
     ])
   )
-  const fetchPrices = usePriceStore((state) => state.fetchPrices)
+  const [fetchPrices, btcPrice, fiatCurrency] = usePriceStore(
+    useShallow((state) => [
+      state.fetchPrices,
+      state.btcPrice,
+      state.fiatCurrency
+    ])
+  )
   const [wallets, addresses] = useWalletsStore(
     useShallow((state) => [state.wallets, state.addresses])
   )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { accountBuilderFinish } = useAccountBuilderFinish()
-  const { cleanupSubscriptions } = useNostrSync()
 
   type SampleWallet =
     | 'segwit'
@@ -149,6 +210,35 @@ export default function AccountList() {
     | 'watchonlyTether'
     | 'multisig'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
+  const [hasHydrated, setHasHydrated] = useState(() =>
+    useAccountsStore.persist.hasHydrated()
+  )
+  const sampleAccountsOpacity = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    if (useAccountsStore.persist.hasHydrated()) {
+      setHasHydrated(true)
+      return
+    }
+    const unsub = useAccountsStore.persist.onFinishHydration(() =>
+      setHasHydrated(true)
+    )
+    return unsub
+  }, [])
+
+  useEffect(() => {
+    if (!hasHydrated) return
+    sampleAccountsOpacity.setValue(0)
+    const timer = setTimeout(() => {
+      Animated.timing(sampleAccountsOpacity, {
+        toValue: 1,
+        duration: 320,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true
+      }).start()
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [hasHydrated]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
   const [tabIndex, setTabIndex] = useState(() => {
@@ -160,8 +250,16 @@ export default function AccountList() {
     return accounts.filter((acc) => acc.network === tabs[tabIndex].key)
   }, [accounts, tabIndex]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [connectionState, connectionString, isPrivateConnection] =
+  const ACCOUNT_CARD_HEIGHT = 160
+  const SEPARATOR_VERTICAL = 32
+  const listItemCount = hasHydrated ? Math.max(filteredAccounts.length, 1) : 3
+  const listContainerMinHeight =
+    listItemCount * ACCOUNT_CARD_HEIGHT +
+    (listItemCount - 1) * SEPARATOR_VERTICAL
+
+  const [connectionState, , isPrivateConnection, connectionParts] =
     useVerifyConnection()
+  const { blockHeight, nextBlockFee, blockHeightSource } = useNetworkInfo()
 
   useEffect(() => {
     const currentNetwork = tabs[tabIndex].key as Network
@@ -175,12 +273,8 @@ export default function AccountList() {
   }, [network]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    fetchPrices(mempoolUrl)
-  }, [fetchPrices, mempoolUrl])
-
-  useFocusEffect(() => {
-    cleanupSubscriptions()
-  })
+    fetchPrices(mainnetMempoolUrl)
+  }, [fetchPrices, mainnetMempoolUrl])
 
   function handleOnNavigateToAddAccount() {
     clearAccount()
@@ -196,33 +290,46 @@ export default function AccountList() {
 
     const now = time.now()
 
-    for (const account of accounts) {
-      const { lastSyncedAt } = account
-
+    const eligibleAccounts = accounts.filter((account) => {
+      if (account.network !== tabs[tabIndex].key) return false
+      if (account.syncStatus === 'syncing') return false
       if (
-        lastSyncedAt &&
-        now > time.minutesAfter(lastSyncedAt, autoConnectDelay)
-      ) {
-        continue
-      }
-
-      if (account.network !== tabs[tabIndex].key) continue
-
+        account.lastSyncedAt &&
+        now > time.minutesAfter(account.lastSyncedAt, autoConnectDelay)
+      )
+        return false
       const isImportAddress = account.keys[0].creationType === 'importAddress'
+      if (isImportAddress && !addresses[account.id]) return false
+      if (!isImportAddress && !wallets[account.id]) return false
+      return true
+    })
 
-      if (isImportAddress && !addresses[account.id]) continue
-      if (!isImportAddress && !wallets[account.id]) continue
+    // Address-based syncs are pure HTTP and safe to run in parallel.
+    // BDK wallet syncs use a native Rust module that is not thread-safe for
+    // concurrent calls, so those must remain sequential.
+    const addressAccounts = eligibleAccounts.filter(
+      (a) =>
+        a.policyType === 'watchonly' &&
+        a.keys[0].creationType === 'importAddress'
+    )
+    const walletAccounts = eligibleAccounts.filter(
+      (a) =>
+        !(
+          a.policyType === 'watchonly' &&
+          a.keys[0].creationType === 'importAddress'
+        )
+    )
 
-      if (account.syncStatus !== 'syncing') {
-        const updatedAccount =
-          account.policyType === 'watchonly' &&
-          account.keys[0].creationType === 'importAddress'
-            ? await syncAccountWithAddress(account)
-            : await syncAccountWithWallet(account, wallets[account.id]!)
-        updateAccount(updatedAccount)
-      }
+    await Promise.allSettled(
+      addressAccounts.map((account) =>
+        syncAccountWithAddress(account).then((u) => updateAccount(u))
+      )
+    )
+
+    for (const account of walletAccounts) {
+      const u = await syncAccountWithWallet(account, wallets[account.id]!)
+      updateAccount(u)
     }
-    // TO DO: Try Promise.all() method instead Sequential one.
   }
 
   async function handleLoadSampleWallet(type: SampleWallet) {
@@ -255,7 +362,7 @@ export default function AccountList() {
       throw new Error('Failed to set or retrieve PIN')
     }
 
-    setName(`Sample Wallet (${type})`)
+    setName(`Sample (${type})`)
     setKeyCount(1)
     setKeysRequired(1)
 
@@ -656,41 +763,59 @@ export default function AccountList() {
           )
         }}
       />
-      <TouchableOpacity
-        onPress={() => router.navigate('/settings/network/server')}
-      >
-        <SSHStack
-          style={{ justifyContent: 'center', gap: 0, marginBottom: 24 }}
+      <SSVStack gap="none" style={{ alignItems: 'center', marginBottom: 24 }}>
+        <TouchableOpacity
+          onPress={() => router.navigate('/settings/network/server')}
         >
-          {connectionState ? (
-            isPrivateConnection ? (
-              <SSIconYellowIndicator height={24} width={24} />
+          <SSHStack style={{ justifyContent: 'center', gap: 0 }}>
+            {connectionState ? (
+              isPrivateConnection ? (
+                <SSIconYellowIndicator height={24} width={24} />
+              ) : (
+                <SSIconGreenIndicator height={24} width={24} />
+              )
             ) : (
-              <SSIconGreenIndicator height={24} width={24} />
-            )
-          ) : (
-            <SSIconBlackIndicator height={24} width={24} />
-          )}
-          <SSText
-            size="xxs"
-            uppercase
-            style={{
-              color: connectionState ? Colors.gray['200'] : Colors.gray['450']
-            }}
-          >
-            {connectionString}
-          </SSText>
-        </SSHStack>
-      </TouchableOpacity>
+              <SSIconBlackIndicator height={24} width={24} />
+            )}
+            <SSText
+              size="xxs"
+              uppercase
+              style={{
+                color: connectionState ? Colors.gray['200'] : Colors.gray['450']
+              }}
+            >
+              {`${connectionParts.network} - ${connectionParts.name}`}
+            </SSText>
+            <SSText
+              size="xxs"
+              uppercase
+              style={{
+                color: Colors.gray['500'],
+                marginLeft: 4
+              }}
+            >
+              {connectionParts.url}
+            </SSText>
+          </SSHStack>
+        </TouchableOpacity>
+
+        <SSBlockFeePriceRow
+          blockHeight={blockHeight}
+          btcPrice={btcPrice}
+          fiatCurrency={fiatCurrency}
+          nextBlockFee={nextBlockFee}
+          blockHeightSource={blockHeightSource}
+        />
+      </SSVStack>
       <SSHStack style={{ paddingHorizontal: '5%' }}>
         <View style={{ flex: 1 }}>
           <SSButton
             label={t('account.add')}
             style={{
               borderTopWidth: 1,
-              borderTopColor: '#303030',
+              borderTopColor: Colors.gray[700],
               borderBottomWidth: 1,
-              borderBottomColor: '#222222',
+              borderBottomColor: Colors.gray[875],
               borderRadius: 0
             }}
             onPress={handleOnNavigateToAddAccount}
@@ -708,34 +833,65 @@ export default function AccountList() {
               style={{ marginTop: 16 }}
               showsVerticalScrollIndicator={false}
             >
-              <FlashList
-                data={filteredAccounts}
-                renderItem={({ item }) => (
-                  <SSVStack>
-                    <SSAccountCard
-                      account={item}
-                      onPress={() => handleGoToAccount(item.id)}
-                    />
-                  </SSVStack>
-                )}
-                estimatedItemSize={20}
-                ItemSeparatorComponent={() => (
-                  <SSSeparator
-                    style={{ marginVertical: 16 }}
-                    color="gradient"
+              {!hasHydrated ? (
+                <SSVStack
+                  gap="none"
+                  style={{ minHeight: listContainerMinHeight }}
+                >
+                  {Array(ACCOUNT_SKELETON_COUNT)
+                    .fill(null)
+                    .map((_, i) => (
+                      <SSVStack key={i}>
+                        <SSAccountCardSkeleton />
+                        {i < ACCOUNT_SKELETON_COUNT - 1 && (
+                          <SSSeparator
+                            style={{ marginVertical: 16 }}
+                            color="gradient"
+                          />
+                        )}
+                      </SSVStack>
+                    ))}
+                </SSVStack>
+              ) : (
+                <Animated.View
+                  style={{
+                    minHeight: listContainerMinHeight
+                  }}
+                >
+                  <FlashList
+                    data={filteredAccounts}
+                    renderItem={({ item, index }) => (
+                      <AccountCardStaggerItem index={index}>
+                        <SSVStack>
+                          <SSAccountCard
+                            account={item}
+                            onPress={() => handleGoToAccount(item.id)}
+                          />
+                        </SSVStack>
+                      </AccountCardStaggerItem>
+                    )}
+                    estimatedItemSize={20}
+                    ItemSeparatorComponent={() => (
+                      <SSSeparator
+                        style={{ marginVertical: 16 }}
+                        color="gradient"
+                      />
+                    )}
+                    ListEmptyComponent={
+                      <SSVStack
+                        itemsCenter
+                        style={{ paddingTop: 32, paddingBottom: 32 }}
+                      >
+                        <SSText uppercase>{t('accounts.empty')}</SSText>
+                      </SSVStack>
+                    }
+                    showsVerticalScrollIndicator={false}
                   />
-                )}
-                ListEmptyComponent={
-                  <SSVStack
-                    itemsCenter
-                    style={{ paddingTop: 32, paddingBottom: 32 }}
-                  >
-                    <SSText uppercase>{t('accounts.empty')}</SSText>
-                  </SSVStack>
-                }
-                showsVerticalScrollIndicator={false}
-              />
-              {renderSamplewallets()}
+                  <Animated.View style={{ opacity: sampleAccountsOpacity }}>
+                    {renderSamplewallets()}
+                  </Animated.View>
+                </Animated.View>
+              )}
             </ScrollView>
           )}
           onIndexChange={setTabIndex}

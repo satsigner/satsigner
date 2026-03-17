@@ -1,8 +1,8 @@
-export type PromiseName = string
+type PromiseName = string
 
-export type PromiseStatus = 'idle' | 'pending' | 'success' | 'error'
+type PromiseStatus = 'idle' | 'pending' | 'success' | 'error'
 
-export type PromiseStatusObj = {
+type PromiseStatusObj = {
   name?: PromiseName
   status?: PromiseStatus
   error?: string
