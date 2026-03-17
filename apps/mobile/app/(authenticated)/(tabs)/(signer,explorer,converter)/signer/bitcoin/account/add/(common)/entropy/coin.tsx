@@ -113,13 +113,27 @@ export default function CoinEntropy() {
               <TouchableOpacity
                 key="front"
                 activeOpacity={1}
-                style={styles.coin}
+                style={[
+                  styles.coin,
+                  {
+                    height: coinSize,
+                    width: coinSize,
+                    borderRadius: coinSize / 2
+                  }
+                ]}
                 onPress={() => handleFlip('0')}
               />
               <TouchableOpacity
                 key="back"
                 activeOpacity={1}
-                style={styles.coin}
+                style={[
+                  styles.coin,
+                  {
+                    height: coinSize,
+                    width: coinSize,
+                    borderRadius: coinSize / 2
+                  }
+                ]}
                 onPress={() => handleFlip('1')}
               />
             </SSHStack>
@@ -133,9 +147,6 @@ export default function CoinEntropy() {
 const styles = StyleSheet.create({
   coin: {
     backgroundColor: Colors.gray[75],
-    height: coinSize,
-    width: coinSize,
-    borderRadius: coinSize / 2,
     opacity: 0.2
   },
   container: {
