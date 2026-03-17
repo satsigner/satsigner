@@ -2,7 +2,6 @@ import { FlashList } from '@shopify/flash-list'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Animated,
-  Dimensions,
   Keyboard,
   type StyleProp,
   StyleSheet,
@@ -193,7 +192,6 @@ const styles = StyleSheet.create({
     right: 0,
     top: undefined,
     height: 50,
-    width: Dimensions.get('window').width,
     elevation: 1000, // For Android
     shadowColor: '#000', // For iOS
     shadowOffset: {

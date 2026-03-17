@@ -329,6 +329,21 @@ class ElectrumClient extends BaseElectrumClient {
     return blockHeader
   }
 
+  async subscribeToBlockHeaders(): Promise<{ height: number } | null> {
+    const rawClient = this.client as unknown as {
+      blockchainHeaders_subscribe: () => Promise<{ height: number } | null>
+    }
+    return rawClient.blockchainHeaders_subscribe()
+  }
+
+  async getMempoolFeeHistogram(): Promise<[number, number][]> {
+    const rawClient = this.client as unknown as {
+      mempool_get_fee_histogram?: () => Promise<[number, number][]>
+    }
+    const result = await rawClient.mempool_get_fee_histogram?.()
+    return Array.isArray(result) ? result : []
+  }
+
   async getBlockTimestamp(height: number): Promise<number> {
     const blockHeaderRaw = await this.client.blockchainBlock_header(height)
     const blockHeader = bitcoinjs.Block.fromHex(blockHeaderRaw)

@@ -1,4 +1,4 @@
-import { Clipboard, Pressable, StyleSheet, View } from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
 
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
@@ -7,6 +7,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { getWordList, type WordListName } from '@/utils/bip39'
+import { setClipboard } from '@/utils/clipboard'
 import { encodeStandardSeedQR } from '@/utils/seedqr'
 
 type SSSeedQRProps = {
@@ -39,7 +40,7 @@ export default function SSSeedQR({
   const formattedQRValue = qrValue.match(/.{1,4}/g)?.join(' ') || qrValue
 
   const handleCopy = () => {
-    Clipboard.setString(qrValue)
+    setClipboard(qrValue)
   }
 
   return (

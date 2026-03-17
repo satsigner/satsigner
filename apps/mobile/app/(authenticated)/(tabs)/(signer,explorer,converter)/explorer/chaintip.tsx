@@ -24,6 +24,7 @@ import type {
   MemPoolFees,
   MempoolStatistics
 } from '@/types/models/Blockchain'
+import type { Network } from '@/types/settings/blockchain'
 import { formatBytes, formatDate } from '@/utils/format'
 import { time } from '@/utils/time'
 
@@ -33,6 +34,167 @@ const tn = _tn('explorer.chaintip')
 
 type SectionSource = 'backend' | 'mempool'
 type MempoolStats = { count?: number; vsize?: number; total_fee?: number }
+
+type ChainData = {
+  height: number | null
+  hash: string | null
+  block: Partial<Block> | null
+  fees: MemPoolFees | null
+  mempool: MempoolStats | null
+  blockSource: SectionSource
+  feesSource: SectionSource
+  mempoolSource: SectionSource
+}
+
+const DEFAULT_CHAIN_DATA: ChainData = {
+  height: null,
+  hash: null,
+  block: null,
+  fees: null,
+  mempool: null,
+  blockSource: 'mempool',
+  feesSource: 'mempool',
+  mempoolSource: 'mempool'
+}
+
+function safeClose(client: ElectrumClient | null): void {
+  try {
+    client?.close()
+  } catch {}
+}
+
+async function fetchFromEsplora(
+  esplora: Esplora,
+  oracle: MempoolOracle
+): Promise<Partial<ChainData>> {
+  const data: Partial<ChainData> = {}
+
+  await Promise.all([
+    (async () => {
+      try {
+        const [rawHeight, rawHash] = await Promise.all([
+          esplora.getLatestBlockHeight(),
+          esplora.getLatestBlockHash()
+        ])
+        data.height = Number(rawHeight)
+        data.hash = String(rawHash)
+        data.block = await oracle.getBlock(data.hash)
+        data.blockSource = 'backend'
+      } catch {}
+    })(),
+    (async () => {
+      try {
+        const info = await esplora.getMempoolInfo()
+        if (info) {
+          data.mempool = {
+            count: info.count,
+            vsize: info.vsize,
+            total_fee: info.total_fee
+          }
+          data.mempoolSource = 'backend'
+        }
+      } catch {}
+    })()
+  ])
+
+  return data
+}
+
+async function fetchFromElectrum(
+  url: string,
+  network: Network
+): Promise<Partial<ChainData>> {
+  const data: Partial<ChainData> = {}
+  let client: ElectrumClient | null = null
+
+  try {
+    client = ElectrumClient.fromUrl(url, network)
+    await client.init()
+
+    await Promise.all([
+      (async () => {
+        try {
+          const tip = await client!.subscribeToBlockHeaders()
+          if (tip?.height) {
+            data.height = tip.height
+            const header = await client!.getBlock(data.height)
+            data.hash = header.getId()
+            data.block = { height: data.height, timestamp: header.timestamp }
+            data.blockSource = 'backend'
+          }
+        } catch {}
+      })(),
+      (async () => {
+        try {
+          const histogram = await client!.getMempoolFeeHistogram()
+          if (histogram.length > 0) {
+            const vsize = histogram.reduce((sum, [, size]) => sum + size, 0)
+            data.mempool = { vsize }
+            data.mempoolSource = 'backend'
+          }
+        } catch {}
+      })()
+    ])
+  } catch {
+    // connection init failed; will fall through to mempool fallback
+  } finally {
+    safeClose(client)
+  }
+
+  return data
+}
+
+async function fetchMempoolFallback(
+  oracle: MempoolOracle,
+  existing: Partial<ChainData>
+): Promise<ChainData> {
+  const data: ChainData = { ...DEFAULT_CHAIN_DATA, ...existing }
+
+  await Promise.all([
+    (async () => {
+      try {
+        const [mHeight, mHash] = await Promise.all([
+          data.height === null ? oracle.getCurrentBlockHeight() : null,
+          data.hash === null ? oracle.getCurrentBlockHash() : null
+        ])
+        if (data.height === null && mHeight !== null) {
+          data.height = mHeight
+          data.blockSource = 'mempool'
+        }
+        if (data.hash === null && mHash !== null) {
+          data.hash = mHash
+        }
+      } catch {}
+    })(),
+    (async () => {
+      try {
+        data.fees = await oracle.getMemPoolFees()
+        data.feesSource = 'mempool'
+      } catch {}
+    })(),
+    (async () => {
+      if (data.mempool !== null) return
+      try {
+        const md = await oracle.getMemPool()
+        data.mempool = {
+          count: md.count,
+          vsize: md.vsize,
+          total_fee: md.total_fee
+        }
+        data.mempoolSource = 'mempool'
+      } catch {}
+    })()
+  ])
+
+  if (data.block === null && data.hash !== null) {
+    try {
+      data.block = await oracle.getBlock(data.hash)
+      data.blockSource = 'mempool'
+    } catch {}
+  }
+
+  return data
+}
 
 export default function ChainTip() {
   const [selectedNetwork, configs] = useBlockchainStore(
@@ -44,182 +206,24 @@ export default function ChainTip() {
     useShallow((state) => [state.btcPrice, state.fiatCurrency])
   )
 
-  const [blockHeight, setBlockHeight] = useState<number | null>(null)
-  const [blockHash, setBlockHash] = useState<string | null>(null)
-  const [block, setBlock] = useState<Partial<Block> | null>(null)
-  const [fees, setFees] = useState<MemPoolFees | null>(null)
-  const [mempool, setMempool] = useState<MempoolStats | null>(null)
-  const [blockSource, setBlockSource] = useState<SectionSource | null>(null)
-  const [feesSource, setFeesSource] = useState<SectionSource | null>(null)
-  const [mempoolSource, setMempoolSource] = useState<SectionSource | null>(null)
+  const [chainData, setChainData] = useState<ChainData | null>(null)
   const [loading, setLoading] = useState(true)
   const priceChartFont = useFont(chartFont, 10)
 
   useEffect(() => {
     async function fetchData() {
-      let bHeight: number | null = null
-      let bHash: string | null = null
-      let bBlock: Partial<Block> | null = null
-      let bFees: MemPoolFees | null = null
-      let bMempool: MempoolStats | null = null
-      let bBlockSource: SectionSource = 'mempool'
-      let bFeesSource: SectionSource = 'mempool'
-      let bMempoolSource: SectionSource = 'mempool'
+      let partial: Partial<ChainData> = {}
 
-      // ── Esplora backend ───────────────────────────────────────────────────
       if (server.backend === 'esplora' && server.url) {
         const esplora = new Esplora(server.url)
         const oracle = new MempoolOracle(server.url)
-
-        await Promise.all([
-          // Block
-          (async () => {
-            try {
-              const [rawHeight, rawHash] = await Promise.all([
-                esplora.getLatestBlockHeight(),
-                esplora.getLatestBlockHash()
-              ])
-              bHeight = Number(rawHeight)
-              bHash = String(rawHash)
-              bBlock = await oracle.getBlock(bHash)
-              bBlockSource = 'backend'
-            } catch {}
-          })(),
-          // Fees: always from mempool.space (fetched in fallback below)
-          // Mempool
-          (async () => {
-            try {
-              const info = await esplora.getMempoolInfo()
-              if (info) {
-                bMempool = {
-                  count: info.count,
-                  vsize: info.vsize,
-                  total_fee: info.total_fee
-                }
-                bMempoolSource = 'backend'
-              }
-            } catch {}
-          })()
-        ])
+        partial = await fetchFromEsplora(esplora, oracle)
+      } else if (server.backend === 'electrum' && server.url) {
+        partial = await fetchFromElectrum(server.url, selectedNetwork)
       }
 
-      // ── Electrum backend ──────────────────────────────────────────────────
-      else if (server.backend === 'electrum' && server.url) {
-        let client: ElectrumClient | null = null
-        try {
-          client = ElectrumClient.fromUrl(server.url, selectedNetwork)
-          await client.init()
-
-          await Promise.all([
-            // Block tip via headers subscribe, then fetch header for hash + timestamp
-            (async () => {
-              try {
-                const tip = await (
-                  client!.client as any
-                ).blockchainHeaders_subscribe()
-                if (tip?.height) {
-                  bHeight = tip.height as number
-                  // getBlock(height) returns a bitcoinjs.Block with timestamp + getId()
-                  const header = await client!.getBlock(bHeight)
-                  bHash = header.getId()
-                  bBlock = { height: bHeight, timestamp: header.timestamp }
-                  bBlockSource = 'backend'
-                }
-              } catch {}
-            })(),
-            // Fees: always from mempool.space (fetched in fallback below)
-            // Mempool histogram → total vsize
-            (async () => {
-              try {
-                const histogram = await (
-                  client!.client as any
-                ).mempool_get_fee_histogram?.()
-                if (Array.isArray(histogram) && histogram.length > 0) {
-                  const vsize = histogram.reduce(
-                    (sum: number, item: [number, number]) =>
-                      sum + (item[1] ?? 0),
-                    0
-                  )
-                  bMempool = { vsize }
-                  bMempoolSource = 'backend'
-                }
-              } catch {}
-            })()
-          ])
-        } catch {
-          // connection init failed; will fall through to mempool fallback
-        } finally {
-          try {
-            client?.close()
-          } catch {}
-        }
-      }
-
-      // ── Mempool fallback for anything still missing ───────────────────────
-      await Promise.all([
-        // Block height + hash
-        (async () => {
-          try {
-            const [mHeight, mHash] = await Promise.all([
-              bHeight === null ? fallbackOracle.getCurrentBlockHeight() : null,
-              bHash === null ? fallbackOracle.getCurrentBlockHash() : null
-            ])
-            if (bHeight === null && mHeight !== null) {
-              bHeight = mHeight
-              bBlockSource = 'mempool'
-            }
-            if (bHash === null && mHash !== null) {
-              bHash = mHash
-            }
-          } catch {}
-        })(),
-        // Block details
-        (async () => {
-          if (bBlock !== null) return
-          try {
-            // Need hash first — may be set by the parallel height/hash fetch above,
-            // but in fallback order we fetch hash above and block here after.
-            // We'll check bHash after the above resolves. Handled below.
-          } catch {}
-        })(),
-        // Fees: always from mempool.space
-        (async () => {
-          try {
-            bFees = await fallbackOracle.getMemPoolFees()
-            bFeesSource = 'mempool'
-          } catch {}
-        })(),
-        // Mempool stats
-        (async () => {
-          if (bMempool !== null) return
-          try {
-            const md = await fallbackOracle.getMemPool()
-            bMempool = {
-              count: md.count,
-              vsize: md.vsize,
-              total_fee: md.total_fee
-            }
-            bMempoolSource = 'mempool'
-          } catch {}
-        })()
-      ])
-
-      // Block details fallback: needs hash to be resolved first
-      if (bBlock === null && bHash !== null) {
-        try {
-          bBlock = await fallbackOracle.getBlock(bHash)
-          bBlockSource = 'mempool'
-        } catch {}
-      }
-
-      setBlockHeight(bHeight)
-      setBlockHash(bHash)
-      setBlock(bBlock)
-      setFees(bFees)
-      setMempool(bMempool)
-      setBlockSource(bBlockSource)
-      setFeesSource(bFeesSource)
-      setMempoolSource(bMempoolSource)
+      const full = await fetchMempoolFallback(fallbackOracle, partial)
+      setChainData(full)
       setLoading(false)
     }
     fetchData()
@@ -309,40 +313,46 @@ export default function ChainTip() {
           <SSVStack gap="sm">
             <SectionHeader
               title={tn('latestBlock')}
-              source={blockSource}
-              sourceLabel={blockSource ? sourceLabel(blockSource) : null}
+              source={chainData?.blockSource ?? null}
+              sourceLabel={
+                chainData?.blockSource
+                  ? sourceLabel(chainData.blockSource)
+                  : null
+              }
             />
             <SSVStack gap="xs">
               <Row
                 label={tn('height')}
-                value={blockHeight?.toLocaleString() ?? '--'}
+                value={chainData?.height?.toLocaleString() ?? '--'}
                 loading={loading}
               />
               <Row
                 label={tn('timestamp')}
                 value={
-                  block?.timestamp ? formatDate(block.timestamp * 1000) : '--'
+                  chainData?.block?.timestamp
+                    ? formatDate(chainData.block.timestamp * 1000)
+                    : '--'
                 }
                 loading={loading}
               />
-              {(block as Block)?.tx_count != null && (
+              {(chainData?.block as Block)?.tx_count != null && (
                 <Row
                   label={tn('transactions')}
-                  value={(block as Block).tx_count.toLocaleString()}
+                  value={(chainData!.block as Block).tx_count.toLocaleString()}
                   loading={loading}
                 />
               )}
-              {(block as Block)?.size != null && (
+              {(chainData?.block as Block)?.size != null && (
                 <Row
                   label={tn('size')}
-                  value={formatBytes((block as Block).size)}
+                  value={formatBytes((chainData!.block as Block).size)}
                   loading={loading}
                 />
               )}
-              {(block as Block)?.weight != null && (
+              {(chainData?.block as Block)?.weight != null && (
                 <Row
                   label={tn('weight')}
-                  value={formatBytes((block as Block).weight)}
+                  value={formatBytes((chainData!.block as Block).weight)}
                   loading={loading}
                 />
               )}
@@ -351,7 +361,7 @@ export default function ChainTip() {
                   {tn('hash')}
                 </SSText>
                 <SSText size="xs" style={styles.hashText} numberOfLines={2}>
-                  {loading ? '--' : blockHash ?? '--'}
+                  {loading ? '--' : chainData?.hash ?? '--'}
                 </SSText>
               </SSVStack>
             </SSVStack>
@@ -361,28 +371,32 @@ export default function ChainTip() {
           <SSVStack gap="sm">
             <SectionHeader
               title={tn('fees')}
-              source={feesSource}
-              sourceLabel={feesSource ? sourceLabel(feesSource) : null}
+              source={chainData?.feesSource ?? null}
+              sourceLabel={
+                chainData?.feesSource ? sourceLabel(chainData.feesSource) : null
+              }
             />
             <SSVStack gap="xs">
               <Row
                 label={tn('feesHigh')}
-                value={fees ? `${fees.high} sat/vB` : '--'}
+                value={chainData?.fees ? `${chainData.fees.high} sat/vB` : '--'}
                 loading={loading}
               />
               <Row
                 label={tn('feesMedium')}
-                value={fees ? `${fees.medium} sat/vB` : '--'}
+                value={
+                  chainData?.fees ? `${chainData.fees.medium} sat/vB` : '--'
+                }
                 loading={loading}
               />
               <Row
                 label={tn('feesLow')}
-                value={fees ? `${fees.low} sat/vB` : '--'}
+                value={chainData?.fees ? `${chainData.fees.low} sat/vB` : '--'}
                 loading={loading}
               />
               <Row
                 label={tn('feesNone')}
-                value={fees ? `${fees.none} sat/vB` : '--'}
+                value={chainData?.fees ? `${chainData.fees.none} sat/vB` : '--'}
                 loading={loading}
               />
             </SSVStack>
@@ -398,26 +412,34 @@ export default function ChainTip() {
           <SSVStack gap="sm">
             <SectionHeader
               title={tn('mempool')}
-              source={mempoolSource}
-              sourceLabel={mempoolSource ? sourceLabel(mempoolSource) : null}
+              source={chainData?.mempoolSource ?? null}
+              sourceLabel={
+                chainData?.mempoolSource
+                  ? sourceLabel(chainData.mempoolSource)
+                  : null
+              }
             />
             <SSVStack gap="xs">
-              {mempool?.count !== undefined && (
+              {chainData?.mempool?.count !== undefined && (
                 <Row
                   label={tn('mempoolTxs')}
-                  value={mempool.count.toLocaleString()}
+                  value={chainData.mempool.count.toLocaleString()}
                   loading={loading}
                 />
               )}
               <Row
                 label={tn('mempoolSize')}
-                value={mempool?.vsize ? formatBytes(mempool.vsize) : '--'}
+                value={
+                  chainData?.mempool?.vsize
+                    ? formatBytes(chainData.mempool.vsize)
+                    : '--'
+                }
                 loading={loading}
               />
-              {mempool?.total_fee !== undefined && (
+              {chainData?.mempool?.total_fee !== undefined && (
                 <Row
                   label={tn('mempoolFees')}
-                  value={`${mempool.total_fee.toLocaleString()} sats`}
+                  value={`${chainData.mempool.total_fee.toLocaleString()} sats`}
                   loading={loading}
                 />
               )}

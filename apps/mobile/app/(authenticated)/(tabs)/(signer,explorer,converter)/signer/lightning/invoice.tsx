@@ -2,10 +2,10 @@ import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import {
-  Dimensions,
   ScrollView,
   StyleSheet,
   TextInput,
+  useWindowDimensions,
   View
 } from 'react-native'
 import { toast } from 'sonner-native'
@@ -33,9 +33,6 @@ import {
   requestLNURLWithdrawInvoice
 } from '@/utils/lnurl'
 
-const screenWidth = Dimensions.get('window').width
-const qrCodeSize = Math.min(screenWidth - 40, 300) // Account for modal padding (20px on each side)
-
 type Invoice = {
   payment_request: string
   r_hash?: string | undefined
@@ -45,6 +42,8 @@ type InvoiceStatus = 'open' | 'settled' | 'canceled'
 
 export default function InvoicePage() {
   const router = useRouter()
+  const { width: screenWidth } = useWindowDimensions()
+  const qrCodeSize = Math.min(screenWidth - 40, 300) // Account for modal padding (20px on each side)
   const { createInvoice, makeRequest } = useLND()
   const [fiatCurrency, satsToFiat, btcPrice, fetchPrices] = usePriceStore(
     useShallow((state) => [

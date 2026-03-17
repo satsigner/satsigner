@@ -1,7 +1,7 @@
 import { FlashList } from '@shopify/flash-list'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
-import { Dimensions, Platform, StyleSheet, View } from 'react-native'
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconBubbles } from '@/components/icons'
@@ -31,6 +31,7 @@ type SortField = 'date' | 'amount'
 
 export default function SelectUtxoList() {
   const router = useRouter()
+  const { height } = useWindowDimensions()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
   const account = useAccountsStore(
@@ -265,7 +266,7 @@ export default function SelectUtxoList() {
           style={{
             marginTop: 2,
             paddingBottom: Platform.OS === 'android' ? 386 : 306, // TODO: Fix. This is not ideal
-            height: Dimensions.get('window').height
+            height
           }}
         >
           <FlashList
