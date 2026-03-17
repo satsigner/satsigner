@@ -21,7 +21,6 @@ import { getAccountWithDecryptedKeys } from '@/utils/account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { isElectrumDerivationPath } from '@/utils/bip39'
 import { convertKeyFormat } from '@/utils/bitcoin'
-import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
 
 export default function ExportPubkeys() {
