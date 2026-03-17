@@ -1,10 +1,10 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
-  Dimensions,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
   View
 } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -22,11 +22,10 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 
-const screenWidth = Dimensions.get('window').width
-const coinSize = Math.min(screenWidth * 0.4, 160)
-
 export default function CoinEntropy() {
   const router = useRouter()
+  const { width: screenWidth } = useWindowDimensions()
+  const coinSize = Math.min(screenWidth * 0.4, 160)
   const { index } = useLocalSearchParams()
 
   const [mnemonicWordCount, mnemonicWordList, setMnemonic, setFingerprint] =

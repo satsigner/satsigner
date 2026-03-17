@@ -1,7 +1,7 @@
 import { SCREEN_HEIGHT } from '@gorhom/bottom-sheet'
 import { Stack } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { Dimensions, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { StyleSheet, useWindowDimensions, View } from 'react-native'
 
 import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
@@ -22,8 +22,6 @@ import {
 } from '@/types/models/Blockchain'
 import { formatDate, formatTimeFromNow } from '@/utils/format'
 
-const { width: SCREEN_WIDTH, height: _SCREEN_HEIGHT } = Dimensions.get('window')
-const CANVAS_WIDTH = SCREEN_WIDTH
 const CANVAS_HEIGHT = 0.7 * SCREEN_HEIGHT
 const BLOCKS_PER_EPOCH = 2016
 
@@ -46,6 +44,7 @@ function ExplorerDifficulty() {
   const mempoolOracle = useMempoolOracle()
 
   const { width } = useWindowDimensions()
+  const CANVAS_WIDTH = width
 
   const [data, setData] = useState<BlockDifficulty[]>([])
   const [loading, setLoading] = useState(false)

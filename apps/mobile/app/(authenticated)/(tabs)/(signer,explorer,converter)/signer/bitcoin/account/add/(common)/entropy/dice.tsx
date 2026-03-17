@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Dimensions, ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -25,11 +25,10 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 
-const screenWidth = Dimensions.get('window').width
-const diceSize = Math.min(screenWidth * 0.25, 120)
-
 export default function DiceEntropy() {
   const router = useRouter()
+  const { width: screenWidth } = useWindowDimensions()
+  const diceSize = Math.min(screenWidth * 0.25, 120)
   const { index } = useLocalSearchParams()
 
   const [mnemonicWordCount, mnemonicWordList, setMnemonic, setFingerprint] =

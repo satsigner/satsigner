@@ -18,7 +18,6 @@ import {
 } from 'react'
 import {
   Animated,
-  Dimensions,
   Easing,
   RefreshControl,
   ScrollView,
@@ -425,9 +424,6 @@ type DerivedAddressesProps = {
   perPage?: number
 }
 
-const SCREEN_WIDTH = Dimensions.get('window').width
-const ADDRESS_TABLE_WIDTH = SCREEN_WIDTH * 1.2
-
 function SSAddressTable({
   addresses,
   renderItem,
@@ -441,10 +437,12 @@ function SSAddressTable({
   isLoadingAddresses: boolean
   onLoadMore: () => void
 }) {
+  const { width: SCREEN_WIDTH } = useWindowDimensions()
+  const ADDRESS_TABLE_WIDTH = SCREEN_WIDTH * 1.2
   return (
     <ScrollView style={{ marginTop: 10 }} horizontal>
       <SSVStack gap="none" style={{ width: ADDRESS_TABLE_WIDTH }}>
-        <SSHStack style={addressListStyles.headerRow}>
+        <SSHStack style={[addressListStyles.headerRow, { width: ADDRESS_TABLE_WIDTH }]}>
           <SSText
             style={[
               addressListStyles.headerText,
@@ -1741,7 +1739,6 @@ const addressListStyles = StyleSheet.create({
   },
   row: {
     paddingVertical: 12,
-    width: ADDRESS_TABLE_WIDTH,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderColor: '#333',
@@ -1765,8 +1762,7 @@ const addressListStyles = StyleSheet.create({
     borderColor: '#333',
     backgroundColor: '#111',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    width: ADDRESS_TABLE_WIDTH
+    alignItems: 'center'
   },
   receiveChangeContainer: {
     display: 'flex',
