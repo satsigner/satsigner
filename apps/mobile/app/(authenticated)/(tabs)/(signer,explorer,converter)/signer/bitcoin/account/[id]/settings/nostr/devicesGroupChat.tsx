@@ -65,7 +65,6 @@ function formatNpubText(pubkey: string): string {
 
 const INITIAL_PAGE_SIZE = 50
 const PAGE_SIZE = 50
-
 const SCROLL_THRESHOLD = 40
 
 export default function DevicesGroupChat() {
