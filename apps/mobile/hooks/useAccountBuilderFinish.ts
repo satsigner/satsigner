@@ -50,13 +50,14 @@ function useAccountBuilderFinish() {
       return
     }
 
+    const pin = await getItem(PIN_KEY)
+    if (!pin) {
+      setLoading(false)
+      return
+    }
+
     for (const key of account.keys) {
       const stringifiedSecret = JSON.stringify(key.secret)
-      const pin = await getItem(PIN_KEY)
-      if (!pin) {
-        setLoading(false)
-        return
-      }
 
       const encryptedSecret = await aesEncrypt(
         stringifiedSecret,

@@ -1,4 +1,4 @@
-import crypto from 'react-native-aes-crypto'
+import aesCrypto from 'react-native-aes-crypto'
 
 import {
   aesDecrypt,
@@ -18,7 +18,7 @@ describe('encryption utils', () => {
 
       const result = await aesEncrypt(text, key, iv)
 
-      expect(crypto.encrypt).toHaveBeenCalledWith(
+      expect(aesCrypto.encrypt).toHaveBeenCalledWith(
         text,
         key,
         '7361747369676e65725f5f69766b6579',
@@ -36,7 +36,7 @@ describe('encryption utils', () => {
 
       const result = await aesDecrypt(ciphertext, key, iv)
 
-      expect(crypto.decrypt).toHaveBeenCalledWith(
+      expect(aesCrypto.decrypt).toHaveBeenCalledWith(
         ciphertext,
         key,
         '7361747369676e65725f5f69766b6579',
@@ -55,7 +55,7 @@ describe('encryption utils', () => {
 
       const result = await pbkdf2Encrypt(pin, salt)
 
-      expect(crypto.pbkdf2).toHaveBeenCalledWith(
+      expect(aesCrypto.pbkdf2).toHaveBeenCalledWith(
         pin,
         salt,
         10_000,
@@ -72,10 +72,15 @@ describe('encryption utils', () => {
 
       const result = await doubleShaEncrypt(text)
 
-      expect(crypto.sha256).toHaveBeenCalledTimes(2)
-      expect(crypto.sha256).toHaveBeenNthCalledWith(1, text)
-      expect(crypto.sha256).toHaveBeenNthCalledWith(2, `hashed:${text}`)
-      expect(result).toBe(`hashed:hashed:${text}`)
+      expect(aesCrypto.sha256).toHaveBeenCalledTimes(2)
+      expect(aesCrypto.sha256).toHaveBeenNthCalledWith(1, text)
+
+      const sha256Mock = aesCrypto.sha256 as jest.Mock
+      const firstHash = await sha256Mock.mock.results[0].value
+      expect(aesCrypto.sha256).toHaveBeenNthCalledWith(2, firstHash)
+
+      const secondHash = await sha256Mock.mock.results[1].value
+      expect(result).toBe(secondHash)
     })
   })
 })

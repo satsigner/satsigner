@@ -8,7 +8,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
+import { Colors, Sizes } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { formatNumber } from '@/utils/format'
 
@@ -24,11 +24,19 @@ type SSAccountCardProps = {
 
 function SSAccountCard({ account, onPress }: SSAccountCardProps) {
   const platform = Platform.OS
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
+    useShallow((state) => [
+      state.fiatCurrency,
+      state.satsToFiat,
+      state.btcPrice
+    ])
   )
-  const [currencyUnit, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  const [currencyUnit, useZeroPadding, privacyMode] = useSettingsStore(
+    useShallow((state) => [
+      state.currencyUnit,
+      state.useZeroPadding,
+      state.privacyMode
+    ])
   )
   const fingerprint = useAccountFingerprint(account)
 
@@ -175,17 +183,21 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
             <SSText
               size="3xl"
               color="white"
-              style={{ lineHeight: platform === 'android' ? 24 : undefined }}
+              style={{ lineHeight: Sizes.text.fontSize['3xl'] }}
             >
-              <SSStyledSatText
-                amount={account?.summary.balance || 0}
-                decimals={0}
-                useZeroPadding={useZeroPadding}
-                currency={currencyUnit}
-                textSize="3xl"
-                weight="light"
-                letterSpacing={-1}
-              />
+              {privacyMode ? (
+                '••••'
+              ) : (
+                <SSStyledSatText
+                  amount={account?.summary.balance || 0}
+                  decimals={0}
+                  useZeroPadding={useZeroPadding}
+                  currency={currencyUnit}
+                  textSize="3xl"
+                  weight="light"
+                  letterSpacing={-1}
+                />
+              )}
             </SSText>
             <SSText size="xl" color="muted">
               {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
@@ -199,7 +211,11 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
             }}
           >
             <SSText color="muted">
-              {formatNumber(satsToFiat(account.summary.balance), 2)}
+              {!btcPrice || btcPrice <= 0
+                ? '--'
+                : privacyMode
+                  ? '••••'
+                  : formatNumber(satsToFiat(account.summary.balance || 0), 2)}
             </SSText>
             <SSText size="xs" style={{ color: Colors.gray[500] }}>
               {fiatCurrency}

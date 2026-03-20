@@ -1,6 +1,12 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef } from 'react'
-import { Animated, Dimensions, Image, StyleSheet, View } from 'react-native'
+import {
+  Animated,
+  Image,
+  StyleSheet,
+  useWindowDimensions,
+  View
+} from 'react-native'
 
 import SSText from '@/components/SSText'
 import { slides } from '@/constants/slides'
@@ -8,15 +14,15 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { white } from '@/styles/colors'
 
-const { width } = Dimensions.get('window')
-const CARD_WIDTH = width * 0.6
 const SPACING = 30
-const SNAP_INTERVAL = CARD_WIDTH + SPACING
 
 export default function UpComing() {
   const router = useRouter()
   const params = useLocalSearchParams()
   const scrollX = useRef(new Animated.Value(0)).current
+  const { width } = useWindowDimensions()
+  const CARD_WIDTH = width * 0.6
+  const SNAP_INTERVAL = CARD_WIDTH + SPACING
 
   const data = useMemo(() => {
     return slides.find((item) => item.page === params.title)?.items ?? []
@@ -50,7 +56,9 @@ export default function UpComing() {
             pagingEnabled
             snapToInterval={SNAP_INTERVAL}
             decelerationRate="fast"
-            contentContainerStyle={styles.flatListContent}
+            contentContainerStyle={{
+              paddingHorizontal: (width - CARD_WIDTH - SPACING) / 2
+            }}
             onScroll={Animated.event(
               [{ nativeEvent: { contentOffset: { x: scrollX } } }],
               { useNativeDriver: false }
@@ -78,7 +86,7 @@ export default function UpComing() {
                 <Animated.View
                   style={[
                     styles.cardContainer,
-                    { transform: [{ scale }], opacity }
+                    { width: CARD_WIDTH, transform: [{ scale }], opacity }
                   ]}
                 >
                   <SSVStack justifyBetween style={styles.cardContent}>
@@ -96,7 +104,7 @@ export default function UpComing() {
                       </SSText>
                     </SSVStack>
 
-                    <View style={styles.card}>
+                    <View style={[styles.card, { width: CARD_WIDTH }]}>
                       <Image source={item.image} style={styles.image} />
                     </View>
                   </SSVStack>
@@ -144,12 +152,8 @@ const styles = StyleSheet.create({
   flexContainer: {
     flex: 1
   },
-  flatListContent: {
-    paddingHorizontal: (width - CARD_WIDTH - SPACING) / 2
-  },
   cardContainer: {
     flex: 1,
-    width: CARD_WIDTH,
     marginHorizontal: SPACING / 2
   },
   cardContent: {
@@ -168,7 +172,6 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    width: CARD_WIDTH,
     height: '100%',
     overflow: 'hidden',
     alignItems: 'center',

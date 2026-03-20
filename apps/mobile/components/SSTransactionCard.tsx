@@ -12,7 +12,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
+import { Colors, Sizes } from '@/styles'
 import { type Currency } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
 import {
@@ -68,8 +68,12 @@ function SSTransactionCard({
   const { type, received, sent } = transaction
   const amount = type === 'receive' ? received : sent - received
 
-  const [currencyUnit, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  const [currencyUnit, useZeroPadding, privacyMode] = useSettingsStore(
+    useShallow((state) => [
+      state.currencyUnit,
+      state.useZeroPadding,
+      state.privacyMode
+    ])
   )
 
   useEffect(() => {
@@ -78,22 +82,29 @@ function SSTransactionCard({
 
     const oldPrice = prices ? prices[fiatCurrency] : null
 
-    if (btcPrice) {
-      itemsToDisplay.push(formatFiatPrice(amount, btcPrice))
+    // Only show current fiat price if btcPrice is valid (> 0)
+    if (btcPrice && btcPrice > 0) {
+      itemsToDisplay.push(formatFiatPrice(Math.abs(amount), btcPrice))
     }
 
-    if (prices && prices[fiatCurrency]) {
+    // Only show historical price if available and valid
+    const historicalPrice = prices?.[fiatCurrency]
+    if (historicalPrice && historicalPrice > 0) {
       itemsToDisplay.push(
-        '(' + formatFiatPrice(amount, prices[fiatCurrency] || 0) + ')'
+        '(' + formatFiatPrice(Math.abs(amount), historicalPrice) + ')'
       )
     }
 
-    if (btcPrice || oldPrice) {
+    if (itemsToDisplay.length > 0) {
       itemsToDisplay.push(fiatCurrency)
     }
 
-    if (btcPrice && oldPrice) {
+    // Only show percent change if both prices are valid; only clear when there
+    // is no valid current fiat price so we don't hide the priceDisplay block
+    if (btcPrice && btcPrice > 0 && oldPrice && oldPrice > 0) {
       setPercentChange(formatPercentualChange(btcPrice, oldPrice))
+    } else if (!(btcPrice && btcPrice > 0)) {
+      setPercentChange('')
     }
 
     setPriceDisplay(itemsToDisplay.join(' '))
@@ -173,20 +184,33 @@ function SSTransactionCard({
               <SSHStack
                 gap="xxs"
                 style={{
-                  alignItems: 'flex-end'
+                  alignItems: 'baseline'
                 }}
               >
-                <SSStyledSatText
-                  amount={amount}
-                  decimals={0}
-                  useZeroPadding={useZeroPadding}
-                  currency={currencyUnit}
-                  type={transaction.type}
-                  textSize={smallView ? 'xl' : '4xl'}
-                  noColor={false}
-                  weight="light"
-                  letterSpacing={smallView ? 0 : -0.5}
-                />
+                {privacyMode ? (
+                  <SSText
+                    size={smallView ? 'xl' : '4xl'}
+                    weight="light"
+                    style={{
+                      letterSpacing: smallView ? 0 : -0.5,
+                      lineHeight: Sizes.text.fontSize[smallView ? 'xl' : '4xl']
+                    }}
+                  >
+                    ••••
+                  </SSText>
+                ) : (
+                  <SSStyledSatText
+                    amount={amount}
+                    decimals={0}
+                    useZeroPadding={useZeroPadding}
+                    currency={currencyUnit}
+                    type={transaction.type}
+                    textSize={smallView ? 'xl' : '4xl'}
+                    noColor={false}
+                    weight="light"
+                    letterSpacing={smallView ? 0 : -0.5}
+                  />
+                )}
                 <SSText color="muted" size={smallView ? 'xs' : 'sm'}>
                   {currencyUnit === 'btc'
                     ? t('bitcoin.btc')
@@ -197,14 +221,26 @@ function SSTransactionCard({
             {walletBalance !== undefined && (
               <SSHStack gap="xs">
                 <SSText color="muted">
-                  <SSStyledSatText
-                    amount={walletBalance}
-                    decimals={0}
-                    useZeroPadding={useZeroPadding}
-                    currency={currencyUnit}
-                    type={transaction.type}
-                    textSize={smallView ? 'xs' : 'sm'}
-                  />
+                  {privacyMode ? (
+                    <SSText
+                      size={smallView ? 'xs' : 'sm'}
+                      color="muted"
+                      style={{
+                        lineHeight: Sizes.text.fontSize[smallView ? 'xs' : 'sm']
+                      }}
+                    >
+                      ••••
+                    </SSText>
+                  ) : (
+                    <SSStyledSatText
+                      amount={walletBalance}
+                      decimals={0}
+                      useZeroPadding={useZeroPadding}
+                      currency={currencyUnit}
+                      type={transaction.type}
+                      textSize={smallView ? 'xs' : 'sm'}
+                    />
+                  )}
                 </SSText>
                 <SSText size="xs" color="muted">
                   {currencyUnit === 'btc'
@@ -215,7 +251,7 @@ function SSTransactionCard({
             )}
           </SSHStack>
 
-          {priceDisplay !== '' && percentChange !== '' && (
+          {priceDisplay !== '' && (
             <SSHStack justifyBetween>
               <SSHStack
                 gap="xs"
@@ -227,19 +263,21 @@ function SSTransactionCard({
                   style={{ color: Colors.gray[400] }}
                   size={smallView ? 'xs' : 'sm'}
                 >
-                  {priceDisplay}
+                  {privacyMode ? '••••' : priceDisplay}
                 </SSText>
-                <SSText
-                  style={{
-                    color:
-                      percentChange[0] === '+'
-                        ? Colors.mainGreen
-                        : Colors.mainRed
-                  }}
-                  size={smallView ? 'xs' : 'sm'}
-                >
-                  {percentChange}
-                </SSText>
+                {!privacyMode && percentChange !== '' && (
+                  <SSText
+                    style={{
+                      color:
+                        percentChange[0] === '+'
+                          ? Colors.mainGreen
+                          : Colors.mainRed
+                    }}
+                    size={smallView ? 'xs' : 'sm'}
+                  >
+                    {percentChange}
+                  </SSText>
+                )}
               </SSHStack>
             </SSHStack>
           )}
@@ -276,7 +314,7 @@ function SSTransactionCard({
                   key={index}
                   size={smallView ? 'xxs' : 'xs'}
                   style={[
-                    { textAlign: 'right' },
+                    { textAlign: 'right', alignSelf: 'flex-start' },
                     {
                       backgroundColor: Colors.gray[700],
                       paddingVertical: 2,

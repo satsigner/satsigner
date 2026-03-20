@@ -78,13 +78,13 @@ function joinByteParts(parts: Uint8Array[]) {
   return rv
 }
 
-export function isValidVersion(v: number): v is Version {
+function isValidVersion(v: number): v is Version {
   // act as a TS type guard but also a runtime check
 
   return v in QR_DATA_CAPACITY
 }
 
-export function isValidSplit(s: number) {
+function isValidSplit(s: number) {
   return s >= 1 && s <= 1295
 }
 
@@ -122,22 +122,6 @@ export function looksLikePsbt(data: Uint8Array) {
   return new Uint8Array([0x70, 0x73, 0x62, 0x74, 0xff]).every(
     (b, i) => b === data[i]
   )
-}
-
-export function shuffled<T>(arr: T[]): T[] {
-  // modern Fisher-Yates shuffle (https://en.wikipedia.org/wiki/Fisher–Yates_shuffle#The_modern_algorithm)
-
-  // create a copy so we don't mutate the original
-  arr = [...arr]
-
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    const temp = arr[i]
-    arr[i] = arr[j]
-    arr[j] = temp
-  }
-
-  return arr
 }
 
 export function versionToChars(v: Version) {

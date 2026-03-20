@@ -5,5 +5,5 @@
  */
 
 export { joinQRs } from './join'
-export { detectFileType, splitQRs } from './split'
+export { splitQRs } from './split'
 export * from './types'

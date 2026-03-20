@@ -1,5 +1,5 @@
-import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import React, { useState } from 'react'
 import { Platform } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -7,59 +7,96 @@ import { SSIconCheckCircleThin, SSIconCircleXThin } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import { DEFAULT_PIN, PIN_KEY, PIN_SIZE, SALT_KEY } from '@/config/auth'
+import { DEFAULT_PIN, PIN_KEY, PIN_SIZE } from '@/config/auth'
+import useReEncryptAccounts from '@/hooks/useReEncryptAccounts'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { setItem } from '@/storage/encrypted'
+import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Layout } from '@/styles'
-import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
 
-type Stage = 'set' | 're-enter'
+type Stage = 'verify' | 'set' | 're-enter'
 
 export default function SetPin() {
   const router = useRouter()
-  const [setFirstTime, setRequiresAuth, setSkipPin] = useAuthStore(
+  const { source } = useLocalSearchParams<{ source?: string }>()
+  const fromSettings = source === 'settings'
+
+  const [
+    setPin,
+    setFirstTime,
+    setRequiresAuth,
+    setSkipPin,
+    skipPin,
+    validatePin
+  ] = useAuthStore(
     useShallow((state) => [
+      state.setPin,
       state.setFirstTime,
       state.setRequiresAuth,
-      state.setSkipPin
+      state.setSkipPin,
+      state.skipPin,
+      state.validatePin
     ])
   )
   const showWarning = useSettingsStore((state) => state.showWarning)
 
-  const [loading, setLoading] = useState(false)
-  const [stage, setStage] = useState<Stage>('set')
+  const reEncryptAccounts = useReEncryptAccounts()
 
+  const [loading, setLoading] = useState(false)
+  const [stage, setStage] = useState<Stage>(
+    fromSettings && !skipPin ? 'verify' : 'set'
+  )
+
+  const [currentPinArray, setCurrentPinArray] = useState<string[]>(
+    Array(PIN_SIZE).fill('')
+  )
   const [pinArray, setPinArray] = useState<string[]>(Array(PIN_SIZE).fill(''))
   const [confirmationPinArray, setConfirmationPinArray] = useState<string[]>(
     Array(PIN_SIZE).fill('')
   )
+  const [currentPinWrong, setCurrentPinWrong] = useState(false)
 
+  const currentPinFilled =
+    currentPinArray.findIndex((text) => text === '') === -1
   const pinFilled = pinArray.findIndex((text) => text === '') === -1
   const confirmationPinFilled =
     confirmationPinArray.findIndex((text) => text === '') === -1
   const pinsMatch = pinArray.join('') === confirmationPinArray.join('')
 
-  async function setPin(pin: string) {
-    const salt = await generateSalt()
-    const encryptedPin = await pbkdf2Encrypt(pin, salt)
-    await setItem(PIN_KEY, encryptedPin)
-    await setItem(SALT_KEY, salt)
+  function handleCurrentPinChange(newPin: React.SetStateAction<string[]>) {
+    const resolved =
+      typeof newPin === 'function' ? newPin(currentPinArray) : newPin
+    if (currentPinWrong && resolved.some((d) => d !== '')) {
+      setCurrentPinWrong(false)
+    }
+    setCurrentPinArray(resolved)
+  }
+
+  async function handleVerifyPin() {
+    const isValid = await validatePin(currentPinArray.join(''))
+    if (isValid) {
+      setStage('set')
+      setCurrentPinWrong(false)
+    } else {
+      setCurrentPinArray(Array(PIN_SIZE).fill(''))
+      setCurrentPinWrong(true)
+    }
   }
 
   async function handleSetPinLater() {
+    if (fromSettings) {
+      setSkipPin(true)
+      await setPin(DEFAULT_PIN)
+      router.back()
+      return
+    }
     setFirstTime(false)
-    setSkipPin(true) // Enable skip PIN mode for users who chose "Set PIN Later"
+    setSkipPin(true)
     await setPin(DEFAULT_PIN)
-
-    // Let us clear the history to prevent the user from going back to Set Pin
-    // screen by pressing 'back' button. Otherwise, pressing 'back' will show
-    // the Set Pin and this is not desirable UX.
     router.dismissAll()
-
     if (showWarning) router.navigate('./warning')
     else router.navigate('/')
   }
@@ -79,9 +116,26 @@ export default function SetPin() {
   async function handleSetPin() {
     if (pinArray.join('') !== confirmationPinArray.join('')) return
     setLoading(true)
-    setSkipPin(false) // Disable skip PIN mode when user sets a custom PIN
+
+    setSkipPin(false)
+
+    const currentPinEncrypted = await getItem(PIN_KEY)
     await setPin(pinArray.join(''))
+    const newPinEncrypted = await getItem(PIN_KEY)
+    if (
+      currentPinEncrypted &&
+      newPinEncrypted &&
+      currentPinEncrypted !== newPinEncrypted
+    ) {
+      await reEncryptAccounts(currentPinEncrypted, newPinEncrypted)
+    }
+
     setLoading(false)
+
+    if (fromSettings) {
+      router.back()
+      return
+    }
 
     if (showWarning) router.push('./warning')
     else router.replace('/')
@@ -96,6 +150,12 @@ export default function SetPin() {
     setStage('set')
   }
 
+  function getTitle() {
+    if (stage === 'verify') return t('auth.verifyPinTitle')
+    if (stage === 'set') return t('auth.setPinTitle')
+    return t('auth.reenterPinTitle')
+  }
+
   return (
     <SSMainLayout
       style={{
@@ -107,11 +167,12 @@ export default function SetPin() {
         <SSVStack gap="lg" style={{ marginTop: '10%' }}>
           <SSVStack style={{ gap: Platform.OS === 'android' ? -8 : 0 }}>
             <SSText uppercase size="lg" color="muted" center>
-              {stage === 'set'
-                ? t('auth.setPinTitle')
-                : t('auth.reenterPinTitle')}
+              {getTitle()}
             </SSText>
           </SSVStack>
+          {stage === 'verify' && (
+            <SSPinInput pin={currentPinArray} setPin={handleCurrentPinChange} />
+          )}
           {stage === 'set' && (
             <SSPinInput pin={pinArray} setPin={setPinArray} />
           )}
@@ -120,6 +181,14 @@ export default function SetPin() {
               pin={confirmationPinArray}
               setPin={setConfirmationPinArray}
             />
+          )}
+          {stage === 'verify' && currentPinWrong && !currentPinFilled && (
+            <SSVStack itemsCenter gap="sm">
+              <SSIconCircleXThin height={40} width={40} />
+              <SSText uppercase size="lg" color="muted" center>
+                {t('auth.wrongPin')}
+              </SSText>
+            </SSVStack>
           )}
           {confirmationPinFilled && pinsMatch && (
             <SSVStack itemsCenter gap="sm">
@@ -139,6 +208,13 @@ export default function SetPin() {
           )}
         </SSVStack>
         <SSVStack widthFull>
+          {stage === 'verify' && currentPinFilled && (
+            <SSButton
+              label={t('auth.confirmPin')}
+              variant="secondary"
+              onPress={() => handleVerifyPin()}
+            />
+          )}
           {stage === 'set' && pinFilled && (
             <SSButton
               label={t('auth.confirmPin')}
@@ -154,9 +230,30 @@ export default function SetPin() {
               onPress={() => handleSetPin()}
             />
           )}
-          {stage === 'set' && !pinFilled && (
+          {stage === 'verify' && !currentPinFilled && (
+            <SSButton
+              label={t('common.cancel')}
+              variant="ghost"
+              onPress={() => router.back()}
+            />
+          )}
+          {stage === 'verify' && currentPinFilled && (
+            <SSButton
+              label={t('common.clear')}
+              variant="ghost"
+              onPress={() => setCurrentPinArray(Array(PIN_SIZE).fill(''))}
+            />
+          )}
+          {stage === 'set' && !pinFilled && !fromSettings && (
             <SSButton
               label={t('auth.setPinLater')}
+              variant="ghost"
+              onPress={() => handleSetPinLater()}
+            />
+          )}
+          {stage === 'set' && !pinFilled && fromSettings && (
+            <SSButton
+              label={t('auth.noPin')}
               variant="ghost"
               onPress={() => handleSetPinLater()}
             />

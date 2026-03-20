@@ -51,8 +51,6 @@ export type MintQuoteState =
   | 'UNPAID'
   | 'ISSUED'
 
-export type MeltQuoteState = 'PENDING' | 'PAID' | 'EXPIRED' | 'CANCELLED'
-
 export type EcashConnectionStatus = {
   isConnected: boolean
   isConnecting: boolean

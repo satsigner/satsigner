@@ -2,8 +2,6 @@ import { produce } from 'immer'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import { PIN_KEY } from '@/config/auth'
-import { getItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
 import {
   type Account,
@@ -13,8 +11,8 @@ import {
 import { type Address } from '@/types/models/Address'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
+import { dropSeedFromKey } from '@/utils/account'
 import { type Label } from '@/utils/bip329'
-import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 type AccountsState = {
@@ -31,6 +29,7 @@ type AccountsAction = {
     id: Account['id'],
     nostr: Partial<Account['nostr']>
   ) => void
+  markDmsAsRead: (id: Account['id']) => void
   setLastSyncedAt: (id: Account['id'], date: Date) => void
   setSyncStatus: (id: Account['id'], syncStatus: SyncStatus) => void
   setSyncProgress: (id: Account['id'], syncProgress: SyncProgress) => void
@@ -65,6 +64,14 @@ type AccountsAction = {
   resetKey: (accountId: Account['id'], keyIndex: number) => void
 }
 
+function resolveOutputAddress(
+  transactions: Transaction[],
+  txid: string,
+  vout: number
+): string | undefined {
+  return transactions.find((tx) => tx.id === txid)?.vout[vout]?.address
+}
+
 const useAccountsStore = create<AccountsState & AccountsAction>()(
   persist(
     (set, get) => ({
@@ -84,7 +91,46 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               (_account) => _account.id === account.id
             )
             if (index !== -1) {
-              state.accounts[index] = { ...account }
+              // Merge labels from current state with incoming account to prevent
+              // race condition where Nostr labels are overwritten by wallet sync
+              const currentLabels = state.accounts[index].labels || {}
+              const incomingLabels = account.labels || {}
+              const mergedLabels = { ...incomingLabels, ...currentLabels }
+
+              state.accounts[index] = {
+                ...account,
+                labels: mergedLabels
+              }
+
+              // Re-apply merged labels to transactions, utxos, and addresses
+              for (const ref in mergedLabels) {
+                const labelObj = mergedLabels[ref]
+                if (labelObj.type === 'tx') {
+                  const txIndex = state.accounts[index].transactions.findIndex(
+                    (tx: Transaction) => tx.id === ref
+                  )
+                  if (txIndex !== -1) {
+                    state.accounts[index].transactions[txIndex].label =
+                      labelObj.label
+                  }
+                } else if (labelObj.type === 'output') {
+                  const utxoIndex = state.accounts[index].utxos.findIndex(
+                    (utxo: Utxo) => getUtxoOutpoint(utxo) === ref
+                  )
+                  if (utxoIndex !== -1) {
+                    state.accounts[index].utxos[utxoIndex].label =
+                      labelObj.label
+                  }
+                } else if (labelObj.type === 'addr') {
+                  const addrIndex = state.accounts[index].addresses.findIndex(
+                    (addr: Address) => addr.address === ref
+                  )
+                  if (addrIndex !== -1) {
+                    state.accounts[index].addresses[addrIndex].label =
+                      labelObj.label
+                  }
+                }
+              }
             }
           })
         )
@@ -121,6 +167,21 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               ...state.accounts[index].nostr,
               ...nostr
             }
+          })
+        )
+      },
+      markDmsAsRead: (id) => {
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.id === id
+            )
+            if (index === -1 || !state.accounts[index].nostr) return
+            state.accounts[index].nostr.dms = state.accounts[
+              index
+            ].nostr.dms.map((dm) =>
+              dm.read === false ? { ...dm, read: true } : dm
+            )
           })
         )
       },
@@ -208,8 +269,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
         if (!account) return undefined
 
-        let updatedAccount = { ...account }
-
         const addrIndex = account.addresses.findIndex(
           (address) => address.address === addr
         )
@@ -275,11 +334,36 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               return newTx
             })
 
-            updatedAccount = { ...state.accounts[index] }
+            // Transactions that spent from this address also inherit its label
+            state.accounts[index].transactions.forEach(
+              (tx: Transaction, txIdx: number) => {
+                const spendFromAddr = tx.vin.some(
+                  (input: Transaction['vin'][number]) => {
+                    const resolved = resolveOutputAddress(
+                      state.accounts[index].transactions,
+                      input.previousOutput.txid,
+                      input.previousOutput.vout
+                    )
+                    return resolved === addr
+                  }
+                )
+                if (!spendFromAddr) return
+
+                const txHasLabel = state.accounts[index].labels[tx.id]
+                if (!txHasLabel) {
+                  state.accounts[index].labels[tx.id] = {
+                    type: 'tx',
+                    ref: tx.id,
+                    label
+                  }
+                  state.accounts[index].transactions[txIdx].label = label
+                }
+              }
+            )
           })
         )
 
-        return updatedAccount
+        return get().accounts.find((a) => a.id === accountId)
       },
       setTxLabel: (accountId, txid, label) => {
         const account = get().accounts.find(
@@ -287,8 +371,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
 
         if (!account) return undefined
-
-        let updatedAccount = { ...account }
 
         const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
 
@@ -379,18 +461,49 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                   // tx output)
                 }
 
-                // we cannot figure out the address of the input's previous
-                // output without making additional request to the backend or
-                // adding quite complicated logic. Therefore, we dismiss label
-                // inheritance for the address of the previous output.
+                // Update the vout object on the referenced transaction
+                const refTxIndex = state.accounts[index].transactions.findIndex(
+                  (tx: Transaction) => tx.id === txid
+                )
+                if (
+                  refTxIndex !== -1 &&
+                  state.accounts[index].transactions[refTxIndex].vout[vout]
+                ) {
+                  if (!outputHasLabel) {
+                    state.accounts[index].transactions[refTxIndex].vout[
+                      vout
+                    ].label = label
+                  }
+                }
+
+                // Cascade to the address of the input's previous output
+                const address = resolveOutputAddress(
+                  state.accounts[index].transactions,
+                  txid,
+                  vout
+                )
+                if (!address) return
+
+                const addressHasLabel = state.accounts[index].labels[address]
+                if (!addressHasLabel) {
+                  state.accounts[index].labels[address] = {
+                    type: 'addr',
+                    ref: address,
+                    label
+                  }
+                  const addrIdx = state.accounts[index].addresses.findIndex(
+                    (a: Address) => a.address === address
+                  )
+                  if (addrIdx !== -1) {
+                    state.accounts[index].addresses[addrIdx].label = label
+                  }
+                }
               }
             )
-
-            updatedAccount = { ...state.accounts[index] }
           })
         )
 
-        return updatedAccount
+        return get().accounts.find((a) => a.id === accountId)
       },
       setUtxoLabel: (accountId, txid, vout, label) => {
         const account = get().accounts.find(
@@ -398,8 +511,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
 
         if (!account) return undefined
-
-        let updatedAccount = { ...account }
 
         const txIndex = account.transactions.findIndex((tx) => {
           return tx.id === txid
@@ -440,7 +551,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const txHasLabel = state.accounts[index].labels[txid]
             if (!txHasLabel) {
               state.accounts[index].labels[txid] = {
-                type: 'output',
+                type: 'tx',
                 ref: txid,
                 label
               }
@@ -449,8 +560,8 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 state.accounts[index].transactions[txIndex].label = label
 
                 // also store label in vout property of transaction model
-                if (state.accounts[index].transaction[txIndex].vout[vout]) {
-                  state.accounts[index].transaction[txIndex].vout[vout].label =
+                if (state.accounts[index].transactions[txIndex].vout[vout]) {
+                  state.accounts[index].transactions[txIndex].vout[vout].label =
                     label
                 }
 
@@ -486,12 +597,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 }
               }
             }
-
-            updatedAccount = { ...state.accounts[index] }
           })
         )
 
-        return updatedAccount
+        return get().accounts.find((a) => a.id === accountId)
       },
       importLabels: (accountId: string, labels: Label[]) => {
         const account = get().accounts.find(
@@ -558,70 +667,39 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         return labelsAdded
       },
       dropSeedFromKey: async (accountId, keyIndex) => {
+        // TODO: store should not be the one doing validation or error handling.
+        // It should be handled by the one calling the store methods.
         const state = get()
         const account = state.accounts.find((acc) => acc.id === accountId)
 
         if (!account || !account.keys[keyIndex]) {
-          return { success: false, message: 'Account or key not found' }
-        }
-
-        const key = account.keys[keyIndex]
-
-        if (!key.secret) {
-          return { success: false, message: 'Key secret not found' }
+          return {
+            success: false,
+            message: 'Account or key not found'
+          }
         }
 
         try {
-          const pin = await getItem(PIN_KEY)
-          if (!pin) {
-            return { success: false, message: 'PIN not found for decryption' }
-          }
-
-          // Decrypt the key's secret
-          let decryptedSecret: any
-          if (typeof key.secret === 'string') {
-            const decryptedSecretString = await aesDecrypt(
-              key.secret,
-              pin,
-              key.iv
-            )
-            decryptedSecret = JSON.parse(decryptedSecretString)
-          } else {
-            decryptedSecret = key.secret
-          }
-
-          // Remove mnemonic and passphrase, keep other fields
-          const cleanedSecret = {
-            extendedPublicKey: decryptedSecret.extendedPublicKey,
-            externalDescriptor: decryptedSecret.externalDescriptor,
-            internalDescriptor: decryptedSecret.internalDescriptor,
-            fingerprint: decryptedSecret.fingerprint
-          }
-
-          // Re-encrypt the cleaned secret
-          const stringifiedSecret = JSON.stringify(cleanedSecret)
-          const encryptedSecret = await aesEncrypt(
-            stringifiedSecret,
-            pin,
-            key.iv
-          )
-
-          // Update the account with the new encrypted secret
+          const newKey = await dropSeedFromKey(account.keys[keyIndex])
           set(
             produce((state) => {
               const accountIndex = state.accounts.findIndex(
                 (acc: Account) => acc.id === accountId
               )
-              if (accountIndex !== -1) {
-                state.accounts[accountIndex].keys[keyIndex].secret =
-                  encryptedSecret
-              }
+              if (accountIndex !== -1) throw new Error('Account not found')
+              state.accounts[accountIndex].keys[keyIndex] = newKey
             })
           )
-
-          return { success: true, message: 'Seed dropped successfully' }
-        } catch {
-          return { success: false, message: 'Failed to drop seed' }
+          return {
+            success: true,
+            message: 'Seed dropped successfully'
+          }
+        } catch (err) {
+          const reason = err instanceof Error ? err.message : 'unknown reason'
+          return {
+            success: false,
+            message: `Failed to drop seed: ${reason}`
+          }
         }
       },
       resetKey: async (accountId, keyIndex) => {

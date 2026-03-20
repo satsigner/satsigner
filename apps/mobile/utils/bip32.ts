@@ -51,7 +51,7 @@ const BIP32Networks: Record<BDKNetwork, BIP32Interface['network']> = {
   [BDKNetwork.Testnet]: BIP32NetworkTestnet
 }
 
-export function getStandardPath(
+function getStandardPath(
   scriptVersion: ScriptVersionType,
   network: BDKNetwork,
   isMultiSig = false
@@ -63,7 +63,7 @@ export function getStandardPath(
 }
 
 export function getPublicDescriptorFromSeed(
-  seed: Buffer,
+  seed: Uint8Array,
   scriptVersion: ScriptVersionType,
   kind: KeychainKind,
   network: BDKNetwork
@@ -84,7 +84,7 @@ export function getPublicDescriptorFromSeed(
 }
 
 export function getPrivateDescriptorFromSeed(
-  seed: Buffer,
+  seed: Uint8Array,
   scriptVersion: ScriptVersionType,
   kind: KeychainKind,
   network: BDKNetwork
@@ -99,6 +99,18 @@ export function getPrivateDescriptorFromSeed(
     kind
   )
   return descriptor
+}
+
+export function getPrivateDescriptorFromSeedWithPath(
+  seed: Uint8Array,
+  scriptVersion: ScriptVersionType,
+  kind: KeychainKind,
+  network: BDKNetwork,
+  path: string
+): string {
+  const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
+  const privateKey = masterKey.toBase58()
+  return getDescriptorFromPrivateKey(privateKey, scriptVersion, path, kind)
 }
 
 export function getDescriptorFromPubkey(
@@ -129,7 +141,7 @@ export function getDescriptorFromPubkey(
 }
 
 // TODO: inspect if the P2SH and P2WSH are correct
-export function getDescriptorFromPrivateKey(
+function getDescriptorFromPrivateKey(
   pubkey: string,
   scriptVersion: ScriptVersionType,
   path: string,
@@ -174,7 +186,7 @@ export function getScriptVersionPurpose(
   }
 }
 
-export function getFingerprintFromSeed(seed: Buffer) {
+export function getFingerprintFromSeed(seed: Uint8Array) {
   // the master fingerprint does not depend upon network
   const masterKey = bip32.fromSeed(seed)
   const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
@@ -189,7 +201,7 @@ export function getFingerprintFromExtendedPublicKey(extendedPublicKey: string) {
 }
 
 export function getExtendedPublicKeyFromSeed(
-  seed: Buffer,
+  seed: Uint8Array,
   network: BDKNetwork,
   scriptVersion: ScriptVersionType
 ) {

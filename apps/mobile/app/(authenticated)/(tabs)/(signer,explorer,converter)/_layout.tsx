@@ -14,18 +14,47 @@ import {
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useMemo, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import {
   SSIconCloseThin,
+  SSIconEyeOff,
+  SSIconEyeOn,
   SSIconHamburger,
   SSIconSettings
 } from '@/components/icons'
 import SSIconBackArrow from '@/components/icons/SSIconBackArrow'
 import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
+import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
+import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { showNavigation } from '@/utils/navigation'
+
+function HeaderRight() {
+  const router = useRouter()
+  const [privacyMode, togglePrivacyMode] = useSettingsStore(
+    useShallow((state) => [state.privacyMode, state.togglePrivacyMode])
+  )
+  return (
+    <SSHStack gap="sm">
+      <SSIconButton onPress={togglePrivacyMode}>
+        {privacyMode ? (
+          <SSIconEyeOff height={18} width={18} />
+        ) : (
+          <SSIconEyeOn height={18} width={18} />
+        )}
+      </SSIconButton>
+      <SSIconButton
+        style={{ marginRight: 8 }}
+        onPress={() => router.navigate('/settings/')}
+      >
+        <SSIconSettings height={18} width={18} />
+      </SSIconButton>
+    </SSHStack>
+  )
+}
 
 export default function StackLayout(params: any) {
   const currentPath = usePathname()
@@ -138,14 +167,7 @@ export default function StackLayout(params: any) {
                   <SSIconBackArrow height={16} width={7} />
                 </SSIconButton>
               ),
-          headerRight: () => (
-            <SSIconButton
-              style={{ marginRight: 8 }}
-              onPress={() => router.navigate('/settings/')}
-            >
-              <SSIconSettings height={18} width={18} />
-            </SSIconButton>
-          ),
+          headerRight: () => <HeaderRight />,
           headerTitleAlign: 'center',
           headerTintColor: Colors.gray[200],
           headerBackTitleVisible: false,

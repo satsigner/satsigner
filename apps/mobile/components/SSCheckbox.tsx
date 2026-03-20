@@ -1,5 +1,11 @@
 import { useMemo } from 'react'
-import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import {
+  type StyleProp,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  type ViewStyle
+} from 'react-native'
 import BouncyCheckbox, {
   type BouncyCheckboxProps
 } from 'react-native-bouncy-checkbox'
@@ -7,10 +13,12 @@ import BouncyCheckbox, {
 import SSVStack from '@/layouts/SSVStack'
 import { Colors, Sizes } from '@/styles'
 
-import SSText from './SSText'
+import SSText, { type SSTextProps } from './SSText'
 
 type SSCheckboxProps = {
+  containerStyle?: StyleProp<ViewStyle>
   label?: string
+  labelProps?: SSTextProps
   description?: string
   selected: boolean
 } & BouncyCheckboxProps
@@ -20,6 +28,12 @@ function SSCheckbox({
   description,
   selected,
   onPress,
+  containerStyle = {},
+  labelProps = {
+    color: 'white',
+    size: 'lg'
+  },
+  disabled,
   ...props
 }: SSCheckboxProps) {
   const innerIconStyle = useMemo(() => {
@@ -28,9 +42,18 @@ function SSCheckbox({
     })
   }, [selected])
 
+  const containerBase = useMemo(() => {
+    return StyleSheet.compose(
+      styles.containerBase,
+      disabled ? styles.disabled : {}
+    )
+  }, [disabled])
+
   return (
-    <TouchableOpacity onPress={() => (onPress ? onPress(selected) : null)}>
-      <View style={styles.containerBase}>
+    <TouchableOpacity
+      onPress={() => (onPress && !disabled ? onPress(selected) : null)}
+    >
+      <View style={[containerBase, containerStyle]}>
         <BouncyCheckbox
           isChecked={selected}
           useBuiltInState={false}
@@ -41,11 +64,12 @@ function SSCheckbox({
           style={{ width: Sizes.checkbox.height }}
           innerIconStyle={innerIconStyle}
           onPress={onPress}
+          disabled={disabled}
           {...props}
         />
         {label && (
           <SSVStack gap="none" style={{ flex: 1 }}>
-            <SSText color="white" size="lg">
+            <SSText color={disabled ? 'muted' : 'white'} {...labelProps}>
               {label}
             </SSText>
             {description && <SSText color="muted">{description}</SSText>}
@@ -68,6 +92,9 @@ const styles = StyleSheet.create({
   innerIconStyleBase: {
     borderWidth: Sizes.checkbox.borderWidth,
     borderRadius: Sizes.checkbox.borderRadius
+  },
+  disabled: {
+    opacity: 0.3
   }
 })
 

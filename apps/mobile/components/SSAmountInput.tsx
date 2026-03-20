@@ -17,6 +17,7 @@ type SSAmountInputProps = {
   value: number
   remainingSats: number
   fiatCurrency: string
+  btcPrice: number
   satsToFiat: (sats: number) => number
   onValueChange: (value: number) => void
 }
@@ -27,32 +28,88 @@ function SSAmountInput({
   value,
   remainingSats,
   fiatCurrency,
+  btcPrice,
   satsToFiat,
   onValueChange
 }: SSAmountInputProps) {
   const [localValue, setLocalValue] = useState(value)
+  const [amountMode, setAmountMode] = useState<'sats' | 'fiat'>('sats')
+  const [localFiatValue, setLocalFiatValue] = useState(() => satsToFiat(value))
 
-  function handleValueChange(newValue: number) {
-    setLocalValue(newValue)
-    onValueChange(newValue)
+  function handleSatsChange(text: string) {
+    const sats = Number(text)
+    setLocalValue(sats)
+    setLocalFiatValue(satsToFiat(sats))
+    onValueChange(sats)
+  }
+
+  function handleFiatChange(text: string) {
+    const fiat = Number(text)
+    if (isNaN(fiat) || !btcPrice || btcPrice <= 0) return
+    const sats = Math.max(
+      min,
+      Math.min(max, Math.round((fiat / btcPrice) * 1e8))
+    )
+    setLocalFiatValue(fiat)
+    setLocalValue(sats)
+    onValueChange(sats)
+  }
+
+  function handleSwitchToFiat() {
+    setLocalFiatValue(satsToFiat(localValue))
+    setAmountMode('fiat')
+  }
+
+  function handleSwitchToSats() {
+    setAmountMode('sats')
   }
 
   const remainingValue = remainingSats - localValue
+  const fiatMin = btcPrice > 0 ? satsToFiat(min) : 0
+  const fiatMax = btcPrice > 0 ? satsToFiat(max) : 0
+  const canSwitchMode = btcPrice > 0
 
   return (
     <SSVStack gap="none">
-      <SSNumberGhostInput
-        min={min}
-        max={max}
-        suffix={t('bitcoin.sats')}
-        allowDecimal={false}
-        value={String(localValue)}
-        onChangeText={(text) => handleValueChange(Number(text))}
-      />
+      {amountMode === 'sats' ? (
+        <SSNumberGhostInput
+          min={min}
+          max={max}
+          suffix={t('bitcoin.sats')}
+          allowDecimal={false}
+          value={String(localValue)}
+          onChangeText={handleSatsChange}
+        />
+      ) : (
+        <SSNumberGhostInput
+          min={fiatMin}
+          max={fiatMax}
+          suffix={fiatCurrency}
+          allowDecimal
+          value={String(localFiatValue.toFixed(2))}
+          onChangeText={handleFiatChange}
+        />
+      )}
       <SSHStack gap="xs" style={{ justifyContent: 'center' }}>
-        <SSText color="muted" size="lg">
-          {formatNumber(satsToFiat(localValue), 2)} {fiatCurrency}
-        </SSText>
+        {amountMode === 'sats' ? (
+          <SSText
+            color="muted"
+            size="lg"
+            onPress={canSwitchMode ? handleSwitchToFiat : undefined}
+            style={canSwitchMode ? styles.switchable : undefined}
+          >
+            {formatNumber(satsToFiat(localValue), 2)} {fiatCurrency}
+          </SSText>
+        ) : (
+          <SSText
+            color="muted"
+            size="lg"
+            onPress={handleSwitchToSats}
+            style={styles.switchable}
+          >
+            {formatNumber(localValue, 0)} {t('bitcoin.sats')}
+          </SSText>
+        )}
       </SSHStack>
       <SSHStack justifyBetween>
         <SSHStack style={{ justifyContent: 'center' }} gap="xs">
@@ -74,8 +131,12 @@ function SSAmountInput({
         minimumValue={min}
         maximumValue={max}
         value={localValue}
-        onValueChange={(value) => setLocalValue(value[0])}
-        onSlidingComplete={() => onValueChange(localValue)}
+        onValueChange={(value) => {
+          const sats = value[0]
+          setLocalValue(sats)
+          setLocalFiatValue(satsToFiat(sats))
+        }}
+        onSlidingComplete={(value) => onValueChange(value[0])}
         trackStyle={styles.track}
         thumbStyle={styles.thumb}
         minimumTrackTintColor={Colors.white}
@@ -96,6 +157,9 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11
+  },
+  switchable: {
+    textDecorationLine: 'underline'
   }
 })
 

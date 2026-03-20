@@ -1,4 +1,5 @@
 import { type Secret } from '@/types/models/Account'
+import { randomNum } from '@/utils/crypto'
 
 /**
  * Returns a shuffled 3 word list that contains the correct seed word
@@ -14,7 +15,7 @@ function getConfirmWordCandidates(
 
   while (candidates.length < 3) {
     const newCandidate =
-      seedWordsArray[Math.floor(Math.random() * seedWordsArray.length)]
+      seedWordsArray[Math.floor(randomNum() * seedWordsArray.length)]
     if (!candidates.includes(newCandidate)) candidates.push(newCandidate)
   }
 
@@ -22,7 +23,7 @@ function getConfirmWordCandidates(
   let randomIndex: number
 
   while (currentIndex > 0) {
-    randomIndex = Math.floor(Math.random() * currentIndex)
+    randomIndex = Math.floor(randomNum() * currentIndex)
     currentIndex--
     ;[candidates[currentIndex], candidates[randomIndex]] = [
       candidates[randomIndex],
@@ -32,60 +33,5 @@ function getConfirmWordCandidates(
 
   return candidates
 }
-
-/*
- * List of words that are prefixed of another, pre-computed ahead of time.
- */
-export const seedWordsPrefixOfAnother = {
-  act: true,
-  add: true,
-  age: true,
-  air: true,
-  all: true,
-  arm: true,
-  art: true,
-  bar: true,
-  bus: true,
-  can: true,
-  car: true,
-  cat: true,
-  cry: true,
-  cup: true,
-  end: true,
-  era: true,
-  eye: true,
-  fan: true,
-  fat: true,
-  fee: true,
-  fit: true,
-  fun: true,
-  gas: true,
-  ill: true,
-  kid: true,
-  kit: true,
-  lab: true,
-  law: true,
-  leg: true,
-  man: true,
-  mix: true,
-  mom: true,
-  net: true,
-  off: true,
-  own: true,
-  pen: true,
-  pig: true,
-  rib: true,
-  run: true,
-  sad: true,
-  sea: true,
-  ski: true,
-  sun: true,
-  ten: true,
-  top: true,
-  use: true,
-  van: true,
-  win: true,
-  you: true
-} as { [k: string]: boolean }
 
 export { getConfirmWordCandidates }

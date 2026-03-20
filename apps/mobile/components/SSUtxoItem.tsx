@@ -10,9 +10,10 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { formatAddress, formatDate, formatNumber } from '@/utils/format'
-import { parseLabel } from '@/utils/parse'
+import { normalizeUtxoLabelForDisplay } from '@/utils/parse'
 
 import { SSIconPlus, SSIconX } from './icons'
+import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 import SSUtxoSizeMeter from './SSUtxoSizeMeter'
 
@@ -21,19 +22,20 @@ type SSUtxoItemProps = {
   selected: boolean
   largestValue: number
   onToggleSelected(utxo: Utxo): void
+  addressIndex?: number
 }
 
 function SSUtxoItem({
   utxo,
   selected,
   largestValue,
-  onToggleSelected
+  onToggleSelected,
+  addressIndex
 }: SSUtxoItemProps) {
   const priceStore = usePriceStore()
   const [currencyUnit, useZeroPadding] = useSettingsStore(
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
-  const zeroPadding = useZeroPadding || currencyUnit === 'btc'
   const selectIconStyle = useMemo(() => {
     return StyleSheet.compose(styles.selectIconBase, {
       ...(selected
@@ -42,7 +44,7 @@ function SSUtxoItem({
     })
   }, [selected])
 
-  const label = parseLabel(utxo.label || '').label
+  const label = normalizeUtxoLabelForDisplay(utxo.label || '')
 
   return (
     <View>
@@ -64,9 +66,13 @@ function SSUtxoItem({
             </View>
             <SSVStack gap="xs">
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSText size="md" color="white">
-                  {formatNumber(utxo.value, 0, zeroPadding)}
-                </SSText>
+                <SSStyledSatText
+                  amount={utxo.value}
+                  decimals={0}
+                  useZeroPadding={useZeroPadding}
+                  currency={currencyUnit}
+                  textSize="md"
+                />
                 <SSText size="xs" color="muted">
                   {currencyUnit === 'btc'
                     ? t('bitcoin.btc')
@@ -79,13 +85,20 @@ function SSUtxoItem({
                 </SSText>
                 <SSText color="muted">{priceStore.fiatCurrency}</SSText>
               </SSHStack>
-              <SSText>{label && `${t('utxo.label')}: ${label}`}</SSText>
+              <SSText>{label}</SSText>
             </SSVStack>
           </SSHStack>
           <SSVStack gap="xs" style={{ alignSelf: 'flex-start' }}>
-            <SSText>
-              {utxo.addressTo ? formatAddress(utxo.addressTo) : ''}
-            </SSText>
+            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+              <SSText>
+                {utxo.addressTo ? formatAddress(utxo.addressTo) : ''}
+              </SSText>
+              {typeof addressIndex === 'number' && (
+                <SSText color="muted" size="sm">
+                  ({addressIndex})
+                </SSText>
+              )}
+            </SSHStack>
             <SSText style={{ color: Colors.gray[100], alignSelf: 'flex-end' }}>
               {utxo.timestamp ? formatDate(utxo.timestamp) : ''}
             </SSText>

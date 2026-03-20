@@ -5,6 +5,7 @@ import type { StyleProp, TextInput, ViewStyle } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSFingerprint from '@/components/SSFingerprint'
 import SSTextInput from '@/components/SSTextInput'
@@ -15,12 +16,16 @@ import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { type MnemonicWordCount } from '@/types/models/Account'
+import { getFingerprintFromSeed } from '@/utils/bip32'
 import {
+  detectElectrumSeed,
   getFingerprintFromMnemonic,
   getWordList,
+  mnemonicToSeedElectrum,
   validateMnemonic,
   type WordListName
 } from '@/utils/bip39'
+import { type DetectedContent } from '@/utils/contentDetector'
 
 type SeedWordInfo = {
   value: string
@@ -38,6 +43,7 @@ type SSSeedWordsInputProps = {
   showChecksum?: boolean
   showFingerprint?: boolean
   showPasteButton?: boolean
+  showScanSeedQRButton?: boolean
   showActionButton?: boolean
   actionButtonLabel?: string
   actionButtonVariant?:
@@ -80,6 +86,7 @@ export default function SSSeedWordsInput({
   showChecksum = true,
   showFingerprint = true,
   showPasteButton = true,
+  showScanSeedQRButton = true,
   showActionButton = true,
   actionButtonLabel = 'Continue',
   actionButtonVariant = 'secondary',
@@ -99,8 +106,10 @@ export default function SSSeedWordsInput({
   const [currentWordText, setCurrentWordText] = useState('')
   const [currentWordIndex, setCurrentWordIndex] = useState(0)
   const [checksumValid, setChecksumValid] = useState(false)
+  const [electrumSeedType, setElectrumSeedType] = useState<string | null>(null)
   const [fingerprint, setFingerprint] = useState('')
   const [passphrase, setPassphrase] = useState('')
+  const [cameraModalVisible, setCameraModalVisible] = useState(false)
 
   const wordList = getWordList(wordListName)
   const passphraseRef = useRef<TextInput>(null)
@@ -164,6 +173,7 @@ export default function SSSeedWordsInput({
         const checksumValid = validateMnemonic(mnemonic, wordListName)
         setChecksumValid(checksumValid)
         if (checksumValid) {
+          setElectrumSeedType(null)
           const fingerprintResult = getFingerprintFromMnemonic(
             mnemonic,
             passphrase
@@ -171,7 +181,17 @@ export default function SSSeedWordsInput({
           setFingerprint(fingerprintResult)
           onMnemonicValid?.(mnemonic, fingerprintResult)
         } else {
-          onMnemonicInvalid?.()
+          const electrumType = await detectElectrumSeed(mnemonic)
+          setElectrumSeedType(electrumType)
+          if (electrumType) {
+            const seed = await mnemonicToSeedElectrum(mnemonic, passphrase)
+            const fingerprintResult = getFingerprintFromSeed(Buffer.from(seed))
+            setFingerprint(fingerprintResult)
+            onMnemonicValid?.(mnemonic, fingerprintResult)
+          } else {
+            setFingerprint('')
+            onMnemonicInvalid?.()
+          }
         }
       }
     },
@@ -201,7 +221,7 @@ export default function SSSeedWordsInput({
     })
   }, [keyboardWordSelectorVisible, currentWordText, onWordSelectorStateChange])
 
-  // Check if clipboard contains valid seed
+  // Check if clipboard contains valid seed (BIP39 or Electrum)
   const checkClipboardForSeed = useCallback(
     (text: string): string[] => {
       if (!text || text === '') return []
@@ -211,16 +231,11 @@ export default function SSSeedWordsInput({
         if (seedCandidate.length !== wordCount) continue
         const validWords = seedCandidate.every((x) => wordList.includes(x))
         if (!validWords) continue
-        const validMnemonic = validateMnemonic(
-          seedCandidate.join(' '),
-          wordListName
-        )
-        if (!validMnemonic) continue
         return seedCandidate
       }
       return []
     },
-    [wordCount, wordList, wordListName]
+    [wordCount, wordList]
   )
 
   // Fill out seed words from clipboard
@@ -239,6 +254,7 @@ export default function SSSeedWordsInput({
       setChecksumValid(checksumValid)
 
       if (checksumValid) {
+        setElectrumSeedType(null)
         const fingerprintResult = getFingerprintFromMnemonic(
           mnemonic,
           passphrase
@@ -246,7 +262,19 @@ export default function SSSeedWordsInput({
         setFingerprint(fingerprintResult)
         onMnemonicValid?.(mnemonic, fingerprintResult)
       } else {
-        onMnemonicInvalid?.()
+        const electrumType = await detectElectrumSeed(mnemonic)
+        setElectrumSeedType(electrumType)
+        if (electrumType) {
+          const seedBytes = await mnemonicToSeedElectrum(mnemonic, passphrase)
+          const fingerprintResult = getFingerprintFromSeed(
+            Buffer.from(seedBytes)
+          )
+          setFingerprint(fingerprintResult)
+          onMnemonicValid?.(mnemonic, fingerprintResult)
+        } else {
+          setFingerprint('')
+          onMnemonicInvalid?.()
+        }
       }
     },
     [passphrase, onMnemonicValid, onMnemonicInvalid, wordListName]
@@ -273,6 +301,26 @@ export default function SSSeedWordsInput({
       readSeedFromClipboard()
     }
   }, [autoCheckClipboard]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSeedQRScanned = useCallback(
+    (content: DetectedContent) => {
+      if (content.type !== 'seed_qr' || !content.metadata?.mnemonic) return
+      const mnemonic = content.metadata.mnemonic as string
+      const seed = mnemonic.trim().split(/\s+/)
+      if (seed.length !== wordCount) {
+        toast.error(
+          t('account.import.seedQRWordCountMismatch', {
+            count: wordCount
+          })
+        )
+        return
+      }
+      setCameraModalVisible(false)
+      fillOutSeedWords(seed)
+      toast.success(t('common.success.qrScanned'))
+    },
+    [wordCount, fillOutSeedWords]
+  )
 
   // Handle seed word input change
   const handleSeedWordChange = async (index: number, value: string) => {
@@ -340,6 +388,7 @@ export default function SSSeedWordsInput({
       setChecksumValid(checksumValid)
 
       if (checksumValid) {
+        setElectrumSeedType(null)
         const fingerprintResult = getFingerprintFromMnemonic(
           mnemonic,
           passphrase
@@ -347,10 +396,21 @@ export default function SSSeedWordsInput({
         setFingerprint(fingerprintResult)
         onMnemonicValid?.(mnemonic, fingerprintResult)
       } else {
-        onMnemonicInvalid?.()
+        const electrumType = await detectElectrumSeed(mnemonic)
+        setElectrumSeedType(electrumType)
+        if (electrumType) {
+          const seed = await mnemonicToSeedElectrum(mnemonic, passphrase)
+          const fingerprintResult = getFingerprintFromSeed(Buffer.from(seed))
+          setFingerprint(fingerprintResult)
+          onMnemonicValid?.(mnemonic, fingerprintResult)
+        } else {
+          setFingerprint('')
+          onMnemonicInvalid?.()
+        }
       }
     } else {
       setChecksumValid(false)
+      setElectrumSeedType(null)
       setFingerprint('')
       onMnemonicInvalid?.()
     }
@@ -361,10 +421,17 @@ export default function SSSeedWordsInput({
 
     // Re-validate mnemonic with new passphrase if mnemonic is complete
     const mnemonic = seedWordsInfo.map((info) => info.value).join(' ')
-    if (mnemonic.trim().length > 0 && checksumValid) {
-      const fingerprintResult = getFingerprintFromMnemonic(mnemonic, text)
-      setFingerprint(fingerprintResult)
-      onMnemonicValid?.(mnemonic, fingerprintResult)
+    if (mnemonic.trim().length > 0) {
+      if (checksumValid) {
+        const fingerprintResult = getFingerprintFromMnemonic(mnemonic, text)
+        setFingerprint(fingerprintResult)
+        onMnemonicValid?.(mnemonic, fingerprintResult)
+      } else if (electrumSeedType) {
+        const seed = await mnemonicToSeedElectrum(mnemonic, text)
+        const fingerprintResult = getFingerprintFromSeed(Buffer.from(seed))
+        setFingerprint(fingerprintResult)
+        onMnemonicValid?.(mnemonic, fingerprintResult)
+      }
     }
   }
 
@@ -411,27 +478,48 @@ export default function SSSeedWordsInput({
         {(showChecksum || showFingerprint) && (
           <SSFormLayout.Item>
             <SSHStack gap="sm" justifyBetween>
-              {showChecksum && <SSChecksumStatus valid={checksumValid} />}
-              {showFingerprint && checksumValid && fingerprint && (
-                <SSFingerprint value={fingerprint} />
+              {showChecksum && (
+                <SSChecksumStatus
+                  valid={
+                    checksumValid ? true : electrumSeedType ? 'electrum' : false
+                  }
+                />
               )}
+              {showFingerprint &&
+                (checksumValid || electrumSeedType) &&
+                fingerprint && <SSFingerprint value={fingerprint} />}
             </SSHStack>
           </SSFormLayout.Item>
         )}
       </SSFormLayout>
       <SSVStack gap="sm">
-        {showPasteButton && (
-          <SSButton
-            label="Paste from Clipboard"
-            variant="outline"
-            onPress={readSeedFromClipboard}
-          />
+        {(showPasteButton || showScanSeedQRButton) && (
+          <SSHStack gap="sm" style={{ width: '100%' }}>
+            {showPasteButton && (
+              <SSButton
+                label={t('common.paste')}
+                variant="outline"
+                onPress={readSeedFromClipboard}
+                style={{ flex: 1 }}
+              />
+            )}
+            {showScanSeedQRButton && (
+              <SSButton
+                label={t('account.import.scanSeedQR')}
+                variant="outline"
+                onPress={() => setCameraModalVisible(true)}
+                style={{ flex: 1 }}
+              />
+            )}
+          </SSHStack>
         )}
         {showActionButton && (
           <SSButton
             label={actionButtonLabel}
             variant={actionButtonVariant}
-            disabled={actionButtonDisabled || !checksumValid}
+            disabled={
+              actionButtonDisabled || (!checksumValid && !electrumSeedType)
+            }
             loading={actionButtonLoading}
             onPress={onActionButtonPress}
           />
@@ -444,6 +532,14 @@ export default function SSSeedWordsInput({
           />
         )}
       </SSVStack>
+      {showScanSeedQRButton && (
+        <SSCameraModal
+          context="bitcoin"
+          visible={cameraModalVisible}
+          onClose={() => setCameraModalVisible(false)}
+          onContentScanned={handleSeedQRScanned}
+        />
+      )}
     </SSVStack>
   )
 }

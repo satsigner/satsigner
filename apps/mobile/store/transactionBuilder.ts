@@ -1,16 +1,17 @@
 import { type PartiallySignedTransaction } from 'bdk-rn'
 import { type TxBuilderResult } from 'bdk-rn/lib/classes/Bindings'
 import { enableMapSet, produce } from 'immer'
-import uuid from 'react-native-uuid'
 import { create } from 'zustand'
 
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
+import { randomUuid } from '@/utils/crypto'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 enableMapSet()
 
 type TransactionBuilderState = {
+  accountId?: string
   inputs: Map<ReturnType<typeof getUtxoOutpoint>, Utxo>
   outputs: Output[]
   feeRate: number
@@ -27,6 +28,7 @@ type TransactionBuilderState = {
 
 type TransactionBuilderAction = {
   clearTransaction: () => void
+  setAccountId: (accountId: string) => void
   getInputs: () => Utxo[]
   hasInput: (utxo: Utxo) => boolean
   addInput: (utxo: Utxo) => void
@@ -65,6 +67,7 @@ const useTransactionBuilderStore = create<
   signedPsbts: new Map<number, string>(),
   clearTransaction: () => {
     set({
+      accountId: undefined,
       inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
       outputs: [],
       feeRate: 0,
@@ -74,6 +77,9 @@ const useTransactionBuilderStore = create<
       broadcasted: false,
       signedPsbts: new Map<number, string>()
     })
+  },
+  setAccountId: (accountId) => {
+    set({ accountId })
   },
   getInputs: () => {
     return Array.from(get().inputs.values())
@@ -98,7 +104,7 @@ const useTransactionBuilderStore = create<
   addOutput: (output) => {
     set(
       produce((state: TransactionBuilderState) => {
-        state.outputs.push({ localId: uuid.v4(), ...output })
+        state.outputs.push({ localId: randomUuid(), ...output })
       })
     )
   },

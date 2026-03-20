@@ -2,78 +2,58 @@ import type { NDKKind, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import { Buffer } from 'buffer'
 import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
-import crypto from 'react-native-aes-crypto'
-import { toast } from 'sonner-native'
 
-import type { NostrKeys, NostrMessage } from '@/types/models/Nostr'
+import {
+  FLUSH_QUEUE_DELAY_MS,
+  MAX_PROCESSED_RAW_IDS,
+  MAX_QUEUE_SIZE,
+  PROCESSING_INTERVAL_MS
+} from '@/constants/nostr'
+import type {
+  NostrKeys,
+  NostrKind0Profile,
+  NostrMessage
+} from '@/types/models/Nostr'
+import { randomKey } from '@/utils/crypto'
+import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
 
-const POOL_SIZE = 1024 // 1KB of random values
-
-// Create a pool of random values - initialize with empty array to avoid null
-let randomPool = new Uint8Array(POOL_SIZE)
-let randomPoolIndex = 0
-
-// Synchronously initialize the random pool with Math.random
-function initializeRandomPool() {
-  for (let i = 0; i < POOL_SIZE; i++) {
-    randomPool[i] = Math.floor(Math.random() * 256)
-  }
-  randomPoolIndex = 0
-}
-
-// Initialize synchronously first
-initializeRandomPool()
-
-// Then asynchronously refill with better random values
-async function refillRandomPool() {
-  const randomHex = await crypto.randomKey(POOL_SIZE)
-  const newPool = new Uint8Array(Buffer.from(randomHex, 'hex'))
-  // Only update if we haven't used too many values
-  if (randomPoolIndex < POOL_SIZE / 2) {
-    randomPool = newPool
-    randomPoolIndex = 0
-  }
-}
-
-// Start refilling in the background
-refillRandomPool()
-
-// Extend the Crypto interface to include getRandomBase64String
-declare global {
-  interface Crypto {
-    getRandomBase64String(length: number): Promise<string>
+function getProfileFromKind0Content(
+  contentJson: string
+): NostrKind0Profile | null {
+  try {
+    const content = JSON.parse(contentJson) as Record<string, unknown>
+    const displayName =
+      typeof content.name === 'string'
+        ? content.name
+        : typeof content.display_name === 'string'
+          ? content.display_name
+          : typeof content.username === 'string'
+            ? content.username
+            : undefined
+    const picture =
+      typeof content.picture === 'string' ? content.picture : undefined
+    if (!displayName && !picture) return null
+    return { displayName, picture }
+  } catch {
+    return null
   }
 }
 
-// Add global crypto polyfill with getRandomBase64String
-if (typeof global.crypto === 'undefined') {
-  global.crypto = {
-    getRandomValues: <T extends ArrayBufferView | null>(array: T): T => {
-      if (!array) return array
-      const uint8Array = new Uint8Array(
-        array.buffer,
-        array.byteOffset,
-        array.byteLength
-      )
-      for (let i = 0; i < uint8Array.length; i++) {
-        uint8Array[i] = Math.floor(Math.random() * 256)
-      }
-      return array
-    },
-    getRandomBase64String: async (length: number): Promise<string> => {
-      const randomHex = await crypto.randomKey(length)
-      return Buffer.from(randomHex, 'hex').toString('base64')
-    }
-  } as Crypto
+type UnwrappedKind1059Event = {
+  id: string
+  content: string
+  pubkey: string
+  created_at?: number
 }
 
-// Ensure getRandomBase64String is available even if crypto is already defined
-if (!global.crypto.getRandomBase64String) {
-  global.crypto.getRandomBase64String = async (
-    length: number
-  ): Promise<string> => {
-    const randomHex = await crypto.randomKey(length)
-    return Buffer.from(randomHex, 'hex').toString('base64')
+function unwrapNip59EventOrNull(
+  rawEvent: Event,
+  secretKey: Uint8Array
+): UnwrappedKind1059Event | null {
+  try {
+    return nip59.unwrapEvent(rawEvent, secretKey) as UnwrappedKind1059Event
+  } catch {
+    return null
   }
 }
 
@@ -81,10 +61,10 @@ export class NostrAPI {
   private ndk: NDK | null = null
   private activeSubscriptions: Set<NDKSubscription> = new Set()
   private processedMessageIds: Set<string> = new Set()
+  private processedRawEventIds: Set<string> = new Set()
   private eventQueue: NostrMessage[] = []
   private isProcessingQueue = false
   private readonly BATCH_SIZE = 10
-  private readonly PROCESSING_INTERVAL = 200 // ms
   private onLoadingChange?: (isLoading: boolean) => void
 
   constructor(private relays: string[]) {
@@ -172,9 +152,79 @@ export class NostrAPI {
     return true
   }
 
+  /**
+   * Lightweight connect for publishing — establishes the NDK/pool connection
+   * without the slow per-relay event-fetch verification that connect() performs.
+   * Use this when you only need to publish (not subscribe or verify relay health).
+   */
+  async connectForPublish(timeoutMs = 10000): Promise<void> {
+    if (!this.ndk) {
+      this.ndk = new NDK({ explicitRelayUrls: this.relays })
+    }
+
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(
+        () =>
+          reject(new Error(`connectForPublish timed out after ${timeoutMs}ms`)),
+        timeoutMs
+      )
+    )
+
+    await Promise.race([this.ndk.connect(), timeout])
+
+    if (!this.ndk.pool) {
+      throw new Error('NDK pool not initialized')
+    }
+
+    await Promise.race([this.ndk.pool.connect(), timeout])
+
+    const connectedRelays = Array.from(this.ndk.pool.relays.keys())
+    if (connectedRelays.length === 0) {
+      throw new Error(
+        'No relays could be connected. Please check your relay URLs and internet connection.'
+      )
+    }
+  }
+
+  /**
+   * Fetches kind 0 (metadata) event for the given npub from relays.
+   * Returns display name (name) and picture URL if available.
+   * npub must decode to a 64-char hex pubkey (not a Bitcoin address or other format).
+   */
+  async fetchKind0(npub: string): Promise<NostrKind0Profile | null> {
+    const hexPubkey = getPubKeyHexFromNpub(npub)
+    if (!hexPubkey) return null
+
+    await this.connect()
+    if (!this.ndk) return null
+
+    const filter = {
+      kinds: [0 as NDKKind],
+      authors: [hexPubkey],
+      limit: 10
+    }
+    const FETCH_KIND0_TIMEOUT_MS = 15000
+    const events = await Promise.race([
+      this.ndk.fetchEvents(filter, { groupable: false }),
+      new Promise<Set<NDKEvent>>((resolve) => {
+        setTimeout(() => resolve(new Set()), FETCH_KIND0_TIMEOUT_MS)
+      })
+    ])
+
+    const event =
+      events.size === 0
+        ? null
+        : Array.from(events).sort(
+            (a, b) => (b.created_at ?? 0) - (a.created_at ?? 0)
+          )[0]
+
+    if (!event?.content) return null
+
+    return getProfileFromKind0Content(event.content)
+  }
+
   static async generateNostrKeys(): Promise<NostrKeys> {
-    // Generate random bytes using react-native-aes-crypto
-    const randomHex = await crypto.randomKey(32)
+    const randomHex = await randomKey(32)
     const randomBytesArray = new Uint8Array(Buffer.from(randomHex, 'hex'))
 
     // Use the private key directly with NDKPrivateKeySigner
@@ -195,30 +245,32 @@ export class NostrAPI {
 
     this.isProcessingQueue = true
     const batch = this.eventQueue.splice(0, this.BATCH_SIZE)
+    const toProcess = batch.filter((m) => !this.processedMessageIds.has(m.id))
+    toProcess.forEach((m) => this.processedMessageIds.add(m.id))
 
-    for (const message of batch) {
-      if (!this.processedMessageIds.has(message.id)) {
-        this.processedMessageIds.add(message.id)
-        try {
-          this._callback?.(message)
-        } catch {
-          toast.error('Failed to process message')
+    if (toProcess.length > 0 && this._callback) {
+      try {
+        const result = this._callback(toProcess)
+        if (result instanceof Promise) {
+          await result
         }
+      } catch {
+        // Callback error; caller is responsible for handling and surfacing to user
       }
     }
 
     this.isProcessingQueue = false
     if (this.eventQueue.length > 0) {
-      setTimeout(() => this.processQueue(), this.PROCESSING_INTERVAL)
+      setTimeout(() => this.processQueue(), PROCESSING_INTERVAL_MS)
     }
   }
 
-  private _callback?: (message: NostrMessage) => void
+  private _callback?: (messages: NostrMessage[]) => void | Promise<void>
 
   async subscribeToKind1059(
     recipientNsec: string,
     recipientNpub: string,
-    _callback: (message: NostrMessage) => void,
+    _callback: (messages: NostrMessage[]) => void | Promise<void>,
     limit?: number,
     since?: number,
     onEOSE?: (nsec: string) => void
@@ -226,24 +278,32 @@ export class NostrAPI {
     await this.connect()
     if (!this.ndk) throw new Error('Failed to connect to relays')
 
+    const recipientSecretNostrKey = getSecretFromNsec(recipientNsec)
+    const recipientPubKeyHex = getPubKeyHexFromNpub(recipientNpub)
+    if (!recipientSecretNostrKey || !recipientPubKeyHex) return
+
     this.setLoading(true)
     this._callback = _callback
 
-    const { data: recipientSecretNostrKey } = nip19.decode(recipientNsec)
-    const { data: recipientPubKey } = nip19.decode(recipientNpub)
-
     const TWO_DAYS = 48 * 60 * 60
-    const bufferedSince = since ? since - TWO_DAYS : undefined
+    const sinceTimestamp = since && since > 0 ? since - TWO_DAYS : undefined
 
     const subscriptionQuery = {
       kinds: [1059 as NDKKind],
-      //'#p': [recipientPubKeyFromNsec, recipientPubKey.toString()],
-      '#p': [recipientPubKey.toString()],
+      '#p': [recipientPubKeyHex],
       ...(limit && { limit }),
-      since: bufferedSince
+      ...(sinceTimestamp !== undefined && { since: sinceTimestamp })
     }
 
-    const subscription = this.ndk?.subscribe(subscriptionQuery)
+    let subscription: NDKSubscription | undefined
+    try {
+      subscription = this.ndk?.subscribe(subscriptionQuery, {
+        closeOnEose: false
+      }) as NDKSubscription | undefined
+    } catch {
+      this.setLoading(false)
+      return
+    }
     if (subscription) {
       this.activeSubscriptions.add(subscription)
     }
@@ -251,25 +311,41 @@ export class NostrAPI {
     subscription?.on('event', async (event) => {
       try {
         const rawEvent = await event.toNostrEvent()
-        const unwrappedEvent = nip59.unwrapEvent(
-          rawEvent as unknown as Event,
-          recipientSecretNostrKey as Uint8Array
-        )
+        const rawId = (rawEvent as { id?: string }).id
 
-        // Only queue if not already processed
+        if (rawId && this.processedRawEventIds.has(rawId)) return
+
+        const unwrappedEvent = unwrapNip59EventOrNull(
+          rawEvent as unknown as Event,
+          recipientSecretNostrKey
+        )
+        if (!unwrappedEvent) return
+
+        if (rawId) {
+          if (this.processedRawEventIds.size >= MAX_PROCESSED_RAW_IDS) {
+            const entries = Array.from(this.processedRawEventIds)
+            entries
+              .slice(0, Math.floor(entries.length / 2))
+              .forEach((id) => this.processedRawEventIds.delete(id))
+          }
+          this.processedRawEventIds.add(rawId)
+        }
+
         if (!this.processedMessageIds.has(unwrappedEvent.id)) {
+          if (this.eventQueue.length >= MAX_QUEUE_SIZE) {
+            this.eventQueue.shift()
+          }
           const message = {
             id: unwrappedEvent.id,
             content: unwrappedEvent,
-            created_at: unwrappedEvent.created_at,
+            created_at: unwrappedEvent.created_at ?? 0,
             pubkey: event.pubkey
           }
-
           this.eventQueue.push(message)
           this.processQueue()
         }
       } catch {
-        toast.error('Failed to process message')
+        // TODO: log this error; malformed wrapped events should not crash the subscription
       }
     })
 
@@ -283,13 +359,36 @@ export class NostrAPI {
     })
   }
 
+  async flushQueue(): Promise<void> {
+    while (this.eventQueue.length > 0 && this._callback) {
+      await this.processQueue()
+      // Small delay between batches to avoid blocking the JS thread
+      await new Promise((r) => setTimeout(r, FLUSH_QUEUE_DELAY_MS))
+    }
+  }
+
   async closeAllSubscriptions() {
     for (const subscription of this.activeSubscriptions) {
       subscription.stop()
     }
     this.activeSubscriptions.clear()
     this.eventQueue = []
+    this.processedRawEventIds.clear()
     this._callback = undefined
+
+    // Disconnect every relay in the pool to release WebSocket connections and
+    // their underlying OS threads. Without this, each startSync/stopSync cycle
+    // leaks an NDK instance with live relay connections, eventually exhausting
+    // the Android thread limit (pthread_create OOM).
+    if (this.ndk) {
+      for (const relay of this.ndk.pool.relays.values()) {
+        try {
+          relay.disconnect()
+        } catch {
+          // TODO: log this error; relay may already be disconnected or in invalid state
+        }
+      }
+    }
   }
 
   async createKind1059(
@@ -297,55 +396,54 @@ export class NostrAPI {
     recipientNpub: string,
     content: string
   ): Promise<NDKEvent> {
-    const { data: secretNostrKey } = nip19.decode(nsec)
-    const recipientPubkey = nip19.decode(recipientNpub) as { data: string }
+    const secretNostrKey = getSecretFromNsec(nsec)
+    const recipientPubKeyHex = getPubKeyHexFromNpub(recipientNpub)
+    if (!secretNostrKey || !recipientPubKeyHex) {
+      throw new Error('Invalid nsec or recipient npub')
+    }
     const encodedContent = unescape(encodeURIComponent(content))
 
-    // Create a simple synchronous random value generator
-    const getRandomBytes = (length: number): Uint8Array => {
-      const bytes = new Uint8Array(length)
-      for (let i = 0; i < length; i++) {
-        bytes[i] = Math.floor(Math.random() * 256)
-      }
-      return bytes
-    }
+    const wrap = nip17.wrapEvent(
+      secretNostrKey,
+      { publicKey: recipientPubKeyHex },
+      encodedContent
+    )
+    const tempNdk = new NDK()
+    const event = new NDKEvent(tempNdk, wrap)
+    return event
+  }
 
-    // Create a synchronous crypto object
-    const syncCrypto = {
-      getRandomValues: <T extends ArrayBufferView | null>(array: T): T => {
-        if (!array) return array
-        const bytes = getRandomBytes(array.byteLength)
-        const uint8Array = new Uint8Array(
-          array.buffer,
-          array.byteOffset,
-          array.byteLength
-        )
-        uint8Array.set(bytes)
-        return array
-      },
-      getRandomBase64String: (length: number): string => {
-        const bytes = getRandomBytes(length)
-        return Buffer.from(bytes).toString('base64')
-      }
-    }
+  // 20 second timeout per relay for publish operations
+  private static readonly PUBLISH_TIMEOUT_MS = 20000
 
-    // Store original crypto and replace with our sync version
-    const originalCrypto = global.crypto
-    Object.assign(global.crypto, syncCrypto)
+  /**
+   * Request deletion of events from relays (NIP-09). Sends a kind 5 event.
+   * Only events authored by the signer can be deleted by relays.
+   * eventIds should be 64-char hex Nostr event ids.
+   */
+  async requestDeletion(eventIds: string[], deviceNsec: string): Promise<void> {
+    const hexIds = eventIds.filter(
+      (id) => typeof id === 'string' && /^[a-f0-9]{64}$/i.test(id)
+    )
+    if (hexIds.length === 0) return
 
-    try {
-      const wrap = nip17.wrapEvent(
-        secretNostrKey as Uint8Array,
-        { publicKey: recipientPubkey.data },
-        encodedContent
-      )
-      const tempNdk = new NDK()
-      const event = new NDKEvent(tempNdk, wrap)
-      return event
-    } finally {
-      // Restore original crypto
-      Object.assign(global.crypto, originalCrypto)
-    }
+    const secretKey = getSecretFromNsec(deviceNsec)
+    if (!secretKey) throw new Error('Invalid nsec')
+    const signer = new NDKPrivateKeySigner(secretKey)
+
+    await this.connect()
+    if (!this.ndk) throw new Error('Failed to connect to relays')
+
+    const tempNdk = new NDK({ explicitRelayUrls: this.relays })
+    tempNdk.signer = signer
+    const event = new NDKEvent(tempNdk, {
+      kind: 5,
+      content: '',
+      tags: hexIds.map((id) => ['e', id])
+    })
+    await event.sign(signer)
+    event.ndk = this.ndk
+    await this.publishEvent(event)
   }
 
   async publishEvent(event: NDKEvent): Promise<void> {
@@ -359,6 +457,10 @@ export class NostrAPI {
 
     const connectedRelays = Array.from(this.ndk.pool.relays.keys())
 
+    if (connectedRelays.length === 0) {
+      throw new Error('No relays connected')
+    }
+
     if (event.ndk !== this.ndk) {
       event.ndk = this.ndk
     }
@@ -370,30 +472,39 @@ export class NostrAPI {
       await event.sign(signer)
     }
 
-    let published = false
-    const publishPromises = connectedRelays.map((url) => {
-      return new Promise(async () => {
-        const relay = this.ndk?.pool.relays.get(url)
-        if (!relay) {
-          return { url, success: false, error: 'Relay not found' }
-        }
+    const publishPromises = connectedRelays.map(async (url) => {
+      const relay = this.ndk?.pool.relays.get(url)
+      if (!relay) {
+        return { url, success: false as const, error: 'Relay not found' }
+      }
 
-        try {
-          await relay.publish(event)
-          return { url, success: true }
-        } catch (error) {
-          return { url, success: false, error }
-        }
-      }) as Promise<{ url: string; success: boolean; error?: string }>
+      try {
+        // Add timeout to prevent indefinite hanging
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(
+            () =>
+              reject(
+                new Error(
+                  `Publish timeout after ${NostrAPI.PUBLISH_TIMEOUT_MS}ms`
+                )
+              ),
+            NostrAPI.PUBLISH_TIMEOUT_MS
+          )
+        )
+        await Promise.race([relay.publish(event), timeoutPromise])
+        return { url, success: true as const }
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error)
+        return { url, success: false as const, error: errorMsg }
+      }
     })
+
     const results = await Promise.all(publishPromises)
     const successfulPublishes = results.filter((r) => r.success)
-    if (successfulPublishes.length > 0) {
-      published = true
-    }
 
-    if (!published) {
-      throw new Error('Failed to publish after 3 attempts')
+    if (successfulPublishes.length === 0) {
+      const errors = results.map((r) => `${r.url}: ${r.error}`).join('; ')
+      throw new Error(`Failed to publish to any relay: ${errors}`)
     }
   }
 }

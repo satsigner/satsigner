@@ -1,8 +1,8 @@
 import { useShallow } from 'zustand/react/shallow'
 
 import { useAccountsStore } from '@/store/accounts'
-import { type Secret } from '@/types/models/Account'
-import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
+import { type Account, type Secret } from '@/types/models/Account'
+import { aesDecrypt, aesEncrypt, randomIv } from '@/utils/crypto'
 
 export default function useReEncryptAccounts() {
   const [accounts, updateAccount] = useAccountsStore(
@@ -13,6 +13,8 @@ export default function useReEncryptAccounts() {
     oldPinEncrypted: string,
     newPinEncrypted: string
   ) {
+    const updatedAccounts: Account[] = []
+
     for (const account of accounts) {
       // make copy of objects and arrays to avoid directly mutation of store
       const updatedAccount = { ...account }
@@ -36,21 +38,27 @@ export default function useReEncryptAccounts() {
 
         // encrypt secret with new pin
         const serializedSecret = JSON.stringify(secret)
+        const newIv = randomIv()
         const newSecret = await aesEncrypt(
           serializedSecret,
           newPinEncrypted,
-          key.iv
+          newIv
         )
 
         // update secret while avoiding mutating nested objects in store
         updatedAccount.keys[k] = {
           ...account.keys[k],
-          secret: newSecret
+          secret: newSecret,
+          iv: newIv
         }
       }
 
-      // update store
-      updateAccount(updatedAccount)
+      updatedAccounts.push(updatedAccount)
+      // update storej
+    }
+
+    for (const account of updatedAccounts) {
+      updateAccount(account)
     }
   }
 

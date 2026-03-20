@@ -76,22 +76,44 @@ export default function NetworkSettings() {
                 <SSVStack gap="sm">
                   <SSVStack gap="xs">
                     <SSText>{tn('connectionMode.label')}</SSText>
-                    <SSCheckbox
-                      label={(tempConfigs[network].connectionMode === 'auto'
-                        ? tn('connectionMode.auto')
-                        : tn('connectionMode.manual')
-                      ).toUpperCase()}
-                      selected={tempConfigs[network].connectionMode === 'auto'}
-                      onPress={() =>
-                        handleParamChange(
-                          network,
-                          'connectionMode',
-                          tempConfigs[network].connectionMode === 'auto'
-                            ? 'manual'
-                            : 'auto'
-                        )
-                      }
-                    />
+                    {(['manual', 'auto'] as const).map((mode) => {
+                      return (
+                        <SSCheckbox
+                          key={mode}
+                          label={tn(`connectionMode.${mode}`)}
+                          labelProps={{ size: 'sm', uppercase: true }}
+                          containerStyle={{ gap: 10 }}
+                          selected={
+                            tempConfigs[network].connectionMode === mode
+                          }
+                          onPress={() =>
+                            handleParamChange(network, 'connectionMode', mode)
+                          }
+                        />
+                      )
+                    })}
+                  </SSVStack>
+                  <SSVStack gap="xs">
+                    <SSText>{tn('timeDiffBeforeAutoSync')}</SSText>
+                    <SSVStack gap="none">
+                      <SSNumberInput
+                        value={tempConfigs[
+                          network
+                        ].timeDiffBeforeAutoSync.toString()}
+                        min={1}
+                        max={1440}
+                        onChangeText={(text) =>
+                          handleParamChange(
+                            network,
+                            'timeDiffBeforeAutoSync',
+                            Number(text)
+                          )
+                        }
+                      />
+                      <SSText color="muted" size="xs">
+                        {tn('connectionTestIntervalNotice')}
+                      </SSText>
+                    </SSVStack>
                   </SSVStack>
                   <SSVStack gap="xs">
                     <SSText>{tn('connectionTestInterval')}</SSText>

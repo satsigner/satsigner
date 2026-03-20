@@ -14,6 +14,7 @@ type SSPinEntryProps = {
   pin: string[]
   setPin: Dispatch<SetStateAction<string[]>>
   onFillEnded: (pin: string) => void
+  autoFocus?: boolean
   title?: string
 }
 
@@ -21,6 +22,7 @@ function SSPinEntry({
   pin,
   setPin,
   onFillEnded,
+  autoFocus = true,
   title = t('auth.unlock')
 }: SSPinEntryProps) {
   const [pinTries, pinMaxTries] = useAuthStore(
@@ -46,7 +48,7 @@ function SSPinEntry({
           <SSPinInput
             pin={pin}
             setPin={setPin}
-            autoFocus
+            autoFocus={autoFocus}
             onFillEnded={onFillEnded}
           />
         </Animated.View>

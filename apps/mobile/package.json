@@ -1,6 +1,7 @@
 {
   "name": "@satsigner/mobile",
-  "version": "1.0.0",
+  "version": "0.2.1",
+  "description": "Privacy-first Bitcoin signer with complete UTXO control",
   "private": true,
   "engines": {
     "node": ">=22.4.0"
@@ -20,7 +21,7 @@
     "storybook-generate": "sb-rn-get-stories",
     "test": "yarn test:unit && yarn test:int",
     "test:int": "jest ./tests/int",
-    "test:unit": "jest ./tests/unit --transformIgnorePatterns \"node_modules/(?!bip21)/\"",
+    "test:unit": "jest ./tests/unit",
     "type-check": "tsc --noEmit",
     "types": "expo customize tsconfig.json"
   },
@@ -41,7 +42,7 @@
     "assert": "^1.1.1",
     "bdk-rn": "https://github.com/LtbLightning/bdk-rn#bc918a5f58b2fb4a1c50bd21ba9206300edff43d",
     "bech32": "^2.0.0",
-    "bip21": "^3.0.0",
+    "bip-321": "0.0.10",
     "bip32": "^5.0.0-rc.0",
     "bip39": "^3.1.0",
     "bitcoinjs-lib": "^6.1.7",
@@ -56,6 +57,7 @@
     "expo-clipboard": "~5.0.1",
     "expo-constants": "~15.4.5",
     "expo-dev-client": "~3.3.12",
+    "expo-document-picker": "~11.10.1",
     "expo-font": "^11.10.3",
     "expo-image": "^1.10.6",
     "expo-linear-gradient": "^12.7.2",
@@ -79,9 +81,7 @@
     "react-native-aes-crypto": "^3.2.1",
     "react-native-bouncy-checkbox": "^4.1.2",
     "react-native-device-info": "^11.1.0",
-    "react-native-document-picker": "^9.3.1",
     "react-native-draggable-flatlist": "^4.0.3",
-    "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "~2.14.0",
     "react-native-get-random-values": "^1.11.0",
     "react-native-keyevent": "^0.3.2",
@@ -117,7 +117,6 @@
     "@storybook/react-native": "8.6.2",
     "@storybook/theming": "^8.6.10",
     "@tanstack/eslint-plugin-query": "^5.64.2",
-    "@types/bip21": "^2.0.3",
     "@types/d3": "^7.4.3",
     "@types/d3-sankey": "^0.12.4",
     "@types/jest": "^29.5.12",

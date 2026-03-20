@@ -26,18 +26,23 @@ interface Node extends SankeyNodeMinimal<object, object> {
   nextTx?: string
 }
 
-const LINK_MAX_WIDTH = 60
 const BLOCK_WIDTH = 50
 const NODE_WIDTH = 98
 
 type SSTransactionChartProps = {
   transaction: Transaction
   ownAddresses?: Set<string> // NEW: prop for own addresses
+  selectedOutputIndex?: number // Index of the output to highlight (vout)
+  dimUnselected?: boolean // Dim non-selected outputs
+  scale?: number // Scale factor for the chart (0-1)
 }
 
 function SSTransactionChart({
   transaction,
-  ownAddresses = new Set()
+  ownAddresses = new Set(),
+  selectedOutputIndex,
+  dimUnselected = false,
+  scale = 1
 }: SSTransactionChartProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -87,19 +92,20 @@ function SSTransactionChart({
   // Fixed base height with dynamic scaling for larger transactions
   const FIXED_BASE_HEIGHT = 400
   const SCALING_THRESHOLD = 2.4 // Start scaling when more than 5 inputs or outputs
-  const GRAPH_HEIGHT =
+  const BASE_GRAPH_HEIGHT =
     maxInputOutputLength > SCALING_THRESHOLD
       ? FIXED_BASE_HEIGHT *
         (1 + (maxInputOutputLength - SCALING_THRESHOLD) * 0.5)
       : FIXED_BASE_HEIGHT
-  const GRAPH_WIDTH = width
+  const GRAPH_HEIGHT = BASE_GRAPH_HEIGHT * scale
+  const GRAPH_WIDTH = width * scale
 
   const sankeyGenerator = sankey()
-    .nodeWidth(NODE_WIDTH)
+    .nodeWidth(NODE_WIDTH * scale)
     .nodePadding(GRAPH_HEIGHT / 2)
     .extent([
-      [0, 20],
-      [width * 0.9, (GRAPH_HEIGHT * 0.65) / 2]
+      [0, 20 * scale],
+      [GRAPH_WIDTH * 0.9, (GRAPH_HEIGHT * 0.65) / 2]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 
@@ -140,21 +146,30 @@ function SSTransactionChart({
       }
     ]
 
-    const outputNodes: TxNode[] = outputs.map((output, index) => ({
-      id: String(index + 2 + inputs.length),
-      type: 'text',
-      depthH: 2,
-      ioData: {
-        value: output.value,
-        fiatValue: formatNumber(satsToFiat(output.value), 2),
-        fiatCurrency,
-        address: formatAddress(output.address, 6),
-        label: output.label ?? t('common.noLabel'),
-        text: t('common.to'),
-        isSelfSend: !!(output.address && ownAddresses.has(output.address))
-      },
-      value: output.value
-    }))
+    const outputNodes: TxNode[] = outputs.map((output, index) => {
+      const nodeId = String(index + 2 + inputs.length)
+      const label = output.label ?? ''
+      const isChange =
+        label.includes('Change') || label.includes('[Change for]')
+
+      return {
+        id: nodeId,
+        type: 'text',
+        depthH: 2,
+        localId: isChange ? 'remainingBalance' : `output-${index}`,
+        ioData: {
+          value: output.value,
+          fiatValue: formatNumber(satsToFiat(output.value), 2),
+          fiatCurrency,
+          address: formatAddress(output.address, 6),
+          label: label || t('common.noLabel'),
+          text: t('transaction.build.unspent'),
+          isUnspent: true,
+          isSelfSend: !!(output.address && ownAddresses.has(output.address))
+        },
+        value: output.value
+      }
+    })
 
     const totalOutputValueWithAddresses = outputs
       .filter((output) => output.address && output.address.trim() !== '')
@@ -232,11 +247,11 @@ function SSTransactionChart({
   }, [inputs, outputs, minerFee])
 
   if (inputs.length === 0 || outputs.length === 0) {
-    return null
+    return <View style={{ height: GRAPH_HEIGHT / 2, overflow: 'hidden' }} />
   }
 
   if (transaction.vin.length === 0 || transaction.vout.length === 0) {
-    return null
+    return <View style={{ height: GRAPH_HEIGHT / 2, overflow: 'hidden' }} />
   }
 
   const { nodes, links } = sankeyGenerator({
@@ -251,11 +266,11 @@ function SSTransactionChart({
   }))
 
   if (!nodes?.length || !transformedLinks?.length) {
-    return null
+    return <View style={{ height: GRAPH_HEIGHT / 2, overflow: 'hidden' }} />
   }
 
   return (
-    <View style={{ flex: 1, height: GRAPH_HEIGHT / 2 }}>
+    <View style={{ flex: 1, height: GRAPH_HEIGHT / 2, overflow: 'hidden' }}>
       <Canvas
         style={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT / 2 }}
         onLayout={onCanvasLayout}
@@ -265,10 +280,24 @@ function SSTransactionChart({
             links={transformedLinks}
             nodes={nodes as Node[]}
             sankeyGenerator={sankeyGenerator}
-            LINK_MAX_WIDTH={LINK_MAX_WIDTH}
             BLOCK_WIDTH={BLOCK_WIDTH}
+            selectedOutputNode={
+              selectedOutputIndex !== undefined
+                ? `output-${selectedOutputIndex}`
+                : undefined
+            }
+            dimUnselected={dimUnselected}
           />
-          <SSSankeyNodes nodes={nodes} sankeyGenerator={sankeyGenerator} />
+          <SSSankeyNodes
+            nodes={nodes}
+            sankeyGenerator={sankeyGenerator}
+            selectedOutputNode={
+              selectedOutputIndex !== undefined
+                ? `output-${selectedOutputIndex}`
+                : undefined
+            }
+            dimUnselected={dimUnselected}
+          />
         </Group>
       </Canvas>
     </View>

@@ -1,6 +1,6 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Clipboard, StyleSheet, TextInput } from 'react-native'
+import { StyleSheet, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -11,6 +11,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { useLightningStore } from '@/store/lightning'
 import type { LNDConfig } from '@/types/models/LND'
+import { getAllClipboardContent } from '@/utils/clipboard'
 import { type DetectedContent } from '@/utils/contentDetector'
 
 export default function LNDRestPage() {
@@ -110,7 +111,7 @@ export default function LNDRestPage() {
   }
 
   const handlePasteFromClipboard = async () => {
-    const text = await Clipboard.getString()
+    const text = (await getAllClipboardContent()) ?? ''
     setConnectionString(text)
     setIsButtonEnabled(validateConnectionString(text))
   }

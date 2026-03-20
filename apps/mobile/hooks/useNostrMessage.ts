@@ -1,15 +1,25 @@
 import { nip19 } from 'nostr-tools'
 import { useMemo } from 'react'
 
+import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
 import { t } from '@/locales'
 import { type Account } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
-import { parseNostrTransactionMessage } from '@/utils/nostr'
+import { formatDateShort } from '@/utils/date'
+import { parseNostrTransaction } from '@/utils/nostr'
+
+export type AuthorDisplayInfo = {
+  displayName?: string
+  alias?: string
+  npubShort: string
+  color: string
+  picture?: string
+}
 
 type UseNostrMessageParams = {
   msg: NostrDM
   account: Account | undefined
-  formattedNpubs: Map<string, { text: string; color: string }>
+  formattedNpubs: Map<string, AuthorDisplayInfo>
 }
 
 export function useNostrMessage({
@@ -29,8 +39,8 @@ export function useNostrMessage({
 
       const isDeviceMessage = msgAuthorNpub === account?.nostr?.deviceNpub
       const authorDisplayName = formattedNpubs.get(msg.author) || {
-        text: `${msgAuthorNpub.slice(0, 12)}...${msgAuthorNpub.slice(-4)}`,
-        color: '#404040'
+        npubShort: `${msgAuthorNpub.slice(0, 12)}...${msgAuthorNpub.slice(-4)}`,
+        color: NOSTR_FALLBACK_NPUB_COLOR
       }
 
       const messageContent =
@@ -40,21 +50,13 @@ export function useNostrMessage({
             ? msg.content
             : t('account.nostrSync.devicesGroupChat.displayError')
 
-      const transactionData = parseNostrTransactionMessage(messageContent)
+      const transactionData = parseNostrTransaction(messageContent)
       const hasSignFlow = transactionData !== null
 
-      const formattedDate = new Date(msg.created_at * 1000).toLocaleString(
-        'en-US',
-        {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        }
-      )
+      const formattedDate = formatDateShort(msg.created_at)
 
       return {
+        authorNpub: msgAuthorNpub,
         isDeviceMessage,
         authorDisplayName,
         messageContent,
@@ -65,8 +67,9 @@ export function useNostrMessage({
       }
     } catch (error) {
       return {
+        authorNpub: '',
         isDeviceMessage: false,
-        authorDisplayName: { text: '', color: '' },
+        authorDisplayName: { npubShort: '', color: '' },
         messageContent: '',
         transactionData: null,
         hasSignFlow: false,

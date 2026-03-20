@@ -1,4 +1,5 @@
 import { type Utxo } from '@/types/models/Utxo'
+import { randomNum } from '@/utils/crypto'
 
 type _Utxo = Utxo & {
   effectiveValue?: number
@@ -396,12 +397,12 @@ function selectStonewallUtxos(
   for (let attempt = 0; attempt < opts.maxAttempts; attempt++) {
     // Step 1: Decide how many outputs to create (including recipient)
     const numOutputs =
-      Math.floor(Math.random() * (opts.maxOutputs - opts.minOutputs + 1)) +
+      Math.floor(randomNum() * (opts.maxOutputs - opts.minOutputs + 1)) +
       opts.minOutputs
 
     // Step 2: Decide how many inputs to use
     const numInputs =
-      Math.floor(Math.random() * (opts.maxInputs - opts.minInputs + 1)) +
+      Math.floor(randomNum() * (opts.maxInputs - opts.minInputs + 1)) +
       opts.minInputs
 
     // Step 3: Select random script types for diversity (if available)
@@ -428,7 +429,7 @@ function selectStonewallUtxos(
 
       // Select a random UTXO from this type
       const typeUtxos = utxosByType[type]
-      const randomIndex = Math.floor(Math.random() * typeUtxos.length)
+      const randomIndex = Math.floor(randomNum() * typeUtxos.length)
       const selectedUtxo = typeUtxos[randomIndex]
 
       selectedInputs.push(selectedUtxo)
@@ -478,7 +479,7 @@ function selectStonewallUtxos(
     for (let i = 0; i < numChangeOutputs; i++) {
       // Randomly select script type for change
       const changeType =
-        selectedTypes[Math.floor(Math.random() * selectedTypes.length)]
+        selectedTypes[Math.floor(randomNum() * selectedTypes.length)]
       const outputSize = getOutputSize(changeType)
       changeOutputSizes.push(outputSize)
       totalChangeOutputSize += outputSize
@@ -514,7 +515,7 @@ function selectStonewallUtxos(
         const baseAmount = totalChangeAmount / numChangeOutputs
 
         // Apply variance to avoid equal change outputs
-        const variance = Math.random() * 0.4 - 0.2 // ±20%
+        const variance = randomNum() * 0.4 - 0.2 // ±20%
         changeAmount = Math.floor(baseAmount * (1 + variance))
       }
 
@@ -523,7 +524,7 @@ function selectStonewallUtxos(
 
       // Create change output
       changeOutputs.push({
-        type: selectedTypes[Math.floor(Math.random() * selectedTypes.length)],
+        type: selectedTypes[Math.floor(randomNum() * selectedTypes.length)],
         value: changeAmount,
         size: changeOutputSizes[i]
       })
@@ -687,20 +688,20 @@ function distributeChangeWithPrivacy(
     let variance
     if (i % 3 === 0) {
       // Some outputs significantly smaller
-      variance = 0.5 + Math.random() * 0.3
+      variance = 0.5 + randomNum() * 0.3
     } else if (i % 3 === 1) {
       // Some outputs slightly larger
-      variance = 1.1 + Math.random() * 0.2
+      variance = 1.1 + randomNum() * 0.2
     } else {
       // Some outputs close to average
-      variance = 0.9 + Math.random() * 0.2
+      variance = 0.9 + randomNum() * 0.2
     }
 
     // Calculate change amount
     let changeAmount = Math.floor(avgRemaining * variance)
 
     // Add some "noise" to avoid round numbers
-    const noise = Math.floor(Math.random() * 100) - 50
+    const noise = Math.floor(randomNum() * 100) - 50
     changeAmount += noise
 
     // Ensure we don't create dust and leave enough for remaining outputs

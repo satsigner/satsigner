@@ -69,7 +69,7 @@ export default function TabLayout() {
           tabBarActiveBackgroundColor: 'black',
           tabBarActiveTintColor: 'white'
         }}
-        backBehavior="history"
+        backBehavior="initialRoute"
       >
         <Tabs.Screen
           name="(signer)"

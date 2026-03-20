@@ -8,8 +8,8 @@ import {
   DEFAULT_RETRIES,
   DEFAULT_STOP_GAP,
   DEFAULT_TIME_OUT,
-  ELECTRUM_URL,
   getBlockchainConfig,
+  MEMPOOL_MAINNET_URL,
   MEMPOOL_SIGNET_URL,
   MEMPOOL_TESTNET_URL
 } from '@/config/servers'
@@ -28,6 +28,7 @@ type NetworkConfig = {
 }
 
 type BlockchainState = {
+  lastKnownBlockHeight: number
   selectedNetwork: Network
   configs: Record<Network, NetworkConfig>
   configsMempool: Record<Network, Server['url']>
@@ -41,6 +42,7 @@ type BlockchainAction = {
   updateConfigMempool: (network: Network, url: Server['url']) => void
   addCustomServer: (server: Server) => void
   removeCustomServer: (server: Server) => void
+  updateCustomServer: (oldServer: Server, newServer: Server) => void
   getBlockchain: (network?: Network) => Promise<Blockchain>
   getBlockchainHeight: (network?: Network) => Promise<number>
 }
@@ -62,20 +64,22 @@ const createDefaultNetworkConfig = (
     retries: DEFAULT_RETRIES,
     stopGap: DEFAULT_STOP_GAP,
     connectionMode: 'auto',
-    connectionTestInterval: 60
+    connectionTestInterval: 60,
+    timeDiffBeforeAutoSync: 30
   }
 })
 
 const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
   persist(
     (set, get) => ({
+      lastKnownBlockHeight: 0,
       selectedNetwork: 'signet',
       configs: {
         bitcoin: createDefaultNetworkConfig(
           'bitcoin',
-          'electrum',
-          ELECTRUM_URL,
-          'Blockstream'
+          'esplora',
+          MEMPOOL_MAINNET_URL,
+          'Mempool'
         ),
         signet: createDefaultNetworkConfig(
           'signet',
@@ -124,6 +128,18 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
           customServers: customServers.filter((sv) => sv !== server)
         })
       },
+      updateCustomServer: (oldServer, newServer) => {
+        const { customServers } = get()
+        set({
+          customServers: customServers.map((s) =>
+            s.url === oldServer.url &&
+            s.name === oldServer.name &&
+            s.network === oldServer.network
+              ? newServer
+              : s
+          )
+        })
+      },
       getBlockchain: async (network = get().selectedNetwork) => {
         const { server, config } = get().configs[network]
 
@@ -140,11 +156,19 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
       },
       getBlockchainHeight: async (network = get().selectedNetwork) => {
         const blockchain = await get().getBlockchain(network)
-        return blockchain.getHeight()
+        const height = await blockchain.getHeight()
+        set({ lastKnownBlockHeight: height })
+        return height
       }
     }),
     {
       name: 'satsigner-blockchain',
+      partialize: (state) => ({
+        configs: state.configs,
+        configsMempool: state.configsMempool,
+        customServers: state.customServers,
+        selectedNetwork: state.selectedNetwork
+      }),
       storage: createJSONStorage(() => mmkvStorage)
     }
   )

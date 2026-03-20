@@ -98,7 +98,11 @@ function SSButton({
           />
         ))}
       {!loading ? (
-        <SSText uppercase={uppercase} style={textStyles}>
+        <SSText
+          uppercase={uppercase}
+          center
+          style={[textStyles, { width: '100%' }]}
+        >
           {label}
         </SSText>
       ) : (

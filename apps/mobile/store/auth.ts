@@ -5,12 +5,13 @@ import {
   DEFAULT_LOCK_DELTA_TIME_SECONDS,
   DEFAULT_PIN_MAX_TRIES,
   DURESS_PIN_KEY,
-  PIN_KEY
+  PIN_KEY,
+  SALT_KEY
 } from '@/config/auth'
 import { getItem, setItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
 import { type PageRoute } from '@/types/navigation/page'
-import { doubleShaEncrypt } from '@/utils/crypto'
+import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
 import { formatPageUrl } from '@/utils/format'
 
 type AuthState = {
@@ -24,6 +25,8 @@ type AuthState = {
   skipPin: boolean
   duressPinEnabled: boolean
   justUnlocked: boolean
+  /** Decrypted backup JSON; when set, recovery runs after next unlock. Not persisted. */
+  pendingRecoverData: string | null
 }
 
 type AuthAction = {
@@ -43,6 +46,7 @@ type AuthAction = {
   getPagesHistory: () => string[]
   clearPageHistory: () => void
   setJustUnlocked: (justUnlocked: AuthState['justUnlocked']) => void
+  setPendingRecoverData: (data: string | null) => void
 }
 
 const useAuthStore = create<AuthState & AuthAction>()(
@@ -58,6 +62,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
       skipPin: false,
       duressPinEnabled: false,
       justUnlocked: false,
+      pendingRecoverData: null,
       setFirstTime: (firstTime: boolean) => {
         set({ firstTime })
       },
@@ -68,12 +73,16 @@ const useAuthStore = create<AuthState & AuthAction>()(
         set({ lockTriggered })
       },
       setPin: async (pin) => {
-        const hashedPin = await doubleShaEncrypt(pin)
-        await setItem(PIN_KEY, hashedPin)
+        const salt = await generateSalt()
+        const encryptedPin = await pbkdf2Encrypt(pin, salt)
+        await setItem(SALT_KEY, salt)
+        await setItem(PIN_KEY, encryptedPin)
       },
       setDuressPin: async (pin) => {
-        const hashedDuressPin = await doubleShaEncrypt(pin)
-        await setItem(DURESS_PIN_KEY, hashedDuressPin)
+        const salt = await generateSalt()
+        const encryptedPin = await pbkdf2Encrypt(pin, salt)
+        await setItem(SALT_KEY, salt)
+        await setItem(DURESS_PIN_KEY, encryptedPin)
       },
       setSkipPin(skipPin) {
         set({ skipPin })
@@ -82,9 +91,11 @@ const useAuthStore = create<AuthState & AuthAction>()(
         set({ duressPinEnabled })
       },
       validatePin: async (pin) => {
-        const hashedPin = await doubleShaEncrypt(pin)
+        const salt = await getItem(SALT_KEY)
+        if (!salt) throw new Error('Failed to validate PIN')
+        const encrypted = await pbkdf2Encrypt(pin, salt)
         const savedPin = await getItem(PIN_KEY)
-        return hashedPin === savedPin
+        return encrypted === savedPin
       },
       incrementPinTries: () => {
         set({ pinTries: get().pinTries + 1 })
@@ -127,11 +138,18 @@ const useAuthStore = create<AuthState & AuthAction>()(
       },
       setJustUnlocked(justUnlocked) {
         set({ justUnlocked })
+      },
+      setPendingRecoverData(pendingRecoverData) {
+        set({ pendingRecoverData })
       }
     }),
     {
       name: 'satsigner-auth',
-      storage: createJSONStorage(() => mmkvStorage)
+      storage: createJSONStorage(() => mmkvStorage),
+      partialize: (state) => {
+        const { pendingRecoverData: _, ...rest } = state
+        return rest
+      }
     }
   )
 )

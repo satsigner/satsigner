@@ -7,7 +7,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type PickFileProps } from './filesystem'
 import { getUtxoOutpoint } from './utxo'
 
-export type LabelType = 'tx' | 'addr' | 'pubkey' | 'input' | 'output' | 'xpub'
+type LabelType = 'tx' | 'addr' | 'pubkey' | 'input' | 'output' | 'xpub'
 
 export type Label = {
   type: LabelType
@@ -75,7 +75,7 @@ for (const key in bip329Aliases) {
   }
 }
 
-export function formatAddressLabels(addresses: Address[]): Label[] {
+function formatAddressLabels(addresses: Address[]): Label[] {
   return addresses
     .filter((address) => address.label)
     .map((address) => {
@@ -88,7 +88,7 @@ export function formatAddressLabels(addresses: Address[]): Label[] {
     })
 }
 
-export function formatTransactionLabels(transactions: Transaction[]): Label[] {
+function formatTransactionLabels(transactions: Transaction[]): Label[] {
   return transactions
     .filter((tx) => tx.label)
     .map((tx) => {
@@ -101,7 +101,7 @@ export function formatTransactionLabels(transactions: Transaction[]): Label[] {
     })
 }
 
-export function formatUtxoLabels(utxos: Utxo[]): Label[] {
+function formatUtxoLabels(utxos: Utxo[]): Label[] {
   return utxos
     .filter((utxo) => utxo.label)
     .map((utxo) => {
@@ -115,14 +115,41 @@ export function formatUtxoLabels(utxos: Utxo[]): Label[] {
 }
 
 export function formatAccountLabels(account: Account): Label[] {
-  return [
-    ...formatTransactionLabels(account.transactions),
-    ...formatUtxoLabels(account.utxos),
-    ...formatAddressLabels(account.addresses)
-  ]
+  // Start with labels from the dictionary (source of truth)
+  const labelsByRef = new Map<string, Label>()
+
+  // Add all labels from the account.labels dictionary
+  if (account.labels) {
+    for (const ref in account.labels) {
+      const label = account.labels[ref]
+      if (label && label.label) {
+        labelsByRef.set(ref, label)
+      }
+    }
+  }
+
+  // Also include labels from transaction/utxo/address objects
+  // (in case they have labels not in the dictionary)
+  for (const label of formatTransactionLabels(account.transactions)) {
+    if (!labelsByRef.has(label.ref)) {
+      labelsByRef.set(label.ref, label)
+    }
+  }
+  for (const label of formatUtxoLabels(account.utxos)) {
+    if (!labelsByRef.has(label.ref)) {
+      labelsByRef.set(label.ref, label)
+    }
+  }
+  for (const label of formatAddressLabels(account.addresses)) {
+    if (!labelsByRef.has(label.ref)) {
+      labelsByRef.set(label.ref, label)
+    }
+  }
+
+  return Array.from(labelsByRef.values())
 }
 
-export function labelsToCSV(labels: Label[]) {
+function labelsToCSV(labels: Label[]) {
   const CsvHeaderItems = ['type', 'ref', 'spendable', 'label']
   const CsvHeader = CsvHeaderItems.join(',')
   const CsvRows = [] as string[]
@@ -201,11 +228,11 @@ export function CSVtoLabels(CsvText: string): Label[] {
   return labels
 }
 
-export function labelsToJSON(labels: Label[]): string {
+function labelsToJSON(labels: Label[]): string {
   return JSON.stringify(labels)
 }
 
-export function JSONtoLabels(JSONtext: string): Label[] {
+function JSONtoLabels(JSONtext: string): Label[] {
   return JSON.parse(JSONtext) as Label[]
 }
 

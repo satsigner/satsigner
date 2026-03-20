@@ -142,6 +142,15 @@ function parseLabel(rawLabel: string) {
   return { label, tags }
 }
 
+/** Normalizes UTXO label for display; fixes broken "Change for %{txlabel}" interpolation. */
+function normalizeUtxoLabelForDisplay(rawLabel: string): string {
+  const { label } = parseLabel(rawLabel || '')
+  if (label.includes('[missing') && label.includes('txlabel')) {
+    return t('sign.changeAddressLabelDefault')
+  }
+  return label
+}
+
 function parseLabelTags(label: string, tags: string[]) {
   const trimmedLabel = label.trim()
   if (tags.length === 0) return trimmedLabel
@@ -222,11 +231,55 @@ export function parseDescriptor(descriptor: string) {
   return parseSinglesigDescriptor(descriptor)
 }
 
+function stripBitcoinPrefix(text: string): string {
+  if (text.toLowerCase().startsWith('bitcoin:')) {
+    return text.substring(8)
+  }
+  return text
+}
+
+type ParsedUriParams = {
+  address: string
+  amount?: number
+  label?: string
+}
+
+/**
+ * Parses URI parameters from a bitcoin address string (without the "bitcoin:" prefix)
+ * Returns null if the format is invalid
+ */
+function parseUriParameters(content: string): ParsedUriParams | null {
+  const uriMatch = content.match(/^([^?]+)(\?.*)?$/)
+  if (!uriMatch) return null
+
+  const addressPart = uriMatch[1]
+  const queryString = uriMatch[2]
+
+  if (!queryString) {
+    return { address: addressPart }
+  }
+
+  const params = new URLSearchParams(queryString.substring(1))
+  const amountParam = params.get('amount')
+  const labelParam = params.get('label')
+
+  return {
+    address: addressPart,
+    amount: amountParam ? parseFloat(amountParam) : undefined,
+    label: labelParam ? decodeURIComponent(labelParam) : undefined
+  }
+}
+
 export {
   parseAccountAddressesDetails,
   parseAddressDescriptorToAddress,
   parseHexToBytes,
   parseLabel,
   parseLabelTags,
-  parseTXOutputs
+  parseTXOutputs,
+  parseUriParameters,
+  stripBitcoinPrefix
 }
+export { normalizeUtxoLabelForDisplay }
+
+export type { ParsedUriParams }

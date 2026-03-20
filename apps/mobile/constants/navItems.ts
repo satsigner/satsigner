@@ -22,7 +22,7 @@ export const navMenuGroups: NavMenuGroup[] = [
       {
         title: t('navigation.item.bitcoin'),
         icon: SSIconBitcoin,
-        url: '/accountList',
+        url: '/signer/bitcoin/accountList',
         isSoon: false,
         platform: PLATFORM.HYBRID
       },

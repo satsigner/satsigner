@@ -1,9 +1,8 @@
 import { SCREEN_HEIGHT } from '@gorhom/bottom-sheet'
 import { Stack } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
-import { Dimensions, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { useEffect, useState } from 'react'
+import { StyleSheet, useWindowDimensions, View } from 'react-native'
 
-import { MempoolOracle } from '@/api/blockchain'
 import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
@@ -11,11 +10,11 @@ import SSModal from '@/components/SSModal'
 import SSNumberInput from '@/components/SSNumberInput'
 import SSSpiralBlocks from '@/components/SSSpiralBlocks'
 import SSText from '@/components/SSText'
+import useMempoolOracle from '@/hooks/useMempoolOracle'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
-import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import {
   type BlockDifficulty,
@@ -23,12 +22,10 @@ import {
 } from '@/types/models/Blockchain'
 import { formatDate, formatTimeFromNow } from '@/utils/format'
 
-const { width: SCREEN_WIDTH, height: _SCREEN_HEIGHT } = Dimensions.get('window')
-const CANVAS_WIDTH = SCREEN_WIDTH
 const CANVAS_HEIGHT = 0.7 * SCREEN_HEIGHT
 const BLOCKS_PER_EPOCH = 2016
 
-// WARN: warn the user about where it is getting the data
+// FIXME: this is far from ideal, we are fetching data from 3rd party
 const DATA_LINK = 'https://pvxg.net/bitcoin_data/difficulty_epochs/'
 
 type DifficultyEpochsData = [
@@ -44,15 +41,10 @@ type DifficultyEpochsData = [
 ]
 
 function ExplorerDifficulty() {
-  const mempoolUrl = useBlockchainStore(
-    (state) => state.configsMempool['bitcoin']
-  )
-  const mempoolOracle = useMemo(
-    () => new MempoolOracle(mempoolUrl),
-    [mempoolUrl]
-  )
+  const mempoolOracle = useMempoolOracle()
 
   const { width } = useWindowDimensions()
+  const CANVAS_WIDTH = width
 
   const [data, setData] = useState<BlockDifficulty[]>([])
   const [loading, setLoading] = useState(false)

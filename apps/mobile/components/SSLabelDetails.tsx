@@ -1,5 +1,6 @@
 import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
+import { Pressable, StyleSheet } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -8,7 +9,6 @@ import { Colors } from '@/styles'
 import { parseLabel } from '@/utils/parse'
 
 import { SSIconEditPencil } from './icons'
-import SSButton from './SSButton'
 import SSIconButton from './SSIconButton'
 import SSText from './SSText'
 
@@ -16,12 +16,14 @@ type SSLabelDetailsProps = {
   label: string
   link: string
   header: string
+  privacyMode?: boolean
 }
 
 function SSLabelDetails({
   label: originalLabel,
   link,
-  header
+  header,
+  privacyMode = false
 }: SSLabelDetailsProps) {
   const [label, setLabel] = useState('')
   const [tags, setTags] = useState<string[]>([])
@@ -35,30 +37,33 @@ function SSLabelDetails({
   return (
     <SSHStack justifyBetween style={{ alignItems: 'flex-start' }}>
       <SSVStack gap="sm" style={{ maxWidth: '80%' }}>
-        <SSText uppercase size="md" weight="bold">
+        <SSText uppercase color="muted">
           {header}
         </SSText>
-        {label && <SSText>{label}</SSText>}
-        {!label && <SSText color="muted">{t('transaction.noLabel')}</SSText>}
-        {tags.length > 0 && (
+        {label && <SSText size="2xl">{privacyMode ? '••••' : label}</SSText>}
+        {!label && (
+          <SSText color="muted">
+            {privacyMode ? '••••' : t('transaction.noLabel')}
+          </SSText>
+        )}
+        {!privacyMode && tags.length > 0 && (
           <SSHStack gap="sm">
             {tags.map((tag) => (
-              <SSButton
+              <Pressable
                 key={tag}
-                label={tag}
-                uppercase={false}
-                style={{
-                  backgroundColor: Colors.gray[700],
-                  borderStyle: 'solid',
-                  paddingHorizontal: 8,
-                  height: 'auto',
-                  width: 'auto'
-                }}
-              />
+                style={({ pressed }) => [
+                  styles.tag,
+                  pressed && styles.tagPressed
+                ]}
+              >
+                <SSText size="xs" uppercase={false} style={styles.tagText}>
+                  {tag}
+                </SSText>
+              </Pressable>
             ))}
           </SSHStack>
         )}
-        {tags.length === 0 && (
+        {!privacyMode && tags.length === 0 && (
           <SSText color="muted">{t('transaction.noTags')}</SSText>
         )}
       </SSVStack>
@@ -68,5 +73,21 @@ function SSLabelDetails({
     </SSHStack>
   )
 }
+
+const styles = StyleSheet.create({
+  tag: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.gray[700],
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4
+  },
+  tagPressed: {
+    opacity: 0.8
+  },
+  tagText: {
+    color: Colors.white
+  }
+})
 
 export default SSLabelDetails

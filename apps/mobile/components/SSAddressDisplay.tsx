@@ -12,29 +12,36 @@ type SSAddressDisplayProps = {
   variant?: 'default' | 'outline' | 'bare'
 } & SSTextProps
 
+function AddressDisplayContent({
+  address,
+  variant,
+  ...props
+}: Omit<SSAddressDisplayProps, 'copyToClipboard'>) {
+  return (
+    <SSHStack style={styles[variant ?? 'default']} gap="sm">
+      {(address.match(/(.{1,4})/g) || []).map((bytes, index) => (
+        <SSText type="mono" size="md" {...props} key={`${index}-${bytes}`}>
+          {bytes}
+        </SSText>
+      ))}
+    </SSHStack>
+  )
+}
+
 function SSAddressDisplay({
   address,
   variant = 'default',
   copyToClipboard = true,
   ...props
 }: SSAddressDisplayProps) {
-  function AddressDisplayWithoutClipboard() {
+  if (!copyToClipboard)
     return (
-      <SSHStack style={styles[variant]} gap="sm">
-        {(address.match(/(.{1,4})/g) || []).map((bytes, index) => (
-          <SSText type="mono" size="md" {...props} key={index}>
-            {bytes}
-          </SSText>
-        ))}
-      </SSHStack>
+      <AddressDisplayContent address={address} variant={variant} {...props} />
     )
-  }
-
-  if (!copyToClipboard) return <AddressDisplayWithoutClipboard />
 
   return (
     <SSClipboardCopy text={address}>
-      <AddressDisplayWithoutClipboard />
+      <AddressDisplayContent address={address} variant={variant} {...props} />
     </SSClipboardCopy>
   )
 }

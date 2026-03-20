@@ -1,34 +1,54 @@
-import crypto from 'react-native-aes-crypto'
+import aesCrypto from 'react-native-aes-crypto'
+import uuid from 'react-native-uuid'
 
 import { DEFAULT_PIN, PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
 
+const MAX_UINT32 = 0xffffffff // 2^32 - 1
+
+function randomKey(length = 16) {
+  return aesCrypto.randomKey(length)
+}
+
+function randomUuid() {
+  return uuid.v4()
+}
+
+function randomIv() {
+  return uuid.v4().replace(/-/g, '')
+}
+
+function randomNum() {
+  // global variable from react-native-get-random-values
+  return crypto.getRandomValues(new Uint32Array(1))[0] / MAX_UINT32
+}
+
 function sha256(text: string) {
-  return crypto.sha256(text)
+  return aesCrypto.sha256(text)
 }
 
 function aesEncrypt(text: string, key: string, iv: string) {
-  return crypto.encrypt(text, key, iv, 'aes-256-cbc')
+  return aesCrypto.encrypt(text, key, iv, 'aes-256-cbc')
 }
 
 function aesDecrypt(cipher: string, key: string, iv: string) {
-  return crypto.decrypt(cipher, key, iv, 'aes-256-cbc')
+  return aesCrypto.decrypt(cipher, key, iv, 'aes-256-cbc')
 }
 
 /** Password-based key derivation */
 function pbkdf2Encrypt(pin: string, salt: string) {
-  return crypto.pbkdf2(pin, salt, 10_000, 256, 'sha256')
+  return aesCrypto.pbkdf2(pin, salt, 10_000, 256, 'sha256')
 }
 
 function generateSalt() {
-  return crypto.randomKey(16)
+  return aesCrypto.randomKey(16)
 }
 
 async function doubleShaEncrypt(text: string) {
   // TODO: remove
-  const first = await crypto.sha256(text)
+  const first = await aesCrypto.sha256(text)
 
-  return crypto.sha256(first)
+  return aesCrypto.sha256(first)
 }
 
 // FIX: me
@@ -47,5 +67,9 @@ export {
   generateSalt,
   getPinForDecryption,
   pbkdf2Encrypt,
+  randomIv,
+  randomKey,
+  randomNum,
+  randomUuid,
   sha256
 }
