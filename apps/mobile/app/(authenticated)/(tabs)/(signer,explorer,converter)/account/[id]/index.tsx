@@ -47,6 +47,7 @@ import {
   SSIconList,
   SSIconMenu,
   SSIconRefresh,
+  SSIconSwap,
   SSIconTable,
   SSIconYellowIndicator
 } from '@/components/icons'
@@ -1129,19 +1130,33 @@ export default function AccountView() {
             />
           ),
           headerRight: () => (
-            <SSHStack gap="md">
+            <SSHStack gap="md" style={{ alignItems: 'center' }}>
               {account?.nostr?.autoSync && (
-                <SSIconButton
-                  disabled={isNostrSyncing}
-                  onPress={() =>
-                    router.navigate(
-                      `/account/${id}/settings/nostr/devicesGroupChat`
-                    )
-                  }
-                >
-                  <SSIconChatBubble height={15} width={15} />
-                </SSIconButton>
+                <>
+                  <SSIconButton
+                    disabled={isNostrSyncing}
+                    onPress={() =>
+                      router.navigate(
+                        `/account/${id}/settings/nostr/devicesGroupChat`
+                      )
+                    }
+                  >
+                    <SSIconChatBubble height={15} width={15} />
+                  </SSIconButton>
+                  <View
+                    style={{
+                      width: 1,
+                      height: 16,
+                      backgroundColor: Colors.gray[600]
+                    }}
+                  />
+                </>
               )}
+              <SSIconButton
+                onPress={() => router.navigate(`/account/${id}/swap`)}
+              >
+                <SSIconSwap height={16} width={16} />
+              </SSIconButton>
               <SSIconButton
                 onPress={() => router.navigate(`/account/${id}/settings`)}
               >
