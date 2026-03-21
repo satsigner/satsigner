@@ -1,5 +1,3 @@
-// Ultracite oxfmt Configuration
-// https://oxc.rs/docs/guide/usage/formatter/config-file-reference.html
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "arrowParens": "always",
@@ -15,9 +13,9 @@
   "jsxSingleQuote": false,
   "printWidth": 80,
   "quoteProps": "as-needed",
-  "semi": true,
-  "singleQuote": false,
+  "semi": false,
+  "singleQuote": true,
   "tabWidth": 2,
-  "trailingComma": "es5",
+  "trailingComma": "none",
   "useTabs": false
 }
