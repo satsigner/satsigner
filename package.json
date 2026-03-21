@@ -43,9 +43,6 @@
   "dependencies": {},
   "devDependencies": {
     "cross-env": "^7.0.3",
-    "prettier": "^3.2.5",
-    "prettier-plugin-pkg": "^0.18.1",
-    "prettier-plugin-sort-json": "^4.1.1",
     "turbo": "^2.0.1"
   }
 }
