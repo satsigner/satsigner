@@ -35,14 +35,15 @@
     "Bitcoin"
   ],
   "scripts": {
-    "format": "prettier --config .prettierrc . --check",
-    "format:fix": "prettier --config .prettierrc . --write --list-different",
-    "lint": "turbo run lint",
-    "lint:fix": "turbo run lint:fix --"
+    "check": "ultracite check",
+    "fix": "ultracite fix"
   },
   "dependencies": {},
   "devDependencies": {
     "cross-env": "^7.0.3",
-    "turbo": "^2.0.1"
+    "oxfmt": "^0.41.0",
+    "oxlint": "^1.56.0",
+    "turbo": "^2.0.1",
+    "ultracite": "7.3.2"
   }
 }
