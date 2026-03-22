@@ -145,13 +145,13 @@ function SSLNURLDetails({
 
 const styles = StyleSheet.create({
   detailLabel: {
-    minWidth: 100,
-    fontSize: 14
+    fontSize: 14,
+    minWidth: 100
   },
   detailRow: {
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap'
+    flexWrap: 'wrap',
+    justifyContent: 'space-between'
   },
   detailValue: {
     flex: 1,
@@ -163,19 +163,19 @@ const styles = StyleSheet.create({
     paddingVertical: 16
   },
   fiatAmount: {
-    marginTop: 4,
-    marginLeft: 4
+    marginLeft: 4,
+    marginTop: 4
   },
   input: {
     backgroundColor: '#242424',
     borderRadius: 3,
-    padding: 12,
     color: 'white',
-    fontSize: 16
+    fontSize: 16,
+    padding: 12
   },
   lnurlDetails: {
-    marginTop: 16,
-    marginBottom: 16
+    marginBottom: 16,
+    marginTop: 16
   },
   loadingRow: {
     alignItems: 'center',

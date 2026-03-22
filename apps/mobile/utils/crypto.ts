@@ -15,7 +15,7 @@ function randomUuid() {
 }
 
 function randomIv() {
-  return uuid.v4().replaceAll(/-/g, '')
+  return uuid.v4().replaceAll('-', '')
 }
 
 function randomNum() {

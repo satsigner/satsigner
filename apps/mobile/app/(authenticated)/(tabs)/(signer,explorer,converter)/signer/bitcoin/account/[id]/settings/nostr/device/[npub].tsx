@@ -46,7 +46,9 @@ export default function DeviceAliasPage() {
               const member = accountMembers.find(
                 (m) => (typeof m === 'string' ? m : m.npub) === npub
               )
-              if (!member) {return NOSTR_FALLBACK_NPUB_COLOR}
+              if (!member) {
+                return NOSTR_FALLBACK_NPUB_COLOR
+              }
               return typeof member === 'string'
                 ? NOSTR_FALLBACK_NPUB_COLOR
                 : member.color
@@ -62,12 +64,15 @@ export default function DeviceAliasPage() {
 
   const { restartSync } = useNostrSync()
   const trustSyncRestartRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  useEffect(() => () => {
+  useEffect(
+    () => () => {
       if (trustSyncRestartRef.current) {
         clearTimeout(trustSyncRestartRef.current)
         trustSyncRestartRef.current = null
       }
-    }, [accountId])
+    },
+    [accountId]
+  )
 
   const accountProfile = npub ? account?.nostr?.npubProfiles?.[npub] : undefined
   const isThisDevice = npub === account?.nostr?.deviceNpub
@@ -94,7 +99,9 @@ export default function DeviceAliasPage() {
   const [loadingFetchKind0, setLoadingFetchKind0] = useState(false)
 
   async function fetchKind0Profile() {
-    if (loadingFetchKind0) {return}
+    if (loadingFetchKind0) {
+      return
+    }
     if (!npub || !accountId || !account?.nostr) {
       toast.error(t('account.nostrSync.fetchKind0NoRelay'))
       return
@@ -153,7 +160,9 @@ export default function DeviceAliasPage() {
   }
 
   function clearKind0Profile() {
-    if (!accountId || !account?.nostr || !npub) {return}
+    if (!accountId || !account?.nostr || !npub) {
+      return
+    }
     const profiles = { ...account.nostr.npubProfiles }
     delete profiles[npub]
     const payload: Parameters<typeof updateAccountNostr>[1] = {
@@ -177,7 +186,9 @@ export default function DeviceAliasPage() {
   }, [npub, account?.nostr?.npubAliases])
 
   function handleSave() {
-    if (!accountId || !account?.nostr || !npub) {return}
+    if (!accountId || !account?.nostr || !npub) {
+      return
+    }
 
     const updatedAliases = {
       ...account.nostr.npubAliases,
@@ -202,7 +213,9 @@ export default function DeviceAliasPage() {
     account?.nostr?.trustedMemberDevices?.includes(npub ?? '') ?? false
 
   function handleTrustToggle() {
-    if (!accountId || !account?.nostr || !npub) {return}
+    if (!accountId || !account?.nostr || !npub) {
+      return
+    }
 
     if (isTrusted) {
       updateAccountNostr(accountId, {
@@ -228,13 +241,17 @@ export default function DeviceAliasPage() {
         const current = useAccountsStore
           .getState()
           .accounts.find((a) => a.id === accountId)
-        if (current) {restartSync(current, () => {})}
+        if (current) {
+          restartSync(current, () => {})
+        }
       }, TRUST_SYNC_RESTART_DELAY_MS)
       toast.success(t('account.nostrSync.deviceTrusted'))
     }
   }
 
-  if (!accountId || !account || !npub) {return <Redirect href="/" />}
+  if (!accountId || !account || !npub) {
+    return <Redirect href="/" />
+  }
 
   return (
     <SSMainLayout style={styles.mainLayout}>
@@ -365,38 +382,38 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   colorDot: {
-    width: 10,
-    height: 10,
     borderRadius: 5,
-    marginRight: 4
+    height: 10,
+    marginRight: 4,
+    width: 10
   },
   kind0Row: {
     alignSelf: 'stretch'
   },
   loadingRow: {
-    alignSelf: 'stretch',
     alignItems: 'center',
+    alignSelf: 'stretch',
     justifyContent: 'center'
   },
   mainLayout: {
-    paddingTop: 10,
-    paddingBottom: 20
+    paddingBottom: 20,
+    paddingTop: 10
   },
   npubRow: {
-    width: '100%',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    width: '100%'
   },
   npubText: {
     letterSpacing: 1
   },
   pageContainer: {
-    justifyContent: 'space-between',
-    flex: 1
+    flex: 1,
+    justifyContent: 'space-between'
   },
   profilePicture: {
-    width: 64,
+    borderRadius: 32,
     height: 64,
-    borderRadius: 32
+    width: 64
   },
   profileRow: {
     alignItems: 'center',

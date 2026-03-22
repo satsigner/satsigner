@@ -10,12 +10,8 @@ const mmkvStorage: StateStorage = {
     const value = storage.getString(name)
     return value ?? null
   },
-  removeItem: (name) => {
-    return storage.delete(name)
-  },
-  setItem: (name, value) => {
-    return storage.set(name, value)
-  }
+  removeItem: (name) => storage.delete(name),
+  setItem: (name, value) => storage.set(name, value)
 }
 
 function setLastBackgroundTimestamp(timestamp: number) {

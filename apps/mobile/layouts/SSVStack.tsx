@@ -20,16 +20,20 @@ export default function SSVStack({
   children,
   style
 }: SSVStackProps) {
-  const containerStyle = useMemo(() => StyleSheet.compose(
-      {
-        ...styles.containerBase,
-        ...{ gap: Layout.vStack.gap[gap] },
-        ...(justifyBetween ? styles.justifyBetween : {}),
-        ...(itemsCenter ? styles.itemsCenter : {}),
-        ...(widthFull ? styles.widthFull : {})
-      },
-      style
-    ), [gap, justifyBetween, itemsCenter, widthFull, style])
+  const containerStyle = useMemo(
+    () =>
+      StyleSheet.compose(
+        {
+          ...styles.containerBase,
+          gap: Layout.vStack.gap[gap],
+          ...(justifyBetween ? styles.justifyBetween : {}),
+          ...(itemsCenter ? styles.itemsCenter : {}),
+          ...(widthFull ? styles.widthFull : {})
+        },
+        style
+      ),
+    [gap, justifyBetween, itemsCenter, widthFull, style]
+  )
 
   return <View style={containerStyle}>{children}</View>
 }

@@ -2,7 +2,9 @@ import type { Direction } from '@/types/logic/sort'
 import type { Transaction } from '@/types/models/Transaction'
 
 function compareTimestamp(date1?: Date | string, date2?: Date | string) {
-  if (!date1 || !date2) {return 0}
+  if (!date1 || !date2) {
+    return 0
+  }
   return new Date(date1).getTime() - new Date(date2).getTime()
 }
 

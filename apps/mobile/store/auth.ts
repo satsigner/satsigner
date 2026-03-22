@@ -57,9 +57,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
       },
       duressPinEnabled: false,
       firstTime: true,
-      getPagesHistory: () => {
-        return ['/', ...get().pageHistory]
-      },
+      getPagesHistory: () => ['/', ...get().pageHistory],
       incrementPinTries: () => {
         set({ pinTries: get().pinTries + 1 })
         const triesLeft = get().pinMaxTries - get().pinTries
@@ -72,7 +70,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
         const pages = get().pageHistory
         const { path, params } = page
         const actualPage = formatPageUrl(path, params)
-        const lastPage = () => pages[pages.length - 1]
+        const lastPage = () => pages.at(-1)
 
         // pop-out page if not a sub-page
         if (pages.length > 0 && !actualPage.startsWith(lastPage())) {
@@ -137,7 +135,9 @@ const useAuthStore = create<AuthState & AuthAction>()(
       skipPin: false,
       validatePin: async (pin) => {
         const salt = await getItem(SALT_KEY)
-        if (!salt) throw new Error('Failed to validate PIN')
+        if (!salt) {
+          throw new Error('Failed to validate PIN')
+        }
         const encrypted = await pbkdf2Encrypt(pin, salt)
         const savedPin = await getItem(PIN_KEY)
         return encrypted === savedPin

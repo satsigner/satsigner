@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
+import { useEffect, useRef, useState } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { Keyboard, StyleSheet, TextInput } from 'react-native'
-import KeyEvent from 'react-native-keyevent';
-import type { KeyEventProps } from 'react-native-keyevent';
+import KeyEvent from 'react-native-keyevent'
+import type { KeyEventProps } from 'react-native-keyevent'
 
 import { PIN_SIZE } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
@@ -15,7 +15,7 @@ interface SSPinInputProps {
   onFillEnded?: (pin: string) => void
 }
 
-const ALLOWED_KEYS: string[] = [...'0123456789']
+const ALLOWED_KEYS: string[] = new Set('0123456789')
 const KEY_CODE_DELETE = 0
 const KEY_CODE_BACKSPACE = 67
 const KEY_CODE_LEFT = 21
@@ -45,8 +45,8 @@ function SSPinInput({
   useEffect(() => {
     KeyEvent.onKeyUpListener((keyEvent: KeyEventProps) => {
       // key code is from ASCII TABLE
-      const {keyCode} = keyEvent
-      let {pressedKey} = keyEvent
+      const { keyCode } = keyEvent
+      let { pressedKey } = keyEvent
 
       if (
         keyCode === KEY_CODE_DELETE ||
@@ -67,7 +67,7 @@ function SSPinInput({
 
   function handleOnChangeText(text: string, index: number) {
     // validate input from physical keyboard
-    if (text !== '' && !ALLOWED_KEYS.includes(text)) {
+    if (text !== '' && !ALLOWED_KEYS.has(text)) {
       return
     }
 
@@ -75,17 +75,27 @@ function SSPinInput({
     newPin[index] = text
     setPin(newPin)
 
-    if (text !== '') {setCurrentIndex(index + 1)}
+    if (text !== '') {
+      setCurrentIndex(index + 1)
+    }
 
-    if (text === '') {return}
+    if (text === '') {
+      return
+    }
 
-    if (index + 1 < PIN_SIZE) {inputRefs.current[index + 1]?.focus()}
+    if (index + 1 < PIN_SIZE) {
+      inputRefs.current[index + 1]?.focus()
+    }
 
-    if (index === PIN_SIZE - 1) {handleLastPin(newPin)}
+    if (index === PIN_SIZE - 1) {
+      handleLastPin(newPin)
+    }
   }
 
   function handleBackspace(index: number) {
-    if (hasJustDeletedChar) {return}
+    if (hasJustDeletedChar) {
+      return
+    }
     const newPin = [...pin]
     setIsBackspace(true)
     const previousPinIndex = index - 1
@@ -119,7 +129,9 @@ function SSPinInput({
 
   function handleLastPin(pin: string[]) {
     const finalPin = pin.join('')
-    if (finalPin.length !== PIN_SIZE) {return}
+    if (finalPin.length !== PIN_SIZE) {
+      return
+    }
     setIsBackspace(false)
     onFillEnded?.(finalPin)
     Keyboard.dismiss()

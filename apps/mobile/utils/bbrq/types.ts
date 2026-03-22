@@ -4,11 +4,7 @@
  * Types
  */
 
-import type {
-  ENCODING_NAMES,
-  FILETYPE_NAMES,
-  QR_DATA_CAPACITY
-} from './consts'
+import type { ENCODING_NAMES, FILETYPE_NAMES, QR_DATA_CAPACITY } from './consts'
 
 export type FileType = keyof typeof FILETYPE_NAMES
 export type Encoding = keyof typeof ENCODING_NAMES

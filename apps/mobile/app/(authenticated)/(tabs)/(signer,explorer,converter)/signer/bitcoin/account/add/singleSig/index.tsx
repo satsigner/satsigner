@@ -140,7 +140,9 @@ export default function SingleSig() {
     setEntropyModalVisible(false)
   }
 
-  if (!name) {return <Redirect href="/" />}
+  if (!name) {
+    return <Redirect href="/" />
+  }
 
   return (
     <SSMainLayout>

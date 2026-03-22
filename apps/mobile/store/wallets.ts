@@ -31,7 +31,7 @@ const useWalletsStore = create<WalletsState & WalletsAction>((set) => ({
       })
     ),
   addresses: {},
-  deleteWallets: () => set({ wallets: {}, addresses: {} }),
+  deleteWallets: () => set({ addresses: {}, wallets: {} }),
   removeAccountWallet: (accountId) =>
     set(
       produce((state) => {

@@ -104,8 +104,7 @@ export default function Developer() {
               mnemonic?: string
               passphrase?: string
             }
-            seedWords = secret.mnemonic
-            ({ passphrase } = secret)
+            seedWords = secret.mnemonic(({ passphrase } = secret))
           } catch {
             // leave seedWords/passphrase undefined
           }
@@ -155,7 +154,9 @@ export default function Developer() {
   const PASSPHRASE_ALLOWED_REGEX = /^[\u0020-\u007E]+$/
 
   async function handleEncryptAndShare() {
-    if (!backupPreviewPayload) {return}
+    if (!backupPreviewPayload) {
+      return
+    }
     if (
       backupPassphrase.length === 0 ||
       !PASSPHRASE_ALLOWED_REGEX.test(backupPassphrase)
@@ -232,7 +233,9 @@ export default function Developer() {
   }
 
   async function handleRecoverImSure() {
-    if (!recoverDecrypted) {return}
+    if (!recoverDecrypted) {
+      return
+    }
     if (skipPin) {
       const { success } = await performRecoverOverwrite(recoverDecrypted)
       setRecoverModalVisible(false)
@@ -240,8 +243,11 @@ export default function Developer() {
       setRecoverPassphrase('')
       setRecoverDecrypted(null)
       setRecoverConfirmOverwrite(false)
-      if (success) {toast.success(t('settings.developer.backupSuccess'))}
-      else {toast.error(t('settings.developer.recoverOverwriteError'))}
+      if (success) {
+        toast.success(t('settings.developer.backupSuccess'))
+      } else {
+        toast.error(t('settings.developer.recoverOverwriteError'))
+      }
       return
     }
     setPendingRecoverData(recoverDecrypted)

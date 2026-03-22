@@ -1,6 +1,6 @@
 import { Canvas, Group } from '@shopify/react-native-skia'
-import { sankey } from 'd3-sankey';
-import type { SankeyNodeMinimal } from 'd3-sankey';
+import { sankey } from 'd3-sankey'
+import type { SankeyNodeMinimal } from 'd3-sankey'
 import { useMemo } from 'react'
 import { useWindowDimensions, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -49,7 +49,10 @@ function SSTransactionChart({
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
 
-  const totalOutputValue = transaction.vout.reduce((prevValue, output) => prevValue + output.value, 0)
+  const totalOutputValue = transaction.vout.reduce(
+    (prevValue, output) => prevValue + output.value,
+    0
+  )
 
   const defaultInputValue = totalOutputValue / (transaction.vin.length || 1)
 
@@ -68,7 +71,10 @@ function SSTransactionChart({
 
   let minerFee: number | undefined
   if (inputs.every((input) => input.valueIsKnown)) {
-    const totalInputValue = inputs.reduce((prevValue, input) => prevValue + input.value, 0)
+    const totalInputValue = inputs.reduce(
+      (prevValue, input) => prevValue + input.value,
+      0
+    )
     minerFee = totalInputValue - totalOutputValue
   }
 
@@ -112,18 +118,20 @@ function SSTransactionChart({
   })
 
   const sankeyNodes = useMemo(() => {
-    if (inputs.length === 0 || outputs.length === 0) {return []}
+    if (inputs.length === 0 || outputs.length === 0) {
+      return []
+    }
 
     const inputNodes: TxNode[] = inputs.map((input, index) => ({
       depthH: 0,
       id: String(index + 1),
       ioData: {
         address: formatAddress(input.txid, 4),
-        label: input.label ?? t('common.noLabel'),
-        value: input.valueIsKnown ? input.value : 0,
-        fiatValue: formatNumber(satsToFiat(input.value), 2),
         fiatCurrency,
-        text: t('common.from')
+        fiatValue: formatNumber(satsToFiat(input.value), 2),
+        label: input.label ?? t('common.noLabel'),
+        text: t('common.from'),
+        value: input.valueIsKnown ? input.value : 0
       },
       type: 'text',
       value: input.value
@@ -153,14 +161,14 @@ function SSTransactionChart({
         depthH: 2,
         id: nodeId,
         ioData: {
-          value: output.value,
-          fiatValue: formatNumber(satsToFiat(output.value), 2),
-          fiatCurrency,
           address: formatAddress(output.address, 6),
+          fiatCurrency,
+          fiatValue: formatNumber(satsToFiat(output.value), 2),
+          isSelfSend: !!(output.address && ownAddresses.has(output.address)),
+          isUnspent: true,
           label: label || t('common.noLabel'),
           text: t('transaction.build.unspent'),
-          isUnspent: true,
-          isSelfSend: !!(output.address && ownAddresses.has(output.address))
+          value: output.value
         },
         localId: isChange ? 'remainingBalance' : `output-${index}`,
         type: 'text',
@@ -188,13 +196,13 @@ function SSTransactionChart({
         depthH: 2,
         id: String(inputs.length + outputs.length + 2),
         ioData: {
-          value: minerFee,
-          fiatValue: formatNumber(satsToFiat(minerFee), 2),
-          fiatCurrency,
+          feePercentage: Math.round(feePercentage * 100) / 100,
           feeRate: feeRate !== undefined ? Math.round(feeRate) : undefined,
-          text: t('transaction.build.minerFee'),
+          fiatCurrency,
+          fiatValue: formatNumber(satsToFiat(minerFee), 2),
           higherFee,
-          feePercentage: Math.round(feePercentage * 100) / 100 // round to 2 decimals
+          text: t('transaction.build.minerFee'),
+          value: minerFee // round to 2 decimals
         },
         localId: 'past-minerFee',
         type: 'text',
@@ -217,7 +225,9 @@ function SSTransactionChart({
   ])
 
   const sankeyLinks = useMemo(() => {
-    if (inputs.length === 0 || outputs.length === 0) {return []}
+    if (inputs.length === 0 || outputs.length === 0) {
+      return []
+    }
 
     const inputToBlockLinks = inputs.map((input, index) => ({
       source: String(index + 1),

@@ -138,18 +138,18 @@ function SSPaymentDetails({
 
 const styles = StyleSheet.create({
   amountContainer: {
+    alignItems: 'baseline',
     flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'baseline'
+    justifyContent: 'flex-end'
   },
   detailLabel: {
-    minWidth: 100,
-    fontSize: 14
+    fontSize: 14,
+    minWidth: 100
   },
   detailRow: {
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap'
+    flexWrap: 'wrap',
+    justifyContent: 'space-between'
   },
   detailSection: {
     gap: 12
@@ -163,22 +163,22 @@ const styles = StyleSheet.create({
   },
   hashContainer: {
     flex: 1,
-    minWidth: 0,
-    marginLeft: 8
+    marginLeft: 8,
+    minWidth: 0
   },
   hashRow: {
     alignItems: 'flex-start',
     justifyContent: 'space-between'
   },
   hashText: {
-    opacity: 0.8,
+    fontFamily: Typography.sfProMono,
     fontSize: 12,
-    textAlign: 'right',
-    fontFamily: Typography.sfProMono
+    opacity: 0.8,
+    textAlign: 'right'
   },
   invoiceDetails: {
-    marginTop: 16,
-    marginBottom: 16
+    marginBottom: 16,
+    marginTop: 16
   },
   monospaceInput: {
     fontFamily: Typography.sfProMono,

@@ -1,6 +1,6 @@
 import '@/shim'
-import { useDrawerStatus } from '@react-navigation/drawer';
-import type { DrawerNavigationProp } from '@react-navigation/drawer';
+import { useDrawerStatus } from '@react-navigation/drawer'
+import type { DrawerNavigationProp } from '@react-navigation/drawer'
 import {
   Stack,
   useNavigation,
@@ -74,8 +74,8 @@ export default function StackLayout(params: any) {
           <Stack.Screen
             name="index"
             initialParams={{
-              tab: t('navigation.label.signer'),
-              segment: params?.segment
+              segment: params?.segment,
+              tab: t('navigation.label.signer')
             }}
             options={{ title: 'Signer' }}
           />
@@ -86,8 +86,8 @@ export default function StackLayout(params: any) {
           <Stack.Screen
             name="index"
             initialParams={{
-              tab: t('navigation.label.explorer'),
-              segment: params?.segment
+              segment: params?.segment,
+              tab: t('navigation.label.explorer')
             }}
             options={{ title: 'Explore' }}
           />
@@ -98,8 +98,8 @@ export default function StackLayout(params: any) {
           <Stack.Screen
             name="index"
             initialParams={{
-              tab: t('navigation.label.converter'),
-              segment: params?.segment
+              segment: params?.segment,
+              tab: t('navigation.label.converter')
             }}
             options={{ title: 'Converter' }}
           />
@@ -110,8 +110,8 @@ export default function StackLayout(params: any) {
           <Stack.Screen
             name="index"
             initialParams={{
-              tab: t('navigation.label.signer'),
-              segment: params?.segment
+              segment: params?.segment,
+              tab: t('navigation.label.signer')
             }}
             options={{ title: 'Signer' }}
           />
@@ -132,10 +132,10 @@ export default function StackLayout(params: any) {
           headerBackground: () => (
             <View
               style={{
-                height: '100%',
-                justifyContent: 'center',
                 alignItems: 'center',
-                backgroundColor: Colors.gray[950]
+                backgroundColor: Colors.gray[950],
+                height: '100%',
+                justifyContent: 'center'
               }}
             />
           ),
@@ -155,10 +155,10 @@ export default function StackLayout(params: any) {
             : () => (
                 <SSIconButton
                   style={{
-                    paddingTop: 8,
+                    height: 30,
                     paddingHorizontal: 8,
-                    width: 30,
-                    height: 30
+                    paddingTop: 8,
+                    width: 30
                   }}
                   onPress={() => router.back()}
                 >

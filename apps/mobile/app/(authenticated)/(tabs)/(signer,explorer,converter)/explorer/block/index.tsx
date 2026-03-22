@@ -8,8 +8,8 @@ import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
 import SSButton from '@/components/SSButton'
-import SSExploreBlock from '@/components/SSExploreBlock';
-import type { Block } from '@/components/SSExploreBlock';
+import SSExploreBlock from '@/components/SSExploreBlock'
+import type { Block } from '@/components/SSExploreBlock'
 import SSIconButton from '@/components/SSIconButton'
 import SSNumberInput from '@/components/SSNumberInput'
 import SSText from '@/components/SSText'
@@ -26,11 +26,12 @@ function getDifficultyFromBits(bits: number): number {
   let target = BigInt(mantissa)
   const shift = 8 * (exponent - 3)
   if (shift >= 0) {
-    target *= (BigInt(1) << BigInt(shift))
+    target *= 1n << BigInt(shift)
   } else {
-    target /= (BigInt(1) << BigInt(-shift))
+    target /= 1n << BigInt(-shift)
   }
-  const maxTarget = 0x00000000ffff0000000000000000000000000000000000000000000000000000n
+  const maxTarget =
+    0x00000000FFFF0000000000000000000000000000000000000000000000000000n
   return Number(maxTarget) / Number(target)
 }
 

@@ -1,7 +1,7 @@
 import { useHeaderHeight } from '@react-navigation/elements'
 import { Canvas, Circle, Group } from '@shopify/react-native-skia'
-import { sankey } from 'd3-sankey';
-import type { SankeyNodeMinimal } from 'd3-sankey';
+import { sankey } from 'd3-sankey'
+import type { SankeyNodeMinimal } from 'd3-sankey'
 import { useMemo } from 'react'
 import {
   Platform,
@@ -19,8 +19,8 @@ import { useLayout } from '@/hooks/useLayout'
 import { useNodesAndLinks } from '@/hooks/useNodesAndLinks'
 import type { Output } from '@/types/models/Output'
 import type { Utxo } from '@/types/models/Utxo'
-import { BLOCK_WIDTH } from '@/types/ui/sankey';
-import type { Link, Node } from '@/types/ui/sankey';
+import { BLOCK_WIDTH } from '@/types/ui/sankey'
+import type { Link, Node } from '@/types/ui/sankey'
 
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
@@ -58,9 +58,10 @@ function SSMultipleSankeyDiagram({
 
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
   // Calculate the maximum depthH value across all nodes
-  const maxDepthH = useMemo(() => sankeyNodes.reduce((max, node) => {
-      return Math.max(max, node.depthH)
-    }, 0), [sankeyNodes])
+  const maxDepthH = useMemo(
+    () => sankeyNodes.reduce((max, node) => Math.max(max, node.depthH), 0),
+    [sankeyNodes]
+  )
 
   // Calculate the maximum number of nodes at any depthH level
   const maxNodeCountInDepthH = useMemo(() => {
@@ -71,9 +72,7 @@ function SSMultipleSankeyDiagram({
       depthCounts.set(node.depthH, count + 1)
     })
 
-    return depthCounts.size > 0
-      ? Math.max(...[...depthCounts.values()])
-      : 0
+    return depthCounts.size > 0 ? Math.max(...depthCounts.values()) : 0
   }, [sankeyNodes])
 
   const sankeyGenerator = sankey()
@@ -122,9 +121,9 @@ function SSMultipleSankeyDiagram({
     }
 
     // Find the x position of nodes in the last 3 depthH levels
-    const lastThreeLevels = new Set([maxDepthH, maxDepthH - 1, maxDepthH - 2].filter(
-      (level) => level >= 0
-    ))
+    const lastThreeLevels = new Set(
+      [maxDepthH, maxDepthH - 1, maxDepthH - 2].filter((level) => level >= 0)
+    )
 
     // Find the minimum and maximum x positions among nodes in the last three levels
     let minX = Infinity
@@ -183,23 +182,27 @@ function SSMultipleSankeyDiagram({
   const GRAPH_WIDTH = width
 
   // calculating the sankey node styles to match in skia
-  const nodeStyles = useMemo(() => nodes.map((node) => {
-      const isBlock = (node as Node).type === 'block'
-      const blockNodeHeight =
-        isBlock && (node as Node).ioData?.txSize
-          ? ((node as Node).ioData?.txSize ?? 0) * 0.1
-          : 0
+  const nodeStyles = useMemo(
+    () =>
+      nodes.map((node) => {
+        const isBlock = (node as Node).type === 'block'
+        const blockNodeHeight =
+          isBlock && (node as Node).ioData?.txSize
+            ? ((node as Node).ioData?.txSize ?? 0) * 0.1
+            : 0
 
-      return {
-        localId: (node as Node).localId,
-        x: isBlock
-          ? (node.x0 ?? 0) + (NODE_WIDTH - BLOCK_WIDTH) / 2
-          : (node.x0 ?? 0),
-        y: node.y0 ?? 0,
-        width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
-        height: isBlock ? Math.max(blockNodeHeight, LINK_MAX_WIDTH) : 80
-      }
-    }), [nodes])
+        return {
+          height: isBlock ? Math.max(blockNodeHeight, LINK_MAX_WIDTH) : 80,
+          localId: (node as Node).localId,
+          width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
+          x: isBlock
+            ? (node.x0 ?? 0) + (NODE_WIDTH - BLOCK_WIDTH) / 2
+            : (node.x0 ?? 0),
+          y: node.y0 ?? 0
+        }
+      }),
+    [nodes]
+  )
 
   if (!nodes?.length || !transformedLinks?.length) {
     return null
@@ -289,24 +292,24 @@ function SSMultipleSankeyDiagram({
 
 const styles = StyleSheet.create({
   gestureContainer: {
-    flex: 1,
-    position: 'absolute',
-    top: 0,
-    right: 0,
     bottom: 0,
-    left: 0
+    flex: 1,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0
   },
   iconContainer: {
+    padding: 5,
     position: 'absolute',
-    top: 5,
     right: 5,
-    padding: 5
+    top: 5
   },
   node: {
     backgroundColor: 'transparent',
     borderRadius: 0,
-    width: '100%',
-    height: '100%'
+    height: '100%',
+    width: '100%'
   },
   sankeyOverlay: {
     position: 'relative'

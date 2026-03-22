@@ -1,8 +1,21 @@
-import { Circle, Group, Paint, Paragraph, Skia, TextAlign } from '@shopify/react-native-skia';
-import type { SkTypefaceFontProvider } from '@shopify/react-native-skia';
+import {
+  Circle,
+  Group,
+  Paint,
+  Paragraph,
+  Skia,
+  TextAlign
+} from '@shopify/react-native-skia'
+import type { SkTypefaceFontProvider } from '@shopify/react-native-skia'
 import { memo, useEffect, useMemo } from 'react'
-import { useDerivedValue, useSharedValue, withDelay, withSequence, withTiming } from 'react-native-reanimated';
-import type { SharedValue } from 'react-native-reanimated';
+import {
+  useDerivedValue,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withTiming
+} from 'react-native-reanimated'
+import type { SharedValue } from 'react-native-reanimated'
 
 import { t } from '@/locales'
 import { Colors } from '@/styles'
@@ -53,14 +66,16 @@ function SSBubble({
   }, [dimmed, dimmedOpacity])
 
   const backgroundColor = useDerivedValue(() => {
-    if (selected)
-      {return withTiming(Colors.white, {
+    if (selected) {
+      return withTiming(Colors.white, {
         duration: 0
-      })}
-    if (isZoomedIn?.value)
-      {return withTiming(Colors.gray[300], {
+      })
+    }
+    if (isZoomedIn?.value) {
+      return withTiming(Colors.gray[300], {
         duration: 0
-      })}
+      })
+    }
     return withTiming(Colors.gray[400], {
       duration: 0
     })
@@ -76,7 +91,10 @@ function SSBubble({
     return withTiming(scale.value <= 1 || zoomedRadius <= 100 ? 0 : 1)
   }, [scale, radius])
 
-  const finalOpacity = useDerivedValue(() => opacity.value * dimmedOpacity.value, [opacity, dimmedOpacity])
+  const finalOpacity = useDerivedValue(
+    () => opacity.value * dimmedOpacity.value,
+    [opacity, dimmedOpacity]
+  )
 
   const fontSize = radius / 6
   const satsFontSize = fontSize / 1.5
@@ -86,7 +104,9 @@ function SSBubble({
 
   // Utxo value
   const mainParagraph = useMemo(() => {
-    if (!customFontManager) {return null}
+    if (!customFontManager) {
+      return null
+    }
 
     const textStyle = {
       color: Skia.Color('black'),
@@ -128,14 +148,20 @@ function SSBubble({
     year: 'numeric'
   })
   const dateY = useMemo(() => {
-    if (radius > 10) {return mainY - radius / 8}
-    if (radius > 5) {return mainY - radius / 12}
+    if (radius > 10) {
+      return mainY - radius / 8
+    }
+    if (radius > 5) {
+      return mainY - radius / 12
+    }
     return mainY - radius / 4
   }, [radius, mainY])
 
   const dateX = x - 100 / 2
   const dateParagraph = useMemo(() => {
-    if (!customFontManager) {return null}
+    if (!customFontManager) {
+      return null
+    }
 
     const textStyle = {
       color: Skia.Color(Colors.gray[700]),
@@ -163,13 +189,19 @@ function SSBubble({
   // Utxo Memo
   const memoY = useMemo(() => {
     // spacing based on radius because Skia is not consistent for now
-    if (radius > 10) {return mainY + radius / 4}
-    if (radius > 5) {return mainY + radius / 3.2}
+    if (radius > 10) {
+      return mainY + radius / 4
+    }
+    if (radius > 5) {
+      return mainY + radius / 3.2
+    }
     return mainY + radius / 7
   }, [radius, mainY])
   const memoX = x - 150 / 2
   const memoParagraph = useMemo(() => {
-    if (!customFontManager) {return null}
+    if (!customFontManager) {
+      return null
+    }
 
     const textStyle = {
       color: Skia.Color('black'),
@@ -207,13 +239,19 @@ function SSBubble({
   // Utxo from address
   const fromY = useMemo(() => {
     // spacing based on radius because Skia is not consistent for now
-    if (radius > 10) {return mainY + radius / 2.5}
-    if (radius > 5) {return mainY + radius / 2.2}
+    if (radius > 10) {
+      return mainY + radius / 2.5
+    }
+    if (radius > 5) {
+      return mainY + radius / 2.2
+    }
     return mainY + radius / 3.5
   }, [radius, mainY])
 
   const fromParagraph = useMemo(() => {
-    if (!customFontManager) {return null}
+    if (!customFontManager) {
+      return null
+    }
 
     const textStyle = {
       color: Skia.Color('black'),
@@ -248,7 +286,9 @@ function SSBubble({
     return para
   }, [customFontManager, utxo.addressTo, descriptionFontSize])
 
-  if (!customFontManager) {return null}
+  if (!customFontManager) {
+    return null
+  }
 
   return (
     <Group layer={<Paint opacity={finalOpacity} />}>

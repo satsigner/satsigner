@@ -36,11 +36,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import type {
-  Backend,
-  Network,
-  Server
-} from '@/types/settings/blockchain'
+import type { Backend, Network, Server } from '@/types/settings/blockchain'
 
 export default function CustomNetwork() {
   const { network, editUrl } = useLocalSearchParams<{
@@ -107,7 +103,9 @@ export default function CustomNetwork() {
   const urlPreview = useMemo(() => constructTrimmedUrl(), [constructTrimmedUrl])
 
   useEffect(() => {
-    if (testing && !connectionState) {toast.error(t('error.invalid.backend'))}
+    if (testing && !connectionState) {
+      toast.error(t('error.invalid.backend'))
+    }
   }, [testing, connectionState])
 
   async function handlePaste() {
@@ -125,7 +123,9 @@ export default function CustomNetwork() {
 
   async function handleOpenScan() {
     const { granted } = await requestCameraPermission()
-    if (!granted) {return}
+    if (!granted) {
+      return
+    }
     setScanModalVisible(true)
   }
 
@@ -172,7 +172,9 @@ export default function CustomNetwork() {
   function handleTest() {
     setTesting(false)
 
-    if (!isValid()) {return}
+    if (!isValid()) {
+      return
+    }
 
     const url = constructUrl()
     const server: Server = {
@@ -423,7 +425,9 @@ export default function CustomNetwork() {
           </SSText>
           <CameraView
             onBarcodeScanned={({ data }) => {
-              if (data) {handleScanResult(data)}
+              if (data) {
+                handleScanResult(data)
+              }
             }}
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
             style={{ height: 340, width: 340 }}

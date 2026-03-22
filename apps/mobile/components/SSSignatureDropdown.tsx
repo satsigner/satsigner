@@ -19,8 +19,12 @@ import { useNostrStore } from '@/store/nostr'
 import { Colors, Typography } from '@/styles'
 import type { Account, Key } from '@/types/models/Account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
-import { combinePsbts, validateSignedPSBT, validateSignedPSBTForCosigner } from '@/utils/psbt';
-import type { TransactionData } from '@/utils/psbt';
+import {
+  combinePsbts,
+  validateSignedPSBT,
+  validateSignedPSBTForCosigner
+} from '@/utils/psbt'
+import type { TransactionData } from '@/utils/psbt'
 
 interface SSSignatureDropdownProps {
   index: number
@@ -166,7 +170,7 @@ function SSSignatureDropdown({
 
       if (typeof keyDetails.secret === 'string') {
         if (decryptedKey && typeof decryptedKey.secret === 'object') {
-          const {secret} = decryptedKey
+          const { secret } = decryptedKey
           if (secret.extendedPublicKey) {
             setExtractedPublicKey(secret.extendedPublicKey)
             return
@@ -187,7 +191,7 @@ function SSSignatureDropdown({
       }
 
       if (typeof keyDetails.secret === 'object') {
-        const {secret} = keyDetails
+        const { secret } = keyDetails
 
         if (secret.extendedPublicKey) {
           setExtractedPublicKey(secret.extendedPublicKey)
@@ -519,9 +523,9 @@ export default SSSignatureDropdown
 
 const styles = {
   container: {
-    paddingVertical: 16,
+    borderColor: Colors.gray[700],
     borderTopWidth: 1,
-    borderColor: Colors.gray[700]
+    paddingVertical: 16
   },
   header: {
     paddingVertical: 8
@@ -533,23 +537,23 @@ const styles = {
     borderBottomWidth: 1
   },
   psbtDisplay: {
-    minHeight: 200,
-    maxHeight: 600,
-    padding: 12,
     backgroundColor: Colors.gray[900],
     borderRadius: 8,
-    borderWidth: 1
+    borderWidth: 1,
+    maxHeight: 600,
+    minHeight: 200,
+    padding: 12
   },
   psbtText: {
+    color: Colors.white,
     fontFamily: Typography.sfProMono,
     fontSize: 12,
-    color: Colors.white,
     lineHeight: 18
   },
   signatureIcon: {
-    width: 24,
-    height: 24,
+    backgroundColor: Colors.gray[800],
     borderRadius: 12,
-    backgroundColor: Colors.gray[800]
+    height: 24,
+    width: 24
   }
 }

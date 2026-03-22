@@ -222,13 +222,14 @@ export default function ImportDescriptor() {
         keysRequired,
         scriptVersion: (cleanDescriptor.startsWith('wsh(')
           ? 'P2WSH'
-          : cleanDescriptor.startsWith('sh(')
+          : (cleanDescriptor.startsWith('sh(')
             ? 'P2SH'
-            : 'P2WSH') as 'P2WSH' | 'P2SH'
+            : 'P2WSH')) as 'P2WSH' | 'P2SH'
       }
     } catch (error) {
       throw new Error(
-        `Failed to parse multisig descriptor: ${(error as Error).message}`, { cause: error }
+        `Failed to parse multisig descriptor: ${(error as Error).message}`,
+        { cause: error }
       )
     }
   }
@@ -256,7 +257,7 @@ export default function ImportDescriptor() {
       setExternalDescriptor(descriptor)
 
       // Create internal descriptor by replacing /0/* with /1/*
-      const internalDescriptor = descriptor.replaceAll(/\/0\/\*/g, '/1/*')
+      const internalDescriptor = descriptor.replaceAll('/0/*', '/1/*')
       setInternalDescriptor(internalDescriptor)
 
       // Set up each key in the account builder store
@@ -429,9 +430,9 @@ const styles = StyleSheet.create({
     borderColor: Colors.error
   },
   textArea: {
+    marginBottom: 8,
     minHeight: 120,
-    textAlignVertical: 'top',
-    marginBottom: 8
+    textAlignVertical: 'top'
   },
   valid: {
     borderColor: Colors.success

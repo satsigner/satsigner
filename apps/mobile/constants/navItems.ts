@@ -13,46 +13,46 @@ import {
   SSIconTime
 } from '@/components/icons'
 import { t } from '@/locales'
-import { PLATFORM } from '@/types/navigation/navMenu';
-import type { NavMenuGroup } from '@/types/navigation/navMenu';
+import { PLATFORM } from '@/types/navigation/navMenu'
+import type { NavMenuGroup } from '@/types/navigation/navMenu'
 
 export const navMenuGroups: NavMenuGroup[] = [
   {
     items: [
       {
-        title: t('navigation.item.bitcoin'),
         icon: SSIconBitcoin,
-        url: '/signer/bitcoin/accountList',
         isSoon: false,
-        platform: PLATFORM.HYBRID
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.bitcoin'),
+        url: '/signer/bitcoin/accountList'
       },
       {
+        icon: SSIconLightning,
+        isSoon: false,
+        platform: PLATFORM.HYBRID,
         title: t('navigation.item.lightning'),
-        icon: SSIconLightning,
-        url: '/signer/lightning',
-        isSoon: false,
-        platform: PLATFORM.HYBRID
+        url: '/signer/lightning'
       },
       {
-        title: t('navigation.item.liquid'),
         icon: SSIconLiquid,
-        url: '',
         isSoon: true,
-        platform: PLATFORM.HYBRID
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.liquid'),
+        url: ''
       },
       {
-        title: t('navigation.item.ecash'),
         icon: SSIconECash,
-        url: '/signer/ecash',
         isSoon: false,
-        platform: PLATFORM.HYBRID
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.ecash'),
+        url: '/signer/ecash'
       },
       {
-        title: t('navigation.item.nostr'),
         icon: SSIconLightning,
-        url: '',
         isSoon: true,
-        platform: PLATFORM.HYBRID
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.nostr'),
+        url: ''
       }
     ],
     title: t('navigation.label.signer')
@@ -60,46 +60,46 @@ export const navMenuGroups: NavMenuGroup[] = [
   {
     items: [
       {
-        title: t('navigation.item.chaintip'),
         icon: SSIconChainTip,
-        url: '',
         isSoon: true,
-        platform: PLATFORM.HYBRID
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.chaintip'),
+        url: ''
       },
       {
-        title: t('navigation.item.mempool'),
         icon: SSIconMempool,
-        url: '',
         isSoon: true,
-        platform: PLATFORM.HYBRID
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.mempool'),
+        url: ''
       },
       {
-        title: t('navigation.item.difficulty'),
         icon: SSIconDifficult,
-        url: '/explorer/difficulty',
         isSoon: false,
-        platform: PLATFORM.HYBRID
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.difficulty'),
+        url: '/explorer/difficulty'
       },
       {
-        title: t('navigation.item.block'),
         icon: SSIconBlock,
-        url: '/explorer/block',
         isSoon: false,
-        platform: PLATFORM.HYBRID
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.block'),
+        url: '/explorer/block'
       },
       {
-        title: t('navigation.item.halving'),
         icon: SSIconHalving,
-        url: '',
         isSoon: true,
-        platform: PLATFORM.HYBRID
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.halving'),
+        url: ''
       },
       {
-        title: t('navigation.item.chain'),
         icon: SSIconChain,
-        url: '',
         isSoon: true,
-        platform: PLATFORM.HYBRID
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.chain'),
+        url: ''
       }
     ],
     title: t('navigation.label.explorer')
@@ -107,25 +107,25 @@ export const navMenuGroups: NavMenuGroup[] = [
   {
     items: [
       {
-        title: t('navigation.item.currency'),
         icon: SSIconCurrency,
-        url: '/converter/currency',
         isSoon: false,
-        platform: PLATFORM.HYBRID
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.currency'),
+        url: '/converter/currency'
       },
       {
-        title: t('navigation.item.time'),
         icon: SSIconTime,
-        url: '',
         isSoon: true,
-        platform: PLATFORM.HYBRID
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.time'),
+        url: ''
       },
       {
-        title: t('navigation.item.energy'),
         icon: SSIconLightning,
-        url: '/converter/energy',
         isSoon: false,
-        platform: PLATFORM.ANDROID
+        platform: PLATFORM.ANDROID,
+        title: t('navigation.item.energy'),
+        url: '/converter/energy'
       }
     ],
     title: t('navigation.label.converter')

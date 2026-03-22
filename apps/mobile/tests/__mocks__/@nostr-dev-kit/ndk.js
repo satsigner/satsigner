@@ -42,7 +42,7 @@ class NDK {
   constructor(options = {}) {
     this.explicitRelayUrls = options.explicitRelayUrls || []
     this.pool = {
-      connect: jest.fn().mockResolvedValue(undefined),
+      connect: jest.fn().mockResolvedValue(),
       relays: new Map()
     }
     this.signer = null

@@ -4,8 +4,8 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
-import { TxDecoded, TxField } from '@/utils/txDecoded';
-import type { TxDecodedField } from '@/utils/txDecoded';
+import { TxDecoded, TxField } from '@/utils/txDecoded'
+import type { TxDecodedField } from '@/utils/txDecoded'
 
 import { SSIconChevronDown, SSIconChevronUp } from './icons'
 import SSText from './SSText'
@@ -148,39 +148,39 @@ function SSTransactionDecodedBytes({
       </SSHStack>
       <SSHStack style={styles.bytesContainer} gap="none">
         {decoded.map((item, i) => (
-            <Fragment key={i}>
-              {byteChunks(item.hex).map((byte, j) => {
-                const selected = selectedItem === i
-                return (
-                  <TouchableOpacity
-                    key={`${i}_${j}`}
-                    onPress={() => setSelectedItem(selectedItem === i ? -1 : i)}
+          <Fragment key={i}>
+            {byteChunks(item.hex).map((byte, j) => {
+              const selected = selectedItem === i
+              return (
+                <TouchableOpacity
+                  key={`${i}_${j}`}
+                  onPress={() => setSelectedItem(selectedItem === i ? -1 : i)}
+                >
+                  <SSText
+                    type="mono"
+                    size={textSize}
+                    style={
+                      selected
+                        ? {
+                            backgroundColor: 'white',
+                            color: 'black',
+                            marginBottom: -1,
+                            padding: 2.6
+                          }
+                        : {
+                            color: colors[item.field as TxField],
+                            marginBottom: -1,
+                            padding: 2.6
+                          }
+                    }
                   >
-                    <SSText
-                      type="mono"
-                      size={textSize}
-                      style={
-                        selected
-                          ? {
-                              backgroundColor: 'white',
-                              color: 'black',
-                              padding: 2.6,
-                              marginBottom: -1
-                            }
-                          : {
-                              color: colors[item.field as TxField],
-                              padding: 2.6,
-                              marginBottom: -1
-                            }
-                      }
-                    >
-                      {byte}
-                    </SSText>
-                  </TouchableOpacity>
-                )
-              })}
-            </Fragment>
-          ))}
+                    {byte}
+                  </SSText>
+                </TouchableOpacity>
+              )
+            })}
+          </Fragment>
+        ))}
       </SSHStack>
       <View style={styles.selectedItemContainer}>
         {selectedItem !== -1 && (

@@ -17,9 +17,12 @@ interface SSWarningModalProps {
 
 function SSWarningModal({ visible, onClose, children }: SSWarningModalProps) {
   useEffect(() => {
-    if (Platform.OS !== 'android') {return}
-    if (!visible)
-      {return StatusBar.setStatusBarBackgroundColor('transparent', false)}
+    if (Platform.OS !== 'android') {
+      return
+    }
+    if (!visible) {
+      return StatusBar.setStatusBarBackgroundColor('transparent', false)
+    }
 
     StatusBar.setStatusBarStyle('light')
     StatusBar.setStatusBarBackgroundColor('black', false)

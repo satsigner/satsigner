@@ -2,11 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
-import type {
-  Backend,
-  Network,
-  ProxyConfig
-} from '@/types/settings/blockchain'
+import type { Backend, Network, ProxyConfig } from '@/types/settings/blockchain'
 
 interface NodeInfo {
   version?: string
@@ -32,7 +28,9 @@ export function useConnectionTest() {
   const [lastTestTime, setLastTestTime] = useState<number>(0)
 
   const cleanupPreviousConnection = useCallback(() => {
-    if (!currentClient) {return}
+    if (!currentClient) {
+      return
+    }
 
     // close TLS connection. Apply only toElectrum Client
     if (currentClient.close && typeof currentClient.close === 'function') {
@@ -97,7 +95,11 @@ export function useConnectionTest() {
             client.client as any
           ).mempool_get_fee_histogram?.()
           if (mempoolInfo && Array.isArray(mempoolInfo)) {
-            mempoolSize = mempoolInfo.reduce((sum: number, item: any) => sum + (Array.isArray(item) && item[1] ? item[1] : 0), 0)
+            mempoolSize = mempoolInfo.reduce(
+              (sum: number, item: any) =>
+                sum + (Array.isArray(item) && item[1] ? item[1] : 0),
+              0
+            )
           }
         } catch {
           // optional
@@ -163,7 +165,9 @@ export function useConnectionTest() {
     try {
       const result = await Promise.race([testPromise(), timeoutPromise()])
 
-      if (result && result.success) {return result}
+      if (result && result.success) {
+        return result
+      }
 
       const errorMessage = proxy?.enabled
         ? 'Proxy connection failed. Ensure Tor/Orbot is running.'
@@ -200,9 +204,12 @@ export function useConnectionTest() {
   }
 
   // Cleanup on unmount
-  useEffect(() => () => {
+  useEffect(
+    () => () => {
       cleanupPreviousConnection()
-    }, [cleanupPreviousConnection])
+    },
+    [cleanupPreviousConnection]
+  )
 
   return {
     nodeInfo,

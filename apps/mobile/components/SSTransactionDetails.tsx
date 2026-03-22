@@ -10,8 +10,15 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import type { Account } from '@/types/models/Account'
 import type { Transaction } from '@/types/models/Transaction'
-import { extractIndividualSignedPsbts, extractOriginalPsbt, extractTransactionDataFromPSBTEnhanced, extractTransactionIdFromPSBT, findMatchingAccount, getMultisigInfoFromPsbt } from '@/utils/psbt';
-import type { AccountMatchResult, TransactionData } from '@/utils/psbt';
+import {
+  extractIndividualSignedPsbts,
+  extractOriginalPsbt,
+  extractTransactionDataFromPSBTEnhanced,
+  extractTransactionIdFromPSBT,
+  findMatchingAccount,
+  getMultisigInfoFromPsbt
+} from '@/utils/psbt'
+import type { AccountMatchResult, TransactionData } from '@/utils/psbt'
 import { legacyEstimateTransactionSize } from '@/utils/transaction'
 
 interface SSTransactionDetailsProps {
@@ -187,22 +194,22 @@ function SSTransactionDetails({
 
 const styles = StyleSheet.create({
   chartContainer: {
-    width: '100%',
     overflow: 'hidden',
     paddingLeft: 8,
-    paddingRight: 16
+    paddingRight: 16,
+    width: '100%'
   },
   chatChartContainer: {
+    alignItems: 'center',
     backgroundColor: '#151515',
     borderRadius: 8,
-    padding: 8,
-    paddingLeft: 46,
     marginTop: 2,
-    alignItems: 'center'
+    padding: 8,
+    paddingLeft: 46
   },
   signFlowButton: {
-    marginTop: 8,
-    alignSelf: 'flex-start'
+    alignSelf: 'flex-start',
+    marginTop: 8
   },
   signatureContainer: {
     alignItems: 'center'

@@ -1,9 +1,9 @@
 import { router } from 'expo-router'
-import { TouchableOpacity, View } from 'react-native';
-import type { DimensionValue } from 'react-native';
+import { TouchableOpacity, View } from 'react-native'
+import type { DimensionValue } from 'react-native'
 
-import SSText from '@/components/SSText';
-import type { SSTextProps } from '@/components/SSText';
+import SSText from '@/components/SSText'
+import type { SSTextProps } from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 
@@ -54,13 +54,13 @@ export default function SSDetailsList({
       }}
     >
       {items.map(([header, text, options], index) => (
-          <SSDetailsListItem
-            key={index}
-            {...commonOptions}
-            {...options}
-            {...{ header, text, width: options?.width || width }}
-          />
-        ))}
+        <SSDetailsListItem
+          key={index}
+          {...commonOptions}
+          {...options}
+          {...{ header, text, width: options?.width || width }}
+        />
+      ))}
     </SSHStack>
   )
 }

@@ -43,8 +43,8 @@ const networks = {
     scriptHash: 0xC4, // Same as testnet
     wif: 0xEF, // Same as testnet
     bip32: {
-      private: 0x04358394,
-      public: 0x043587cf
+      private: 0x04_35_83_94,
+      public: 0x043587CF
     }
   } as bitcoin.Network
 }
@@ -86,7 +86,9 @@ const getNetworkFromAddress = (address: string) => {
 
 // Add this helper function after bitsToTarget
 const encodeScriptNum = (num: number): Buffer => {
-  if (num === 0) {return Buffer.alloc(0)}
+  if (num === 0) {
+    return Buffer.alloc(0)
+  }
   const negative = num < 0
   let absvalue = Math.abs(num)
   const result = []
@@ -257,8 +259,8 @@ export default function Energy() {
           data.transactions
             ?.slice(0, 20)
             .map((tx: BlockTemplateTransaction) => ({
-              txid: tx.txid,
               fee: tx.fee,
+              txid: tx.txid,
               weight: tx.weight
             })) || [],
         transactions: data.transactions?.length || 0
@@ -270,7 +272,9 @@ export default function Energy() {
   }, [])
 
   const fetchBlockTemplate = useCallback(async () => {
-    if (!isConnected) {return}
+    if (!isConnected) {
+      return
+    }
 
     const now = Date.now()
     if (now - lastTemplateUpdateRef.current < 30_000) {
@@ -360,7 +364,9 @@ export default function Energy() {
   }, [isConnected, formatTemplateData, fetchRpc, blockTemplate])
 
   const fetchBlockchainInfo = useCallback(async () => {
-    if (!isConnected) {return}
+    if (!isConnected) {
+      return
+    }
 
     setIsLoadingInfo(true)
     try {
@@ -425,8 +431,7 @@ export default function Energy() {
       }
       const data = await response.json()
       // Get the latest hash rate from the hashrates array
-      const latestHashRate =
-        data.hashrates.at(-1).avgHashrate
+      const latestHashRate = data.hashrates.at(-1).avgHashrate
       // Convert to exahashes per second (1 EH/s = 10^18 hashes per second)
       const hashRateInEH = (latestHashRate / 1e18).toFixed(2)
       setNetworkHashRate(hashRateInEH)
@@ -497,12 +502,15 @@ export default function Energy() {
   }, [isConnected, fetchBlockTemplate])
 
   // Clean up on unmount
-  useEffect(() => () => {
+  useEffect(
+    () => () => {
       if (templateUpdateIntervalRef.current) {
         clearInterval(templateUpdateIntervalRef.current)
         templateUpdateIntervalRef.current = null
       }
-    }, [])
+    },
+    []
+  )
 
   // Add useEffect for initial address validation
   useEffect(() => {
@@ -599,7 +607,7 @@ export default function Energy() {
     // For other networks, calculate target from bits
     const bitsNum = Number.parseInt(bits, 16)
     const exponent = bitsNum >>> 24
-    const mantissa = bitsNum & 0xff_ff_ff
+    const mantissa = bitsNum & 0xFF_FF_FF
     const target = Buffer.alloc(32, 0)
     let mantissaBuf = Buffer.alloc(4)
     mantissaBuf.writeUInt32BE(mantissa, 0)
@@ -693,8 +701,8 @@ export default function Energy() {
 
       tx.addInput(
         Buffer.alloc(32), // Previous txid (32 bytes of zeros for coinbase)
-        0xFFFFFFFF, // Previous vout (0xffffffff for coinbase)
-        0xff_ff_ff_ff, // Sequence (0xffffffff for coinbase)
+        0xFF_FF_FF_FF, // Previous vout (0xffffffff for coinbase)
+        0xFF_FF_FF_FF, // Sequence (0xffffffff for coinbase)
         coinbaseScript
       )
 
@@ -746,8 +754,7 @@ export default function Energy() {
             // Convert txid to little-endian for merkle root
             return Buffer.from(tx.txid, 'hex').toReversed()
           }
-            throw new Error('Invalid transaction format')
-          
+          throw new Error('Invalid transaction format')
         })
 
         while (hashes.length > 1) {
@@ -772,7 +779,8 @@ export default function Energy() {
       } catch (error) {
         throw new Error(
           'Failed to create merkle root: ' +
-            (error instanceof Error ? error.message : 'Unknown error'), { cause: error }
+            (error instanceof Error ? error.message : 'Unknown error'),
+          { cause: error }
         )
       }
     },
@@ -794,7 +802,10 @@ export default function Energy() {
       header.writeUInt32LE(template.version, 0)
 
       // Previous block hash (32 bytes) - little endian
-      const prevHash = Buffer.from(template.previousblockhash, 'hex').toReversed()
+      const prevHash = Buffer.from(
+        template.previousblockhash,
+        'hex'
+      ).toReversed()
       prevHash.copy(header, 4)
 
       // Merkle root (32 bytes) - little endian
@@ -809,7 +820,7 @@ export default function Energy() {
       header.writeUInt32LE(bitsNum, 72)
 
       // Nonce (4 bytes) - little endian
-      header.writeUInt32LE(nonce & 0xff_ff_ff_ff, 76)
+      header.writeUInt32LE(nonce & 0xFF_FF_FF_FF, 76)
       return header
     },
     []
@@ -1134,7 +1145,7 @@ export default function Energy() {
               }
 
               // Check if we need to increment extra nonce
-              if (nonce >= 0xff_ff_ff_ff) {
+              if (nonce >= 0xFF_FF_FF_FF) {
                 nonce = 0
                 if (!useExtraNonce) {
                   // Only recreate coinbase and merkle root when we need to start using extra nonce
@@ -1300,7 +1311,9 @@ export default function Energy() {
   }, [isMining]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchTransaction = useCallback(async () => {
-    if (!txId || !isConnected) {return}
+    if (!txId || !isConnected) {
+      return
+    }
 
     setIsLoadingTx(true)
     setTxError('')
@@ -1851,8 +1864,8 @@ const styles = StyleSheet.create({
     marginBottom: -10
   },
   buttonContainer: {
-    width: '100%',
-    paddingVertical: 20
+    paddingVertical: 20,
+    width: '100%'
   },
   chainInfoContainer: {
     paddingTop: 40
@@ -1863,25 +1876,25 @@ const styles = StyleSheet.create({
     paddingBottom: 100
   },
   difficultyBar: {
-    width: '100%',
-    height: 8,
     backgroundColor: Colors.gray[900],
     borderRadius: 4,
-    marginVertical: 10
+    height: 8,
+    marginVertical: 10,
+    width: '100%'
   },
   difficultyProgress: {
-    width: '0%',
-    height: '100%',
     backgroundColor: Colors.white,
-    borderRadius: 4
+    borderRadius: 4,
+    height: '100%',
+    width: '0%'
   },
   errorContainer: {
+    alignItems: 'center',
     backgroundColor: Colors.gray[900],
     borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 100
+    minHeight: 100,
+    padding: 16
   },
   errorText: {
     marginTop: 8,
@@ -1894,24 +1907,24 @@ const styles = StyleSheet.create({
   hashScroll: {
     backgroundColor: Colors.gray[900],
     borderRadius: 8,
-    padding: 16,
+    height: 70,
     maxHeight: 70,
-    height: 70
+    padding: 16
   },
   headerScroll: {
     backgroundColor: Colors.gray[900],
     borderRadius: 8,
-    padding: 16,
+    height: 95,
     maxHeight: 95,
-    height: 95
+    padding: 16
   },
   loadingContainer: {
+    alignItems: 'center',
     backgroundColor: Colors.gray[900],
     borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 100
+    minHeight: 100,
+    padding: 16
   },
   mainContent: {
     flex: 1,
@@ -1922,14 +1935,14 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   slider: {
-    width: '100%',
+    backgroundColor: Colors.gray[850],
     height: 60,
     marginHorizontal: 0,
-    backgroundColor: Colors.gray[850]
+    width: '100%'
   },
   statsContainer: {
-    width: '100%',
-    paddingVertical: 20
+    paddingVertical: 20,
+    width: '100%'
   },
   statsGrid: {
     width: '100%'

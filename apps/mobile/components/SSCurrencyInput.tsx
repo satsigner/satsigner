@@ -1,5 +1,5 @@
-import { forwardRef, useEffect, useMemo, useState } from 'react';
-import type { ForwardedRef } from 'react';
+import { forwardRef, useEffect, useMemo, useState } from 'react'
+import type { ForwardedRef } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes, Typography } from '@/styles'
@@ -66,17 +66,19 @@ function SSCurrencyInput(
   function handleTextChange(text: string) {
     if (text === '') {
       setLocalValue('0')
-      if (onChangeValue) {onChangeValue(0)}
+      if (onChangeValue) {
+        onChangeValue(0)
+      }
       return
     }
 
-    const rawValue = text.replaceAll(/,/g, '')
+    const rawValue = text.replaceAll(',', '')
     if (/^(\d*\.?\d*)$/.test(rawValue)) {
       const formattedValue = formatNumberWithCommas(rawValue, decimal)
       setLocalValue(formattedValue)
 
       if (onChangeValue) {
-        const cleanNum = formattedValue.replaceAll(/,/g, '')
+        const cleanNum = formattedValue.replaceAll(',', '')
         onChangeValue(Number.parseFloat(cleanNum))
       }
     }
@@ -107,7 +109,7 @@ function SSCurrencyInput(
 
   useEffect(() => {
     if (value !== localValue && value !== undefined) {
-      const rawValue = value?.replaceAll(/,/g, '')
+      const rawValue = value?.replaceAll(',', '')
       setLocalValue(formatNumberWithCommas(rawValue, decimal) || '')
     }
   }, [value]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -131,21 +133,21 @@ function SSCurrencyInput(
 const styles = StyleSheet.create({
   actionRightBase: {
     position: 'absolute',
-    top: '50%',
     right: 12,
+    top: '50%',
     transform: [{ translateY: -12 }]
   },
   alignCenter: {
-    textAlign: 'center',
-    paddingHorizontal: 12
+    paddingHorizontal: 12,
+    textAlign: 'center'
   },
   alignLeft: {
-    textAlign: 'left',
-    paddingHorizontal: 12
+    paddingHorizontal: 12,
+    textAlign: 'left'
   },
   borderInvalid: {
-    borderWidth: 2,
-    borderColor: Colors.error
+    borderColor: Colors.error,
+    borderWidth: 2
   },
   containerBase: {
     position: 'relative',
@@ -165,17 +167,17 @@ const styles = StyleSheet.create({
   },
   textInputBase: {
     borderRadius: Sizes.textInput.borderRadius,
-    width: '100%',
-    textAlign: 'center',
     color: Colors.white,
-    fontFamily: Typography.sfProTextRegular
+    fontFamily: Typography.sfProTextRegular,
+    textAlign: 'center',
+    width: '100%'
   },
   variantDefault: {
     backgroundColor: Colors.gray[850]
   },
   variantOutline: {
-    borderWidth: 1,
-    borderColor: Colors.gray[400]
+    borderColor: Colors.gray[400],
+    borderWidth: 1
   }
 })
 

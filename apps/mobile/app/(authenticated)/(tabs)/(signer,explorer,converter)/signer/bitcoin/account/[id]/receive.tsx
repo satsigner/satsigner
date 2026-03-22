@@ -80,14 +80,19 @@ export default function Receive() {
     return (address.match(/(.{1,4})/g) || []).join(' ')
   }
 
-  useEffect(() => () => {
+  useEffect(
+    () => () => {
       if (saveLabelTimeoutRef.current) {
         clearTimeout(saveLabelTimeoutRef.current)
       }
-    }, [])
+    },
+    []
+  )
 
   const localFinalAddressQR = useMemo(() => {
-    if (!localAddressQR) {return ''}
+    if (!localAddressQR) {
+      return ''
+    }
 
     const queryParts: string[] = []
 
@@ -140,7 +145,9 @@ export default function Receive() {
     }
 
     async function loadAddress() {
-      if (!addressInfo?.address) {return}
+      if (!addressInfo?.address) {
+        return
+      }
 
       const [address, qrUri] = await Promise.all([
         addressInfo.address.asString(),
@@ -170,7 +177,9 @@ export default function Receive() {
   }, [addressInfo, wallet, account?.keys, account?.addresses, isManualAddress])
 
   async function generateAnotherAddress() {
-    if (!wallet || !account) {return}
+    if (!wallet || !account) {
+      return
+    }
 
     setIsGenerating(true)
     try {
@@ -188,7 +197,9 @@ export default function Receive() {
         localAddressQR: qrUri
       })
 
-      const existingAddress = account.addresses.find((addr) => addr.address === address)
+      const existingAddress = account.addresses.find(
+        (addr) => addr.address === address
+      )
       if (existingAddress?.label) {
         setLocalLabel(existingAddress.label)
       } else {
@@ -234,7 +245,9 @@ export default function Receive() {
   )
 
   async function handleNFCExport() {
-    if (!localFinalAddressQR) {return}
+    if (!localFinalAddressQR) {
+      return
+    }
 
     try {
       await emitNFCTag(localFinalAddressQR)
@@ -252,25 +265,35 @@ export default function Receive() {
   }
 
   function getFiatAmount(sats: string): string {
-    if (!sats || isNaN(Number(sats)) || Number(sats) <= 0) {return ''}
+    if (!sats || isNaN(Number(sats)) || Number(sats) <= 0) {
+      return ''
+    }
     const fiatAmount = satsToFiat(Number(sats))
     return fiatAmount > 0 ? `≈ ${fiatAmount.toFixed(2)} ${fiatCurrency}` : ''
   }
 
   function getSatsFromFiat(fiat: string): number | null {
-    if (!fiat || isNaN(Number(fiat)) || Number(fiat) <= 0) {return null}
-    if (!btcPrice || btcPrice <= 0) {return null}
+    if (!fiat || isNaN(Number(fiat)) || Number(fiat) <= 0) {
+      return null
+    }
+    if (!btcPrice || btcPrice <= 0) {
+      return null
+    }
     return Math.round((Number(fiat) / btcPrice) * 1e8)
   }
 
   function getSatsDisplay(fiat: string): string {
     const sats = getSatsFromFiat(fiat)
-    if (sats === null) {return ''}
+    if (sats === null) {
+      return ''
+    }
     return `≈ ${sats.toLocaleString()} ${t('bitcoin.sats')}`
   }
 
   function handleSwitchToFiat() {
-    if (!btcPrice || btcPrice <= 0) {return}
+    if (!btcPrice || btcPrice <= 0) {
+      return
+    }
     if (localCustomAmount && Number(localCustomAmount) > 0) {
       const fiat = satsToFiat(Number(localCustomAmount))
       setLocalFiatAmount(fiat > 0 ? fiat.toFixed(2) : '')
@@ -281,7 +304,9 @@ export default function Receive() {
   function handleSwitchToSats() {
     if (localFiatAmount) {
       const sats = getSatsFromFiat(localFiatAmount)
-      if (sats !== null) {setLocalCustomAmount(sats.toString())}
+      if (sats !== null) {
+        setLocalCustomAmount(sats.toString())
+      }
     }
     setAmountMode('sats')
   }
@@ -319,7 +344,9 @@ export default function Receive() {
     }
   }
 
-  if (!account) {return <Redirect href="/" />}
+  if (!account) {
+    return <Redirect href="/" />
+  }
 
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>
@@ -558,16 +585,16 @@ export default function Receive() {
 
 const styles = StyleSheet.create({
   addressTextInput: {
-    fontFamily: 'monospace',
-    color: Colors.white,
-    padding: 16,
-    paddingBottom: 22,
     backgroundColor: Colors.gray[800],
     borderRadius: 4,
-    minWidth: 280,
+    color: Colors.white,
+    fontFamily: 'monospace',
     fontSize: 16,
-    lineHeight: 30,
     letterSpacing: 1.5,
+    lineHeight: 30,
+    minWidth: 280,
+    padding: 16,
+    paddingBottom: 22,
     textAlign: 'left'
   },
   amountTextInput: {
@@ -577,20 +604,20 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[850],
     borderRadius: 3,
     color: Colors.white,
-    textAlign: 'center',
-    width: '100%',
     height: 58,
-    paddingHorizontal: 12
+    paddingHorizontal: 12,
+    textAlign: 'center',
+    width: '100%'
   },
   labelTextInput: {
+    fontSize: 14,
     height: 'auto',
-    textAlignVertical: 'top',
+    letterSpacing: 0.5,
+    lineHeight: 22,
     padding: 16,
     paddingBottom: 32,
-    fontSize: 14,
-    lineHeight: 22,
-    letterSpacing: 0.5,
-    textAlign: 'left'
+    textAlign: 'left',
+    textAlignVertical: 'top'
   },
   sectionSpacing: {
     marginVertical: 10
@@ -602,17 +629,17 @@ const styles = StyleSheet.create({
     flex: 1
   },
   uriTextInput: {
-    fontFamily: 'monospace',
-    color: Colors.white,
-    padding: 8,
     backgroundColor: Colors.gray[800],
     borderRadius: 4,
-    minWidth: 280,
-    minHeight: 80,
+    color: Colors.white,
+    fontFamily: 'monospace',
     fontSize: 14,
-    textAlign: 'left',
-    paddingBottom: 32,
+    letterSpacing: 0.5,
     lineHeight: 18,
-    letterSpacing: 0.5
+    minHeight: 80,
+    minWidth: 280,
+    padding: 8,
+    paddingBottom: 32,
+    textAlign: 'left'
   }
 })

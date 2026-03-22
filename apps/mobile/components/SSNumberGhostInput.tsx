@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { StyleSheet, TouchableHighlight, View } from 'react-native';
-import type { TextInput } from 'react-native';
+import { StyleSheet, TouchableHighlight, View } from 'react-native'
+import type { TextInput } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import { Colors, Sizes, Typography } from '@/styles'

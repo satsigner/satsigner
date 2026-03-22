@@ -34,7 +34,9 @@ function UtxoLabel() {
     router.back()
   }
 
-  if (!utxo || !txid || !accountId || !vout) {return <Redirect href="/" />}
+  if (!utxo || !txid || !accountId || !vout) {
+    return <Redirect href="/" />
+  }
 
   return (
     <ScrollView>

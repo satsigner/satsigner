@@ -74,8 +74,11 @@ function SelectUtxoBubbles() {
     (utxo: Utxo) => {
       const includesInput = hasInput(utxo)
 
-      if (includesInput) {removeInput(utxo)}
-      else {addInput(utxo)}
+      if (includesInput) {
+        removeInput(utxo)
+      } else {
+        addInput(utxo)
+      }
     },
     [hasInput, removeInput, addInput]
   )
@@ -239,21 +242,21 @@ function SelectUtxoBubbles() {
 
 const styles = StyleSheet.create({
   absoluteSubmitContainer: {
-    position: 'absolute',
+    backgroundColor: Colors.transparent,
     bottom: 0,
-    width: '100%',
     flexDirection: 'row',
     justifyContent: 'center',
-    backgroundColor: Colors.transparent,
+    paddingBottom: 20,
     paddingHorizontal: 0,
     paddingTop: 0,
-    paddingBottom: 20
+    position: 'absolute',
+    width: '100%'
   },
   absoluteTopContainer: {
-    width: '100%',
-    position: 'absolute',
     paddingHorizontal: Layout.mainContainer.paddingHorizontal,
     paddingTop: Layout.mainContainer.paddingTop,
+    position: 'absolute',
+    width: '100%',
     zIndex: 20
   }
 })

@@ -2,8 +2,8 @@ import ecc from '@bitcoinerlab/secp256k1'
 import { HDKey } from '@scure/bip32' // TODO: remove @scure
 import * as bip39 from '@scure/bip39' // TODO: remove @scure
 import { KeychainKind, Network as BDKNetwork } from 'bdk-rn/lib/lib/enums'
-import { BIP32Factory } from 'bip32';
-import type { BIP32Interface } from 'bip32';
+import { BIP32Factory } from 'bip32'
+import type { BIP32Interface } from 'bip32'
 
 import type { ScriptVersionType } from '@/types/models/Account'
 import type { Network as AppNetwork } from '@/types/settings/blockchain'
@@ -14,8 +14,8 @@ import {
 
 // HD key versions for different networks
 const VERSIONS = {
-  mainnet: { private: 0x0488ade4, public: 0x0488b21e },
-  testnet: { private: 0x04358394, public: 0x043587cf }
+  mainnet: { private: 0x04_88_AD_E4, public: 0x0488B21E },
+  testnet: { private: 0x04_35_83_94, public: 0x043587CF }
 }
 
 const bip32 = BIP32Factory(ecc)
@@ -31,16 +31,16 @@ We need to convert BDK Network enum type to the type used by BIP32Interface.
 
 const BIP32NetworkMainnet: BIP32Interface['network'] = {
   bip32: {
-    private: 0x0488ade4,
-    public: 0x0488b21e
+    private: 0x0488ADE4,
+    public: 0x0488B21E
   },
   wif: 0x80
 }
 
 const BIP32NetworkTestnet: BIP32Interface['network'] = {
   bip32: {
-    private: 0x04358394,
-    public: 0x043587cf
+    private: 0x04_35_83_94,
+    public: 0x043587CF
   },
   wif: 0xEF
 }
@@ -411,7 +411,7 @@ function getP2TRXpub(seed: Uint8Array, network: 'mainnet' | 'testnet'): string {
  * Convert a Uint8Array to hex string
  */
 export function toHex(u8: Uint8Array | undefined): string {
-  return [...u8 || []]
+  return [...(u8 || [])]
     .map((b: number) => b.toString(16).padStart(2, '0'))
     .join('')
 }

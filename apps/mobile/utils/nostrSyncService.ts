@@ -9,8 +9,8 @@ import {
 import { useNostrStore } from '@/store/nostr'
 import type { Account } from '@/types/models/Account'
 import type { NostrMessage } from '@/types/models/Nostr'
-import { calculateRetryDelay } from '@/utils/retryManager';
-import type { RetryConfig } from '@/utils/retryManager';
+import { calculateRetryDelay } from '@/utils/retryManager'
+import type { RetryConfig } from '@/utils/retryManager'
 
 export type SyncStatus = 'idle' | 'connecting' | 'syncing' | 'error'
 
@@ -161,7 +161,9 @@ async function createDataExchangeSubscription(
 
 async function cleanupSubscription(accountId: string): Promise<void> {
   const handle = subscriptions.get(accountId)
-  if (!handle) {return}
+  if (!handle) {
+    return
+  }
 
   subscriptions.delete(accountId)
   useNostrStore.getState().setSyncing(accountId, false)
@@ -192,11 +194,21 @@ async function doStartSync(
   const { autoSync, commonNsec, commonNpub, deviceNsec, deviceNpub, relays } =
     account.nostr || {}
 
-  if (!autoSync) {return}
-  if (!relays?.length) {return}
-  if (!commonNsec || !commonNpub || !deviceNsec || !deviceNpub) {return}
-  if (isSubscribingMap.get(account.id)) {return}
-  if (subscriptions.has(account.id)) {return}
+  if (!autoSync) {
+    return
+  }
+  if (!relays?.length) {
+    return
+  }
+  if (!commonNsec || !commonNpub || !deviceNsec || !deviceNpub) {
+    return
+  }
+  if (isSubscribingMap.get(account.id)) {
+    return
+  }
+  if (subscriptions.has(account.id)) {
+    return
+  }
 
   isSubscribingMap.set(account.id, true)
   emitStatus(account.id, 'connecting')
@@ -235,8 +247,12 @@ async function doFetchOnce(
   const { autoSync, commonNsec, commonNpub, deviceNsec, deviceNpub, relays } =
     account.nostr || {}
 
-  if (!autoSync) {return}
-  if (!relays?.length || !commonNsec || !commonNpub) {return}
+  if (!autoSync) {
+    return
+  }
+  if (!relays?.length || !commonNsec || !commonNpub) {
+    return
+  }
 
   emitStatus(account.id, 'syncing')
 

@@ -217,7 +217,7 @@ describe('electrum seed utils', () => {
 
     it('is case and whitespace insensitive', async () => {
       const upper = electrumSegwitMnemonic.toUpperCase()
-      const extraSpaces = electrumSegwitMnemonic.replaceAll(/ /g, '  ')
+      const extraSpaces = electrumSegwitMnemonic.replaceAll(' ', '  ')
       await expect(detectElectrumSeed(upper)).resolves.toBe('segwit')
       await expect(detectElectrumSeed(extraSpaces)).resolves.toBe('segwit')
     })

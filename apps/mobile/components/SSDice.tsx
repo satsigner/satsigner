@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import type { ViewStyle } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import type { ViewStyle } from 'react-native'
 
 interface SSDiceProps {
   children: ReactNode
@@ -22,14 +22,14 @@ function SSDice({ children, onPress, style }: SSDiceProps) {
 
 const styles = StyleSheet.create({
   dice: {
-    borderRadius: 12,
     alignItems: 'center',
+    borderRadius: 12,
     justifyContent: 'center'
   },
   wrapper: {
-    padding: 4,
     borderRadius: 12,
-    opacity: 0.2
+    opacity: 0.2,
+    padding: 4
   }
 })
 

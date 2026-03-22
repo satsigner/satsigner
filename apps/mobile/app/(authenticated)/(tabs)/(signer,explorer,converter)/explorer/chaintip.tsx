@@ -33,7 +33,11 @@ const chartFont = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
 const tn = _tn('explorer.chaintip')
 
 type SectionSource = 'backend' | 'mempool'
-interface MempoolStats { count?: number; vsize?: number; total_fee?: number }
+interface MempoolStats {
+  count?: number
+  vsize?: number
+  total_fee?: number
+}
 
 interface ChainData {
   height: number | null
@@ -173,7 +177,9 @@ async function fetchMempoolFallback(
       } catch {}
     })(),
     (async () => {
-      if (data.mempool !== null) {return}
+      if (data.mempool !== null) {
+        return
+      }
       try {
         const md = await oracle.getMemPool()
         data.mempool = {
@@ -235,9 +241,9 @@ export default function ChainTip() {
       fallbackOracle.getMempoolStatistics(
         feeChartTimeRange === '2hours'
           ? '2h'
-          : feeChartTimeRange === 'day'
+          : (feeChartTimeRange === 'day'
             ? '24h'
-            : '1w'
+            : '1w')
       ),
     queryKey: ['chaintip-statistics', feeChartTimeRange],
     staleTime: time.minutes(5)
@@ -252,10 +258,10 @@ export default function ChainTip() {
       const now = Math.floor(Date.now() / 1000)
       const timestamps = Array.from(
         { length: PRICE_CHART_DAYS },
-        (_, i) => now - (PRICE_CHART_DAYS - 1 - i) * 86400
+        (_, i) => now - (PRICE_CHART_DAYS - 1 - i) * 86_400
       )
       const prices = await fallbackOracle.getPricesAt(fiatCurrency, timestamps)
-      return { timestamps, prices }
+      return { prices, timestamps }
     },
     queryKey: ['chaintip-price-history', fiatCurrency],
     staleTime: time.minutes(10)
@@ -265,17 +271,22 @@ export default function ChainTip() {
     if (
       !priceHistoryResult?.timestamps?.length ||
       !priceHistoryResult?.prices?.length
-    )
-      {return []}
+    ) {
+      return []
+    }
     const { timestamps, prices } = priceHistoryResult
     return timestamps.map((ts, i) => ({ price: prices[i] ?? 0, x: ts }))
   }, [priceHistoryResult])
 
   const priceChartDomain = useMemo(() => {
-    if (priceChartData.length === 0) {return undefined}
+    if (priceChartData.length === 0) {
+      return
+    }
     const prices = priceChartData.map((d) => d.price).filter((p) => p > 0)
     const xValues = priceChartData.map((d) => d.x)
-    if (prices.length === 0 || xValues.length === 0) {return undefined}
+    if (prices.length === 0 || xValues.length === 0) {
+      return
+    }
     const minY = Math.min(...prices)
     const maxY = Math.max(...prices)
     const padY = (maxY - minY) * 0.1 || 1

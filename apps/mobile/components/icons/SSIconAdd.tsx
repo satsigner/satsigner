@@ -1,5 +1,5 @@
-import Svg, { Ellipse, G, Path } from 'react-native-svg';
-import type { SvgProps } from 'react-native-svg';
+import Svg, { Ellipse, G, Path } from 'react-native-svg'
+import type { SvgProps } from 'react-native-svg'
 
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 

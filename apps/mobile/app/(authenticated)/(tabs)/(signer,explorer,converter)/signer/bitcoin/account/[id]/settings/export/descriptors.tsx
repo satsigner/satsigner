@@ -83,7 +83,9 @@ export default function ExportDescriptors() {
 
   useEffect(() => {
     async function getDescriptors() {
-      if (!account) {return}
+      if (!account) {
+        return
+      }
       try {
         const isImportAddress =
           account.keys?.[0]?.creationType === 'importAddress'
@@ -102,7 +104,7 @@ export default function ExportDescriptors() {
               descriptorString =
                 'No key data available for single signature account'
             } else {
-              const {secret} = key
+              const { secret } = key
               let extendedPublicKey = ''
               let fingerprint = ''
 
@@ -115,7 +117,7 @@ export default function ExportDescriptors() {
               // Get extended public key from various possible sources
               if (typeof secret === 'object') {
                 if (secret.extendedPublicKey) {
-                  ({ extendedPublicKey } = secret)
+                  ;({ extendedPublicKey } = secret)
                 } else if (secret.externalDescriptor) {
                   extendedPublicKey = getExtendedKeyFromDescriptor(
                     secret.externalDescriptor
@@ -150,7 +152,7 @@ export default function ExportDescriptors() {
 
               // If we still don't have a fingerprint, try to get it from the key's fingerprint property
               if (!fingerprint && key.fingerprint) {
-                ({ fingerprint } = key)
+                ;({ fingerprint } = key)
               }
 
               if (fingerprint && extendedPublicKey) {
@@ -214,8 +216,9 @@ export default function ExportDescriptors() {
               // Extract fingerprints and extended public keys for each key
               const keyData = await Promise.all(
                 temporaryAccount.keys.map(async (key, index) => {
-                  if (!key)
-                    {return { fingerprint: '', extendedPublicKey: '', index }}
+                  if (!key) {
+                    return { extendedPublicKey: '', fingerprint: '', index }
+                  }
 
                   const secret = key.secret as Secret
                   let extendedPublicKey = ''
@@ -231,7 +234,7 @@ export default function ExportDescriptors() {
                   if (typeof secret === 'object') {
                     // First, try to get from extendedPublicKey directly
                     if (secret.extendedPublicKey) {
-                      ({ extendedPublicKey } = secret)
+                      ;({ extendedPublicKey } = secret)
                     } else if (secret.externalDescriptor) {
                       extendedPublicKey = getExtendedKeyFromDescriptor(
                         secret.externalDescriptor
@@ -267,7 +270,7 @@ export default function ExportDescriptors() {
 
                   // If we still don't have a fingerprint, try to get it from the key's fingerprint property
                   if (!fingerprint && key.fingerprint) {
-                    ({ fingerprint } = key)
+                    ;({ fingerprint } = key)
                   }
 
                   // If we still don't have an extended public key, try to get it from the key's secret
@@ -321,7 +324,10 @@ export default function ExportDescriptors() {
 
                 // Build key section with policy-based derivation paths
                 const keySection = sortedKeyData
-                  .map(({ fingerprint, extendedPublicKey }) => `[${fingerprint}/${cleanPolicyPath}]${extendedPublicKey}/<0;1>/*`)
+                  .map(
+                    ({ fingerprint, extendedPublicKey }) =>
+                      `[${fingerprint}/${cleanPolicyPath}]${extendedPublicKey}/<0;1>/*`
+                  )
                   .join(',')
 
                 // Create descriptor based on account type
@@ -547,7 +553,9 @@ export default function ExportDescriptors() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function exportDescriptors() {
-    if (!account) {return}
+    if (!account) {
+      return
+    }
     const date = new Date().toISOString().slice(0, -5)
     const ext = 'txt'
     const filename = `${t(
@@ -562,12 +570,16 @@ export default function ExportDescriptors() {
   }
 
   async function exportDescriptorsPDF() {
-    if (!account || !exportContent) {return}
+    if (!account || !exportContent) {
+      return
+    }
     generatePDF()
   }
 
   async function generatePDF() {
-    if (!account || !exportContent) {return}
+    if (!account || !exportContent) {
+      return
+    }
 
     try {
       // Capture QR code as image using react-native-view-shot
@@ -588,7 +600,9 @@ export default function ExportDescriptors() {
   }
 
   async function createPDFWithQR(qrDataURL: string) {
-    if (!account) {return}
+    if (!account) {
+      return
+    }
     const title = account.name
 
     const htmlContent = `
@@ -682,7 +696,9 @@ export default function ExportDescriptors() {
     }
   }
 
-  if (!account) {return <Redirect href="/" />}
+  if (!account) {
+    return <Redirect href="/" />
+  }
 
   const descriptors = (exportContent || '').split('\n').filter(Boolean)
 

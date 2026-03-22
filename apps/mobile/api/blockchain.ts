@@ -31,15 +31,21 @@ export class MempoolOracle implements BlockchainOracle {
   }
 
   async get(endpoint: string) {
-    return fetch(this.baseUrl + endpoint).then((response: any) => response.json() as any)
+    return fetch(this.baseUrl + endpoint).then(
+      (response: any) => response.json() as any
+    )
   }
 
   async getText(endpoint: string): Promise<string> {
-    return fetch(this.baseUrl + endpoint).then((response: any) => response.text() as string)
+    return fetch(this.baseUrl + endpoint).then(
+      (response: any) => response.text() as string
+    )
   }
 
   async getBinary(endpoint: string): Promise<ArrayBuffer> {
-    return fetch(this.baseUrl + endpoint).then((response: any) => response.arrayBuffer() as ArrayBuffer)
+    return fetch(this.baseUrl + endpoint).then(
+      (response: any) => response.arrayBuffer() as ArrayBuffer
+    )
   }
 
   async getAddressUtxos(address: string): Promise<UTXO[]> {
@@ -162,7 +168,7 @@ export class MempoolOracle implements BlockchainOracle {
     const data: any = await this.get(
       `/v1/historical-price?currency=${currency}&timestamp=${timestamp}`
     )
-    const {prices} = data
+    const { prices } = data
     return prices[0][currency] as number
   }
 
@@ -207,7 +213,7 @@ export class MempoolOracle implements BlockchainOracle {
     const priceValues: PriceValue[] = []
     for (let i = 0; i < fiatPrices.length; i++) {
       const fiatPrice = fiatPrices[i]
-      const {value} = utxos[i]
+      const { value } = utxos[i]
       const fiatValue = satoshiToFiat(fiatPrice, value)
       priceValues.push({ currency, fiatPrice, fiatValue, value })
     }
@@ -223,7 +229,7 @@ export class MempoolOracle implements BlockchainOracle {
     const fiatPrice = await this.getPriceAt(currency, timestamp)
     const priceValues: PriceValue[] = []
     for (const vin of tx.vin) {
-      const {value} = vin.prevout
+      const { value } = vin.prevout
       const fiatValue = satoshiToFiat(fiatPrice, value)
       priceValues.push({ currency, fiatPrice, fiatValue, value })
     }
@@ -239,7 +245,7 @@ export class MempoolOracle implements BlockchainOracle {
     const fiatPrice = await this.getPriceAt(currency, timestamp)
     const priceValues: PriceValue[] = []
     for (const vOut of tx.vout) {
-      const {value} = vOut
+      const { value } = vOut
       const fiatValue = satoshiToFiat(fiatPrice, value)
       priceValues.push({ currency, fiatPrice, fiatValue, value })
     }

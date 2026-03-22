@@ -10,8 +10,8 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
-import { detectContentByContext } from '@/utils/contentDetector';
-import type { DetectedContent } from '@/utils/contentDetector';
+import { detectContentByContext } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import {
   decodeMultiPartURGeneric,
@@ -41,8 +41,8 @@ function detectQRType(data: string) {
     if (match) {
       return {
         content: data.substring(match[0].length),
-        current: parseInt(match[1], 10) - 1,
-        total: parseInt(match[2], 10),
+        current: Number.parseInt(match[1], 10) - 1,
+        total: Number.parseInt(match[2], 10),
         type: 'raw' as const
       }
     }
@@ -74,13 +74,12 @@ function detectQRType(data: string) {
           type: 'ur' as const
         }
       }
-        return {
-          type: 'ur' as const,
-          current: 0,
-          total: 1,
-          content: data
-        }
-      
+      return {
+        content: data,
+        current: 0,
+        total: 1,
+        type: 'ur' as const
+      }
     }
   }
 
@@ -311,7 +310,7 @@ function SSCameraModal({
       })
 
       if (type === 'ur') {
-        const maxFragmentNumber = Math.max(...[...newScanned])
+        const maxFragmentNumber = Math.max(...newScanned)
         const actualTotal = maxFragmentNumber + 1
 
         const conservativeTarget = Math.ceil(actualTotal * 1.1)
@@ -431,9 +430,7 @@ function SSCameraModal({
             {scanProgress.type === 'ur' ? (
               <>
                 {(() => {
-                  const maxFragment = Math.max(
-                    ...[...scanProgress.scanned]
-                  )
+                  const maxFragment = Math.max(...scanProgress.scanned)
                   const actualTotal = maxFragment + 1
                   const conservativeTarget = Math.ceil(actualTotal * 1.1)
                   const theoreticalTarget = Math.ceil(scanProgress.total * 1.5)

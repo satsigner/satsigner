@@ -3,11 +3,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import mmkvStorage from '@/storage/mmkv'
-import type {
-  Account,
-  SyncProgress,
-  SyncStatus
-} from '@/types/models/Account'
+import type { Account, SyncProgress, SyncStatus } from '@/types/models/Account'
 import type { Address } from '@/types/models/Address'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
@@ -109,8 +105,8 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
         if (!account || !account.keys[keyIndex]) {
           return {
-            success: false,
-            message: 'Account or key not found'
+            message: 'Account or key not found',
+            success: false
           }
         }
 
@@ -121,31 +117,34 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               const accountIndex = state.accounts.findIndex(
                 (acc: Account) => acc.id === accountId
               )
-              if (accountIndex !== -1) throw new Error('Account not found')
+              if (accountIndex !== -1) {
+                throw new Error('Account not found')
+              }
               state.accounts[accountIndex].keys[keyIndex] = newKey
             })
           )
           return {
-            success: true,
-            message: 'Seed dropped successfully'
+            message: 'Seed dropped successfully',
+            success: true
           }
-        } catch (err) {
-          const reason = err instanceof Error ? err.message : 'unknown reason'
+        } catch (error) {
+          const reason =
+            error instanceof Error ? error.message : 'unknown reason'
           return {
-            success: false,
-            message: `Failed to drop seed: ${reason}`
+            message: `Failed to drop seed: ${reason}`,
+            success: false
           }
         }
       },
-      getTags: () => {
-        return get().tags
-      },
+      getTags: () => get().tags,
       importLabels: (accountId: string, labels: Label[]) => {
         const account = get().accounts.find(
           (account) => account.id === accountId
         )
 
-        if (!account) return 0
+        if (!account) {
+          return 0
+        }
 
         const transactionMap: Record<string, number> = {}
         const utxoMap: Record<string, number> = {}
@@ -169,7 +168,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               (account: Account) => account.id === accountId
             )
             labels.forEach((labelObj) => {
-              const label = labelObj.label
+              const { label } = labelObj
 
               state.accounts[index].labels[labelObj.ref] = labelObj
 
@@ -206,17 +205,21 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       },
       loadTx: async (accountId, tx) => {
         const txid = tx.id
-        const accounts = get().accounts
+        const { accounts } = get()
         const accountIndex = accounts.findIndex(
           (account) => account.id === accountId
         )
 
-        if (accountIndex === -1) return
+        if (accountIndex === -1) {
+          return
+        }
 
         const account = accounts[accountIndex]
         const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
 
-        if (txIndex === -1) return
+        if (txIndex === -1) {
+          return
+        }
 
         set(
           produce((state) => {
@@ -230,7 +233,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (account) => account.id === id
             )
-            if (index === -1 || !state.accounts[index].nostr) return
+            if (index === -1 || !state.accounts[index].nostr) {
+              return
+            }
             state.accounts[index].nostr.dms = state.accounts[
               index
             ].nostr.dms.map((dm) =>
@@ -245,16 +250,18 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const accountIndex = state.accounts.findIndex(
               (acc: Account) => acc.id === accountId
             )
-            if (accountIndex === -1) return
+            if (accountIndex === -1) {
+              return
+            }
             state.accounts[accountIndex].keys[keyIndex] = {
-              index: keyIndex,
-              name: '',
               creationType: undefined,
-              secret: undefined,
-              iv: undefined,
               fingerprint: undefined,
+              index: keyIndex,
+              iv: undefined,
+              mnemonicWordCount: undefined,
+              name: '',
               scriptVersion: undefined,
-              mnemonicWordCount: undefined
+              secret: undefined
             }
           })
         )
@@ -263,7 +270,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         const account = get().accounts.find(
           (account) => account.id === accountId
         )
-        if (!account) return undefined
+        if (!account) {
+          return
+        }
 
         const addrIndex = account.addresses.findIndex(
           (address) => address.address === addr
@@ -276,9 +285,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             )
 
             state.accounts[index].labels[addr] = {
-              type: 'addr',
+              label,
               ref: addr,
-              label
+              type: 'addr'
             }
 
             if (addrIndex !== -1) {
@@ -290,15 +299,17 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               (utxo: Utxo) => {
                 const newUtxo = { ...utxo }
                 const isRelated = utxo.addressTo === addr
-                if (!isRelated) return newUtxo
+                if (!isRelated) {
+                  return newUtxo
+                }
 
                 const utxoRef = `${utxo.txid}:${utxo.vout}`
                 const utxoHasLabel = state.accounts[index].labels[utxoRef]
                 if (!utxoHasLabel) {
                   state.accounts[index].labels[utxoRef] = {
-                    type: 'output',
+                    label,
                     ref: utxoRef,
-                    label
+                    type: 'output'
                   }
                   newUtxo.label = label
                 }
@@ -315,14 +326,16 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               const isRelated = tx.vout.some(
                 (output) => output.address === addr
               )
-              if (!isRelated) return newTx
+              if (!isRelated) {
+                return newTx
+              }
 
               const txHasLabel = state.accounts[index].labels[tx.id]
               if (!txHasLabel) {
                 state.accounts[index].labels[tx.id] = {
-                  type: 'tx',
+                  label,
                   ref: tx.id,
-                  label
+                  type: 'tx'
                 }
                 newTx.label = label
               }
@@ -343,14 +356,16 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                     return resolved === addr
                   }
                 )
-                if (!spendFromAddr) return
+                if (!spendFromAddr) {
+                  return
+                }
 
                 const txHasLabel = state.accounts[index].labels[tx.id]
                 if (!txHasLabel) {
                   state.accounts[index].labels[tx.id] = {
-                    type: 'tx',
+                    label,
                     ref: tx.id,
-                    label
+                    type: 'tx'
                   }
                   state.accounts[index].transactions[txIdx].label = label
                 }
@@ -367,7 +382,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (account) => account.id === id
             )
-            if (index !== -1) state.accounts[index].lastSyncedAt = date
+            if (index !== -1) {
+              state.accounts[index].lastSyncedAt = date
+            }
           })
         )
       },
@@ -391,7 +408,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (account) => account.id === id
             )
-            if (index !== -1) state.accounts[index].syncStatus = syncStatus
+            if (index !== -1) {
+              state.accounts[index].syncStatus = syncStatus
+            }
           })
         )
       },
@@ -403,7 +422,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           (account) => account.id === accountId
         )
 
-        if (!account) return undefined
+        if (!account) {
+          return
+        }
 
         const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
 
@@ -416,12 +437,14 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const currentLabel = state.accounts[index].labels[txid] || {}
             state.accounts[index].labels[txid] = {
               ...currentLabel,
-              type: 'tx',
+              label,
               ref: txid,
-              label
+              type: 'tx'
             }
 
-            if (txIndex === -1) return
+            if (txIndex === -1) {
+              return
+            }
 
             state.accounts[index].transactions[txIndex].label = label
 
@@ -436,16 +459,14 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 // output label inheritance
                 if (!outputHasLabel) {
                   state.accounts[index].labels[outputRef] = {
-                    type: 'output',
+                    label,
                     ref: outputRef,
-                    label
+                    type: 'output'
                   }
 
                   // also update the utxo object if it exist
                   const utxoIndex = state.accounts[index].utxos.findIndex(
-                    (utxo: Utxo) => {
-                      return utxo.txid === txid && utxo.vout === vout
-                    }
+                    (utxo: Utxo) => utxo.txid === txid && utxo.vout === vout
                   )
                   if (utxoIndex !== -1) {
                     state.accounts[index].utxos[utxoIndex].label = label
@@ -455,17 +476,17 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 // address label inheritance
                 if (!addressHasLabel) {
                   state.accounts[index].labels[addressRef] = {
-                    type: 'addr',
+                    label,
                     ref: addressRef,
-                    label
+                    type: 'addr'
                   }
 
                   // also update the address object if it exists
                   const addressIndex = state.accounts[
                     index
-                  ].addresses.findIndex((address: Address) => {
-                    return address.address === addressRef
-                  })
+                  ].addresses.findIndex(
+                    (address: Address) => address.address === addressRef
+                  )
                   if (addressIndex !== -1) {
                     state.accounts[index].addresses[addressIndex].label = label
                   }
@@ -483,9 +504,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 // input label inheritance (the input's previous output)
                 if (!outputHasLabel) {
                   state.accounts[index].labels[outputRef] = {
-                    type: 'output',
+                    label,
                     ref: outputRef,
-                    label
+                    type: 'output'
                   }
 
                   // we do not have to update any utxo object, like we did when
@@ -515,14 +536,16 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                   txid,
                   vout
                 )
-                if (!address) return
+                if (!address) {
+                  return
+                }
 
                 const addressHasLabel = state.accounts[index].labels[address]
                 if (!addressHasLabel) {
                   state.accounts[index].labels[address] = {
-                    type: 'addr',
+                    label,
                     ref: address,
-                    label
+                    type: 'addr'
                   }
                   const addrIdx = state.accounts[index].addresses.findIndex(
                     (a: Address) => a.address === address
@@ -543,23 +566,21 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           (account) => account.id === accountId
         )
 
-        if (!account) return undefined
+        if (!account) {
+          return
+        }
 
-        const txIndex = account.transactions.findIndex((tx) => {
-          return tx.id === txid
-        })
+        const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
 
-        const utxoIndex = account.utxos.findIndex((u) => {
-          return u.txid === txid && u.vout === vout
-        })
+        const utxoIndex = account.utxos.findIndex(
+          (u) => u.txid === txid && u.vout === vout
+        )
 
         const address =
           utxoIndex !== -1 ? account.utxos[utxoIndex].addressTo : ''
 
         const addressIndex = address
-          ? account.addresses.findIndex((addr) => {
-              return addr.address === address
-            })
+          ? account.addresses.findIndex((addr) => addr.address === address)
           : -1
 
         set(
@@ -571,9 +592,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             // UTXO label update
             const utxoRef = `${txid}:${vout}`
             state.accounts[index].labels[utxoRef] = {
-              type: 'output',
+              label,
               ref: utxoRef,
-              label
+              type: 'output'
             }
 
             if (utxoIndex !== -1) {
@@ -584,9 +605,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const txHasLabel = state.accounts[index].labels[txid]
             if (!txHasLabel) {
               state.accounts[index].labels[txid] = {
-                type: 'tx',
+                label,
                 ref: txid,
-                label
+                type: 'tx'
               }
 
               if (txIndex !== -1) {
@@ -620,9 +641,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
               if (!addressHasLabel) {
                 state.accounts[index].labels[address] = {
-                  type: 'addr',
+                  label,
                   ref: address,
-                  label
+                  type: 'addr'
                 }
 
                 if (addressIndex !== -1) {
@@ -693,7 +714,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (account) => account.id === id
             )
-            if (index !== -1) state.accounts[index].name = newName
+            if (index !== -1) {
+              state.accounts[index].name = newName
+            }
           })
         )
       },
@@ -703,7 +726,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (account) => account.id === id
             )
-            if (index === -1) return
+            if (index === -1) {
+              return
+            }
             state.accounts[index].nostr = {
               ...state.accounts[index].nostr,
               ...nostr
@@ -717,7 +742,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (account) => account.id === id
             )
-            if (index === -1) return
+            if (index === -1) {
+              return
+            }
             state.accounts[index].keys[keyIndex].name = newName
           })
         )

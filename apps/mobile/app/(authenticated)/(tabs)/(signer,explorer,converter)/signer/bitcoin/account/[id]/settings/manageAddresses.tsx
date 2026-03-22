@@ -1,8 +1,10 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { StyleSheet, TouchableOpacity } from 'react-native'
-import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
-import type { RenderItemParams } from 'react-native-draggable-flatlist';
+import DraggableFlatList, {
+  ScaleDecorator
+} from 'react-native-draggable-flatlist'
+import type { RenderItemParams } from 'react-native-draggable-flatlist'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -43,11 +45,13 @@ export default function ManageAccountAddressesPage() {
     ])
   )
 
-  const isMultiAddressWatchOnly = useMemo(() => (
+  const isMultiAddressWatchOnly = useMemo(
+    () =>
       account &&
       account.keys.length > 1 &&
-      account.keys[0].creationType === 'importAddress'
-    ), [account])
+      account.keys[0].creationType === 'importAddress',
+    [account]
+  )
 
   function handleUpdateAccount(newAccount: Account) {
     const addressesNotChanged = newAccount.addresses.every(
@@ -67,7 +71,9 @@ export default function ManageAccountAddressesPage() {
     router.navigate(`/signer/bitcoin/account/${account!.id}/address/${address}`)
   }
 
-  if (!account || !isMultiAddressWatchOnly) {return <Redirect href="/" />}
+  if (!account || !isMultiAddressWatchOnly) {
+    return <Redirect href="/" />
+  }
 
   return (
     <ManageAccountAddresses
@@ -126,10 +132,10 @@ export function ManageAccountAddresses({
       new: true,
       scriptVersion: getScriptVersionType(address) || undefined,
       summary: {
-        utxos: 0,
-        transactions: 0,
+        balance: 0,
         satsInMempool: 0,
-        balance: 0
+        transactions: 0,
+        utxos: 0
       },
       transactions: [],
       utxos: []
@@ -196,11 +202,11 @@ export function ManageAccountAddresses({
       keyCount,
       keys,
       summary: {
-        satsInMempool: 0,
-        numberOfUtxos: 0,
-        numberOfTransactions: 0,
+        balance: 0,
         numberOfAddresses: addresses.length,
-        balance: 0
+        numberOfTransactions: 0,
+        numberOfUtxos: 0,
+        satsInMempool: 0
       },
       syncStatus: 'unsynced',
       transactions: [],
@@ -313,23 +319,23 @@ const styles = StyleSheet.create({
     marginVertical: 10
   },
   addressItemActive: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    backgroundColor: '#333',
     borderRadius: 16,
-    backgroundColor: '#333'
+    paddingHorizontal: 16,
+    paddingVertical: 12
   },
   container: {
     flex: 1,
     overflow: 'visible'
   },
   mainContainer: {
-    paddingTop: 0,
+    marginBottom: 20,
     marginTop: 0,
-    marginBottom: 20
+    paddingTop: 0
   },
   modalContainer: {
-    justifyContent: 'center',
     height: '100%',
+    justifyContent: 'center',
     width: '100%'
   }
 })

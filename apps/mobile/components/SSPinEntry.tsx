@@ -32,9 +32,15 @@ function SSPinEntry({
   const triesLeft = pinMaxTries - pinTries
 
   function getTextColor() {
-    if (triesLeft > 2) {return gray[200]}
-    if (triesLeft === 1) {return error}
-    if (triesLeft === 2) {return warning}
+    if (triesLeft > 2) {
+      return gray[200]
+    }
+    if (triesLeft === 1) {
+      return error
+    }
+    if (triesLeft === 2) {
+      return warning
+    }
     return
   }
 

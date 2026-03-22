@@ -3,8 +3,8 @@ import { Image, Pressable, StyleSheet, View } from 'react-native'
 
 import SSText from '@/components/SSText'
 import SSTransactionDetails from '@/components/SSTransactionDetails'
-import { useNostrMessage } from '@/hooks/useNostrMessage';
-import type { AuthorDisplayInfo } from '@/hooks/useNostrMessage';
+import { useNostrMessage } from '@/hooks/useNostrMessage'
+import type { AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -43,7 +43,9 @@ function SSNostrMessage({
   } = useNostrMessage({ account, formattedNpubs, msg })
 
   function handleAuthorPress() {
-    if (!account?.id || !authorNpub) {return}
+    if (!account?.id || !authorNpub) {
+      return
+    }
     router.push({
       params: { npub: authorNpub },
       pathname: `/signer/bitcoin/account/${account.id}/settings/nostr/device/[npub]`
@@ -182,25 +184,25 @@ function SSNostrMessage({
 
 const styles = StyleSheet.create({
   authorAvatar: {
-    width: 24,
-    height: 24,
     borderRadius: 12,
-    marginRight: 6
+    height: 24,
+    marginRight: 6,
+    width: 24
   },
   authorBlock: {
     gap: 0
   },
   authorIndicatorLarge: {
-    width: 24,
-    height: 24,
     borderRadius: 12,
-    marginRight: 6
+    height: 24,
+    marginRight: 6,
+    width: 24
   },
   authorIndicatorSmall: {
-    width: 8,
-    height: 8,
     borderRadius: 4,
-    marginRight: 3
+    height: 8,
+    marginRight: 3,
+    width: 8
   },
   authorName: {
     color: Colors.white
@@ -216,11 +218,11 @@ const styles = StyleSheet.create({
   },
   message: {
     backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    marginTop: 8,
     padding: 10,
     paddingBottom: 15,
-    paddingTop: 5,
-    borderRadius: 8,
-    marginTop: 8
+    paddingTop: 5
   },
   messageContentWrap: {
     paddingLeft: 30

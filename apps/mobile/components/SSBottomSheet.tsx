@@ -1,7 +1,7 @@
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet'
 import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
-import { forwardRef } from 'react';
-import type { ForwardedRef } from 'react';
+import { forwardRef } from 'react'
+import type { ForwardedRef } from 'react'
 import { StyleSheet } from 'react-native'
 
 import SSVStack from '@/layouts/SSVStack'

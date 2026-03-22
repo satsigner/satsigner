@@ -38,12 +38,19 @@ export async function generateColorFromNpub(npub: string): Promise<string> {
   const m = l - c / 2
 
   let r, g, b
-  if (h < 1) {[r, g, b] = [c, x, 0]}
-  else if (h < 2) {[r, g, b] = [x, c, 0]}
-  else if (h < 3) {[r, g, b] = [0, c, x]}
-  else if (h < 4) {[r, g, b] = [0, x, c]}
-  else if (h < 5) {[r, g, b] = [x, 0, c]}
-  else {[r, g, b] = [c, 0, x]}
+  if (h < 1) {
+    ;[r, g, b] = [c, x, 0]
+  } else if (h < 2) {
+    ;[r, g, b] = [x, c, 0]
+  } else if (h < 3) {
+    ;[r, g, b] = [0, c, x]
+  } else if (h < 4) {
+    ;[r, g, b] = [0, x, c]
+  } else if (h < 5) {
+    ;[r, g, b] = [x, 0, c]
+  } else {
+    ;[r, g, b] = [c, 0, x]
+  }
 
   const toHex = (n: number) => {
     const hex = Math.round((n + m) * 255).toString(16)
@@ -54,10 +61,14 @@ export async function generateColorFromNpub(npub: string): Promise<string> {
 }
 
 export function deriveNpubFromNsec(nsec: string): string | null {
-  if (!nsec?.trim()) {return null}
+  if (!nsec?.trim()) {
+    return null
+  }
   try {
     const decoded = nip19.decode(nsec.trim())
-    if (!decoded || decoded.type !== 'nsec') {return null}
+    if (!decoded || decoded.type !== 'nsec') {
+      return null
+    }
     const publicKey = getPublicKey(decoded.data as Uint8Array)
     return nip19.npubEncode(publicKey)
   } catch {
@@ -68,13 +79,17 @@ export function deriveNpubFromNsec(nsec: string): string | null {
 export function getPubKeyHexFromNpub(npub: string): string | null {
   try {
     const decoded = nip19.decode(npub)
-    if (!decoded || decoded.type !== 'npub' || !decoded.data) {return null}
+    if (!decoded || decoded.type !== 'npub' || !decoded.data) {
+      return null
+    }
     const rawHex =
       typeof decoded.data === 'string'
         ? decoded.data
         : Buffer.from(decoded.data as Uint8Array).toString('hex')
     const hex = (rawHex ?? '').toLowerCase().replace(/^0x/, '')
-    if (hex.length !== 64 || !/^[0-9a-f]+$/.test(hex)) {return null}
+    if (hex.length !== 64 || !/^[0-9a-f]+$/.test(hex)) {
+      return null
+    }
     return hex
   } catch {
     return null
@@ -84,7 +99,9 @@ export function getPubKeyHexFromNpub(npub: string): string | null {
 export function getSecretFromNsec(nsec: string): Uint8Array | null {
   try {
     const decoded = nip19.decode(nsec)
-    if (!decoded || decoded.type !== 'nsec' || !decoded.data) {return null}
+    if (!decoded || decoded.type !== 'nsec' || !decoded.data) {
+      return null
+    }
     return decoded.data as Uint8Array
   } catch {
     return null

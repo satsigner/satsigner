@@ -51,13 +51,13 @@ function SSSortDirectionToggle({
 
 const styles = StyleSheet.create({
   arrowContainerBase: {
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     width: 14
   },
   buttonBase: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
     gap: 4
   }
 })

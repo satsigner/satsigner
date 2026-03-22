@@ -1,14 +1,14 @@
 import { useMemo } from 'react'
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import type { StyleProp, ViewStyle } from 'react-native';
-import BouncyCheckbox from 'react-native-bouncy-checkbox';
-import type { BouncyCheckboxProps } from 'react-native-bouncy-checkbox';
+import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import type { StyleProp, ViewStyle } from 'react-native'
+import BouncyCheckbox from 'react-native-bouncy-checkbox'
+import type { BouncyCheckboxProps } from 'react-native-bouncy-checkbox'
 
 import SSVStack from '@/layouts/SSVStack'
 import { Colors, Sizes } from '@/styles'
 
-import SSText from './SSText';
-import type { SSTextProps } from './SSText';
+import SSText from './SSText'
+import type { SSTextProps } from './SSText'
 
 type SSCheckboxProps = {
   containerStyle?: StyleProp<ViewStyle>
@@ -31,14 +31,19 @@ function SSCheckbox({
   disabled,
   ...props
 }: SSCheckboxProps) {
-  const innerIconStyle = useMemo(() => StyleSheet.compose(styles.innerIconStyleBase, {
-      borderColor: selected ? Colors.white : Colors.transparent
-    }), [selected])
+  const innerIconStyle = useMemo(
+    () =>
+      StyleSheet.compose(styles.innerIconStyleBase, {
+        borderColor: selected ? Colors.white : Colors.transparent
+      }),
+    [selected]
+  )
 
-  const containerBase = useMemo(() => StyleSheet.compose(
-      styles.containerBase,
-      disabled ? styles.disabled : {}
-    ), [disabled])
+  const containerBase = useMemo(
+    () =>
+      StyleSheet.compose(styles.containerBase, disabled ? styles.disabled : {}),
+    [disabled]
+  )
 
   return (
     <TouchableOpacity
@@ -73,8 +78,8 @@ function SSCheckbox({
 
 const styles = StyleSheet.create({
   containerBase: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
     gap: Sizes.checkbox.height / 2
   },
   disabled: {
@@ -84,8 +89,8 @@ const styles = StyleSheet.create({
     borderRadius: Sizes.checkbox.borderRadius
   },
   innerIconStyleBase: {
-    borderWidth: Sizes.checkbox.borderWidth,
-    borderRadius: Sizes.checkbox.borderRadius
+    borderRadius: Sizes.checkbox.borderRadius,
+    borderWidth: Sizes.checkbox.borderWidth
   }
 })
 

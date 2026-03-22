@@ -65,7 +65,9 @@ export function decodeLightningInvoice(invoice: string): LNDecodedInvoice {
 }
 
 export function isLightningInvoice(invoice: string) {
-  if (!invoice || typeof invoice !== 'string') {return false}
+  if (!invoice || typeof invoice !== 'string') {
+    return false
+  }
 
   const trimmed = invoice.trim()
   return (

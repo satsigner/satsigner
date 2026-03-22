@@ -53,9 +53,13 @@ export function detectConflcits(
 
   const conflicts: Conflict[] = []
   for (const incoming of incomingLabels) {
-    if (!currentLabelsDict[incoming.ref]) {continue}
+    if (!currentLabelsDict[incoming.ref]) {
+      continue
+    }
     const current = currentLabelsDict[incoming.ref]
-    if (current.label === incoming.label) {continue}
+    if (current.label === incoming.label) {
+      continue
+    }
     conflicts.push([current, incoming])
   }
   return conflicts
@@ -69,11 +73,11 @@ function solveConflict(
   let label = ''
   switch (strategy) {
     case 'current': {
-      label = current.label
+      ;({ label } = current)
       break
     }
     case 'incoming': {
-      label = incoming.label
+      ;({ label } = incoming)
       break
     }
     case 'merge': {
@@ -153,15 +157,15 @@ function SSLabelConflictItem({
           <SSText size="md">{tl('manualSelection')}</SSText>
           <SSVStack gap="sm">
             {conflictStrategies.map((strategy) => (
-                <SSCheckbox
-                  key={strategy}
-                  selected={strategy === conflictStrategy}
-                  label={strategy}
-                  onPress={() => onSelectStrategy(strategy)}
-                  unFillColor={Colors.gray[400]}
-                  fillColor={Colors.gray[400]}
-                />
-              ))}
+              <SSCheckbox
+                key={strategy}
+                selected={strategy === conflictStrategy}
+                label={strategy}
+                onPress={() => onSelectStrategy(strategy)}
+                unFillColor={Colors.gray[400]}
+                fillColor={Colors.gray[400]}
+              />
+            ))}
           </SSVStack>
         </SSVStack>
       )}
@@ -242,13 +246,13 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
           </SSVStack>
           <SSVStack gap="sm">
             {conflictStrategies.map((strategy) => (
-                <SSCheckbox
-                  key={strategy}
-                  selected={strategy === conflictStrategy}
-                  label={strategy}
-                  onPress={() => setConflictStrategy(strategy)}
-                />
-              ))}
+              <SSCheckbox
+                key={strategy}
+                selected={strategy === conflictStrategy}
+                label={strategy}
+                onPress={() => setConflictStrategy(strategy)}
+              />
+            ))}
           </SSVStack>
           <SSButton
             label={t('common.next')}
@@ -260,19 +264,19 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
       {stage !== 'selection' && (
         <SSVStack>
           {conflicts.map(([current, incoming], index) => (
-              <SSLabelConflictItem
-                key={current.ref}
-                conflict={[current, incoming]}
-                conflictStrategyGlobal={conflictStrategy}
-                conflictStrategy={conflictStrategyPerLabel[index]}
-                finalLabel={results[index].label}
-                index={index}
-                onChangeLabel={(text) => solveConflictManually(text, index)}
-                onSelectStrategy={(strategy) =>
-                  solveConflictByIndex(strategy, index)
-                }
-              />
-            ))}
+            <SSLabelConflictItem
+              key={current.ref}
+              conflict={[current, incoming]}
+              conflictStrategyGlobal={conflictStrategy}
+              conflictStrategy={conflictStrategyPerLabel[index]}
+              finalLabel={results[index].label}
+              index={index}
+              onChangeLabel={(text) => solveConflictManually(text, index)}
+              onSelectStrategy={(strategy) =>
+                solveConflictByIndex(strategy, index)
+              }
+            />
+          ))}
           <SSVStack gap="sm" style={{ width: '100%' }}>
             <SSButton
               label={t('common.back')}
@@ -298,9 +302,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.softBarGreen
   },
   box: {
-    paddingVertical: 6,
+    borderRadius: 4,
     paddingHorizontal: 8,
-    borderRadius: 4
+    paddingVertical: 6
   },
   button: {
     width: '100%'

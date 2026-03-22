@@ -77,19 +77,17 @@ export default function NetworkSettings() {
                   <SSVStack gap="xs">
                     <SSText>{tn('connectionMode.label')}</SSText>
                     {(['manual', 'auto'] as const).map((mode) => (
-                        <SSCheckbox
-                          key={mode}
-                          label={tn(`connectionMode.${mode}`)}
-                          labelProps={{ size: 'sm', uppercase: true }}
-                          containerStyle={{ gap: 10 }}
-                          selected={
-                            tempConfigs[network].connectionMode === mode
-                          }
-                          onPress={() =>
-                            handleParamChange(network, 'connectionMode', mode)
-                          }
-                        />
-                      ))}
+                      <SSCheckbox
+                        key={mode}
+                        label={tn(`connectionMode.${mode}`)}
+                        labelProps={{ size: 'sm', uppercase: true }}
+                        containerStyle={{ gap: 10 }}
+                        selected={tempConfigs[network].connectionMode === mode}
+                        onPress={() =>
+                          handleParamChange(network, 'connectionMode', mode)
+                        }
+                      />
+                    ))}
                   </SSVStack>
                   <SSVStack gap="xs">
                     <SSText>{tn('timeDiffBeforeAutoSync')}</SSText>

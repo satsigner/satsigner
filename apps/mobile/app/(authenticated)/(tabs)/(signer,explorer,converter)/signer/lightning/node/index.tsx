@@ -8,8 +8,8 @@ import {
   useWindowDimensions,
   View
 } from 'react-native'
-import { TabView } from 'react-native-tab-view';
-import type { SceneRendererProps } from 'react-native-tab-view';
+import { TabView } from 'react-native-tab-view'
+import type { SceneRendererProps } from 'react-native-tab-view'
 
 import {
   SSIconCollapse,
@@ -43,10 +43,13 @@ interface LNDBalanceResponse {
   unconfirmed_balance: string
   locked_balance: string
   reserved_balance_anchor_chan: string
-  account_balance?: Record<string, {
+  account_balance?: Record<
+    string,
+    {
       confirmed_balance: string
       unconfirmed_balance: string
-    }>
+    }
+  >
 }
 
 interface LNDChannelBalanceResponse {
@@ -498,13 +501,17 @@ export default function NodeDetailPage() {
   ])
 
   const renderChannels = useCallback(() => {
-    if (!channels?.length) {return null}
+    if (!channels?.length) {
+      return null
+    }
 
     return (
       <SSVStack style={styles.section}>
         <SSVStack style={styles.channelsList}>
           {channels.map((channel) => {
-            if (!channel || typeof channel !== 'object') {return null}
+            if (!channel || typeof channel !== 'object') {
+              return null
+            }
 
             const {
               capacity = 0,
@@ -603,7 +610,9 @@ export default function NodeDetailPage() {
   }, [channels])
 
   const renderTab = useCallback(() => {
-    if (expand) {return null}
+    if (expand) {
+      return null
+    }
 
     const tabWidth = '50%'
     const activeChannels =
@@ -859,7 +868,9 @@ export default function NodeDetailPage() {
 
         // Combine and deduplicate transactions
         const allTxs = [...onchainTxs, ...paymentTxs, ...invoiceTxs]
-        const uniqueTxs = [...new Map(allTxs.map((tx) => [tx.id, tx])).values()].toSorted((a, b) => b.timestamp - a.timestamp)
+        const uniqueTxs = [
+          ...new Map(allTxs.map((tx) => [tx.id, tx])).values()
+        ].toSorted((a, b) => b.timestamp - a.timestamp)
 
         setTransactions(uniqueTxs)
       } catch {
@@ -893,8 +904,8 @@ export default function NodeDetailPage() {
               style={{ marginRight: 8 }}
               onPress={() =>
                 router.push({
-                  pathname: '/signer/lightning/node/settings',
-                  params: { alias: params.alias }
+                  params: { alias: params.alias },
+                  pathname: '/signer/lightning/node/settings'
                 } as never)
               }
             >
@@ -985,63 +996,63 @@ const styles = StyleSheet.create({
     marginRight: 8
   },
   channelDetailRow: {
+    alignItems: 'center',
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
+    justifyContent: 'space-between'
   },
   channelDetails: {
     gap: 8
   },
   channelHeader: {
+    alignItems: 'center',
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
+    justifyContent: 'space-between'
   },
   channelId: {
-    maxWidth: '70%',
     fontFamily: 'monospace',
-    fontSize: 12
+    fontSize: 12,
+    maxWidth: '70%'
   },
   channelItem: {
     backgroundColor: '#242424',
     borderRadius: 2,
-    padding: 12,
-    gap: 12
+    gap: 12,
+    padding: 12
   },
   channelsList: {
     gap: 16
   },
   error: {
-    textAlign: 'center',
-    marginTop: 16
+    marginTop: 16,
+    textAlign: 'center'
   },
   hash: {
-    maxWidth: '70%',
-    fontFamily: 'monospace'
+    fontFamily: 'monospace',
+    maxWidth: '70%'
   },
   infoGrid: {
     gap: 12
   },
   infoItem: {
+    alignItems: 'center',
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
+    justifyContent: 'space-between'
   },
   loadMoreButton: {
-    marginTop: 16,
-    marginBottom: 8
+    marginBottom: 8,
+    marginTop: 16
   },
   mainLayout: {
     flex: 1,
     paddingTop: 10
   },
   placeholderText: {
-    textAlign: 'center',
-    padding: 24
+    padding: 24,
+    textAlign: 'center'
   },
   pubkey: {
-    maxWidth: '70%',
-    fontFamily: 'monospace'
+    fontFamily: 'monospace',
+    maxWidth: '70%'
   },
   scrollContent: {
     flexGrow: 1,
@@ -1060,8 +1071,8 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     flex: 1,
-    paddingHorizontal: 0,
-    marginTop: -4
+    marginTop: -4,
+    paddingHorizontal: 0
   },
   transactionDetails: {
     gap: 8
@@ -1070,9 +1081,9 @@ const styles = StyleSheet.create({
     marginBottom: 8
   },
   transactionItem: {
-    borderTopWidth: 1,
     borderTopColor: Colors.gray[800],
-    paddingVertical: 12,
-    paddingHorizontal: 0
+    borderTopWidth: 1,
+    paddingHorizontal: 0,
+    paddingVertical: 12
   }
 })

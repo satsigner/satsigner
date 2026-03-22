@@ -55,7 +55,10 @@ export default function Confirm() {
   )
   const { accountBuilderFinish } = useAccountBuilderFinish()
 
-  const candidateWords = useMemo(() => getConfirmWordCandidates(mnemonic[Number(index)], mnemonic.join(' ')), [index]) // eslint-disable-line react-hooks/exhaustive-deps
+  const candidateWords = useMemo(
+    () => getConfirmWordCandidates(mnemonic[Number(index)], mnemonic.join(' ')),
+    [index]
+  ) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [selectedCheckbox, setSelectedCheckbox] = useState<1 | 2 | 3>()
 
@@ -78,16 +81,21 @@ export default function Confirm() {
   }
 
   async function handleNavigateNextWord() {
-    if (!selectedCheckbox) {return}
+    if (!selectedCheckbox) {
+      return
+    }
 
-    if (candidateWords[selectedCheckbox - 1] !== mnemonic[Number(index)])
-      {return setIncorrectWordModalVisible(true)}
+    if (candidateWords[selectedCheckbox - 1] !== mnemonic[Number(index)]) {
+      return setIncorrectWordModalVisible(true)
+    }
 
-    if (Number(index) + 1 < mnemonicWordCount)
-      {router.push(
+    if (Number(index) + 1 < mnemonicWordCount) {
+      router.push(
         `/signer/bitcoin/account/add/confirm/${keyIndex}/word/${Number(index) + 1}`
-      )}
-    else {return handleFinishWordsConfirmation()}
+      )
+    } else {
+      return handleFinishWordsConfirmation()
+    }
   }
 
   async function handleFinishWordsConfirmation() {

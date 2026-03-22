@@ -14,8 +14,14 @@ import {
   withTiming
 } from 'react-native-reanimated'
 
-import { ANIMATION_VALUE, ZOOM_TYPE } from '@/types/ui/gestures';
-import type { OnPanEndCallback, OnPanStartCallback, OnPinchEndCallback, OnPinchStartCallback, ZoomUseGesturesProps } from '@/types/ui/gestures';
+import { ANIMATION_VALUE, ZOOM_TYPE } from '@/types/ui/gestures'
+import type {
+  OnPanEndCallback,
+  OnPanStartCallback,
+  OnPinchEndCallback,
+  OnPinchStartCallback,
+  ZoomUseGesturesProps
+} from '@/types/ui/gestures'
 import { clamp, limits, sum } from '@/utils/worklet'
 
 import { useAnimationEnd } from './useAnimationEnd'

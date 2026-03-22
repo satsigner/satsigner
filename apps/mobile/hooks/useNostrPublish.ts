@@ -13,8 +13,12 @@ function useNostrPublish() {
   }
 
   async function sendDM(account: Account, message: string) {
-    if (!account?.nostr?.autoSync) {return}
-    if (!account || !account.nostr) {return}
+    if (!account?.nostr?.autoSync) {
+      return
+    }
+    if (!account || !account.nostr) {
+      return
+    }
 
     const { commonNsec, commonNpub, deviceNsec, deviceNpub, relays } =
       account.nostr
@@ -49,7 +53,9 @@ function useNostrPublish() {
     const trustedDevices = getTrustedDevices(account)
     for (const trustedDeviceNpub of trustedDevices) {
       await delay(DELAY_BETWEEN_PUBLISHES_MS)
-      if (!deviceNsec) {continue}
+      if (!deviceNsec) {
+        continue
+      }
       eventKind1059 = await nostrApi!.createKind1059(
         deviceNsec,
         trustedDeviceNpub,
@@ -60,8 +66,12 @@ function useNostrPublish() {
   }
 
   async function sendPSBT(account: Account, psbt: string) {
-    if (!account?.nostr?.autoSync) {return}
-    if (!account || !account.nostr) {return}
+    if (!account?.nostr?.autoSync) {
+      return
+    }
+    if (!account || !account.nostr) {
+      return
+    }
     const { deviceNsec, deviceNpub, relays } = account.nostr
 
     if (!deviceNsec || !deviceNpub || relays.length === 0) {
@@ -88,9 +98,13 @@ function useNostrPublish() {
 
     const trustedDevices = getTrustedDevices(account)
     for (const trustedDeviceNpub of trustedDevices) {
-      if (trustedDeviceNpub === deviceNpub) {continue}
+      if (trustedDeviceNpub === deviceNpub) {
+        continue
+      }
       await delay(DELAY_BETWEEN_PUBLISHES_MS)
-      if (!deviceNsec) {continue}
+      if (!deviceNsec) {
+        continue
+      }
       const eventKind1059 = await nostrApi.createKind1059(
         deviceNsec,
         trustedDeviceNpub,

@@ -28,8 +28,12 @@ if (typeof TextEncoder === 'undefined') {
   global.TextEncoder = TextEncoderPolyfill
 }
 
-if (typeof __dirname === 'undefined') {global.__dirname = '/'}
-if (typeof __filename === 'undefined') {global.__filename = ''}
+if (typeof __dirname === 'undefined') {
+  global.__dirname = '/'
+}
+if (typeof __filename === 'undefined') {
+  global.__filename = ''
+}
 if (typeof process === 'undefined') {
   global.process = require('node:process')
 } else {
@@ -42,7 +46,9 @@ if (typeof process === 'undefined') {
 }
 
 process.browser = false
-if (typeof Buffer === 'undefined') {global.Buffer = require('buffer').Buffer}
+if (typeof Buffer === 'undefined') {
+  global.Buffer = require('node:buffer').Buffer
+}
 
 // global.location = global.location || { port: 80 }
 const isDev = typeof __DEV__ === 'boolean' && __DEV__

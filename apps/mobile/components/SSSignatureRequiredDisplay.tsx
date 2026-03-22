@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { View } from 'react-native';
-import type { LayoutChangeEvent } from 'react-native';
+import { View } from 'react-native'
+import type { LayoutChangeEvent } from 'react-native'
 import Svg, { Circle, G, Rect, Text as SvgText } from 'react-native-svg'
 
 const RADIUS_INDICATOR = 8
@@ -29,7 +29,9 @@ function SSSignatureRequiredDisplay({
   }
 
   const sizeBetweenPoints = useMemo(() => {
-    if (totalNumber <= 1) {return 0}
+    if (totalNumber <= 1) {
+      return 0
+    }
 
     const availableWidth = Math.max(
       MIN_CONTAINER_WIDTH,
@@ -41,7 +43,9 @@ function SSSignatureRequiredDisplay({
   }, [containerSize.width, totalNumber])
 
   const centerPoints = useMemo(() => {
-    if (totalNumber <= 1) {return [RADIUS_OUTER_RECT]}
+    if (totalNumber <= 1) {
+      return [RADIUS_OUTER_RECT]
+    }
 
     return Array.from({ length: totalNumber }, (_, i) => i).map(
       (i) => sizeBetweenPoints * i + RADIUS_OUTER_RECT
@@ -49,7 +53,9 @@ function SSSignatureRequiredDisplay({
   }, [totalNumber, sizeBetweenPoints])
 
   const svgWidth = useMemo(() => {
-    if (totalNumber <= 1) {return MIN_CONTAINER_WIDTH}
+    if (totalNumber <= 1) {
+      return MIN_CONTAINER_WIDTH
+    }
 
     const calculatedWidth =
       sizeBetweenPoints * (totalNumber - 1) + RADIUS_OUTER_RECT * 2

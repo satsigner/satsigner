@@ -1,6 +1,6 @@
 import { Descriptor } from 'bdk-rn'
-import { KeychainKind } from 'bdk-rn/lib/lib/enums';
-import type { Network as BDKNetwork } from 'bdk-rn/lib/lib/enums';
+import { KeychainKind } from 'bdk-rn/lib/lib/enums'
+import type { Network as BDKNetwork } from 'bdk-rn/lib/lib/enums'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
@@ -43,7 +43,9 @@ export default function DescriptorPage() {
 
   useEffect(() => {
     async function getDescriptor() {
-      if (!keyIndex) {return}
+      if (!keyIndex) {
+        return
+      }
 
       setIsLoading(true)
 

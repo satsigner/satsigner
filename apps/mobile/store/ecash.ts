@@ -100,24 +100,24 @@ export const useEcashStore = create<EcashState & EcashAction>()(
       checkingTransactionIds: [],
       clearAllData: () =>
         set({
-          mints: [],
           activeMint: null,
+          checkingTransactionIds: [],
+          mints: [],
           proofs: [],
-          transactions: [],
           quotes: {
-            mint: [],
-            melt: []
+            melt: [],
+            mint: []
           },
           status: initialStatus,
-          checkingTransactionIds: []
+          transactions: []
         }),
       clearCheckingTransactions: () => set({ checkingTransactionIds: [] }),
       clearTransactions: () => set({ transactions: [] }),
       mints: [],
       proofs: [],
       quotes: {
-        mint: [],
-        melt: []
+        melt: [],
+        mint: []
       },
       removeCheckingTransaction: (transactionId) =>
         set((state) => ({
@@ -134,9 +134,9 @@ export const useEcashStore = create<EcashState & EcashAction>()(
         })),
       removeMint: (mintUrl) =>
         set((state) => ({
-          mints: state.mints.filter((mint) => mint.url !== mintUrl),
           activeMint:
-            state.activeMint?.url === mintUrl ? null : state.activeMint
+            state.activeMint?.url === mintUrl ? null : state.activeMint,
+          mints: state.mints.filter((mint) => mint.url !== mintUrl)
         })),
       removeMintQuote: (quoteId) =>
         set((state) => ({
@@ -168,19 +168,19 @@ export const useEcashStore = create<EcashState & EcashAction>()(
           const restoredActiveMint = data.activeMint || null
 
           return {
-            mints: restoredMints,
             activeMint: restoredActiveMint,
+            mints: restoredMints,
             proofs: restoredProofs,
-            transactions: restoredTransactions,
             quotes: {
-              mint: [],
-              melt: []
+              melt: [],
+              mint: []
             },
             status: {
               isConnected: false,
               isConnecting: false,
               lastSync: new Date().toISOString()
-            }
+            },
+            transactions: restoredTransactions
           }
         }),
       setActiveMint: (mint) =>
@@ -209,23 +209,23 @@ export const useEcashStore = create<EcashState & EcashAction>()(
         })),
       updateMintBalance: (mintUrl, balance) =>
         set((state) => ({
-          mints: state.mints.map((mint) =>
-            mint.url === mintUrl ? { ...mint, balance } : mint
-          ),
           activeMint:
             state.activeMint?.url === mintUrl
               ? { ...state.activeMint, balance }
-              : state.activeMint
+              : state.activeMint,
+          mints: state.mints.map((mint) =>
+            mint.url === mintUrl ? { ...mint, balance } : mint
+          )
         })),
       updateMintConnection: (mintUrl, isConnected) =>
         set((state) => ({
-          mints: state.mints.map((mint) =>
-            mint.url === mintUrl ? { ...mint, isConnected } : mint
-          ),
           activeMint:
             state.activeMint?.url === mintUrl
               ? { ...state.activeMint, isConnected }
-              : state.activeMint
+              : state.activeMint,
+          mints: state.mints.map((mint) =>
+            mint.url === mintUrl ? { ...mint, isConnected } : mint
+          )
         })),
       updateTransaction: (transactionId, updates) =>
         set((state) => ({
@@ -239,16 +239,16 @@ export const useEcashStore = create<EcashState & EcashAction>()(
     {
       name: 'satsigner-ecash',
       partialize: (state) => ({
-        mints: state.mints,
         activeMint: state.activeMint,
+        checkingTransactionIds: [],
+        mints: state.mints,
         proofs: state.proofs,
-        transactions: state.transactions,
         quotes: state.quotes,
         status: {
           isConnected: state.status.isConnected,
           lastSync: state.status.lastSync
         },
-        checkingTransactionIds: [] // Don't persist checking state
+        transactions: state.transactions // Don't persist checking state
       }),
       storage: createJSONStorage(() => mmkvStorage)
     }

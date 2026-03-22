@@ -201,11 +201,15 @@ export default function PublicKeyPage() {
 
   useEffect(() => {
     async function getPublicKey() {
-      if (!keyIndex) {return}
+      if (!keyIndex) {
+        return
+      }
 
       setIsLoading(true)
       const pin = await getItem(PIN_KEY)
-      if (!pin) {return}
+      if (!pin) {
+        return
+      }
 
       try {
         const accountData = getAccountData()

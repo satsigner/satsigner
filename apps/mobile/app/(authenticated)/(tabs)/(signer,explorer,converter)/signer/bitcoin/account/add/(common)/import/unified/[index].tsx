@@ -238,7 +238,9 @@ export default function UnifiedImport() {
   }
 
   async function confirmKeyImport() {
-    if (disabled) {return}
+    if (disabled) {
+      return
+    }
 
     setLoadingWallet(true)
 
@@ -269,7 +271,9 @@ export default function UnifiedImport() {
 
   async function pasteFromClipboard() {
     const text = await Clipboard.getStringAsync()
-    if (!text) {return}
+    if (!text) {
+      return
+    }
 
     if (importType === 'descriptor') {
       let externalDescriptor = text
@@ -291,7 +295,7 @@ export default function UnifiedImport() {
             ''
           )
           internalDescriptor = descriptorWithoutChecksum.replaceAll(
-            /\/0\/\*/g,
+            '/0/*',
             '/1/*'
           )
         }
@@ -348,7 +352,9 @@ export default function UnifiedImport() {
           const descriptorToValidate = originalDescriptor || externalDescriptor
           updateExternalDescriptor(descriptorToValidate)
         }
-        if (internalDescriptor) {updateInternalDescriptor(internalDescriptor)}
+        if (internalDescriptor) {
+          updateInternalDescriptor(internalDescriptor)
+        }
       }
     }
 
@@ -460,7 +466,9 @@ export default function UnifiedImport() {
               originalDescriptor || externalDescriptor
             updateExternalDescriptor(descriptorToValidate)
           }
-          if (internalDescriptor) {updateInternalDescriptor(internalDescriptor)}
+          if (internalDescriptor) {
+            updateInternalDescriptor(internalDescriptor)
+          }
         }
       }
 
@@ -477,7 +485,9 @@ export default function UnifiedImport() {
 
   async function handleQRCodeScanned(scanningResult: any) {
     const data = scanningResult?.data
-    if (!data) {return}
+    if (!data) {
+      return
+    }
 
     // Handle fingerprint scanning
     if (scanningFor === 'fingerprint') {
@@ -504,7 +514,7 @@ export default function UnifiedImport() {
             ''
           )
           internalDescriptor = descriptorWithoutChecksum.replaceAll(
-            /\/0\/\*/g,
+            '/0/*',
             '/1/*'
           )
         }
@@ -561,7 +571,9 @@ export default function UnifiedImport() {
           const descriptorToValidate = originalDescriptor || externalDescriptor
           updateExternalDescriptor(descriptorToValidate)
         }
-        if (internalDescriptor) {updateInternalDescriptor(internalDescriptor)}
+        if (internalDescriptor) {
+          updateInternalDescriptor(internalDescriptor)
+        }
       }
     }
 
@@ -576,31 +588,36 @@ export default function UnifiedImport() {
     if (importType === 'descriptor') {
       return t('watchonly.importDescriptor.title')
     }
-      // Return the appropriate label based on script version
-      switch (scriptVersion) {
-        case 'P2PKH':
-          return t('account.import.xpub')
-        case 'P2SH-P2WPKH':
-          return t('account.import.ypub')
-        case 'P2WPKH':
-          return t('account.import.zpub')
-        case 'P2TR':
-          return t('account.import.vpub')
-        default:
-          return t('account.import.xpub')
+    // Return the appropriate label based on script version
+    switch (scriptVersion) {
+      case 'P2PKH': {
+        return t('account.import.xpub')
       }
-    
+      case 'P2SH-P2WPKH': {
+        return t('account.import.ypub')
+      }
+      case 'P2WPKH': {
+        return t('account.import.zpub')
+      }
+      case 'P2TR': {
+        return t('account.import.vpub')
+      }
+      default: {
+        return t('account.import.xpub')
+      }
+    }
   }
 
   function getImportDescription() {
     if (importType === 'descriptor') {
       return t('watchonly.importDescriptor.text')
     }
-      return t('watchonly.importExtendedPub.text')
-    
+    return t('watchonly.importExtendedPub.text')
   }
 
-  if (!name) {return <Redirect href="/" />}
+  if (!name) {
+    return <Redirect href="/" />
+  }
 
   return (
     <SSMainLayout>
@@ -799,18 +816,18 @@ const styles = StyleSheet.create({
     flex: 1
   },
   cameraContainer: {
-    flex: 1,
-    backgroundColor: Colors.black
+    backgroundColor: Colors.black,
+    flex: 1
   },
   cameraHeader: {
-    padding: 16,
+    borderBottomColor: Colors.gray[600],
     borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[600]
+    padding: 16
   },
   cameraPlaceholder: {
+    alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
     padding: 16
   },
   container: {

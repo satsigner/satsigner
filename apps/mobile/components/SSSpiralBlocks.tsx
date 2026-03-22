@@ -12,8 +12,8 @@ import {
   useFonts
 } from '@shopify/react-native-skia'
 import { memo, useCallback, useMemo } from 'react'
-import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
-import type { StyleProp, ViewStyle } from 'react-native';
+import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native'
+import type { StyleProp, ViewStyle } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 
@@ -87,7 +87,9 @@ function SSSpiralBlocks({
   // Memoize the paragraph creation function to avoid recreating it on each render
   const createParagraph = useCallback(
     (text: string) => {
-      if (!customFontManager) {return null}
+      if (!customFontManager) {
+        return null
+      }
 
       const paragraph = Skia.ParagraphBuilder.Make(
         {
@@ -117,12 +119,15 @@ function SSSpiralBlocks({
 
   // Memoize the newtonRaphson function to avoid recalculating it
   const memoizedNewtonRaphson = useCallback(
-    (L: number, k: number, initialGuess: number) => newtonRaphson(L, k, initialGuess),
+    (L: number, k: number, initialGuess: number) =>
+      newtonRaphson(L, k, initialGuess),
     []
   )
 
   const spiralBlocks = useMemo(() => {
-    if (!data || data.length === 0) {return []}
+    if (!data || data.length === 0) {
+      return []
+    }
 
     const blocks = []
     let phi_spiral = RADIUS_SPIRAL_START / FACTOR_SPIRAL_GROWTH
@@ -171,74 +176,96 @@ function SSSpiralBlocks({
   const centerY = canvasHeight / 2
 
   // Optimize path creation by caching calculations
-  const paths = useMemo(() => spiralBlocks.map((block) => {
-      const path = Skia.Path.Make()
-      const cosTheta = Math.cos(block.rotation)
-      const sinTheta = Math.sin(block.rotation)
+  const paths = useMemo(
+    () =>
+      spiralBlocks.map((block) => {
+        const path = Skia.Path.Make()
+        const cosTheta = Math.cos(block.rotation)
+        const sinTheta = Math.sin(block.rotation)
 
-      // Pre-calculate rotated points
-      const rotatedPoints = [
-        [-halfSize, -halfSize],
-        [halfSize, -halfSize],
-        [halfSize, halfSize],
-        [-halfSize, halfSize]
-      ].map(([x, y]) => {
-        const rotatedX = cosTheta * x - sinTheta * y + block.x + centerX
-        const rotatedY = sinTheta * x + cosTheta * y + block.y + centerY
-        return [rotatedX, rotatedY]
-      })
+        // Pre-calculate rotated points
+        const rotatedPoints = [
+          [-halfSize, -halfSize],
+          [halfSize, -halfSize],
+          [halfSize, halfSize],
+          [-halfSize, halfSize]
+        ].map(([x, y]) => {
+          const rotatedX = cosTheta * x - sinTheta * y + block.x + centerX
+          const rotatedY = sinTheta * x + cosTheta * y + block.y + centerY
+          return [rotatedX, rotatedY]
+        })
 
-      // Build path with fewer operations
-      path.moveTo(rotatedPoints[0][0], rotatedPoints[0][1])
-      path.lineTo(rotatedPoints[1][0], rotatedPoints[1][1])
-      path.lineTo(rotatedPoints[2][0], rotatedPoints[2][1])
-      path.lineTo(rotatedPoints[3][0], rotatedPoints[3][1])
-      path.close()
+        // Build path with fewer operations
+        path.moveTo(rotatedPoints[0][0], rotatedPoints[0][1])
+        path.lineTo(rotatedPoints[1][0], rotatedPoints[1][1])
+        path.lineTo(rotatedPoints[2][0], rotatedPoints[2][1])
+        path.lineTo(rotatedPoints[3][0], rotatedPoints[3][1])
+        path.close()
 
-      return path
-    }), [spiralBlocks, centerX, centerY, halfSize])
+        return path
+      }),
+    [spiralBlocks, centerX, centerY, halfSize]
+  )
 
   // Optimize touchable overlay styles creation
-  const invisibleOverlayBlocks = useMemo(() => spiralBlocks.map((block) => {
-      const overlaySize = BLOCK_SIZE + 3 // Define overlay size
-      return {
-        position: 'absolute',
-        top: canvasHeight / 2 + block.y - overlaySize / 2,
-        left: canvasWidth / 2 + block.x - overlaySize / 2,
-        width: overlaySize,
-        height: overlaySize,
-        borderRadius: 25,
-        backgroundColor: 'rgba(255, 255, 255, 0)'
-      } as StyleProp<ViewStyle>
-    }), [spiralBlocks, canvasHeight, canvasWidth])
+  const invisibleOverlayBlocks = useMemo(
+    () =>
+      spiralBlocks.map((block) => {
+        const overlaySize = BLOCK_SIZE + 3 // Define overlay size
+        return {
+          backgroundColor: 'rgba(255, 255, 255, 0)',
+          borderRadius: 25,
+          height: overlaySize,
+          left: canvasWidth / 2 + block.x - overlaySize / 2,
+          position: 'absolute',
+          top: canvasHeight / 2 + block.y - overlaySize / 2,
+          width: overlaySize
+        } as StyleProp<ViewStyle>
+      }),
+    [spiralBlocks, canvasHeight, canvasWidth]
+  )
 
   // Pre-calculate week circles outside of the render function
-  const weekCircles = useMemo(() => RADIUS_WEEKS.map((r, index) => {
-      const weekRingColor = `rgb(${255 - index * 50}, ${255 - index * 50}, ${
-        255 - index * 50
-      })`
-      return (
-        <Circle key={index} cx={centerX} cy={centerY} r={r} color="transparent">
-          <Paint color={weekRingColor} style="stroke" strokeWidth={1}>
-            <DashPathEffect intervals={[5, 5]} phase={0} />
-          </Paint>
-        </Circle>
-      )
-    }), [centerX, centerY])
+  const weekCircles = useMemo(
+    () =>
+      RADIUS_WEEKS.map((r, index) => {
+        const weekRingColor = `rgb(${255 - index * 50}, ${255 - index * 50}, ${
+          255 - index * 50
+        })`
+        return (
+          <Circle
+            key={index}
+            cx={centerX}
+            cy={centerY}
+            r={r}
+            color="transparent"
+          >
+            <Paint color={weekRingColor} style="stroke" strokeWidth={1}>
+              <DashPathEffect intervals={[5, 5]} phase={0} />
+            </Paint>
+          </Circle>
+        )
+      }),
+    [centerX, centerY]
+  )
 
   // Pre-calculate touchable blocks with their handlers
-  const touchableBlocks = useMemo(() => spiralBlocks.map((_, index) => (
-      <TouchableOpacity
-        key={spiralBlocks[index]?.height ?? index}
-        style={invisibleOverlayBlocks[index]}
-        delayPressIn={0}
-        delayPressOut={0}
-        onPress={() => onBlockPress(data[index])}
-        activeOpacity={0.7}
-      >
-        <Animated.View />
-      </TouchableOpacity>
-    )), [spiralBlocks, invisibleOverlayBlocks, data, onBlockPress])
+  const touchableBlocks = useMemo(
+    () =>
+      spiralBlocks.map((_, index) => (
+        <TouchableOpacity
+          key={spiralBlocks[index]?.height ?? index}
+          style={invisibleOverlayBlocks[index]}
+          delayPressIn={0}
+          delayPressOut={0}
+          onPress={() => onBlockPress(data[index])}
+          activeOpacity={0.7}
+        >
+          <Animated.View />
+        </TouchableOpacity>
+      )),
+    [spiralBlocks, invisibleOverlayBlocks, data, onBlockPress]
+  )
 
   // If still loading data, show branded white-circle loader
   if (loading) {
@@ -350,44 +377,44 @@ function newtonRaphson(
 
 const styles = StyleSheet.create({
   canvas: {
-    position: 'relative',
-    backgroundColor: '#000'
+    backgroundColor: '#000',
+    position: 'relative'
   },
   closeButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
     backgroundColor: 'white',
-    borderRadius: 4
+    borderRadius: 4,
+    paddingHorizontal: 20,
+    paddingVertical: 10
   },
   closeButtonText: {
     color: 'black',
     fontSize: 14
   },
   container: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#000000',
-    borderColor: 'yellow'
+    borderColor: 'yellow',
+    flex: 1,
+    justifyContent: 'center'
   },
   loadingContainer: {},
   overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0)',
-    justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10,
-    padding: 20
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    bottom: 0,
+    justifyContent: 'center',
+    left: 0,
+    padding: 20,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 10
   },
   overlayCanvas: {
-    width: 200,
-    height: 200,
     backgroundColor: '#000',
-    marginBottom: 16
+    height: 200,
+    marginBottom: 16,
+    width: 200
   },
   overlayText: {
     color: 'white',
@@ -405,10 +432,12 @@ const styles = StyleSheet.create({
 })
 
 // Use React.memo to prevent unnecessary re-renders
-export default memo(SSSpiralBlocks, (prevProps, nextProps) => (
+export default memo(
+  SSSpiralBlocks,
+  (prevProps, nextProps) =>
     prevProps.loading === nextProps.loading &&
     prevProps.data === nextProps.data &&
     prevProps.canvasWidth === nextProps.canvasWidth &&
     prevProps.canvasHeight === nextProps.canvasHeight &&
     prevProps.maxBlocksPerSpiral === nextProps.maxBlocksPerSpiral
-  ))
+)

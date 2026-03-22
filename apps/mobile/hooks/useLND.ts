@@ -60,8 +60,8 @@ export const useLND = () => {
       const response = await fetch(`${config.url}${endpoint}`, {
         body: body ? JSON.stringify(body) : undefined,
         headers: {
-          'Grpc-Metadata-macaroon': config.macaroon,
           'Content-Type': 'application/json',
+          'Grpc-Metadata-macaroon': config.macaroon,
           ...headers
         },
         method
@@ -83,7 +83,10 @@ export const useLND = () => {
     [config, setConnecting, setConnected]
   )
 
-  const getBalance = useCallback(async () => makeRequest('/v1/balance/blockchain'), [makeRequest])
+  const getBalance = useCallback(
+    async () => makeRequest('/v1/balance/blockchain'),
+    [makeRequest]
+  )
 
   const getChannels = useCallback(async (): Promise<LNDChannel[]> => {
     try {
@@ -99,12 +102,13 @@ export const useLND = () => {
   }, [makeRequest, setChannels])
 
   const createInvoice = useCallback(
-    async (amount: number, description: string) => makeRequest('/v1/invoices', {
-        method: 'POST',
+    async (amount: number, description: string) =>
+      makeRequest('/v1/invoices', {
         body: {
-          value: amount,
-          memo: description
-        }
+          memo: description,
+          value: amount
+        },
+        method: 'POST'
       }),
     [makeRequest]
   )
@@ -155,7 +159,9 @@ export const useLND = () => {
   )
 
   const verifyConnection = useCallback(async () => {
-    if (!config) {return false}
+    if (!config) {
+      return false
+    }
 
     try {
       await getInfo()
@@ -166,7 +172,9 @@ export const useLND = () => {
   }, [config, getInfo])
 
   useEffect(() => {
-    if (!config) {return}
+    if (!config) {
+      return
+    }
 
     const checkInterval = setInterval(async () => {
       await verifyConnection()

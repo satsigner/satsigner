@@ -12,7 +12,9 @@ interface SSChecksumStatusProps {
 
 function SSChecksumStatus({ valid }: SSChecksumStatusProps) {
   const statusStyle = useMemo(() => {
-    if (valid === 'electrum') {return { backgroundColor: Colors.warning }}
+    if (valid === 'electrum') {
+      return { backgroundColor: Colors.warning }
+    }
     return { backgroundColor: valid ? Colors.success : Colors.error }
   }, [valid])
 

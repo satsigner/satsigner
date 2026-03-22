@@ -1,7 +1,12 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { useMemo } from 'react'
-import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
-import type { StyleProp, TextStyle } from 'react-native';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  TouchableOpacity,
+  View
+} from 'react-native'
+import type { StyleProp, TextStyle } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
 
@@ -40,13 +45,24 @@ function SSButton({
 }: SSButtonProps) {
   const buttonStyle = useMemo(() => {
     let buttonVariantStyles = styles.buttonDefault
-    if (variant === 'secondary') {buttonVariantStyles = styles.buttonSecondary}
-    if (variant === 'outline') {buttonVariantStyles = styles.buttonOutline}
-    if (variant === 'ghost') {buttonVariantStyles = styles.buttonGhost}
-    if (variant === 'subtle') {buttonVariantStyles = styles.buttonSubtle}
-    if (variant === 'default' && withSelect)
-      {buttonVariantStyles = styles.buttonWithSelect}
-    if (variant === 'danger') {buttonVariantStyles = styles.buttonDanger}
+    if (variant === 'secondary') {
+      buttonVariantStyles = styles.buttonSecondary
+    }
+    if (variant === 'outline') {
+      buttonVariantStyles = styles.buttonOutline
+    }
+    if (variant === 'ghost') {
+      buttonVariantStyles = styles.buttonGhost
+    }
+    if (variant === 'subtle') {
+      buttonVariantStyles = styles.buttonSubtle
+    }
+    if (variant === 'default' && withSelect) {
+      buttonVariantStyles = styles.buttonWithSelect
+    }
+    if (variant === 'danger') {
+      buttonVariantStyles = styles.buttonDanger
+    }
 
     return StyleSheet.compose(
       {
@@ -60,16 +76,26 @@ function SSButton({
 
   const textStyles = useMemo(() => {
     let textVariantStyles = styles.textDefault
-    if (variant === 'secondary') {textVariantStyles = styles.textSecondary}
-    if (variant === 'ghost') {textVariantStyles = styles.textGhost}
-    if (variant === 'subtle') {textVariantStyles = styles.textSubtle}
+    if (variant === 'secondary') {
+      textVariantStyles = styles.textSecondary
+    }
+    if (variant === 'ghost') {
+      textVariantStyles = styles.textGhost
+    }
+    if (variant === 'subtle') {
+      textVariantStyles = styles.textSubtle
+    }
 
     return StyleSheet.compose({ ...textVariantStyles }, textStyle)
   }, [variant, textStyle])
 
-  const activityIndicatorColor = useMemo(() => variant === 'secondary'
-      ? styles.activityIndicatorDark.color
-      : styles.activityIndicatorLight.color, [variant])
+  const activityIndicatorColor = useMemo(
+    () =>
+      variant === 'secondary'
+        ? styles.activityIndicatorDark.color
+        : styles.activityIndicatorLight.color,
+    [variant]
+  )
 
   return (
     <TouchableOpacity
@@ -123,12 +149,12 @@ const styles = StyleSheet.create({
     color: Colors.white
   },
   buttonBase: {
+    alignItems: 'center',
     borderRadius: Sizes.button.borderRadius,
-    height: Sizes.button.height,
-    width: '100%',
     flexDirection: 'row',
+    height: Sizes.button.height,
     justifyContent: 'center',
-    alignItems: 'center'
+    width: '100%'
   },
   buttonDanger: {
     backgroundColor: Colors.error
@@ -140,16 +166,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.transparent
   },
   buttonGradient: {
-    position: 'absolute',
-    width: '100%',
+    alignItems: 'center',
     height: '100%',
     justifyContent: 'center',
-    alignItems: 'center'
+    position: 'absolute',
+    width: '100%'
   },
   buttonOutline: {
     backgroundColor: Colors.transparent,
-    borderWidth: 1,
-    borderColor: Colors.white
+    borderColor: Colors.white,
+    borderWidth: 1
   },
   buttonSecondary: {
     backgroundColor: Colors.white

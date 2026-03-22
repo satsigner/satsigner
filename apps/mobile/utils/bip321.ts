@@ -1,5 +1,11 @@
-import { encodeBIP321, parseBIP321, validateBitcoinAddress, validateBolt12Offer, validateLightningInvoice } from 'bip-321';
-import type { BIP321ParseResult, Network as Bip321Network } from 'bip-321';
+import {
+  encodeBIP321,
+  parseBIP321,
+  validateBitcoinAddress,
+  validateBolt12Offer,
+  validateLightningInvoice
+} from 'bip-321'
+import type { BIP321ParseResult, Network as Bip321Network } from 'bip-321'
 
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import type { Network as AppNetwork } from '@/types/settings/blockchain'
@@ -49,7 +55,9 @@ interface Bolt12ValidationResult {
 function bip321NetworkToAppNetwork(
   network: Bip321Network | undefined
 ): AppNetwork | undefined {
-  if (!network) {return undefined}
+  if (!network) {
+    return undefined
+  }
   switch (network) {
     case 'mainnet': {
       return 'bitcoin'
@@ -72,7 +80,9 @@ function bip321NetworkToAppNetwork(
 function appNetworkToBip321Network(
   network: AppNetwork | undefined
 ): Bip321Network | undefined {
-  if (!network) {return undefined}
+  if (!network) {
+    return undefined
+  }
   switch (network) {
     case 'bitcoin': {
       return 'mainnet'
@@ -211,7 +221,9 @@ export function encodeBitcoinUriFromSats(
 }
 
 export function isBitcoinUri(uri: string): boolean {
-  if (!uri) {return false}
+  if (!uri) {
+    return false
+  }
   const trimmed = uri.trim()
   if (!trimmed.toLowerCase().startsWith('bitcoin:')) {
     return false

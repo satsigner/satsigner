@@ -64,7 +64,9 @@ export default function ConfirmScreen() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function rotate() {
-    if (completed) {return}
+    if (completed) {
+      return
+    }
     setRotation((prev: number) => (prev + 20) % 360)
     setTimeout(() => {
       rotate()

@@ -1,7 +1,7 @@
 import { scaleLinear } from 'd3'
 import { useMemo } from 'react'
-import { StyleSheet, View } from 'react-native';
-import type { DimensionValue } from 'react-native';
+import { StyleSheet, View } from 'react-native'
+import type { DimensionValue } from 'react-native'
 
 import { Colors } from '@/styles'
 
@@ -32,10 +32,14 @@ function SSUtxoSizeMeter({
   const percentage = scale(Math.round((expSize / largestExpSize) * 100))
   const percentageText = (percentage + '%') as DimensionValue
 
-  const selectedSizeBarStyle = useMemo(() => StyleSheet.compose(styles.sizeBarBase, {
-      ...(selected ? styles.sizeBarSelected : {}),
-      width: percentageText
-    }), [selected, percentageText])
+  const selectedSizeBarStyle = useMemo(
+    () =>
+      StyleSheet.compose(styles.sizeBarBase, {
+        ...(selected ? styles.sizeBarSelected : {}),
+        width: percentageText
+      }),
+    [selected, percentageText]
+  )
 
   return (
     <View style={styles.containerBase}>
@@ -51,23 +55,23 @@ const styles = StyleSheet.create({
     height: 2
   },
   containerBase: {
+    height: 2,
     position: 'absolute',
-    width: '100%',
-    height: 2
+    width: '100%'
   },
   sizeBarBase: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
     backgroundColor: Colors.white,
+    height: 2,
+    left: 0,
     opacity: 0.3,
-    height: 2
+    position: 'absolute',
+    top: 0
   },
   sizeBarSelected: {
-    top: -2,
-    opacity: 1,
     borderRadius: 1,
-    height: 6
+    height: 6,
+    opacity: 1,
+    top: -2
   }
 })
 

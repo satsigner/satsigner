@@ -8,8 +8,8 @@ import {
   useLocalSearchParams,
   useRouter
 } from 'expo-router'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Dispatch } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { Dispatch } from 'react'
 import {
   Animated,
   Easing,
@@ -20,8 +20,8 @@ import {
   useWindowDimensions,
   View
 } from 'react-native'
-import { TabView } from 'react-native-tab-view';
-import type { SceneRendererProps } from 'react-native-tab-view';
+import { TabView } from 'react-native-tab-view'
+import type { SceneRendererProps } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -264,9 +264,15 @@ function TotalTransactions({
     useShallow((state) => [state.btcPrice, state.fiatCurrency])
   )
 
-  const sortedTransactions = useMemo(() => sortTransactions([...account.transactions], sortDirection), [account.transactions, sortDirection])
+  const sortedTransactions = useMemo(
+    () => sortTransactions([...account.transactions], sortDirection),
+    [account.transactions, sortDirection]
+  )
 
-  const chartTransactions = useMemo(() => sortTransactions([...account.transactions], 'desc'), [account.transactions])
+  const chartTransactions = useMemo(
+    () => sortTransactions([...account.transactions], 'desc'),
+    [account.transactions]
+  )
 
   const transactionBalances = useMemo(() => {
     let balance = 0
@@ -281,7 +287,9 @@ function TotalTransactions({
   }, [sortedTransactions])
 
   const maxBalance = useMemo(() => {
-    if (transactionBalances.length === 0) {return 0}
+    if (transactionBalances.length === 0) {
+      return 0
+    }
     return Math.max(...transactionBalances)
   }, [transactionBalances])
 
@@ -575,15 +583,20 @@ function DerivedAddresses({
   const [addressView, setAddressView] = useState<'table' | 'list'>('table')
 
   const isUpdatingAddresses = useRef(false)
-  const isMultiAddressWatchOnly = useMemo(() => (
+  const isMultiAddressWatchOnly = useMemo(
+    () =>
       account.keys.length > 1 &&
-      account.keys[0].creationType === 'importAddress'
-    ), [account])
+      account.keys[0].creationType === 'importAddress',
+    [account]
+  )
 
   function updateDerivationPath() {
-    if (isMultiAddressWatchOnly) {return}
-    if (account.keys[0].derivationPath)
-      {setAddressPath(`${account.keys[0].derivationPath}/${change ? 1 : 0}`)}
+    if (isMultiAddressWatchOnly) {
+      return
+    }
+    if (account.keys[0].derivationPath) {
+      setAddressPath(`${account.keys[0].derivationPath}/${change ? 1 : 0}`)
+    }
   }
 
   function loadExactAccountAddresses() {
@@ -591,7 +604,9 @@ function DerivedAddresses({
   }
 
   function trimLabel(label: string | undefined): string {
-    if (!label) {return t('transaction.noLabel')}
+    if (!label) {
+      return t('transaction.noLabel')
+    }
     return label.length > 14 ? `${label.slice(0, 14)}...` : label
   }
 
@@ -629,17 +644,23 @@ function DerivedAddresses({
   }
 
   async function updateAddresses() {
-    if (!wallet || isLoadingAddresses || isUpdatingAddresses.current) {return}
+    if (!wallet || isLoadingAddresses || isUpdatingAddresses.current) {
+      return
+    }
 
     isUpdatingAddresses.current = true
 
     try {
       const result = await getLastUnusedAddressFromWallet(wallet!)
 
-      if (!result) {return}
+      if (!result) {
+        return
+      }
       const minItems = Math.max(1, Math.ceil(result.index / perPage)) * perPage
 
-      if (minItems <= addressCount) {return}
+      if (minItems <= addressCount) {
+        return
+      }
 
       if (account.addresses.length >= addressCount) {
         let newAddresses = await getWalletAddresses(
@@ -878,7 +899,10 @@ function SpendableOutputs({
   const GRAPH_HEIGHT = halfHeight
   const GRAPH_WIDTH = width - horizontalPadding
 
-  const totalBalance = useMemo(() => account.utxos.reduce((sum, u) => sum + u.value, 0), [account.utxos])
+  const totalBalance = useMemo(
+    () => account.utxos.reduce((sum, u) => sum + u.value, 0),
+    [account.utxos]
+  )
 
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>
@@ -1051,11 +1075,13 @@ export default function AccountView() {
   const wallet = useGetAccountWallet(id!)
   const watchOnlyWalletAddress = useGetAccountAddress(id!)
 
-  const isMultiAddressWatchOnly = useMemo(() => (
+  const isMultiAddressWatchOnly = useMemo(
+    () =>
       account &&
       account.keys.length > 1 &&
-      account.keys[0].creationType === 'importAddress'
-    ), [account])
+      account.keys[0].creationType === 'importAddress',
+    [account]
+  )
 
   const [currencyUnit, useZeroPadding, privacyMode, togglePrivacyMode] =
     useSettingsStore(
@@ -1130,11 +1156,14 @@ export default function AccountView() {
 
   const { closeCameraModal, closeNFCModal, closePasteModal } = contentHandler
   useFocusEffect(
-    useCallback(() => () => {
+    useCallback(
+      () => () => {
         closeCameraModal()
         closeNFCModal()
         closePasteModal()
-      }, [closeCameraModal, closeNFCModal, closePasteModal])
+      },
+      [closeCameraModal, closeNFCModal, closePasteModal]
+    )
   )
 
   useEffect(() => {
@@ -1142,7 +1171,9 @@ export default function AccountView() {
     // - variables have not been initalized
     // - connection mode is manual
     // - wallet was recently synced already
-    if (!wallet || !account || connectionMode !== 'auto') {return}
+    if (!wallet || !account || connectionMode !== 'auto') {
+      return
+    }
 
     const { lastSyncedAt } = account
     const now = time.now()
@@ -1172,7 +1203,9 @@ export default function AccountView() {
     }
 
     return () => {
-      if (id) {stopSync(id)}
+      if (id) {
+        stopSync(id)
+      }
     }
   }, [id, account, hasNostrReady, startSync, stopSync])
 
@@ -1227,7 +1260,9 @@ export default function AccountView() {
     ] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
-  if (!account) {return <Redirect href="/" />}
+  if (!account) {
+    return <Redirect href="/" />
+  }
 
   const balanceTextSize =
     account.summary.balance > 1_000_000_000
@@ -1315,12 +1350,18 @@ export default function AccountView() {
   }
 
   async function refreshAccount() {
-    if (!account) {return}
+    if (!account) {
+      return
+    }
 
     const isImportAddress = account.keys[0].creationType === 'importAddress'
 
-    if (isImportAddress && !watchOnlyWalletAddress) {return}
-    if (!isImportAddress && !wallet) {return}
+    if (isImportAddress && !watchOnlyWalletAddress) {
+      return
+    }
+    if (!isImportAddress && !wallet) {
+      return
+    }
 
     try {
       const updatedAccount = !isImportAddress
@@ -1333,7 +1374,9 @@ export default function AccountView() {
   }
 
   function refreshAccountLabels() {
-    if (!account) {return}
+    if (!account) {
+      return
+    }
     // Fire-and-forget - don't block refresh completion for Nostr sync
     if (account.nostr?.autoSync) {
       fetchOnce(account)
@@ -1355,7 +1398,9 @@ export default function AccountView() {
     animateTransition(state)
   }
 
-  if (!account) {return <Redirect href="/" />}
+  if (!account) {
+    return <Redirect href="/" />
+  }
 
   // TODO: Handle tab indicator | https://reactnavigation.org/docs/tab-view/#renderindicator
   const renderTab = () => {
@@ -1487,10 +1532,10 @@ export default function AccountView() {
           headerBackground: () => (
             <View
               style={{
-                height: '100%',
-                justifyContent: 'center',
                 alignItems: 'center',
-                backgroundColor: Colors.gray[950]
+                backgroundColor: Colors.gray[950],
+                height: '100%',
+                justifyContent: 'center'
               }}
             />
           ),
@@ -1701,72 +1746,72 @@ const addressListStyles = StyleSheet.create({
     width: '25%'
   },
   columnIndex: {
-    width: '5%',
-    textAlign: 'center'
+    textAlign: 'center',
+    width: '5%'
   },
   columnLabel: {
     width: '15%'
   },
   columnSats: {
     flexWrap: 'nowrap',
-    width: '18%',
-    textAlign: 'center'
+    textAlign: 'center',
+    width: '18%'
   },
   columnTxs: {
-    width: '10%',
-    textAlign: 'center'
+    textAlign: 'center',
+    width: '10%'
   },
   columnUtxos: {
-    width: '10%',
-    textAlign: 'center'
+    textAlign: 'center',
+    width: '10%'
   },
   container: {
-    paddingTop: 10,
-    paddingBottom: 10
+    paddingBottom: 10,
+    paddingTop: 10
   },
   header: {
     paddingVertical: 4
   },
   headerRow: {
-    paddingBottom: 10,
-    paddingTop: 10,
-    paddingHorizontal: 4,
+    alignItems: 'center',
+    backgroundColor: '#111',
     borderBottomWidth: 1,
     borderColor: '#333',
-    backgroundColor: '#111',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    paddingBottom: 10,
+    paddingHorizontal: 4,
+    paddingTop: 10
   },
   headerText: {
     color: '#777',
     textTransform: 'uppercase'
   },
   indexText: {
-    fontWeight: 'bold',
     color: '#fff',
+    fontWeight: 'bold',
     textAlign: 'center'
   },
   receiveChangeContainer: {
     display: 'flex',
-    width: '100%',
-    marginTop: 10
+    marginTop: 10,
+    width: '100%'
   },
   row: {
-    paddingVertical: 12,
-    paddingHorizontal: 4,
+    alignItems: 'center',
     borderBottomWidth: 1,
     borderColor: '#333',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    paddingHorizontal: 4,
+    paddingVertical: 12
   },
   unreadBadgeDot: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    width: 9,
-    height: 9,
+    backgroundColor: Colors.error,
     borderRadius: 5,
-    backgroundColor: Colors.error
+    height: 9,
+    position: 'absolute',
+    right: -4,
+    top: -4,
+    width: 9
   },
   unreadBadgeWrapper: {
     position: 'relative'

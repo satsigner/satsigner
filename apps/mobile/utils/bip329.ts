@@ -79,33 +79,33 @@ function formatAddressLabels(addresses: Address[]): Label[] {
   return addresses
     .filter((address) => address.label)
     .map((address) => ({
-        label: address.label,
-        type: 'addr',
-        ref: address.address,
-        spendable: true
-      }))
+      label: address.label,
+      ref: address.address,
+      spendable: true,
+      type: 'addr'
+    }))
 }
 
 function formatTransactionLabels(transactions: Transaction[]): Label[] {
   return transactions
     .filter((tx) => tx.label)
     .map((tx) => ({
-        label: tx.label,
-        type: 'tx',
-        ref: tx.id,
-        spendable: true
-      }))
+      label: tx.label,
+      ref: tx.id,
+      spendable: true,
+      type: 'tx'
+    }))
 }
 
 function formatUtxoLabels(utxos: Utxo[]): Label[] {
   return utxos
     .filter((utxo) => utxo.label)
     .map((utxo) => ({
-        label: utxo.label!,
-        type: 'output',
-        ref: getUtxoOutpoint(utxo),
-        spendable: true // TODO: allow the user to mark utxo as not spendable
-      }))
+      label: utxo.label!,
+      ref: getUtxoOutpoint(utxo),
+      spendable: true,
+      type: 'output' // TODO: allow the user to mark utxo as not spendable
+    }))
 }
 
 export function formatAccountLabels(account: Account): Label[] {
@@ -165,9 +165,13 @@ function removeQuotes(str: string) {
 // TODO: refactor this !
 export function CSVtoLabels(CsvText: string): Label[] {
   const lines = CsvText.split('\n')
-  if (lines.length < 0) {throw new Error('Empty CSV text')}
+  if (lines.length < 0) {
+    throw new Error('Empty CSV text')
+  }
   const header = lines[0]
-  if (!/^([a-zA-Z()]+,?)+/.test(header)) {throw new Error('Invalid CSV header')}
+  if (!/^([a-zA-Z()]+,?)+/.test(header)) {
+    throw new Error('Invalid CSV header')
+  }
   const rows = lines.slice(1)
   const labels: Label[] = []
   const columns = header.split(',')
@@ -175,9 +179,13 @@ export function CSVtoLabels(CsvText: string): Label[] {
     // INFO: SPARROW WALLET uses non-standard CSV files, with empty lines and
     // comment lines. The if statement below ignores those lines in order to
     // correctly parse their non-standard weird CSV export.
-    if (row === '' || row.startsWith('#')) {continue}
+    if (row === '' || row.startsWith('#')) {
+      continue
+    }
 
-    if (!/^([^,]*,?)+$/.test(row)) {throw new Error('Invalid CSV line')}
+    if (!/^([^,]*,?)+$/.test(row)) {
+      throw new Error('Invalid CSV line')
+    }
 
     const rowItems = row.split(',')
     const label = {} as Label
@@ -212,7 +220,9 @@ export function CSVtoLabels(CsvText: string): Label[] {
         continue
       }
 
-      if (bip329Alias[column] === undefined) {continue}
+      if (bip329Alias[column] === undefined) {
+        continue
+      }
 
       const field = bip329Alias[column]
       label[field] = value
@@ -238,8 +248,12 @@ export function JSONLtoLabels(JSONLines: string): Label[] {
   const lines = JSONLines.split('\n')
   const labels: Label[] = []
   for (const line of lines) {
-    if (line === '') {continue}
-    if (!/^{.+}$/.test(line)) {throw new Error('Invalid line (JSONL)')}
+    if (line === '') {
+      continue
+    }
+    if (!/^{.+}$/.test(line)) {
+      throw new Error('Invalid line (JSONL)')
+    }
     const obj = JSON.parse(line)
     for (const key in obj) {
       const aliasKey = key.toLowerCase()

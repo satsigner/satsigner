@@ -13,8 +13,8 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
-import { bip329export, bip329FileTypes, bip329mimes } from '@/utils/bip329';
-import type { Bip329FileType, Label } from '@/utils/bip329';
+import { bip329export, bip329FileTypes, bip329mimes } from '@/utils/bip329'
+import type { Bip329FileType, Label } from '@/utils/bip329'
 import { shareFile } from '@/utils/filesystem'
 
 export default function ExportLabels() {
@@ -33,7 +33,9 @@ export default function ExportLabels() {
   }, [exportType]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function exportLabels() {
-    if (!account) {return}
+    if (!account) {
+      return
+    }
     const date = new Date().toISOString().slice(0, -5)
     const ext = exportType.toLowerCase()
     const filename = `${t(
@@ -48,7 +50,9 @@ export default function ExportLabels() {
     })
   }
 
-  if (!account) {return <Redirect href="/" />}
+  if (!account) {
+    return <Redirect href="/" />
+  }
 
   return (
     <ScrollView style={{ width: '100%' }}>

@@ -105,11 +105,9 @@ export function decodeURToPSBT(ur: string): string {
     if (psbtHex.toLowerCase().startsWith('70736274')) {
       return psbtHex
     }
-      return psbtHex
-    
+    return psbtHex
   }
-    throw new Error('UR decoder not complete after receiving part')
-  
+  throw new Error('UR decoder not complete after receiving part')
 }
 
 /**
@@ -270,8 +268,7 @@ export async function decodeMultiPartURToPSBT(
       if (psbtHex.toLowerCase().startsWith('70736274')) {
         return psbtHex
       }
-        return psbtHex
-      
+      return psbtHex
     }
   }
 
@@ -292,8 +289,7 @@ export async function decodeMultiPartURToPSBT(
     if (psbtHex.toLowerCase().startsWith('70736274')) {
       return psbtHex
     }
-      return psbtHex
-    
+    return psbtHex
   }
 
   throw new Error('UR decoder failed')
@@ -403,20 +399,23 @@ function parseCBORByteString(cborData: Uint8Array): Uint8Array {
       length = firstByte & 0x1F
     } else if (firstByte === 0x58) {
       // 1-byte length follows
-      if (cborData.length < 2)
-        {throw new Error('CBOR truncated at 1-byte length')}
+      if (cborData.length < 2) {
+        throw new Error('CBOR truncated at 1-byte length')
+      }
       length = cborData[1]
       offset = 2
     } else if (firstByte === 0x59) {
       // 2-byte length follows (big endian)
-      if (cborData.length < 3)
-        {throw new Error('CBOR truncated at 2-byte length')}
+      if (cborData.length < 3) {
+        throw new Error('CBOR truncated at 2-byte length')
+      }
       length = (cborData[1] << 8) | cborData[2]
       offset = 3
     } else if (firstByte === 0x5A) {
       // 4-byte length follows (big endian)
-      if (cborData.length < 5)
-        {throw new Error('CBOR truncated at 4-byte length')}
+      if (cborData.length < 5) {
+        throw new Error('CBOR truncated at 4-byte length')
+      }
       length =
         (cborData[1] << 24) |
         (cborData[2] << 16) |
@@ -425,8 +424,9 @@ function parseCBORByteString(cborData: Uint8Array): Uint8Array {
       offset = 5
     } else if (firstByte === 0x5B) {
       // 8-byte length follows (big endian) - needed for larger PSBTs
-      if (cborData.length < 9)
-        {throw new Error('CBOR truncated at 8-byte length')}
+      if (cborData.length < 9) {
+        throw new Error('CBOR truncated at 8-byte length')
+      }
 
       // JavaScript safe integer limit is 2^53-1, so we'll handle first 4 bytes as high part
       const high =

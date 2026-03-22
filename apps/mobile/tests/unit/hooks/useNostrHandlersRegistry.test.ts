@@ -47,26 +47,15 @@ describe('handler registry', () => {
     overrides: Partial<MessageHandlerContext> = {}
   ): MessageHandlerContext => ({
     account: {
+      addresses: [],
+      createdAt: new Date(),
       id: accountIds.primary,
+      keyCount: 1,
+      keys: [],
+      keysRequired: 1,
+      labels: {},
       name: 'Test Account',
       network: 'testnet',
-      policyType: 'singlesig',
-      keys: [],
-      keyCount: 1,
-      keysRequired: 1,
-      summary: {
-        balance: 0,
-        numberOfAddresses: 0,
-        numberOfTransactions: 0,
-        numberOfUtxos: 0,
-        satsInMempool: 0
-      },
-      transactions: [],
-      utxos: [],
-      addresses: [],
-      labels: {},
-      createdAt: new Date(),
-      syncStatus: 'synced',
       nostr: {
         autoSync: true,
         commonNpub: nostrKeys.alice.npub,
@@ -78,7 +67,18 @@ describe('handler registry', () => {
         relays: ['wss://relay.damus.io'],
         syncStart: new Date(),
         trustedMemberDevices: []
-      }
+      },
+      policyType: 'singlesig',
+      summary: {
+        balance: 0,
+        numberOfAddresses: 0,
+        numberOfTransactions: 0,
+        numberOfUtxos: 0,
+        satsInMempool: 0
+      },
+      syncStatus: 'synced',
+      transactions: [],
+      utxos: []
     },
     eventContent: nostrMessages.directMessage as unknown as Record<
       string,
@@ -88,9 +88,9 @@ describe('handler registry', () => {
     onPendingDM: () => {},
     syncStartSec: 0,
     unwrappedEvent: {
+      content: JSON.stringify(nostrMessages.directMessage),
       id: 'event-123',
-      pubkey: nostrKeys.bob.publicKeyHex,
-      content: JSON.stringify(nostrMessages.directMessage)
+      pubkey: nostrKeys.bob.publicKeyHex
     },
     ...overrides
   })

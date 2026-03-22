@@ -1,5 +1,5 @@
-import { forwardRef, useEffect, useMemo, useState } from 'react';
-import type { ForwardedRef } from 'react';
+import { forwardRef, useEffect, useMemo, useState } from 'react'
+import type { ForwardedRef } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { t } from '@/locales'
@@ -77,17 +77,23 @@ function SSNumberInput(
     }
     if (!NUMBER_REGEX.test(value)) {
       setInvalid(true)
-      if (onValidate) {onValidate(false)}
+      if (onValidate) {
+        onValidate(false)
+      }
       return
     }
     const numericVal = Number(value)
     const invalid = numericVal < min || numericVal > max
     setInvalid(invalid)
-    if (onValidate) {onValidate(!invalid)}
+    if (onValidate) {
+      onValidate(!invalid)
+    }
   }, [min, max]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleTextChange(text: string) {
-    if (alwaysTriggerOnChange && onChangeText) {onChangeText(text)}
+    if (alwaysTriggerOnChange && onChangeText) {
+      onChangeText(text)
+    }
 
     if (!NUMBER_REGEX.test(text)) {
       return
@@ -96,18 +102,26 @@ function SSNumberInput(
     if (text === '') {
       setLocalValue('')
       setInvalid(!allowValidEmpty)
-      if (onValidate) {onValidate(false)}
+      if (onValidate) {
+        onValidate(false)
+      }
       return
     }
 
     const numericVal = Number(text)
     if (numericVal < min || numericVal > max) {
       setInvalid(true)
-      if (onValidate) {onValidate(false)}
+      if (onValidate) {
+        onValidate(false)
+      }
     } else {
       setInvalid(false)
-      if (onValidate) {onValidate(true)}
-      if (onChangeText) {onChangeText(numericVal.toString())}
+      if (onValidate) {
+        onValidate(true)
+      }
+      if (onChangeText) {
+        onChangeText(numericVal.toString())
+      }
     }
 
     setLocalValue(text)
@@ -116,11 +130,19 @@ function SSNumberInput(
   function handleSubmitText() {
     if (/^[0-9]+$/.test(localValue)) {
       let numericVal = Number(localValue)
-      if (numericVal < min) {numericVal = min}
-      if (numericVal > max) {numericVal = max}
+      if (numericVal < min) {
+        numericVal = min
+      }
+      if (numericVal > max) {
+        numericVal = max
+      }
       setInvalid(false)
-      if (onValidate) {onValidate(true)}
-      if (onChangeText) {onChangeText(numericVal.toString())}
+      if (onValidate) {
+        onValidate(true)
+      }
+      if (onChangeText) {
+        onChangeText(numericVal.toString())
+      }
     }
   }
 
@@ -156,21 +178,21 @@ function SSNumberInput(
 const styles = StyleSheet.create({
   actionRightBase: {
     position: 'absolute',
-    top: '50%',
     right: 12,
+    top: '50%',
     transform: [{ translateY: -12 }]
   },
   alignCenter: {
-    textAlign: 'center',
-    paddingHorizontal: 12
+    paddingHorizontal: 12,
+    textAlign: 'center'
   },
   alignLeft: {
-    textAlign: 'left',
-    paddingHorizontal: 12
+    paddingHorizontal: 12,
+    textAlign: 'left'
   },
   borderInvalid: {
-    borderWidth: 2,
-    borderColor: Colors.error
+    borderColor: Colors.error,
+    borderWidth: 2
   },
   containerBase: {
     position: 'relative',
@@ -186,16 +208,16 @@ const styles = StyleSheet.create({
   },
   textInputBase: {
     borderRadius: Sizes.textInput.borderRadius,
-    width: '100%',
+    color: Colors.white,
     textAlign: 'center',
-    color: Colors.white
+    width: '100%'
   },
   variantDefault: {
     backgroundColor: Colors.gray[850]
   },
   variantOutline: {
-    borderWidth: 1,
-    borderColor: Colors.gray[400]
+    borderColor: Colors.gray[400],
+    borderWidth: 1
   }
 })
 

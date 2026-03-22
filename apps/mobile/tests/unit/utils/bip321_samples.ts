@@ -108,10 +108,10 @@ export const bip321Uris = {
 export const lightningInvoices = {
   // Real BOLT11 invoice format examples
   invalid: {
-    wrongPrefix: 'lnxyz10u1pnq9jt3pp5qqqqqqqqqqqqqqqqqq',
-    tooShort: 'lnbc1',
+    expiredFormat: 'lnbc10u1pnq9jt3',
     notBech32: 'lightning-invoice-not-bech32',
-    expiredFormat: 'lnbc10u1pnq9jt3' // truncated, invalid
+    tooShort: 'lnbc1',
+    wrongPrefix: 'lnxyz10u1pnq9jt3pp5qqqqqqqqqqqqqqqqqq' // truncated, invalid
   },
   mainnet: {
     // Simple mainnet invoice
@@ -141,8 +141,8 @@ export const lightningInvoices = {
 
 export const bolt12Offers = {
   invalid: {
-    wrongPrefix: 'lni1qgsqvgnwgcg35z6ee2h3yczraddm72',
-    tooShort: 'lno1'
+    tooShort: 'lno1',
+    wrongPrefix: 'lni1qgsqvgnwgcg35z6ee2h3yczraddm72'
   },
   valid: {
     // BOLT12 offers start with 'lno1'
@@ -169,9 +169,9 @@ export const lnurls = {
 
 export const cashuTokens = {
   invalid: {
-    wrongPrefix: 'cashXAeyJ0b2tlbiI...',
+    empty: 'cashuA',
     malformed: 'cashuAnot-valid-base64!@#$',
-    empty: 'cashuA'
+    wrongPrefix: 'cashXAeyJ0b2tlbiI...'
   },
   valid: {
     v3: 'cashuAeyJ0b2tlbiI6W3sibWludCI6Imh0dHBzOlwvXC9taW50Lm1pbmliaXRzLmNhc2hcL0JpdGNvaW4iLCJwcm9vZnMiOlt7ImFtb3VudCI6NCwiaWQiOiIwMDUwMDU1MGYwNDk0MTQ2IiwiQyI6IjAzYjhlMTk1NGZmNWMwZDQ0ZTNkY2UzYzFhYTc2NmYxNjQxYmFiODIzY2YyZjNlNTIwM2U2YmFmM2VmYTg1MWQyZCIsInNlY3JldCI6ImYzNjFhMDg0NjA2OWExNGRjYjNmNDIxYjczZjE0ZTM1NGU0MmExYmMxZmExNDMxMDU2ZTVmNTViMjRjZmJkYjcifSx7ImFtb3VudCI6MSwiaWQiOiIwMDUwMDU1MGYwNDk0MTQ2IiwiQyI6IjAzNmM1ZTkyZThmYWE2MzUwM2MxMDhmYjM5ZTUzOWFjZDMxZDcyYmFkNTNmZjliNGI0MzMzNjg5ODZlNjkyMzFhNiIsInNlY3JldCI6ImFiYTM0Y2U1ZjY2NThhMTg4MzcyY2Q5MTdlNzNjZmQwN2EyN2I0ZjZhZjY2YTdiODc5Y2YxZjZmYjk5MWUyOTIifV19XSwidW5pdCI6InNhdCIsIm1lbW8iOiJUaGUifQ==',

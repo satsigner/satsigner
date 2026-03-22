@@ -1,5 +1,5 @@
-import { forwardRef, useMemo } from 'react';
-import type { ForwardedRef } from 'react';
+import { forwardRef, useMemo } from 'react'
+import type { ForwardedRef } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
@@ -26,13 +26,17 @@ function SSWordInput(
   }: SSWordInputProps,
   ref: ForwardedRef<TextInput>
 ) {
-  const textInputStyle = useMemo(() => StyleSheet.compose(
-      {
-        ...styles.textInputBase,
-        ...(invalid ? styles.textInputInvalid : {})
-      },
-      style
-    ), [invalid, style])
+  const textInputStyle = useMemo(
+    () =>
+      StyleSheet.compose(
+        {
+          ...styles.textInputBase,
+          ...(invalid ? styles.textInputInvalid : {})
+        },
+        style
+      ),
+    [invalid, style]
+  )
 
   return (
     <View style={styles.containerBase}>

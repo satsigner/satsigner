@@ -2,8 +2,8 @@ import { Buffer } from 'node:buffer'
 
 import type { NDKKind, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
-import { nip17, nip19, nip59 } from 'nostr-tools';
-import type { Event } from 'nostr-tools';
+import { nip17, nip19, nip59 } from 'nostr-tools'
+import type { Event } from 'nostr-tools'
 
 import {
   FLUSH_QUEUE_DELAY_MS,
@@ -34,7 +34,9 @@ function getProfileFromKind0Content(
             : undefined
     const picture =
       typeof content.picture === 'string' ? content.picture : undefined
-    if (!displayName && !picture) {return null}
+    if (!displayName && !picture) {
+      return null
+    }
     return { displayName, picture }
   } catch {
     return null
@@ -195,10 +197,14 @@ export class NostrAPI {
    */
   async fetchKind0(npub: string): Promise<NostrKind0Profile | null> {
     const hexPubkey = getPubKeyHexFromNpub(npub)
-    if (!hexPubkey) {return null}
+    if (!hexPubkey) {
+      return null
+    }
 
     await this.connect()
-    if (!this.ndk) {return null}
+    if (!this.ndk) {
+      return null
+    }
 
     const filter = {
       authors: [hexPubkey],
@@ -220,7 +226,9 @@ export class NostrAPI {
             (a, b) => (b.created_at ?? 0) - (a.created_at ?? 0)
           )[0]
 
-    if (!event?.content) {return null}
+    if (!event?.content) {
+      return null
+    }
 
     return getProfileFromKind0Content(event.content)
   }
@@ -233,7 +241,7 @@ export class NostrAPI {
     const signer = new NDKPrivateKeySigner(randomBytesArray)
     const user = await signer.user()
     const nsec = nip19.nsecEncode(randomBytesArray)
-    const {npub} = user
+    const { npub } = user
 
     return {
       npub,
@@ -243,7 +251,9 @@ export class NostrAPI {
   }
 
   private async processQueue() {
-    if (this.isProcessingQueue || this.eventQueue.length === 0) {return}
+    if (this.isProcessingQueue || this.eventQueue.length === 0) {
+      return
+    }
 
     this.isProcessingQueue = true
     const batch = this.eventQueue.splice(0, this.BATCH_SIZE)
@@ -278,11 +288,15 @@ export class NostrAPI {
     onEOSE?: (nsec: string) => void
   ): Promise<void> {
     await this.connect()
-    if (!this.ndk) {throw new Error('Failed to connect to relays')}
+    if (!this.ndk) {
+      throw new Error('Failed to connect to relays')
+    }
 
     const recipientSecretNostrKey = getSecretFromNsec(recipientNsec)
     const recipientPubKeyHex = getPubKeyHexFromNpub(recipientNpub)
-    if (!recipientSecretNostrKey || !recipientPubKeyHex) {return}
+    if (!recipientSecretNostrKey || !recipientPubKeyHex) {
+      return
+    }
 
     this.setLoading(true)
     this._callback = _callback
@@ -315,13 +329,17 @@ export class NostrAPI {
         const rawEvent = await event.toNostrEvent()
         const rawId = (rawEvent as { id?: string }).id
 
-        if (rawId && this.processedRawEventIds.has(rawId)) {return}
+        if (rawId && this.processedRawEventIds.has(rawId)) {
+          return
+        }
 
         const unwrappedEvent = unwrapNip59EventOrNull(
           rawEvent as unknown as Event,
           recipientSecretNostrKey
         )
-        if (!unwrappedEvent) {return}
+        if (!unwrappedEvent) {
+          return
+        }
 
         if (rawId) {
           if (this.processedRawEventIds.size >= MAX_PROCESSED_RAW_IDS) {
@@ -427,14 +445,20 @@ export class NostrAPI {
     const hexIds = eventIds.filter(
       (id) => typeof id === 'string' && /^[a-f0-9]{64}$/i.test(id)
     )
-    if (hexIds.length === 0) {return}
+    if (hexIds.length === 0) {
+      return
+    }
 
     const secretKey = getSecretFromNsec(deviceNsec)
-    if (!secretKey) {throw new Error('Invalid nsec')}
+    if (!secretKey) {
+      throw new Error('Invalid nsec')
+    }
     const signer = new NDKPrivateKeySigner(secretKey)
 
     await this.connect()
-    if (!this.ndk) {throw new Error('Failed to connect to relays')}
+    if (!this.ndk) {
+      throw new Error('Failed to connect to relays')
+    }
 
     const tempNdk = new NDK({ explicitRelayUrls: this.relays })
     tempNdk.signer = signer
@@ -467,7 +491,7 @@ export class NostrAPI {
       event.ndk = this.ndk
     }
     if (!event.sig) {
-      const {signer} = this.ndk
+      const { signer } = this.ndk
       if (!signer) {
         throw new Error('No signer available for event')
       }

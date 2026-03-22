@@ -74,25 +74,21 @@ const useTransactionBuilderStore = create<
   clearTransaction: () => {
     set({
       accountId: undefined,
+      broadcasted: false,
+      feeRate: 0,
       inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
       outputs: [],
-      feeRate: 0,
-      txBuilderResult: undefined,
       psbt: undefined,
+      signedPsbts: new Map<number, string>(),
       signedTx: undefined,
-      broadcasted: false,
-      signedPsbts: new Map<number, string>()
+      txBuilderResult: undefined
     })
   },
   cpfp: true,
   fee: 0,
   feeRate: 0,
-  getInputs: () => {
-    return Array.from(get().inputs.values())
-  },
-  hasInput: (utxo) => {
-    return get().inputs.has(getUtxoOutpoint(utxo))
-  },
+  getInputs: () => [...get().inputs.values()],
+  hasInput: (utxo) => get().inputs.has(getUtxoOutpoint(utxo)),
   inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
   outputs: [],
   rbf: true,
@@ -109,7 +105,9 @@ const useTransactionBuilderStore = create<
         const index = state.outputs.findIndex(
           (output) => output.localId === localId
         )
-        if (index !== -1) state.outputs.splice(index, 1)
+        if (index !== -1) {
+          state.outputs.splice(index, 1)
+        }
       })
     )
   },
@@ -148,7 +146,9 @@ const useTransactionBuilderStore = create<
         const index = state.outputs.findIndex(
           (output) => output.localId === localId
         )
-        if (index !== -1) state.outputs[index] = { localId, ...output }
+        if (index !== -1) {
+          state.outputs[index] = { localId, ...output }
+        }
       })
     )
   }

@@ -114,7 +114,9 @@ export default function MultiSigKeySettings() {
     setEntropyModalVisible(false)
   }
 
-  if (!name) {return <Redirect href="/" />}
+  if (!name) {
+    return <Redirect href="/" />
+  }
 
   return (
     <SSMainLayout>

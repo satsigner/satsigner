@@ -2,8 +2,8 @@ import { StyleSheet } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 
-import SSText from './SSText';
-import type { SSTextProps } from './SSText';
+import SSText from './SSText'
+import type { SSTextProps } from './SSText'
 
 type SSBinaryDisplayProps = {
   binary: string

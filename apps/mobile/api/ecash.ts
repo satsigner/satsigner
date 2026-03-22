@@ -1,5 +1,10 @@
-import { getDecodedToken, getEncodedTokenV4, Mint, Wallet } from '@cashu/cashu-ts';
-import type { MintQuoteState } from '@cashu/cashu-ts';
+import {
+  getDecodedToken,
+  getEncodedTokenV4,
+  Mint,
+  Wallet
+} from '@cashu/cashu-ts'
+import type { MintQuoteState } from '@cashu/cashu-ts'
 
 import type {
   EcashMeltResult,
@@ -346,12 +351,11 @@ export async function validateEcashToken(
         isValid: true
       }
     }
-      return {
-        isValid: true,
-        isSpent: false,
-        details: `Mixed state: ${spentProofs.length} spent, ${unspentProofs.length} unspent`
-      }
-    
+    return {
+      details: `Mixed state: ${spentProofs.length} spent, ${unspentProofs.length} unspent`,
+      isSpent: false,
+      isValid: true
+    }
   } catch {
     return {
       details: `Failed to check proof states,.`,

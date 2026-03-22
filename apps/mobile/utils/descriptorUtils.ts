@@ -10,26 +10,30 @@ export const DescriptorUtils = {
     scriptVersion: ScriptVersionType
   ) {
     switch (scriptVersion) {
-      case 'P2WPKH':
+      case 'P2WPKH': {
         return {
           external: `wpkh(${xpubWithPrefix}/0/*)`,
           internal: `wpkh(${xpubWithPrefix}/1/*)`
         }
-      case 'P2SH-P2WPKH':
+      }
+      case 'P2SH-P2WPKH': {
         return {
           external: `sh(wpkh(${xpubWithPrefix}/0/*))`,
           internal: `sh(wpkh(${xpubWithPrefix}/1/*))`
         }
-      case 'P2PKH':
+      }
+      case 'P2PKH': {
         return {
           external: `pkh(${xpubWithPrefix}/0/*)`,
           internal: `pkh(${xpubWithPrefix}/1/*)`
         }
-      default:
+      }
+      default: {
         return {
           external: `wpkh(${xpubWithPrefix}/0/*)`,
           internal: `wpkh(${xpubWithPrefix}/1/*)`
         }
+      }
     }
   },
 
@@ -46,34 +50,48 @@ export const DescriptorUtils = {
   extractFingerprintFromXpub(xpubWithPrefix: string) {
     // Pattern 1: [fingerprint/derivation]xpub (with slash separator)
     const fingerprintMatch1 = xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})\//)
-    if (fingerprintMatch1) return fingerprintMatch1[1]
+    if (fingerprintMatch1) {
+      return fingerprintMatch1[1]
+    }
 
     // Pattern 2: [fingerprintderivation]xpub (no slash separator - legacy)
     const fingerprintMatch2 = xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})/)
-    if (fingerprintMatch2) return fingerprintMatch2[1]
+    if (fingerprintMatch2) {
+      return fingerprintMatch2[1]
+    }
 
     // Pattern 3: [fingerprint...]xpub (any length hex - fallback)
     const fingerprintMatch3 = xpubWithPrefix.match(/^\[([0-9a-fA-F]+)/)
-    if (fingerprintMatch3) return fingerprintMatch3[1]
+    if (fingerprintMatch3) {
+      return fingerprintMatch3[1]
+    }
 
     return null
   },
 
   getScriptVersionFromDerivation(derivationPath: string): ScriptVersionType {
-    if (derivationPath.includes("84'")) return 'P2WPKH'
-    if (derivationPath.includes("49'")) return 'P2SH-P2WPKH'
-    if (derivationPath.includes("44'")) return 'P2PKH'
+    if (derivationPath.includes("84'")) {
+      return 'P2WPKH'
+    }
+    if (derivationPath.includes("49'")) {
+      return 'P2SH-P2WPKH'
+    }
+    if (derivationPath.includes("44'")) {
+      return 'P2PKH'
+    }
     return 'P2WPKH' // Default fallback
   },
 
   parseJsonDescriptor(text: string) {
     try {
       const jsonData = JSON.parse(text)
-      if (!jsonData.descriptor) return null
+      if (!jsonData.descriptor) {
+        return null
+      }
 
       const original = jsonData.descriptor
       const withoutChecksum = original.replace(/#[a-z0-9]+$/, '')
-      const internal = withoutChecksum.replace(/\/0\/\*/g, '/1/*')
+      const internal = withoutChecksum.replaceAll('/0/*', '/1/*')
 
       return {
         external: original,
@@ -86,7 +104,9 @@ export const DescriptorUtils = {
   },
 
   parseLegacyDescriptor(text: string) {
-    if (!text.includes('\n')) return null
+    if (!text.includes('\n')) {
+      return null
+    }
 
     const lines = text.split('\n')
     return {
@@ -106,10 +126,10 @@ export const DescriptorUtils = {
 
     if (!validation.isValid) {
       return {
-        success: false,
+        error: validation.error,
         external: validation.externalDescriptor,
         internal: validation.internalDescriptor,
-        error: validation.error
+        success: false
       }
     }
 
@@ -118,10 +138,10 @@ export const DescriptorUtils = {
     )
 
     return {
-      success: true,
       external: validation.externalDescriptor,
+      fingerprint,
       internal: validation.internalDescriptor,
-      fingerprint
+      success: true
     }
   },
 

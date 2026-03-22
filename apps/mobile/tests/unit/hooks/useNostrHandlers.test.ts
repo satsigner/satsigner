@@ -73,26 +73,15 @@ describe('message handlers', () => {
     overrides: Partial<MessageHandlerContext> = {}
   ): MessageHandlerContext => ({
     account: {
+      addresses: [],
+      createdAt: new Date(),
       id: accountIds.primary,
+      keyCount: 1,
+      keys: [],
+      keysRequired: 1,
+      labels: {},
       name: 'Test Account',
       network: 'testnet',
-      policyType: 'singlesig',
-      keys: [],
-      keyCount: 1,
-      keysRequired: 1,
-      summary: {
-        balance: 0,
-        numberOfAddresses: 0,
-        numberOfTransactions: 0,
-        numberOfUtxos: 0,
-        satsInMempool: 0
-      },
-      transactions: [],
-      utxos: [],
-      addresses: [],
-      labels: {},
-      createdAt: new Date(),
-      syncStatus: 'synced',
       nostr: {
         autoSync: true,
         commonNpub: nostrKeys.alice.npub,
@@ -104,16 +93,27 @@ describe('message handlers', () => {
         relays: ['wss://relay.damus.io'],
         syncStart: new Date(),
         trustedMemberDevices: []
-      }
+      },
+      policyType: 'singlesig',
+      summary: {
+        balance: 0,
+        numberOfAddresses: 0,
+        numberOfTransactions: 0,
+        numberOfUtxos: 0,
+        satsInMempool: 0
+      },
+      syncStatus: 'synced',
+      transactions: [],
+      utxos: []
     },
     eventContent: {},
     lastDataExchangeEOSE: 0,
     onPendingDM: jest.fn(),
     syncStartSec: 0,
     unwrappedEvent: {
+      content: '{}',
       id: 'event-123',
-      pubkey: nostrKeys.bob.privateKeyHex,
-      content: '{}'
+      pubkey: nostrKeys.bob.privateKeyHex
     },
     ...overrides
   })
@@ -297,8 +297,8 @@ describe('message handlers', () => {
     it('handle shows toast and calls onPendingDM via context', async () => {
       const onPendingDM = jest.fn()
       const context = createMockContext({
-        data: { data_type: 'PSBT', data: 'cHNidP8base64data' },
-        eventContent: { created_at: 1704067200 },
+        data: { data: 'cHNidP8base64data', data_type: 'PSBT' },
+        eventContent: { created_at: 1_704_067_200 },
         onPendingDM
       })
 
@@ -312,7 +312,7 @@ describe('message handlers', () => {
       )
       expect(onPendingDM).toHaveBeenCalledWith({
         eventContent: {
-          created_at: 1704067200,
+          created_at: 1_704_067_200,
           description: 'cHNidP8base64data'
         },
         skipToast: true,
@@ -323,7 +323,7 @@ describe('message handlers', () => {
     it('handle uses current time when created_at is missing', async () => {
       const onPendingDM = jest.fn()
       const context = createMockContext({
-        data: { data_type: 'PSBT', data: 'cHNidP8...' },
+        data: { data: 'cHNidP8...', data_type: 'PSBT' },
         eventContent: {},
         onPendingDM
       })
@@ -366,7 +366,7 @@ describe('message handlers', () => {
 
     it('canHandle returns false when data is present', () => {
       const context = createMockContext({
-        data: { data_type: 'LabelsBip329', data: '{}' },
+        data: { data: '{}', data_type: 'LabelsBip329' },
         eventContent: { description: 'Hello' }
       })
       expect(dmHandler.canHandle(context)).toBe(false)
@@ -375,7 +375,7 @@ describe('message handlers', () => {
     it('handle calls onPendingDM via context with event and content', async () => {
       const onPendingDM = jest.fn()
       const context = createMockContext({
-        eventContent: { created_at: 1704067200, description: 'Hello world' },
+        eventContent: { created_at: 1_704_067_200, description: 'Hello world' },
         onPendingDM
       })
 

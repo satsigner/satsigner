@@ -125,22 +125,21 @@ function SSNFCModal({
     }
   }, [visible, nfcPulseAnim])
 
-  const getModeTitle = () => mode === 'read' ? t('nfc.mode.read') : t('nfc.mode.write')
+  const getModeTitle = () =>
+    mode === 'read' ? t('nfc.mode.read') : t('nfc.mode.write')
 
   function getModeDescription() {
     if (mode === 'read') {
       return t('nfc.description.read')
     }
-      return t('nfc.description.write')
-    
+    return t('nfc.description.write')
   }
 
   function getButtonLabel() {
     if (mode === 'read') {
       return isReading ? t('common.cancel') : t('nfc.button.startReading')
     }
-      return isEmitting ? t('common.cancel') : t('nfc.button.startWriting')
-    
+    return isEmitting ? t('common.cancel') : t('nfc.button.startWriting')
   }
 
   function handleButtonPress() {

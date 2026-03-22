@@ -11,12 +11,15 @@ interface PromiseStatusObj {
 export type PromiseStatuses = Record<PromiseName, PromiseStatusObj>
 
 export function initPromiseStatuses(promiseNames: string[]) {
-  return promiseNames.reduce((initialStatuses, promiseName) => ({
+  return promiseNames.reduce(
+    (initialStatuses, promiseName) => ({
       ...initialStatuses,
       [promiseName]: {
         status: 'idle'
       }
-    }), {}) as PromiseStatuses
+    }),
+    {}
+  ) as PromiseStatuses
 }
 
 export function setPromiseStatus(

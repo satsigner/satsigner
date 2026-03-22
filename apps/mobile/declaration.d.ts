@@ -6,7 +6,7 @@ declare module 'net' {
 declare module 'tls' {
   import TcpSockets from 'react-native-tcp-socket'
   export const Server = TcpSockets.TLSServer
-  export const {TLSSocket} = TcpSockets
+  export const { TLSSocket } = TcpSockets
   export const connect = TcpSockets.connectTLS
   export const createServer = TcpSockets.createTLSServer
 }

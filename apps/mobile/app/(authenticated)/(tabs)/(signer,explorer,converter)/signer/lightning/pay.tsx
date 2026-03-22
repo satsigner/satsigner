@@ -255,16 +255,21 @@ export default function PayPage() {
 
   useEffect(() => {
     const paramValue = paymentRequestParam || invoiceParam
-    if (!paramValue) {return}
+    if (!paramValue) {
+      return
+    }
 
     const paymentRequestValue = Array.isArray(paramValue)
       ? paramValue[0]
       : paramValue
-    if (!paymentRequestValue) {return}
+    if (!paymentRequestValue) {
+      return
+    }
 
     const cleanText = paymentRequestValue.trim().replace(/^lightning:/i, '')
-    if (!cleanText.toLowerCase().startsWith('lnbc') && !isLNURL(cleanText))
-      {return}
+    if (!cleanText.toLowerCase().startsWith('lnbc') && !isLNURL(cleanText)) {
+      return
+    }
 
     handlePaymentRequestChange(cleanText)
   }, [paymentRequestParam, invoiceParam, handlePaymentRequestChange])
@@ -417,28 +422,28 @@ const styles = StyleSheet.create({
     marginRight: 4
   },
   buttonWithIcon: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'center'
   },
   fetchingDetails: {
     alignItems: 'center'
   },
   fiatAmount: {
-    marginTop: 4,
-    marginLeft: 4
+    marginLeft: 4,
+    marginTop: 4
   },
   input: {
     backgroundColor: '#242424',
     borderRadius: 3,
-    padding: 12,
     color: 'white',
-    fontSize: 16
+    fontSize: 16,
+    padding: 12
   },
   inputHeader: {
-    justifyContent: 'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
+    justifyContent: 'space-between'
   },
   monospaceInput: {
     fontFamily: Typography.sfProMono,

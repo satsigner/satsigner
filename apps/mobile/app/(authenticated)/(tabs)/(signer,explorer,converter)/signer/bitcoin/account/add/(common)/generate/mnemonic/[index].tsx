@@ -1,5 +1,5 @@
-import { KeychainKind } from 'bdk-rn/lib/lib/enums';
-import type { Network } from 'bdk-rn/lib/lib/enums';
+import { KeychainKind } from 'bdk-rn/lib/lib/enums'
+import type { Network } from 'bdk-rn/lib/lib/enums'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
@@ -90,8 +90,11 @@ export default function GenerateMnemonic() {
   }
 
   function handleOnPressCancel() {
-    if (policyType === 'multisig') {router.back()}
-    else if (policyType === 'singlesig') {router.dismissAll()}
+    if (policyType === 'multisig') {
+      router.back()
+    } else if (policyType === 'singlesig') {
+      router.dismissAll()
+    }
   }
 
   async function handleOnPressConfirm() {
@@ -145,8 +148,9 @@ export default function GenerateMnemonic() {
           passphrase || '', // Use passphrase from store
           network as Network
         )
-        const parsedDescriptor = await parseDescriptor(externalDescriptor)
-        ({ derivationPath } = parsedDescriptor)
+        const parsedDescriptor = await parseDescriptor(externalDescriptor)(
+          ({ derivationPath } = parsedDescriptor)
+        )
       } catch {
         // Use default derivation path if extraction fails
         const rawDerivationPath = getDerivationPathFromScriptVersion(

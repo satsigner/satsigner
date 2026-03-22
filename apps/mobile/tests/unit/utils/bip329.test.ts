@@ -30,7 +30,9 @@ describe('cSV to labels', () => {
   })
 
   it('parses Nonchuk CSV Tx', () => {
-    expect(CSVtoLabels(sampleCsvNonchukTx)).toStrictEqual(sampleCsvNonchukTxExpected)
+    expect(CSVtoLabels(sampleCsvNonchukTx)).toStrictEqual(
+      sampleCsvNonchukTxExpected
+    )
   })
 
   it('parses Sparrow CSV Utxo', () => {

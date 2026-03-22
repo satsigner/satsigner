@@ -1,9 +1,9 @@
 import { Canvas, Group, useFonts } from '@shopify/react-native-skia'
-import { hierarchy, pack } from 'd3';
-import type { HierarchyCircularNode } from 'd3';
+import { hierarchy, pack } from 'd3'
+import type { HierarchyCircularNode } from 'd3'
 import { useEffect, useMemo, useState } from 'react'
-import { Platform, TouchableOpacity, View } from 'react-native';
-import type { GestureResponderEvent, StyleProp, ViewStyle } from 'react-native';
+import { Platform, TouchableOpacity, View } from 'react-native'
+import type { GestureResponderEvent, StyleProp, ViewStyle } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 
@@ -62,16 +62,16 @@ function SSBubbleChart({
   useEffect(() => {
     setUtxoList(
       utxos.map((utxo) => ({
-          id: `${utxo.txid}:${utxo.vout}`,
-          children: [],
-          value: utxo.value,
-          timestamp: utxo.timestamp,
-          txid: utxo.txid,
-          vout: utxo.vout,
-          label: utxo.label || '',
-          addressTo: utxo.addressTo || '',
-          keychain: utxo.keychain
-        }))
+        addressTo: utxo.addressTo || '',
+        children: [],
+        id: `${utxo.txid}:${utxo.vout}`,
+        keychain: utxo.keychain,
+        label: utxo.label || '',
+        timestamp: utxo.timestamp,
+        txid: utxo.txid,
+        value: utxo.value,
+        vout: utxo.vout
+      }))
     )
   }, [utxos])
 
@@ -123,8 +123,7 @@ function SSBubbleChart({
     const touchPointX = event.nativeEvent.locationX
     const touchPointY = event.nativeEvent.locationY
     const distanceSquared =
-      (touchPointX - packedUtxo.r) ** 2 +
-      (touchPointY - packedUtxo.r) ** 2
+      (touchPointX - packedUtxo.r) ** 2 + (touchPointY - packedUtxo.r) ** 2
 
     if (distanceSquared <= rSquared) {
       onPress({
@@ -154,7 +153,9 @@ function SSBubbleChart({
               vout: packedUtxo.data.vout!
             }
 
-            const isSelected = inputs.some((input: any) => getUtxoOutpoint(input) === getUtxoOutpoint(utxo))
+            const isSelected = inputs.some(
+              (input: any) => getUtxoOutpoint(input) === getUtxoOutpoint(utxo)
+            )
 
             return (
               <SSBubble
@@ -197,11 +198,21 @@ function SSBubbleChart({
               const top = packedUtxo.y - packedUtxo.r
               const borderRadius = packedUtxo.r
 
-              if (width) {style.width = width}
-              if (height) {style.height = height}
-              if (left) {style.left = left}
-              if (top) {style.top = top}
-              if (borderRadius) {style.borderRadius = borderRadius}
+              if (width) {
+                style.width = width
+              }
+              if (height) {
+                style.height = height
+              }
+              if (left) {
+                style.left = left
+              }
+              if (top) {
+                style.top = top
+              }
+              if (borderRadius) {
+                style.borderRadius = borderRadius
+              }
 
               return (
                 <TouchableOpacity

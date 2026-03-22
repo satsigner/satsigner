@@ -1,5 +1,5 @@
-import { StyleSheet, View } from 'react-native';
-import type { StyleProp, ViewStyle } from 'react-native';
+import { StyleSheet, View } from 'react-native'
+import type { StyleProp, ViewStyle } from 'react-native'
 
 import { Colors } from '@/styles'
 import type { Transaction } from '@/types/models/Transaction'
@@ -17,7 +17,9 @@ function SSBalanceChangeBar({
   maxBalance = 1,
   style
 }: SSBalanceChangeBarProps) {
-  if (!transaction) {return null}
+  if (!transaction) {
+    return null
+  }
 
   const safeMaxBalance = maxBalance || 1
 

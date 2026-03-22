@@ -1,10 +1,27 @@
-import { Canvas, DashPathEffect, Group, Line, LinearGradient, matchFont, Paragraph, Path, Rect, rect, Skia, Text, TextAlign, TileMode, useFonts, vec } from '@shopify/react-native-skia';
-import type { SkParagraph } from '@shopify/react-native-skia';
+import {
+  Canvas,
+  DashPathEffect,
+  Group,
+  Line,
+  LinearGradient,
+  matchFont,
+  Paragraph,
+  Path,
+  Rect,
+  rect,
+  Skia,
+  Text,
+  TextAlign,
+  TileMode,
+  useFonts,
+  vec
+} from '@shopify/react-native-skia'
+import type { SkParagraph } from '@shopify/react-native-skia'
 import * as d3 from 'd3'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Fragment, memo, useCallback, useMemo, useRef, useState } from 'react'
-import { StyleSheet, View } from 'react-native';
-import type { LayoutChangeEvent } from 'react-native';
+import { StyleSheet, View } from 'react-native'
+import type { LayoutChangeEvent } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -161,7 +178,10 @@ function SSHistoryChart({
   const gestureUpdateAnimationFrameRef = useRef<number | null>(null)
   const isGestureActiveRef = useRef<boolean>(false)
 
-  const startDate = useMemo<Date>(() => new Date(endDate.getTime() - timeOffset / scale), [endDate, scale, timeOffset])
+  const startDate = useMemo<Date>(
+    () => new Date(endDate.getTime() - timeOffset / scale),
+    [endDate, scale, timeOffset]
+  )
 
   const balanceHistory = useMemo(() => {
     const history = new Map<number, Map<string, Utxo>>()
@@ -214,7 +234,7 @@ function SSHistoryChart({
       history.set(index, currentBalances)
     })
     pendingDeleteBalances.forEach((value) => {
-      [...history.entries()].forEach(([, historyBalance]) => {
+      ;[...history.entries()].forEach(([, historyBalance]) => {
         if (historyBalance.has(value)) {
           historyBalance.delete(value)
         }
@@ -249,7 +269,7 @@ function SSHistoryChart({
     if (endDate.getTime() <= currentDate.current.getTime()) {
       validData.push({
         amount: 0,
-        balance: validData[validData.length - 1]?.balance ?? 0,
+        balance: validData.at(-1)?.balance ?? 0,
         date: endDate,
         id: '',
         memo: '',
@@ -258,7 +278,7 @@ function SSHistoryChart({
     } else {
       validData.push({
         amount: 0,
-        balance: validData[validData.length - 1]?.balance ?? 0,
+        balance: validData.at(-1)?.balance ?? 0,
         date: currentDate.current,
         id: '',
         memo: '',
@@ -271,15 +291,24 @@ function SSHistoryChart({
   const chartWidth = containerSize.width - margin.left - margin.right
   const chartHeight = containerSize.height - margin.top - margin.bottom
 
-  const xScale = useMemo(() => d3.scaleTime().domain([startDate, endDate]).range([0, chartWidth]), [chartWidth, endDate, startDate])
+  const xScale = useMemo(
+    () => d3.scaleTime().domain([startDate, endDate]).range([0, chartWidth]),
+    [chartWidth, endDate, startDate]
+  )
 
-  const yScale = useMemo(() => d3
-      .scaleLinear()
-      .domain([
-        lockZoomToXAxis ? 0 : startY,
-        lockZoomToXAxis ? maxBalance * 1.2 : startY + (maxBalance * 1.2) / scale
-      ])
-      .range([chartHeight, 0]), [chartHeight, lockZoomToXAxis, maxBalance, scale, startY])
+  const yScale = useMemo(
+    () =>
+      d3
+        .scaleLinear()
+        .domain([
+          lockZoomToXAxis ? 0 : startY,
+          lockZoomToXAxis
+            ? maxBalance * 1.2
+            : startY + (maxBalance * 1.2) / scale
+        ])
+        .range([chartHeight, 0]),
+    [chartHeight, lockZoomToXAxis, maxBalance, scale, startY]
+  )
 
   const utxoRectangleData: {
     x1: number
@@ -288,60 +317,64 @@ function SSHistoryChart({
     y2: number
     utxo: Utxo
     gradientType: number
-  }[] = useMemo(() => Array.from(balanceHistory.entries())
-      .flatMap(([index, balances]) => {
-        const x1 = xScale(
-          new Date(transactions.at(index)?.timestamp ?? currentDate.current)
-        )
-        const x2 = xScale(
-          index === transactions.length - 1
-            ? currentDate.current
-            : new Date(
-                transactions.at(index + 1)?.timestamp ?? currentDate.current
-              )
-        )
-        if (x2 < 0 && x1 >= chartWidth) {
-          return []
-        }
-        let totalBalance = 0
-        return Array.from(balances.entries()).map(([, utxo]) => {
-          const y1 = yScale(totalBalance)
-          const y2 = yScale(totalBalance + utxo.value)
-          let gradientType = 0
-          totalBalance += utxo.value
-          if (
-            transactions.at(index + 1) !== undefined &&
-            transactions.at(index + 1)?.type === 'send'
-          ) {
-            const result = transactions
-              .at(index + 1)
-              ?.vin!.find(
-                (input) =>
-                  input.previousOutput.txid === utxo.txid &&
-                  input.previousOutput.vout === utxo.vout
-              )
-            if (result !== undefined) {
-              gradientType = 1
+  }[] = useMemo(
+    () =>
+      [...balanceHistory.entries()]
+        .flatMap(([index, balances]) => {
+          const x1 = xScale(
+            new Date(transactions.at(index)?.timestamp ?? currentDate.current)
+          )
+          const x2 = xScale(
+            index === transactions.length - 1
+              ? currentDate.current
+              : new Date(
+                  transactions.at(index + 1)?.timestamp ?? currentDate.current
+                )
+          )
+          if (x2 < 0 && x1 >= chartWidth) {
+            return []
+          }
+          let totalBalance = 0
+          return [...balances.entries()].map(([, utxo]) => {
+            const y1 = yScale(totalBalance)
+            const y2 = yScale(totalBalance + utxo.value)
+            let gradientType = 0
+            totalBalance += utxo.value
+            if (
+              transactions.at(index + 1) !== undefined &&
+              transactions.at(index + 1)?.type === 'send'
+            ) {
+              const result = transactions
+                .at(index + 1)
+                ?.vin!.find(
+                  (input) =>
+                    input.previousOutput.txid === utxo.txid &&
+                    input.previousOutput.vout === utxo.vout
+                )
+              if (result !== undefined) {
+                gradientType = 1
+              }
             }
-          }
-          if (utxo.txid === transactions.at(index)?.id) {
-            if (gradientType === 1) {
-              gradientType = 2
-            } else {
-              gradientType = -1
+            if (utxo.txid === transactions.at(index)?.id) {
+              if (gradientType === 1) {
+                gradientType = 2
+              } else {
+                gradientType = -1
+              }
             }
-          }
-          return {
-            x1,
-            x2,
-            y1,
-            y2,
-            utxo,
-            gradientType
-          }
+            return {
+              gradientType,
+              utxo,
+              x1,
+              x2,
+              y1,
+              y2
+            }
+          })
         })
-      })
-      .filter((v) => v !== undefined), [balanceHistory, xScale, yScale])
+        .filter((v) => v !== undefined),
+    [balanceHistory, xScale, yScale]
+  )
 
   const utxoLabels: {
     x1: number
@@ -391,13 +424,17 @@ function SSHistoryChart({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [balanceHistory, xScale, yScale])
 
-  const xScaleTransactions = useMemo(() => transactions
-      .map((t, index) => ({ ...t, index }))
-      .filter(
-        (t) =>
-          new Date(t?.timestamp ?? 0) >= startDate &&
-          new Date(t?.timestamp ?? 0) <= endDate
-      ), [endDate, startDate, transactions])
+  const xScaleTransactions = useMemo(
+    () =>
+      transactions
+        .map((t, index) => ({ ...t, index }))
+        .filter(
+          (t) =>
+            new Date(t?.timestamp ?? 0) >= startDate &&
+            new Date(t?.timestamp ?? 0) <= endDate
+        ),
+    [endDate, startDate, transactions]
+  )
 
   const updateLocationState = useCallback(() => {
     if (gestureUpdateAnimationFrameRef.current) {
@@ -552,18 +589,26 @@ function SSHistoryChart({
     longPressGesture
   )
 
-  const lineGenerator = useMemo(() => d3
-      .line<HistoryChartData>()
-      .x((d) => xScale(d.date))
-      .y((d) => yScale(d.balance))
-      .curve(d3.curveStepAfter), [xScale, yScale])
+  const lineGenerator = useMemo(
+    () =>
+      d3
+        .line<HistoryChartData>()
+        .x((d) => xScale(d.date))
+        .y((d) => yScale(d.balance))
+        .curve(d3.curveStepAfter),
+    [xScale, yScale]
+  )
 
-  const areaGenerator = useMemo(() => d3
-      .area<HistoryChartData>()
-      .x((d) => xScale(d.date))
-      .y0(chartHeight * scale)
-      .y1((d) => yScale(d.balance))
-      .curve(d3.curveStepAfter), [chartHeight, scale, xScale, yScale])
+  const areaGenerator = useMemo(
+    () =>
+      d3
+        .area<HistoryChartData>()
+        .x((d) => xScale(d.date))
+        .y0(chartHeight * scale)
+        .y1((d) => yScale(d.balance))
+        .curve(d3.curveStepAfter),
+    [chartHeight, scale, xScale, yScale]
+  )
 
   const linePath = useMemo(
     () => lineGenerator(validChartData),
@@ -600,7 +645,7 @@ function SSHistoryChart({
     if (!showTransactionInfo) {
       return []
     }
-    const {length} = xScaleTransactions
+    const { length } = xScaleTransactions
     const xAxisLabels = xScaleTransactions.map((t) => {
       const amount = t.type === 'receive' ? t.received : t.received - t.sent
       const numberOfInput = t.vin?.length ?? 0
@@ -664,9 +709,9 @@ function SSHistoryChart({
       }
     }
     const result = xAxisLabels.map((x) => ({
-        ...x,
-        textColor: visible[x.index] ? 'white' : 'transparent'
-      }))
+      ...x,
+      textColor: visible[x.index] ? 'white' : 'transparent'
+    }))
     return result
   }, [
     walletAddresses,
@@ -718,7 +763,9 @@ function SSHistoryChart({
     }[] = []
 
     validChartData.forEach((d) => {
-      if (d.type === 'end') {return}
+      if (d.type === 'end') {
+        return
+      }
       const x = Math.round(xScale(d.date) + (d.type === 'receive' ? -5 : +5))
       const y = Math.round(yScale(d.balance) - 5)
       if (x < 0 || x > chartWidth || y < 0 || y > chartHeight) {
@@ -734,12 +781,12 @@ function SSHistoryChart({
         const top = y - height
         initialLabels.push({
           boundBox: {
+            bottom: bottom + (showAmount ? -15 : 0),
+            height,
             left,
             right,
             top: top + (showAmount ? -15 : 0),
-            bottom: bottom + (showAmount ? -15 : 0),
-            width,
-            height
+            width
           },
           id: d.id,
           index,
@@ -772,15 +819,15 @@ function SSHistoryChart({
         initialLabels.push({
           amount: d.amount,
           boundBox: {
-            left,
-            right,
-            top: showFiatOnChart && btcPrice > 0 ? top - 10 : top,
             bottom: showFiatOnChart && btcPrice > 0 ? bottom - 10 : bottom,
-            width,
             height:
               showFiatOnChart && btcPrice > 0
                 ? height + (showFiatAtTxTime && historicalFiatValue ? 12 : 12)
-                : height
+                : height,
+            left,
+            right,
+            top: showFiatOnChart && btcPrice > 0 ? top - 10 : top,
+            width
           },
           fiatValue:
             showFiatOnChart && btcPrice > 0 && d.amount !== undefined
@@ -798,7 +845,9 @@ function SSHistoryChart({
 
     for (let i = 0; i < initialLabels.length - 1; i++) {
       const boundBoxA = initialLabels[i].boundBox
-      if (!boundBoxA) {continue}
+      if (!boundBoxA) {
+        continue
+      }
       for (let j = i + 1; j < initialLabels.length; j++) {
         const boundBoxB = initialLabels[j].boundBox
         if (boundBoxB && isOverlapping(boundBoxA, boundBoxB)) {
@@ -841,13 +890,19 @@ function SSHistoryChart({
   } as const
 
   const labelParagraphs = useMemo(() => {
-    if (!customFontManager) {return new Map<string, SkParagraph>()}
+    if (!customFontManager) {
+      return new Map<string, SkParagraph>()
+    }
     const paragraphs = new Map<string, SkParagraph>()
 
     txInfoLabels.forEach((label) => {
-      if (label.type === 'end') {return}
-      const {x} = label
-      if (x < 0 || x > chartWidth) {return}
+      if (label.type === 'end') {
+        return
+      }
+      const { x } = label
+      if (x < 0 || x > chartWidth) {
+        return
+      }
 
       const baseColor = label.type === 'receive' ? '#A7FFAF' : '#FF7171'
       const baseStyle = {
@@ -1141,7 +1196,9 @@ function YScaleRenderer({
     <>
       {yScale.ticks(4).map((tick) => {
         const yPosition = yScale(tick)
-        if (yPosition > chartHeight) {return null}
+        if (yPosition > chartHeight) {
+          return null
+        }
         return (
           <Fragment key={tick.toString()}>
             <Line
@@ -1305,7 +1362,7 @@ function XScaleRenderer({
   return (
     <>
       {txXAxisLabels.map((t, index) => {
-        const {x} = t
+        const { x } = t
         return (
           <Fragment key={t.x + index.toString()}>
             <Group>
@@ -1535,7 +1592,22 @@ function UtxoRectRenderer({
   return (
     <>
       {utxoRectangleData.map((data, index) => (
-          <Fragment key={getUtxoOutpoint(data.utxo) + index}>
+        <Fragment key={getUtxoOutpoint(data.utxo) + index}>
+          <Rect
+            x={data.x1}
+            y={data.y1}
+            width={data.x2 - data.x1}
+            height={data.y2 - data.y1}
+            style="fill"
+            strokeWidth={0.5}
+          >
+            <LinearGradient
+              start={vec(0, data.y2)}
+              end={vec(0, data.y1)}
+              colors={['#FFFFFF99', '#FFFFFF55']}
+            />
+          </Rect>
+          {(data.gradientType === -1 || data.gradientType === 2) && (
             <Rect
               x={data.x1}
               y={data.y1}
@@ -1545,47 +1617,32 @@ function UtxoRectRenderer({
               strokeWidth={0.5}
             >
               <LinearGradient
-                start={vec(0, data.y2)}
-                end={vec(0, data.y1)}
-                colors={['#FFFFFF99', '#FFFFFF55']}
+                start={vec(data.x1, data.y1)}
+                end={vec(data.x2, data.y1)}
+                colors={['#FFFFFF55', '#FFFFFF00', '#FFFFFF00']}
+                positions={[0, 0.3, 1]}
               />
             </Rect>
-            {(data.gradientType === -1 || data.gradientType === 2) && (
-              <Rect
-                x={data.x1}
-                y={data.y1}
-                width={data.x2 - data.x1}
-                height={data.y2 - data.y1}
-                style="fill"
-                strokeWidth={0.5}
-              >
-                <LinearGradient
-                  start={vec(data.x1, data.y1)}
-                  end={vec(data.x2, data.y1)}
-                  colors={['#FFFFFF55', '#FFFFFF00', '#FFFFFF00']}
-                  positions={[0, 0.3, 1]}
-                />
-              </Rect>
-            )}
-            {(data.gradientType === 1 || data.gradientType === 2) && (
-              <Rect
-                x={data.x1}
-                y={data.y1}
-                width={data.x2 - data.x1}
-                height={data.y2 - data.y1}
-                style="fill"
-                strokeWidth={0.5}
-              >
-                <LinearGradient
-                  start={vec(data.x1, data.y1)}
-                  end={vec(data.x2, data.y1)}
-                  colors={['#00000000', '#00000000', '#00000055']}
-                  positions={[0, 0.7, 1]}
-                />
-              </Rect>
-            )}
-          </Fragment>
-        ))}
+          )}
+          {(data.gradientType === 1 || data.gradientType === 2) && (
+            <Rect
+              x={data.x1}
+              y={data.y1}
+              width={data.x2 - data.x1}
+              height={data.y2 - data.y1}
+              style="fill"
+              strokeWidth={0.5}
+            >
+              <LinearGradient
+                start={vec(data.x1, data.y1)}
+                end={vec(data.x2, data.y1)}
+                colors={['#00000000', '#00000000', '#00000055']}
+                positions={[0, 0.7, 1]}
+              />
+            </Rect>
+          )}
+        </Fragment>
+      ))}
     </>
   )
 }
@@ -1699,9 +1756,9 @@ function TransactionInfoRenderer({
         labelRectRef.current.push({
           id: label.id,
           rect: {
+            bottom: label.y,
             left: label.type === 'receive' ? label.x - textWidth : label.x,
             right: label.type === 'receive' ? label.x : label.x + textWidth,
-            bottom: label.y,
             top: label.y - 10
           }
         })
@@ -1800,7 +1857,9 @@ const styles = StyleSheet.create({
   }
 })
 
-export default memo(SSHistoryChart, (prevProps, nextProps) => (
+export default memo(
+  SSHistoryChart,
+  (prevProps, nextProps) =>
     prevProps.transactions === nextProps.transactions &&
     prevProps.utxos === nextProps.utxos
-  ))
+)

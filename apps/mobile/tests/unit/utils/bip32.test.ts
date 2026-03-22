@@ -74,8 +74,12 @@ describe('bip32 descriptor utils', () => {
       const key = sampleMainnetKeys[i]
       const externalDescriptor = sampleMainnetExternalDescriptors[i]
       const internalDescriptor = sampleMainnetInternalDescriptors[i]
-      expect(getExtendedKeyFromDescriptor(externalDescriptor)).toStrictEqual(key)
-      expect(getExtendedKeyFromDescriptor(internalDescriptor)).toStrictEqual(key)
+      expect(getExtendedKeyFromDescriptor(externalDescriptor)).toStrictEqual(
+        key
+      )
+      expect(getExtendedKeyFromDescriptor(internalDescriptor)).toStrictEqual(
+        key
+      )
     }
   })
 
@@ -84,8 +88,12 @@ describe('bip32 descriptor utils', () => {
       const key = sampleTestnetKeys[i]
       const externalDescriptor = sampleTestnetExternalDescriptors[i]
       const internalDescriptor = sampleTestnetInternalDescriptors[i]
-      expect(getExtendedKeyFromDescriptor(externalDescriptor)).toStrictEqual(key)
-      expect(getExtendedKeyFromDescriptor(internalDescriptor)).toStrictEqual(key)
+      expect(getExtendedKeyFromDescriptor(externalDescriptor)).toStrictEqual(
+        key
+      )
+      expect(getExtendedKeyFromDescriptor(internalDescriptor)).toStrictEqual(
+        key
+      )
     }
   })
 

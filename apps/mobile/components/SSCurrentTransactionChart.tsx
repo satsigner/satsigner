@@ -1,6 +1,6 @@
 import { Canvas, Circle, Group } from '@shopify/react-native-skia'
-import { sankey } from 'd3-sankey';
-import type { SankeyNodeMinimal } from 'd3-sankey';
+import { sankey } from 'd3-sankey'
+import type { SankeyNodeMinimal } from 'd3-sankey'
 import { useMemo } from 'react'
 import {
   Platform,
@@ -128,20 +128,24 @@ function SSCurrentTransactionChart({
   const GRAPH_WIDTH = width
   const SANKEY_TOP_MARGIN = 200
 
-  const sankeyGenerator = useMemo(() => sankey()
-      .nodeWidth(NODE_WIDTH)
-      .nodePadding(160)
-      .extent([
-        [0, SANKEY_TOP_MARGIN],
-        [
-          width,
-          height *
-            0.7 *
-            // (Math.max(inputMap.size, outputArray.length + 1) * 0.237) // + 1 for the miner output
-            (Math.max(inputMap.size, outputArray.length + 1) * 0.23)
-        ]
-      ])
-      .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id), [inputMap, outputArray, width, height])
+  const sankeyGenerator = useMemo(
+    () =>
+      sankey()
+        .nodeWidth(NODE_WIDTH)
+        .nodePadding(160)
+        .extent([
+          [0, SANKEY_TOP_MARGIN],
+          [
+            width,
+            height *
+              0.7 *
+              // (Math.max(inputMap.size, outputArray.length + 1) * 0.237) // + 1 for the miner output
+              (Math.max(inputMap.size, outputArray.length + 1) * 0.23)
+          ]
+        ])
+        .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id),
+    [inputMap, outputArray, width, height]
+  )
 
   sankeyGenerator.nodeAlign((node: SankeyNodeMinimal<object, object>) => {
     const { depthH } = node as Node
@@ -149,18 +153,20 @@ function SSCurrentTransactionChart({
   })
 
   const sankeyNodes = useMemo(() => {
-    if (inputArray.length === 0 || outputArray.length === 0) {return []}
+    if (inputArray.length === 0 || outputArray.length === 0) {
+      return []
+    }
 
     const inputNodes: TxNode[] = inputArray.map((input, index) => ({
       depthH: 0,
       id: String(index + 1),
       ioData: {
         address: formatAddress(input.txid, 4),
-        label: input.label ?? t('common.noLabel'),
-        value: input.value,
-        fiatValue: formatNumber(satsToFiat(input.value), 2),
         fiatCurrency,
-        text: t('common.from')
+        fiatValue: formatNumber(satsToFiat(input.value), 2),
+        label: input.label ?? t('common.noLabel'),
+        text: t('common.from'),
+        value: input.value
       },
       type: 'text',
       value: input.value
@@ -184,14 +190,14 @@ function SSCurrentTransactionChart({
       depthH: 2,
       id: String(index + 2 + inputArray.length),
       ioData: {
-        isUnspent: true,
-        value: output.amount,
-        fiatValue: formatNumber(satsToFiat(output.amount), 2),
-        fiatCurrency,
         address: output?.to ? formatAddress(output?.to, 6) : '',
+        fiatCurrency,
+        fiatValue: formatNumber(satsToFiat(output.amount), 2),
+        isSelfSend: !!(output.to && ownAddresses.has(output.to)),
+        isUnspent: true,
         label: output.label,
         text: t('transaction.build.unspent'),
-        isSelfSend: !!(output.to && ownAddresses.has(output.to))
+        value: output.amount
       },
       localId: output.to ? output.localId : 'remainingBalance',
       type: 'text',
@@ -218,14 +224,14 @@ function SSCurrentTransactionChart({
         depthH: 2,
         id: String(inputArray.length + outputArray.length + 2),
         ioData: {
-          value: minerFee,
-          fiatValue: formatNumber(satsToFiat(minerFee), 2),
-          fiatCurrency,
+          feePercentage: Math.round(feePercentage * 100) / 100,
           feeRate:
             feeRateProp !== undefined ? Math.round(feeRateProp) : undefined,
-          text: t('transaction.build.minerFee'),
+          fiatCurrency,
+          fiatValue: formatNumber(satsToFiat(minerFee), 2),
           higherFee,
-          feePercentage: Math.round(feePercentage * 100) / 100 // round to 2 decimals
+          text: t('transaction.build.minerFee'),
+          value: minerFee // round to 2 decimals
         },
         localId: 'current-minerFee',
         type: 'text',
@@ -247,7 +253,9 @@ function SSCurrentTransactionChart({
   ])
 
   const sankeyLinks = useMemo(() => {
-    if (inputArray.length === 0 || outputArray.length === 0) {return []}
+    if (inputArray.length === 0 || outputArray.length === 0) {
+      return []
+    }
 
     const inputToBlockLinks = inputArray.map((input, index) => ({
       source: String(index + 1),
@@ -298,25 +306,29 @@ function SSCurrentTransactionChart({
   })
 
   // calculating the sankey node styles to match in skia
-  const nodeStyles = useMemo(() => nodes.map((node) => {
-      const isBlock = (node as Node).type === 'block'
-      const blockNodeHeight =
-        isBlock && (node as Node).ioData?.txSize
-          ? ((node as Node).ioData?.txSize ?? 0) * 0.1
-          : 0
+  const nodeStyles = useMemo(
+    () =>
+      nodes.map((node) => {
+        const isBlock = (node as Node).type === 'block'
+        const blockNodeHeight =
+          isBlock && (node as Node).ioData?.txSize
+            ? ((node as Node).ioData?.txSize ?? 0) * 0.1
+            : 0
 
-      // Safely handle NaN values from sankey generator
-      const safeX0 = Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)
-      const safeY0 = Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)
+        // Safely handle NaN values from sankey generator
+        const safeX0 = Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)
+        const safeY0 = Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)
 
-      return {
-        localId: (node as Node).localId,
-        x: isBlock ? safeX0 + (NODE_WIDTH - BLOCK_WIDTH) / 2 : safeX0,
-        y: safeY0,
-        width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
-        height: isBlock ? Math.max(blockNodeHeight, LINK_MAX_WIDTH) : 80
-      }
-    }), [nodes])
+        return {
+          height: isBlock ? Math.max(blockNodeHeight, LINK_MAX_WIDTH) : 80,
+          localId: (node as Node).localId,
+          width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
+          x: isBlock ? safeX0 + (NODE_WIDTH - BLOCK_WIDTH) / 2 : safeX0,
+          y: safeY0
+        }
+      }),
+    [nodes]
+  )
 
   const transformedLinks = links.map((link) => ({
     source: (link.source as Node).id,
@@ -433,18 +445,18 @@ function SSCurrentTransactionChart({
 
 const styles = StyleSheet.create({
   gestureContainer: {
-    flex: 1,
-    position: 'absolute',
-    top: 0,
-    right: 0,
     bottom: 0,
-    left: 0
+    flex: 1,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0
   },
   node: {
     backgroundColor: 'transparent',
     borderRadius: 0,
-    width: '100%',
-    height: '100%'
+    height: '100%',
+    width: '100%'
   },
   sankeyOverlay: {
     position: 'relative'

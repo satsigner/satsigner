@@ -12,8 +12,16 @@ import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { getKeyFingerprint } from '@/utils/account'
 import { parseHexToBytes } from '@/utils/parse'
-import { extractIndividualSignedPsbts, extractOriginalPsbt, extractTransactionDataFromPSBTEnhanced, extractTransactionIdFromPSBT, findDerivedPublicKey, findMatchingAccount, getCollectedSignerPubkeys } from '@/utils/psbt';
-import type { TransactionData } from '@/utils/psbt';
+import {
+  extractIndividualSignedPsbts,
+  extractOriginalPsbt,
+  extractTransactionDataFromPSBTEnhanced,
+  extractTransactionIdFromPSBT,
+  findDerivedPublicKey,
+  findMatchingAccount,
+  getCollectedSignerPubkeys
+} from '@/utils/psbt'
+import type { TransactionData } from '@/utils/psbt'
 
 export function useNostrSignFlow() {
   const router = useRouter()
@@ -75,7 +83,9 @@ export function useNostrSignFlow() {
       })
     })
 
-    if (fee) {setFee(fee)}
+    if (fee) {
+      setFee(fee)
+    }
 
     setRbf(true)
 
@@ -93,7 +103,9 @@ export function useNostrSignFlow() {
     let finalSignedPsbts = derivedSignedPsbts
     if (accountMatch.account.policyType === 'multisig') {
       const remappedPsbts: Record<number, string> = {}
-      const signerPubkeys = [...getCollectedSignerPubkeys(transactionData.combinedPsbt)]
+      const signerPubkeys = [
+        ...getCollectedSignerPubkeys(transactionData.combinedPsbt)
+      ]
 
       const cosignerPubkeys = await Promise.all(
         accountMatch.account.keys.map(async (key) => {

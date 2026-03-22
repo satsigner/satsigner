@@ -27,11 +27,11 @@ const useEnergyStore = create<EnergyState & EnergyAction>()(
       opReturnContent: '',
       resetEnergyConfig: () =>
         set({
-          rpcUrl: '',
-          rpcUsername: '',
-          rpcPassword: '',
           miningAddress: '',
-          opReturnContent: ''
+          opReturnContent: '',
+          rpcPassword: '',
+          rpcUrl: '',
+          rpcUsername: ''
         }),
       rpcPassword: '',
       rpcUrl: '',

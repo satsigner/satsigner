@@ -26,39 +26,59 @@ export function useKeyValidation({
   decryptedKey,
   signedPsbt
 }: UseKeyValidationParams & { signedPsbt?: string }): UseKeyValidationReturn {
-  const isKeyCompleted = useMemo(() => Boolean(
-      keyDetails &&
-      keyDetails.creationType &&
-      ((typeof keyDetails.secret === 'object' &&
-        keyDetails.secret.fingerprint &&
-        (keyDetails.secret.extendedPublicKey ||
-          keyDetails.secret.externalDescriptor ||
-          keyDetails.secret.mnemonic)) ||
-        (typeof keyDetails.secret === 'string' && keyDetails.secret.length > 0))
-    ), [keyDetails])
+  const isKeyCompleted = useMemo(
+    () =>
+      Boolean(
+        keyDetails &&
+        keyDetails.creationType &&
+        ((typeof keyDetails.secret === 'object' &&
+          keyDetails.secret.fingerprint &&
+          (keyDetails.secret.extendedPublicKey ||
+            keyDetails.secret.externalDescriptor ||
+            keyDetails.secret.mnemonic)) ||
+          (typeof keyDetails.secret === 'string' &&
+            keyDetails.secret.length > 0))
+      ),
+    [keyDetails]
+  )
 
-  const hasSeed = useMemo(() => Boolean(
-      !seedDropped &&
-      keyDetails &&
-      typeof keyDetails.secret === 'object' &&
-      keyDetails.secret.mnemonic
-    ), [seedDropped, keyDetails])
+  const hasSeed = useMemo(
+    () =>
+      Boolean(
+        !seedDropped &&
+        keyDetails &&
+        typeof keyDetails.secret === 'object' &&
+        keyDetails.secret.mnemonic
+      ),
+    [seedDropped, keyDetails]
+  )
 
-  const hasNoSecret = useMemo(() => Boolean(
-      isKeyCompleted &&
-      keyDetails &&
-      typeof keyDetails.secret === 'object' &&
-      !keyDetails.secret.mnemonic
-    ), [isKeyCompleted, keyDetails])
+  const hasNoSecret = useMemo(
+    () =>
+      Boolean(
+        isKeyCompleted &&
+        keyDetails &&
+        typeof keyDetails.secret === 'object' &&
+        !keyDetails.secret.mnemonic
+      ),
+    [isKeyCompleted, keyDetails]
+  )
 
-  const hasLocalSeed = useMemo(() => Boolean(
-      decryptedKey?.secret &&
-      typeof decryptedKey.secret === 'object' &&
-      'mnemonic' in decryptedKey.secret &&
-      decryptedKey.secret.mnemonic
-    ), [decryptedKey])
+  const hasLocalSeed = useMemo(
+    () =>
+      Boolean(
+        decryptedKey?.secret &&
+        typeof decryptedKey.secret === 'object' &&
+        'mnemonic' in decryptedKey.secret &&
+        decryptedKey.secret.mnemonic
+      ),
+    [decryptedKey]
+  )
 
-  const isSignatureCompleted = useMemo(() => Boolean(signedPsbt && signedPsbt.trim().length > 0), [signedPsbt])
+  const isSignatureCompleted = useMemo(
+    () => Boolean(signedPsbt && signedPsbt.trim().length > 0),
+    [signedPsbt]
+  )
 
   return {
     hasLocalSeed,

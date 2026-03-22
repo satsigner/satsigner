@@ -1,6 +1,6 @@
 import { Descriptor } from 'bdk-rn'
-import { KeychainKind } from 'bdk-rn/lib/lib/enums';
-import type { Network } from 'bdk-rn/lib/lib/enums';
+import { KeychainKind } from 'bdk-rn/lib/lib/enums'
+import type { Network } from 'bdk-rn/lib/lib/enums'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { ScrollView, TouchableOpacity } from 'react-native'
@@ -47,7 +47,10 @@ function ImportDescriptorFromAccount() {
   )
   const network = useBlockchainStore((state) => state.selectedNetwork)
 
-  const singleSignatureAccounts = useMemo(() => accounts.filter((account) => account.policyType === 'singlesig'), [accounts])
+  const singleSignatureAccounts = useMemo(
+    () => accounts.filter((account) => account.policyType === 'singlesig'),
+    [accounts]
+  )
 
   const [selectedAccountId, setSelectedAccountId] = useState<Account['id']>()
   const [loading, setLoading] = useState(false)
@@ -55,27 +58,33 @@ function ImportDescriptorFromAccount() {
   async function handlePressCreate() {
     setLoading(true)
     const pin = await getItem(PIN_KEY)
-    if (!pin) {return}
+    if (!pin) {
+      return
+    }
     const chosenAccount = accounts.find(
       (account) => account.id === selectedAccountId
     )
-    if (!chosenAccount) {return}
+    if (!chosenAccount) {
+      return
+    }
 
-    const {iv} = chosenAccount.keys[0]
+    const { iv } = chosenAccount.keys[0]
     const encryptedSecret = chosenAccount.keys[0].secret as string
 
     const accountSecretString = await aesDecrypt(encryptedSecret, pin, iv)
     const accountSecret = JSON.parse(accountSecretString) as Secret
 
-    const {creationType} = chosenAccount.keys[0]
+    const { creationType } = chosenAccount.keys[0]
     let externalDescriptor: Descriptor | undefined
     let externalDescriptorString: Secret['externalDescriptor']
 
     if (creationType !== 'importDescriptor') {
-      const {mnemonic} = accountSecret
-      const {scriptVersion} = chosenAccount.keys[0]
-      const {passphrase} = accountSecret
-      if (!mnemonic || !scriptVersion) {return}
+      const { mnemonic } = accountSecret
+      const { scriptVersion } = chosenAccount.keys[0]
+      const { passphrase } = accountSecret
+      if (!mnemonic || !scriptVersion) {
+        return
+      }
 
       externalDescriptor = await getDescriptorObject(
         mnemonic,
@@ -88,7 +97,9 @@ function ImportDescriptorFromAccount() {
         ? await externalDescriptor.asString()
         : ''
     } else {
-      if (!accountSecret.externalDescriptor) {return}
+      if (!accountSecret.externalDescriptor) {
+        return
+      }
       externalDescriptorString = accountSecret.externalDescriptor
       externalDescriptor = await new Descriptor().create(
         externalDescriptorString,
@@ -96,7 +107,9 @@ function ImportDescriptorFromAccount() {
       )
     }
 
-    if (!externalDescriptorString) {return}
+    if (!externalDescriptorString) {
+      return
+    }
 
     setExternalDescriptor(externalDescriptorString)
     const extendedPublicKey = getExtendedKeyFromDescriptor(

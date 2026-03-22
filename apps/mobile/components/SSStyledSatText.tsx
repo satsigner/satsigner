@@ -1,6 +1,6 @@
 import { Colors } from '@/styles'
-import { text } from '@/styles/sizes';
-import type { TextFontSize, TextFontWeight } from '@/styles/sizes';
+import { text } from '@/styles/sizes'
+import type { TextFontSize, TextFontWeight } from '@/styles/sizes'
 import { formatNumber } from '@/utils/format'
 
 import SSText from './SSText'
@@ -54,9 +54,9 @@ function SSStyledSatText({
             weight={weight}
             style={{
               color: noColor
-                ? isBeforeFirstNonZero
+                ? (isBeforeFirstNonZero
                   ? Colors.softWhite
-                  : Colors.white
+                  : Colors.white)
                 : type === 'send'
                   ? isBeforeFirstNonZero
                     ? Colors.softRed

@@ -15,7 +15,7 @@ export const time = {
     date.getTime() + time.seconds(minutes * 60),
   minutesBefore: (date: Date, minutes: number) =>
     date.getTime() - time.seconds(minutes * 60),
-  now: () => new Date().getTime(),
+  now: () => Date.now(),
   seconds: (seconds: number) => seconds * 1000,
   secondsAfter: (date: Date, seconds: number) =>
     date.getTime() + seconds * 1000,

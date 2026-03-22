@@ -8,7 +8,9 @@ export function encodeStandardSeedQR(
   return words
     .map((word) => {
       const index = wordList.indexOf(word)
-      if (index === -1) {throw new Error(`Invalid mnemonic word: ${word}`)}
+      if (index === -1) {
+        throw new Error(`Invalid mnemonic word: ${word}`)
+      }
       return index.toString().padStart(4, '0')
     })
     .join('')
@@ -22,7 +24,9 @@ export function encodeCompactSeedQR(
   const binaryString = words
     .map((word) => {
       const index = wordList.indexOf(word)
-      if (index === -1) {throw new Error(`Invalid mnemonic word: ${word}`)}
+      if (index === -1) {
+        throw new Error(`Invalid mnemonic word: ${word}`)
+      }
       return index.toString(2).padStart(11, '0')
     })
     .join('')

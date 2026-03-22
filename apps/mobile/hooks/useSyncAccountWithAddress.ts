@@ -89,11 +89,14 @@ function useSyncAccountWithAddress() {
     let newTxsCount = 0
     let newUtxosCount = 0
     esploraTxs.forEach((tx) => {
-      if (existingTxs[tx.txid] === undefined) {newTxsCount += 1}
+      if (existingTxs[tx.txid] === undefined) {
+        newTxsCount += 1
+      }
     })
     esploraUtxos.forEach((utxo) => {
-      if (existingUtxos[`${utxo.txid}:${utxo.vout}`] === undefined)
-        {newUtxosCount += 1}
+      if (existingUtxos[`${utxo.txid}:${utxo.vout}`] === undefined) {
+        newUtxosCount += 1
+      }
     })
 
     // update account summary with new transactions and utxos
@@ -206,8 +209,11 @@ function useSyncAccountWithAddress() {
     let confirmed = 0
     let unconfirmed = 0
     esploraUtxos.forEach((u) => {
-      if (u.status.confirmed) {confirmed += u.value}
-      else {unconfirmed += u.value}
+      if (u.status.confirmed) {
+        confirmed += u.value
+      } else {
+        unconfirmed += u.value
+      }
     })
 
     // Replace the stored UTXOs for this address with the fresh set from the
@@ -259,10 +265,10 @@ function useSyncAccountWithAddress() {
         address,
         label: '',
         summary: {
-          transactions: esploraTxs.length,
-          utxos: esploraUtxos.length,
           balance: confirmed,
-          satsInMempool: unconfirmed
+          satsInMempool: unconfirmed,
+          transactions: esploraTxs.length,
+          utxos: esploraUtxos.length
         },
         transactions: esploraTxs.map((t) => t.txid),
         utxos: esploraUtxos.map((u) => `${u.txid}:${u.vout}`)
@@ -318,11 +324,14 @@ function useSyncAccountWithAddress() {
     let newTxsCount = 0
     let newUtxosCount = 0
     addressTxs.forEach((t) => {
-      if (existingTx[t.tx_hash] === undefined) {newTxsCount += 1}
+      if (existingTx[t.tx_hash] === undefined) {
+        newTxsCount += 1
+      }
     })
     addressUtxos.forEach((u) => {
-      if (existingUtxo[`${u.tx_hash}:${u.tx_pos}`] === undefined)
-        {newUtxosCount += 1}
+      if (existingUtxo[`${u.tx_hash}:${u.tx_pos}`] === undefined) {
+        newUtxosCount += 1
+      }
     })
 
     // update summary
@@ -341,10 +350,10 @@ function useSyncAccountWithAddress() {
         address,
         label: '',
         summary: {
-          utxos: addressUtxos.length,
-          transactions: addressTxs.length,
           balance: balance.confirmed,
-          satsInMempool: balance.unconfirmed
+          satsInMempool: balance.unconfirmed,
+          transactions: addressTxs.length,
+          utxos: addressUtxos.length
         },
         transactions: addressTxs.map((t) => t.tx_hash),
         utxos: addressUtxos.map((u) => `${u.tx_hash}:${u.tx_pos}`)
@@ -357,8 +366,12 @@ function useSyncAccountWithAddress() {
     account.syncProgress = { ...account.syncProgress }
 
     // transactions and utxos not known by the wallet
-    const pendingTx = addressTxs.filter((t) => existingTx[t.tx_hash] === undefined)
-    const pendingUtxos = addressUtxos.filter((u) => existingUtxo[`${u.tx_hash}:${u.tx_pos}`] === undefined)
+    const pendingTx = addressTxs.filter(
+      (t) => existingTx[t.tx_hash] === undefined
+    )
+    const pendingUtxos = addressUtxos.filter(
+      (u) => existingUtxo[`${u.tx_hash}:${u.tx_pos}`] === undefined
+    )
 
     // update progress
     const estimatedRequests = pendingTx.length * 2 + pendingUtxos.length
@@ -372,7 +385,7 @@ function useSyncAccountWithAddress() {
 
     for (const tx of pendingTx) {
       const txid = tx.tx_hash
-      const {height} = tx
+      const { height } = tx
 
       // fetch raw transaction
       const rawTx = await electrumClient.getTransaction(txid)
@@ -408,8 +421,7 @@ function useSyncAccountWithAddress() {
           if (outputAddr === address) {
             return previousValue + output.value
           }
-            return previousValue
-          
+          return previousValue
         } catch {
           return previousValue
         }
@@ -469,7 +481,7 @@ function useSyncAccountWithAddress() {
 
     // fetch timestamps for new utxos
     for (const electrumUtxo of pendingUtxos) {
-      const {height} = electrumUtxo
+      const { height } = electrumUtxo
 
       if (!timestampByHeight[height]) {
         timestampByHeight[height] =
@@ -570,7 +582,9 @@ function useSyncAccountWithAddress() {
       // Skip transactions that already have a cached price — they are immutable
       const timestamps: number[] = []
       for (const transaction of updatedAccount.transactions) {
-        if (transaction.prices?.USD !== undefined) {continue}
+        if (transaction.prices?.USD !== undefined) {
+          continue
+        }
         if (transaction.timestamp) {
           let date: Date
           if (typeof transaction.timestamp === 'string') {

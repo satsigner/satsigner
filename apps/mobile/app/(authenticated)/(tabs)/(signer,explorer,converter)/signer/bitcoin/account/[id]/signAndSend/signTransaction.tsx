@@ -88,7 +88,9 @@ export default function SignTransaction() {
   const [rawTx, setRawTx] = useState('')
 
   const transaction = useMemo(() => {
-    if (!txBuilderResult) {return null}
+    if (!txBuilderResult) {
+      return null
+    }
 
     const { size, vsize } = legacyEstimateTransactionSize(
       inputs.size,
@@ -183,7 +185,9 @@ export default function SignTransaction() {
         await handleBroadcastMultiSig()
       } else if (psbt) {
         const success = await handleBroadcastSingleSig()
-        if (!success) {throw new Error('Broadcast failed')}
+        if (!success) {
+          throw new Error('Broadcast failed')
+        }
       } else {
         throw new Error('No transaction to broadcast')
       }
@@ -232,7 +236,9 @@ export default function SignTransaction() {
       }
 
       // For singlesig wallets, sign the transaction
-      if (!wallet || !txBuilderResult) {return}
+      if (!wallet || !txBuilderResult) {
+        return
+      }
 
       const partiallySignedTransaction = await signTransaction(
         txBuilderResult,
@@ -250,7 +256,9 @@ export default function SignTransaction() {
     signTransactionData()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!account || !txBuilderResult) {return <Redirect href="/" />}
+  if (!account || !txBuilderResult) {
+    return <Redirect href="/" />
+  }
 
   return (
     <>
@@ -315,8 +323,7 @@ export default function SignTransaction() {
                       if (!isValidHex) {
                         return (
                           <SSText color="muted" size="sm">
-                            Invalid transaction format:{' '}
-                            {rawTx.slice(0, 100)}
+                            Invalid transaction format: {rawTx.slice(0, 100)}
                             ...
                           </SSText>
                         )

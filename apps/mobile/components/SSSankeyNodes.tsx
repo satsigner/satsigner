@@ -1,13 +1,27 @@
-import { Group, ImageSVG, PaintStyle, Paragraph, PlaceholderAlignment, Rect, RoundedRect, Skia, TextAlign, TextBaseline, useFonts, useSVG, vec } from '@shopify/react-native-skia';
-import type { SkTypefaceFontProvider } from '@shopify/react-native-skia';
+import {
+  Group,
+  ImageSVG,
+  PaintStyle,
+  Paragraph,
+  PlaceholderAlignment,
+  Rect,
+  RoundedRect,
+  Skia,
+  TextAlign,
+  TextBaseline,
+  useFonts,
+  useSVG,
+  vec
+} from '@shopify/react-native-skia'
+import type { SkTypefaceFontProvider } from '@shopify/react-native-skia'
 import { memo, useMemo } from 'react'
 
 import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { gray, mainGreen, mainRed, white } from '@/styles/colors'
-import { BLOCK_WIDTH } from '@/types/ui/sankey';
-import type { Node } from '@/types/ui/sankey';
+import { BLOCK_WIDTH } from '@/types/ui/sankey'
+import type { Node } from '@/types/ui/sankey'
 import { logAttenuation } from '@/utils/math'
 
 interface ISSankeyNodes {
@@ -41,7 +55,10 @@ function SSSankeyNodes({
   })
 
   // Find the maximum depth in nodes
-  const maxDepth = useMemo(() => Math.max(...nodes.map((node) => node.depthH)), [nodes])
+  const maxDepth = useMemo(
+    () => Math.max(...nodes.map((node) => node.depthH)),
+    [nodes]
+  )
 
   const renderNode = (node: Node) => {
     const isHigherCurrentMinerFee =
@@ -144,7 +161,9 @@ function SSSankeyNodes({
     )
   }
 
-  if (!customFontManager) {return null}
+  if (!customFontManager) {
+    return null
+  }
 
   return <>{nodes.map(renderNode)}</>
 }
@@ -200,7 +219,9 @@ function NodeText({
   const minerFeeIconSvg = useSVG(require('@/assets/red-miner.svg'))
   const pastTxMinerFeeIconSvg = useSVG(require('@/assets/gray-miner.svg'))
   const blockNodeParagraph = useMemo(() => {
-    if (!customFontManager) {return null}
+    if (!customFontManager) {
+      return null
+    }
 
     const baseTextStyle = {
       color: Skia.Color('white'),
@@ -211,15 +232,16 @@ function NodeText({
       }
     }
 
-    const createParagraphBuilder = () => Skia.ParagraphBuilder.Make(
+    const createParagraphBuilder = () =>
+      Skia.ParagraphBuilder.Make(
         {
-          textAlign: isBlock ? TextAlign.Center : TextAlign.Left,
           strutStyle: {
-            strutEnabled: true,
             forceStrutHeight: true,
             heightMultiplier: 1,
-            leading: 0
-          }
+            leading: 0,
+            strutEnabled: true
+          },
+          textAlign: isBlock ? TextAlign.Center : TextAlign.Left
         },
         customFontManager
       )
@@ -266,7 +288,9 @@ function NodeText({
   const isPastMinerFee = localId === 'past-minerFee'
 
   const mainParagraph = useMemo(() => {
-    if (!customFontManager) {return null}
+    if (!customFontManager) {
+      return null
+    }
 
     const baseTextStyle = {
       color: Skia.Color('white'),
@@ -277,17 +301,18 @@ function NodeText({
       }
     }
 
-    const createParagraphBuilder = () => Skia.ParagraphBuilder.Make(
+    const createParagraphBuilder = () =>
+      Skia.ParagraphBuilder.Make(
         {
-          maxLines: isSelfSend ? 6 : 5,
           ellipsis: '…',
-          textAlign: isBlock ? TextAlign.Center : TextAlign.Left,
+          maxLines: isSelfSend ? 6 : 5,
           strutStyle: {
-            strutEnabled: true,
             forceStrutHeight: true,
             heightMultiplier: 1,
-            leading: 0
-          }
+            leading: 0,
+            strutEnabled: true
+          },
+          textAlign: isBlock ? TextAlign.Center : TextAlign.Left
         },
         customFontManager
       )
@@ -538,7 +563,9 @@ function NodeText({
     return []
   }, [mainParagraph, isUnspent])
 
-  if (!customFontManager || !mainParagraph) {return null}
+  if (!customFontManager || !mainParagraph) {
+    return null
+  }
 
   const paragraphActualWidth = isBlock ? width * 0.6 : width - PADDING_LEFT
   const paragraphActualHeight = mainParagraph.getHeight()

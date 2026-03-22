@@ -19,17 +19,17 @@ function parseAccountAddressesDetails({
   })
 
   const addressesDetailed = addresses.map((addr) => ({
-      ...addr,
-      transactions: [] as string[],
-      utxos: [] as string[],
-      summary: {
-        utxos: 0,
-        transactions: 0,
-        balance: 0,
-        satsInMempool: 0
-      },
-      scriptVersion
-    }))
+    ...addr,
+    scriptVersion,
+    summary: {
+      balance: 0,
+      satsInMempool: 0,
+      transactions: 0,
+      utxos: 0
+    },
+    transactions: [] as string[],
+    utxos: [] as string[]
+  }))
 
   const addrDictionary: Record<string, number> = {}
 
@@ -64,7 +64,7 @@ function parseAccountAddressesDetails({
       }
 
       const prevTxIndex = txDictionary[prevTxId]
-      const {vout} = input.previousOutput
+      const { vout } = input.previousOutput
       const prevTx = transactions[prevTxIndex]
 
       if (prevTx.vout[vout] === undefined) {
@@ -133,7 +133,9 @@ function parseHexToBytes(hex: string): number[] {
 
 function parseLabel(rawLabel: string) {
   const matches = rawLabel.match(/#\w[\w\d]+/g)
-  if (!matches) {return { label: rawLabel, tags: [] }}
+  if (!matches) {
+    return { label: rawLabel, tags: [] }
+  }
 
   const tags = matches.map((match) => match.replace('#', ''))
   const label = rawLabel.replace(/#.*/, '').trim()
@@ -151,7 +153,9 @@ function normalizeUtxoLabelForDisplay(rawLabel: string): string {
 
 function parseLabelTags(label: string, tags: string[]) {
   const trimmedLabel = label.trim()
-  if (tags.length === 0) {return trimmedLabel}
+  if (tags.length === 0) {
+    return trimmedLabel
+  }
   const labelTagSeparator = label.length === 0 ? '' : ' '
   return trimmedLabel + labelTagSeparator + tags.map((t) => '#' + t).join(' ')
 }
@@ -171,7 +175,9 @@ function parseTXOutputs(input: string): Omit<Output, 'localId'>[] {
 
     return {
       amount: amount ? Number(amount) : 0,
-      label: label ? label.replace(/(^["“]|["”]$)/g, '') : t('common.noLabel'),
+      label: label
+        ? label.replaceAll(/(^["“]|["”]$)/g, '')
+        : t('common.noLabel'),
       to: address
     }
   })
@@ -248,7 +254,9 @@ interface ParsedUriParams {
  */
 function parseUriParameters(content: string): ParsedUriParams | null {
   const uriMatch = content.match(/^([^?]+)(\?.*)?$/)
-  if (!uriMatch) {return null}
+  if (!uriMatch) {
+    return null
+  }
 
   const addressPart = uriMatch[1]
   const queryString = uriMatch[2]

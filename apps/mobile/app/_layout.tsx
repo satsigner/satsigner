@@ -3,8 +3,8 @@ import { Slot } from 'expo-router'
 import { setStatusBarStyle } from 'expo-status-bar'
 import * as SystemUI from 'expo-system-ui'
 import { useEffect, useRef, useState } from 'react'
-import { AppState, Platform, StyleSheet, UIManager, View } from 'react-native';
-import type { AppStateStatus } from 'react-native';
+import { AppState, Platform, StyleSheet, UIManager, View } from 'react-native'
+import type { AppStateStatus } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import NfcManager from 'react-native-nfc-manager'
 import { toast, Toaster } from 'sonner-native'
@@ -20,8 +20,9 @@ import { Colors } from '@/styles'
 if (Platform.OS === 'android') {
   SystemUI.setBackgroundColorAsync(Colors.gray[950])
 
-  if (UIManager.setLayoutAnimationEnabledExperimental)
-    {UIManager.setLayoutAnimationEnabledExperimental(true)}
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true)
+  }
 }
 
 const queryClient = new QueryClient()
@@ -47,7 +48,9 @@ export default function RootLayout() {
   }, []) // Workaround for now to set the statusBarStyle
 
   useEffect(() => {
-    if (!firstTime) {setLockTriggered(true)}
+    if (!firstTime) {
+      setLockTriggered(true)
+    }
 
     const subscription = AppState.addEventListener(
       'change',
@@ -84,7 +87,9 @@ export default function RootLayout() {
       const inactivityStartTime = getLastBackgroundTimestamp()
       const elapsed = (Date.now() - (inactivityStartTime || 0)) / 1000
 
-      if (elapsed >= lockDeltaTime) {setLockTriggered(true)}
+      if (elapsed >= lockDeltaTime) {
+        setLockTriggered(true)
+      }
 
       // Keep the overlay visible briefly so the /unlock redirect renders
       // before the previous screen becomes visible
@@ -109,7 +114,7 @@ export default function RootLayout() {
             borderColor: Colors.gray[800],
             borderRadius: 8,
             borderWidth: 1,
-            zIndex: 999999
+            zIndex: 999_999
           }}
         />
       </GestureHandlerRootView>

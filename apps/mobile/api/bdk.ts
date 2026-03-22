@@ -1,12 +1,30 @@
-import { Address, Blockchain, DatabaseConfig, Descriptor, DescriptorPublicKey, DescriptorSecretKey, Mnemonic, TxBuilder, Wallet } from 'bdk-rn';
-import type { PartiallySignedTransaction } from 'bdk-rn';
+import {
+  Address,
+  Blockchain,
+  DatabaseConfig,
+  Descriptor,
+  DescriptorPublicKey,
+  DescriptorSecretKey,
+  Mnemonic,
+  TxBuilder,
+  Wallet
+} from 'bdk-rn'
+import type { PartiallySignedTransaction } from 'bdk-rn'
 import type {
   LocalUtxo,
   TransactionDetails,
   TxBuilderResult
 } from 'bdk-rn/lib/classes/Bindings'
-import { AddressIndex, BlockChainNames, KeychainKind } from 'bdk-rn/lib/lib/enums';
-import type { BlockchainElectrumConfig, BlockchainEsploraConfig, Network } from 'bdk-rn/lib/lib/enums';
+import {
+  AddressIndex,
+  BlockChainNames,
+  KeychainKind
+} from 'bdk-rn/lib/lib/enums'
+import type {
+  BlockchainElectrumConfig,
+  BlockchainEsploraConfig,
+  Network
+} from 'bdk-rn/lib/lib/enums'
 
 import type { Account, Key, Secret } from '@/types/models/Account'
 import type { Output } from '@/types/models/Output'
@@ -49,8 +67,9 @@ async function getWalletData(
 ): Promise<WalletData | undefined> {
   switch (account.policyType) {
     case 'singlesig': {
-      if (account.keys.length !== 1)
-        {throw new Error('Invalid key count for singlesig')}
+      if (account.keys.length !== 1) {
+        throw new Error('Invalid key count for singlesig')
+      }
 
       const key = account.keys[0]
 
@@ -62,8 +81,9 @@ async function getWalletData(
           typeof key.secret === 'string' ||
           !key.secret.mnemonic ||
           !key.scriptVersion
-        )
-          {throw new Error('Invalid secret')}
+        ) {
+          throw new Error('Invalid secret')
+        }
 
         const walletData = await getWalletDataFromMnemonic(
           key.secret.mnemonic,
@@ -99,7 +119,7 @@ async function getWalletData(
 
             // Get extended public key from various sources
             if (key.secret.extendedPublicKey) {
-              ({ extendedPublicKey } = key.secret)
+              ;({ extendedPublicKey } = key.secret)
             } else if (key.secret.externalDescriptor) {
               try {
                 const extractedKey = getExtendedKeyFromDescriptor(
@@ -177,7 +197,10 @@ async function getWalletData(
 
       // Build key section with policy-based derivation paths and fingerprints
       const keySection = sortedKeyData
-        .map(({ fingerprint, extendedPublicKey }) => `[${fingerprint}/${cleanPolicyPath}]${extendedPublicKey}/<0;1>/*`)
+        .map(
+          ({ fingerprint, extendedPublicKey }) =>
+            `[${fingerprint}/${cleanPolicyPath}]${extendedPublicKey}/<0;1>/*`
+        )
         .join(',')
 
       // Create descriptor based on script type using sortedmulti
@@ -206,8 +229,8 @@ async function getWalletData(
 
       // Since BDK doesn't support multipath descriptors directly, we need to create separate descriptors
       // for external (0/*) and internal (1/*) addresses
-      const externalDescriptor = finalDescriptor.replaceAll(/<0;1>/g, '0')
-      const internalDescriptor = finalDescriptor.replaceAll(/<0;1>/g, '1')
+      const externalDescriptor = finalDescriptor.replaceAll('<0;1>', '0')
+      const internalDescriptor = finalDescriptor.replaceAll('<0;1>', '1')
 
       const externalDesc = await new Descriptor().create(
         externalDescriptor,
@@ -245,14 +268,16 @@ async function getWalletData(
       }
     }
     case 'watchonly': {
-      if (account.keys.length !== 1)
-        {throw new Error('Invalid key count for singlesig')}
+      if (account.keys.length !== 1) {
+        throw new Error('Invalid key count for singlesig')
+      }
 
       const key = account.keys[0]
 
       if (key.creationType === 'importDescriptor') {
-        if (typeof key.secret === 'string' || !key.secret.externalDescriptor)
-          {throw new Error('Invalid secret')}
+        if (typeof key.secret === 'string' || !key.secret.externalDescriptor) {
+          throw new Error('Invalid secret')
+        }
 
         const externalDescriptor = await new Descriptor().create(
           key.secret.externalDescriptor,
@@ -295,8 +320,9 @@ async function getWalletData(
           typeof key.secret === 'string' ||
           !key.secret.fingerprint ||
           !key.secret.extendedPublicKey
-        )
-          {throw new Error('Invalid account information')}
+        ) {
+          throw new Error('Invalid account information')
+        }
 
         const extendedPublicKey = await new DescriptorPublicKey().fromString(
           key.secret.extendedPublicKey
@@ -585,8 +611,9 @@ async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
     typeof key.secret === 'string' ||
     !key.secret.mnemonic ||
     !key.scriptVersion
-  )
-    {return}
+  ) {
+    return
+  }
 
   const externalDescriptor = await getDescriptorObject(
     key.secret.mnemonic,
@@ -616,7 +643,9 @@ async function getBlockchain(
   config: BlockchainElectrumConfig | BlockchainEsploraConfig
 ) {
   let blockchainName: BlockChainNames = BlockChainNames.Electrum
-  if (backend === 'esplora') {blockchainName = BlockChainNames.Esplora}
+  if (backend === 'esplora') {
+    blockchainName = BlockChainNames.Esplora
+  }
 
   const blockchain = await new Blockchain().create(config, blockchainName)
   return blockchain
@@ -640,10 +669,10 @@ async function getWalletAddresses(
       label: '',
       network: network as BlockchainNetwork,
       summary: {
-        transactions: 0,
-        utxos: 0,
         balance: 0,
-        satsInMempool: 0
+        satsInMempool: 0,
+        transactions: 0,
+        utxos: 0
       },
       transactions: [],
       utxos: []
@@ -661,10 +690,10 @@ async function getWalletAddresses(
       label: '',
       network: network as BlockchainNetwork,
       summary: {
-        transactions: 0,
-        utxos: 0,
         balance: 0,
-        satsInMempool: 0
+        satsInMempool: 0,
+        transactions: 0,
+        utxos: 0
       },
       transactions: [],
       utxos: []
@@ -703,10 +732,10 @@ async function getWalletAddressesUsingStopGap(
       label: '',
       network: network as BlockchainNetwork,
       summary: {
-        transactions: 0,
-        utxos: 0,
         balance: 0,
-        satsInMempool: 0
+        satsInMempool: 0,
+        transactions: 0,
+        utxos: 0
       },
       transactions: [],
       utxos: []
@@ -728,10 +757,10 @@ async function getWalletAddressesUsingStopGap(
       label: '',
       network: network as BlockchainNetwork,
       summary: {
-        transactions: 0,
-        utxos: 0,
         balance: 0,
-        satsInMempool: 0
+        satsInMempool: 0,
+        transactions: 0,
+        utxos: 0
       },
       transactions: [],
       utxos: []
@@ -901,7 +930,9 @@ async function parseTransactionDetailsToTransaction(
 
   let address = ''
   const utxo = transactionUtxos?.[0]
-  if (utxo) {address = await getAddress(utxo, network)}
+  if (utxo) {
+    address = await getAddress(utxo, network)
+  }
 
   const { confirmationTime, fee, received, sent, transaction, txid } =
     transactionDetails
@@ -921,15 +952,17 @@ async function parseTransactionDetailsToTransaction(
       inputs,
       outputs: outputsList,
       ...metadata
-    } = await getTransactionMetadataAndIo(transaction)
-    ({ version } = metadata)
-    ({ lockTime } = metadata)
-    ({ lockTimeEnabled } = metadata)
-    ({ raw } = metadata)
+    } = await getTransactionMetadataAndIo(transaction)(
+      ({ version } = metadata)
+    )(({ lockTime } = metadata))(({ lockTimeEnabled } = metadata))(
+      ({ raw } = metadata)
+    )
 
     for (const index in inputs) {
       const input = inputs[index]
-      if (!input?.scriptSig) {continue}
+      if (!input?.scriptSig) {
+        continue
+      }
       try {
         const script = await input.scriptSig.toBytes()
         input.scriptSig = script
@@ -941,7 +974,9 @@ async function parseTransactionDetailsToTransaction(
 
     for (const index in outputsList) {
       const { value, script: scriptObj } = outputsList[index]
-      if (!scriptObj) {continue}
+      if (!scriptObj) {
+        continue
+      }
       let script: number[] = []
       try {
         script = await scriptObj.toBytes()
@@ -1025,7 +1060,7 @@ async function parseLocalUtxoToUtxo(
 
 async function getAddress(utxo: LocalUtxo, network: Network) {
   try {
-    const {script} = utxo.txout
+    const { script } = utxo.txout
     const address = await new Address().fromScript(script, network)
     return address ? address.asString() : ''
   } catch {
@@ -1040,7 +1075,9 @@ async function getTransactionInputValues(
   network: BlockchainNetwork,
   url: string
 ): Promise<Transaction['vin']> {
-  if (!tx.vin.some((input) => input.value === undefined)) {return tx.vin}
+  if (!tx.vin.some((input) => input.value === undefined)) {
+    return tx.vin
+  }
 
   let vin: Transaction['vin'] = []
 
@@ -1103,7 +1140,9 @@ async function buildTransaction(
 
   await transactionBuilder.feeAbsolute(data.fee)
 
-  if (data.options.rbf) {await transactionBuilder.enableRbf()}
+  if (data.options.rbf) {
+    await transactionBuilder.enableRbf()
+  }
 
   const transactionBuilderResult = await transactionBuilder.finish(wallet)
   return transactionBuilderResult

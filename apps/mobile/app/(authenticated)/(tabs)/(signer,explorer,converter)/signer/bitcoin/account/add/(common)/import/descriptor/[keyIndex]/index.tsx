@@ -309,14 +309,13 @@ export default function ImportDescriptor() {
             type: 'ur' as const
           }
         }
-          // Single-part UR
-          return {
-            type: 'ur' as const,
-            current: 0,
-            total: 1,
-            content: data
-          }
-        
+        // Single-part UR
+        return {
+          content: data,
+          current: 0,
+          total: 1,
+          type: 'ur' as const
+        }
       }
     }
 
@@ -467,7 +466,9 @@ export default function ImportDescriptor() {
   async function pasteFromClipboard() {
     const text = await Clipboard.getStringAsync()
 
-    if (!text) {return}
+    if (!text) {
+      return
+    }
 
     let externalDescriptor = text
     let internalDescriptor = ''
@@ -488,7 +489,7 @@ export default function ImportDescriptor() {
           ''
         )
         internalDescriptor = descriptorWithoutChecksum.replaceAll(
-          /\/0\/\*/g,
+          '/0/*',
           '/1/*'
         )
         // Add back the checksum to internal descriptor
@@ -516,7 +517,9 @@ export default function ImportDescriptor() {
         const descriptorToValidate = originalDescriptor || externalDescriptor
         await updateExternalDescriptor(descriptorToValidate)
       }
-      if (internalDescriptor) {await updateInternalDescriptor(internalDescriptor)}
+      if (internalDescriptor) {
+        await updateInternalDescriptor(internalDescriptor)
+      }
     }
   }
 
@@ -560,10 +563,12 @@ export default function ImportDescriptor() {
         await handleCombinedDescriptorImport(text)
       } else {
         // Handle non-combined descriptors with existing logic
-        if (externalDescriptor)
-          {await updateExternalDescriptor(externalDescriptor)}
-        if (internalDescriptor)
-          {await updateInternalDescriptor(internalDescriptor)}
+        if (externalDescriptor) {
+          await updateExternalDescriptor(externalDescriptor)
+        }
+        if (internalDescriptor) {
+          await updateInternalDescriptor(internalDescriptor)
+        }
       }
 
       toast.success(t('watchonly.success.nfcRead'))

@@ -1,6 +1,6 @@
 import { DEFAULT_RETRY_CONFIG } from '@/constants/nostr'
-import { calculateRetryDelay, createRetryManager } from '@/utils/retryManager';
-import type { RetryManagerHandle } from '@/utils/retryManager';
+import { calculateRetryDelay, createRetryManager } from '@/utils/retryManager'
+import type { RetryManagerHandle } from '@/utils/retryManager'
 
 describe('calculateRetryDelay', () => {
   beforeEach(() => {
@@ -12,7 +12,7 @@ describe('calculateRetryDelay', () => {
   })
 
   it('uses exponential backoff', () => {
-    const config = { baseDelayMs: 1000, jitterFactor: 0, maxDelayMs: 60000 }
+    const config = { baseDelayMs: 1000, jitterFactor: 0, maxDelayMs: 60_000 }
 
     const delays = [0, 1, 2, 3, 4].map((attempt) =>
       calculateRetryDelay(attempt, config)
@@ -26,7 +26,7 @@ describe('calculateRetryDelay', () => {
   })
 
   it('caps at maxDelayMs', () => {
-    const config = { baseDelayMs: 1000, jitterFactor: 0, maxDelayMs: 60000 }
+    const config = { baseDelayMs: 1000, jitterFactor: 0, maxDelayMs: 60_000 }
 
     const delay = calculateRetryDelay(10, config)
 
@@ -34,7 +34,7 @@ describe('calculateRetryDelay', () => {
   })
 
   it('adds jitter to prevent thundering herd', () => {
-    const config = { baseDelayMs: 1000, jitterFactor: 0.2, maxDelayMs: 60000 }
+    const config = { baseDelayMs: 1000, jitterFactor: 0.2, maxDelayMs: 60_000 }
 
     const delay = calculateRetryDelay(0, config)
 
@@ -48,7 +48,7 @@ describe('calculateRetryDelay', () => {
   })
 
   it('varies jitter based on random value', () => {
-    const config = { baseDelayMs: 1000, jitterFactor: 0.2, maxDelayMs: 60000 }
+    const config = { baseDelayMs: 1000, jitterFactor: 0.2, maxDelayMs: 60_000 }
 
     jest.spyOn(Math, 'random').mockReturnValue(0)
     const delayMin = calculateRetryDelay(0, config)
@@ -68,7 +68,7 @@ describe('createRetryManager', () => {
     manager = createRetryManager({
       baseDelayMs: 1000,
       jitterFactor: 0,
-      maxDelayMs: 60000,
+      maxDelayMs: 60_000,
       maxRetries: 5
     })
   })

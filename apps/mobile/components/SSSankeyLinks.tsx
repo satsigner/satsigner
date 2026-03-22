@@ -71,8 +71,7 @@ function SSSankeyLinks({
           if (type === 'source') {
             return link.source === node.id
           }
-            return link.target === node.id
-          
+          return link.target === node.id
         })
 
         for (const link of relevantLinks) {
@@ -130,8 +129,7 @@ function SSSankeyLinks({
           if (isSource) {
             return link.source === node.id
           }
-            return link.target === node.id
-          
+          return link.target === node.id
         })
         .toSorted((a, b) => {
           const aNode = isSource
@@ -173,7 +171,9 @@ function SSSankeyLinks({
     },
     [links, nodes, getLinkWidth]
   )
-  if (links.length === 0) {return null}
+  if (links.length === 0) {
+    return null
+  }
 
   return (
     <>

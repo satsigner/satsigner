@@ -192,9 +192,7 @@ export function createBBQRChunks(
   // This ensures we never return empty and the UI doesn't break
   const chunkSize = Math.max(100, maxChunkSize)
   const chunks: string[] = []
-  const dataStr = [...data]
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
+  const dataStr = [...data].map((b) => b.toString(16).padStart(2, '0')).join('')
 
   for (let i = 0; i < dataStr.length; i += chunkSize) {
     const chunk = dataStr.slice(i, i + chunkSize)

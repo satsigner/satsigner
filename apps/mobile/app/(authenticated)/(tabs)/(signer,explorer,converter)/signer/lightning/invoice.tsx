@@ -81,7 +81,9 @@ export default function InvoicePage() {
 
   // Function to check invoice status
   const checkInvoiceStatus = useCallback(async () => {
-    if (!rHash || !qrModalVisible) {return}
+    if (!rHash || !qrModalVisible) {
+      return
+    }
 
     try {
       // Convert r_hash to hex if it's not already
@@ -105,7 +107,9 @@ export default function InvoicePage() {
 
   // Set up polling for invoice status
   useEffect(() => {
-    if (!qrModalVisible || !rHash) {return}
+    if (!qrModalVisible || !rHash) {
+      return
+    }
 
     // Check immediately
     checkInvoiceStatus()
@@ -132,7 +136,9 @@ export default function InvoicePage() {
   }
 
   const handleSwitchToFiat = () => {
-    if (!btcPrice || btcPrice <= 0) {return}
+    if (!btcPrice || btcPrice <= 0) {
+      return
+    }
     if (invoiceAmount) {
       const fiat = satsToFiat(Number.parseInt(invoiceAmount, 10))
       setLocalFiatAmount(fiat > 0 ? fiat.toFixed(2) : '')
@@ -379,7 +385,9 @@ export default function InvoicePage() {
                     style={styles.input}
                     value={
                       invoiceAmount
-                        ? formatNumber(Number.parseInt(invoiceAmount, 10)).toString()
+                        ? formatNumber(
+                            Number.parseInt(invoiceAmount, 10)
+                          ).toString()
                         : ''
                     }
                     onChangeText={handleAmountChange}
@@ -412,7 +420,10 @@ export default function InvoicePage() {
                   >
                     ≈{' '}
                     {invoiceAmount
-                      ? formatNumber(satsToFiat(Number.parseInt(invoiceAmount, 10)), 2)
+                      ? formatNumber(
+                          satsToFiat(Number.parseInt(invoiceAmount, 10)),
+                          2
+                        )
                       : '0'}{' '}
                     {fiatCurrency}
                   </SSText>
@@ -583,17 +594,17 @@ const styles = StyleSheet.create({
     flex: 1
   },
   actionButtons: {
-    width: '100%',
-    marginBottom: 8
+    marginBottom: 8,
+    width: '100%'
   },
   actions: {
     gap: 12,
     marginTop: 8
   },
   amountContainer: {
+    alignItems: 'baseline',
     flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'baseline'
+    justifyContent: 'flex-end'
   },
   button: {
     width: '100%'
@@ -603,13 +614,13 @@ const styles = StyleSheet.create({
     gap: 24
   },
   detailLabel: {
-    minWidth: 100,
-    fontSize: 14
+    fontSize: 14,
+    minWidth: 100
   },
   detailRow: {
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap'
+    flexWrap: 'wrap',
+    justifyContent: 'space-between'
   },
   detailSection: {
     gap: 12
@@ -624,31 +635,31 @@ const styles = StyleSheet.create({
   form: {
     backgroundColor: '#1a1a1a',
     borderRadius: 12,
-    padding: 20,
-    gap: 16
+    gap: 16,
+    padding: 20
   },
   input: {
     backgroundColor: '#242424',
     borderRadius: 3,
-    padding: 12,
     color: 'white',
-    fontSize: 16
+    fontSize: 16,
+    padding: 12
   },
   inputContainer: {
     gap: 8
   },
   inputHeader: {
+    alignItems: 'center',
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
+    justifyContent: 'space-between'
   },
   invoiceDetails: {
-    width: '100%',
-    gap: 12
+    gap: 12,
+    width: '100%'
   },
   mainLayout: {
-    paddingTop: 32,
-    paddingHorizontal: '5%'
+    paddingHorizontal: '5%',
+    paddingTop: 32
   },
   modalActions: {
     gap: 12,
@@ -656,16 +667,16 @@ const styles = StyleSheet.create({
     width: '100%'
   },
   modalContent: {
-    width: '100%',
-    padding: 10
+    padding: 10,
+    width: '100%'
   },
   modalScrollView: {
-    width: '100%',
-    maxHeight: '90%'
+    maxHeight: '90%',
+    width: '100%'
   },
   paymentRequestContainer: {
-    width: '100%',
-    gap: 8
+    gap: 8,
+    width: '100%'
   },
   paymentRequestText: {
     backgroundColor: '#1a1a1a',
@@ -674,13 +685,13 @@ const styles = StyleSheet.create({
     width: '100%'
   },
   qrContainer: {
-    width: '100%',
-    aspectRatio: 1,
-    justifyContent: 'center',
     alignItems: 'center',
+    aspectRatio: 1,
     backgroundColor: '#1a1a1a',
     borderRadius: 12,
-    padding: 16
+    justifyContent: 'center',
+    padding: 16,
+    width: '100%'
   },
   scanButton: {
     minWidth: 100

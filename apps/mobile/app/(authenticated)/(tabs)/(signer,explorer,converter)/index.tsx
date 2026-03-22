@@ -77,11 +77,11 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   button: {
-    borderTopWidth: 1,
-    borderTopColor: '#303030',
-    borderBottomWidth: 1,
     borderBottomColor: '#222222',
-    borderRadius: 0
+    borderBottomWidth: 1,
+    borderRadius: 0,
+    borderTopColor: '#303030',
+    borderTopWidth: 1
   },
   buttonContainer: {
     flex: 1
@@ -96,8 +96,8 @@ const styles = StyleSheet.create({
     color: Colors.gray[450]
   },
   headerContainer: {
-    flex: 1,
-    alignItems: 'center'
+    alignItems: 'center',
+    flex: 1
   },
   headerText: {
     color: Colors.gray[200],
@@ -106,9 +106,9 @@ const styles = StyleSheet.create({
   },
   mainLayout: {
     flexGrow: 1,
-    paddingHorizontal: 2,
     gap: 60,
-    paddingTop: 50,
-    marginBottom: 50
+    marginBottom: 50,
+    paddingHorizontal: 2,
+    paddingTop: 50
   }
 })

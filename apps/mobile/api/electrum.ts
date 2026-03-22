@@ -90,7 +90,9 @@ interface AddressInfo {
 class ModifiedClient extends BlueWalletElectrumClient {
   // INFO: Override the default timeout for keeping client alive
   keepAlive() {
-    if (this.timeout != null) {clearTimeout(this.timeout)}
+    if (this.timeout != null) {
+      clearTimeout(this.timeout)
+    }
     const now = time.now()
     this.timeout = setTimeout(() => {
       if (this.timeLastCall !== 0 && now > this.timeLastCall + 500_000) {
@@ -172,7 +174,7 @@ class BaseElectrumClient {
       // of inactivity. On physical devices over WiFi the TLS handshake can
       // take longer, so we disable the library's timer entirely and rely on
       // our outer JS timeout instead.
-      const {conn} = (client.client as any)
+      const { conn } = client.client as any
       if (conn && typeof conn.setTimeout === 'function') {
         conn.setTimeout(0)
       }
@@ -197,7 +199,9 @@ class BaseElectrumClient {
 
       return true
     } catch {
-      if (timeoutId) {clearTimeout(timeoutId)}
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
       return false
     } finally {
       try {
@@ -215,7 +219,7 @@ class BaseElectrumClient {
     // Disable the library's 5s socket inactivity timer — on physical devices
     // over WiFi the TLS handshake can exceed 5s, and letting the timer fire
     // silently (or worse, destroying the socket) causes spurious failures.
-    const {conn} = (this.client as any)
+    const { conn } = this.client as any
     if (conn && typeof conn.setTimeout === 'function') {
       conn.setTimeout(0)
     }
@@ -234,7 +238,7 @@ class BaseElectrumClient {
   }
 
   addressToScriptHash(address: string) {
-    const {network} = this
+    const { network } = this
     const script = bitcoinjs.address.toOutputScript(address, network)
     const hash = bitcoinjs.crypto.sha256(script)
     const reversedHash = new Buffer(hash.toReversed())
@@ -371,7 +375,7 @@ class ElectrumClient extends BaseElectrumClient {
     for (let i = 0; i < tx.vin.length; i += 1) {
       const vout = vouts[i]
       const prevTx = bitcoinjs.Transaction.fromHex(previousTxsRaw[i])
-      const {value} = prevTx.outs[vout]
+      const { value } = prevTx.outs[vout]
       vin.push({
         ...tx.vin[i],
         value
@@ -387,15 +391,15 @@ class ElectrumClient extends BaseElectrumClient {
     addressKeychain: string
   ): Utxo[] {
     return utxos.map((electrumUtxo, index) => ({
-        txid: electrumUtxo.tx_hash,
-        value: electrumUtxo.value,
-        vout: electrumUtxo.tx_pos,
-        addressTo: address,
-        keychain: addressKeychain,
-        timestamp: new Date(timestamps[index] * 1000),
-        label: '',
-        script: [...bitcoinjs.address.toOutputScript(address, this.network)]
-      }))
+      addressTo: address,
+      keychain: addressKeychain,
+      label: '',
+      script: [...bitcoinjs.address.toOutputScript(address, this.network)],
+      timestamp: new Date(timestamps[index] * 1000),
+      txid: electrumUtxo.tx_hash,
+      value: electrumUtxo.value,
+      vout: electrumUtxo.tx_pos
+    }))
   }
 
   parseAddressTransactions(
@@ -405,7 +409,7 @@ class ElectrumClient extends BaseElectrumClient {
     timestamps: number[]
   ): Transaction[] {
     const transactions: Transaction[] = []
-    const {network} = this
+    const { network } = this
 
     // this is used to look up the parent transaction of an input
     const parsedTransactions: TxDecoded[] = []
@@ -454,14 +458,16 @@ class ElectrumClient extends BaseElectrumClient {
         transactions[i].vout.push({ address: addr, script, value })
 
         // Compute received value by checking if tx outputs match address
-        if (addr !== address) {continue}
+        if (addr !== address) {
+          continue
+        }
         transactions[i].received += value
       }
 
       for (let j = 0; j < inputCount; j++) {
         const prevTxId = currentTx.getInputHash(j).value as string
         const vout = Number(currentTx.getInputIndex(j).value)
-        const {sequence} = currentTx.ins[j]
+        const { sequence } = currentTx.ins[j]
         const witness = currentTx.ins[j].witness.map((w) => [...w])
         const scriptSig = [...currentTx.ins[j].script]
 
@@ -475,13 +481,17 @@ class ElectrumClient extends BaseElectrumClient {
           witness
         })
 
-        if (txDictionary[prevTxId] === undefined) {continue}
+        if (txDictionary[prevTxId] === undefined) {
+          continue
+        }
         const prevTxIndex = txDictionary[prevTxId]
         const parentTx = parsedTransactions[prevTxIndex]
         const addr = parentTx.generateOutputScriptAddress(vout, network)
 
         // Compute sent value by checking if tx inputs match address
-        if (addr !== address) {continue}
+        if (addr !== address) {
+          continue
+        }
         const value = Number(parentTx.getOutputValue(vout).value)
         transactions[i].sent += value
       }
@@ -503,7 +513,9 @@ class ElectrumClient extends BaseElectrumClient {
 
     for (const tx of transactions) {
       const { id, raw } = tx
-      if (!raw) {continue}
+      if (!raw) {
+        continue
+      }
       const txHex = bytesToHex(raw)
       txidToParsedTxIndex[id] = parsedTransactions.length
       parsedTransactions.push(TxDecoded.fromHex(txHex))
@@ -538,14 +550,16 @@ class ElectrumClient extends BaseElectrumClient {
         transactions[i].vout.push({ address: addr, script, value })
 
         // Compute received value by checking if tx outputs match address
-        if (addr !== address) {continue}
+        if (addr !== address) {
+          continue
+        }
         transactions[i].received += value
       }
 
       for (let j = 0; j < inputCount; j++) {
         const prevTxId = currentTx.getInputHash(j).value as string
         const vout = Number(currentTx.getInputIndex(j).value)
-        const {sequence} = currentTx.ins[j]
+        const { sequence } = currentTx.ins[j]
         const witness = currentTx.ins[j].witness.map((w) => [...w])
         const scriptSig = [...currentTx.ins[j].script]
 
@@ -559,13 +573,17 @@ class ElectrumClient extends BaseElectrumClient {
           witness
         })
 
-        if (txidToParsedTxIndex[prevTxId] === undefined) {continue}
+        if (txidToParsedTxIndex[prevTxId] === undefined) {
+          continue
+        }
         const prevTxIndex = txidToParsedTxIndex[prevTxId]
         const parentTx = parsedTransactions[prevTxIndex]
         const addr = parentTx.generateOutputScriptAddress(vout, this.network)
 
         // Compute sent value by checking if tx inputs match address
-        if (addr !== address) {continue}
+        if (addr !== address) {
+          continue
+        }
         const value = Number(parentTx.getOutputValue(vout).value)
         transactions[i].sent += value
       }

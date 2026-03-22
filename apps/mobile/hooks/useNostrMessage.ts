@@ -67,7 +67,7 @@ export function useNostrMessage({
       }
     } catch (error) {
       return {
-        authorDisplayName: { npubShort: '', color: '' },
+        authorDisplayName: { color: '', npubShort: '' },
         authorNpub: '',
         error:
           error instanceof Error

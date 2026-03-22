@@ -81,7 +81,9 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
   const isMvB = useRef(false)
 
   const data = useMemo(() => {
-    if (!mempoolStatistics) {return []}
+    if (!mempoolStatistics) {
+      return []
+    }
 
     const totalVsizes = mempoolStatistics.map((entry) =>
       entry.vsizes.reduce((sum, v) => sum + (v || 0), 0)
@@ -119,7 +121,9 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
 
         const totalVsize = totalVsizes[i] ?? 0
         const convertedTotal = convertFunction(totalVsize)
-        if (convertedTotal > maxYDomain) {maxYDomain = convertedTotal}
+        if (convertedTotal > maxYDomain) {
+          maxYDomain = convertedTotal
+        }
 
         return {
           '0-1': convertFunction(entry.vsizes[0] || 0),
@@ -174,10 +178,14 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
   }, [mempoolStatistics, timeRange])
 
   const keysWithData = useMemo(() => {
-    if (data.length === 0) {return []}
+    if (data.length === 0) {
+      return []
+    }
     const last = data.at(-1)
     const total = Y_KEYS.reduce((sum, key) => sum + (last[key] ?? 0), 0)
-    if (total <= 0) {return []}
+    if (total <= 0) {
+      return []
+    }
     return Y_KEYS.filter((key) => {
       const value = last[key] ?? 0
       return value > 0 && value / total >= MIN_KEY_SHARE
@@ -188,12 +196,13 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
     setLabelTopsFromChart(labelTopsRef.current)
   }, [chartBounds, data, keysWithData])
 
-  if (!mempoolStatistics)
-    {return (
+  if (!mempoolStatistics) {
+    return (
       <View style={{ flex: 1 }}>
         <Text style={{ color: '#fff', padding: 16 }}>Loading chart...</Text>
       </View>
-    )}
+    )
+  }
 
   return (
     <View style={styles.container}>
@@ -226,8 +235,9 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
                         !pts ||
                         typeof pts.length !== 'number' ||
                         pts.length === 0
-                      )
-                        {return null}
+                      ) {
+                        return null
+                      }
                       const last = pts.at(-1) as {
                         x: number
                         y: number
@@ -324,16 +334,16 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
 
 const styles = StyleSheet.create({
   arrow: {
-    justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   arrowContainer: {
-    flexDirection: 'row',
     alignItems: 'flex-end',
-    justifyContent: 'flex-end',
+    alignSelf: 'flex-end',
+    flexDirection: 'row',
     height: 250,
-    width: 55,
-    alignSelf: 'flex-end'
+    justifyContent: 'flex-end',
+    width: 55
   },
   chartBorderWrapper: {
     borderColor: Colors.gray[700],
@@ -360,9 +370,9 @@ const styles = StyleSheet.create({
     fontSize: LABEL_FONT_SIZE
   },
   keyLabels: {
+    flexShrink: 0,
     height: CHART_HEIGHT,
     minWidth: 56,
-    flexShrink: 0,
     paddingLeft: 8,
     paddingVertical: 2,
     position: 'relative'

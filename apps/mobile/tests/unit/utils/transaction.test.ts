@@ -421,7 +421,7 @@ describe('recalculateDepthH', () => {
             depthH: 0,
             id: 'txA',
             vin: [] as any,
-            vout: [{ value: 1000, address: 'addrA' }] as any
+            vout: [{ address: 'addrA', value: 1000 }] as any
           }
         ],
         [
@@ -431,7 +431,7 @@ describe('recalculateDepthH', () => {
             depthH: 0,
             id: 'txB',
             vin: [{ previousOutput: { txid: 'txExternal', vout: 0 } }] as any,
-            vout: [{ value: 2000, address: 'addrB' }] as any
+            vout: [{ address: 'addrB', value: 2000 }] as any
           }
         ]
       ])
@@ -453,7 +453,7 @@ describe('recalculateDepthH', () => {
             depthH: 0,
             id: 'txA',
             vin: [] as any,
-            vout: [{ value: 1000, address: 'addrA_NotInSelected' }] as any
+            vout: [{ address: 'addrA_NotInSelected', value: 1000 }] as any
           }
         ]
       ])
@@ -474,7 +474,7 @@ describe('recalculateDepthH', () => {
             depthH: 0,
             id: 'txA',
             vin: [] as any,
-            vout: [{ value: 1000, address: 'addrA' }] as any
+            vout: [{ address: 'addrA', value: 1000 }] as any
           }
         ],
         [
@@ -506,7 +506,7 @@ describe('recalculateDepthH', () => {
             depthH: 0,
             id: 'txA',
             vin: [] as any,
-            vout: [{ value: 1000, address: 'addrA' }] as any
+            vout: [{ address: 'addrA', value: 1000 }] as any
           }
         ],
         [

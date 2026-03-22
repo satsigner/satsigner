@@ -31,9 +31,12 @@ function SSSelectModal({
   children
 }: SSSelectModalProps) {
   useEffect(() => {
-    if (Platform.OS !== 'android') {return}
-    if (!visible)
-      {return StatusBar.setStatusBarBackgroundColor('transparent', false)}
+    if (Platform.OS !== 'android') {
+      return
+    }
+    if (!visible) {
+      return StatusBar.setStatusBarBackgroundColor('transparent', false)
+    }
 
     StatusBar.setStatusBarBackgroundColor('black', false)
   }, [visible])

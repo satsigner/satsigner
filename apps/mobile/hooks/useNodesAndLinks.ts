@@ -128,14 +128,14 @@ export const useNodesAndLinks = ({
         id: `vout-${blockDepth + 1}-${index + 1}`,
         indexV: index,
         ioData: {
+          address: formatAddress(output.to, 4),
+          fiatCurrency,
+          fiatValue: formatNumber(satsToFiat(output.amount), 2),
+          isSelfSend: ownAddresses.has(output.to),
           isUnspent: true,
           label: output.label,
-          address: formatAddress(output.to, 4),
           text: t('transaction.build.unspent'),
-          value: output.amount,
-          fiatValue: formatNumber(satsToFiat(output.amount), 2),
-          fiatCurrency,
-          isSelfSend: ownAddresses.has(output.to)
+          value: output.amount
         },
         localId: output.localId,
         type: 'text',
@@ -151,11 +151,11 @@ export const useNodesAndLinks = ({
           id: `vout-${blockDepth + 1}-${outputs.length + 1}`,
           indexV: outputs.length,
           ioData: {
-            value: remainingBalance,
-            fiatValue: formatNumber(satsToFiat(remainingBalance), 2),
             fiatCurrency,
+            fiatValue: formatNumber(satsToFiat(remainingBalance), 2),
+            isUnspent: true,
             text: t('transaction.build.unspent'),
-            isUnspent: true
+            value: remainingBalance
           },
           localId: 'remainingBalance',
           type: 'text',
@@ -185,14 +185,14 @@ export const useNodesAndLinks = ({
         id: `vout-${blockDepth + 1}-0`,
         indexV: outputs.length + (remainingBalance > 0 ? 1 : 0),
         ioData: {
+          feePercentage: Math.round(feePercentageForCurrentTx * 100) / 100,
           feeRate: Math.round(feeRate),
-          minerFee,
-          fiatValue: formatNumber(satsToFiat(minerFee), 2),
           fiatCurrency,
-          text: t('transaction.build.minerFee'),
-          value: minerFee,
+          fiatValue: formatNumber(satsToFiat(minerFee), 2),
           higherFee: higherFeeForCurrentTx,
-          feePercentage: Math.round(feePercentageForCurrentTx * 100) / 100
+          minerFee,
+          text: t('transaction.build.minerFee'),
+          value: minerFee
         },
         localId: 'current-minerFee',
         type: 'text',
@@ -220,8 +220,7 @@ export const useNodesAndLinks = ({
         ...outputNodes
       ]
     }
-      return []
-    
+    return []
   }, [
     inputs,
     transactions.size,
@@ -234,14 +233,18 @@ export const useNodesAndLinks = ({
   ])
 
   const outputAddresses = useMemo(() => {
-    if (transactions.size === 0) {return []}
+    if (transactions.size === 0) {
+      return []
+    }
     return [...transactions.values()].flatMap(
       (tx) => tx.vout?.map((output) => output.address) ?? []
     )
   }, [transactions])
 
   const outputValues = useMemo(() => {
-    if (transactions.size === 0) {return []}
+    if (transactions.size === 0) {
+      return []
+    }
     return [...transactions.values()].flatMap(
       (tx) => tx.vout?.map((output) => output.value) ?? []
     )
@@ -266,7 +269,9 @@ export const useNodesAndLinks = ({
       const blockDepthIndices = new Map<number, number>()
       const previousConfirmedNodes = [...transactions.entries()].flatMap(
         ([, tx]) => {
-          if (!tx.vin || !tx.vout) {return []}
+          if (!tx.vin || !tx.vout) {
+            return []
+          }
 
           // Calculate total input and output values for *this* transaction
           const totalInputValue = tx.vin.reduce(
@@ -307,14 +312,14 @@ export const useNodesAndLinks = ({
               depthH,
               id: `vin-${depthH}-${currentIndex}`,
               ioData: {
-                value: input.value,
-                fiatValue: formatNumber(satsToFiat(input.value ?? 0), 2),
-                fiatCurrency,
                 address: `${formatAddress(input.address, 4)}`,
+                fiatCurrency,
+                fiatValue: formatNumber(satsToFiat(input.value ?? 0), 2),
+                isSelfSend: ownAddresses.has(input.address),
                 label: `${input.label ?? ''}`,
-                txId: tx.id,
                 text: t('common.from'),
-                isSelfSend: ownAddresses.has(input.address)
+                txId: tx.id,
+                value: input.value
               },
               prevout: input.previousOutput,
               txId: tx.id,
@@ -343,12 +348,12 @@ export const useNodesAndLinks = ({
               id: `block-${blockDepth}-${blockIndex}`,
               indexV: blockIndex,
               ioData: {
-                blockTime,
                 blockHeight,
                 blockRelativeTime,
+                blockTime,
+                txId: formatTxId(tx?.id, 6),
                 txSize: tx.size,
-                vSize: vsize,
-                txId: formatTxId(tx?.id, 6)
+                vSize: vsize
               },
               txId: tx.id,
               type: 'block'
@@ -379,13 +384,13 @@ export const useNodesAndLinks = ({
               depthH: outputDepth,
               id: `vout-${outputDepth}-${output.index}`,
               ioData: {
-                label,
                 address: formatAddress(output.address, 4),
-                value: output.value,
-                fiatValue: formatNumber(satsToFiat(output.value ?? 0), 2),
                 fiatCurrency,
+                fiatValue: formatNumber(satsToFiat(output.value ?? 0), 2),
+                isSelfSend: ownAddresses.has(output.address),
+                label,
                 text: t('common.from'),
-                isSelfSend: ownAddresses.has(output.address)
+                value: output.value
               },
               localId: undefined,
               nextTx,
@@ -559,7 +564,9 @@ export const useNodesAndLinks = ({
       return links
     }
 
-    if (nodes?.length === 0) {return []}
+    if (nodes?.length === 0) {
+      return []
+    }
 
     return generateSankeyLinks(previousConfirmedNodes)
   }, [
@@ -568,6 +575,8 @@ export const useNodesAndLinks = ({
     outputNodesCurrentTransaction,
     inputs
   ])
-  if (transactions.size === 0) {return { nodes: [], links: [] }}
+  if (transactions.size === 0) {
+    return { links: [], nodes: [] }
+  }
   return { links, nodes }
 }

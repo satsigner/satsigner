@@ -69,8 +69,12 @@ function SSLabelInput({
     matches
       .map((match) => match.replace('#', ''))
       .forEach((tag: string) => {
-        if (!tags.includes(tag)) {newTags.push(tag)}
-        if (!selectedTags.includes(tag)) {newSelectedTags.push(tag)}
+        if (!tags.includes(tag)) {
+          newTags.push(tag)
+        }
+        if (!selectedTags.includes(tag)) {
+          newSelectedTags.push(tag)
+        }
       })
 
     if (newTags.length > 0) {

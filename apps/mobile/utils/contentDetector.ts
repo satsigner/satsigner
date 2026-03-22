@@ -229,9 +229,9 @@ function detectEcashContent(data: string): DetectedContent | null {
           cleaned: trimmed,
           isValid: true,
           metadata: {
-            version: trimmed.startsWith('cashuA') ? 'v3' : 'v4',
             mint: decoded.mint,
-            proofs: decoded.proofs?.length || 0
+            proofs: decoded.proofs?.length || 0,
+            version: trimmed.startsWith('cashuA') ? 'v3' : 'v4'
           },
           raw: data,
           type: 'ecash_token'

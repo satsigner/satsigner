@@ -1,14 +1,22 @@
 import { FlashList } from '@shopify/flash-list'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Animated, Keyboard, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
-import type { StyleProp, ViewStyle } from 'react-native';
+import {
+  Animated,
+  Keyboard,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View
+} from 'react-native'
+import type { StyleProp, ViewStyle } from 'react-native'
 
 import useKeyboardHeight from '@/hooks/useKeyboardHeight'
 import usePrevious from '@/hooks/usePrevious'
 import { t } from '@/locales'
 import { Colors, Sizes } from '@/styles'
-import { getWordList } from '@/utils/bip39';
-import type { WordListName } from '@/utils/bip39';
+import { getWordList } from '@/utils/bip39'
+import type { WordListName } from '@/utils/bip39'
 
 interface WordInfo {
   index: number
@@ -20,8 +28,9 @@ function wordStartMispells(haystack: string, needle: string) {
   for (let i = 0; i < needle.length; i += 1) {
     // add a penalty which puts weight on misspells close to the word start
     const penalty = (needle.length - i + 1) / 10
-    if (haystack.length <= i || needle[i] !== haystack[i])
-      {mismatches += 1 + penalty}
+    if (haystack.length <= i || needle[i] !== haystack[i]) {
+      mismatches += 1 + penalty
+    }
   }
   return mismatches
 }
@@ -187,34 +196,34 @@ const styles = StyleSheet.create({
     elevation: 1000, // For Android
     shadowColor: '#000', // For iOS
     shadowOffset: {
-      width: 0,
-      height: -20
+      height: -20,
+      width: 0
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84
   },
   noMatchingWordsContainerBase: {
+    alignItems: 'center',
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center'
+    justifyContent: 'center'
   },
   separator: {
-    height: '100%',
     backgroundColor: Colors.gray[50],
+    height: '100%',
     width: 1
   },
   wordContainerBase: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRightWidth: 1,
-    borderColor: Colors.gray[100],
-    minWidth: 80,
     alignItems: 'center',
-    justifyContent: 'center'
+    borderColor: Colors.gray[100],
+    borderRightWidth: 1,
+    justifyContent: 'center',
+    minWidth: 80,
+    paddingHorizontal: 16,
+    paddingVertical: 12
   },
   wordText: {
-    fontSize: Sizes.text.fontSize.lg,
-    color: Colors.black
+    color: Colors.black,
+    fontSize: Sizes.text.fontSize.lg
   }
 })
 

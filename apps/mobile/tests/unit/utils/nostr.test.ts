@@ -70,7 +70,7 @@ describe('compressMessage and decompressMessage', () => {
   it('roundtrips nested data structures', () => {
     const original = {
       messages: [nostrMessages.labelSync, nostrMessages.psbtShare],
-      metadata: { timestamp: 1704067200, version: 1 }
+      metadata: { timestamp: 1_704_067_200, version: 1 }
     }
     expect(decompressMessage(compressMessage(original))).toStrictEqual(original)
   })
@@ -184,9 +184,9 @@ describe('deriveNostrKeysFromDescriptor', () => {
     )
     expect(result1.commonNsec).toBe(result2.commonNsec)
     expect(result1.commonNpub).toBe(result2.commonNpub)
-    expect([...result1.privateKeyBytes]).toStrictEqual(
-      [...result2.privateKeyBytes]
-    )
+    expect([...result1.privateKeyBytes]).toStrictEqual([
+      ...result2.privateKeyBytes
+    ])
   })
 
   it('produces different keys for different descriptors', async () => {

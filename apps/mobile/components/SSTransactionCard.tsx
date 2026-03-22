@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { StyleSheet, TouchableOpacity } from 'react-native';
-import type { StyleProp, ViewStyle } from 'react-native';
+import { StyleSheet, TouchableOpacity } from 'react-native'
+import type { StyleProp, ViewStyle } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'

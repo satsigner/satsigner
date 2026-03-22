@@ -39,10 +39,7 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import type {
-  CreationType,
-  ScriptVersionType
-} from '@/types/models/Account'
+import type { CreationType, ScriptVersionType } from '@/types/models/Account'
 import type { WatchOnlySearchParams } from '@/types/navigation/searchParams'
 import { isBBQRFragment } from '@/utils/bbqr'
 import {
@@ -221,9 +218,8 @@ export default function WatchOnly() {
         scaleAnimation.stop()
       }
     }
-      pulseAnim.setValue(0)
-      scaleAnim.setValue(1)
-    
+    pulseAnim.setValue(0)
+    scaleAnim.setValue(1)
   }, [isReading, pulseAnim, scaleAnim])
 
   const updateDescriptorValidationState = useCallback(() => {
@@ -452,9 +448,13 @@ export default function WatchOnly() {
   }
 
   async function extractAndSetFingerprint(descriptor: string) {
-    if (localFingerprint) {return}
+    if (localFingerprint) {
+      return
+    }
     const extractedFingerprint = DescriptorUtils.extractFingerprint(descriptor)
-    if (!extractedFingerprint) {return}
+    if (!extractedFingerprint) {
+      return
+    }
     setLocalFingerprint(extractedFingerprint)
     setFingerprint(extractedFingerprint)
   }
@@ -504,14 +504,13 @@ export default function WatchOnly() {
             type: 'ur' as const
           }
         }
-          // Single-part UR
-          return {
-            type: 'ur' as const,
-            current: 0,
-            total: 1,
-            content: data
-          }
-        
+        // Single-part UR
+        return {
+          content: data,
+          current: 0,
+          total: 1,
+          type: 'ur' as const
+        }
       }
     }
 
@@ -590,7 +589,9 @@ export default function WatchOnly() {
 
   async function pasteFromClipboard() {
     const text = await Clipboard.getStringAsync()
-    if (!text) {return}
+    if (!text) {
+      return
+    }
 
     if (selectedOption === 'importExtendedPub') {
       updateXpub(text)
@@ -664,7 +665,9 @@ export default function WatchOnly() {
     } else {
       // For JSON descriptors, use the original descriptor for validation
       await updateExternalDescriptor(original)
-      if (internal) {await updateInternalDescriptor(internal)}
+      if (internal) {
+        await updateInternalDescriptor(internal)
+      }
       extractAndSetFingerprint(external)
     }
   }
@@ -681,7 +684,9 @@ export default function WatchOnly() {
     }
 
     await updateExternalDescriptor(external)
-    if (internal) {await updateInternalDescriptor(internal)}
+    if (internal) {
+      await updateInternalDescriptor(internal)
+    }
 
     extractAndSetFingerprint(external)
   }
@@ -827,8 +832,12 @@ export default function WatchOnly() {
           }
         } else {
           // Handle non-combined descriptors with existing logic
-          if (externalDescriptor) {updateExternalDescriptor(externalDescriptor)}
-          if (internalDescriptor) {updateInternalDescriptor(internalDescriptor)}
+          if (externalDescriptor) {
+            updateExternalDescriptor(externalDescriptor)
+          }
+          if (internalDescriptor) {
+            updateInternalDescriptor(internalDescriptor)
+          }
           extractAndSetFingerprint(externalDescriptor)
         }
       }
@@ -980,28 +989,28 @@ export default function WatchOnly() {
                   {selectedOption === 'importAddress' && (
                     <>
                       {addresses.map((address, index) => (
-                          <SSVStack
-                            key={address}
-                            gap="xs"
-                            style={{ marginVertical: 16 }}
-                          >
-                            <SSHStack justifyBetween>
-                              <SSText uppercase weight="bold">
-                                {`${t('bitcoin.address')} #${index + 1}`}
-                              </SSText>
-                              <TouchableOpacity
-                                onPress={() => deleteAddress(address)}
-                              >
-                                <SSIconTrash height={12} width={12} />
-                              </TouchableOpacity>
-                            </SSHStack>
-                            <SSAddressDisplay
-                              address={address}
-                              variant="bare"
-                              size="xs"
-                            />
-                          </SSVStack>
-                        ))}
+                        <SSVStack
+                          key={address}
+                          gap="xs"
+                          style={{ marginVertical: 16 }}
+                        >
+                          <SSHStack justifyBetween>
+                            <SSText uppercase weight="bold">
+                              {`${t('bitcoin.address')} #${index + 1}`}
+                            </SSText>
+                            <TouchableOpacity
+                              onPress={() => deleteAddress(address)}
+                            >
+                              <SSIconTrash height={12} width={12} />
+                            </TouchableOpacity>
+                          </SSHStack>
+                          <SSAddressDisplay
+                            address={address}
+                            variant="bare"
+                            size="xs"
+                          />
+                        </SSVStack>
+                      ))}
                       <SSTextInput
                         value={addressInput}
                         style={isValidAddress ? styles.valid : styles.invalid}
@@ -1305,12 +1314,12 @@ export default function WatchOnly() {
 
 const styles = StyleSheet.create({
   cameraView: {
-    width: 340,
-    height: 340
+    height: 340,
+    width: 340
   },
   innerScrollContainer: {
-    paddingBottom: 20,
-    flex: 1
+    flex: 1,
+    paddingBottom: 20
   },
   invalid: {
     borderColor: Colors.error,
@@ -1319,20 +1328,20 @@ const styles = StyleSheet.create({
     paddingVertical: 10
   },
   mainContainer: {
-    paddingTop: 0,
-    paddingBottom: 10
+    paddingBottom: 10,
+    paddingTop: 0
   },
   progressBarInner: {
-    height: 4,
-    maxWidth: 300,
     backgroundColor: Colors.white,
-    borderRadius: 2
+    borderRadius: 2,
+    height: 4,
+    maxWidth: 300
   },
   progressBarOuter: {
-    width: 300,
-    height: 4,
     backgroundColor: Colors.gray[700],
-    borderRadius: 2
+    borderRadius: 2,
+    height: 4,
+    width: 300
   },
   scrollContainer: {
     minHeight: '100%'

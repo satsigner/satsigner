@@ -33,7 +33,9 @@ interface BackupData {
 }
 
 function parseBackupDate(v: string | number | Date | null | undefined): Date {
-  if (v == null) {return new Date()}
+  if (v == null) {
+    return new Date()
+  }
   return new Date(v as string | number | Date)
 }
 
@@ -44,9 +46,11 @@ function parseBackupDate(v: string | number | Date | null | undefined): Date {
 export async function performRecoverOverwrite(
   decrypted: string
 ): Promise<{ success: boolean }> {
-  const {skipPin} = useAuthStore.getState()
+  const { skipPin } = useAuthStore.getState()
   const pin = await getPinForDecryption(skipPin)
-  if (!pin) {return { success: false }}
+  if (!pin) {
+    return { success: false }
+  }
   try {
     const data = JSON.parse(decrypted) as BackupData
     if (!data.accounts || !Array.isArray(data.accounts)) {
@@ -65,7 +69,9 @@ export async function performRecoverOverwrite(
                 })
               }
             : undefined
-        if (secretObj === undefined) {throw new Error('Key missing seed data')}
+        if (secretObj === undefined) {
+          throw new Error('Key missing seed data')
+        }
         const iv = randomIv()
         const secret = await aesEncrypt(JSON.stringify(secretObj), pin, iv)
         keys.push({

@@ -6,8 +6,8 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 
-import SSButton from './SSButton';
-import type { SSButtonProps } from './SSButton';
+import SSButton from './SSButton'
+import type { SSButtonProps } from './SSButton'
 
 interface SSModalProps {
   visible: boolean
@@ -50,7 +50,7 @@ function SSModal({
             borderRadius: 8,
             borderWidth: 1,
             width: '105%',
-            zIndex: 10001
+            zIndex: 10_001
           }}
         />
       </SSMainLayout>

@@ -1,6 +1,6 @@
 import { MempoolOracle } from '@/api/blockchain'
-import { TxPriority } from '@/types/models/Blockchain';
-import type { BlockchainOracle, PriceValue } from '@/types/models/Blockchain';
+import { TxPriority } from '@/types/models/Blockchain'
+import type { BlockchainOracle, PriceValue } from '@/types/models/Blockchain'
 
 const mempoolspace: BlockchainOracle = new MempoolOracle(
   'https://mempool.space/api'
@@ -31,7 +31,8 @@ describe('blockchain » price', () => {
 
 describe('blockchain » mempool', () => {
   const errorTolerance = 0.015 // 1.5%
-  const isDiffReasonable = (a: number, b: number) => Math.abs((a - b) / b) < errorTolerance
+  const isDiffReasonable = (a: number, b: number) =>
+    Math.abs((a - b) / b) < errorTolerance
 
   it('get mempool info', async () => {
     const response = await mempoolspace.getMemPool()

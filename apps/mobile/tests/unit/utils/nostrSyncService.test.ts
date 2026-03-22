@@ -5,11 +5,11 @@ import { nostrSyncService, resetInstance } from '@/utils/nostrSyncService'
 // Mock dependencies
 jest.mock<typeof import('@/api/nostr')>('@/api/nostr', () => ({
   NostrAPI: jest.fn().mockImplementation(() => ({
-    closeAllSubscriptions: jest.fn().mockResolvedValue(undefined),
+    closeAllSubscriptions: jest.fn().mockResolvedValue(),
     connect: jest.fn().mockResolvedValue(true),
-    flushQueue: jest.fn().mockResolvedValue(undefined),
+    flushQueue: jest.fn().mockResolvedValue(),
     setLoadingCallback: jest.fn(),
-    subscribeToKind1059: jest.fn().mockResolvedValue(undefined)
+    subscribeToKind1059: jest.fn().mockResolvedValue()
   }))
 }))
 
@@ -50,13 +50,13 @@ const mockAccount: Account = {
   network: 'bitcoin',
   nostr: {
     autoSync: true,
-    relays: ['wss://relay.damus.io'],
-    commonNsec: 'nsec1test',
     commonNpub: 'npub1test',
-    deviceNsec: 'nsec1device',
+    commonNsec: 'nsec1test',
     deviceNpub: 'npub1device',
+    deviceNsec: 'nsec1device',
     dms: [],
     lastUpdated: new Date(),
+    relays: ['wss://relay.damus.io'],
     syncStart: new Date(),
     trustedMemberDevices: []
   },

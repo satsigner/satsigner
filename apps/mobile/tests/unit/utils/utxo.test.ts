@@ -20,7 +20,7 @@ describe('efficiency UTXO Selection Algorithm', () => {
     }))
   }
 
-  it('it should select a single utxo when it exactly matches the target amount', () => {
+  it('should select a single utxo when it exactly matches the target amount', () => {
     const utxos = createMockUtxos([10_000, 20_000, 30_000])
     const target = 10_000
     const feeRate = 1
@@ -99,11 +99,11 @@ describe('efficiency UTXO Selection Algorithm', () => {
         vout: 0
       }, // 2 satoshis
       {
-        effectiveValue: 10000,
+        effectiveValue: 10_000,
         keychain: 'external' as const,
         scriptType: 'p2wpkh' as const,
         txid: 'tx3',
-        value: 10000,
+        value: 10_000,
         vout: 0
       } // One normal UTXO
     ]
@@ -138,9 +138,12 @@ describe('sTONEWALL UTXO Selection Algorithm', () => {
   }
 
   it('should create a valid STONEWALL transaction with sufficient funds', () => {
-    const utxos = createMockUtxos([10_000, 20_000, 30_000, 40_000, 50_000, 60_000], {
-      scriptTypes: ['p2pkh', 'p2wpkh']
-    })
+    const utxos = createMockUtxos(
+      [10_000, 20_000, 30_000, 40_000, 50_000, 60_000],
+      {
+        scriptTypes: ['p2pkh', 'p2wpkh']
+      }
+    )
     const targetAmount = 75_000
     const feeRate = 2
 
@@ -219,42 +222,42 @@ describe('sTONEWALL UTXO Selection Algorithm', () => {
     const mockSolution = {
       inputs: [
         {
-          effectiveValue: 10000,
+          effectiveValue: 10_000,
           keychain: 'external' as const,
           scriptType: 'p2wpkh' as const,
           txid: 'tx1',
-          value: 10000,
+          value: 10_000,
           vout: 0
         },
         {
-          effectiveValue: 20000,
+          effectiveValue: 20_000,
           keychain: 'external' as const,
           scriptType: 'p2wpkh' as const,
           txid: 'tx2',
-          value: 20000,
+          value: 20_000,
           vout: 0
         },
         {
-          effectiveValue: 30000,
+          effectiveValue: 30_000,
           keychain: 'external' as const,
           scriptType: 'p2wpkh' as const,
           txid: 'tx3',
-          value: 30000,
+          value: 30_000,
           vout: 0
         },
         {
-          effectiveValue: 40000,
+          effectiveValue: 40_000,
           keychain: 'external' as const,
           scriptType: 'p2wpkh' as const,
           txid: 'tx4',
-          value: 40000,
+          value: 40_000,
           vout: 0
         }
       ],
       outputs: [
-        { recipient: true, size: 31, type: 'p2wpkh', value: 50000 },
-        { size: 31, type: 'p2wpkh', value: 25000 },
-        { size: 31, type: 'p2wpkh', value: 20000 }
+        { recipient: true, size: 31, type: 'p2wpkh', value: 50_000 },
+        { size: 31, type: 'p2wpkh', value: 25_000 },
+        { size: 31, type: 'p2wpkh', value: 20_000 }
       ]
     }
 

@@ -1,5 +1,5 @@
-import { DrawerContentScrollView } from '@react-navigation/drawer';
-import type { DrawerContentComponentProps } from '@react-navigation/drawer';
+import { DrawerContentScrollView } from '@react-navigation/drawer'
+import type { DrawerContentComponentProps } from '@react-navigation/drawer'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Platform, StyleSheet, View } from 'react-native'
 
@@ -19,10 +19,11 @@ function SSNavMenu(props: SSNavMenuProps) {
   const filteredNavMenuGroups = navMenuGroups.reduce(
     (acc, group) => {
       if (group.items && Array.isArray(group.items)) {
-        const filteredItems = group.items.filter((item) => (
+        const filteredItems = group.items.filter(
+          (item) =>
             item.platform === PLATFORM.HYBRID ||
             item.platform === currentPlatform
-          ))
+        )
         if (filteredItems.length > 0) {
           acc.push({ ...group, items: filteredItems })
         }
@@ -47,13 +48,13 @@ function SSNavMenu(props: SSNavMenuProps) {
       >
         <SSVStack style={styles.vStackWrapper}>
           {filteredNavMenuGroups.map((group, index) => (
-              <SSVStack
-                key={`${index} - ${group.title}`}
-                style={styles.groupWrapper}
-              >
-                <SSNavMenuGroup group={group} />
-              </SSVStack>
-            ))}
+            <SSVStack
+              key={`${index} - ${group.title}`}
+              style={styles.groupWrapper}
+            >
+              <SSNavMenuGroup group={group} />
+            </SSVStack>
+          ))}
         </SSVStack>
         <SSVStack style={styles.versionWrapper}>
           <SSText size="sm" color="muted" style={styles.versionText}>
@@ -67,25 +68,25 @@ function SSNavMenu(props: SSNavMenuProps) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: Colors.black
+    backgroundColor: Colors.black,
+    flex: 1
   },
   contentContainer: {
     flexGrow: 1
   },
   gradientOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+    elevation: 5,
     height: '100%',
-    width: '100%',
-    zIndex: 99999,
+    left: 0,
+    position: 'absolute',
+    right: 0,
     shadowColor: Colors.black,
-    shadowOffset: { width: 2, height: 0 },
+    shadowOffset: { height: 0, width: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3,
-    elevation: 5
+    top: 0,
+    width: '100%',
+    zIndex: 99_999
   },
   groupWrapper: {
     gap: 0
@@ -100,8 +101,8 @@ const styles = StyleSheet.create({
     letterSpacing: 2
   },
   versionWrapper: {
-    marginVertical: 40,
-    marginLeft: 30
+    marginLeft: 30,
+    marginVertical: 40
   }
 })
 

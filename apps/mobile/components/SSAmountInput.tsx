@@ -45,7 +45,9 @@ function SSAmountInput({
 
   function handleFiatChange(text: string) {
     const fiat = Number(text)
-    if (isNaN(fiat) || !btcPrice || btcPrice <= 0) {return}
+    if (isNaN(fiat) || !btcPrice || btcPrice <= 0) {
+      return
+    }
     const sats = Math.max(
       min,
       Math.min(max, Math.round((fiat / btcPrice) * 1e8))
@@ -153,13 +155,13 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline'
   },
   thumb: {
-    width: 22,
+    borderRadius: 11,
     height: 22,
-    borderRadius: 11
+    width: 22
   },
   track: {
-    height: 12,
-    borderRadius: 6
+    borderRadius: 6,
+    height: 12
   }
 })
 

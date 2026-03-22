@@ -1,7 +1,14 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import React, { useEffect, useRef, useState } from 'react'
-import { ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
-import type { DimensionValue } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View
+} from 'react-native'
+import type { DimensionValue } from 'react-native'
 
 interface DateBlockProps {
   digits: number[]
@@ -108,7 +115,8 @@ function SSDatePicker({
     }
   }
 
-  const getDaysInMonth = (month: number, year: number) => new Date(year, month, 0).getDate()
+  const getDaysInMonth = (month: number, year: number) =>
+    new Date(year, month, 0).getDate()
 
   const getOrder = () => {
     const now = new Date()
@@ -127,18 +135,18 @@ function SSDatePicker({
     return (format || 'dd-mm-yyyy').split('-').map((type, index) => {
       switch (type) {
         case 'dd': {
-          return { name: 'day', digits: filteredDays, value: date.getDate() }
+          return { digits: filteredDays, name: 'day', value: date.getDate() }
         }
         case 'mm': {
-          return { name: 'month', digits: filteredMonths, value: selectedMonth }
+          return { digits: filteredMonths, name: 'month', value: selectedMonth }
         }
         case 'yyyy': {
-          return { name: 'year', digits: years, value: selectedYear }
+          return { digits: years, name: 'year', value: selectedYear }
         }
         default: {
           return {
-            name: ['day', 'month', 'year'][index],
             digits: [filteredDays, filteredMonths, years][index],
+            name: ['day', 'month', 'year'][index],
             value: [date.getDate(), selectedMonth, selectedYear][index]
           }
         }
@@ -154,21 +162,21 @@ function SSDatePicker({
       ]}
     >
       {getOrder().map((el, index) => (
-          <DateBlock
-            digits={el.digits}
-            value={el.value}
-            onChange={changeHandle}
-            height={pickerHeight}
-            fontSize={fontSize}
-            textColor={textColor}
-            markColor={markColor}
-            markHeight={markHeight}
-            markWidth={markWidth}
-            fadeColor={fadeColor}
-            type={el.name}
-            key={index}
-          />
-        ))}
+        <DateBlock
+          digits={el.digits}
+          value={el.value}
+          onChange={changeHandle}
+          height={pickerHeight}
+          fontSize={fontSize}
+          textColor={textColor}
+          markColor={markColor}
+          markHeight={markHeight}
+          markWidth={markWidth}
+          fadeColor={fadeColor}
+          type={el.name}
+          key={index}
+        />
+      ))}
     </View>
   )
 }
@@ -236,33 +244,31 @@ function DateBlock({
         onMomentumScrollEnd={handleMomentumScrollEnd}
       >
         {digits.map((value: number, index: number) => (
-            <TouchableOpacity
-              key={index}
-              onPress={() => {
-                onChange(type, digits[index])
-                snapScrollToIndex(index)
-              }}
+          <TouchableOpacity
+            key={index}
+            onPress={() => {
+              onChange(type, digits[index])
+              snapScrollToIndex(index)
+            }}
+          >
+            <Text
+              style={[
+                styles.digit,
+                {
+                  color: textColor || '#000000',
+                  fontSize: fontSize || 22,
+                  height: dHeight,
+                  lineHeight: dHeight,
+                  marginBottom:
+                    index === digits.length - 1 ? height / 2 - dHeight / 2 : 0,
+                  marginTop: index === 0 ? height / 2 - dHeight / 2 : 0
+                }
+              ]}
             >
-              <Text
-                style={[
-                  styles.digit,
-                  {
-                    fontSize: fontSize || 22,
-                    color: textColor || '#000000',
-                    marginBottom:
-                      index === digits.length - 1
-                        ? height / 2 - dHeight / 2
-                        : 0,
-                    marginTop: index === 0 ? height / 2 - dHeight / 2 : 0,
-                    lineHeight: dHeight,
-                    height: dHeight
-                  }
-                ]}
-              >
-                {value}
-              </Text>
-            </TouchableOpacity>
-          ))}
+              {value}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
       <LinearGradient
         style={[styles.gradient, { bottom: 0, height: height / 3 }]}
@@ -299,10 +305,10 @@ const hex2rgba = (hex: string, alpha: number): string => {
 
 const styles = StyleSheet.create({
   block: {
-    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%'
+    flex: 1,
+    height: '100%',
+    justifyContent: 'center'
   },
   digit: {
     fontSize: 20,
@@ -313,8 +319,8 @@ const styles = StyleSheet.create({
     width: '100%'
   },
   mark: {
-    position: 'absolute',
-    borderRadius: 10
+    borderRadius: 10,
+    position: 'absolute'
   },
   picker: {
     flexDirection: 'row',

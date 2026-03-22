@@ -25,15 +25,23 @@ export function isPSBT(text: string) {
 }
 
 export function isValidBitcoinContent(text: string) {
-  if (!text || text.trim().length === 0) {return false}
+  if (!text || text.trim().length === 0) {
+    return false
+  }
 
   const trimmed = text.trim()
 
-  if (isPSBT(trimmed)) {return true}
+  if (isPSBT(trimmed)) {
+    return true
+  }
 
-  if (validateAddress(trimmed)) {return true}
+  if (validateAddress(trimmed)) {
+    return true
+  }
 
-  if (isBitcoinUri(trimmed)) {return true}
+  if (isBitcoinUri(trimmed)) {
+    return true
+  }
 
   if (trimmed.toLowerCase().startsWith('bitcoin:')) {
     const addressPart = trimmed.slice(8).split('?')[0]
@@ -48,7 +56,9 @@ export function isValidBitcoinContent(text: string) {
 export function processBitcoinContent(
   text: string
 ): ProcessedBitcoinContent | null {
-  if (!text || !isValidBitcoinContent(text)) {return null}
+  if (!text || !isValidBitcoinContent(text)) {
+    return null
+  }
 
   const trimmed = text.trim()
 
@@ -61,7 +71,9 @@ export function processBitcoinContent(
 
   if (isBitcoinUri(trimmed)) {
     const parsed = parseBitcoinUri(trimmed)
-    if (!parsed.isValid || !parsed.address) {return null}
+    if (!parsed.isValid || !parsed.address) {
+      return null
+    }
 
     return {
       address: parsed.address,

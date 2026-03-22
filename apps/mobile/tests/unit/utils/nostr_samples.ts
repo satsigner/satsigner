@@ -79,10 +79,10 @@ export const psbts = {
 export const nostrMessages = {
   // BIP329 label sync message
   labelSync: {
-    created_at: 1704067200,
+    created_at: 1_704_067_200,
     data: {
-      data_type: 'LabelsBip329',
-      data: '{"type":"tx","ref":"0a1b2c3d4e5f","label":"Coffee payment"}\n{"type":"addr","ref":"bc1qtest","label":"Savings"}'
+      data: '{"type":"tx","ref":"0a1b2c3d4e5f","label":"Coffee payment"}\n{"type":"addr","ref":"bc1qtest","label":"Savings"}',
+      data_type: 'LabelsBip329'
     },
     description: 'Here come some labels',
     label: 1
@@ -90,10 +90,10 @@ export const nostrMessages = {
 
   // PSBT sharing message
   psbtShare: {
-    created_at: 1704067200,
+    created_at: 1_704_067_200,
     data: {
-      data_type: 'PSBT',
-      data: 'cHNidP8BAHECAAAAAUZHyK9PT4FYVp8T6+FO3kmlPLVvRQ9Pt0GfK7K5nYsGAAAAAAD9////AhAnAAAAAAAAFgAU8Lz+DzygRWsgJlFqON6G1jPzpuOIEwAAAAAAABYAFNDFmQPFusKGh2DpD9UhpGZap2UgAAAAAAABAR8gTgAAAAAAABYAFLXOBJOxjkBLjbCcJfIo0aJGTq/4'
+      data: 'cHNidP8BAHECAAAAAUZHyK9PT4FYVp8T6+FO3kmlPLVvRQ9Pt0GfK7K5nYsGAAAAAAD9////AhAnAAAAAAAAFgAU8Lz+DzygRWsgJlFqON6G1jPzpuOIEwAAAAAAABYAFNDFmQPFusKGh2DpD9UhpGZap2UgAAAAAAABAR8gTgAAAAAAABYAFLXOBJOxjkBLjbCcJfIo0aJGTq/4',
+      data_type: 'PSBT'
     },
     description: 'Please sign this transaction',
     label: 1

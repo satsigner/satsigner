@@ -10,11 +10,7 @@
 
 import { useCallback, useState } from 'react'
 
-import type {
-  Backend,
-  ProxyConfig,
-  Server
-} from '@/types/settings/blockchain'
+import type { Backend, ProxyConfig, Server } from '@/types/settings/blockchain'
 import { trimOnionAddress } from '@/utils/format'
 
 const DEFAULT_PROXY_HOST = 'localhost'
@@ -64,8 +60,12 @@ export function useCustomNetworkForm() {
   }
 
   function constructTrimmedUrl() {
-    if (!formData.host) {return ''}
-    if (formData.backend === 'electrum' && !formData.port) {return ''}
+    if (!formData.host) {
+      return ''
+    }
+    if (formData.backend === 'electrum' && !formData.port) {
+      return ''
+    }
     const fullUrl = constructUrl()
     return trimOnionAddress(fullUrl)
   }
@@ -130,7 +130,9 @@ export function useCustomNetworkForm() {
 
   function applyPastedUrl(urlString: string): boolean {
     const raw = urlString.trim()
-    if (!raw) {return false}
+    if (!raw) {
+      return false
+    }
     const electrumMatch = raw.match(/^(ssl|tls|tcp):\/\/([^:/]+):(\d+)$/)
     if (electrumMatch) {
       const protocol =
@@ -146,7 +148,9 @@ export function useCustomNetworkForm() {
     }
     try {
       const u = new URL(raw)
-      if (u.protocol !== 'https:') {return false}
+      if (u.protocol !== 'https:') {
+        return false
+      }
       const port = u.port && u.port !== '443' ? u.port : ''
       setFormData((prev) => ({
         ...prev,

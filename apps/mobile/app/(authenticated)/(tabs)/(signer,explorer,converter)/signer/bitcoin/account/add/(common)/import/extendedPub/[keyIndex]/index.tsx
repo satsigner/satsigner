@@ -150,9 +150,8 @@ export default function ImportExtendedPub() {
         scaleAnimation.stop()
       }
     }
-      pulseAnim.setValue(0)
-      scaleAnim.setValue(1)
-    
+    pulseAnim.setValue(0)
+    scaleAnim.setValue(1)
   }, [isReading, pulseAnim, scaleAnim])
 
   function updateMasterFingerprint(fingerprint: string) {
@@ -199,7 +198,9 @@ export default function ImportExtendedPub() {
 
   function convertVpubToTpub(vpub: string): string {
     // If it's not a vpub, return as is
-    if (!vpub.startsWith('vpub')) {return vpub}
+    if (!vpub.startsWith('vpub')) {
+      return vpub
+    }
 
     // Use the network-aware conversion utility
     return convertKeyFormat(vpub, 'tpub', network)
@@ -251,14 +252,13 @@ export default function ImportExtendedPub() {
             type: 'ur' as const
           }
         }
-          // Single-part UR
-          return {
-            type: 'ur' as const,
-            current: 0,
-            total: 1,
-            content: data
-          }
-        
+        // Single-part UR
+        return {
+          content: data,
+          current: 0,
+          total: 1,
+          type: 'ur' as const
+        }
       }
     }
 
@@ -363,8 +363,9 @@ export default function ImportExtendedPub() {
             descriptorString,
             mapNetworkToBdkNetwork(network)
           )
-          const parsedDescriptor = await parseDescriptor(descriptor)
-          ({ derivationPath } = parsedDescriptor)
+          const parsedDescriptor = await parseDescriptor(descriptor)(
+            ({ derivationPath } = parsedDescriptor)
+          )
         } catch {
           // Use default derivation path if extraction fails
           const rawDerivationPath = getDerivationPathFromScriptVersion(
@@ -584,9 +585,8 @@ export default function ImportExtendedPub() {
                   setCameraModalVisible(false)
                   return
                 }
-                  toast.error('No extended public key found in crypto account')
-                  return
-                
+                toast.error('No extended public key found in crypto account')
+                return
               }
             }
           } catch {
@@ -961,8 +961,7 @@ export default function ImportExtendedPub() {
                         height: 4,
                         maxWidth: scanProgress.total * 300,
                         width:
-                          (scanProgress.scanned.size / scanProgress.total) *
-                          300
+                          (scanProgress.scanned.size / scanProgress.total) * 300
                       }}
                     />
                   </View>

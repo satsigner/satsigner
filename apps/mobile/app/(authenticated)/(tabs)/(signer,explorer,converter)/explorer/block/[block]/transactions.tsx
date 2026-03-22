@@ -95,9 +95,15 @@ export default function BlockTransactions() {
   }
 
   useEffect(() => {
-    if (!blockHash || backend !== 'esplora') {return}
-    if (!block) {fetchBlock()}
-    if (Object.keys(blockTxs).length === 0) {fetchBlockTransactions()}
+    if (!blockHash || backend !== 'esplora') {
+      return
+    }
+    if (!block) {
+      fetchBlock()
+    }
+    if (Object.keys(blockTxs).length === 0) {
+      fetchBlockTransactions()
+    }
   }, [blockHash, backend]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (backend !== 'esplora') {
@@ -186,23 +192,23 @@ export default function BlockTransactions() {
                       {index > 0 && (
                         <SSTransactionVinList
                           vin={tx.vin.map((input) => ({
-                              previousOutput: {
-                                txid: input.txid,
-                                vout: input.vout
-                              },
-                              sequence: input.sequence,
-                              scriptSig: input.scriptsig_asm,
-                              value: input.prevout.value,
-                              witness: []
-                            }))}
+                            previousOutput: {
+                              txid: input.txid,
+                              vout: input.vout
+                            },
+                            scriptSig: input.scriptsig_asm,
+                            sequence: input.sequence,
+                            value: input.prevout.value,
+                            witness: []
+                          }))}
                         />
                       )}
                       <SSTransactionVoutList
                         vout={tx.vout.map((output) => ({
-                            value: output.value,
-                            address: output.scriptpubkey_address || '',
-                            script: output.scriptpubkey_asm || []
-                          }))}
+                          address: output.scriptpubkey_address || '',
+                          script: output.scriptpubkey_asm || [],
+                          value: output.value
+                        }))}
                         txid={tx.txid}
                       />
                     </SSVStack>

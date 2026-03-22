@@ -38,7 +38,9 @@ const useGetAccountWallet = (id: Account['id']) => {
         account.network as Network
       )
 
-      if (!walletData) {return}
+      if (!walletData) {
+        return
+      }
 
       addAccountWallet(id, walletData.wallet)
     } catch (error) {

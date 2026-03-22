@@ -41,7 +41,9 @@ function AddressLabel() {
     router.back()
   }
 
-  if (!address || !addr) {return <Redirect href="/" />}
+  if (!address || !addr) {
+    return <Redirect href="/" />
+  }
 
   return (
     <ScrollView>

@@ -88,7 +88,9 @@ function useSyncAccountWithWallet() {
         for (const tx of updatedAccount.transactions) {
           if (!tx.prices?.USD && tx.timestamp) {
             const price = priceMap[formatTimestamp(tx.timestamp)]
-            if (price !== undefined) {tx.prices = { USD: price }}
+            if (price !== undefined) {
+              tx.prices = { USD: price }
+            }
           }
         }
       }

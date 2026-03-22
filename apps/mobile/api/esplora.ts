@@ -30,11 +30,10 @@ export default class Esplora {
       } else if (contentType.includes('application/octet-stream')) {
         return await response.arrayBuffer()
       }
-        // text/plain, text/html, missing content-type, etc. — return as text
-        return await response.text()
-      
+      // text/plain, text/html, missing content-type, etc. — return as text
+      return await response.text()
     } catch (error) {
-      throw new Error(getVerboseErrorMessage(error), { cause: e })
+      throw new Error(getVerboseErrorMessage(error), { cause: error })
     }
   }
 
@@ -66,15 +65,15 @@ export default class Esplora {
   async getTxInputValues(txid: string) {
     return this.getTxInfo(txid).then((data) =>
       data.vin.map((input) => ({
-          previousOutput: {
-            txid: input.txid,
-            vout: input.vout
-          },
-          sequence: input.sequence,
-          scriptSig: parseHexToBytes(input.scriptsig),
-          value: input.prevout.value,
-          witness: input.witness.map(parseHexToBytes)
-        }))
+        previousOutput: {
+          txid: input.txid,
+          vout: input.vout
+        },
+        scriptSig: parseHexToBytes(input.scriptsig),
+        sequence: input.sequence,
+        value: input.prevout.value,
+        witness: input.witness.map(parseHexToBytes)
+      }))
     )
   }
 
@@ -127,7 +126,9 @@ export default class Esplora {
     let lastPage = transactions
     while (lastPage.length >= perPage) {
       // Early stop: if every txid on this page is already known, no need to paginate further
-      if (stopAtTxids && lastPage.every((tx) => stopAtTxids.has(tx.txid))) {break}
+      if (stopAtTxids && lastPage.every((tx) => stopAtTxids.has(tx.txid))) {
+        break
+      }
 
       const lastTxId = transactions.at(-1).txid
       const nextPage = (await this._call(
@@ -177,10 +178,12 @@ export default class Esplora {
 
     try {
       const result = await Promise.race([fetchPromise, timeoutPromise])
-      if (result) {return true}
+      if (result) {
+        return true
+      }
       return false
     } catch (error) {
-      throw new Error(getVerboseErrorMessage(error), { cause: e })
+      throw new Error(getVerboseErrorMessage(error), { cause: error })
     }
   }
 }
@@ -213,7 +216,9 @@ const verboseErrorMessages = [
 ]
 
 function getVerboseErrorMessage(error: unknown) {
-  if (!(error instanceof Error)) {return 'Unkown error'}
+  if (!(error instanceof Error)) {
+    return 'Unkown error'
+  }
   for (const errorType of verboseErrorMessages) {
     if (errorType.error.test(error.message)) {
       return errorType.reason

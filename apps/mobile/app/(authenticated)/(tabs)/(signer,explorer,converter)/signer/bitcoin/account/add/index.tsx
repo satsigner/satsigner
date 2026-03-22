@@ -28,12 +28,13 @@ export default function Add() {
     setAccountName(localName)
     setAccountPolicyType(localPolicyType)
 
-    if (localPolicyType === 'singlesig')
-      {router.navigate('/signer/bitcoin/account/add/singleSig')}
-    else if (localPolicyType === 'multisig')
-      {router.navigate('/signer/bitcoin/account/add/multiSig')}
-    else if (localPolicyType === 'watchonly')
-      {router.navigate('/signer/bitcoin/account/add/watchOnly')}
+    if (localPolicyType === 'singlesig') {
+      router.navigate('/signer/bitcoin/account/add/singleSig')
+    } else if (localPolicyType === 'multisig') {
+      router.navigate('/signer/bitcoin/account/add/multiSig')
+    } else if (localPolicyType === 'watchonly') {
+      router.navigate('/signer/bitcoin/account/add/watchOnly')
+    }
   }
 
   return (

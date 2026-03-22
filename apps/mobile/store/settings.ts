@@ -2,8 +2,8 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import mmkvStorage from '@/storage/mmkv'
-import { DEFAULT_WORD_LIST } from '@/utils/bip39';
-import type { WordListName } from '@/utils/bip39';
+import { DEFAULT_WORD_LIST } from '@/utils/bip39'
+import type { WordListName } from '@/utils/bip39'
 
 interface SettingsState {
   mnemonicWordList: WordListName

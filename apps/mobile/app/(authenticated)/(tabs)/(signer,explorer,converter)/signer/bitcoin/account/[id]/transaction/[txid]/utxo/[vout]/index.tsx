@@ -66,7 +66,9 @@ function UtxoDetails({
   const GRAPH_WIDTH = width - outerContainerPadding * 2
 
   const currentUtxoInputs = useMemo(() => {
-    if (!utxo) {return []}
+    if (!utxo) {
+      return []
+    }
     return [utxo]
   }, [utxo])
 
@@ -74,8 +76,12 @@ function UtxoDetails({
     if (tx) {
       const { blockHeight, timestamp } = tx
       setTxid(tx.id)
-      if (blockHeight) {setBlockHeight(blockHeight.toString())}
-      if (timestamp) {setBlockTime(formatDate(timestamp))}
+      if (blockHeight) {
+        setBlockHeight(blockHeight.toString())
+      }
+      if (timestamp) {
+        setBlockTime(formatDate(timestamp))
+      }
     }
 
     if (utxo) {
@@ -225,11 +231,15 @@ function UtxoDetailsPage() {
   const utxo = useGetAccountTransactionOutput(accountId!, txid!, Number(vout!))
 
   const addressIndex = useMemo(() => {
-    if (!account || !utxo?.addressTo) {return undefined}
+    if (!account || !utxo?.addressTo) {
+      return
+    }
     const idx = account.addresses.findIndex(
       (a) => (a.address || '').trim() === (utxo.addressTo || '').trim()
     )
-    if (idx === -1) {return undefined}
+    if (idx === -1) {
+      return
+    }
     const addressEntry = account.addresses[idx]
     return addressEntry?.index ?? idx
   }, [account, utxo?.addressTo])
@@ -242,19 +252,25 @@ function UtxoDetailsPage() {
   const addInput = useTransactionBuilderStore((state) => state.addInput)
 
   function navigateToTx() {
-    if (!accountId || !txid) {return}
+    if (!accountId || !txid) {
+      return
+    }
     router.navigate(`/signer/bitcoin/account/${accountId}/transaction/${txid}`)
   }
 
   function navigateToAddress() {
-    if (!accountId || !utxo || !utxo.addressTo || utxo.addressTo === '-') {return}
+    if (!accountId || !utxo || !utxo.addressTo || utxo.addressTo === '-') {
+      return
+    }
     router.navigate(
       `/signer/bitcoin/account/${accountId}/address/${utxo.addressTo}`
     )
   }
 
   function handleSpendUtxo() {
-    if (!utxo || !accountId) {return}
+    if (!utxo || !accountId) {
+      return
+    }
     addInput(utxo)
     router.navigate(
       `/signer/bitcoin/account/${accountId}/signAndSend/ioPreview`
@@ -287,8 +303,8 @@ function UtxoDetailsPage() {
 
 const styles = StyleSheet.create({
   innerContainer: {
-    flexGrow: 1,
     flexDirection: 'column',
+    flexGrow: 1,
     justifyContent: 'space-between'
   },
   outerContainer: {

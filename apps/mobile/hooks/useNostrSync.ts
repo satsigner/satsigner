@@ -88,7 +88,10 @@ function useNostrSync() {
   /**
    * Check if an account has active subscriptions
    */
-  const hasActiveSubscription = useCallback((accountId: string) => nostrSyncService.hasActiveSubscription(accountId), [])
+  const hasActiveSubscription = useCallback(
+    (accountId: string) => nostrSyncService.hasActiveSubscription(accountId),
+    []
+  )
 
   /**
    * Get sync status for an account
@@ -99,12 +102,14 @@ function useNostrSync() {
   )
 
   const generateCommonNostrKeys = useCallback(async (account?: Account) => {
-    if (!account?.keys?.length) {return}
+    if (!account?.keys?.length) {
+      return
+    }
 
     const isImportAddress = account.keys[0].creationType === 'importAddress'
     const tmpAccount = await getAccountWithDecryptedKeys(account)
     if (isImportAddress) {
-      const {secret} = tmpAccount.keys[0]
+      const { secret } = tmpAccount.keys[0]
       return {
         externalDescriptor: secret.externalDescriptor,
         internalDescriptor: undefined
@@ -129,7 +134,7 @@ function useNostrSync() {
   const protocolSubscription = subscriptionManager.createProtocolSubscription
   const dataExchangeSubscription =
     subscriptionManager.createDataExchangeSubscription
-  const {getActiveSubscriptions} = subscriptionManager
+  const { getActiveSubscriptions } = subscriptionManager
 
   const sendLabelsToNostr = useCallback(
     async (account?: Account, singleLabel?: Label) => {
@@ -140,7 +145,7 @@ function useNostrSync() {
 
   const loadStoredDMs = dms.load
   const clearStoredDMs = dms.clear
-  const {processEvent} = messages
+  const { processEvent } = messages
   const deviceAnnouncement = device.announce
 
   return useMemo(

@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react'
 
 import { useNFCReader } from '@/hooks/useNFCReader'
-import { detectContentByContext } from '@/utils/contentDetector';
-import type { DetectedContent } from '@/utils/contentDetector';
+import { detectContentByContext } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 
 interface UseContentHandlerProps {
   context: 'bitcoin' | 'lightning' | 'ecash'

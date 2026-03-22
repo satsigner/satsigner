@@ -11,8 +11,8 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { getAllClipboardContent } from '@/utils/clipboard'
-import { detectContentByContext } from '@/utils/contentDetector';
-import type { ContentType, DetectedContent } from '@/utils/contentDetector';
+import { detectContentByContext } from '@/utils/contentDetector'
+import type { ContentType, DetectedContent } from '@/utils/contentDetector'
 import { stripBitcoinPrefix } from '@/utils/parse'
 
 interface SSPasteProps {
@@ -41,7 +41,9 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
   }, [visible])
 
   useEffect(() => {
-    if (!visible) {return}
+    if (!visible) {
+      return
+    }
 
     const subscription = AppState.addEventListener(
       'change',
@@ -190,8 +192,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
       const fallbackKey = 'paste.validation.valid'
       return t(contentTypeKey) || t(fallbackKey)
     }
-      return t('paste.validation.invalid')
-    
+    return t('paste.validation.invalid')
   }
 
   function getButtonLabel() {

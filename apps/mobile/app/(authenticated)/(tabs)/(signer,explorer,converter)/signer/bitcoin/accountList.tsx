@@ -231,7 +231,9 @@ export default function AccountList() {
   }, [])
 
   useEffect(() => {
-    if (!hasHydrated) {return}
+    if (!hasHydrated) {
+      return
+    }
     sampleAccountsOpacity.setValue(0)
     const timer = setTimeout(() => {
       Animated.timing(sampleAccountsOpacity, {
@@ -250,7 +252,10 @@ export default function AccountList() {
     return Math.max(index, 0)
   })
 
-  const filteredAccounts = useMemo(() => accounts.filter((acc) => acc.network === tabs[tabIndex].key), [accounts, tabIndex]) // eslint-disable-line react-hooks/exhaustive-deps
+  const filteredAccounts = useMemo(
+    () => accounts.filter((acc) => acc.network === tabs[tabIndex].key),
+    [accounts, tabIndex]
+  ) // eslint-disable-line react-hooks/exhaustive-deps
 
   const ACCOUNT_CARD_HEIGHT = 160
   const SEPARATOR_VERTICAL = 32
@@ -288,21 +293,32 @@ export default function AccountList() {
   }
 
   async function syncAccounts() {
-    if (connectionMode !== 'auto') {return}
+    if (connectionMode !== 'auto') {
+      return
+    }
 
     const now = time.now()
 
     const eligibleAccounts = accounts.filter((account) => {
-      if (account.network !== tabs[tabIndex].key) {return false}
-      if (account.syncStatus === 'syncing') {return false}
+      if (account.network !== tabs[tabIndex].key) {
+        return false
+      }
+      if (account.syncStatus === 'syncing') {
+        return false
+      }
       if (
         account.lastSyncedAt &&
         now > time.minutesAfter(account.lastSyncedAt, autoConnectDelay)
-      )
-        {return false}
+      ) {
+        return false
+      }
       const isImportAddress = account.keys[0].creationType === 'importAddress'
-      if (isImportAddress && !addresses[account.id]) {return false}
-      if (!isImportAddress && !wallets[account.id]) {return false}
+      if (isImportAddress && !addresses[account.id]) {
+        return false
+      }
+      if (!isImportAddress && !wallets[account.id]) {
+        return false
+      }
       return true
     })
 
@@ -506,7 +522,9 @@ export default function AccountList() {
       }
     }
 
-    if (type !== 'watchonlyTether' && type !== 'multisig') {setKey(0)}
+    if (type !== 'watchonlyTether' && type !== 'multisig') {
+      setKey(0)
+    }
 
     const account = getAccountData()
 
@@ -607,46 +625,46 @@ export default function AccountList() {
   }
 
   const renderTab = () => (
-      <SSHStack
-        gap="none"
-        justifyEvenly
-        style={{
-          paddingVertical: 0,
-          borderBottomWidth: 1,
-          borderBottomColor: Colors.gray[800]
-        }}
-      >
-        {tabs.map((tab, index) => (
-          <SSActionButton
-            key={tab.key}
-            style={{ width: '30%', height: 48 }}
-            onPress={() => setTabIndex(index)}
-          >
-            <SSVStack gap="none">
-              <SSText
-                center
-                uppercase
-                style={{ lineHeight: 20, letterSpacing: 3 }}
-              >
-                {tab.key}
-              </SSText>
-              {tabIndex === index && (
-                <View
-                  style={{
-                    position: 'absolute',
-                    width: '100%',
-                    height: 1,
-                    bottom: -15,
-                    alignSelf: 'center',
-                    backgroundColor: Colors.white
-                  }}
-                />
-              )}
-            </SSVStack>
-          </SSActionButton>
-        ))}
-      </SSHStack>
-    )
+    <SSHStack
+      gap="none"
+      justifyEvenly
+      style={{
+        borderBottomColor: Colors.gray[800],
+        borderBottomWidth: 1,
+        paddingVertical: 0
+      }}
+    >
+      {tabs.map((tab, index) => (
+        <SSActionButton
+          key={tab.key}
+          style={{ height: 48, width: '30%' }}
+          onPress={() => setTabIndex(index)}
+        >
+          <SSVStack gap="none">
+            <SSText
+              center
+              uppercase
+              style={{ letterSpacing: 3, lineHeight: 20 }}
+            >
+              {tab.key}
+            </SSText>
+            {tabIndex === index && (
+              <View
+                style={{
+                  alignSelf: 'center',
+                  backgroundColor: Colors.white,
+                  bottom: -15,
+                  height: 1,
+                  position: 'absolute',
+                  width: '100%'
+                }}
+              />
+            )}
+          </SSVStack>
+        </SSActionButton>
+      ))}
+    </SSHStack>
+  )
 
   const renderSamplewallets = () => {
     switch (network) {

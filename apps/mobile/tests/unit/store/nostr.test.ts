@@ -27,7 +27,9 @@ jest.mock<typeof import('@/utils/nostr')>('@/utils/nostr', () => ({
   generateColorFromNpub: jest.fn().mockResolvedValue('#ff5500')
 }))
 
-jest.mock<typeof import('@/api/nostr')>('@/api/nostr', () => ({ NostrAPI: jest.fn() }))
+jest.mock<typeof import('@/api/nostr')>('@/api/nostr', () => ({
+  NostrAPI: jest.fn()
+}))
 
 describe('nostr store', () => {
   beforeEach(() => {
@@ -118,7 +120,9 @@ describe('nostr store', () => {
       }
       addProcessedMessageId(accountIds.primary, messageIds[0]) // duplicate
 
-      expect(getProcessedMessageIds(accountIds.primary)).toStrictEqual(messageIds)
+      expect(getProcessedMessageIds(accountIds.primary)).toStrictEqual(
+        messageIds
+      )
     })
 
     it('tracks processed event IDs without duplicates', () => {

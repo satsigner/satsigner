@@ -117,7 +117,9 @@ function NostrKeys() {
   ])
 
   async function fetchKind0Profile() {
-    if (loadingFetchKind0) {return}
+    if (loadingFetchKind0) {
+      return
+    }
 
     // Show feedback when we can't fetch: no device key, sync off, or no relays
     if (!derivedNpub) {
@@ -174,7 +176,9 @@ function NostrKeys() {
   }
 
   async function loadCommonNostrKeys() {
-    if (loadingCommonKeys || !account || !accountId) {return}
+    if (loadingCommonKeys || !account || !accountId) {
+      return
+    }
 
     setLoadingCommonKeys(true)
     try {
@@ -211,7 +215,9 @@ function NostrKeys() {
   async function generateNewNsec() {
     try {
       const keys = await NostrAPI.generateNostrKeys()
-      if (!keys) {return}
+      if (!keys) {
+        return
+      }
       setNsec(keys.nsec)
     } catch {
       toast.error('Failed to generate key')
@@ -233,7 +239,9 @@ function NostrKeys() {
   }
 
   function saveChanges() {
-    if (!accountId || !account?.nostr || !derivedNpub) {return}
+    if (!accountId || !account?.nostr || !derivedNpub) {
+      return
+    }
     const nsecChanged = account.nostr.deviceNsec !== deviceNsec
     const updates: Parameters<typeof updateAccountNostr>[1] = {
       ...account.nostr,
@@ -245,8 +253,12 @@ function NostrKeys() {
       updates.deviceDisplayName = undefined
       updates.devicePicture = undefined
       const profiles = { ...account.nostr.npubProfiles }
-      if (account.nostr.deviceNpub) {delete profiles[account.nostr.deviceNpub]}
-      if (derivedNpub) {delete profiles[derivedNpub]}
+      if (account.nostr.deviceNpub) {
+        delete profiles[account.nostr.deviceNpub]
+      }
+      if (derivedNpub) {
+        delete profiles[derivedNpub]
+      }
       updates.npubProfiles =
         Object.keys(profiles).length > 0 ? profiles : undefined
     } else if (kind0Profile) {
@@ -258,10 +270,14 @@ function NostrKeys() {
   }
 
   function clearKind0Profile() {
-    if (!accountId || !account?.nostr) {return}
+    if (!accountId || !account?.nostr) {
+      return
+    }
     setKind0Profile(null)
     const profiles = { ...account.nostr.npubProfiles }
-    if (derivedNpub) {delete profiles[derivedNpub]}
+    if (derivedNpub) {
+      delete profiles[derivedNpub]
+    }
     updateAccountNostr(accountId, {
       deviceDisplayName: undefined,
       devicePicture: undefined,
@@ -271,7 +287,9 @@ function NostrKeys() {
     toast.success(t('account.nostrSync.clearKind0Success'))
   }
 
-  if (!accountId || !account) {return <Redirect href="/" />}
+  if (!accountId || !account) {
+    return <Redirect href="/" />
+  }
 
   return (
     <SSMainLayout style={styles.mainLayout}>
@@ -608,20 +626,20 @@ const styles = StyleSheet.create({
     minWidth: 0
   },
   clearPasteRow: {
-    marginTop: 4,
-    paddingBottom: 10,
     flexDirection: 'row',
-    flexWrap: 'nowrap'
+    flexWrap: 'nowrap',
+    marginTop: 4,
+    paddingBottom: 10
   },
   deviceColorCircle: {
-    width: 10,
+    borderRadius: 5,
     height: 10,
-    borderRadius: 5
+    width: 10
   },
   input: {
     height: 'auto',
-    padding: 10,
-    minHeight: 80
+    minHeight: 80,
+    padding: 10
   },
   keyContainerLoading: {
     justifyContent: 'center',
@@ -632,8 +650,8 @@ const styles = StyleSheet.create({
   },
   keysContainer: {
     backgroundColor: '#1a1a1a',
-    borderRadius: 8,
     borderColor: Colors.white,
+    borderRadius: 8,
     padding: 10,
     paddingBottom: 30,
     paddingHorizontal: 28
@@ -644,13 +662,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8
   },
   kind0Picture: {
-    width: 64,
+    borderRadius: 32,
     height: 64,
-    borderRadius: 32
+    width: 64
   },
   kind0Profile: {
-    marginTop: 8,
-    alignItems: 'center'
+    alignItems: 'center',
+    marginTop: 8
   },
   kind0Row: {
     alignSelf: 'stretch'
@@ -659,8 +677,8 @@ const styles = StyleSheet.create({
     flex: 1
   },
   mainLayout: {
-    paddingTop: 10,
-    paddingBottom: 20
+    paddingBottom: 20,
+    paddingTop: 10
   },
   monoInput: {
     fontFamily: 'SF-NS-Mono'
@@ -670,14 +688,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   npubRow: {
-    alignSelf: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    alignSelf: 'center'
   },
   nsecContainer: {
     backgroundColor: '#1a1a1a',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
     padding: 10,
     paddingHorizontal: 16
   },
@@ -688,34 +706,34 @@ const styles = StyleSheet.create({
     flex: 1
   },
   qrCodeWrapper: {
-    padding: 16,
     backgroundColor: Colors.gray[950],
-    borderRadius: 10
+    borderRadius: 10,
+    padding: 16
   },
   qrModalContent: {
-    paddingHorizontal: 16,
-    alignItems: 'center'
+    alignItems: 'center',
+    paddingHorizontal: 16
   },
   qrModalDataBox: {
-    padding: 12,
     backgroundColor: Colors.gray[900],
     borderRadius: 8,
-    maxWidth: '100%'
+    maxWidth: '100%',
+    padding: 12
   },
   qrModalDataText: {
     textAlign: 'center'
   },
   revealRow: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: 'row',
     gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12
   },
   scrollContent: {
-    paddingBottom: 24,
-    flexGrow: 1
+    flexGrow: 1,
+    paddingBottom: 24
   },
   scrollView: {
     flex: 1
