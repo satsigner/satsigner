@@ -1,6 +1,6 @@
 export type Hex = string
 
-export type BlockTemplateTransaction = {
+export interface BlockTemplateTransaction {
   data: Hex // Transaction data encoded in hexadecimal
   txid: Hex // Transaction ID (little-endian hexadecimal)
   hash: Hex // Transaction hash (including witness data, little-endian hexadecimal)
@@ -11,7 +11,7 @@ export type BlockTemplateTransaction = {
   required?: boolean // If true, this transaction must be in the final block
 }
 
-export type BlockTemplate = {
+export interface BlockTemplate {
   version: number // The preferred block version
   rules: string[] // Specific block rules to be enforced (e.g., ["segwit"])
   vbavailable: Record<string, number> // Pending versionbit (BIP 9) softfork deployments
@@ -38,7 +38,7 @@ export type BlockTemplate = {
   default_witness_commitment?: string // Hex-encoded witness commitment for unmodified template
 }
 
-export type BlockchainInfo = {
+export interface BlockchainInfo {
   chain: string // Current network name (e.g., "main", "test", "regtest", "signet")
   blocks: number // Current number of blocks
   headers: number // Current number of block headers

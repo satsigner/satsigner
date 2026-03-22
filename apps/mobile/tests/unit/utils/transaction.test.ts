@@ -1,5 +1,5 @@
-import { type Output } from '@/types/models/Output'
-import { type Utxo } from '@/types/models/Utxo'
+import type { Output } from '@/types/models/Output'
+import type { Utxo } from '@/types/models/Utxo'
 
 import type { ExtendedTransaction } from '../../../hooks/useInputTransactions.ts'
 import {
@@ -8,25 +8,25 @@ import {
 } from '../../../utils/transaction'
 
 const minimalTxProps = {
-  type: 'send' as const,
-  sent: 0,
-  received: 0,
-  timestamp: new Date(),
+  address: undefined,
+  blockHeight: undefined,
   fee: 0,
-  size: 0,
-  vsize: 0,
-  weight: 0,
-  version: 1,
+  label: undefined,
   lockTime: 0,
   lockTimeEnabled: false,
+  prices: {},
   raw: undefined,
-  address: undefined,
-  label: undefined,
-  blockHeight: undefined,
-  prices: {}
+  received: 0,
+  sent: 0,
+  size: 0,
+  timestamp: new Date(),
+  type: 'send' as const,
+  version: 1,
+  vsize: 0,
+  weight: 0
 }
 
-describe('Transaction Utils', () => {
+describe('transaction Utils', () => {
   describe('estimateTransactionSize', () => {
     it('should correctly estimate transaction size for legacy inputs and outputs', () => {
       const utxo1: Utxo = {
@@ -45,10 +45,10 @@ describe('Transaction Utils', () => {
       }
 
       const output1: Output = {
-        to: 'msu3M5xpDRrR43NC4E4FHoSd2fDhacXUXb',
         amount: 1,
         label: '',
-        localId: ''
+        localId: '',
+        to: 'msu3M5xpDRrR43NC4E4FHoSd2fDhacXUXb'
       }
 
       const resultWithChange = estimateTransactionSize(
@@ -84,10 +84,10 @@ describe('Transaction Utils', () => {
       }
 
       const output1: Output = {
-        to: 'n1tykAD25bXrw2jo3bY8J4Erk3V6MfhG47',
         amount: 1,
         label: '',
-        localId: ''
+        localId: '',
+        to: 'n1tykAD25bXrw2jo3bY8J4Erk3V6MfhG47'
       }
 
       const resultWithChange = estimateTransactionSize(
@@ -123,10 +123,10 @@ describe('Transaction Utils', () => {
       }
 
       const output1: Output = {
-        to: 'tb1qygc2n34zkdnxks4j7k9ayv78l9rf7zjhta4pvk',
         amount: 1,
         label: '',
-        localId: ''
+        localId: '',
+        to: 'tb1qygc2n34zkdnxks4j7k9ayv78l9rf7zjhta4pvk'
       }
 
       const resultWithChange = estimateTransactionSize(
@@ -162,10 +162,10 @@ describe('Transaction Utils', () => {
       }
 
       const output1: Output = {
-        to: 'tb1pqtrwjvqh0k759mwfpwcsz47rw6j3tqk5tjf2a9vy5ymv263fndyqe5fkrj',
         amount: 1,
         label: '',
-        localId: ''
+        localId: '',
+        to: 'tb1pqtrwjvqh0k759mwfpwcsz47rw6j3tqk5tjf2a9vy5ymv263fndyqe5fkrj'
       }
 
       const resultWithChange = estimateTransactionSize(
@@ -195,10 +195,10 @@ describe('Transaction Utils', () => {
       }
 
       const output1: Output = {
-        to: 'tb1pamrzdpunsyqegkgx8hqg9qzcueucqhen248wmfzrl90njnq35y7qdh55pf',
         amount: 1,
         label: '',
-        localId: ''
+        localId: '',
+        to: 'tb1pamrzdpunsyqegkgx8hqg9qzcueucqhen248wmfzrl90njnq35y7qdh55pf'
       }
 
       const resultWithChange = estimateTransactionSize([utxo1], [output1], true)
@@ -219,20 +219,20 @@ describe('recalculateDepthH', () => {
         'txA',
         {
           ...minimalTxProps,
+          depthH: 0,
           id: 'txA',
           vin: [] as any,
-          vout: [] as any,
-          depthH: 0
+          vout: [] as any
         }
       ],
       [
         'txB',
         {
           ...minimalTxProps,
+          depthH: 0,
           id: 'txB',
           vin: [] as any,
-          vout: [] as any,
-          depthH: 0
+          vout: [] as any
         }
       ]
     ])
@@ -247,20 +247,20 @@ describe('recalculateDepthH', () => {
         'txA',
         {
           ...minimalTxProps,
+          depthH: 0,
           id: 'txA',
           vin: [] as any,
-          vout: [] as any,
-          depthH: 0
+          vout: [] as any
         }
       ],
       [
         'txB',
         {
           ...minimalTxProps,
+          depthH: 0,
           id: 'txB',
           vin: [{ previousOutput: { txid: 'txA', vout: 0 } }] as any,
-          vout: [] as any,
-          depthH: 0
+          vout: [] as any
         }
       ]
     ])
@@ -275,30 +275,30 @@ describe('recalculateDepthH', () => {
         'txA',
         {
           ...minimalTxProps,
+          depthH: 0,
           id: 'txA',
           vin: [] as any,
-          vout: [] as any,
-          depthH: 0
+          vout: [] as any
         }
       ],
       [
         'txB',
         {
           ...minimalTxProps,
+          depthH: 0,
           id: 'txB',
           vin: [{ previousOutput: { txid: 'txA', vout: 0 } }] as any,
-          vout: [] as any,
-          depthH: 0
+          vout: [] as any
         }
       ],
       [
         'txC',
         {
           ...minimalTxProps,
+          depthH: 0,
           id: 'txC',
           vin: [{ previousOutput: { txid: 'txB', vout: 0 } }] as any,
-          vout: [] as any,
-          depthH: 0
+          vout: [] as any
         }
       ]
     ])
@@ -314,43 +314,43 @@ describe('recalculateDepthH', () => {
         'txA',
         {
           ...minimalTxProps,
+          depthH: 0,
           id: 'txA',
           vin: [] as any,
-          vout: [] as any,
-          depthH: 0
+          vout: [] as any
         }
       ],
       [
         'txB',
         {
           ...minimalTxProps,
+          depthH: 0,
           id: 'txB',
           vin: [{ previousOutput: { txid: 'txA', vout: 0 } }] as any,
-          vout: [] as any,
-          depthH: 0
+          vout: [] as any
         }
       ],
       [
         'txC',
         {
           ...minimalTxProps,
+          depthH: 0,
           id: 'txC',
           vin: [] as any,
-          vout: [] as any,
-          depthH: 0
+          vout: [] as any
         }
       ],
       [
         'txD',
         {
           ...minimalTxProps,
+          depthH: 0,
           id: 'txD',
           vin: [
             { previousOutput: { txid: 'txB', vout: 0 } },
             { previousOutput: { txid: 'txC', vout: 0 } }
           ] as any,
-          vout: [] as any,
-          depthH: 0
+          vout: [] as any
         }
       ]
     ])
@@ -367,10 +367,10 @@ describe('recalculateDepthH', () => {
         'txA',
         {
           ...minimalTxProps,
+          depthH: 0,
           id: 'txA',
           vin: [{ previousOutput: { txid: 'txExternal', vout: 0 } }] as any,
-          vout: [] as any,
-          depthH: 0
+          vout: [] as any
         }
       ]
     ])
@@ -384,20 +384,20 @@ describe('recalculateDepthH', () => {
         'txA',
         {
           ...minimalTxProps,
+          depthH: 0,
           id: 'txA',
           vin: [{ previousOutput: { txid: 'txB', vout: 0 } }] as any,
-          vout: [] as any,
-          depthH: 0
+          vout: [] as any
         }
       ],
       [
         'txB',
         {
           ...minimalTxProps,
+          depthH: 0,
           id: 'txB',
           vin: [{ previousOutput: { txid: 'txA', vout: 0 } }] as any,
-          vout: [] as any,
-          depthH: 0
+          vout: [] as any
         }
       ]
     ])
@@ -418,27 +418,27 @@ describe('recalculateDepthH', () => {
           'txA',
           {
             ...minimalTxProps,
+            depthH: 0,
             id: 'txA',
             vin: [] as any,
-            vout: [{ value: 1000, address: 'addrA' }] as any,
-            depthH: 0
+            vout: [{ value: 1000, address: 'addrA' }] as any
           }
         ],
         [
           'txB',
           {
             ...minimalTxProps,
+            depthH: 0,
             id: 'txB',
             vin: [{ previousOutput: { txid: 'txExternal', vout: 0 } }] as any,
-            vout: [{ value: 2000, address: 'addrB' }] as any,
-            depthH: 0
+            vout: [{ value: 2000, address: 'addrB' }] as any
           }
         ]
       ])
       const selectedInputs = new Map<
         string,
         { value: number; scriptpubkey_address: string }
-      >([['input1', { value: 1000, scriptpubkey_address: 'addrA' }]])
+      >([['input1', { scriptpubkey_address: 'addrA', value: 1000 }]])
       const result = recalculateDepthH(transactions, selectedInputs)
       expect(result.get('txA')?.depthH).toBe(1)
       expect(result.get('txB')?.depthH).toBe(1)
@@ -450,17 +450,17 @@ describe('recalculateDepthH', () => {
           'txA',
           {
             ...minimalTxProps,
+            depthH: 0,
             id: 'txA',
             vin: [] as any,
-            vout: [{ value: 1000, address: 'addrA_NotInSelected' }] as any,
-            depthH: 0
+            vout: [{ value: 1000, address: 'addrA_NotInSelected' }] as any
           }
         ]
       ])
       const selectedInputs = new Map<
         string,
         { value: number; scriptpubkey_address: string }
-      >([['input1', { value: 500, scriptpubkey_address: 'addrOther' }]])
+      >([['input1', { scriptpubkey_address: 'addrOther', value: 500 }]])
       const result = recalculateDepthH(transactions, selectedInputs)
       expect(result.get('txA')?.depthH).toBe(1)
     })
@@ -471,27 +471,27 @@ describe('recalculateDepthH', () => {
           'txA',
           {
             ...minimalTxProps,
+            depthH: 0,
             id: 'txA',
             vin: [] as any,
-            vout: [{ value: 1000, address: 'addrA' }] as any,
-            depthH: 0
+            vout: [{ value: 1000, address: 'addrA' }] as any
           }
         ],
         [
           'txB',
           {
             ...minimalTxProps,
+            depthH: 0,
             id: 'txB',
             vin: [{ previousOutput: { txid: 'txA', vout: 0 } }] as any,
-            vout: [] as any,
-            depthH: 0
+            vout: [] as any
           }
         ]
       ])
       const selectedInputs = new Map<
         string,
         { value: number; scriptpubkey_address: string }
-      >([['input1', { value: 1000, scriptpubkey_address: 'addrA' }]])
+      >([['input1', { scriptpubkey_address: 'addrA', value: 1000 }]])
       const result = recalculateDepthH(transactions, selectedInputs)
       expect(result.get('txA')?.depthH).toBe(1)
       expect(result.get('txB')?.depthH).toBe(3)
@@ -503,37 +503,37 @@ describe('recalculateDepthH', () => {
           'txA',
           {
             ...minimalTxProps,
+            depthH: 0,
             id: 'txA',
             vin: [] as any,
-            vout: [{ value: 1000, address: 'addrA' }] as any,
-            depthH: 0
+            vout: [{ value: 1000, address: 'addrA' }] as any
           }
         ],
         [
           'txB',
           {
             ...minimalTxProps,
+            depthH: 0,
             id: 'txB',
             vin: [] as any,
-            vout: [] as any,
-            depthH: 0
+            vout: [] as any
           }
         ],
         [
           'txC',
           {
             ...minimalTxProps,
+            depthH: 0,
             id: 'txC',
             vin: [{ previousOutput: { txid: 'txB', vout: 0 } }] as any,
-            vout: [] as any,
-            depthH: 0
+            vout: [] as any
           }
         ]
       ])
       const selectedInputs = new Map<
         string,
         { value: number; scriptpubkey_address: string }
-      >([['input1', { value: 1000, scriptpubkey_address: 'addrA' }]])
+      >([['input1', { scriptpubkey_address: 'addrA', value: 1000 }]])
       const result = recalculateDepthH(transactions, selectedInputs)
       expect(result.get('txA')?.depthH).toBe(3)
       expect(result.get('txB')?.depthH).toBe(1)
@@ -553,23 +553,23 @@ describe('recalculateDepthH', () => {
         'txA',
         {
           ...minimalTxProps,
+          depthH: 0,
           id: 'txA',
           vin: [{ previousOutput: { txid: 'txExternal1', vout: 0 } }] as any,
-          vout: [] as any,
-          depthH: 0
+          vout: [] as any
         }
       ],
       [
         'txB',
         {
           ...minimalTxProps,
+          depthH: 0,
           id: 'txB',
           vin: [
             { previousOutput: { txid: 'txA', vout: 0 } },
             { previousOutput: { txid: 'txExternal2', vout: 0 } }
           ] as any,
-          vout: [] as any,
-          depthH: 0
+          vout: [] as any
         }
       ]
     ])
@@ -584,10 +584,10 @@ describe('recalculateDepthH', () => {
         'txA',
         {
           ...minimalTxProps,
+          depthH: 0,
           id: 'txA',
           vin: [] as any,
-          vout: [] as any,
-          depthH: 0
+          vout: [] as any
         }
       ]
     ])

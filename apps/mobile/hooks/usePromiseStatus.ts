@@ -1,13 +1,9 @@
 import { useState } from 'react'
 
-import {
-  initPromiseStatuses,
-  type PromiseStatuses,
-  setPromiseError,
-  setPromisePending
-} from '@/utils/promises'
+import { initPromiseStatuses, setPromiseError, setPromisePending } from '@/utils/promises';
+import type { PromiseStatuses } from '@/utils/promises';
 
-type runPromiseProps = {
+interface runPromiseProps {
   callback: () => Promise<void>
   onSuccess?: () => Promise<void>
   onError?: () => Promise<void>
@@ -33,16 +29,16 @@ export function usePromiseStatuses(promiseNames: string[] = []) {
       setStatuses((value) => ({
         ...value,
         [name]: {
-          ...(value[name] || {}),
+          ...value[name],
           status: 'success'
         }
       }))
-      if (onSuccess) await onSuccess()
+      if (onSuccess) {await onSuccess()}
     } catch (error: unknown) {
       const defaultErrorMsg = error instanceof Error ? error.message : ''
       const errorMsg = errorMessage || defaultErrorMsg
       setStatuses((value) => setPromiseError(value, name, errorMsg))
-      if (onError) await onError()
+      if (onError) {await onError()}
     }
   }
 

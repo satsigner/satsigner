@@ -1,19 +1,14 @@
 import { useMemo } from 'react'
-import {
-  type StyleProp,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  type ViewStyle
-} from 'react-native'
-import BouncyCheckbox, {
-  type BouncyCheckboxProps
-} from 'react-native-bouncy-checkbox'
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
+import BouncyCheckbox from 'react-native-bouncy-checkbox';
+import type { BouncyCheckboxProps } from 'react-native-bouncy-checkbox';
 
 import SSVStack from '@/layouts/SSVStack'
 import { Colors, Sizes } from '@/styles'
 
-import SSText, { type SSTextProps } from './SSText'
+import SSText from './SSText';
+import type { SSTextProps } from './SSText';
 
 type SSCheckboxProps = {
   containerStyle?: StyleProp<ViewStyle>
@@ -36,18 +31,14 @@ function SSCheckbox({
   disabled,
   ...props
 }: SSCheckboxProps) {
-  const innerIconStyle = useMemo(() => {
-    return StyleSheet.compose(styles.innerIconStyleBase, {
+  const innerIconStyle = useMemo(() => StyleSheet.compose(styles.innerIconStyleBase, {
       borderColor: selected ? Colors.white : Colors.transparent
-    })
-  }, [selected])
+    }), [selected])
 
-  const containerBase = useMemo(() => {
-    return StyleSheet.compose(
+  const containerBase = useMemo(() => StyleSheet.compose(
       styles.containerBase,
       disabled ? styles.disabled : {}
-    )
-  }, [disabled])
+    ), [disabled])
 
   return (
     <TouchableOpacity
@@ -86,15 +77,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Sizes.checkbox.height / 2
   },
+  disabled: {
+    opacity: 0.3
+  },
   iconStyleBase: {
     borderRadius: Sizes.checkbox.borderRadius
   },
   innerIconStyleBase: {
     borderWidth: Sizes.checkbox.borderWidth,
     borderRadius: Sizes.checkbox.borderRadius
-  },
-  disabled: {
-    opacity: 0.3
   }
 })
 

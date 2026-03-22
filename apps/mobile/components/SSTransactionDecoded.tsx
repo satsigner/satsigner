@@ -4,7 +4,8 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
-import { TxDecoded, type TxDecodedField, TxField } from '@/utils/txDecoded'
+import { TxDecoded, TxField } from '@/utils/txDecoded';
+import type { TxDecodedField } from '@/utils/txDecoded';
 
 import { SSIconChevronDown, SSIconChevronUp } from './icons'
 import SSText from './SSText'
@@ -21,7 +22,7 @@ function byteChunks(hex: string) {
   return chunk
 }
 
-type SSTransactionDecodedProps = {
+interface SSTransactionDecodedProps {
   txHex: string
   defaultDisplay?: 'list' | 'bytes'
 }
@@ -65,7 +66,7 @@ function SSTransactionDecoded({
   )
 }
 
-type SSTransactionDecodedDisplayProps = {
+interface SSTransactionDecodedDisplayProps {
   decoded: TxDecodedField[]
 }
 
@@ -132,11 +133,11 @@ function SSTransactionDecodedBytes({
         </TouchableOpacity>
         <TouchableOpacity
           onPress={handleZoomIn}
-          disabled={textSize === TEXT_SIZES[TEXT_SIZES.length - 1]}
+          disabled={textSize === TEXT_SIZES.at(-1)}
           style={[
             styles.zoomButton,
             {
-              opacity: textSize === TEXT_SIZES[TEXT_SIZES.length - 1] ? 0.5 : 1
+              opacity: textSize === TEXT_SIZES.at(-1) ? 0.5 : 1
             }
           ]}
         >
@@ -146,8 +147,7 @@ function SSTransactionDecodedBytes({
         </TouchableOpacity>
       </SSHStack>
       <SSHStack style={styles.bytesContainer} gap="none">
-        {decoded.map((item, i) => {
-          return (
+        {decoded.map((item, i) => (
             <Fragment key={i}>
               {byteChunks(item.hex).map((byte, j) => {
                 const selected = selectedItem === i
@@ -180,8 +180,7 @@ function SSTransactionDecodedBytes({
                 )
               })}
             </Fragment>
-          )
-        })}
+          ))}
       </SSHStack>
       <View style={styles.selectedItemContainer}>
         {selectedItem !== -1 && (
@@ -222,12 +221,12 @@ function SSTransactionDecodedItem({
 
 const styles = StyleSheet.create({
   bytesContainer: {
-    flexWrap: 'wrap',
-    alignItems: 'flex-start',
     alignContent: 'center',
-    width: 'auto',
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
     justifyContent: 'flex-start',
-    marginLeft: 'auto'
+    marginLeft: 'auto',
+    width: 'auto'
   },
   selectedItemContainer: {
     marginTop: 10

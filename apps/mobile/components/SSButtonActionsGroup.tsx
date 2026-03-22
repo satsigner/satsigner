@@ -10,7 +10,7 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import { Colors } from '@/styles'
 
-type SSButtonActionsGroupProps = {
+interface SSButtonActionsGroupProps {
   onSend: () => void
   onPaste: () => void
   onCamera: () => void
@@ -75,11 +75,11 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.gray[950],
     borderRadius: 4
   },
-  actionButtonWide: {
-    width: '25.25%'
-  },
   actionButtonNarrow: {
     width: '16.5%'
+  },
+  actionButtonWide: {
+    width: '25.25%'
   }
 })
 

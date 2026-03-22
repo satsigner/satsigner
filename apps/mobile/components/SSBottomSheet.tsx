@@ -1,6 +1,7 @@
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet'
 import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
-import { type ForwardedRef, forwardRef } from 'react'
+import { forwardRef } from 'react';
+import type { ForwardedRef } from 'react';
 import { StyleSheet } from 'react-native'
 
 import SSVStack from '@/layouts/SSVStack'
@@ -8,7 +9,7 @@ import { Colors, Layout } from '@/styles'
 
 import SSText from './SSText'
 
-type SSBottomSheetProps = {
+interface SSBottomSheetProps {
   title: string
   snapPoints?: (string | number)[]
   paddingX?: boolean
@@ -60,9 +61,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[950]
   },
   bottomSheet: {
-    borderTopWidth: 1,
+    borderColor: Colors.gray[500],
     borderRadius: 6,
-    borderColor: Colors.gray[500]
+    borderTopWidth: 1
   },
   handle: {
     display: 'none'

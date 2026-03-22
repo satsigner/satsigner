@@ -1,27 +1,26 @@
 import { MempoolOracle } from '@/api/blockchain'
-import {
-  type BlockchainOracle,
-  type PriceValue,
-  TxPriority
-} from '@/types/models/Blockchain'
+import { TxPriority } from '@/types/models/Blockchain';
+import type { BlockchainOracle, PriceValue } from '@/types/models/Blockchain';
 
 const mempoolspace: BlockchainOracle = new MempoolOracle(
   'https://mempool.space/api'
 )
 
-describe('Blockchain » price', () => {
+describe('blockchain » price', () => {
   it('get price at given currency', async () => {
     const response = await mempoolspace.getPrice('CAD')
     expect(typeof response).toBe('number')
   })
+
   it('get price at given currency at given time', async () => {
-    const timestamp = 1500000000
+    const timestamp = 1_500_000_000
     const expectedPrice = 1964
     const response = await mempoolspace.getPriceAt('EUR', timestamp)
     expect(response).toBe(expectedPrice)
   })
+
   it('get prices list at given time', async () => {
-    const timestamp = 1500000000
+    const timestamp = 1_500_000_000
     const expectedPrice = 2254.9
     const response = await mempoolspace.getFullPriceAt('USD', timestamp)
     expect(typeof response).toBe('object')
@@ -30,11 +29,9 @@ describe('Blockchain » price', () => {
   })
 })
 
-describe('Blockchain » mempool', () => {
+describe('blockchain » mempool', () => {
   const errorTolerance = 0.015 // 1.5%
-  const isDiffReasonable = (a: number, b: number) => {
-    return Math.abs((a - b) / b) < errorTolerance
-  }
+  const isDiffReasonable = (a: number, b: number) => Math.abs((a - b) / b) < errorTolerance
 
   it('get mempool info', async () => {
     const response = await mempoolspace.getMemPool()
@@ -66,7 +63,7 @@ describe('Blockchain » mempool', () => {
     const inputCount = 8
     expect(response).toHaveLength(inputCount)
     const values = response.map((v: PriceValue) => v.fiatValue)
-    const expected = [0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 477013.5]
+    const expected = [0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 477_013.5]
     for (let i = 0; i < inputCount; i++) {
       expect(isDiffReasonable(values[i], expected[i])).toBeTruthy()
     }
@@ -91,15 +88,17 @@ describe('Blockchain » mempool', () => {
   })
 })
 
-describe('Blockchain » hashrate/difficulty', () => {
+describe('blockchain » hashrate/difficulty', () => {
   it('get hashrate', async () => {
     const response = await mempoolspace.getCurrentHashRate()
     expect(typeof response).toBe('number')
   })
+
   it('get difficulty', async () => {
     const response = await mempoolspace.getCurrentDifficulty()
     expect(typeof response).toBe('number')
   })
+
   it('get difficulty adjusment', async () => {
     const response = await mempoolspace.getDifficultyAdjustment()
     expect(typeof response.remainingTime).toBe('number')
@@ -108,11 +107,12 @@ describe('Blockchain » hashrate/difficulty', () => {
   })
 })
 
-describe('Blockchain » tip block', () => {
+describe('blockchain » tip block', () => {
   it('get tip block height', async () => {
     const response = await mempoolspace.getCurrentBlockHeight()
     expect(typeof response).toBe('number')
   })
+
   it('get tip block hash', async () => {
     const response = await mempoolspace.getCurrentBlockHash()
     expect(typeof response).toBe('string')

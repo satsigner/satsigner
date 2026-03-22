@@ -1,10 +1,11 @@
 import { scaleLinear } from 'd3'
 import { useMemo } from 'react'
-import { type DimensionValue, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native';
+import type { DimensionValue } from 'react-native';
 
 import { Colors } from '@/styles'
 
-type SSUtxoSizeMeterProps = {
+interface SSUtxoSizeMeterProps {
   size: number
   largestSize: number
   selected: boolean
@@ -18,8 +19,8 @@ function SSUtxoSizeMeter({
   // Collapse the range of values for display so small and medium
   // UTXO sizes don't look so tiny compared to larger values
   const root = 2
-  const expSize = Math.pow(size, 1 / root)
-  const largestExpSize = Math.pow(largestSize, 1 / root)
+  const expSize = size ** (1 / root)
+  const largestExpSize = largestSize ** (1 / root)
 
   const minDisplayPercentage = 1
   const maxDisplayPercentage = 82
@@ -31,12 +32,10 @@ function SSUtxoSizeMeter({
   const percentage = scale(Math.round((expSize / largestExpSize) * 100))
   const percentageText = (percentage + '%') as DimensionValue
 
-  const selectedSizeBarStyle = useMemo(() => {
-    return StyleSheet.compose(styles.sizeBarBase, {
+  const selectedSizeBarStyle = useMemo(() => StyleSheet.compose(styles.sizeBarBase, {
       ...(selected ? styles.sizeBarSelected : {}),
       width: percentageText
-    })
-  }, [selected, percentageText])
+    }), [selected, percentageText])
 
   return (
     <View style={styles.containerBase}>
@@ -47,13 +46,13 @@ function SSUtxoSizeMeter({
 }
 
 const styles = StyleSheet.create({
+  backgroundBarBase: {
+    backgroundColor: Colors.gray[850],
+    height: 2
+  },
   containerBase: {
     position: 'absolute',
     width: '100%',
-    height: 2
-  },
-  backgroundBarBase: {
-    backgroundColor: Colors.gray[850],
     height: 2
   },
   sizeBarBase: {

@@ -1,4 +1,4 @@
-import { type Utxo } from '@/types/models/Utxo'
+import type { Utxo } from '@/types/models/Utxo'
 import {
   calculateStonewallEntropy,
   distributeChangeWithPrivacy,
@@ -6,42 +6,42 @@ import {
   selectStonewallUtxos
 } from '@/utils/utxo'
 
-describe('Efficiency UTXO Selection Algorithm', () => {
+describe('efficiency UTXO Selection Algorithm', () => {
   // helper function to create mock utxos
   function createMockUtxos(value: number[]) {
     return value.map((value, index) => ({
-      txid: `tx${index}`,
-      vout: 0,
-      value,
-      label: '',
-      keychain: 'external' as const,
       effectiveValue: value,
-      scriptType: 'p2wpkh' as const
+      keychain: 'external' as const,
+      label: '',
+      scriptType: 'p2wpkh' as const,
+      txid: `tx${index}`,
+      value,
+      vout: 0
     }))
   }
 
-  test('it should select a single utxo when it exactly matches the target amount', () => {
-    const utxos = createMockUtxos([10000, 20000, 30000])
-    const target = 10000
+  it('it should select a single utxo when it exactly matches the target amount', () => {
+    const utxos = createMockUtxos([10_000, 20_000, 30_000])
+    const target = 10_000
     const feeRate = 1
     const result = selectEfficientUtxos(utxos, target, feeRate)
-    expect(result.inputs.length).toBe(1)
-    expect(result.inputs[0].value).toBe(10000)
+    expect(result.inputs).toHaveLength(1)
+    expect(result.inputs[0].value).toBe(10_000)
   })
 
-  test('should return error when there are insufficient funds', () => {
+  it('should return error when there are insufficient funds', () => {
     const utxos = createMockUtxos([1000, 2000])
-    const targetAmount = 10000
+    const targetAmount = 10_000
     const feeRate = 1
 
     const result = selectEfficientUtxos(utxos, targetAmount, feeRate)
     if ('error' in result) {
       expect(result.error).toBe('Insufficient funds')
-      expect(result.inputs.length).toBe(0)
+      expect(result.inputs).toHaveLength(0)
     }
   })
 
-  test('should select multiple UTXOs when needed', () => {
+  it('should select multiple UTXOs when needed', () => {
     const utxos = createMockUtxos([5000, 3000, 2000, 1000])
     const targetAmount = 4000
     const feeRate = 1
@@ -55,9 +55,9 @@ describe('Efficiency UTXO Selection Algorithm', () => {
     expect(totalSelected).toBeGreaterThanOrEqual(targetAmount + result.fee)
   })
 
-  test('should handle high fee rates properly', () => {
-    const utxos = createMockUtxos([10000, 20000, 30000])
-    const targetAmount = 25000
+  it('should handle high fee rates properly', () => {
+    const utxos = createMockUtxos([10_000, 20_000, 30_000])
+    const targetAmount = 25_000
     const feeRate = 50 // Very high fee rate
 
     const result = selectEfficientUtxos(utxos, targetAmount, feeRate)
@@ -69,7 +69,7 @@ describe('Efficiency UTXO Selection Algorithm', () => {
     expect(totalSelected - result.fee - targetAmount).toBeGreaterThanOrEqual(0)
   })
 
-  test('should find optimal selection using branch and bound', () => {
+  it('should find optimal selection using branch and bound', () => {
     const utxos = createMockUtxos([1000, 2000, 3000, 4000, 5000, 6000, 7000])
     const targetAmount = 8000
     const feeRate = 1
@@ -80,31 +80,31 @@ describe('Efficiency UTXO Selection Algorithm', () => {
     expect(result.inputs.length).toBeLessThanOrEqual(3)
   })
 
-  test('should handle extremely small values correctly', () => {
+  it('should handle extremely small values correctly', () => {
     const utxos = [
       {
-        txid: 'tx1',
-        vout: 0,
-        value: 1,
-        keychain: 'external' as const,
         effectiveValue: 1,
-        scriptType: 'p2wpkh' as const
+        keychain: 'external' as const,
+        scriptType: 'p2wpkh' as const,
+        txid: 'tx1',
+        value: 1,
+        vout: 0
       }, // 1 satoshi
       {
-        txid: 'tx2',
-        vout: 0,
-        value: 2,
-        keychain: 'external' as const,
         effectiveValue: 2,
-        scriptType: 'p2wpkh' as const
+        keychain: 'external' as const,
+        scriptType: 'p2wpkh' as const,
+        txid: 'tx2',
+        value: 2,
+        vout: 0
       }, // 2 satoshis
       {
-        txid: 'tx3',
-        vout: 0,
-        value: 10000,
-        keychain: 'external' as const,
         effectiveValue: 10000,
-        scriptType: 'p2wpkh' as const
+        keychain: 'external' as const,
+        scriptType: 'p2wpkh' as const,
+        txid: 'tx3',
+        value: 10000,
+        vout: 0
       } // One normal UTXO
     ]
 
@@ -114,34 +114,34 @@ describe('Efficiency UTXO Selection Algorithm', () => {
     const result = selectEfficientUtxos(utxos, targetAmount, feeRate)
 
     // Should ignore tiny UTXOs that would cost more to spend than they're worth
-    expect(result.inputs.length).toBe(1)
+    expect(result.inputs).toHaveLength(1)
     expect(result.inputs[0].txid).toBe('tx3')
   })
 })
 
-describe('STONEWALL UTXO Selection Algorithm', () => {
+describe('sTONEWALL UTXO Selection Algorithm', () => {
   // Helper functions for creating test UTXOs
   function createMockUtxos(
     values: number[],
     options?: { scriptTypes?: ('p2pkh' | 'p2wpkh' | 'p2sh-p2wpkh')[] }
   ) {
     return values.map((value, index) => ({
-      txid: `tx${index}`,
-      vout: 0,
-      value,
       confirmations: 6,
-      scriptPubKey: 'mock-script',
-      keychain: 'external' as const,
       effectiveValue: value,
-      scriptType: options?.scriptTypes?.[0] || 'p2wpkh'
+      keychain: 'external' as const,
+      scriptPubKey: 'mock-script',
+      scriptType: options?.scriptTypes?.[0] || 'p2wpkh',
+      txid: `tx${index}`,
+      value,
+      vout: 0
     }))
   }
 
-  test('should create a valid STONEWALL transaction with sufficient funds', () => {
-    const utxos = createMockUtxos([10000, 20000, 30000, 40000, 50000, 60000], {
+  it('should create a valid STONEWALL transaction with sufficient funds', () => {
+    const utxos = createMockUtxos([10_000, 20_000, 30_000, 40_000, 50_000, 60_000], {
       scriptTypes: ['p2pkh', 'p2wpkh']
     })
-    const targetAmount = 75000
+    const targetAmount = 75_000
     const feeRate = 2
 
     const result = selectStonewallUtxos(utxos, targetAmount, feeRate)
@@ -166,16 +166,16 @@ describe('STONEWALL UTXO Selection Algorithm', () => {
       (sum, output) => sum + output.value,
       0
     )
-    expect(totalInput).toEqual(totalOutput + result.fee)
+    expect(totalInput).toStrictEqual(totalOutput + result.fee)
 
     // Verify privacy score is calculated
     expect(result.privacyScore).toBeGreaterThan(0)
   })
 
   // Test with insufficient funds
-  test('should return error when there are insufficient funds', () => {
+  it('should return error when there are insufficient funds', () => {
     const utxos = createMockUtxos([1000, 2000])
-    const targetAmount = 10000
+    const targetAmount = 10_000
     const feeRate = 1
 
     const result = selectStonewallUtxos(utxos, targetAmount, feeRate)
@@ -184,9 +184,9 @@ describe('STONEWALL UTXO Selection Algorithm', () => {
   })
 
   // Test change output distribution
-  test('should create well-distributed change outputs', () => {
-    const utxos = createMockUtxos([100000, 200000])
-    const targetAmount = 50000
+  it('should create well-distributed change outputs', () => {
+    const utxos = createMockUtxos([100_000, 200_000])
+    const targetAmount = 50_000
     const feeRate = 1
 
     const result = selectStonewallUtxos(utxos, targetAmount, feeRate, {
@@ -215,46 +215,46 @@ describe('STONEWALL UTXO Selection Algorithm', () => {
   })
 
   // Test entropy calculation
-  test('should calculate entropy correctly', () => {
+  it('should calculate entropy correctly', () => {
     const mockSolution = {
       inputs: [
         {
-          txid: 'tx1',
-          vout: 0,
-          value: 10000,
-          keychain: 'external' as const,
           effectiveValue: 10000,
-          scriptType: 'p2wpkh' as const
+          keychain: 'external' as const,
+          scriptType: 'p2wpkh' as const,
+          txid: 'tx1',
+          value: 10000,
+          vout: 0
         },
         {
-          txid: 'tx2',
-          vout: 0,
-          value: 20000,
-          keychain: 'external' as const,
           effectiveValue: 20000,
-          scriptType: 'p2wpkh' as const
+          keychain: 'external' as const,
+          scriptType: 'p2wpkh' as const,
+          txid: 'tx2',
+          value: 20000,
+          vout: 0
         },
         {
-          txid: 'tx3',
-          vout: 0,
-          value: 30000,
-          keychain: 'external' as const,
           effectiveValue: 30000,
-          scriptType: 'p2wpkh' as const
+          keychain: 'external' as const,
+          scriptType: 'p2wpkh' as const,
+          txid: 'tx3',
+          value: 30000,
+          vout: 0
         },
         {
-          txid: 'tx4',
-          vout: 0,
-          value: 40000,
-          keychain: 'external' as const,
           effectiveValue: 40000,
-          scriptType: 'p2wpkh' as const
+          keychain: 'external' as const,
+          scriptType: 'p2wpkh' as const,
+          txid: 'tx4',
+          value: 40000,
+          vout: 0
         }
       ],
       outputs: [
-        { type: 'p2wpkh', value: 50000, recipient: true, size: 31 },
-        { type: 'p2wpkh', value: 25000, size: 31 },
-        { type: 'p2wpkh', value: 20000, size: 31 }
+        { recipient: true, size: 31, type: 'p2wpkh', value: 50000 },
+        { size: 31, type: 'p2wpkh', value: 25000 },
+        { size: 31, type: 'p2wpkh', value: 20000 }
       ]
     }
 
@@ -266,8 +266,8 @@ describe('STONEWALL UTXO Selection Algorithm', () => {
   })
 
   // Test change distribution function
-  test('should distribute change with privacy in mind', () => {
-    const totalChange = 100000
+  it('should distribute change with privacy in mind', () => {
+    const totalChange = 100_000
     const numOutputs = 3
     const dustThreshold = 546
 
@@ -278,7 +278,7 @@ describe('STONEWALL UTXO Selection Algorithm', () => {
     )
 
     // Should create the requested number of outputs
-    expect(changeValues.length).toBe(numOutputs)
+    expect(changeValues).toHaveLength(numOutputs)
 
     // Total should match the input amount
     const sum = changeValues.reduce((acc, val) => acc + val, 0)
@@ -293,16 +293,16 @@ describe('STONEWALL UTXO Selection Algorithm', () => {
   })
 
   // Test performance with large UTXO set
-  test('should handle large UTXO sets efficiently', () => {
+  it('should handle large UTXO sets efficiently', () => {
     // Create 100 UTXOs
     const values = Array(100)
       .fill(0)
-      .map((_, i) => 10000 + i * 1000)
+      .map((_, i) => 10_000 + i * 1000)
     const utxos = createMockUtxos(values, {
       scriptTypes: ['p2pkh', 'p2wpkh', 'p2sh-p2wpkh']
     })
 
-    const targetAmount = 500000
+    const targetAmount = 500_000
     const feeRate = 2
 
     const startTime = Date.now()

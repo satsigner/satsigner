@@ -4,7 +4,7 @@ import uuid from 'react-native-uuid'
 import { DEFAULT_PIN, PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
 
-const MAX_UINT32 = 0xffffffff // 2^32 - 1
+const MAX_UINT32 = 0xFFFFFFFF // 2^32 - 1
 
 function randomKey(length = 16) {
   return aesCrypto.randomKey(length)
@@ -15,7 +15,7 @@ function randomUuid() {
 }
 
 function randomIv() {
-  return uuid.v4().replace(/-/g, '')
+  return uuid.v4().replaceAll(/-/g, '')
 }
 
 function randomNum() {

@@ -1,4 +1,5 @@
-import { I18n, type TranslateOptions } from 'i18n-js'
+import { I18n } from 'i18n-js';
+import type { TranslateOptions } from 'i18n-js';
 
 import en from './en.json'
 
@@ -40,7 +41,7 @@ i18n.store({ en: generateJson(en) })
 const t = (key: string, options?: TranslateOptions) => i18n.t(key, options)
 
 const tn = (namespace: string) =>
-  function (key: string, options?: TranslateOptions) {
+  function  tn(key: string, options?: TranslateOptions) {
     return t(`${namespace}.${key}`, options)
   }
 

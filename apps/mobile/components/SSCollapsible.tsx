@@ -8,7 +8,7 @@ import { Colors } from '@/styles'
 
 import SSText from './SSText'
 
-type SSCollapsibleProps = {
+interface SSCollapsibleProps {
   children: React.ReactNode
 }
 
@@ -20,15 +20,11 @@ function SSCollapsible({ children }: SSCollapsibleProps) {
     setOpen(!open)
   }
 
-  const containerStyle = useMemo(() => {
-    return open ? styles.containerOpen : styles.containerClose
-  }, [open])
+  const containerStyle = useMemo(() => open ? styles.containerOpen : styles.containerClose, [open])
 
-  const linearGradientStyle = useMemo(() => {
-    return StyleSheet.compose(styles.linearGradientBase, {
+  const linearGradientStyle = useMemo(() => StyleSheet.compose(styles.linearGradientBase, {
       ...(open ? styles.linearGradientOpen : {})
-    })
-  }, [open])
+    }), [open])
 
   return (
     <TouchableOpacity activeOpacity={1} onPress={() => handleSetOpen()}>
@@ -39,7 +35,7 @@ function SSCollapsible({ children }: SSCollapsibleProps) {
             style={linearGradientStyle}
             colors={[Colors.transparent, 'rgba(0,0,0,1)']}
             start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1.0 }}
+            end={{ x: 0.5, y: 1 }}
           />
         </SSVStack>
         <SSText uppercase style={{ color: Colors.gray[100] }}>
@@ -51,15 +47,15 @@ function SSCollapsible({ children }: SSCollapsibleProps) {
 }
 
 const styles = StyleSheet.create({
-  containerOpen: {
-    height: 'auto',
+  containerClose: {
+    overflow: 'hidden',
+    height: 65,
     position: 'relative',
     flexDirection: 'row',
     flexWrap: 'wrap'
   },
-  containerClose: {
-    overflow: 'hidden',
-    height: 65,
+  containerOpen: {
+    height: 'auto',
     position: 'relative',
     flexDirection: 'row',
     flexWrap: 'wrap'

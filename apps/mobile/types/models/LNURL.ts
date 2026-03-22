@@ -1,4 +1,4 @@
-export type LNURLPayResponse = {
+export interface LNURLPayResponse {
   callback: string
   maxSendable: number
   minSendable: number
@@ -9,12 +9,12 @@ export type LNURLPayResponse = {
   allowsNostr?: boolean
 }
 
-export type LNURLPayInvoiceResponse = {
+export interface LNURLPayInvoiceResponse {
   pr: string // bolt11 invoice
   routes: unknown[] // payment routes, not used in our implementation
 }
 
-export type LNURLWithdrawDetails = {
+export interface LNURLWithdrawDetails {
   callback: string
   k1: string
   minWithdrawable: number
@@ -23,7 +23,7 @@ export type LNURLWithdrawDetails = {
   tag: 'withdrawRequest'
 }
 
-export type LNURLWithdrawResponse = {
+export interface LNURLWithdrawResponse {
   status: 'OK' | 'ERROR'
   pr?: string
   reason?: string

@@ -6,9 +6,10 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 
-import SSButton, { type SSButtonProps } from './SSButton'
+import SSButton from './SSButton';
+import type { SSButtonProps } from './SSButton';
 
-type SSModalProps = {
+interface SSModalProps {
   visible: boolean
   fullOpacity?: boolean
   closeButtonVariant?: SSButtonProps['variant']
@@ -44,12 +45,12 @@ function SSModal({
           theme="dark"
           position="top-center"
           style={{
-            borderRadius: 8,
             backgroundColor: Colors.gray[950],
-            borderWidth: 1,
             borderColor: Colors.gray[800],
-            zIndex: 10001,
-            width: '105%'
+            borderRadius: 8,
+            borderWidth: 1,
+            width: '105%',
+            zIndex: 10001
           }}
         />
       </SSMainLayout>

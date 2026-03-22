@@ -1,5 +1,5 @@
 import { URDecoder } from '@ngraveio/bc-ur'
-import { type Network as _Network } from 'bdk-rn/lib/lib/enums'
+import type { Network as _Network } from 'bdk-rn/lib/lib/enums'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
@@ -20,8 +20,8 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type ScriptVersionType } from '@/types/models/Account'
-import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
+import type { ScriptVersionType } from '@/types/models/Account'
+import type { ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
 import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import {
   getDerivationPathFromScriptVersion,
@@ -64,10 +64,10 @@ export default function ImportDescriptor() {
     scanned: Set<number>
     chunks: Map<number, string>
   }>({
-    type: null,
-    total: 0,
+    chunks: new Map(),
     scanned: new Set(),
-    chunks: new Map()
+    total: 0,
+    type: null
   })
 
   const pulseAnim = useRef(new Animated.Value(0)).current
@@ -78,13 +78,13 @@ export default function ImportDescriptor() {
       const pulseAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
-            toValue: 1,
             duration: 500,
+            toValue: 1,
             useNativeDriver: false
           }),
           Animated.timing(pulseAnim, {
-            toValue: 0,
             duration: 500,
+            toValue: 0,
             useNativeDriver: false
           })
         ])
@@ -158,7 +158,7 @@ export default function ImportDescriptor() {
       ? await validateDescriptorFormat(descriptor)
       : await validateDescriptor(descriptor)
     const basicValidation =
-      descriptorValidation && !descriptor.match(/[txyz]priv/)
+      descriptorValidation && !/[txyz]priv/.test(descriptor)
 
     // Network validation - check if descriptor is compatible with selected network
     // Skip network validation during confirm stage since it was already validated during input
@@ -271,8 +271,8 @@ export default function ImportDescriptor() {
       if (match) {
         return {
           type: 'raw' as const,
-          current: parseInt(match[1], 10) - 1, // Convert to 0-based index
-          total: parseInt(match[2], 10),
+          current: Number.parseInt(match[1], 10) - 1, // Convert to 0-based index
+          total: Number.parseInt(match[2], 10),
           content: data.substring(match[0].length)
         }
       }
@@ -280,13 +280,13 @@ export default function ImportDescriptor() {
 
     // Check for BBQR format
     if (isBBQRFragment(data)) {
-      const total = parseInt(data.slice(4, 6), 36)
-      const current = parseInt(data.slice(6, 8), 36)
+      const total = Number.parseInt(data.slice(4, 6), 36)
+      const current = Number.parseInt(data.slice(6, 8), 36)
       return {
-        type: 'bbqr' as const,
+        content: data,
         current,
         total,
-        content: data
+        type: 'bbqr' as const
       }
     }
 
@@ -300,15 +300,15 @@ export default function ImportDescriptor() {
 
         if (currentStr && totalStr) {
           // Multi-part UR
-          const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
-          const total = parseInt(totalStr, 10)
+          const current = Number.parseInt(currentStr, 10) - 1 // Convert to 0-based index
+          const total = Number.parseInt(totalStr, 10)
           return {
-            type: 'ur' as const,
+            content: data,
             current,
             total,
-            content: data
+            type: 'ur' as const
           }
-        } else {
+        }
           // Single-part UR
           return {
             type: 'ur' as const,
@@ -316,25 +316,25 @@ export default function ImportDescriptor() {
             total: 1,
             content: data
           }
-        }
+        
       }
     }
 
     // Default to raw data
     return {
-      type: 'raw' as const,
+      content: data,
       current: 0,
       total: 1,
-      content: data
+      type: 'raw' as const
     }
   }
 
   function resetScanProgress() {
     setScanProgress({
-      type: null,
-      total: 0,
+      chunks: new Map(),
       scanned: new Set(),
-      chunks: new Map()
+      total: 0,
+      type: null
     })
     urDecoderRef.current = new URDecoder()
   }
@@ -390,7 +390,7 @@ export default function ImportDescriptor() {
     // Extract derivation path with improved logic
     const derivationPath = extractDerivationPathFromDescriptor(descriptor)
 
-    return { extendedPublicKey, derivationPath }
+    return { derivationPath, extendedPublicKey }
   }
 
   function extractDerivationPathFromDescriptor(descriptor: string) {
@@ -467,7 +467,7 @@ export default function ImportDescriptor() {
   async function pasteFromClipboard() {
     const text = await Clipboard.getStringAsync()
 
-    if (!text) return
+    if (!text) {return}
 
     let externalDescriptor = text
     let internalDescriptor = ''
@@ -487,7 +487,7 @@ export default function ImportDescriptor() {
           /#[a-z0-9]+$/,
           ''
         )
-        internalDescriptor = descriptorWithoutChecksum.replace(
+        internalDescriptor = descriptorWithoutChecksum.replaceAll(
           /\/0\/\*/g,
           '/1/*'
         )
@@ -497,7 +497,7 @@ export default function ImportDescriptor() {
           internalDescriptor += checksum[0]
         }
       }
-    } catch (_jsonError) {
+    } catch {
       // Handle legacy formats
       if (text.includes('\n')) {
         const lines = text.split('\n')
@@ -516,7 +516,7 @@ export default function ImportDescriptor() {
         const descriptorToValidate = originalDescriptor || externalDescriptor
         await updateExternalDescriptor(descriptorToValidate)
       }
-      if (internalDescriptor) await updateInternalDescriptor(internalDescriptor)
+      if (internalDescriptor) {await updateInternalDescriptor(internalDescriptor)}
     }
   }
 
@@ -541,9 +541,9 @@ export default function ImportDescriptor() {
 
       const text = nfcData.text
         .trim()
-        .replace(/[^\S\n]+/g, '') // Remove all whitespace except newlines
-        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
-        .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
+        .replaceAll(/[^\S\n]+/g, '') // Remove all whitespace except newlines
+        .replaceAll(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
+        .replaceAll(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
         .normalize('NFKC') // Normalize unicode characters
         .replace(/^en/, '')
 
@@ -561,9 +561,9 @@ export default function ImportDescriptor() {
       } else {
         // Handle non-combined descriptors with existing logic
         if (externalDescriptor)
-          await updateExternalDescriptor(externalDescriptor)
+          {await updateExternalDescriptor(externalDescriptor)}
         if (internalDescriptor)
-          await updateInternalDescriptor(internalDescriptor)
+          {await updateInternalDescriptor(internalDescriptor)}
       }
 
       toast.success(t('watchonly.success.nfcRead'))
@@ -633,10 +633,10 @@ export default function ImportDescriptor() {
       newScanned.add(current)
 
       setScanProgress({
-        type: qrInfo.type,
-        total,
+        chunks: newChunks,
         scanned: newScanned,
-        chunks: newChunks
+        total,
+        type: qrInfo.type
       })
 
       // Check if we have all chunks
@@ -664,8 +664,8 @@ export default function ImportDescriptor() {
     chunks: Map<number, string>
   ): string | null => {
     try {
-      const sortedChunks = Array.from(chunks.entries())
-        .sort(([a], [b]) => a - b)
+      const sortedChunks = [...chunks.entries()]
+        .toSorted(([a], [b]) => a - b)
         .map(([, content]) => content)
 
       const combinedData = sortedChunks.join('')
@@ -680,8 +680,9 @@ export default function ImportDescriptor() {
           return bbqrResult ? String(bbqrResult) : combinedData
         }
         case 'raw':
-        default:
+        default: {
           return combinedData
+        }
       }
     } catch {
       return null
@@ -739,8 +740,8 @@ export default function ImportDescriptor() {
                     style={{
                       color: Colors.error,
                       fontSize: 12,
-                      textAlign: 'center',
-                      marginTop: 4
+                      marginTop: 4,
+                      textAlign: 'center'
                     }}
                   >
                     {externalDescriptorError}
@@ -764,8 +765,8 @@ export default function ImportDescriptor() {
                     style={{
                       color: Colors.error,
                       fontSize: 12,
-                      textAlign: 'center',
-                      marginTop: 4
+                      marginTop: 4,
+                      textAlign: 'center'
                     }}
                   >
                     {internalDescriptorError}
@@ -788,8 +789,8 @@ export default function ImportDescriptor() {
                     inputRange: [0, 1],
                     outputRange: [1, 0.7]
                   }),
-                  transform: [{ scale: scaleAnim }],
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  transform: [{ scale: scaleAnim }]
                 }}
               >
                 <SSButton
@@ -857,7 +858,7 @@ export default function ImportDescriptor() {
               handleQRCodeScanned(res.raw)
             }}
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            style={{ width: 340, height: 340 }}
+            style={{ height: 340, width: 340 }}
           />
 
           {/* Show progress if scanning multi-part QR */}
@@ -873,20 +874,20 @@ export default function ImportDescriptor() {
                     </SSText>
                     <View
                       style={{
-                        width: 300,
-                        height: 4,
                         backgroundColor: Colors.gray[700],
-                        borderRadius: 2
+                        borderRadius: 2,
+                        height: 4,
+                        width: 300
                       }}
                     >
                       <View
                         style={{
-                          width:
-                            (scanProgress.scanned.size / displayTarget) * 300,
+                          backgroundColor: Colors.white,
+                          borderRadius: 2,
                           height: 4,
                           maxWidth: 300,
-                          backgroundColor: Colors.white,
-                          borderRadius: 2
+                          width:
+                            (scanProgress.scanned.size / displayTarget) * 300
                         }}
                       />
                     </View>
@@ -899,27 +900,27 @@ export default function ImportDescriptor() {
                     </SSText>
                     <View
                       style={{
-                        width: 300,
-                        height: 4,
                         backgroundColor: Colors.gray[700],
-                        borderRadius: 2
+                        borderRadius: 2,
+                        height: 4,
+                        width: 300
                       }}
                     >
                       <View
                         style={{
-                          width:
-                            (scanProgress.scanned.size / scanProgress.total) *
-                            300,
+                          backgroundColor: Colors.white,
+                          borderRadius: 2,
                           height: 4,
                           maxWidth: 300,
-                          backgroundColor: Colors.white,
-                          borderRadius: 2
+                          width:
+                            (scanProgress.scanned.size / scanProgress.total) *
+                            300
                         }}
                       />
                     </View>
                     <SSText color="muted" size="sm" center>
-                      {`Scanned parts: ${Array.from(scanProgress.scanned)
-                        .sort((a, b) => a - b)
+                      {`Scanned parts: ${[...scanProgress.scanned]
+                        .toSorted((a, b) => a - b)
                         .map((n) => n + 1)
                         .join(', ')}`}
                     </SSText>

@@ -1,4 +1,4 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
+import type { Network } from 'bdk-rn/lib/lib/enums'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -9,7 +9,7 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useWalletsStore } from '@/store/wallets'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { aesEncrypt } from '@/utils/crypto'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 
@@ -93,17 +93,17 @@ function useAccountBuilderFinish() {
     }
 
     if (isImportAddress && typeof account.keys[0].secret === 'object')
-      addAccountAddress(
+      {addAccountAddress(
         accountWithEncryptedSecret.id,
         parseAddressDescriptorToAddress(
           account.keys[0].secret.externalDescriptor!
         )
-      )
+      )}
 
     setLoading(false)
     return {
-      wallet: walletData?.wallet,
-      accountWithEncryptedSecret
+      accountWithEncryptedSecret,
+      wallet: walletData?.wallet
     }
   }
 

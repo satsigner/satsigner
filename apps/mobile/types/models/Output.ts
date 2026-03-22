@@ -1,4 +1,4 @@
-export type Output = {
+export interface Output {
   localId: string
   to: string
   amount: number

@@ -15,9 +15,9 @@ import { t, tn } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import type { NostrRelay } from '@/types/models/Nostr'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 
-type SSNostrRelayProps = {
+interface SSNostrRelayProps {
   relay: NostrRelay
   selected: boolean
   onPress: () => void
@@ -41,7 +41,7 @@ function SSNostrRelaysSelection() {
   )
 
   function saveChanges() {
-    if (!accountId) return
+    if (!accountId) {return}
     updateAccountNostr(accountId, { relays: selectedRelays })
     router.back()
   }
@@ -55,7 +55,7 @@ function SSNostrRelaysSelection() {
   }
 
   function handleAddCustomRelay() {
-    if (!customRelayUrl) return
+    if (!customRelayUrl) {return}
 
     const relayUrl = RELAY_PROTOCOL_PREFIX + customRelayUrl
 
@@ -119,7 +119,7 @@ function SSNostrRelaysSelection() {
                 label={tl('addCustomRelay')}
                 variant="secondary"
                 onPress={handleAddCustomRelay}
-                disabled={!customRelayUrl.match(/^[a-z0-9]+\.[a-z0-9]+$/i)}
+                disabled={!/^[a-z0-9]+\.[a-z0-9]+$/i.test(customRelayUrl)}
               />
             </SSVStack>
           </SSVStack>
@@ -155,9 +155,9 @@ const styles = StyleSheet.create({
   },
   relayInputAddOn: {
     backgroundColor: Colors.barGray,
-    paddingVertical: 14,
+    borderRadius: 2,
     paddingHorizontal: 7,
-    borderRadius: 2
+    paddingVertical: 14
   },
   relayInputContainer: {
     flexGrow: 1

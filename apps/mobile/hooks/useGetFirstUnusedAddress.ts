@@ -1,8 +1,8 @@
-import { type AddressInfo } from 'bdk-rn/lib/classes/Bindings'
-import { type Wallet } from 'bdk-rn/lib/classes/Wallet'
+import type { AddressInfo } from 'bdk-rn/lib/classes/Bindings'
+import type { Wallet } from 'bdk-rn/lib/classes/Wallet'
 import { useEffect, useState } from 'react'
 
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 
 function useGetFirstUnusedAddress(wallet: Wallet, account: Account) {
   const [firstUnusedAddress, setUnusedFirstAddress] = useState('')
@@ -58,8 +58,8 @@ function useGetFirstUnusedAddress(wallet: Wallet, account: Account) {
 
   return {
     address: firstUnusedAddress,
-    addressInfo: firstUnusedAddressInfo,
-    addressIndex
+    addressIndex,
+    addressInfo: firstUnusedAddressInfo
   }
 }
 

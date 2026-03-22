@@ -1,7 +1,8 @@
 import { router, Stack } from 'expo-router'
 import { useState } from 'react'
 import { View } from 'react-native'
-import { type SceneRendererProps, TabView } from 'react-native-tab-view'
+import { TabView } from 'react-native-tab-view';
+import type { SceneRendererProps } from 'react-native-tab-view';
 
 import SSButton from '@/components/SSButton'
 import SSNumberInput from '@/components/SSNumberInput'
@@ -12,7 +13,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 
 const CURRENT_BLOCK_HEIGHT = 885_000
-const AVERAGE_BLOCKS_PER_YEAR = 52560
+const AVERAGE_BLOCKS_PER_YEAR = 52_560
 
 // the goal of the limit is to prevent users of making the mistake of getting
 // funds locked for more than 2 years
@@ -47,8 +48,7 @@ function TimeLock() {
   const [validMinute, setValidMinute] = useState(false)
   const [validBlockHeight, setValidBlockHeight] = useState(false)
 
-  const renderTab = () => {
-    return (
+  const renderTab = () => (
       <SSHStack style={{ marginBottom: 24 }}>
         {timeLockTypes.map((type, index) => (
           <SSButton
@@ -68,13 +68,12 @@ function TimeLock() {
         ))}
       </SSHStack>
     )
-  }
 
   const renderScene = ({
     route
   }: SceneRendererProps & { route: { key: string } }) => {
     switch (route.key) {
-      case 'blockHeight':
+      case 'blockHeight': {
         return (
           <SSNumberInput
             min={CURRENT_BLOCK_HEIGHT}
@@ -86,7 +85,8 @@ function TimeLock() {
             showFeedback
           />
         )
-      case 'date':
+      }
+      case 'date': {
         return (
           <SSVStack gap="lg">
             <SSHStack>
@@ -145,8 +145,10 @@ function TimeLock() {
             </SSHStack>
           </SSVStack>
         )
-      default:
+      }
+      default: {
         return null
+      }
     }
   }
 

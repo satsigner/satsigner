@@ -2,7 +2,7 @@ import * as DocumentPicker from 'expo-document-picker'
 import * as FileSystem from 'expo-file-system'
 import * as Sharing from 'expo-sharing'
 
-type ShareFileProps = {
+interface ShareFileProps {
   filename: string
   fileContent: string
   dialogTitle: string
@@ -18,16 +18,16 @@ export async function shareFile({
   const fileUri = FileSystem.documentDirectory + filename
 
   await FileSystem.writeAsStringAsync(fileUri, fileContent)
-  await Sharing.shareAsync(fileUri, { mimeType, dialogTitle })
+  await Sharing.shareAsync(fileUri, { dialogTitle, mimeType })
 }
 
-export type PickFileProps = {
+export interface PickFileProps {
   type: 'application/json' | 'text/csv' | 'text/plain' | '*/*'
   encodingOrOptions?: FileSystem.ReadingOptions
 }
 
 export async function pickFile({ type, encodingOrOptions }: PickFileProps) {
   const file = await DocumentPicker.getDocumentAsync({ type })
-  if (file.canceled || !file.assets?.[0]) return
+  if (file.canceled || !file.assets?.[0]) {return}
   return FileSystem.readAsStringAsync(file.assets[0].uri, encodingOrOptions)
 }

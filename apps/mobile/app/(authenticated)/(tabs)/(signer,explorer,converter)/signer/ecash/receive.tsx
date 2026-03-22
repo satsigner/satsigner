@@ -20,9 +20,9 @@ import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { error, success, warning, white } from '@/styles/colors'
-import { type EcashToken } from '@/types/models/Ecash'
+import type { EcashToken } from '@/types/models/Ecash'
 import type { LNURLWithdrawDetails } from '@/types/models/LNURL'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import { formatNumber } from '@/utils/format'
 import {
   decodeLNURL,
@@ -80,11 +80,9 @@ export default function EcashReceivePage() {
   )
 
   // Cleanup polling when component unmounts or tab changes
-  useEffect(() => {
-    return () => {
+  useEffect(() => () => {
       stopPolling()
-    }
-  }, [stopPolling])
+    }, [stopPolling])
 
   // Stop polling when switching tabs
   useEffect(() => {
@@ -98,7 +96,7 @@ export default function EcashReceivePage() {
     setDecodedToken(null)
 
     const cleanText = text.trim()
-    if (!cleanText || !cleanText.toLowerCase().startsWith('cashu')) return
+    if (!cleanText || !cleanText.toLowerCase().startsWith('cashu')) {return}
     try {
       const decoded = getDecodedToken(cleanText) as EcashToken
       setDecodedToken(decoded)
@@ -110,7 +108,7 @@ export default function EcashReceivePage() {
   // Handle LNURL-w input
   const handleLNURLWithdrawInput = useCallback(async (input: string) => {
     const cleanInput = input.trim()
-    if (!cleanInput) return
+    if (!cleanInput) {return}
 
     const { isLNURL: isLNURLInput, type: lnurlType } = getLNURLType(cleanInput)
 
@@ -185,7 +183,7 @@ export default function EcashReceivePage() {
   }, [token, activeMint, receiveEcash, router])
 
   const handleFiatAmountChange = (text: string) => {
-    const cleaned = text.replace(/[^0-9.]/g, '')
+    const cleaned = text.replaceAll(/[^0-9.]/g, '')
     setLocalFiatAmount(cleaned)
     const fiat = Number(cleaned)
     if (!isNaN(fiat) && btcPrice && btcPrice > 0) {
@@ -195,9 +193,9 @@ export default function EcashReceivePage() {
   }
 
   const handleSwitchToFiat = () => {
-    if (!btcPrice || btcPrice <= 0) return
+    if (!btcPrice || btcPrice <= 0) {return}
     if (amount) {
-      const fiat = satsToFiat(parseInt(amount, 10))
+      const fiat = satsToFiat(Number.parseInt(amount, 10))
       setLocalFiatAmount(fiat > 0 ? fiat.toFixed(2) : '')
     }
     setAmountMode('fiat')
@@ -220,7 +218,7 @@ export default function EcashReceivePage() {
 
     setIsCreatingQuote(true)
     try {
-      const amountSats = parseInt(amount, 10)
+      const amountSats = Number.parseInt(amount, 10)
 
       // Validate amount against LNURL-w limits if in withdraw mode
       if (isLNURLWithdrawMode && lnurlWithdrawDetails) {
@@ -231,11 +229,11 @@ export default function EcashReceivePage() {
         ) {
           toast.error(
             t('ecash.error.amountOutOfRange', {
-              min: Math.ceil(
-                lnurlWithdrawDetails.minWithdrawable / 1000
-              ).toString(),
               max: Math.floor(
                 lnurlWithdrawDetails.maxWithdrawable / 1000
+              ).toString(),
+              min: Math.ceil(
+                lnurlWithdrawDetails.minWithdrawable / 1000
               ).toString()
             })
           )
@@ -274,7 +272,7 @@ export default function EcashReceivePage() {
       // Start automatic polling for payment status with a small delay
       setTimeout(() => {
         startPolling(async () => {
-          if (!activeMint || !quote) return false
+          if (!activeMint || !quote) {return false}
 
           try {
             const status = await checkMintQuote(activeMint.url, quote.quote)
@@ -383,39 +381,53 @@ export default function EcashReceivePage() {
 
   function getStatusColor(status: string) {
     switch (status) {
-      case 'PENDING':
+      case 'PENDING': {
         return warning
-      case 'PAID':
+      }
+      case 'PAID': {
         return success
-      case 'EXPIRED':
+      }
+      case 'EXPIRED': {
         return error
-      case 'CANCELLED':
+      }
+      case 'CANCELLED': {
         return error
-      case 'UNPAID':
+      }
+      case 'UNPAID': {
         return warning
-      case 'ISSUED':
+      }
+      case 'ISSUED': {
         return success
-      default:
+      }
+      default: {
         return white
+      }
     }
   }
 
   function getStatusText(status: string) {
     switch (status) {
-      case 'PENDING':
+      case 'PENDING': {
         return t('ecash.quote.pending')
-      case 'PAID':
+      }
+      case 'PAID': {
         return t('ecash.quote.paid')
-      case 'EXPIRED':
+      }
+      case 'EXPIRED': {
         return t('ecash.quote.expired')
-      case 'CANCELLED':
+      }
+      case 'CANCELLED': {
         return t('ecash.quote.cancelled')
-      case 'UNPAID':
+      }
+      case 'UNPAID': {
         return t('ecash.quote.pending')
-      case 'ISSUED':
+      }
+      case 'ISSUED': {
         return t('ecash.quote.paid')
-      default:
+      }
+      default: {
         return status || ''
+      }
     }
   }
 
@@ -529,11 +541,11 @@ export default function EcashReceivePage() {
                   <SSTextInput
                     value={
                       amount
-                        ? formatNumber(parseInt(amount, 10)).toString()
+                        ? formatNumber(Number.parseInt(amount, 10)).toString()
                         : ''
                     }
                     onChangeText={(text) =>
-                      setAmount(text.replace(/[^0-9]/g, ''))
+                      setAmount(text.replaceAll(/[^0-9]/g, ''))
                     }
                     placeholder="0"
                     keyboardType="numeric"
@@ -563,7 +575,7 @@ export default function EcashReceivePage() {
                   >
                     ≈{' '}
                     {amount
-                      ? `${formatNumber(satsToFiat(parseInt(amount, 10)), 2)} ${fiatCurrency}`
+                      ? `${formatNumber(satsToFiat(Number.parseInt(amount, 10)), 2)} ${fiatCurrency}`
                       : `0 ${fiatCurrency}`}
                   </SSText>
                 ) : (
@@ -574,7 +586,7 @@ export default function EcashReceivePage() {
                     style={styles.switchableAmount}
                   >
                     {amount
-                      ? `${formatNumber(parseInt(amount, 10))} ${t('bitcoin.sats')}`
+                      ? `${formatNumber(Number.parseInt(amount, 10))} ${t('bitcoin.sats')}`
                       : `0 ${t('bitcoin.sats')}`}
                   </SSText>
                 )}
@@ -586,10 +598,10 @@ export default function EcashReceivePage() {
                       {Number(amount) * 1000 <
                       lnurlWithdrawDetails.minWithdrawable
                         ? t('ecash.error.amountTooLow')
-                        : Number(amount) * 1000 >
+                        : (Number(amount) * 1000 >
                             lnurlWithdrawDetails.maxWithdrawable
                           ? t('ecash.error.amountTooHigh')
-                          : ''}
+                          : '')}
                     </SSText>
                   )}
               </SSVStack>
@@ -698,6 +710,23 @@ export default function EcashReceivePage() {
 }
 
 const styles = StyleSheet.create({
+  detailRow: {
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap'
+  },
+  lnurlDetails: {
+    padding: 12,
+    backgroundColor: Colors.gray[900],
+    borderRadius: 4
+  },
+  qrContainer: {
+    alignItems: 'center',
+    paddingVertical: 20
+  },
+  switchableAmount: {
+    textDecorationLine: 'underline'
+  },
   tokenInput: {
     height: 'auto',
     minHeight: 100,
@@ -705,22 +734,5 @@ const styles = StyleSheet.create({
     padding: 10,
     fontSize: 14,
     fontFamily: 'monospace'
-  },
-  qrContainer: {
-    alignItems: 'center',
-    paddingVertical: 20
-  },
-  lnurlDetails: {
-    padding: 12,
-    backgroundColor: Colors.gray[900],
-    borderRadius: 4
-  },
-  detailRow: {
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap'
-  },
-  switchableAmount: {
-    textDecorationLine: 'underline'
   }
 })

@@ -25,8 +25,8 @@ import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
-import { type Account, type Key, type Secret } from '@/types/models/Account'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { Account, Key, Secret } from '@/types/models/Account'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import {
   decryptAllAccountKeySecrets,
   getAccountFingerprint
@@ -74,6 +74,10 @@ export default function AccountSettings() {
   const labelCounts = useMemo(() => {
     const labels = account?.labels ? Object.values(account.labels) : []
     return {
+      addresses: {
+        labeled: labels.filter((l) => l.type === 'addr').length,
+        total: account?.addresses?.length || 0
+      },
       transactions: {
         labeled: labels.filter((l) => l.type === 'tx').length,
         total: account?.transactions?.length || 0
@@ -81,10 +85,6 @@ export default function AccountSettings() {
       utxos: {
         labeled: labels.filter((l) => l.type === 'output').length,
         total: account?.utxos?.length || 0
-      },
-      addresses: {
-        labeled: labels.filter((l) => l.type === 'addr').length,
-        total: account?.addresses?.length || 0
       }
     }
   }, [
@@ -96,14 +96,18 @@ export default function AccountSettings() {
 
   function getPolicyTypeButtonLabel() {
     switch (account?.policyType) {
-      case 'singlesig':
+      case 'singlesig': {
         return t('account.policy.singleSignature.title')
-      case 'multisig':
+      }
+      case 'multisig': {
         return t('account.policy.multiSignature.title')
-      case 'watchonly':
+      }
+      case 'watchonly': {
         return t('account.policy.watchOnly.title')
-      default:
+      }
+      default: {
         return ''
+      }
     }
   }
 
@@ -123,7 +127,7 @@ export default function AccountSettings() {
   async function handlePinEntry(pinString: string) {
     const salt = await getItem(SALT_KEY)
     const storedEncryptedPin = await getItem(PIN_KEY)
-    if (!salt || !storedEncryptedPin) return
+    if (!salt || !storedEncryptedPin) {return}
 
     const encryptedPin = await pbkdf2Encrypt(pinString, salt)
     const isPinValid = encryptedPin === storedEncryptedPin
@@ -148,9 +152,9 @@ export default function AccountSettings() {
   useEffect(() => {
     async function getMnemonic() {
       const pin = await getItem(PIN_KEY)
-      if (!account || !pin) return
+      if (!account || !pin) {return}
 
-      const iv = account.keys[0].iv
+      const {iv} = account.keys[0]
       const encryptedSecret = account.keys[0].secret as string
 
       const accountSecretString = await aesDecrypt(encryptedSecret, pin, iv)
@@ -163,7 +167,7 @@ export default function AccountSettings() {
 
   useEffect(() => {
     async function decryptCurrentAccountKeys() {
-      if (!account) return
+      if (!account) {return}
       const secrets = await decryptAllAccountKeySecrets(account)
       const decryptedKeyData = account.keys.map((key, index) => {
         const newKey: Key = {
@@ -177,8 +181,8 @@ export default function AccountSettings() {
 
     try {
       decryptCurrentAccountKeys()
-    } catch (e: any) {
-      toast.error(e?.message || 'Failed to decrypt account keys')
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to decrypt account keys')
     }
   }, [account])
 
@@ -199,12 +203,13 @@ export default function AccountSettings() {
   }, [account?.keys])
 
   if (!currentAccountId || !account || !scriptVersion)
-    return <Redirect href="/" />
+    {return <Redirect href="/" />}
 
   return (
     <ScrollView>
       <Stack.Screen
         options={{
+          headerRight: () => null,
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
@@ -212,8 +217,7 @@ export default function AccountSettings() {
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
               )}
             </SSHStack>
-          ),
-          headerRight: () => null
+          )
         }}
       />
       <SSVStack gap="lg" style={styles.mainLayout}>
@@ -595,11 +599,18 @@ const styles = StyleSheet.create({
   button: {
     flex: 1
   },
+  copyButton: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: Colors.gray[700]
+  },
+  copyButtonContainer: {
+    width: '100%',
+    padding: 12,
+    paddingTop: 0
+  },
   deleteButton: {
     backgroundColor: Colors.error
-  },
-  infoTable: {
-    width: '100%'
   },
   deleteModalInnerContainer: {
     flexWrap: 'wrap'
@@ -611,16 +622,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center'
   },
+  electrumWarning: {
+    borderWidth: 1,
+    borderColor: Colors.warning,
+    borderRadius: 5,
+    padding: 10
+  },
+  electrumWarningText: {
+    color: Colors.warning
+  },
+  infoTable: {
+    width: '100%'
+  },
   mainLayout: {
     padding: 20
   },
-  multiSigContainer: {
-    backgroundColor: '#131313',
-    paddingHorizontal: 0
-  },
-  multiSigKeyControlCOntainer: {
-    marginHorizontal: 0,
-    marginBottom: 50
+  mnemonicColumn: {
+    flex: 1,
+    maxWidth: '32%'
   },
   mnemonicGrid: {
     flexDirection: 'row',
@@ -628,9 +647,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 8
   },
-  mnemonicColumn: {
+  mnemonicModalContainer: {
+    width: '100%',
+    padding: 0,
+    flex: 0
+  },
+  mnemonicModalOuterContainer: {
     flex: 1,
-    maxWidth: '32%'
+    width: '100%',
+    justifyContent: 'space-between'
   },
   mnemonicWordContainer: {
     marginBottom: 8,
@@ -647,6 +672,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row'
   },
+  mnemonicWordsContainer: {
+    width: '100%',
+    marginBottom: 16
+  },
+  multiSigContainer: {
+    backgroundColor: '#131313',
+    paddingHorizontal: 0
+  },
+  multiSigKeyControlCOntainer: {
+    marginHorizontal: 0,
+    marginBottom: 50
+  },
   wordIndex: {
     minWidth: 24,
     textAlign: 'center',
@@ -656,38 +693,5 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'left',
     lineHeight: 20
-  },
-  mnemonicModalOuterContainer: {
-    flex: 1,
-    width: '100%',
-    justifyContent: 'space-between'
-  },
-  mnemonicModalContainer: {
-    width: '100%',
-    padding: 0,
-    flex: 0
-  },
-  mnemonicWordsContainer: {
-    width: '100%',
-    marginBottom: 16
-  },
-  copyButtonContainer: {
-    width: '100%',
-    padding: 12,
-    paddingTop: 0
-  },
-  copyButton: {
-    width: '100%',
-    borderWidth: 1,
-    borderColor: Colors.gray[700]
-  },
-  electrumWarning: {
-    borderWidth: 1,
-    borderColor: Colors.warning,
-    borderRadius: 5,
-    padding: 10
-  },
-  electrumWarningText: {
-    color: Colors.warning
   }
 })

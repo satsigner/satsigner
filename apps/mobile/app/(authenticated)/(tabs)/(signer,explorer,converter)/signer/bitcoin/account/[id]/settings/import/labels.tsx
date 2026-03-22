@@ -8,10 +8,8 @@ import { useShallow } from 'zustand/react/shallow'
 import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
-import SSLabelConflict, {
-  type Conflict,
-  detectConflcits
-} from '@/components/SSLabelConflict'
+import SSLabelConflict, { detectConflcits } from '@/components/SSLabelConflict';
+import type { Conflict } from '@/components/SSLabelConflict';
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import useNostrSync from '@/hooks/useNostrSync'
@@ -20,14 +18,9 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import {
-  type Bip329FileType,
-  bip329FileTypes,
-  bip329mimes,
-  bip329parser,
-  type Label
-} from '@/utils/bip329'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
+import { bip329FileTypes, bip329mimes, bip329parser } from '@/utils/bip329';
+import type { Bip329FileType, Label } from '@/utils/bip329';
 import { pickFile } from '@/utils/filesystem'
 
 export default function ImportLabels() {
@@ -77,14 +70,14 @@ export default function ImportLabels() {
 
   function importLabelsWithConflicts(resolvedLabels: Label[]) {
     const labelsDict: Record<Label['ref'], Label> = {}
-    for (const label of pendingLabels) labelsDict[label.ref] = label
-    for (const label of resolvedLabels) labelsDict[label.ref] = label
+    for (const label of pendingLabels) {labelsDict[label.ref] = label}
+    for (const label of resolvedLabels) {labelsDict[label.ref] = label}
     importLabels(Object.values(labelsDict))
     setShowConflictSolver(false)
   }
 
   function handleImport() {
-    if (!importContent) return
+    if (!importContent) {return}
     if (invalidContent) {
       toast.error(t('account.import.labelsInvalidFormat'))
       return
@@ -99,7 +92,7 @@ export default function ImportLabels() {
   async function importLabelsFromFile() {
     const type = bip329mimes[importType]
     const fileContent = await pickFile({ type })
-    if (!fileContent) return
+    if (!fileContent) {return}
     setImportContent(fileContent)
 
     // Validate the content
@@ -142,7 +135,7 @@ export default function ImportLabels() {
 
   function updateImportType(type: Bip329FileType) {
     setImportType(type)
-    if (!importContent) return
+    if (!importContent) {return}
     try {
       bip329parser[type](importContent)
       setInvalidContent(false)
@@ -152,12 +145,13 @@ export default function ImportLabels() {
     }
   }
 
-  if (!account || !accountId) return <Redirect href="/" />
+  if (!account || !accountId) {return <Redirect href="/" />}
 
   return (
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
@@ -165,8 +159,7 @@ export default function ImportLabels() {
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
               )}
             </SSHStack>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <SSVStack style={{ padding: 20 }}>
@@ -191,11 +184,11 @@ export default function ImportLabels() {
           <SSVStack>
             <View
               style={{
-                padding: 10,
                 backgroundColor: Colors.gray[950],
+                borderColor: invalidContent ? Colors.error : Colors.gray[800],
                 borderRadius: 5,
                 borderWidth: 1,
-                borderColor: invalidContent ? Colors.error : Colors.gray[800]
+                padding: 10
               }}
             >
               <SSText color="white" size="sm" type="mono">
@@ -252,7 +245,7 @@ export default function ImportLabels() {
       <SSModal visible={successMsgVisible} onClose={router.back} fullOpacity>
         <SSVStack
           gap="lg"
-          style={{ justifyContent: 'center', height: '100%', width: '100%' }}
+          style={{ height: '100%', justifyContent: 'center', width: '100%' }}
         >
           <SSText uppercase size="md" center weight="bold">
             {t('import.success', { importCount, total: importCountTotal })}

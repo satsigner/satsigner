@@ -1,24 +1,16 @@
 import { FlashList } from '@shopify/flash-list'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  Animated,
-  Keyboard,
-  type StyleProp,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-  type ViewStyle
-} from 'react-native'
+import { Animated, Keyboard, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 
 import useKeyboardHeight from '@/hooks/useKeyboardHeight'
 import usePrevious from '@/hooks/usePrevious'
 import { t } from '@/locales'
 import { Colors, Sizes } from '@/styles'
-import { getWordList, type WordListName } from '@/utils/bip39'
+import { getWordList } from '@/utils/bip39';
+import type { WordListName } from '@/utils/bip39';
 
-type WordInfo = {
+interface WordInfo {
   index: number
   word: string
 }
@@ -29,7 +21,7 @@ function wordStartMispells(haystack: string, needle: string) {
     // add a penalty which puts weight on misspells close to the word start
     const penalty = (needle.length - i + 1) / 10
     if (haystack.length <= i || needle[i] !== haystack[i])
-      mismatches += 1 + penalty
+      {mismatches += 1 + penalty}
   }
   return mismatches
 }
@@ -41,8 +33,8 @@ function getMatchingWords(wordStart: string, wordList: string[]): WordInfo[] {
   const result = wordList
     .map((w) => ({
       index: index++,
-      word: w,
-      mispells: wordStartMispells(w, wordStart)
+      mispells: wordStartMispells(w, wordStart),
+      word: w
     }))
     .filter((w) => w.mispells <= maxMisspells)
 
@@ -54,7 +46,7 @@ function getMatchingWords(wordStart: string, wordList: string[]): WordInfo[] {
   }))
 }
 
-type SSKeyboardWordSelectorProps = {
+interface SSKeyboardWordSelectorProps {
   visible: boolean
   wordStart: string
   wordListName: WordListName
@@ -87,14 +79,14 @@ function SSKeyboardWordSelector({
 
   if (keyboardOpen && visible && data.length > 0) {
     Animated.timing(opacityAnimated, {
-      toValue: 1,
       duration: 200,
+      toValue: 1,
       useNativeDriver: true
     }).start()
   } else if (!keyboardOpen || !visible) {
     Animated.timing(opacityAnimated, {
-      toValue: 0,
       duration: 200,
+      toValue: 0,
       useNativeDriver: true
     }).start()
   }
@@ -206,6 +198,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
+  separator: {
+    height: '100%',
+    backgroundColor: Colors.gray[50],
+    width: 1
+  },
   wordContainerBase: {
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -218,11 +215,6 @@ const styles = StyleSheet.create({
   wordText: {
     fontSize: Sizes.text.fontSize.lg,
     color: Colors.black
-  },
-  separator: {
-    height: '100%',
-    backgroundColor: Colors.gray[50],
-    width: 1
   }
 })
 

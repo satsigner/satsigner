@@ -6,27 +6,25 @@ import { Sizes } from '@/styles'
 const NUMBER_OF_COLUMNS = 3
 const HEIGHT_MARGIN = 4.25
 
-type SSSeedLayoutProps = {
+interface SSSeedLayoutProps {
   count: 12 | 15 | 18 | 21 | 24
   children: React.ReactNode
 }
 
 export default function SSSeedLayout({ count, children }: SSSeedLayoutProps) {
-  const containerStyle = useMemo(() => {
-    return {
+  const containerStyle = useMemo(() => ({
       height:
         (count / NUMBER_OF_COLUMNS) * (Sizes.wordInput.height + HEIGHT_MARGIN)
-    }
-  }, [count])
+    }), [count])
 
   return <View style={[styles.containerBase, containerStyle]}>{children}</View>
 }
 
 const styles = StyleSheet.create({
   containerBase: {
+    alignContent: 'space-between',
     flex: 1,
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    alignContent: 'space-between'
+    justifyContent: 'space-between'
   }
 })

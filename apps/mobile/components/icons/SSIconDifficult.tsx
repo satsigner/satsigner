@@ -1,4 +1,5 @@
-import Svg, { Circle, G, type SvgProps } from 'react-native-svg'
+import Svg, { Circle, G } from 'react-native-svg';
+import type { SvgProps } from 'react-native-svg';
 
 type IconProps = Pick<SvgProps, 'width' | 'height' | 'color'>
 

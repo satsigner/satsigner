@@ -2,7 +2,7 @@ type PromiseName = string
 
 type PromiseStatus = 'idle' | 'pending' | 'success' | 'error'
 
-type PromiseStatusObj = {
+interface PromiseStatusObj {
   name?: PromiseName
   status?: PromiseStatus
   error?: string
@@ -11,14 +11,12 @@ type PromiseStatusObj = {
 export type PromiseStatuses = Record<PromiseName, PromiseStatusObj>
 
 export function initPromiseStatuses(promiseNames: string[]) {
-  return promiseNames.reduce((initialStatuses, promiseName) => {
-    return {
+  return promiseNames.reduce((initialStatuses, promiseName) => ({
       ...initialStatuses,
       [promiseName]: {
         status: 'idle'
       }
-    }
-  }, {}) as PromiseStatuses
+    }), {}) as PromiseStatuses
 }
 
 export function setPromiseStatus(
@@ -29,7 +27,7 @@ export function setPromiseStatus(
   return {
     ...statuses,
     [name]: {
-      ...(statuses[name] || {}),
+      ...statuses[name],
       status: newStatus
     }
   }
@@ -42,7 +40,7 @@ export function setPromisePending(
   return {
     ...statuses,
     [name]: {
-      ...(statuses[name] || {}),
+      ...statuses[name],
       status: 'pending'
     }
   } as PromiseStatuses
@@ -55,7 +53,7 @@ export function setPromiseSuccessful(
   return {
     ...statuses,
     [name]: {
-      ...(statuses[name] || {}),
+      ...statuses[name],
       status: 'success'
     }
   } as PromiseStatuses
@@ -69,9 +67,9 @@ export function setPromiseError(
   return {
     ...statuses,
     [name]: {
-      ...(statuses[name] || {}),
-      status: 'error',
-      error: error || ''
+      ...statuses[name],
+      error: error || '',
+      status: 'error'
     }
   } as PromiseStatuses
 }

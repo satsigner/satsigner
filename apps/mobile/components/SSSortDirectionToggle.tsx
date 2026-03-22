@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { StyleSheet, TouchableOpacity, View } from 'react-native'
 
-import { type Direction } from '@/types/logic/sort'
+import type { Direction } from '@/types/logic/sort'
 
 import { SSIconChevronDown, SSIconChevronUp } from './icons'
 import SSText from './SSText'
 
-type SSSortDirectionToggleProps = {
+interface SSSortDirectionToggleProps {
   label?: string
   showArrow?: boolean
   onDirectionChanged(direction: Direction): void
@@ -50,15 +50,15 @@ function SSSortDirectionToggle({
 }
 
 const styles = StyleSheet.create({
-  buttonBase: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4
-  },
   arrowContainerBase: {
     justifyContent: 'center',
     alignItems: 'center',
     width: 14
+  },
+  buttonBase: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4
   }
 })
 

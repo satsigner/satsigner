@@ -24,7 +24,7 @@ import { Colors } from '@/styles'
 import type { Key, Secret } from '@/types/models/Account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 
-type SSMultisigKeyControlProps = {
+interface SSMultisigKeyControlProps {
   index: number
   keyCount: number
   keyDetails?: Key
@@ -99,13 +99,13 @@ function SSMultisigKeyControl({
       const targetHeight = contentHeight > 0 ? contentHeight : 300
       Animated.parallel([
         Animated.timing(animatedHeight, {
-          toValue: targetHeight + 50 - 16,
           duration: 100,
+          toValue: targetHeight + 50 - 16,
           useNativeDriver: false
         }),
         Animated.timing(animatedOpacity, {
-          toValue: 1,
           duration: 100,
+          toValue: 1,
           useNativeDriver: false
         })
       ]).start()
@@ -113,13 +113,13 @@ function SSMultisigKeyControl({
       // Collapse animation
       Animated.parallel([
         Animated.timing(animatedHeight, {
-          toValue: 0,
           duration: 100,
+          toValue: 0,
           useNativeDriver: false
         }),
         Animated.timing(animatedOpacity, {
-          toValue: 0,
           duration: 100,
+          toValue: 0,
           useNativeDriver: false
         })
       ]).start()
@@ -180,8 +180,8 @@ function SSMultisigKeyControl({
   const { sourceLabel, importExtendedLabel, dropSeedLabel, shareXpubLabel } =
     useKeySourceLabel({
       keyDetails,
-      scriptVersion,
       network,
+      scriptVersion,
       seedDropped
     })
 
@@ -199,7 +199,7 @@ function SSMultisigKeyControl({
   }
 
   async function handleAction(type: NonNullable<Key['creationType']>) {
-    if (!localKeyName.trim()) return
+    if (!localKeyName.trim()) {return}
 
     setCreationType(type)
     setKeyName(localKeyName)
@@ -227,23 +227,27 @@ function SSMultisigKeyControl({
   ) {
     // Handle actions for completed keys
     switch (action) {
-      case 'dropSeed':
+      case 'dropSeed': {
         setDropSeedModalVisible(true)
         break
-      case 'shareXpub':
+      }
+      case 'shareXpub': {
         handleShareXpub()
         break
-      case 'shareDescriptor':
+      }
+      case 'shareDescriptor': {
         handleShareDescriptor()
         break
-      case 'resetKey':
+      }
+      case 'resetKey': {
         setResetKeyModalVisible(true)
         break
+      }
     }
   }
 
   async function handleDropSeed() {
-    if (!keyDetails) return
+    if (!keyDetails) {return}
 
     try {
       if (isSettingsMode && accountId) {
@@ -258,7 +262,7 @@ function SSMultisigKeyControl({
   }
 
   async function handleResetKey() {
-    if (!keyDetails) return
+    if (!keyDetails) {return}
 
     try {
       if (isSettingsMode && accountId) {
@@ -357,7 +361,7 @@ function SSMultisigKeyControl({
     }
   }
 
-  if (typeof keyDetails?.secret === 'string' && !isSettingsMode) return null
+  if (typeof keyDetails?.secret === 'string' && !isSettingsMode) {return null}
 
   // Extract fingerprint and extendedPublicKey for display, with null checks
   const fingerprint =
@@ -386,9 +390,9 @@ function SSMultisigKeyControl({
       style={[
         {
           borderColor: '#444444',
+          borderTopWidth: 1,
           paddingBottom: 16,
-          paddingTop: 16,
-          borderTopWidth: 1
+          paddingTop: 16
         },
         index === keyCount - 1 && { borderBottomWidth: 1 }
       ]}
@@ -450,7 +454,7 @@ function SSMultisigKeyControl({
         <View
           style={{
             position: 'absolute',
-            top: -10000, // Move off-screen
+            top: -10_000, // Move off-screen
             left: 0,
             right: 0,
             opacity: 0
@@ -498,8 +502,8 @@ function SSMultisigKeyControl({
                       onPress={() => handleCompletedKeyAction('dropSeed')}
                       style={{
                         backgroundColor: 'black',
-                        borderWidth: 1,
-                        borderColor: 'white'
+                        borderColor: 'white',
+                        borderWidth: 1
                       }}
                     />
                   )}
@@ -517,8 +521,8 @@ function SSMultisigKeyControl({
                     variant="ghost"
                     style={{
                       backgroundColor: 'transparent',
-                      borderWidth: 1,
-                      borderColor: '#666666'
+                      borderColor: '#666666',
+                      borderWidth: 1
                     }}
                   />
                 </>
@@ -587,8 +591,8 @@ function SSMultisigKeyControl({
                     onPress={() => handleCompletedKeyAction('dropSeed')}
                     style={{
                       backgroundColor: 'black',
-                      borderWidth: 1,
-                      borderColor: 'white'
+                      borderColor: 'white',
+                      borderWidth: 1
                     }}
                   />
                 )}
@@ -606,8 +610,8 @@ function SSMultisigKeyControl({
                   variant="ghost"
                   style={{
                     backgroundColor: 'transparent',
-                    borderWidth: 1,
-                    borderColor: '#666666'
+                    borderColor: '#666666',
+                    borderWidth: 1
                   }}
                 />
               </>
@@ -649,20 +653,20 @@ function SSMultisigKeyControl({
           itemsCenter
           gap="lg"
           style={{
-            paddingVertical: 20,
-            paddingHorizontal: 16,
             backgroundColor: Colors.white,
             borderRadius: 8,
+            elevation: 5,
             marginHorizontal: 40,
             maxWidth: 300,
+            paddingHorizontal: 16,
+            paddingVertical: 20,
             shadowColor: '#000',
             shadowOffset: {
               width: 0,
               height: 2
             },
             shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 5
+            shadowRadius: 3.84
           }}
         >
           {/* Title */}
@@ -681,9 +685,9 @@ function SSMultisigKeyControl({
             center
             size="md"
             style={{
-              maxWidth: 260,
               lineHeight: 20,
-              marginBottom: 8
+              marginBottom: 8,
+              maxWidth: 260
             }}
           >
             {t('account.seed.dropSeedConfirm.message')}
@@ -696,9 +700,9 @@ function SSMultisigKeyControl({
               variant="ghost"
               onPress={() => setDropSeedModalVisible(false)}
               style={{
-                flex: 1,
                 backgroundColor: Colors.gray[100],
-                borderWidth: 0
+                borderWidth: 0,
+                flex: 1
               }}
               textStyle={{ color: Colors.black }}
             />
@@ -723,20 +727,20 @@ function SSMultisigKeyControl({
           itemsCenter
           gap="lg"
           style={{
-            paddingVertical: 20,
-            paddingHorizontal: 16,
             backgroundColor: Colors.white,
             borderRadius: 8,
+            elevation: 5,
             marginHorizontal: 40,
             maxWidth: 300,
+            paddingHorizontal: 16,
+            paddingVertical: 20,
             shadowColor: '#000',
             shadowOffset: {
               width: 0,
               height: 2
             },
             shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 5
+            shadowRadius: 3.84
           }}
         >
           {/* Title */}
@@ -755,9 +759,9 @@ function SSMultisigKeyControl({
             center
             size="md"
             style={{
-              maxWidth: 260,
               lineHeight: 20,
-              marginBottom: 8
+              marginBottom: 8,
+              maxWidth: 260
             }}
           >
             Are you sure you want to reset this key? This will clear all key
@@ -770,9 +774,9 @@ function SSMultisigKeyControl({
               variant="ghost"
               onPress={() => setResetKeyModalVisible(false)}
               style={{
-                flex: 1,
                 backgroundColor: Colors.gray[100],
-                borderWidth: 0
+                borderWidth: 0,
+                flex: 1
               }}
               textStyle={{ color: Colors.black }}
             />

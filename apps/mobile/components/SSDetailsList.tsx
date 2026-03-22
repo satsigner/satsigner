@@ -1,7 +1,9 @@
 import { router } from 'expo-router'
-import { type DimensionValue, TouchableOpacity, View } from 'react-native'
+import { TouchableOpacity, View } from 'react-native';
+import type { DimensionValue } from 'react-native';
 
-import SSText, { type SSTextProps } from '@/components/SSText'
+import SSText from '@/components/SSText';
+import type { SSTextProps } from '@/components/SSText';
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 
@@ -9,7 +11,7 @@ import SSClipboardCopy from './SSClipboardCopy'
 
 type nullableText = string | number | undefined
 
-type SSDetailsListItemProps = {
+interface SSDetailsListItemProps {
   header: string
   text?: nullableText
   headerSize?: SSTextProps['size']
@@ -45,22 +47,20 @@ export default function SSDetailsList({
   return (
     <SSHStack
       style={{
+        columnGap: 0,
         flexWrap: 'wrap',
         justifyContent: 'space-between',
-        columnGap: 0,
         rowGap: gap
       }}
     >
-      {items.map(([header, text, options], index) => {
-        return (
+      {items.map(([header, text, options], index) => (
           <SSDetailsListItem
             key={index}
             {...commonOptions}
             {...options}
             {...{ header, text, width: options?.width || width }}
           />
-        )
-      })}
+        ))}
     </SSHStack>
   )
 }

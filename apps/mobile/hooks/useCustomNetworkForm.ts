@@ -10,17 +10,17 @@
 
 import { useCallback, useState } from 'react'
 
-import {
-  type Backend,
-  type ProxyConfig,
-  type Server
+import type {
+  Backend,
+  ProxyConfig,
+  Server
 } from '@/types/settings/blockchain'
 import { trimOnionAddress } from '@/utils/format'
 
 const DEFAULT_PROXY_HOST = 'localhost'
 const DEFAULT_PROXY_PORT = 9050
 
-type CustomNetworkFormData = {
+interface CustomNetworkFormData {
   backend: Backend
   name: string
   protocol: 'tcp' | 'ssl'
@@ -32,10 +32,10 @@ type CustomNetworkFormData = {
 export function useCustomNetworkForm() {
   const [formData, setFormData] = useState<CustomNetworkFormData>({
     backend: 'electrum',
-    name: '',
-    protocol: 'ssl',
     host: '',
+    name: '',
     port: '',
+    protocol: 'ssl',
     proxy: {
       enabled: false,
       host: DEFAULT_PROXY_HOST,
@@ -64,8 +64,8 @@ export function useCustomNetworkForm() {
   }
 
   function constructTrimmedUrl() {
-    if (!formData.host) return ''
-    if (formData.backend === 'electrum' && !formData.port) return ''
+    if (!formData.host) {return ''}
+    if (formData.backend === 'electrum' && !formData.port) {return ''}
     const fullUrl = constructUrl()
     return trimOnionAddress(fullUrl)
   }
@@ -73,10 +73,10 @@ export function useCustomNetworkForm() {
   function resetForm() {
     setFormData({
       backend: 'electrum',
-      name: '',
-      protocol: 'ssl',
       host: '',
+      name: '',
       port: '',
+      protocol: 'ssl',
       proxy: {
         enabled: false,
         host: DEFAULT_PROXY_HOST,
@@ -94,10 +94,10 @@ export function useCustomNetworkForm() {
       const port = match ? match[3] : ''
       setFormData({
         backend: 'electrum',
-        name: server.name,
-        protocol,
         host,
+        name: server.name,
         port,
+        protocol,
         proxy: server.proxy ?? {
           enabled: false,
           host: DEFAULT_PROXY_HOST,
@@ -111,8 +111,8 @@ export function useCustomNetworkForm() {
         setFormData((prev) => ({
           ...prev,
           backend: 'esplora',
-          name: server.name,
           host: u.hostname,
+          name: server.name,
           port,
           proxy: server.proxy ?? prev.proxy
         }))
@@ -120,8 +120,8 @@ export function useCustomNetworkForm() {
         setFormData((prev) => ({
           ...prev,
           backend: 'esplora',
-          name: server.name,
           host: '',
+          name: server.name,
           port: ''
         }))
       }
@@ -130,7 +130,7 @@ export function useCustomNetworkForm() {
 
   function applyPastedUrl(urlString: string): boolean {
     const raw = urlString.trim()
-    if (!raw) return false
+    if (!raw) {return false}
     const electrumMatch = raw.match(/^(ssl|tls|tcp):\/\/([^:/]+):(\d+)$/)
     if (electrumMatch) {
       const protocol =
@@ -138,15 +138,15 @@ export function useCustomNetworkForm() {
       setFormData((prev) => ({
         ...prev,
         backend: 'electrum',
-        protocol,
         host: electrumMatch[2],
-        port: electrumMatch[3]
+        port: electrumMatch[3],
+        protocol
       }))
       return true
     }
     try {
       const u = new URL(raw)
-      if (u.protocol !== 'https:') return false
+      if (u.protocol !== 'https:') {return false}
       const port = u.port && u.port !== '443' ? u.port : ''
       setFormData((prev) => ({
         ...prev,
@@ -162,12 +162,12 @@ export function useCustomNetworkForm() {
 
   return {
     applyPastedUrl,
+    constructTrimmedUrl,
+    constructUrl,
     formData,
     loadServer,
     resetForm,
     updateField,
-    updateProxyField,
-    constructUrl,
-    constructTrimmedUrl
+    updateProxyField
   }
 }

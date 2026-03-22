@@ -30,9 +30,9 @@ export function updateAccountObjectLabels(account: Account) {
   const labels = { ...account.labels }
   const updatedAccount: Account = {
     ...account,
+    addresses: account.addresses.map((a) => ({ ...a })),
     transactions: account.transactions.map((t) => ({ ...t })),
-    utxos: account.utxos.map((u) => ({ ...u })),
-    addresses: account.addresses.map((a) => ({ ...a }))
+    utxos: account.utxos.map((u) => ({ ...u }))
   }
 
   for (const index in updatedAccount.utxos) {
@@ -48,9 +48,9 @@ export function updateAccountObjectLabels(account: Account) {
     // save label inherited from address
     if (label && !labels[utxoRef]) {
       labels[utxoRef] = {
-        type: 'output',
+        label,
         ref: utxoRef,
-        label
+        type: 'output'
       }
     }
     updatedAccount.utxos[index].label = label || ''
@@ -67,7 +67,7 @@ export function updateAccountObjectLabels(account: Account) {
       for (const output of tx.vout) {
         const outputAddress = output.address
         const outputLabel = labels[outputAddress]?.label
-        if (!outputLabel) continue
+        if (!outputLabel) {continue}
         label += outputLabel + ','
       }
       label = label.replace(/,$/, '')
@@ -76,9 +76,9 @@ export function updateAccountObjectLabels(account: Account) {
     // save label inherited from address
     if (label && !labels[txRef]) {
       labels[txRef] = {
-        type: 'tx',
+        label,
         ref: txRef,
-        label
+        type: 'tx'
       }
     }
 
@@ -132,7 +132,7 @@ export async function getPin() {
 // decrypt key secret without account context using provided PIN
 export async function decryptKeySecretUsingPin(key: Key, pin: string) {
   // object already decrypt
-  if (typeof key.secret === 'object') return key.secret
+  if (typeof key.secret === 'object') {return key.secret}
 
   // decryption validation
   let decryptedSecret = ''
@@ -151,15 +151,15 @@ export async function decryptKeySecretUsingPin(key: Key, pin: string) {
   }
 
   // serialized object validation
-  const expectedObjKeys = [
+  const expectedObjKeys = new Set([
     'mnemonic',
     'passphrase',
     'externalDescriptor',
     'internalDescriptor',
     'extendedPublicKey',
     'fingerprint'
-  ]
-  if (Object.keys(secretObject).some((k) => !expectedObjKeys.includes(k))) {
+  ])
+  if (Object.keys(secretObject).some((k) => !expectedObjKeys.has(k))) {
     throw new Error('Invalid serialized secret')
   }
 
@@ -172,12 +172,12 @@ export async function dropSeedFromKey(key: Key) {
   const secretWithoutSeed: Secret = {
     extendedPublicKey: decryptedSecret.extendedPublicKey,
     externalDescriptor: decryptedSecret.externalDescriptor,
-    internalDescriptor: decryptedSecret.internalDescriptor,
-    fingerprint: decryptedSecret.fingerprint
+    fingerprint: decryptedSecret.fingerprint,
+    internalDescriptor: decryptedSecret.internalDescriptor
   }
   const stringifiedSecret = JSON.stringify(secretWithoutSeed)
   const encryptedSecret = await aesEncrypt(stringifiedSecret, pin, key.iv)
-  stringifiedSecret.replace(/./g, '0')
+  stringifiedSecret.replaceAll(/./g, '0')
   const newKey: Key = {
     ...key,
     secret: encryptedSecret
@@ -299,12 +299,12 @@ export function getAccountFingerprint(
 export async function getAccountFingerprintWithDecryption(
   account: Account
 ): Promise<string> {
-  if (account.keys.length < 0) return ''
+  if (account.keys.length < 0) {return ''}
   return getKeyFingerprint(account.keys[0])
 }
 
 export async function getKeyFingerprint(key: Key): Promise<string> {
-  if (key.fingerprint) return key.fingerprint
+  if (key.fingerprint) {return key.fingerprint}
   const decryptedSecret = await decryptKeySecret(key)
   return decryptedSecret.fingerprint || ''
 }

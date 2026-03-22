@@ -1,10 +1,10 @@
-export type MockPsbt = {
+export interface MockPsbt {
   base64: string
   serialize: () => Promise<string>
   txid: () => Promise<string>
 }
 
-export type MockTxBuilderResult = {
+export interface MockTxBuilderResult {
   psbt: MockPsbt
   txDetails: {
     txid: string
@@ -12,7 +12,7 @@ export type MockTxBuilderResult = {
   }
 }
 
-export type PsbtInputWithSignatures = {
+export interface PsbtInputWithSignatures {
   witnessScript?: Buffer
   partialSig?: {
     pubkey: Buffer

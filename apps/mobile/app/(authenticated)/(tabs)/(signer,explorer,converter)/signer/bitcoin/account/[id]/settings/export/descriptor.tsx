@@ -1,5 +1,6 @@
 import { Descriptor } from 'bdk-rn'
-import { KeychainKind, type Network as BDKNetwork } from 'bdk-rn/lib/lib/enums'
+import { KeychainKind } from 'bdk-rn/lib/lib/enums';
+import type { Network as BDKNetwork } from 'bdk-rn/lib/lib/enums';
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
@@ -16,8 +17,8 @@ import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type Secret } from '@/types/models/Account'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { Secret } from '@/types/models/Account'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { getDescriptorsFromKey } from '@/utils/bip32'
 import { getPublicDescriptorFromMnemonic } from '@/utils/bip39'
 import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
@@ -80,11 +81,11 @@ export default function DescriptorPage() {
       const checksum = checksumMatch ? checksumMatch[1] : ''
 
       return {
-        scriptFunction,
-        fingerprint,
+        checksum,
         derivationPath,
+        fingerprint,
         publicKey,
-        checksum
+        scriptFunction
       }
     } catch {
       return null
@@ -93,14 +94,14 @@ export default function DescriptorPage() {
 
   useEffect(() => {
     async function getDescriptor() {
-      if (!account || !keyIndex) return
+      if (!account || !keyIndex) {return}
 
       setIsLoading(true)
       const pin = await getItem(PIN_KEY)
-      if (!pin) return
+      if (!pin) {return}
 
       try {
-        const keyIndexNum = parseInt(keyIndex, 10)
+        const keyIndexNum = Number.parseInt(keyIndex, 10)
         const key = account.keys[keyIndexNum]
 
         if (!key) {
@@ -195,29 +196,37 @@ export default function DescriptorPage() {
 
             // Add script function based on script version
             switch (key.scriptVersion) {
-              case 'P2PKH':
+              case 'P2PKH': {
                 descriptorString = `pkh(${keyPart})`
                 break
-              case 'P2SH-P2WPKH':
+              }
+              case 'P2SH-P2WPKH': {
                 descriptorString = `sh(wpkh(${keyPart}))`
                 break
-              case 'P2WPKH':
+              }
+              case 'P2WPKH': {
                 descriptorString = `wpkh(${keyPart})`
                 break
-              case 'P2TR':
+              }
+              case 'P2TR': {
                 descriptorString = `tr(${keyPart})`
                 break
-              case 'P2WSH':
+              }
+              case 'P2WSH': {
                 descriptorString = `wsh(${keyPart})`
                 break
-              case 'P2SH-P2WSH':
+              }
+              case 'P2SH-P2WSH': {
                 descriptorString = `sh(wsh(${keyPart}))`
                 break
-              case 'P2SH':
+              }
+              case 'P2SH': {
                 descriptorString = `sh(${keyPart})`
                 break
-              default:
+              }
+              default: {
                 descriptorString = `wpkh(${keyPart})`
+              }
             }
 
             // Add checksum using BDK
@@ -266,29 +275,37 @@ export default function DescriptorPage() {
 
                 // Add script function based on script version
                 switch (key.scriptVersion) {
-                  case 'P2PKH':
+                  case 'P2PKH': {
                     descriptorString = `pkh(${keyPart})`
                     break
-                  case 'P2SH-P2WPKH':
+                  }
+                  case 'P2SH-P2WPKH': {
                     descriptorString = `sh(wpkh(${keyPart}))`
                     break
-                  case 'P2WPKH':
+                  }
+                  case 'P2WPKH': {
                     descriptorString = `wpkh(${keyPart})`
                     break
-                  case 'P2TR':
+                  }
+                  case 'P2TR': {
                     descriptorString = `tr(${keyPart})`
                     break
-                  case 'P2WSH':
+                  }
+                  case 'P2WSH': {
                     descriptorString = `wsh(${keyPart})`
                     break
-                  case 'P2SH-P2WSH':
+                  }
+                  case 'P2SH-P2WSH': {
                     descriptorString = `sh(wsh(${keyPart}))`
                     break
-                  case 'P2SH':
+                  }
+                  case 'P2SH': {
                     descriptorString = `sh(${keyPart})`
                     break
-                  default:
+                  }
+                  default: {
                     descriptorString = `wpkh(${keyPart})`
+                  }
                 }
 
                 // Add checksum using BDK
@@ -309,29 +326,37 @@ export default function DescriptorPage() {
 
               // Add script function based on script version
               switch (key.scriptVersion) {
-                case 'P2PKH':
+                case 'P2PKH': {
                   descriptorString = `pkh(${keyPart})`
                   break
-                case 'P2SH-P2WPKH':
+                }
+                case 'P2SH-P2WPKH': {
                   descriptorString = `sh(wpkh(${keyPart}))`
                   break
-                case 'P2WPKH':
+                }
+                case 'P2WPKH': {
                   descriptorString = `wpkh(${keyPart})`
                   break
-                case 'P2TR':
+                }
+                case 'P2TR': {
                   descriptorString = `tr(${keyPart})`
                   break
-                case 'P2WSH':
+                }
+                case 'P2WSH': {
                   descriptorString = `wsh(${keyPart})`
                   break
-                case 'P2SH-P2WSH':
+                }
+                case 'P2SH-P2WSH': {
                   descriptorString = `sh(wsh(${keyPart}))`
                   break
-                case 'P2SH':
+                }
+                case 'P2SH': {
                   descriptorString = `sh(${keyPart})`
                   break
-                default:
+                }
+                default: {
                   descriptorString = `wpkh(${keyPart})`
+                }
               }
 
               // Add checksum using BDK
@@ -369,28 +394,28 @@ export default function DescriptorPage() {
   }, [account, keyIndex]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function exportDescriptor() {
-    if (!account) return
+    if (!account) {return}
     const date = new Date().toISOString().slice(0, -5)
     const ext = 'txt'
     const filename = `Descriptor_${account.name}_${keyName}_${date}.${ext}`
     shareFile({
-      filename,
-      fileContent: descriptor,
       dialogTitle: t('export.file.save'),
+      fileContent: descriptor,
+      filename,
       mimeType: `text/plain`
     })
   }
 
-  if (!account) return <Redirect href="/" />
+  if (!account) {return <Redirect href="/" />}
 
   return (
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSText uppercase>{t('account.descriptor.title')}</SSText>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <SSVStack style={{ padding: 20 }}>
@@ -423,7 +448,7 @@ export default function DescriptorPage() {
                 Loading...
               </SSText>
             </View>
-          ) : descriptor ? (
+          ) : (descriptor ? (
             <View
               style={{
                 backgroundColor: 'white',
@@ -438,7 +463,7 @@ export default function DescriptorPage() {
                 backgroundColor="white"
               />
             </View>
-          ) : null}
+          ) : null)}
         </View>
 
         {/* Descriptor Text */}
@@ -446,9 +471,9 @@ export default function DescriptorPage() {
           <>
             <View
               style={{
-                padding: 10,
                 backgroundColor: Colors.gray[950],
-                borderRadius: 5
+                borderRadius: 5,
+                padding: 10
               }}
             >
               <SSText color="white" size="lg" type="mono" selectable>

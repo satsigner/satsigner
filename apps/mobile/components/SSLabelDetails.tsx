@@ -12,7 +12,7 @@ import { SSIconEditPencil } from './icons'
 import SSIconButton from './SSIconButton'
 import SSText from './SSText'
 
-type SSLabelDetailsProps = {
+interface SSLabelDetailsProps {
   label: string
   link: string
   header: string

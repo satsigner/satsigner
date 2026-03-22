@@ -8,22 +8,22 @@ function getVerboseError(error: unknown, defaultMessage: string) {
 
   const verboseErrors = [
     {
-      errorType: 'ioexception',
       errorMessage:
-        'Failed to write to NFC tag. Keep the tag steady and close to the device.'
+        'Failed to write to NFC tag. Keep the tag steady and close to the device.',
+      errorType: 'ioexception'
     },
 
     {
-      errorType: 'ndef',
-      errorMessage: 'This NFC tag does not support NDEF messages.'
+      errorMessage: 'This NFC tag does not support NDEF messages.',
+      errorType: 'ndef'
     },
     {
-      errorType: 'readonly',
-      errorMessage: 'This NFC tag is read-only.'
+      errorMessage: 'This NFC tag is read-only.',
+      errorType: 'readonly'
     },
     {
-      errorType: 'insufficient',
-      errorMessage: 'NFC tag has insufficient memory for this PSBT.'
+      errorMessage: 'NFC tag has insufficient memory for this PSBT.',
+      errorType: 'insufficient'
     }
   ]
 
@@ -50,7 +50,7 @@ export function useNFCEmitter() {
     try {
       const isNFCAvailable = await NfcManager.isEnabled()
       setIsAvailable(isNFCAvailable)
-    } catch (_error) {
+    } catch {
       setIsAvailable(false)
     }
   }
@@ -77,7 +77,7 @@ export function useNFCEmitter() {
     } catch (writeError) {
       setIsEmitting(false)
       NfcManager.cancelTechnologyRequest()
-      throw new Error(getVerboseError(writeError, 'Failed to write NFC tag'))
+      throw new Error(getVerboseError(writeError, 'Failed to write NFC tag'), { cause: writeError })
     }
   }
 
@@ -89,9 +89,9 @@ export function useNFCEmitter() {
   }
 
   return {
-    isAvailable,
-    isEmitting,
+    cancelNFCScan,
     emitNFCTag,
-    cancelNFCScan
+    isAvailable,
+    isEmitting
   }
 }

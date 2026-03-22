@@ -3,7 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 import mmkvStorage from '@/storage/mmkv'
 
-type ChartSettingState = {
+interface ChartSettingState {
   showLabel: boolean
   showAmount: boolean
   showTransactionInfo: boolean
@@ -14,7 +14,7 @@ type ChartSettingState = {
   showFiatPercentageChange: boolean
 }
 
-type ChartSettingAction = {
+interface ChartSettingAction {
   setShowLabel: (showLabel: ChartSettingState['showLabel']) => void
   setShowAmount: (showAmount: ChartSettingState['showAmount']) => void
   setShowTransactionInfo: (
@@ -40,28 +40,15 @@ type ChartSettingAction = {
 const useChartSettingStore = create<ChartSettingState & ChartSettingAction>()(
   persist(
     (set) => ({
-      showLabel: true,
-      showAmount: true,
-      showTransactionInfo: true,
-      showOutputField: false,
       lockZoomToXAxis: true,
-      showFiatOnChart: false,
-      showFiatAtTxTime: false,
-      showFiatPercentageChange: false,
-      setShowLabel: (showLabel) => {
-        set({ showLabel })
+      setLockZoomToXAxis: (lockZoomToXAxis) => {
+        set({ lockZoomToXAxis })
       },
       setShowAmount: (showAmount) => {
         set({ showAmount })
       },
-      setShowTransactionInfo: (showTransactionInfo) => {
-        set({ showTransactionInfo })
-      },
-      setShowOutputField: (showOutputField) => {
-        set({ showOutputField })
-      },
-      setLockZoomToXAxis: (lockZoomToXAxis) => {
-        set({ lockZoomToXAxis })
+      setShowFiatAtTxTime: (showFiatAtTxTime) => {
+        set({ showFiatAtTxTime })
       },
       setShowFiatOnChart: (showFiatOnChart) => {
         set({ showFiatOnChart })
@@ -69,12 +56,25 @@ const useChartSettingStore = create<ChartSettingState & ChartSettingAction>()(
           set({ showFiatAtTxTime: false })
         }
       },
-      setShowFiatAtTxTime: (showFiatAtTxTime) => {
-        set({ showFiatAtTxTime })
-      },
       setShowFiatPercentageChange: (showFiatPercentageChange) => {
         set({ showFiatPercentageChange })
-      }
+      },
+      setShowLabel: (showLabel) => {
+        set({ showLabel })
+      },
+      setShowOutputField: (showOutputField) => {
+        set({ showOutputField })
+      },
+      setShowTransactionInfo: (showTransactionInfo) => {
+        set({ showTransactionInfo })
+      },
+      showAmount: true,
+      showFiatAtTxTime: false,
+      showFiatOnChart: false,
+      showFiatPercentageChange: false,
+      showLabel: true,
+      showOutputField: false,
+      showTransactionInfo: true
     }),
     {
       name: 'satsigner-blockchain',

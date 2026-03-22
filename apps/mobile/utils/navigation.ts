@@ -1,4 +1,4 @@
-const noNavScreens: string[] = ['settings']
+const noNavScreens: string[] = new Set(['settings'])
 
 export function showNavigation(path: string = '/', depth: number = 0): boolean {
   if (depth > 4) {
@@ -6,7 +6,7 @@ export function showNavigation(path: string = '/', depth: number = 0): boolean {
   }
 
   const screen = path.replace(/^\/+/, '').split('/')[0]
-  if (noNavScreens.includes(screen)) {
+  if (noNavScreens.has(screen)) {
     return false
   }
 

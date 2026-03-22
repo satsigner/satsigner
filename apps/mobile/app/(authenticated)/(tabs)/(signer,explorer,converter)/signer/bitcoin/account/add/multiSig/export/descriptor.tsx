@@ -1,5 +1,6 @@
 import { Descriptor } from 'bdk-rn'
-import { KeychainKind, type Network as BDKNetwork } from 'bdk-rn/lib/lib/enums'
+import { KeychainKind } from 'bdk-rn/lib/lib/enums';
+import type { Network as BDKNetwork } from 'bdk-rn/lib/lib/enums';
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
@@ -42,12 +43,12 @@ export default function DescriptorPage() {
 
   useEffect(() => {
     async function getDescriptor() {
-      if (!keyIndex) return
+      if (!keyIndex) {return}
 
       setIsLoading(true)
 
       const accountData = getAccountData()
-      const keyIndexNum = parseInt(keyIndex, 10)
+      const keyIndexNum = Number.parseInt(keyIndex, 10)
       const key = accountData.keys[keyIndexNum]
 
       if (!key) {
@@ -98,29 +99,37 @@ export default function DescriptorPage() {
 
             let externalDescriptor = ''
             switch (key.scriptVersion) {
-              case 'P2PKH':
+              case 'P2PKH': {
                 externalDescriptor = `pkh(${keyPart})`
                 break
-              case 'P2SH-P2WPKH':
+              }
+              case 'P2SH-P2WPKH': {
                 externalDescriptor = `sh(wpkh(${keyPart}))`
                 break
-              case 'P2WPKH':
+              }
+              case 'P2WPKH': {
                 externalDescriptor = `wpkh(${keyPart})`
                 break
-              case 'P2TR':
+              }
+              case 'P2TR': {
                 externalDescriptor = `tr(${keyPart})`
                 break
-              case 'P2WSH':
+              }
+              case 'P2WSH': {
                 externalDescriptor = `wsh(${keyPart})`
                 break
-              case 'P2SH-P2WSH':
+              }
+              case 'P2SH-P2WSH': {
                 externalDescriptor = `sh(wsh(${keyPart}))`
                 break
-              case 'P2SH':
+              }
+              case 'P2SH': {
                 externalDescriptor = `sh(${keyPart})`
                 break
-              default:
+              }
+              default: {
                 externalDescriptor = `wpkh(${keyPart})`
+              }
             }
 
             // Add checksum using BDK
@@ -162,9 +171,9 @@ export default function DescriptorPage() {
     const ext = 'txt'
     const filename = `Descriptor_${accountData.name}_${keyName}_${date}.${ext}`
     shareFile({
-      filename,
-      fileContent: descriptor,
       dialogTitle: t('export.file.save'),
+      fileContent: descriptor,
+      filename,
       mimeType: `text/plain`
     })
   }
@@ -201,7 +210,7 @@ export default function DescriptorPage() {
                 Loading...
               </SSText>
             </View>
-          ) : descriptor ? (
+          ) : (descriptor ? (
             <View
               style={{
                 backgroundColor: 'white',
@@ -216,7 +225,7 @@ export default function DescriptorPage() {
                 backgroundColor="white"
               />
             </View>
-          ) : null}
+          ) : null)}
         </View>
 
         {/* Descriptor Text */}
@@ -224,9 +233,9 @@ export default function DescriptorPage() {
           <>
             <View
               style={{
-                padding: 10,
                 backgroundColor: Colors.gray[950],
-                borderRadius: 5
+                borderRadius: 5,
+                padding: 10
               }}
             >
               <SSText color="white" size="lg" type="mono" selectable>

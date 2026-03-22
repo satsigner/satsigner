@@ -5,7 +5,7 @@ import { getWalletData } from '@/api/bdk'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useWalletsStore } from '@/store/wallets'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { getAccountWithDecryptedKeys } from '@/utils/account'
 
 const useGetAccountAddress = (id: Account['id']) => {
@@ -20,14 +20,14 @@ const useGetAccountAddress = (id: Account['id']) => {
   const network = useBlockchainStore((state) => state.selectedNetwork)
 
   async function addAddress() {
-    if (!account || account.keys.length === 0) return
+    if (!account || account.keys.length === 0) {return}
 
     try {
       const temporaryAccount = await getAccountWithDecryptedKeys(account)
 
       if (account.keys[0].creationType === 'importAddress') {
-        const secret = temporaryAccount.keys[0].secret
-        if (!secret.externalDescriptor) return
+        const {secret} = temporaryAccount.keys[0]
+        if (!secret.externalDescriptor) {return}
 
         // Try to extract address from descriptor
         // It could be in format addr(address) or just a plain address
@@ -61,14 +61,14 @@ const useGetAccountAddress = (id: Account['id']) => {
       const address = addressInfo?.address
       const firstAddress = address ? await address.asString() : ''
       addAccountAddress(account.id, firstAddress)
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : 'unknown reason'
-      throw new Error(`Failed to get account address: ${reason}`)
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'unknown reason'
+      throw new Error(`Failed to get account address: ${reason}`, { cause: err })
     }
   }
 
   useEffect(() => {
-    if (!address) addAddress()
+    if (!address) {addAddress()}
   }, [address, id, account]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return address

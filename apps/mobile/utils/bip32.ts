@@ -2,10 +2,11 @@ import ecc from '@bitcoinerlab/secp256k1'
 import { HDKey } from '@scure/bip32' // TODO: remove @scure
 import * as bip39 from '@scure/bip39' // TODO: remove @scure
 import { KeychainKind, Network as BDKNetwork } from 'bdk-rn/lib/lib/enums'
-import { BIP32Factory, type BIP32Interface } from 'bip32'
+import { BIP32Factory } from 'bip32';
+import type { BIP32Interface } from 'bip32';
 
 import type { ScriptVersionType } from '@/types/models/Account'
-import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import type { Network as AppNetwork } from '@/types/settings/blockchain'
 import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion
@@ -13,8 +14,8 @@ import {
 
 // HD key versions for different networks
 const VERSIONS = {
-  mainnet: { public: 0x0488b21e, private: 0x0488ade4 },
-  testnet: { public: 0x043587cf, private: 0x04358394 }
+  mainnet: { private: 0x0488ade4, public: 0x0488b21e },
+  testnet: { private: 0x04358394, public: 0x043587cf }
 }
 
 const bip32 = BIP32Factory(ecc)
@@ -30,18 +31,18 @@ We need to convert BDK Network enum type to the type used by BIP32Interface.
 
 const BIP32NetworkMainnet: BIP32Interface['network'] = {
   bip32: {
-    public: 0x0488b21e,
-    private: 0x0488ade4
+    private: 0x0488ade4,
+    public: 0x0488b21e
   },
   wif: 0x80
 }
 
 const BIP32NetworkTestnet: BIP32Interface['network'] = {
   bip32: {
-    public: 0x043587cf,
-    private: 0x04358394
+    private: 0x04358394,
+    public: 0x043587cf
   },
-  wif: 0xef
+  wif: 0xEF
 }
 
 const BIP32Networks: Record<BDKNetwork, BIP32Interface['network']> = {
@@ -123,20 +124,27 @@ export function getDescriptorFromPubkey(
   const change = kind === KeychainKind.External ? 0 : 1
   const innerPart = `[${fingerprint}/${path}]${pubkey}/${change}/*`
   switch (scriptVersion) {
-    case 'P2PKH':
+    case 'P2PKH': {
       return `pkh(${innerPart})`
-    case 'P2WPKH':
+    }
+    case 'P2WPKH': {
       return `wpkh(${innerPart})`
-    case 'P2SH-P2WPKH':
+    }
+    case 'P2SH-P2WPKH': {
       return `sh(wpkh(${innerPart}))`
-    case 'P2TR':
+    }
+    case 'P2TR': {
       return `tr(${innerPart})`
-    case 'P2WSH':
+    }
+    case 'P2WSH': {
       return `wsh(pk(${innerPart}))`
-    case 'P2SH-P2WSH':
+    }
+    case 'P2SH-P2WSH': {
       return `sh(wsh(pk(${innerPart})))`
-    case 'P2SH':
+    }
+    case 'P2SH': {
       return `sh(pk(${innerPart}))`
+    }
   }
 }
 
@@ -150,20 +158,27 @@ function getDescriptorFromPrivateKey(
   const change = kind === KeychainKind.External ? 0 : 1
   const innerPart = `${pubkey}/${path}/${change}/*`
   switch (scriptVersion) {
-    case 'P2PKH':
+    case 'P2PKH': {
       return `pkh(${innerPart})`
-    case 'P2WPKH':
+    }
+    case 'P2WPKH': {
       return `wpkh(${innerPart})`
-    case 'P2SH-P2WPKH':
+    }
+    case 'P2SH-P2WPKH': {
       return `sh(wpkh(${innerPart}))`
-    case 'P2TR':
+    }
+    case 'P2TR': {
       return `tr(${innerPart})`
-    case 'P2WSH':
+    }
+    case 'P2WSH': {
       return `wsh(pk(${innerPart}))`
-    case 'P2SH-P2WSH':
+    }
+    case 'P2SH-P2WSH': {
       return `sh(wsh(pk(${innerPart})))`
-    case 'P2SH':
+    }
+    case 'P2SH': {
       return `sh(pk(${innerPart}))`
+    }
   }
 }
 
@@ -171,18 +186,23 @@ export function getScriptVersionPurpose(
   scriptVersion: ScriptVersionType
 ): number {
   switch (scriptVersion) {
-    case 'P2PKH':
-      return 44 // Legacy
-    case 'P2SH-P2WPKH':
-      return 49 // Nested SegWit
-    case 'P2WPKH':
-      return 84 // Native SegWit
-    case 'P2TR':
-      return 86 // Taproot
+    case 'P2PKH': {
+      return 44
+    } // Legacy
+    case 'P2SH-P2WPKH': {
+      return 49
+    } // Nested SegWit
+    case 'P2WPKH': {
+      return 84
+    } // Native SegWit
+    case 'P2TR': {
+      return 86
+    } // Taproot
     case 'P2WSH':
     case 'P2SH-P2WSH':
-    case 'P2SH':
-      return 44 // Use legacy for these
+    case 'P2SH': {
+      return 44
+    } // Use legacy for these
   }
 }
 
@@ -234,34 +254,41 @@ export function getDescriptorsFromKey(
 
   // Generate descriptors based on script version
   switch (scriptVersion) {
-    case 'P2PKH':
+    case 'P2PKH': {
       externalDescriptor = `pkh(${keyPart}/0/*)`
       internalDescriptor = `pkh(${keyPart}/1/*)`
       break
-    case 'P2SH-P2WPKH':
+    }
+    case 'P2SH-P2WPKH': {
       externalDescriptor = `sh(wpkh(${keyPart}/0/*))`
       internalDescriptor = `sh(wpkh(${keyPart}/1/*))`
       break
-    case 'P2WPKH':
+    }
+    case 'P2WPKH': {
       externalDescriptor = `wpkh(${keyPart}/0/*)`
       internalDescriptor = `wpkh(${keyPart}/1/*)`
       break
-    case 'P2TR':
+    }
+    case 'P2TR': {
       externalDescriptor = `tr(${keyPart}/0/*)`
       internalDescriptor = `tr(${keyPart}/1/*)`
       break
-    case 'P2WSH':
+    }
+    case 'P2WSH': {
       externalDescriptor = `wsh(${keyPart}/0/*)`
       internalDescriptor = `wsh(${keyPart}/1/*)`
       break
-    case 'P2SH-P2WSH':
+    }
+    case 'P2SH-P2WSH': {
       externalDescriptor = `sh(wsh(${keyPart}/0/*))`
       internalDescriptor = `sh(wsh(${keyPart}/1/*))`
       break
-    case 'P2SH':
+    }
+    case 'P2SH': {
       externalDescriptor = `sh(${keyPart}/0/*)`
       internalDescriptor = `sh(${keyPart}/1/*)`
       break
+    }
   }
 
   // TODO: add checksum while keeping it sinchronous
@@ -277,7 +304,7 @@ function getP2SHXpub(seed: Uint8Array, network: 'mainnet' | 'testnet'): string {
   const master = HDKey.fromMasterSeed(seed, versions)
 
   // Derive m/45' for P2SH
-  const node = master.deriveChild(0x80000000 + 45)
+  const node = master.deriveChild(0x80_00_00_00 + 45)
 
   return node.publicExtendedKey
 }
@@ -295,10 +322,10 @@ function getP2SHP2WSHXpub(
   // Derive m/48'/0'/0'/1' for mainnet, m/48'/1'/0'/1' for testnet
   const coinType = network === 'mainnet' ? 0 : 1
   const node = master
-    .deriveChild(0x80000000 + 48)
-    .deriveChild(0x80000000 + coinType)
-    .deriveChild(0x80000000)
-    .deriveChild(0x80000000 + 1)
+    .deriveChild(0x80_00_00_00 + 48)
+    .deriveChild(0x80_00_00_00 + coinType)
+    .deriveChild(0x80_00_00_00)
+    .deriveChild(0x80_00_00_00 + 1)
 
   return node.publicExtendedKey
 }
@@ -316,10 +343,10 @@ function getP2WSHXpub(
   // Derive m/48'/0'/0'/2' for mainnet, m/48'/1'/0'/2' for testnet
   const coinType = network === 'mainnet' ? 0 : 1
   const node = master
-    .deriveChild(0x80000000 + 48)
-    .deriveChild(0x80000000 + coinType)
-    .deriveChild(0x80000000)
-    .deriveChild(0x80000000 + 2)
+    .deriveChild(0x80_00_00_00 + 48)
+    .deriveChild(0x80_00_00_00 + coinType)
+    .deriveChild(0x80_00_00_00)
+    .deriveChild(0x80_00_00_00 + 2)
 
   return node.publicExtendedKey
 }
@@ -342,9 +369,9 @@ function getP2PKHXpub(
   // Derive m/44'/0'/0' for mainnet, m/44'/1'/0' for testnet
   const coinType = network === 'mainnet' ? 0 : 1
   const node = master
-    .deriveChild(0x80000000 + 44)
-    .deriveChild(0x80000000 + coinType)
-    .deriveChild(0x80000000)
+    .deriveChild(0x80_00_00_00 + 44)
+    .deriveChild(0x80_00_00_00 + coinType)
+    .deriveChild(0x80_00_00_00)
 
   return node.publicExtendedKey
 }
@@ -359,9 +386,9 @@ function getP2SHP2WPKHXpub(
   // Derive m/49'/0'/0' for mainnet, m/49'/1'/0' for testnet
   const coinType = network === 'mainnet' ? 0 : 1
   const node = master
-    .deriveChild(0x80000000 + 49)
-    .deriveChild(0x80000000 + coinType)
-    .deriveChild(0x80000000)
+    .deriveChild(0x80_00_00_00 + 49)
+    .deriveChild(0x80_00_00_00 + coinType)
+    .deriveChild(0x80_00_00_00)
 
   return node.publicExtendedKey
 }
@@ -373,9 +400,9 @@ function getP2TRXpub(seed: Uint8Array, network: 'mainnet' | 'testnet'): string {
   // Derive m/86'/0'/0' for mainnet, m/86'/1'/0' for testnet
   const coinType = network === 'mainnet' ? 0 : 1
   const node = master
-    .deriveChild(0x80000000 + 86)
-    .deriveChild(0x80000000 + coinType)
-    .deriveChild(0x80000000)
+    .deriveChild(0x80_00_00_00 + 86)
+    .deriveChild(0x80_00_00_00 + coinType)
+    .deriveChild(0x80_00_00_00)
 
   return node.publicExtendedKey
 }
@@ -384,7 +411,7 @@ function getP2TRXpub(seed: Uint8Array, network: 'mainnet' | 'testnet'): string {
  * Convert a Uint8Array to hex string
  */
 export function toHex(u8: Uint8Array | undefined): string {
-  return Array.from(u8 || [])
+  return [...u8 || []]
     .map((b: number) => b.toString(16).padStart(2, '0'))
     .join('')
 }
@@ -440,13 +467,13 @@ export function getXpubForScriptVersion(
     ScriptVersionType,
     (seed: Uint8Array, network: 'mainnet' | 'testnet') => string
   > = {
-    P2SH: getP2SHXpub,
-    'P2SH-P2WSH': getP2SHP2WSHXpub,
-    P2WSH: getP2WSHXpub,
-    P2WPKH: getP2WPKHXpub,
     P2PKH: getP2PKHXpub,
+    P2SH: getP2SHXpub,
     'P2SH-P2WPKH': getP2SHP2WPKHXpub,
-    P2TR: getP2TRXpub
+    'P2SH-P2WSH': getP2SHP2WSHXpub,
+    P2TR: getP2TRXpub,
+    P2WPKH: getP2WPKHXpub,
+    P2WSH: getP2WSHXpub
   }
 
   return xpubFunctions[scriptVersion](seed, network)

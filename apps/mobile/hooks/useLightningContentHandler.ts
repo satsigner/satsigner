@@ -4,7 +4,7 @@ import { toast } from 'sonner-native'
 
 import { processContentByContext } from '@/hooks/useContentProcessor'
 import { t } from '@/locales'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 
 type NavigatePath =
   | string
@@ -47,7 +47,7 @@ export function useLightningContentHandler() {
 
   return {
     handleContentScanned,
-    handleSend,
-    handleReceive
+    handleReceive,
+    handleSend
   }
 }

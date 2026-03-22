@@ -1,10 +1,6 @@
 import { useState } from 'react'
-import {
-  StyleSheet,
-  type TextInput,
-  TouchableHighlight,
-  View
-} from 'react-native'
+import { StyleSheet, TouchableHighlight, View } from 'react-native';
+import type { TextInput } from 'react-native';
 
 import SSHStack from '@/layouts/SSHStack'
 import { Colors, Sizes, Typography } from '@/styles'
@@ -40,9 +36,9 @@ function SSNumberGhostInput({
           allowDecimal={allowDecimal}
           onBlur={() => setIsEditing(false)}
           style={{
+            fontFamily: Typography.sfProTextLight,
             fontSize: Sizes.text.fontSize['5xl'],
-            height: 72,
-            fontFamily: Typography.sfProTextLight
+            height: 72
           }}
           {...props}
         />
@@ -73,12 +69,12 @@ function SSNumberGhostInput({
 
 const styles = StyleSheet.create({
   inputButtonBase: {
-    borderRadius: Sizes.textInput.borderRadius,
-    height: 72,
-    justifyContent: 'center',
-    borderWidth: 1,
+    backgroundColor: Colors.gray[950],
     borderColor: Colors.gray[400],
-    backgroundColor: Colors.gray[950]
+    borderRadius: Sizes.textInput.borderRadius,
+    borderWidth: 1,
+    height: 72,
+    justifyContent: 'center'
   }
 })
 

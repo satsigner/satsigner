@@ -58,8 +58,8 @@ export default function SetPin() {
   }
 
   async function handleSetPinLater() {
-    if (showWarning) router.push('./warning')
-    else router.replace('/')
+    if (showWarning) {router.push('./warning')}
+    else {router.replace('/')}
   }
 
   async function handleConfirmPin() {
@@ -75,16 +75,16 @@ export default function SetPin() {
   }
 
   async function handleSetPin() {
-    if (pinArray.join('') !== confirmationPinArray.join('')) return
+    if (pinArray.join('') !== confirmationPinArray.join('')) {return}
 
     setLoading(true)
     const isPinSet = await setPin(pinArray.join(''))
     setLoading(false)
 
-    if (!isPinSet) return
+    if (!isPinSet) {return}
 
-    if (showWarning) router.push('./warning')
-    else router.replace('/')
+    if (showWarning) {router.push('./warning')}
+    else {router.replace('/')}
 
     setFirstTime(false)
     setRequiresAuth(true)

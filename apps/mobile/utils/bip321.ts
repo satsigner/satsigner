@@ -1,17 +1,10 @@
-import {
-  type BIP321ParseResult,
-  encodeBIP321,
-  type Network as Bip321Network,
-  parseBIP321,
-  validateBitcoinAddress,
-  validateBolt12Offer,
-  validateLightningInvoice
-} from 'bip-321'
+import { encodeBIP321, parseBIP321, validateBitcoinAddress, validateBolt12Offer, validateLightningInvoice } from 'bip-321';
+import type { BIP321ParseResult, Network as Bip321Network } from 'bip-321';
 
 import { SATS_PER_BITCOIN } from '@/constants/btc'
-import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import type { Network as AppNetwork } from '@/types/settings/blockchain'
 
-type ParsedBitcoinUri = {
+interface ParsedBitcoinUri {
   address: string
   amount?: number
   label?: string
@@ -21,7 +14,7 @@ type ParsedBitcoinUri = {
   isValid: boolean
 }
 
-type EncodeBitcoinUriParams = {
+interface EncodeBitcoinUriParams {
   address: string
   amount?: number
   label?: string
@@ -29,26 +22,26 @@ type EncodeBitcoinUriParams = {
   lightning?: string
 }
 
-type EncodeBitcoinUriResult = {
+interface EncodeBitcoinUriResult {
   uri: string
   isValid: boolean
   error?: string
 }
 
-type BitcoinAddressValidationResult = {
+interface BitcoinAddressValidationResult {
   isValid: boolean
   network?: AppNetwork
   error?: string
 }
 
-type LightningValidationResult = {
+interface LightningValidationResult {
   isValid: boolean
   network?: Bip321Network
   appNetwork?: AppNetwork
   error?: string
 }
 
-type Bolt12ValidationResult = {
+interface Bolt12ValidationResult {
   isValid: boolean
   error?: string
 }
@@ -56,34 +49,43 @@ type Bolt12ValidationResult = {
 function bip321NetworkToAppNetwork(
   network: Bip321Network | undefined
 ): AppNetwork | undefined {
-  if (!network) return undefined
+  if (!network) {return undefined}
   switch (network) {
-    case 'mainnet':
+    case 'mainnet': {
       return 'bitcoin'
-    case 'testnet':
+    }
+    case 'testnet': {
       return 'testnet'
-    case 'signet':
+    }
+    case 'signet': {
       return 'signet'
-    case 'regtest':
+    }
+    case 'regtest': {
       return 'testnet'
-    default:
+    }
+    default: {
       return undefined
+    }
   }
 }
 
 function appNetworkToBip321Network(
   network: AppNetwork | undefined
 ): Bip321Network | undefined {
-  if (!network) return undefined
+  if (!network) {return undefined}
   switch (network) {
-    case 'bitcoin':
+    case 'bitcoin': {
       return 'mainnet'
-    case 'testnet':
+    }
+    case 'testnet': {
       return 'testnet'
-    case 'signet':
+    }
+    case 'signet': {
       return 'signet'
-    default:
+    }
+    default: {
       return undefined
+    }
   }
 }
 
@@ -109,12 +111,12 @@ export function parseBitcoinUri(
     return {
       address: bitcoinMethod?.value || result.address || '',
       amount: result.amount,
+      isValid: true,
       label: result.label,
-      message: result.message,
       lightning: result.paymentMethods?.find((m) => m.type === 'lightning')
         ?.value,
-      network: bip321NetworkToAppNetwork(result.network),
-      isValid: true
+      message: result.message,
+      network: bip321NetworkToAppNetwork(result.network)
     }
   } catch {
     return {
@@ -176,15 +178,15 @@ export function encodeBitcoinUri(
     const result = encodeBIP321(encodeParams)
 
     return {
-      uri: result.uri || '',
+      error: result.errors?.join(', '),
       isValid: result.valid,
-      error: result.errors?.join(', ')
+      uri: result.uri || ''
     }
   } catch (error) {
     return {
-      uri: '',
+      error: error instanceof Error ? error.message : 'Unknown error',
       isValid: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      uri: ''
     }
   }
 }
@@ -209,7 +211,7 @@ export function encodeBitcoinUriFromSats(
 }
 
 export function isBitcoinUri(uri: string): boolean {
-  if (!uri) return false
+  if (!uri) {return false}
   const trimmed = uri.trim()
   if (!trimmed.toLowerCase().startsWith('bitcoin:')) {
     return false
@@ -228,26 +230,26 @@ export function validateBitcoinAddressWithNetwork(
 ): BitcoinAddressValidationResult {
   const result = validateBitcoinAddress(address)
   return {
+    error: result.error,
     isValid: result.valid,
-    network: bip321NetworkToAppNetwork(result.network),
-    error: result.error
+    network: bip321NetworkToAppNetwork(result.network)
   }
 }
 
 export function validateLightning(invoice: string): LightningValidationResult {
   const result = validateLightningInvoice(invoice)
   return {
-    isValid: result.valid,
-    network: result.network,
     appNetwork: bip321NetworkToAppNetwork(result.network),
-    error: result.error
+    error: result.error,
+    isValid: result.valid,
+    network: result.network
   }
 }
 
 export function validateBolt12(offer: string): Bolt12ValidationResult {
   const result = validateBolt12Offer(offer)
   return {
-    isValid: result.valid,
-    error: result.error
+    error: result.error,
+    isValid: result.valid
   }
 }

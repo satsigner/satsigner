@@ -5,12 +5,12 @@
  */
 
 import { ENCODING_SPLIT_MOD, HEADER_LEN } from './consts'
-import {
-  type Encoding,
-  type FileType,
-  type SplitOptions,
-  type SplitResult,
-  type Version
+import type {
+  Encoding,
+  FileType,
+  SplitOptions,
+  SplitResult,
+  Version
 } from './types'
 import {
   base64ToBytes,
@@ -55,7 +55,7 @@ function findBestVersion(length: number, opts: Required<SplitOptions>) {
     const { count, perEach } = numQRNeeded(version, length, opts.encoding)
 
     if (opts.minSplit <= count && count <= opts.maxSplit) {
-      options.push({ version, count, perEach })
+      options.push({ count, perEach, version })
     }
   }
 
@@ -114,7 +114,7 @@ export function splitQRs(
     )
   }
 
-  return { version, parts, encoding: actualEncoding }
+  return { encoding: actualEncoding, parts, version }
 }
 
 /**
@@ -158,7 +158,7 @@ export async function detectFileType(
   } else if (typeof input === 'string') {
     decoded = input
   } else {
-    throw new Error('Invalid input - must be a File, Uint8Array or string')
+    throw new TypeError('Invalid input - must be a File, Uint8Array or string')
   }
 
   const trimmed = decoded.trim()

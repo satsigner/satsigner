@@ -3,16 +3,16 @@ import { Descriptor } from 'bdk-rn'
 import { Network } from 'bdk-rn/lib/lib/enums'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
-import { type ScriptVersionType } from '@/types/models/Account'
-import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import type { ScriptVersionType } from '@/types/models/Account'
+import type { Network as AppNetwork } from '@/types/settings/blockchain'
 
 bitcoinjs.initEccLib(ecc)
 
 // Define valid key prefixes for each network
 const NETWORK_KEY_PREFIXES: Record<AppNetwork, string[]> = {
   bitcoin: ['xpub', 'ypub', 'zpub', 'vpub'],
-  testnet: ['tpub', 'upub', 'vpub'],
-  signet: ['tpub', 'upub', 'vpub']
+  signet: ['tpub', 'upub', 'vpub'],
+  testnet: ['tpub', 'upub', 'vpub']
 }
 
 export function validateExtendedKey(key: string, network?: AppNetwork) {
@@ -96,7 +96,7 @@ async function validateDescriptorInternal(
   // Validate checksum first (only if validateChecksum is true)
   if (validateChecksum) {
     const checksumValidation = await validateDescriptorChecksum(descriptor)
-    if (!checksumValidation) return false
+    if (!checksumValidation) {return false}
   }
 
   // Remove checksum if any.
@@ -113,7 +113,7 @@ async function validateDescriptorInternal(
   // Example: wsh(sh(pkh(...))) -> pkh(...)
   while (nestedRegex.test(currentItem)) {
     // first, check if the current item is a single key sh/wsh descriptor
-    if (singleKeyRegex.test(currentItem)) return true
+    if (singleKeyRegex.test(currentItem)) {return true}
 
     // extract it
     currentItem = currentItem.replace(nestedKindRegex, '').replace(/\)$/, '')
@@ -236,12 +236,12 @@ export function validateDescriptorScriptVersion(
   const cleanDescriptor = descriptor.replace(/#[a-z0-9]{8}$/, '')
   const compatibilityMatrix: Record<ScriptVersionType, string> = {
     P2PKH: 'pkh',
+    P2SH: 'sh',
     'P2SH-P2WPKH': 'sh',
-    P2WPKH: 'wpkh',
-    P2TR: 'tr',
-    P2WSH: 'wsh',
     'P2SH-P2WSH': 'sh',
-    P2SH: 'sh'
+    P2TR: 'tr',
+    P2WPKH: 'wpkh',
+    P2WSH: 'wsh'
   }
   const scriptPrefix = compatibilityMatrix[scriptVersion]
   return cleanDescriptor.match(new RegExp(`^${scriptPrefix}\\(`)) !== null
@@ -297,10 +297,10 @@ export async function validateCombinedDescriptor(
       separateCombinedDescriptor(combinedDescriptor)
 
     return {
-      isValid: false,
       error: 'invalid descriptor',
       externalDescriptor: external,
-      internalDescriptor: internal
+      internalDescriptor: internal,
+      isValid: false
     }
   }
 
@@ -318,10 +318,10 @@ export async function validateCombinedDescriptor(
       separateCombinedDescriptor(combinedDescriptor)
 
     return {
-      isValid: false,
       error: 'invalid script version',
       externalDescriptor: external,
-      internalDescriptor: internal
+      internalDescriptor: internal,
+      isValid: false
     }
   }
 
@@ -337,9 +337,9 @@ export async function validateCombinedDescriptor(
   if (networkType && combinedDescriptor) {
     // Map networkType string to BDK Network enum
     let bdkNetwork = Network.Bitcoin
-    if (networkType === 'testnet') bdkNetwork = Network.Testnet
-    if (networkType === 'regtest') bdkNetwork = Network.Regtest
-    if (networkType === 'signet') bdkNetwork = Network.Signet
+    if (networkType === 'testnet') {bdkNetwork = Network.Testnet}
+    if (networkType === 'regtest') {bdkNetwork = Network.Regtest}
+    if (networkType === 'signet') {bdkNetwork = Network.Signet}
     try {
       await new Descriptor().create(combinedDescriptor, bdkNetwork)
       networkValidation = { isValid: true }
@@ -348,16 +348,16 @@ export async function validateCombinedDescriptor(
 
   if (!networkValidation.isValid) {
     return {
-      isValid: false,
       error: networkValidation.error,
       externalDescriptor: externalDesc,
-      internalDescriptor: internalDesc
+      internalDescriptor: internalDesc,
+      isValid: false
     }
   }
 
   return {
-    isValid: true,
     externalDescriptor: externalDesc,
-    internalDescriptor: internalDesc
+    internalDescriptor: internalDesc,
+    isValid: true
   }
 }

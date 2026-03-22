@@ -4,7 +4,7 @@ export enum PLATFORM {
   HYBRID = 'hybrid'
 }
 
-export type NavMenuItem = {
+export interface NavMenuItem {
   title: string
   icon: React.ComponentType
   url: string
@@ -12,7 +12,7 @@ export type NavMenuItem = {
   platform: PLATFORM
 }
 
-export type NavMenuGroup = {
+export interface NavMenuGroup {
   title: string
   items: NavMenuItem[]
 }

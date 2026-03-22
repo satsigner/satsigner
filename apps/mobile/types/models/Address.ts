@@ -1,7 +1,7 @@
 import type { Network } from '../settings/blockchain'
 import type { ScriptVersionType } from './Account'
 
-export type Address = {
+export interface Address {
   address: string
   label: string
   utxos: string[]

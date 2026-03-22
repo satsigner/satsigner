@@ -46,7 +46,7 @@ export default function DeviceAliasPage() {
               const member = accountMembers.find(
                 (m) => (typeof m === 'string' ? m : m.npub) === npub
               )
-              if (!member) return NOSTR_FALLBACK_NPUB_COLOR
+              if (!member) {return NOSTR_FALLBACK_NPUB_COLOR}
               return typeof member === 'string'
                 ? NOSTR_FALLBACK_NPUB_COLOR
                 : member.color
@@ -62,14 +62,12 @@ export default function DeviceAliasPage() {
 
   const { restartSync } = useNostrSync()
   const trustSyncRestartRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  useEffect(() => {
-    return () => {
+  useEffect(() => () => {
       if (trustSyncRestartRef.current) {
         clearTimeout(trustSyncRestartRef.current)
         trustSyncRestartRef.current = null
       }
-    }
-  }, [accountId])
+    }, [accountId])
 
   const accountProfile = npub ? account?.nostr?.npubProfiles?.[npub] : undefined
   const isThisDevice = npub === account?.nostr?.deviceNpub
@@ -96,7 +94,7 @@ export default function DeviceAliasPage() {
   const [loadingFetchKind0, setLoadingFetchKind0] = useState(false)
 
   async function fetchKind0Profile() {
-    if (loadingFetchKind0) return
+    if (loadingFetchKind0) {return}
     if (!npub || !accountId || !account?.nostr) {
       toast.error(t('account.nostrSync.fetchKind0NoRelay'))
       return
@@ -119,15 +117,15 @@ export default function DeviceAliasPage() {
       const profile = await api.fetchKind0(npub)
       if (profile && (profile.displayName || profile.picture)) {
         const updated = {
-          ...(account.nostr.npubProfiles || {}),
+          ...account.nostr.npubProfiles,
           [npub]: {
             displayName: profile.displayName,
             picture: profile.picture
           }
         }
         const payload: Parameters<typeof updateAccountNostr>[1] = {
-          npubProfiles: updated,
-          lastUpdated: new Date()
+          lastUpdated: new Date(),
+          npubProfiles: updated
         }
         if (npub === account.nostr.deviceNpub) {
           payload.deviceDisplayName = profile.displayName
@@ -138,8 +136,8 @@ export default function DeviceAliasPage() {
       } else {
         toast.info(t('account.nostrSync.fetchKind0NotFound'))
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
       const isNoRelay =
         message.includes('No relay') ||
         message.includes('relays could be connected') ||
@@ -155,12 +153,12 @@ export default function DeviceAliasPage() {
   }
 
   function clearKind0Profile() {
-    if (!accountId || !account?.nostr || !npub) return
-    const profiles = { ...(account.nostr.npubProfiles || {}) }
+    if (!accountId || !account?.nostr || !npub) {return}
+    const profiles = { ...account.nostr.npubProfiles }
     delete profiles[npub]
     const payload: Parameters<typeof updateAccountNostr>[1] = {
-      npubProfiles: Object.keys(profiles).length > 0 ? profiles : undefined,
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
+      npubProfiles: Object.keys(profiles).length > 0 ? profiles : undefined
     }
     if (npub === account.nostr.deviceNpub) {
       payload.deviceDisplayName = undefined
@@ -179,10 +177,10 @@ export default function DeviceAliasPage() {
   }, [npub, account?.nostr?.npubAliases])
 
   function handleSave() {
-    if (!accountId || !account?.nostr || !npub) return
+    if (!accountId || !account?.nostr || !npub) {return}
 
     const updatedAliases = {
-      ...(account.nostr.npubAliases || {}),
+      ...account.nostr.npubAliases,
       ...(alias.trim() ? { [npub]: alias.trim() } : {})
     }
 
@@ -191,9 +189,9 @@ export default function DeviceAliasPage() {
     }
 
     updateAccountNostr(accountId, {
+      lastUpdated: new Date(),
       npubAliases:
-        Object.keys(updatedAliases).length > 0 ? updatedAliases : undefined,
-      lastUpdated: new Date()
+        Object.keys(updatedAliases).length > 0 ? updatedAliases : undefined
     })
 
     toast.success(t('account.nostrSync.deviceAlias.aliasSaved'))
@@ -204,20 +202,20 @@ export default function DeviceAliasPage() {
     account?.nostr?.trustedMemberDevices?.includes(npub ?? '') ?? false
 
   function handleTrustToggle() {
-    if (!accountId || !account?.nostr || !npub) return
+    if (!accountId || !account?.nostr || !npub) {return}
 
     if (isTrusted) {
       updateAccountNostr(accountId, {
+        lastUpdated: new Date(),
         trustedMemberDevices: account.nostr.trustedMemberDevices.filter(
           (m) => m !== npub
-        ),
-        lastUpdated: new Date()
+        )
       })
       toast.success(t('account.nostrSync.deviceDistrusted'))
     } else {
       updateAccountNostr(accountId, {
-        trustedMemberDevices: [...account.nostr.trustedMemberDevices, npub],
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
+        trustedMemberDevices: [...account.nostr.trustedMemberDevices, npub]
       })
       if (trustSyncRestartRef.current) {
         clearTimeout(trustSyncRestartRef.current)
@@ -230,18 +228,19 @@ export default function DeviceAliasPage() {
         const current = useAccountsStore
           .getState()
           .accounts.find((a) => a.id === accountId)
-        if (current) restartSync(current, () => {})
+        if (current) {restartSync(current, () => {})}
       }, TRUST_SYNC_RESTART_DELAY_MS)
       toast.success(t('account.nostrSync.deviceTrusted'))
     }
   }
 
-  if (!accountId || !account || !npub) return <Redirect href="/" />
+  if (!accountId || !account || !npub) {return <Redirect href="/" />}
 
   return (
     <SSMainLayout style={styles.mainLayout}>
       <Stack.Screen
         options={{
+          headerRight: () => null,
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
@@ -249,8 +248,7 @@ export default function DeviceAliasPage() {
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
               )}
             </SSHStack>
-          ),
-          headerRight: () => null
+          )
         }}
       />
       <SSVStack style={styles.pageContainer} gap="lg">
@@ -362,17 +360,9 @@ export default function DeviceAliasPage() {
 }
 
 const styles = StyleSheet.create({
-  mainLayout: {
-    paddingTop: 10,
-    paddingBottom: 20
-  },
-  pageContainer: {
-    justifyContent: 'space-between',
-    flex: 1
-  },
-  npubRow: {
-    width: '100%',
-    justifyContent: 'center'
+  cancelButton: {
+    alignSelf: 'stretch',
+    marginTop: 8
   },
   colorDot: {
     width: 10,
@@ -380,37 +370,45 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginRight: 4
   },
-  npubText: {
-    letterSpacing: 1
-  },
-  profileRow: {
-    alignItems: 'center',
-    marginBottom: 4
-  },
-  profilePicture: {
-    width: 64,
-    height: 64,
-    borderRadius: 32
+  kind0Row: {
+    alignSelf: 'stretch'
   },
   loadingRow: {
     alignSelf: 'stretch',
     alignItems: 'center',
     justifyContent: 'center'
   },
-  trustButton: {
-    alignSelf: 'stretch'
+  mainLayout: {
+    paddingTop: 10,
+    paddingBottom: 20
   },
-  kind0Row: {
-    alignSelf: 'stretch'
+  npubRow: {
+    width: '100%',
+    justifyContent: 'center'
   },
-  saveRemoveRow: {
-    alignSelf: 'stretch'
+  npubText: {
+    letterSpacing: 1
+  },
+  pageContainer: {
+    justifyContent: 'space-between',
+    flex: 1
+  },
+  profilePicture: {
+    width: 64,
+    height: 64,
+    borderRadius: 32
+  },
+  profileRow: {
+    alignItems: 'center',
+    marginBottom: 4
   },
   saveClearButton: {
     flex: 1
   },
-  cancelButton: {
-    alignSelf: 'stretch',
-    marginTop: 8
+  saveRemoveRow: {
+    alignSelf: 'stretch'
+  },
+  trustButton: {
+    alignSelf: 'stretch'
   }
 })

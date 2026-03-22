@@ -18,11 +18,11 @@ import { Colors } from '@/styles'
 import { formatNumber } from '@/utils/format'
 
 const DEFAULT_MINTS = [
-  { url: 'https://mint.minibits.cash/Bitcoin', name: 'Bitcoin Minibits mint' },
-  { url: 'https://mint.cubabitcoin.org', name: 'Mint Cuba Bitcoin' },
-  { url: 'https://mint.lnvoltz.com', name: 'Voltz Mint' },
-  { url: 'https://21mint.me', name: '21Mint' },
-  { url: 'https://mint.coinos.io', name: 'Coinos' }
+  { name: 'Bitcoin Minibits mint', url: 'https://mint.minibits.cash/Bitcoin' },
+  { name: 'Mint Cuba Bitcoin', url: 'https://mint.cubabitcoin.org' },
+  { name: 'Voltz Mint', url: 'https://mint.lnvoltz.com' },
+  { name: '21Mint', url: 'https://21mint.me' },
+  { name: 'Coinos', url: 'https://mint.coinos.io' }
 ]
 
 export default function EcashMintPage() {
@@ -201,8 +201,17 @@ export default function EcashMintPage() {
 }
 
 const styles = StyleSheet.create({
-  removeButton: {
-    marginTop: 8
+  defaultMintButton: {
+    marginBottom: 2,
+    opacity: 0.7
+  },
+  emptyState: {
+    paddingVertical: 40,
+    alignItems: 'center'
+  },
+  errorText: {
+    paddingTop: 4,
+    textAlign: 'left'
   },
   mintCard: {
     backgroundColor: '#1a1a1a',
@@ -212,13 +221,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#333333'
   },
-  emptyState: {
-    paddingVertical: 40,
-    alignItems: 'center'
-  },
-  defaultMintButton: {
-    marginBottom: 2,
-    opacity: 0.7
+  removeButton: {
+    marginTop: 8
   },
   warningContainer: {
     backgroundColor: Colors.gray[900],
@@ -226,9 +230,5 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: Colors.warning
-  },
-  errorText: {
-    paddingTop: 4,
-    textAlign: 'left'
   }
 })

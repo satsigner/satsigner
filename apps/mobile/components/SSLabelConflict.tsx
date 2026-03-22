@@ -4,7 +4,7 @@ import { StyleSheet } from 'react-native'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn } from '@/locales'
 import { Colors } from '@/styles'
-import { type Label } from '@/utils/bip329'
+import type { Label } from '@/utils/bip329'
 
 import SSButton from './SSButton'
 import SSCheckbox from './SSCheckbox'
@@ -15,12 +15,12 @@ export type Conflict = [Label, Label] // [current, incoming]
 
 type ConflictStrategy = (typeof conflictStrategies)[number]
 
-type SSLabelConflictProps = {
+interface SSLabelConflictProps {
   conflicts: Conflict[]
   onResolve: (labels: Label[]) => void
 }
 
-type SSLabelConflictItemProps = {
+interface SSLabelConflictItemProps {
   conflict: Conflict
   conflictStrategy: ConflictStrategy
   conflictStrategyGlobal: ConflictStrategy
@@ -53,9 +53,9 @@ export function detectConflcits(
 
   const conflicts: Conflict[] = []
   for (const incoming of incomingLabels) {
-    if (!currentLabelsDict[incoming.ref]) continue
+    if (!currentLabelsDict[incoming.ref]) {continue}
     const current = currentLabelsDict[incoming.ref]
-    if (current.label === incoming.label) continue
+    if (current.label === incoming.label) {continue}
     conflicts.push([current, incoming])
   }
   return conflicts
@@ -68,18 +68,22 @@ function solveConflict(
 ): Label {
   let label = ''
   switch (strategy) {
-    case 'current':
+    case 'current': {
       label = current.label
       break
-    case 'incoming':
+    }
+    case 'incoming': {
       label = incoming.label
       break
-    case 'merge':
+    }
+    case 'merge': {
       label = `${current.label}; ${incoming.label}`
       break
-    case 'manual':
+    }
+    case 'manual': {
       label = ''
       break
+    }
   }
   return { ...current, ...incoming, label }
 }
@@ -148,8 +152,7 @@ function SSLabelConflictItem({
         <SSVStack gap="xs">
           <SSText size="md">{tl('manualSelection')}</SSText>
           <SSVStack gap="sm">
-            {conflictStrategies.map((strategy) => {
-              return (
+            {conflictStrategies.map((strategy) => (
                 <SSCheckbox
                   key={strategy}
                   selected={strategy === conflictStrategy}
@@ -158,8 +161,7 @@ function SSLabelConflictItem({
                   unFillColor={Colors.gray[400]}
                   fillColor={Colors.gray[400]}
                 />
-              )
-            })}
+              ))}
           </SSVStack>
         </SSVStack>
       )}
@@ -239,16 +241,14 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
             <SSText size="md">{tl('selection')}</SSText>
           </SSVStack>
           <SSVStack gap="sm">
-            {conflictStrategies.map((strategy) => {
-              return (
+            {conflictStrategies.map((strategy) => (
                 <SSCheckbox
                   key={strategy}
                   selected={strategy === conflictStrategy}
                   label={strategy}
                   onPress={() => setConflictStrategy(strategy)}
                 />
-              )
-            })}
+              ))}
           </SSVStack>
           <SSButton
             label={t('common.next')}
@@ -259,8 +259,7 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
       )}
       {stage !== 'selection' && (
         <SSVStack>
-          {conflicts.map(([current, incoming], index) => {
-            return (
+          {conflicts.map(([current, incoming], index) => (
               <SSLabelConflictItem
                 key={current.ref}
                 conflict={[current, incoming]}
@@ -273,8 +272,7 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
                   solveConflictByIndex(strategy, index)
                 }
               />
-            )
-          })}
+            ))}
           <SSVStack gap="sm" style={{ width: '100%' }}>
             <SSButton
               label={t('common.back')}
@@ -296,19 +294,16 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
 }
 
 const styles = StyleSheet.create({
+  accepted: {
+    backgroundColor: Colors.softBarGreen
+  },
   box: {
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 4
   },
-  accepted: {
-    backgroundColor: Colors.softBarGreen
-  },
-  rejected: {
-    backgroundColor: Colors.softBarRed
-  },
-  none: {
-    backgroundColor: Colors.gray[400]
+  button: {
+    width: '100%'
   },
   info: {
     backgroundColor: Colors.success
@@ -317,28 +312,31 @@ const styles = StyleSheet.create({
     borderColor: Colors.error,
     borderWidth: 2
   },
-  button: {
-    width: '100%'
-  },
   labelItem: {
     backgroundColor: '#333',
     borderRadius: 4,
     padding: 8
+  },
+  none: {
+    backgroundColor: Colors.gray[400]
+  },
+  rejected: {
+    backgroundColor: Colors.softBarRed
   }
 })
 
 const bgStyles = {
   current: {
     current: styles.accepted,
-    merge: styles.accepted,
     incoming: styles.rejected,
-    manual: styles.none
+    manual: styles.none,
+    merge: styles.accepted
   },
   incoming: {
-    incoming: styles.accepted,
-    merge: styles.accepted,
     current: styles.rejected,
-    manual: styles.none
+    incoming: styles.accepted,
+    manual: styles.none,
+    merge: styles.accepted
   }
 }
 

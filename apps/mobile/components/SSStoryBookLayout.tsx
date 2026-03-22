@@ -7,11 +7,11 @@ function SSStoryBookLayout({ children }: { children: React.ReactNode }) {
   return (
     <View
       style={{
-        flex: 1,
         alignItems: 'center',
+        flex: 1,
         justifyContent: 'center',
-        paddingHorizontal: Layout.mainContainer.paddingHorizontal,
         paddingBottom: Layout.mainContainer.paddingBottom,
+        paddingHorizontal: Layout.mainContainer.paddingHorizontal,
         paddingTop: Layout.mainContainer.paddingTop,
         width: '100%'
       }}

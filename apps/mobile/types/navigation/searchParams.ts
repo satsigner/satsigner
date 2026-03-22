@@ -1,29 +1,29 @@
-export type MultiSigKeySettingsSearchParams = {
+export interface MultiSigKeySettingsSearchParams {
   index: string
 }
 
-export type GenerateMnemonicSearchParams = {
+export interface GenerateMnemonicSearchParams {
   index: string
 }
 
-export type ConfirmWordSearchParams = {
+export interface ConfirmWordSearchParams {
   keyIndex: string
   index: string
 }
 
-export type ImportMnemonicSearchParams = {
+export interface ImportMnemonicSearchParams {
   keyIndex: string
 }
 
-export type ImportDescriptorSearchParams = {
+export interface ImportDescriptorSearchParams {
   keyIndex: string
 }
 
-export type ExplorerBlockSearchParams = {
+export interface ExplorerBlockSearchParams {
   block: string
 }
 
-export type AccountSearchParams = {
+export interface AccountSearchParams {
   id: string
 }
 
@@ -44,7 +44,7 @@ export type UtxoSearchParams = {
   vout: string
 } & TxSearchParams
 
-export type EcashSearchParams = {
+export interface EcashSearchParams {
   mintUrl?: string
   amount?: string
   token?: string
@@ -55,7 +55,7 @@ export type DeviceAliasSearchParams = {
   npub: string
 } & AccountSearchParams
 
-export type WatchOnlySearchParams = {
+export interface WatchOnlySearchParams {
   descriptor?: string
   extendedPublicKey?: string
 }

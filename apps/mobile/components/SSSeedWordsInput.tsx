@@ -1,4 +1,4 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
+import type { Network } from 'bdk-rn/lib/lib/enums'
 import * as Clipboard from 'expo-clipboard'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { StyleProp, TextInput, ViewStyle } from 'react-native'
@@ -15,25 +15,19 @@ import SSHStack from '@/layouts/SSHStack'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { type MnemonicWordCount } from '@/types/models/Account'
+import type { MnemonicWordCount } from '@/types/models/Account'
 import { getFingerprintFromSeed } from '@/utils/bip32'
-import {
-  detectElectrumSeed,
-  getFingerprintFromMnemonic,
-  getWordList,
-  mnemonicToSeedElectrum,
-  validateMnemonic,
-  type WordListName
-} from '@/utils/bip39'
-import { type DetectedContent } from '@/utils/contentDetector'
+import { detectElectrumSeed, getFingerprintFromMnemonic, getWordList, mnemonicToSeedElectrum, validateMnemonic } from '@/utils/bip39';
+import type { WordListName } from '@/utils/bip39';
+import type { DetectedContent } from '@/utils/contentDetector'
 
-type SeedWordInfo = {
+interface SeedWordInfo {
   value: string
   valid: boolean
   dirty: boolean
 }
 
-type SSSeedWordsInputProps = {
+interface SSSeedWordsInputProps {
   wordCount: MnemonicWordCount
   wordListName: WordListName
   network: Network
@@ -123,9 +117,9 @@ export default function SSSeedWordsInput({
     const initialSeedWordsInfo = Array(wordCount)
       .fill(null)
       .map(() => ({
-        value: '',
+        dirty: false,
         valid: false,
-        dirty: false
+        value: ''
       }))
     setSeedWordsInfo(initialSeedWordsInfo)
     // Initialize refs array
@@ -133,18 +127,16 @@ export default function SSSeedWordsInput({
   }, [wordCount])
 
   // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
+  useEffect(() => () => {
       if (autoAdvanceTimeoutRef.current) {
         clearTimeout(autoAdvanceTimeoutRef.current)
       }
-    }
-  }, [])
+    }, [])
 
   // Handle word selection from keyboard selector
   const handleWordSelected = useCallback(
     async (word?: string) => {
-      if (!word) return
+      if (!word) {return}
       const newSeedWordsInfo = [...seedWordsInfo]
       const currentWord = newSeedWordsInfo[currentWordIndex]
 
@@ -215,22 +207,22 @@ export default function SSSeedWordsInput({
   // Notify parent about word selector state changes
   useEffect(() => {
     onWordSelectorStateChange?.({
+      onWordSelected: (word?: string) => handleWordSelectedRef.current?.(word),
       visible: keyboardWordSelectorVisible,
-      wordStart: currentWordText,
-      onWordSelected: (word?: string) => handleWordSelectedRef.current?.(word)
+      wordStart: currentWordText
     })
   }, [keyboardWordSelectorVisible, currentWordText, onWordSelectorStateChange])
 
   // Check if clipboard contains valid seed (BIP39 or Electrum)
   const checkClipboardForSeed = useCallback(
     (text: string): string[] => {
-      if (!text || text === '') return []
+      if (!text || text === '') {return []}
       const delimiters = [' ', '\n', ',', ', ']
       for (const delimiter of delimiters) {
         const seedCandidate = text.split(delimiter)
-        if (seedCandidate.length !== wordCount) continue
+        if (seedCandidate.length !== wordCount) {continue}
         const validWords = seedCandidate.every((x) => wordList.includes(x))
-        if (!validWords) continue
+        if (!validWords) {continue}
         return seedCandidate
       }
       return []
@@ -242,9 +234,9 @@ export default function SSSeedWordsInput({
   const fillOutSeedWords = useCallback(
     async (seed: string[]) => {
       const newSeedWordsInfo = seed.map((value) => ({
-        value,
+        dirty: false,
         valid: true,
-        dirty: false
+        value
       }))
 
       setSeedWordsInfo(newSeedWordsInfo)
@@ -304,7 +296,7 @@ export default function SSSeedWordsInput({
 
   const handleSeedQRScanned = useCallback(
     (content: DetectedContent) => {
-      if (content.type !== 'seed_qr' || !content.metadata?.mnemonic) return
+      if (content.type !== 'seed_qr' || !content.metadata?.mnemonic) {return}
       const mnemonic = content.metadata.mnemonic as string
       const seed = mnemonic.trim().split(/\s+/)
       if (seed.length !== wordCount) {
@@ -328,7 +320,7 @@ export default function SSSeedWordsInput({
     const seedWord = newSeedWordsInfo[index]
 
     // Check for invalid characters
-    if (!value.match(/^[a-z]*$/)) {
+    if (!/^[a-z]*$/.test(value)) {
       seedWord.valid = false
       seedWord.dirty = true
       setSeedWordsInfo(newSeedWordsInfo)
@@ -481,7 +473,7 @@ export default function SSSeedWordsInput({
               {showChecksum && (
                 <SSChecksumStatus
                   valid={
-                    checksumValid ? true : electrumSeedType ? 'electrum' : false
+                    checksumValid ? true : (electrumSeedType ? 'electrum' : false)
                   }
                 />
               )}

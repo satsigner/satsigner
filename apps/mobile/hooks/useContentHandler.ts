@@ -1,12 +1,10 @@
 import { useCallback, useState } from 'react'
 
 import { useNFCReader } from '@/hooks/useNFCReader'
-import {
-  detectContentByContext,
-  type DetectedContent
-} from '@/utils/contentDetector'
+import { detectContentByContext } from '@/utils/contentDetector';
+import type { DetectedContent } from '@/utils/contentDetector';
 
-type UseContentHandlerProps = {
+interface UseContentHandlerProps {
   context: 'bitcoin' | 'lightning' | 'ecash'
   onContentScanned: (content: DetectedContent) => void
   onSend: () => void
@@ -66,19 +64,19 @@ export function useContentHandler({
 
   return {
     cameraModalVisible,
-    nfcModalVisible,
-    pasteModalVisible,
     closeCameraModal,
     closeNFCModal,
     closePasteModal,
-    handleSend: onSend,
-    handlePaste,
     handleCamera,
-    handleNFC,
-    handleReceive: onReceive,
-    handleContentScanned: onContentScanned,
     handleContentPasted,
+    handleContentScanned: onContentScanned,
+    handleNFC,
     handleNFCContentRead,
-    nfcAvailable
+    handlePaste,
+    handleReceive: onReceive,
+    handleSend: onSend,
+    nfcAvailable,
+    nfcModalVisible,
+    pasteModalVisible
   }
 }

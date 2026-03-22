@@ -10,7 +10,7 @@ import { t } from '@/locales'
 import { useAuthStore } from '@/store/auth'
 import { error, gray, warning } from '@/styles/colors'
 
-type SSPinEntryProps = {
+interface SSPinEntryProps {
   pin: string[]
   setPin: Dispatch<SetStateAction<string[]>>
   onFillEnded: (pin: string) => void
@@ -32,10 +32,10 @@ function SSPinEntry({
   const triesLeft = pinMaxTries - pinTries
 
   function getTextColor() {
-    if (triesLeft > 2) return gray[200]
-    if (triesLeft === 1) return error
-    if (triesLeft === 2) return warning
-    return undefined
+    if (triesLeft > 2) {return gray[200]}
+    if (triesLeft === 1) {return error}
+    if (triesLeft === 2) {return warning}
+    return
   }
 
   return (

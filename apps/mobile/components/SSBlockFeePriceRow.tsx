@@ -6,7 +6,7 @@ import type { BlockHeightSource } from '@/hooks/useNetworkInfo'
 import SSHStack from '@/layouts/SSHStack'
 import { Colors } from '@/styles'
 
-type SSBlockFeePriceRowProps = {
+interface SSBlockFeePriceRowProps {
   blockHeight: number | null | undefined
   btcPrice: number
   fiatCurrency: string

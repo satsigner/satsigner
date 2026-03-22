@@ -23,7 +23,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import type { LNURLWithdrawDetails } from '@/types/models/LNURL'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import { formatNumber } from '@/utils/format'
 import {
   decodeLNURL,
@@ -33,7 +33,7 @@ import {
   requestLNURLWithdrawInvoice
 } from '@/utils/lnurl'
 
-type Invoice = {
+interface Invoice {
   payment_request: string
   r_hash?: string | undefined
 }
@@ -81,7 +81,7 @@ export default function InvoicePage() {
 
   // Function to check invoice status
   const checkInvoiceStatus = useCallback(async () => {
-    if (!rHash || !qrModalVisible) return
+    if (!rHash || !qrModalVisible) {return}
 
     try {
       // Convert r_hash to hex if it's not already
@@ -105,7 +105,7 @@ export default function InvoicePage() {
 
   // Set up polling for invoice status
   useEffect(() => {
-    if (!qrModalVisible || !rHash) return
+    if (!qrModalVisible || !rHash) {return}
 
     // Check immediately
     checkInvoiceStatus()
@@ -117,12 +117,12 @@ export default function InvoicePage() {
   }, [qrModalVisible, rHash, checkInvoiceStatus])
 
   const handleAmountChange = (text: string) => {
-    const numericValue = text.replace(/[^0-9]/g, '')
+    const numericValue = text.replaceAll(/[^0-9]/g, '')
     setInvoiceAmount(numericValue)
   }
 
   const handleFiatAmountChange = (text: string) => {
-    const cleaned = text.replace(/[^0-9.]/g, '')
+    const cleaned = text.replaceAll(/[^0-9.]/g, '')
     setLocalFiatAmount(cleaned)
     const fiat = Number(cleaned)
     if (!isNaN(fiat) && btcPrice && btcPrice > 0) {
@@ -132,9 +132,9 @@ export default function InvoicePage() {
   }
 
   const handleSwitchToFiat = () => {
-    if (!btcPrice || btcPrice <= 0) return
+    if (!btcPrice || btcPrice <= 0) {return}
     if (invoiceAmount) {
-      const fiat = satsToFiat(parseInt(invoiceAmount, 10))
+      const fiat = satsToFiat(Number.parseInt(invoiceAmount, 10))
       setLocalFiatAmount(fiat > 0 ? fiat.toFixed(2) : '')
     }
     setAmountMode('fiat')
@@ -145,7 +145,7 @@ export default function InvoicePage() {
   }
 
   const isFormValid = () => {
-    const amount = parseInt(invoiceAmount, 10)
+    const amount = Number.parseInt(invoiceAmount, 10)
     return (
       invoiceAmount.length > 0 &&
       !isNaN(amount) &&
@@ -279,7 +279,7 @@ export default function InvoicePage() {
       return
     }
 
-    const amount = parseInt(invoiceAmount, 10)
+    const amount = Number.parseInt(invoiceAmount, 10)
     if (isNaN(amount) || amount <= 0) {
       toast.error('Please enter a valid amount')
       return
@@ -379,7 +379,7 @@ export default function InvoicePage() {
                     style={styles.input}
                     value={
                       invoiceAmount
-                        ? formatNumber(parseInt(invoiceAmount, 10)).toString()
+                        ? formatNumber(Number.parseInt(invoiceAmount, 10)).toString()
                         : ''
                     }
                     onChangeText={handleAmountChange}
@@ -412,7 +412,7 @@ export default function InvoicePage() {
                   >
                     ≈{' '}
                     {invoiceAmount
-                      ? formatNumber(satsToFiat(parseInt(invoiceAmount, 10)), 2)
+                      ? formatNumber(satsToFiat(Number.parseInt(invoiceAmount, 10)), 2)
                       : '0'}{' '}
                     {fiatCurrency}
                   </SSText>
@@ -424,7 +424,7 @@ export default function InvoicePage() {
                     style={styles.switchableAmount}
                   >
                     {invoiceAmount
-                      ? `${formatNumber(parseInt(invoiceAmount, 10))} sats`
+                      ? `${formatNumber(Number.parseInt(invoiceAmount, 10))} sats`
                       : '0 sats'}
                   </SSText>
                 )}
@@ -502,12 +502,12 @@ export default function InvoicePage() {
                     </SSText>
                     <SSHStack gap="xs" style={styles.amountContainer}>
                       <SSText weight="medium">
-                        {formatNumber(parseInt(currentAmount, 10))} sats
+                        {formatNumber(Number.parseInt(currentAmount, 10))} sats
                       </SSText>
                       <SSText color="muted" size="sm">
                         ≈{' '}
                         {formatNumber(
-                          satsToFiat(parseInt(currentAmount, 10)),
+                          satsToFiat(Number.parseInt(currentAmount, 10)),
                           2
                         )}{' '}
                         {fiatCurrency}
@@ -532,9 +532,9 @@ export default function InvoicePage() {
                     >
                       {invoiceStatus === 'settled'
                         ? 'Paid'
-                        : invoiceStatus === 'canceled'
+                        : (invoiceStatus === 'canceled'
                           ? 'Canceled'
-                          : 'Waiting for payment...'}
+                          : 'Waiting for payment...')}
                     </SSText>
                   </SSHStack>
                 </View>
@@ -579,22 +579,53 @@ export default function InvoicePage() {
 }
 
 const styles = StyleSheet.create({
-  mainLayout: {
-    paddingTop: 32,
-    paddingHorizontal: '5%'
+  actionButton: {
+    flex: 1
+  },
+  actionButtons: {
+    width: '100%',
+    marginBottom: 8
+  },
+  actions: {
+    gap: 12,
+    marginTop: 8
+  },
+  amountContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'baseline'
+  },
+  button: {
+    width: '100%'
   },
   content: {
     flex: 1,
     gap: 24
+  },
+  detailLabel: {
+    minWidth: 100,
+    fontSize: 14
+  },
+  detailRow: {
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap'
+  },
+  detailSection: {
+    gap: 12
+  },
+  detailValue: {
+    flex: 1,
+    textAlign: 'right'
+  },
+  detailsContent: {
+    gap: 16
   },
   form: {
     backgroundColor: '#1a1a1a',
     borderRadius: 12,
     padding: 20,
     gap: 16
-  },
-  inputContainer: {
-    gap: 8
   },
   input: {
     backgroundColor: '#242424',
@@ -603,61 +634,34 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16
   },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top'
+  inputContainer: {
+    gap: 8
   },
-  actions: {
-    gap: 12,
-    marginTop: 8
-  },
-  button: {
-    width: '100%'
-  },
-  modalScrollView: {
-    width: '100%',
-    maxHeight: '90%'
-  },
-  modalContent: {
-    width: '100%',
-    padding: 10
+  inputHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
   },
   invoiceDetails: {
     width: '100%',
     gap: 12
   },
-  detailsContent: {
-    gap: 16
+  mainLayout: {
+    paddingTop: 32,
+    paddingHorizontal: '5%'
   },
-  detailSection: {
-    gap: 12
+  modalActions: {
+    gap: 12,
+    marginTop: 16,
+    width: '100%'
   },
-  detailRow: {
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap'
-  },
-  detailLabel: {
-    minWidth: 100,
-    fontSize: 14
-  },
-  detailValue: {
-    flex: 1,
-    textAlign: 'right'
-  },
-  amountContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'baseline'
-  },
-  qrContainer: {
+  modalContent: {
     width: '100%',
-    aspectRatio: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    padding: 16
+    padding: 10
+  },
+  modalScrollView: {
+    width: '100%',
+    maxHeight: '90%'
   },
   paymentRequestContainer: {
     width: '100%',
@@ -669,27 +673,23 @@ const styles = StyleSheet.create({
     padding: 12,
     width: '100%'
   },
-  modalActions: {
-    gap: 12,
-    marginTop: 16,
-    width: '100%'
-  },
-  inputHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
+  qrContainer: {
+    width: '100%',
+    aspectRatio: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    padding: 16
   },
   scanButton: {
     minWidth: 100
   },
-  actionButtons: {
-    width: '100%',
-    marginBottom: 8
-  },
-  actionButton: {
-    flex: 1
-  },
   switchableAmount: {
     textDecorationLine: 'underline'
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top'
   }
 })

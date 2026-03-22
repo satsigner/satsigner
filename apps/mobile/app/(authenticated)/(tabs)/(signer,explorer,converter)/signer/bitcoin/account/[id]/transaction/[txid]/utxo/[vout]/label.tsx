@@ -8,8 +8,8 @@ import useNostrSync from '@/hooks/useNostrSync'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { type UtxoSearchParams } from '@/types/navigation/searchParams'
-import { type Label } from '@/utils/bip329'
+import type { UtxoSearchParams } from '@/types/navigation/searchParams'
+import type { Label } from '@/utils/bip329'
 
 function UtxoLabel() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
@@ -24,8 +24,8 @@ function UtxoLabel() {
     const singleLabelData: Label = {
       label,
       ref: `${txid}:${vout}`,
-      type: 'output',
-      spendable: true
+      spendable: true,
+      type: 'output'
     }
 
     if (updatedAccount?.nostr?.autoSync) {
@@ -34,7 +34,7 @@ function UtxoLabel() {
     router.back()
   }
 
-  if (!utxo || !txid || !accountId || !vout) return <Redirect href="/" />
+  if (!utxo || !txid || !accountId || !vout) {return <Redirect href="/" />}
 
   return (
     <ScrollView>

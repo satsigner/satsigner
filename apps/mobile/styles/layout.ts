@@ -1,21 +1,21 @@
-import { type DimensionValue } from 'react-native'
+import type { DimensionValue } from 'react-native'
 
 export const mainContainer = {
+  paddingBottom: 32,
   paddingHorizontal: '6%' as DimensionValue,
-  paddingTop: 12,
-  paddingBottom: 32
+  paddingTop: 12
 }
 
 export const vStack = {
   gap: {
-    none: 0,
-    xxs: 2,
-    xs: 4,
-    sm: 8,
-    md: 16,
+    '2xl': 128,
     lg: 32,
+    md: 16,
+    none: 0,
+    sm: 8,
     xl: 64,
-    '2xl': 128
+    xs: 4,
+    xxs: 2
   }
 }
 
@@ -23,14 +23,14 @@ export type VStackGap = keyof (typeof vStack)['gap']
 
 export const hStack = {
   gap: {
-    none: 0,
-    xxs: 2,
-    xs: 4,
-    sm: 8,
-    md: 16,
+    '2xl': 128,
     lg: 32,
+    md: 16,
+    none: 0,
+    sm: 8,
     xl: 64,
-    '2xl': 128
+    xs: 4,
+    xxs: 2
   }
 }
 

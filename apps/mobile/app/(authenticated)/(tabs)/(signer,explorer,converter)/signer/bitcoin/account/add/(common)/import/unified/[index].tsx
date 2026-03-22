@@ -1,5 +1,5 @@
 import { Descriptor } from 'bdk-rn'
-import { type Network as BdkNetwork } from 'bdk-rn/lib/lib/enums'
+import type { Network as BdkNetwork } from 'bdk-rn/lib/lib/enums'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
@@ -21,7 +21,7 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type CreationType, type PolicyType } from '@/types/models/Account'
+import type { CreationType, PolicyType } from '@/types/models/Account'
 import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 import {
   isCombinedDescriptor,
@@ -32,7 +32,7 @@ import {
   validateFingerprint
 } from '@/utils/validation'
 
-type UnifiedImportSearchParams = {
+interface UnifiedImportSearchParams {
   index: string
   importType: 'descriptor' | 'extendedPub'
 }
@@ -135,7 +135,7 @@ export default function UnifiedImport() {
       ? await validateDescriptorFormat(descriptor)
       : await validateDescriptor(descriptor)
     const basicValidation =
-      descriptorValidation && !descriptor.match(/[txyz]priv/)
+      descriptorValidation && !/[txyz]priv/.test(descriptor)
 
     // Network validation - check if descriptor is compatible with selected network
     let networkValidation: { isValid: boolean; error?: string } = {
@@ -154,8 +154,8 @@ export default function UnifiedImport() {
           errorMessage.includes('network')
         ) {
           networkValidation = {
-            isValid: false,
-            error: 'networkIncompatible'
+            error: 'networkIncompatible',
+            isValid: false
           }
         } else {
           // For other BDK errors, still consider it valid for now
@@ -203,8 +203,8 @@ export default function UnifiedImport() {
           errorMessage.includes('network')
         ) {
           networkValidation = {
-            isValid: false,
-            error: 'networkIncompatible'
+            error: 'networkIncompatible',
+            isValid: false
           }
         } else {
           // For other BDK errors, still consider it valid for now
@@ -238,7 +238,7 @@ export default function UnifiedImport() {
   }
 
   async function confirmKeyImport() {
-    if (disabled) return
+    if (disabled) {return}
 
     setLoadingWallet(true)
 
@@ -250,7 +250,7 @@ export default function UnifiedImport() {
       setNetwork(network)
 
       // Set the key data
-      const keyIndex = parseInt(index!, 10)
+      const keyIndex = Number.parseInt(index!, 10)
       setKey(keyIndex)
 
       toast.success(t('account.import.success'))
@@ -269,7 +269,7 @@ export default function UnifiedImport() {
 
   async function pasteFromClipboard() {
     const text = await Clipboard.getStringAsync()
-    if (!text) return
+    if (!text) {return}
 
     if (importType === 'descriptor') {
       let externalDescriptor = text
@@ -290,12 +290,12 @@ export default function UnifiedImport() {
             /#[a-z0-9]+$/,
             ''
           )
-          internalDescriptor = descriptorWithoutChecksum.replace(
+          internalDescriptor = descriptorWithoutChecksum.replaceAll(
             /\/0\/\*/g,
             '/1/*'
           )
         }
-      } catch (_jsonError) {
+      } catch {
         // Handle legacy formats
         if (text.includes('\n')) {
           const lines = text.split('\n')
@@ -348,7 +348,7 @@ export default function UnifiedImport() {
           const descriptorToValidate = originalDescriptor || externalDescriptor
           updateExternalDescriptor(descriptorToValidate)
         }
-        if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+        if (internalDescriptor) {updateInternalDescriptor(internalDescriptor)}
       }
     }
 
@@ -368,7 +368,7 @@ export default function UnifiedImport() {
       const finalContent = clipboardContent.trim()
       updateMasterFingerprint(finalContent)
       toast.success(t('watchonly.success.clipboardPasted'))
-    } catch (_error) {
+    } catch {
       toast.error(t('watchonly.error.clipboardPaste'))
     }
   }
@@ -399,9 +399,9 @@ export default function UnifiedImport() {
 
       const text = nfcData.text
         .trim()
-        .replace(/[^\S\n]+/g, '') // Remove all whitespace except newlines
-        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
-        .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
+        .replaceAll(/[^\S\n]+/g, '') // Remove all whitespace except newlines
+        .replaceAll(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
+        .replaceAll(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
         .normalize('NFKC') // Normalize unicode characters
         .replace(/^en/, '')
 
@@ -460,7 +460,7 @@ export default function UnifiedImport() {
               originalDescriptor || externalDescriptor
             updateExternalDescriptor(descriptorToValidate)
           }
-          if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+          if (internalDescriptor) {updateInternalDescriptor(internalDescriptor)}
         }
       }
 
@@ -477,7 +477,7 @@ export default function UnifiedImport() {
 
   async function handleQRCodeScanned(scanningResult: any) {
     const data = scanningResult?.data
-    if (!data) return
+    if (!data) {return}
 
     // Handle fingerprint scanning
     if (scanningFor === 'fingerprint') {
@@ -503,12 +503,12 @@ export default function UnifiedImport() {
             /#[a-z0-9]+$/,
             ''
           )
-          internalDescriptor = descriptorWithoutChecksum.replace(
+          internalDescriptor = descriptorWithoutChecksum.replaceAll(
             /\/0\/\*/g,
             '/1/*'
           )
         }
-      } catch (_jsonError) {
+      } catch {
         // Handle legacy formats
         if (data.includes('\n')) {
           const lines = data.split('\n')
@@ -561,7 +561,7 @@ export default function UnifiedImport() {
           const descriptorToValidate = originalDescriptor || externalDescriptor
           updateExternalDescriptor(descriptorToValidate)
         }
-        if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+        if (internalDescriptor) {updateInternalDescriptor(internalDescriptor)}
       }
     }
 
@@ -575,7 +575,7 @@ export default function UnifiedImport() {
   function getImportLabel() {
     if (importType === 'descriptor') {
       return t('watchonly.importDescriptor.title')
-    } else {
+    }
       // Return the appropriate label based on script version
       switch (scriptVersion) {
         case 'P2PKH':
@@ -589,18 +589,18 @@ export default function UnifiedImport() {
         default:
           return t('account.import.xpub')
       }
-    }
+    
   }
 
   function getImportDescription() {
     if (importType === 'descriptor') {
       return t('watchonly.importDescriptor.text')
-    } else {
-      return t('watchonly.importExtendedPub.text')
     }
+      return t('watchonly.importExtendedPub.text')
+    
   }
 
-  if (!name) return <Redirect href="/" />
+  if (!name) {return <Redirect href="/" />}
 
   return (
     <SSMainLayout>
@@ -680,8 +680,8 @@ export default function UnifiedImport() {
                         style={{
                           color: Colors.error,
                           fontSize: 12,
-                          textAlign: 'center',
-                          marginTop: 4
+                          marginTop: 4,
+                          textAlign: 'center'
                         }}
                       >
                         {externalDescriptorError}
@@ -704,8 +704,8 @@ export default function UnifiedImport() {
                         style={{
                           color: Colors.error,
                           fontSize: 12,
-                          textAlign: 'center',
-                          marginTop: 4
+                          marginTop: 4,
+                          textAlign: 'center'
                         }}
                       >
                         {internalDescriptorError}
@@ -795,7 +795,7 @@ export default function UnifiedImport() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  camera: {
     flex: 1
   },
   cameraContainer: {
@@ -807,13 +807,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.gray[600]
   },
-  camera: {
-    flex: 1
-  },
   cameraPlaceholder: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16
+  },
+  container: {
+    flex: 1
   }
 })

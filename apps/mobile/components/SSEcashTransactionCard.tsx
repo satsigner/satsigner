@@ -18,13 +18,13 @@ import { useEcashStore } from '@/store/ecash'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import { type EcashTransaction } from '@/types/models/Ecash'
+import type { EcashTransaction } from '@/types/models/Ecash'
 import { formatFiatPrice } from '@/utils/format'
 
 import SSStyledSatText from './SSStyledSatText'
 import SSTimeAgoText from './SSTimeAgoText'
 
-type SSEcashTransactionCardProps = {
+interface SSEcashTransactionCardProps {
   transaction: EcashTransaction
 }
 
@@ -61,31 +61,41 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
 
   function getTransactionIcon(type: EcashTransaction['type']) {
     switch (type) {
-      case 'send':
+      case 'send': {
         return <SSIconOutgoing height={12} width={12} />
-      case 'receive':
+      }
+      case 'receive': {
         return <SSIconIncoming height={12} width={12} />
-      case 'mint':
+      }
+      case 'mint': {
         return <SSIconIncomingLightning height={12} width={12} />
-      case 'melt':
+      }
+      case 'melt': {
         return <SSIconOutgoingLightning height={12} width={12} />
-      default:
+      }
+      default: {
         return <SSText size="2xl">•</SSText>
+      }
     }
   }
 
   function getTokenStatusColor(tokenStatus: EcashTransaction['tokenStatus']) {
     switch (tokenStatus) {
-      case 'unspent':
+      case 'unspent': {
         return Colors.error
-      case 'spent':
+      }
+      case 'spent': {
         return Colors.softBarRed
-      case 'invalid':
+      }
+      case 'invalid': {
         return Colors.error
-      case 'pending':
+      }
+      case 'pending': {
         return Colors.warning
-      default:
+      }
+      default: {
         return Colors.white
+      }
     }
   }
 
@@ -93,8 +103,8 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
     <TouchableOpacity
       onPress={() =>
         router.push({
-          pathname: '/signer/ecash/transaction/[id]',
-          params: { id: transaction.id }
+          params: { id: transaction.id },
+          pathname: '/signer/ecash/transaction/[id]'
         } as never)
       }
       activeOpacity={0.7}
@@ -112,35 +122,46 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
                 style={{
                   color: (() => {
                     switch (transaction.status) {
-                      case 'pending':
+                      case 'pending': {
                         return Colors.warning
-                      case 'completed':
+                      }
+                      case 'completed': {
                         return Colors.softBarGreen
+                      }
                       case 'failed':
-                      case 'expired':
+                      case 'expired': {
                         return Colors.error
-                      case 'settled':
+                      }
+                      case 'settled': {
                         return Colors.softBarRed
-                      default:
+                      }
+                      default: {
                         return Colors.gray[700]
+                      }
                     }
                   })()
                 }}
               >
                 {(() => {
                   switch (transaction.status) {
-                    case 'pending':
+                    case 'pending': {
                       return t('ecash.quote.pending')
-                    case 'completed':
+                    }
+                    case 'completed': {
                       return t('ecash.quote.completed')
-                    case 'failed':
+                    }
+                    case 'failed': {
                       return t('ecash.quote.failed')
-                    case 'expired':
+                    }
+                    case 'expired': {
                       return t('ecash.quote.expired')
-                    case 'settled':
+                    }
+                    case 'settled': {
                       return t('ecash.quote.settled')
-                    default:
+                    }
+                    default: {
                       return String(transaction.status).toUpperCase()
+                    }
                   }
                 })()}
               </SSText>
@@ -180,8 +201,8 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
         <SSVStack gap="none" style={{ marginTop: 5 }}>
           <SSHStack
             style={{
-              justifyContent: 'space-between',
-              alignItems: 'flex-end'
+              alignItems: 'flex-end',
+              justifyContent: 'space-between'
             }}
           >
             <SSHStack
@@ -205,9 +226,9 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
                   type={
                     transaction.type === 'mint'
                       ? 'receive'
-                      : transaction.type === 'melt'
+                      : (transaction.type === 'melt'
                         ? 'send'
-                        : transaction.type
+                        : transaction.type)
                   }
                   textSize="xl"
                   noColor={false}
@@ -243,8 +264,8 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
             <SSText
               size="xs"
               style={{
-                textAlign: 'left',
-                flex: 1
+                flex: 1,
+                textAlign: 'left'
               }}
             >
               {transaction.label || transaction.memo}
@@ -258,11 +279,11 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 0,
-    paddingTop: 4,
-    paddingBottom: 2,
+    borderColor: Colors.gray[800],
     borderTopWidth: 1,
-    borderColor: Colors.gray[800]
+    paddingBottom: 2,
+    paddingHorizontal: 0,
+    paddingTop: 4
   }
 })
 

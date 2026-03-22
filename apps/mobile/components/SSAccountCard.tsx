@@ -9,7 +9,7 @@ import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { formatNumber } from '@/utils/format'
 
 import { SSIconChevronRight, SSIconEyeOn } from './icons'
@@ -17,7 +17,7 @@ import SSIconSync from './icons/SSIconSync'
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 
-type SSAccountCardProps = {
+interface SSAccountCardProps {
   account: Account
   onPress(): void
 }
@@ -47,9 +47,9 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
     if (account.syncStatus === 'syncing') {
       animationRef.current = Animated.loop(
         Animated.timing(rotateAnim, {
-          toValue: 1,
           duration: 1500,
           easing: Easing.linear,
+          toValue: 1,
           useNativeDriver: true
         })
       )
@@ -79,10 +79,11 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
     let icon: React.ReactNode = null
 
     switch (status) {
-      case 'unsynced':
+      case 'unsynced': {
         color = Colors.gray[200]
         text = t('account.sync.status.unsynced')
         break
+      }
       case 'synced': {
         color = Colors.mainGreen
         text = t('account.sync.status.synced')
@@ -103,20 +104,20 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
               { value: hours }
             )}`
             if (days >= 1)
-              text = `${t('account.sync.status.synced')} ${t(
+              {text = `${t('account.sync.status.synced')} ${t(
                 'account.sync.status.old.day',
                 { value: days }
-              )}`
+              )}`}
             if (months >= 1)
-              text = `${t('account.sync.status.synced')} ${t(
+              {text = `${t('account.sync.status.synced')} ${t(
                 'account.sync.status.old.month',
                 { value: months }
-              )}`
+              )}`}
             if (years >= 1)
-              text = `${t('account.sync.status.synced')} ${t(
+              {text = `${t('account.sync.status.synced')} ${t(
                 'account.sync.status.old.year',
                 { value: years }
-              )}`
+              )}`}
           }
         }
         break
@@ -131,24 +132,26 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
         )
         break
       }
-      case 'error':
+      case 'error': {
         color = Colors.mainRed
         text = t('account.sync.status.error')
         break
-      case 'timeout':
+      }
+      case 'timeout': {
         color = Colors.mainRed
         text = t('account.sync.status.timeout')
         break
+      }
     }
 
     return (
       <SSHStack
         gap="xs"
         style={{
+          opacity: 0.6,
           position: 'absolute',
-          top: 0,
           right: 6,
-          opacity: 0.6
+          top: 0
         }}
       >
         <SSText size="xs" uppercase style={{ color }}>
@@ -213,9 +216,9 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
             <SSText color="muted">
               {!btcPrice || btcPrice <= 0
                 ? '--'
-                : privacyMode
+                : (privacyMode
                   ? '••••'
-                  : formatNumber(satsToFiat(account.summary.balance || 0), 2)}
+                  : formatNumber(satsToFiat(account.summary.balance || 0), 2))}
             </SSText>
             <SSText size="xs" style={{ color: Colors.gray[500] }}>
               {fiatCurrency}

@@ -1,4 +1,4 @@
-export type LNDecodedInvoice = {
+export interface LNDecodedInvoice {
   payment_request: string
   value: string
   description: string
@@ -14,13 +14,13 @@ export type LNDecodedInvoice = {
   min_final_cltv_expiry: string
 }
 
-export type LNDRequestOptions = {
+export interface LNDRequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
   body?: unknown
   headers?: Record<string, string>
 }
 
-export type LNDPaymentResponse = {
+export interface LNDPaymentResponse {
   payment_hash: string
   payment_preimage: string
   status: string
@@ -31,13 +31,13 @@ export type LNDRequest = <T>(
   options?: LNDRequestOptions
 ) => Promise<T>
 
-export type LNDConfig = {
+export interface LNDConfig {
   macaroon: string
   cert: string
   url: string
 }
 
-export type LNDNodeInfo = {
+export interface LNDNodeInfo {
   version: string
   commit_hash: string
   identity_pubkey: string
@@ -52,7 +52,7 @@ export type LNDNodeInfo = {
   uris: string[]
 }
 
-export type LNDChannelConstraints = {
+export interface LNDChannelConstraints {
   csv_delay: number
   chan_reserve_sat: number
   dust_limit_sat: number
@@ -61,7 +61,7 @@ export type LNDChannelConstraints = {
   max_accepted_htlcs: number
 }
 
-export type LNDChannel = {
+export interface LNDChannel {
   active: boolean
   remote_pubkey: string
   channel_point: string
@@ -94,7 +94,7 @@ export type LNDChannel = {
   remote_constraints: LNDChannelConstraints
 }
 
-export type LNDConnectionStatus = {
+export interface LNDConnectionStatus {
   isConnected: boolean
   isConnecting: boolean
   nodeInfo?: LNDNodeInfo

@@ -35,7 +35,7 @@ export interface BlockchainOracle {
 
 export type Satoshi = number
 
-export type PriceValue = {
+export interface PriceValue {
   currency: Currency
   fiatPrice: number
   fiatValue: number
@@ -44,16 +44,14 @@ export type PriceValue = {
 
 export type Currency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'CHF' | 'AUD' | 'JPY'
 
-export type Prices = Partial<{
-  [key in Currency]: number
-}>
+export type Prices = Partial<Record<Currency, number>>
 
-export type BlockStatus = {
+export interface BlockStatus {
   height: number
   in_best_chain: boolean
 }
 
-export type Block = {
+export interface Block {
   id: string
   difficulty: number
   height: number
@@ -68,7 +66,7 @@ export type Block = {
   weight: number
 }
 
-export type BlockDifficulty = {
+export interface BlockDifficulty {
   height: number
   timestamp: number
   txCount: number
@@ -87,7 +85,7 @@ export enum TxPriority {
   high = 'high'
 }
 
-export type Tx = {
+export interface Tx {
   txid: string
   version: number
   locktime: number
@@ -99,7 +97,7 @@ export type Tx = {
   status: TxStatus
 }
 
-export type TxOut = {
+export interface TxOut {
   value: Satoshi
   scriptpubkey?: string
   scriptpubkey_asm?: string
@@ -107,7 +105,7 @@ export type TxOut = {
   scriptpubkey_address?: string
 }
 
-export type TxIn = {
+export interface TxIn {
   txid: string
   vout: number
   scriptsig: string
@@ -117,39 +115,37 @@ export type TxIn = {
   prevout: TxOut
 }
 
-export type TxStatus = {
+export interface TxStatus {
   confirmed: boolean
   block_height: number
   block_hash: string
   block_time: number
 }
 
-export type TxOutspend = {
+export interface TxOutspend {
   spent: boolean
   txid: string
   vin: number
   status: TxStatus
 }
 
-export type UTXO = {
+export interface UTXO {
   txid: string
   vout: number
   value: number
   status: TxStatus
 }
 
-export type MemPool = {
+export interface MemPool {
   count: number
   vsize: number
   total_fee: number
   fee_histogram: [number, number][]
 }
 
-export type MemPoolFees = {
-  [key in TxPriority]: Satoshi
-}
+export type MemPoolFees = Record<TxPriority, Satoshi>
 
-export type MemPoolBlock = {
+export interface MemPoolBlock {
   blockSize: number
   blockVSize: number
   nTx: number
@@ -158,7 +154,7 @@ export type MemPoolBlock = {
   feeRange: number[]
 }
 
-export type DifficultyAdjustment = {
+export interface DifficultyAdjustment {
   adjustedTimeAvg: number
   difficultyChange: number
   estimatedRetargetDate: number
@@ -171,7 +167,7 @@ export type DifficultyAdjustment = {
   timeOffset: number
 }
 
-export type BlockFeeRates = {
+export interface BlockFeeRates {
   avgHeight: number
   timestamp: number
   avgFee_0: number
@@ -183,7 +179,7 @@ export type BlockFeeRates = {
   avgFee_100: number
 }
 
-export type MempoolStatistics = {
+export interface MempoolStatistics {
   added: number
   count: number
   vbytes_per_second: number

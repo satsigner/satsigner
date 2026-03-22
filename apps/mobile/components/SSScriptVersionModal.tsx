@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import { t } from '@/locales'
-import { type Key } from '@/types/models/Account'
+import type { Key } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 
@@ -23,7 +23,7 @@ const singleSigScriptVersions: ScriptVersion[] = [
 
 const multiSigScriptVersions: ScriptVersion[] = ['P2SH', 'P2SH-P2WSH', 'P2WSH']
 
-type SSScriptVersionModalProps = {
+interface SSScriptVersionModalProps {
   visible: boolean
   scriptVersion: ScriptVersion
   policyType?: 'singlesig' | 'multisig' | 'watchonly'

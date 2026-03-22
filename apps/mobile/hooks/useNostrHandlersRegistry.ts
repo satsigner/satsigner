@@ -1,6 +1,6 @@
-import {
-  type MessageHandler,
-  type MessageHandlerContext
+import type {
+  MessageHandler,
+  MessageHandlerContext
 } from '@/types/nostrMessageHandlers'
 
 const handlers: MessageHandler[] = []

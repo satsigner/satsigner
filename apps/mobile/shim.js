@@ -6,9 +6,9 @@ if (typeof TextDecoder === 'undefined') {
   class TextDecoderPolyfill {
     decode(buffer) {
       if (buffer instanceof Uint8Array) {
-        return String.fromCharCode.apply(null, buffer)
+        return String.fromCodePoint.apply(null, buffer)
       }
-      return String.fromCharCode.apply(null, new Uint8Array(buffer))
+      return String.fromCodePoint.apply(null, new Uint8Array(buffer))
     }
   }
   global.TextDecoder = TextDecoderPolyfill
@@ -20,7 +20,7 @@ if (typeof TextEncoder === 'undefined') {
     encode(str) {
       const arr = new Uint8Array(str.length)
       for (let i = 0; i < str.length; i++) {
-        arr[i] = str.charCodeAt(i)
+        arr[i] = str.codePointAt(i)
       }
       return arr
     }
@@ -28,12 +28,12 @@ if (typeof TextEncoder === 'undefined') {
   global.TextEncoder = TextEncoderPolyfill
 }
 
-if (typeof __dirname === 'undefined') global.__dirname = '/'
-if (typeof __filename === 'undefined') global.__filename = ''
+if (typeof __dirname === 'undefined') {global.__dirname = '/'}
+if (typeof __filename === 'undefined') {global.__filename = ''}
 if (typeof process === 'undefined') {
-  global.process = require('process')
+  global.process = require('node:process')
 } else {
-  const bProcess = require('process')
+  const bProcess = require('node:process')
   for (const p in bProcess) {
     if (!(p in process)) {
       process[p] = bProcess[p]
@@ -42,7 +42,7 @@ if (typeof process === 'undefined') {
 }
 
 process.browser = false
-if (typeof Buffer === 'undefined') global.Buffer = require('buffer').Buffer
+if (typeof Buffer === 'undefined') {global.Buffer = require('buffer').Buffer}
 
 // global.location = global.location || { port: 80 }
 const isDev = typeof __DEV__ === 'boolean' && __DEV__

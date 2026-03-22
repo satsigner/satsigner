@@ -2,76 +2,76 @@ import type { Network, Server } from '@/types/settings/blockchain'
 
 export const servers: Server[] = [
   {
-    name: 'Mempool',
     backend: 'esplora',
-    url: 'https://mempool.space/api',
-    network: 'bitcoin'
+    name: 'Mempool',
+    network: 'bitcoin',
+    url: 'https://mempool.space/api'
   },
   {
+    backend: 'electrum',
     name: 'Blockstream',
-    backend: 'electrum',
-    url: 'ssl://electrum.blockstream.info:50002',
-    network: 'bitcoin'
+    network: 'bitcoin',
+    url: 'ssl://electrum.blockstream.info:50002'
   },
   {
+    backend: 'electrum',
     name: 'Luke BitcoinJS',
-    backend: 'electrum',
-    url: 'ssl://bitcoin.lu.ke:50002',
-    network: 'bitcoin'
+    network: 'bitcoin',
+    url: 'ssl://bitcoin.lu.ke:50002'
   },
   {
+    backend: 'electrum',
     name: 'DIY Nodes',
-    backend: 'electrum',
-    url: 'ssl://electrum.diynodes.com:50022',
-    network: 'bitcoin'
+    network: 'bitcoin',
+    url: 'ssl://electrum.diynodes.com:50022'
   },
   {
-    name: 'Seth For Privacy',
     backend: 'electrum',
-    url: 'ssl://fulcrum.sethforprivacy.com:50002',
-    network: 'bitcoin'
+    name: 'Seth For Privacy',
+    network: 'bitcoin',
+    url: 'ssl://fulcrum.sethforprivacy.com:50002'
   },
   // SIGNET
   {
-    name: 'Mempool',
     backend: 'electrum',
+    name: 'Mempool',
     network: 'signet',
     url: 'ssl://mempool.space:60602'
   },
   {
-    name: 'Mempool',
     backend: 'esplora',
+    name: 'Mempool',
     network: 'signet',
     url: 'https://mempool.space/signet/api'
   },
   {
-    name: 'Blockstream',
     backend: 'esplora',
+    name: 'Blockstream',
     network: 'signet',
     url: 'https://blockstream.info/signet/api'
   },
   {
-    name: 'Blockstream',
     backend: 'electrum',
+    name: 'Blockstream',
     network: 'signet',
     url: 'ssl://electrum.blockstream.info:60002'
   },
   // TESTNET
   {
-    name: 'Mempool Testnet4',
     backend: 'esplora',
+    name: 'Mempool Testnet4',
     network: 'testnet',
     url: 'https://mempool.space/testnet4/api'
   },
   {
-    name: 'Blockstream Testnet4',
     backend: 'esplora',
+    name: 'Blockstream Testnet4',
     network: 'testnet',
     url: 'https://blockstream.info/testnet/api'
   },
   {
-    name: 'Mutinynet',
     backend: 'esplora',
+    name: 'Mutinynet',
     network: 'signet',
     url: 'https://mutinynet.com/api'
   }
@@ -79,6 +79,6 @@ export const servers: Server[] = [
 
 export const MempoolServers: Record<Network, Server['url']> = {
   bitcoin: 'https://mempool.space/api',
-  testnet: 'https://mempool.space/testnet4/api',
-  signet: 'https://mempool.space/signet/api'
+  signet: 'https://mempool.space/signet/api',
+  testnet: 'https://mempool.space/testnet4/api'
 }

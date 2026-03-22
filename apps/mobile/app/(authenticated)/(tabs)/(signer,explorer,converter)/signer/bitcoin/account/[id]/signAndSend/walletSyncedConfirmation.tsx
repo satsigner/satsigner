@@ -9,7 +9,7 @@ import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { useAccountsStore } from '@/store/accounts'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatDate, formatTime } from '@/utils/format'
 
 export default function WalletSyncedConfirmation() {

@@ -21,8 +21,8 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
-import { type LNDecodedInvoice } from '@/types/models/LND'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { LNDecodedInvoice } from '@/types/models/LND'
+import type { DetectedContent } from '@/utils/contentDetector'
 import {
   decodeLightningInvoice,
   isLightningInvoice
@@ -43,7 +43,7 @@ type MakeRequest = <T>(
   }
 ) => Promise<T>
 
-type LNURLPayResponse = {
+interface LNURLPayResponse {
   callback: string
   maxSendable: number
   minSendable: number
@@ -96,7 +96,7 @@ export default function EcashSendPage() {
       return
     }
 
-    const amountNum = parseInt(amount, 10)
+    const amountNum = Number.parseInt(amount, 10)
     if (isNaN(amountNum) || amountNum <= 0) {
       toast.error(t('ecash.error.invalidAmount'))
       return
@@ -156,7 +156,7 @@ export default function EcashSendPage() {
           return
         }
 
-        const amountSats = parseInt(amount, 10)
+        const amountSats = Number.parseInt(amount, 10)
         if (isNaN(amountSats) || amountSats <= 0) {
           toast.error(t('ecash.error.pleaseEnterValidAmount'))
           setStatusMessage(`Error: ${t('ecash.error.pleaseEnterValidAmount')}`)
@@ -275,7 +275,7 @@ export default function EcashSendPage() {
 
       // Clean the text and check if it's a valid invoice
       const cleanText = text.trim()
-      if (!cleanText) return
+      if (!cleanText) {return}
 
       // Check if it's LNURL-pay (not withdraw)
       const { isLNURL: isLNURLInput, type: lnurlType } = getLNURLType(cleanText)
@@ -326,7 +326,7 @@ export default function EcashSendPage() {
         try {
           const lndDecoded = await decodeInvoice(cleanText)
           setDecodedInvoice(lndDecoded)
-          if (!lndDecoded.num_satoshis) return
+          if (!lndDecoded.num_satoshis) {return}
           setAmount(lndDecoded.num_satoshis)
         } catch {
           setDecodedInvoice(null)
@@ -442,7 +442,7 @@ export default function EcashSendPage() {
                   {t('ecash.send.amount')}
                 </SSText>
                 <SSAmountInput
-                  value={parseInt(amount, 10) || 0}
+                  value={Number.parseInt(amount, 10) || 0}
                   onValueChange={(value) => setAmount(value.toString())}
                   min={0}
                   max={proofs.reduce((acc, proof) => acc + proof.amount, 0)}
@@ -603,6 +603,17 @@ export default function EcashSendPage() {
 }
 
 const styles = StyleSheet.create({
+  fiatAmount: {
+    marginTop: 4,
+    marginLeft: 4
+  },
+  input: {
+    backgroundColor: '#242424',
+    borderRadius: 3,
+    padding: 12,
+    color: 'white',
+    fontSize: 16
+  },
   invoiceInput: {
     fontFamily: 'monospace',
     fontSize: 12,
@@ -616,16 +627,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     height: 'auto',
     padding: 10
-  },
-  fiatAmount: {
-    marginTop: 4,
-    marginLeft: 4
-  },
-  input: {
-    backgroundColor: '#242424',
-    borderRadius: 3,
-    padding: 12,
-    color: 'white',
-    fontSize: 16
   }
 })

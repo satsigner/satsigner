@@ -8,8 +8,8 @@
 export const nostrKeys = {
   // From mnemonic: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
   alice: {
-    nsec: 'nsec1vl029mgpspedva04g90vltkh6fvh240zqtv9k0t9af8935ke9laqsnlfe5',
     npub: 'npub10elfcs4fr0l0r8af98jlmgdh9c8tcxjvz9qkw038js35mp4dma8qzvjptg',
+    nsec: 'nsec1vl029mgpspedva04g90vltkh6fvh240zqtv9k0t9af8935ke9laqsnlfe5',
     privateKeyHex:
       '67dea2ed018072d675f5415ecfaed7d2597555e202d85b3d65ea4e58d2d92ffa',
     publicKeyHex:
@@ -17,8 +17,8 @@ export const nostrKeys = {
   },
   // From mnemonic: "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong"
   bob: {
-    nsec: 'nsec1u5tsnlpuvuljupfvhwyjmr8psjgv6ayku5xgqpuhwq0sqnn0gcss9z89sr',
     npub: 'npub180cvv07tjdrrgpa0j7j7tmnyl2yr6yr7l8j4s3evf6u64th6gkwsyjh6w6',
+    nsec: 'nsec1u5tsnlpuvuljupfvhwyjmr8psjgv6ayku5xgqpuhwq0sqnn0gcss9z89sr',
     privateKeyHex:
       'e517093fc9c3b2edc249b17c0f65a7d55064e8a8c5a3c0a29e5c0a029cde8c42',
     publicKeyHex:
@@ -26,9 +26,9 @@ export const nostrKeys = {
   },
   // Invalid/malformed for error testing
   invalid: {
-    nsec: 'nsec1invalid',
+    notBech32: 'not-a-valid-key',
     npub: 'npub1invalid',
-    notBech32: 'not-a-valid-key'
+    nsec: 'nsec1invalid'
   }
 }
 
@@ -80,70 +80,70 @@ export const nostrMessages = {
   // BIP329 label sync message
   labelSync: {
     created_at: 1704067200,
-    label: 1,
-    description: 'Here come some labels',
     data: {
       data_type: 'LabelsBip329',
       data: '{"type":"tx","ref":"0a1b2c3d4e5f","label":"Coffee payment"}\n{"type":"addr","ref":"bc1qtest","label":"Savings"}'
-    }
+    },
+    description: 'Here come some labels',
+    label: 1
   },
 
   // PSBT sharing message
   psbtShare: {
     created_at: 1704067200,
-    label: 1,
-    description: 'Please sign this transaction',
     data: {
       data_type: 'PSBT',
       data: 'cHNidP8BAHECAAAAAUZHyK9PT4FYVp8T6+FO3kmlPLVvRQ9Pt0GfK7K5nYsGAAAAAAD9////AhAnAAAAAAAAFgAU8Lz+DzygRWsgJlFqON6G1jPzpuOIEwAAAAAAABYAFNDFmQPFusKGh2DpD9UhpGZap2UgAAAAAAABAR8gTgAAAAAAABYAFLXOBJOxjkBLjbCcJfIo0aJGTq/4'
-    }
+    },
+    description: 'Please sign this transaction',
+    label: 1
   },
 
   // Device announcement message
   deviceAnnouncement: {
-    created_at: 1704067200,
+    created_at: 1_704_067_200,
     public_key_bech32:
       'npub180cvv07tjdrrgpa0j7j7tmnyl2yr6yr7l8j4s3evf6u64th6gkwsyjh6w6'
   },
 
   // Simple DM/chat message
   directMessage: {
-    created_at: 1704067200,
+    created_at: 1_704_067_200,
     description: 'Transaction confirmed! Hash: abc123def456'
   },
 
   // Transaction notification
   txNotification: {
-    created_at: 1704067200,
+    created_at: 1_704_067_200,
     data: {
-      data_type: 'Tx',
-      data: '0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b'
+      data: '0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b',
+      data_type: 'Tx'
     }
   }
 }
 
 // Relay URLs for testing
 export const relays = {
+  custom: ['wss://relay.custom1.com', 'wss://relay.custom2.com'],
   default: [
     'wss://relay.damus.io',
     'wss://nostr.bitcoiner.social',
     'wss://relay.nostr.band',
     'wss://nostr.mom'
   ],
-  custom: ['wss://relay.custom1.com', 'wss://relay.custom2.com'],
   invalid: ['not-a-url', 'http://not-websocket.com']
 }
 
 // Account IDs for store testing
 export const accountIds = {
+  nonexistent: 'acc_nonexistent_12345',
   primary: 'acc_01H8XXXXXXXXXXXXXXXXXX',
-  secondary: 'acc_01H9YYYYYYYYYYYYYYYYYY',
-  nonexistent: 'acc_nonexistent_12345'
+  secondary: 'acc_01H9YYYYYYYYYYYYYYYYYY'
 }
 
 // Timestamps for EOSE testing (Unix timestamps)
 export const timestamps = {
-  genesis: 1231006505, // Bitcoin genesis block
-  recent: 1704067200, // Jan 1, 2024
-  future: 1893456000 // Jan 1, 2030
+  genesis: 1_231_006_505, // Bitcoin genesis block
+  recent: 1_704_067_200, // Jan 1, 2024
+  future: 1_893_456_000 // Jan 1, 2030
 }

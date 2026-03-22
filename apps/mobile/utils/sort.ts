@@ -1,8 +1,8 @@
-import { type Direction } from '@/types/logic/sort'
-import { type Transaction } from '@/types/models/Transaction'
+import type { Direction } from '@/types/logic/sort'
+import type { Transaction } from '@/types/models/Transaction'
 
 function compareTimestamp(date1?: Date | string, date2?: Date | string) {
-  if (!date1 || !date2) return 0
+  if (!date1 || !date2) {return 0}
   return new Date(date1).getTime() - new Date(date2).getTime()
 }
 
@@ -14,7 +14,7 @@ function sortTransactions(
   transactions: Transaction[],
   sortDirection: Direction
 ) {
-  return transactions.sort((transaction1, transaction2) => {
+  return transactions.toSorted((transaction1, transaction2) => {
     const result = compareTimestamp(
       transaction1.timestamp,
       transaction2.timestamp

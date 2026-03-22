@@ -6,13 +6,13 @@ import { Colors } from '@/styles'
 
 import SSText from './SSText'
 
-type SSChecksumStatusProps = {
+interface SSChecksumStatusProps {
   valid: boolean | 'electrum'
 }
 
 function SSChecksumStatus({ valid }: SSChecksumStatusProps) {
   const statusStyle = useMemo(() => {
-    if (valid === 'electrum') return { backgroundColor: Colors.warning }
+    if (valid === 'electrum') {return { backgroundColor: Colors.warning }}
     return { backgroundColor: valid ? Colors.success : Colors.error }
   }, [valid])
 
@@ -30,14 +30,14 @@ function SSChecksumStatus({ valid }: SSChecksumStatusProps) {
 
 const styles = StyleSheet.create({
   containerBase: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
     gap: 4
   },
   statusBase: {
-    width: 11,
+    borderRadius: 11 / 2,
     height: 11,
-    borderRadius: 11 / 2
+    width: 11
   },
   textBase: {
     textTransform: 'lowercase'

@@ -6,7 +6,7 @@ beforeAll(async () => {
   esplora = new Esplora('https://mempool.space/api')
 })
 
-describe('Esplora tests', () => {
+describe('esplora tests', () => {
   it('get tx status', async () => {
     const txid =
       '591e91f809d716912ca1d4a9295e70c3e78bab077683f79350f101da64588073'
@@ -126,7 +126,7 @@ describe('Esplora tests', () => {
   })
 
   it('get block hash at height', async () => {
-    const height = 123456
+    const height = 123_456
     const resp = await esplora.getBlockAtHeight(height)
     expect(typeof resp).toBe('string')
   })
@@ -142,7 +142,7 @@ describe('Esplora tests', () => {
   })
 
   it('get blocks starting from a height', async () => {
-    const startHeight = 123450
+    const startHeight = 123_450
     const resp = await esplora.getBlocks(startHeight)
     expect(Array.isArray(resp)).toBe(true)
     if (resp.length > 0) {

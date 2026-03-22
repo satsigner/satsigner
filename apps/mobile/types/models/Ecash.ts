@@ -1,5 +1,5 @@
 // Ecash types based on @cashu/cashu-ts library
-export type EcashMint = {
+export interface EcashMint {
   url: string
   name?: string
   isConnected: boolean
@@ -8,34 +8,34 @@ export type EcashMint = {
   lastSync?: string
 }
 
-export type EcashKeyset = {
+export interface EcashKeyset {
   id: string
   unit: 'sat'
   active: boolean
 }
 
-export type EcashProof = {
+export interface EcashProof {
   id: string
   amount: number
   secret: string
   C: string
 }
 
-export type EcashToken = {
+export interface EcashToken {
   mint: string
   proofs: EcashProof[]
   unit?: 'sat'
   memo?: string
 }
 
-export type MintQuote = {
+export interface MintQuote {
   quote: string
   request: string
   expiry: number
   paid: boolean
 }
 
-export type MeltQuote = {
+export interface MeltQuote {
   quote: string
   amount: number
   fee_reserve: number
@@ -51,36 +51,36 @@ export type MintQuoteState =
   | 'UNPAID'
   | 'ISSUED'
 
-export type EcashConnectionStatus = {
+export interface EcashConnectionStatus {
   isConnected: boolean
   isConnecting: boolean
   lastSync?: string
 }
 
-export type EcashSendResult = {
+export interface EcashSendResult {
   token: string
   keep: EcashProof[]
   send: EcashProof[]
 }
 
-export type EcashReceiveResult = {
+export interface EcashReceiveResult {
   proofs: EcashProof[]
   totalAmount: number
   memo?: string
 }
 
-export type EcashMeltResult = {
+export interface EcashMeltResult {
   paid: boolean
   preimage?: string
   change?: EcashProof[]
 }
 
-export type EcashMintResult = {
+export interface EcashMintResult {
   proofs: EcashProof[]
   totalAmount: number
 }
 
-export type EcashTransaction = {
+export interface EcashTransaction {
   id: string
   type: 'send' | 'receive' | 'mint' | 'melt'
   amount: number

@@ -1,36 +1,20 @@
-import {
-  Address,
-  Blockchain,
-  DatabaseConfig,
-  Descriptor,
-  DescriptorPublicKey,
-  DescriptorSecretKey,
-  Mnemonic,
-  type PartiallySignedTransaction,
-  TxBuilder,
-  Wallet
-} from 'bdk-rn'
-import {
-  type LocalUtxo,
-  type TransactionDetails,
-  type TxBuilderResult
+import { Address, Blockchain, DatabaseConfig, Descriptor, DescriptorPublicKey, DescriptorSecretKey, Mnemonic, TxBuilder, Wallet } from 'bdk-rn';
+import type { PartiallySignedTransaction } from 'bdk-rn';
+import type {
+  LocalUtxo,
+  TransactionDetails,
+  TxBuilderResult
 } from 'bdk-rn/lib/classes/Bindings'
-import {
-  AddressIndex,
-  type BlockchainElectrumConfig,
-  type BlockchainEsploraConfig,
-  BlockChainNames,
-  KeychainKind,
-  type Network
-} from 'bdk-rn/lib/lib/enums'
+import { AddressIndex, BlockChainNames, KeychainKind } from 'bdk-rn/lib/lib/enums';
+import type { BlockchainElectrumConfig, BlockchainEsploraConfig, Network } from 'bdk-rn/lib/lib/enums';
 
-import { type Account, type Key, type Secret } from '@/types/models/Account'
-import { type Output } from '@/types/models/Output'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import {
-  type Backend,
-  type Network as BlockchainNetwork
+import type { Account, Key, Secret } from '@/types/models/Account'
+import type { Output } from '@/types/models/Output'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
+import type {
+  Backend,
+  Network as BlockchainNetwork
 } from '@/types/settings/blockchain'
 import {
   getExtendedKeyFromDescriptor,
@@ -50,7 +34,7 @@ import { parseAccountAddressesDetails } from '@/utils/parse'
 import ElectrumClient from './electrum'
 import Esplora from './esplora'
 
-type WalletData = {
+interface WalletData {
   fingerprint: string
   derivationPath: string
   externalDescriptor: string
@@ -66,7 +50,7 @@ async function getWalletData(
   switch (account.policyType) {
     case 'singlesig': {
       if (account.keys.length !== 1)
-        throw new Error('Invalid key count for singlesig')
+        {throw new Error('Invalid key count for singlesig')}
 
       const key = account.keys[0]
 
@@ -79,7 +63,7 @@ async function getWalletData(
           !key.secret.mnemonic ||
           !key.scriptVersion
         )
-          throw new Error('Invalid secret')
+          {throw new Error('Invalid secret')}
 
         const walletData = await getWalletDataFromMnemonic(
           key.secret.mnemonic,
@@ -115,7 +99,7 @@ async function getWalletData(
 
             // Get extended public key from various sources
             if (key.secret.extendedPublicKey) {
-              extendedPublicKey = key.secret.extendedPublicKey
+              ({ extendedPublicKey } = key.secret)
             } else if (key.secret.externalDescriptor) {
               try {
                 const extractedKey = getExtendedKeyFromDescriptor(
@@ -134,7 +118,7 @@ async function getWalletData(
             fingerprint = getFingerprintFromExtendedPublicKey(extendedPublicKey)
           }
 
-          return { fingerprint, extendedPublicKey, index: keyIndex }
+          return { extendedPublicKey, fingerprint, index: keyIndex }
         })
       )
 
@@ -187,41 +171,43 @@ async function getWalletData(
       const cleanPolicyPath = policyDerivationPath.replace(/^m\/?/i, '')
 
       // Sort keys by extended public key to ensure consistent ordering with other Bitcoin wallets
-      const sortedKeyData = validKeyData.sort((a, b) =>
+      const sortedKeyData = validKeyData.toSorted((a, b) =>
         a.extendedPublicKey.localeCompare(b.extendedPublicKey)
       )
 
       // Build key section with policy-based derivation paths and fingerprints
       const keySection = sortedKeyData
-        .map(({ fingerprint, extendedPublicKey }) => {
-          // Format: [FINGERPRINT/POLICY_DERIVATION_PATH]XPUB/<0;1>/*
-          return `[${fingerprint}/${cleanPolicyPath}]${extendedPublicKey}/<0;1>/*`
-        })
+        .map(({ fingerprint, extendedPublicKey }) => `[${fingerprint}/${cleanPolicyPath}]${extendedPublicKey}/<0;1>/*`)
         .join(',')
 
       // Create descriptor based on script type using sortedmulti
       let finalDescriptor = ''
       switch (multisigScriptType) {
-        case 'P2SH':
+        case 'P2SH': {
           finalDescriptor = `sh(sortedmulti(${account.keysRequired},${keySection}))`
           break
-        case 'P2SH-P2WSH':
+        }
+        case 'P2SH-P2WSH': {
           finalDescriptor = `sh(wsh(sortedmulti(${account.keysRequired},${keySection})))`
           break
-        case 'P2WSH':
+        }
+        case 'P2WSH': {
           finalDescriptor = `wsh(sortedmulti(${account.keysRequired},${keySection}))`
           break
-        case 'P2TR':
+        }
+        case 'P2TR': {
           finalDescriptor = `tr(sortedmulti(${account.keysRequired},${keySection}))`
           break
-        default:
+        }
+        default: {
           finalDescriptor = `wsh(sortedmulti(${account.keysRequired},${keySection}))`
+        }
       }
 
       // Since BDK doesn't support multipath descriptors directly, we need to create separate descriptors
       // for external (0/*) and internal (1/*) addresses
-      const externalDescriptor = finalDescriptor.replace(/<0;1>/g, '0')
-      const internalDescriptor = finalDescriptor.replace(/<0;1>/g, '1')
+      const externalDescriptor = finalDescriptor.replaceAll(/<0;1>/g, '0')
+      const internalDescriptor = finalDescriptor.replaceAll(/<0;1>/g, '1')
 
       const externalDesc = await new Descriptor().create(
         externalDescriptor,
@@ -260,13 +246,13 @@ async function getWalletData(
     }
     case 'watchonly': {
       if (account.keys.length !== 1)
-        throw new Error('Invalid key count for singlesig')
+        {throw new Error('Invalid key count for singlesig')}
 
       const key = account.keys[0]
 
       if (key.creationType === 'importDescriptor') {
         if (typeof key.secret === 'string' || !key.secret.externalDescriptor)
-          throw new Error('Invalid secret')
+          {throw new Error('Invalid secret')}
 
         const externalDescriptor = await new Descriptor().create(
           key.secret.externalDescriptor,
@@ -293,11 +279,11 @@ async function getWalletData(
         )
 
         return {
-          fingerprint: parsedDescriptor.fingerprint,
           derivationPath: parsedDescriptor.derivationPath,
           externalDescriptor: externalDescriptor
             ? await externalDescriptor.asString()
             : '',
+          fingerprint: parsedDescriptor.fingerprint,
           internalDescriptor: internalDescriptor
             ? await internalDescriptor.asString()
             : '',
@@ -310,7 +296,7 @@ async function getWalletData(
           !key.secret.fingerprint ||
           !key.secret.extendedPublicKey
         )
-          throw new Error('Invalid account information')
+          {throw new Error('Invalid account information')}
 
         const extendedPublicKey = await new DescriptorPublicKey().fromString(
           key.secret.extendedPublicKey
@@ -320,7 +306,7 @@ async function getWalletData(
         let internalDescriptor: Descriptor
 
         switch (key.scriptVersion) {
-          case 'P2PKH':
+          case 'P2PKH': {
             externalDescriptor = await new Descriptor().newBip44Public(
               extendedPublicKey,
               key.secret.fingerprint,
@@ -334,7 +320,8 @@ async function getWalletData(
               network
             )
             break
-          case 'P2SH-P2WPKH':
+          }
+          case 'P2SH-P2WPKH': {
             externalDescriptor = await new Descriptor().newBip49Public(
               extendedPublicKey,
               key.secret.fingerprint,
@@ -348,7 +335,8 @@ async function getWalletData(
               network
             )
             break
-          case 'P2WPKH':
+          }
+          case 'P2WPKH': {
             externalDescriptor = await new Descriptor().newBip84Public(
               extendedPublicKey,
               key.secret.fingerprint,
@@ -362,7 +350,8 @@ async function getWalletData(
               network
             )
             break
-          case 'P2TR':
+          }
+          case 'P2TR': {
             externalDescriptor = await new Descriptor().newBip86Public(
               extendedPublicKey,
               key.secret.fingerprint,
@@ -376,14 +365,16 @@ async function getWalletData(
               network
             )
             break
+          }
           case 'P2WSH':
           case 'P2SH-P2WSH':
-          case 'P2SH':
+          case 'P2SH': {
             // For multisig script types, we need to create descriptors manually
             throw new Error(
               `Manual descriptor creation required for ${key.scriptVersion}`
             )
-          default:
+          }
+          default: {
             externalDescriptor = await new Descriptor().newBip84Public(
               extendedPublicKey,
               key.secret.fingerprint,
@@ -397,6 +388,7 @@ async function getWalletData(
               network
             )
             break
+          }
         }
 
         const parsedDescriptor = await parseDescriptor(externalDescriptor)
@@ -407,11 +399,11 @@ async function getWalletData(
         )
 
         return {
-          fingerprint: parsedDescriptor.fingerprint,
           derivationPath: parsedDescriptor.derivationPath,
           externalDescriptor: externalDescriptor
             ? await externalDescriptor.asString()
             : '',
+          fingerprint: parsedDescriptor.fingerprint,
           internalDescriptor: internalDescriptor
             ? await internalDescriptor.asString()
             : '',
@@ -450,17 +442,21 @@ async function getDescriptorObjectMultiSig(
   let descriptorString = ''
 
   switch (scriptVersion) {
-    case 'P2WSH':
+    case 'P2WSH': {
       descriptorString = `wsh(${keyPart})`
       break
-    case 'P2SH-P2WSH':
+    }
+    case 'P2SH-P2WSH': {
       descriptorString = `sh(wsh(${keyPart}))`
       break
-    case 'P2SH':
+    }
+    case 'P2SH': {
       descriptorString = `sh(${keyPart})`
       break
-    default:
+    }
+    default: {
       throw new Error(`Unsupported script version: ${scriptVersion}`)
+    }
   }
 
   const descriptor = await new Descriptor().create(descriptorString, network)
@@ -496,11 +492,11 @@ async function getWalletDataFromMnemonic(
   ])
 
   return {
-    fingerprint,
     derivationPath,
     externalDescriptor: externalDescriptor
       ? await externalDescriptor.asString()
       : '',
+    fingerprint,
     internalDescriptor: internalDescriptor
       ? await internalDescriptor.asString()
       : '',
@@ -559,13 +555,13 @@ async function getDescriptorObject(
 // TODO: refactor it to be synchronous and replace occurrences
 async function parseDescriptor(descriptor: Descriptor) {
   if (!descriptor) {
-    return { fingerprint: '', derivationPath: '' }
+    return { derivationPath: '', fingerprint: '' }
   }
   const descriptorString = await descriptor.asString()
   const match = descriptorString.match(/\[([0-9a-f]+)([0-9'/]+)\]/)
   return match
-    ? { fingerprint: match[1], derivationPath: `m${match[2]}` }
-    : { fingerprint: '', derivationPath: '' }
+    ? { derivationPath: `m${match[2]}`, fingerprint: match[1] }
+    : { derivationPath: '', fingerprint: '' }
 }
 
 async function getWalletFromDescriptor(
@@ -590,7 +586,7 @@ async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
     !key.secret.mnemonic ||
     !key.scriptVersion
   )
-    return
+    {return}
 
   const externalDescriptor = await getDescriptorObject(
     key.secret.mnemonic,
@@ -620,7 +616,7 @@ async function getBlockchain(
   config: BlockchainElectrumConfig | BlockchainEsploraConfig
 ) {
   let blockchainName: BlockChainNames = BlockChainNames.Electrum
-  if (backend === 'esplora') blockchainName = BlockChainNames.Esplora
+  if (backend === 'esplora') {blockchainName = BlockChainNames.Esplora}
 
   const blockchain = await new Blockchain().create(config, blockchainName)
   return blockchain
@@ -639,18 +635,18 @@ async function getWalletAddresses(
     const receiveAddr = address ? await address.asString() : ''
     addresses.push({
       address: receiveAddr,
-      keychain: 'external',
-      transactions: [],
-      utxos: [],
       index: i,
-      network: network as BlockchainNetwork,
+      keychain: 'external',
       label: '',
+      network: network as BlockchainNetwork,
       summary: {
         transactions: 0,
         utxos: 0,
         balance: 0,
         satsInMempool: 0
-      }
+      },
+      transactions: [],
+      utxos: []
     })
 
     const changeAddrInfo = await wallet.getInternalAddress(i)
@@ -660,18 +656,18 @@ async function getWalletAddresses(
 
     addresses.push({
       address: changeAddr,
-      keychain: 'internal',
-      transactions: [],
-      utxos: [],
       index: i,
-      network: network as BlockchainNetwork,
+      keychain: 'internal',
       label: '',
+      network: network as BlockchainNetwork,
       summary: {
         transactions: 0,
         utxos: 0,
         balance: 0,
         satsInMempool: 0
-      }
+      },
+      transactions: [],
+      utxos: []
     })
   }
 
@@ -702,18 +698,18 @@ async function getWalletAddressesUsingStopGap(
       : ''
     addresses.push({
       address: receiveAddr,
-      keychain: 'external',
-      transactions: [],
-      utxos: [],
       index: i,
-      network: network as BlockchainNetwork,
+      keychain: 'external',
       label: '',
+      network: network as BlockchainNetwork,
       summary: {
         transactions: 0,
         utxos: 0,
         balance: 0,
         satsInMempool: 0
-      }
+      },
+      transactions: [],
+      utxos: []
     })
 
     if (seenAddresses[receiveAddr] !== undefined) {
@@ -727,18 +723,18 @@ async function getWalletAddressesUsingStopGap(
 
     addresses.push({
       address: changeAddr,
-      keychain: 'internal',
-      transactions: [],
-      utxos: [],
       index: i,
-      network: network as BlockchainNetwork,
+      keychain: 'internal',
       label: '',
+      network: network as BlockchainNetwork,
       summary: {
         transactions: 0,
         utxos: 0,
         balance: 0,
         satsInMempool: 0
-      }
+      },
+      transactions: [],
+      utxos: []
     })
 
     // Extend stop-gap for internal (change) addresses too so high-index
@@ -758,8 +754,6 @@ async function getWalletOverview(
 ): Promise<Pick<Account, 'transactions' | 'utxos' | 'addresses' | 'summary'>> {
   if (!wallet) {
     return {
-      transactions: [],
-      utxos: [],
       addresses: [],
       summary: {
         balance: 0,
@@ -767,7 +761,9 @@ async function getWalletOverview(
         numberOfTransactions: 0,
         numberOfUtxos: 0,
         satsInMempool: 0
-      }
+      },
+      transactions: [],
+      utxos: []
     }
   }
 
@@ -807,14 +803,14 @@ async function getWalletOverview(
   )
 
   addresses = parseAccountAddressesDetails({
-    transactions,
-    utxos,
     addresses,
     keys: [
       {
         scriptVersion: undefined
       }
-    ]
+    ],
+    transactions,
+    utxos
   } as Account)
 
   const seenAddress: Record<string, boolean> = {}
@@ -835,19 +831,19 @@ async function getWalletOverview(
 
   return {
     addresses,
-    transactions,
-    utxos,
     summary: {
       balance: balance.confirmed,
       numberOfAddresses,
       numberOfTransactions: transactionsDetails.length,
       numberOfUtxos: localUtxos.length,
       satsInMempool: balance.trustedPending + balance.untrustedPending
-    }
+    },
+    transactions,
+    utxos
   }
 }
 
-type TransactionMetadataAndIo = {
+interface TransactionMetadataAndIo {
   inputs: Awaited<
     ReturnType<NonNullable<TransactionDetails['transaction']>['input']>
   >
@@ -905,7 +901,7 @@ async function parseTransactionDetailsToTransaction(
 
   let address = ''
   const utxo = transactionUtxos?.[0]
-  if (utxo) address = await getAddress(utxo, network)
+  if (utxo) {address = await getAddress(utxo, network)}
 
   const { confirmationTime, fee, received, sent, transaction, txid } =
     transactionDetails
@@ -926,14 +922,14 @@ async function parseTransactionDetailsToTransaction(
       outputs: outputsList,
       ...metadata
     } = await getTransactionMetadataAndIo(transaction)
-    version = metadata.version
-    lockTime = metadata.lockTime
-    lockTimeEnabled = metadata.lockTimeEnabled
-    raw = metadata.raw
+    ({ version } = metadata)
+    ({ lockTime } = metadata)
+    ({ lockTimeEnabled } = metadata)
+    ({ raw } = metadata)
 
     for (const index in inputs) {
       const input = inputs[index]
-      if (!input?.scriptSig) continue
+      if (!input?.scriptSig) {continue}
       try {
         const script = await input.scriptSig.toBytes()
         input.scriptSig = script
@@ -945,7 +941,7 @@ async function parseTransactionDetailsToTransaction(
 
     for (const index in outputsList) {
       const { value, script: scriptObj } = outputsList[index]
-      if (!scriptObj) continue
+      if (!scriptObj) {continue}
       let script: number[] = []
       try {
         script = await scriptObj.toBytes()
@@ -959,7 +955,7 @@ async function parseTransactionDetailsToTransaction(
       } catch {
         // Intentionally ignore: non-standard scripts (OP_RETURN, bare multisig, etc.) can't be converted to addresses; leave address empty
       }
-      vout.push({ value, address: outputAddress, script })
+      vout.push({ address: outputAddress, script, value })
     }
 
     if (raw?.length) {
@@ -970,27 +966,27 @@ async function parseTransactionDetailsToTransaction(
   }
 
   return {
-    id: txid,
-    type: sent ? 'send' : 'receive',
-    sent,
-    received,
-    label: '',
+    address,
+    blockHeight: confirmationTime?.height,
     fee,
+    id: txid,
+    label: '',
+    lockTime,
+    lockTimeEnabled,
     prices: {},
+    raw,
+    received,
+    sent,
+    size,
     timestamp: confirmationTime?.timestamp
       ? new Date(confirmationTime.timestamp * 1000)
       : undefined,
-    blockHeight: confirmationTime?.height,
-    address,
-    size,
-    vsize,
-    vout,
+    type: sent ? 'send' : 'receive',
     version,
-    weight,
-    lockTime,
-    lockTimeEnabled,
-    raw,
-    vin
+    vin,
+    vout,
+    vsize,
+    weight
   }
 }
 
@@ -1014,22 +1010,22 @@ async function parseLocalUtxoToUtxo(
   }
 
   return {
-    txid: transactionId,
-    vout: localUtxo?.outpoint.vout,
-    value: localUtxo?.txout.value,
+    addressTo,
+    keychain: 'external',
+    label: '',
+    script,
     timestamp: transactionDetails?.confirmationTime?.timestamp
       ? new Date(transactionDetails.confirmationTime.timestamp * 1000)
       : undefined,
-    label: '',
-    addressTo,
-    script,
-    keychain: 'external'
+    txid: transactionId,
+    value: localUtxo?.txout.value,
+    vout: localUtxo?.outpoint.vout
   }
 }
 
 async function getAddress(utxo: LocalUtxo, network: Network) {
   try {
-    const script = utxo.txout.script
+    const {script} = utxo.txout
     const address = await new Address().fromScript(script, network)
     return address ? address.asString() : ''
   } catch {
@@ -1044,7 +1040,7 @@ async function getTransactionInputValues(
   network: BlockchainNetwork,
   url: string
 ): Promise<Transaction['vin']> {
-  if (!tx.vin.some((input) => input.value === undefined)) return tx.vin
+  if (!tx.vin.some((input) => input.value === undefined)) {return tx.vin}
 
   let vin: Transaction['vin'] = []
 
@@ -1063,7 +1059,7 @@ async function getTransactionInputValues(
   // with the new one -- which has the value of the input.
   for (const index in vin) {
     vin[index] = {
-      ...(tx.vin[index] || {}),
+      ...tx.vin[index],
       ...vin[index]
     }
   }
@@ -1107,7 +1103,7 @@ async function buildTransaction(
 
   await transactionBuilder.feeAbsolute(data.fee)
 
-  if (data.options.rbf) await transactionBuilder.enableRbf()
+  if (data.options.rbf) {await transactionBuilder.enableRbf()}
 
   const transactionBuilderResult = await transactionBuilder.finish(wallet)
   return transactionBuilderResult

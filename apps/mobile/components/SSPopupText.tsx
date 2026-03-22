@@ -5,7 +5,7 @@ import { Colors } from '@/styles'
 
 import SSText from './SSText'
 
-type SSSnackbarProps = {
+interface SSSnackbarProps {
   message: string
   isVisible: boolean
   duration?: number
@@ -38,11 +38,11 @@ function SSPopupText({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'column',
     alignItems: 'center',
+    flexDirection: 'column',
+    height: '100%',
     justifyContent: 'center',
     position: 'absolute',
-    height: '100%',
     width: '100%'
   },
   messageText: {

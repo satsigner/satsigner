@@ -1,7 +1,7 @@
 import { PartiallySignedTransaction } from 'bdk-rn'
-import {
-  type TransactionDetails,
-  type TxBuilderResult
+import type {
+  TransactionDetails,
+  TxBuilderResult
 } from 'bdk-rn/lib/classes/Bindings'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { useRouter } from 'expo-router'
@@ -12,16 +12,8 @@ import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { getKeyFingerprint } from '@/utils/account'
 import { parseHexToBytes } from '@/utils/parse'
-import {
-  extractIndividualSignedPsbts,
-  extractOriginalPsbt,
-  extractTransactionDataFromPSBTEnhanced,
-  extractTransactionIdFromPSBT,
-  findDerivedPublicKey,
-  findMatchingAccount,
-  getCollectedSignerPubkeys,
-  type TransactionData
-} from '@/utils/psbt'
+import { extractIndividualSignedPsbts, extractOriginalPsbt, extractTransactionDataFromPSBTEnhanced, extractTransactionIdFromPSBT, findDerivedPublicKey, findMatchingAccount, getCollectedSignerPubkeys } from '@/utils/psbt';
+import type { TransactionData } from '@/utils/psbt';
 
 export function useNostrSignFlow() {
   const router = useRouter()
@@ -70,20 +62,20 @@ export function useNostrSignFlow() {
     inputs.forEach((input) => {
       addInput({
         ...input,
-        script: parseHexToBytes(input.script),
-        keychain: input.keychain || 'external'
+        keychain: input.keychain || 'external',
+        script: parseHexToBytes(input.script)
       })
     })
 
     outputs.forEach((output) => {
       addOutput({
-        to: output.address,
         amount: output.value,
-        label: output.label || ''
+        label: output.label || '',
+        to: output.address
       })
     })
 
-    if (fee) setFee(fee)
+    if (fee) {setFee(fee)}
 
     setRbf(true)
 
@@ -101,9 +93,7 @@ export function useNostrSignFlow() {
     let finalSignedPsbts = derivedSignedPsbts
     if (accountMatch.account.policyType === 'multisig') {
       const remappedPsbts: Record<number, string> = {}
-      const signerPubkeys = Array.from(
-        getCollectedSignerPubkeys(transactionData.combinedPsbt)
-      )
+      const signerPubkeys = [...getCollectedSignerPubkeys(transactionData.combinedPsbt)]
 
       const cosignerPubkeys = await Promise.all(
         accountMatch.account.keys.map(async (key) => {
@@ -123,7 +113,7 @@ export function useNostrSignFlow() {
       })
 
       Object.entries(derivedSignedPsbts).forEach(([key, psbt]) => {
-        const index = parseInt(key, 10)
+        const index = Number.parseInt(key, 10)
         const signerPubkey = signerPubkeys[index]
         if (signerPubkey) {
           const cosignerIndex = pubkeyToCosignerIndexMap.get(signerPubkey)
@@ -137,19 +127,19 @@ export function useNostrSignFlow() {
 
     const signedPsbtsMap = new Map<number, string>()
     Object.entries(finalSignedPsbts).forEach(([key, value]) => {
-      signedPsbtsMap.set(parseInt(key, 10), value)
+      signedPsbtsMap.set(Number.parseInt(key, 10), value)
     })
     setSignedPsbts(signedPsbtsMap)
 
     const psbt = new PartiallySignedTransaction(originalPsbt)
 
     const txDetails: TransactionDetails = {
-      txid: extractedTxid,
-      fee,
-      sent,
-      received,
       confirmationTime: undefined,
-      transaction: undefined
+      fee,
+      received,
+      sent,
+      transaction: undefined,
+      txid: extractedTxid
     }
 
     const txBuilderResult: TxBuilderResult = {

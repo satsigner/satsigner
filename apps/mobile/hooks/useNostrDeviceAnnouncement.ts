@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { toast } from 'sonner-native'
 
 import { NostrAPI } from '@/api/nostr'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { compressMessage } from '@/utils/nostr'
 
 function useNostrDeviceAnnouncement() {
@@ -11,8 +11,8 @@ function useNostrDeviceAnnouncement() {
       account?: Account,
       options?: { force?: boolean }
     ): Promise<boolean> => {
-      if (!account || !account.nostr) return false
-      if (!options?.force && !account.nostr.autoSync) return false
+      if (!account || !account.nostr) {return false}
+      if (!options?.force && !account.nostr.autoSync) {return false}
       const { commonNsec, commonNpub, deviceNpub, relays } = account.nostr
 
       if (!commonNsec || !commonNpub || relays.length === 0 || !deviceNpub) {
@@ -37,9 +37,9 @@ function useNostrDeviceAnnouncement() {
         )
         await nostrApi.publishEvent(eventKind1059)
         return true
-      } catch (err) {
+      } catch (error) {
         const message =
-          err instanceof Error ? err.message : 'Failed to publish announcement'
+          error instanceof Error ? error.message : 'Failed to publish announcement'
         toast.error('Failed to publish announcement', { description: message })
         return false
       } finally {

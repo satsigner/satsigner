@@ -1,6 +1,7 @@
 import { useHeaderHeight } from '@react-navigation/elements'
 import { Canvas, Circle, Group } from '@shopify/react-native-skia'
-import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
+import { sankey } from 'd3-sankey';
+import type { SankeyNodeMinimal } from 'd3-sankey';
 import { useMemo } from 'react'
 import {
   Platform,
@@ -16,9 +17,10 @@ import { useGestures } from '@/hooks/useGestures'
 import { useInputTransactions } from '@/hooks/useInputTransactions'
 import { useLayout } from '@/hooks/useLayout'
 import { useNodesAndLinks } from '@/hooks/useNodesAndLinks'
-import { type Output } from '@/types/models/Output'
-import { type Utxo } from '@/types/models/Utxo'
-import { BLOCK_WIDTH, type Link, type Node } from '@/types/ui/sankey'
+import type { Output } from '@/types/models/Output'
+import type { Utxo } from '@/types/models/Utxo'
+import { BLOCK_WIDTH } from '@/types/ui/sankey';
+import type { Link, Node } from '@/types/ui/sankey';
 
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
@@ -26,7 +28,7 @@ import SSSankeyNodes from './SSSankeyNodes'
 const LINK_MAX_WIDTH = 100
 const NODE_WIDTH = 98
 
-type SSMultipleSankeyDiagramProps = {
+interface SSMultipleSankeyDiagramProps {
   onPressOutput?: (localId?: string) => void
   currentOutputLocalId?: string
   inputs: Map<string, Utxo>
@@ -47,20 +49,18 @@ function SSMultipleSankeyDiagram({
   const { transactions } = useInputTransactions(inputs, DEEP_LEVEL)
 
   const { nodes: sankeyNodes, links: sankeyLinks } = useNodesAndLinks({
-    transactions,
+    feeRate,
     inputs,
     outputs,
-    feeRate,
-    ownAddresses // pass to hook for future use
+    ownAddresses,
+    transactions // pass to hook for future use
   })
 
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
   // Calculate the maximum depthH value across all nodes
-  const maxDepthH = useMemo(() => {
-    return sankeyNodes.reduce((max, node) => {
+  const maxDepthH = useMemo(() => sankeyNodes.reduce((max, node) => {
       return Math.max(max, node.depthH)
-    }, 0)
-  }, [sankeyNodes])
+    }, 0), [sankeyNodes])
 
   // Calculate the maximum number of nodes at any depthH level
   const maxNodeCountInDepthH = useMemo(() => {
@@ -72,7 +72,7 @@ function SSMultipleSankeyDiagram({
     })
 
     return depthCounts.size > 0
-      ? Math.max(...Array.from(depthCounts.values()))
+      ? Math.max(...[...depthCounts.values()])
       : 0
   }, [sankeyNodes])
 
@@ -94,16 +94,16 @@ function SSMultipleSankeyDiagram({
   const { nodes, links } = useMemo(() => {
     try {
       const layout = sankeyGenerator({
-        nodes: sankeyNodes,
-        links: sankeyLinks as Link[]
+        links: sankeyLinks as Link[],
+        nodes: sankeyNodes
       })
       return {
-        nodes: layout.nodes as unknown as Node[],
-        links: layout.links as unknown as Link[]
+        links: layout.links as unknown as Link[],
+        nodes: layout.nodes as unknown as Node[]
       }
     } catch {
       // If layout fails (e.g. invalid array), return empty nodes/links
-      return { nodes: [], links: [] }
+      return { links: [], nodes: [] }
     }
   }, [sankeyGenerator, sankeyNodes, sankeyLinks])
 
@@ -122,9 +122,9 @@ function SSMultipleSankeyDiagram({
     }
 
     // Find the x position of nodes in the last 3 depthH levels
-    const lastThreeLevels = [maxDepthH, maxDepthH - 1, maxDepthH - 2].filter(
+    const lastThreeLevels = new Set([maxDepthH, maxDepthH - 1, maxDepthH - 2].filter(
       (level) => level >= 0
-    )
+    ))
 
     // Find the minimum and maximum x positions among nodes in the last three levels
     let minX = Infinity
@@ -133,7 +133,7 @@ function SSMultipleSankeyDiagram({
     nodes.forEach((node) => {
       const typedNode = node as Node
       if (
-        lastThreeLevels.includes(typedNode.depthH) &&
+        lastThreeLevels.has(typedNode.depthH) &&
         typeof typedNode.x0 === 'number'
       ) {
         minX = Math.min(minX, typedNode.x0)
@@ -163,19 +163,19 @@ function SSMultipleSankeyDiagram({
   }, [maxDepthH, nodes, w])
 
   const { animatedStyle, gestures, transform } = useGestures({
-    width: w,
-    height: h,
     center,
-    isDoubleTapEnabled: true,
-    maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
-    minPanPointers: 1,
-    maxScale: 20,
-    minScale: 0.2,
-    shouldResetOnInteractionEnd: false,
+    height: h,
     initialTranslation: {
       x: initialXTranslation,
       y: 0
-    }
+    },
+    isDoubleTapEnabled: true,
+    maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
+    maxScale: 20,
+    minPanPointers: 1,
+    minScale: 0.2,
+    shouldResetOnInteractionEnd: false,
+    width: w
   })
   const topHeaderHeight = useHeaderHeight()
   const { width, height } = useWindowDimensions()
@@ -183,8 +183,7 @@ function SSMultipleSankeyDiagram({
   const GRAPH_WIDTH = width
 
   // calculating the sankey node styles to match in skia
-  const nodeStyles = useMemo(() => {
-    return nodes.map((node) => {
+  const nodeStyles = useMemo(() => nodes.map((node) => {
       const isBlock = (node as Node).type === 'block'
       const blockNodeHeight =
         isBlock && (node as Node).ioData?.txSize
@@ -195,13 +194,12 @@ function SSMultipleSankeyDiagram({
         localId: (node as Node).localId,
         x: isBlock
           ? (node.x0 ?? 0) + (NODE_WIDTH - BLOCK_WIDTH) / 2
-          : node.x0 ?? 0,
+          : (node.x0 ?? 0),
         y: node.y0 ?? 0,
         width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
         height: isBlock ? Math.max(blockNodeHeight, LINK_MAX_WIDTH) : 80
       }
-    })
-  }, [nodes])
+    }), [nodes])
 
   if (!nodes?.length || !transformedLinks?.length) {
     return null
@@ -213,7 +211,7 @@ function SSMultipleSankeyDiagram({
     transformedLinks?.length > 0 ? (
     <View style={{ flex: 1 }}>
       <Canvas
-        style={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
+        style={{ height: GRAPH_HEIGHT, width: GRAPH_WIDTH }}
         onLayout={onCanvasLayout}
         pointerEvents="box-none"
       >
@@ -257,7 +255,7 @@ function SSMultipleSankeyDiagram({
           <Animated.View
             style={[
               styles.sankeyOverlay,
-              { width: GRAPH_WIDTH, height: GRAPH_HEIGHT },
+              { height: GRAPH_HEIGHT, width: GRAPH_WIDTH },
               animatedStyle
             ]}
             onLayout={onCanvasLayout}
@@ -268,11 +266,11 @@ function SSMultipleSankeyDiagram({
                 style={[
                   styles.node,
                   {
-                    position: 'absolute',
+                    height: style.height,
                     left: style.x,
+                    position: 'absolute',
                     top: style.y,
-                    width: style.width,
-                    height: style.height
+                    width: style.width
                   }
                 ]}
                 onPress={
@@ -298,8 +296,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0
   },
-  sankeyOverlay: {
-    position: 'relative'
+  iconContainer: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    padding: 5
   },
   node: {
     backgroundColor: 'transparent',
@@ -307,11 +308,8 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%'
   },
-  iconContainer: {
-    position: 'absolute',
-    top: 5,
-    right: 5,
-    padding: 5
+  sankeyOverlay: {
+    position: 'relative'
   }
 })
 

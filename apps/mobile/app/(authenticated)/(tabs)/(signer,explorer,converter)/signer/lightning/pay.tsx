@@ -17,9 +17,9 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { usePriceStore } from '@/store/price'
 import { Typography } from '@/styles'
-import { type LNDecodedInvoice } from '@/types/models/LND'
+import type { LNDecodedInvoice } from '@/types/models/LND'
 import type { LNURLPayResponse } from '@/types/models/LNURL'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import {
   decodeLNURL,
   fetchLNURLPayDetails,
@@ -179,7 +179,7 @@ export default function PayPage() {
           return
         }
 
-        const amountSats = parseInt(amount, 10)
+        const amountSats = Number.parseInt(amount, 10)
         if (isNaN(amountSats) || amountSats <= 0) {
           toast.error('Please enter a valid amount')
           setIsProcessing(false)
@@ -255,16 +255,16 @@ export default function PayPage() {
 
   useEffect(() => {
     const paramValue = paymentRequestParam || invoiceParam
-    if (!paramValue) return
+    if (!paramValue) {return}
 
     const paymentRequestValue = Array.isArray(paramValue)
       ? paramValue[0]
       : paramValue
-    if (!paymentRequestValue) return
+    if (!paymentRequestValue) {return}
 
     const cleanText = paymentRequestValue.trim().replace(/^lightning:/i, '')
     if (!cleanText.toLowerCase().startsWith('lnbc') && !isLNURL(cleanText))
-      return
+      {return}
 
     handlePaymentRequestChange(cleanText)
   }, [paymentRequestParam, invoiceParam, handlePaymentRequestChange])
@@ -400,9 +400,34 @@ export default function PayPage() {
 }
 
 const styles = StyleSheet.create({
-  inputHeader: {
-    justifyContent: 'space-between',
+  actionButton: {
+    flex: 1
+  },
+  actionButtons: {
+    width: '100%'
+  },
+  actions: {
+    gap: 12,
+    marginTop: 16
+  },
+  button: {
+    width: '100%'
+  },
+  buttonIcon: {
+    marginRight: 4
+  },
+  buttonWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8
+  },
+  fetchingDetails: {
     alignItems: 'center'
+  },
+  fiatAmount: {
+    marginTop: 4,
+    marginLeft: 4
   },
   input: {
     backgroundColor: '#242424',
@@ -411,42 +436,17 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16
   },
-  textArea: {
-    height: 180,
-    textAlignVertical: 'top'
+  inputHeader: {
+    justifyContent: 'space-between',
+    alignItems: 'center'
   },
   monospaceInput: {
     fontFamily: Typography.sfProMono,
     fontSize: 14,
     letterSpacing: 0.5
   },
-  actions: {
-    gap: 12,
-    marginTop: 16
-  },
-  actionButtons: {
-    width: '100%'
-  },
-  actionButton: {
-    flex: 1
-  },
-  button: {
-    width: '100%'
-  },
-  buttonWithIcon: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8
-  },
-  buttonIcon: {
-    marginRight: 4
-  },
-  fetchingDetails: {
-    alignItems: 'center'
-  },
-  fiatAmount: {
-    marginTop: 4,
-    marginLeft: 4
+  textArea: {
+    height: 180,
+    textAlignVertical: 'top'
   }
 })

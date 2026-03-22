@@ -1,7 +1,7 @@
 import { formatDate, formatRelativeTime } from '../../../utils/date'
 
 // Mock the translation function
-jest.mock('@/locales', () => ({
+jest.mock<typeof import('@/locales')>('@/locales', () => ({
   t: jest.fn((key, params) => {
     if (params) {
       return `${params.value} ${key}`
@@ -28,7 +28,7 @@ describe('date utils', () => {
 
   describe('formatRelativeTime', () => {
     it('should return empty string for undefined timestamp', () => {
-      expect(formatRelativeTime(undefined)).toBe('')
+      expect(formatRelativeTime()).toBe('')
     })
 
     it('should format just now for timestamps less than a minute ago', () => {
@@ -57,22 +57,22 @@ describe('date utils', () => {
     })
 
     it('should format days ago correctly', () => {
-      const timestamp = constantNowSeconds - 172800 // 2 days
+      const timestamp = constantNowSeconds - 172_800 // 2 days
       expect(formatRelativeTime(timestamp)).toBe('(2 time.daysAgo)')
     })
 
     it('should format single day ago correctly', () => {
-      const timestamp = constantNowSeconds - 86400 // 1 day
+      const timestamp = constantNowSeconds - 86_400 // 1 day
       expect(formatRelativeTime(timestamp)).toBe('(time.dayAgo)')
     })
 
     it('should format weeks ago correctly', () => {
-      const timestamp = constantNowSeconds - 1209600 // 2 weeks
+      const timestamp = constantNowSeconds - 1_209_600 // 2 weeks
       expect(formatRelativeTime(timestamp)).toBe('(2 time.weeksAgo)')
     })
 
     it('should format single week ago correctly', () => {
-      const timestamp = constantNowSeconds - 604800 // 1 week
+      const timestamp = constantNowSeconds - 604_800 // 1 week
       expect(formatRelativeTime(timestamp)).toBe('(time.weekAgo)')
     })
 
@@ -133,19 +133,19 @@ describe('date utils', () => {
     }
 
     it('should return an empty string for undefined input', () => {
-      expect(formatDate(undefined)).toBe('')
+      expect(formatDate()).toBe('')
     })
 
     it('should format a timestamp correctly (UTC)', () => {
       runInUTC(() => {
-        const timestamp = 1678881600 // Represents 2023-03-15 12:00:00 UTC
+        const timestamp = 1_678_881_600 // Represents 2023-03-15 12:00:00 UTC
         expect(formatDate(timestamp)).toBe('2023-03-15 12:00:00')
       })
     })
 
     it('should format another timestamp correctly (UTC)', () => {
       runInUTC(() => {
-        const timestamp = 1710504000 // Represents 2024-03-15 12:00:00 UTC
+        const timestamp = 1_710_504_000 // Represents 2024-03-15 12:00:00 UTC
         expect(formatDate(timestamp)).toBe('2024-03-15 12:00:00')
       })
     })
@@ -159,7 +159,7 @@ describe('date utils', () => {
 
     it('should handle padding correctly for single-digit month/day/hour/minute/second (UTC)', () => {
       runInUTC(() => {
-        const timestamp = 1672531321 // Represents 2023-01-01 00:02:01 UTC
+        const timestamp = 1_672_531_321 // Represents 2023-01-01 00:02:01 UTC
         expect(formatDate(timestamp)).toBe('2023-01-01 00:02:01')
       })
     })

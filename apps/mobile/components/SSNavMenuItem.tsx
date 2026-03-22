@@ -5,11 +5,11 @@ import { StyleSheet, TouchableOpacity } from 'react-native'
 import { Shadow } from 'react-native-shadow-2'
 
 import SSHStack from '@/layouts/SSHStack'
-import { type NavMenuItem } from '@/types/navigation/navMenu'
+import type { NavMenuItem } from '@/types/navigation/navMenu'
 
 import SSText from './SSText'
 
-type SSNavMenuItemProps = {
+interface SSNavMenuItemProps {
   group: string
   item: NavMenuItem
   focused?: boolean
@@ -21,8 +21,8 @@ function SSNavMenuItem({ group, item, focused = false }: SSNavMenuItemProps) {
   const handlePress = useCallback(() => {
     if (item.isSoon) {
       router.navigate({
-        pathname: `(${group.toLowerCase()})/upcoming/`,
-        params: { title: item.title }
+        params: { title: item.title },
+        pathname: `(${group.toLowerCase()})/upcoming/`
       })
     } else {
       router.navigate(`(${group.toLowerCase()})${item.url}`)
@@ -71,27 +71,11 @@ function SSNavMenuItem({ group, item, focused = false }: SSNavMenuItemProps) {
 }
 
 const styles = StyleSheet.create({
-  touchable: {
-    width: '100%',
-    height: 46
-  },
   container: {
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingHorizontal: 12,
     paddingVertical: 10
-  },
-  iconWrapper: {
-    width: 30,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  text: {
-    letterSpacing: 3
-  },
-  shadow: {
-    width: '100%',
-    height: 46
   },
   gradient: {
     width: '100%',
@@ -99,6 +83,22 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     borderWidth: 1,
     borderColor: '#262626'
+  },
+  iconWrapper: {
+    width: 30,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  shadow: {
+    width: '100%',
+    height: 46
+  },
+  text: {
+    letterSpacing: 3
+  },
+  touchable: {
+    width: '100%',
+    height: 46
   }
 })
 

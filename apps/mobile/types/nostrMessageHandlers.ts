@@ -1,10 +1,10 @@
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 
 // Wrapped events / other devices may have clock skew; reject only if created_at
 // is far in the future (match 48h subscription padding).
 export const DM_FUTURE_TOLERANCE_SEC = 48 * 60 * 60
 
-export type UnwrappedNostrEvent = {
+export interface UnwrappedNostrEvent {
   id: string
   pubkey: string
   content: string
@@ -12,12 +12,12 @@ export type UnwrappedNostrEvent = {
   tags?: unknown[][]
 }
 
-export type NostrMessageData = {
+export interface NostrMessageData {
   data_type: 'LabelsBip329' | 'Tx' | 'PSBT' | 'SignMessageRequest'
   data?: unknown
 }
 
-export type MessageHandlerContext = {
+export interface MessageHandlerContext {
   account: Account
   unwrappedEvent: UnwrappedNostrEvent
   eventContent: Record<string, unknown>
@@ -27,12 +27,12 @@ export type MessageHandlerContext = {
   onPendingDM: (dm: PendingDM) => void
 }
 
-export type MessageHandler = {
+export interface MessageHandler {
   canHandle: (context: MessageHandlerContext) => boolean
   handle: (context: MessageHandlerContext) => Promise<void>
 }
 
-export type PendingDM = {
+export interface PendingDM {
   unwrappedEvent: UnwrappedNostrEvent
   eventContent: Record<string, unknown>
   /** Set to true when the handler already showed its own toast (e.g. PSBT).
@@ -40,7 +40,7 @@ export type PendingDM = {
   skipToast?: boolean
 }
 
-export type NostrMessage = {
+export interface NostrMessage {
   id: string
   author: string
   created_at: number

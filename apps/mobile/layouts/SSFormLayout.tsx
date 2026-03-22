@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native'
 import SSText from '@/components/SSText'
 import { Layout } from '@/styles'
 
-type SSFormItemProps = {
+interface SSFormItemProps {
   children: React.ReactNode
 }
 
@@ -11,7 +11,7 @@ function FormItem({ children }: SSFormItemProps) {
   return <View style={styles.containerFormItem}>{children}</View>
 }
 
-type SSFormLabelProps = {
+interface SSFormLabelProps {
   label: string
   center?: boolean
 }
@@ -20,7 +20,7 @@ function FormLabel({ label, center = true }: SSFormLabelProps) {
   return <SSText style={[center && styles.textFormLabelCenter]}>{label}</SSText>
 }
 
-type SSFormLayoutProps = {
+interface SSFormLayoutProps {
   children: React.ReactNode
 }
 
@@ -31,8 +31,8 @@ function FormLayout({ children }: SSFormLayoutProps) {
 const styles = StyleSheet.create({
   containerForm: {
     flexDirection: 'column',
-    width: '100%',
-    gap: Layout.form.gap
+    gap: Layout.form.gap,
+    width: '100%'
   },
   containerFormItem: {
     flexDirection: 'column',

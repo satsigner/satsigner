@@ -1,10 +1,11 @@
 import { Colors } from '@/styles'
-import { text, type TextFontSize, type TextFontWeight } from '@/styles/sizes'
+import { text } from '@/styles/sizes';
+import type { TextFontSize, TextFontWeight } from '@/styles/sizes';
 import { formatNumber } from '@/utils/format'
 
 import SSText from './SSText'
 
-type SSStyledSatTextProps = {
+interface SSStyledSatTextProps {
   amount: number
   decimals?: number
   useZeroPadding?: boolean
@@ -29,7 +30,7 @@ function SSStyledSatText({
 }: SSStyledSatTextProps) {
   const zeroPadding = useZeroPadding || currency === 'btc'
   const formatted = formatNumber(amount, decimals, zeroPadding)
-  const spacedFormatted = formatted.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')
+  const spacedFormatted = formatted.replaceAll(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')
 
   const firstNonZeroIndex =
     spacedFormatted.search(/[1-9]/) === -1
@@ -43,7 +44,7 @@ function SSStyledSatText({
           -
         </SSText>
       )}
-      {spacedFormatted.split('').map((char, index) => {
+      {[...spacedFormatted].map((char, index) => {
         const isBeforeFirstNonZero = index < firstNonZeroIndex
 
         return (
@@ -52,8 +53,6 @@ function SSStyledSatText({
             size={textSize}
             weight={weight}
             style={{
-              letterSpacing,
-              lineHeight: text.fontSize[textSize],
               color: noColor
                 ? isBeforeFirstNonZero
                   ? Colors.softWhite
@@ -64,7 +63,9 @@ function SSStyledSatText({
                     : Colors.mainRed
                   : isBeforeFirstNonZero
                     ? Colors.softGreen
-                    : Colors.mainGreen
+                    : Colors.mainGreen,
+              letterSpacing,
+              lineHeight: text.fontSize[textSize]
             }}
           >
             {char}

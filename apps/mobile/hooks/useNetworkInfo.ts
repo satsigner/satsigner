@@ -81,16 +81,16 @@ export function useNetworkInfo() {
       // keep previous values
     }
 
-    if (height !== null) setBlockHeight(height)
-    if (fee !== null) setNextBlockFee(Math.round(fee))
+    if (height !== null) {setBlockHeight(height)}
+    if (fee !== null) {setNextBlockFee(Math.round(fee))}
     setBlockHeightSource(source)
   }, [selectedNetwork, configsMempool, configs])
 
   useEffect(() => {
     fetchNetworkInfo()
-    const interval = setInterval(fetchNetworkInfo, 30000)
+    const interval = setInterval(fetchNetworkInfo, 30_000)
     return () => clearInterval(interval)
   }, [fetchNetworkInfo])
 
-  return { blockHeight, nextBlockFee, blockHeightSource }
+  return { blockHeight, blockHeightSource, nextBlockFee }
 }

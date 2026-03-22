@@ -3,12 +3,12 @@ import { useMemo } from 'react'
 
 import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
 import { t } from '@/locales'
-import { type Account } from '@/types/models/Account'
-import { type NostrDM } from '@/types/models/Nostr'
+import type { Account } from '@/types/models/Account'
+import type { NostrDM } from '@/types/models/Nostr'
 import { formatDateShort } from '@/utils/date'
 import { parseNostrTransaction } from '@/utils/nostr'
 
-export type AuthorDisplayInfo = {
+export interface AuthorDisplayInfo {
   displayName?: string
   alias?: string
   npubShort: string
@@ -16,7 +16,7 @@ export type AuthorDisplayInfo = {
   picture?: string
 }
 
-type UseNostrMessageParams = {
+interface UseNostrMessageParams {
   msg: NostrDM
   account: Account | undefined
   formattedNpubs: Map<string, AuthorDisplayInfo>
@@ -39,16 +39,16 @@ export function useNostrMessage({
 
       const isDeviceMessage = msgAuthorNpub === account?.nostr?.deviceNpub
       const authorDisplayName = formattedNpubs.get(msg.author) || {
-        npubShort: `${msgAuthorNpub.slice(0, 12)}...${msgAuthorNpub.slice(-4)}`,
-        color: NOSTR_FALLBACK_NPUB_COLOR
+        color: NOSTR_FALLBACK_NPUB_COLOR,
+        npubShort: `${msgAuthorNpub.slice(0, 12)}...${msgAuthorNpub.slice(-4)}`
       }
 
       const messageContent =
         typeof msg.content === 'object' && 'description' in msg.content
           ? msg.content.description
-          : typeof msg.content === 'string'
+          : (typeof msg.content === 'string'
             ? msg.content
-            : t('account.nostrSync.devicesGroupChat.displayError')
+            : t('account.nostrSync.devicesGroupChat.displayError'))
 
       const transactionData = parseNostrTransaction(messageContent)
       const hasSignFlow = transactionData !== null
@@ -56,28 +56,28 @@ export function useNostrMessage({
       const formattedDate = formatDateShort(msg.created_at)
 
       return {
-        authorNpub: msgAuthorNpub,
-        isDeviceMessage,
         authorDisplayName,
-        messageContent,
-        transactionData,
-        hasSignFlow,
+        authorNpub: msgAuthorNpub,
+        error: null,
         formattedDate,
-        error: null
+        hasSignFlow,
+        isDeviceMessage,
+        messageContent,
+        transactionData
       }
     } catch (error) {
       return {
-        authorNpub: '',
-        isDeviceMessage: false,
         authorDisplayName: { npubShort: '', color: '' },
-        messageContent: '',
-        transactionData: null,
-        hasSignFlow: false,
-        formattedDate: '',
+        authorNpub: '',
         error:
           error instanceof Error
             ? error
-            : new Error('Failed to process Nostr message')
+            : new Error('Failed to process Nostr message'),
+        formattedDate: '',
+        hasSignFlow: false,
+        isDeviceMessage: false,
+        messageContent: '',
+        transactionData: null
       }
     }
   }, [msg, account, formattedNpubs])

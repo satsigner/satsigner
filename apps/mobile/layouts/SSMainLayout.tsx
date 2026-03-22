@@ -13,23 +13,21 @@ export default function SSMainLayout({
   style,
   children
 }: SSMainLayoutProps) {
-  const containerStyle = useMemo(() => {
-    return StyleSheet.compose(
+  const containerStyle = useMemo(() => StyleSheet.compose(
       {
         ...styles.containerBase,
         ...{ backgroundColor: black ? Colors.black : Colors.gray[950] }
       },
       [style]
-    )
-  }, [black, style])
+    ), [black, style])
 
   return <View style={containerStyle}>{children}</View>
 }
 
 const styles = StyleSheet.create({
   containerBase: {
+    flex: 1,
     paddingHorizontal: Layout.mainContainer.paddingHorizontal,
-    paddingTop: Layout.mainContainer.paddingTop,
-    flex: 1
+    paddingTop: Layout.mainContainer.paddingTop
   }
 })

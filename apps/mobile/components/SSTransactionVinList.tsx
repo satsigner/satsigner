@@ -3,11 +3,11 @@ import SSScriptDecoded from '@/components/SSScriptDecoded'
 import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { type Transaction } from '@/types/models/Transaction'
+import type { Transaction } from '@/types/models/Transaction'
 
 import SSSeparator from './SSSeparator'
 
-type SSTransactionVinListProps = {
+interface SSTransactionVinListProps {
   vin?: Transaction['vin']
 }
 

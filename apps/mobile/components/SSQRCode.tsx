@@ -2,7 +2,7 @@ import QRCode from 'react-native-qrcode-svg'
 
 import { Colors } from '@/styles'
 
-type SSQRCodeProps = {
+interface SSQRCodeProps {
   value: string
   size?: number
   ecl?: 'H' | 'Q' | 'M' | 'L'

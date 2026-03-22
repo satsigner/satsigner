@@ -3,7 +3,7 @@ import { isBitcoinUri, parseBitcoinUri } from '@/utils/bip321'
 import { isBitcoinAddress } from '@/utils/bitcoin'
 import { validateAddress } from '@/utils/validation'
 
-type ProcessedBitcoinContent = {
+interface ProcessedBitcoinContent {
   type: 'psbt' | 'address' | 'bip21'
   address?: string
   amount?: number
@@ -25,18 +25,18 @@ export function isPSBT(text: string) {
 }
 
 export function isValidBitcoinContent(text: string) {
-  if (!text || text.trim().length === 0) return false
+  if (!text || text.trim().length === 0) {return false}
 
   const trimmed = text.trim()
 
-  if (isPSBT(trimmed)) return true
+  if (isPSBT(trimmed)) {return true}
 
-  if (validateAddress(trimmed)) return true
+  if (validateAddress(trimmed)) {return true}
 
-  if (isBitcoinUri(trimmed)) return true
+  if (isBitcoinUri(trimmed)) {return true}
 
   if (trimmed.toLowerCase().startsWith('bitcoin:')) {
-    const addressPart = trimmed.substring(8).split('?')[0]
+    const addressPart = trimmed.slice(8).split('?')[0]
     if (validateAddress(addressPart) || isBitcoinAddress(addressPart)) {
       return true
     }
@@ -48,42 +48,42 @@ export function isValidBitcoinContent(text: string) {
 export function processBitcoinContent(
   text: string
 ): ProcessedBitcoinContent | null {
-  if (!text || !isValidBitcoinContent(text)) return null
+  if (!text || !isValidBitcoinContent(text)) {return null}
 
   const trimmed = text.trim()
 
   if (isPSBT(trimmed)) {
     return {
-      type: 'psbt',
-      content: trimmed
+      content: trimmed,
+      type: 'psbt'
     }
   }
 
   if (isBitcoinUri(trimmed)) {
     const parsed = parseBitcoinUri(trimmed)
-    if (!parsed.isValid || !parsed.address) return null
+    if (!parsed.isValid || !parsed.address) {return null}
 
     return {
-      type: 'bip21',
       address: parsed.address,
       amount: (parsed.amount || 0) * SATS_PER_BITCOIN || 1,
+      content: trimmed,
       label: parsed.label || '',
-      content: trimmed
+      type: 'bip21'
     }
   }
 
   let processedAddress = trimmed
   if (processedAddress.toLowerCase().startsWith('bitcoin:')) {
-    processedAddress = processedAddress.substring(8).split('?')[0]
+    processedAddress = processedAddress.slice(8).split('?')[0]
   }
 
   if (validateAddress(processedAddress)) {
     return {
-      type: 'address',
       address: processedAddress,
       amount: 1,
+      content: trimmed,
       label: '',
-      content: trimmed
+      type: 'address'
     }
   }
 

@@ -11,7 +11,7 @@ import { Colors } from '@/styles'
 import SSButton from './SSButton'
 import SSText from './SSText'
 
-type SSSelectModalProps = {
+interface SSSelectModalProps {
   visible: boolean
   title: string
   selectedText?: string
@@ -31,16 +31,16 @@ function SSSelectModal({
   children
 }: SSSelectModalProps) {
   useEffect(() => {
-    if (Platform.OS !== 'android') return
+    if (Platform.OS !== 'android') {return}
     if (!visible)
-      return StatusBar.setStatusBarBackgroundColor('transparent', false)
+      {return StatusBar.setStatusBarBackgroundColor('transparent', false)}
 
     StatusBar.setStatusBarBackgroundColor('black', false)
   }, [visible])
 
   return (
     <Modal visible={visible} transparent={false}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.black }}>
+      <SafeAreaView style={{ backgroundColor: Colors.black, flex: 1 }}>
         <SSMainLayout black style={{ paddingBottom: 20 }}>
           <ScrollView>
             <SSVStack gap="lg">

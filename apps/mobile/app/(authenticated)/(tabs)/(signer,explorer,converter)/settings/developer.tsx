@@ -29,7 +29,7 @@ import { useNostrStore } from '@/store/nostr'
 import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
-import { type Key } from '@/types/models/Account'
+import type { Key } from '@/types/models/Account'
 import { DEFAULT_WORD_LIST } from '@/utils/bip39'
 import {
   aesDecrypt,
@@ -105,7 +105,7 @@ export default function Developer() {
               passphrase?: string
             }
             seedWords = secret.mnemonic
-            passphrase = secret.passphrase
+            ({ passphrase } = secret)
           } catch {
             // leave seedWords/passphrase undefined
           }
@@ -146,16 +146,16 @@ export default function Developer() {
       const payload = await buildBackupWithSeeds()
       setBackupPreviewPayload(payload)
       setBackupPreviewVisible(true)
-    } catch (_error) {
+    } catch {
       toast.error(t('settings.developer.backupError'))
     }
   }
 
   /** Printable ASCII (space through tilde): letters, digits, space, symbols */
-  const PASSPHRASE_ALLOWED_REGEX = /^[\x20-\x7E]+$/
+  const PASSPHRASE_ALLOWED_REGEX = /^[\u0020-\u007E]+$/
 
   async function handleEncryptAndShare() {
-    if (!backupPreviewPayload) return
+    if (!backupPreviewPayload) {return}
     if (
       backupPassphrase.length === 0 ||
       !PASSPHRASE_ALLOWED_REGEX.test(backupPassphrase)
@@ -184,7 +184,7 @@ export default function Developer() {
         setBackupPreviewPayload(null)
         setBackupPassphrase('')
       }
-    } catch (_error) {
+    } catch {
       toast.error(t('settings.developer.backupError'))
     }
   }
@@ -221,18 +221,18 @@ export default function Developer() {
         typeof payload.iv !== 'string' ||
         typeof payload.salt !== 'string'
       ) {
-        throw new Error('Invalid payload shape')
+        throw new TypeError('Invalid payload shape')
       }
       const key = await pbkdf2Encrypt(recoverPassphrase, payload.salt)
       const plain = await aesDecrypt(payload.cipher, key, payload.iv)
       setRecoverDecrypted(plain)
-    } catch (_err) {
+    } catch {
       toast.error(t('settings.developer.recoverDecryptError'))
     }
   }
 
   async function handleRecoverImSure() {
-    if (!recoverDecrypted) return
+    if (!recoverDecrypted) {return}
     if (skipPin) {
       const { success } = await performRecoverOverwrite(recoverDecrypted)
       setRecoverModalVisible(false)
@@ -240,8 +240,8 @@ export default function Developer() {
       setRecoverPassphrase('')
       setRecoverDecrypted(null)
       setRecoverConfirmOverwrite(false)
-      if (success) toast.success(t('settings.developer.backupSuccess'))
-      else toast.error(t('settings.developer.recoverOverwriteError'))
+      if (success) {toast.success(t('settings.developer.backupSuccess'))}
+      else {toast.error(t('settings.developer.recoverOverwriteError'))}
       return
     }
     setPendingRecoverData(recoverDecrypted)
@@ -305,10 +305,10 @@ export default function Developer() {
     <>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSText uppercase>{t('settings.developer.title')}</SSText>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <SSMainLayout>
@@ -580,9 +580,11 @@ const styles = StyleSheet.create({
     maxHeight: '80%',
     paddingVertical: 8
   },
-  recoverModal: {
-    maxHeight: '85%',
-    paddingVertical: 8
+  backupPreviewText: {
+    color: Colors.gray['200'],
+    fontFamily: 'monospace',
+    fontSize: 11,
+    padding: 8
   },
   modalTextAreaScroll: {
     borderColor: Colors.gray[500],
@@ -600,10 +602,8 @@ const styles = StyleSheet.create({
     color: Colors.gray['200'],
     padding: 12
   },
-  backupPreviewText: {
-    color: Colors.gray['200'],
-    fontFamily: 'monospace',
-    fontSize: 11,
-    padding: 8
+  recoverModal: {
+    maxHeight: '85%',
+    paddingVertical: 8
   }
 })

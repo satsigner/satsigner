@@ -12,7 +12,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type Config, type Network } from '@/types/settings/blockchain'
+import type { Config, Network } from '@/types/settings/blockchain'
 
 const tn = _tn('settings.network.config')
 
@@ -24,8 +24,8 @@ export default function NetworkSettings() {
 
   const [tempConfigs, setTempConfigs] = useState<Record<Network, Config>>({
     bitcoin: configs.bitcoin.config,
-    testnet: configs.testnet.config,
-    signet: configs.signet.config
+    signet: configs.signet.config,
+    testnet: configs.testnet.config
   })
 
   const networks: Network[] = ['bitcoin', 'testnet', 'signet']
@@ -55,8 +55,8 @@ export default function NetworkSettings() {
     <SSMainLayout style={{ paddingTop: 0 }}>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>,
-          headerRight: undefined
+          headerRight: undefined,
+          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>
         }}
       />
       <SSVStack gap="lg" justifyBetween>
@@ -76,8 +76,7 @@ export default function NetworkSettings() {
                 <SSVStack gap="sm">
                   <SSVStack gap="xs">
                     <SSText>{tn('connectionMode.label')}</SSText>
-                    {(['manual', 'auto'] as const).map((mode) => {
-                      return (
+                    {(['manual', 'auto'] as const).map((mode) => (
                         <SSCheckbox
                           key={mode}
                           label={tn(`connectionMode.${mode}`)}
@@ -90,8 +89,7 @@ export default function NetworkSettings() {
                             handleParamChange(network, 'connectionMode', mode)
                           }
                         />
-                      )
-                    })}
+                      ))}
                   </SSVStack>
                   <SSVStack gap="xs">
                     <SSText>{tn('timeDiffBeforeAutoSync')}</SSText>

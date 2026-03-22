@@ -3,9 +3,9 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { type ProxyConfig } from '@/types/settings/blockchain'
+import type { ProxyConfig } from '@/types/settings/blockchain'
 
-type SSProxyFormFieldsProps = {
+interface SSProxyFormFieldsProps {
   proxy: ProxyConfig
   onProxyChange: (proxy: ProxyConfig) => void
 }
@@ -26,7 +26,7 @@ function SSProxyFormFields({ proxy, onProxyChange }: SSProxyFormFieldsProps) {
   }
 
   function handlePortChange(port: string) {
-    const portNum = parseInt(port, 10)
+    const portNum = Number.parseInt(port, 10)
     if (!isNaN(portNum)) {
       onProxyChange({
         ...proxy,

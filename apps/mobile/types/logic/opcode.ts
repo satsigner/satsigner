@@ -104,7 +104,7 @@ export enum OP_CODE_WORD {
   OP_INVALIDOPCOD = 'OP_INVALIDOPCODE'
 }
 
-export type OP_CODE = {
+export interface OP_CODE {
   code: string
   hex: string
   type: string

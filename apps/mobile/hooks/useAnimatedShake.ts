@@ -28,11 +28,9 @@ export const useAnimatedShake = () => {
     )
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const shakeStyle = useAnimatedStyle(() => {
-    return {
+  const shakeStyle = useAnimatedStyle(() => ({
       transform: [{ translateX: shakeTranslateX.value }]
-    }
-  }, [])
+    }), [])
 
   return { shake, shakeStyle }
 }

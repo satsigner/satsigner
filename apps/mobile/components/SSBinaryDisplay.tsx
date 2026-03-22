@@ -2,7 +2,8 @@ import { StyleSheet } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 
-import SSText, { type SSTextProps } from './SSText'
+import SSText from './SSText';
+import type { SSTextProps } from './SSText';
 
 type SSBinaryDisplayProps = {
   binary: string
@@ -22,9 +23,9 @@ function SSBinaryDisplay({ binary, ...props }: SSBinaryDisplayProps) {
 
 const styles = StyleSheet.create({
   container: {
+    alignItems: 'center',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    alignItems: 'center',
     width: 'auto'
   }
 })

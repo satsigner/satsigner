@@ -1,9 +1,10 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
+import { StyleSheet, View } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 
 import { Colors } from '@/styles'
 
-type SSSeparatorProps = {
+interface SSSeparatorProps {
   color?: 'grayDark' | 'gradient' | 'custom'
   colors?: string[]
   percentages?: number[]
@@ -63,9 +64,9 @@ function SSSeparator({
 
 const styles = StyleSheet.create({
   containerBase: {
-    width: 'auto',
+    flexDirection: 'row',
     height: 1.5,
-    flexDirection: 'row'
+    width: 'auto'
   },
   segment: {
     height: '100%'

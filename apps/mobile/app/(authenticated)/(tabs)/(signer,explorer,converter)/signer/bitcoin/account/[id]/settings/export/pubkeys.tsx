@@ -1,4 +1,4 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
+import type { Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
@@ -16,7 +16,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { getAccountWithDecryptedKeys } from '@/utils/account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { isElectrumDerivationPath } from '@/utils/bip39'
@@ -39,7 +39,7 @@ export default function ExportPubkeys() {
   const [rawPubkeys, setRawPubkeys] = useState<string[]>([])
 
   useEffect(() => {
-    if (!rawPubkeys.length) return
+    if (!rawPubkeys.length) {return}
     const formattedPubkeys =
       pubkeyFormat === 'xpub'
         ? rawPubkeys
@@ -49,7 +49,7 @@ export default function ExportPubkeys() {
 
   useEffect(() => {
     async function getPubkeys() {
-      if (!account) return
+      if (!account) {return}
       setIsLoading(true)
       try {
         const isImportAddress = account.keys[0].creationType === 'importAddress'
@@ -64,21 +64,21 @@ export default function ExportPubkeys() {
             if (isImportAddress) {
               // For watch-only accounts, we can get the extended public key from the secret
               return key.secret.extendedPublicKey || 'N/A'
-            } else {
+            }
               // For regular accounts, we need to extract the extended public key from the descriptor
               if (!walletData?.externalDescriptor) return 'N/A'
               const extendedKey = getExtendedKeyFromDescriptor(
                 walletData.externalDescriptor
               )
               return extendedKey || 'N/A'
-            }
+            
           })
         )
 
         setRawPubkeys(pubkeys)
         setExportContent(pubkeys.join('\n'))
-      } catch (err) {
-        const reason = err instanceof Error ? err.message : 'unknown reason'
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : 'unknown reason'
         toast.error(`Failed to get account public keys: ${reason}`)
       } finally {
         setIsLoading(false)
@@ -88,24 +88,25 @@ export default function ExportPubkeys() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function exportPubkeys() {
-    if (!account) return
+    if (!account) {return}
     const date = new Date().toISOString().slice(0, -5)
     const ext = 'txt'
     const filename = `PublicKeys_${accountId}_${date}.${ext}`
     shareFile({
-      filename,
-      fileContent: exportContent,
       dialogTitle: t('export.file.save'),
+      fileContent: exportContent,
+      filename,
       mimeType: `text/plain`
     })
   }
 
-  if (!account) return <Redirect href="/" />
+  if (!account) {return <Redirect href="/" />}
 
   return (
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
@@ -113,8 +114,7 @@ export default function ExportPubkeys() {
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
               )}
             </SSHStack>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <SSVStack style={{ padding: 20 }}>
@@ -129,7 +129,7 @@ export default function ExportPubkeys() {
           </View>
         )}
         {!isLoading && rawPubkeys.length > 0 && (
-          <SSHStack style={{ justifyContent: 'center', gap: 10 }}>
+          <SSHStack style={{ gap: 10, justifyContent: 'center' }}>
             <SSButton
               label={t('account.export.xpubFormat')}
               variant={pubkeyFormat === 'xpub' ? 'outline' : 'subtle'}
@@ -153,7 +153,7 @@ export default function ExportPubkeys() {
         <View style={{ alignItems: 'center', marginVertical: 20 }}>
           {isLoading ? (
             <ActivityIndicator size="large" color={Colors.gray[400]} />
-          ) : exportContent ? (
+          ) : (exportContent ? (
             <View
               style={{
                 backgroundColor: 'white',
@@ -168,15 +168,15 @@ export default function ExportPubkeys() {
                 backgroundColor="white"
               />
             </View>
-          ) : null}
+          ) : null)}
         </View>
         {!isLoading && exportContent && (
           <>
             <View
               style={{
-                padding: 10,
                 backgroundColor: Colors.gray[950],
-                borderRadius: 5
+                borderRadius: 5,
+                padding: 10
               }}
             >
               <SSText color="white" size="lg" type="mono">
@@ -208,9 +208,9 @@ export default function ExportPubkeys() {
 
 const styles = StyleSheet.create({
   electrumWarning: {
-    borderWidth: 1,
     borderColor: Colors.warning,
     borderRadius: 5,
+    borderWidth: 1,
     padding: 10
   },
   electrumWarningText: {

@@ -28,8 +28,8 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import { type EcashTransaction } from '@/types/models/Ecash'
-import { type EcashSearchParams } from '@/types/navigation/searchParams'
+import type { EcashTransaction } from '@/types/models/Ecash'
+import type { EcashSearchParams } from '@/types/navigation/searchParams'
 import { formatFiatPrice } from '@/utils/format'
 
 export default function EcashTransactionDetailPage() {
@@ -82,7 +82,7 @@ export default function EcashTransactionDetailPage() {
 
   // Define all callbacks before any conditional logic
   const handleCopyToken = useCallback(async () => {
-    if (!transaction?.token) return
+    if (!transaction?.token) {return}
 
     try {
       await Clipboard.setStringAsync(transaction.token)
@@ -93,7 +93,7 @@ export default function EcashTransactionDetailPage() {
   }, [transaction?.token])
 
   const handleCopyInvoice = useCallback(async () => {
-    if (!transaction?.invoice) return
+    if (!transaction?.invoice) {return}
 
     try {
       await Clipboard.setStringAsync(transaction.invoice)
@@ -104,7 +104,7 @@ export default function EcashTransactionDetailPage() {
   }, [transaction?.invoice])
 
   const handleCopyLightningInvoice = useCallback(async () => {
-    if (!lightningInvoice) return
+    if (!lightningInvoice) {return}
 
     try {
       await Clipboard.setStringAsync(lightningInvoice)
@@ -115,7 +115,7 @@ export default function EcashTransactionDetailPage() {
   }, [lightningInvoice])
 
   const handleCheckTokenStatus = useCallback(async () => {
-    if (!transaction?.token || !transaction?.mintUrl) return
+    if (!transaction?.token || !transaction?.mintUrl) {return}
 
     setIsCheckingStatus(true)
 
@@ -152,7 +152,7 @@ export default function EcashTransactionDetailPage() {
   ])
 
   const handleRedeemToken = useCallback(async () => {
-    if (!transaction?.token || !transaction?.mintUrl) return
+    if (!transaction?.token || !transaction?.mintUrl) {return}
 
     setIsRedeeming(true)
 
@@ -255,46 +255,61 @@ export default function EcashTransactionDetailPage() {
 
   function getTransactionIcon(type: EcashTransaction['type']) {
     switch (type) {
-      case 'send':
+      case 'send': {
         return <SSIconOutgoing height={32} width={32} />
-      case 'receive':
+      }
+      case 'receive': {
         return <SSIconIncoming height={32} width={32} />
-      case 'mint':
+      }
+      case 'mint': {
         return <SSIconIncomingLightning height={32} width={32} />
-      case 'melt':
+      }
+      case 'melt': {
         return <SSIconOutgoingLightning height={32} width={32} />
-      default:
+      }
+      default: {
         return <SSText size="2xl">•</SSText>
+      }
     }
   }
 
   function getTransactionLabel(type: EcashTransaction['type']) {
     switch (type) {
-      case 'send':
+      case 'send': {
         return t('ecash.transaction.send')
-      case 'receive':
+      }
+      case 'receive': {
         return t('ecash.transaction.receive')
-      case 'mint':
+      }
+      case 'mint': {
         return t('ecash.transaction.mint')
-      case 'melt':
+      }
+      case 'melt': {
         return t('ecash.transaction.melt')
-      default:
+      }
+      default: {
         return type
+      }
     }
   }
 
   function getTokenStatusColor(tokenStatus: EcashTransaction['tokenStatus']) {
     switch (tokenStatus) {
-      case 'unspent':
+      case 'unspent': {
         return Colors.error
-      case 'spent':
+      }
+      case 'spent': {
         return Colors.softBarRed
-      case 'invalid':
+      }
+      case 'invalid': {
         return Colors.error
-      case 'pending':
+      }
+      case 'pending': {
         return Colors.warning
-      default:
+      }
+      default: {
         return Colors.white
+      }
     }
   }
 
@@ -325,9 +340,9 @@ export default function EcashTransactionDetailPage() {
                     type={
                       transaction.type === 'mint'
                         ? 'receive'
-                        : transaction.type === 'melt'
+                        : (transaction.type === 'melt'
                           ? 'send'
-                          : transaction.type
+                          : transaction.type)
                     }
                     textSize="xl"
                     noColor={false}
@@ -369,35 +384,46 @@ export default function EcashTransactionDetailPage() {
                     style={{
                       color: (() => {
                         switch (transaction.status) {
-                          case 'pending':
+                          case 'pending': {
                             return Colors.warning
-                          case 'completed':
+                          }
+                          case 'completed': {
                             return Colors.success
+                          }
                           case 'failed':
-                          case 'expired':
+                          case 'expired': {
                             return Colors.error
-                          case 'settled':
+                          }
+                          case 'settled': {
                             return Colors.softBarRed
-                          default:
+                          }
+                          default: {
                             return Colors.gray[700]
+                          }
                         }
                       })()
                     }}
                   >
                     {(() => {
                       switch (transaction.status) {
-                        case 'pending':
+                        case 'pending': {
                           return t('ecash.quote.pending')
-                        case 'completed':
+                        }
+                        case 'completed': {
                           return t('ecash.quote.completed')
-                        case 'failed':
+                        }
+                        case 'failed': {
                           return t('ecash.quote.failed')
-                        case 'expired':
+                        }
+                        case 'expired': {
                           return t('ecash.quote.expired')
-                        case 'settled':
+                        }
+                        case 'settled': {
                           return t('ecash.quote.settled')
-                        default:
+                        }
+                        default: {
                           return String(transaction.status).toUpperCase()
+                        }
                       }
                     })()}
                   </SSText>
@@ -583,7 +609,6 @@ export default function EcashTransactionDetailPage() {
 }
 
 const styles = StyleSheet.create({
-  headerCard: {},
   dataInput: {
     minHeight: 120,
     height: 'auto',
@@ -591,5 +616,6 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     fontSize: 12,
     padding: 12
-  }
+  },
+  headerCard: {}
 })

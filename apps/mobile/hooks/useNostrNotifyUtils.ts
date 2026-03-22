@@ -23,7 +23,7 @@ export function getAuthorDisplayName(pubkeyHex: string): string {
     const npub = nip19.npubEncode(pubkeyHex)
     const truncated = `${npub.slice(0, 12)}...${npub.slice(-4)}`
     const profile = useNostrStore.getState().profiles[npub]
-    if (profile?.displayName) return `${profile.displayName} (${truncated})`
+    if (profile?.displayName) {return `${profile.displayName} (${truncated})`}
     return truncated
   } catch {
     return pubkeyHex.slice(0, 8)

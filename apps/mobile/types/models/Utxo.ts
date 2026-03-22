@@ -1,4 +1,4 @@
-export type Utxo = {
+export interface Utxo {
   txid: string
   vout: number
   value: number

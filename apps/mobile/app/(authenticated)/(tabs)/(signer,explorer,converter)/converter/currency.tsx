@@ -25,14 +25,14 @@ export default function Converter() {
     'sats' | 'bitcoin' | 'USD' | 'EUR' | 'GBP' | 'CAD' | 'CHF' | 'JPY'
   >('sats')
   const [currencyValues, setCurrencyValues] = useState({
-    sats: 0,
-    bitcoin: 0,
-    USD: 0,
-    EUR: 0,
-    GBP: 0,
     CAD: 0,
     CHF: 0,
-    JPY: 0
+    EUR: 0,
+    GBP: 0,
+    JPY: 0,
+    USD: 0,
+    bitcoin: 0,
+    sats: 0
   })
 
   const [prices, fetchFullPriceAt] = usePriceStore(
@@ -264,27 +264,6 @@ export default function Converter() {
 }
 
 const styles = StyleSheet.create({
-  headerTitle: {
-    letterSpacing: 1
-  },
-  inputContainer: {
-    borderTopWidth: 1,
-    borderColor: Colors.gray[875],
-    paddingTop: 20,
-    paddingBottom: 6,
-    gap: -2
-  },
-  currencyInput: {
-    backgroundColor: transparent
-  },
-  currencySection: {
-    borderTopWidth: 1,
-    borderColor: Colors.gray[875]
-  },
-  rowSeparator: {
-    borderBottomWidth: 1,
-    borderColor: Colors.gray[875]
-  },
   currencyBlock: {
     flex: 1,
     padding: 12,
@@ -294,6 +273,13 @@ const styles = StyleSheet.create({
   currencyBlockNoBorder: {
     flex: 1,
     padding: 12
+  },
+  currencyInput: {
+    backgroundColor: transparent
+  },
+  currencySection: {
+    borderTopWidth: 1,
+    borderColor: Colors.gray[875]
   },
   dateContainer: {
     flexGrow: 1,
@@ -305,5 +291,19 @@ const styles = StyleSheet.create({
   gradient: {
     position: 'absolute',
     width: '100%'
+  },
+  headerTitle: {
+    letterSpacing: 1
+  },
+  inputContainer: {
+    borderTopWidth: 1,
+    borderColor: Colors.gray[875],
+    paddingTop: 20,
+    paddingBottom: 6,
+    gap: -2
+  },
+  rowSeparator: {
+    borderBottomWidth: 1,
+    borderColor: Colors.gray[875]
   }
 })

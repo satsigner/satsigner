@@ -61,7 +61,7 @@ export function useInputTransactions(
           if (!vinsByDepth.has(tx.depthH)) {
             vinsByDepth.set(tx.depthH, [])
           }
-          vinsByDepth.get(tx.depthH)?.push({ txid, index })
+          vinsByDepth.get(tx.depthH)?.push({ index, txid })
         })
       }
 
@@ -70,7 +70,7 @@ export function useInputTransactions(
           if (!voutsByDepth.has(tx.depthH)) {
             voutsByDepth.set(tx.depthH, [])
           }
-          voutsByDepth.get(tx.depthH)?.push({ txid, index })
+          voutsByDepth.get(tx.depthH)?.push({ index, txid })
         })
       }
     }
@@ -106,15 +106,15 @@ export function useInputTransactions(
   }
 
   const fetchInputTransactions = useCallback(async () => {
-    if (inputs.size === 0) return
+    if (inputs.size === 0) {return}
 
     setLoading(true)
     setError(null)
 
     const newTransactions = new Map<string, ExtendedTransaction>()
-    const queue = Array.from(inputs.values()).map((input) => ({
-      txid: input.txid,
-      level: 1
+    const queue = [...inputs.values()].map((input) => ({
+      level: 1,
+      txid: input.txid
     }))
     const processed = new Set<string>()
     let currentLevelDeep = 0
@@ -137,11 +137,11 @@ export function useInputTransactions(
         const currentLevelTxids = queue.filter(
           (item) => item.level === currentLevelDeep + 1
         )
-        if (currentLevelTxids.length === 0) break
+        if (currentLevelTxids.length === 0) {break}
 
         await Promise.all(
           currentLevelTxids.map(async ({ txid, level }) => {
-            if (processed.has(txid)) return
+            if (processed.has(txid)) {return}
             processed.add(txid)
 
             let tx
@@ -177,11 +177,11 @@ export function useInputTransactions(
                     },
                     sequence: input.sequence,
                     scriptSig: input.scriptsig
-                      ? Array.from(Buffer.from(input.scriptsig, 'hex'))
+                      ? [...Buffer.from(input.scriptsig, 'hex')]
                       : [],
                     witness: input.witness
                       ? input.witness.map((w) =>
-                          Array.from(Buffer.from(w, 'hex'))
+                          [...Buffer.from(w, 'hex')]
                         )
                       : [],
                     value: input.prevout?.value,
@@ -189,12 +189,12 @@ export function useInputTransactions(
                     address: input.prevout?.scriptpubkey_address
                   })),
                   vout: tx.vout.map((output) => ({
-                    value: output.value,
                     address: output.scriptpubkey_address,
+                    label: undefined,
                     script: output.scriptpubkey
                       ? Array.from(Buffer.from(output.scriptpubkey, 'hex'))
                       : [],
-                    label: undefined // TODO: add label
+                    value: output.value // TODO: add label
                   })),
                   prices: {}
                 }
@@ -223,8 +223,8 @@ export function useInputTransactions(
             } else if (server.backend === 'electrum' && electrumClient) {
               // Check if electrumClient is initialized
               try {
-                let blockHeight: number | undefined = undefined
-                let timestamp: Date | undefined = undefined
+                let blockHeight
+                let timestamp
                 // Use the single, initialized electrumClient
                 const rawTx = await electrumClient.getTransactions([txid])
                 if (rawTx && rawTx.length > 0) {
@@ -258,7 +258,7 @@ export function useInputTransactions(
                           break // Found the height, no need to check other addresses
                         }
                       }
-                    } catch (_addrError) {}
+                    } catch {}
                   }
                   if (blockHeight) {
                     timestamp = new Date(
@@ -267,7 +267,7 @@ export function useInputTransactions(
                   }
                   // Collect previous transaction IDs needed for input values
                   const prevTxOutputs = parsedTx.ins.map((input) => ({
-                    txid: input.hash.slice().reverse().toString('hex'),
+                    txid: [...input.hash].toReversed().toString('hex'),
                     vout: input.index
                   }))
                   const uniquePrevTxids = [
@@ -286,7 +286,7 @@ export function useInputTransactions(
                         try {
                           const parsedPrevTx = TxDecoded.fromHex(rawPrevTx)
                           prevTxsMap.set(currentTxidForMap, parsedPrevTx)
-                        } catch (_parseError) {
+                        } catch {
                           // Failed to parse, skip this one
                         }
                       }
@@ -309,7 +309,7 @@ export function useInputTransactions(
                     version: parsedTx.version,
                     lockTime: parsedTx.locktime,
                     lockTimeEnabled: parsedTx.locktime > 0,
-                    raw: Array.from(Buffer.from(rawTx[0], 'hex')),
+                    raw: [...Buffer.from(rawTx[0], 'hex')],
                     vin: parsedTx.ins.map((input) => {
                       const prevTxid = input.hash.toString('hex') // input.hash is now little-endian here
                       const prevVout = input.index
@@ -337,8 +337,8 @@ export function useInputTransactions(
                           vout: prevVout
                         },
                         sequence: input.sequence,
-                        scriptSig: Array.from(input.script),
-                        witness: input.witness.map((w) => Array.from(w)),
+                        scriptSig: [...input.script],
+                        witness: input.witness.map((w) => [...w]),
                         value, // Assign fetched value
                         label: undefined, // TODO: add label
                         address // Assign derived address
@@ -347,7 +347,7 @@ export function useInputTransactions(
                     vout: parsedTx.outs.map((output) => ({
                       value: output.value,
                       address: '', // Set to empty string to satisfy required string type
-                      script: Array.from(output.script),
+                      script: [...output.script],
                       label: undefined // TODO: add label
                     })),
                     prices: {}
@@ -363,7 +363,7 @@ export function useInputTransactions(
                   // Skipping for now
                   transactionInputAddresses.set(txid, inputAddresses)
                 }
-              } catch (_electrumError) {}
+              } catch {}
             }
 
             // Queue parent transactions only if we haven't reached max levelDeep
@@ -376,8 +376,8 @@ export function useInputTransactions(
                   !queue.some((item) => item.txid === parentTxid)
                 ) {
                   queue.push({
-                    txid: parentTxid,
-                    level: level + 1
+                    level: level + 1,
+                    txid: parentTxid
                   })
                 }
               })
@@ -394,7 +394,7 @@ export function useInputTransactions(
       // First, collect all valid transactions
       for (const [txid, tx] of newTransactions.entries()) {
         const inputAddresses = transactionInputAddresses.get(txid)
-        if (!inputAddresses) continue
+        if (!inputAddresses) {continue}
 
         // Check if any input address matches with output addresses from other transactions
         let hasMatchingAddress = false
@@ -439,11 +439,11 @@ export function useInputTransactions(
 
         // Map inputs to the format expected by recalculateDepthH
         const mappedInputs = new Map(
-          Array.from(inputs.entries()).map(([key, utxo]) => [
+          [...inputs.entries()].map(([key, utxo]) => [
             key,
             {
-              value: utxo.value,
-              scriptpubkey_address: utxo.addressTo || ''
+              scriptpubkey_address: utxo.addressTo || '',
+              value: utxo.value
             }
           ])
         )
@@ -464,8 +464,8 @@ export function useInputTransactions(
       }
 
       setLoading(false)
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)))
+    } catch (error) {
+      setError(error instanceof Error ? error : new Error(String(error)))
       setLoading(false)
     } finally {
       // Ensure client is closed if it was initialized
@@ -479,5 +479,5 @@ export function useInputTransactions(
     fetchInputTransactions()
   }, [fetchInputTransactions])
 
-  return { transactions, loading, error, fetchInputTransactions }
+  return { error, fetchInputTransactions, loading, transactions }
 }

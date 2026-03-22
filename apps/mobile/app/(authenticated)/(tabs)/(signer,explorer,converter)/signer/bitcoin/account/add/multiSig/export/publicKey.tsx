@@ -16,7 +16,7 @@ import { getItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type Secret } from '@/types/models/Account'
+import type { Secret } from '@/types/models/Account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { convertKeyFormat } from '@/utils/bitcoin'
 import { shareFile } from '@/utils/filesystem'
@@ -201,15 +201,15 @@ export default function PublicKeyPage() {
 
   useEffect(() => {
     async function getPublicKey() {
-      if (!keyIndex) return
+      if (!keyIndex) {return}
 
       setIsLoading(true)
       const pin = await getItem(PIN_KEY)
-      if (!pin) return
+      if (!pin) {return}
 
       try {
         const accountData = getAccountData()
-        const keyIndexNum = parseInt(keyIndex, 10)
+        const keyIndexNum = Number.parseInt(keyIndex, 10)
         const key = accountData.keys[keyIndexNum]
 
         if (!key) {
@@ -269,12 +269,12 @@ export default function PublicKeyPage() {
     const date = new Date().toISOString().slice(0, -5)
     const ext = 'txt'
     const filename = `PublicKey_${accountData.name}_Key${
-      parseInt(keyIndex || '0', 10) + 1
+      Number.parseInt(keyIndex || '0', 10) + 1
     }_${selectedFormat.toUpperCase()}_${date}.${ext}`
     shareFile({
-      filename,
-      fileContent: publicKey,
       dialogTitle: t('export.file.save'),
+      fileContent: publicKey,
+      filename,
       mimeType: `text/plain`
     })
   }
@@ -313,7 +313,7 @@ export default function PublicKeyPage() {
                 Loading...
               </SSText>
             </View>
-          ) : publicKey ? (
+          ) : (publicKey ? (
             <View
               style={{
                 backgroundColor: 'white',
@@ -328,7 +328,7 @@ export default function PublicKeyPage() {
                 backgroundColor="white"
               />
             </View>
-          ) : null}
+          ) : null)}
         </View>
 
         {/* Public Key Text */}
@@ -336,9 +336,9 @@ export default function PublicKeyPage() {
           <>
             <View
               style={{
-                padding: 10,
                 backgroundColor: Colors.gray[950],
-                borderRadius: 5
+                borderRadius: 5,
+                padding: 10
               }}
             >
               <SSText color="white" size="lg" type="mono" selectable>

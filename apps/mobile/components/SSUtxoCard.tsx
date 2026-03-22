@@ -8,8 +8,8 @@ import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import { type Utxo } from '@/types/models/Utxo'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { Utxo } from '@/types/models/Utxo'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { normalizeUtxoLabelForDisplay } from '@/utils/parse'
 
@@ -18,7 +18,7 @@ import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
 import SSUtxoBar from './SSUtxoBar'
 
-type SSUtxoCardProps = {
+interface SSUtxoCardProps {
   utxo: Utxo
   totalBalance?: number
   addressIndex?: number
@@ -50,7 +50,7 @@ function SSUtxoCard({ utxo, totalBalance, addressIndex }: SSUtxoCardProps) {
       )}
       <SSHStack
         justifyBetween
-        style={{ paddingTop: 8, flex: 1, alignItems: 'stretch' }}
+        style={{ alignItems: 'stretch', flex: 1, paddingTop: 8 }}
       >
         <SSVStack gap="none" style={{}}>
           <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>

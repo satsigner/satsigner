@@ -12,7 +12,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { useLightningStore } from '@/store/lightning'
 import type { LNDConfig } from '@/types/models/LND'
 import { getAllClipboardContent } from '@/utils/clipboard'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 
 export default function LNDRestPage() {
   const router = useRouter()
@@ -45,8 +45,8 @@ export default function LNDRestPage() {
     const config = jsonConfig.configurations[0]
 
     const lndConfig: LNDConfig = {
-      macaroon: config.macaroon,
       cert: config.cert,
+      macaroon: config.macaroon,
       url: config.uri
     }
 
@@ -61,7 +61,7 @@ export default function LNDRestPage() {
     return lndConfig
   }
   const handleConnect = async () => {
-    if (!connectionString.trim()) return
+    if (!connectionString.trim()) {return}
 
     setIsConnecting(true)
     try {
@@ -186,9 +186,16 @@ export default function LNDRestPage() {
 }
 
 const styles = StyleSheet.create({
-  mainLayout: {
-    paddingTop: 32,
-    paddingHorizontal: '5%'
+  buttonContainer: {
+    width: '100%',
+    gap: 16
+  },
+  buttonRow: {
+    width: '100%',
+    gap: 12
+  },
+  buttonRowItem: {
+    flex: 1
   },
   content: {
     flex: 1,
@@ -197,18 +204,21 @@ const styles = StyleSheet.create({
   headerText: {
     marginBottom: 8
   },
-  subtitle: {
-    marginBottom: 32,
-    textAlign: 'center'
-  },
-  buttonContainer: {
-    width: '100%',
-    gap: 16
-  },
   inputContainer: {
     width: '100%',
     marginBottom: 24,
     gap: 12
+  },
+  mainLayout: {
+    paddingTop: 32,
+    paddingHorizontal: '5%'
+  },
+  pasteButton: {
+    width: '100%'
+  },
+  subtitle: {
+    marginBottom: 32,
+    textAlign: 'center'
   },
   textArea: {
     width: '100%',
@@ -220,15 +230,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     backgroundColor: '#1a1a1a',
     textAlignVertical: 'top'
-  },
-  pasteButton: {
-    width: '100%'
-  },
-  buttonRow: {
-    width: '100%',
-    gap: 12
-  },
-  buttonRowItem: {
-    flex: 1
   }
 })

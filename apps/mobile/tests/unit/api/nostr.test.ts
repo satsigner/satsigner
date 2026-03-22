@@ -5,11 +5,11 @@ import { relays } from '../utils/nostr_samples'
 jest.mock('nostr-tools')
 jest.mock('@nostr-dev-kit/ndk')
 jest.mock('react-native-aes-crypto')
-jest.mock('sonner-native', () => ({
+jest.mock<typeof import('sonner-native')>('sonner-native', () => ({
   toast: { error: jest.fn(), info: jest.fn(), success: jest.fn() }
 }))
 
-describe('NostrAPI', () => {
+describe('nostrAPI', () => {
   beforeEach(() => {
     jest.clearAllMocks()
   })
@@ -27,7 +27,7 @@ describe('NostrAPI', () => {
       expect(keys.nsec).toMatch(/^nsec1[a-z0-9]+$/)
       expect(keys.npub).toMatch(/^npub1[a-z0-9]+$/)
       expect(keys.secretNostrKey).toBeInstanceOf(Uint8Array)
-      expect(keys.secretNostrKey.length).toBe(32)
+      expect(keys.secretNostrKey).toHaveLength(32)
     })
 
     it('produces different keys each call', async () => {
@@ -44,18 +44,18 @@ describe('NostrAPI', () => {
   describe('constructor and getRelays', () => {
     it('uses default relays when empty array provided', () => {
       const api = new NostrAPI([])
-      expect(api.getRelays()).toEqual(relays.default)
+      expect(api.getRelays()).toStrictEqual(relays.default)
     })
 
     it('uses provided custom relays', () => {
       const api = new NostrAPI(relays.custom)
-      expect(api.getRelays()).toEqual(relays.custom)
+      expect(api.getRelays()).toStrictEqual(relays.custom)
     })
 
     it('uses single relay', () => {
       const singleRelay = [relays.default[0]]
       const api = new NostrAPI(singleRelay)
-      expect(api.getRelays()).toEqual(singleRelay)
+      expect(api.getRelays()).toStrictEqual(singleRelay)
     })
   })
 

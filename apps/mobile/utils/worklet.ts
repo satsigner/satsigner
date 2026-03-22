@@ -1,4 +1,4 @@
-import { type SharedValue } from 'react-native-reanimated'
+import type { SharedValue } from 'react-native-reanimated'
 
 function clamp(value: number, min: number, max: number) {
   'worklet'
@@ -39,6 +39,6 @@ function sum(...animatedValues: SharedValue<number>[]) {
   )
 }
 
-const limits = { right, left, top, bottom }
+const limits = { bottom, left, right, top }
 
 export { clamp, limits, sum }

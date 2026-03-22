@@ -1,14 +1,14 @@
 import { useMemo } from 'react'
 
-import { type Key } from '@/types/models/Account'
+import type { Key } from '@/types/models/Account'
 
-type UseKeyValidationParams = {
+interface UseKeyValidationParams {
   keyDetails: Key | undefined
   seedDropped: boolean
   decryptedKey?: Key
 }
 
-type UseKeyValidationReturn = {
+interface UseKeyValidationReturn {
   isKeyCompleted: boolean
   hasSeed: boolean
   hasNoSecret: boolean
@@ -26,56 +26,45 @@ export function useKeyValidation({
   decryptedKey,
   signedPsbt
 }: UseKeyValidationParams & { signedPsbt?: string }): UseKeyValidationReturn {
-  const isKeyCompleted = useMemo(() => {
-    return Boolean(
+  const isKeyCompleted = useMemo(() => Boolean(
       keyDetails &&
-        keyDetails.creationType &&
-        ((typeof keyDetails.secret === 'object' &&
-          keyDetails.secret.fingerprint &&
-          (keyDetails.secret.extendedPublicKey ||
-            keyDetails.secret.externalDescriptor ||
-            keyDetails.secret.mnemonic)) ||
-          (typeof keyDetails.secret === 'string' &&
-            keyDetails.secret.length > 0))
-    )
-  }, [keyDetails])
+      keyDetails.creationType &&
+      ((typeof keyDetails.secret === 'object' &&
+        keyDetails.secret.fingerprint &&
+        (keyDetails.secret.extendedPublicKey ||
+          keyDetails.secret.externalDescriptor ||
+          keyDetails.secret.mnemonic)) ||
+        (typeof keyDetails.secret === 'string' && keyDetails.secret.length > 0))
+    ), [keyDetails])
 
-  const hasSeed = useMemo(() => {
-    return Boolean(
+  const hasSeed = useMemo(() => Boolean(
       !seedDropped &&
-        keyDetails &&
-        typeof keyDetails.secret === 'object' &&
-        keyDetails.secret.mnemonic
-    )
-  }, [seedDropped, keyDetails])
+      keyDetails &&
+      typeof keyDetails.secret === 'object' &&
+      keyDetails.secret.mnemonic
+    ), [seedDropped, keyDetails])
 
-  const hasNoSecret = useMemo(() => {
-    return Boolean(
+  const hasNoSecret = useMemo(() => Boolean(
       isKeyCompleted &&
-        keyDetails &&
-        typeof keyDetails.secret === 'object' &&
-        !keyDetails.secret.mnemonic
-    )
-  }, [isKeyCompleted, keyDetails])
+      keyDetails &&
+      typeof keyDetails.secret === 'object' &&
+      !keyDetails.secret.mnemonic
+    ), [isKeyCompleted, keyDetails])
 
-  const hasLocalSeed = useMemo(() => {
-    return Boolean(
+  const hasLocalSeed = useMemo(() => Boolean(
       decryptedKey?.secret &&
-        typeof decryptedKey.secret === 'object' &&
-        'mnemonic' in decryptedKey.secret &&
-        decryptedKey.secret.mnemonic
-    )
-  }, [decryptedKey])
+      typeof decryptedKey.secret === 'object' &&
+      'mnemonic' in decryptedKey.secret &&
+      decryptedKey.secret.mnemonic
+    ), [decryptedKey])
 
-  const isSignatureCompleted = useMemo(() => {
-    return Boolean(signedPsbt && signedPsbt.trim().length > 0)
-  }, [signedPsbt])
+  const isSignatureCompleted = useMemo(() => Boolean(signedPsbt && signedPsbt.trim().length > 0), [signedPsbt])
 
   return {
-    isKeyCompleted,
-    hasSeed,
-    hasNoSecret,
     hasLocalSeed,
+    hasNoSecret,
+    hasSeed,
+    isKeyCompleted,
     isSignatureCompleted
   }
 }
@@ -118,5 +107,5 @@ export function useSignatureDropdownValidation({
   decryptedKey,
   signedPsbt
 }: UseKeyValidationParams & { signedPsbt?: string }) {
-  return useKeyValidation({ keyDetails, seedDropped, decryptedKey, signedPsbt })
+  return useKeyValidation({ decryptedKey, keyDetails, seedDropped, signedPsbt })
 }

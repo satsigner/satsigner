@@ -6,14 +6,14 @@ import { useShallow } from 'zustand/react/shallow'
 import { processContentByContext } from '@/hooks/useContentProcessor'
 import { t } from '@/locales'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { type Account } from '@/types/models/Account'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { Account } from '@/types/models/Account'
+import type { DetectedContent } from '@/utils/contentDetector'
 
 type NavigatePath =
   | string
   | { pathname: string; params?: Record<string, unknown> }
 
-type UseBitcoinContentHandlerProps = {
+interface UseBitcoinContentHandlerProps {
   accountId: string
   account: Account
 }
@@ -62,12 +62,12 @@ export function useBitcoinContentHandler({
             content,
             'bitcoin',
             {
+              addInput,
+              addOutput,
+              clearTransaction,
               navigate: (path: NavigatePath) => {
                 router.navigate(path)
               },
-              clearTransaction,
-              addOutput,
-              addInput,
               setFeeRate,
               setRbf,
               setSignedPsbts,
@@ -120,7 +120,7 @@ export function useBitcoinContentHandler({
 
   return {
     handleContentScanned,
-    handleSend,
-    handleReceive
+    handleReceive,
+    handleSend
   }
 }

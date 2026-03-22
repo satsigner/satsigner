@@ -1,4 +1,5 @@
-import { type ForwardedRef, forwardRef, useMemo } from 'react'
+import { forwardRef, useMemo } from 'react';
+import type { ForwardedRef } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
@@ -25,15 +26,13 @@ function SSWordInput(
   }: SSWordInputProps,
   ref: ForwardedRef<TextInput>
 ) {
-  const textInputStyle = useMemo(() => {
-    return StyleSheet.compose(
+  const textInputStyle = useMemo(() => StyleSheet.compose(
       {
         ...styles.textInputBase,
         ...(invalid ? styles.textInputInvalid : {})
       },
       style
-    )
-  }, [invalid, style])
+    ), [invalid, style])
 
   return (
     <View style={styles.containerBase}>
@@ -56,29 +55,29 @@ function SSWordInput(
 
 const styles = StyleSheet.create({
   containerBase: {
+    alignContent: 'center',
     height: Sizes.wordInput.height,
-    width: '32%',
     justifyContent: 'flex-start',
-    alignContent: 'center'
+    width: '32%'
   },
   textInputBase: {
-    borderRadius: Sizes.wordInput.borderRadius,
-    height: Sizes.wordInput.height,
-    textAlign: 'center',
     backgroundColor: Colors.gray[850],
+    borderRadius: Sizes.wordInput.borderRadius,
     color: Colors.white,
-    fontSize: Sizes.wordInput.fontSize
+    fontSize: Sizes.wordInput.fontSize,
+    height: Sizes.wordInput.height,
+    textAlign: 'center'
   },
   textInputInvalid: {
-    borderWidth: 2,
-    borderColor: Colors.error
+    borderColor: Colors.error,
+    borderWidth: 2
   },
   wordPositionLabelBase: {
     color: Colors.gray[200],
-    position: 'absolute',
-    top: 5,
     left: 5,
-    lineHeight: Sizes.wordInput.lineHeight
+    lineHeight: Sizes.wordInput.lineHeight,
+    position: 'absolute',
+    top: 5
   }
 })
 

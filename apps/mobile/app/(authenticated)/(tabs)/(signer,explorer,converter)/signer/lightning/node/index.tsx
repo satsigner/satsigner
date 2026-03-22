@@ -8,7 +8,8 @@ import {
   useWindowDimensions,
   View
 } from 'react-native'
-import { type SceneRendererProps, TabView } from 'react-native-tab-view'
+import { TabView } from 'react-native-tab-view';
+import type { SceneRendererProps } from 'react-native-tab-view';
 
 import {
   SSIconCollapse,
@@ -42,12 +43,10 @@ interface LNDBalanceResponse {
   unconfirmed_balance: string
   locked_balance: string
   reserved_balance_anchor_chan: string
-  account_balance?: {
-    [key: string]: {
+  account_balance?: Record<string, {
       confirmed_balance: string
       unconfirmed_balance: string
-    }
-  }
+    }>
 }
 
 interface LNDChannelBalanceResponse {
@@ -183,8 +182,8 @@ export default function NodeDetailPage() {
   const contentHandler = useContentHandler({
     context: 'lightning',
     onContentScanned: lightningContentHandler.handleContentScanned,
-    onSend: lightningContentHandler.handleSend,
-    onReceive: lightningContentHandler.handleReceive
+    onReceive: lightningContentHandler.handleReceive,
+    onSend: lightningContentHandler.handleSend
   })
 
   const [balance, setBalance] = useState<ProcessedBalance | null>(null)
@@ -211,9 +210,9 @@ export default function NodeDetailPage() {
   const animateTransition = useCallback(
     (expandState: boolean) => {
       Animated.timing(animationValue, {
-        toValue: expandState ? 1 : 0,
         duration: 300,
         easing: Easing.inOut(Easing.ease),
+        toValue: expandState ? 1 : 0,
         useNativeDriver: false
       }).start()
     },
@@ -390,17 +389,21 @@ export default function NodeDetailPage() {
             let statusText = ''
             if (tx.type === 'lightning_receive') {
               switch (tx.status) {
-                case 'settled':
+                case 'settled': {
                   statusText = '• Settled'
                   break
-                case 'canceled':
+                }
+                case 'canceled': {
                   statusText = '• Canceled'
                   break
-                case 'open':
+                }
+                case 'open': {
                   statusText = '• Open'
                   break
-                default:
+                }
+                default: {
                   statusText = `• ${tx.status}`
+                }
               }
             } else if (tx.type === 'onchain') {
               statusText =
@@ -437,13 +440,13 @@ export default function NodeDetailPage() {
                   </SSHStack>
                   <SSText color="muted" size="xs">
                     {timestamp.toLocaleString('en-US', {
-                      month: 'long',
                       day: 'numeric',
-                      year: 'numeric',
                       hour: 'numeric',
+                      hour12: true,
                       minute: 'numeric',
+                      month: 'long',
                       second: 'numeric',
-                      hour12: true
+                      year: 'numeric'
                     })}
                   </SSText>
                 </SSHStack>
@@ -495,13 +498,13 @@ export default function NodeDetailPage() {
   ])
 
   const renderChannels = useCallback(() => {
-    if (!channels?.length) return null
+    if (!channels?.length) {return null}
 
     return (
       <SSVStack style={styles.section}>
         <SSVStack style={styles.channelsList}>
           {channels.map((channel) => {
-            if (!channel || typeof channel !== 'object') return null
+            if (!channel || typeof channel !== 'object') {return null}
 
             const {
               capacity = 0,
@@ -600,7 +603,7 @@ export default function NodeDetailPage() {
   }, [channels])
 
   const renderTab = useCallback(() => {
-    if (expand) return null
+    if (expand) {return null}
 
     const tabWidth = '50%'
     const activeChannels =
@@ -610,7 +613,7 @@ export default function NodeDetailPage() {
     return (
       <SSHStack
         gap="none"
-        style={{ paddingVertical: 4, paddingHorizontal: '5%' }}
+        style={{ paddingHorizontal: '5%', paddingVertical: 4 }}
       >
         <SSActionButton
           style={{ width: tabWidth }}
@@ -626,12 +629,12 @@ export default function NodeDetailPage() {
             {tabIndex === 0 && (
               <View
                 style={{
-                  position: 'absolute',
-                  width: '100%',
-                  height: 2,
-                  bottom: -8,
                   alignSelf: 'center',
-                  backgroundColor: Colors.white
+                  backgroundColor: Colors.white,
+                  bottom: -8,
+                  height: 2,
+                  position: 'absolute',
+                  width: '100%'
                 }}
               />
             )}
@@ -651,12 +654,12 @@ export default function NodeDetailPage() {
             {tabIndex === 1 && (
               <View
                 style={{
-                  position: 'absolute',
-                  width: '100%',
-                  height: 2,
-                  bottom: -8,
                   alignSelf: 'center',
-                  backgroundColor: Colors.white
+                  backgroundColor: Colors.white,
+                  bottom: -8,
+                  height: 2,
+                  position: 'absolute',
+                  width: '100%'
                 }}
               />
             )}
@@ -669,7 +672,7 @@ export default function NodeDetailPage() {
   const renderScene = useCallback(
     ({ route }: SceneRendererProps & { route: { key: string } }) => {
       switch (route.key) {
-        case 'transactions':
+        case 'transactions': {
           return (
             <SSMainLayout style={[styles.section, styles.tabContent]}>
               <SSHStack justifyBetween style={{ paddingVertical: 8 }}>
@@ -706,7 +709,8 @@ export default function NodeDetailPage() {
               </ScrollView>
             </SSMainLayout>
           )
-        case 'channels':
+        }
+        case 'channels': {
           return (
             <SSMainLayout style={[styles.section, styles.tabContent]}>
               <SSHStack justifyBetween style={{ paddingVertical: 8 }}>
@@ -733,8 +737,10 @@ export default function NodeDetailPage() {
               </ScrollView>
             </SSMainLayout>
           )
-        default:
+        }
+        default: {
           return null
+        }
       }
     },
     [
@@ -772,9 +778,9 @@ export default function NodeDetailPage() {
         )
 
         setBalance({
-          total_balance: isNaN(totalBalance) ? 0 : totalBalance,
           channel_balance: isNaN(channelBalanceValue) ? 0 : channelBalanceValue,
-          onchain_balance: isNaN(onchainBalance) ? 0 : onchainBalance
+          onchain_balance: isNaN(onchainBalance) ? 0 : onchainBalance,
+          total_balance: isNaN(totalBalance) ? 0 : totalBalance
         })
 
         // Load transactions
@@ -783,13 +789,13 @@ export default function NodeDetailPage() {
             '/v1/transactions?start_height=0&end_height=-1&num_max_transactions=100'
           ).then((res) =>
             res.transactions.map((tx) => ({
-              id: tx.tx_hash,
-              type: 'onchain' as const,
               amount: Number(tx.amount),
-              timestamp: Number(tx.time_stamp),
-              status: tx.num_confirmations > 0 ? 'confirmed' : 'pending',
               hash: tx.tx_hash,
-              num_confirmations: tx.num_confirmations
+              id: tx.tx_hash,
+              num_confirmations: tx.num_confirmations,
+              status: tx.num_confirmations > 0 ? 'confirmed' : 'pending',
+              timestamp: Number(tx.time_stamp),
+              type: 'onchain' as const
             }))
           ),
           (makeRequest as MakeRequest)<{ payments: LNDPayment[] }>(
@@ -808,14 +814,14 @@ export default function NodeDetailPage() {
                 }
               }
               return {
-                id: payment.payment_hash,
-                type: 'lightning_send' as const,
                 amount: -Number(payment.value_sat),
-                timestamp: Number(payment.creation_date),
-                status: payment.status,
-                hash: payment.payment_hash,
+                description,
                 fee: Number(payment.fee_sat),
-                description
+                hash: payment.payment_hash,
+                id: payment.payment_hash,
+                status: payment.status,
+                timestamp: Number(payment.creation_date),
+                type: 'lightning_send' as const
               }
             })
           ),
@@ -824,8 +830,6 @@ export default function NodeDetailPage() {
           ).then((res) =>
             res.invoices
               .map((invoice) => ({
-                id: invoice.r_hash,
-                type: 'lightning_receive' as const,
                 amount: Number(
                   invoice.state === 'SETTLED'
                     ? invoice.amt_paid_sat ||
@@ -834,16 +838,18 @@ export default function NodeDetailPage() {
                         0
                     : invoice.value || 0
                 ),
+                description:
+                  invoice.description || invoice.memo || 'Lightning Invoice',
+                hash: invoice.r_hash,
+                id: invoice.r_hash,
+                originalAmount: invoice.value ? Number(invoice.value) : 0,
+                status: invoice.state.toLowerCase(),
                 timestamp: Number(
                   invoice.state === 'SETTLED' && invoice.settle_date !== '0'
                     ? invoice.settle_date
                     : invoice.creation_date
                 ),
-                status: invoice.state.toLowerCase(),
-                hash: invoice.r_hash,
-                description:
-                  invoice.description || invoice.memo || 'Lightning Invoice',
-                originalAmount: invoice.value ? Number(invoice.value) : 0
+                type: 'lightning_receive' as const
               }))
               .filter(
                 (invoice) => includeOpenInvoices || invoice.status !== 'open'
@@ -853,9 +859,7 @@ export default function NodeDetailPage() {
 
         // Combine and deduplicate transactions
         const allTxs = [...onchainTxs, ...paymentTxs, ...invoiceTxs]
-        const uniqueTxs = Array.from(
-          new Map(allTxs.map((tx) => [tx.id, tx])).values()
-        ).sort((a, b) => b.timestamp - a.timestamp)
+        const uniqueTxs = [...new Map(allTxs.map((tx) => [tx.id, tx])).values()].toSorted((a, b) => b.timestamp - a.timestamp)
 
         setTransactions(uniqueTxs)
       } catch {
@@ -884,11 +888,6 @@ export default function NodeDetailPage() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase style={{ letterSpacing: 1 }}>
-              {params.alias}
-            </SSText>
-          ),
           headerRight: () => (
             <SSIconButton
               style={{ marginRight: 8 }}
@@ -901,6 +900,11 @@ export default function NodeDetailPage() {
             >
               <SSIconLNSettings height={16} width={16} />
             </SSIconButton>
+          ),
+          headerTitle: () => (
+            <SSText uppercase style={{ letterSpacing: 1 }}>
+              {params.alias}
+            </SSText>
           )
         }}
       />
@@ -969,46 +973,6 @@ export default function NodeDetailPage() {
 }
 
 const styles = StyleSheet.create({
-  mainLayout: {
-    flex: 1,
-    paddingTop: 10
-  },
-  tabContent: {
-    flex: 1,
-    paddingHorizontal: 0,
-    marginTop: -4
-  },
-  scrollView: {
-    flex: 1
-  },
-  scrollContent: {
-    flexGrow: 1,
-    gap: 10,
-    paddingBottom: 32
-  },
-  section: {
-    flex: 1,
-    gap: 16
-  },
-  sectionTitle: {
-    marginBottom: 1
-  },
-  infoGrid: {
-    gap: 12
-  },
-  infoItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  pubkey: {
-    maxWidth: '70%',
-    fontFamily: 'monospace'
-  },
-  hash: {
-    maxWidth: '70%',
-    fontFamily: 'monospace'
-  },
   actions: {
     gap: 8,
     marginTop: 16
@@ -1016,32 +980,19 @@ const styles = StyleSheet.create({
   button: {
     minHeight: 40
   },
-  error: {
-    textAlign: 'center',
-    marginTop: 16
-  },
-  channelsList: {
-    gap: 16
-  },
-  channelItem: {
-    backgroundColor: '#242424',
-    borderRadius: 2,
-    padding: 12,
-    gap: 12
-  },
-  channelHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
   channelAlias: {
     flex: 1,
     marginRight: 8
   },
+  channelDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
   channelDetails: {
     gap: 8
   },
-  channelDetailRow: {
+  channelHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center'
@@ -1051,24 +1002,77 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     fontSize: 12
   },
+  channelItem: {
+    backgroundColor: '#242424',
+    borderRadius: 2,
+    padding: 12,
+    gap: 12
+  },
+  channelsList: {
+    gap: 16
+  },
+  error: {
+    textAlign: 'center',
+    marginTop: 16
+  },
+  hash: {
+    maxWidth: '70%',
+    fontFamily: 'monospace'
+  },
+  infoGrid: {
+    gap: 12
+  },
+  infoItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  loadMoreButton: {
+    marginTop: 16,
+    marginBottom: 8
+  },
+  mainLayout: {
+    flex: 1,
+    paddingTop: 10
+  },
   placeholderText: {
     textAlign: 'center',
     padding: 24
+  },
+  pubkey: {
+    maxWidth: '70%',
+    fontFamily: 'monospace'
+  },
+  scrollContent: {
+    flexGrow: 1,
+    gap: 10,
+    paddingBottom: 32
+  },
+  scrollView: {
+    flex: 1
+  },
+  section: {
+    flex: 1,
+    gap: 16
+  },
+  sectionTitle: {
+    marginBottom: 1
+  },
+  tabContent: {
+    flex: 1,
+    paddingHorizontal: 0,
+    marginTop: -4
+  },
+  transactionDetails: {
+    gap: 8
+  },
+  transactionHeader: {
+    marginBottom: 8
   },
   transactionItem: {
     borderTopWidth: 1,
     borderTopColor: Colors.gray[800],
     paddingVertical: 12,
     paddingHorizontal: 0
-  },
-  transactionHeader: {
-    marginBottom: 8
-  },
-  transactionDetails: {
-    gap: 8
-  },
-  loadMoreButton: {
-    marginTop: 16,
-    marginBottom: 8
   }
 })

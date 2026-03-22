@@ -54,25 +54,25 @@ describe('compressMessage and decompressMessage', () => {
 
   it('roundtrips label sync message', () => {
     const original = nostrMessages.labelSync
-    expect(decompressMessage(compressMessage(original))).toEqual(original)
+    expect(decompressMessage(compressMessage(original))).toStrictEqual(original)
   })
 
   it('roundtrips PSBT share message', () => {
     const original = nostrMessages.psbtShare
-    expect(decompressMessage(compressMessage(original))).toEqual(original)
+    expect(decompressMessage(compressMessage(original))).toStrictEqual(original)
   })
 
   it('roundtrips device announcement', () => {
     const original = nostrMessages.deviceAnnouncement
-    expect(decompressMessage(compressMessage(original))).toEqual(original)
+    expect(decompressMessage(compressMessage(original))).toStrictEqual(original)
   })
 
   it('roundtrips nested data structures', () => {
     const original = {
       messages: [nostrMessages.labelSync, nostrMessages.psbtShare],
-      metadata: { version: 1, timestamp: 1704067200 }
+      metadata: { timestamp: 1704067200, version: 1 }
     }
-    expect(decompressMessage(compressMessage(original))).toEqual(original)
+    expect(decompressMessage(compressMessage(original))).toStrictEqual(original)
   })
 
   it('throws on invalid compressed data', () => {
@@ -83,14 +83,14 @@ describe('compressMessage and decompressMessage', () => {
   it('compresses large payloads effectively', () => {
     const largePayload = {
       labels: Array.from({ length: 100 }, (_, i) => ({
-        type: 'tx',
+        label: `Transaction ${i}`,
         ref: `txid${i.toString().padStart(64, '0')}`,
-        label: `Transaction ${i}`
+        type: 'tx'
       }))
     }
     const compressed = compressMessage(largePayload)
     expect(compressed.length).toBeLessThan(JSON.stringify(largePayload).length)
-    expect(decompressMessage(compressed)).toEqual(largePayload)
+    expect(decompressMessage(compressed)).toStrictEqual(largePayload)
   })
 })
 
@@ -114,14 +114,14 @@ describe('generateColorFromNpub', () => {
 
   it('returns valid hex color for valid npub', async () => {
     const { nip19 } = require('nostr-tools')
-    nip19.decode.mockReturnValue({ type: 'npub', data: 'validpubkey' })
+    nip19.decode.mockReturnValue({ data: 'validpubkey', type: 'npub' })
     const color = await generateColorFromNpub(nostrKeys.alice.npub)
     expect(color).toMatch(/^#[0-9a-fA-F]{6}$/)
   })
 
   it('returns deterministic color for same npub', async () => {
     const { nip19 } = require('nostr-tools')
-    nip19.decode.mockReturnValue({ type: 'npub', data: 'validpubkey' })
+    nip19.decode.mockReturnValue({ data: 'validpubkey', type: 'npub' })
     const color1 = await generateColorFromNpub(nostrKeys.alice.npub)
     const color2 = await generateColorFromNpub(nostrKeys.alice.npub)
     expect(color1).toBe(color2)
@@ -129,7 +129,7 @@ describe('generateColorFromNpub', () => {
 
   it('returns different colors for different npubs', async () => {
     const { nip19 } = require('nostr-tools')
-    nip19.decode.mockReturnValue({ type: 'npub', data: 'validpubkey' })
+    nip19.decode.mockReturnValue({ data: 'validpubkey', type: 'npub' })
     const colorAlice = await generateColorFromNpub(nostrKeys.alice.npub)
     const colorBob = await generateColorFromNpub(nostrKeys.bob.npub)
     expect(colorAlice).not.toBe(colorBob)
@@ -137,7 +137,7 @@ describe('generateColorFromNpub', () => {
 
   it('returns default color for wrong type', async () => {
     const { nip19 } = require('nostr-tools')
-    nip19.decode.mockReturnValue({ type: 'nsec', data: 'secretkey' })
+    nip19.decode.mockReturnValue({ data: 'secretkey', type: 'nsec' })
     const color = await generateColorFromNpub(nostrKeys.alice.nsec)
     expect(color).toBe(NOSTR_FALLBACK_NPUB_COLOR)
   })
@@ -155,7 +155,7 @@ describe('deriveNostrKeysFromDescriptor', () => {
     expect(result.commonNsec).toMatch(/^nsec1/)
     expect(result.commonNpub).toMatch(/^npub1/)
     expect(result.privateKeyBytes).toBeInstanceOf(Uint8Array)
-    expect(result.privateKeyBytes.length).toBe(32)
+    expect(result.privateKeyBytes).toHaveLength(32)
   })
 
   it('derives valid keys from multisig descriptor', async () => {
@@ -164,7 +164,7 @@ describe('deriveNostrKeysFromDescriptor', () => {
     )
     expect(result.commonNsec).toMatch(/^nsec1/)
     expect(result.commonNpub).toMatch(/^npub1/)
-    expect(result.privateKeyBytes.length).toBe(32)
+    expect(result.privateKeyBytes).toHaveLength(32)
   })
 
   it('derives valid keys from mainnet descriptor', async () => {
@@ -184,8 +184,8 @@ describe('deriveNostrKeysFromDescriptor', () => {
     )
     expect(result1.commonNsec).toBe(result2.commonNsec)
     expect(result1.commonNpub).toBe(result2.commonNpub)
-    expect(Array.from(result1.privateKeyBytes)).toEqual(
-      Array.from(result2.privateKeyBytes)
+    expect([...result1.privateKeyBytes]).toStrictEqual(
+      [...result2.privateKeyBytes]
     )
   })
 

@@ -63,7 +63,7 @@ export function isLNURL(input: string): boolean {
 export function decodeLNURL(input: string): string {
   let cleanInput = input.trim().toLowerCase()
   if (cleanInput.toLowerCase().startsWith('lightning:')) {
-    cleanInput = cleanInput.substring(10)
+    cleanInput = cleanInput.slice(10)
   }
 
   if (!cleanInput.startsWith('lnurl') || cleanInput.length < 6) {
@@ -98,7 +98,7 @@ export async function fetchLNURLPayDetails(
   if (response.status === 404) {
     const apiUrl = new URL(url)
     const pathParts = apiUrl.pathname.split('/')
-    const lastPart = pathParts[pathParts.length - 1]
+    const lastPart = pathParts.at(-1)
 
     const apiPatterns = [
       `/api/v1/lnurl/pay/${lastPart}`,
@@ -229,10 +229,10 @@ export async function fetchLNURLWithdrawDetails(
 
   return {
     callback: data.callback,
-    k1: data.k1,
-    minWithdrawable: data.minWithdrawable,
-    maxWithdrawable: data.maxWithdrawable,
     defaultDescription: data.defaultDescription,
+    k1: data.k1,
+    maxWithdrawable: data.maxWithdrawable,
+    minWithdrawable: data.minWithdrawable,
     tag: data.tag
   }
 }

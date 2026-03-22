@@ -4,7 +4,7 @@ import { Colors } from '@/styles'
 
 import SSText from './SSText'
 
-type SSFingerprintProps = {
+interface SSFingerprintProps {
   value: string
 }
 

@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { StyleSheet, Text } from 'react-native'
 
 import { Colors, Sizes, Typography } from '@/styles'
-import { type TextFontSize, type TextFontWeight } from '@/styles/sizes'
+import type { TextFontSize, TextFontWeight } from '@/styles/sizes'
 
 export type SSTextProps = {
   color?: 'white' | 'black' | 'muted'
@@ -26,25 +26,25 @@ function SSText({
 }: SSTextProps) {
   const textStyle = useMemo(() => {
     const colorStyle = {
-      white: styles.textColorWhite,
       black: styles.textColorBlack,
-      muted: styles.textColorMuted
+      muted: styles.textColorMuted,
+      white: styles.textColorWhite
     }[color]
 
     const styleMap = {
       mono: {
-        ultralight: styles.textSFMonoRegular,
+        bold: styles.textSFMonoRegular,
         light: styles.textSFMonoRegular,
         medium: styles.textSFMonoRegular,
         regular: styles.textSFMonoRegular,
-        bold: styles.textSFMonoRegular
+        ultralight: styles.textSFMonoRegular
       },
       'sans-serif': {
-        ultralight: styles.textSansSerifUltralight,
+        bold: styles.textSansSerifBold,
         light: styles.textSansSerifLight,
         medium: styles.textSansSerifMedium,
         regular: styles.textSansSerifRegular,
-        bold: styles.textSansSerifBold
+        ultralight: styles.textSansSerifUltralight
       }
     }
 
@@ -52,9 +52,9 @@ function SSText({
       {
         ...styles.textBase,
         ...colorStyle,
+        fontFamily: styleMap[type][weight].fontFamily,
         fontSize: Sizes.text.fontSize[size],
         fontWeight: Sizes.text.fontWeight[weight],
-        fontFamily: styleMap[type][weight].fontFamily,
         ...(uppercase ? styles.uppercase : {}),
         ...(center ? styles.center : {})
       },
@@ -70,11 +70,11 @@ function SSText({
 }
 
 const styles = StyleSheet.create({
+  center: {
+    textAlign: 'center'
+  },
   textBase: {
     fontSize: Sizes.button.fontSize
-  },
-  textColorWhite: {
-    color: Colors.white
   },
   textColorBlack: {
     color: Colors.black
@@ -82,29 +82,29 @@ const styles = StyleSheet.create({
   textColorMuted: {
     color: Colors.gray[200]
   },
-  uppercase: {
-    textTransform: 'uppercase'
+  textColorWhite: {
+    color: Colors.white
   },
-  center: {
-    textAlign: 'center'
-  },
-  textSansSerifUltralight: {
-    fontFamily: Typography.sfProTextUltralight
-  },
-  textSansSerifLight: {
-    fontFamily: Typography.sfProTextLight
-  },
-  textSansSerifRegular: {
-    fontFamily: Typography.sfProTextRegular
-  },
-  textSansSerifMedium: {
-    fontFamily: Typography.sfProTextMedium
+  textSFMonoRegular: {
+    fontFamily: Typography.sfProMono
   },
   textSansSerifBold: {
     fontFamily: Typography.sfProTextBold
   },
-  textSFMonoRegular: {
-    fontFamily: Typography.sfProMono
+  textSansSerifLight: {
+    fontFamily: Typography.sfProTextLight
+  },
+  textSansSerifMedium: {
+    fontFamily: Typography.sfProTextMedium
+  },
+  textSansSerifRegular: {
+    fontFamily: Typography.sfProTextRegular
+  },
+  textSansSerifUltralight: {
+    fontFamily: Typography.sfProTextUltralight
+  },
+  uppercase: {
+    textTransform: 'uppercase'
   }
 })
 

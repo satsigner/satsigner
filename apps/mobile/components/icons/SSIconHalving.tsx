@@ -1,4 +1,5 @@
-import Svg, { Circle, G, Path, type SvgProps } from 'react-native-svg'
+import Svg, { Circle, G, Path } from 'react-native-svg';
+import type { SvgProps } from 'react-native-svg';
 
 type IconProps = Pick<SvgProps, 'width' | 'height' | 'color'>
 
@@ -10,7 +11,7 @@ export default function SSIconHalving({
   return (
     <Svg width={width} height={height} viewBox="0 0 18 17" fill="none">
       <G filter="url(#filter0_i_1_116)">
-        <Circle cx={7.89286} cy={8.50003} r={7.39286} stroke="#DCDCDC" />
+        <Circle cx={7.892_86} cy={8.500_03} r={7.392_86} stroke="#DCDCDC" />
       </G>
       <G filter="url(#filter1_i_1_116)">
         <Circle cx={7.8928} cy={8.5} r={3.75} stroke="#DCDCDC" />

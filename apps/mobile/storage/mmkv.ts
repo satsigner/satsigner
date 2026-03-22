@@ -1,20 +1,20 @@
 import { MMKV } from 'react-native-mmkv'
-import { type StateStorage } from 'zustand/middleware'
+import type { StateStorage } from 'zustand/middleware'
 
 const LAST_BACKGROUND_TIMESTAMP_KEY = 'lastBackgroundTimestamp'
 
 const storage = new MMKV({ id: 'mmkv.satsigner' })
 
 const mmkvStorage: StateStorage = {
-  setItem: (name, value) => {
-    return storage.set(name, value)
-  },
   getItem: (name) => {
     const value = storage.getString(name)
     return value ?? null
   },
   removeItem: (name) => {
     return storage.delete(name)
+  },
+  setItem: (name, value) => {
+    return storage.set(name, value)
   }
 }
 

@@ -4,12 +4,8 @@ import { useQuery } from '@tanstack/react-query'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  type LayoutChangeEvent,
-  ScrollView,
-  TouchableOpacity,
-  View
-} from 'react-native'
+import { ScrollView, TouchableOpacity, View } from 'react-native';
+import type { LayoutChangeEvent } from 'react-native';
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -21,9 +17,8 @@ import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSCurrentTransactionChart from '@/components/SSCurrentTransactionChart'
 import SSFeeInput from '@/components/SSFeeInput'
-import SSFeeRateChart, {
-  type SSFeeRateChartProps
-} from '@/components/SSFeeRateChart'
+import SSFeeRateChart from '@/components/SSFeeRateChart';
+import type { SSFeeRateChartProps } from '@/components/SSFeeRateChart';
 import SSModal from '@/components/SSModal'
 import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
 import SSRadioButton from '@/components/SSRadioButton'
@@ -43,20 +38,17 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout, Typography } from '@/styles'
-import { type MempoolStatistics } from '@/types/models/Blockchain'
-import { type Output } from '@/types/models/Output'
-import { type Utxo } from '@/types/models/Utxo'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { MempoolStatistics } from '@/types/models/Blockchain'
+import type { Output } from '@/types/models/Output'
+import type { Utxo } from '@/types/models/Utxo'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { checkWalletNeedsSync } from '@/utils/account'
 import { parseBitcoinUri } from '@/utils/bip321'
 import { detectContentByContext } from '@/utils/contentDetector'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import { formatNumber } from '@/utils/format'
-import {
-  type ParsedUriParams,
-  parseUriParameters,
-  stripBitcoinPrefix
-} from '@/utils/parse'
+import { parseUriParameters, stripBitcoinPrefix } from '@/utils/parse';
+import type { ParsedUriParams } from '@/utils/parse';
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
 import { selectEfficientUtxos } from '@/utils/utxo'
@@ -107,8 +99,8 @@ export default function IOPreview() {
   const [shouldRemoveChange, setShouldRemoveChange] = useState(true)
 
   useEffect(() => {
-    if (!account || !wallet) return
-    ;(async () => {
+    if (!account || !wallet) {return
+    ;}(async () => {
       const outputAddresses: Record<string, boolean> = {}
       account.transactions.forEach((tx) => {
         tx.vout.forEach((output) => {
@@ -121,7 +113,7 @@ export default function IOPreview() {
         const address = addressObj?.address
           ? await addressObj.address.asString()
           : ''
-        if (outputAddresses[address] === true) continue
+        if (outputAddresses[address] === true) {continue}
         setChangeAddress(address)
         return
       }
@@ -131,7 +123,7 @@ export default function IOPreview() {
   // this removes the change address if the user goes back to the IO preview.
   // we add the change address as an output before moving to the next step.
   useEffect(() => {
-    if (!changeAddress || !shouldRemoveChange) return
+    if (!changeAddress || !shouldRemoveChange) {return}
     for (const output of outputs) {
       if (output.to === changeAddress) {
         removeOutput(output.localId)
@@ -182,7 +174,7 @@ export default function IOPreview() {
   // First calculate without change output
   const baseTransactionSize = useMemo(() => {
     const { size, vsize } = estimateTransactionSize(
-      Array.from(inputs.values()),
+      [...inputs.values()],
       outputs
       // add hasChange
     )
@@ -250,13 +242,13 @@ export default function IOPreview() {
     content: string
   ): Promise<ParsedUriParams | null> {
     const parsed = parseUriParameters(content)
-    if (!parsed) return null
+    if (!parsed) {return null}
 
     const detectedContent = await detectContentByContext(
       parsed.address,
       'bitcoin'
     )
-    if (!detectedContent.isValid) return null
+    if (!detectedContent.isValid) {return null}
 
     return parsed
   }
@@ -286,14 +278,14 @@ export default function IOPreview() {
     )
     if (detectedContent.isValid) {
       const success = processContentForOutput(detectedContent, {
-        setOutputTo,
-        setOutputAmount,
-        setOutputLabel,
         onError: () => setOutputTo(processedContent),
         onWarning: () => {},
-        remainingSats
+        remainingSats,
+        setOutputAmount,
+        setOutputLabel,
+        setOutputTo
       })
-      if (success) return
+      if (success) {return}
     }
 
     // Step 4: Fallback - set as plain address
@@ -312,7 +304,7 @@ export default function IOPreview() {
 
   const transactionSize = useMemo(() => {
     const { size, vsize } = estimateTransactionSize(
-      Array.from(inputs.values()),
+      [...inputs.values()],
       outputs,
       hasChange
     )
@@ -327,7 +319,7 @@ export default function IOPreview() {
   const [selectedPeriod] = useState<SSFeeRateChartProps['timeRange']>('2hours')
 
   const { data: mempoolStatistics } = useQuery<MempoolStatistics[]>({
-    queryKey: ['statistics', selectedPeriod],
+    enabled: isFocused,
     queryFn: () =>
       mempoolOracle.getMempoolStatistics(
         selectedPeriod === '2hours'
@@ -336,7 +328,7 @@ export default function IOPreview() {
             ? '24h'
             : '1w'
       ),
-    enabled: isFocused,
+    queryKey: ['statistics', selectedPeriod],
     staleTime: time.minutes(5)
   })
 
@@ -394,16 +386,16 @@ export default function IOPreview() {
     }
 
     const success = processContentForOutput(content, {
-      setOutputTo,
-      setOutputAmount,
-      setOutputLabel,
       onError: () => {
         toast.error(t('transaction.error.address.invalid'))
       },
       onWarning: () => {
         toast.warning(t('transaction.error.bip21.insufficientSats'))
       },
-      remainingSats
+      remainingSats,
+      setOutputAmount,
+      setOutputLabel,
+      setOutputTo
     })
 
     if (success) {
@@ -432,13 +424,13 @@ export default function IOPreview() {
     )
 
     const output = {
-      to: stripBitcoinPrefix(outputTo),
       amount: outputAmount,
-      label: outputLabel
+      label: outputLabel,
+      to: stripBitcoinPrefix(outputTo)
     }
 
-    if (outputIndex === -1) addOutput(output)
-    else updateOutput(outputs[outputIndex].localId, output)
+    if (outputIndex === -1) {addOutput(output)}
+    else {updateOutput(outputs[outputIndex].localId, output)}
 
     setOutputsCount((prev: number) => prev + 1)
     setAddOutputModalVisible(false)
@@ -446,7 +438,7 @@ export default function IOPreview() {
   }
 
   function handleRemoveOutput() {
-    if (!currentOutputLocalId) return
+    if (!currentOutputLocalId) {return}
     removeOutput(currentOutputLocalId)
     setAddOutputModalVisible(false)
     resetLocalOutput()
@@ -471,7 +463,7 @@ export default function IOPreview() {
     const outputIndex = outputs.findIndex(
       (output) => output.localId === localId
     )
-    if (outputIndex === -1) return
+    if (outputIndex === -1) {return}
 
     setOutputTo(outputs[outputIndex].to)
     setOutputAmount(outputs[outputIndex].amount)
@@ -493,7 +485,7 @@ export default function IOPreview() {
   }
 
   function handleOnChangeUtxoSelection(type: AutoSelectUtxosAlgorithms) {
-    if (type === selectedAutoSelectUtxos) return
+    if (type === selectedAutoSelectUtxos) {return}
 
     if (outputs.length === 0 && (type === 'privacy' || type === 'efficiency')) {
       toast.error(
@@ -574,9 +566,9 @@ export default function IOPreview() {
 
       setShouldRemoveChange(false)
       addOutput({
-        to: changeAddress,
         amount: remainingBalance,
-        label: t('sign.changeAddressLabelDefault')
+        label: t('sign.changeAddressLabelDefault'),
+        to: changeAddress
       })
     }
 
@@ -607,7 +599,7 @@ export default function IOPreview() {
 
   // Memoized set of own addresses for efficient lookup
   const ownAddressesSet = useMemo<Set<string>>(() => {
-    if (!account) return new Set<string>()
+    if (!account) {return new Set<string>()}
     return new Set<string>(account.addresses.map((a) => a.address))
   }, [account])
 
@@ -626,9 +618,9 @@ export default function IOPreview() {
       {inputs.size > 0 && (
         <View
           style={{
+            height: '100%',
             position: 'absolute',
-            width: '100%',
-            height: '100%'
+            width: '100%'
           }}
           pointerEvents="box-none"
         >
@@ -655,17 +647,17 @@ export default function IOPreview() {
       )}
       <View
         style={{
+          pointerEvents: 'box-none',
           position: 'absolute',
-          width: '100%',
-          pointerEvents: 'box-none'
+          width: '100%'
         }}
       >
         <LinearGradient
           style={{
-            width: '100%',
             paddingHorizontal: Layout.mainContainer.paddingHorizontal,
             paddingTop: Layout.mainContainer.paddingTop,
-            pointerEvents: 'none'
+            pointerEvents: 'none',
+            width: '100%'
           }}
           onLayout={handleTopLayout}
           locations={[0.19, 0.566, 0.77, 1]}
@@ -744,19 +736,19 @@ export default function IOPreview() {
       {/* Overlay gradient rendered LAST so it's on top */}
       <View
         style={{
-          position: 'absolute',
-          width: '100%',
-          pointerEvents: 'none',
+          height: topGradientHeight,
           opacity: 0.7,
-          height: topGradientHeight
+          pointerEvents: 'none',
+          position: 'absolute',
+          width: '100%'
         }}
       >
         <LinearGradient
           style={{
-            width: '100%',
+            height: topGradientHeight,
             paddingHorizontal: Layout.mainContainer.paddingHorizontal,
             paddingTop: Layout.mainContainer.paddingTop,
-            height: topGradientHeight
+            width: '100%'
           }}
           locations={[0, 0.56, 0.77, 1]}
           colors={['#131313FF', '#13131385', '#13131368', '#13131300']}
@@ -765,13 +757,13 @@ export default function IOPreview() {
       <LinearGradient
         locations={[0, 0.05, 0.15, 0.3, 1]}
         style={{
-          position: 'absolute',
+          backgroundColor: Colors.transparent,
           bottom: 0,
-          width: '100%',
           flexDirection: 'row',
           justifyContent: 'center',
-          backgroundColor: Colors.transparent,
-          paddingBottom: 20
+          paddingBottom: 20,
+          position: 'absolute',
+          width: '100%'
         }}
         colors={[
           '#13131300',
@@ -783,8 +775,8 @@ export default function IOPreview() {
       >
         <SSVStack
           style={{
-            width: '100%',
-            paddingHorizontal: Layout.mainContainer.paddingHorizontal
+            paddingHorizontal: Layout.mainContainer.paddingHorizontal,
+            width: '100%'
           }}
         >
           <SSVStack>
@@ -865,7 +857,7 @@ export default function IOPreview() {
         onClose={() => setAddOutputModalVisible(false)}
         fullOpacity
       >
-        <View style={{ width: '100%', maxWidth: 1000, alignSelf: 'center' }}>
+        <View style={{ alignSelf: 'center', maxWidth: 1000, width: '100%' }}>
           <ScrollView style={{ width: '100%' }}>
             <SSVStack gap="lg" style={{ paddingHorizontal: 16 }}>
               <SSVStack itemsCenter>
@@ -910,10 +902,10 @@ export default function IOPreview() {
                     style={{
                       fontFamily: Typography.sfProMono,
                       fontSize: 22,
-                      letterSpacing: 0.5,
                       height: 110,
-                      textAlignVertical: 'top',
-                      paddingTop: 12
+                      letterSpacing: 0.5,
+                      paddingTop: 12,
+                      textAlignVertical: 'top'
                     }}
                     onChangeText={(text) => setOutputTo(text)}
                   />
@@ -944,8 +936,8 @@ export default function IOPreview() {
                   style={{
                     fontSize: 22,
                     height: 110,
-                    textAlignVertical: 'top',
-                    paddingTop: 12
+                    paddingTop: 12,
+                    textAlignVertical: 'top'
                   }}
                 />
                 <SSHStack>
@@ -985,7 +977,7 @@ export default function IOPreview() {
                   'transaction.build.options.autoSelect.utxos.user.title'
                 )}
                 selected={selectedAutoSelectUtxos === 'user'}
-                style={{ width: '33%', flex: 1 }}
+                style={{ flex: 1, width: '33%' }}
                 onPress={() => handleOnChangeUtxoSelection('user')}
               />
               <SSRadioButton
@@ -995,7 +987,7 @@ export default function IOPreview() {
                 )}
                 loading={loadingOptimizeAlgorithm === 'privacy'}
                 selected={selectedAutoSelectUtxos === 'privacy'}
-                style={{ width: '33%', flex: 1 }}
+                style={{ flex: 1, width: '33%' }}
                 onPress={() => handleOnChangeUtxoSelection('privacy')}
               />
               <SSRadioButton
@@ -1005,7 +997,7 @@ export default function IOPreview() {
                 )}
                 loading={loadingOptimizeAlgorithm === 'efficiency'}
                 selected={selectedAutoSelectUtxos === 'efficiency'}
-                style={{ width: '33%', flex: 1 }}
+                style={{ flex: 1, width: '33%' }}
                 onPress={() => handleOnChangeUtxoSelection('efficiency')}
               />
             </SSHStack>
@@ -1025,7 +1017,7 @@ export default function IOPreview() {
                     `/signer/bitcoin/account/${id}/signAndSend/feeManagement`
                   )
                 }
-                style={{ width: '45%', flexGrow: 1 }}
+                style={{ flexGrow: 1, width: '45%' }}
               />
               <SSButton
                 label={t('transaction.build.options.timelock')}
@@ -1035,7 +1027,7 @@ export default function IOPreview() {
                     `/signer/bitcoin/account/${id}/signAndSend/timeLock`
                   )
                 }
-                style={{ width: '45%', flexGrow: 1 }}
+                style={{ flexGrow: 1, width: '45%' }}
               />
             </SSHStack>
             <SSButton
@@ -1057,8 +1049,8 @@ export default function IOPreview() {
       >
         <SSVStack
           style={{
-            paddingBottom: 24,
-            marginHorizontal: Layout.mainContainer.paddingHorizontal
+            marginHorizontal: Layout.mainContainer.paddingHorizontal,
+            paddingBottom: 24
           }}
         >
           <SSFeeRateChart

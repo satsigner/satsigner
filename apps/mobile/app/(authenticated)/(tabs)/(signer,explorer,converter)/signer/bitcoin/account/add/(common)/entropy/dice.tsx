@@ -62,9 +62,9 @@ export default function DiceEntropy() {
       const updatedRolls = [...rolls, value]
       setRolls(updatedRolls)
 
-      let base10 = BigInt(0)
+      let base10 = 0n
       updatedRolls.forEach((digit) => {
-        base10 = base10 * BigInt(6) + BigInt(digit)
+        base10 = base10 * 6n + BigInt(digit)
       })
 
       let newBits = base10.toString(2)
@@ -106,12 +106,12 @@ export default function DiceEntropy() {
       >
         <View
           style={{
+            backgroundColor: Colors.gray[950],
+            borderRadius: 8,
             minHeight: 180,
             minWidth: '100%',
-            borderRadius: 8,
-            paddingVertical: 16,
             paddingHorizontal: 8,
-            backgroundColor: Colors.gray[950]
+            paddingVertical: 16
           }}
         >
           <SSBinaryDisplay binary={bits} />
@@ -156,10 +156,10 @@ const styles = StyleSheet.create({
     paddingBottom: 12
   },
   grid: {
-    flexWrap: 'wrap',
-    justifyContent: 'center',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 12,
+    justifyContent: 'center',
     marginTop: 24
   }
 })

@@ -1,8 +1,9 @@
-import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
+import { StyleSheet, View } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 
 import { Colors } from '@/styles'
 
-type SSUtxoBarProps = {
+interface SSUtxoBarProps {
   utxoValue: number
   totalBalance: number
   style?: StyleProp<ViewStyle>
@@ -29,9 +30,9 @@ function SSUtxoBar({ utxoValue, totalBalance, style }: SSUtxoBarProps) {
 
 const styles = StyleSheet.create({
   containerBase: {
-    width: '100%',
+    flexDirection: 'row',
     height: 1.5,
-    flexDirection: 'row'
+    width: '100%'
   },
   segment: {
     height: '100%'

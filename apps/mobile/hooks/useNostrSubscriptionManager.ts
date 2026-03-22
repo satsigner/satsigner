@@ -8,7 +8,7 @@ import {
   PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN
 } from '@/constants/nostr'
 import { useNostrStore } from '@/store/nostr'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 
 import { useNostrMessageProcessor } from './useNostrMessageProcessor'
 
@@ -114,7 +114,7 @@ function useNostrSubscriptionManager() {
   )
 
   const cleanup = useCallback(async () => {
-    const apisToCleanup = Array.from(getActiveSubscriptions())
+    const apisToCleanup = [...getActiveSubscriptions()]
     clearSubscriptions()
 
     const cleanupPromises = apisToCleanup.map(async (api) => {
@@ -133,11 +133,11 @@ function useNostrSubscriptionManager() {
   const isSubscribingRef = useRef(false)
   const subscribe = useCallback(
     async (account?: Account, onLoadingChange?: (loading: boolean) => void) => {
-      if (!account || !account.nostr) return
-      if (isSubscribingRef.current) return
+      if (!account || !account.nostr) {return}
+      if (isSubscribingRef.current) {return}
       isSubscribingRef.current = true
       try {
-        const existingApis = Array.from(getActiveSubscriptions())
+        const existingApis = [...getActiveSubscriptions()]
         const currentRelays = account?.nostr?.relays || []
 
         // Check if we already have valid subscriptions for this account
@@ -150,7 +150,7 @@ function useNostrSubscriptionManager() {
           )
         })
 
-        if (hasValidSubscription) return
+        if (hasValidSubscription) {return}
 
         // Process any pending events before cleanup
         for (const api of existingApis) {
@@ -164,8 +164,8 @@ function useNostrSubscriptionManager() {
           createDataExchangeSubscription(account, onLoadingChange)
         ])
 
-        if (protocolApi) addSubscription(protocolApi)
-        if (dataExchangeApi) addSubscription(dataExchangeApi)
+        if (protocolApi) {addSubscription(protocolApi)}
+        if (dataExchangeApi) {addSubscription(dataExchangeApi)}
       } finally {
         isSubscribingRef.current = false
       }
@@ -181,11 +181,11 @@ function useNostrSubscriptionManager() {
 
   return useMemo(
     () => ({
-      subscribe,
       cleanup,
-      createProtocolSubscription,
       createDataExchangeSubscription,
-      getActiveSubscriptions
+      createProtocolSubscription,
+      getActiveSubscriptions,
+      subscribe
     }),
     [
       subscribe,

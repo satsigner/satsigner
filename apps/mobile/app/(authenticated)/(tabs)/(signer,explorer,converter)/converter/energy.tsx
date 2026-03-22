@@ -15,10 +15,10 @@ import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
 import { useEnergyStore } from '@/store/energy'
 import { Colors } from '@/styles'
-import {
-  type BlockchainInfo,
-  type BlockTemplate,
-  type BlockTemplateTransaction
+import type {
+  BlockchainInfo,
+  BlockTemplate,
+  BlockTemplateTransaction
 } from '@/types/models/Rpc'
 
 const tn = _tn('converter.energy')
@@ -27,7 +27,7 @@ const BTC_UNIT = 'BTC'
 const BLOCK_SIZE_UNIT = 'MB'
 
 type Scalar = number | string | boolean
-type RpcRequestBody = {
+interface RpcRequestBody {
   [key: string]: Scalar | Scalar[] | RpcRequestBody | RpcRequestBody[]
 }
 
@@ -39,12 +39,12 @@ const networks = {
   regtest: {
     ...bitcoin.networks.testnet,
     bech32: 'bcrt',
-    pubKeyHash: 0x6f, // Same as testnet
-    scriptHash: 0xc4, // Same as testnet
-    wif: 0xef, // Same as testnet
+    pubKeyHash: 0x6F, // Same as testnet
+    scriptHash: 0xC4, // Same as testnet
+    wif: 0xEF, // Same as testnet
     bip32: {
-      public: 0x043587cf,
-      private: 0x04358394
+      private: 0x04358394,
+      public: 0x043587cf
     }
   } as bitcoin.Network
 }
@@ -86,15 +86,15 @@ const getNetworkFromAddress = (address: string) => {
 
 // Add this helper function after bitsToTarget
 const encodeScriptNum = (num: number): Buffer => {
-  if (num === 0) return Buffer.alloc(0)
+  if (num === 0) {return Buffer.alloc(0)}
   const negative = num < 0
   let absvalue = Math.abs(num)
   const result = []
   while (absvalue) {
-    result.push(absvalue & 0xff)
+    result.push(absvalue & 0xFF)
     absvalue >>= 8
   }
-  if (result[result.length - 1] & 0x80) {
+  if (result.at(-1) & 0x80) {
     result.push(negative ? 0x80 : 0x00)
   } else if (negative) {
     result[result.length - 1] |= 0x80
@@ -151,9 +151,9 @@ export default function Energy() {
   const [miningIntensity, setMiningIntensity] = useState(10)
   const [miningIntervalTime, setMiningIntervalTime] = useState(1000)
   const [miningStats, setMiningStats] = useState({
+    attempts: 0,
     hashesPerSecond: 0,
-    lastHash: '',
-    attempts: 0
+    lastHash: ''
   })
 
   const [networkHashRate, setNetworkHashRate] = useState('0')
@@ -191,19 +191,19 @@ export default function Energy() {
       const authorization = `Basic ${credentialsBase64}`
 
       const headers = {
-        'Content-Type': 'application/json',
-        Authorization: authorization
+        Authorization: authorization,
+        'Content-Type': 'application/json'
       }
 
       const method = 'POST'
       const body = JSON.stringify(requestBody)
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000)
+      const timeoutId = setTimeout(() => controller.abort(), 10_000)
 
       return fetch(adjustedUrl, {
-        method,
-        headers,
         body,
+        headers,
+        method,
         signal: controller.signal
       })
         .then((response) => {
@@ -253,7 +253,6 @@ export default function Energy() {
       // Only show essential fields to reduce data size
       const essentialData = {
         ...data,
-        transactions: data.transactions?.length || 0,
         transactionSample:
           data.transactions
             ?.slice(0, 20)
@@ -261,7 +260,8 @@ export default function Energy() {
               txid: tx.txid,
               fee: tx.fee,
               weight: tx.weight
-            })) || []
+            })) || [],
+        transactions: data.transactions?.length || 0
       }
       return JSON.stringify(essentialData, null, 2)
     } catch {
@@ -270,10 +270,10 @@ export default function Energy() {
   }, [])
 
   const fetchBlockTemplate = useCallback(async () => {
-    if (!isConnected) return
+    if (!isConnected) {return}
 
     const now = Date.now()
-    if (now - lastTemplateUpdateRef.current < 30000) {
+    if (now - lastTemplateUpdateRef.current < 30_000) {
       return
     }
 
@@ -283,8 +283,8 @@ export default function Energy() {
 
       try {
         const networkResponse = await fetchRpc({
-          jsonrpc: '1.0',
           id: '1',
+          jsonrpc: '1.0',
           method: 'getblockchaininfo',
           params: []
         })
@@ -307,8 +307,8 @@ export default function Energy() {
       }
 
       const response = await fetchRpc({
-        jsonrpc: '1.0',
         id: '1',
+        jsonrpc: '1.0',
         method: 'getblocktemplate',
         params: [{ rules }]
       })
@@ -328,13 +328,13 @@ export default function Energy() {
 
       if (data.error) {
         let errorMessage = data.error.message || 'RPC error'
-        if (data.error.code === -32601) {
+        if (data.error.code === -32_601) {
           errorMessage =
             'getblocktemplate RPC method not found. Make sure your node supports mining.'
-        } else if (data.error.code === -32603) {
+        } else if (data.error.code === -32_603) {
           errorMessage =
             'Node is not ready for mining. Check if your node is fully synced.'
-        } else if (data.error.code === -32602) {
+        } else if (data.error.code === -32_602) {
           errorMessage =
             'Invalid parameters. Check if your node supports the requested rules.'
         }
@@ -360,13 +360,13 @@ export default function Energy() {
   }, [isConnected, formatTemplateData, fetchRpc, blockTemplate])
 
   const fetchBlockchainInfo = useCallback(async () => {
-    if (!isConnected) return
+    if (!isConnected) {return}
 
     setIsLoadingInfo(true)
     try {
       const response = await fetchRpc({
-        jsonrpc: '1.0',
         id: '1',
+        jsonrpc: '1.0',
         method: 'getblockchaininfo',
         params: []
       })
@@ -426,7 +426,7 @@ export default function Energy() {
       const data = await response.json()
       // Get the latest hash rate from the hashrates array
       const latestHashRate =
-        data.hashrates[data.hashrates.length - 1].avgHashrate
+        data.hashrates.at(-1).avgHashrate
       // Convert to exahashes per second (1 EH/s = 10^18 hashes per second)
       const hashRateInEH = (latestHashRate / 1e18).toFixed(2)
       setNetworkHashRate(hashRateInEH)
@@ -445,7 +445,7 @@ export default function Energy() {
       // Set up interval for auto-refresh
       intervalId = setInterval(() => {
         fetchBlockchainInfo()
-      }, 30000) // 30 seconds
+      }, 30_000) // 30 seconds
     }
 
     // Cleanup interval on unmount or when disconnected
@@ -472,7 +472,7 @@ export default function Energy() {
     // Initial fetch
     fetchNetworkHashRate()
     // Set up interval for auto-refresh
-    const intervalId = setInterval(fetchNetworkHashRate, 60000) // Update every minute
+    const intervalId = setInterval(fetchNetworkHashRate, 60_000) // Update every minute
     return () => clearInterval(intervalId)
   }, [fetchNetworkHashRate])
 
@@ -485,7 +485,7 @@ export default function Energy() {
       // Set up interval for auto-refresh (every 2 minutes)
       templateUpdateIntervalRef.current = setInterval(() => {
         fetchBlockTemplate()
-      }, 120000)
+      }, 120_000)
     }
 
     return () => {
@@ -497,14 +497,12 @@ export default function Energy() {
   }, [isConnected, fetchBlockTemplate])
 
   // Clean up on unmount
-  useEffect(() => {
-    return () => {
+  useEffect(() => () => {
       if (templateUpdateIntervalRef.current) {
         clearInterval(templateUpdateIntervalRef.current)
         templateUpdateIntervalRef.current = null
       }
-    }
-  }, [])
+    }, [])
 
   // Add useEffect for initial address validation
   useEffect(() => {
@@ -532,8 +530,8 @@ export default function Energy() {
 
     try {
       const response = await fetchRpc({
-        jsonrpc: '1.0',
         id: '1',
+        jsonrpc: '1.0',
         method: 'getblockchaininfo',
         params: []
       })
@@ -557,7 +555,7 @@ export default function Energy() {
       if (data.error) {
         if (data.error.code === -28) {
           throw new Error('Bitcoin node is still starting up')
-        } else if (data.error.code === -32601) {
+        } else if (data.error.code === -32_601) {
           throw new Error('RPC method not found')
         } else {
           throw new Error(data.error.message || 'RPC error')
@@ -590,7 +588,7 @@ export default function Energy() {
         'hex'
       )
       const hashBytes = Buffer.from(hash, 'hex')
-      const hashLE = Buffer.from(hashBytes).reverse()
+      const hashLE = Buffer.from(hashBytes).toReversed()
 
       // For regtest, we just need to check if the hash is less than the target
       const isValid = hashLE.compare(regtestTarget) <= 0
@@ -599,9 +597,9 @@ export default function Energy() {
     }
 
     // For other networks, calculate target from bits
-    const bitsNum = parseInt(bits, 16)
+    const bitsNum = Number.parseInt(bits, 16)
     const exponent = bitsNum >>> 24
-    const mantissa = bitsNum & 0xffffff
+    const mantissa = bitsNum & 0xff_ff_ff
     const target = Buffer.alloc(32, 0)
     let mantissaBuf = Buffer.alloc(4)
     mantissaBuf.writeUInt32BE(mantissa, 0)
@@ -614,7 +612,7 @@ export default function Energy() {
 
     // Convert hash to little-endian for comparison
     const hashBytes = Buffer.from(hash, 'hex')
-    const hashLE = Buffer.from(hashBytes).reverse()
+    const hashLE = Buffer.from(hashBytes).toReversed()
 
     // Compare hash with target
     const isValid = hashLE.compare(target) <= 0
@@ -695,8 +693,8 @@ export default function Energy() {
 
       tx.addInput(
         Buffer.alloc(32), // Previous txid (32 bytes of zeros for coinbase)
-        0xffffffff, // Previous vout (0xffffffff for coinbase)
-        0xffffffff, // Sequence (0xffffffff for coinbase)
+        0xFFFFFFFF, // Previous vout (0xffffffff for coinbase)
+        0xff_ff_ff_ff, // Sequence (0xffffffff for coinbase)
         coinbaseScript
       )
 
@@ -724,9 +722,9 @@ export default function Energy() {
 
       return {
         data: tx.toHex(),
+        depends: [],
         hash: tx.getHash().toString('hex'),
-        txid: tx.getId(),
-        depends: []
+        txid: tx.getId()
       }
     },
     [miningAddress, opReturnContent]
@@ -746,10 +744,10 @@ export default function Energy() {
           }
           if (tx.txid) {
             // Convert txid to little-endian for merkle root
-            return Buffer.from(tx.txid, 'hex').reverse()
-          } else {
-            throw new Error('Invalid transaction format')
+            return Buffer.from(tx.txid, 'hex').toReversed()
           }
+            throw new Error('Invalid transaction format')
+          
         })
 
         while (hashes.length > 1) {
@@ -774,7 +772,7 @@ export default function Energy() {
       } catch (error) {
         throw new Error(
           'Failed to create merkle root: ' +
-            (error instanceof Error ? error.message : 'Unknown error')
+            (error instanceof Error ? error.message : 'Unknown error'), { cause: error }
         )
       }
     },
@@ -796,7 +794,7 @@ export default function Energy() {
       header.writeUInt32LE(template.version, 0)
 
       // Previous block hash (32 bytes) - little endian
-      const prevHash = Buffer.from(template.previousblockhash, 'hex').reverse()
+      const prevHash = Buffer.from(template.previousblockhash, 'hex').toReversed()
       prevHash.copy(header, 4)
 
       // Merkle root (32 bytes) - little endian
@@ -807,11 +805,11 @@ export default function Energy() {
       header.writeUInt32LE(blockTime, 68)
 
       // Bits (4 bytes) - little endian
-      const bitsNum = parseInt(template.bits, 16)
+      const bitsNum = Number.parseInt(template.bits, 16)
       header.writeUInt32LE(bitsNum, 72)
 
       // Nonce (4 bytes) - little endian
-      header.writeUInt32LE(nonce & 0xffffffff, 76)
+      header.writeUInt32LE(nonce & 0xff_ff_ff_ff, 76)
       return header
     },
     []
@@ -824,8 +822,8 @@ export default function Energy() {
 
         // First get fresh blockchain info
         const networkResponse = await fetchRpc({
-          jsonrpc: '1.0',
           id: '1',
+          jsonrpc: '1.0',
           method: 'getblockchaininfo',
           params: []
         })
@@ -846,8 +844,8 @@ export default function Energy() {
 
         // Then get fresh template
         const templateResponse = await fetchRpc({
-          jsonrpc: '1.0',
           id: '1',
+          jsonrpc: '1.0',
           method: 'getblocktemplate',
           params: [{ rules: ['segwit'] }]
         })
@@ -920,8 +918,8 @@ export default function Energy() {
         ])
 
         const response = await fetchRpc({
-          jsonrpc: '1.0',
           id: '1',
+          jsonrpc: '1.0',
           method: 'submitblock',
           params: [blockData.toString('hex')]
         })
@@ -984,8 +982,8 @@ export default function Energy() {
     try {
       // Validate network and address first - only once at start
       const networkResponse = await fetchRpc({
-        jsonrpc: '1.0',
         id: '1',
+        jsonrpc: '1.0',
         method: 'getblockchaininfo',
         params: []
       })
@@ -1084,8 +1082,8 @@ export default function Energy() {
             setEnergyRate(powerConsumption)
             setMiningStats((prev) => ({
               ...prev,
-              hashesPerSecond,
               attempts: hashes,
+              hashesPerSecond,
               lastHash: lastHashRef.current
             }))
             if (currentHeaderRef.current) {
@@ -1136,7 +1134,7 @@ export default function Energy() {
               }
 
               // Check if we need to increment extra nonce
-              if (nonce >= 0xffffffff) {
+              if (nonce >= 0xff_ff_ff_ff) {
                 nonce = 0
                 if (!useExtraNonce) {
                   // Only recreate coinbase and merkle root when we need to start using extra nonce
@@ -1193,7 +1191,7 @@ export default function Energy() {
               // Double SHA256 of header (result is in big-endian)
               const hash = bitcoin.crypto.sha256(bitcoin.crypto.sha256(header))
               // Convert to little-endian for comparison
-              const hashReversed = Buffer.from(hash).reverse()
+              const hashReversed = Buffer.from(hash).toReversed()
               const hashHex = hashReversed.toString('hex')
 
               hashes++
@@ -1288,9 +1286,9 @@ export default function Energy() {
     requestAnimationFrame(() => {
       setEnergyRate('0')
       setMiningStats({
+        attempts: 0,
         hashesPerSecond: 0,
-        lastHash: '',
-        attempts: 0
+        lastHash: ''
       })
       setBlockHeader('')
       currentHeaderRef.current = null
@@ -1302,15 +1300,15 @@ export default function Energy() {
   }, [isMining]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchTransaction = useCallback(async () => {
-    if (!txId || !isConnected) return
+    if (!txId || !isConnected) {return}
 
     setIsLoadingTx(true)
     setTxError('')
 
     try {
       const response = await fetchRpc({
-        jsonrpc: '1.0',
         id: '1',
+        jsonrpc: '1.0',
         method: 'getrawtransaction',
         params: [txId, true]
       })
@@ -1450,7 +1448,7 @@ export default function Energy() {
               <Slider
                 style={styles.slider}
                 minimumValue={1}
-                maximumValue={10000}
+                maximumValue={10_000}
                 step={1}
                 value={miningIntervalTime}
                 onValueChange={setMiningIntervalTime}
@@ -1463,9 +1461,9 @@ export default function Energy() {
             <SSButton
               label={tn(
                 isMining
-                  ? isStopping
+                  ? (isStopping
                     ? 'stoppingMining'
-                    : 'stopMining'
+                    : 'stopMining')
                   : 'startMining'
               ).toUpperCase()}
               onPress={() => (isMining ? stopMining() : startMining())}
@@ -1549,7 +1547,7 @@ export default function Energy() {
               <SSVStack style={{ alignItems: 'center' }} gap="xxs">
                 <SSText size="xl">
                   {blockTemplate?.coinbasevalue
-                    ? (blockTemplate.coinbasevalue / 100000000).toFixed(4)
+                    ? (blockTemplate.coinbasevalue / 100_000_000).toFixed(4)
                     : '0.0000'}{' '}
                   {BTC_UNIT}
                 </SSText>
@@ -1768,13 +1766,13 @@ export default function Energy() {
               <SSVStack style={styles.loadingContainer}>
                 <SSText color="muted">{tn('template.loading')}</SSText>
               </SSVStack>
-            ) : templateData ? (
+            ) : (templateData ? (
               <ScrollView style={styles.templateScroll}>
                 <SSText size="xs" type="mono" style={styles.templateText}>
                   {templateData}
                 </SSText>
               </ScrollView>
-            ) : null}
+            ) : null)}
             <SSVStack gap="sm">
               <SSButton
                 label={tn('template.refresh').toUpperCase()}
@@ -1848,26 +1846,21 @@ export default function Energy() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    paddingBottom: 100
-  },
-  mainContent: {
-    flex: 1,
-    padding: 20
-  },
   bigNumber: {
     fontWeight: '100',
     marginBottom: -10
   },
-
   buttonContainer: {
     width: '100%',
     paddingVertical: 20
   },
-  statsContainer: {
-    width: '100%',
-    paddingVertical: 20
+  chainInfoContainer: {
+    paddingTop: 40
+  },
+
+  container: {
+    flexGrow: 1,
+    paddingBottom: 100
   },
   difficultyBar: {
     width: '100%',
@@ -1882,23 +1875,64 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: 4
   },
-  statsGrid: {
-    width: '100%'
-  },
-  formContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 20
-  },
-  sectionTitle: {
-    marginBottom: 16,
-    textAlign: 'center'
+  errorContainer: {
+    backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 100
   },
   errorText: {
     marginTop: 8,
     textAlign: 'center'
   },
-  chainInfoContainer: {
-    paddingTop: 40
+  formContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 20
+  },
+  hashScroll: {
+    backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    padding: 16,
+    maxHeight: 70,
+    height: 70
+  },
+  headerScroll: {
+    backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    padding: 16,
+    maxHeight: 95,
+    height: 95
+  },
+  loadingContainer: {
+    backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 100
+  },
+  mainContent: {
+    flex: 1,
+    padding: 20
+  },
+  sectionTitle: {
+    marginBottom: 16,
+    textAlign: 'center'
+  },
+  slider: {
+    width: '100%',
+    height: 60,
+    marginHorizontal: 0,
+    backgroundColor: Colors.gray[850]
+  },
+  statsContainer: {
+    width: '100%',
+    paddingVertical: 20
+  },
+  statsGrid: {
+    width: '100%'
   },
   templateContainer: {
     padding: 20,
@@ -1913,41 +1947,5 @@ const styles = StyleSheet.create({
   templateText: {
     fontFamily: 'monospace',
     fontSize: 8
-  },
-  loadingContainer: {
-    backgroundColor: Colors.gray[900],
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 100
-  },
-  errorContainer: {
-    backgroundColor: Colors.gray[900],
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 100
-  },
-  slider: {
-    width: '100%',
-    height: 60,
-    marginHorizontal: 0,
-    backgroundColor: Colors.gray[850]
-  },
-  headerScroll: {
-    backgroundColor: Colors.gray[900],
-    borderRadius: 8,
-    padding: 16,
-    maxHeight: 95,
-    height: 95
-  },
-  hashScroll: {
-    backgroundColor: Colors.gray[900],
-    borderRadius: 8,
-    padding: 16,
-    maxHeight: 70,
-    height: 70
   }
 })

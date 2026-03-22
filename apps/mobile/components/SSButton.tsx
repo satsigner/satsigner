@@ -1,13 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { useMemo } from 'react'
-import {
-  ActivityIndicator,
-  type StyleProp,
-  StyleSheet,
-  type TextStyle,
-  TouchableOpacity,
-  View
-} from 'react-native'
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
+import type { StyleProp, TextStyle } from 'react-native';
 
 import { Colors, Sizes } from '@/styles'
 
@@ -46,13 +40,13 @@ function SSButton({
 }: SSButtonProps) {
   const buttonStyle = useMemo(() => {
     let buttonVariantStyles = styles.buttonDefault
-    if (variant === 'secondary') buttonVariantStyles = styles.buttonSecondary
-    if (variant === 'outline') buttonVariantStyles = styles.buttonOutline
-    if (variant === 'ghost') buttonVariantStyles = styles.buttonGhost
-    if (variant === 'subtle') buttonVariantStyles = styles.buttonSubtle
+    if (variant === 'secondary') {buttonVariantStyles = styles.buttonSecondary}
+    if (variant === 'outline') {buttonVariantStyles = styles.buttonOutline}
+    if (variant === 'ghost') {buttonVariantStyles = styles.buttonGhost}
+    if (variant === 'subtle') {buttonVariantStyles = styles.buttonSubtle}
     if (variant === 'default' && withSelect)
-      buttonVariantStyles = styles.buttonWithSelect
-    if (variant === 'danger') buttonVariantStyles = styles.buttonDanger
+      {buttonVariantStyles = styles.buttonWithSelect}
+    if (variant === 'danger') {buttonVariantStyles = styles.buttonDanger}
 
     return StyleSheet.compose(
       {
@@ -66,18 +60,16 @@ function SSButton({
 
   const textStyles = useMemo(() => {
     let textVariantStyles = styles.textDefault
-    if (variant === 'secondary') textVariantStyles = styles.textSecondary
-    if (variant === 'ghost') textVariantStyles = styles.textGhost
-    if (variant === 'subtle') textVariantStyles = styles.textSubtle
+    if (variant === 'secondary') {textVariantStyles = styles.textSecondary}
+    if (variant === 'ghost') {textVariantStyles = styles.textGhost}
+    if (variant === 'subtle') {textVariantStyles = styles.textSubtle}
 
     return StyleSheet.compose({ ...textVariantStyles }, textStyle)
   }, [variant, textStyle])
 
-  const activityIndicatorColor = useMemo(() => {
-    return variant === 'secondary'
+  const activityIndicatorColor = useMemo(() => variant === 'secondary'
       ? styles.activityIndicatorDark.color
-      : styles.activityIndicatorLight.color
-  }, [variant])
+      : styles.activityIndicatorLight.color, [variant])
 
   return (
     <TouchableOpacity
@@ -124,6 +116,12 @@ function SSButton({
 }
 
 const styles = StyleSheet.create({
+  activityIndicatorDark: {
+    color: Colors.black
+  },
+  activityIndicatorLight: {
+    color: Colors.white
+  },
   buttonBase: {
     borderRadius: Sizes.button.borderRadius,
     height: Sizes.button.height,
@@ -132,22 +130,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
+  buttonDanger: {
+    backgroundColor: Colors.error
+  },
   buttonDefault: {
     backgroundColor: Colors.gray[600]
   },
-  buttonSecondary: {
-    backgroundColor: Colors.white
-  },
-  buttonOutline: {
-    backgroundColor: Colors.transparent,
-    borderWidth: 1,
-    borderColor: Colors.white
-  },
   buttonGhost: {
     backgroundColor: Colors.transparent
-  },
-  buttonSubtle: {
-    backgroundColor: Colors.gray[900]
   },
   buttonGradient: {
     position: 'absolute',
@@ -156,36 +146,38 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  buttonDanger: {
-    backgroundColor: Colors.error
+  buttonOutline: {
+    backgroundColor: Colors.transparent,
+    borderWidth: 1,
+    borderColor: Colors.white
+  },
+  buttonSecondary: {
+    backgroundColor: Colors.white
+  },
+  buttonSubtle: {
+    backgroundColor: Colors.gray[900]
   },
   buttonWithSelect: {
     backgroundColor: Colors.gray[850]
   },
+  disabled: {
+    opacity: 0.3
+  },
   textDefault: {
     color: Colors.white,
-    letterSpacing: 1
-  },
-  textSecondary: {
-    color: Colors.black,
     letterSpacing: 1
   },
   textGhost: {
     color: Colors.gray[200],
     letterSpacing: 1
   },
+  textSecondary: {
+    color: Colors.black,
+    letterSpacing: 1
+  },
   textSubtle: {
     color: Colors.gray[100],
     letterSpacing: 1
-  },
-  disabled: {
-    opacity: 0.3
-  },
-  activityIndicatorLight: {
-    color: Colors.white
-  },
-  activityIndicatorDark: {
-    color: Colors.black
   }
 })
 

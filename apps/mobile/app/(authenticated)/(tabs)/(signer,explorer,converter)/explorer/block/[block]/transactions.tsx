@@ -52,14 +52,14 @@ export default function BlockTransactions() {
 
   async function fetchBlockTransactions() {
     await runRequest({
-      name: 'txs',
       callback: async () => {
         const blockTxids = await esploraClient.getBlockTransactionIds(
           blockHash!
         )
         setBlockTxids(blockTxids)
       },
-      errorMessage: 'Failed to fetch block transactions'
+      errorMessage: 'Failed to fetch block transactions',
+      name: 'txs'
     })
   }
 
@@ -69,7 +69,6 @@ export default function BlockTransactions() {
 
   async function loadTxData(txid: Tx['txid']) {
     await runRequest({
-      name: txid,
       callback: async () => {
         const txInfo = await esploraClient.getTxInfo(txid)
         setBlockTxs((txs) =>
@@ -82,7 +81,8 @@ export default function BlockTransactions() {
           })
         )
       },
-      errorMessage: 'Failed to get tx info'
+      errorMessage: 'Failed to get tx info',
+      name: txid
     })
   }
 
@@ -95,9 +95,9 @@ export default function BlockTransactions() {
   }
 
   useEffect(() => {
-    if (!blockHash || backend !== 'esplora') return
-    if (!block) fetchBlock()
-    if (Object.keys(blockTxs).length === 0) fetchBlockTransactions()
+    if (!blockHash || backend !== 'esplora') {return}
+    if (!block) {fetchBlock()}
+    if (Object.keys(blockTxs).length === 0) {fetchBlockTransactions()}
   }, [blockHash, backend]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (backend !== 'esplora') {
@@ -185,8 +185,7 @@ export default function BlockTransactions() {
                     <SSVStack gap="xs" style={{ marginBottom: 20 }}>
                       {index > 0 && (
                         <SSTransactionVinList
-                          vin={tx.vin.map((input) => {
-                            return {
+                          vin={tx.vin.map((input) => ({
                               previousOutput: {
                                 txid: input.txid,
                                 vout: input.vout
@@ -195,18 +194,15 @@ export default function BlockTransactions() {
                               scriptSig: input.scriptsig_asm,
                               value: input.prevout.value,
                               witness: []
-                            }
-                          })}
+                            }))}
                         />
                       )}
                       <SSTransactionVoutList
-                        vout={tx.vout.map((output) => {
-                          return {
+                        vout={tx.vout.map((output) => ({
                             value: output.value,
                             address: output.scriptpubkey_address || '',
                             script: output.scriptpubkey_asm || []
-                          }
-                        })}
+                          }))}
                         txid={tx.txid}
                       />
                     </SSVStack>
@@ -260,7 +256,7 @@ export default function BlockTransactions() {
 const styles = StyleSheet.create({
   txListItem: {
     borderTopColor: Colors.barGray,
-    paddingVertical: 8,
-    borderTopWidth: 1
+    borderTopWidth: 1,
+    paddingVertical: 8
   }
 })

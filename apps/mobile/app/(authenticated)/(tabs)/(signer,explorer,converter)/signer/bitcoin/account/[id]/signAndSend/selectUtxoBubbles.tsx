@@ -19,8 +19,8 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
-import { type Utxo } from '@/types/models/Utxo'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { Utxo } from '@/types/models/Utxo'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 
 function SelectUtxoBubbles() {
@@ -74,8 +74,8 @@ function SelectUtxoBubbles() {
     (utxo: Utxo) => {
       const includesInput = hasInput(utxo)
 
-      if (includesInput) removeInput(utxo)
-      else addInput(utxo)
+      if (includesInput) {removeInput(utxo)}
+      else {addInput(utxo)}
     },
     [hasInput, removeInput, addInput]
   )
@@ -171,7 +171,7 @@ function SelectUtxoBubbles() {
       </LinearGradient>
       <SSBubbleChart
         utxos={account.utxos}
-        canvasSize={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
+        canvasSize={{ height: GRAPH_HEIGHT, width: GRAPH_WIDTH }}
         inputs={getInputs()}
         onPress={handleOnToggleSelected}
         style={{ position: 'absolute', top: 40 }}
@@ -186,7 +186,7 @@ function SelectUtxoBubbles() {
             <SSButton
               label={t('transaction.build.select.customAmount')}
               variant="ghost"
-              style={{ width: 'auto', height: 'auto' }}
+              style={{ height: 'auto', width: 'auto' }}
               onPress={() => setCustomAmountModalVisible(true)}
             />
             <SSButton
@@ -196,7 +196,7 @@ function SelectUtxoBubbles() {
                   : t('common.selectAll')
               }
               variant="ghost"
-              style={{ width: 'auto', height: 'auto' }}
+              style={{ height: 'auto', width: 'auto' }}
               onPress={() =>
                 selectedAllUtxos
                   ? handleDeselectAllUtxos()
@@ -238,13 +238,6 @@ function SelectUtxoBubbles() {
 }
 
 const styles = StyleSheet.create({
-  absoluteTopContainer: {
-    width: '100%',
-    position: 'absolute',
-    paddingHorizontal: Layout.mainContainer.paddingHorizontal,
-    paddingTop: Layout.mainContainer.paddingTop,
-    zIndex: 20
-  },
   absoluteSubmitContainer: {
     position: 'absolute',
     bottom: 0,
@@ -255,6 +248,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingTop: 0,
     paddingBottom: 20
+  },
+  absoluteTopContainer: {
+    width: '100%',
+    position: 'absolute',
+    paddingHorizontal: Layout.mainContainer.paddingHorizontal,
+    paddingTop: Layout.mainContainer.paddingTop,
+    zIndex: 20
   }
 })
 

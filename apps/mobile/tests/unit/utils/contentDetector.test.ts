@@ -15,7 +15,7 @@ import {
 
 describe('contentDetector', () => {
   describe('detectContentByContext - Bitcoin context', () => {
-    describe('Bitcoin addresses', () => {
+    describe('bitcoin addresses', () => {
       it('should detect mainnet P2WPKH address', async () => {
         const result = await detectContentByContext(
           addresses.mainnet.p2wpkh,
@@ -62,7 +62,7 @@ describe('contentDetector', () => {
       })
     })
 
-    describe('BIP-321 URIs', () => {
+    describe('bIP-321 URIs', () => {
       it('should detect basic BIP-321 URI', async () => {
         const result = await detectContentByContext(
           bip321Uris.valid.addressOnly,
@@ -138,7 +138,7 @@ describe('contentDetector', () => {
   })
 
   describe('detectContentByContext - Lightning context', () => {
-    describe('BOLT11 invoices by network', () => {
+    describe('bOLT11 invoices by network', () => {
       it('should detect mainnet invoice (lnbc)', async () => {
         const result = await detectContentByContext(
           lightningInvoices.mainnet.basic,
@@ -200,7 +200,7 @@ describe('contentDetector', () => {
       })
     })
 
-    describe('BOLT12 offers', () => {
+    describe('bOLT12 offers', () => {
       it('should detect BOLT12 offer (lno)', async () => {
         const result = await detectContentByContext(
           bolt12Offers.valid.basic,
@@ -222,7 +222,7 @@ describe('contentDetector', () => {
       })
     })
 
-    describe('LNURL', () => {
+    describe('lNURL', () => {
       it('should detect LNURL pay', async () => {
         const result = await detectContentByContext(
           lnurls.valid.pay,
@@ -262,7 +262,7 @@ describe('contentDetector', () => {
   })
 
   describe('detectContentByContext - Ecash context', () => {
-    describe('Cashu tokens', () => {
+    describe('cashu tokens', () => {
       it('should detect v3 Cashu token', async () => {
         const result = await detectContentByContext(
           cashuTokens.valid.v3,
@@ -284,7 +284,7 @@ describe('contentDetector', () => {
       })
     })
 
-    describe('Lightning in ecash context', () => {
+    describe('lightning in ecash context', () => {
       it('should allow Lightning invoice in ecash context', async () => {
         const result = await detectContentByContext(
           lightningInvoices.mainnet.basic,
@@ -344,7 +344,7 @@ describe('contentDetector', () => {
   })
 
   describe('isContentTypeSupportedInContext', () => {
-    describe('Bitcoin context', () => {
+    describe('bitcoin context', () => {
       it('should support bitcoin_address', () => {
         expect(
           isContentTypeSupportedInContext('bitcoin_address', 'bitcoin')
@@ -374,7 +374,7 @@ describe('contentDetector', () => {
       })
     })
 
-    describe('Lightning context', () => {
+    describe('lightning context', () => {
       it('should support lightning_invoice', () => {
         expect(
           isContentTypeSupportedInContext('lightning_invoice', 'lightning')
@@ -392,7 +392,7 @@ describe('contentDetector', () => {
       })
     })
 
-    describe('Ecash context', () => {
+    describe('ecash context', () => {
       it('should support ecash_token', () => {
         expect(isContentTypeSupportedInContext('ecash_token', 'ecash')).toBe(
           true

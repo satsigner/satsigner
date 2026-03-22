@@ -1,4 +1,4 @@
-export type NostrMessage = {
+export interface NostrMessage {
   id: string
   content: string | Record<string, unknown>
   created_at: number
@@ -7,7 +7,7 @@ export type NostrMessage = {
   pubkey?: string
 }
 
-export type NostrDM = {
+export interface NostrDM {
   id: string
   author: string
   created_at: number
@@ -26,7 +26,7 @@ export type NostrDM = {
   read?: boolean
 }
 
-export type NostrAccount = {
+export interface NostrAccount {
   autoSync: boolean
   commonNpub: string
   commonNsec: string
@@ -45,18 +45,18 @@ export type NostrAccount = {
   relayStatuses?: Record<string, 'connected' | 'connecting' | 'disconnected'>
 }
 
-export type NostrKind0Profile = {
+export interface NostrKind0Profile {
   displayName?: string
   picture?: string
 }
 
-export type NostrKeys = {
+export interface NostrKeys {
   nsec: string
   npub: string
   secretNostrKey: Uint8Array
 }
 
-export type NostrRelay = {
+export interface NostrRelay {
   url: string
   name: string
 }

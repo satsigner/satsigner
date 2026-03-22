@@ -10,7 +10,7 @@ import SSTagInput from './SSTagInput'
 import SSText from './SSText'
 import SSTextInput from './SSTextInput'
 
-type SSLabelInputProps = {
+interface SSLabelInputProps {
   label: string
   onUpdateLabel: (label: string) => void
 }
@@ -69,8 +69,8 @@ function SSLabelInput({
     matches
       .map((match) => match.replace('#', ''))
       .forEach((tag: string) => {
-        if (!tags.includes(tag)) newTags.push(tag)
-        if (!selectedTags.includes(tag)) newSelectedTags.push(tag)
+        if (!tags.includes(tag)) {newTags.push(tag)}
+        if (!selectedTags.includes(tag)) {newSelectedTags.push(tag)}
       })
 
     if (newTags.length > 0) {
@@ -98,8 +98,8 @@ function SSLabelInput({
         blurOnSubmit
         style={{
           height: 'auto',
-          textAlignVertical: 'top',
-          padding: 10
+          padding: 10,
+          textAlignVertical: 'top'
         }}
         value={label}
         onChangeText={setLabel}

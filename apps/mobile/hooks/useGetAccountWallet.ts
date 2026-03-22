@@ -1,4 +1,4 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
+import type { Network } from 'bdk-rn/lib/lib/enums'
 import { useEffect } from 'react'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -6,7 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { getWalletData } from '@/api/bdk'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { getAccountWithDecryptedKeys } from '@/utils/account'
 
 const useGetAccountWallet = (id: Account['id']) => {
@@ -38,7 +38,7 @@ const useGetAccountWallet = (id: Account['id']) => {
         account.network as Network
       )
 
-      if (!walletData) return
+      if (!walletData) {return}
 
       addAccountWallet(id, walletData.wallet)
     } catch (error) {

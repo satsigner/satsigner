@@ -3,13 +3,9 @@ import { useCallback, useMemo, useRef } from 'react'
 import { toast } from 'sonner-native'
 
 import { useAccountsStore } from '@/store/accounts'
-import { type Account } from '@/types/models/Account'
-import {
-  DM_FUTURE_TOLERANCE_SEC,
-  type NostrMessage,
-  type PendingDM,
-  type UnwrappedNostrEvent
-} from '@/types/nostrMessageHandlers'
+import type { Account } from '@/types/models/Account'
+import { DM_FUTURE_TOLERANCE_SEC } from '@/types/nostrMessageHandlers';
+import type { NostrMessage, PendingDM, UnwrappedNostrEvent } from '@/types/nostrMessageHandlers';
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 
 import {
@@ -23,7 +19,7 @@ const PENDING_MATCH_CREATED_AT_TOLERANCE_SEC = 10
 
 function getSyncStartSeconds(account: Account): number {
   const syncStart = account.nostr?.syncStart
-  if (!syncStart) return 0
+  if (!syncStart) {return 0}
   const ms =
     syncStart instanceof Date
       ? syncStart.getTime()
@@ -43,9 +39,9 @@ function samePubkey(a: string, b: string): boolean {
 }
 
 function isSenderAllowed(account: Account, senderPubkeyHex: string): boolean {
-  if (!account?.nostr) return false
+  if (!account?.nostr) {return false}
   const deviceHex = getDevicePubkeyHex(account)
-  if (deviceHex && samePubkey(senderPubkeyHex, deviceHex)) return true
+  if (deviceHex && samePubkey(senderPubkeyHex, deviceHex)) {return true}
   try {
     const senderNpub = nip19.npubEncode(senderPubkeyHex)
     return (account.nostr.trustedMemberDevices || []).includes(senderNpub)
@@ -61,17 +57,17 @@ function buildNewMessage(
   const created_at = eventContent.created_at as number
   const description = (eventContent.description as string) ?? ''
   return {
-    id: unwrappedEvent.id,
     author: unwrappedEvent.pubkey,
-    created_at,
-    description,
-    event: JSON.stringify(unwrappedEvent),
-    label: 1,
     content: {
       description,
       created_at,
       pubkey: unwrappedEvent.pubkey
-    }
+    },
+    created_at,
+    description,
+    event: JSON.stringify(unwrappedEvent),
+    id: unwrappedEvent.id,
+    label: 1
   }
 }
 
@@ -90,7 +86,7 @@ function useNostrDMStorage() {
       eventContent: Record<string, unknown>
     ) => {
       const created_at = eventContent.created_at as number
-      if (created_at > Date.now() / 1000 + DM_FUTURE_TOLERANCE_SEC) return
+      if (created_at > Date.now() / 1000 + DM_FUTURE_TOLERANCE_SEC) {return}
 
       const newMessage = buildNewMessage(unwrappedEvent, eventContent)
 
@@ -98,10 +94,10 @@ function useNostrDMStorage() {
       const currentAccount = useAccountsStore
         .getState()
         .accounts.find((a) => a.id === account.id)
-      if (!currentAccount?.nostr) return
+      if (!currentAccount?.nostr) {return}
 
       // Validate sender before showing toast or storing message
-      if (!isSenderAllowed(currentAccount, unwrappedEvent.pubkey)) return
+      if (!isSenderAllowed(currentAccount, unwrappedEvent.pubkey)) {return}
 
       // Notify for messages sent after the last sync started, not from self,
       // and no older than 5 minutes. We intentionally do NOT filter against
@@ -129,7 +125,7 @@ function useNostrDMStorage() {
 
       // Check if message with same ID already exists
       const messageExists = currentDms.some((m) => m.id === newMessage.id)
-      if (messageExists) return
+      if (messageExists) {return}
 
       // If this is our own message (echo from relay), replace any matching pending
       const deviceHex = getDevicePubkeyHex(currentAccount)
@@ -146,10 +142,10 @@ function useNostrDMStorage() {
             Math.abs(m.created_at - newMessage.created_at) <=
               PENDING_MATCH_CREATED_AT_TOLERANCE_SEC
         )
-        if (pendingIdx >= 0) {
-          currentDms = currentDms.slice()
+        if (pendingIdx !== -1) {
+          currentDms = [...currentDms]
           currentDms[pendingIdx] = newMessage
-          const updatedDms = currentDms.sort(
+          const updatedDms = currentDms.toSorted(
             (a, b) => a.created_at - b.created_at
           )
           useAccountsStore.getState().updateAccountNostr(account.id, {
@@ -162,7 +158,7 @@ function useNostrDMStorage() {
       const incomingMessage = isOwnMessage
         ? newMessage
         : { ...newMessage, read: false }
-      const updatedDms = [...currentDms, incomingMessage].sort(
+      const updatedDms = [...currentDms, incomingMessage].toSorted(
         (a, b) => a.created_at - b.created_at
       )
       useAccountsStore.getState().updateAccountNostr(account.id, {
@@ -175,7 +171,7 @@ function useNostrDMStorage() {
   // Flush all accumulated pending DMs to storage (the actual expensive operation)
   const flushPendingDms = useCallback((accountId: string) => {
     const pendingDms = pendingDmsRef.current.get(accountId) || []
-    if (pendingDms.length === 0) return
+    if (pendingDms.length === 0) {return}
 
     // Clear the accumulated DMs for this account
     pendingDmsRef.current.delete(accountId)
@@ -183,7 +179,7 @@ function useNostrDMStorage() {
     const currentAccount = useAccountsStore
       .getState()
       .accounts.find((a) => a.id === accountId)
-    if (!currentAccount?.nostr) return
+    if (!currentAccount?.nostr) {return}
 
     let currentDms = [...(currentAccount.nostr.dms || [])]
     const existingIds = new Set(currentDms.map((m) => m.id))
@@ -191,13 +187,13 @@ function useNostrDMStorage() {
     const deviceHex = getDevicePubkeyHex(currentAccount)
 
     for (const { unwrappedEvent, eventContent, skipToast } of pendingDms) {
-      if (!isSenderAllowed(currentAccount, unwrappedEvent.pubkey)) continue
+      if (!isSenderAllowed(currentAccount, unwrappedEvent.pubkey)) {continue}
 
       const created_at = eventContent.created_at as number
-      if (created_at > Date.now() / 1000 + DM_FUTURE_TOLERANCE_SEC) continue
+      if (created_at > Date.now() / 1000 + DM_FUTURE_TOLERANCE_SEC) {continue}
 
       const newMessage = buildNewMessage(unwrappedEvent, eventContent)
-      if (existingIds.has(newMessage.id)) continue
+      if (existingIds.has(newMessage.id)) {continue}
       existingIds.add(newMessage.id)
 
       const isOwnMsg = !!(deviceHex && samePubkey(newMessage.author, deviceHex))
@@ -210,8 +206,8 @@ function useNostrDMStorage() {
             Math.abs(m.created_at - newMessage.created_at) <=
               PENDING_MATCH_CREATED_AT_TOLERANCE_SEC
         )
-        if (pendingIdx >= 0) {
-          currentDms = currentDms.slice()
+        if (pendingIdx !== -1) {
+          currentDms = [...currentDms]
           currentDms[pendingIdx] = newMessage
         } else {
           currentDms.push(newMessage)
@@ -238,7 +234,7 @@ function useNostrDMStorage() {
       }
     }
 
-    const updatedDms = currentDms.sort((a, b) => a.created_at - b.created_at)
+    const updatedDms = currentDms.toSorted((a, b) => a.created_at - b.created_at)
     useAccountsStore
       .getState()
       .updateAccountNostr(accountId, { dms: updatedDms })
@@ -247,7 +243,7 @@ function useNostrDMStorage() {
   // Debounced storeBatch - accumulates DMs and writes to storage after delay
   const storeBatch = useCallback(
     async (account: Account, pendingDms: PendingDM[]) => {
-      if (pendingDms.length === 0) return
+      if (pendingDms.length === 0) {return}
 
       // Accumulate DMs for this account
       const existing = pendingDmsRef.current.get(account.id) || []
@@ -271,22 +267,22 @@ function useNostrDMStorage() {
   )
 
   const load = useCallback(async (account?: Account) => {
-    if (!account) return []
+    if (!account) {return []}
     return account.nostr?.dms || []
   }, [])
 
   const clear = useCallback(async (account?: Account) => {
-    if (!account?.nostr) return
+    if (!account?.nostr) {return}
     // Only update dms so we never overwrite device keys (e.g. from stale account ref)
     useAccountsStore.getState().updateAccountNostr(account.id, { dms: [] })
   }, [])
 
   return useMemo(
     () => ({
-      store,
-      storeBatch,
+      clear,
       load,
-      clear
+      store,
+      storeBatch
     }),
     [store, storeBatch, load, clear]
   )

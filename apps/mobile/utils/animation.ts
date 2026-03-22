@@ -1,4 +1,5 @@
-import { LayoutAnimation, type LayoutAnimationConfig } from 'react-native'
+import { LayoutAnimation } from 'react-native';
+import type { LayoutAnimationConfig } from 'react-native';
 
 function setStateWithLayoutAnimation<T>(
   setState: React.Dispatch<T>,

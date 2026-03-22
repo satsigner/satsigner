@@ -1,64 +1,53 @@
 import { useNostrStore } from '@/store/nostr'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { nostrSyncService, resetInstance } from '@/utils/nostrSyncService'
 
 // Mock dependencies
-jest.mock('@/api/nostr', () => ({
+jest.mock<typeof import('@/api/nostr')>('@/api/nostr', () => ({
   NostrAPI: jest.fn().mockImplementation(() => ({
-    connect: jest.fn().mockResolvedValue(true),
-    subscribeToKind1059: jest.fn().mockResolvedValue(undefined),
-    flushQueue: jest.fn().mockResolvedValue(undefined),
     closeAllSubscriptions: jest.fn().mockResolvedValue(undefined),
-    setLoadingCallback: jest.fn()
+    connect: jest.fn().mockResolvedValue(true),
+    flushQueue: jest.fn().mockResolvedValue(undefined),
+    setLoadingCallback: jest.fn(),
+    subscribeToKind1059: jest.fn().mockResolvedValue(undefined)
   }))
 }))
 
-jest.mock('@/constants/nostr', () => ({
+jest.mock<typeof import('@/constants/nostr')>('@/constants/nostr', () => ({
   ...jest.requireActual('@/constants/nostr'),
   PROTOCOL_SUBSCRIPTION_LIMIT: 1500
 }))
 
-jest.mock('@/storage/mmkv', () => {
+jest.mock<typeof import('@/storage/mmkv')>('@/storage/mmkv', () => {
   const storage: Record<string, string> = {}
   return {
     __esModule: true,
     default: {
-      setItem: jest.fn((name: string, value: string) => {
-        storage[name] = value
-      }),
       getItem: jest.fn((name: string) => storage[name] ?? null),
       removeItem: jest.fn((name: string) => {
         delete storage[name]
+      }),
+      setItem: jest.fn((name: string, value: string) => {
+        storage[name] = value
       })
     }
   }
 })
 
-jest.mock('@/utils/nostr', () => ({
+jest.mock<typeof import('@/utils/nostr')>('@/utils/nostr', () => ({
   generateColorFromNpub: jest.fn().mockResolvedValue('#ff5500')
 }))
 
 const mockAccount: Account = {
+  addresses: [],
+  createdAt: new Date(),
   id: 'test-account-1',
+  keyCount: 1,
+  keys: [],
+  keysRequired: 1,
+  labels: {},
   name: 'Test Account',
   network: 'bitcoin',
-  policyType: 'singlesig',
-  keyCount: 1,
-  keysRequired: 1,
-  keys: [],
-  addresses: [],
-  transactions: [],
-  utxos: [],
-  labels: {},
-  createdAt: new Date(),
-  syncStatus: 'unsynced',
-  summary: {
-    balance: 0,
-    numberOfAddresses: 0,
-    numberOfTransactions: 0,
-    numberOfUtxos: 0,
-    satsInMempool: 0
-  },
   nostr: {
     autoSync: true,
     relays: ['wss://relay.damus.io'],
@@ -70,7 +59,18 @@ const mockAccount: Account = {
     lastUpdated: new Date(),
     syncStart: new Date(),
     trustedMemberDevices: []
-  }
+  },
+  policyType: 'singlesig',
+  summary: {
+    balance: 0,
+    numberOfAddresses: 0,
+    numberOfTransactions: 0,
+    numberOfUtxos: 0,
+    satsInMempool: 0
+  },
+  syncStatus: 'unsynced',
+  transactions: [],
+  utxos: []
 }
 
 describe('nostrSyncService', () => {
@@ -82,16 +82,16 @@ describe('nostrSyncService', () => {
     mockProcessor = jest.fn()
 
     useNostrStore.setState({
-      members: {},
-      processedMessageIds: {},
-      processedEvents: {},
-      lastProtocolEOSE: {},
-      lastDataExchangeEOSE: {},
-      trustedDevices: {},
-      syncStatus: {},
       activeSubscriptions: new Set(),
+      lastDataExchangeEOSE: {},
+      lastProtocolEOSE: {},
+      members: {},
+      processedEvents: {},
+      processedMessageIds: {},
+      syncStatus: {},
       syncingAccounts: {},
-      transactionToShare: null
+      transactionToShare: null,
+      trustedDevices: {}
     })
   })
 
@@ -116,7 +116,7 @@ describe('nostrSyncService', () => {
       resetInstance()
       expect(nostrSyncService.getActiveSubscriptionCount()).toBe(0)
       nostrSyncService.setMessageProcessor(mockAccount.id, mockProcessor)
-      expect(nostrSyncService.getActiveAccountIds()).toEqual([])
+      expect(nostrSyncService.getActiveAccountIds()).toStrictEqual([])
     })
   })
 
@@ -222,7 +222,7 @@ describe('nostrSyncService', () => {
 
       nostrSyncService.stopSync(mockAccount.id)
 
-      jest.advanceTimersByTime(60000)
+      jest.advanceTimersByTime(60_000)
 
       expect(nostrSyncService.hasActiveSubscription(mockAccount.id)).toBe(false)
     })
@@ -273,7 +273,7 @@ describe('nostrSyncService', () => {
 
   describe('getActiveAccountIds', () => {
     it('returns empty array when no subscriptions', () => {
-      expect(nostrSyncService.getActiveAccountIds()).toEqual([])
+      expect(nostrSyncService.getActiveAccountIds()).toStrictEqual([])
     })
   })
 })

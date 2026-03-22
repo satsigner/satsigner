@@ -1,11 +1,11 @@
 import { useMemo } from 'react'
 
 import { t } from '@/locales'
-import { type Key, type ScriptVersionType } from '@/types/models/Account'
-import { type Network } from '@/types/settings/blockchain'
+import type { Key, ScriptVersionType } from '@/types/models/Account'
+import type { Network } from '@/types/settings/blockchain'
 import { getKeyFormatForScriptVersion } from '@/utils/bitcoin'
 
-type UseKeySourceLabelParams = {
+interface UseKeySourceLabelParams {
   keyDetails: Key | undefined
   scriptVersion: ScriptVersionType
   network: Network
@@ -13,7 +13,7 @@ type UseKeySourceLabelParams = {
   decryptedKey?: Key
 }
 
-type UseKeySourceLabelReturn = {
+interface UseKeySourceLabelReturn {
   sourceLabel: string
   importExtendedLabel: string
   dropSeedLabel: string
@@ -199,9 +199,9 @@ export function useKeySourceLabel({
   }, [scriptVersion, network])
 
   return {
-    sourceLabel,
-    importExtendedLabel,
     dropSeedLabel,
-    shareXpubLabel
+    importExtendedLabel,
+    shareXpubLabel,
+    sourceLabel
   }
 }

@@ -12,14 +12,8 @@ import {
   useFonts
 } from '@shopify/react-native-skia'
 import { memo, useCallback, useMemo } from 'react'
-import {
-  Platform,
-  type StyleProp,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  type ViewStyle
-} from 'react-native'
+import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 
@@ -27,7 +21,7 @@ import SSLoader from '@/components/SSLoader'
 import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
 import { Colors } from '@/styles'
-import { type BlockDifficulty } from '@/types/models/Blockchain'
+import type { BlockDifficulty } from '@/types/models/Blockchain'
 
 const FACTOR_BLOCK_DISTANCE = 0.055
 const RADIUS_SPIRAL_START = 1
@@ -37,7 +31,7 @@ const RADIUS_WEEKS = [180, 250, 320, 451]
 const MIN_BRIGHTNESS = 20
 const MAX_BRIGHTNESS_SIZE = 5000
 
-type SSSpiralBlocksProps = {
+interface SSSpiralBlocksProps {
   data: BlockDifficulty[]
   loading: boolean
   maxBlocksPerSpiral: number
@@ -64,15 +58,15 @@ function SSSpiralBlocks({
 
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
   const { animatedStyle, gestures, transform } = useGestures({
-    width: w,
-    height: h,
     center,
+    height: h,
     isDoubleTapEnabled: true,
     maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
-    minPanPointers: 1,
     maxScale: 1000,
+    minPanPointers: 1,
     minScale: 0.1,
-    shouldResetOnInteractionEnd: false
+    shouldResetOnInteractionEnd: false,
+    width: w
   })
 
   const fontSize = 12
@@ -93,7 +87,7 @@ function SSSpiralBlocks({
   // Memoize the paragraph creation function to avoid recreating it on each render
   const createParagraph = useCallback(
     (text: string) => {
-      if (!customFontManager) return null
+      if (!customFontManager) {return null}
 
       const paragraph = Skia.ParagraphBuilder.Make(
         {
@@ -113,32 +107,22 @@ function SSSpiralBlocks({
     [customFontManager, TextStyleWeeks]
   )
 
-  const pWeek1 = useMemo(() => {
-    return createParagraph('1 WEEK')
-  }, [createParagraph])
+  const pWeek1 = useMemo(() => createParagraph('1 WEEK'), [createParagraph])
 
-  const pWeek2 = useMemo(() => {
-    return createParagraph('2 WEEKS')
-  }, [createParagraph])
+  const pWeek2 = useMemo(() => createParagraph('2 WEEKS'), [createParagraph])
 
-  const pWeek3 = useMemo(() => {
-    return createParagraph('3 WEEKS')
-  }, [createParagraph])
+  const pWeek3 = useMemo(() => createParagraph('3 WEEKS'), [createParagraph])
 
-  const pWeek4 = useMemo(() => {
-    return createParagraph('4 WEEKS')
-  }, [createParagraph])
+  const pWeek4 = useMemo(() => createParagraph('4 WEEKS'), [createParagraph])
 
   // Memoize the newtonRaphson function to avoid recalculating it
   const memoizedNewtonRaphson = useCallback(
-    (L: number, k: number, initialGuess: number) => {
-      return newtonRaphson(L, k, initialGuess)
-    },
+    (L: number, k: number, initialGuess: number) => newtonRaphson(L, k, initialGuess),
     []
   )
 
   const spiralBlocks = useMemo(() => {
-    if (!data || data.length === 0) return []
+    if (!data || data.length === 0) {return []}
 
     const blocks = []
     let phi_spiral = RADIUS_SPIRAL_START / FACTOR_SPIRAL_GROWTH
@@ -169,13 +153,13 @@ function SSSpiralBlocks({
       const brightness = MIN_BRIGHTNESS + (size / MAX_BRIGHTNESS_SIZE) * 256
 
       blocks.push({
-        x,
-        y,
+        color: `rgb(${brightness},${brightness},${brightness})`,
+        height: currentBlock?.height || null,
         index: i,
         rotation: phi_spiral,
-        color: `rgb(${brightness},${brightness},${brightness})`,
         timeDifference,
-        height: currentBlock?.height || null
+        x,
+        y
       })
     }
     return blocks
@@ -187,8 +171,7 @@ function SSSpiralBlocks({
   const centerY = canvasHeight / 2
 
   // Optimize path creation by caching calculations
-  const paths = useMemo(() => {
-    return spiralBlocks.map((block) => {
+  const paths = useMemo(() => spiralBlocks.map((block) => {
       const path = Skia.Path.Make()
       const cosTheta = Math.cos(block.rotation)
       const sinTheta = Math.sin(block.rotation)
@@ -213,12 +196,10 @@ function SSSpiralBlocks({
       path.close()
 
       return path
-    })
-  }, [spiralBlocks, centerX, centerY, halfSize])
+    }), [spiralBlocks, centerX, centerY, halfSize])
 
   // Optimize touchable overlay styles creation
-  const invisibleOverlayBlocks = useMemo(() => {
-    return spiralBlocks.map((block) => {
+  const invisibleOverlayBlocks = useMemo(() => spiralBlocks.map((block) => {
       const overlaySize = BLOCK_SIZE + 3 // Define overlay size
       return {
         position: 'absolute',
@@ -229,12 +210,10 @@ function SSSpiralBlocks({
         borderRadius: 25,
         backgroundColor: 'rgba(255, 255, 255, 0)'
       } as StyleProp<ViewStyle>
-    })
-  }, [spiralBlocks, canvasHeight, canvasWidth])
+    }), [spiralBlocks, canvasHeight, canvasWidth])
 
   // Pre-calculate week circles outside of the render function
-  const weekCircles = useMemo(() => {
-    return RADIUS_WEEKS.map((r, index) => {
+  const weekCircles = useMemo(() => RADIUS_WEEKS.map((r, index) => {
       const weekRingColor = `rgb(${255 - index * 50}, ${255 - index * 50}, ${
         255 - index * 50
       })`
@@ -245,12 +224,10 @@ function SSSpiralBlocks({
           </Paint>
         </Circle>
       )
-    })
-  }, [centerX, centerY])
+    }), [centerX, centerY])
 
   // Pre-calculate touchable blocks with their handlers
-  const touchableBlocks = useMemo(() => {
-    return spiralBlocks.map((_, index) => (
+  const touchableBlocks = useMemo(() => spiralBlocks.map((_, index) => (
       <TouchableOpacity
         key={spiralBlocks[index]?.height ?? index}
         style={invisibleOverlayBlocks[index]}
@@ -261,8 +238,7 @@ function SSSpiralBlocks({
       >
         <Animated.View />
       </TouchableOpacity>
-    ))
-  }, [spiralBlocks, invisibleOverlayBlocks, data, onBlockPress])
+    )), [spiralBlocks, invisibleOverlayBlocks, data, onBlockPress])
 
   // If still loading data, show branded white-circle loader
   if (loading) {
@@ -271,7 +247,7 @@ function SSSpiralBlocks({
         style={[
           styles.container,
           styles.loadingContainer,
-          { width: canvasWidth, height: canvasHeight }
+          { height: canvasHeight, width: canvasWidth }
         ]}
       >
         <SSLoader size={120} />
@@ -282,7 +258,7 @@ function SSSpiralBlocks({
   return (
     <View style={styles.container}>
       <Canvas
-        style={[styles.canvas, { width: canvasWidth, height: canvasHeight }]}
+        style={[styles.canvas, { height: canvasHeight, width: canvasWidth }]}
         onLayout={onCanvasLayout}
       >
         <Group
@@ -311,21 +287,21 @@ function SSSpiralBlocks({
       <GestureDetector gesture={gestures}>
         <View
           style={{
-            flex: 1,
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            bottom: 0,
-            left: 0,
             alignItems: 'center',
-            justifyContent: 'center'
+            bottom: 0,
+            flex: 1,
+            justifyContent: 'center',
+            left: 0,
+            position: 'absolute',
+            right: 0,
+            top: 0
           }}
         >
           <Animated.View
             style={[
               {
-                width: canvasWidth,
-                height: canvasHeight
+                height: canvasHeight,
+                width: canvasWidth
               },
               animatedStyle
             ]}
@@ -346,7 +322,7 @@ function SSSpiralBlocks({
 function newtonRaphson(
   L: number,
   k: number,
-  initialGuess: number = 1.0,
+  initialGuess: number = 1,
   tolerance: number = 1e-6,
   maxIterations: number = 1000
 ): number {
@@ -366,31 +342,16 @@ function newtonRaphson(
     if (Math.abs(f_t) < tolerance) {
       return t
     }
-    t = t - f_t / df_t
+    t -= f_t / df_t
   }
 
   throw new Error('Convergence Failed!')
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#000000',
-    borderColor: 'yellow'
-  },
-  loadingContainer: {},
   canvas: {
     position: 'relative',
     backgroundColor: '#000'
-  },
-  touchableOverlay: {
-    position: 'relative',
-    top: -0.7 * SCREEN_HEIGHT, // Adjust as needed
-    left: 0, // Adjust as needed
-    right: 0,
-    bottom: 0
   },
   closeButton: {
     paddingHorizontal: 20,
@@ -402,6 +363,14 @@ const styles = StyleSheet.create({
     color: 'black',
     fontSize: 14
   },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000000',
+    borderColor: 'yellow'
+  },
+  loadingContainer: {},
   overlay: {
     position: 'absolute',
     top: 0,
@@ -425,17 +394,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
     textAlign: 'center'
+  },
+  touchableOverlay: {
+    position: 'relative',
+    top: -0.7 * SCREEN_HEIGHT, // Adjust as needed
+    left: 0, // Adjust as needed
+    right: 0,
+    bottom: 0
   }
 })
 
 // Use React.memo to prevent unnecessary re-renders
-export default memo(SSSpiralBlocks, (prevProps, nextProps) => {
-  // Only re-render when these props change
-  return (
+export default memo(SSSpiralBlocks, (prevProps, nextProps) => (
     prevProps.loading === nextProps.loading &&
     prevProps.data === nextProps.data &&
     prevProps.canvasWidth === nextProps.canvasWidth &&
     prevProps.canvasHeight === nextProps.canvasHeight &&
     prevProps.maxBlocksPerSpiral === nextProps.maxBlocksPerSpiral
-  )
-})
+  ))

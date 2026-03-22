@@ -2,12 +2,12 @@ import { useCallback, useMemo } from 'react'
 import { InteractionManager } from 'react-native'
 
 import { useNostrStore } from '@/store/nostr'
-import { type Account } from '@/types/models/Account'
-import {
-  type MessageHandlerContext,
-  type NostrMessageData,
-  type PendingDM,
-  type UnwrappedNostrEvent
+import type { Account } from '@/types/models/Account'
+import type {
+  MessageHandlerContext,
+  NostrMessageData,
+  PendingDM,
+  UnwrappedNostrEvent
 } from '@/types/nostrMessageHandlers'
 import { decompressMessage } from '@/utils/nostr'
 
@@ -53,7 +53,7 @@ function getEventContent(
 // onPendingDM through the per-batch context, so hot-reloads of this file
 // cannot disconnect the callback from the pending-DM accumulator.
 function initializeHandlers(): void {
-  if (isInitialized()) return
+  if (isInitialized()) {return}
   setInitialized(true)
 
   // Register handlers in priority order
@@ -89,7 +89,7 @@ function useNostrMessageProcessor() {
       account: Account,
       messages: { id: string; content: unknown; created_at: number }[]
     ): Promise<void> => {
-      if (messages.length === 0) return
+      if (messages.length === 0) {return}
 
       // Defer until any in-progress interactions (animations, transitions)
       // have finished so we don't block the UI thread during navigation.
@@ -105,7 +105,7 @@ function useNostrMessageProcessor() {
 
       for (let i = 0; i < messages.length; i += CHUNK_SIZE) {
         // Yield between chunks so the JS thread stays responsive.
-        if (i > 0) await yieldToJS()
+        if (i > 0) {await yieldToJS()}
 
         const chunk = messages.slice(i, i + CHUNK_SIZE)
         for (const msg of chunk) {
@@ -115,7 +115,7 @@ function useNostrMessageProcessor() {
           // across concurrent batches that may have added events since we started.
           const accountProcessedEvents =
             useNostrStore.getState().processedEvents[account.id]
-          if (accountProcessedEvents?.[unwrappedEvent.id]) continue
+          if (accountProcessedEvents?.[unwrappedEvent.id]) {continue}
 
           addProcessedEvent(account.id, unwrappedEvent.id)
 
@@ -124,12 +124,12 @@ function useNostrMessageProcessor() {
 
           const context: MessageHandlerContext = {
             account,
-            unwrappedEvent,
-            eventContent,
             data,
+            eventContent,
             lastDataExchangeEOSE,
+            onPendingDM: (dm) => pendingDms.push(dm),
             syncStartSec,
-            onPendingDM: (dm) => pendingDms.push(dm)
+            unwrappedEvent
           }
 
           await processMessage(context)
@@ -150,9 +150,9 @@ function useNostrMessageProcessor() {
     ): Promise<void> => {
       await processEventBatch(account, [
         {
-          id: unwrappedEvent.id,
           content: unwrappedEvent,
-          created_at: unwrappedEvent.created_at ?? 0
+          created_at: unwrappedEvent.created_at ?? 0,
+          id: unwrappedEvent.id
         }
       ])
     },

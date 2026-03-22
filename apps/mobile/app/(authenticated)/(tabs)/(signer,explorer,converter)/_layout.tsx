@@ -1,9 +1,6 @@
 import '@/shim'
-
-import {
-  type DrawerNavigationProp,
-  useDrawerStatus
-} from '@react-navigation/drawer'
+import { useDrawerStatus } from '@react-navigation/drawer';
+import type { DrawerNavigationProp } from '@react-navigation/drawer';
 import {
   Stack,
   useNavigation,
@@ -72,7 +69,7 @@ export default function StackLayout(params: any) {
 
   const homeScreen = useMemo(() => {
     switch (params?.segment) {
-      case '(signer)':
+      case '(signer)': {
         return (
           <Stack.Screen
             name="index"
@@ -83,7 +80,8 @@ export default function StackLayout(params: any) {
             options={{ title: 'Signer' }}
           />
         )
-      case '(explorer)':
+      }
+      case '(explorer)': {
         return (
           <Stack.Screen
             name="index"
@@ -94,7 +92,8 @@ export default function StackLayout(params: any) {
             options={{ title: 'Explore' }}
           />
         )
-      case '(converter)':
+      }
+      case '(converter)': {
         return (
           <Stack.Screen
             name="index"
@@ -105,7 +104,8 @@ export default function StackLayout(params: any) {
             options={{ title: 'Converter' }}
           />
         )
-      default:
+      }
+      default: {
         return (
           <Stack.Screen
             name="index"
@@ -116,6 +116,7 @@ export default function StackLayout(params: any) {
             options={{ title: 'Signer' }}
           />
         )
+      }
     }
   }, [params])
 
@@ -126,6 +127,8 @@ export default function StackLayout(params: any) {
           contentStyle: {
             backgroundColor: Colors.gray[950]
           },
+          headerBackTitleVisible: false,
+          headerBackVisible: false,
           headerBackground: () => (
             <View
               style={{
@@ -135,11 +138,6 @@ export default function StackLayout(params: any) {
                 backgroundColor: Colors.gray[950]
               }}
             />
-          ),
-          headerTitle: () => (
-            <SSText uppercase style={{ letterSpacing: 1 }}>
-              {t('app.name')}
-            </SSText>
           ),
           headerLeft: isShowNav
             ? () => (
@@ -168,10 +166,13 @@ export default function StackLayout(params: any) {
                 </SSIconButton>
               ),
           headerRight: () => <HeaderRight />,
-          headerTitleAlign: 'center',
           headerTintColor: Colors.gray[200],
-          headerBackTitleVisible: false,
-          headerBackVisible: false
+          headerTitle: () => (
+            <SSText uppercase style={{ letterSpacing: 1 }}>
+              {t('app.name')}
+            </SSText>
+          ),
+          headerTitleAlign: 'center'
         }}
       >
         {homeScreen}
@@ -183,7 +184,7 @@ export default function StackLayout(params: any) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: Colors.gray[950]
+    backgroundColor: Colors.gray[950],
+    flex: 1
   }
 })

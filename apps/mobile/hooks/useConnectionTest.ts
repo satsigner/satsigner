@@ -2,13 +2,13 @@ import { useCallback, useEffect, useState } from 'react'
 
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
-import {
-  type Backend,
-  type Network,
-  type ProxyConfig
+import type {
+  Backend,
+  Network,
+  ProxyConfig
 } from '@/types/settings/blockchain'
 
-type NodeInfo = {
+interface NodeInfo {
   version?: string
   blockHeight?: number
   responseTime?: number
@@ -20,7 +20,7 @@ type NodeInfo = {
   hashRate?: string
 }
 
-type testResponse = {
+interface testResponse {
   success: boolean
   error?: string
 }
@@ -32,7 +32,7 @@ export function useConnectionTest() {
   const [lastTestTime, setLastTestTime] = useState<number>(0)
 
   const cleanupPreviousConnection = useCallback(() => {
-    if (!currentClient) return
+    if (!currentClient) {return}
 
     // close TLS connection. Apply only toElectrum Client
     if (currentClient.close && typeof currentClient.close === 'function') {
@@ -52,8 +52,8 @@ export function useConnectionTest() {
     const now = Date.now()
     if (now - lastTestTime < 2000) {
       return {
-        success: false,
-        error: 'Please wait before testing another connection'
+        error: 'Please wait before testing another connection',
+        success: false
       }
     }
 
@@ -74,7 +74,7 @@ export function useConnectionTest() {
 
         const serverInfo = await client.client.initElectrum(
           { client: 'satsigner', version: '1.4' },
-          { maxRetry: 0, callback: null }
+          { callback: null, maxRetry: 0 }
         )
 
         const responseTime = Date.now() - startTime
@@ -97,21 +97,19 @@ export function useConnectionTest() {
             client.client as any
           ).mempool_get_fee_histogram?.()
           if (mempoolInfo && Array.isArray(mempoolInfo)) {
-            mempoolSize = mempoolInfo.reduce((sum: number, item: any) => {
-              return sum + (Array.isArray(item) && item[1] ? item[1] : 0)
-            }, 0)
+            mempoolSize = mempoolInfo.reduce((sum: number, item: any) => sum + (Array.isArray(item) && item[1] ? item[1] : 0), 0)
           }
         } catch {
           // optional
         }
 
         setNodeInfo({
-          version: (serverInfo as any)?.[1] || 'Unknown',
-          software: (serverInfo as any)?.[0] || 'Electrum',
           blockHeight,
-          responseTime,
+          mempoolSize,
           network: network as string,
-          mempoolSize
+          responseTime,
+          software: (serverInfo as any)?.[0] || 'Electrum',
+          version: (serverInfo as any)?.[1] || 'Unknown'
         })
 
         try {
@@ -138,12 +136,12 @@ export function useConnectionTest() {
         const medianFee = feeEstimates['6'] || feeEstimates['3'] || undefined
 
         setNodeInfo({
-          software: 'Esplora',
           blockHeight,
-          responseTime,
-          network: network as string,
+          medianFee,
           mempoolSize,
-          medianFee
+          network: network as string,
+          responseTime,
+          software: 'Esplora'
         })
 
         return {
@@ -165,15 +163,15 @@ export function useConnectionTest() {
     try {
       const result = await Promise.race([testPromise(), timeoutPromise()])
 
-      if (result && result.success) return result
+      if (result && result.success) {return result}
 
       const errorMessage = proxy?.enabled
         ? 'Proxy connection failed. Ensure Tor/Orbot is running.'
         : 'Connection test failed'
 
       return {
-        success: false,
-        error: errorMessage
+        error: errorMessage,
+        success: false
       }
     } catch (error) {
       // Failed to get node info
@@ -183,14 +181,14 @@ export function useConnectionTest() {
       // Still set basic info even if enhanced info fails
       const responseTime = Date.now() - startTime
       setNodeInfo({
-        software: backend === 'electrum' ? 'Electrum' : 'Esplora',
+        network: network as string,
         responseTime,
-        network: network as string
+        software: backend === 'electrum' ? 'Electrum' : 'Esplora'
       })
 
       return {
-        success: false,
-        error: errorMessage
+        error: errorMessage,
+        success: false
       }
     }
   }
@@ -202,16 +200,14 @@ export function useConnectionTest() {
   }
 
   // Cleanup on unmount
-  useEffect(() => {
-    return () => {
+  useEffect(() => () => {
       cleanupPreviousConnection()
-    }
-  }, [cleanupPreviousConnection])
+    }, [cleanupPreviousConnection])
 
   return {
-    testing,
     nodeInfo,
+    resetTest,
     testConnection,
-    resetTest
+    testing
   }
 }

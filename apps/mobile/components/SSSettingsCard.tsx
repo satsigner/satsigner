@@ -7,7 +7,7 @@ import { Colors } from '@/styles'
 import { SSIconChevronRight } from './icons'
 import SSText from './SSText'
 
-type SSSettingsCardsProps = {
+interface SSSettingsCardsProps {
   title: string
   description: string
   icon: React.ReactNode
@@ -44,8 +44,8 @@ function SSSettingsCards({
 
 const styles = StyleSheet.create({
   containerBase: {
-    borderTopWidth: 1,
     borderTopColor: Colors.gray[850],
+    borderTopWidth: 1,
     padding: 24
   }
 })

@@ -9,7 +9,7 @@ import { Colors } from '@/styles'
 
 import SSButton from './SSButton'
 
-type SSWarningModalProps = {
+interface SSWarningModalProps {
   visible: boolean
   onClose(): void
   children: React.ReactNode
@@ -17,9 +17,9 @@ type SSWarningModalProps = {
 
 function SSWarningModal({ visible, onClose, children }: SSWarningModalProps) {
   useEffect(() => {
-    if (Platform.OS !== 'android') return
+    if (Platform.OS !== 'android') {return}
     if (!visible)
-      return StatusBar.setStatusBarBackgroundColor('transparent', false)
+      {return StatusBar.setStatusBarBackgroundColor('transparent', false)}
 
     StatusBar.setStatusBarStyle('light')
     StatusBar.setStatusBarBackgroundColor('black', false)
@@ -27,7 +27,7 @@ function SSWarningModal({ visible, onClose, children }: SSWarningModalProps) {
 
   return (
     <Modal visible={visible} transparent={false}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.black }}>
+      <SafeAreaView style={{ backgroundColor: Colors.black, flex: 1 }}>
         <SSMainLayout black>
           <ScrollView>
             {children}

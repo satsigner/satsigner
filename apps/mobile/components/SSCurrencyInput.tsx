@@ -1,10 +1,5 @@
-import {
-  type ForwardedRef,
-  forwardRef,
-  useEffect,
-  useMemo,
-  useState
-} from 'react'
+import { forwardRef, useEffect, useMemo, useState } from 'react';
+import type { ForwardedRef } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes, Typography } from '@/styles'
@@ -13,7 +8,7 @@ const formatNumberWithCommas = (numStr: string, decimal: number) => {
   let rawText = ''
   if (numStr.indexOf('e') !== -1) {
     const [baseStr, exponentStr] = numStr.split('e')
-    const exponent = parseInt(exponentStr, 10)
+    const exponent = Number.parseInt(exponentStr, 10)
 
     let [integerPart, fractionalPart = ''] = baseStr.split('.')
 
@@ -29,18 +24,18 @@ const formatNumberWithCommas = (numStr: string, decimal: number) => {
     rawText = numStr
   }
 
-  rawText = rawText.replace(/[^\d.]/g, '')
+  rawText = rawText.replaceAll(/[^\d.]/g, '')
 
   if (rawText.includes('.')) {
     let [integerPart, decimalPart] = rawText.split('.')
     integerPart = integerPart.replace(/^0+/, '') || '0'
     decimalPart = decimalPart.slice(0, decimal)
-    const formattedInt = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    const formattedInt = integerPart.replaceAll(/\B(?=(\d{3})+(?!\d))/g, ',')
     return formattedInt + '.' + decimalPart
   }
 
   const cleanNum = rawText.replace(/^0+/, '') || '0'
-  return cleanNum.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return cleanNum.replaceAll(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
 
 type SSCurrencyInputProps = {
@@ -71,18 +66,18 @@ function SSCurrencyInput(
   function handleTextChange(text: string) {
     if (text === '') {
       setLocalValue('0')
-      if (onChangeValue) onChangeValue(0)
+      if (onChangeValue) {onChangeValue(0)}
       return
     }
 
-    const rawValue = text.replace(/,/g, '')
+    const rawValue = text.replaceAll(/,/g, '')
     if (/^(\d*\.?\d*)$/.test(rawValue)) {
       const formattedValue = formatNumberWithCommas(rawValue, decimal)
       setLocalValue(formattedValue)
 
       if (onChangeValue) {
-        const cleanNum = formattedValue.replace(/,/g, '')
-        onChangeValue(parseFloat(cleanNum))
+        const cleanNum = formattedValue.replaceAll(/,/g, '')
+        onChangeValue(Number.parseFloat(cleanNum))
       }
     }
   }
@@ -93,9 +88,9 @@ function SSCurrencyInput(
     const sizeStyle =
       size === 'default'
         ? styles.sizeDefault
-        : size === 'small'
+        : (size === 'small'
           ? styles.sizeSmall
-          : styles.sizeLarge
+          : styles.sizeLarge)
     const alignStyle =
       align === 'center' ? styles.alignCenter : styles.alignLeft
     const newStyle = StyleSheet.compose(
@@ -112,7 +107,7 @@ function SSCurrencyInput(
 
   useEffect(() => {
     if (value !== localValue && value !== undefined) {
-      const rawValue = value?.replace(/,/g, '')
+      const rawValue = value?.replaceAll(/,/g, '')
       setLocalValue(formatNumberWithCommas(rawValue, decimal) || '')
     }
   }, [value]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -134,9 +129,39 @@ function SSCurrencyInput(
 }
 
 const styles = StyleSheet.create({
+  actionRightBase: {
+    position: 'absolute',
+    top: '50%',
+    right: 12,
+    transform: [{ translateY: -12 }]
+  },
+  alignCenter: {
+    textAlign: 'center',
+    paddingHorizontal: 12
+  },
+  alignLeft: {
+    textAlign: 'left',
+    paddingHorizontal: 12
+  },
+  borderInvalid: {
+    borderWidth: 2,
+    borderColor: Colors.error
+  },
   containerBase: {
     position: 'relative',
     width: '100%'
+  },
+  sizeDefault: {
+    fontSize: Sizes.textInput.fontSize.default,
+    height: Sizes.textInput.height.default
+  },
+  sizeLarge: {
+    fontSize: Sizes.textInput.fontSize.large,
+    height: Sizes.textInput.height.large
+  },
+  sizeSmall: {
+    fontSize: Sizes.textInput.fontSize.small,
+    height: Sizes.textInput.height.small
   },
   textInputBase: {
     borderRadius: Sizes.textInput.borderRadius,
@@ -151,36 +176,6 @@ const styles = StyleSheet.create({
   variantOutline: {
     borderWidth: 1,
     borderColor: Colors.gray[400]
-  },
-  sizeDefault: {
-    fontSize: Sizes.textInput.fontSize.default,
-    height: Sizes.textInput.height.default
-  },
-  sizeSmall: {
-    fontSize: Sizes.textInput.fontSize.small,
-    height: Sizes.textInput.height.small
-  },
-  sizeLarge: {
-    fontSize: Sizes.textInput.fontSize.large,
-    height: Sizes.textInput.height.large
-  },
-  alignCenter: {
-    textAlign: 'center',
-    paddingHorizontal: 12
-  },
-  alignLeft: {
-    textAlign: 'left',
-    paddingHorizontal: 12
-  },
-  actionRightBase: {
-    position: 'absolute',
-    top: '50%',
-    right: 12,
-    transform: [{ translateY: -12 }]
-  },
-  borderInvalid: {
-    borderWidth: 2,
-    borderColor: Colors.error
   }
 })
 

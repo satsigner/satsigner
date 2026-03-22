@@ -29,8 +29,8 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import { type Transaction } from '@/types/models/Transaction'
-import { type TxSearchParams } from '@/types/navigation/searchParams'
+import type { Transaction } from '@/types/models/Transaction'
+import type { TxSearchParams } from '@/types/navigation/searchParams'
 import {
   formatConfirmations,
   formatFiatPrice,
@@ -83,29 +83,29 @@ export default function TxDetails() {
   }, [])
 
   async function updateInfo() {
-    if (!tx) return
+    if (!tx) {return}
 
-    if (tx.blockHeight) setHeight(tx.blockHeight.toString())
+    if (tx.blockHeight) {setHeight(tx.blockHeight.toString())}
 
-    if (tx.size) setSize(tx.size.toString())
+    if (tx.size) {setSize(tx.size.toString())}
 
-    if (tx.vsize) setVsize(tx.vsize.toString())
+    if (tx.vsize) {setVsize(tx.vsize.toString())}
 
-    if (tx.weight) setWeight(tx.weight.toString())
+    if (tx.weight) {setWeight(tx.weight.toString())}
 
-    if (tx.fee) setFee(tx.fee.toString())
+    if (tx.fee) {setFee(tx.fee.toString())}
 
-    if (tx.fee && tx.size) setFeePerByte(formatNumber(tx.fee / tx.size))
+    if (tx.fee && tx.size) {setFeePerByte(formatNumber(tx.fee / tx.size))}
 
-    if (tx.fee && tx.vsize) setFeePerVByte(formatNumber(tx.fee / tx.vsize))
+    if (tx.fee && tx.vsize) {setFeePerVByte(formatNumber(tx.fee / tx.vsize))}
 
-    if (tx.version) setVersion(tx.version.toString())
+    if (tx.version) {setVersion(tx.version.toString())}
 
-    if (tx.vin) setInputsCount(tx.vin.length.toString())
+    if (tx.vin) {setInputsCount(tx.vin.length.toString())}
 
-    if (tx.vout) setOutputsCount(tx.vout.length.toString())
+    if (tx.vout) {setOutputsCount(tx.vout.length.toString())}
 
-    if (tx.raw) setRaw(bytesToHex(tx.raw))
+    if (tx.raw) {setRaw(bytesToHex(tx.raw))}
 
     if (tx.vin.some((input) => input.value === undefined)) {
       const vin = await getTransactionInputValues(
@@ -126,7 +126,7 @@ export default function TxDetails() {
     }
   }, [tx]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!accountId || !txid || !tx) return <Redirect href="/" />
+  if (!accountId || !txid || !tx) {return <Redirect href="/" />}
 
   return (
     <ScrollView>
@@ -172,7 +172,7 @@ export default function TxDetails() {
                 [
                   t('transaction.hash'),
                   txid,
-                  { width: '100%', copyToClipboard: true }
+                  { copyToClipboard: true, width: '100%' }
                 ],
                 [t('transaction.size'), size],
                 [t('transaction.weight'), weight],
@@ -214,7 +214,7 @@ export default function TxDetails() {
   )
 }
 
-type SSTxDetailsHeaderProps = {
+interface SSTxDetailsHeaderProps {
   tx: Transaction | undefined
 }
 
@@ -247,19 +247,19 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
       : 0
 
   const updateInfo = async () => {
-    if (!tx) return
+    if (!tx) {return}
 
     const amount = tx.received - tx.sent
     setAmount(amount)
     setType(tx.type)
 
-    if (btcPrice) setPrice(formatFiatPrice(Number(amount), btcPrice))
+    if (btcPrice) {setPrice(formatFiatPrice(Number(amount), btcPrice))}
 
     if (tx.prices) {
       setOldPrice(formatFiatPrice(Number(amount), tx.prices[fiatCurrency] || 0))
     }
 
-    if (tx.vin) setInputsCount(tx.vin.length)
+    if (tx.vin) {setInputsCount(tx.vin.length)}
 
     if (tx.blockHeight && lastKnownBlockHeight === 0) {
       getBlockchainHeight()
@@ -319,9 +319,9 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
             color:
               confirmations < 1
                 ? Colors.error
-                : confirmations < 6
+                : (confirmations < 6
                   ? Colors.warning
-                  : Colors.success
+                  : Colors.success)
           }}
         >
           {formatConfirmations(confirmations)}
@@ -342,13 +342,13 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
     flexDirection: 'column',
+    flexGrow: 1,
     justifyContent: 'space-between',
     padding: 20
   },
   loadingContainer: {
-    paddingVertical: 60,
-    alignItems: 'center'
+    alignItems: 'center',
+    paddingVertical: 60
   }
 })

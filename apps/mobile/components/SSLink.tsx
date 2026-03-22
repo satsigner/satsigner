@@ -3,22 +3,20 @@ import { useMemo } from 'react'
 import { Platform, StyleSheet, TouchableOpacity } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
-import { type TextFontSize } from '@/styles/sizes'
+import type { TextFontSize } from '@/styles/sizes'
 
 import SSText from './SSText'
 
-type SSLinkProps = {
+interface SSLinkProps {
   url: string
   text: string
   size?: TextFontSize
 }
 
 function SSLink({ url, text, size = 'sm' }: SSLinkProps) {
-  const textStyle = useMemo(() => {
-    return StyleSheet.compose(styles.textBase, {
+  const textStyle = useMemo(() => StyleSheet.compose(styles.textBase, {
       ...{ fontSize: Sizes.text.fontSize[size] }
-    })
-  }, [size])
+    }), [size])
 
   return (
     <TouchableOpacity
@@ -33,9 +31,9 @@ function SSLink({ url, text, size = 'sm' }: SSLinkProps) {
 const styles = StyleSheet.create({
   textBase: {
     color: Colors.gray[300],
-    textDecorationLine: 'underline',
+    marginBottom: Platform.OS === 'android' ? -8 : -2.5,
     marginHorizontal: 4,
-    marginBottom: Platform.OS === 'android' ? -8 : -2.5 // TODO: changeme
+    textDecorationLine: 'underline' // TODO: changeme
   }
 })
 

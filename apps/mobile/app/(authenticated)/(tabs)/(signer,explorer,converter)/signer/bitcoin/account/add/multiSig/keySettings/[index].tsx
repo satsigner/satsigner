@@ -13,9 +13,9 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type EntropyType } from '@/types/logic/entropy'
-import { type Key } from '@/types/models/Account'
-import { type MultiSigKeySettingsSearchParams } from '@/types/navigation/searchParams'
+import type { EntropyType } from '@/types/logic/entropy'
+import type { Key } from '@/types/models/Account'
+import type { MultiSigKeySettingsSearchParams } from '@/types/navigation/searchParams'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 import { generateMnemonic, getFingerprintFromMnemonic } from '@/utils/bip39'
 
@@ -88,15 +88,15 @@ export default function MultiSigKeySettings() {
         }
         case 'coin': {
           router.navigate({
-            pathname: '/signer/bitcoin/account/add/entropy/coin',
-            params: { index }
+            params: { index },
+            pathname: '/signer/bitcoin/account/add/entropy/coin'
           })
           break
         }
         case 'dice': {
           router.navigate({
-            pathname: '/signer/bitcoin/account/add/entropy/dice',
-            params: { index }
+            params: { index },
+            pathname: '/signer/bitcoin/account/add/entropy/dice'
           })
           break
         }
@@ -114,7 +114,7 @@ export default function MultiSigKeySettings() {
     setEntropyModalVisible(false)
   }
 
-  if (!name) return <Redirect href="/" />
+  if (!name) {return <Redirect href="/" />}
 
   return (
     <SSMainLayout>

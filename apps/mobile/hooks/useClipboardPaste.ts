@@ -4,7 +4,7 @@ import { toast } from 'sonner-native'
 
 import { t } from '@/locales'
 
-type UseClipboardPasteParams = {
+interface UseClipboardPasteParams {
   onPaste?: (content: string) => void
   onError?: (error: string) => void
   onSuccess?: (content: string) => void
@@ -13,7 +13,7 @@ type UseClipboardPasteParams = {
   showToast?: boolean
 }
 
-type UseClipboardPasteReturn = {
+interface UseClipboardPasteReturn {
   pasteFromClipboard: () => Promise<void>
   pasteFromClipboardWithValidation: (
     validator: (content: string) => { isValid: boolean; error?: string }
@@ -70,7 +70,7 @@ export function useClipboardPaste({
 
       // Call success callback
       onSuccess?.(finalContent)
-    } catch (_error) {
+    } catch {
       const errorMessage = t('watchonly.error.clipboardPaste')
       if (showToast) {
         toast.error(errorMessage)
@@ -121,7 +121,7 @@ export function useClipboardPaste({
 
         // Call success callback
         onSuccess?.(finalContent)
-      } catch (_error) {
+      } catch {
         const errorMessage = t('watchonly.error.clipboardPaste')
         if (showToast) {
           toast.error(errorMessage)
@@ -150,7 +150,7 @@ export function useClipboardPaste({
 
   return {
     pasteFromClipboard,
-    pasteFromClipboardWithValidation,
-    pasteFromClipboardSilent
+    pasteFromClipboardSilent,
+    pasteFromClipboardWithValidation
   }
 }

@@ -7,8 +7,6 @@ import SSLabelConflict from './SSLabelConflict'
 import SSStoryBookLayout from './SSStoryBookLayout'
 
 const meta = {
-  title: 'SSLabelConflict',
-  component: SSLabelConflict,
   args: {
     conflicts: [
       [
@@ -51,10 +49,12 @@ const meta = {
     // eslint-disable-next-line
     onResolve: (labels) => console.log(labels) // useful for debugging
   },
+  component: SSLabelConflict,
   decorators: [SSStoryBookLayout, withBackgrounds],
   parameters: {
     backgrounds: storybookBackgrounds
-  }
+  },
+  title: 'SSLabelConflict'
 } satisfies Meta<typeof SSLabelConflict>
 
 export default meta

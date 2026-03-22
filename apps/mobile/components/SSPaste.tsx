@@ -11,14 +11,11 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { getAllClipboardContent } from '@/utils/clipboard'
-import {
-  type ContentType,
-  detectContentByContext,
-  type DetectedContent
-} from '@/utils/contentDetector'
+import { detectContentByContext } from '@/utils/contentDetector';
+import type { ContentType, DetectedContent } from '@/utils/contentDetector';
 import { stripBitcoinPrefix } from '@/utils/parse'
 
-type SSPasteProps = {
+interface SSPasteProps {
   visible: boolean
   onClose: () => void
   onContentPasted: (content: DetectedContent) => void
@@ -44,7 +41,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
   }, [visible])
 
   useEffect(() => {
-    if (!visible) return
+    if (!visible) {return}
 
     const subscription = AppState.addEventListener(
       'change',
@@ -151,27 +148,35 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
 
   function getContextTitle() {
     switch (context) {
-      case 'bitcoin':
+      case 'bitcoin': {
         return t('paste.title.bitcoin')
-      case 'lightning':
+      }
+      case 'lightning': {
         return t('paste.title.lightning')
-      case 'ecash':
+      }
+      case 'ecash': {
         return t('paste.title.ecash')
-      default:
+      }
+      default: {
         return t('paste.title.default')
+      }
     }
   }
 
   function getContextDescription() {
     switch (context) {
-      case 'bitcoin':
+      case 'bitcoin': {
         return t('paste.description.bitcoin')
-      case 'lightning':
+      }
+      case 'lightning': {
         return t('paste.description.lightning')
-      case 'ecash':
+      }
+      case 'ecash': {
         return t('paste.description.ecash')
-      default:
+      }
+      default: {
         return t('paste.description.default')
+      }
     }
   }
 
@@ -184,9 +189,9 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
       const contentTypeKey = `paste.validation.${detectedContentType}`
       const fallbackKey = 'paste.validation.valid'
       return t(contentTypeKey) || t(fallbackKey)
-    } else {
-      return t('paste.validation.invalid')
     }
+      return t('paste.validation.invalid')
+    
   }
 
   function getButtonLabel() {
@@ -196,30 +201,40 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
 
     if (isValidContent && detectedContentType) {
       switch (detectedContentType) {
-        case 'psbt':
+        case 'psbt': {
           return t('paste.button.previewPsbt')
+        }
         case 'bitcoin_address':
-        case 'bitcoin_uri':
+        case 'bitcoin_uri': {
           return t('paste.button.sendToAddress')
-        case 'bitcoin_transaction':
+        }
+        case 'bitcoin_transaction': {
           return t('paste.button.processTransaction')
-        case 'lightning_invoice':
+        }
+        case 'lightning_invoice': {
           if (context === 'ecash') {
             return t('paste.button.payLightningInvoice')
           }
           return t('paste.button.payInvoice')
-        case 'lnurl':
+        }
+        case 'lnurl': {
           return t('paste.button.processLnurl')
-        case 'ecash_token':
+        }
+        case 'ecash_token': {
           return t('paste.button.processEcashToken')
-        case 'bbqr_fragment':
+        }
+        case 'bbqr_fragment': {
           return t('paste.button.processBBQR')
-        case 'seed_qr':
+        }
+        case 'seed_qr': {
           return t('paste.button.processSeed')
-        case 'ur':
+        }
+        case 'ur': {
           return t('paste.button.processUR')
-        default:
+        }
+        default: {
           return t('paste.button.processContent')
+        }
       }
     } else {
       return t('paste.button.default')
@@ -259,9 +274,9 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
               styles.textInput,
               {
                 borderColor: content.trim()
-                  ? isValidContent
+                  ? (isValidContent
                     ? Colors.success
-                    : Colors.error
+                    : Colors.error)
                   : Colors.gray[600]
               }
             ]}
@@ -284,19 +299,19 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
 
 const styles = StyleSheet.create({
   textInput: {
-    minHeight: 200,
-    maxHeight: 400,
-    height: 'auto',
-    width: '100%',
-    maxWidth: 320,
-    textAlign: 'left',
-    fontSize: 14,
-    letterSpacing: 0.5,
-    fontFamily: 'monospace',
-    borderWidth: 1,
-    padding: 10,
+    backgroundColor: Colors.gray[900],
     borderRadius: 5,
-    backgroundColor: Colors.gray[900]
+    borderWidth: 1,
+    fontFamily: 'monospace',
+    fontSize: 14,
+    height: 'auto',
+    letterSpacing: 0.5,
+    maxHeight: 400,
+    maxWidth: 320,
+    minHeight: 200,
+    padding: 10,
+    textAlign: 'left',
+    width: '100%'
   }
 })
 

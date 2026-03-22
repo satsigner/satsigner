@@ -1,5 +1,5 @@
-import { type Wallet } from 'bdk-rn'
-import { type Network } from 'bdk-rn/lib/lib/enums'
+import type { Wallet } from 'bdk-rn'
+import type { Network } from 'bdk-rn/lib/lib/enums'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -8,7 +8,7 @@ import { MempoolOracle } from '@/api/blockchain'
 import { getBlockchainConfig } from '@/config/servers'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { updateAccountObjectLabels } from '@/utils/account'
 import { formatTimestamp } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
@@ -88,7 +88,7 @@ function useSyncAccountWithWallet() {
         for (const tx of updatedAccount.transactions) {
           if (!tx.prices?.USD && tx.timestamp) {
             const price = priceMap[formatTimestamp(tx.timestamp)]
-            if (price !== undefined) tx.prices = { USD: price }
+            if (price !== undefined) {tx.prices = { USD: price }}
           }
         }
       }
@@ -105,7 +105,7 @@ function useSyncAccountWithWallet() {
     }
   }
 
-  return { syncAccountWithWallet, loading }
+  return { loading, syncAccountWithWallet }
 }
 
 export default useSyncAccountWithWallet

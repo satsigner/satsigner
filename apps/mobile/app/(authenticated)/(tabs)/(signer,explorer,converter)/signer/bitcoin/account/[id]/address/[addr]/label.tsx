@@ -8,10 +8,10 @@ import useNostrSync from '@/hooks/useNostrSync'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { type Account } from '@/types/models/Account'
-import { type Address } from '@/types/models/Address'
-import { type AddrSearchParams } from '@/types/navigation/searchParams'
-import { type Label } from '@/utils/bip329'
+import type { Account } from '@/types/models/Account'
+import type { Address } from '@/types/models/Address'
+import type { AddrSearchParams } from '@/types/navigation/searchParams'
+import type { Label } from '@/utils/bip329'
 
 function AddressLabel() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
@@ -31,8 +31,8 @@ function AddressLabel() {
     const singleLabelData: Label = {
       label,
       ref: addr!,
-      type: 'addr',
-      spendable: true
+      spendable: true,
+      type: 'addr'
     }
 
     if (updatedAccount?.nostr?.autoSync) {
@@ -41,7 +41,7 @@ function AddressLabel() {
     router.back()
   }
 
-  if (!address || !addr) return <Redirect href="/" />
+  if (!address || !addr) {return <Redirect href="/" />}
 
   return (
     <ScrollView>

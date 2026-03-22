@@ -9,7 +9,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { Colors } from '@/styles'
-import { type NavMenuItem } from '@/types/navigation/navMenu'
+import type { NavMenuItem } from '@/types/navigation/navMenu'
 
 export default function Home() {
   const { tab, segment } = useLocalSearchParams()
@@ -20,8 +20,8 @@ export default function Home() {
     (page: NavMenuItem) => {
       if (page.isSoon) {
         router.navigate({
-          pathname: `${segment}/upcoming/`,
-          params: { title: page.title }
+          params: { title: page.title },
+          pathname: `${segment}/upcoming/`
         })
       } else {
         router.navigate(`${segment}${page.url}`)
@@ -76,12 +76,24 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  mainLayout: {
-    flexGrow: 1,
-    paddingHorizontal: 2,
-    gap: 60,
-    paddingTop: 50,
-    marginBottom: 50
+  button: {
+    borderTopWidth: 1,
+    borderTopColor: '#303030',
+    borderBottomWidth: 1,
+    borderBottomColor: '#222222',
+    borderRadius: 0
+  },
+  buttonContainer: {
+    flex: 1
+  },
+  buttonRow: {
+    paddingHorizontal: '5%'
+  },
+  buttonText: {
+    color: Colors.white
+  },
+  buttonTextSoon: {
+    color: Colors.gray[450]
   },
   headerContainer: {
     flex: 1,
@@ -92,23 +104,11 @@ const styles = StyleSheet.create({
     letterSpacing: 6,
     lineHeight: 26
   },
-  buttonRow: {
-    paddingHorizontal: '5%'
-  },
-  buttonContainer: {
-    flex: 1
-  },
-  button: {
-    borderTopWidth: 1,
-    borderTopColor: '#303030',
-    borderBottomWidth: 1,
-    borderBottomColor: '#222222',
-    borderRadius: 0
-  },
-  buttonText: {
-    color: Colors.white
-  },
-  buttonTextSoon: {
-    color: Colors.gray[450]
+  mainLayout: {
+    flexGrow: 1,
+    paddingHorizontal: 2,
+    gap: 60,
+    paddingTop: 50,
+    marginBottom: 50
   }
 })

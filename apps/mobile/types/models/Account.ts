@@ -1,10 +1,10 @@
-import { type Address } from '@/types/models/Address'
-import { type NostrAccount } from '@/types/models/Nostr'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import { type Network } from '@/types/settings/blockchain'
-import { type WordListName } from '@/utils/bip39'
-import { type Label } from '@/utils/bip329'
+import type { Address } from '@/types/models/Address'
+import type { NostrAccount } from '@/types/models/Nostr'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
+import type { Network } from '@/types/settings/blockchain'
+import type { WordListName } from '@/utils/bip39'
+import type { Label } from '@/utils/bip329'
 
 export type PolicyType = 'singlesig' | 'multisig' | 'watchonly'
 
@@ -24,7 +24,7 @@ export type ScriptVersionType =
 export type SyncStatus = 'unsynced' | 'synced' | 'syncing' | 'error' | 'timeout'
 
 // TODO: merge SyncProgress in SyncStatus ?
-export type SyncProgress = {
+export interface SyncProgress {
   totalTasks: number
   tasksDone: number
 }
@@ -36,7 +36,7 @@ export type CreationType =
   | 'importExtendedPub'
   | 'importAddress'
 
-export type Secret = {
+export interface Secret {
   /** Mnemonic words separated with a space */
   mnemonic?: string
   passphrase?: string
@@ -50,7 +50,7 @@ export type Secret = {
   fingerprint?: string
 }
 
-export type Key = {
+export interface Key {
   /** Key position for multisig. Set to 0 if singlesig */
   index: number
   name?: string
@@ -70,7 +70,7 @@ export type DecryptedKey = Omit<Key, 'secret'> & {
   secret: Secret
 }
 
-export type Account = {
+export interface Account {
   id: string
   name: string
   network: Network

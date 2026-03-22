@@ -43,7 +43,7 @@ export type ContentType =
   | 'incompatible'
   | 'unknown'
 
-export type DetectedContent = {
+export interface DetectedContent {
   type: ContentType
   raw: string
   cleaned: string
@@ -63,22 +63,22 @@ async function detectBitcoinContent(
   const descriptorValidation = await validateDescriptorFormat(trimmed)
   if (descriptorValidation) {
     return {
-      type: 'bitcoin_descriptor',
-      raw: data,
       cleaned: trimmed,
       isValid: true,
       metadata: {
         isCombined: isCombinedDescriptor(trimmed)
-      }
+      },
+      raw: data,
+      type: 'bitcoin_descriptor'
     }
   }
 
   if (isPSBT(trimmed)) {
     return {
-      type: 'psbt',
-      raw: data,
       cleaned: trimmed,
-      isValid: true
+      isValid: true,
+      raw: data,
+      type: 'psbt'
     }
   }
 
@@ -86,58 +86,58 @@ async function detectBitcoinContent(
   const transactionData = stripBitcoinPrefix(trimmed)
   if (isBitcoinTransaction(transactionData)) {
     return {
-      type: 'bitcoin_transaction',
-      raw: data,
       cleaned: transactionData,
-      isValid: true
+      isValid: true,
+      raw: data,
+      type: 'bitcoin_transaction'
     }
   }
 
   if (isExtendedPublicKey(trimmed)) {
     return {
-      type: 'extended_public_key',
-      raw: data,
       cleaned: trimmed,
-      isValid: true
+      isValid: true,
+      raw: data,
+      type: 'extended_public_key'
     }
   }
 
   if (isBitcoinUri(trimmed)) {
     return {
-      type: 'bitcoin_uri',
-      raw: data,
       cleaned: trimmed,
-      isValid: true
+      isValid: true,
+      raw: data,
+      type: 'bitcoin_uri'
     }
   }
 
   if (trimmed.toLowerCase().startsWith('bitcoin:')) {
-    const uriPart = trimmed.substring(8)
+    const uriPart = trimmed.slice(8)
     if (isBitcoinUri(trimmed)) {
       return {
-        type: 'bitcoin_uri',
-        raw: data,
         cleaned: trimmed,
-        isValid: true
+        isValid: true,
+        raw: data,
+        type: 'bitcoin_uri'
       }
     }
     const addressMatch = uriPart.match(/^([^?]+)(\?.*)?$/)
     if (addressMatch && isBitcoinAddress(addressMatch[1])) {
       return {
-        type: 'bitcoin_uri',
-        raw: data,
         cleaned: trimmed,
-        isValid: true
+        isValid: true,
+        raw: data,
+        type: 'bitcoin_uri'
       }
     }
   }
 
   if (isBitcoinAddress(trimmed)) {
     return {
-      type: 'bitcoin_address',
-      raw: data,
       cleaned: trimmed,
-      isValid: true
+      isValid: true,
+      raw: data,
+      type: 'bitcoin_address'
     }
   }
 
@@ -146,10 +146,10 @@ async function detectBitcoinContent(
     const addressPart = addressMatch[1]
     if (isBitcoinAddress(addressPart)) {
       return {
-        type: 'bitcoin_uri',
-        raw: data,
         cleaned: trimmed,
-        isValid: true
+        isValid: true,
+        raw: data,
+        type: 'bitcoin_uri'
       }
     }
   }
@@ -172,22 +172,22 @@ function detectLightningContent(data: string): DetectedContent | null {
     const validation = validateLightning(lowerTrimmed)
     if (validation.isValid) {
       return {
-        type: 'lightning_invoice',
-        raw: data,
         cleaned: trimmed,
+        isValid: true,
         metadata: {
           network: validation.appNetwork
         },
-        isValid: true
+        raw: data,
+        type: 'lightning_invoice'
       }
     }
     // Even if validation fails, still detect as lightning invoice
     // to allow the user to see the content type
     return {
-      type: 'lightning_invoice',
-      raw: data,
       cleaned: trimmed,
-      isValid: true
+      isValid: true,
+      raw: data,
+      type: 'lightning_invoice'
     }
   }
 
@@ -195,23 +195,23 @@ function detectLightningContent(data: string): DetectedContent | null {
   if (lowerTrimmed.startsWith('lno')) {
     const validation = validateBolt12(lowerTrimmed)
     return {
-      type: 'lightning_invoice',
-      raw: data,
       cleaned: trimmed,
+      isValid: validation.isValid,
       metadata: {
         isBolt12: true,
         isValid: validation.isValid
       },
-      isValid: validation.isValid
+      raw: data,
+      type: 'lightning_invoice'
     }
   }
 
   if (isLNURL(lowerTrimmed)) {
     return {
-      type: 'lnurl',
-      raw: data,
       cleaned: trimmed,
-      isValid: true
+      isValid: true,
+      raw: data,
+      type: 'lnurl'
     }
   }
 
@@ -226,15 +226,15 @@ function detectEcashContent(data: string): DetectedContent | null {
       const decoded = getDecodedToken(trimmed)
       if (decoded) {
         return {
-          type: 'ecash_token',
-          raw: data,
           cleaned: trimmed,
+          isValid: true,
           metadata: {
             version: trimmed.startsWith('cashuA') ? 'v3' : 'v4',
             mint: decoded.mint,
             proofs: decoded.proofs?.length || 0
           },
-          isValid: true
+          raw: data,
+          type: 'ecash_token'
         }
       }
     } catch {
@@ -260,32 +260,32 @@ async function detectImportContent(
 
   if (isBBQRFragment(trimmed)) {
     return {
-      type: 'bbqr_fragment',
-      raw: data,
       cleaned: trimmed,
-      isValid: true
+      isValid: true,
+      raw: data,
+      type: 'bbqr_fragment'
     }
   }
 
   if (trimmed.toLowerCase().startsWith('ur:crypto-psbt/')) {
     return {
-      type: 'ur',
-      raw: data,
       cleaned: trimmed,
-      isValid: true
+      isValid: true,
+      raw: data,
+      type: 'ur'
     }
   }
 
   const decodedSeed = detectAndDecodeSeedQR(trimmed)
   if (decodedSeed) {
     return {
-      type: 'seed_qr',
-      raw: data,
       cleaned: trimmed,
+      isValid: true,
       metadata: {
         mnemonic: decodedSeed
       },
-      isValid: true
+      raw: data,
+      type: 'seed_qr'
     }
   }
 
@@ -298,17 +298,17 @@ export async function detectContentByContext(
 ): Promise<DetectedContent> {
   if (!data || data.trim().length === 0) {
     return {
-      type: 'unknown',
-      raw: data,
       cleaned: data,
-      isValid: false
+      isValid: false,
+      raw: data,
+      type: 'unknown'
     }
   }
 
   let detected: DetectedContent | null = null
 
   switch (context) {
-    case 'bitcoin':
+    case 'bitcoin': {
       detected = await detectBitcoinContent(data)
       if (!detected) {
         detected = detectLightningContent(data) || detectEcashContent(data)
@@ -317,7 +317,8 @@ export async function detectContentByContext(
         }
       }
       break
-    case 'lightning':
+    }
+    case 'lightning': {
       detected = detectLightningContent(data)
       if (!detected) {
         detected =
@@ -327,7 +328,8 @@ export async function detectContentByContext(
         }
       }
       break
-    case 'ecash':
+    }
+    case 'ecash': {
       detected = detectEcashContent(data) || detectLightningContent(data)
       if (!detected) {
         detected = await detectBitcoinContent(data)
@@ -336,6 +338,7 @@ export async function detectContentByContext(
         }
       }
       break
+    }
   }
 
   if (!detected) {
@@ -344,10 +347,10 @@ export async function detectContentByContext(
 
   if (!detected) {
     return {
-      type: 'unknown',
-      raw: data,
       cleaned: data.trim(),
-      isValid: false
+      isValid: false,
+      raw: data,
+      type: 'unknown'
     }
   }
 
@@ -359,7 +362,7 @@ export function isContentTypeSupportedInContext(
   context: 'bitcoin' | 'lightning' | 'ecash'
 ): boolean {
   switch (context) {
-    case 'bitcoin':
+    case 'bitcoin': {
       return [
         'bitcoin_address',
         'bitcoin_uri',
@@ -367,44 +370,62 @@ export function isContentTypeSupportedInContext(
         'bitcoin_descriptor',
         'extended_public_key'
       ].includes(contentType)
-    case 'lightning':
+    }
+    case 'lightning': {
       return ['lightning_invoice', 'lnurl'].includes(contentType)
-    case 'ecash':
+    }
+    case 'ecash': {
       return ['ecash_token', 'lightning_invoice', 'lnurl'].includes(contentType)
-    default:
+    }
+    default: {
       return false
+    }
   }
 }
 
 export function getContentTypeDescription(contentType: ContentType): string {
   switch (contentType) {
-    case 'bitcoin_address':
+    case 'bitcoin_address': {
       return 'Bitcoin Address'
-    case 'bitcoin_uri':
+    }
+    case 'bitcoin_uri': {
       return 'Bitcoin Payment Request'
-    case 'psbt':
+    }
+    case 'psbt': {
       return 'Partially Signed Bitcoin Transaction'
-    case 'bitcoin_descriptor':
+    }
+    case 'bitcoin_descriptor': {
       return 'Bitcoin Descriptor'
-    case 'extended_public_key':
+    }
+    case 'extended_public_key': {
       return 'Extended Public Key'
-    case 'incompatible':
+    }
+    case 'incompatible': {
       return 'Incompatible Content'
-    case 'lightning_invoice':
+    }
+    case 'lightning_invoice': {
       return 'Lightning Network Invoice'
-    case 'lnurl':
+    }
+    case 'lnurl': {
       return 'LNURL Payment Request'
-    case 'ecash_token':
+    }
+    case 'ecash_token': {
       return 'Ecash Token'
-    case 'bbqr_fragment':
+    }
+    case 'bbqr_fragment': {
       return 'BBQR Fragment'
-    case 'seed_qr':
+    }
+    case 'seed_qr': {
       return 'Seed Phrase QR Code'
-    case 'ur':
+    }
+    case 'ur': {
       return 'Universal Resource'
-    case 'unknown':
+    }
+    case 'unknown': {
       return 'Unknown Content'
-    default:
+    }
+    default: {
       return 'Unknown Content'
+    }
   }
 }

@@ -1,18 +1,19 @@
-import { type PartiallySignedTransaction } from 'bdk-rn'
-import {
-  type TransactionDetails,
-  type TxBuilderResult
+import { Buffer } from 'node:buffer'
+
+import type { PartiallySignedTransaction } from 'bdk-rn'
+import type {
+  TransactionDetails,
+  TxBuilderResult
 } from 'bdk-rn/lib/classes/Bindings'
 import * as bitcoinjs from 'bitcoinjs-lib'
-import { Buffer } from 'buffer'
 
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { t } from '@/locales'
-import { type Account } from '@/types/models/Account'
-import { type Utxo } from '@/types/models/Utxo'
+import type { Account } from '@/types/models/Account'
+import type { Utxo } from '@/types/models/Utxo'
 import { getKeyFingerprint } from '@/utils/account'
 import { parseBitcoinUri } from '@/utils/bip321'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import {
   combinePsbts,
   extractIndividualSignedPsbts,
@@ -24,7 +25,7 @@ import {
 } from '@/utils/psbt'
 import { selectEfficientUtxos } from '@/utils/utxo'
 
-type ProcessorActions = {
+interface ProcessorActions {
   navigate: (
     path: string | { pathname: string; params?: Record<string, unknown> }
   ) => void
@@ -42,7 +43,7 @@ function autoSelectUtxos(
   targetAmount: number,
   actions: Pick<ProcessorActions, 'addInput' | 'setFeeRate'>
 ) {
-  if (!account || account.utxos.length === 0) return
+  if (!account || account.utxos.length === 0) {return}
 
   const { addInput, setFeeRate } = actions
 
@@ -59,9 +60,9 @@ function autoSelectUtxos(
   }
 
   const result = selectEfficientUtxos(account.utxos, targetAmount, 1, {
+    changeOutputSize: 34,
     dustThreshold: 546,
-    inputSize: 148,
-    changeOutputSize: 34
+    inputSize: 148
   })
 
   if (result.error) {
@@ -125,7 +126,7 @@ async function processBitcoinContent(
               await Promise.all(
                 accountMatch.account.keys.map(async (key, index) => {
                   const fp = await getKeyFingerprint(key)
-                  if (fp) keyFingerprintToCosignerIndex.set(fp, index)
+                  if (fp) {keyFingerprintToCosignerIndex.set(fp, index)}
                 })
               )
 
@@ -191,7 +192,7 @@ async function processBitcoinContent(
                 originalPsbt
               )
               Object.entries(individualSignedPsbts).forEach(([key, value]) => {
-                finalSignedPsbtsMap.set(parseInt(key, 10), value as string)
+                finalSignedPsbtsMap.set(Number.parseInt(key, 10), value as string)
               })
             }
             actions.setSignedPsbts?.(finalSignedPsbtsMap)
@@ -213,12 +214,12 @@ async function processBitcoinContent(
             const psbt: PartiallySignedTransaction = { originalPsbt } as any
 
             const txDetails: TransactionDetails = {
-              txid: extractedTxid,
-              fee,
-              sent,
-              received,
               confirmationTime: undefined,
-              transaction: undefined
+              fee,
+              received,
+              sent,
+              transaction: undefined,
+              txid: extractedTxid
             }
 
             const txBuilderResult: TxBuilderResult = {
@@ -233,26 +234,29 @@ async function processBitcoinContent(
       break
     }
 
-    case 'bitcoin_descriptor':
+    case 'bitcoin_descriptor': {
       actions.navigate(
         `/signer/bitcoin/account/add/watchOnly?descriptor=${content.cleaned}`
       )
       break
+    }
 
-    case 'extended_public_key':
+    case 'extended_public_key': {
       actions.navigate(
         `/signer/bitcoin/account/add/watchOnly?extendedPublicKey=${encodeURIComponent(
           content.cleaned
         )}`
       )
       break
+    }
 
-    case 'bitcoin_transaction':
+    case 'bitcoin_transaction': {
       navigate({
         pathname: '/signer/bitcoin/account/[id]/signAndSend/previewTransaction',
         params: { id: accountId, signedPsbt: content.cleaned }
       })
       break
+    }
 
     case 'bitcoin_uri': {
       try {
@@ -282,8 +286,8 @@ async function processBitcoinContent(
           }
 
           navigate({
-            pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview',
-            params: { id: accountId }
+            params: { id: accountId },
+            pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
           })
         } else {
           const addressMatch = content.cleaned.match(
@@ -297,13 +301,13 @@ async function processBitcoinContent(
             let label = ''
 
             if (queryString) {
-              const params = new URLSearchParams(queryString.substring(1))
+              const params = new URLSearchParams(queryString.slice(1))
               const amountParam = params.get('amount')
               const labelParam = params.get('label')
 
               if (amountParam) {
                 amount =
-                  Math.round(parseFloat(amountParam) * SATS_PER_BITCOIN) || 1
+                  Math.round(Number.parseFloat(amountParam) * SATS_PER_BITCOIN) || 1
               }
               if (labelParam) {
                 label = decodeURIComponent(labelParam)
@@ -331,8 +335,8 @@ async function processBitcoinContent(
             }
 
             navigate({
-              pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview',
-              params: { id: accountId }
+              params: { id: accountId },
+              pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
             })
           }
         }
@@ -350,14 +354,14 @@ async function processBitcoinContent(
         }
 
         navigate({
-          pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview',
-          params: { id: accountId }
+          params: { id: accountId },
+          pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
         })
       }
       break
     }
 
-    case 'bitcoin_address':
+    case 'bitcoin_address': {
       if (addOutput) {
         addOutput({
           amount: 1,
@@ -375,6 +379,7 @@ async function processBitcoinContent(
         params: { id: accountId }
       })
       break
+    }
   }
 }
 
@@ -386,7 +391,7 @@ function processLightningContent(
 
   switch (content.type) {
     case 'lightning_invoice':
-    case 'lnurl':
+    case 'lnurl': {
       navigate({
         pathname: '/signer/lightning/pay',
         params: {
@@ -395,6 +400,7 @@ function processLightningContent(
         }
       })
       break
+    }
   }
 }
 
@@ -405,15 +411,16 @@ function processEcashContent(
   const { navigate } = actions
 
   switch (content.type) {
-    case 'ecash_token':
+    case 'ecash_token': {
       navigate({
         pathname: '/signer/ecash/receive',
         params: { token: content.cleaned }
       })
       break
+    }
 
     case 'lightning_invoice':
-    case 'lnurl':
+    case 'lnurl': {
       navigate({
         pathname: '/signer/ecash/send',
         params: {
@@ -422,6 +429,7 @@ function processEcashContent(
         }
       })
       break
+    }
   }
 }
 
@@ -437,23 +445,27 @@ export async function processContentByContext(
   }
 
   switch (context) {
-    case 'bitcoin':
+    case 'bitcoin': {
       if (!accountId) {
         throw new Error(t('error.accountIdRequired'))
       }
       await processBitcoinContent(content, actions, accountId, account)
       break
+    }
 
-    case 'lightning':
+    case 'lightning': {
       processLightningContent(content, actions)
       break
+    }
 
-    case 'ecash':
+    case 'ecash': {
       processEcashContent(content, actions)
       break
+    }
 
-    default:
+    default: {
       throw new Error(t('error.unsupportedContext', { context }))
+    }
   }
 }
 

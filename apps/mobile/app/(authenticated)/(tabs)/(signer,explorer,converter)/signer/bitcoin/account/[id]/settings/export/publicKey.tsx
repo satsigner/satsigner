@@ -15,9 +15,9 @@ import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type Secret } from '@/types/models/Account'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { type Network } from '@/types/settings/blockchain'
+import type { Secret } from '@/types/models/Account'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
+import type { Network } from '@/types/settings/blockchain'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { convertKeyFormat } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
@@ -56,10 +56,10 @@ export default function PublicKeyPage() {
     } else if (scriptVersion === 'P2WSH') {
       // For P2WSH, default to zpub/vpub (more specific)
       return network === 'bitcoin' ? 'zpub' : 'vpub'
-    } else {
+    }
       // For P2SH and others, default to xpub/tpub
       return network === 'bitcoin' ? 'xpub' : 'tpub'
-    }
+    
   }
 
   const [selectedFormat, setSelectedFormat] = useState<PublicKeyFormat>('xpub')
@@ -210,11 +210,11 @@ export default function PublicKeyPage() {
 
   useEffect(() => {
     async function getPublicKey() {
-      if (!account || !keyIndex || !key) return
+      if (!account || !keyIndex || !key) {return}
 
       setIsLoading(true)
       const pin = await getItem(PIN_KEY)
-      if (!pin) return
+      if (!pin) {return}
 
       try {
         // Decrypt the key's secret
@@ -265,21 +265,21 @@ export default function PublicKeyPage() {
   }, [selectedFormat, rawPublicKey, convertPublicKeyFormat])
 
   async function exportPublicKey() {
-    if (!account) return
+    if (!account) {return}
     const date = new Date().toISOString().slice(0, -5)
     const ext = 'txt'
     const filename = `PublicKey_${account.name}_Key${
-      parseInt(keyIndex || '0', 10) + 1
+      Number.parseInt(keyIndex || '0', 10) + 1
     }_${selectedFormat.toUpperCase()}_${date}.${ext}`
     shareFile({
-      filename,
-      fileContent: publicKey,
       dialogTitle: t('export.file.save'),
+      fileContent: publicKey,
+      filename,
       mimeType: `text/plain`
     })
   }
 
-  if (!account) return <Redirect href="/" />
+  if (!account) {return <Redirect href="/" />}
 
   const formatButtons = getFormatButtons(scriptVersion)
 
@@ -287,10 +287,10 @@ export default function PublicKeyPage() {
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSText uppercase>{t('common.publicKeys')}</SSText>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <SSVStack style={{ padding: 20 }}>
@@ -323,7 +323,7 @@ export default function PublicKeyPage() {
                 Loading...
               </SSText>
             </View>
-          ) : publicKey ? (
+          ) : (publicKey ? (
             <View
               style={{
                 backgroundColor: 'white',
@@ -338,7 +338,7 @@ export default function PublicKeyPage() {
                 backgroundColor="white"
               />
             </View>
-          ) : null}
+          ) : null)}
         </View>
 
         {/* Public Key Text */}
@@ -346,9 +346,9 @@ export default function PublicKeyPage() {
           <>
             <View
               style={{
-                padding: 10,
                 backgroundColor: Colors.gray[950],
-                borderRadius: 5
+                borderRadius: 5,
+                padding: 10
               }}
             >
               <SSText color="white" size="lg" type="mono" selectable>

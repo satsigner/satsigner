@@ -5,10 +5,10 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Typography } from '@/styles'
-import { type EcashToken } from '@/types/models/Ecash'
+import type { EcashToken } from '@/types/models/Ecash'
 import { formatNumber } from '@/utils/format'
 
-type SSEcashTokenDetailsProps = {
+interface SSEcashTokenDetailsProps {
   decodedToken: EcashToken
   showMint?: boolean
   showProofs?: boolean
@@ -119,37 +119,34 @@ function SSEcashTokenDetails({
 }
 
 const styles = StyleSheet.create({
-  tokenDetails: {
-    marginTop: 16,
-    marginBottom: 16
+  amountContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'baseline'
   },
-  detailsContent: {
-    gap: 16
-  },
-  detailSection: {
-    gap: 12
+  detailLabel: {
+    minWidth: 100,
+    fontSize: 14
   },
   detailRow: {
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     flexWrap: 'wrap'
   },
-  detailLabel: {
-    minWidth: 100,
-    fontSize: 14
+  detailSection: {
+    gap: 12
   },
   detailValue: {
     flex: 1,
     textAlign: 'right'
   },
-  amountContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'baseline'
+  detailsContent: {
+    gap: 16
   },
-  proofRow: {
-    alignItems: 'flex-start',
-    justifyContent: 'space-between'
+  monospaceInput: {
+    fontFamily: Typography.sfProMono,
+    fontSize: 14,
+    letterSpacing: 0.5
   },
   proofContainer: {
     flex: 1,
@@ -162,10 +159,13 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: Typography.sfProMono
   },
-  monospaceInput: {
-    fontFamily: Typography.sfProMono,
-    fontSize: 14,
-    letterSpacing: 0.5
+  proofRow: {
+    alignItems: 'flex-start',
+    justifyContent: 'space-between'
+  },
+  tokenDetails: {
+    marginTop: 16,
+    marginBottom: 16
   }
 })
 

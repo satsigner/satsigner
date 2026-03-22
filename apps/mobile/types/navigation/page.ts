@@ -1,8 +1,8 @@
-export type PageParams = {
+export interface PageParams {
   [key: string]: string | number
 }
 
-export type PageRoute = {
+export interface PageRoute {
   path: string
   params: PageParams
 }

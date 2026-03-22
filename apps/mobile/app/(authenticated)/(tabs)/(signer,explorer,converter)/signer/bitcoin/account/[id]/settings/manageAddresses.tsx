@@ -1,10 +1,8 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { StyleSheet, TouchableOpacity } from 'react-native'
-import DraggableFlatList, {
-  type RenderItemParams,
-  ScaleDecorator
-} from 'react-native-draggable-flatlist'
+import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
+import type { RenderItemParams } from 'react-native-draggable-flatlist';
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -19,15 +17,15 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { type Account, type Key, type Secret } from '@/types/models/Account'
-import { type Address, type WatchedAddress } from '@/types/models/Address'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { Account, Key, Secret } from '@/types/models/Account'
+import type { Address, WatchedAddress } from '@/types/models/Address'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { getScriptVersionType } from '@/utils/address'
 import { getAllClipboardContent } from '@/utils/clipboard'
 import { randomIv } from '@/utils/crypto'
 import { validateAddress } from '@/utils/validation'
 
-type ManageAccountAddressesProps = {
+interface ManageAccountAddressesProps {
   account: Account
   onUpdateAccount: (newAccount: Account) => void
   onViewAddressDetails: (address: Address['address']) => void
@@ -45,13 +43,11 @@ export default function ManageAccountAddressesPage() {
     ])
   )
 
-  const isMultiAddressWatchOnly = useMemo(() => {
-    return (
+  const isMultiAddressWatchOnly = useMemo(() => (
       account &&
       account.keys.length > 1 &&
       account.keys[0].creationType === 'importAddress'
-    )
-  }, [account])
+    ), [account])
 
   function handleUpdateAccount(newAccount: Account) {
     const addressesNotChanged = newAccount.addresses.every(
@@ -71,7 +67,7 @@ export default function ManageAccountAddressesPage() {
     router.navigate(`/signer/bitcoin/account/${account!.id}/address/${address}`)
   }
 
-  if (!account || !isMultiAddressWatchOnly) return <Redirect href="/" />
+  if (!account || !isMultiAddressWatchOnly) {return <Redirect href="/" />}
 
   return (
     <ManageAccountAddresses
@@ -127,8 +123,7 @@ export function ManageAccountAddresses({
     const newAddress: WatchedAddress = {
       address,
       label: '',
-      transactions: [],
-      utxos: [],
+      new: true,
       scriptVersion: getScriptVersionType(address) || undefined,
       summary: {
         utxos: 0,
@@ -136,7 +131,8 @@ export function ManageAccountAddresses({
         satsInMempool: 0,
         balance: 0
       },
-      new: true
+      transactions: [],
+      utxos: []
     }
     setAddresses([...addresses, newAddress])
   }
@@ -185,10 +181,10 @@ export function ManageAccountAddresses({
         externalDescriptor: `addr(${addr.address})`
       }
       const key: Key = {
-        index,
-        secret,
         creationType: 'importAddress',
-        iv: randomIv()
+        index,
+        iv: randomIv(),
+        secret
       }
       return key
     })
@@ -196,9 +192,9 @@ export function ManageAccountAddresses({
 
     const updatedAccount: Account = {
       ...account,
-      transactions: [],
-      utxos: [],
       addresses,
+      keyCount,
+      keys,
       summary: {
         satsInMempool: 0,
         numberOfUtxos: 0,
@@ -207,8 +203,8 @@ export function ManageAccountAddresses({
         balance: 0
       },
       syncStatus: 'unsynced',
-      keyCount,
-      keys
+      transactions: [],
+      utxos: []
     }
 
     onUpdateAccount(updatedAccount)
@@ -322,11 +318,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: '#333'
   },
-  modalContainer: {
-    justifyContent: 'center',
-    height: '100%',
-    width: '100%'
-  },
   container: {
     flex: 1,
     overflow: 'visible'
@@ -335,5 +326,10 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     marginTop: 0,
     marginBottom: 20
+  },
+  modalContainer: {
+    justifyContent: 'center',
+    height: '100%',
+    width: '100%'
   }
 })

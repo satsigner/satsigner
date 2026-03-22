@@ -1,6 +1,6 @@
 import { t } from '@/locales'
 import type { Account } from '@/types/models/Account'
-import { type Output } from '@/types/models/Output'
+import type { Output } from '@/types/models/Output'
 
 import { getUtxoOutpoint } from './utxo'
 
@@ -18,8 +18,7 @@ function parseAccountAddressesDetails({
     labelsBackup[addr.address] = addr.label
   })
 
-  const addressesDetailed = addresses.map((addr) => {
-    return {
+  const addressesDetailed = addresses.map((addr) => ({
       ...addr,
       transactions: [] as string[],
       utxos: [] as string[],
@@ -30,8 +29,7 @@ function parseAccountAddressesDetails({
         satsInMempool: 0
       },
       scriptVersion
-    }
-  })
+    }))
 
   const addrDictionary: Record<string, number> = {}
 
@@ -66,7 +64,7 @@ function parseAccountAddressesDetails({
       }
 
       const prevTxIndex = txDictionary[prevTxId]
-      const vout = input.previousOutput.vout
+      const {vout} = input.previousOutput
       const prevTx = transactions[prevTxIndex]
 
       if (prevTx.vout[vout] === undefined) {
@@ -128,14 +126,14 @@ function parseAddressDescriptorToAddress(descriptor: string) {
 function parseHexToBytes(hex: string): number[] {
   const bytes = []
   for (let i = 0; i < hex.length; i += 2) {
-    bytes.push(parseInt(hex.substring(i, i + 2), 16))
+    bytes.push(Number.parseInt(hex.substring(i, i + 2), 16))
   }
   return bytes
 }
 
 function parseLabel(rawLabel: string) {
   const matches = rawLabel.match(/#\w[\w\d]+/g)
-  if (!matches) return { label: rawLabel, tags: [] }
+  if (!matches) {return { label: rawLabel, tags: [] }}
 
   const tags = matches.map((match) => match.replace('#', ''))
   const label = rawLabel.replace(/#.*/, '').trim()
@@ -153,7 +151,7 @@ function normalizeUtxoLabelForDisplay(rawLabel: string): string {
 
 function parseLabelTags(label: string, tags: string[]) {
   const trimmedLabel = label.trim()
-  if (tags.length === 0) return trimmedLabel
+  if (tags.length === 0) {return trimmedLabel}
   const labelTagSeparator = label.length === 0 ? '' : ' '
   return trimmedLabel + labelTagSeparator + tags.map((t) => '#' + t).join(' ')
 }
@@ -172,9 +170,9 @@ function parseTXOutputs(input: string): Omit<Output, 'localId'>[] {
     const label = params.get('label')
 
     return {
-      to: address,
       amount: amount ? Number(amount) : 0,
-      label: label ? label.replace(/(^["“]|["”]$)/g, '') : t('common.noLabel')
+      label: label ? label.replace(/(^["“]|["”]$)/g, '') : t('common.noLabel'),
+      to: address
     }
   })
 }
@@ -201,7 +199,7 @@ function parseMultisigDescriptor(descriptor: string) {
   )}/${accountIndex.replace("'", 'h')}/${keyType.replace("'", 'h')}`
 
   const xpubRegex = /(tpub|vpub|upub|zpub)[a-zA-Z0-9]+/g
-  const xpubs = (descriptor.match(xpubRegex) || []).sort()
+  const xpubs = (descriptor.match(xpubRegex) || []).toSorted()
 
   return { hardenedPath, xpubs }
 }
@@ -219,7 +217,7 @@ function parseSinglesigDescriptor(descriptor: string) {
   )}/${accountIndex.replace("'", 'h')}`
 
   const xpubRegex = /(tpub|vpub|upub|zpub)[a-zA-Z0-9]+/g
-  const xpubs = (descriptor.match(xpubRegex) || []).sort()
+  const xpubs = (descriptor.match(xpubRegex) || []).toSorted()
 
   return { hardenedPath, xpubs }
 }
@@ -233,12 +231,12 @@ export function parseDescriptor(descriptor: string) {
 
 function stripBitcoinPrefix(text: string): string {
   if (text.toLowerCase().startsWith('bitcoin:')) {
-    return text.substring(8)
+    return text.slice(8)
   }
   return text
 }
 
-type ParsedUriParams = {
+interface ParsedUriParams {
   address: string
   amount?: number
   label?: string
@@ -250,7 +248,7 @@ type ParsedUriParams = {
  */
 function parseUriParameters(content: string): ParsedUriParams | null {
   const uriMatch = content.match(/^([^?]+)(\?.*)?$/)
-  if (!uriMatch) return null
+  if (!uriMatch) {return null}
 
   const addressPart = uriMatch[1]
   const queryString = uriMatch[2]
@@ -259,13 +257,13 @@ function parseUriParameters(content: string): ParsedUriParams | null {
     return { address: addressPart }
   }
 
-  const params = new URLSearchParams(queryString.substring(1))
+  const params = new URLSearchParams(queryString.slice(1))
   const amountParam = params.get('amount')
   const labelParam = params.get('label')
 
   return {
     address: addressPart,
-    amount: amountParam ? parseFloat(amountParam) : undefined,
+    amount: amountParam ? Number.parseFloat(amountParam) : undefined,
     label: labelParam ? decodeURIComponent(labelParam) : undefined
   }
 }

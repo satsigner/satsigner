@@ -11,12 +11,12 @@ export default class Esplora {
   async _call(params: string, method: 'GET' | 'POST' = 'GET', body?: string) {
     try {
       const response = await fetch(this.esploraUrl + params, {
-        method,
+        body,
         cache: 'no-cache',
         headers: {
           'Content-Type': 'text/plain'
         },
-        body
+        method
       })
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`)
@@ -29,12 +29,12 @@ export default class Esplora {
         return await response.json()
       } else if (contentType.includes('application/octet-stream')) {
         return await response.arrayBuffer()
-      } else {
+      }
         // text/plain, text/html, missing content-type, etc. — return as text
         return await response.text()
-      }
-    } catch (e) {
-      throw new Error(getVerboseErrorMessage(e))
+      
+    } catch (error) {
+      throw new Error(getVerboseErrorMessage(error), { cause: e })
     }
   }
 
@@ -65,8 +65,7 @@ export default class Esplora {
 
   async getTxInputValues(txid: string) {
     return this.getTxInfo(txid).then((data) =>
-      data.vin.map((input) => {
-        return {
+      data.vin.map((input) => ({
           previousOutput: {
             txid: input.txid,
             vout: input.vout
@@ -75,8 +74,7 @@ export default class Esplora {
           scriptSig: parseHexToBytes(input.scriptsig),
           value: input.prevout.value,
           witness: input.witness.map(parseHexToBytes)
-        }
-      })
+        }))
     )
   }
 
@@ -129,9 +127,9 @@ export default class Esplora {
     let lastPage = transactions
     while (lastPage.length >= perPage) {
       // Early stop: if every txid on this page is already known, no need to paginate further
-      if (stopAtTxids && lastPage.every((tx) => stopAtTxids.has(tx.txid))) break
+      if (stopAtTxids && lastPage.every((tx) => stopAtTxids.has(tx.txid))) {break}
 
-      const lastTxId = transactions[transactions.length - 1].txid
+      const lastTxId = transactions.at(-1).txid
       const nextPage = (await this._call(
         `/address/${address}/txs?after_txid=${lastTxId}`
       )) as EsploraTx[]
@@ -179,10 +177,10 @@ export default class Esplora {
 
     try {
       const result = await Promise.race([fetchPromise, timeoutPromise])
-      if (result) return true
+      if (result) {return true}
       return false
-    } catch (e) {
-      throw new Error(getVerboseErrorMessage(e))
+    } catch (error) {
+      throw new Error(getVerboseErrorMessage(error), { cause: e })
     }
   }
 }
@@ -215,9 +213,9 @@ const verboseErrorMessages = [
 ]
 
 function getVerboseErrorMessage(error: unknown) {
-  if (!(error instanceof Error)) return 'Unkown error'
+  if (!(error instanceof Error)) {return 'Unkown error'}
   for (const errorType of verboseErrorMessages) {
-    if (error.message.match(errorType.error)) {
+    if (errorType.error.test(error.message)) {
       return errorType.reason
     }
   }

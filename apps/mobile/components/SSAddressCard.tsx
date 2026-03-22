@@ -5,13 +5,13 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn } from '@/locales'
-import { type WatchedAddress } from '@/types/models/Address'
+import type { WatchedAddress } from '@/types/models/Address'
 import { formatNumber } from '@/utils/format'
 
 import { SSIconEyeOn, SSIconTrash } from './icons'
 import SSDetailsList from './SSDetailsList'
 
-type AddressCardProps = {
+interface AddressCardProps {
   address: WatchedAddress
   showDelete?: boolean
   showView?: boolean
@@ -35,9 +35,9 @@ export function AddressCard({
         <SSText uppercase weight="bold">
           {index === -1
             ? t('bitcoin.address')
-            : address.new
+            : (address.new
               ? tl('addressIndexNew', { index })
-              : tl('addressIndex', { index })}
+              : tl('addressIndex', { index }))}
         </SSText>
         <SSHStack gap="sm">
           {showView && (

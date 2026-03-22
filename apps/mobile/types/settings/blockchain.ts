@@ -2,13 +2,13 @@ export type Backend = 'electrum' | 'esplora'
 
 export type Network = 'bitcoin' | 'testnet' | 'signet'
 
-export type ProxyConfig = {
+export interface ProxyConfig {
   enabled: boolean
   host: string
   port: number
 }
 
-export type Server = {
+export interface Server {
   name: string
   backend: Backend
   network: Network
@@ -16,7 +16,7 @@ export type Server = {
   proxy?: ProxyConfig
 }
 
-export type Config = {
+export interface Config {
   timeout: number
   retries: number
   stopGap: number

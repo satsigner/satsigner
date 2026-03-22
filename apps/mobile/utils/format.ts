@@ -1,12 +1,12 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { t } from '@/locales'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import { type PageParams } from '@/types/navigation/page'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
+import type { PageParams } from '@/types/navigation/page'
 import { bytes as _bytes } from '@/utils/bytes'
 
 function formatAddress(address: string, character: number = 8) {
-  if (address.length <= 16) return address
+  if (address.length <= 16) {return address}
 
   const beginning = address.substring(0, character)
   const end = address.substring(address.length - character, address.length)
@@ -22,12 +22,12 @@ function formatNumber(
   const formatted = padding
     ? (n / 10 ** 8).toFixed(8)
     : n.toLocaleString(undefined, {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals
+        maximumFractionDigits: decimals,
+        minimumFractionDigits: decimals
       })
 
   const [integerPart, decimalPart] = formatted.split('.')
-  const formattedInteger = integerPart.replace(
+  const formattedInteger = integerPart.replaceAll(
     /(\d)(?=(\d{3})+(?!\d))/g,
     '$1' + separator
   )
@@ -52,8 +52,8 @@ function formatDate(date: Date | string | number) {
     typeof date === 'string' || typeof date === 'number' ? new Date(date) : date
 
   return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
     day: 'numeric',
+    month: 'short',
     year: 'numeric'
   }).format(dateObj)
 }
@@ -77,8 +77,8 @@ function formatPageUrl(path: string, params: PageParams) {
 
 function formatPercentualChange(value: number, base: number) {
   if (value > base)
-    return '+' + formatNumber(((value - base) * 100) / base, 1) + '%'
-  else return '-' + formatNumber(((base - value) * 100) / base, 1) + '%'
+    {return '+' + formatNumber(((value - base) * 100) / base, 1) + '%'}
+return '-' + formatNumber(((base - value) * 100) / base, 1) + '%'
 }
 
 function formatFiatPrice(sats: number, btcPrice: number) {
@@ -97,12 +97,12 @@ function formatConfirmations(confirmations: number) {
   const manyBlocks = (blocks: string) =>
     t('bitcoin.confirmations.manyBlocks', { blocks })
 
-  if (confirmations < 1_000) {
+  if (confirmations < 1000) {
     return manyBlocks(`${confirmations}`)
   }
 
   if (confirmations < 1_000_000) {
-    const roundedValue = Math.round(confirmations / 1_000)
+    const roundedValue = Math.round(confirmations / 1000)
     return manyBlocks(`~${roundedValue}k`)
   }
 
@@ -157,23 +157,23 @@ function formatTxOutputToUtxo(
   vout: number,
   keychain: 'internal' | 'external' = 'external'
 ): Utxo | undefined {
-  if (!tx || !tx.vout[vout]) return undefined
+  if (!tx || !tx.vout[vout]) {return undefined}
   const output = tx.vout[vout]
   return {
-    txid: tx.id,
-    vout,
-    value: output.value,
-    label: output.label,
     addressTo: output.address,
+    keychain,
+    label: output.label,
     script: output.script,
     timestamp: tx.timestamp,
-    keychain
+    txid: tx.id,
+    value: output.value,
+    vout
   }
 }
 
 function formatBytes(bytes: number) {
-  if (bytes >= 1_000_000) return `${_bytes.toMega(bytes).toFixed(2)} MB`
-  if (bytes >= 1_000) return `${_bytes.toKilo(bytes).toFixed(1)} KB`
+  if (bytes >= 1_000_000) {return `${_bytes.toMega(bytes).toFixed(2)} MB`}
+  if (bytes >= 1000) {return `${_bytes.toKilo(bytes).toFixed(1)} KB`}
   return `${bytes} B`
 }
 
@@ -187,7 +187,7 @@ function trimOnionAddress(url: string): string {
   const port = onionMatch[2] || ''
 
   const onionPart = fullOnion.replace('.onion', '')
-  const first5 = onionPart.substring(0, 5)
+  const first5 = onionPart.slice(0, 5)
   const last5 = onionPart.substring(onionPart.length - 5)
 
   const trimmedOnion = `${first5}...${last5}.onion${port}`

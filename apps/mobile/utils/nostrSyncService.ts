@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events'
+import { EventEmitter } from 'node:events'
 
 import { NostrAPI } from '@/api/nostr'
 import {
@@ -7,13 +7,14 @@ import {
   PROTOCOL_SUBSCRIPTION_LIMIT
 } from '@/constants/nostr'
 import { useNostrStore } from '@/store/nostr'
-import { type Account } from '@/types/models/Account'
-import { type NostrMessage } from '@/types/models/Nostr'
-import { calculateRetryDelay, type RetryConfig } from '@/utils/retryManager'
+import type { Account } from '@/types/models/Account'
+import type { NostrMessage } from '@/types/models/Nostr'
+import { calculateRetryDelay } from '@/utils/retryManager';
+import type { RetryConfig } from '@/utils/retryManager';
 
 export type SyncStatus = 'idle' | 'connecting' | 'syncing' | 'error'
 
-export type SyncStatusEvent = {
+export interface SyncStatusEvent {
   accountId: string
   status: SyncStatus
   lastError?: string
@@ -21,7 +22,7 @@ export type SyncStatusEvent = {
   messagesReceived?: number
 }
 
-type SubscriptionHandle = {
+interface SubscriptionHandle {
   accountId: string
   dataExchangeApi: NostrAPI | null
   protocolApi: NostrAPI | null
@@ -46,13 +47,13 @@ function emitStatus(
 ): void {
   const event: SyncStatusEvent = {
     accountId,
-    status,
-    lastError
+    lastError,
+    status
   }
   useNostrStore.getState().setSyncStatus(accountId, {
-    status,
     lastError,
-    lastSyncAt: status === 'syncing' ? Date.now() : undefined
+    lastSyncAt: status === 'syncing' ? Date.now() : undefined,
+    status
   })
   emitter.emit('status', event)
 }
@@ -160,7 +161,7 @@ async function createDataExchangeSubscription(
 
 async function cleanupSubscription(accountId: string): Promise<void> {
   const handle = subscriptions.get(accountId)
-  if (!handle) return
+  if (!handle) {return}
 
   subscriptions.delete(accountId)
   useNostrStore.getState().setSyncing(accountId, false)
@@ -191,11 +192,11 @@ async function doStartSync(
   const { autoSync, commonNsec, commonNpub, deviceNsec, deviceNpub, relays } =
     account.nostr || {}
 
-  if (!autoSync) return
-  if (!relays?.length) return
-  if (!commonNsec || !commonNpub || !deviceNsec || !deviceNpub) return
-  if (isSubscribingMap.get(account.id)) return
-  if (subscriptions.has(account.id)) return
+  if (!autoSync) {return}
+  if (!relays?.length) {return}
+  if (!commonNsec || !commonNpub || !deviceNsec || !deviceNpub) {return}
+  if (isSubscribingMap.get(account.id)) {return}
+  if (subscriptions.has(account.id)) {return}
 
   isSubscribingMap.set(account.id, true)
   emitStatus(account.id, 'connecting')
@@ -212,9 +213,9 @@ async function doStartSync(
     ])
 
     subscriptions.set(account.id, {
-      protocolApi,
+      accountId: account.id,
       dataExchangeApi,
-      accountId: account.id
+      protocolApi
     })
 
     retryAttempts.delete(account.id)
@@ -234,8 +235,8 @@ async function doFetchOnce(
   const { autoSync, commonNsec, commonNpub, deviceNsec, deviceNpub, relays } =
     account.nostr || {}
 
-  if (!autoSync) return
-  if (!relays?.length || !commonNsec || !commonNpub) return
+  if (!autoSync) {return}
+  if (!relays?.length || !commonNsec || !commonNpub) {return}
 
   emitStatus(account.id, 'syncing')
 
@@ -318,12 +319,12 @@ async function doFetchOnce(
     ])
 
     emitStatus(account.id, 'idle')
-  } catch (err) {
+  } catch (error) {
     await Promise.allSettled([
       protocolApi.closeAllSubscriptions(),
       dataExchangeApi?.closeAllSubscriptions()
     ])
-    throw err
+    throw error
   }
 }
 
@@ -338,11 +339,11 @@ function startSync(
   account: Account,
   onLoadingChange?: (loading: boolean) => void
 ): void {
-  doStartSync(account, onLoadingChange).catch((err) => {
+  doStartSync(account, onLoadingChange).catch((error) => {
     emitStatus(
       account.id,
       'error',
-      err instanceof Error ? err.message : String(err)
+      error instanceof Error ? error.message : String(error)
     )
     scheduleRetry(account, onLoadingChange)
   })
@@ -352,11 +353,11 @@ function fetchOnce(
   account: Account,
   onLoadingChange?: (loading: boolean) => void
 ): void {
-  doFetchOnce(account, onLoadingChange).catch((err) => {
+  doFetchOnce(account, onLoadingChange).catch((error) => {
     emitStatus(
       account.id,
       'error',
-      err instanceof Error ? err.message : String(err)
+      error instanceof Error ? error.message : String(error)
     )
   })
 }
@@ -381,7 +382,7 @@ function restartSync(
 }
 
 function stopAll(): void {
-  const accountIds = Array.from(subscriptions.keys())
+  const accountIds = [...subscriptions.keys()]
   for (const accountId of accountIds) {
     stopSync(accountId)
   }
@@ -396,7 +397,7 @@ function hasActiveSubscription(accountId: string): boolean {
 }
 
 function getActiveAccountIds(): string[] {
-  return Array.from(subscriptions.keys())
+  return [...subscriptions.keys()]
 }
 
 function getActiveSubscriptionCount(): number {

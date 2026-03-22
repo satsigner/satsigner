@@ -1,17 +1,15 @@
 import { toast } from 'sonner-native'
 
 import { useAccountsStore } from '@/store/accounts'
-import { type MessageHandler } from '@/types/nostrMessageHandlers'
+import type { MessageHandler } from '@/types/nostrMessageHandlers'
 import { JSONLtoLabels } from '@/utils/bip329'
 
 const labelsHandler: MessageHandler = {
-  canHandle: (context) => {
-    return context.data?.data_type === 'LabelsBip329'
-  },
+  canHandle: (context) => context.data?.data_type === 'LabelsBip329',
 
   handle: async (context) => {
     const { account, data } = context
-    if (!data) return
+    if (!data) {return}
 
     try {
       const labels = JSONLtoLabels(String(data.data ?? ''))

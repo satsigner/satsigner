@@ -22,10 +22,10 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useNostrStore } from '@/store/nostr'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { type Output } from '@/types/models/Output'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { Output } from '@/types/models/Output'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { bytesToHex } from '@/utils/scripts'
 import { legacyEstimateTransactionSize } from '@/utils/transaction'
 
@@ -88,31 +88,31 @@ export default function SignTransaction() {
   const [rawTx, setRawTx] = useState('')
 
   const transaction = useMemo(() => {
-    if (!txBuilderResult) return null
+    if (!txBuilderResult) {return null}
 
     const { size, vsize } = legacyEstimateTransactionSize(
       inputs.size,
       outputs.length
     )
 
-    const vin = Array.from(inputs.values()).map((input: Utxo) => ({
+    const vin = [...inputs.values()].map((input: Utxo) => ({
+      label: input.label || '',
       previousOutput: { txid: input.txid, vout: input.vout },
-      value: input.value,
-      label: input.label || ''
+      value: input.value
     }))
 
     const vout = outputs.map((output: Output) => ({
       address: output.to,
-      value: output.amount,
-      label: output.label || ''
+      label: output.label || '',
+      value: output.amount
     }))
 
     return {
       id: txBuilderResult.txDetails.txid,
       size,
-      vsize,
       vin,
-      vout
+      vout,
+      vsize
     } as never as Transaction
   }, [inputs, outputs, txBuilderResult])
 
@@ -183,7 +183,7 @@ export default function SignTransaction() {
         await handleBroadcastMultiSig()
       } else if (psbt) {
         const success = await handleBroadcastSingleSig()
-        if (!success) throw new Error('Broadcast failed')
+        if (!success) {throw new Error('Broadcast failed')}
       } else {
         throw new Error('No transaction to broadcast')
       }
@@ -232,7 +232,7 @@ export default function SignTransaction() {
       }
 
       // For singlesig wallets, sign the transaction
-      if (!wallet || !txBuilderResult) return
+      if (!wallet || !txBuilderResult) {return}
 
       const partiallySignedTransaction = await signTransaction(
         txBuilderResult,
@@ -250,20 +250,20 @@ export default function SignTransaction() {
     signTransactionData()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!account || !txBuilderResult) return <Redirect href="/" />
+  if (!account || !txBuilderResult) {return <Redirect href="/" />}
 
   return (
     <>
-      <SSMainLayout style={{ paddingTop: 0, paddingBottom: 20 }}>
+      <SSMainLayout style={{ paddingBottom: 20, paddingTop: 0 }}>
         <ScrollView>
           <SSVStack justifyBetween style={{ minHeight: '100%' }}>
             <SSVStack itemsCenter>
               <SSText size="lg" weight="bold">
                 {broadcasted
                   ? t('sent.broadcasted')
-                  : account?.policyType === 'multisig' && signedTx
+                  : (account?.policyType === 'multisig' && signedTx
                     ? tn('readyToBroadcast')
-                    : tn(signed ? 'signed' : 'signing')}
+                    : tn(signed ? 'signed' : 'signing'))}
               </SSText>
 
               {signed && !broadcasted && (
@@ -288,7 +288,7 @@ export default function SignTransaction() {
                   {t('transaction.build.preview.contents')}
                 </SSText>
                 {transaction && (
-                  <View style={{ width: '100%', overflow: 'hidden' }}>
+                  <View style={{ overflow: 'hidden', width: '100%' }}>
                     <SSTransactionChart
                       transaction={transaction}
                       ownAddresses={ownAddresses}
@@ -316,7 +316,7 @@ export default function SignTransaction() {
                         return (
                           <SSText color="muted" size="sm">
                             Invalid transaction format:{' '}
-                            {rawTx.substring(0, 100)}
+                            {rawTx.slice(0, 100)}
                             ...
                           </SSText>
                         )

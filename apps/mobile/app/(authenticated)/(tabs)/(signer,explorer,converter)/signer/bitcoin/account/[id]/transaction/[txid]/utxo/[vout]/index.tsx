@@ -21,12 +21,12 @@ import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import { type UtxoSearchParams } from '@/types/navigation/searchParams'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
+import type { UtxoSearchParams } from '@/types/navigation/searchParams'
 import { formatDate, formatNumber } from '@/utils/format'
 
-type UtxoDetailsProps = {
+interface UtxoDetailsProps {
   accountId: string
   onPressAddress: () => void
   onPressTx: () => void
@@ -66,7 +66,7 @@ function UtxoDetails({
   const GRAPH_WIDTH = width - outerContainerPadding * 2
 
   const currentUtxoInputs = useMemo(() => {
-    if (!utxo) return []
+    if (!utxo) {return []}
     return [utxo]
   }, [utxo])
 
@@ -74,8 +74,8 @@ function UtxoDetails({
     if (tx) {
       const { blockHeight, timestamp } = tx
       setTxid(tx.id)
-      if (blockHeight) setBlockHeight(blockHeight.toString())
-      if (timestamp) setBlockTime(formatDate(timestamp))
+      if (blockHeight) {setBlockHeight(blockHeight.toString())}
+      if (timestamp) {setBlockTime(formatDate(timestamp))}
     }
 
     if (utxo) {
@@ -109,7 +109,7 @@ function UtxoDetails({
               <GestureHandlerRootView style={{ flex: 1 }}>
                 <SSBubbleChart
                   utxos={allAccountUtxos}
-                  canvasSize={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
+                  canvasSize={{ height: GRAPH_HEIGHT, width: GRAPH_WIDTH }}
                   inputs={currentUtxoInputs}
                   dimUnselected
                   onPress={({ txid, vout }: Utxo) =>
@@ -225,11 +225,11 @@ function UtxoDetailsPage() {
   const utxo = useGetAccountTransactionOutput(accountId!, txid!, Number(vout!))
 
   const addressIndex = useMemo(() => {
-    if (!account || !utxo?.addressTo) return undefined
+    if (!account || !utxo?.addressTo) {return undefined}
     const idx = account.addresses.findIndex(
       (a) => (a.address || '').trim() === (utxo.addressTo || '').trim()
     )
-    if (idx < 0) return undefined
+    if (idx === -1) {return undefined}
     const addressEntry = account.addresses[idx]
     return addressEntry?.index ?? idx
   }, [account, utxo?.addressTo])
@@ -242,19 +242,19 @@ function UtxoDetailsPage() {
   const addInput = useTransactionBuilderStore((state) => state.addInput)
 
   function navigateToTx() {
-    if (!accountId || !txid) return
+    if (!accountId || !txid) {return}
     router.navigate(`/signer/bitcoin/account/${accountId}/transaction/${txid}`)
   }
 
   function navigateToAddress() {
-    if (!accountId || !utxo || !utxo.addressTo || utxo.addressTo === '-') return
+    if (!accountId || !utxo || !utxo.addressTo || utxo.addressTo === '-') {return}
     router.navigate(
       `/signer/bitcoin/account/${accountId}/address/${utxo.addressTo}`
     )
   }
 
   function handleSpendUtxo() {
-    if (!utxo || !accountId) return
+    if (!utxo || !accountId) {return}
     addInput(utxo)
     router.navigate(
       `/signer/bitcoin/account/${accountId}/signAndSend/ioPreview`
@@ -286,13 +286,13 @@ function UtxoDetailsPage() {
 }
 
 const styles = StyleSheet.create({
-  outerContainer: {
-    padding: 20
-  },
   innerContainer: {
     flexGrow: 1,
     flexDirection: 'column',
     justifyContent: 'space-between'
+  },
+  outerContainer: {
+    padding: 20
   }
 })
 

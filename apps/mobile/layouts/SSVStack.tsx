@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import { Layout } from '@/styles'
-import { type VStackGap } from '@/styles/layout'
+import type { VStackGap } from '@/styles/layout'
 
 type SSVStackProps = {
   gap?: VStackGap
@@ -20,8 +20,7 @@ export default function SSVStack({
   children,
   style
 }: SSVStackProps) {
-  const containerStyle = useMemo(() => {
-    return StyleSheet.compose(
+  const containerStyle = useMemo(() => StyleSheet.compose(
       {
         ...styles.containerBase,
         ...{ gap: Layout.vStack.gap[gap] },
@@ -30,8 +29,7 @@ export default function SSVStack({
         ...(widthFull ? styles.widthFull : {})
       },
       style
-    )
-  }, [gap, justifyBetween, itemsCenter, widthFull, style])
+    ), [gap, justifyBetween, itemsCenter, widthFull, style])
 
   return <View style={containerStyle}>{children}</View>
 }
@@ -40,12 +38,12 @@ const styles = StyleSheet.create({
   containerBase: {
     flexDirection: 'column'
   },
+  itemsCenter: {
+    alignItems: 'center'
+  },
   justifyBetween: {
     flex: 1,
     justifyContent: 'space-between'
-  },
-  itemsCenter: {
-    alignItems: 'center'
   },
   widthFull: {
     width: '100%'

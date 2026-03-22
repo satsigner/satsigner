@@ -6,11 +6,12 @@ import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { getWordList, type WordListName } from '@/utils/bip39'
+import { getWordList } from '@/utils/bip39';
+import type { WordListName } from '@/utils/bip39';
 import { setClipboard } from '@/utils/clipboard'
 import { encodeStandardSeedQR } from '@/utils/seedqr'
 
-type SSSeedQRProps = {
+interface SSSeedQRProps {
   mnemonic: string
   mnemonicWordList?: WordListName
   visible: boolean
@@ -26,7 +27,7 @@ export default function SSSeedQR({
   title
 }: SSSeedQRProps) {
   // Format mnemonic by trimming whitespace and ensuring single spaces between words
-  const formattedMnemonic = mnemonic.trim().replace(/\s+/g, ' ')
+  const formattedMnemonic = mnemonic.trim().replaceAll(/\s+/g, ' ')
   const wordList = getWordList(mnemonicWordList)
 
   // Only encode if we have a valid mnemonic
@@ -96,16 +97,16 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center'
   },
-  qrContainer: {
-    padding: 10,
-    backgroundColor: Colors.white,
-    borderRadius: 8
-  },
   dataContainer: {
     width: '100%',
     padding: 10,
     backgroundColor: Colors.gray[900],
     borderRadius: 8,
     marginTop: 10
+  },
+  qrContainer: {
+    padding: 10,
+    backgroundColor: Colors.white,
+    borderRadius: 8
   }
 })

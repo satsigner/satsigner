@@ -16,8 +16,8 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useSettingsStore } from '@/store/settings'
-import { type EntropyType } from '@/types/logic/entropy'
-import { type Key } from '@/types/models/Account'
+import type { EntropyType } from '@/types/logic/entropy'
+import type { Key } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 import {
   generateMnemonic,
@@ -106,15 +106,15 @@ export default function SingleSig() {
         }
         case 'coin': {
           router.navigate({
-            pathname: '/signer/bitcoin/account/add/entropy/coin',
-            params: { index: 0 }
+            params: { index: 0 },
+            pathname: '/signer/bitcoin/account/add/entropy/coin'
           })
           break
         }
         case 'dice': {
           router.navigate({
-            pathname: '/signer/bitcoin/account/add/entropy/dice',
-            params: { index: 0 }
+            params: { index: 0 },
+            pathname: '/signer/bitcoin/account/add/entropy/dice'
           })
           break
         }
@@ -140,7 +140,7 @@ export default function SingleSig() {
     setEntropyModalVisible(false)
   }
 
-  if (!name) return <Redirect href="/" />
+  if (!name) {return <Redirect href="/" />}
 
   return (
     <SSMainLayout>

@@ -1,4 +1,5 @@
-import { KeychainKind, type Network } from 'bdk-rn/lib/lib/enums'
+import { KeychainKind } from 'bdk-rn/lib/lib/enums';
+import type { Network } from 'bdk-rn/lib/lib/enums';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
@@ -19,7 +20,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type GenerateMnemonicSearchParams } from '@/types/navigation/searchParams'
+import type { GenerateMnemonicSearchParams } from '@/types/navigation/searchParams'
 import { getDescriptorsFromKey } from '@/utils/bip32'
 import {
   getExtendedPublicKeyFromMnemonic,
@@ -89,8 +90,8 @@ export default function GenerateMnemonic() {
   }
 
   function handleOnPressCancel() {
-    if (policyType === 'multisig') router.back()
-    else if (policyType === 'singlesig') router.dismissAll()
+    if (policyType === 'multisig') {router.back()}
+    else if (policyType === 'singlesig') {router.dismissAll()}
   }
 
   async function handleOnPressConfirm() {
@@ -145,7 +146,7 @@ export default function GenerateMnemonic() {
           network as Network
         )
         const parsedDescriptor = await parseDescriptor(externalDescriptor)
-        derivationPath = parsedDescriptor.derivationPath
+        ({ derivationPath } = parsedDescriptor)
       } catch {
         // Use default derivation path if extraction fails
         const rawDerivationPath = getDerivationPathFromScriptVersion(

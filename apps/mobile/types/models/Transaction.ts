@@ -1,6 +1,6 @@
-import { type Prices } from './Blockchain'
+import type { Prices } from './Blockchain'
 
-export type Transaction = {
+export interface Transaction {
   id: string
   type: 'send' | 'receive'
   sent: number

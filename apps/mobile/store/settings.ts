@@ -2,9 +2,10 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import mmkvStorage from '@/storage/mmkv'
-import { DEFAULT_WORD_LIST, type WordListName } from '@/utils/bip39'
+import { DEFAULT_WORD_LIST } from '@/utils/bip39';
+import type { WordListName } from '@/utils/bip39';
 
-type SettingsState = {
+interface SettingsState {
   mnemonicWordList: WordListName
   useZeroPadding: boolean
   currencyUnit: 'sats' | 'btc'
@@ -13,7 +14,7 @@ type SettingsState = {
   privacyMode: boolean
 }
 
-type SettingsAction = {
+interface SettingsAction {
   setCurrencyUnit: (currencyUnit: SettingsState['currencyUnit']) => void
   setUseZeroPadding: (useZeroPadding: SettingsState['useZeroPadding']) => void
   setShowWarning: (showWarning: SettingsState['showWarning']) => void
@@ -26,16 +27,10 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
   persist(
     (set) => ({
       currencyUnit: 'sats',
-      useZeroPadding: false,
-      showWarning: true,
-      skipSeedConfirmation: true,
       mnemonicWordList: DEFAULT_WORD_LIST,
       privacyMode: false,
       setCurrencyUnit: (currencyUnit) => {
         set({ currencyUnit })
-      },
-      setUseZeroPadding: (useZeroPadding) => {
-        set({ useZeroPadding })
       },
       setMnemonicWordList: (mnemonicWordList) => {
         set({ mnemonicWordList })
@@ -46,8 +41,14 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       setSkipSeedConfirmation: (skipSeedConfirmation) => {
         set({ skipSeedConfirmation })
       },
+      setUseZeroPadding: (useZeroPadding) => {
+        set({ useZeroPadding })
+      },
+      showWarning: true,
+      skipSeedConfirmation: true,
       togglePrivacyMode: () =>
-        set((state) => ({ privacyMode: !state.privacyMode }))
+        set((state) => ({ privacyMode: !state.privacyMode })),
+      useZeroPadding: false
     }),
     { name: 'settings-store', storage: createJSONStorage(() => mmkvStorage) }
   )

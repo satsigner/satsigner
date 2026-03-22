@@ -8,7 +8,7 @@ export function encodeStandardSeedQR(
   return words
     .map((word) => {
       const index = wordList.indexOf(word)
-      if (index === -1) throw new Error(`Invalid mnemonic word: ${word}`)
+      if (index === -1) {throw new Error(`Invalid mnemonic word: ${word}`)}
       return index.toString().padStart(4, '0')
     })
     .join('')
@@ -22,7 +22,7 @@ export function encodeCompactSeedQR(
   const binaryString = words
     .map((word) => {
       const index = wordList.indexOf(word)
-      if (index === -1) throw new Error(`Invalid mnemonic word: ${word}`)
+      if (index === -1) {throw new Error(`Invalid mnemonic word: ${word}`)}
       return index.toString(2).padStart(11, '0')
     })
     .join('')
@@ -38,7 +38,7 @@ function decodeStandardSeedQR(seedQR: string): string {
   // Split into 4-digit chunks
   for (let i = 0; i < seedQR.length; i += 4) {
     const chunk = seedQR.slice(i, i + 4)
-    const index = parseInt(chunk, 10)
+    const index = Number.parseInt(chunk, 10)
     if (index < 0 || index >= wordList.length) {
       throw new Error(`Invalid word index: ${index}`)
     }
@@ -59,7 +59,7 @@ function decodeCompactSeedQR(seedQR: string): string {
     const start = i * 11
     const end = start + 11
     const binaryChunk = seedQR.slice(start, end)
-    const index = parseInt(binaryChunk, 2)
+    const index = Number.parseInt(binaryChunk, 2)
     if (index < 0 || index >= wordList.length) {
       throw new Error(`Invalid word index: ${index}`)
     }

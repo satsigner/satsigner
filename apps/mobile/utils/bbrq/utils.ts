@@ -15,7 +15,7 @@ export function hexToBytes(hex: string) {
 
   const match = hex.match(/.{1,2}/g) ?? []
 
-  return Uint8Array.from(match.map((byte) => parseInt(byte, 16)))
+  return Uint8Array.from(match.map((byte) => Number.parseInt(byte, 16)))
 }
 
 export function base64ToBytes(base64: string) {
@@ -26,7 +26,7 @@ export function base64ToBytes(base64: string) {
   const bytes = new Uint8Array(len)
 
   for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i)
+    bytes[i] = binaryString.codePointAt(i)
   }
 
   return bytes
@@ -92,11 +92,11 @@ export function validateSplitOptions(opts: SplitOptions) {
   // ensure all split options are valid, filling in defaults as needed
 
   const allOpts = {
-    minVersion: opts.minVersion ?? 5,
+    encoding: opts.encoding ?? 'Z',
+    maxSplit: opts.maxSplit ?? 1295,
     maxVersion: opts.maxVersion ?? 40,
     minSplit: opts.minSplit ?? 1,
-    maxSplit: opts.maxSplit ?? 1295,
-    encoding: opts.encoding ?? 'Z'
+    minVersion: opts.minVersion ?? 5
   } as const
 
   if (
@@ -119,7 +119,7 @@ export function validateSplitOptions(opts: SplitOptions) {
 }
 
 export function looksLikePsbt(data: Uint8Array) {
-  return new Uint8Array([0x70, 0x73, 0x62, 0x74, 0xff]).every(
+  return new Uint8Array([0x70, 0x73, 0x62, 0x74, 0xFF]).every(
     (b, i) => b === data[i]
   )
 }
@@ -149,10 +149,10 @@ export function encodeData(raw: Uint8Array, encoding?: Encoding) {
 
   if (encoding === 'H') {
     return {
-      encoding,
       encoded: raw
         .reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), '')
-        .toUpperCase()
+        .toUpperCase(),
+      encoding
     }
   }
 

@@ -36,49 +36,49 @@ export default function EcashBackupPage() {
     setIsGenerating(true)
     try {
       const data: Record<string, unknown> = {
-        version: '1.0',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        version: '1.0'
       }
 
       if (includeTokenProofs) {
         data.proofs = proofs.map((proof) => ({
-          id: proof.id,
+          C: proof.C,
           amount: proof.amount,
-          secret: proof.secret,
-          C: proof.C
+          id: proof.id,
+          secret: proof.secret
         }))
         data.totalBalance = proofs.reduce((sum, proof) => sum + proof.amount, 0)
       }
 
       if (includeMintInformation) {
         data.mints = mints.map((mint) => ({
-          url: mint.url,
-          name: mint.name,
           balance: mint.balance,
           isConnected: mint.isConnected,
           keysets: mint.keysets,
-          lastSync: mint.lastSync
+          lastSync: mint.lastSync,
+          name: mint.name,
+          url: mint.url
         }))
         data.activeMint = activeMint
           ? {
-              url: activeMint.url,
-              name: activeMint.name
+              name: activeMint.name,
+              url: activeMint.url
             }
           : null
       }
 
       if (includeTransactionHistory) {
         data.transactions = transactions.map((transaction) => ({
-          id: transaction.id,
-          type: transaction.type,
           amount: transaction.amount,
+          id: transaction.id,
+          invoice: transaction.invoice,
           memo: transaction.memo,
           mintUrl: transaction.mintUrl,
+          quoteId: transaction.quoteId,
           timestamp: transaction.timestamp,
           token: transaction.token,
           tokenStatus: transaction.tokenStatus,
-          invoice: transaction.invoice,
-          quoteId: transaction.quoteId
+          type: transaction.type
         }))
       }
 
@@ -118,10 +118,10 @@ export default function EcashBackupPage() {
     <SSMainLayout>
       <Stack.Screen
         options={{
+          headerRight: () => null,
           headerTitle: () => (
             <SSText uppercase>{t('ecash.backup.title')}</SSText>
-          ),
-          headerRight: () => null
+          )
         }}
       />
       <ScrollView>
@@ -246,19 +246,19 @@ export default function EcashBackupPage() {
 
 const styles = StyleSheet.create({
   backupDataSection: {
-    marginTop: 20,
-    paddingTop: 20,
+    borderTopColor: Colors.gray[800],
     borderTopWidth: 1,
-    borderTopColor: Colors.gray[800]
+    marginTop: 20,
+    paddingTop: 20
   },
   backupInput: {
-    minHeight: 200,
-    textAlignVertical: 'top',
     fontFamily: 'monospace',
     fontSize: 12,
-    padding: 10,
     height: 'auto',
-    width: '100%',
-    textAlign: 'left'
+    minHeight: 200,
+    padding: 10,
+    textAlign: 'left',
+    textAlignVertical: 'top',
+    width: '100%'
   }
 })

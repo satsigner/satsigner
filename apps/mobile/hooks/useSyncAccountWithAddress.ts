@@ -8,10 +8,10 @@ import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type Account } from '@/types/models/Account'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import { type Network } from '@/types/settings/blockchain'
+import type { Account } from '@/types/models/Account'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
+import type { Network } from '@/types/settings/blockchain'
 import {
   decryptAllAccountKeySecrets,
   updateAccountObjectLabels
@@ -21,7 +21,7 @@ import { formatTimestamp } from '@/utils/format'
 import { parseAddressDescriptorToAddress, parseHexToBytes } from '@/utils/parse'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
-type AddressInfo = {
+interface AddressInfo {
   transactions: Transaction[]
   utxos: Utxo[]
   progress: Account['syncProgress']
@@ -66,8 +66,8 @@ function useSyncAccountWithAddress() {
 
     // update sync progress
     account.syncProgress = {
-      totalTasks: account.syncProgress?.totalTasks || 0,
-      tasksDone: account.syncProgress?.tasksDone || 0
+      tasksDone: account.syncProgress?.tasksDone || 0,
+      totalTasks: account.syncProgress?.totalTasks || 0
     }
     account.syncProgress.totalTasks += 2
     setSyncProgress(account.id, account.syncProgress)
@@ -89,11 +89,11 @@ function useSyncAccountWithAddress() {
     let newTxsCount = 0
     let newUtxosCount = 0
     esploraTxs.forEach((tx) => {
-      if (existingTxs[tx.txid] === undefined) newTxsCount += 1
+      if (existingTxs[tx.txid] === undefined) {newTxsCount += 1}
     })
     esploraUtxos.forEach((utxo) => {
       if (existingUtxos[`${utxo.txid}:${utxo.vout}`] === undefined)
-        newUtxosCount += 1
+        {newUtxosCount += 1}
     })
 
     // update account summary with new transactions and utxos
@@ -119,7 +119,7 @@ function useSyncAccountWithAddress() {
 
     // Collect new transactions that need hex fetching
     const newTxEntries = esploraTxs
-      .map((t, index) => ({ t, index }))
+      .map((t, index) => ({ index, t }))
       .filter(({ t }) => existingTxs[t.txid] === undefined)
 
     // Pre-fetch all raw hex in parallel batches of 4 instead of sequentially
@@ -148,8 +148,8 @@ function useSyncAccountWithAddress() {
             txid: input.txid,
             vout: input.vout
           },
-          sequence: input.sequence,
           scriptSig: parseHexToBytes(input.scriptsig),
+          sequence: input.sequence,
           witness: input.witness ? input.witness.map(parseHexToBytes) : []
         })
         if (input.prevout.scriptpubkey_address === address) {
@@ -159,9 +159,9 @@ function useSyncAccountWithAddress() {
 
       t.vout.forEach((out) => {
         vout.push({
-          value: out.value,
           address: out.scriptpubkey_address,
-          script: parseHexToBytes(out.scriptpubkey)
+          script: parseHexToBytes(out.scriptpubkey),
+          value: out.value
         })
         if (out.scriptpubkey_address === address) {
           received += out.value
@@ -206,8 +206,8 @@ function useSyncAccountWithAddress() {
     let confirmed = 0
     let unconfirmed = 0
     esploraUtxos.forEach((u) => {
-      if (u.status.confirmed) confirmed += u.value
-      else unconfirmed += u.value
+      if (u.status.confirmed) {confirmed += u.value}
+      else {unconfirmed += u.value}
     })
 
     // Replace the stored UTXOs for this address with the fresh set from the
@@ -227,16 +227,16 @@ function useSyncAccountWithAddress() {
       }
 
       return {
-        txid: u.txid,
-        vout: u.vout,
-        value: u.value,
-        label: '',
         addressTo: address,
         keychain: 'external',
+        label: '',
         script,
         timestamp: u.status.block_time
           ? new Date(u.status.block_time * 1000)
-          : undefined
+          : undefined,
+        txid: u.txid,
+        value: u.value,
+        vout: u.vout
       } as Utxo
     })
 
@@ -258,23 +258,23 @@ function useSyncAccountWithAddress() {
       {
         address,
         label: '',
-        utxos: esploraUtxos.map((u) => `${u.txid}:${u.vout}`),
-        transactions: esploraTxs.map((t) => t.txid),
         summary: {
           transactions: esploraTxs.length,
           utxos: esploraUtxos.length,
           balance: confirmed,
           satsInMempool: unconfirmed
-        }
+        },
+        transactions: esploraTxs.map((t) => t.txid),
+        utxos: esploraUtxos.map((u) => `${u.txid}:${u.vout}`)
       }
     ]
 
     updateAccount(account)
 
     return {
+      progress: account.syncProgress,
       transactions: account.transactions,
-      utxos: account.utxos,
-      progress: account.syncProgress
+      utxos: account.utxos
     }
   }
 
@@ -318,19 +318,19 @@ function useSyncAccountWithAddress() {
     let newTxsCount = 0
     let newUtxosCount = 0
     addressTxs.forEach((t) => {
-      if (existingTx[t.tx_hash] === undefined) newTxsCount += 1
+      if (existingTx[t.tx_hash] === undefined) {newTxsCount += 1}
     })
     addressUtxos.forEach((u) => {
       if (existingUtxo[`${u.tx_hash}:${u.tx_pos}`] === undefined)
-        newUtxosCount += 1
+        {newUtxosCount += 1}
     })
 
     // update summary
     account.summary = {
       ...account.summary,
+      balance: account.summary.balance + balance.confirmed,
       numberOfTransactions: account.summary.numberOfTransactions + newTxsCount,
       numberOfUtxos: account.summary.numberOfUtxos + newUtxosCount,
-      balance: account.summary.balance + balance.confirmed,
       satsInMempool: account.summary.satsInMempool + balance.unconfirmed
     }
 
@@ -340,14 +340,14 @@ function useSyncAccountWithAddress() {
       {
         address,
         label: '',
-        utxos: addressUtxos.map((u) => `${u.tx_hash}:${u.tx_pos}`),
-        transactions: addressTxs.map((t) => t.tx_hash),
         summary: {
           utxos: addressUtxos.length,
           transactions: addressTxs.length,
           balance: balance.confirmed,
           satsInMempool: balance.unconfirmed
-        }
+        },
+        transactions: addressTxs.map((t) => t.tx_hash),
+        utxos: addressUtxos.map((u) => `${u.tx_hash}:${u.tx_pos}`)
       }
     ]
 
@@ -357,12 +357,8 @@ function useSyncAccountWithAddress() {
     account.syncProgress = { ...account.syncProgress }
 
     // transactions and utxos not known by the wallet
-    const pendingTx = addressTxs.filter((t) => {
-      return existingTx[t.tx_hash] === undefined
-    })
-    const pendingUtxos = addressUtxos.filter((u) => {
-      return existingUtxo[`${u.tx_hash}:${u.tx_pos}`] === undefined
-    })
+    const pendingTx = addressTxs.filter((t) => existingTx[t.tx_hash] === undefined)
+    const pendingUtxos = addressUtxos.filter((u) => existingUtxo[`${u.tx_hash}:${u.tx_pos}`] === undefined)
 
     // update progress
     const estimatedRequests = pendingTx.length * 2 + pendingUtxos.length
@@ -376,7 +372,7 @@ function useSyncAccountWithAddress() {
 
     for (const tx of pendingTx) {
       const txid = tx.tx_hash
-      const height = tx.height
+      const {height} = tx
 
       // fetch raw transaction
       const rawTx = await electrumClient.getTransaction(txid)
@@ -411,9 +407,9 @@ function useSyncAccountWithAddress() {
 
           if (outputAddr === address) {
             return previousValue + output.value
-          } else {
-            return previousValue
           }
+            return previousValue
+          
         } catch {
           return previousValue
         }
@@ -473,7 +469,7 @@ function useSyncAccountWithAddress() {
 
     // fetch timestamps for new utxos
     for (const electrumUtxo of pendingUtxos) {
-      const height = electrumUtxo.height
+      const {height} = electrumUtxo
 
       if (!timestampByHeight[height]) {
         timestampByHeight[height] =
@@ -488,19 +484,19 @@ function useSyncAccountWithAddress() {
 
       // construct utxo
       const utxo: Utxo = {
-        txid: electrumUtxo.tx_hash,
-        value: electrumUtxo.value,
-        vout: electrumUtxo.tx_pos,
         addressTo: address,
         keychain: addressKeychain,
-        timestamp: new Date(timestamp * 1000),
         label: '',
         script: [
           ...bitcoinjs.address.toOutputScript(
             address,
             bitcoinjsNetwork(network)
           )
-        ]
+        ],
+        timestamp: new Date(timestamp * 1000),
+        txid: electrumUtxo.tx_hash,
+        value: electrumUtxo.value,
+        vout: electrumUtxo.tx_pos
       }
 
       // update account utxos
@@ -522,9 +518,9 @@ function useSyncAccountWithAddress() {
     }
 
     return {
+      progress: account.syncProgress,
       transactions: account.transactions,
-      utxos: account.utxos,
-      progress: account.syncProgress
+      utxos: account.utxos
     }
   }
 
@@ -574,7 +570,7 @@ function useSyncAccountWithAddress() {
       // Skip transactions that already have a cached price — they are immutable
       const timestamps: number[] = []
       for (const transaction of updatedAccount.transactions) {
-        if (transaction.prices?.USD !== undefined) continue
+        if (transaction.prices?.USD !== undefined) {continue}
         if (transaction.timestamp) {
           let date: Date
           if (typeof transaction.timestamp === 'string') {
@@ -695,8 +691,8 @@ function useSyncAccountWithAddress() {
     // reset account summary confirmed and unconfirmed balance
     updatedAccount.summary = {
       ...updatedAccount.summary,
-      numberOfAddresses: addressDescriptors.length,
       balance: 0,
+      numberOfAddresses: addressDescriptors.length,
       satsInMempool: 0
     }
     updateAccount(updatedAccount)
@@ -731,8 +727,8 @@ function useSyncAccountWithAddress() {
   }
 
   return {
-    syncAccountWithAddress,
-    loading
+    loading,
+    syncAccountWithAddress
   }
 }
 

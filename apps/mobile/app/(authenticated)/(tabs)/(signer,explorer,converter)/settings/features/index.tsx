@@ -15,10 +15,10 @@ export default function Features() {
     <>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSText uppercase>{t('settings.features.title')}</SSText>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <SSVStack justifyBetween>

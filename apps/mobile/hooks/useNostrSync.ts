@@ -1,4 +1,4 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
+import type { Network } from 'bdk-rn/lib/lib/enums'
 import { useCallback, useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -6,7 +6,7 @@ import { getWalletData } from '@/api/bdk'
 import { useNostrStore } from '@/store/nostr'
 import type { Account } from '@/types/models/Account'
 import { getAccountWithDecryptedKeys } from '@/utils/account'
-import { type Label } from '@/utils/bip329'
+import type { Label } from '@/utils/bip329'
 import { deriveNostrKeysFromDescriptor } from '@/utils/nostr'
 import { nostrSyncService } from '@/utils/nostrSyncService'
 
@@ -88,27 +88,23 @@ function useNostrSync() {
   /**
    * Check if an account has active subscriptions
    */
-  const hasActiveSubscription = useCallback((accountId: string) => {
-    return nostrSyncService.hasActiveSubscription(accountId)
-  }, [])
+  const hasActiveSubscription = useCallback((accountId: string) => nostrSyncService.hasActiveSubscription(accountId), [])
 
   /**
    * Get sync status for an account
    */
   const getStatus = useCallback(
-    (accountId: string) => {
-      return getSyncStatus(accountId)
-    },
+    (accountId: string) => getSyncStatus(accountId),
     [getSyncStatus]
   )
 
   const generateCommonNostrKeys = useCallback(async (account?: Account) => {
-    if (!account?.keys?.length) return
+    if (!account?.keys?.length) {return}
 
     const isImportAddress = account.keys[0].creationType === 'importAddress'
     const tmpAccount = await getAccountWithDecryptedKeys(account)
     if (isImportAddress) {
-      const secret = tmpAccount.keys[0].secret
+      const {secret} = tmpAccount.keys[0]
       return {
         externalDescriptor: secret.externalDescriptor,
         internalDescriptor: undefined
@@ -133,7 +129,7 @@ function useNostrSync() {
   const protocolSubscription = subscriptionManager.createProtocolSubscription
   const dataExchangeSubscription =
     subscriptionManager.createDataExchangeSubscription
-  const getActiveSubscriptions = subscriptionManager.getActiveSubscriptions
+  const {getActiveSubscriptions} = subscriptionManager
 
   const sendLabelsToNostr = useCallback(
     async (account?: Account, singleLabel?: Label) => {
@@ -144,7 +140,7 @@ function useNostrSync() {
 
   const loadStoredDMs = dms.load
   const clearStoredDMs = dms.clear
-  const processEvent = messages.processEvent
+  const {processEvent} = messages
   const deviceAnnouncement = device.announce
 
   return useMemo(

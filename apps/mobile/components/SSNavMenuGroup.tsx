@@ -2,12 +2,12 @@ import { usePathname } from 'expo-router'
 import { StyleSheet } from 'react-native'
 
 import SSVStack from '@/layouts/SSVStack'
-import { type NavMenuGroup } from '@/types/navigation/navMenu'
+import type { NavMenuGroup } from '@/types/navigation/navMenu'
 
 import SSNavItem from './SSNavMenuItem'
 import SSText from './SSText'
 
-type SSNavMenuGroupProps = {
+interface SSNavMenuGroupProps {
   group: NavMenuGroup
 }
 
@@ -37,9 +37,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10
   },
   groupTitle: {
-    marginLeft: 12,
+    letterSpacing: 6,
     marginBottom: 8,
-    letterSpacing: 6
+    marginLeft: 12
   }
 })
 

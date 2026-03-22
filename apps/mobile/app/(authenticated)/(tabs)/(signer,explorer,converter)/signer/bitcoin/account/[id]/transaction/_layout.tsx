@@ -4,7 +4,7 @@ import { SSIconEyeOn } from '@/components/icons'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import { useAccountsStore } from '@/store/accounts'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 
 export default function TransactionLayout() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
@@ -17,6 +17,7 @@ export default function TransactionLayout() {
     <>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
@@ -24,8 +25,7 @@ export default function TransactionLayout() {
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
               )}
             </SSHStack>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <Slot />

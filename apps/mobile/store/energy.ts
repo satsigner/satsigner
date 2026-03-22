@@ -3,7 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 import mmkvStorage from '@/storage/mmkv'
 
-type EnergyState = {
+interface EnergyState {
   rpcUrl: string
   rpcUsername: string
   rpcPassword: string
@@ -11,7 +11,7 @@ type EnergyState = {
   opReturnContent: string
 }
 
-type EnergyAction = {
+interface EnergyAction {
   setRpcUrl: (rpcUrl: string) => void
   setRpcUsername: (rpcUsername: string) => void
   setRpcPassword: (rpcPassword: string) => void
@@ -23,16 +23,8 @@ type EnergyAction = {
 const useEnergyStore = create<EnergyState & EnergyAction>()(
   persist(
     (set) => ({
-      rpcUrl: '',
-      rpcUsername: '',
-      rpcPassword: '',
       miningAddress: '',
       opReturnContent: '',
-      setRpcUrl: (rpcUrl) => set({ rpcUrl }),
-      setRpcUsername: (rpcUsername) => set({ rpcUsername }),
-      setRpcPassword: (rpcPassword) => set({ rpcPassword }),
-      setMiningAddress: (miningAddress) => set({ miningAddress }),
-      setOpReturnContent: (opReturnContent) => set({ opReturnContent }),
       resetEnergyConfig: () =>
         set({
           rpcUrl: '',
@@ -40,7 +32,15 @@ const useEnergyStore = create<EnergyState & EnergyAction>()(
           rpcPassword: '',
           miningAddress: '',
           opReturnContent: ''
-        })
+        }),
+      rpcPassword: '',
+      rpcUrl: '',
+      rpcUsername: '',
+      setMiningAddress: (miningAddress) => set({ miningAddress }),
+      setOpReturnContent: (opReturnContent) => set({ opReturnContent }),
+      setRpcPassword: (rpcPassword) => set({ rpcPassword }),
+      setRpcUrl: (rpcUrl) => set({ rpcUrl }),
+      setRpcUsername: (rpcUsername) => set({ rpcUsername })
     }),
     {
       name: 'energy-store',

@@ -24,9 +24,7 @@ export default function UpComing() {
   const CARD_WIDTH = width * 0.6
   const SNAP_INTERVAL = CARD_WIDTH + SPACING
 
-  const data = useMemo(() => {
-    return slides.find((item) => item.page === params.title)?.items ?? []
-  }, [params.title])
+  const data = useMemo(() => slides.find((item) => item.page === params.title)?.items ?? [], [params.title])
 
   useEffect(() => {
     if (!data.length) {
@@ -71,22 +69,22 @@ export default function UpComing() {
               ]
 
               const scale = scrollX.interpolate({
+                extrapolate: 'clamp',
                 inputRange,
-                outputRange: [0.95, 1, 0.95],
-                extrapolate: 'clamp'
+                outputRange: [0.95, 1, 0.95]
               })
 
               const opacity = scrollX.interpolate({
+                extrapolate: 'clamp',
                 inputRange,
-                outputRange: [0.2, 1, 0.2],
-                extrapolate: 'clamp'
+                outputRange: [0.2, 1, 0.2]
               })
 
               return (
                 <Animated.View
                   style={[
                     styles.cardContainer,
-                    { width: CARD_WIDTH, transform: [{ scale }], opacity }
+                    { opacity, transform: [{ scale }], width: CARD_WIDTH }
                   ]}
                 >
                   <SSVStack justifyBetween style={styles.cardContent}>
@@ -117,13 +115,13 @@ export default function UpComing() {
         <View style={styles.dotContainer}>
           {data.map((_, index) => {
             const dotColor = scrollX.interpolate({
+              extrapolate: 'clamp',
               inputRange: [
                 (index - 1) * SNAP_INTERVAL,
                 index * SNAP_INTERVAL,
                 (index + 1) * SNAP_INTERVAL
               ],
-              outputRange: ['gray', 'white', 'gray'],
-              extrapolate: 'clamp'
+              outputRange: ['gray', 'white', 'gray']
             })
 
             return (
@@ -140,17 +138,12 @@ export default function UpComing() {
 }
 
 const styles = StyleSheet.create({
-  headerTitle: {
-    letterSpacing: 1
-  },
-  mainContainer: {
+  card: {
     flex: 1,
-    paddingTop: 40,
-    paddingBottom: 15,
-    gap: 60
-  },
-  flexContainer: {
-    flex: 1
+    height: '100%',
+    overflow: 'hidden',
+    alignItems: 'center',
+    padding: 2
   },
   cardContainer: {
     flex: 1,
@@ -160,22 +153,24 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 50
   },
-  textContainer: {
-    width: '100%',
-    paddingHorizontal: 10
-  },
-  titleText: {
-    lineHeight: 20
-  },
   descriptionText: {
     lineHeight: 16
   },
-  card: {
-    flex: 1,
-    height: '100%',
-    overflow: 'hidden',
-    alignItems: 'center',
-    padding: 2
+  dot: {
+    height: 4,
+    width: 4,
+    borderRadius: 2,
+    marginHorizontal: 10
+  },
+  dotContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center'
+  },
+  flexContainer: {
+    flex: 1
+  },
+  headerTitle: {
+    letterSpacing: 1
   },
   image: {
     height: '100%',
@@ -185,14 +180,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 16
   },
-  dotContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center'
+  mainContainer: {
+    flex: 1,
+    paddingTop: 40,
+    paddingBottom: 15,
+    gap: 60
   },
-  dot: {
-    height: 4,
-    width: 4,
-    borderRadius: 2,
-    marginHorizontal: 10
+  textContainer: {
+    width: '100%',
+    paddingHorizontal: 10
+  },
+  titleText: {
+    lineHeight: 20
   }
 })

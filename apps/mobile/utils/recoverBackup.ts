@@ -3,8 +3,8 @@ import { useAuthStore } from '@/store/auth'
 import { useNostrStore } from '@/store/nostr'
 import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
-import { type Account, type Key } from '@/types/models/Account'
-import { type NostrAccount, type NostrDM } from '@/types/models/Nostr'
+import type { Account, Key } from '@/types/models/Account'
+import type { NostrAccount, NostrDM } from '@/types/models/Nostr'
 import { aesEncrypt, getPinForDecryption, randomIv } from '@/utils/crypto'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 
@@ -12,7 +12,7 @@ type BackupKey = Key & {
   passphrase?: string
   seedWords?: string
 }
-type BackupAccount = {
+interface BackupAccount {
   id: string
   keys: BackupKey[]
   keysRequired?: number
@@ -22,7 +22,7 @@ type BackupAccount = {
   policyType: Account['policyType']
   summary?: Account['summary']
 }
-type BackupData = {
+interface BackupData {
   accounts: BackupAccount[]
   settings: {
     currencyUnit: string
@@ -33,7 +33,7 @@ type BackupData = {
 }
 
 function parseBackupDate(v: string | number | Date | null | undefined): Date {
-  if (v == null) return new Date()
+  if (v == null) {return new Date()}
   return new Date(v as string | number | Date)
 }
 
@@ -44,9 +44,9 @@ function parseBackupDate(v: string | number | Date | null | undefined): Date {
 export async function performRecoverOverwrite(
   decrypted: string
 ): Promise<{ success: boolean }> {
-  const skipPin = useAuthStore.getState().skipPin
+  const {skipPin} = useAuthStore.getState()
   const pin = await getPinForDecryption(skipPin)
-  if (!pin) return { success: false }
+  if (!pin) {return { success: false }}
   try {
     const data = JSON.parse(decrypted) as BackupData
     if (!data.accounts || !Array.isArray(data.accounts)) {
@@ -65,7 +65,7 @@ export async function performRecoverOverwrite(
                 })
               }
             : undefined
-        if (secretObj === undefined) throw new Error('Key missing seed data')
+        if (secretObj === undefined) {throw new Error('Key missing seed data')}
         const iv = randomIv()
         const secret = await aesEncrypt(JSON.stringify(secretObj), pin, iv)
         keys.push({
@@ -82,16 +82,16 @@ export async function performRecoverOverwrite(
         })
       }
       const defaultNostr: NostrAccount = {
+        autoSync: false,
         commonNpub: '',
         commonNsec: '',
-        relays: [],
-        autoSync: false,
         deviceNpub: '',
         deviceNsec: '',
-        trustedMemberDevices: [],
         dms: [] as NostrDM[],
         lastUpdated: new Date(),
-        syncStart: new Date()
+        relays: [],
+        syncStart: new Date(),
+        trustedMemberDevices: []
       }
       const nostr: NostrAccount = acc.nostr
         ? {
@@ -103,16 +103,21 @@ export async function performRecoverOverwrite(
         : defaultNostr
       const created = (acc as { createdAt?: string }).createdAt
       restoredAccounts.push({
+        addresses: [],
+        createdAt: typeof created === 'string' ? new Date(created) : new Date(),
         id: acc.id,
-        name: acc.name,
-        network: acc.network,
-        policyType: acc.policyType,
-        keys,
         keyCount: acc.keys.length,
+        keys,
         keysRequired:
           acc.policyType === 'singlesig'
             ? 1
-            : acc.keysRequired ?? acc.keys.length,
+            : (acc.keysRequired ?? acc.keys.length),
+        labels: {},
+        lastSyncedAt: new Date(),
+        name: acc.name,
+        network: acc.network,
+        nostr,
+        policyType: acc.policyType,
         summary: {
           balance: 0,
           numberOfAddresses: 0,
@@ -120,15 +125,10 @@ export async function performRecoverOverwrite(
           numberOfUtxos: 0,
           satsInMempool: 0
         },
-        transactions: [],
-        utxos: [],
-        addresses: [],
-        labels: {},
-        createdAt: typeof created === 'string' ? new Date(created) : new Date(),
-        lastSyncedAt: new Date(),
-        syncStatus: 'unsynced',
         syncProgress: { tasksDone: 0, totalTasks: 0 },
-        nostr
+        syncStatus: 'unsynced',
+        transactions: [],
+        utxos: []
       })
     }
     resetNostrSync()

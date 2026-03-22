@@ -12,7 +12,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 
 export default function Add() {
   const router = useRouter()
@@ -29,11 +29,11 @@ export default function Add() {
     setAccountPolicyType(localPolicyType)
 
     if (localPolicyType === 'singlesig')
-      router.navigate('/signer/bitcoin/account/add/singleSig')
+      {router.navigate('/signer/bitcoin/account/add/singleSig')}
     else if (localPolicyType === 'multisig')
-      router.navigate('/signer/bitcoin/account/add/multiSig')
+      {router.navigate('/signer/bitcoin/account/add/multiSig')}
     else if (localPolicyType === 'watchonly')
-      router.navigate('/signer/bitcoin/account/add/watchOnly')
+      {router.navigate('/signer/bitcoin/account/add/watchOnly')}
   }
 
   return (

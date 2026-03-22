@@ -1,10 +1,5 @@
-import {
-  type ForwardedRef,
-  forwardRef,
-  useEffect,
-  useMemo,
-  useState
-} from 'react'
+import { forwardRef, useEffect, useMemo, useState } from 'react';
+import type { ForwardedRef } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { t } from '@/locales'
@@ -80,52 +75,52 @@ function SSNumberInput(
     if (value === undefined || value === '') {
       return
     }
-    if (!value.match(NUMBER_REGEX)) {
+    if (!NUMBER_REGEX.test(value)) {
       setInvalid(true)
-      if (onValidate) onValidate(false)
+      if (onValidate) {onValidate(false)}
       return
     }
     const numericVal = Number(value)
     const invalid = numericVal < min || numericVal > max
     setInvalid(invalid)
-    if (onValidate) onValidate(!invalid)
+    if (onValidate) {onValidate(!invalid)}
   }, [min, max]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleTextChange(text: string) {
-    if (alwaysTriggerOnChange && onChangeText) onChangeText(text)
+    if (alwaysTriggerOnChange && onChangeText) {onChangeText(text)}
 
-    if (!text.match(NUMBER_REGEX)) {
+    if (!NUMBER_REGEX.test(text)) {
       return
     }
 
     if (text === '') {
       setLocalValue('')
       setInvalid(!allowValidEmpty)
-      if (onValidate) onValidate(false)
+      if (onValidate) {onValidate(false)}
       return
     }
 
     const numericVal = Number(text)
     if (numericVal < min || numericVal > max) {
       setInvalid(true)
-      if (onValidate) onValidate(false)
+      if (onValidate) {onValidate(false)}
     } else {
       setInvalid(false)
-      if (onValidate) onValidate(true)
-      if (onChangeText) onChangeText(numericVal.toString())
+      if (onValidate) {onValidate(true)}
+      if (onChangeText) {onChangeText(numericVal.toString())}
     }
 
     setLocalValue(text)
   }
 
   function handleSubmitText() {
-    if (localValue.match(/^[0-9]+$/)) {
+    if (/^[0-9]+$/.test(localValue)) {
       let numericVal = Number(localValue)
-      if (numericVal < min) numericVal = min
-      if (numericVal > max) numericVal = max
+      if (numericVal < min) {numericVal = min}
+      if (numericVal > max) {numericVal = max}
       setInvalid(false)
-      if (onValidate) onValidate(true)
-      if (onChangeText) onChangeText(numericVal.toString())
+      if (onValidate) {onValidate(true)}
+      if (onChangeText) {onChangeText(numericVal.toString())}
     }
   }
 
@@ -145,7 +140,7 @@ function SSNumberInput(
         <SSText>
           {localValue === ''
             ? t('validation.required')
-            : !localValue.match(/^[0-9]+$/)
+            : !/^[0-9]+$/.test(localValue)
               ? t('validation.invalid')
               : Number(localValue) < min
                 ? t('validation.number.greater', { value: min })
@@ -159,9 +154,35 @@ function SSNumberInput(
 }
 
 const styles = StyleSheet.create({
+  actionRightBase: {
+    position: 'absolute',
+    top: '50%',
+    right: 12,
+    transform: [{ translateY: -12 }]
+  },
+  alignCenter: {
+    textAlign: 'center',
+    paddingHorizontal: 12
+  },
+  alignLeft: {
+    textAlign: 'left',
+    paddingHorizontal: 12
+  },
+  borderInvalid: {
+    borderWidth: 2,
+    borderColor: Colors.error
+  },
   containerBase: {
     position: 'relative',
     width: '100%'
+  },
+  sizeDefault: {
+    fontSize: Sizes.textInput.fontSize.default,
+    height: Sizes.textInput.height.default
+  },
+  sizeSmall: {
+    fontSize: Sizes.textInput.fontSize.small,
+    height: Sizes.textInput.height.small
   },
   textInputBase: {
     borderRadius: Sizes.textInput.borderRadius,
@@ -175,32 +196,6 @@ const styles = StyleSheet.create({
   variantOutline: {
     borderWidth: 1,
     borderColor: Colors.gray[400]
-  },
-  sizeDefault: {
-    fontSize: Sizes.textInput.fontSize.default,
-    height: Sizes.textInput.height.default
-  },
-  sizeSmall: {
-    fontSize: Sizes.textInput.fontSize.small,
-    height: Sizes.textInput.height.small
-  },
-  alignCenter: {
-    textAlign: 'center',
-    paddingHorizontal: 12
-  },
-  alignLeft: {
-    textAlign: 'left',
-    paddingHorizontal: 12
-  },
-  actionRightBase: {
-    position: 'absolute',
-    top: '50%',
-    right: 12,
-    transform: [{ translateY: -12 }]
-  },
-  borderInvalid: {
-    borderWidth: 2,
-    borderColor: Colors.error
   }
 })
 

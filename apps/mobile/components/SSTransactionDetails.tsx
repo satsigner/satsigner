@@ -8,21 +8,13 @@ import SSTransactionChart from '@/components/SSTransactionChart'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { type Account } from '@/types/models/Account'
-import { type Transaction } from '@/types/models/Transaction'
-import {
-  type AccountMatchResult,
-  extractIndividualSignedPsbts,
-  extractOriginalPsbt,
-  extractTransactionDataFromPSBTEnhanced,
-  extractTransactionIdFromPSBT,
-  findMatchingAccount,
-  getMultisigInfoFromPsbt,
-  type TransactionData
-} from '@/utils/psbt'
+import type { Account } from '@/types/models/Account'
+import type { Transaction } from '@/types/models/Transaction'
+import { extractIndividualSignedPsbts, extractOriginalPsbt, extractTransactionDataFromPSBTEnhanced, extractTransactionIdFromPSBT, findMatchingAccount, getMultisigInfoFromPsbt } from '@/utils/psbt';
+import type { AccountMatchResult, TransactionData } from '@/utils/psbt';
 import { legacyEstimateTransactionSize } from '@/utils/transaction'
 
-type SSTransactionDetailsProps = {
+interface SSTransactionDetailsProps {
   transactionData: TransactionData
   account: Account | undefined
   accounts: Account[]
@@ -95,21 +87,21 @@ function SSTransactionDetails({
   )
   const collectedSignatures = Object.keys(signedPsbts || {}).map(Number)
   const vin = finalInputs.map((input) => ({
+    label: input.label || '',
     previousOutput: { txid: input.txid, vout: input.vout },
-    value: input.value,
-    label: input.label || ''
+    value: input.value
   }))
   const vout = finalOutputs.map((output) => ({
     address: output.address,
-    value: output.value,
-    label: output.label || ''
+    label: output.label || '',
+    value: output.value
   }))
   const transaction = {
     id: txid,
     size,
-    vsize,
     vin,
-    vout
+    vout,
+    vsize
   } as unknown as Transaction
 
   const textSize = onToggleVisibility ? 'lg' : 'md'
@@ -208,12 +200,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
     alignItems: 'center'
   },
-  signatureContainer: {
-    alignItems: 'center'
-  },
   signFlowButton: {
     marginTop: 8,
     alignSelf: 'flex-start'
+  },
+  signatureContainer: {
+    alignItems: 'center'
   }
 })
 

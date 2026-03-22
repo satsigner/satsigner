@@ -1,4 +1,5 @@
-import { Buffer } from 'buffer'
+import { Buffer } from 'node:buffer'
+
 import { setStringAsync } from 'expo-clipboard'
 import { useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
@@ -16,16 +17,12 @@ import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useNostrStore } from '@/store/nostr'
 import { Colors, Typography } from '@/styles'
-import { type Account, type Key } from '@/types/models/Account'
+import type { Account, Key } from '@/types/models/Account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
-import {
-  combinePsbts,
-  type TransactionData,
-  validateSignedPSBT,
-  validateSignedPSBTForCosigner
-} from '@/utils/psbt'
+import { combinePsbts, validateSignedPSBT, validateSignedPSBTForCosigner } from '@/utils/psbt';
+import type { TransactionData } from '@/utils/psbt';
 
-type SSSignatureDropdownProps = {
+interface SSSignatureDropdownProps {
   index: number
   totalKeys: number
   keyDetails: Key
@@ -92,9 +89,9 @@ function SSSignatureDropdown({
 
   const { hasLocalSeed, isSignatureCompleted } = useSignatureDropdownValidation(
     {
+      decryptedKey,
       keyDetails,
       seedDropped,
-      decryptedKey,
       signedPsbt
     }
   )
@@ -111,7 +108,7 @@ function SSSignatureDropdown({
     }
 
     try {
-      const collectedSignedPsbts = Array.from(signedPsbts.entries())
+      const collectedSignedPsbts = [...signedPsbts.entries()]
         .filter(([, psbt]) => psbt && psbt.trim().length > 0)
         .reduce<Record<number, string>>((acc, [cosignerIndex, psbt]) => {
           acc[cosignerIndex] = psbt
@@ -152,11 +149,11 @@ function SSSignatureDropdown({
   ])
 
   const { sourceLabel } = useKeySourceLabel({
+    decryptedKey,
     keyDetails,
-    scriptVersion,
     network,
-    seedDropped,
-    decryptedKey
+    scriptVersion,
+    seedDropped
   })
 
   // Extract public key from descriptor when key details change
@@ -169,7 +166,7 @@ function SSSignatureDropdown({
 
       if (typeof keyDetails.secret === 'string') {
         if (decryptedKey && typeof decryptedKey.secret === 'object') {
-          const secret = decryptedKey.secret
+          const {secret} = decryptedKey
           if (secret.extendedPublicKey) {
             setExtractedPublicKey(secret.extendedPublicKey)
             return
@@ -190,7 +187,7 @@ function SSSignatureDropdown({
       }
 
       if (typeof keyDetails.secret === 'object') {
-        const secret = keyDetails.secret
+        const {secret} = keyDetails
 
         if (secret.extendedPublicKey) {
           setExtractedPublicKey(secret.extendedPublicKey)
@@ -347,7 +344,7 @@ function SSSignatureDropdown({
       </TouchableOpacity>
 
       {isExpanded && (
-        <SSVStack style={{ paddingHorizontal: 8, paddingBottom: 8 }} gap="sm">
+        <SSVStack style={{ paddingBottom: 8, paddingHorizontal: 8 }} gap="sm">
           {hasLocalSeed ? (
             <SSButton
               label={t('transaction.preview.signWithLocalKey')}
@@ -448,9 +445,9 @@ function SSSignatureDropdown({
               styles.psbtDisplay,
               {
                 borderColor: signedPsbt
-                  ? isPsbtValid
+                  ? (isPsbtValid
                     ? Colors.mainGreen
-                    : Colors.mainRed
+                    : Colors.mainRed)
                   : Colors.gray[700]
               }
             ]}
@@ -526,20 +523,14 @@ const styles = {
     borderTopWidth: 1,
     borderColor: Colors.gray[700]
   },
-  lastItem: {
-    borderBottomWidth: 1
-  },
   header: {
     paddingVertical: 8
   },
   headerDisabled: {
     opacity: 0.5
   },
-  signatureIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: Colors.gray[800]
+  lastItem: {
+    borderBottomWidth: 1
   },
   psbtDisplay: {
     minHeight: 200,
@@ -554,5 +545,11 @@ const styles = {
     fontSize: 12,
     color: Colors.white,
     lineHeight: 18
+  },
+  signatureIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.gray[800]
   }
 }

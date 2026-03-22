@@ -4,17 +4,17 @@
  * Types
  */
 
-import {
-  type ENCODING_NAMES,
-  type FILETYPE_NAMES,
-  type QR_DATA_CAPACITY
+import type {
+  ENCODING_NAMES,
+  FILETYPE_NAMES,
+  QR_DATA_CAPACITY
 } from './consts'
 
 export type FileType = keyof typeof FILETYPE_NAMES
 export type Encoding = keyof typeof ENCODING_NAMES
 export type Version = keyof typeof QR_DATA_CAPACITY
 
-export type SplitOptions = {
+export interface SplitOptions {
   /**
    * The encoding to use for the split.
    * @default 'Z'
@@ -42,13 +42,13 @@ export type SplitOptions = {
   maxVersion?: Version
 }
 
-export type SplitResult = {
+export interface SplitResult {
   version: Version
   parts: string[]
   encoding: Encoding
 }
 
-export type JoinResult = {
+export interface JoinResult {
   fileType: string
   encoding: Encoding
   raw: Uint8Array

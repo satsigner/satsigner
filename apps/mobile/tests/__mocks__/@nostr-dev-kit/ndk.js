@@ -23,13 +23,13 @@ class NDKEvent {
 
   async toNostrEvent() {
     return {
-      id: this.id,
       content: this.content,
-      kind: this.kind,
       created_at: this.created_at,
+      id: this.id,
+      kind: this.kind,
       pubkey: this.pubkey,
-      tags: this.tags,
-      sig: this.sig
+      sig: this.sig,
+      tags: this.tags
     }
   }
 
@@ -42,8 +42,8 @@ class NDK {
   constructor(options = {}) {
     this.explicitRelayUrls = options.explicitRelayUrls || []
     this.pool = {
-      relays: new Map(),
-      connect: jest.fn().mockResolvedValue(undefined)
+      connect: jest.fn().mockResolvedValue(undefined),
+      relays: new Map()
     }
     this.signer = null
   }
@@ -51,7 +51,7 @@ class NDK {
   async connect() {
     for (const url of this.explicitRelayUrls) {
       this.pool.relays.set(url, {
-        publish: jest.fn().mockResolvedValue(undefined)
+        publish: jest.fn().mockResolvedValue()
       })
     }
     return true

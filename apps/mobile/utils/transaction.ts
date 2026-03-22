@@ -1,7 +1,7 @@
 import type { ExtendedTransaction } from '@/hooks/useInputTransactions'
-import { type ScriptVersionType } from '@/types/models/Account'
-import { type Output } from '@/types/models/Output'
-import { type Utxo } from '@/types/models/Utxo'
+import type { ScriptVersionType } from '@/types/models/Account'
+import type { Output } from '@/types/models/Output'
+import type { Utxo } from '@/types/models/Utxo'
 
 import { getScriptVersionType } from './address'
 
@@ -13,21 +13,21 @@ const INPUT_SIZES: Record<
 > = {
   P2PKH: { base: 147, witness: 0 },
   P2SH: { base: 147, witness: 0 },
-  P2WPKH: { base: 41, witness: 107 },
-  P2WSH: { base: 41, witness: 107 },
-  P2TR: { base: 41, witness: 66 },
   'P2SH-P2WPKH': { base: 91, witness: 107 },
-  'P2SH-P2WSH': { base: 41, witness: 107 }
+  'P2SH-P2WSH': { base: 41, witness: 107 },
+  P2TR: { base: 41, witness: 66 },
+  P2WPKH: { base: 41, witness: 107 },
+  P2WSH: { base: 41, witness: 107 }
 }
 
 const OUTPUT_SIZES: Record<ScriptVersionType, number> = {
   P2PKH: 34,
   P2SH: 34,
-  P2WPKH: 31,
-  P2WSH: 43,
-  P2TR: 43,
   'P2SH-P2WPKH': 31,
-  'P2SH-P2WSH': 43
+  'P2SH-P2WSH': 43,
+  P2TR: 43,
+  P2WPKH: 31,
+  P2WSH: 43
 }
 
 // TODO: To be removed
@@ -190,7 +190,7 @@ export function recalculateDepthH<T extends ExtendedTransaction>(
         tx.vout &&
         tx.vout.length > 0 &&
         tx.vout.some((output) =>
-          Array.from(selectedInputs.values()).some(
+          [...selectedInputs.values()].some(
             (input) =>
               input.value === output.value &&
               input.scriptpubkey_address === output.address
@@ -198,9 +198,7 @@ export function recalculateDepthH<T extends ExtendedTransaction>(
         )
 
       // Check if this transaction is not an input to any other transaction in our set
-      const isNotConnectedToOtherTx = Array.from(
-        updatedTransactions.values()
-      ).every(
+      const isNotConnectedToOtherTx = [...updatedTransactions.values()].every(
         (otherTx) =>
           !otherTx.vin.some((input) => input.previousOutput.txid === txid)
       )

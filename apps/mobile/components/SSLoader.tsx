@@ -21,7 +21,7 @@ const DEPTH_SCALE = 0.85
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle)
 
-type SSLoaderProps = {
+interface SSLoaderProps {
   size?: number
   color?: string
 }
@@ -61,7 +61,7 @@ function SSLoader({ size = 80, color = Colors.white }: SSLoaderProps) {
   })
 
   return (
-    <View style={{ width: size, height: size }}>
+    <View style={{ height: size, width: size }}>
       <Svg
         width={size}
         height={size}

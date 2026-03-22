@@ -11,7 +11,7 @@ import { formatNumber } from '@/utils/format'
 import SSNumberGhostInput from './SSNumberGhostInput'
 import SSText from './SSText'
 
-type SSAmountInputProps = {
+interface SSAmountInputProps {
   min: number
   max: number
   value: number
@@ -45,7 +45,7 @@ function SSAmountInput({
 
   function handleFiatChange(text: string) {
     const fiat = Number(text)
-    if (isNaN(fiat) || !btcPrice || btcPrice <= 0) return
+    if (isNaN(fiat) || !btcPrice || btcPrice <= 0) {return}
     const sats = Math.max(
       min,
       Math.min(max, Math.round((fiat / btcPrice) * 1e8))
@@ -149,17 +149,17 @@ function SSAmountInput({
 }
 
 const styles = StyleSheet.create({
-  track: {
-    height: 12,
-    borderRadius: 6
+  switchable: {
+    textDecorationLine: 'underline'
   },
   thumb: {
     width: 22,
     height: 22,
     borderRadius: 11
   },
-  switchable: {
-    textDecorationLine: 'underline'
+  track: {
+    height: 12,
+    borderRadius: 6
   }
 })
 

@@ -37,12 +37,12 @@ describe('parse utils', () => {
   describe('parseUriParameters', () => {
     it('should parse address without parameters', () => {
       const result = parseUriParameters('bc1qtest123')
-      expect(result).toEqual({ address: 'bc1qtest123' })
+      expect(result).toStrictEqual({ address: 'bc1qtest123' })
     })
 
     it('should parse address with amount', () => {
       const result = parseUriParameters('bc1qtest123?amount=1.5')
-      expect(result).toEqual({
+      expect(result).toStrictEqual({
         address: 'bc1qtest123',
         amount: 1.5,
         label: undefined
@@ -51,7 +51,7 @@ describe('parse utils', () => {
 
     it('should parse address with label', () => {
       const result = parseUriParameters('bc1qtest123?label=Test%20Payment')
-      expect(result).toEqual({
+      expect(result).toStrictEqual({
         address: 'bc1qtest123',
         amount: undefined,
         label: 'Test Payment'
@@ -60,7 +60,7 @@ describe('parse utils', () => {
 
     it('should parse address with amount and label', () => {
       const result = parseUriParameters('bc1qtest123?amount=0.001&label=Coffee')
-      expect(result).toEqual({
+      expect(result).toStrictEqual({
         address: 'bc1qtest123',
         amount: 0.001,
         label: 'Coffee'
@@ -74,7 +74,7 @@ describe('parse utils', () => {
 
     it('should handle address with empty query string', () => {
       const result = parseUriParameters('bc1qtest123?')
-      expect(result).toEqual({
+      expect(result).toStrictEqual({
         address: 'bc1qtest123',
         amount: undefined,
         label: undefined
@@ -92,7 +92,7 @@ describe('parse utils', () => {
     it('should return label with tags', () => {
       const result = parseLabel('Test label #kyc #satsigner')
       expect(result.label).toBe('Test label')
-      expect(result.tags).toEqual(['kyc', 'satsigner'])
+      expect(result.tags).toStrictEqual(['kyc', 'satsigner'])
     })
   })
 
@@ -101,10 +101,12 @@ describe('parse utils', () => {
       const result = parseLabelTags('My label', [])
       expect(result).toBe('My label')
     })
+
     it('should return label and tags', () => {
       const result = parseLabelTags('My label', ['endthefed', 'nokyc'])
       expect(result).toBe('My label #endthefed #nokyc')
     })
+
     it('should return only tags', () => {
       const result = parseLabelTags('', ['endthefed', 'nokyc'])
       expect(result).toBe('#endthefed #nokyc')

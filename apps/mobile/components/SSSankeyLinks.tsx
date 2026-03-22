@@ -70,9 +70,9 @@ function SSSankeyLinks({
         const relevantLinks = links.filter((link) => {
           if (type === 'source') {
             return link.source === node.id
-          } else {
-            return link.target === node.id
           }
+            return link.target === node.id
+          
         })
 
         for (const link of relevantLinks) {
@@ -129,11 +129,11 @@ function SSSankeyLinks({
         .filter((link) => {
           if (isSource) {
             return link.source === node.id
-          } else {
-            return link.target === node.id
           }
+            return link.target === node.id
+          
         })
-        .sort((a, b) => {
+        .toSorted((a, b) => {
           const aNode = isSource
             ? nodes.find((n) => n.id === a.target)
             : nodes.find((n) => n.id === a.source)
@@ -142,8 +142,8 @@ function SSSankeyLinks({
             : nodes.find((n) => n.id === b.source)
 
           // Sort by y0 for incoming links, y1 for outgoing links
-          const aY = isSource ? aNode?.y0 ?? 0 : aNode?.y1 ?? 0
-          const bY = isSource ? bNode?.y0 ?? 0 : bNode?.y1 ?? 0
+          const aY = isSource ? (aNode?.y0 ?? 0) : (aNode?.y1 ?? 0)
+          const bY = isSource ? (bNode?.y0 ?? 0) : (bNode?.y1 ?? 0)
 
           return aY - bY // Sort from top to bottom
         })
@@ -168,12 +168,12 @@ function SSSankeyLinks({
         cumulativeHeight += width
       }
 
-      const baseY = isSource ? node.y1 ?? 0 : node.y0 ?? 0
+      const baseY = isSource ? (node.y1 ?? 0) : (node.y0 ?? 0)
       return baseY + cumulativeHeight
     },
     [links, nodes, getLinkWidth]
   )
-  if (links.length === 0) return null
+  if (links.length === 0) {return null}
 
   return (
     <>
@@ -203,12 +203,12 @@ function SSSankeyLinks({
         const y1 =
           sourceNode.type === 'block'
             ? getStackedYPosition(sourceNode, true, link)!
-            : sourceNode.y1 ?? 0
+            : (sourceNode.y1 ?? 0)
 
         const y2 =
           targetNode.type === 'block'
             ? getStackedYPosition(targetNode, false, link)!
-            : targetNode.y0 ?? 0
+            : (targetNode.y0 ?? 0)
 
         const points: LinkPoints = {
           sourceWidth: getLinkWidth(sourceNode, targetNode, 'source'),
@@ -217,13 +217,13 @@ function SSSankeyLinks({
             sourceNode.type === 'block'
               ? (sourceNode.x1 ?? 0) -
                 (sankeyGenerator.nodeWidth() - BLOCK_WIDTH) / 2
-              : sourceNode.x1 ?? 0,
-          y1,
+              : (sourceNode.x1 ?? 0),
           x2:
             targetNode.type === 'block'
               ? (targetNode.x0 ?? 0) +
                 (sankeyGenerator.nodeWidth() - BLOCK_WIDTH) / 2
-              : targetNode.x0 ?? 0,
+              : (targetNode.x0 ?? 0),
+          y1,
           y2
         }
         const path1 = generateCustomLink(points)
@@ -238,7 +238,7 @@ function SSSankeyLinks({
               path={path1}
               style="fill"
               color={isCurrentTx || isUnspent ? 'white' : gray[700]}
-              opacity={shouldDim ? 0.2 : isCurrentTx || isUnspent ? 1 : 0.5}
+              opacity={shouldDim ? 0.2 : (isCurrentTx || isUnspent ? 1 : 0.5)}
             >
               {(isCurrentTx || isCurrentTxMinerFee) &&
               !isRemainingBalance &&

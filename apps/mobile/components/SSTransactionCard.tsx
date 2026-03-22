@@ -1,11 +1,7 @@
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
-import {
-  type StyleProp,
-  StyleSheet,
-  TouchableOpacity,
-  type ViewStyle
-} from 'react-native'
+import { StyleSheet, TouchableOpacity } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -13,8 +9,8 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
-import { type Currency } from '@/types/models/Blockchain'
-import { type Transaction } from '@/types/models/Transaction'
+import type { Currency } from '@/types/models/Blockchain'
+import type { Transaction } from '@/types/models/Transaction'
 import {
   formatConfirmations,
   formatFiatPrice,
@@ -28,7 +24,7 @@ import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
 
-type SSTransactionCardProps = {
+interface SSTransactionCardProps {
   transaction: Transaction
   blockHeight: number
   fiatCurrency: Currency
@@ -58,9 +54,9 @@ function SSTransactionCard({
   const confirmationColor =
     confirmations < 0
       ? styles.unconfirmed
-      : confirmations < 6
+      : (confirmations < 6
         ? styles.confirmedFew
-        : styles.confirmedEnough
+        : styles.confirmedEnough)
 
   const [priceDisplay, setPriceDisplay] = useState('')
   const [percentChange, setPercentChange] = useState('')
@@ -119,9 +115,9 @@ function SSTransactionCard({
       <SSVStack
         style={[
           {
+            paddingBottom: expand ? 6 : 12,
             paddingHorizontal: 0,
-            paddingTop: expand ? 0 : 4,
-            paddingBottom: expand ? 6 : 12
+            paddingTop: expand ? 0 : 4
           },
           style
         ]}
@@ -159,8 +155,8 @@ function SSTransactionCard({
         <SSVStack gap="none" style={{ marginTop: 5 }}>
           <SSHStack
             style={{
-              justifyContent: 'space-between',
-              alignItems: 'flex-end'
+              alignItems: 'flex-end',
+              justifyContent: 'space-between'
             }}
           >
             <SSHStack
@@ -287,9 +283,9 @@ function SSTransactionCard({
             size={smallView ? 'xxs' : 'xs'}
             style={[
               {
-                textAlign: 'left',
                 flex: 1,
-                marginBottom: transaction.label ? 4 : 0
+                marginBottom: transaction.label ? 4 : 0,
+                textAlign: 'left'
               },
               !transaction.label && { color: Colors.gray[500] }
             ]}
@@ -314,12 +310,12 @@ function SSTransactionCard({
                   key={index}
                   size={smallView ? 'xxs' : 'xs'}
                   style={[
-                    { textAlign: 'right', alignSelf: 'flex-start' },
+                    { alignSelf: 'flex-start', textAlign: 'right' },
                     {
                       backgroundColor: Colors.gray[700],
-                      paddingVertical: 2,
+                      borderRadius: 4,
                       paddingHorizontal: 6,
-                      borderRadius: 4
+                      paddingVertical: 2
                     }
                   ]}
                   uppercase
@@ -333,13 +329,13 @@ function SSTransactionCard({
                 size={smallView ? 'xxs' : 'xs'}
                 style={[
                   {
-                    textAlign: 'right',
-                    color: Colors.gray[500]
+                    color: Colors.gray[500],
+                    textAlign: 'right'
                   },
                   {
                     backgroundColor: Colors.gray[950],
-                    paddingVertical: smallView ? 0 : 2,
-                    borderRadius: 4
+                    borderRadius: 4,
+                    paddingVertical: smallView ? 0 : 2
                   }
                 ]}
                 uppercase
@@ -356,14 +352,14 @@ function SSTransactionCard({
 }
 
 const styles = StyleSheet.create({
-  unconfirmed: {
-    color: Colors.error
+  confirmedEnough: {
+    color: Colors.softBarGreen
   },
   confirmedFew: {
     color: Colors.warning
   },
-  confirmedEnough: {
-    color: Colors.softBarGreen
+  unconfirmed: {
+    color: Colors.error
   }
 })
 

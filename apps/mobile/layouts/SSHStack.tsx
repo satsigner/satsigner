@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import { Layout } from '@/styles'
-import { type HStackGap } from '@/styles/layout'
+import type { HStackGap } from '@/styles/layout'
 
 type SSHStackProps = {
   gap?: HStackGap
@@ -18,8 +18,7 @@ export default function SSHStack({
   children,
   style
 }: SSHStackProps) {
-  const containerStyle = useMemo(() => {
-    return StyleSheet.compose(
+  const containerStyle = useMemo(() => StyleSheet.compose(
       {
         ...styles.containerBase,
         ...{ gap: Layout.hStack.gap[gap] },
@@ -27,16 +26,15 @@ export default function SSHStack({
         ...(justifyEvenly ? styles.justifyEvenly : {})
       },
       style
-    )
-  }, [gap, justifyBetween, justifyEvenly, style])
+    ), [gap, justifyBetween, justifyEvenly, style])
 
   return <View style={containerStyle}>{children}</View>
 }
 
 const styles = StyleSheet.create({
   containerBase: {
-    flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    flexDirection: 'row'
   },
   justifyBetween: {
     justifyContent: 'space-between'

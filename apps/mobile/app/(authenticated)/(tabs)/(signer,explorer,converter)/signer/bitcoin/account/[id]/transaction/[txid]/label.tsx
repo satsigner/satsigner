@@ -7,10 +7,10 @@ import useNostrSync from '@/hooks/useNostrSync'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { type Account } from '@/types/models/Account'
-import { type Transaction } from '@/types/models/Transaction'
-import { type TxSearchParams } from '@/types/navigation/searchParams'
-import { type Label } from '@/utils/bip329'
+import type { Account } from '@/types/models/Account'
+import type { Transaction } from '@/types/models/Transaction'
+import type { TxSearchParams } from '@/types/navigation/searchParams'
+import type { Label } from '@/utils/bip329'
 
 import { SSTxDetailsHeader } from '.'
 
@@ -32,8 +32,8 @@ function TransactionLabel() {
     const singleLabelData: Label = {
       label,
       ref: txid!,
-      type: 'tx',
-      spendable: true
+      spendable: true,
+      type: 'tx'
     }
 
     if (updatedAccount?.nostr?.autoSync) {
@@ -42,7 +42,7 @@ function TransactionLabel() {
     router.back()
   }
 
-  if (!tx || !accountId) return <Redirect href="/" />
+  if (!tx || !accountId) {return <Redirect href="/" />}
 
   return (
     <ScrollView>

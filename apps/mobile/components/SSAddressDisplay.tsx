@@ -4,7 +4,8 @@ import SSHStack from '@/layouts/SSHStack'
 import { Colors } from '@/styles'
 
 import SSClipboardCopy from './SSClipboardCopy'
-import SSText, { type SSTextProps } from './SSText'
+import SSText from './SSText';
+import type { SSTextProps } from './SSText';
 
 type SSAddressDisplayProps = {
   address: string
@@ -35,9 +36,9 @@ function SSAddressDisplay({
   ...props
 }: SSAddressDisplayProps) {
   if (!copyToClipboard)
-    return (
+    {return (
       <AddressDisplayContent address={address} variant={variant} {...props} />
-    )
+    )}
 
   return (
     <SSClipboardCopy text={address}>
@@ -47,6 +48,11 @@ function SSAddressDisplay({
 }
 
 const styles = StyleSheet.create({
+  bare: {
+    flexWrap: 'wrap',
+    padding: 0,
+    width: '100%'
+  },
   default: {
     backgroundColor: Colors.gray[800],
     borderRadius: 5,
@@ -62,11 +68,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'center',
     padding: 12,
-    width: '100%'
-  },
-  bare: {
-    flexWrap: 'wrap',
-    padding: 0,
     width: '100%'
   }
 })

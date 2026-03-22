@@ -1,15 +1,9 @@
 import { useCallback } from 'react'
-import {
-  type AnimatableValue,
-  type AnimationCallback,
-  runOnJS,
-  useSharedValue
-} from 'react-native-reanimated'
+import { runOnJS, useSharedValue } from 'react-native-reanimated';
+import type { AnimatableValue, AnimationCallback } from 'react-native-reanimated';
 
-import {
-  ANIMATION_VALUE,
-  type OnResetAnimationEndCallback
-} from '@/types/ui/gestures'
+import { ANIMATION_VALUE } from '@/types/ui/gestures';
+import type { OnResetAnimationEndCallback } from '@/types/ui/gestures';
 
 type OnAnimationEndCallback = AnimationCallback extends (
   ...a: infer I
@@ -37,10 +31,7 @@ const ANIMATION_VALUES = [
 
 const isAnimationComplete = (
   endValues: PartialEndValues
-): endValues is EndValues => {
-  'worklet'
-  return ANIMATION_VALUES.every((item) => !!endValues[item])
-}
+): endValues is EndValues => ANIMATION_VALUES.every((item) => !!endValues[item])
 
 export const useAnimationEnd = (
   onResetAnimationEnd?: OnResetAnimationEndCallback
@@ -52,7 +43,7 @@ export const useAnimationEnd = (
       'worklet'
       if (onResetAnimationEnd) {
         const currentEndValues = endValues.value[interactionId] || {}
-        currentEndValues[value] = { finished, current }
+        currentEndValues[value] = { current, finished }
         if (isAnimationComplete(currentEndValues)) {
           const completed = !Object.values(currentEndValues).some(
             (item) => !item.finished

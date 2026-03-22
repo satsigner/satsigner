@@ -1,9 +1,6 @@
 import { DEFAULT_RETRY_CONFIG } from '@/constants/nostr'
-import {
-  calculateRetryDelay,
-  createRetryManager,
-  type RetryManagerHandle
-} from '@/utils/retryManager'
+import { calculateRetryDelay, createRetryManager } from '@/utils/retryManager';
+import type { RetryManagerHandle } from '@/utils/retryManager';
 
 describe('calculateRetryDelay', () => {
   beforeEach(() => {
@@ -15,7 +12,7 @@ describe('calculateRetryDelay', () => {
   })
 
   it('uses exponential backoff', () => {
-    const config = { baseDelayMs: 1000, maxDelayMs: 60000, jitterFactor: 0 }
+    const config = { baseDelayMs: 1000, jitterFactor: 0, maxDelayMs: 60000 }
 
     const delays = [0, 1, 2, 3, 4].map((attempt) =>
       calculateRetryDelay(attempt, config)
@@ -25,19 +22,19 @@ describe('calculateRetryDelay', () => {
     expect(delays[1]).toBe(2000)
     expect(delays[2]).toBe(4000)
     expect(delays[3]).toBe(8000)
-    expect(delays[4]).toBe(16000)
+    expect(delays[4]).toBe(16_000)
   })
 
   it('caps at maxDelayMs', () => {
-    const config = { baseDelayMs: 1000, maxDelayMs: 60000, jitterFactor: 0 }
+    const config = { baseDelayMs: 1000, jitterFactor: 0, maxDelayMs: 60000 }
 
     const delay = calculateRetryDelay(10, config)
 
-    expect(delay).toBe(60000)
+    expect(delay).toBe(60_000)
   })
 
   it('adds jitter to prevent thundering herd', () => {
-    const config = { baseDelayMs: 1000, maxDelayMs: 60000, jitterFactor: 0.2 }
+    const config = { baseDelayMs: 1000, jitterFactor: 0.2, maxDelayMs: 60000 }
 
     const delay = calculateRetryDelay(0, config)
 
@@ -51,7 +48,7 @@ describe('calculateRetryDelay', () => {
   })
 
   it('varies jitter based on random value', () => {
-    const config = { baseDelayMs: 1000, maxDelayMs: 60000, jitterFactor: 0.2 }
+    const config = { baseDelayMs: 1000, jitterFactor: 0.2, maxDelayMs: 60000 }
 
     jest.spyOn(Math, 'random').mockReturnValue(0)
     const delayMin = calculateRetryDelay(0, config)
@@ -70,9 +67,9 @@ describe('createRetryManager', () => {
     jest.useFakeTimers()
     manager = createRetryManager({
       baseDelayMs: 1000,
+      jitterFactor: 0,
       maxDelayMs: 60000,
-      maxRetries: 5,
-      jitterFactor: 0
+      maxRetries: 5
     })
   })
 
@@ -127,7 +124,7 @@ describe('createRetryManager', () => {
 
       for (let i = 0; i < 5; i++) {
         manager.scheduleRetry('test-key', callback)
-        jest.advanceTimersByTime(100000)
+        jest.advanceTimersByTime(100_000)
       }
 
       const result = manager.scheduleRetry('test-key', callback)
@@ -157,7 +154,7 @@ describe('createRetryManager', () => {
       manager.scheduleRetry('test-key', callback)
       manager.cancel('test-key')
 
-      jest.advanceTimersByTime(100000)
+      jest.advanceTimersByTime(100_000)
 
       expect(callback).not.toHaveBeenCalled()
     })
@@ -213,7 +210,7 @@ describe('createRetryManager', () => {
 
       for (let i = 0; i < 5; i++) {
         manager.scheduleRetry('test-key', callback)
-        jest.advanceTimersByTime(100000)
+        jest.advanceTimersByTime(100_000)
       }
 
       expect(manager.isMaxRetriesReached('test-key')).toBe(true)
@@ -238,10 +235,10 @@ describe('createRetryManager', () => {
   })
 })
 
-describe('DEFAULT_RETRY_CONFIG', () => {
+describe('dEFAULT_RETRY_CONFIG', () => {
   it('has sensible defaults', () => {
     expect(DEFAULT_RETRY_CONFIG.baseDelayMs).toBe(1000)
-    expect(DEFAULT_RETRY_CONFIG.maxDelayMs).toBe(60000)
+    expect(DEFAULT_RETRY_CONFIG.maxDelayMs).toBe(60_000)
     expect(DEFAULT_RETRY_CONFIG.maxRetries).toBe(5)
     expect(DEFAULT_RETRY_CONFIG.jitterFactor).toBe(0.2)
   })

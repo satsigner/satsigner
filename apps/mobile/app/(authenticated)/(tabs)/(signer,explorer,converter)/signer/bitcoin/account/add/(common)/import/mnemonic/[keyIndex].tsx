@@ -1,4 +1,4 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
+import type { Network } from 'bdk-rn/lib/lib/enums'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
@@ -21,8 +21,8 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type Account } from '@/types/models/Account'
-import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
+import type { Account } from '@/types/models/Account'
+import type { ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
 import { getExtendedPublicKeyFromMnemonic } from '@/utils/bip39'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 
@@ -85,9 +85,9 @@ export default function ImportMnemonic() {
     useState(false)
 
   const [wordSelectorState, setWordSelectorState] = useState({
+    onWordSelected: () => {},
     visible: false,
-    wordStart: '',
-    onWordSelected: () => {}
+    wordStart: ''
   })
 
   // Handle mnemonic validation from the component

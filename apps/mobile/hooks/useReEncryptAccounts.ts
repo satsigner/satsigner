@@ -1,7 +1,7 @@
 import { useShallow } from 'zustand/react/shallow'
 
 import { useAccountsStore } from '@/store/accounts'
-import { type Account, type Secret } from '@/types/models/Account'
+import type { Account, Secret } from '@/types/models/Account'
 import { aesDecrypt, aesEncrypt, randomIv } from '@/utils/crypto'
 
 export default function useReEncryptAccounts() {
@@ -33,7 +33,7 @@ export default function useReEncryptAccounts() {
           )
           secret = JSON.parse(decryptedSecretString) as Secret
         } else {
-          secret = key.secret
+          ({ secret } = key)
         }
 
         // encrypt secret with new pin
@@ -48,8 +48,8 @@ export default function useReEncryptAccounts() {
         // update secret while avoiding mutating nested objects in store
         updatedAccount.keys[k] = {
           ...account.keys[k],
-          secret: newSecret,
-          iv: newIv
+          iv: newIv,
+          secret: newSecret
         }
       }
 

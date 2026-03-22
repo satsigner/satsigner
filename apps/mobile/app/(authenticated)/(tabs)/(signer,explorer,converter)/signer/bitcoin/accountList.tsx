@@ -57,7 +57,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
-import { type Network } from '@/types/settings/blockchain'
+import type { Network } from '@/types/settings/blockchain'
 import {
   getExtendedPublicKeyFromMnemonic,
   getExtendedPublicKeyFromMnemonicCustom,
@@ -71,14 +71,18 @@ const ACCOUNT_SKELETON_COUNT = 3
 // Helper function to map local Network type to bdk-rn Network enum
 function mapNetworkToBdkNetwork(network: 'bitcoin' | 'testnet' | 'signet') {
   switch (network) {
-    case 'bitcoin':
+    case 'bitcoin': {
       return BdkNetwork.Bitcoin
-    case 'testnet':
+    }
+    case 'testnet': {
       return BdkNetwork.Testnet
-    case 'signet':
+    }
+    case 'signet': {
       return BdkNetwork.Signet
-    default:
+    }
+    default: {
       return BdkNetwork.Bitcoin
+    }
   }
 }
 
@@ -100,15 +104,15 @@ function AccountCardStaggerItem({
     const timer = setTimeout(() => {
       Animated.parallel([
         Animated.timing(opacity, {
-          toValue: 1,
           duration: STAGGER_DURATION_MS,
           easing: Easing.out(Easing.ease),
+          toValue: 1,
           useNativeDriver: true
         }),
         Animated.timing(translateY, {
-          toValue: 0,
           duration: STAGGER_DURATION_MS,
           easing: Easing.out(Easing.ease),
+          toValue: 0,
           useNativeDriver: true
         })
       ]).start()
@@ -227,13 +231,13 @@ export default function AccountList() {
   }, [])
 
   useEffect(() => {
-    if (!hasHydrated) return
+    if (!hasHydrated) {return}
     sampleAccountsOpacity.setValue(0)
     const timer = setTimeout(() => {
       Animated.timing(sampleAccountsOpacity, {
-        toValue: 1,
         duration: 320,
         easing: Easing.out(Easing.ease),
+        toValue: 1,
         useNativeDriver: true
       }).start()
     }, 400)
@@ -243,12 +247,10 @@ export default function AccountList() {
   const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
   const [tabIndex, setTabIndex] = useState(() => {
     const index = tabs.findIndex((tab) => tab.key === network)
-    return index > 0 ? index : 0
+    return Math.max(index, 0)
   })
 
-  const filteredAccounts = useMemo(() => {
-    return accounts.filter((acc) => acc.network === tabs[tabIndex].key)
-  }, [accounts, tabIndex]) // eslint-disable-line react-hooks/exhaustive-deps
+  const filteredAccounts = useMemo(() => accounts.filter((acc) => acc.network === tabs[tabIndex].key), [accounts, tabIndex]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const ACCOUNT_CARD_HEIGHT = 160
   const SEPARATOR_VERTICAL = 32
@@ -286,21 +288,21 @@ export default function AccountList() {
   }
 
   async function syncAccounts() {
-    if (connectionMode !== 'auto') return
+    if (connectionMode !== 'auto') {return}
 
     const now = time.now()
 
     const eligibleAccounts = accounts.filter((account) => {
-      if (account.network !== tabs[tabIndex].key) return false
-      if (account.syncStatus === 'syncing') return false
+      if (account.network !== tabs[tabIndex].key) {return false}
+      if (account.syncStatus === 'syncing') {return false}
       if (
         account.lastSyncedAt &&
         now > time.minutesAfter(account.lastSyncedAt, autoConnectDelay)
       )
-        return false
+        {return false}
       const isImportAddress = account.keys[0].creationType === 'importAddress'
-      if (isImportAddress && !addresses[account.id]) return false
-      if (!isImportAddress && !wallets[account.id]) return false
+      if (isImportAddress && !addresses[account.id]) {return false}
+      if (!isImportAddress && !wallets[account.id]) {return false}
       return true
     })
 
@@ -413,34 +415,39 @@ export default function AccountList() {
         setMnemonic(sampleSignetWalletSeed)
         break
       }
-      case 'watchonlyXpub':
+      case 'watchonlyXpub': {
         setScriptVersion('P2PKH')
         setPolicyType('watchonly')
         setCreationType('importExtendedPub')
         setExtendedPublicKey(sampleSignetXpub)
         setFingerprint(sampleSignetXpubFingerprint)
         break
-      case 'watchonlyAddress':
+      }
+      case 'watchonlyAddress': {
         setPolicyType('watchonly')
         setCreationType('importAddress')
         setExternalDescriptor(`addr(${sampleSignetAddress})`)
         break
-      case 'watchonlySalvador':
+      }
+      case 'watchonlySalvador': {
         setPolicyType('watchonly')
         setCreationType('importAddress')
         setExternalDescriptor(`addr(${sampleSalvadorAddress})`)
         break
-      case 'watchonlySegwit':
+      }
+      case 'watchonlySegwit': {
         setPolicyType('watchonly')
         setCreationType('importAddress')
         setExternalDescriptor(`addr(${sampleSegwitAddress})`)
         break
-      case 'watchonlyTestnet4':
+      }
+      case 'watchonlyTestnet4': {
         setPolicyType('watchonly')
         setCreationType('importAddress')
         setExternalDescriptor(`addr(${sampleTestnet4Address})`)
         break
-      case 'watchonlyTether':
+      }
+      case 'watchonlyTether': {
         setPolicyType('watchonly')
         setCreationType('importAddress')
         sampleMultiAddressTether.forEach((address, index) => {
@@ -448,6 +455,7 @@ export default function AccountList() {
           setKey(index)
         })
         break
+      }
       case 'multisig': {
         // Set up multisig configuration
         setPolicyType('multisig')
@@ -498,7 +506,7 @@ export default function AccountList() {
       }
     }
 
-    if (type !== 'watchonlyTether' && type !== 'multisig') setKey(0)
+    if (type !== 'watchonlyTether' && type !== 'multisig') {setKey(0)}
 
     const account = getAccountData()
 
@@ -568,7 +576,7 @@ export default function AccountList() {
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(
         () => reject(new Error('Wallet creation timed out after 30 seconds')),
-        30000
+        30_000
       )
     })
 
@@ -598,8 +606,7 @@ export default function AccountList() {
     toast.success('Sample wallet created successfully!')
   }
 
-  const renderTab = () => {
-    return (
+  const renderTab = () => (
       <SSHStack
         gap="none"
         justifyEvenly
@@ -640,11 +647,10 @@ export default function AccountList() {
         ))}
       </SSHStack>
     )
-  }
 
   const renderSamplewallets = () => {
     switch (network) {
-      case 'bitcoin':
+      case 'bitcoin': {
         return (
           <SSVStack
             itemsCenter
@@ -679,7 +685,8 @@ export default function AccountList() {
             />
           </SSVStack>
         )
-      case 'testnet':
+      }
+      case 'testnet': {
         return (
           <SSVStack
             itemsCenter
@@ -700,7 +707,8 @@ export default function AccountList() {
             />
           </SSVStack>
         )
-      case 'signet':
+      }
+      case 'signet': {
         return (
           <SSVStack
             itemsCenter
@@ -749,6 +757,7 @@ export default function AccountList() {
             />
           </SSVStack>
         )
+      }
     }
   }
 
@@ -767,7 +776,7 @@ export default function AccountList() {
         <TouchableOpacity
           onPress={() => router.navigate('/settings/network/server')}
         >
-          <SSHStack style={{ justifyContent: 'center', gap: 0 }}>
+          <SSHStack style={{ gap: 0, justifyContent: 'center' }}>
             {connectionState ? (
               isPrivateConnection ? (
                 <SSIconYellowIndicator height={24} width={24} />
@@ -812,11 +821,11 @@ export default function AccountList() {
           <SSButton
             label={t('account.add')}
             style={{
-              borderTopWidth: 1,
-              borderTopColor: Colors.gray[700],
-              borderBottomWidth: 1,
               borderBottomColor: Colors.gray[875],
-              borderRadius: 0
+              borderBottomWidth: 1,
+              borderRadius: 0,
+              borderTopColor: Colors.gray[700],
+              borderTopWidth: 1
             }}
             onPress={handleOnNavigateToAddAccount}
             variant="gradient"
@@ -824,7 +833,7 @@ export default function AccountList() {
           />
         </View>
       </SSHStack>
-      <SSMainLayout style={{ paddingTop: 32, paddingHorizontal: '5%' }}>
+      <SSMainLayout style={{ paddingHorizontal: '5%', paddingTop: 32 }}>
         <TabView
           swipeEnabled={false}
           navigationState={{ index: tabIndex, routes: tabs }}
@@ -880,7 +889,7 @@ export default function AccountList() {
                     ListEmptyComponent={
                       <SSVStack
                         itemsCenter
-                        style={{ paddingTop: 32, paddingBottom: 32 }}
+                        style={{ paddingBottom: 32, paddingTop: 32 }}
                       >
                         <SSText uppercase>{t('accounts.empty')}</SSText>
                       </SSVStack>

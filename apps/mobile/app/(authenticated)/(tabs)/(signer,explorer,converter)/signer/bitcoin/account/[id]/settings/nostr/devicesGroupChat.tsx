@@ -16,7 +16,7 @@ import SSModal from '@/components/SSModal'
 import SSNostrMessage from '@/components/SSNostrMessage'
 import SSText from '@/components/SSText'
 import SSTransactionDetails from '@/components/SSTransactionDetails'
-import { type AuthorDisplayInfo } from '@/hooks/useNostrMessage'
+import type { AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import { setActiveChatAccount } from '@/hooks/useNostrNotifyUtils'
 import useNostrPublish from '@/hooks/useNostrPublish'
 import { useNostrSignFlow } from '@/hooks/useNostrSignFlow'
@@ -27,10 +27,10 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
-import { type NostrDM } from '@/types/models/Nostr'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { NostrDM } from '@/types/models/Nostr'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { parseNostrTransaction } from '@/utils/nostr'
-import { type TransactionData } from '@/utils/psbt'
+import type { TransactionData } from '@/utils/psbt'
 
 // In-memory color cache; keyed by pubkey hex.
 // Display text is NOT cached here — it's recomputed whenever profiles update.
@@ -41,7 +41,7 @@ function getAuthorColor(
   members: { npub: string; color: string }[]
 ): string {
   const cached = colorCache.get(pubkey)
-  if (cached) return cached
+  if (cached) {return cached}
 
   try {
     const npub = nip19.npubEncode(pubkey)
@@ -142,8 +142,8 @@ export default function DevicesGroupChat() {
   const membersList = useMemo(
     () =>
       members.map((member: { npub: string; color?: string }) => ({
-        npub: member.npub,
-        color: member.color || Colors.gray[500]
+        color: member.color || Colors.gray[500],
+        npub: member.npub
       })),
     [members]
   )
@@ -183,21 +183,21 @@ export default function DevicesGroupChat() {
       const created_at = Math.floor(Date.now() / 1000)
       pendingId = `pending-${Date.now()}`
       const optimisticMessage: NostrDM = {
-        id: pendingId,
         author: devicePubkeyHex,
-        created_at,
-        description: trimmed,
-        event: '',
-        label: 1,
         content: {
           description: trimmed,
           created_at,
           pubkey: devicePubkeyHex
         },
+        created_at,
+        description: trimmed,
+        event: '',
+        id: pendingId,
+        label: 1,
         pending: true
       }
       updateAccountNostr(accountId!, {
-        dms: [...(account.nostr?.dms ?? []), optimisticMessage].sort(
+        dms: [...(account.nostr?.dms ?? []), optimisticMessage].toSorted(
           (a, b) => a.created_at - b.created_at
         )
       })
@@ -268,7 +268,7 @@ export default function DevicesGroupChat() {
   }
 
   async function handleShareInChat() {
-    if (!account || !transactionToShareLocal) return
+    if (!account || !transactionToShareLocal) {return}
 
     setIsLoading(true)
     try {
@@ -298,7 +298,7 @@ export default function DevicesGroupChat() {
     const aliases = account?.nostr?.npubAliases ?? {}
 
     for (const msg of memoizedMessages) {
-      if (!msg.author) continue
+      if (!msg.author) {continue}
       const color = getAuthorColor(msg.author, membersList)
       let npub: string
       try {
@@ -322,13 +322,13 @@ export default function DevicesGroupChat() {
         ? formatNpubText(msg.author)
         : msg.author.slice(0, 8)
       newFormattedNpubs.set(msg.author, {
+        alias: alias || undefined,
+        color,
         displayName:
           profile?.displayName ??
           accountProfile?.displayName ??
           deviceDisplayName,
-        alias: alias || undefined,
         npubShort,
-        color,
         picture: profile?.picture ?? accountProfile?.picture ?? devicePicture
       })
     }
@@ -348,14 +348,14 @@ export default function DevicesGroupChat() {
   // Fetch kind0 profiles for authors we haven't resolved yet.
   // Fire-and-forget: results land in the persisted nostr store.
   useEffect(() => {
-    if (!account?.nostr?.relays?.length) return
+    if (!account?.nostr?.relays?.length) {return}
 
-    const relays = account.nostr.relays
+    const {relays} = account.nostr
     const fetchedRef = new Set<string>()
 
     ;(async () => {
       for (const msg of memoizedMessages) {
-        if (!msg.author) continue
+        if (!msg.author) {continue}
         let npub: string
         try {
           npub = nip19.npubEncode(msg.author)
@@ -368,7 +368,7 @@ export default function DevicesGroupChat() {
           profiles[npub]?.picture ||
           fetchedRef.has(npub)
         )
-          continue
+          {continue}
         fetchedRef.add(npub)
 
         try {
@@ -397,7 +397,7 @@ export default function DevicesGroupChat() {
 
   function handleScrollToBottom() {
     if (flatListRef.current) {
-      flatListRef.current.scrollToOffset({ offset: 0, animated: true })
+      flatListRef.current.scrollToOffset({ animated: true, offset: 0 })
       isAtBottomRef.current = true
       setShowNewMessageButton(false)
     }
@@ -414,7 +414,7 @@ export default function DevicesGroupChat() {
     const atBottom = contentOffset.y <= SCROLL_THRESHOLD
     if (isAtBottomRef.current !== atBottom) {
       isAtBottomRef.current = atBottom
-      if (atBottom) setShowNewMessageButton(false)
+      if (atBottom) {setShowNewMessageButton(false)}
     }
     const nearTop =
       contentSize.height > layoutMeasurement.height &&
@@ -439,18 +439,18 @@ export default function DevicesGroupChat() {
     }
   }, [transactionToShare, setTransactionToShare])
 
-  if (!accountId || !account) return <Redirect href="/" />
+  if (!accountId || !account) {return <Redirect href="/" />}
 
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>
       <Stack.Screen
         options={{
+          headerRight: () => null,
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
             </SSHStack>
-          ),
-          headerRight: () => null
+          )
         }}
       />
       <SSVStack gap="sm" style={{ flex: 1 }}>
@@ -576,21 +576,6 @@ export default function DevicesGroupChat() {
 }
 
 const styles = StyleSheet.create({
-  messagesContainer: {
-    flex: 1,
-    paddingBottom: 8
-  },
-  message: {
-    backgroundColor: Colors.gray[900],
-    padding: 10,
-    paddingBottom: 15,
-    paddingTop: 5,
-    borderRadius: 8,
-    marginTop: 8
-  },
-  deviceMessage: {
-    backgroundColor: Colors.gray[800]
-  },
   authorIndicator: {
     width: 8,
     height: 8,
@@ -598,9 +583,8 @@ const styles = StyleSheet.create({
     marginTop: 1,
     marginRight: 3
   },
-  inputContainer: {
-    paddingHorizontal: 0,
-    paddingBottom: 16
+  deviceMessage: {
+    backgroundColor: Colors.gray[800]
   },
   input: {
     backgroundColor: Colors.gray[900],
@@ -611,14 +595,9 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     flex: 0.8
   },
-  sendButton: {
-    flex: 0.2
-  },
-  statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10
+  inputContainer: {
+    paddingHorizontal: 0,
+    paddingBottom: 16
   },
   loadingContainer: {
     position: 'absolute',
@@ -630,9 +609,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 1
   },
-  signFlowButton: {
-    marginTop: 8,
-    alignSelf: 'flex-start'
+  message: {
+    backgroundColor: Colors.gray[900],
+    padding: 10,
+    paddingBottom: 15,
+    paddingTop: 5,
+    borderRadius: 8,
+    marginTop: 8
+  },
+  messagesContainer: {
+    flex: 1,
+    paddingBottom: 8
   },
   modalContainer: {
     flex: 1,
@@ -650,19 +637,32 @@ const styles = StyleSheet.create({
     maxHeight: '85%',
     justifyContent: 'space-between'
   },
+  modalMessageText: {
+    maxHeight: 300
+  },
   modalScroll: {
     width: '100%'
   },
   modalScrollContent: {
     paddingBottom: 4
   },
-  modalMessageText: {
-    maxHeight: 300
-  },
   newMessageButtonContainer: {
     position: 'absolute',
     bottom: 70,
     alignSelf: 'center',
     zIndex: 2
+  },
+  sendButton: {
+    flex: 0.2
+  },
+  signFlowButton: {
+    marginTop: 8,
+    alignSelf: 'flex-start'
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10
   }
 })

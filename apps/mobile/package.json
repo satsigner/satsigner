@@ -1,12 +1,14 @@
 {
   "name": "@satsigner/mobile",
   "version": "0.2.1",
-  "description": "Privacy-first Bitcoin signer with complete UTXO control",
   "private": true,
-  "engines": {
-    "node": ">=22.4.0"
-  },
+  "description": "Privacy-first Bitcoin signer with complete UTXO control",
   "main": "expo-router/entry",
+  "react-native": {
+    "net": "react-native-tcp-socket",
+    "tls": "react-native-tcp-socket",
+    "fs": "react-native-tcp-socket"
+  },
   "scripts": {
     "android": "expo run:android",
     "format": "cd ../.. && yarn format",
@@ -129,9 +131,7 @@
     "rn-nodeify": "^10.3.0",
     "typescript": "^5.1.3"
   },
-  "react-native": {
-    "net": "react-native-tcp-socket",
-    "tls": "react-native-tcp-socket",
-    "fs": "react-native-tcp-socket"
+  "engines": {
+    "node": ">=22.4.0"
   }
 }

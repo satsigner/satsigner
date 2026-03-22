@@ -4,13 +4,10 @@ import { useSharedValue } from 'react-native-reanimated'
 export const useInteractionId = () => {
   const interactionId = useSharedValue('')
 
-  const getInteractionId = useCallback(() => {
-    'worklet'
-    return interactionId.value
-  }, [interactionId])
+  const getInteractionId = useCallback(() => interactionId.value, [interactionId])
 
   const updateInteractionId = useCallback(() => {
-    interactionId.value = `${new Date().valueOf()}`
+    interactionId.value = `${Date.now()}`
   }, [interactionId])
 
   return { getInteractionId, updateInteractionId }

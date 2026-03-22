@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
-import { type TextInput } from 'react-native-gesture-handler'
+import type { TextInput } from 'react-native-gesture-handler'
 
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
@@ -12,7 +12,7 @@ import SSIconButton from './SSIconButton'
 import SSText from './SSText'
 import SSTextInput from './SSTextInput'
 
-type SSTagInputProps = {
+interface SSTagInputProps {
   tags: string[]
   selectedTags: string[]
   onAdd?: (tag: string) => void
@@ -32,21 +32,21 @@ function SSTagInput({
   const inputRef = useRef<TextInput>()
 
   function addTag(tag: string) {
-    if (tag.length < 2 || selectedTags.includes(tag)) return false
+    if (tag.length < 2 || selectedTags.includes(tag)) {return false}
 
-    if (onAdd) onAdd(tag)
-    else if (onSelect) onSelect([...selectedTags, tag])
+    if (onAdd) {onAdd(tag)}
+    else if (onSelect) {onSelect([...selectedTags, tag])}
 
     return true
   }
 
   function enterTag() {
-    if (addTag(text)) setText('')
+    if (addTag(text)) {setText('')}
   }
 
   function removeTag(tag: string) {
-    if (onRemove) onRemove(tag)
-    else if (onSelect) onSelect(selectedTags.filter((t) => t !== tag))
+    if (onRemove) {onRemove(tag)}
+    else if (onSelect) {onSelect(selectedTags.filter((t) => t !== tag))}
   }
 
   function search(a: string, b: string) {
@@ -116,18 +116,18 @@ function SSTagInput({
 }
 
 const styles = StyleSheet.create({
-  tag: {
-    backgroundColor: Colors.gray[850],
-    borderRadius: 3,
-    borderStyle: 'solid',
-    padding: 5
-  },
   button: {
     borderRadius: 5,
     paddingHorizontal: 8,
     backgroundColor: Colors.gray[800],
     height: 'auto',
     width: 'auto'
+  },
+  tag: {
+    backgroundColor: Colors.gray[850],
+    borderRadius: 3,
+    borderStyle: 'solid',
+    padding: 5
   }
 })
 

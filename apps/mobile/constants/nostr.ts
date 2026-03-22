@@ -3,11 +3,11 @@ import type { NostrRelay } from '@/types/models/Nostr'
 export const DEFAULT_RETRY_CONFIG = {
   baseDelayMs: 1000,
   jitterFactor: 0.2,
-  maxDelayMs: 60000,
+  maxDelayMs: 60_000,
   maxRetries: 5
 }
 export const DELAY_BETWEEN_PUBLISHES_MS = 400
-export const EOSE_TIMEOUT_MS = 15000
+export const EOSE_TIMEOUT_MS = 15_000
 export const FLUSH_QUEUE_DELAY_MS = 50
 /** Max number of processed events/messages to keep per account (prevents unbounded memory growth). */
 export const MAX_PROCESSED_ITEMS = 2000
@@ -18,7 +18,7 @@ export const MAX_QUEUE_SIZE = 300
  *  miss recent announcements when the relay returns oldest events first and we hit the limit. */
 export const PROTOCOL_SUBSCRIPTION_LIMIT = 5000
 /** When doing a full rescan (since=0), request more events to reduce chance of missing new announcements. */
-export const PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN = 10000
+export const PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN = 10_000
 export const PROCESSING_INTERVAL_MS = 350
 export const RELAY_PROTOCOL_PREFIX = 'wss://'
 /** Fallback color when npub is missing, invalid, or member has no color (e.g. device/member list UI). */

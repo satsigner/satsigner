@@ -37,12 +37,12 @@ export default function SeedWordsPage() {
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
   const [noMnemonicAvailable, setNoMnemonicAvailable] = useState(false)
 
-  const keyIndexNum = parseInt(keyIndex || '0', 10)
+  const keyIndexNum = Number.parseInt(keyIndex || '0', 10)
   const accountData = getAccountData()
   const key = accountData?.keys[keyIndexNum]
 
   const decryptMnemonic = useCallback(async () => {
-    if (!accountData || !key) return
+    if (!accountData || !key) {return}
 
     try {
       // During multisig creation, the secret is stored in plain text
@@ -86,7 +86,7 @@ export default function SeedWordsPage() {
         setNoMnemonicAvailable(true)
         setShowPinEntry(false)
       }
-    } catch (_error) {
+    } catch {
       toast.error(t('account.seed.unableToDecrypt'))
     }
   }, [accountData, key])
@@ -158,7 +158,7 @@ export default function SeedWordsPage() {
                 onPress={() => router.back()}
               />
             </SSVStack>
-          ) : mnemonic ? (
+          ) : (mnemonic ? (
             <>
               <SSVStack gap="md">
                 <SSText center uppercase>
@@ -260,7 +260,7 @@ export default function SeedWordsPage() {
                 {t('account.seed.enterPinToView')}
               </SSText>
             </SSVStack>
-          )}
+          ))}
         </SSVStack>
       </ScrollView>
       <SSModal visible={showPinEntry} onClose={() => setShowPinEntry(false)}>
@@ -283,15 +283,15 @@ export default function SeedWordsPage() {
 }
 
 const styles = StyleSheet.create({
+  mnemonicColumn: {
+    flex: 1,
+    maxWidth: '32%'
+  },
   mnemonicGrid: {
     flexDirection: 'row',
     width: '100%',
     justifyContent: 'space-between',
     gap: 8
-  },
-  mnemonicColumn: {
-    flex: 1,
-    maxWidth: '32%'
   },
   mnemonicWordContainer: {
     marginBottom: 8,
@@ -308,6 +308,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row'
   },
+  mnemonicWordsContainer: {
+    width: '100%',
+    marginBottom: 16
+  },
   wordIndex: {
     minWidth: 24,
     textAlign: 'center',
@@ -317,9 +321,5 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'left',
     lineHeight: 20
-  },
-  mnemonicWordsContainer: {
-    width: '100%',
-    marginBottom: 16
   }
 })

@@ -2,7 +2,7 @@ const BASE85 =
   '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~'
 
 const BASE85_DECODE = Object.fromEntries(
-  BASE85.split('').map((ch, i) => [ch, i])
+  [...BASE85].map((ch, i) => [ch, i])
 )
 
 export function base85Encode(buf: Buffer): string {
@@ -47,10 +47,10 @@ export function base85Decode(str: string): Buffer {
       }
       acc = acc * 85 + val
     }
-    out.push((acc >>> 24) & 0xff)
-    out.push((acc >>> 16) & 0xff)
-    out.push((acc >>> 8) & 0xff)
-    out.push(acc & 0xff)
+    out.push((acc >>> 24) & 0xFF)
+    out.push((acc >>> 16) & 0xFF)
+    out.push((acc >>> 8) & 0xFF)
+    out.push(acc & 0xFF)
   }
 
   return Buffer.from(out.slice(0, out.length - padBytes))

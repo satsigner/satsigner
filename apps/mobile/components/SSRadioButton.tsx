@@ -23,12 +23,12 @@ function SSRadioButton({
 }: SSRadioButtonProps) {
   const radioButtonStyle = useMemo(() => {
     const radioButtonVariantStyles = selected
-      ? variant === 'default'
+      ? (variant === 'default'
         ? styles.selectedDefault
-        : styles.selectedOutline
-      : variant === 'default'
+        : styles.selectedOutline)
+      : (variant === 'default'
         ? styles.unselectedDefault
-        : styles.unselectedOutline
+        : styles.unselectedOutline)
 
     return StyleSheet.compose(
       {
@@ -70,25 +70,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
+  disabled: {
+    opacity: 0.3
+  },
   selectedDefault: {
     backgroundColor: Colors.gray[600],
     borderWidth: Sizes.radioButton.borderWidth,
     borderStyle: 'solid',
     borderColor: 'rgba(255, 255, 255, 0.68)'
   },
-  unselectedDefault: {
-    backgroundColor: Colors.gray[950]
-  },
   selectedOutline: {
     borderWidth: Sizes.radioButton.borderWidth,
     borderColor: Colors.white
   },
+  unselectedDefault: {
+    backgroundColor: Colors.gray[950]
+  },
   unselectedOutline: {
     borderWidth: Sizes.radioButton.borderWidth,
     borderColor: Colors.gray[700]
-  },
-  disabled: {
-    opacity: 0.3
   }
 })
 

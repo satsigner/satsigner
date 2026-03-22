@@ -17,7 +17,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { decryptKeySecret } from '@/utils/account'
 
 export default function SeedWordsPage() {
@@ -37,18 +37,18 @@ export default function SeedWordsPage() {
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
   const [noMnemonicAvailable, setNoMnemonicAvailable] = useState(false)
 
-  const keyIndexNum = parseInt(keyIndex || '0', 10)
+  const keyIndexNum = Number.parseInt(keyIndex || '0', 10)
   const key = account?.keys[keyIndexNum]
 
   const decryptMnemonic = useCallback(async () => {
-    if (!account || !key) return
+    if (!account || !key) {return}
 
     try {
       const secret = await decryptKeySecret(key)
       setMnemonic(secret.mnemonic || '')
       setNoMnemonicAvailable(!secret.mnemonic)
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : 'unknown reason'
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'unknown reason'
       toast.error(`${t('account.seed.unableToDecrypt')}: ${reason}`)
     } finally {
       setShowPinEntry(false)
@@ -115,7 +115,7 @@ export default function SeedWordsPage() {
                 onPress={() => router.back()}
               />
             </SSVStack>
-          ) : mnemonic ? (
+          ) : (mnemonic ? (
             <>
               <SSVStack gap="md">
                 <SSText center uppercase>
@@ -221,7 +221,7 @@ export default function SeedWordsPage() {
                 {t('account.seed.enterPinToView')}
               </SSText>
             </SSVStack>
-          )}
+          ))}
         </SSVStack>
       </ScrollView>
       <SSModal visible={showPinEntry} onClose={() => setShowPinEntry(false)}>
@@ -244,15 +244,15 @@ export default function SeedWordsPage() {
 }
 
 const styles = StyleSheet.create({
+  mnemonicColumn: {
+    flex: 1,
+    maxWidth: '32%'
+  },
   mnemonicGrid: {
     flexDirection: 'row',
     width: '100%',
     justifyContent: 'space-between',
     gap: 8
-  },
-  mnemonicColumn: {
-    flex: 1,
-    maxWidth: '32%'
   },
   mnemonicWordContainer: {
     marginBottom: 8,
@@ -269,6 +269,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row'
   },
+  mnemonicWordsContainer: {
+    width: '100%',
+    marginBottom: 16
+  },
   wordIndex: {
     minWidth: 24,
     textAlign: 'center',
@@ -278,9 +282,5 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'left',
     lineHeight: 20
-  },
-  mnemonicWordsContainer: {
-    width: '100%',
-    marginBottom: 16
   }
 })

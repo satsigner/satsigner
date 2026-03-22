@@ -1,13 +1,13 @@
-import { type TxBuilderResult } from 'bdk-rn/lib/classes/Bindings'
+import type { TxBuilderResult } from 'bdk-rn/lib/classes/Bindings'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner-native'
 
-import { type Key, type Secret } from '@/types/models/Account'
+import type { Key, Secret } from '@/types/models/Account'
 import { getMultisigScriptTypeFromScriptVersion } from '@/utils/bitcoin'
 import { signPSBTWithSeed } from '@/utils/psbt'
 
-type UsePSBTManagementParams = {
+interface UsePSBTManagementParams {
   txBuilderResult: TxBuilderResult | null | undefined
   account?: {
     keys?: Key[]
@@ -72,12 +72,12 @@ export function usePSBTManagement({
         const hasPartialSigs = input.partialSig && input.partialSig.length > 0
 
         inputDetails.push({
-          index: i,
           hasFinalScriptSig,
           hasFinalScriptWitness,
-          hasWitnessScript,
-          hasRedeemScript,
           hasPartialSigs,
+          hasRedeemScript,
+          hasWitnessScript,
+          index: i,
           partialSigCount: input.partialSig?.length || 0
         })
 
@@ -209,13 +209,13 @@ export function usePSBTManagement({
   )
 
   return {
-    signedPsbt,
-    signedPsbts,
-    setSignedPsbt,
-    setSignedPsbts,
     convertPsbtToFinalTransaction,
     handleSignWithLocalKey,
     handleSignWithSeedQR,
+    setSignedPsbt,
+    setSignedPsbts,
+    signedPsbt,
+    signedPsbts,
     updateSignedPsbt
   }
 }

@@ -1,6 +1,6 @@
 import { toast } from 'sonner-native'
 
-import { type MessageHandler } from '@/types/nostrMessageHandlers'
+import type { MessageHandler } from '@/types/nostrMessageHandlers'
 
 import {
   getAuthorDisplayName,
@@ -10,13 +10,11 @@ import {
 } from './useNostrNotifyUtils'
 
 const txHandler: MessageHandler = {
-  canHandle: (context) => {
-    return context.data?.data_type === 'Tx'
-  },
+  canHandle: (context) => context.data?.data_type === 'Tx',
 
   handle: async (context) => {
     const { unwrappedEvent, data, account } = context
-    if (!data) return
+    if (!data) {return}
 
     const dataStr = String(data.data ?? '')
     const author = getAuthorDisplayName(unwrappedEvent.pubkey)

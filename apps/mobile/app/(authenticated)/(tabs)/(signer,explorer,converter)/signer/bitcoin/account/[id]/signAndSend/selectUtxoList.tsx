@@ -21,9 +21,9 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
-import { type Direction } from '@/types/logic/sort'
-import { type Utxo } from '@/types/models/Utxo'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { Direction } from '@/types/logic/sort'
+import type { Utxo } from '@/types/models/Utxo'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { compareAmount, compareTimestamp } from '@/utils/sort'
 
@@ -54,7 +54,7 @@ export default function SelectUtxoList() {
     )
 
   useEffect(() => {
-    if (id) setAccountId(id)
+    if (id) {setAccountId(id)}
   }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -109,14 +109,14 @@ export default function SelectUtxoList() {
   }
 
   function sortUtxos(utxos: Utxo[]) {
-    return utxos.sort((utxo1, utxo2) =>
+    return utxos.toSorted((utxo1, utxo2) =>
       sortDirection === 'asc'
-        ? sortField === 'date'
+        ? (sortField === 'date'
           ? compareTimestamp(utxo1.timestamp, utxo2.timestamp)
-          : compareTimestamp(utxo2.timestamp, utxo1.timestamp)
-        : sortField === 'date'
+          : compareTimestamp(utxo2.timestamp, utxo1.timestamp))
+        : (sortField === 'date'
           ? compareAmount(utxo1.value, utxo2.value)
-          : compareAmount(utxo2.value, utxo1.value)
+          : compareAmount(utxo2.value, utxo1.value))
     )
   }
 
@@ -128,8 +128,8 @@ export default function SelectUtxoList() {
   function handleOnToggleSelected(utxo: Utxo) {
     const includesInput = hasInput(utxo)
 
-    if (includesInput) removeInput(utxo)
-    else addInput(utxo)
+    if (includesInput) {removeInput(utxo)}
+    else {addInput(utxo)}
   }
 
   return (
@@ -208,7 +208,7 @@ export default function SelectUtxoList() {
           </SSVStack>
         </SSVStack>
       </SSMainLayout>
-      <SSSeparator color="grayDark" style={{ width: '100%', marginTop: 12 }} />
+      <SSSeparator color="grayDark" style={{ marginTop: 12, width: '100%' }} />
       <SSHStack
         justifyBetween
         style={{
@@ -233,8 +233,8 @@ export default function SelectUtxoList() {
             textStyle={{
               color: Colors.gray[75],
               textAlign: 'left',
-              textTransform: 'none',
-              textDecorationLine: 'underline'
+              textDecorationLine: 'underline',
+              textTransform: 'none'
             }}
             onPress={() =>
               selectedAllUtxos
@@ -276,9 +276,9 @@ export default function SelectUtxoList() {
                 (a) =>
                   (a.address || '').trim() === (item.addressTo || '').trim()
               )
-              const addressEntry = idx >= 0 ? account.addresses[idx] : null
+              const addressEntry = idx !== -1 ? account.addresses[idx] : null
               const addressIndex =
-                addressEntry !== null ? addressEntry.index ?? idx : undefined
+                addressEntry !== null ? (addressEntry.index ?? idx) : undefined
               return (
                 <SSUtxoItem
                   utxo={item}
@@ -299,7 +299,7 @@ export default function SelectUtxoList() {
           variant="secondary"
           disabled={!hasSelectedUtxos}
           style={[
-            { width: '92%', opacity: 100 },
+            { opacity: 100, width: '92%' },
             !hasSelectedUtxos && {
               backgroundColor: Colors.gray[700]
             }
@@ -317,13 +317,6 @@ export default function SelectUtxoList() {
 }
 
 const styles = StyleSheet.create({
-  scrollBackgroundBase: {
-    position: 'absolute',
-    width: '100%',
-    backgroundColor: Colors.gray[950],
-    top: 2,
-    height: 1000
-  },
   absoluteSubmitContainer: {
     position: 'absolute',
     bottom: 20,
@@ -333,5 +326,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.transparent,
     paddingHorizontal: 0,
     paddingTop: 0
+  },
+  scrollBackgroundBase: {
+    position: 'absolute',
+    width: '100%',
+    backgroundColor: Colors.gray[950],
+    top: 2,
+    height: 1000
   }
 })

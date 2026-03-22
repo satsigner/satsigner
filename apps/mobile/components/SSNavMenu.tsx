@@ -1,7 +1,5 @@
-import {
-  type DrawerContentComponentProps,
-  DrawerContentScrollView
-} from '@react-navigation/drawer'
+import { DrawerContentScrollView } from '@react-navigation/drawer';
+import type { DrawerContentComponentProps } from '@react-navigation/drawer';
 import { LinearGradient } from 'expo-linear-gradient'
 import { Platform, StyleSheet, View } from 'react-native'
 
@@ -21,12 +19,10 @@ function SSNavMenu(props: SSNavMenuProps) {
   const filteredNavMenuGroups = navMenuGroups.reduce(
     (acc, group) => {
       if (group.items && Array.isArray(group.items)) {
-        const filteredItems = group.items.filter((item) => {
-          return (
+        const filteredItems = group.items.filter((item) => (
             item.platform === PLATFORM.HYBRID ||
             item.platform === currentPlatform
-          )
-        })
+          ))
         if (filteredItems.length > 0) {
           acc.push({ ...group, items: filteredItems })
         }
@@ -50,16 +46,14 @@ function SSNavMenu(props: SSNavMenuProps) {
         contentContainerStyle={styles.contentContainer}
       >
         <SSVStack style={styles.vStackWrapper}>
-          {filteredNavMenuGroups.map((group, index) => {
-            return (
+          {filteredNavMenuGroups.map((group, index) => (
               <SSVStack
                 key={`${index} - ${group.title}`}
                 style={styles.groupWrapper}
               >
                 <SSNavMenuGroup group={group} />
               </SSVStack>
-            )
-          })}
+            ))}
         </SSVStack>
         <SSVStack style={styles.versionWrapper}>
           <SSText size="sm" color="muted" style={styles.versionText}>
@@ -75,6 +69,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.black
+  },
+  contentContainer: {
+    flexGrow: 1
   },
   gradientOverlay: {
     position: 'absolute',
@@ -93,21 +90,18 @@ const styles = StyleSheet.create({
   groupWrapper: {
     gap: 0
   },
-  contentContainer: {
-    flexGrow: 1
-  },
   vStackWrapper: {
     gap: 60,
     padding: 12,
     paddingRight: 32,
     paddingTop: 40
   },
+  versionText: {
+    letterSpacing: 2
+  },
   versionWrapper: {
     marginVertical: 40,
     marginLeft: 30
-  },
-  versionText: {
-    letterSpacing: 2
   }
 })
 
