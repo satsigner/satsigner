@@ -9,9 +9,10 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import boltzApi from '@/api/boltz'
+import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
-import SSTextInput from '@/components/SSTextInput'
+import SSUtxoItem from '@/components/SSUtxoItem'
 import { useEcash } from '@/hooks/useEcash'
 import { useLND } from '@/hooks/useLND'
 import SSHStack from '@/layouts/SSHStack'
@@ -20,11 +21,15 @@ import SSVStack from '@/layouts/SSVStack'
 import { useAccountsStore } from '@/store/accounts'
 import { useEcashStore } from '@/store/ecash'
 import { useLightningStore } from '@/store/lightning'
+import { usePriceStore } from '@/store/price'
 import { useSwapStore } from '@/store/swap'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
 import { type Swap } from '@/types/models/Swap'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { type Utxo } from '@/types/models/Utxo'
+import { formatNumber } from '@/utils/format'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 bitcoin.initEccLib(ecc)
 
@@ -45,24 +50,40 @@ export default function BitcoinToLightningSwapPage() {
   )
   const mints = useEcashStore((state) => state.mints)
   const lndConfig = useLightningStore((state) => state.config)
-  const [addSwap, updateSwapStatus] = useSwapStore(
-    useShallow((state) => [state.addSwap, state.updateSwapStatus])
+  const [addSwap, updateSwapStatus, boltzUrl] = useSwapStore(
+    useShallow((state) => [state.addSwap, state.updateSwapStatus, state.boltzUrl])
   )
-  const [clearTransaction, addOutput] = useTransactionBuilderStore(
-    useShallow((state) => [state.clearTransaction, state.addOutput])
+  const [clearTransaction, setAccountId, addInput, addOutput] =
+    useTransactionBuilderStore(
+      useShallow((state) => [
+        state.clearTransaction,
+        state.setAccountId,
+        state.addInput,
+        state.addOutput
+      ])
+    )
+  const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat, state.btcPrice])
   )
   const { createMintQuote } = useEcash()
   const { createInvoice } = useLND()
 
   const [step, setStep] = useState<Step>('selectDestination')
   const [selectedDest, setSelectedDest] = useState<Destination | null>(null)
-  const [amount, setAmount] = useState('')
+  const [amount, setAmount] = useState(0)
+  const [resetKey, setResetKey] = useState(0)
   const [feeInfo, setFeeInfo] = useState<string | null>(null)
+  const [minAmount, setMinAmount] = useState<number | null>(null)
+  const [maxAmount, setMaxAmount] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [swapId, setSwapId] = useState<string | null>(null)
   const [swapStatus, setSwapStatus] = useState<string>('pending')
   const [lockupAddress, setLockupAddress] = useState<string | null>(null)
   const [expectedAmount, setExpectedAmount] = useState<number | null>(null)
+  const [selectedUtxos, setSelectedUtxos] = useState<Map<string, Utxo>>(
+    new Map()
+  )
+  const [showUtxoSelector, setShowUtxoSelector] = useState(false)
 
   const unsubscribeRef = useRef<(() => void) | null>(null)
 
@@ -84,6 +105,7 @@ export default function BitcoinToLightningSwapPage() {
   ]
 
   useEffect(() => {
+    boltzApi.baseUrl = boltzUrl
     boltzApi
       .getSubmarinePairs()
       .then((pairs) => {
@@ -92,12 +114,14 @@ export default function BitcoinToLightningSwapPage() {
           const minerFee = info.fees.minerFees.normal
           const pct = info.fees.percentage
           setFeeInfo(`${pct}% + ${minerFee} sats miner fee`)
+          setMinAmount(info.limits.minimal)
+          setMaxAmount(info.limits.maximal)
         }
       })
       .catch(() => {
         // ignore fee fetch errors
       })
-  }, [])
+  }, [boltzUrl])
 
   useEffect(() => {
     return () => {
@@ -106,12 +130,8 @@ export default function BitcoinToLightningSwapPage() {
   }, [])
 
   const handleConfirmAmount = useCallback(async () => {
-    if (!selectedDest || !amount || !id || !account) return
-    const amountSats = parseInt(amount, 10)
-    if (isNaN(amountSats) || amountSats <= 0) {
-      toast.error('Invalid amount')
-      return
-    }
+    if (!selectedDest || amount <= 0 || !id || !account) return
+    const amountSats = amount
 
     setIsLoading(true)
     try {
@@ -186,13 +206,61 @@ export default function BitcoinToLightningSwapPage() {
   const handleSendToLockup = useCallback(() => {
     if (!lockupAddress || !expectedAmount || !id) return
     clearTransaction()
+    setAccountId(id)
     addOutput({
       to: lockupAddress,
       amount: expectedAmount,
       label: 'Boltz swap'
     })
+    for (const utxo of selectedUtxos.values()) {
+      addInput(utxo)
+    }
     router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
-  }, [lockupAddress, expectedAmount, id, clearTransaction, addOutput, router])
+  }, [
+    lockupAddress,
+    expectedAmount,
+    id,
+    clearTransaction,
+    setAccountId,
+    addOutput,
+    addInput,
+    selectedUtxos,
+    router
+  ])
+
+  const accountUtxos = account?.utxos ?? []
+  const accountBalance = account?.summary?.balance ?? 0
+  const selectedUtxosTotal = Array.from(selectedUtxos.values()).reduce(
+    (sum, u) => sum + u.value,
+    0
+  )
+  const availableMax = (() => {
+    const base =
+      selectedUtxos.size > 0 ? selectedUtxosTotal : accountBalance
+    return maxAmount != null ? Math.min(base, maxAmount) : base
+  })()
+
+  function toggleUtxo(utxo: Utxo) {
+    const key = getUtxoOutpoint(utxo)
+    const next = new Map(selectedUtxos)
+    if (next.has(key)) {
+      next.delete(key)
+    } else {
+      next.set(key, utxo)
+    }
+    setSelectedUtxos(next)
+    // Clamp amount if the new selection lowers the available max
+    const newTotal = Array.from(next.values()).reduce(
+      (sum, u) => sum + u.value,
+      0
+    )
+    const newBase = next.size > 0 ? newTotal : accountBalance
+    const newMax = maxAmount != null ? Math.min(newBase, maxAmount) : newBase
+    if (amount > newMax) {
+      setAmount(newMax)
+      setResetKey((k) => k + 1)
+    }
+  }
 
   function getStatusColor(status: string) {
     if (status === 'transaction.claimed') return Colors.success ?? '#22c55e'
@@ -272,20 +340,65 @@ export default function BitcoinToLightningSwapPage() {
                   <SSText>{selectedDest?.label}</SSText>
                 </View>
               </SSVStack>
-              <SSVStack gap="xs">
-                <SSText color="muted" size="xs" uppercase>
-                  Amount (sats)
-                </SSText>
-                <SSTextInput
-                  value={amount}
-                  onChangeText={setAmount}
-                  placeholder="0"
-                  keyboardType="numeric"
+              <SSAmountInput
+                key={resetKey}
+                min={minAmount ?? 1}
+                max={Math.max(minAmount ?? 1, availableMax)}
+                value={amount}
+                remainingSats={availableMax}
+                fiatCurrency={fiatCurrency}
+                btcPrice={btcPrice}
+                satsToFiat={satsToFiat}
+                onValueChange={setAmount}
+              />
+              {minAmount !== null && (
+                <SSButton
+                  label={`Min: ${minAmount.toLocaleString()} sats (${formatNumber(satsToFiat(minAmount), 2)} ${fiatCurrency})`}
+                  variant="subtle"
+                  onPress={() => {
+                    setAmount(minAmount)
+                    setResetKey((k) => k + 1)
+                  }}
                 />
-              </SSVStack>
+              )}
               {feeInfo && (
                 <SSText color="muted" size="xs">
                   Fees: {feeInfo}
+                </SSText>
+              )}
+              {/* UTXO selector */}
+              <SSButton
+                label={
+                  showUtxoSelector
+                    ? `Hide UTXOs${selectedUtxos.size > 0 ? ` (${selectedUtxos.size} selected)` : ''}`
+                    : `Select UTXOs${selectedUtxos.size > 0 ? ` (${selectedUtxos.size} selected)` : ' (optional)'}`
+                }
+                variant="subtle"
+                onPress={() => setShowUtxoSelector((v) => !v)}
+              />
+              {showUtxoSelector && accountUtxos.length > 0 && (
+                <SSVStack gap="none" style={styles.utxoList}>
+                  {accountUtxos.map((utxo) => (
+                    <SSUtxoItem
+                      key={getUtxoOutpoint(utxo)}
+                      utxo={utxo}
+                      selected={selectedUtxos.has(getUtxoOutpoint(utxo))}
+                      largestValue={Math.max(...accountUtxos.map((u) => u.value))}
+                      onToggleSelected={toggleUtxo}
+                    />
+                  ))}
+                </SSVStack>
+              )}
+              {showUtxoSelector && accountUtxos.length === 0 && (
+                <SSText color="muted" size="sm">
+                  No UTXOs in this account
+                </SSText>
+              )}
+              {amount > 0 && amount > availableMax && (
+                <SSText style={styles.warning}>
+                  {selectedUtxos.size > 0
+                    ? `Selected UTXOs total ${selectedUtxosTotal.toLocaleString()} sats — not enough to cover this amount`
+                    : `Insufficient balance (${accountBalance.toLocaleString()} sats available)`}
                 </SSText>
               )}
               <SSHStack gap="sm">
@@ -301,7 +414,7 @@ export default function BitcoinToLightningSwapPage() {
                   gradientType="special"
                   style={{ flex: 1 }}
                   loading={isLoading}
-                  disabled={!amount || isLoading}
+                  disabled={amount <= 0 || amount > availableMax || isLoading}
                   onPress={handleConfirmAmount}
                 />
               </SSHStack>
@@ -367,5 +480,14 @@ const styles = StyleSheet.create({
   },
   monoText: {
     fontFamily: 'monospace'
+  },
+  utxoList: {
+    borderWidth: 1,
+    borderColor: Colors.gray[800],
+    borderRadius: 4
+  },
+  warning: {
+    color: Colors.error ?? '#ef4444',
+    fontSize: 12
   }
 })

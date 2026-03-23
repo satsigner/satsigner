@@ -1,16 +1,31 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import { StyleSheet, Switch, TouchableOpacity, View } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
+import boltzApi, { BOLTZ_CLEARNET_URL, BOLTZ_ONION_URL } from '@/api/boltz'
 import { SSIconSwap } from '@/components/icons'
 import SSText from '@/components/SSText'
+import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
+import { useSwapStore } from '@/store/swap'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
 export default function SwapPage() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const router = useRouter()
+  const [boltzUrl, setBoltzUrl] = useSwapStore(
+    useShallow((state) => [state.boltzUrl, state.setBoltzUrl])
+  )
+
+  const isOnion = boltzUrl === BOLTZ_ONION_URL
+
+  function toggleNetwork(value: boolean) {
+    const newUrl = value ? BOLTZ_ONION_URL : BOLTZ_CLEARNET_URL
+    setBoltzUrl(newUrl)
+    boltzApi.baseUrl = newUrl
+  }
 
   return (
     <SSMainLayout>
@@ -53,6 +68,26 @@ export default function SwapPage() {
           </SSVStack>
         </TouchableOpacity>
 
+        <View style={styles.networkRow}>
+          <SSHStack justifyBetween style={{ alignItems: 'center' }}>
+            <SSVStack gap="none">
+              <SSText size="sm">Use Tor (onion)</SSText>
+              <SSText color="muted" size="xs">
+                {isOnion ? 'Onion — requires Tor/Orbot' : 'Clearnet'}
+              </SSText>
+            </SSVStack>
+            <Switch
+              value={isOnion}
+              onValueChange={toggleNetwork}
+              trackColor={{
+                false: Colors.gray[700],
+                true: Colors.gray[400]
+              }}
+              thumbColor={Colors.white}
+            />
+          </SSHStack>
+        </View>
+
         <View style={styles.poweredBy}>
           <SSText color="muted" size="xs" center>
             Powered by Boltz Exchange
@@ -74,6 +109,13 @@ const styles = StyleSheet.create({
     borderColor: Colors.gray[800],
     borderRadius: 8,
     padding: 20
+  },
+  networkRow: {
+    backgroundColor: Colors.gray[925],
+    borderWidth: 1,
+    borderColor: Colors.gray[800],
+    borderRadius: 8,
+    padding: 16
   },
   poweredBy: {
     paddingTop: 8

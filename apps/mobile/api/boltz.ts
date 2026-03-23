@@ -1,5 +1,9 @@
 import { type SwapTree } from '@/types/models/Swap'
 
+export const BOLTZ_CLEARNET_URL = 'https://api.boltz.exchange'
+export const BOLTZ_ONION_URL =
+  'http://boltzzzbnus4m7mta3cxmflnps4fp7dueu2tgurstbvrbt6xswzcocyd.onion'
+
 export type BoltzPairInfo = {
   hash: string
   rate: number
@@ -52,8 +56,15 @@ export type SwapStatusResponse = {
   transaction?: { id: string; hex: string }
 }
 
-class BoltzApi {
-  readonly baseUrl = 'https://api.boltz.exchange'
+export class BoltzApi {
+  baseUrl = BOLTZ_CLEARNET_URL
+
+  private get wsUrl(): string {
+    return (
+      this.baseUrl.replace('https://', 'wss://').replace('http://', 'ws://') +
+      '/v2/ws'
+    )
+  }
 
   async _call<T>(
     path: string,
@@ -109,7 +120,7 @@ class BoltzApi {
   }
 
   subscribeToSwap(id: string, onUpdate: (status: string) => void): () => void {
-    const ws = new WebSocket('wss://api.boltz.exchange/v2/ws')
+    const ws = new WebSocket(this.wsUrl)
 
     ws.onopen = () => {
       ws.send(

@@ -11,9 +11,9 @@ import { useShallow } from 'zustand/react/shallow'
 
 import boltzApi from '@/api/boltz'
 import Esplora from '@/api/esplora'
+import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
-import SSTextInput from '@/components/SSTextInput'
 import { useEcash } from '@/hooks/useEcash'
 import { useLND } from '@/hooks/useLND'
 import SSHStack from '@/layouts/SSHStack'
@@ -23,10 +23,12 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useEcashStore } from '@/store/ecash'
 import { useLightningStore } from '@/store/lightning'
+import { usePriceStore } from '@/store/price'
 import { useSwapStore } from '@/store/swap'
 import { Colors } from '@/styles'
 import { type Swap } from '@/types/models/Swap'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { formatNumber } from '@/utils/format'
 
 bitcoin.initEccLib(ecc)
 
@@ -213,16 +215,22 @@ export default function LightningToBitcoinSwapPage() {
   const mempoolUrl = useBlockchainStore(
     (state) => state.configsMempool['bitcoin']
   )
-  const [addSwap, updateSwapStatus] = useSwapStore(
-    useShallow((state) => [state.addSwap, state.updateSwapStatus])
+  const [addSwap, updateSwapStatus, boltzUrl] = useSwapStore(
+    useShallow((state) => [state.addSwap, state.updateSwapStatus, state.boltzUrl])
+  )
+  const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat, state.btcPrice])
   )
   const { meltProofs, createMeltQuote } = useEcash()
   const { payInvoice } = useLND()
 
   const [step, setStep] = useState<Step>('selectSource')
   const [selectedSource, setSelectedSource] = useState<Source | null>(null)
-  const [amount, setAmount] = useState('')
+  const [amount, setAmount] = useState(0)
+  const [resetKey, setResetKey] = useState(0)
   const [feeInfo, setFeeInfo] = useState<string | null>(null)
+  const [minAmount, setMinAmount] = useState<number | null>(null)
+  const [maxAmount, setMaxAmount] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [swapRecord, setSwapRecord] = useState<Swap | null>(null)
   const [swapStatus, setSwapStatus] = useState<string>('pending')
@@ -253,6 +261,7 @@ export default function LightningToBitcoinSwapPage() {
   )?.address
 
   useEffect(() => {
+    boltzApi.baseUrl = boltzUrl
     boltzApi
       .getReversePairs()
       .then((pairs) => {
@@ -261,12 +270,14 @@ export default function LightningToBitcoinSwapPage() {
           const claimFee = info.fees.minerFees.reverse.claim
           const pct = info.fees.percentage
           setFeeInfo(`${pct}% + ${claimFee} sats claim fee`)
+          setMinAmount(info.limits.minimal)
+          setMaxAmount(info.limits.maximal)
         }
       })
       .catch(() => {
         // ignore
       })
-  }, [])
+  }, [boltzUrl])
 
   useEffect(() => {
     return () => {
@@ -275,12 +286,8 @@ export default function LightningToBitcoinSwapPage() {
   }, [])
 
   const handleConfirmAmount = useCallback(async () => {
-    if (!selectedSource || !amount || !id || !account) return
-    const amountSats = parseInt(amount, 10)
-    if (isNaN(amountSats) || amountSats <= 0) {
-      toast.error('Invalid amount')
-      return
-    }
+    if (!selectedSource || amount <= 0 || !id || !account) return
+    const amountSats = amount
     if (!claimAddress) {
       toast.error('No receive address found for this account')
       return
@@ -480,20 +487,36 @@ export default function LightningToBitcoinSwapPage() {
                   <SSText>{selectedSource?.label}</SSText>
                 </View>
               </SSVStack>
-              <SSVStack gap="xs">
-                <SSText color="muted" size="xs" uppercase>
-                  Amount (sats)
-                </SSText>
-                <SSTextInput
-                  value={amount}
-                  onChangeText={setAmount}
-                  placeholder="0"
-                  keyboardType="numeric"
+              <SSAmountInput
+                key={resetKey}
+                min={minAmount ?? 1}
+                max={Math.max(minAmount ?? 1, maxAmount ?? 10000000)}
+                value={amount}
+                remainingSats={maxAmount ?? 10000000}
+                fiatCurrency={fiatCurrency}
+                btcPrice={btcPrice}
+                satsToFiat={satsToFiat}
+                onValueChange={setAmount}
+              />
+              {minAmount !== null && (
+                <SSButton
+                  label={`Min: ${minAmount.toLocaleString()} sats (${formatNumber(satsToFiat(minAmount), 2)} ${fiatCurrency})`}
+                  variant="subtle"
+                  onPress={() => {
+                    setAmount(minAmount)
+                    setResetKey((k) => k + 1)
+                  }}
                 />
-              </SSVStack>
+              )}
               {feeInfo && (
                 <SSText color="muted" size="xs">
                   Fees: {feeInfo}
+                </SSText>
+              )}
+              {amount > 0 && maxAmount !== null && amount > maxAmount && (
+                <SSText style={styles.warning}>
+                  Amount exceeds Boltz maximum ({maxAmount.toLocaleString()}{' '}
+                  sats)
                 </SSText>
               )}
               <SSHStack gap="sm">
@@ -509,7 +532,12 @@ export default function LightningToBitcoinSwapPage() {
                   gradientType="special"
                   style={{ flex: 1 }}
                   loading={isLoading}
-                  disabled={!amount || isLoading || !claimAddress}
+                  disabled={
+                    amount <= 0 ||
+                    isLoading ||
+                    !claimAddress ||
+                    (maxAmount !== null && amount > maxAmount)
+                  }
                   onPress={handleConfirmAmount}
                 />
               </SSHStack>
@@ -580,5 +608,9 @@ const styles = StyleSheet.create({
   },
   monoText: {
     fontFamily: 'monospace'
+  },
+  warning: {
+    color: Colors.error ?? '#ef4444',
+    fontSize: 12
   }
 })

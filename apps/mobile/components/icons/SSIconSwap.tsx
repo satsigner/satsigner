@@ -8,27 +8,27 @@ export default function SSIconSwap({ width, height }: IconProps) {
       <Path
         d="M11 1L14 4L11 7"
         stroke="#858585"
-        strokeWidth="1.5"
+        strokeWidth="1"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <Path
         d="M2 4H14"
         stroke="#858585"
-        strokeWidth="1.5"
+        strokeWidth="1"
         strokeLinecap="round"
       />
       <Path
         d="M5 9L2 12L5 15"
         stroke="#858585"
-        strokeWidth="1.5"
+        strokeWidth="1"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <Path
         d="M14 12H2"
         stroke="#858585"
-        strokeWidth="1.5"
+        strokeWidth="1"
         strokeLinecap="round"
       />
     </Svg>
