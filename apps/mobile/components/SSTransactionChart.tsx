@@ -307,14 +307,12 @@ function SSTransactionChart({
   )
 }
 
-const thresholdCheck = function ({ transaction }: SSTransactionChartProps) {
-  return (
-    transaction.vin.length + transaction.vout.length >
-    SAFE_LIMIT_OF_INPUTS_OUTPUTS
-  )
-}
+const thresholdCheck = ({ transaction }: SSTransactionChartProps) =>
+  transaction.vin.length + transaction.vout.length >
+  SAFE_LIMIT_OF_INPUTS_OUTPUTS
 
 export default withPerformanceWarning<SSTransactionChartProps>(
   SSTransactionChart,
-  thresholdCheck
+  thresholdCheck,
+  t('transaction.chart.warning')
 )

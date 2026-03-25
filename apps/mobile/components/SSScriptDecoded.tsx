@@ -8,6 +8,7 @@ import { getOpcodeDetails, getOpcodeWord } from '@/utils/scripts'
 
 import { SSIconWarning } from './icons'
 import SSButton from './SSButton'
+import { withPerformanceWarning } from './SSPerformanceWarning'
 import SSText from './SSText'
 
 type SSScriptDecodedProps = {
@@ -78,4 +79,11 @@ function SSScriptDecoded({ script }: SSScriptDecodedProps) {
   )
 }
 
-export default SSScriptDecoded
+const threesholdCheck = ({ script }: SSScriptDecodedProps) =>
+  Array.isArray(script) && Buffer.from(script).byteLength > SAFE_SCRIPT_SIZE
+
+export default withPerformanceWarning<SSScriptDecodedProps>(
+  SSScriptDecoded,
+  threesholdCheck,
+  'Script is too big. Trying to decode it may freeze the app'
+)

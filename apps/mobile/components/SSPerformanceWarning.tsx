@@ -40,7 +40,7 @@ export function withPerformanceWarning<T extends object>(
   Component: React.ComponentType<T>,
   exceedsPerformanceThreshold: (props: T) => boolean,
   warningText = t('common.warningPerformance')
-) {
+): React.FunctionComponent<T> {
   return (props: T) => {
     const [dismissed, setDismissed] = useState(false)
 

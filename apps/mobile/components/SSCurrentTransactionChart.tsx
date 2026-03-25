@@ -457,11 +457,11 @@ const styles = StyleSheet.create({
   }
 })
 
-const thresholdCheck = function (props: SSCurrentTransactionChartProps) {
-  return props.inputs.size + props.outputs.length > SAFE_LIMIT_OF_INPUTS_OUTPUTS
-}
+const thresholdCheck = (props: SSCurrentTransactionChartProps) =>
+  props.inputs.size + props.outputs.length > SAFE_LIMIT_OF_INPUTS_OUTPUTS
 
 export default withPerformanceWarning<SSCurrentTransactionChartProps>(
   SSCurrentTransactionChart,
-  thresholdCheck
+  thresholdCheck,
+  t('transaction.chart.warning')
 )
