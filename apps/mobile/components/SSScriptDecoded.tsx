@@ -1,13 +1,10 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
-import { useState } from 'react'
 
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { OP_CODE_WORD } from '@/types/logic/opcode'
 import { getOpcodeDetails, getOpcodeWord } from '@/utils/scripts'
 
-import { SSIconWarning } from './icons'
-import SSButton from './SSButton'
 import { withPerformanceWarning } from './SSPerformanceWarning'
 import SSText from './SSText'
 
