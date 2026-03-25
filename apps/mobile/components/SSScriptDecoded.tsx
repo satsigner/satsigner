@@ -18,27 +18,7 @@ type SSScriptDecodedProps = {
 const SAFE_SCRIPT_SIZE = 512
 
 function SSScriptDecoded({ script }: SSScriptDecodedProps) {
-  const [forceDecodeScript, setForceDecodeScript] = useState(false)
   let decodedScript: string | undefined
-
-  if (
-    Array.isArray(script) &&
-    Buffer.from(script).byteLength > SAFE_SCRIPT_SIZE &&
-    !forceDecodeScript
-  ) {
-    return (
-      <SSVStack>
-        <SSIconWarning height={16} width={16} />
-        <SSText>
-          Script is too big. Trying to decode it may freeze the app.
-        </SSText>
-        <SSButton
-          label="Proceed anyway"
-          onPress={() => setForceDecodeScript(true)}
-        />
-      </SSVStack>
-    )
-  }
 
   try {
     if (typeof script === 'string') decodedScript = script
