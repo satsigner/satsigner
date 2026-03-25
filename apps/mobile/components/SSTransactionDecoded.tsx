@@ -244,11 +244,11 @@ const styles = StyleSheet.create({
   }
 })
 
-const threesholdCheck = ({ txHex }: SSTransactionDecodedProps) =>
+const thresholdCheck = ({ txHex }: SSTransactionDecodedProps) =>
   txHex.length < 1024
 
 export default withPerformanceWarning<SSTransactionDecodedProps>(
   SSTransactionDecoded,
-  threesholdCheck,
+  thresholdCheck,
   'Transaction too large. Trying to decode it may freeze the app.'
 )

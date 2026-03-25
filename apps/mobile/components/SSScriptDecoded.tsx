@@ -59,11 +59,11 @@ function SSScriptDecoded({ script }: SSScriptDecodedProps) {
   )
 }
 
-const threesholdCheck = ({ script }: SSScriptDecodedProps) =>
+const thresholdCheck = ({ script }: SSScriptDecodedProps) =>
   Array.isArray(script) && Buffer.from(script).byteLength > SAFE_SCRIPT_SIZE
 
 export default withPerformanceWarning<SSScriptDecodedProps>(
   SSScriptDecoded,
-  threesholdCheck,
+  thresholdCheck,
   'Script is too big. Trying to decode it may freeze the app'
 )
