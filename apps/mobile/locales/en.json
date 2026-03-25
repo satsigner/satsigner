@@ -588,6 +588,7 @@
     "valueFiat": "Fiat value",
     "version": "Version",
     "warning": "Warning",
+    "warningPerformance": "Trying to load this content may freeze the app",
     "yes": "Yes"
   },
   "content": {
