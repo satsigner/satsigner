@@ -9,6 +9,7 @@ import SSPopupText from './SSPopupText'
 type SSTextClipboardProps = {
   text: string | number
   withPopup?: boolean
+  fullWidth?: boolean
   children: React.ReactNode
   style?: ViewStyle
 }
@@ -16,6 +17,7 @@ type SSTextClipboardProps = {
 function SSClipboardCopy({
   text,
   withPopup = true,
+  fullWidth = false,
   children,
   style
 }: SSTextClipboardProps) {
@@ -29,7 +31,7 @@ function SSClipboardCopy({
 
   return (
     <TouchableWithoutFeedback onPress={handleClick}>
-      <View style={[{ width: '100%' }, style]}>
+      <View style={[fullWidth && { width: '100%' }, style]}>
         <View style={{ pointerEvents: 'none' }}>{children}</View>
         {withPopup && (
           <SSPopupText

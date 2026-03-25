@@ -1,3 +1,4 @@
+import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
 import {
   compressMessage,
   decompressMessage,
@@ -138,7 +139,7 @@ describe('generateColorFromNpub', () => {
     const { nip19 } = require('nostr-tools')
     nip19.decode.mockReturnValue({ type: 'nsec', data: 'secretkey' })
     const color = await generateColorFromNpub(nostrKeys.alice.nsec)
-    expect(color).toBe('#404040')
+    expect(color).toBe(NOSTR_FALLBACK_NPUB_COLOR)
   })
 })
 

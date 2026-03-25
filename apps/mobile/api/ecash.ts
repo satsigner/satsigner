@@ -26,7 +26,7 @@ type KeysetResponse = {
   active?: boolean
 }
 
-export async function getKeysetsFromWallet(
+async function getKeysetsFromWallet(
   wallet: Wallet
 ): Promise<{ id: string; unit: 'sat'; active: boolean }[]> {
   const walletAny = wallet as {
@@ -83,7 +83,7 @@ export async function getKeysetsFromWallet(
   return []
 }
 
-export function getWallet(mintUrl: string): Wallet {
+function getWallet(mintUrl: string): Wallet {
   if (!walletCache.has(mintUrl)) {
     const mint = new Mint(mintUrl)
     const wallet = new Wallet(mint)
@@ -196,7 +196,7 @@ export async function meltProofs(
   }
 }
 
-export async function validateProofs(
+async function validateProofs(
   mintUrl: string,
   proofs: EcashProof[]
 ): Promise<{ validProofs: EcashProof[]; spentProofs: EcashProof[] }> {

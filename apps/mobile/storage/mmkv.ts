@@ -26,5 +26,14 @@ function getLastBackgroundTimestamp() {
   return storage.getNumber(LAST_BACKGROUND_TIMESTAMP_KEY) ?? null
 }
 
+function clearAllStorage() {
+  storage.clearAll()
+}
+
 export default mmkvStorage
-export { getLastBackgroundTimestamp, mmkvStorage, setLastBackgroundTimestamp }
+export {
+  clearAllStorage,
+  getLastBackgroundTimestamp,
+  mmkvStorage,
+  setLastBackgroundTimestamp
+}

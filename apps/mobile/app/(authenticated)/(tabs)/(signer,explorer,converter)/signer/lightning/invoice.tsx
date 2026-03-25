@@ -2,13 +2,14 @@ import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import {
-  Dimensions,
   ScrollView,
   StyleSheet,
   TextInput,
+  useWindowDimensions,
   View
 } from 'react-native'
 import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
@@ -32,9 +33,6 @@ import {
   requestLNURLWithdrawInvoice
 } from '@/utils/lnurl'
 
-const screenWidth = Dimensions.get('window').width
-const qrCodeSize = Math.min(screenWidth - 40, 300) // Account for modal padding (20px on each side)
-
 type Invoice = {
   payment_request: string
   r_hash?: string | undefined
@@ -44,8 +42,17 @@ type InvoiceStatus = 'open' | 'settled' | 'canceled'
 
 export default function InvoicePage() {
   const router = useRouter()
+  const { width: screenWidth } = useWindowDimensions()
+  const qrCodeSize = Math.min(screenWidth - 40, 300) // Account for modal padding (20px on each side)
   const { createInvoice, makeRequest } = useLND()
-  const { satsToFiat, fiatCurrency, fetchPrices } = usePriceStore()
+  const [fiatCurrency, satsToFiat, btcPrice, fetchPrices] = usePriceStore(
+    useShallow((state) => [
+      state.fiatCurrency,
+      state.satsToFiat,
+      state.btcPrice,
+      state.fetchPrices
+    ])
+  )
   const mempoolUrl = useBlockchainStore(
     (state) => state.configsMempool['bitcoin']
   )
@@ -56,6 +63,8 @@ export default function InvoicePage() {
   }, [fetchPrices, fiatCurrency, mempoolUrl])
 
   const [invoiceAmount, setInvoiceAmount] = useState('')
+  const [amountMode, setAmountMode] = useState<'sats' | 'fiat'>('sats')
+  const [localFiatAmount, setLocalFiatAmount] = useState('')
   const [invoiceDescription, setInvoiceDescription] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [qrModalVisible, setQrModalVisible] = useState(false)
@@ -108,12 +117,32 @@ export default function InvoicePage() {
   }, [qrModalVisible, rHash, checkInvoiceStatus])
 
   const handleAmountChange = (text: string) => {
-    // Only allow numbers
     const numericValue = text.replace(/[^0-9]/g, '')
     setInvoiceAmount(numericValue)
   }
 
-  const fiatAmount = invoiceAmount ? satsToFiat(parseInt(invoiceAmount, 10)) : 0
+  const handleFiatAmountChange = (text: string) => {
+    const cleaned = text.replace(/[^0-9.]/g, '')
+    setLocalFiatAmount(cleaned)
+    const fiat = Number(cleaned)
+    if (!isNaN(fiat) && btcPrice && btcPrice > 0) {
+      const sats = Math.round((fiat / btcPrice) * 1e8)
+      setInvoiceAmount(sats > 0 ? sats.toString() : '')
+    }
+  }
+
+  const handleSwitchToFiat = () => {
+    if (!btcPrice || btcPrice <= 0) return
+    if (invoiceAmount) {
+      const fiat = satsToFiat(parseInt(invoiceAmount, 10))
+      setLocalFiatAmount(fiat > 0 ? fiat.toFixed(2) : '')
+    }
+    setAmountMode('fiat')
+  }
+
+  const handleSwitchToSats = () => {
+    setAmountMode('sats')
+  }
 
   const isFormValid = () => {
     const amount = parseInt(invoiceAmount, 10)
@@ -342,21 +371,69 @@ export default function InvoicePage() {
           <View>
             <SSVStack gap="md">
               <SSVStack gap="xs">
-                <SSText uppercase>Amount (sats)</SSText>
-                <TextInput
-                  style={styles.input}
-                  value={invoiceAmount}
-                  onChangeText={handleAmountChange}
-                  placeholder="Enter amount in satoshis"
-                  placeholderTextColor="#666"
-                  keyboardType="numeric"
-                />
-                <SSText color="muted" size="sm">
-                  ≈ {formatNumber(fiatAmount, 2)} {fiatCurrency}
+                <SSText uppercase>
+                  Amount ({amountMode === 'sats' ? 'sats' : fiatCurrency})
                 </SSText>
+                {amountMode === 'sats' ? (
+                  <TextInput
+                    style={styles.input}
+                    value={
+                      invoiceAmount
+                        ? formatNumber(parseInt(invoiceAmount, 10)).toString()
+                        : ''
+                    }
+                    onChangeText={handleAmountChange}
+                    placeholder="Enter amount in satoshis"
+                    placeholderTextColor="#666"
+                    keyboardType="numeric"
+                  />
+                ) : (
+                  <TextInput
+                    style={styles.input}
+                    value={localFiatAmount}
+                    onChangeText={handleFiatAmountChange}
+                    placeholder={`Enter amount in ${fiatCurrency}`}
+                    placeholderTextColor="#666"
+                    keyboardType="decimal-pad"
+                  />
+                )}
+                {amountMode === 'sats' ? (
+                  <SSText
+                    color="muted"
+                    size="sm"
+                    onPress={
+                      btcPrice && btcPrice > 0 ? handleSwitchToFiat : undefined
+                    }
+                    style={
+                      btcPrice && btcPrice > 0
+                        ? styles.switchableAmount
+                        : undefined
+                    }
+                  >
+                    ≈{' '}
+                    {invoiceAmount
+                      ? formatNumber(satsToFiat(parseInt(invoiceAmount, 10)), 2)
+                      : '0'}{' '}
+                    {fiatCurrency}
+                  </SSText>
+                ) : (
+                  <SSText
+                    color="muted"
+                    size="sm"
+                    onPress={handleSwitchToSats}
+                    style={styles.switchableAmount}
+                  >
+                    {invoiceAmount
+                      ? `${formatNumber(parseInt(invoiceAmount, 10))} sats`
+                      : '0 sats'}
+                  </SSText>
+                )}
                 {isLNURLMode && lnurlDetails && (
                   <SSText color="muted" size="sm">
-                    Available: {Math.floor(lnurlDetails.maxWithdrawable / 1000)}{' '}
+                    Available:{' '}
+                    {formatNumber(
+                      Math.floor(lnurlDetails.maxWithdrawable / 1000)
+                    )}{' '}
                     sats
                   </SSText>
                 )}
@@ -424,7 +501,9 @@ export default function InvoicePage() {
                       Amount
                     </SSText>
                     <SSHStack gap="xs" style={styles.amountContainer}>
-                      <SSText weight="medium">{currentAmount} sats</SSText>
+                      <SSText weight="medium">
+                        {formatNumber(parseInt(currentAmount, 10))} sats
+                      </SSText>
                       <SSText color="muted" size="sm">
                         ≈{' '}
                         {formatNumber(
@@ -609,5 +688,8 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1
+  },
+  switchableAmount: {
+    textDecorationLine: 'underline'
   }
 })

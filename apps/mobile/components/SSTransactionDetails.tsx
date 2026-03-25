@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
@@ -56,6 +56,11 @@ function SSTransactionDetails({
   }, [originalPsbt, accounts])
 
   const signedPsbts = extractIndividualSignedPsbts(combinedPsbt, originalPsbt)
+  const matchedAccount = accountMatch?.account || account
+  const ownAddresses = useMemo(
+    () => new Set(matchedAccount?.addresses?.map((a) => a.address) ?? []),
+    [matchedAccount]
+  )
 
   if (!txid) {
     return (
@@ -67,8 +72,7 @@ function SSTransactionDetails({
 
   const keysRequired = multisigInfo?.required || 0
   const keyCount = multisigInfo?.total || 0
-
-  const matchedAccount = accountMatch?.account || account
+  const isMultisig = keyCount > 1
 
   let extractedData = null
   if (originalPsbt && matchedAccount) {
@@ -115,18 +119,28 @@ function SSTransactionDetails({
       gap={onToggleVisibility ? 'md' : undefined}
       style={onToggleVisibility && { paddingTop: 10 }}
     >
-      <SSHStack justifyBetween>
+      <SSHStack justifyBetween style={{ alignItems: 'center' }}>
         <SSText size={textSize} weight="bold">
           {t('account.transaction.signRequest')}
         </SSText>
-        <SSText size={textSize} color="muted">
+        <SSText
+          size={onToggleVisibility ? 'xs' : textSize}
+          type={onToggleVisibility ? 'mono' : 'sans-serif'}
+          color="muted"
+        >
           {`${txid.slice(0, 6)}...${txid.slice(-6)}`}
         </SSText>
       </SSHStack>
       {onToggleVisibility ? (
         <>
           {visibility?.sankey ? (
-            <SSTransactionChart transaction={transaction} />
+            <View style={styles.chatChartContainer}>
+              <SSTransactionChart
+                transaction={transaction}
+                ownAddresses={ownAddresses}
+                scale={0.75}
+              />
+            </View>
           ) : (
             <SSButton
               label={t('transaction.loadSankey')}
@@ -134,31 +148,37 @@ function SSTransactionDetails({
             />
           )}
 
-          {visibility?.status ? (
-            <SSSignatureRequiredDisplay
-              requiredNumber={keysRequired}
-              totalNumber={keyCount}
-              collectedSignatures={collectedSignatures}
-            />
-          ) : (
-            <SSButton
-              label={t('transaction.checkStatus')}
-              onPress={() => onToggleVisibility('status')}
-            />
-          )}
+          {isMultisig &&
+            (visibility?.status ? (
+              <SSSignatureRequiredDisplay
+                requiredNumber={keysRequired}
+                totalNumber={keyCount}
+                collectedSignatures={collectedSignatures}
+              />
+            ) : (
+              <SSButton
+                label={t('transaction.checkStatus')}
+                onPress={() => onToggleVisibility('status')}
+              />
+            ))}
         </>
       ) : (
         <>
           <View style={styles.chartContainer}>
-            <SSTransactionChart transaction={transaction} />
-          </View>
-          <View style={styles.signatureContainer}>
-            <SSSignatureRequiredDisplay
-              requiredNumber={keysRequired}
-              totalNumber={keyCount}
-              collectedSignatures={collectedSignatures}
+            <SSTransactionChart
+              transaction={transaction}
+              ownAddresses={ownAddresses}
             />
           </View>
+          {isMultisig && (
+            <View style={styles.signatureContainer}>
+              <SSSignatureRequiredDisplay
+                requiredNumber={keysRequired}
+                totalNumber={keyCount}
+                collectedSignatures={collectedSignatures}
+              />
+            </View>
+          )}
         </>
       )}
       {onGoToSignFlow && (
@@ -177,7 +197,16 @@ const styles = StyleSheet.create({
   chartContainer: {
     width: '100%',
     overflow: 'hidden',
-    paddingHorizontal: 2
+    paddingLeft: 8,
+    paddingRight: 16
+  },
+  chatChartContainer: {
+    backgroundColor: '#151515',
+    borderRadius: 8,
+    padding: 8,
+    paddingLeft: 46,
+    marginTop: 2,
+    alignItems: 'center'
   },
   signatureContainer: {
     alignItems: 'center'

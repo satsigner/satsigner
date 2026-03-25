@@ -168,14 +168,23 @@ class BaseElectrumClient {
     try {
       client = ElectrumClient.fromUrl(url, network)
 
-      const pingPromise = client.client.initElectrum({
-        client: 'satsigner',
-        version: '1.4'
-      })
+      // The library sets socket.setTimeout(5000) which fires silently after 5s
+      // of inactivity. On physical devices over WiFi the TLS handshake can
+      // take longer, so we disable the library's timer entirely and rely on
+      // our outer JS timeout instead.
+      const conn = (client.client as any).conn
+      if (conn && typeof conn.setTimeout === 'function') {
+        conn.setTimeout(0)
+      }
+
+      const pingPromise = client.client.initElectrum(
+        { client: 'satsigner', version: '1.4' },
+        { maxRetry: 0, callback: null }
+      )
 
       const timeoutPromise = new Promise((_resolve, reject) => {
         timeoutId = setTimeout(() => {
-          reject(new Error('timeout'))
+          reject(new Error(`timeout after ${timeout}ms`))
         }, timeout)
       })
 
@@ -187,16 +196,33 @@ class BaseElectrumClient {
       }
 
       return true
-    } catch {
+    } catch (_err) {
+      if (timeoutId) clearTimeout(timeoutId)
       return false
+    } finally {
+      try {
+        client?.close()
+      } catch {}
     }
   }
 
   async init() {
-    await this.client.initElectrum({
-      client: 'satsigner',
-      version: '1.4'
-    })
+    // maxRetry: 0 disables the library's built-in reconnect loop.
+    // The library's reconnect() resets maxRetry to 1000 on every call,
+    // creating an unbounded loop that leaks a new OS thread per attempt
+    // and causes pthread_create OOM on Android.
+    //
+    // Disable the library's 5s socket inactivity timer — on physical devices
+    // over WiFi the TLS handshake can exceed 5s, and letting the timer fire
+    // silently (or worse, destroying the socket) causes spurious failures.
+    const conn = (this.client as any).conn
+    if (conn && typeof conn.setTimeout === 'function') {
+      conn.setTimeout(0)
+    }
+    await this.client.initElectrum(
+      { client: 'satsigner', version: '1.4' },
+      { maxRetry: 0, callback: null }
+    )
   }
 
   close() {
@@ -301,6 +327,21 @@ class ElectrumClient extends BaseElectrumClient {
     const blockHeaderRaw = await this.client.blockchainBlock_header(height)
     const blockHeader = bitcoinjs.Block.fromHex(blockHeaderRaw)
     return blockHeader
+  }
+
+  async subscribeToBlockHeaders(): Promise<{ height: number } | null> {
+    const rawClient = this.client as unknown as {
+      blockchainHeaders_subscribe: () => Promise<{ height: number } | null>
+    }
+    return rawClient.blockchainHeaders_subscribe()
+  }
+
+  async getMempoolFeeHistogram(): Promise<[number, number][]> {
+    const rawClient = this.client as unknown as {
+      mempool_get_fee_histogram?: () => Promise<[number, number][]>
+    }
+    const result = await rawClient.mempool_get_fee_histogram?.()
+    return Array.isArray(result) ? result : []
   }
 
   async getBlockTimestamp(height: number): Promise<number> {

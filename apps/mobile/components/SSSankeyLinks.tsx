@@ -5,7 +5,7 @@ import {
   Path,
   vec
 } from '@shopify/react-native-skia'
-import { useCallback } from 'react'
+import { memo, useCallback } from 'react'
 
 import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { gray } from '@/styles/colors'
@@ -47,7 +47,6 @@ interface SSSankeyLinksProps {
   links: Link[]
   nodes: Node[]
   sankeyGenerator: any
-  LINK_MAX_WIDTH: number
   BLOCK_WIDTH: number
   selectedOutputNode?: string
   dimUnselected?: boolean
@@ -234,9 +233,8 @@ function SSSankeyLinks({
         }
 
         return (
-          <Group key={index}>
+          <Group key={`${link.source}-${link.target}-${index}`}>
             <Path
-              key={index}
               path={path1}
               style="fill"
               color={isCurrentTx || isUnspent ? 'white' : gray[700]}
@@ -368,4 +366,4 @@ const generateCustomLink = (points: LinkPoints) => {
   return [moveToA, lineToB, curveToD, lineToC, curveToA, 'Z'].join(' ')
 }
 
-export default SSSankeyLinks
+export default memo(SSSankeyLinks)

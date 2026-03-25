@@ -8,9 +8,13 @@
  * - Support clipboard paste and QR code scan integration
  */
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 
-import { type Backend, type ProxyConfig } from '@/types/settings/blockchain'
+import {
+  type Backend,
+  type ProxyConfig,
+  type Server
+} from '@/types/settings/blockchain'
 import { trimOnionAddress } from '@/utils/format'
 
 const DEFAULT_PROXY_HOST = 'localhost'
@@ -81,12 +85,89 @@ export function useCustomNetworkForm() {
     })
   }
 
+  const loadServer = useCallback((server: Server) => {
+    if (server.backend === 'electrum') {
+      const match = server.url.match(/^(ssl|tls|tcp):\/\/([^:/]+):(\d+)$/)
+      const protocol =
+        match && (match[1] === 'ssl' || match[1] === 'tls') ? 'ssl' : 'tcp'
+      const host = match ? match[2] : ''
+      const port = match ? match[3] : ''
+      setFormData({
+        backend: 'electrum',
+        name: server.name,
+        protocol,
+        host,
+        port,
+        proxy: server.proxy ?? {
+          enabled: false,
+          host: DEFAULT_PROXY_HOST,
+          port: DEFAULT_PROXY_PORT
+        }
+      })
+    } else {
+      try {
+        const u = new URL(server.url)
+        const port = u.port && u.port !== '443' ? u.port : ''
+        setFormData((prev) => ({
+          ...prev,
+          backend: 'esplora',
+          name: server.name,
+          host: u.hostname,
+          port,
+          proxy: server.proxy ?? prev.proxy
+        }))
+      } catch {
+        setFormData((prev) => ({
+          ...prev,
+          backend: 'esplora',
+          name: server.name,
+          host: '',
+          port: ''
+        }))
+      }
+    }
+  }, [])
+
+  function applyPastedUrl(urlString: string): boolean {
+    const raw = urlString.trim()
+    if (!raw) return false
+    const electrumMatch = raw.match(/^(ssl|tls|tcp):\/\/([^:/]+):(\d+)$/)
+    if (electrumMatch) {
+      const protocol =
+        electrumMatch[1] === 'ssl' || electrumMatch[1] === 'tls' ? 'ssl' : 'tcp'
+      setFormData((prev) => ({
+        ...prev,
+        backend: 'electrum',
+        protocol,
+        host: electrumMatch[2],
+        port: electrumMatch[3]
+      }))
+      return true
+    }
+    try {
+      const u = new URL(raw)
+      if (u.protocol !== 'https:') return false
+      const port = u.port && u.port !== '443' ? u.port : ''
+      setFormData((prev) => ({
+        ...prev,
+        backend: 'esplora',
+        host: u.hostname,
+        port
+      }))
+      return true
+    } catch {
+      return false
+    }
+  }
+
   return {
+    applyPastedUrl,
     formData,
+    loadServer,
+    resetForm,
     updateField,
     updateProxyField,
     constructUrl,
-    constructTrimmedUrl,
-    resetForm
+    constructTrimmedUrl
   }
 }

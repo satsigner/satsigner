@@ -24,7 +24,7 @@ import {
 } from '@/utils/psbt'
 import { selectEfficientUtxos } from '@/utils/utxo'
 
-export type ProcessorActions = {
+type ProcessorActions = {
   navigate: (
     path: string | { pathname: string; params?: Record<string, unknown> }
   ) => void

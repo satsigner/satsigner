@@ -82,8 +82,12 @@ export default function EcashSendPage() {
   const { makeRequest, isConnected } = useLND()
   const { isAvailable: nfcAvailable, isEmitting, emitNFCTag } = useNFCEmitter()
   const typedMakeRequest = makeRequest as MakeRequest
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  const [fiatCurrency, btcPrice, satsToFiat] = usePriceStore(
+    useShallow((state) => [
+      state.fiatCurrency,
+      state.btcPrice,
+      state.satsToFiat
+    ])
   )
 
   const handleGenerateToken = useCallback(async () => {
@@ -447,6 +451,7 @@ export default function EcashSendPage() {
                     0
                   )}
                   fiatCurrency={fiatCurrency}
+                  btcPrice={btcPrice}
                   satsToFiat={satsToFiat}
                 />
               </SSVStack>

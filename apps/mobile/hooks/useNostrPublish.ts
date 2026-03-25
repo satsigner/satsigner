@@ -1,8 +1,13 @@
 import { NostrAPI } from '@/api/nostr'
+import { DELAY_BETWEEN_PUBLISHES_MS } from '@/constants/nostr'
 import { type Account } from '@/types/models/Account'
 import { compressMessage } from '@/utils/nostr'
 
-export function useNostrPublish() {
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function useNostrPublish() {
   function getTrustedDevices(account: Account): string[] {
     return account.nostr?.trustedMemberDevices || []
   }
@@ -43,13 +48,14 @@ export function useNostrPublish() {
 
     const trustedDevices = getTrustedDevices(account)
     for (const trustedDeviceNpub of trustedDevices) {
+      await delay(DELAY_BETWEEN_PUBLISHES_MS)
       if (!deviceNsec) continue
-      eventKind1059 = await nostrApi.createKind1059(
+      eventKind1059 = await nostrApi!.createKind1059(
         deviceNsec,
         trustedDeviceNpub,
         compressedMessage
       )
-      await nostrApi.publishEvent(eventKind1059)
+      await nostrApi!.publishEvent(eventKind1059)
     }
   }
 
@@ -82,8 +88,9 @@ export function useNostrPublish() {
 
     const trustedDevices = getTrustedDevices(account)
     for (const trustedDeviceNpub of trustedDevices) {
-      if (!deviceNsec) continue
       if (trustedDeviceNpub === deviceNpub) continue
+      await delay(DELAY_BETWEEN_PUBLISHES_MS)
+      if (!deviceNsec) continue
       const eventKind1059 = await nostrApi.createKind1059(
         deviceNsec,
         trustedDeviceNpub,
@@ -98,3 +105,5 @@ export function useNostrPublish() {
     sendPSBT
   }
 }
+
+export default useNostrPublish

@@ -11,14 +11,18 @@ export const nostrKeys = {
     nsec: 'nsec1vl029mgpspedva04g90vltkh6fvh240zqtv9k0t9af8935ke9laqsnlfe5',
     npub: 'npub10elfcs4fr0l0r8af98jlmgdh9c8tcxjvz9qkw038js35mp4dma8qzvjptg',
     privateKeyHex:
-      '67dea2ed018072d675f5415ecfaed7d2597555e202d85b3d65ea4e58d2d92ffa'
+      '67dea2ed018072d675f5415ecfaed7d2597555e202d85b3d65ea4e58d2d92ffa',
+    publicKeyHex:
+      '7e7e9c54274b5f0e7f4a4a65fb4d06e4b5e0c93308a0b39f139428d61ab6fa70'
   },
   // From mnemonic: "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong"
   bob: {
     nsec: 'nsec1u5tsnlpuvuljupfvhwyjmr8psjgv6ayku5xgqpuhwq0sqnn0gcss9z89sr',
     npub: 'npub180cvv07tjdrrgpa0j7j7tmnyl2yr6yr7l8j4s3evf6u64th6gkwsyjh6w6',
     privateKeyHex:
-      'e517093fc9c3b2edc249b17c0f65a7d55064e8a8c5a3c0a29e5c0a029cde8c42'
+      'e517093fc9c3b2edc249b17c0f65a7d55064e8a8c5a3c0a29e5c0a029cde8c42',
+    publicKeyHex:
+      '3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d'
   },
   // Invalid/malformed for error testing
   invalid: {

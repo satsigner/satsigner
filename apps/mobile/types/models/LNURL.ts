@@ -28,5 +28,3 @@ export type LNURLWithdrawResponse = {
   pr?: string
   reason?: string
 }
-
-export type LNURLType = 'pay' | 'withdraw'

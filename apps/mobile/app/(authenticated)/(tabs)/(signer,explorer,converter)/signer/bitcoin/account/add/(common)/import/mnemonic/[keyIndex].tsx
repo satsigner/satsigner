@@ -76,6 +76,7 @@ export default function ImportMnemonic() {
 
   const [loadingAccount, setLoadingAccount] = useState(false)
   const [syncedAccount, setSyncedAccount] = useState<Account>()
+  const [createdAccountId, setCreatedAccountId] = useState<string>()
   const [walletSyncFailed, setWalletSyncFailed] = useState(false)
   const [currentMnemonic, setCurrentMnemonic] = useState('')
   const [currentFingerprint, setCurrentFingerprint] = useState('')
@@ -114,6 +115,7 @@ export default function ImportMnemonic() {
       return
     }
 
+    setCreatedAccountId(data.accountWithEncryptedSecret.id)
     setAccountAddedModalVisible(true)
 
     try {
@@ -158,10 +160,11 @@ export default function ImportMnemonic() {
   async function handleOnCloseAccountAddedModal() {
     setAccountAddedModalVisible(false)
 
-    if (syncedAccount && !loadingAccount) {
+    const targetId = syncedAccount?.id ?? createdAccountId
+    if (targetId) {
       clearAccount()
       router.dismissAll()
-      router.navigate(`/signer/bitcoin/account/${syncedAccount.id}`)
+      router.navigate(`/signer/bitcoin/account/${targetId}`)
     }
   }
 
@@ -192,6 +195,7 @@ export default function ImportMnemonic() {
           showChecksum
           showFingerprint
           showPasteButton
+          showScanSeedQRButton
           showActionButton
           actionButtonLabel={t('account.import.title2')}
           actionButtonVariant="secondary"

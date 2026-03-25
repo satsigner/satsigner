@@ -272,7 +272,7 @@ export function isCombinedDescriptor(descriptor: string): boolean {
 }
 
 // Function to separate a combined descriptor into external and internal descriptors
-export function separateCombinedDescriptor(combinedDescriptor: string) {
+function separateCombinedDescriptor(combinedDescriptor: string) {
   const external = combinedDescriptor.replace(/<0[,;]1>/, '0')
   const internal = combinedDescriptor.replace(/<0[,;]1>/, '1')
   return { external, internal }

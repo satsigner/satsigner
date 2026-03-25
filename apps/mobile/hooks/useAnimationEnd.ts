@@ -11,7 +11,7 @@ import {
   type OnResetAnimationEndCallback
 } from '@/types/ui/gestures'
 
-export type OnAnimationEndCallback = AnimationCallback extends (
+type OnAnimationEndCallback = AnimationCallback extends (
   ...a: infer I
 ) => infer O
   ? (interactionId: string, value: ANIMATION_VALUE, ...a: I) => O

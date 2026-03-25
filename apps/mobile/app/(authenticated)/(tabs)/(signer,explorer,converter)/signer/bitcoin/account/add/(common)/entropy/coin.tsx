@@ -1,10 +1,10 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
-  Dimensions,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
   View
 } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -22,11 +22,10 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 
-const screenWidth = Dimensions.get('window').width
-const coinSize = Math.min(screenWidth * 0.4, 160)
-
 export default function CoinEntropy() {
   const router = useRouter()
+  const { width: screenWidth } = useWindowDimensions()
+  const coinSize = Math.min(screenWidth * 0.4, 160)
   const { index } = useLocalSearchParams()
 
   const [mnemonicWordCount, mnemonicWordList, setMnemonic, setFingerprint] =
@@ -114,13 +113,27 @@ export default function CoinEntropy() {
               <TouchableOpacity
                 key="front"
                 activeOpacity={1}
-                style={styles.coin}
+                style={[
+                  styles.coin,
+                  {
+                    height: coinSize,
+                    width: coinSize,
+                    borderRadius: coinSize / 2
+                  }
+                ]}
                 onPress={() => handleFlip('0')}
               />
               <TouchableOpacity
                 key="back"
                 activeOpacity={1}
-                style={styles.coin}
+                style={[
+                  styles.coin,
+                  {
+                    height: coinSize,
+                    width: coinSize,
+                    borderRadius: coinSize / 2
+                  }
+                ]}
                 onPress={() => handleFlip('1')}
               />
             </SSHStack>
@@ -134,9 +147,6 @@ export default function CoinEntropy() {
 const styles = StyleSheet.create({
   coin: {
     backgroundColor: Colors.gray[75],
-    height: coinSize,
-    width: coinSize,
-    borderRadius: coinSize / 2,
     opacity: 0.2
   },
   container: {

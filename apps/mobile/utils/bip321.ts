@@ -251,12 +251,3 @@ export function validateBolt12(offer: string): Bolt12ValidationResult {
     error: result.error
   }
 }
-
-export {
-  type BitcoinAddressValidationResult,
-  type Bolt12ValidationResult,
-  type EncodeBitcoinUriParams,
-  type EncodeBitcoinUriResult,
-  type LightningValidationResult,
-  type ParsedBitcoinUri
-}

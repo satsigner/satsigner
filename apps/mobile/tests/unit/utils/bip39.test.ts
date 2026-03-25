@@ -1,11 +1,16 @@
 import { KeychainKind, Network as BdkNetwork } from 'bdk-rn/lib/lib/enums'
 
 import { type ScriptVersionType } from '@/types/models/Account'
+import { getFingerprintFromSeed } from '@/utils/bip32'
 import {
+  detectElectrumSeed,
   generateMnemonic,
+  getElectrumDerivationPath,
   getExtendedPublicKeyFromMnemonic,
   getFingerprintFromMnemonic,
   getPublicDescriptorFromMnemonic,
+  isElectrumDerivationPath,
+  mnemonicToSeedElectrum,
   validateMnemonic
 } from '@/utils/bip39'
 
@@ -122,6 +127,12 @@ const descriptorTests = [
   ]
 ]
 
+// Known Electrum segwit wallet — verified against Electrum 4.x
+// root_fingerprint: e30a0cd1, derivation: m/0h
+const electrumSegwitMnemonic =
+  'love narrow noble little cat wonder daring drift absent lyrics noodle pudding'
+const electrumSegwitFingerprint = 'e30a0cd1'
+
 // get extended key from mnemonic
 describe('bip39 utils', () => {
   it('validate mnemonic in multiple languages', () => {
@@ -182,5 +193,92 @@ describe('bip39 utils', () => {
       )
       expect(result).toBe(actualDescriptor)
     }
+  })
+})
+
+describe('Electrum seed utils', () => {
+  describe('detectElectrumSeed', () => {
+    it('detects a known Electrum segwit seed', async () => {
+      const result = await detectElectrumSeed(electrumSegwitMnemonic)
+      expect(result).toBe('segwit')
+    })
+
+    it('returns null for a BIP39 mnemonic', async () => {
+      const result = await detectElectrumSeed(englishMnemonic)
+      expect(result).toBeNull()
+    })
+
+    it('returns null for garbage input', async () => {
+      const result = await detectElectrumSeed(
+        'this is not a valid seed phrase at all'
+      )
+      expect(result).toBeNull()
+    })
+
+    it('is case and whitespace insensitive', async () => {
+      const upper = electrumSegwitMnemonic.toUpperCase()
+      const extraSpaces = electrumSegwitMnemonic.replace(/ /g, '  ')
+      expect(await detectElectrumSeed(upper)).toBe('segwit')
+      expect(await detectElectrumSeed(extraSpaces)).toBe('segwit')
+    })
+  })
+
+  describe('isElectrumDerivationPath', () => {
+    it('matches Electrum derivation paths', () => {
+      expect(isElectrumDerivationPath('m')).toBe(true)
+      expect(isElectrumDerivationPath("m/0'")).toBe(true)
+      expect(isElectrumDerivationPath('m/0h')).toBe(true)
+    })
+
+    it('rejects BIP44/49/84/86 and arbitrary paths', () => {
+      expect(isElectrumDerivationPath("m/84'/0'/0'")).toBe(false)
+      expect(isElectrumDerivationPath("m/44'/0'/0'")).toBe(false)
+      expect(isElectrumDerivationPath("m/49'/0'/0'")).toBe(false)
+      expect(isElectrumDerivationPath('')).toBe(false)
+      expect(isElectrumDerivationPath('m/0/0')).toBe(false)
+    })
+  })
+
+  describe('getElectrumDerivationPath', () => {
+    it("returns m/0' for segwit seeds", () => {
+      expect(getElectrumDerivationPath('segwit')).toBe("m/0'")
+    })
+
+    it('returns m for standard and 2fa-standard seeds', () => {
+      expect(getElectrumDerivationPath('standard')).toBe('m')
+      expect(getElectrumDerivationPath('2fa-standard')).toBe('m')
+    })
+  })
+
+  describe('mnemonicToSeedElectrum', () => {
+    it('derives the correct master key fingerprint for a known Electrum segwit seed', async () => {
+      const seed = await mnemonicToSeedElectrum(electrumSegwitMnemonic)
+      const fingerprint = getFingerprintFromSeed(Buffer.from(seed))
+      expect(fingerprint).toBe(electrumSegwitFingerprint)
+    })
+
+    it('produces a 64-byte seed', async () => {
+      const seed = await mnemonicToSeedElectrum(electrumSegwitMnemonic)
+      expect(seed.length).toBe(64)
+    })
+
+    it('is deterministic', async () => {
+      const seed1 = await mnemonicToSeedElectrum(electrumSegwitMnemonic)
+      const seed2 = await mnemonicToSeedElectrum(electrumSegwitMnemonic)
+      expect(Buffer.from(seed1).toString('hex')).toBe(
+        Buffer.from(seed2).toString('hex')
+      )
+    })
+
+    it('produces a different seed when a passphrase is supplied', async () => {
+      const seed = await mnemonicToSeedElectrum(electrumSegwitMnemonic)
+      const seedWithPass = await mnemonicToSeedElectrum(
+        electrumSegwitMnemonic,
+        'passphrase'
+      )
+      expect(Buffer.from(seed).toString('hex')).not.toBe(
+        Buffer.from(seedWithPass).toString('hex')
+      )
+    })
   })
 })

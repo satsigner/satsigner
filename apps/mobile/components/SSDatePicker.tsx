@@ -1,12 +1,12 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import React, { useEffect, useRef, useState } from 'react'
 import {
-  Dimensions,
   type DimensionValue,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View
 } from 'react-native'
 
@@ -57,6 +57,7 @@ function SSDatePicker({
   fadeColor,
   format
 }: SSDatePickerProps) {
+  const { height: windowHeight } = useWindowDimensions()
   const [days, setDays] = useState<number[]>([])
   const [months, setMonths] = useState<number[]>([])
   const [years, setYears] = useState<number[]>([])
@@ -80,9 +81,7 @@ function SSDatePicker({
     setYears(years)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const pickerHeight: number = Math.round(
-    height || Dimensions.get('window').height / 3.5
-  )
+  const pickerHeight: number = Math.round(height || windowHeight / 3.5)
   const pickerWidth: number | string = width || '100%'
 
   const unexpectedDate: Date = new Date(years[0], 0, 1)

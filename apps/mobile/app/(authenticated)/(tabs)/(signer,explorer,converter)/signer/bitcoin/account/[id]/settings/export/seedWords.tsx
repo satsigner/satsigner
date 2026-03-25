@@ -32,7 +32,7 @@ export default function SeedWordsPage() {
 
   const [mnemonic, setMnemonic] = useState('')
   const [isLoading, setIsLoading] = useState(true)
-  const [pin, setPin] = useState<string[]>(Array(4).fill(''))
+  const [pin, setPin] = useState<string[]>(() => Array(4).fill(''))
   const [showPinEntry, setShowPinEntry] = useState(false)
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
   const [noMnemonicAvailable, setNoMnemonicAvailable] = useState(false)

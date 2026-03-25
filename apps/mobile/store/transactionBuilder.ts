@@ -11,6 +11,7 @@ import { getUtxoOutpoint } from '@/utils/utxo'
 enableMapSet()
 
 type TransactionBuilderState = {
+  accountId?: string
   inputs: Map<ReturnType<typeof getUtxoOutpoint>, Utxo>
   outputs: Output[]
   feeRate: number
@@ -27,6 +28,7 @@ type TransactionBuilderState = {
 
 type TransactionBuilderAction = {
   clearTransaction: () => void
+  setAccountId: (accountId: string) => void
   getInputs: () => Utxo[]
   hasInput: (utxo: Utxo) => boolean
   addInput: (utxo: Utxo) => void
@@ -65,6 +67,7 @@ const useTransactionBuilderStore = create<
   signedPsbts: new Map<number, string>(),
   clearTransaction: () => {
     set({
+      accountId: undefined,
       inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
       outputs: [],
       feeRate: 0,
@@ -74,6 +77,9 @@ const useTransactionBuilderStore = create<
       broadcasted: false,
       signedPsbts: new Map<number, string>()
     })
+  },
+  setAccountId: (accountId) => {
+    set({ accountId })
   },
   getInputs: () => {
     return Array.from(get().inputs.values())
