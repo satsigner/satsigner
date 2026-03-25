@@ -12,7 +12,7 @@ type SSScriptDecodedProps = {
   script: number[] | string
 }
 
-const SAFE_SCRIPT_SIZE = 512
+const SAFE_SCRIPT_SIZE = 2048
 
 function SSScriptDecoded({ script }: SSScriptDecodedProps) {
   let decodedScript: string | undefined

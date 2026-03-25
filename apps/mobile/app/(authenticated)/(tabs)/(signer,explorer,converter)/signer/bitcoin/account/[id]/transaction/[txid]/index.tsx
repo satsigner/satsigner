@@ -187,11 +187,7 @@ export default function TxDetails() {
             />
             <SSSeparator color="gradient" />
             <SSVStack gap="sm">
-              <SSText
-                uppercase
-                color="muted"
-                style={{ marginBottom: -30, marginTop: 50 }}
-              >
+              <SSText uppercase color="muted">
                 {t('transaction.decoded.title')}
               </SSText>
               {raw !== '' ? (
@@ -200,7 +196,6 @@ export default function TxDetails() {
                 <SSText>{placeholder}</SSText>
               )}
             </SSVStack>
-
             <SSTransactionVinList vin={tx.vin} />
             <SSTransactionVoutList
               vout={tx.vout}

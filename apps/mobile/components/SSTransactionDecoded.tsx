@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
 })
 
 const thresholdCheck = ({ txHex }: SSTransactionDecodedProps) =>
-  txHex.length < 1024
+  txHex.length > 2048
 
 export default withPerformanceWarning<SSTransactionDecodedProps>(
   SSTransactionDecoded,
