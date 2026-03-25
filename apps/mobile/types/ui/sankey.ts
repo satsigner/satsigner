@@ -21,4 +21,7 @@ export interface Node extends SankeyNodeMinimal<object, object> {
   nextTx?: string
 }
 
+export const LINK_MAX_WIDTH = 60
 export const BLOCK_WIDTH = 50
+export const NODE_WIDTH = 98
+export const SAFE_LIMIT_OF_INPUTS_OUTPUTS = 12

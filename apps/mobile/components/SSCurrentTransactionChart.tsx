@@ -1,6 +1,6 @@
 import { Canvas, Circle, Group } from '@shopify/react-native-skia'
 import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import {
   Platform,
   StyleSheet,
@@ -15,20 +15,22 @@ import { useShallow } from 'zustand/react/shallow'
 import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
 import type { TxNode } from '@/hooks/useNodesAndLinks'
-import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import type { Output } from '@/types/models/Output'
 import type { Utxo } from '@/types/models/Utxo'
-import { BLOCK_WIDTH } from '@/types/ui/sankey'
+import {
+  BLOCK_WIDTH,
+  LINK_MAX_WIDTH,
+  NODE_WIDTH,
+  SAFE_LIMIT_OF_INPUTS_OUTPUTS
+} from '@/types/ui/sankey'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { estimateTransactionSize } from '@/utils/transaction'
 
-import { SSIconWarning } from './icons'
-import SSButton from './SSButton'
+import { withPerformanceWarning } from './SSPerformanceWarning'
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
-import SSText from './SSText'
 
 interface Node extends SankeyNodeMinimal<object, object> {
   id: string
@@ -42,10 +44,6 @@ interface Node extends SankeyNodeMinimal<object, object> {
   nextTx?: string
   localId?: string
 }
-
-const LINK_MAX_WIDTH = 60
-const NODE_WIDTH = 98
-const SAFE_LIMIT_OF_INPUTS_OUTPUTS = 10
 
 type SSCurrentTransactionChartProps = {
   inputs: Map<string, Utxo>
@@ -64,31 +62,6 @@ function SSCurrentTransactionChart({
   currentOutputLocalId,
   ownAddresses = new Set()
 }: SSCurrentTransactionChartProps) {
-  const [forceDisplayTx, setForceDisplayTx] = useState(false)
-
-  if (
-    inputMap.size + outputArray.length > SAFE_LIMIT_OF_INPUTS_OUTPUTS &&
-    !forceDisplayTx
-  ) {
-    return (
-      <View
-        style={{ flex: 1, justifyContent: 'center', alignContent: 'center' }}
-      >
-        <SSVStack itemsCenter style={{ paddingHorizontal: 32 }}>
-          <SSVStack gap="none" itemsCenter>
-            <SSIconWarning height={32} width={32} />
-            <SSText center>{t('transaction.chart.warning')}</SSText>
-          </SSVStack>
-          <SSButton
-            variant="subtle"
-            label={t('transaction.chart.warningDismiss')}
-            onPress={() => setForceDisplayTx(true)}
-          />
-        </SSVStack>
-      </View>
-    )
-  }
-
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
@@ -338,8 +311,8 @@ function SSCurrentTransactionChart({
           : 0
 
       // Safely handle NaN values from sankey generator
-      const safeX0 = Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)
-      const safeY0 = Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)
+      const safeX0 = Number.isNaN(node.x0) ? 0 : node.x0 ?? 0
+      const safeY0 = Number.isNaN(node.y0) ? 0 : node.y0 ?? 0
 
       return {
         localId: (node as Node).localId,
@@ -484,4 +457,11 @@ const styles = StyleSheet.create({
   }
 })
 
-export default SSCurrentTransactionChart
+const thresholdCheck = function (props: SSCurrentTransactionChartProps) {
+  return props.inputs.size + props.outputs.length > SAFE_LIMIT_OF_INPUTS_OUTPUTS
+}
+
+export default withPerformanceWarning<SSCurrentTransactionChartProps>(
+  SSCurrentTransactionChart,
+  thresholdCheck
+)
