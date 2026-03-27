@@ -52,7 +52,7 @@ function selectEfficientUtxos(
   const usableUtxos = spendableUtxos.length > 0 ? spendableUtxos : [...utxos]
 
   // Sort UTXOs by value (ascending)
-  const sortedUtxos = [...usableUtxos].sort((a, b) => a.value - b.value)
+  const sortedUtxos = usableUtxos.toSorted((a, b) => a.value - b.value)
 
   // Store our selection results
   const selectedUtxos = []
@@ -400,7 +400,7 @@ function selectStonewallUtxos(
 
   // Sort UTXOs by size within each type
   for (const type of Object.keys(utxosByType)) {
-    utxosByType[type].sort(
+    utxosByType[type] = utxosByType[type].toSorted(
       (a: { value: number }, b: { value: number }) => a.value - b.value
     )
   }

@@ -221,7 +221,7 @@ export class NostrAPI {
     const event =
       events.size === 0
         ? null
-        : Array.from(events).sort(
+        : Array.from(events).toSorted(
             (a, b) => (b.created_at ?? 0) - (a.created_at ?? 0)
           )[0]
 

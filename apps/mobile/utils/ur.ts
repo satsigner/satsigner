@@ -213,7 +213,7 @@ export async function decodeMultiPartURToPSBT(
 
   // Sort fragments by sequence number first (following Java implementation pattern)
   // Use a more memory-efficient sorting approach
-  const sortedFragments = urFragments.sort((a, b) => {
+  const sortedFragments = urFragments.toSorted((a, b) => {
     // Extract sequence number from fragments like "UR:CRYPTO-PSBT/881-13/..."
     const aMatch = a.match(/ur:crypto-psbt\/(\d+)-(\d+)\//i)
     const bMatch = b.match(/ur:crypto-psbt\/(\d+)-(\d+)\//i)
@@ -326,7 +326,7 @@ function processURGenericResult(result: UR) {
 export function decodeMultiPartURGeneric(urFragments: string[]): string {
   const decoder = new URDecoder()
 
-  const sortedFragments = urFragments.sort((a, b) => {
+  const sortedFragments = urFragments.toSorted((a, b) => {
     const aMatch = a.match(/ur:([^/]+)\/(\d+)-(\d+)\//i)
     const bMatch = b.match(/ur:([^/]+)\/(\d+)-(\d+)\//i)
 

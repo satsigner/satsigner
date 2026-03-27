@@ -837,7 +837,7 @@ export default function NostrSync() {
     }
   }, [accountId, hasNostr, relayCount, loadNostrAccountData])
 
-  const relayKey = (account?.nostr?.relays ?? []).slice().sort().join(',')
+  const relayKey = (account?.nostr?.relays ?? []).toSorted().join(',')
   useEffect(() => {
     if (!account?.nostr?.autoSync || !account?.nostr?.relays?.length) {
       return

@@ -667,7 +667,7 @@ export default function ImportDescriptor() {
   ): string | null => {
     try {
       const sortedChunks = Array.from(chunks.entries())
-        .sort(([a], [b]) => a - b)
+        .toSorted(([a], [b]) => a - b)
         .map(([, content]) => content)
 
       const combinedData = sortedChunks.join('')
@@ -921,7 +921,7 @@ export default function ImportDescriptor() {
                     </View>
                     <SSText color="muted" size="sm" center>
                       {`Scanned parts: ${Array.from(scanProgress.scanned)
-                        .sort((a, b) => a - b)
+                        .toSorted((a, b) => a - b)
                         .map((n) => n + 1)
                         .join(', ')}`}
                     </SSText>

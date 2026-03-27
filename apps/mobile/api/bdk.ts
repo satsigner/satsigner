@@ -189,7 +189,7 @@ async function getWalletData(
       const cleanPolicyPath = policyDerivationPath.replace(/^m\/?/i, '')
 
       // Sort keys by extended public key to ensure consistent ordering with other Bitcoin wallets
-      const sortedKeyData = validKeyData.sort((a, b) =>
+      const sortedKeyData = validKeyData.toSorted((a, b) =>
         a.extendedPublicKey.localeCompare(b.extendedPublicKey)
       )
 

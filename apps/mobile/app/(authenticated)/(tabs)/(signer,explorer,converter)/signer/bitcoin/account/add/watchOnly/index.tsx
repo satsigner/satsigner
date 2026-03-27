@@ -1283,7 +1283,7 @@ export default function WatchOnly() {
                   </View>
                   <SSText color="muted" size="sm" center>
                     {`Scanned parts: ${Array.from(scanProgress.scanned)
-                      .sort((a, b) => a - b)
+                      .toSorted((a, b) => a - b)
                       .map((n) => n + 1)
                       .join(', ')}`}
                   </SSText>

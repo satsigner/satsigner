@@ -101,7 +101,7 @@ async function assembleMultiPartQR(
     switch (type) {
       case 'raw': {
         const sortedChunks = Array.from(chunks.entries())
-          .sort(([a], [b]) => a - b)
+          .toSorted(([a], [b]) => a - b)
           .map(([, content]) => content)
         const assembled = sortedChunks.join('')
 
@@ -115,7 +115,7 @@ async function assembleMultiPartQR(
 
       case 'bbqr': {
         const sortedChunks = Array.from(chunks.entries())
-          .sort(([a], [b]) => a - b)
+          .toSorted(([a], [b]) => a - b)
           .map(([, content]) => content)
 
         const decoded = decodeBBQRChunks(sortedChunks)
@@ -130,7 +130,7 @@ async function assembleMultiPartQR(
 
       case 'ur': {
         const sortedChunks = Array.from(chunks.entries())
-          .sort(([a], [b]) => a - b)
+          .toSorted(([a], [b]) => a - b)
           .map(([, content]) => content)
 
         let result: string
@@ -496,7 +496,7 @@ function SSCameraModal({
                 </View>
                 <SSText color="muted" size="sm" center>
                   {`Scanned parts: ${Array.from(scanProgress.scanned)
-                    .sort((a, b) => a - b)
+                    .toSorted((a, b) => a - b)
                     .map((n) => n + 1)
                     .join(', ')}`}
                 </SSText>

@@ -203,7 +203,7 @@ function parseMultisigDescriptor(descriptor: string) {
   )}/${accountIndex.replace("'", 'h')}/${keyType.replace("'", 'h')}`
 
   const xpubRegex = /(tpub|vpub|upub|zpub)[a-zA-Z0-9]+/g
-  const xpubs = (descriptor.match(xpubRegex) || []).sort()
+  const xpubs = (descriptor.match(xpubRegex) || []).toSorted()
 
   return { hardenedPath, xpubs }
 }
@@ -221,7 +221,7 @@ function parseSinglesigDescriptor(descriptor: string) {
   )}/${accountIndex.replace("'", 'h')}`
 
   const xpubRegex = /(tpub|vpub|upub|zpub)[a-zA-Z0-9]+/g
-  const xpubs = (descriptor.match(xpubRegex) || []).sort()
+  const xpubs = (descriptor.match(xpubRegex) || []).toSorted()
 
   return { hardenedPath, xpubs }
 }

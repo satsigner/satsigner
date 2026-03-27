@@ -1341,7 +1341,7 @@ export default function AccountView() {
   }
 
   function sortUtxos(utxos: Utxo[]) {
-    return utxos.sort((utxo1, utxo2) =>
+    return utxos.toSorted((utxo1, utxo2) =>
       sortDirectionUtxos === 'asc'
         ? compareTimestamp(utxo1.timestamp, utxo2.timestamp)
         : compareTimestamp(utxo2.timestamp, utxo1.timestamp)

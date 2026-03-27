@@ -42,7 +42,6 @@
     "react/no-array-index-key": "allow",
     "unicorn/prefer-string-slice": "allow",
     "unicorn/prefer-ternary": "allow",
-    "unicorn/no-array-sort": "allow",
     "typescript/no-inferrable-types": "allow",
     "unicorn/consistent-function-scoping": "allow",
     "promise/prefer-await-to-then": "allow",

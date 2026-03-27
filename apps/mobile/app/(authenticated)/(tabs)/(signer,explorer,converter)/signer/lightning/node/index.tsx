@@ -861,7 +861,7 @@ export default function NodeDetailPage() {
         const allTxs = [...onchainTxs, ...paymentTxs, ...invoiceTxs]
         const uniqueTxs = Array.from(
           new Map(allTxs.map((tx) => [tx.id, tx])).values()
-        ).sort((a, b) => b.timestamp - a.timestamp)
+        ).toSorted((a, b) => b.timestamp - a.timestamp)
 
         setTransactions(uniqueTxs)
       } catch {

@@ -16,7 +16,7 @@ function sortTransactions(
   transactions: Transaction[],
   sortDirection: Direction
 ) {
-  return transactions.sort((transaction1, transaction2) => {
+  return transactions.toSorted((transaction1, transaction2) => {
     const result = compareTimestamp(
       transaction1.timestamp,
       transaction2.timestamp

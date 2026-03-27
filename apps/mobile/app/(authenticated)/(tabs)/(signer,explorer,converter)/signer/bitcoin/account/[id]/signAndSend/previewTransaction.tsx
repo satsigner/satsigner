@@ -676,7 +676,7 @@ function PreviewTransaction() {
       switch (type) {
         case 'raw': {
           const sortedChunks = Array.from(chunks.entries())
-            .sort(([a], [b]) => a - b)
+            .toSorted(([a], [b]) => a - b)
             .map(([, content]) => content)
           const assembled = sortedChunks.join('')
 
@@ -691,7 +691,7 @@ function PreviewTransaction() {
         case 'bbqr': {
           // Assemble BBQR format chunks
           const sortedChunks = Array.from(chunks.entries())
-            .sort(([a], [b]) => a - b)
+            .toSorted(([a], [b]) => a - b)
             .map(([, content]) => content)
 
           const decoded = decodeBBQRChunks(sortedChunks)
@@ -708,7 +708,7 @@ function PreviewTransaction() {
         case 'ur': {
           // UR format assembly using proper UR decoder
           const sortedChunks = Array.from(chunks.entries())
-            .sort(([a], [b]) => a - b)
+            .toSorted(([a], [b]) => a - b)
             .map(([, content]) => content)
 
           let result: string
@@ -2602,7 +2602,7 @@ function PreviewTransaction() {
                     </View>
                     <SSText color="muted" size="sm" center>
                       {`Scanned parts: ${Array.from(scanProgress.scanned)
-                        .sort((a, b) => a - b)
+                        .toSorted((a, b) => a - b)
                         .map((n) => n + 1)
                         .join(', ')}`}
                     </SSText>

@@ -447,7 +447,7 @@ export const useNodesAndLinks = ({
             ...blockNode,
             ...outputNodes,
             ...feeNode
-          ].sort((a, b) => a.depthH - b.depthH)
+          ].toSorted((a, b) => a.depthH - b.depthH)
         }
       )
 
@@ -468,7 +468,7 @@ export const useNodesAndLinks = ({
   const nodes = [
     ...previousConfirmedNodes,
     ...outputNodesCurrentTransaction
-  ].sort((a, b) => a.depthH - b.depthH)
+  ].toSorted((a, b) => a.depthH - b.depthH)
 
   const links = useMemo(() => {
     function generateSankeyLinks(nodes: TxNode[]) {

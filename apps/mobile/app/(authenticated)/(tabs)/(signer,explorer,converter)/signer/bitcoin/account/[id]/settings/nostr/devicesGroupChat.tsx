@@ -199,7 +199,7 @@ export default function DevicesGroupChat() {
         pending: true
       }
       updateAccountNostr(accountId!, {
-        dms: [...(account.nostr?.dms ?? []), optimisticMessage].sort(
+        dms: [...(account.nostr?.dms ?? []), optimisticMessage].toSorted(
           (a, b) => a.created_at - b.created_at
         )
       })

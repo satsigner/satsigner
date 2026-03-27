@@ -111,7 +111,7 @@ export default function SelectUtxoList() {
   }
 
   function sortUtxos(utxos: Utxo[]) {
-    return utxos.sort((utxo1, utxo2) =>
+    return utxos.toSorted((utxo1, utxo2) =>
       sortDirection === 'asc'
         ? sortField === 'date'
           ? compareTimestamp(utxo1.timestamp, utxo2.timestamp)

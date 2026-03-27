@@ -163,7 +163,7 @@ function useNostrDMStorage() {
         if (pendingIdx >= 0) {
           currentDms = currentDms.slice()
           currentDms[pendingIdx] = newMessage
-          const updatedDms = currentDms.sort(
+          const updatedDms = currentDms.toSorted(
             (a, b) => a.created_at - b.created_at
           )
           useAccountsStore.getState().updateAccountNostr(account.id, {
@@ -176,7 +176,7 @@ function useNostrDMStorage() {
       const incomingMessage = isOwnMessage
         ? newMessage
         : { ...newMessage, read: false }
-      const updatedDms = [...currentDms, incomingMessage].sort(
+      const updatedDms = [...currentDms, incomingMessage].toSorted(
         (a, b) => a.created_at - b.created_at
       )
       useAccountsStore.getState().updateAccountNostr(account.id, {
@@ -262,7 +262,9 @@ function useNostrDMStorage() {
       }
     }
 
-    const updatedDms = currentDms.sort((a, b) => a.created_at - b.created_at)
+    const updatedDms = currentDms.toSorted(
+      (a, b) => a.created_at - b.created_at
+    )
     useAccountsStore
       .getState()
       .updateAccountNostr(accountId, { dms: updatedDms })

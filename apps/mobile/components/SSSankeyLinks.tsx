@@ -131,7 +131,7 @@ function SSSankeyLinks({
           }
           return link.target === node.id
         })
-        .sort((a, b) => {
+        .toSorted((a, b) => {
           const aNode = isSource
             ? nodes.find((n) => n.id === a.target)
             : nodes.find((n) => n.id === a.source)
