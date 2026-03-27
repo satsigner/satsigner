@@ -15,7 +15,8 @@ const formatNumberWithCommas = (numStr: string, decimal: number) => {
     const [baseStr, exponentStr] = numStr.split('e')
     const exponent = parseInt(exponentStr, 10)
 
-    let [integerPart, fractionalPart = ''] = baseStr.split('.')
+    const [integerPart, rawFractional] = baseStr.split('.')
+    let fractionalPart = rawFractional ?? ''
 
     if (exponent > 0) {
       fractionalPart = fractionalPart.padEnd(exponent, '0')
