@@ -33,9 +33,9 @@ function ImportOuputs() {
   function importOutputs() {
     const parsedOutputs = parseTXOutputs(importedOutputs)
 
-    parsedOutputs.map((output) => {
+    for (const output of parsedOutputs) {
       addOutput(output)
-    })
+    }
     router.back()
   }
 

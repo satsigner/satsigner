@@ -556,13 +556,13 @@ export const useNodesAndLinks = ({
         }
       })
 
-      outputNodesCurrentTransaction.slice(1).map((node) => {
+      for (const node of outputNodesCurrentTransaction.slice(1)) {
         links.push({
           source: outputNodesCurrentTransaction[0].id,
           target: node.id,
           value: node.value ?? 0
         })
-      })
+      }
       return links
     }
 
