@@ -261,7 +261,7 @@ function SSTransactionChart({
     return <View style={{ height: GRAPH_HEIGHT / 2, overflow: 'hidden' }} />
   }
 
-  const { nodes, links } = sankeyGenerator({
+  const { links, nodes } = sankeyGenerator({
     links: sankeyLinks,
     nodes: sankeyNodes
   })
@@ -296,7 +296,7 @@ function SSTransactionChart({
             dimUnselected={dimUnselected}
           />
           <SSSankeyNodes
-            nodes={nodes}
+            nodes={nodes as Node[]}
             sankeyGenerator={sankeyGenerator}
             selectedOutputNode={
               selectedOutputIndex !== undefined

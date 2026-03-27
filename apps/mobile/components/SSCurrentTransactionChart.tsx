@@ -300,7 +300,7 @@ function SSCurrentTransactionChart({
       link.target
   )
 
-  const { nodes, links } = sankeyGenerator({
+  const { links, nodes } = sankeyGenerator({
     links: validSankeyLinks,
     nodes: validSankeyNodes
   })
@@ -377,7 +377,7 @@ function SSCurrentTransactionChart({
             BLOCK_WIDTH={BLOCK_WIDTH}
           />
           <SSSankeyNodes
-            nodes={nodes}
+            nodes={nodes as Node[]}
             sankeyGenerator={sankeyGenerator}
             selectedOutputNode={currentOutputLocalId}
           />
