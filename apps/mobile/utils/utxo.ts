@@ -270,7 +270,7 @@ function findExactMatch(utxos: _Utxo[], targetValue: number): Utxo[] | null {
   const dp = new Map()
   dp.set(0, [])
 
-  for (let i = 0; i < n; i++) {
+  for (let i = 0; i < n; i += 1) {
     const utxo = utxos[i]
     const { effectiveValue } = utxo
 
@@ -409,7 +409,7 @@ function selectStonewallUtxos(
   let bestSolution = null
   let bestPrivacyScore = 0
 
-  for (let attempt = 0; attempt < opts.maxAttempts; attempt++) {
+  for (let attempt = 0; attempt < opts.maxAttempts; attempt += 1) {
     // Step 1: Decide how many outputs to create (including recipient)
     const numOutputs =
       Math.floor(randomNum() * (opts.maxOutputs - opts.minOutputs + 1)) +
@@ -436,7 +436,7 @@ function selectStonewallUtxos(
     let totalInputValue = 0
 
     // Try to select inputs from different types
-    for (let i = 0; i < numInputs; i++) {
+    for (let i = 0; i < numInputs; i += 1) {
       const [type] = selectedTypes // Always use the first available type
 
       if (utxosByType[type].length === 0) {
@@ -497,7 +497,7 @@ function selectStonewallUtxos(
     let totalChangeOutputSize = 0
     const changeOutputSizes = []
 
-    for (let i = 0; i < numChangeOutputs; i++) {
+    for (let i = 0; i < numChangeOutputs; i += 1) {
       // Randomly select script type for change
       const changeType =
         selectedTypes[Math.floor(randomNum() * selectedTypes.length)]
@@ -523,7 +523,7 @@ function selectStonewallUtxos(
     }
 
     // Distribute change amount across change outputs
-    for (let i = 0; i < numChangeOutputs; i++) {
+    for (let i = 0; i < numChangeOutputs; i += 1) {
       let changeAmount
 
       if (i === numChangeOutputs - 1) {
@@ -712,7 +712,7 @@ function distributeChangeWithPrivacy(
   let remainingAmount = totalChange
 
   // Create n-1 outputs with privacy-focused values
-  for (let i = 0; i < numOutputs - 1; i++) {
+  for (let i = 0; i < numOutputs - 1; i += 1) {
     // Calculate remaining average
     const avgRemaining = remainingAmount / (numOutputs - i)
 

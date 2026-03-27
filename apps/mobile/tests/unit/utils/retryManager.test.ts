@@ -125,7 +125,7 @@ describe('createRetryManager', () => {
     it('returns not scheduled when max retries reached', () => {
       const callback = jest.fn()
 
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 5; i += 1) {
         manager.scheduleRetry('test-key', callback)
         jest.advanceTimersByTime(100000)
       }
@@ -211,7 +211,7 @@ describe('createRetryManager', () => {
     it('returns true after max retries', () => {
       const callback = jest.fn()
 
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 5; i += 1) {
         manager.scheduleRetry('test-key', callback)
         jest.advanceTimersByTime(100000)
       }

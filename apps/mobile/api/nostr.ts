@@ -118,7 +118,7 @@ export class NostrAPI {
 
     const relayStatus = await Promise.all(
       connectedRelays.map(async (url) => {
-        for (let attempt = 0; attempt < 3; attempt++) {
+        for (let attempt = 0; attempt < 3; attempt += 1) {
           try {
             const relay = this.ndk?.pool.relays.get(url)
             if (!relay) {

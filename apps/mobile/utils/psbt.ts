@@ -136,7 +136,7 @@ export async function findMatchingAccount(
     const accountFingerprints: string[] = []
     const keyFingerprintMap = new Map<string, number>()
 
-    for (let keyIndex = 0; keyIndex < account.keys.length; keyIndex++) {
+    for (let keyIndex = 0; keyIndex < account.keys.length; keyIndex += 1) {
       const key = account.keys[keyIndex]
       const keyFingerprint = await getKeyFingerprint(key)
 
@@ -287,7 +287,7 @@ export function signPSBTWithSeed(
 
     try {
       psbt.signInput(derivation.inputIndex, signer)
-      signedInputs++
+      signedInputs += 1
 
       const input = psbt.data.inputs[derivation.inputIndex]
       if (!input.partialSig || input.partialSig.length === 0) {
@@ -518,7 +518,7 @@ export function combinePsbts(psbtBase64s: string[]): string {
 
   const basePsbt = bitcoinjs.Psbt.fromBase64(psbtBase64s[0])
 
-  for (let i = 1; i < psbtBase64s.length; i++) {
+  for (let i = 1; i < psbtBase64s.length; i += 1) {
     const nextPsbt = bitcoinjs.Psbt.fromBase64(psbtBase64s[i])
     basePsbt.combine(nextPsbt)
   }
@@ -1065,7 +1065,11 @@ export function findDerivedPublicKey(
   psbt: bitcoinjs.Psbt,
   fingerprint: string
 ) {
-  for (let inputIndex = 0; inputIndex < psbt.data.inputs.length; inputIndex++) {
+  for (
+    let inputIndex = 0;
+    inputIndex < psbt.data.inputs.length;
+    inputIndex += 1
+  ) {
     const input = psbt.data.inputs[inputIndex]
     const publicKey = findPublicKeyInInput(input, fingerprint)
     if (publicKey) {
@@ -1087,7 +1091,7 @@ function findPublicKeyInInput(
   for (
     let derivIndex = 0;
     derivIndex < input.bip32Derivation.length;
-    derivIndex++
+    derivIndex += 1
   ) {
     const derivation = input.bip32Derivation[derivIndex]
     const derivationFingerprint = derivation.masterFingerprint.toString('hex')
@@ -1170,7 +1174,7 @@ export function matchSignedPsbtsToCosigners(
     }
 
     const totalCosigners = account.keys?.length || 0
-    for (let cosIdx = 0; cosIdx < totalCosigners; cosIdx++) {
+    for (let cosIdx = 0; cosIdx < totalCosigners; cosIdx += 1) {
       const isValid = validateSignedPSBTForCosigner(
         indivBase64,
         account,

@@ -59,7 +59,7 @@ function decodeCompactSeedQR(seedQR: string): string {
   // Calculate number of words based on length
   const wordCount = Math.floor(seedQR.length / 11)
 
-  for (let i = 0; i < wordCount; i++) {
+  for (let i = 0; i < wordCount; i += 1) {
     const start = i * 11
     const end = start + 11
     const binaryChunk = seedQR.slice(start, end)

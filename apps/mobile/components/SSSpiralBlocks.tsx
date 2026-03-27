@@ -153,7 +153,7 @@ function SSSpiralBlocks({
     let radius_spiral = RADIUS_SPIRAL_START
     const maxIterations = Math.min(maxBlocksPerSpiral, data.length)
 
-    for (let i = 0; i < maxIterations; i++) {
+    for (let i = 0; i < maxIterations; i += 1) {
       const currentBlock = data[i] as BlockDifficulty
       const timeDifference = currentBlock?.timeDifference ?? 0
       const size = currentBlock?.size ?? 0
@@ -364,7 +364,7 @@ function newtonRaphson(
     return 2 * t
   }
 
-  for (let i = 0; i < maxIterations; i++) {
+  for (let i = 0; i < maxIterations; i += 1) {
     const f_t = f(t, L, k)
     const df_t = df(t)
     if (Math.abs(f_t) < tolerance) {

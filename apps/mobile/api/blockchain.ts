@@ -235,7 +235,7 @@ export class MempoolOracle implements BlockchainOracle {
     const timestamps = utxos.map((o: UTXO) => o.status.block_time)
     const fiatPrices = await this.getPricesAt(currency, timestamps)
     const priceValues: PriceValue[] = []
-    for (let i = 0; i < fiatPrices.length; i++) {
+    for (let i = 0; i < fiatPrices.length; i += 1) {
       const fiatPrice = fiatPrices[i]
       const { value } = utxos[i]
       const fiatValue = satoshiToFiat(fiatPrice, value)

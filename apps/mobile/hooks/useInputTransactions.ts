@@ -82,7 +82,7 @@ export function useInputTransactions(
         const tx = transactions.get(txid)
         if (tx?.vin?.[index]) {
           tx.vin[index] = { ...tx.vin[index], index: currentIndex }
-          currentIndex++
+          currentIndex += 1
         }
       })
     }
@@ -97,7 +97,7 @@ export function useInputTransactions(
             index: currentIndex,
             vout: index // Set vout to the original array index
           }
-          currentIndex++
+          currentIndex += 1
         }
       })
     }
@@ -391,7 +391,7 @@ export function useInputTransactions(
           })
         )
 
-        currentLevelDeep++
+        currentLevelDeep += 1
       }
 
       // Filter transactions based on input/output address matching

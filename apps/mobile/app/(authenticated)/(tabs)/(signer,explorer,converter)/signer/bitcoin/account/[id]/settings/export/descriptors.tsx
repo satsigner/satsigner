@@ -40,7 +40,7 @@ function calculateDescriptorChecksum(descriptor: string): string {
     // Simple checksum calculation for React Native
     // This is a simplified version that creates a basic checksum
     let hash = 0
-    for (let i = 0; i < descriptor.length; i++) {
+    for (let i = 0; i < descriptor.length; i += 1) {
       const char = descriptor.charCodeAt(i)
       hash = (hash << 5) - hash + char
       hash = hash & hash // Convert to 32-bit integer

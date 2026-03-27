@@ -68,7 +68,7 @@ export function getURFragmentsFromPSBT(
   const encoder = new UREncoder(ur, finalFragmentSize)
 
   const fragments: string[] = []
-  for (let i = 0; i < encoder.fragments.length; i++) {
+  for (let i = 0; i < encoder.fragments.length; i += 1) {
     const fragment = encoder.nextPart()
 
     if (!fragment.toLowerCase().startsWith('ur:crypto-psbt/')) {

@@ -156,7 +156,7 @@ function SSSankeyLinks({
       )
 
       // Only accumulate heights for links that come before the current link
-      for (let i = 0; i < currentLinkIndex; i++) {
+      for (let i = 0; i < currentLinkIndex; i += 1) {
         const link = relevantLinks[i]
         const sourceNode = nodes.find((n) => n.id === link.source) as Node
         const targetNode = nodes.find((n) => n.id === link.target) as Node

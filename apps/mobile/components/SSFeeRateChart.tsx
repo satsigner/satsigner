@@ -247,7 +247,7 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
                     })
                     .filter((x): x is { key: YKey; top: number } => x !== null)
                   const spaced = [...withTops]
-                  for (let i = spaced.length - 2; i >= 0; i--) {
+                  for (let i = spaced.length - 2; i >= 0; i -= 1) {
                     const below = spaced[i + 1].top + LABEL_LINE_HEIGHT
                     if (spaced[i].top < below) {
                       spaced[i].top = Math.min(

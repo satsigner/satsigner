@@ -683,10 +683,10 @@ function SSHistoryChart({
       }
     })
     const visible: { [key: string]: boolean } = {}
-    for (let i = 0; i < length; i++) {
+    for (let i = 0; i < length; i += 1) {
       visible[xScaleTransactions[i].index] = true
     }
-    for (let i = 0; i < length - 1; i++) {
+    for (let i = 0; i < length - 1; i += 1) {
       if (
         boundaryBoxes[xScaleTransactions[i].index] !== undefined &&
         boundaryBoxes[xScaleTransactions[i + 1].index] !== undefined &&
@@ -835,12 +835,12 @@ function SSHistoryChart({
       }
     })
 
-    for (let i = 0; i < initialLabels.length - 1; i++) {
+    for (let i = 0; i < initialLabels.length - 1; i += 1) {
       const boundBoxA = initialLabels[i].boundBox
       if (!boundBoxA) {
         continue
       }
-      for (let j = i + 1; j < initialLabels.length; j++) {
+      for (let j = i + 1; j < initialLabels.length; j += 1) {
         const boundBoxB = initialLabels[j].boundBox
         if (boundBoxB && isOverlapping(boundBoxA, boundBoxB)) {
           initialLabels[j].y -= 30

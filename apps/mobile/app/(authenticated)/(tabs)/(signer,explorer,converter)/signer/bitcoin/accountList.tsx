@@ -558,7 +558,7 @@ export default function AccountList() {
         throw new Error('Multisig configuration invalid')
       }
       // Validate that first two keys have mnemonic secrets
-      for (let i = 0; i < 2; i++) {
+      for (let i = 0; i < 2; i += 1) {
         const key = account.keys[i]
         if (
           !key.secret ||

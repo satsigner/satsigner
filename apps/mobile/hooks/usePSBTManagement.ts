@@ -63,7 +63,7 @@ export function usePSBTManagement({
       // Check if inputs are already finalized
       let needsFinalization = false
       const inputDetails = []
-      for (let i = 0; i < psbt.data.inputs.length; i++) {
+      for (let i = 0; i < psbt.data.inputs.length; i += 1) {
         const input = psbt.data.inputs[i]
         const hasFinalScriptSig = !!input.finalScriptSig
         const hasFinalScriptWitness = !!input.finalScriptWitness

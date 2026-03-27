@@ -259,7 +259,7 @@ export default function ImportDescriptor() {
       setInternalDescriptor(internalDescriptor)
 
       // Set up each key in the account builder store
-      for (let i = 0; i < parsedData.keyData.length; i++) {
+      for (let i = 0; i < parsedData.keyData.length; i += 1) {
         const keyData = parsedData.keyData[i]
 
         // Set key properties

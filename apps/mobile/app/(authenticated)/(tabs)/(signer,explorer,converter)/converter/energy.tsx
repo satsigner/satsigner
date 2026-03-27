@@ -1135,7 +1135,7 @@ export default function Energy() {
             }
 
             // Number of hashes to mine for each mining batch
-            for (let i = 0; i < miningIntensity; i++) {
+            for (let i = 0; i < miningIntensity; i += 1) {
               if (!isMiningRef.current) {
                 clearInterval(miningInterval)
                 return
@@ -1168,7 +1168,7 @@ export default function Energy() {
                   }
                 } else {
                   // Just update extra nonce in existing coinbase
-                  extraNonce++
+                  extraNonce += 1
                   if (blockTemplate && cachedCoinbaseTx) {
                     cachedCoinbaseTx = createCoinbaseTransaction(
                       blockTemplate,
@@ -1193,8 +1193,9 @@ export default function Energy() {
               const header = createBlockHeader(
                 blockTemplate,
                 cachedMerkleRoot,
-                nonce++
+                nonce
               )
+              nonce += 1
 
               // Double SHA256 of header (result is in big-endian)
               const hash = bitcoin.crypto.sha256(bitcoin.crypto.sha256(header))
@@ -1202,7 +1203,7 @@ export default function Energy() {
               const hashReversed = Buffer.from(hash).reverse()
               const hashHex = hashReversed.toString('hex')
 
-              hashes++
+              hashes += 1
 
               if (hashes % miningIntensity === 0 || miningIntensity === 10) {
                 // Update current header for UI

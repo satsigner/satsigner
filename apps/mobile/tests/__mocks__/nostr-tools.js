@@ -19,7 +19,7 @@ export const nip19 = {
 export const getPublicKey = jest.fn((privKey) => {
   const bytes = new Uint8Array(privKey)
   const reversed = new Uint8Array(bytes.length)
-  for (let i = 0; i < bytes.length; i++) {
+  for (let i = 0; i < bytes.length; i += 1) {
     reversed[i] = bytes[bytes.length - 1 - i]
   }
   return reversed

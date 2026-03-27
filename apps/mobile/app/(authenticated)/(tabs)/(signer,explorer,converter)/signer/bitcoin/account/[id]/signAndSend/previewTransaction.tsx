@@ -777,7 +777,7 @@ function PreviewTransaction() {
           }
 
           const totalChunks = dataChunks.length
-          for (let i = 0; i < totalChunks; i++) {
+          for (let i = 0; i < totalChunks; i += 1) {
             const header = `p${i + 1}of${totalChunks}`
             chunks.push(`${header} ${dataChunks[i]}`)
           }
@@ -803,7 +803,7 @@ function PreviewTransaction() {
 
       // Second pass: add headers to each chunk
       const totalChunks = dataChunks.length
-      for (let i = 0; i < totalChunks; i++) {
+      for (let i = 0; i < totalChunks; i += 1) {
         const header = `p${i + 1}of${totalChunks}`
         chunks.push(`${header} ${dataChunks[i]}`)
       }
@@ -1673,7 +1673,7 @@ function PreviewTransaction() {
       // Step 2: Combine all signed PSBTs with the original
       const combinedPsbt = originalPsbt
 
-      for (let i = 0; i < collectedSignedPsbts.length; i++) {
+      for (let i = 0; i < collectedSignedPsbts.length; i += 1) {
         const signedPsbtBase64 = collectedSignedPsbts[i]
 
         try {
@@ -1701,7 +1701,7 @@ function PreviewTransaction() {
       try {
         combinedPsbt.finalizeAllInputs()
       } catch {
-        for (let i = 0; i < combinedPsbt.data.inputs.length; i++) {
+        for (let i = 0; i < combinedPsbt.data.inputs.length; i += 1) {
           try {
             combinedPsbt.finalizeInput(i)
           } catch {

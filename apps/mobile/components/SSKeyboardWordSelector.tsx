@@ -37,11 +37,9 @@ function wordStartMispells(haystack: string, needle: string) {
 
 function getMatchingWords(wordStart: string, wordList: string[]): WordInfo[] {
   const maxMisspells = 2
-  let index = 0
-
   const result = wordList
-    .map((w) => ({
-      index: index++,
+    .map((w, index) => ({
+      index,
       mispells: wordStartMispells(w, wordStart),
       word: w
     }))

@@ -51,7 +51,11 @@ function numQRNeeded(version: Version, length: number, encoding: Encoding) {
 function findBestVersion(length: number, opts: Required<SplitOptions>) {
   const options: { version: Version; count: number; perEach: number }[] = []
 
-  for (let version = opts.minVersion; version <= opts.maxVersion; version++) {
+  for (
+    let version = opts.minVersion;
+    version <= opts.maxVersion;
+    version += 1
+  ) {
     const { count, perEach } = numQRNeeded(version, length, opts.encoding)
 
     if (opts.minSplit <= count && count <= opts.maxSplit) {
@@ -105,7 +109,11 @@ export function splitQRs(
 
   const parts: string[] = []
 
-  for (let n = 0, offset = 0; offset < encoded.length; n++, offset += perEach) {
+  for (
+    let n = 0, offset = 0;
+    offset < encoded.length;
+    n += 1, offset += perEach
+  ) {
     parts.push(
       `B$${actualEncoding}${fileType}` +
         intToBase36(count) +

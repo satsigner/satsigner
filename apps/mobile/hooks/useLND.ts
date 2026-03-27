@@ -132,7 +132,7 @@ export const useLND = () => {
         const pollInterval = 1000 // Check every second
 
         while (attempts < maxAttempts) {
-          attempts++
+          attempts += 1
           await new Promise((resolve) => setTimeout(resolve, pollInterval))
 
           try {

@@ -62,7 +62,7 @@ export function joinQRs(parts: string[]): JoinResult {
 
   const orderedParts = []
 
-  for (let i = 0; i < numParts; i++) {
+  for (let i = 0; i < numParts; i += 1) {
     const p = data.get(i)
 
     if (!p) {

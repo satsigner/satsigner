@@ -26,7 +26,7 @@ function getConfirmWordCandidates(
 
   while (currentIndex > 0) {
     randomIndex = Math.floor(randomNum() * currentIndex)
-    currentIndex--
+    currentIndex -= 1
     ;[candidates[currentIndex], candidates[randomIndex]] = [
       candidates[randomIndex],
       candidates[currentIndex]

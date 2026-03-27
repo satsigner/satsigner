@@ -2,7 +2,7 @@ let randomKeyCounter = 0
 
 function simpleHash(text) {
   let hash = 0
-  for (let i = 0; i < text.length; i++) {
+  for (let i = 0; i < text.length; i += 1) {
     const char = text.charCodeAt(i)
     hash = (hash << 5) - hash + char
     hash = hash & hash
@@ -23,7 +23,7 @@ export default {
     Promise.resolve(`pbkdf2:${password}:${salt}:${cost}:${length}:${algorithm}`)
   ),
   randomKey: jest.fn((length) => {
-    randomKeyCounter++
+    randomKeyCounter += 1
     const bytes = Array.from({ length }, (_, i) =>
       ((i + randomKeyCounter) % 256).toString(16).padStart(2, '0')
     )

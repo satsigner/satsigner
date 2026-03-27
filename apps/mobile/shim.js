@@ -19,7 +19,7 @@ if (typeof TextEncoder === 'undefined') {
   class TextEncoderPolyfill {
     encode(str) {
       const arr = new Uint8Array(str.length)
-      for (let i = 0; i < str.length; i++) {
+      for (let i = 0; i < str.length; i += 1) {
         arr[i] = str.charCodeAt(i)
       }
       return arr

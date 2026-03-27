@@ -235,7 +235,7 @@ export async function decryptAllAccountKeySecrets(account: Account) {
   try {
     const secrets: Secret[] = []
     const pin = await getPin()
-    for (let index = 0; index < account.keys.length; index++) {
+    for (let index = 0; index < account.keys.length; index += 1) {
       const secret = await decryptKeySecretAt(account.keys, index, pin)
       secrets.push(secret)
     }

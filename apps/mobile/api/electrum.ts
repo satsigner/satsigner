@@ -451,12 +451,12 @@ class ElectrumClient extends BaseElectrumClient {
 
     // Compute sent and received vales
     // Also, add the fields VINS && VOUTS to the transaction
-    for (let i = 0; i < transactions.length; i++) {
+    for (let i = 0; i < transactions.length; i += 1) {
       const currentTx = parsedTransactions[i]
       const outputCount = Number(currentTx.getOutputCount().value)
       const inputCount = Number(currentTx.getInputCount().value)
 
-      for (let j = 0; j < outputCount; j++) {
+      for (let j = 0; j < outputCount; j += 1) {
         const addr = currentTx.generateOutputScriptAddress(j, network)
         const value = Number(currentTx.getOutputValue(j).value)
         const script = [...currentTx.outs[j].script]
@@ -470,7 +470,7 @@ class ElectrumClient extends BaseElectrumClient {
         transactions[i].received += value
       }
 
-      for (let j = 0; j < inputCount; j++) {
+      for (let j = 0; j < inputCount; j += 1) {
         const prevTxId = currentTx.getInputHash(j).value as string
         const vout = Number(currentTx.getInputIndex(j).value)
         const { sequence } = currentTx.ins[j]
@@ -529,7 +529,7 @@ class ElectrumClient extends BaseElectrumClient {
 
     // Compute sent and received vales
     // Also, add the fields VINS && VOUTS to the transaction
-    for (let i = 0; i < transactions.length; i++) {
+    for (let i = 0; i < transactions.length; i += 1) {
       if (transactions[i].raw === undefined) {
         continue
       }
@@ -548,7 +548,7 @@ class ElectrumClient extends BaseElectrumClient {
         vout: []
       }
 
-      for (let j = 0; j < outputCount; j++) {
+      for (let j = 0; j < outputCount; j += 1) {
         const addr = currentTx.generateOutputScriptAddress(j, this.network)
         const value = Number(currentTx.getOutputValue(j).value)
         const script = [...currentTx.outs[j].script]
@@ -562,7 +562,7 @@ class ElectrumClient extends BaseElectrumClient {
         transactions[i].received += value
       }
 
-      for (let j = 0; j < inputCount; j++) {
+      for (let j = 0; j < inputCount; j += 1) {
         const prevTxId = currentTx.getInputHash(j).value as string
         const vout = Number(currentTx.getInputIndex(j).value)
         const { sequence } = currentTx.ins[j]

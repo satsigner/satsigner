@@ -571,7 +571,7 @@ export function useQuotePolling() {
 
       try {
         const shouldStop = await pollFunction()
-        currentPollCount++
+        currentPollCount += 1
         currentLastPollTime = now
         setPollCount(currentPollCount)
         setLastPollTime(currentLastPollTime)
@@ -588,7 +588,7 @@ export function useQuotePolling() {
           timeoutRef.current = setTimeout(poll, POLL_INTERVAL)
         }
       } catch {
-        currentPollCount++
+        currentPollCount += 1
         currentLastPollTime = now
         setPollCount(currentPollCount)
         setLastPollTime(currentLastPollTime)
