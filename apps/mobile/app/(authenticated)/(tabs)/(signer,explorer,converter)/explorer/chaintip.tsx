@@ -335,27 +335,32 @@ export default function ChainTip() {
                 }
                 loading={loading}
               />
-              {(chainData?.block as Block)?.tx_count != null && (
-                <Row
-                  label={tn('transactions')}
-                  value={(chainData!.block as Block).tx_count.toLocaleString()}
-                  loading={loading}
-                />
-              )}
-              {(chainData?.block as Block)?.size != null && (
-                <Row
-                  label={tn('size')}
-                  value={formatBytes((chainData!.block as Block).size)}
-                  loading={loading}
-                />
-              )}
-              {(chainData?.block as Block)?.weight != null && (
-                <Row
-                  label={tn('weight')}
-                  value={formatBytes((chainData!.block as Block).weight)}
-                  loading={loading}
-                />
-              )}
+              {(chainData?.block as Block)?.tx_count !== null &&
+                (chainData?.block as Block)?.tx_count !== undefined && (
+                  <Row
+                    label={tn('transactions')}
+                    value={(
+                      chainData!.block as Block
+                    ).tx_count.toLocaleString()}
+                    loading={loading}
+                  />
+                )}
+              {(chainData?.block as Block)?.size !== null &&
+                (chainData?.block as Block)?.size !== undefined && (
+                  <Row
+                    label={tn('size')}
+                    value={formatBytes((chainData!.block as Block).size)}
+                    loading={loading}
+                  />
+                )}
+              {(chainData?.block as Block)?.weight !== null &&
+                (chainData?.block as Block)?.weight !== undefined && (
+                  <Row
+                    label={tn('weight')}
+                    value={formatBytes((chainData!.block as Block).weight)}
+                    loading={loading}
+                  />
+                )}
               <SSVStack gap="none">
                 <SSText size="xs" style={styles.labelText}>
                   {tn('hash')}

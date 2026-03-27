@@ -5,7 +5,8 @@ const dmHandler: MessageHandler = {
     const { eventContent, data } = context
     // Plain DMs: has description but no data
     return (
-      eventContent.description != null &&
+      eventContent.description !== null &&
+      eventContent.description !== undefined &&
       eventContent.description !== '' &&
       !data
     )

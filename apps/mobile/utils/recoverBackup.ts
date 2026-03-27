@@ -33,7 +33,7 @@ type BackupData = {
 }
 
 function parseBackupDate(v: string | number | Date | null | undefined): Date {
-  if (v == null) return new Date()
+  if (v === null || v === undefined) return new Date()
   return new Date(v as string | number | Date)
 }
 
@@ -146,7 +146,10 @@ export async function performRecoverOverwrite(
       ) {
         cur.setCurrencyUnit(data.settings.currencyUnit)
       }
-      if (data.settings.mnemonicWordList != null) {
+      if (
+        data.settings.mnemonicWordList !== null &&
+        data.settings.mnemonicWordList !== undefined
+      ) {
         cur.setMnemonicWordList(
           data.settings.mnemonicWordList as Parameters<
             typeof cur.setMnemonicWordList

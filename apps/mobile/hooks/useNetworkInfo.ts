@@ -74,7 +74,7 @@ export function useNetworkInfo() {
         height = mempoolHeight as number
         source = 'mempool'
       }
-      if (fees?.high != null) {
+      if (fees?.high !== null && fees?.high !== undefined) {
         fee = fees.high
       }
     } catch {

@@ -90,7 +90,8 @@ type AddressInfo = {
 class ModifiedClient extends BlueWalletElectrumClient {
   // INFO: Override the default timeout for keeping client alive
   keepAlive() {
-    if (this.timeout != null) clearTimeout(this.timeout)
+    if (this.timeout !== null && this.timeout !== undefined)
+      clearTimeout(this.timeout)
     const now = time.now()
     this.timeout = setTimeout(() => {
       if (this.timeLastCall !== 0 && now > this.timeLastCall + 500_000) {
