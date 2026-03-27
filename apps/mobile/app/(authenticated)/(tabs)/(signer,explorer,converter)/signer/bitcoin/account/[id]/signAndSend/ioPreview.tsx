@@ -49,8 +49,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { checkWalletNeedsSync } from '@/utils/account'
 import { parseBitcoinUri } from '@/utils/bip321'
-import { detectContentByContext } from '@/utils/contentDetector'
-import { type DetectedContent } from '@/utils/contentDetector'
+import { detectContentByContext, type DetectedContent } from '@/utils/contentDetector'
 import { formatNumber } from '@/utils/format'
 import {
   type ParsedUriParams,
