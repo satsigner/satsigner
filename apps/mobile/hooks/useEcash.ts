@@ -136,16 +136,16 @@ export function useEcash() {
       addMintQuote(quote)
 
       const transaction: EcashTransaction = {
-        id: quote.quote,
-        type: 'mint',
         amount,
-        memo,
+        expiry: quote.expiry,
+        id: quote.quote,
         label: memo, // Use memo as the transaction label
+        memo,
         mintUrl,
-        timestamp: new Date().toISOString(),
-        status: 'pending',
         quoteId: quote.quote,
-        expiry: quote.expiry
+        status: 'pending',
+        timestamp: new Date().toISOString(),
+        type: 'mint'
       }
       addTransaction(transaction)
 

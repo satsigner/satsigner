@@ -41,7 +41,15 @@ export const addresses = {
 // ============================================================================
 
 export const bip321Uris = {
-  // Valid URIs
+  invalid: {
+    emptyAddress: 'bitcoin:?amount=0.001',
+    invalidAddress: 'bitcoin:invalidaddress?amount=0.001',
+    negativeAmount:
+      'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=-0.001',
+    noScheme: 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.001',
+    wrongScheme:
+      'litecoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.001'
+  },
   valid: {
     // Basic
     addressOnly: 'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4',
@@ -53,7 +61,6 @@ export const bip321Uris = {
       'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.001&label=Coffee',
     withMessage:
       'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.5&label=Invoice&message=Payment%20for%20services',
-
     // Amount edge cases
     amountWholeNumber:
       'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=1',
@@ -63,7 +70,6 @@ export const bip321Uris = {
       'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=21000000',
     amountWithZeros:
       'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.10000000',
-
     // Label edge cases
     labelWithSpaces:
       'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?label=My%20Payment%20Label',
@@ -71,33 +77,18 @@ export const bip321Uris = {
       'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?label=%E2%82%BF%20Bitcoin%20%26%20More',
     labelUnicode:
       'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?label=%F0%9F%92%B0%20Tip',
-
     // Case variations
     uppercaseScheme:
       'BITCOIN:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.001',
     mixedCaseScheme:
       'Bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.001',
-
     // Testnet
     testnet: 'bitcoin:tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx?amount=0.001',
-
     // Regtest
     regtest: 'bitcoin:bcrt1q6rhpng9evdsfnn833a4f4vej0asu6dk5srld6x?amount=0.01',
-
     // Legacy addresses
     p2pkh: 'bitcoin:1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa?amount=0.001',
     p2sh: 'bitcoin:3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy?amount=0.001'
-  },
-
-  // Invalid URIs
-  invalid: {
-    emptyAddress: 'bitcoin:?amount=0.001',
-    invalidAddress: 'bitcoin:invalidaddress?amount=0.001',
-    negativeAmount:
-      'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=-0.001',
-    noScheme: 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.001',
-    wrongScheme:
-      'litecoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.001'
   }
 }
 
@@ -203,6 +194,13 @@ export const amountConversions = {
 
 export const formattingEdgeCases = {
   // URIs with whitespace
+  // Lightning with prefix variations
+  lightningPrefixes: {
+    uppercaseLightning:
+      'LIGHTNING:lnbc10u1pnq9jt3pp5qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsdqqcqzzg',
+    withLightningScheme:
+      'lightning:lnbc10u1pnq9jt3pp5qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsdqqcqzzg'
+  },
   whitespace: {
     bothSpaces:
       '  bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.001  ',
@@ -213,13 +211,6 @@ export const formattingEdgeCases = {
     tabs: '\tbitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.001\t',
     trailingSpace:
       'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.001  '
-  },
-  // Lightning with prefix variations
-  lightningPrefixes: {
-    uppercaseLightning:
-      'LIGHTNING:lnbc10u1pnq9jt3pp5qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsdqqcqzzg',
-    withLightningScheme:
-      'lightning:lnbc10u1pnq9jt3pp5qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsdqqcqzzg'
   }
 }
 
