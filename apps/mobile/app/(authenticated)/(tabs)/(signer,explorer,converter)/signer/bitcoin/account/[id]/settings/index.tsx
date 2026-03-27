@@ -34,6 +34,7 @@ import {
 import { isElectrumDerivationPath } from '@/utils/bip39'
 import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
 import { formatAccountCreationDate } from '@/utils/date'
+import { emptyPin } from '@/utils/pin'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 export default function AccountSettings() {
@@ -67,7 +68,7 @@ export default function AccountSettings() {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [mnemonicModalVisible, setMnemonicModalVisible] = useState(false)
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
-  const [pin, setPin] = useState<string[]>(() => Array(4).fill(''))
+  const [pin, setPin] = useState<string[]>(emptyPin)
   const [showPinEntry, setShowPinEntry] = useState(false)
   const [pinEntryFocus, setPinEntryFocus] = useState(false)
 
@@ -111,7 +112,7 @@ export default function AccountSettings() {
     if (skipPin) {
       setMnemonicModalVisible(true)
     } else {
-      setPin(Array(4).fill(''))
+      setPin(emptyPin())
       setShowPinEntry(true)
     }
 

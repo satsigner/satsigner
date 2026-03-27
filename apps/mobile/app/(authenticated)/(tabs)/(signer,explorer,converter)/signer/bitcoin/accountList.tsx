@@ -838,9 +838,8 @@ export default function AccountList() {
                   gap="none"
                   style={{ minHeight: listContainerMinHeight }}
                 >
-                  {Array(ACCOUNT_SKELETON_COUNT)
-                    .fill(null)
-                    .map((_, i) => (
+                  {Array.from({ length: ACCOUNT_SKELETON_COUNT }).map(
+                    (_, i) => (
                       <SSVStack key={i}>
                         <SSAccountCardSkeleton />
                         {i < ACCOUNT_SKELETON_COUNT - 1 && (
@@ -850,7 +849,8 @@ export default function AccountList() {
                           />
                         )}
                       </SSVStack>
-                    ))}
+                    )
+                  )}
                 </SSVStack>
               ) : (
                 <Animated.View

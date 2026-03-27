@@ -8,7 +8,7 @@ import { SSIconCheckCircleThin, SSIconCircleXThin } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import { DURESS_PIN_KEY, PIN_KEY, PIN_SIZE, SALT_KEY } from '@/config/auth'
+import { DURESS_PIN_KEY, PIN_KEY, SALT_KEY } from '@/config/auth'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -17,6 +17,7 @@ import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Layout } from '@/styles'
 import { pbkdf2Encrypt } from '@/utils/crypto'
+import { emptyPin } from '@/utils/pin'
 
 type Stage = 'set' | 're-enter'
 
@@ -30,10 +31,9 @@ export default function SetPin() {
   const [loading, setLoading] = useState(false)
   const [stage, setStage] = useState<Stage>('set')
 
-  const [pinArray, setPinArray] = useState<string[]>(Array(PIN_SIZE).fill(''))
-  const [confirmationPinArray, setConfirmationPinArray] = useState<string[]>(
-    Array(PIN_SIZE).fill('')
-  )
+  const [pinArray, setPinArray] = useState<string[]>(emptyPin)
+  const [confirmationPinArray, setConfirmationPinArray] =
+    useState<string[]>(emptyPin)
 
   const pinFilled = pinArray.findIndex((text) => text === '') === -1
   const confirmationPinFilled =
@@ -67,11 +67,11 @@ export default function SetPin() {
   }
 
   function clearPin() {
-    setPinArray(Array(PIN_SIZE).fill(''))
+    setPinArray(emptyPin())
   }
 
   function clearConfirmationPin() {
-    setConfirmationPinArray(Array(PIN_SIZE).fill(''))
+    setConfirmationPinArray(emptyPin())
   }
 
   async function handleSetPin() {

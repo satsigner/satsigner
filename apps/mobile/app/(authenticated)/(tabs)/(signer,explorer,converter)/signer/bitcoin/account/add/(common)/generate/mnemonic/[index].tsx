@@ -174,7 +174,7 @@ export default function GenerateMnemonic() {
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.mnemonic.title')} />
               <SSSeedLayout count={mnemonicWordCount}>
-                {[...Array(mnemonicWordCount)].map((_, index) => (
+                {Array.from({ length: mnemonicWordCount }).map((_, index) => (
                   <SSWordInput
                     key={index}
                     position={index + 1}

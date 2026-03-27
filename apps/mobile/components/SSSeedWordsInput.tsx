@@ -120,16 +120,14 @@ export default function SSSeedWordsInput({
 
   // Initialize seed words info
   useEffect(() => {
-    const initialSeedWordsInfo = Array(wordCount)
-      .fill(null)
-      .map(() => ({
-        value: '',
-        valid: false,
-        dirty: false
-      }))
+    const initialSeedWordsInfo = Array.from({ length: wordCount }, () => ({
+      value: '',
+      valid: false,
+      dirty: false
+    }))
     setSeedWordsInfo(initialSeedWordsInfo)
     // Initialize refs array
-    wordInputRefs.current = Array(wordCount).fill(null)
+    wordInputRefs.current = Array.from({ length: wordCount }).fill(null)
   }, [wordCount])
 
   // Cleanup timeout on unmount

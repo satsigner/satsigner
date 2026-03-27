@@ -158,7 +158,7 @@ function SSPinInput({
 
   return (
     <SSHStack gap="sm">
-      {[...Array(PIN_SIZE)].map((_, index) => (
+      {Array.from({ length: PIN_SIZE }).map((_, index) => (
         <TextInput
           key={index}
           ref={(input) => inputRefs.current.push(input as TextInput)}

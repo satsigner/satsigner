@@ -35,10 +35,8 @@ describe('efficiency UTXO Selection Algorithm', () => {
     const feeRate = 1
 
     const result = selectEfficientUtxos(utxos, targetAmount, feeRate)
-    if ('error' in result) {
-      expect(result.error).toBe('Insufficient funds')
-      expect(result.inputs).toHaveLength(0)
-    }
+    expect(result.error).toBe('Insufficient funds')
+    expect(result.inputs).toHaveLength(0)
   })
 
   it('should select multiple UTXOs when needed', () => {
@@ -295,9 +293,7 @@ describe('stonewall utxo selection algorithm', () => {
   // Test performance with large UTXO set
   it('should handle large UTXO sets efficiently', () => {
     // Create 100 UTXOs
-    const values = Array(100)
-      .fill(0)
-      .map((_, i) => 10000 + i * 1000)
+    const values = Array.from({ length: 100 }, (_, i) => 10000 + i * 1000)
     const utxos = createMockUtxos(values, {
       scriptTypes: ['p2pkh', 'p2wpkh', 'p2sh-p2wpkh']
     })

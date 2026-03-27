@@ -223,7 +223,9 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
       conflictStrategy === 'manual'
     ) {
       setConflictStrategyPerLabel(
-        Array(conflicts.length).fill('manual') as ConflictStrategy[]
+        Array.from<ConflictStrategy>({ length: conflicts.length }).fill(
+          'manual'
+        )
       )
     }
   }, [conflicts, conflictStrategy]) // eslint-disable-line react-hooks/exhaustive-deps

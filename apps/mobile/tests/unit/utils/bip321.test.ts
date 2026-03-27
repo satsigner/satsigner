@@ -342,14 +342,8 @@ describe('bip321 utils', () => {
         const parsed = parseBitcoinUriWithSats(
           `bitcoin:${addresses.mainnet.p2wpkh}?amount=${btc}`
         )
-        // Zero amounts may not be included in the URI, so check if undefined or 0
-        if (sats === 0) {
-          expect(
-            parsed.amountSats === undefined || parsed.amountSats === 0
-          ).toBe(true)
-        } else {
-          expect(parsed.amountSats).toBe(sats)
-        }
+        // Zero amounts may not be included in the URI, so treat undefined as 0
+        expect(parsed.amountSats ?? 0).toBe(sats)
       }
     )
   })

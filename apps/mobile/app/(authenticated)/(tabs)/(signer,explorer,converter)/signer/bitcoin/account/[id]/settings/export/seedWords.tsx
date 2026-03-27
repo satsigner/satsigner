@@ -19,6 +19,7 @@ import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { decryptKeySecret } from '@/utils/account'
+import { emptyPin } from '@/utils/pin'
 
 export default function SeedWordsPage() {
   const { id: accountId, keyIndex } = useLocalSearchParams<
@@ -32,7 +33,7 @@ export default function SeedWordsPage() {
 
   const [mnemonic, setMnemonic] = useState('')
   const [isLoading, setIsLoading] = useState(true)
-  const [pin, setPin] = useState<string[]>(() => Array(4).fill(''))
+  const [pin, setPin] = useState<string[]>(emptyPin)
   const [showPinEntry, setShowPinEntry] = useState(false)
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
   const [noMnemonicAvailable, setNoMnemonicAvailable] = useState(false)

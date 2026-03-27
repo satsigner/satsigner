@@ -7,7 +7,7 @@ import { SSIconCheckCircleThin, SSIconCircleXThin } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import { DEFAULT_PIN, PIN_KEY, PIN_SIZE } from '@/config/auth'
+import { DEFAULT_PIN, PIN_KEY } from '@/config/auth'
 import useReEncryptAccounts from '@/hooks/useReEncryptAccounts'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -16,6 +16,7 @@ import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Layout } from '@/styles'
+import { emptyPin } from '@/utils/pin'
 
 type Stage = 'verify' | 'set' | 're-enter'
 
@@ -50,13 +51,10 @@ export default function SetPin() {
     fromSettings && !skipPin ? 'verify' : 'set'
   )
 
-  const [currentPinArray, setCurrentPinArray] = useState<string[]>(
-    Array(PIN_SIZE).fill('')
-  )
-  const [pinArray, setPinArray] = useState<string[]>(Array(PIN_SIZE).fill(''))
-  const [confirmationPinArray, setConfirmationPinArray] = useState<string[]>(
-    Array(PIN_SIZE).fill('')
-  )
+  const [currentPinArray, setCurrentPinArray] = useState<string[]>(emptyPin)
+  const [pinArray, setPinArray] = useState<string[]>(emptyPin)
+  const [confirmationPinArray, setConfirmationPinArray] =
+    useState<string[]>(emptyPin)
   const [currentPinWrong, setCurrentPinWrong] = useState(false)
 
   const currentPinFilled =
@@ -81,7 +79,7 @@ export default function SetPin() {
       setStage('set')
       setCurrentPinWrong(false)
     } else {
-      setCurrentPinArray(Array(PIN_SIZE).fill(''))
+      setCurrentPinArray(emptyPin())
       setCurrentPinWrong(true)
     }
   }
@@ -106,11 +104,11 @@ export default function SetPin() {
   }
 
   function clearPin() {
-    setPinArray(Array(PIN_SIZE).fill(''))
+    setPinArray(emptyPin())
   }
 
   function clearConfirmationPin() {
-    setConfirmationPinArray(Array(PIN_SIZE).fill(''))
+    setConfirmationPinArray(emptyPin())
   }
 
   async function handleSetPin() {
@@ -241,7 +239,7 @@ export default function SetPin() {
             <SSButton
               label={t('common.clear')}
               variant="ghost"
-              onPress={() => setCurrentPinArray(Array(PIN_SIZE).fill(''))}
+              onPress={() => setCurrentPinArray(emptyPin())}
             />
           )}
           {stage === 'set' && !pinFilled && !fromSettings && (
