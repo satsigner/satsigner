@@ -1156,9 +1156,10 @@ export default function Energy() {
                       true
                     )
                     if (cachedCoinbaseTx) {
+                      const coinbaseTxid = cachedCoinbaseTx.txid
                       cachedMempoolTxs =
                         blockTemplate.transactions?.filter(
-                          (tx) => tx.txid !== cachedCoinbaseTx?.txid
+                          (tx) => tx.txid !== coinbaseTxid
                         ) || []
                       cachedMerkleRoot = createMerkleRoot([
                         cachedCoinbaseTx,

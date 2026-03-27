@@ -136,14 +136,16 @@ export function useInputTransactions(
       }
 
       while (currentLevelDeep < levelDeep && queue.length > 0) {
+        const targetLevel = currentLevelDeep + 1
         const currentLevelTxids = queue.filter(
-          (item) => item.level === currentLevelDeep + 1
+          (item) => item.level === targetLevel
         )
         if (currentLevelTxids.length === 0) {
           break
         }
 
         await Promise.all(
+          // eslint-disable-next-line no-loop-func
           currentLevelTxids.map(async ({ txid, level }) => {
             if (processed.has(txid)) {
               return
