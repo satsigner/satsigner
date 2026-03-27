@@ -135,7 +135,9 @@ function parseHexToBytes(hex: string): number[] {
 
 function parseLabel(rawLabel: string) {
   const matches = rawLabel.match(/#\w[\w\d]+/g)
-  if (!matches) return { label: rawLabel, tags: [] }
+  if (!matches) {
+    return { label: rawLabel, tags: [] }
+  }
 
   const tags = matches.map((match) => match.replace('#', ''))
   const label = rawLabel.replace(/#.*/, '').trim()
@@ -153,7 +155,9 @@ function normalizeUtxoLabelForDisplay(rawLabel: string): string {
 
 function parseLabelTags(label: string, tags: string[]) {
   const trimmedLabel = label.trim()
-  if (tags.length === 0) return trimmedLabel
+  if (tags.length === 0) {
+    return trimmedLabel
+  }
   const labelTagSeparator = label.length === 0 ? '' : ' '
   return trimmedLabel + labelTagSeparator + tags.map((t) => '#' + t).join(' ')
 }
@@ -250,7 +254,9 @@ type ParsedUriParams = {
  */
 function parseUriParameters(content: string): ParsedUriParams | null {
   const uriMatch = content.match(/^([^?]+)(\?.*)?$/)
-  if (!uriMatch) return null
+  if (!uriMatch) {
+    return null
+  }
 
   const addressPart = uriMatch[1]
   const queryString = uriMatch[2]

@@ -199,7 +199,9 @@ function SSMultisigKeyControl({
   }
 
   async function handleAction(type: NonNullable<Key['creationType']>) {
-    if (!localKeyName.trim()) return
+    if (!localKeyName.trim()) {
+      return
+    }
 
     setCreationType(type)
     setKeyName(localKeyName)
@@ -243,7 +245,9 @@ function SSMultisigKeyControl({
   }
 
   async function handleDropSeed() {
-    if (!keyDetails) return
+    if (!keyDetails) {
+      return
+    }
 
     try {
       if (isSettingsMode && accountId) {
@@ -258,7 +262,9 @@ function SSMultisigKeyControl({
   }
 
   async function handleResetKey() {
-    if (!keyDetails) return
+    if (!keyDetails) {
+      return
+    }
 
     try {
       if (isSettingsMode && accountId) {
@@ -357,7 +363,9 @@ function SSMultisigKeyControl({
     }
   }
 
-  if (typeof keyDetails?.secret === 'string' && !isSettingsMode) return null
+  if (typeof keyDetails?.secret === 'string' && !isSettingsMode) {
+    return null
+  }
 
   // Extract fingerprint and extendedPublicKey for display, with null checks
   const fingerprint =

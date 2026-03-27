@@ -46,13 +46,24 @@ function SSButton({
 }: SSButtonProps) {
   const buttonStyle = useMemo(() => {
     let buttonVariantStyles = styles.buttonDefault
-    if (variant === 'secondary') buttonVariantStyles = styles.buttonSecondary
-    if (variant === 'outline') buttonVariantStyles = styles.buttonOutline
-    if (variant === 'ghost') buttonVariantStyles = styles.buttonGhost
-    if (variant === 'subtle') buttonVariantStyles = styles.buttonSubtle
-    if (variant === 'default' && withSelect)
+    if (variant === 'secondary') {
+      buttonVariantStyles = styles.buttonSecondary
+    }
+    if (variant === 'outline') {
+      buttonVariantStyles = styles.buttonOutline
+    }
+    if (variant === 'ghost') {
+      buttonVariantStyles = styles.buttonGhost
+    }
+    if (variant === 'subtle') {
+      buttonVariantStyles = styles.buttonSubtle
+    }
+    if (variant === 'default' && withSelect) {
       buttonVariantStyles = styles.buttonWithSelect
-    if (variant === 'danger') buttonVariantStyles = styles.buttonDanger
+    }
+    if (variant === 'danger') {
+      buttonVariantStyles = styles.buttonDanger
+    }
 
     return StyleSheet.compose(
       {
@@ -66,9 +77,15 @@ function SSButton({
 
   const textStyles = useMemo(() => {
     let textVariantStyles = styles.textDefault
-    if (variant === 'secondary') textVariantStyles = styles.textSecondary
-    if (variant === 'ghost') textVariantStyles = styles.textGhost
-    if (variant === 'subtle') textVariantStyles = styles.textSubtle
+    if (variant === 'secondary') {
+      textVariantStyles = styles.textSecondary
+    }
+    if (variant === 'ghost') {
+      textVariantStyles = styles.textGhost
+    }
+    if (variant === 'subtle') {
+      textVariantStyles = styles.textSubtle
+    }
 
     return StyleSheet.compose({ ...textVariantStyles }, textStyle)
   }, [variant, textStyle])

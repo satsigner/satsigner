@@ -11,7 +11,9 @@ const labelsHandler: MessageHandler = {
 
   handle: async (context) => {
     const { account, data } = context
-    if (!data) return
+    if (!data) {
+      return
+    }
 
     try {
       const labels = JSONLtoLabels(String(data.data ?? ''))

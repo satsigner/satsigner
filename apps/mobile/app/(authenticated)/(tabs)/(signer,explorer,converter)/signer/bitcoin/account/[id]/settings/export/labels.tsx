@@ -38,7 +38,9 @@ export default function ExportLabels() {
   }, [exportType]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function exportLabels() {
-    if (!account) return
+    if (!account) {
+      return
+    }
     const date = new Date().toISOString().slice(0, -5)
     const ext = exportType.toLowerCase()
     const filename = `${t(
@@ -53,7 +55,9 @@ export default function ExportLabels() {
     })
   }
 
-  if (!account) return <Redirect href="/" />
+  if (!account) {
+    return <Redirect href="/" />
+  }
 
   return (
     <ScrollView style={{ width: '100%' }}>

@@ -42,7 +42,9 @@ function TransactionLabel() {
     router.back()
   }
 
-  if (!tx || !accountId) return <Redirect href="/" />
+  if (!tx || !accountId) {
+    return <Redirect href="/" />
+  }
 
   return (
     <ScrollView>

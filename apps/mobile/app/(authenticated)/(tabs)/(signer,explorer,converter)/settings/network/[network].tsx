@@ -109,7 +109,9 @@ export default function CustomNetwork() {
   }, [constructTrimmedUrl])
 
   useEffect(() => {
-    if (testing && !connectionState) toast.error(t('error.invalid.backend'))
+    if (testing && !connectionState) {
+      toast.error(t('error.invalid.backend'))
+    }
   }, [testing, connectionState])
 
   async function handlePaste() {
@@ -127,7 +129,9 @@ export default function CustomNetwork() {
 
   async function handleOpenScan() {
     const { granted } = await requestCameraPermission()
-    if (!granted) return
+    if (!granted) {
+      return
+    }
     setScanModalVisible(true)
   }
 
@@ -174,7 +178,9 @@ export default function CustomNetwork() {
   function handleTest() {
     setTesting(false)
 
-    if (!isValid()) return
+    if (!isValid()) {
+      return
+    }
 
     const url = constructUrl()
     const server: Server = {
@@ -425,7 +431,9 @@ export default function CustomNetwork() {
           </SSText>
           <CameraView
             onBarcodeScanned={({ data }) => {
-              if (data) handleScanResult(data)
+              if (data) {
+                handleScanResult(data)
+              }
             }}
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
             style={{ height: 340, width: 340 }}

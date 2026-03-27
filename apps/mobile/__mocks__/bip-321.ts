@@ -83,7 +83,9 @@ export function parseBIP321(uri: string): BIP321ParseResult {
   if (query) {
     const params = new URLSearchParams(query)
     const amountStr = params.get('amount')
-    if (amountStr) result.amount = parseFloat(amountStr)
+    if (amountStr) {
+      result.amount = parseFloat(amountStr)
+    }
     result.label = params.get('label') ?? undefined
     result.message = params.get('message') ?? undefined
     const lightning = params.get('lightning')
@@ -117,11 +119,18 @@ export function encodeBIP321(params: {
       `amount=${params.amount < 0.0001 ? params.amount.toFixed(8).replace(/\.?0+$/, '') : params.amount}`
     )
   }
-  if (params.label) parts.push(`label=${encodeURIComponent(params.label)}`)
-  if (params.message)
+  if (params.label) {
+    parts.push(`label=${encodeURIComponent(params.label)}`)
+  }
+  if (params.message) {
     parts.push(`message=${encodeURIComponent(params.message)}`)
-  if (params.lightning) parts.push(`lightning=${params.lightning}`)
-  if (parts.length) uri += `?${parts.join('&')}`
+  }
+  if (params.lightning) {
+    parts.push(`lightning=${params.lightning}`)
+  }
+  if (parts.length) {
+    uri += `?${parts.join('&')}`
+  }
   return { uri, valid: true }
 }
 
@@ -131,7 +140,9 @@ export function validateBitcoinAddress(address: string): {
   error?: string
 } {
   const ok = address && address.length >= 26 && address.length <= 90
-  if (!ok) return { error: 'Invalid address format', valid: false }
+  if (!ok) {
+    return { error: 'Invalid address format', valid: false }
+  }
   const network: Network | undefined = address.startsWith('bcrt1')
     ? 'regtest'
     : address.startsWith('tb1') || /^[mn2]/.test(address)

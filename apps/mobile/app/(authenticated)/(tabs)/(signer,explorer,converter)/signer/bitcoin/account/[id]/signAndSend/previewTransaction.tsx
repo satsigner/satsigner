@@ -387,7 +387,9 @@ function PreviewTransaction() {
   }
 
   useEffect(() => {
-    if (!psbt) return
+    if (!psbt) {
+      return
+    }
 
     setIsLoadingPSBT(true)
     clearTransaction()
@@ -403,13 +405,17 @@ function PreviewTransaction() {
 
   // Separate effect to detect existing signatures - runs when both PSBT and decryptedKeys are ready
   useEffect(() => {
-    if (!psbt || !account || decryptedKeys.length === 0 || !account.keys) return
+    if (!psbt || !account || decryptedKeys.length === 0 || !account.keys) {
+      return
+    }
 
     const currentAccount = account
     const currentPsbt = psbt
 
     async function detectSignatures() {
-      if (!currentAccount || !currentAccount.keys || !currentPsbt) return
+      if (!currentAccount || !currentAccount.keys || !currentPsbt) {
+        return
+      }
 
       const combinedPsbtBase64: string = currentPsbt
 
@@ -425,7 +431,9 @@ function PreviewTransaction() {
       const psbtHasSignatures = psbtObj.data.inputs.some(
         (input) => input.partialSig && input.partialSig.length > 0
       )
-      if (!psbtHasSignatures) return
+      if (!psbtHasSignatures) {
+        return
+      }
 
       // Extract original PSBT - if this fails, the PSBT structure is invalid
       let originalPsbtBase64: string
@@ -440,33 +448,43 @@ function PreviewTransaction() {
       await Promise.all(
         currentAccount.keys.map(async (key, index) => {
           const fp = await getKeyFingerprint(key)
-          if (fp) keyFingerprintToCosignerIndex.set(fp, index)
+          if (fp) {
+            keyFingerprintToCosignerIndex.set(fp, index)
+          }
         })
       )
 
       // Build a map of pubkey to cosigner index from BIP32 derivations
       const pubkeyToCosignerIndex = new Map<string, number>()
       psbtObj.data.inputs.forEach((input) => {
-        if (!input.bip32Derivation) return
+        if (!input.bip32Derivation) {
+          return
+        }
         input.bip32Derivation.forEach((derivation) => {
           const fingerprint = derivation.masterFingerprint.toString('hex')
           const pubkey = derivation.pubkey.toString('hex')
           const cosignerIndex = keyFingerprintToCosignerIndex.get(fingerprint)
-          if (cosignerIndex === undefined) return
+          if (cosignerIndex === undefined) {
+            return
+          }
           pubkeyToCosignerIndex.set(pubkey, cosignerIndex)
         })
       })
 
       // Get all pubkeys that have signatures in the PSBT
       const signerPubkeys = getCollectedSignerPubkeys(combinedPsbtBase64)
-      if (signerPubkeys.size === 0) return
+      if (signerPubkeys.size === 0) {
+        return
+      }
 
       // Split combined PSBT into per-signer PSBTs (by pubkey)
       const bySigner = extractIndividualSignedPsbts(
         combinedPsbtBase64,
         originalPsbtBase64
       ) as Record<number, string>
-      if (Object.keys(bySigner).length === 0) return
+      if (Object.keys(bySigner).length === 0) {
+        return
+      }
 
       // Match signed PSBTs to cosigners using the utility function
       const matches = matchSignedPsbtsToCosigners(
@@ -796,7 +814,9 @@ function PreviewTransaction() {
   )
 
   const transactionHex = useMemo(() => {
-    if (!account) return ''
+    if (!account) {
+      return ''
+    }
 
     const transaction = new bitcoinjs.Transaction()
     const network = bitcoinjsNetwork(account.network)
@@ -872,7 +892,9 @@ function PreviewTransaction() {
     if (psbt && txBuilderResult?.txDetails?.txid) {
       setTransactionId(txBuilderResult.txDetails.txid)
     }
-    if (psbt) return
+    if (psbt) {
+      return
+    }
 
     if (txBuilderResult?.txDetails?.txid) {
       setTransactionId(txBuilderResult.txDetails.txid)
@@ -934,7 +956,9 @@ function PreviewTransaction() {
   // Separate effect to validate addresses and show errors
   // Only validate when we have a complete transaction (not during editing)
   useEffect(() => {
-    if (!account || !outputs.length || !txBuilderResult) return
+    if (!account || !outputs.length || !txBuilderResult) {
+      return
+    }
 
     const network = bitcoinjsNetwork(account.network)
 
@@ -1052,7 +1076,9 @@ function PreviewTransaction() {
             bbqrChunks = []
           }
 
-          if (!isMounted) return
+          if (!isMounted) {
+            return
+          }
 
           // Clear the buffer to help garbage collection
           psbtBuffer.fill(0)
@@ -1101,7 +1127,9 @@ function PreviewTransaction() {
             )
           }
 
-          if (!isMounted) return
+          if (!isMounted) {
+            return
+          }
 
           setQrChunks(bbqrChunks)
           setUrChunks(urFragments)
@@ -1746,10 +1774,14 @@ function PreviewTransaction() {
   // Decrypt keys to check for seed existence
   useEffect(() => {
     async function decryptKeys() {
-      if (!account || !account.keys || account.keys.length === 0) return
+      if (!account || !account.keys || account.keys.length === 0) {
+        return
+      }
 
       const pin = await getItem(PIN_KEY)
-      if (!pin) return
+      if (!pin) {
+        return
+      }
 
       try {
         const decryptedKeysData = await Promise.all(
@@ -1838,7 +1870,9 @@ function PreviewTransaction() {
   // Helper function to check if data would be too large for single QR code
   const isDataTooLargeForSingleQR = () => {
     const base64Psbt = txBuilderResult?.psbt?.base64
-    if (!base64Psbt) return false
+    if (!base64Psbt) {
+      return false
+    }
 
     // Check the actual chunk sizes for the current display mode
     let maxChunkSize = 0
@@ -1920,7 +1954,9 @@ function PreviewTransaction() {
     }
   }
 
-  if (!id || !account) return <Redirect href="/" />
+  if (!id || !account) {
+    return <Redirect href="/" />
+  }
 
   // Calculate responsive dimensions
   const qrSize = Math.min(screenWidth * 0.9, screenHeight * 0.5, 700) // 80% of screen width, max 500px
@@ -2604,7 +2640,9 @@ function PreviewTransaction() {
           onClose={() => {
             setNfcModalVisible(false)
             setNfcError(null)
-            if (isEmitting) cancelNFCEmitterScan()
+            if (isEmitting) {
+              cancelNFCEmitterScan()
+            }
           }}
         >
           <SSVStack itemsCenter gap="lg">
@@ -2629,7 +2667,9 @@ function PreviewTransaction() {
           fullOpacity
           onClose={() => {
             setNfcScanModalVisible(false)
-            if (isReading) cancelNFCScan()
+            if (isReading) {
+              cancelNFCScan()
+            }
           }}
         >
           <SSVStack itemsCenter gap="lg">

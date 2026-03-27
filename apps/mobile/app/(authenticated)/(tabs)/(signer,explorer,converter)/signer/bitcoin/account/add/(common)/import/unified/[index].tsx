@@ -238,7 +238,9 @@ export default function UnifiedImport() {
   }
 
   async function confirmKeyImport() {
-    if (disabled) return
+    if (disabled) {
+      return
+    }
 
     setLoadingWallet(true)
 
@@ -269,7 +271,9 @@ export default function UnifiedImport() {
 
   async function pasteFromClipboard() {
     const text = await Clipboard.getStringAsync()
-    if (!text) return
+    if (!text) {
+      return
+    }
 
     if (importType === 'descriptor') {
       let externalDescriptor = text
@@ -348,7 +352,9 @@ export default function UnifiedImport() {
           const descriptorToValidate = originalDescriptor || externalDescriptor
           updateExternalDescriptor(descriptorToValidate)
         }
-        if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+        if (internalDescriptor) {
+          updateInternalDescriptor(internalDescriptor)
+        }
       }
     }
 
@@ -460,7 +466,9 @@ export default function UnifiedImport() {
               originalDescriptor || externalDescriptor
             updateExternalDescriptor(descriptorToValidate)
           }
-          if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+          if (internalDescriptor) {
+            updateInternalDescriptor(internalDescriptor)
+          }
         }
       }
 
@@ -477,7 +485,9 @@ export default function UnifiedImport() {
 
   async function handleQRCodeScanned(scanningResult: any) {
     const data = scanningResult?.data
-    if (!data) return
+    if (!data) {
+      return
+    }
 
     // Handle fingerprint scanning
     if (scanningFor === 'fingerprint') {
@@ -561,7 +571,9 @@ export default function UnifiedImport() {
           const descriptorToValidate = originalDescriptor || externalDescriptor
           updateExternalDescriptor(descriptorToValidate)
         }
-        if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+        if (internalDescriptor) {
+          updateInternalDescriptor(internalDescriptor)
+        }
       }
     }
 
@@ -600,7 +612,9 @@ export default function UnifiedImport() {
     }
   }
 
-  if (!name) return <Redirect href="/" />
+  if (!name) {
+    return <Redirect href="/" />
+  }
 
   return (
     <SSMainLayout>

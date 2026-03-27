@@ -159,7 +159,9 @@ function SSSankeyNodes({
     )
   }
 
-  if (!customFontManager) return null
+  if (!customFontManager) {
+    return null
+  }
 
   return <>{nodes.map(renderNode)}</>
 }
@@ -215,7 +217,9 @@ function NodeText({
   const minerFeeIconSvg = useSVG(require('@/assets/red-miner.svg'))
   const pastTxMinerFeeIconSvg = useSVG(require('@/assets/gray-miner.svg'))
   const blockNodeParagraph = useMemo(() => {
-    if (!customFontManager) return null
+    if (!customFontManager) {
+      return null
+    }
 
     const baseTextStyle = {
       color: Skia.Color('white'),
@@ -283,7 +287,9 @@ function NodeText({
   const isPastMinerFee = localId === 'past-minerFee'
 
   const mainParagraph = useMemo(() => {
-    if (!customFontManager) return null
+    if (!customFontManager) {
+      return null
+    }
 
     const baseTextStyle = {
       color: Skia.Color('white'),
@@ -557,7 +563,9 @@ function NodeText({
     return []
   }, [mainParagraph, isUnspent])
 
-  if (!customFontManager || !mainParagraph) return null
+  if (!customFontManager || !mainParagraph) {
+    return null
+  }
 
   const paragraphActualWidth = isBlock ? width * 0.6 : width - PADDING_LEFT
   const paragraphActualHeight = mainParagraph.getHeight()

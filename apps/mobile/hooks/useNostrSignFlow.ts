@@ -83,7 +83,9 @@ export function useNostrSignFlow() {
       })
     })
 
-    if (fee) setFee(fee)
+    if (fee) {
+      setFee(fee)
+    }
 
     setRbf(true)
 

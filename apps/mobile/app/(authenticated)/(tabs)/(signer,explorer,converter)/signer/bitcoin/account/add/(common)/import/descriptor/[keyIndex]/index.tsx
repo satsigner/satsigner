@@ -467,7 +467,9 @@ export default function ImportDescriptor() {
   async function pasteFromClipboard() {
     const text = await Clipboard.getStringAsync()
 
-    if (!text) return
+    if (!text) {
+      return
+    }
 
     let externalDescriptor = text
     let internalDescriptor = ''
@@ -516,7 +518,9 @@ export default function ImportDescriptor() {
         const descriptorToValidate = originalDescriptor || externalDescriptor
         await updateExternalDescriptor(descriptorToValidate)
       }
-      if (internalDescriptor) await updateInternalDescriptor(internalDescriptor)
+      if (internalDescriptor) {
+        await updateInternalDescriptor(internalDescriptor)
+      }
     }
   }
 
@@ -560,10 +564,12 @@ export default function ImportDescriptor() {
         await handleCombinedDescriptorImport(text)
       } else {
         // Handle non-combined descriptors with existing logic
-        if (externalDescriptor)
+        if (externalDescriptor) {
           await updateExternalDescriptor(externalDescriptor)
-        if (internalDescriptor)
+        }
+        if (internalDescriptor) {
           await updateInternalDescriptor(internalDescriptor)
+        }
       }
 
       toast.success(t('watchonly.success.nfcRead'))

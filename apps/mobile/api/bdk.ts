@@ -65,8 +65,9 @@ async function getWalletData(
 ): Promise<WalletData | undefined> {
   switch (account.policyType) {
     case 'singlesig': {
-      if (account.keys.length !== 1)
+      if (account.keys.length !== 1) {
         throw new Error('Invalid key count for singlesig')
+      }
 
       const key = account.keys[0]
 
@@ -78,8 +79,9 @@ async function getWalletData(
           typeof key.secret === 'string' ||
           !key.secret.mnemonic ||
           !key.scriptVersion
-        )
+        ) {
           throw new Error('Invalid secret')
+        }
 
         const walletData = await getWalletDataFromMnemonic(
           key.secret.mnemonic,
@@ -259,14 +261,16 @@ async function getWalletData(
       }
     }
     case 'watchonly': {
-      if (account.keys.length !== 1)
+      if (account.keys.length !== 1) {
         throw new Error('Invalid key count for singlesig')
+      }
 
       const key = account.keys[0]
 
       if (key.creationType === 'importDescriptor') {
-        if (typeof key.secret === 'string' || !key.secret.externalDescriptor)
+        if (typeof key.secret === 'string' || !key.secret.externalDescriptor) {
           throw new Error('Invalid secret')
+        }
 
         const externalDescriptor = await new Descriptor().create(
           key.secret.externalDescriptor,
@@ -309,8 +313,9 @@ async function getWalletData(
           typeof key.secret === 'string' ||
           !key.secret.fingerprint ||
           !key.secret.extendedPublicKey
-        )
+        ) {
           throw new Error('Invalid account information')
+        }
 
         const extendedPublicKey = await new DescriptorPublicKey().fromString(
           key.secret.extendedPublicKey
@@ -589,8 +594,9 @@ async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
     typeof key.secret === 'string' ||
     !key.secret.mnemonic ||
     !key.scriptVersion
-  )
+  ) {
     return
+  }
 
   const externalDescriptor = await getDescriptorObject(
     key.secret.mnemonic,
@@ -620,7 +626,9 @@ async function getBlockchain(
   config: BlockchainElectrumConfig | BlockchainEsploraConfig
 ) {
   let blockchainName: BlockChainNames = BlockChainNames.Electrum
-  if (backend === 'esplora') blockchainName = BlockChainNames.Esplora
+  if (backend === 'esplora') {
+    blockchainName = BlockChainNames.Esplora
+  }
 
   const blockchain = await new Blockchain().create(config, blockchainName)
   return blockchain
@@ -905,7 +913,9 @@ async function parseTransactionDetailsToTransaction(
 
   let address = ''
   const utxo = transactionUtxos?.[0]
-  if (utxo) address = await getAddress(utxo, network)
+  if (utxo) {
+    address = await getAddress(utxo, network)
+  }
 
   const { confirmationTime, fee, received, sent, transaction, txid } =
     transactionDetails
@@ -933,7 +943,9 @@ async function parseTransactionDetailsToTransaction(
 
     for (const index in inputs) {
       const input = inputs[index]
-      if (!input?.scriptSig) continue
+      if (!input?.scriptSig) {
+        continue
+      }
       try {
         const script = await input.scriptSig.toBytes()
         input.scriptSig = script
@@ -945,7 +957,9 @@ async function parseTransactionDetailsToTransaction(
 
     for (const index in outputsList) {
       const { value, script: scriptObj } = outputsList[index]
-      if (!scriptObj) continue
+      if (!scriptObj) {
+        continue
+      }
       let script: number[] = []
       try {
         script = await scriptObj.toBytes()
@@ -1044,7 +1058,9 @@ async function getTransactionInputValues(
   network: BlockchainNetwork,
   url: string
 ): Promise<Transaction['vin']> {
-  if (!tx.vin.some((input) => input.value === undefined)) return tx.vin
+  if (!tx.vin.some((input) => input.value === undefined)) {
+    return tx.vin
+  }
 
   let vin: Transaction['vin'] = []
 
@@ -1107,7 +1123,9 @@ async function buildTransaction(
 
   await transactionBuilder.feeAbsolute(data.fee)
 
-  if (data.options.rbf) await transactionBuilder.enableRbf()
+  if (data.options.rbf) {
+    await transactionBuilder.enableRbf()
+  }
 
   const transactionBuilderResult = await transactionBuilder.finish(wallet)
   return transactionBuilderResult

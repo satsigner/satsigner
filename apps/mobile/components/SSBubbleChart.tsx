@@ -208,11 +208,21 @@ function SSBubbleChart({
               const top = packedUtxo.y - packedUtxo.r
               const borderRadius = packedUtxo.r
 
-              if (width) style.width = width
-              if (height) style.height = height
-              if (left) style.left = left
-              if (top) style.top = top
-              if (borderRadius) style.borderRadius = borderRadius
+              if (width) {
+                style.width = width
+              }
+              if (height) {
+                style.height = height
+              }
+              if (left) {
+                style.left = left
+              }
+              if (top) {
+                style.top = top
+              }
+              if (borderRadius) {
+                style.borderRadius = borderRadius
+              }
 
               return (
                 <TouchableOpacity

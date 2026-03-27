@@ -44,7 +44,9 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
   }, [visible])
 
   useEffect(() => {
-    if (!visible) return
+    if (!visible) {
+      return
+    }
 
     const subscription = AppState.addEventListener(
       'change',

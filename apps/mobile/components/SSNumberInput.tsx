@@ -82,17 +82,23 @@ function SSNumberInput(
     }
     if (!value.match(NUMBER_REGEX)) {
       setInvalid(true)
-      if (onValidate) onValidate(false)
+      if (onValidate) {
+        onValidate(false)
+      }
       return
     }
     const numericVal = Number(value)
     const invalid = numericVal < min || numericVal > max
     setInvalid(invalid)
-    if (onValidate) onValidate(!invalid)
+    if (onValidate) {
+      onValidate(!invalid)
+    }
   }, [min, max]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleTextChange(text: string) {
-    if (alwaysTriggerOnChange && onChangeText) onChangeText(text)
+    if (alwaysTriggerOnChange && onChangeText) {
+      onChangeText(text)
+    }
 
     if (!text.match(NUMBER_REGEX)) {
       return
@@ -101,18 +107,26 @@ function SSNumberInput(
     if (text === '') {
       setLocalValue('')
       setInvalid(!allowValidEmpty)
-      if (onValidate) onValidate(false)
+      if (onValidate) {
+        onValidate(false)
+      }
       return
     }
 
     const numericVal = Number(text)
     if (numericVal < min || numericVal > max) {
       setInvalid(true)
-      if (onValidate) onValidate(false)
+      if (onValidate) {
+        onValidate(false)
+      }
     } else {
       setInvalid(false)
-      if (onValidate) onValidate(true)
-      if (onChangeText) onChangeText(numericVal.toString())
+      if (onValidate) {
+        onValidate(true)
+      }
+      if (onChangeText) {
+        onChangeText(numericVal.toString())
+      }
     }
 
     setLocalValue(text)
@@ -121,11 +135,19 @@ function SSNumberInput(
   function handleSubmitText() {
     if (localValue.match(/^[0-9]+$/)) {
       let numericVal = Number(localValue)
-      if (numericVal < min) numericVal = min
-      if (numericVal > max) numericVal = max
+      if (numericVal < min) {
+        numericVal = min
+      }
+      if (numericVal > max) {
+        numericVal = max
+      }
       setInvalid(false)
-      if (onValidate) onValidate(true)
-      if (onChangeText) onChangeText(numericVal.toString())
+      if (onValidate) {
+        onValidate(true)
+      }
+      if (onChangeText) {
+        onChangeText(numericVal.toString())
+      }
     }
   }
 

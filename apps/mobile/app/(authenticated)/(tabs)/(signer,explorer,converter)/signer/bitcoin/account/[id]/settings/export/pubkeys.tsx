@@ -39,7 +39,9 @@ export default function ExportPubkeys() {
   const [rawPubkeys, setRawPubkeys] = useState<string[]>([])
 
   useEffect(() => {
-    if (!rawPubkeys.length) return
+    if (!rawPubkeys.length) {
+      return
+    }
     const formattedPubkeys =
       pubkeyFormat === 'xpub'
         ? rawPubkeys
@@ -49,7 +51,9 @@ export default function ExportPubkeys() {
 
   useEffect(() => {
     async function getPubkeys() {
-      if (!account) return
+      if (!account) {
+        return
+      }
       setIsLoading(true)
       try {
         const isImportAddress = account.keys[0].creationType === 'importAddress'
@@ -66,7 +70,9 @@ export default function ExportPubkeys() {
               return key.secret.extendedPublicKey || 'N/A'
             } else {
               // For regular accounts, we need to extract the extended public key from the descriptor
-              if (!walletData?.externalDescriptor) return 'N/A'
+              if (!walletData?.externalDescriptor) {
+                return 'N/A'
+              }
               const extendedKey = getExtendedKeyFromDescriptor(
                 walletData.externalDescriptor
               )
@@ -88,7 +94,9 @@ export default function ExportPubkeys() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function exportPubkeys() {
-    if (!account) return
+    if (!account) {
+      return
+    }
     const date = new Date().toISOString().slice(0, -5)
     const ext = 'txt'
     const filename = `PublicKeys_${accountId}_${date}.${ext}`
@@ -100,7 +108,9 @@ export default function ExportPubkeys() {
     })
   }
 
-  if (!account) return <Redirect href="/" />
+  if (!account) {
+    return <Redirect href="/" />
+  }
 
   return (
     <ScrollView style={{ width: '100%' }}>

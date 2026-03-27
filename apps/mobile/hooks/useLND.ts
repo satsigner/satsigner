@@ -159,7 +159,9 @@ export const useLND = () => {
   )
 
   const verifyConnection = useCallback(async () => {
-    if (!config) return false
+    if (!config) {
+      return false
+    }
 
     try {
       await getInfo()
@@ -170,7 +172,9 @@ export const useLND = () => {
   }, [config, getInfo])
 
   useEffect(() => {
-    if (!config) return
+    if (!config) {
+      return
+    }
 
     const checkInterval = setInterval(async () => {
       await verifyConnection()

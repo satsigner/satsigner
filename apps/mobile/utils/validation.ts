@@ -96,7 +96,9 @@ async function validateDescriptorInternal(
   // Validate checksum first (only if validateChecksum is true)
   if (validateChecksum) {
     const checksumValidation = await validateDescriptorChecksum(descriptor)
-    if (!checksumValidation) return false
+    if (!checksumValidation) {
+      return false
+    }
   }
 
   // Remove checksum if any.
@@ -113,7 +115,9 @@ async function validateDescriptorInternal(
   // Example: wsh(sh(pkh(...))) -> pkh(...)
   while (nestedRegex.test(currentItem)) {
     // first, check if the current item is a single key sh/wsh descriptor
-    if (singleKeyRegex.test(currentItem)) return true
+    if (singleKeyRegex.test(currentItem)) {
+      return true
+    }
 
     // extract it
     currentItem = currentItem.replace(nestedKindRegex, '').replace(/\)$/, '')
@@ -337,9 +341,15 @@ export async function validateCombinedDescriptor(
   if (networkType && combinedDescriptor) {
     // Map networkType string to BDK Network enum
     let bdkNetwork = Network.Bitcoin
-    if (networkType === 'testnet') bdkNetwork = Network.Testnet
-    if (networkType === 'regtest') bdkNetwork = Network.Regtest
-    if (networkType === 'signet') bdkNetwork = Network.Signet
+    if (networkType === 'testnet') {
+      bdkNetwork = Network.Testnet
+    }
+    if (networkType === 'regtest') {
+      bdkNetwork = Network.Regtest
+    }
+    if (networkType === 'signet') {
+      bdkNetwork = Network.Signet
+    }
     try {
       await new Descriptor().create(combinedDescriptor, bdkNetwork)
       networkValidation = { isValid: true }

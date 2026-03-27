@@ -290,7 +290,9 @@ function TotalTransactions({
   }, [sortedTransactions])
 
   const maxBalance = useMemo(() => {
-    if (transactionBalances.length === 0) return 0
+    if (transactionBalances.length === 0) {
+      return 0
+    }
     return Math.max(...transactionBalances)
   }, [transactionBalances])
 
@@ -592,9 +594,12 @@ function DerivedAddresses({
   }, [account])
 
   function updateDerivationPath() {
-    if (isMultiAddressWatchOnly) return
-    if (account.keys[0].derivationPath)
+    if (isMultiAddressWatchOnly) {
+      return
+    }
+    if (account.keys[0].derivationPath) {
       setAddressPath(`${account.keys[0].derivationPath}/${change ? 1 : 0}`)
+    }
   }
 
   function loadExactAccountAddresses() {
@@ -602,7 +607,9 @@ function DerivedAddresses({
   }
 
   function trimLabel(label: string | undefined): string {
-    if (!label) return t('transaction.noLabel')
+    if (!label) {
+      return t('transaction.noLabel')
+    }
     return label.length > 14 ? `${label.substring(0, 14)}...` : label
   }
 
@@ -640,17 +647,23 @@ function DerivedAddresses({
   }
 
   async function updateAddresses() {
-    if (!wallet || isLoadingAddresses || isUpdatingAddresses.current) return
+    if (!wallet || isLoadingAddresses || isUpdatingAddresses.current) {
+      return
+    }
 
     isUpdatingAddresses.current = true
 
     try {
       const result = await getLastUnusedAddressFromWallet(wallet!)
 
-      if (!result) return
+      if (!result) {
+        return
+      }
       const minItems = Math.max(1, Math.ceil(result.index / perPage)) * perPage
 
-      if (minItems <= addressCount) return
+      if (minItems <= addressCount) {
+        return
+      }
 
       if (account.addresses.length >= addressCount) {
         let newAddresses = await getWalletAddresses(
@@ -1159,7 +1172,9 @@ export default function AccountView() {
     // - variables have not been initalized
     // - connection mode is manual
     // - wallet was recently synced already
-    if (!wallet || !account || connectionMode !== 'auto') return
+    if (!wallet || !account || connectionMode !== 'auto') {
+      return
+    }
 
     const { lastSyncedAt } = account
     const now = time.now()
@@ -1189,7 +1204,9 @@ export default function AccountView() {
     }
 
     return () => {
-      if (id) stopSync(id)
+      if (id) {
+        stopSync(id)
+      }
     }
   }, [id, account, hasNostrReady, startSync, stopSync])
 
@@ -1244,7 +1261,9 @@ export default function AccountView() {
     ] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
-  if (!account) return <Redirect href="/" />
+  if (!account) {
+    return <Redirect href="/" />
+  }
 
   const balanceTextSize =
     account.summary.balance > 1_000_000_000
@@ -1327,12 +1346,18 @@ export default function AccountView() {
   }
 
   async function refreshAccount() {
-    if (!account) return
+    if (!account) {
+      return
+    }
 
     const isImportAddress = account.keys[0].creationType === 'importAddress'
 
-    if (isImportAddress && !watchOnlyWalletAddress) return
-    if (!isImportAddress && !wallet) return
+    if (isImportAddress && !watchOnlyWalletAddress) {
+      return
+    }
+    if (!isImportAddress && !wallet) {
+      return
+    }
 
     try {
       const updatedAccount = !isImportAddress
@@ -1345,7 +1370,9 @@ export default function AccountView() {
   }
 
   function refreshAccountLabels() {
-    if (!account) return
+    if (!account) {
+      return
+    }
     // Fire-and-forget - don't block refresh completion for Nostr sync
     if (account.nostr?.autoSync) {
       fetchOnce(account)
@@ -1367,7 +1394,9 @@ export default function AccountView() {
     animateTransition(state)
   }
 
-  if (!account) return <Redirect href="/" />
+  if (!account) {
+    return <Redirect href="/" />
+  }
 
   // TODO: Handle tab indicator | https://reactnavigation.org/docs/tab-view/#renderindicator
   const renderTab = () => {

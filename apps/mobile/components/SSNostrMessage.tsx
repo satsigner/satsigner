@@ -45,7 +45,9 @@ function SSNostrMessage({
   } = useNostrMessage({ account, formattedNpubs, msg })
 
   function handleAuthorPress() {
-    if (!account?.id || !authorNpub) return
+    if (!account?.id || !authorNpub) {
+      return
+    }
     router.push({
       params: { npub: authorNpub },
       pathname: `/signer/bitcoin/account/${account.id}/settings/nostr/device/[npub]`

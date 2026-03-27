@@ -109,7 +109,9 @@ const useTransactionBuilderStore = create<
         const index = state.outputs.findIndex(
           (output) => output.localId === localId
         )
-        if (index !== -1) state.outputs.splice(index, 1)
+        if (index !== -1) {
+          state.outputs.splice(index, 1)
+        }
       })
     )
   },
@@ -148,7 +150,9 @@ const useTransactionBuilderStore = create<
         const index = state.outputs.findIndex(
           (output) => output.localId === localId
         )
-        if (index !== -1) state.outputs[index] = { localId, ...output }
+        if (index !== -1) {
+          state.outputs[index] = { localId, ...output }
+        }
       })
     )
   }

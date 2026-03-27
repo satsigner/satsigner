@@ -77,14 +77,20 @@ export default function ImportLabels() {
 
   function importLabelsWithConflicts(resolvedLabels: Label[]) {
     const labelsDict: Record<Label['ref'], Label> = {}
-    for (const label of pendingLabels) labelsDict[label.ref] = label
-    for (const label of resolvedLabels) labelsDict[label.ref] = label
+    for (const label of pendingLabels) {
+      labelsDict[label.ref] = label
+    }
+    for (const label of resolvedLabels) {
+      labelsDict[label.ref] = label
+    }
     importLabels(Object.values(labelsDict))
     setShowConflictSolver(false)
   }
 
   function handleImport() {
-    if (!importContent) return
+    if (!importContent) {
+      return
+    }
     if (invalidContent) {
       toast.error(t('account.import.labelsInvalidFormat'))
       return
@@ -99,7 +105,9 @@ export default function ImportLabels() {
   async function importLabelsFromFile() {
     const type = bip329mimes[importType]
     const fileContent = await pickFile({ type })
-    if (!fileContent) return
+    if (!fileContent) {
+      return
+    }
     setImportContent(fileContent)
 
     // Validate the content
@@ -142,7 +150,9 @@ export default function ImportLabels() {
 
   function updateImportType(type: Bip329FileType) {
     setImportType(type)
-    if (!importContent) return
+    if (!importContent) {
+      return
+    }
     try {
       bip329parser[type](importContent)
       setInvalidContent(false)
@@ -152,7 +162,9 @@ export default function ImportLabels() {
     }
   }
 
-  if (!account || !accountId) return <Redirect href="/" />
+  if (!account || !accountId) {
+    return <Redirect href="/" />
+  }
 
   return (
     <ScrollView style={{ width: '100%' }}>

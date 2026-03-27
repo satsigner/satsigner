@@ -16,7 +16,9 @@ function getConfirmWordCandidates(
   while (candidates.length < 3) {
     const newCandidate =
       seedWordsArray[Math.floor(randomNum() * seedWordsArray.length)]
-    if (!candidates.includes(newCandidate)) candidates.push(newCandidate)
+    if (!candidates.includes(newCandidate)) {
+      candidates.push(newCandidate)
+    }
   }
 
   let currentIndex = candidates.length

@@ -89,11 +89,14 @@ function useSyncAccountWithAddress() {
     let newTxsCount = 0
     let newUtxosCount = 0
     esploraTxs.forEach((tx) => {
-      if (existingTxs[tx.txid] === undefined) newTxsCount += 1
+      if (existingTxs[tx.txid] === undefined) {
+        newTxsCount += 1
+      }
     })
     esploraUtxos.forEach((utxo) => {
-      if (existingUtxos[`${utxo.txid}:${utxo.vout}`] === undefined)
+      if (existingUtxos[`${utxo.txid}:${utxo.vout}`] === undefined) {
         newUtxosCount += 1
+      }
     })
 
     // update account summary with new transactions and utxos
@@ -206,8 +209,11 @@ function useSyncAccountWithAddress() {
     let confirmed = 0
     let unconfirmed = 0
     esploraUtxos.forEach((u) => {
-      if (u.status.confirmed) confirmed += u.value
-      else unconfirmed += u.value
+      if (u.status.confirmed) {
+        confirmed += u.value
+      } else {
+        unconfirmed += u.value
+      }
     })
 
     // Replace the stored UTXOs for this address with the fresh set from the
@@ -318,11 +324,14 @@ function useSyncAccountWithAddress() {
     let newTxsCount = 0
     let newUtxosCount = 0
     addressTxs.forEach((t) => {
-      if (existingTx[t.tx_hash] === undefined) newTxsCount += 1
+      if (existingTx[t.tx_hash] === undefined) {
+        newTxsCount += 1
+      }
     })
     addressUtxos.forEach((u) => {
-      if (existingUtxo[`${u.tx_hash}:${u.tx_pos}`] === undefined)
+      if (existingUtxo[`${u.tx_hash}:${u.tx_pos}`] === undefined) {
         newUtxosCount += 1
+      }
     })
 
     // update summary
@@ -574,7 +583,9 @@ function useSyncAccountWithAddress() {
       // Skip transactions that already have a cached price — they are immutable
       const timestamps: number[] = []
       for (const transaction of updatedAccount.transactions) {
-        if (transaction.prices?.USD !== undefined) continue
+        if (transaction.prices?.USD !== undefined) {
+          continue
+        }
         if (transaction.timestamp) {
           let date: Date
           if (typeof transaction.timestamp === 'string') {

@@ -93,11 +93,15 @@ export default function DescriptorPage() {
 
   useEffect(() => {
     async function getDescriptor() {
-      if (!account || !keyIndex) return
+      if (!account || !keyIndex) {
+        return
+      }
 
       setIsLoading(true)
       const pin = await getItem(PIN_KEY)
-      if (!pin) return
+      if (!pin) {
+        return
+      }
 
       try {
         const keyIndexNum = parseInt(keyIndex, 10)
@@ -369,7 +373,9 @@ export default function DescriptorPage() {
   }, [account, keyIndex]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function exportDescriptor() {
-    if (!account) return
+    if (!account) {
+      return
+    }
     const date = new Date().toISOString().slice(0, -5)
     const ext = 'txt'
     const filename = `Descriptor_${account.name}_${keyName}_${date}.${ext}`
@@ -381,7 +387,9 @@ export default function DescriptorPage() {
     })
   }
 
-  if (!account) return <Redirect href="/" />
+  if (!account) {
+    return <Redirect href="/" />
+  }
 
   return (
     <ScrollView style={{ width: '100%' }}>

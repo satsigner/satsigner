@@ -79,17 +79,27 @@ function SSPinInput({
     newPin[index] = text
     setPin(newPin)
 
-    if (text !== '') setCurrentIndex(index + 1)
+    if (text !== '') {
+      setCurrentIndex(index + 1)
+    }
 
-    if (text === '') return
+    if (text === '') {
+      return
+    }
 
-    if (index + 1 < PIN_SIZE) inputRefs.current[index + 1]?.focus()
+    if (index + 1 < PIN_SIZE) {
+      inputRefs.current[index + 1]?.focus()
+    }
 
-    if (index === PIN_SIZE - 1) handleLastPin(newPin)
+    if (index === PIN_SIZE - 1) {
+      handleLastPin(newPin)
+    }
   }
 
   function handleBackspace(index: number) {
-    if (hasJustDeletedChar) return
+    if (hasJustDeletedChar) {
+      return
+    }
     const newPin = [...pin]
     setIsBackspace(true)
     const previousPinIndex = index - 1
@@ -123,7 +133,9 @@ function SSPinInput({
 
   function handleLastPin(pin: string[]) {
     const finalPin = pin.join('')
-    if (finalPin.length !== PIN_SIZE) return
+    if (finalPin.length !== PIN_SIZE) {
+      return
+    }
     setIsBackspace(false)
     onFillEnded?.(finalPin)
     Keyboard.dismiss()

@@ -90,7 +90,9 @@ function ExplorerDifficulty() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchData(epoch: number) {
-    if (loading) return
+    if (loading) {
+      return
+    }
     setLoading(true)
     try {
       const fileName = getFileName(epoch)

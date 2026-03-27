@@ -52,7 +52,9 @@ export default function Unlock() {
   async function handleOnFillEnded(pin: string) {
     const salt = await getItem(SALT_KEY)
     const storedEncryptedPin = await getItem(PIN_KEY)
-    if (!salt || !storedEncryptedPin) return // TODO: handle error
+    if (!salt || !storedEncryptedPin) {
+      return
+    } // TODO: handle error
 
     let storedEncryptedDuressPin: string | null = null
     try {
@@ -92,8 +94,11 @@ export default function Unlock() {
       // for (const page of pages) {
       //   router.push(page as any)
       // }
-      if (showWarning) router.push('./warning')
-      else router.push('/')
+      if (showWarning) {
+        router.push('./warning')
+      } else {
+        router.push('/')
+      }
     } else {
       clearPin()
 

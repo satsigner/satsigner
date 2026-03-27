@@ -137,7 +137,9 @@ const useAuthStore = create<AuthState & AuthAction>()(
       skipPin: false,
       validatePin: async (pin) => {
         const salt = await getItem(SALT_KEY)
-        if (!salt) throw new Error('Failed to validate PIN')
+        if (!salt) {
+          throw new Error('Failed to validate PIN')
+        }
         const encrypted = await pbkdf2Encrypt(pin, salt)
         const savedPin = await getItem(PIN_KEY)
         return encrypted === savedPin

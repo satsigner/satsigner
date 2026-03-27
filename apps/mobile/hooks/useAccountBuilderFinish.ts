@@ -92,13 +92,14 @@ function useAccountBuilderFinish() {
       addAccountWallet(accountWithEncryptedSecret.id, walletData.wallet)
     }
 
-    if (isImportAddress && typeof account.keys[0].secret === 'object')
+    if (isImportAddress && typeof account.keys[0].secret === 'object') {
       addAccountAddress(
         accountWithEncryptedSecret.id,
         parseAddressDescriptorToAddress(
           account.keys[0].secret.externalDescriptor!
         )
       )
+    }
 
     setLoading(false)
     return {

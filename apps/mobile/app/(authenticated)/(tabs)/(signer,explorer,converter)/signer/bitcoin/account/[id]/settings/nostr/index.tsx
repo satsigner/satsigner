@@ -145,7 +145,9 @@ export default function NostrSync() {
 
   // Normalize members in a separate memo to avoid selector complexity
   const members = useMemo(() => {
-    if (!rawMembers) return []
+    if (!rawMembers) {
+      return []
+    }
     return rawMembers
       .map((member) =>
         typeof member === 'string'
@@ -309,7 +311,9 @@ export default function NostrSync() {
    * Full reset: stop sync, clear relays, DMs, Kind 0 data, and processed state.
    */
   const handleClearCaches = async () => {
-    if (!accountId || !account?.nostr) return
+    if (!accountId || !account?.nostr) {
+      return
+    }
 
     try {
       setIsLoading(true)
@@ -426,7 +430,9 @@ export default function NostrSync() {
    */
   const loadNostrAccountData = useCallback(
     (acc: NonNullable<typeof account>) => {
-      if (!acc || !accountId) return
+      if (!acc || !accountId) {
+        return
+      }
 
       if (!acc.nostr) {
         updateAccountNostrCallback(accountId, {
@@ -463,7 +469,9 @@ export default function NostrSync() {
    */
   const handleToggleAutoSync = useCallback(async () => {
     try {
-      if (!accountId || !account) return
+      if (!accountId || !account) {
+        return
+      }
 
       if (!account.nostr) {
         updateAccountNostrCallback(accountId, {
@@ -484,9 +492,13 @@ export default function NostrSync() {
       if (account.nostr.autoSync) {
         // Turn sync OFF
         setIsSyncing(true)
-        if (accountId) setSyncing(accountId, true)
+        if (accountId) {
+          setSyncing(accountId, true)
+        }
 
-        if (accountId) stopSync(accountId)
+        if (accountId) {
+          stopSync(accountId)
+        }
         await cleanupSubscriptions().catch(() => {
           toast.error('Failed to cleanup subscriptions')
         })
@@ -509,7 +521,9 @@ export default function NostrSync() {
         })
 
         setIsSyncing(false)
-        if (accountId) setSyncing(accountId, false)
+        if (accountId) {
+          setSyncing(accountId, false)
+        }
       } else {
         // Turn sync ON – set syncStart so DMs from this session are distinguished; caller must set before subscribe to avoid effect loops
         updateAccountNostrCallback(accountId, {
@@ -533,21 +547,27 @@ export default function NostrSync() {
             toast.error('Missing required Nostr configuration')
           } else {
             setIsSyncing(true)
-            if (accountId) setSyncing(accountId, true)
+            if (accountId) {
+              setSyncing(accountId, true)
+            }
             try {
               await testRelaySync(updatedAccount.nostr.relays)
               deviceAnnouncement(updatedAccount)
               await nostrSyncSubscriptions(updatedAccount, (loading) => {
                 requestAnimationFrame(() => {
                   setIsSyncing(loading)
-                  if (accountId) setSyncing(accountId, loading)
+                  if (accountId) {
+                    setSyncing(accountId, loading)
+                  }
                 })
               })
             } catch {
               toast.error('Failed to setup sync')
             } finally {
               setIsSyncing(false)
-              if (accountId) setSyncing(accountId, false)
+              if (accountId) {
+                setSyncing(accountId, false)
+              }
             }
           }
         }
@@ -555,7 +575,9 @@ export default function NostrSync() {
     } catch {
       toast.error('Failed to toggle auto sync')
       setIsSyncing(false)
-      if (accountId) setSyncing(accountId, false)
+      if (accountId) {
+        setSyncing(accountId, false)
+      }
     }
   }, [
     account,
@@ -571,7 +593,9 @@ export default function NostrSync() {
 
   const toggleMember = useCallback(
     (npub: string) => {
-      if (!accountId || !account?.nostr) return
+      if (!accountId || !account?.nostr) {
+        return
+      }
 
       const isCurrentlyTrusted = selectedMembers.has(npub)
 
@@ -638,32 +662,42 @@ export default function NostrSync() {
 
   // Navigation functions
   const goToSelectRelaysPage = () => {
-    if (!accountId) return
+    if (!accountId) {
+      return
+    }
     router.push({
       pathname: `/signer/bitcoin/account/${accountId}/settings/nostr/selectRelays`
     })
   }
 
   const goToNostrKeyPage = () => {
-    if (!accountId) return
+    if (!accountId) {
+      return
+    }
     router.push({
       pathname: `/signer/bitcoin/account/${accountId}/settings/nostr/nostrKey`
     })
   }
 
   const goToDevicesGroupChat = () => {
-    if (!accountId) return
+    if (!accountId) {
+      return
+    }
     router.push({
       pathname: `/signer/bitcoin/account/${accountId}/settings/nostr/devicesGroupChat`
     })
   }
 
   const handleCreateNewKey = useCallback(async () => {
-    if (!accountId) return
+    if (!accountId) {
+      return
+    }
     setIsGeneratingKeys(true)
     try {
       const keys = await NostrAPI.generateNostrKeys()
-      if (!keys) return
+      if (!keys) {
+        return
+      }
       const current = useAccountsStore
         .getState()
         .accounts.find((a) => a.id === accountId)
@@ -705,7 +739,9 @@ export default function NostrSync() {
   }, [accountId, members, trustedDevicesKey])
 
   useEffect(() => {
-    if (!account || !accountId) return
+    if (!account || !accountId) {
+      return
+    }
 
     if (!account.nostr) {
       updateAccountNostrCallback(accountId, {
@@ -756,7 +792,9 @@ export default function NostrSync() {
   ])
 
   useEffect(() => {
-    if (!account || !accountId) return
+    if (!account || !accountId) {
+      return
+    }
 
     if (!account.nostr) {
       updateAccountNostrCallback(accountId, {
@@ -793,18 +831,26 @@ export default function NostrSync() {
     const acc = useAccountsStore
       .getState()
       .accounts.find((a) => a.id === accountId)
-    if (acc) loadNostrAccountData(acc)
+    if (acc) {
+      loadNostrAccountData(acc)
+    }
   }, [accountId, hasNostr, relayCount, loadNostrAccountData])
 
   const relayKey = (account?.nostr?.relays ?? []).slice().sort().join(',')
   useEffect(() => {
-    if (!account?.nostr?.autoSync || !account?.nostr?.relays?.length) return
-    if (!accountId) return
+    if (!account?.nostr?.autoSync || !account?.nostr?.relays?.length) {
+      return
+    }
+    if (!accountId) {
+      return
+    }
 
     const current = useAccountsStore
       .getState()
       .accounts.find((a) => a.id === accountId)
-    if (!current?.nostr) return
+    if (!current?.nostr) {
+      return
+    }
 
     restartSync(current, (loading) => {
       requestAnimationFrame(() => {
@@ -821,7 +867,9 @@ export default function NostrSync() {
     setSyncing
   ])
 
-  if (!accountId || !account) return <Redirect href="/" />
+  if (!accountId || !account) {
+    return <Redirect href="/" />
+  }
 
   return (
     <SSMainLayout style={{ paddingBottom: 20, paddingTop: 10 }}>

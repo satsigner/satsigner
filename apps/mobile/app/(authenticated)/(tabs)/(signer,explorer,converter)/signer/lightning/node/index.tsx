@@ -495,13 +495,17 @@ export default function NodeDetailPage() {
   ])
 
   const renderChannels = useCallback(() => {
-    if (!channels?.length) return null
+    if (!channels?.length) {
+      return null
+    }
 
     return (
       <SSVStack style={styles.section}>
         <SSVStack style={styles.channelsList}>
           {channels.map((channel) => {
-            if (!channel || typeof channel !== 'object') return null
+            if (!channel || typeof channel !== 'object') {
+              return null
+            }
 
             const {
               capacity = 0,
@@ -600,7 +604,9 @@ export default function NodeDetailPage() {
   }, [channels])
 
   const renderTab = useCallback(() => {
-    if (expand) return null
+    if (expand) {
+      return null
+    }
 
     const tabWidth = '50%'
     const activeChannels =

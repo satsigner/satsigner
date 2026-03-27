@@ -173,7 +173,9 @@ async function fetchMempoolFallback(
       } catch {}
     })(),
     (async () => {
-      if (data.mempool !== null) return
+      if (data.mempool !== null) {
+        return
+      }
       try {
         const md = await oracle.getMemPool()
         data.mempool = {
@@ -265,17 +267,22 @@ export default function ChainTip() {
     if (
       !priceHistoryResult?.timestamps?.length ||
       !priceHistoryResult?.prices?.length
-    )
+    ) {
       return []
+    }
     const { timestamps, prices } = priceHistoryResult
     return timestamps.map((ts, i) => ({ price: prices[i] ?? 0, x: ts }))
   }, [priceHistoryResult])
 
   const priceChartDomain = useMemo(() => {
-    if (priceChartData.length === 0) return undefined
+    if (priceChartData.length === 0) {
+      return undefined
+    }
     const prices = priceChartData.map((d) => d.price).filter((p) => p > 0)
     const xValues = priceChartData.map((d) => d.x)
-    if (prices.length === 0 || xValues.length === 0) return undefined
+    if (prices.length === 0 || xValues.length === 0) {
+      return undefined
+    }
     const minY = Math.min(...prices)
     const maxY = Math.max(...prices)
     const padY = (maxY - minY) * 0.1 || 1

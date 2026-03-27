@@ -24,7 +24,9 @@ function ImportOuputs() {
 
   async function readFromClibpoard() {
     const text = await Clipboard.getStringAsync()
-    if (text) setImportedOutputs(text)
+    if (text) {
+      setImportedOutputs(text)
+    }
     setValidInput(true)
   }
 

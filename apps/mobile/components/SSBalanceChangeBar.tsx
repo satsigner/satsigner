@@ -16,7 +16,9 @@ function SSBalanceChangeBar({
   maxBalance = 1,
   style
 }: SSBalanceChangeBarProps) {
-  if (!transaction) return null
+  if (!transaction) {
+    return null
+  }
 
   const safeMaxBalance = maxBalance || 1
 

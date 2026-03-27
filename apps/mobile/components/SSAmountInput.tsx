@@ -45,7 +45,9 @@ function SSAmountInput({
 
   function handleFiatChange(text: string) {
     const fiat = Number(text)
-    if (isNaN(fiat) || !btcPrice || btcPrice <= 0) return
+    if (isNaN(fiat) || !btcPrice || btcPrice <= 0) {
+      return
+    }
     const sats = Math.max(
       min,
       Math.min(max, Math.round((fiat / btcPrice) * 1e8))

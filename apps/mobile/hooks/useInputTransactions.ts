@@ -106,7 +106,9 @@ export function useInputTransactions(
   }
 
   const fetchInputTransactions = useCallback(async () => {
-    if (inputs.size === 0) return
+    if (inputs.size === 0) {
+      return
+    }
 
     setLoading(true)
     setError(null)
@@ -137,11 +139,15 @@ export function useInputTransactions(
         const currentLevelTxids = queue.filter(
           (item) => item.level === currentLevelDeep + 1
         )
-        if (currentLevelTxids.length === 0) break
+        if (currentLevelTxids.length === 0) {
+          break
+        }
 
         await Promise.all(
           currentLevelTxids.map(async ({ txid, level }) => {
-            if (processed.has(txid)) return
+            if (processed.has(txid)) {
+              return
+            }
             processed.add(txid)
 
             let tx
@@ -394,7 +400,9 @@ export function useInputTransactions(
       // First, collect all valid transactions
       for (const [txid, tx] of newTransactions.entries()) {
         const inputAddresses = transactionInputAddresses.get(txid)
-        if (!inputAddresses) continue
+        if (!inputAddresses) {
+          continue
+        }
 
         // Check if any input address matches with output addresses from other transactions
         let hasMatchingAddress = false

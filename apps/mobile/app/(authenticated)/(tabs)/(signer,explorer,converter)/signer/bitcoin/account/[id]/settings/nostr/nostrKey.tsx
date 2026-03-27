@@ -117,7 +117,9 @@ function NostrKeys() {
   ])
 
   async function fetchKind0Profile() {
-    if (loadingFetchKind0) return
+    if (loadingFetchKind0) {
+      return
+    }
 
     // Show feedback when we can't fetch: no device key, sync off, or no relays
     if (!derivedNpub) {
@@ -174,7 +176,9 @@ function NostrKeys() {
   }
 
   async function loadCommonNostrKeys() {
-    if (loadingCommonKeys || !account || !accountId) return
+    if (loadingCommonKeys || !account || !accountId) {
+      return
+    }
 
     setLoadingCommonKeys(true)
     try {
@@ -211,7 +215,9 @@ function NostrKeys() {
   async function generateNewNsec() {
     try {
       const keys = await NostrAPI.generateNostrKeys()
-      if (!keys) return
+      if (!keys) {
+        return
+      }
       setNsec(keys.nsec)
     } catch {
       toast.error('Failed to generate key')
@@ -233,7 +239,9 @@ function NostrKeys() {
   }
 
   function saveChanges() {
-    if (!accountId || !account?.nostr || !derivedNpub) return
+    if (!accountId || !account?.nostr || !derivedNpub) {
+      return
+    }
     const nsecChanged = account.nostr.deviceNsec !== deviceNsec
     const updates: Parameters<typeof updateAccountNostr>[1] = {
       ...account.nostr,
@@ -245,8 +253,12 @@ function NostrKeys() {
       updates.deviceDisplayName = undefined
       updates.devicePicture = undefined
       const profiles = { ...(account.nostr.npubProfiles || {}) }
-      if (account.nostr.deviceNpub) delete profiles[account.nostr.deviceNpub]
-      if (derivedNpub) delete profiles[derivedNpub]
+      if (account.nostr.deviceNpub) {
+        delete profiles[account.nostr.deviceNpub]
+      }
+      if (derivedNpub) {
+        delete profiles[derivedNpub]
+      }
       updates.npubProfiles =
         Object.keys(profiles).length > 0 ? profiles : undefined
     } else if (kind0Profile) {
@@ -258,10 +270,14 @@ function NostrKeys() {
   }
 
   function clearKind0Profile() {
-    if (!accountId || !account?.nostr) return
+    if (!accountId || !account?.nostr) {
+      return
+    }
     setKind0Profile(null)
     const profiles = { ...(account.nostr.npubProfiles || {}) }
-    if (derivedNpub) delete profiles[derivedNpub]
+    if (derivedNpub) {
+      delete profiles[derivedNpub]
+    }
     updateAccountNostr(accountId, {
       deviceDisplayName: undefined,
       devicePicture: undefined,
@@ -271,7 +287,9 @@ function NostrKeys() {
     toast.success(t('account.nostrSync.clearKind0Success'))
   }
 
-  if (!accountId || !account) return <Redirect href="/" />
+  if (!accountId || !account) {
+    return <Redirect href="/" />
+  }
 
   return (
     <SSMainLayout style={styles.mainLayout}>

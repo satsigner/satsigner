@@ -42,7 +42,9 @@ export default function SeedWordsPage() {
   const key = account?.keys[keyIndexNum]
 
   const decryptMnemonic = useCallback(async () => {
-    if (!account || !key) return
+    if (!account || !key) {
+      return
+    }
 
     try {
       const secret = await decryptKeySecret(key)

@@ -26,8 +26,9 @@ import { Colors } from '@/styles'
 if (Platform.OS === 'android') {
   SystemUI.setBackgroundColorAsync(Colors.gray[950])
 
-  if (UIManager.setLayoutAnimationEnabledExperimental)
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true)
+  }
 }
 
 const queryClient = new QueryClient()
@@ -53,7 +54,9 @@ export default function RootLayout() {
   }, []) // Workaround for now to set the statusBarStyle
 
   useEffect(() => {
-    if (!firstTime) setLockTriggered(true)
+    if (!firstTime) {
+      setLockTriggered(true)
+    }
 
     const subscription = AppState.addEventListener(
       'change',
@@ -90,7 +93,9 @@ export default function RootLayout() {
       const inactivityStartTime = getLastBackgroundTimestamp()
       const elapsed = (Date.now() - (inactivityStartTime || 0)) / 1000
 
-      if (elapsed >= lockDeltaTime) setLockTriggered(true)
+      if (elapsed >= lockDeltaTime) {
+        setLockTriggered(true)
+      }
 
       // Keep the overlay visible briefly so the /unlock redirect renders
       // before the previous screen becomes visible

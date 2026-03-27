@@ -452,9 +452,13 @@ export default function WatchOnly() {
   }
 
   async function extractAndSetFingerprint(descriptor: string) {
-    if (localFingerprint) return
+    if (localFingerprint) {
+      return
+    }
     const extractedFingerprint = DescriptorUtils.extractFingerprint(descriptor)
-    if (!extractedFingerprint) return
+    if (!extractedFingerprint) {
+      return
+    }
     setLocalFingerprint(extractedFingerprint)
     setFingerprint(extractedFingerprint)
   }
@@ -590,7 +594,9 @@ export default function WatchOnly() {
 
   async function pasteFromClipboard() {
     const text = await Clipboard.getStringAsync()
-    if (!text) return
+    if (!text) {
+      return
+    }
 
     if (selectedOption === 'importExtendedPub') {
       updateXpub(text)
@@ -664,7 +670,9 @@ export default function WatchOnly() {
     } else {
       // For JSON descriptors, use the original descriptor for validation
       await updateExternalDescriptor(original)
-      if (internal) await updateInternalDescriptor(internal)
+      if (internal) {
+        await updateInternalDescriptor(internal)
+      }
       extractAndSetFingerprint(external)
     }
   }
@@ -681,7 +689,9 @@ export default function WatchOnly() {
     }
 
     await updateExternalDescriptor(external)
-    if (internal) await updateInternalDescriptor(internal)
+    if (internal) {
+      await updateInternalDescriptor(internal)
+    }
 
     extractAndSetFingerprint(external)
   }
@@ -827,8 +837,12 @@ export default function WatchOnly() {
           }
         } else {
           // Handle non-combined descriptors with existing logic
-          if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
-          if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+          if (externalDescriptor) {
+            updateExternalDescriptor(externalDescriptor)
+          }
+          if (internalDescriptor) {
+            updateInternalDescriptor(internalDescriptor)
+          }
           extractAndSetFingerprint(externalDescriptor)
         }
       }

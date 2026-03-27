@@ -86,7 +86,9 @@ const getNetworkFromAddress = (address: string) => {
 
 // Add this helper function after bitsToTarget
 const encodeScriptNum = (num: number): Buffer => {
-  if (num === 0) return Buffer.alloc(0)
+  if (num === 0) {
+    return Buffer.alloc(0)
+  }
   const negative = num < 0
   let absvalue = Math.abs(num)
   const result = []
@@ -270,7 +272,9 @@ export default function Energy() {
   }, [])
 
   const fetchBlockTemplate = useCallback(async () => {
-    if (!isConnected) return
+    if (!isConnected) {
+      return
+    }
 
     const now = Date.now()
     if (now - lastTemplateUpdateRef.current < 30000) {
@@ -360,7 +364,9 @@ export default function Energy() {
   }, [isConnected, formatTemplateData, fetchRpc, blockTemplate])
 
   const fetchBlockchainInfo = useCallback(async () => {
-    if (!isConnected) return
+    if (!isConnected) {
+      return
+    }
 
     setIsLoadingInfo(true)
     try {
@@ -1302,7 +1308,9 @@ export default function Energy() {
   }, [isMining]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchTransaction = useCallback(async () => {
-    if (!txId || !isConnected) return
+    if (!txId || !isConnected) {
+      return
+    }
 
     setIsLoadingTx(true)
     setTxError('')

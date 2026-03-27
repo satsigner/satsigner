@@ -171,9 +171,13 @@ function removeQuotes(str: string) {
 // TODO: refactor this !
 export function CSVtoLabels(CsvText: string): Label[] {
   const lines = CsvText.split('\n')
-  if (lines.length < 0) throw new Error('Empty CSV text')
+  if (lines.length < 0) {
+    throw new Error('Empty CSV text')
+  }
   const header = lines[0]
-  if (!header.match(/^([a-zA-Z()]+,?)+/)) throw new Error('Invalid CSV header')
+  if (!header.match(/^([a-zA-Z()]+,?)+/)) {
+    throw new Error('Invalid CSV header')
+  }
   const rows = lines.slice(1)
   const labels: Label[] = []
   const columns = header.split(',')
@@ -181,9 +185,13 @@ export function CSVtoLabels(CsvText: string): Label[] {
     // INFO: SPARROW WALLET uses non-standard CSV files, with empty lines and
     // comment lines. The if statement below ignores those lines in order to
     // correctly parse their non-standard weird CSV export.
-    if (row === '' || row.startsWith('#')) continue
+    if (row === '' || row.startsWith('#')) {
+      continue
+    }
 
-    if (!row.match(/^([^,]*,?)+$/)) throw new Error('Invalid CSV line')
+    if (!row.match(/^([^,]*,?)+$/)) {
+      throw new Error('Invalid CSV line')
+    }
 
     const rowItems = row.split(',')
     const label = {} as Label
@@ -218,7 +226,9 @@ export function CSVtoLabels(CsvText: string): Label[] {
         continue
       }
 
-      if (bip329Alias[column] === undefined) continue
+      if (bip329Alias[column] === undefined) {
+        continue
+      }
 
       const field = bip329Alias[column]
       label[field] = value
@@ -244,8 +254,12 @@ export function JSONLtoLabels(JSONLines: string): Label[] {
   const lines = JSONLines.split('\n')
   const labels: Label[] = []
   for (const line of lines) {
-    if (line === '') continue
-    if (!line.match(/^{.+}$/)) throw new Error('Invalid line (JSONL)')
+    if (line === '') {
+      continue
+    }
+    if (!line.match(/^{.+}$/)) {
+      throw new Error('Invalid line (JSONL)')
+    }
     const obj = JSON.parse(line)
     for (const key in obj) {
       const aliasKey = key.toLowerCase()

@@ -6,7 +6,9 @@ import { type PageParams } from '@/types/navigation/page'
 import { bytes as _bytes } from '@/utils/bytes'
 
 function formatAddress(address: string, character: number = 8) {
-  if (address.length <= 16) return address
+  if (address.length <= 16) {
+    return address
+  }
 
   const beginning = address.substring(0, character)
   const end = address.substring(address.length - character, address.length)
@@ -76,9 +78,11 @@ function formatPageUrl(path: string, params: PageParams) {
 }
 
 function formatPercentualChange(value: number, base: number) {
-  if (value > base)
+  if (value > base) {
     return '+' + formatNumber(((value - base) * 100) / base, 1) + '%'
-  else return '-' + formatNumber(((base - value) * 100) / base, 1) + '%'
+  } else {
+    return '-' + formatNumber(((base - value) * 100) / base, 1) + '%'
+  }
 }
 
 function formatFiatPrice(sats: number, btcPrice: number) {
@@ -157,7 +161,9 @@ function formatTxOutputToUtxo(
   vout: number,
   keychain: 'internal' | 'external' = 'external'
 ): Utxo | undefined {
-  if (!tx || !tx.vout[vout]) return undefined
+  if (!tx || !tx.vout[vout]) {
+    return undefined
+  }
   const output = tx.vout[vout]
   return {
     addressTo: output.address,
@@ -172,8 +178,12 @@ function formatTxOutputToUtxo(
 }
 
 function formatBytes(bytes: number) {
-  if (bytes >= 1_000_000) return `${_bytes.toMega(bytes).toFixed(2)} MB`
-  if (bytes >= 1_000) return `${_bytes.toKilo(bytes).toFixed(1)} KB`
+  if (bytes >= 1_000_000) {
+    return `${_bytes.toMega(bytes).toFixed(2)} MB`
+  }
+  if (bytes >= 1_000) {
+    return `${_bytes.toKilo(bytes).toFixed(1)} KB`
+  }
   return `${bytes} B`
 }
 

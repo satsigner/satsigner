@@ -129,7 +129,9 @@ export default class Esplora {
     let lastPage = transactions
     while (lastPage.length >= perPage) {
       // Early stop: if every txid on this page is already known, no need to paginate further
-      if (stopAtTxids && lastPage.every((tx) => stopAtTxids.has(tx.txid))) break
+      if (stopAtTxids && lastPage.every((tx) => stopAtTxids.has(tx.txid))) {
+        break
+      }
 
       const lastTxId = transactions[transactions.length - 1].txid
       const nextPage = (await this._call(
@@ -179,7 +181,9 @@ export default class Esplora {
 
     try {
       const result = await Promise.race([fetchPromise, timeoutPromise])
-      if (result) return true
+      if (result) {
+        return true
+      }
       return false
     } catch (e) {
       throw new Error(getVerboseErrorMessage(e))
@@ -215,7 +219,9 @@ const verboseErrorMessages = [
 ]
 
 function getVerboseErrorMessage(error: unknown) {
-  if (!(error instanceof Error)) return 'Unkown error'
+  if (!(error instanceof Error)) {
+    return 'Unkown error'
+  }
   for (const errorType of verboseErrorMessages) {
     if (error.message.match(errorType.error)) {
       return errorType.reason

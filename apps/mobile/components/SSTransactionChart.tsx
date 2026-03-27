@@ -118,7 +118,9 @@ function SSTransactionChart({
   })
 
   const sankeyNodes = useMemo(() => {
-    if (inputs.length === 0 || outputs.length === 0) return []
+    if (inputs.length === 0 || outputs.length === 0) {
+      return []
+    }
 
     const inputNodes: TxNode[] = inputs.map((input, index) => ({
       depthH: 0,
@@ -223,7 +225,9 @@ function SSTransactionChart({
   ])
 
   const sankeyLinks = useMemo(() => {
-    if (inputs.length === 0 || outputs.length === 0) return []
+    if (inputs.length === 0 || outputs.length === 0) {
+      return []
+    }
 
     const inputToBlockLinks = inputs.map((input, index) => ({
       source: String(index + 1),

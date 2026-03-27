@@ -28,8 +28,9 @@ function wordStartMispells(haystack: string, needle: string) {
   for (let i = 0; i < needle.length; i += 1) {
     // add a penalty which puts weight on misspells close to the word start
     const penalty = (needle.length - i + 1) / 10
-    if (haystack.length <= i || needle[i] !== haystack[i])
+    if (haystack.length <= i || needle[i] !== haystack[i]) {
       mismatches += 1 + penalty
+    }
   }
   return mismatches
 }

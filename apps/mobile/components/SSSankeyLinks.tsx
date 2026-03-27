@@ -173,7 +173,9 @@ function SSSankeyLinks({
     },
     [links, nodes, getLinkWidth]
   )
-  if (links.length === 0) return null
+  if (links.length === 0) {
+    return null
+  }
 
   return (
     <>

@@ -210,11 +210,15 @@ export default function PublicKeyPage() {
 
   useEffect(() => {
     async function getPublicKey() {
-      if (!account || !keyIndex || !key) return
+      if (!account || !keyIndex || !key) {
+        return
+      }
 
       setIsLoading(true)
       const pin = await getItem(PIN_KEY)
-      if (!pin) return
+      if (!pin) {
+        return
+      }
 
       try {
         // Decrypt the key's secret
@@ -265,7 +269,9 @@ export default function PublicKeyPage() {
   }, [selectedFormat, rawPublicKey, convertPublicKeyFormat])
 
   async function exportPublicKey() {
-    if (!account) return
+    if (!account) {
+      return
+    }
     const date = new Date().toISOString().slice(0, -5)
     const ext = 'txt'
     const filename = `PublicKey_${account.name}_Key${
@@ -279,7 +285,9 @@ export default function PublicKeyPage() {
     })
   }
 
-  if (!account) return <Redirect href="/" />
+  if (!account) {
+    return <Redirect href="/" />
+  }
 
   const formatButtons = getFormatButtons(scriptVersion)
 

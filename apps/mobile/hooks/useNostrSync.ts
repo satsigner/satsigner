@@ -103,7 +103,9 @@ function useNostrSync() {
   )
 
   const generateCommonNostrKeys = useCallback(async (account?: Account) => {
-    if (!account?.keys?.length) return
+    if (!account?.keys?.length) {
+      return
+    }
 
     const isImportAddress = account.keys[0].creationType === 'importAddress'
     const tmpAccount = await getAccountWithDecryptedKeys(account)

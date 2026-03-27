@@ -41,7 +41,9 @@ function SSNostrRelaysSelection() {
   )
 
   function saveChanges() {
-    if (!accountId) return
+    if (!accountId) {
+      return
+    }
     updateAccountNostr(accountId, { relays: selectedRelays })
     router.back()
   }
@@ -55,7 +57,9 @@ function SSNostrRelaysSelection() {
   }
 
   function handleAddCustomRelay() {
-    if (!customRelayUrl) return
+    if (!customRelayUrl) {
+      return
+    }
 
     const relayUrl = RELAY_PROTOCOL_PREFIX + customRelayUrl
 

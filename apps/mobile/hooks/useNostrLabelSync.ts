@@ -10,7 +10,9 @@ import { sha256 } from '@/utils/crypto'
 
 function useNostrLabelSync() {
   const sync = useCallback(async (account?: Account, singleLabel?: Label) => {
-    if (!account || !account.nostr || !account.nostr.autoSync) return
+    if (!account || !account.nostr || !account.nostr.autoSync) {
+      return
+    }
 
     const { commonNsec, commonNpub, relays, deviceNpub, deviceNsec } =
       account.nostr
@@ -99,7 +101,9 @@ function useNostrLabelSync() {
         current.push(line)
         currentLen += line.length + 1
       }
-      if (current.length) buckets.push(current)
+      if (current.length) {
+        buckets.push(current)
+      }
       chunks = buckets.map((b) => b.join('\n'))
     }
 
@@ -121,7 +125,9 @@ function useNostrLabelSync() {
         .accounts.find((a) => a.id === account.id)
       const trustedDevices = currentAccount?.nostr?.trustedMemberDevices || []
 
-      if (trustedDevices.length === 0) return
+      if (trustedDevices.length === 0) {
+        return
+      }
 
       // Send each chunk to every trusted device in parallel.
       const allPromises = trustedDevices.flatMap((trustedDeviceNpub) =>

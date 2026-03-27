@@ -142,7 +142,9 @@ export default function SSSeedWordsInput({
   // Handle word selection from keyboard selector
   const handleWordSelected = useCallback(
     async (word?: string) => {
-      if (!word) return
+      if (!word) {
+        return
+      }
       const newSeedWordsInfo = [...seedWordsInfo]
       const currentWord = newSeedWordsInfo[currentWordIndex]
 
@@ -222,13 +224,19 @@ export default function SSSeedWordsInput({
   // Check if clipboard contains valid seed (BIP39 or Electrum)
   const checkClipboardForSeed = useCallback(
     (text: string): string[] => {
-      if (!text || text === '') return []
+      if (!text || text === '') {
+        return []
+      }
       const delimiters = [' ', '\n', ',', ', ']
       for (const delimiter of delimiters) {
         const seedCandidate = text.split(delimiter)
-        if (seedCandidate.length !== wordCount) continue
+        if (seedCandidate.length !== wordCount) {
+          continue
+        }
         const validWords = seedCandidate.every((x) => wordList.includes(x))
-        if (!validWords) continue
+        if (!validWords) {
+          continue
+        }
         return seedCandidate
       }
       return []
@@ -302,7 +310,9 @@ export default function SSSeedWordsInput({
 
   const handleSeedQRScanned = useCallback(
     (content: DetectedContent) => {
-      if (content.type !== 'seed_qr' || !content.metadata?.mnemonic) return
+      if (content.type !== 'seed_qr' || !content.metadata?.mnemonic) {
+        return
+      }
       const mnemonic = content.metadata.mnemonic as string
       const seed = mnemonic.trim().split(/\s+/)
       if (seed.length !== wordCount) {

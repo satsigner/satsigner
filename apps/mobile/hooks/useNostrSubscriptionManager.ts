@@ -133,8 +133,12 @@ function useNostrSubscriptionManager() {
   const isSubscribingRef = useRef(false)
   const subscribe = useCallback(
     async (account?: Account, onLoadingChange?: (loading: boolean) => void) => {
-      if (!account || !account.nostr) return
-      if (isSubscribingRef.current) return
+      if (!account || !account.nostr) {
+        return
+      }
+      if (isSubscribingRef.current) {
+        return
+      }
       isSubscribingRef.current = true
       try {
         const existingApis = Array.from(getActiveSubscriptions())
@@ -150,7 +154,9 @@ function useNostrSubscriptionManager() {
           )
         })
 
-        if (hasValidSubscription) return
+        if (hasValidSubscription) {
+          return
+        }
 
         // Process any pending events before cleanup
         for (const api of existingApis) {
@@ -164,8 +170,12 @@ function useNostrSubscriptionManager() {
           createDataExchangeSubscription(account, onLoadingChange)
         ])
 
-        if (protocolApi) addSubscription(protocolApi)
-        if (dataExchangeApi) addSubscription(dataExchangeApi)
+        if (protocolApi) {
+          addSubscription(protocolApi)
+        }
+        if (dataExchangeApi) {
+          addSubscription(dataExchangeApi)
+        }
       } finally {
         isSubscribingRef.current = false
       }

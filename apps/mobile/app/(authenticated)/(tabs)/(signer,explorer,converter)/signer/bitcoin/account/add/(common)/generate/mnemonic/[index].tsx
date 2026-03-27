@@ -89,8 +89,11 @@ export default function GenerateMnemonic() {
   }
 
   function handleOnPressCancel() {
-    if (policyType === 'multisig') router.back()
-    else if (policyType === 'singlesig') router.dismissAll()
+    if (policyType === 'multisig') {
+      router.back()
+    } else if (policyType === 'singlesig') {
+      router.dismissAll()
+    }
   }
 
   async function handleOnPressConfirm() {

@@ -41,7 +41,9 @@ function getAuthorColor(
   members: { npub: string; color: string }[]
 ): string {
   const cached = colorCache.get(pubkey)
-  if (cached) return cached
+  if (cached) {
+    return cached
+  }
 
   try {
     const npub = nip19.npubEncode(pubkey)
@@ -268,7 +270,9 @@ export default function DevicesGroupChat() {
   }
 
   async function handleShareInChat() {
-    if (!account || !transactionToShareLocal) return
+    if (!account || !transactionToShareLocal) {
+      return
+    }
 
     setIsLoading(true)
     try {
@@ -298,7 +302,9 @@ export default function DevicesGroupChat() {
     const aliases = account?.nostr?.npubAliases ?? {}
 
     for (const msg of memoizedMessages) {
-      if (!msg.author) continue
+      if (!msg.author) {
+        continue
+      }
       const color = getAuthorColor(msg.author, membersList)
       let npub: string
       try {
@@ -348,14 +354,18 @@ export default function DevicesGroupChat() {
   // Fetch kind0 profiles for authors we haven't resolved yet.
   // Fire-and-forget: results land in the persisted nostr store.
   useEffect(() => {
-    if (!account?.nostr?.relays?.length) return
+    if (!account?.nostr?.relays?.length) {
+      return
+    }
 
     const relays = account.nostr.relays
     const fetchedRef = new Set<string>()
 
     ;(async () => {
       for (const msg of memoizedMessages) {
-        if (!msg.author) continue
+        if (!msg.author) {
+          continue
+        }
         let npub: string
         try {
           npub = nip19.npubEncode(msg.author)
@@ -367,8 +377,9 @@ export default function DevicesGroupChat() {
           profiles[npub]?.displayName ||
           profiles[npub]?.picture ||
           fetchedRef.has(npub)
-        )
+        ) {
           continue
+        }
         fetchedRef.add(npub)
 
         try {
@@ -414,7 +425,9 @@ export default function DevicesGroupChat() {
     const atBottom = contentOffset.y <= SCROLL_THRESHOLD
     if (isAtBottomRef.current !== atBottom) {
       isAtBottomRef.current = atBottom
-      if (atBottom) setShowNewMessageButton(false)
+      if (atBottom) {
+        setShowNewMessageButton(false)
+      }
     }
     const nearTop =
       contentSize.height > layoutMeasurement.height &&
@@ -439,7 +452,9 @@ export default function DevicesGroupChat() {
     }
   }, [transactionToShare, setTransactionToShare])
 
-  if (!accountId || !account) return <Redirect href="/" />
+  if (!accountId || !account) {
+    return <Redirect href="/" />
+  }
 
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>

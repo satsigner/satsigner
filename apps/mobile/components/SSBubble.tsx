@@ -66,14 +66,16 @@ function SSBubble({
   }, [dimmed, dimmedOpacity])
 
   const backgroundColor = useDerivedValue(() => {
-    if (selected)
+    if (selected) {
       return withTiming(Colors.white, {
         duration: 0
       })
-    if (isZoomedIn?.value)
+    }
+    if (isZoomedIn?.value) {
       return withTiming(Colors.gray[300], {
         duration: 0
       })
+    }
     return withTiming(Colors.gray[400], {
       duration: 0
     })
@@ -101,7 +103,9 @@ function SSBubble({
 
   // Utxo value
   const mainParagraph = useMemo(() => {
-    if (!customFontManager) return null
+    if (!customFontManager) {
+      return null
+    }
 
     const textStyle = {
       color: Skia.Color('black'),
@@ -143,14 +147,20 @@ function SSBubble({
     year: 'numeric'
   })
   const dateY = useMemo(() => {
-    if (radius > 10) return mainY - radius / 8
-    if (radius > 5) return mainY - radius / 12
+    if (radius > 10) {
+      return mainY - radius / 8
+    }
+    if (radius > 5) {
+      return mainY - radius / 12
+    }
     return mainY - radius / 4
   }, [radius, mainY])
 
   const dateX = x - 100 / 2
   const dateParagraph = useMemo(() => {
-    if (!customFontManager) return null
+    if (!customFontManager) {
+      return null
+    }
 
     const textStyle = {
       color: Skia.Color(Colors.gray[700]),
@@ -178,13 +188,19 @@ function SSBubble({
   // Utxo Memo
   const memoY = useMemo(() => {
     // spacing based on radius because Skia is not consistent for now
-    if (radius > 10) return mainY + radius / 4
-    if (radius > 5) return mainY + radius / 3.2
+    if (radius > 10) {
+      return mainY + radius / 4
+    }
+    if (radius > 5) {
+      return mainY + radius / 3.2
+    }
     return mainY + radius / 7
   }, [radius, mainY])
   const memoX = x - 150 / 2
   const memoParagraph = useMemo(() => {
-    if (!customFontManager) return null
+    if (!customFontManager) {
+      return null
+    }
 
     const textStyle = {
       color: Skia.Color('black'),
@@ -222,13 +238,19 @@ function SSBubble({
   // Utxo from address
   const fromY = useMemo(() => {
     // spacing based on radius because Skia is not consistent for now
-    if (radius > 10) return mainY + radius / 2.5
-    if (radius > 5) return mainY + radius / 2.2
+    if (radius > 10) {
+      return mainY + radius / 2.5
+    }
+    if (radius > 5) {
+      return mainY + radius / 2.2
+    }
     return mainY + radius / 3.5
   }, [radius, mainY])
 
   const fromParagraph = useMemo(() => {
-    if (!customFontManager) return null
+    if (!customFontManager) {
+      return null
+    }
 
     const textStyle = {
       color: Skia.Color('black'),
@@ -263,7 +285,9 @@ function SSBubble({
     return para
   }, [customFontManager, utxo.addressTo, descriptionFontSize])
 
-  if (!customFontManager) return null
+  if (!customFontManager) {
+    return null
+  }
 
   return (
     <Group layer={<Paint opacity={finalOpacity} />}>

@@ -70,7 +70,7 @@ function selectEfficientUtxos(
     return Math.abs(netValue - targetAmount) < opts.dustThreshold
   })
 
-  if (exactMatch)
+  if (exactMatch) {
     return {
       change:
         exactMatch.value -
@@ -79,6 +79,7 @@ function selectEfficientUtxos(
       fee: (opts.inputSize + opts.changeOutputSize) * feeRate,
       inputs: [exactMatch]
     }
+  }
 
   // Try branch and bound algorithm for optimal selection
   const result = branchAndBoundUtxoSelection(
@@ -87,7 +88,9 @@ function selectEfficientUtxos(
     feeRate,
     opts
   )
-  if (result) return result
+  if (result) {
+    return result
+  }
 
   // Fallback to coin selection with accumulative strategy
   // Start with largest UTXOs (reverse the sorted list) for fewer inputs
@@ -116,8 +119,9 @@ function selectEfficientUtxos(
   }
 
   // Insufficient funds
-  if (selectedAmount < targetAmount + estimatedFee)
+  if (selectedAmount < targetAmount + estimatedFee) {
     return { change: 0, error: 'Insufficient funds', fee: 0, inputs: [] }
+  }
 
   return {
     change,
@@ -158,7 +162,9 @@ function branchAndBoundUtxoSelection(
   )
 
   // If total value is less than target, impossible to satisfy
-  if (totalEffectiveValue < targetAmount) return null
+  if (totalEffectiveValue < targetAmount) {
+    return null
+  }
 
   // If we have exact match, return it
   const exactMatchSet = findExactMatch(effectiveUtxos, targetAmount)
@@ -182,7 +188,9 @@ function branchAndBoundUtxoSelection(
     depth: number,
     tries: number
   ): null | boolean {
-    if (tries > MAX_TRIES) return false
+    if (tries > MAX_TRIES) {
+      return false
+    }
 
     if (effectiveValue >= targetAmount) {
       // Calculate waste as the sum of all inputs minus target
@@ -196,7 +204,9 @@ function branchAndBoundUtxoSelection(
       return true
     }
 
-    if (depth >= effectiveUtxos.length) return false
+    if (depth >= effectiveUtxos.length) {
+      return false
+    }
 
     // Try including this UTXO
     selection.push(effectiveUtxos[depth])
@@ -231,12 +241,13 @@ function branchAndBoundUtxoSelection(
       fee
 
     // If change is less than dust, add it to fee
-    if (change > 0 && change < opts.dustThreshold)
+    if (change > 0 && change < opts.dustThreshold) {
       return {
         change: 0,
         fee: fee + change,
         inputs: bestSelection
       }
+    }
 
     return {
       change: change > 0 ? change : 0,
@@ -355,7 +366,9 @@ function selectStonewallUtxos(
 
   // Get input size based on script type
   function getInputSize(utxo: Partial<Pick<_Utxo, 'scriptType'>>) {
-    if (!utxo.scriptType) return opts.sizeP2PKH // Default to P2PKH
+    if (!utxo.scriptType) {
+      return opts.sizeP2PKH
+    } // Default to P2PKH
 
     switch (utxo.scriptType) {
       case 'p2wpkh':
@@ -369,7 +382,9 @@ function selectStonewallUtxos(
 
   // Get output size based on script type
   function getOutputSize(scriptType: string) {
-    if (scriptType === 'p2wpkh') return opts.outputSizeP2WPKH
+    if (scriptType === 'p2wpkh') {
+      return opts.outputSizeP2WPKH
+    }
     return opts.outputSizeP2PKH
   }
 
@@ -409,7 +424,9 @@ function selectStonewallUtxos(
     const availableTypes = Object.keys(utxosByType).filter(
       (type) => utxosByType[type].length > 0
     )
-    if (availableTypes.length === 0) continue
+    if (availableTypes.length === 0) {
+      continue
+    }
 
     // Simplified type selection
     const selectedTypes = [availableTypes[0]]
@@ -464,13 +481,17 @@ function selectStonewallUtxos(
     const remainingAmount = totalInputValue - targetAmount - baseFee
 
     // If we don't have enough funds, try again
-    if (remainingAmount <= 0) continue
+    if (remainingAmount <= 0) {
+      continue
+    }
 
     // Step 5: Calculate change outputs
     const changeOutputs: ChangeOutput[] = []
     const numChangeOutputs = numOutputs - 1 // Excluding recipient
 
-    if (numChangeOutputs <= 0) continue
+    if (numChangeOutputs <= 0) {
+      continue
+    }
 
     // Add sizes for change outputs
     let totalChangeOutputSize = 0
@@ -497,7 +518,9 @@ function selectStonewallUtxos(
     const totalChangeAmount = totalInputValue - targetAmount - totalFee
 
     // If total change is less than dust threshold * number of change outputs, try again
-    if (totalChangeAmount < opts.dustThreshold * numChangeOutputs) continue
+    if (totalChangeAmount < opts.dustThreshold * numChangeOutputs) {
+      continue
+    }
 
     // Distribute change amount across change outputs
     for (let i = 0; i < numChangeOutputs; i++) {
@@ -520,7 +543,9 @@ function selectStonewallUtxos(
       }
 
       // Ensure change amount is above dust threshold
-      if (changeAmount < opts.dustThreshold) continue
+      if (changeAmount < opts.dustThreshold) {
+        continue
+      }
 
       // Create change output
       changeOutputs.push({
@@ -531,7 +556,9 @@ function selectStonewallUtxos(
     }
 
     // Make sure all change outputs are created and above dust
-    if (changeOutputs.length !== numChangeOutputs) continue
+    if (changeOutputs.length !== numChangeOutputs) {
+      continue
+    }
 
     // Verify the total matches our calculations
     const finalTotalOutput =
@@ -575,7 +602,9 @@ function selectStonewallUtxos(
         break
       }
     }
-    if (!hasExactInputMatch) privacyScore += 30
+    if (!hasExactInputMatch) {
+      privacyScore += 30
+    }
 
     // Update best solution if this one has a better privacy score
     if (privacyScore > bestPrivacyScore) {
@@ -667,8 +696,12 @@ function distributeChangeWithPrivacy(
   numOutputs: number,
   dustThreshold: number
 ): number[] {
-  if (numOutputs <= 0) return []
-  if (numOutputs === 1) return [totalChange]
+  if (numOutputs <= 0) {
+    return []
+  }
+  if (numOutputs === 1) {
+    return [totalChange]
+  }
 
   // Make sure we have enough for all outputs
   if (totalChange < dustThreshold * numOutputs) {

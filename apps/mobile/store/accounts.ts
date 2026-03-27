@@ -121,7 +121,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               const accountIndex = state.accounts.findIndex(
                 (acc: Account) => acc.id === accountId
               )
-              if (accountIndex !== -1) throw new Error('Account not found')
+              if (accountIndex !== -1) {
+                throw new Error('Account not found')
+              }
               state.accounts[accountIndex].keys[keyIndex] = newKey
             })
           )
@@ -145,7 +147,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           (account) => account.id === accountId
         )
 
-        if (!account) return 0
+        if (!account) {
+          return 0
+        }
 
         const transactionMap: Record<string, number> = {}
         const utxoMap: Record<string, number> = {}
@@ -211,12 +215,16 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           (account) => account.id === accountId
         )
 
-        if (accountIndex === -1) return
+        if (accountIndex === -1) {
+          return
+        }
 
         const account = accounts[accountIndex]
         const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
 
-        if (txIndex === -1) return
+        if (txIndex === -1) {
+          return
+        }
 
         set(
           produce((state) => {
@@ -230,7 +238,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (account) => account.id === id
             )
-            if (index === -1 || !state.accounts[index].nostr) return
+            if (index === -1 || !state.accounts[index].nostr) {
+              return
+            }
             state.accounts[index].nostr.dms = state.accounts[
               index
             ].nostr.dms.map((dm) =>
@@ -245,7 +255,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const accountIndex = state.accounts.findIndex(
               (acc: Account) => acc.id === accountId
             )
-            if (accountIndex === -1) return
+            if (accountIndex === -1) {
+              return
+            }
             state.accounts[accountIndex].keys[keyIndex] = {
               creationType: undefined,
               fingerprint: undefined,
@@ -263,7 +275,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         const account = get().accounts.find(
           (account) => account.id === accountId
         )
-        if (!account) return undefined
+        if (!account) {
+          return undefined
+        }
 
         const addrIndex = account.addresses.findIndex(
           (address) => address.address === addr
@@ -290,7 +304,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               (utxo: Utxo) => {
                 const newUtxo = { ...utxo }
                 const isRelated = utxo.addressTo === addr
-                if (!isRelated) return newUtxo
+                if (!isRelated) {
+                  return newUtxo
+                }
 
                 const utxoRef = `${utxo.txid}:${utxo.vout}`
                 const utxoHasLabel = state.accounts[index].labels[utxoRef]
@@ -315,7 +331,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               const isRelated = tx.vout.some(
                 (output) => output.address === addr
               )
-              if (!isRelated) return newTx
+              if (!isRelated) {
+                return newTx
+              }
 
               const txHasLabel = state.accounts[index].labels[tx.id]
               if (!txHasLabel) {
@@ -343,7 +361,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                     return resolved === addr
                   }
                 )
-                if (!spendFromAddr) return
+                if (!spendFromAddr) {
+                  return
+                }
 
                 const txHasLabel = state.accounts[index].labels[tx.id]
                 if (!txHasLabel) {
@@ -367,7 +387,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (account) => account.id === id
             )
-            if (index !== -1) state.accounts[index].lastSyncedAt = date
+            if (index !== -1) {
+              state.accounts[index].lastSyncedAt = date
+            }
           })
         )
       },
@@ -391,7 +413,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (account) => account.id === id
             )
-            if (index !== -1) state.accounts[index].syncStatus = syncStatus
+            if (index !== -1) {
+              state.accounts[index].syncStatus = syncStatus
+            }
           })
         )
       },
@@ -403,7 +427,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           (account) => account.id === accountId
         )
 
-        if (!account) return undefined
+        if (!account) {
+          return undefined
+        }
 
         const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
 
@@ -421,7 +447,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               type: 'tx'
             }
 
-            if (txIndex === -1) return
+            if (txIndex === -1) {
+              return
+            }
 
             state.accounts[index].transactions[txIndex].label = label
 
@@ -515,7 +543,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                   txid,
                   vout
                 )
-                if (!address) return
+                if (!address) {
+                  return
+                }
 
                 const addressHasLabel = state.accounts[index].labels[address]
                 if (!addressHasLabel) {
@@ -543,7 +573,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           (account) => account.id === accountId
         )
 
-        if (!account) return undefined
+        if (!account) {
+          return undefined
+        }
 
         const txIndex = account.transactions.findIndex((tx) => {
           return tx.id === txid
@@ -693,7 +725,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (account) => account.id === id
             )
-            if (index !== -1) state.accounts[index].name = newName
+            if (index !== -1) {
+              state.accounts[index].name = newName
+            }
           })
         )
       },
@@ -703,7 +737,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (account) => account.id === id
             )
-            if (index === -1) return
+            if (index === -1) {
+              return
+            }
             state.accounts[index].nostr = {
               ...state.accounts[index].nostr,
               ...nostr
@@ -717,7 +753,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (account) => account.id === id
             )
-            if (index === -1) return
+            if (index === -1) {
+              return
+            }
             state.accounts[index].keys[keyIndex].name = newName
           })
         )

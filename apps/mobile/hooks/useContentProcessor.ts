@@ -43,7 +43,9 @@ function autoSelectUtxos(
   targetAmount: number,
   actions: Pick<ProcessorActions, 'addInput' | 'setFeeRate'>
 ) {
-  if (!account || account.utxos.length === 0) return
+  if (!account || account.utxos.length === 0) {
+    return
+  }
 
   const { addInput, setFeeRate } = actions
 
@@ -126,7 +128,9 @@ async function processBitcoinContent(
               await Promise.all(
                 accountMatch.account.keys.map(async (key, index) => {
                   const fp = await getKeyFingerprint(key)
-                  if (fp) keyFingerprintToCosignerIndex.set(fp, index)
+                  if (fp) {
+                    keyFingerprintToCosignerIndex.set(fp, index)
+                  }
                 })
               )
 

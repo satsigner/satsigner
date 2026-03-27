@@ -34,10 +34,11 @@ function SSAddressDisplay({
   copyToClipboard = true,
   ...props
 }: SSAddressDisplayProps) {
-  if (!copyToClipboard)
+  if (!copyToClipboard) {
     return (
       <AddressDisplayContent address={address} variant={variant} {...props} />
     )
+  }
 
   return (
     <SSClipboardCopy text={address}>

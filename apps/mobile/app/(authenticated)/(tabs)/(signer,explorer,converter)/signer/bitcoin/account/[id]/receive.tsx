@@ -89,7 +89,9 @@ export default function Receive() {
   }, [])
 
   const localFinalAddressQR = useMemo(() => {
-    if (!localAddressQR) return ''
+    if (!localAddressQR) {
+      return ''
+    }
 
     const queryParts: string[] = []
 
@@ -142,7 +144,9 @@ export default function Receive() {
     }
 
     async function loadAddress() {
-      if (!addressInfo?.address) return
+      if (!addressInfo?.address) {
+        return
+      }
 
       const [address, qrUri] = await Promise.all([
         addressInfo.address.asString(),
@@ -172,7 +176,9 @@ export default function Receive() {
   }, [addressInfo, wallet, account?.keys, account?.addresses, isManualAddress])
 
   async function generateAnotherAddress() {
-    if (!wallet || !account) return
+    if (!wallet || !account) {
+      return
+    }
 
     setIsGenerating(true)
     try {
@@ -238,7 +244,9 @@ export default function Receive() {
   )
 
   async function handleNFCExport() {
-    if (!localFinalAddressQR) return
+    if (!localFinalAddressQR) {
+      return
+    }
 
     try {
       await emitNFCTag(localFinalAddressQR)
@@ -256,25 +264,35 @@ export default function Receive() {
   }
 
   function getFiatAmount(sats: string): string {
-    if (!sats || isNaN(Number(sats)) || Number(sats) <= 0) return ''
+    if (!sats || isNaN(Number(sats)) || Number(sats) <= 0) {
+      return ''
+    }
     const fiatAmount = satsToFiat(Number(sats))
     return fiatAmount > 0 ? `≈ ${fiatAmount.toFixed(2)} ${fiatCurrency}` : ''
   }
 
   function getSatsFromFiat(fiat: string): number | null {
-    if (!fiat || isNaN(Number(fiat)) || Number(fiat) <= 0) return null
-    if (!btcPrice || btcPrice <= 0) return null
+    if (!fiat || isNaN(Number(fiat)) || Number(fiat) <= 0) {
+      return null
+    }
+    if (!btcPrice || btcPrice <= 0) {
+      return null
+    }
     return Math.round((Number(fiat) / btcPrice) * 1e8)
   }
 
   function getSatsDisplay(fiat: string): string {
     const sats = getSatsFromFiat(fiat)
-    if (sats === null) return ''
+    if (sats === null) {
+      return ''
+    }
     return `≈ ${sats.toLocaleString()} ${t('bitcoin.sats')}`
   }
 
   function handleSwitchToFiat() {
-    if (!btcPrice || btcPrice <= 0) return
+    if (!btcPrice || btcPrice <= 0) {
+      return
+    }
     if (localCustomAmount && Number(localCustomAmount) > 0) {
       const fiat = satsToFiat(Number(localCustomAmount))
       setLocalFiatAmount(fiat > 0 ? fiat.toFixed(2) : '')
@@ -285,7 +303,9 @@ export default function Receive() {
   function handleSwitchToSats() {
     if (localFiatAmount) {
       const sats = getSatsFromFiat(localFiatAmount)
-      if (sats !== null) setLocalCustomAmount(sats.toString())
+      if (sats !== null) {
+        setLocalCustomAmount(sats.toString())
+      }
     }
     setAmountMode('sats')
   }
@@ -323,7 +343,9 @@ export default function Receive() {
     }
   }
 
-  if (!account) return <Redirect href="/" />
+  if (!account) {
+    return <Redirect href="/" />
+  }
 
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>

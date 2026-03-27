@@ -95,8 +95,11 @@ export default function SetPin() {
     setSkipPin(true)
     await setPin(DEFAULT_PIN)
     router.dismissAll()
-    if (showWarning) router.navigate('./warning')
-    else router.navigate('/')
+    if (showWarning) {
+      router.navigate('./warning')
+    } else {
+      router.navigate('/')
+    }
   }
 
   async function handleConfirmPin() {
@@ -112,7 +115,9 @@ export default function SetPin() {
   }
 
   async function handleSetPin() {
-    if (pinArray.join('') !== confirmationPinArray.join('')) return
+    if (pinArray.join('') !== confirmationPinArray.join('')) {
+      return
+    }
     setLoading(true)
 
     setSkipPin(false)
@@ -135,8 +140,11 @@ export default function SetPin() {
       return
     }
 
-    if (showWarning) router.push('./warning')
-    else router.replace('/')
+    if (showWarning) {
+      router.push('./warning')
+    } else {
+      router.replace('/')
+    }
 
     setFirstTime(false)
     setRequiresAuth(true)
@@ -149,8 +157,12 @@ export default function SetPin() {
   }
 
   function getTitle() {
-    if (stage === 'verify') return t('auth.verifyPinTitle')
-    if (stage === 'set') return t('auth.setPinTitle')
+    if (stage === 'verify') {
+      return t('auth.verifyPinTitle')
+    }
+    if (stage === 'set') {
+      return t('auth.setPinTitle')
+    }
     return t('auth.reenterPinTitle')
   }
 

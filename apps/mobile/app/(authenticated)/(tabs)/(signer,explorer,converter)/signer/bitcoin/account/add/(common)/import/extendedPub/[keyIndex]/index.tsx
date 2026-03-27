@@ -195,7 +195,9 @@ export default function ImportExtendedPub() {
 
   function convertVpubToTpub(vpub: string): string {
     // If it's not a vpub, return as is
-    if (!vpub.startsWith('vpub')) return vpub
+    if (!vpub.startsWith('vpub')) {
+      return vpub
+    }
 
     // Use the network-aware conversion utility
     return convertKeyFormat(vpub, 'tpub', network)

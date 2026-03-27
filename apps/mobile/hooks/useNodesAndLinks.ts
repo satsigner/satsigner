@@ -234,14 +234,18 @@ export const useNodesAndLinks = ({
   ])
 
   const outputAddresses = useMemo(() => {
-    if (transactions.size === 0) return []
+    if (transactions.size === 0) {
+      return []
+    }
     return Array.from(transactions.values()).flatMap(
       (tx) => tx.vout?.map((output) => output.address) ?? []
     )
   }, [transactions])
 
   const outputValues = useMemo(() => {
-    if (transactions.size === 0) return []
+    if (transactions.size === 0) {
+      return []
+    }
     return Array.from(transactions.values()).flatMap(
       (tx) => tx.vout?.map((output) => output.value) ?? []
     )
@@ -266,7 +270,9 @@ export const useNodesAndLinks = ({
       const blockDepthIndices = new Map<number, number>()
       const previousConfirmedNodes = Array.from(transactions.entries()).flatMap(
         ([, tx]) => {
-          if (!tx.vin || !tx.vout) return []
+          if (!tx.vin || !tx.vout) {
+            return []
+          }
 
           // Calculate total input and output values for *this* transaction
           const totalInputValue = tx.vin.reduce(
@@ -559,7 +565,9 @@ export const useNodesAndLinks = ({
       return links
     }
 
-    if (nodes?.length === 0) return []
+    if (nodes?.length === 0) {
+      return []
+    }
 
     return generateSankeyLinks(previousConfirmedNodes)
   }, [
@@ -568,6 +576,8 @@ export const useNodesAndLinks = ({
     outputNodesCurrentTransaction,
     inputs
   ])
-  if (transactions.size === 0) return { links: [], nodes: [] }
+  if (transactions.size === 0) {
+    return { links: [], nodes: [] }
+  }
   return { links, nodes }
 }

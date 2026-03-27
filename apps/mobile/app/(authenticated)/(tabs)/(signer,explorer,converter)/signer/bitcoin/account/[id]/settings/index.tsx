@@ -124,7 +124,9 @@ export default function AccountSettings() {
   async function handlePinEntry(pinString: string) {
     const salt = await getItem(SALT_KEY)
     const storedEncryptedPin = await getItem(PIN_KEY)
-    if (!salt || !storedEncryptedPin) return
+    if (!salt || !storedEncryptedPin) {
+      return
+    }
 
     const encryptedPin = await pbkdf2Encrypt(pinString, salt)
     const isPinValid = encryptedPin === storedEncryptedPin
@@ -149,7 +151,9 @@ export default function AccountSettings() {
   useEffect(() => {
     async function getMnemonic() {
       const pin = await getItem(PIN_KEY)
-      if (!account || !pin) return
+      if (!account || !pin) {
+        return
+      }
 
       const iv = account.keys[0].iv
       const encryptedSecret = account.keys[0].secret as string
@@ -164,7 +168,9 @@ export default function AccountSettings() {
 
   useEffect(() => {
     async function decryptCurrentAccountKeys() {
-      if (!account) return
+      if (!account) {
+        return
+      }
       const secrets = await decryptAllAccountKeySecrets(account)
       const decryptedKeyData = account.keys.map((key, index) => {
         const newKey: Key = {
@@ -199,8 +205,9 @@ export default function AccountSettings() {
     }
   }, [account?.keys])
 
-  if (!currentAccountId || !account || !scriptVersion)
+  if (!currentAccountId || !account || !scriptVersion) {
     return <Redirect href="/" />
+  }
 
   return (
     <ScrollView>

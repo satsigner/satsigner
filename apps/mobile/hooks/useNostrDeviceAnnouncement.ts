@@ -11,8 +11,12 @@ function useNostrDeviceAnnouncement() {
       account?: Account,
       options?: { force?: boolean }
     ): Promise<boolean> => {
-      if (!account || !account.nostr) return false
-      if (!options?.force && !account.nostr.autoSync) return false
+      if (!account || !account.nostr) {
+        return false
+      }
+      if (!options?.force && !account.nostr.autoSync) {
+        return false
+      }
       const { commonNsec, commonNpub, deviceNpub, relays } = account.nostr
 
       if (!commonNsec || !commonNpub || relays.length === 0 || !deviceNpub) {

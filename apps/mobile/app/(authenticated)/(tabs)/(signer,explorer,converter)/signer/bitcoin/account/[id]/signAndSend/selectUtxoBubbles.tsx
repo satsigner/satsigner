@@ -74,8 +74,11 @@ function SelectUtxoBubbles() {
     (utxo: Utxo) => {
       const includesInput = hasInput(utxo)
 
-      if (includesInput) removeInput(utxo)
-      else addInput(utxo)
+      if (includesInput) {
+        removeInput(utxo)
+      } else {
+        addInput(utxo)
+      }
     },
     [hasInput, removeInput, addInput]
   )

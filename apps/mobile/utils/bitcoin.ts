@@ -15,7 +15,9 @@ function isBitcoinAddress(address: string): boolean {
 }
 
 function isBip21(uri: string): boolean {
-  if (!uri) return false
+  if (!uri) {
+    return false
+  }
   const trimmed = uri.trim()
 
   if (trimmed.toLowerCase().startsWith('bitcoin:')) {
@@ -36,7 +38,9 @@ type Bip21DecodeResult = {
 
 function bip21decode(uri: string): Bip21DecodeResult | string | undefined {
   try {
-    if (!uri) return undefined
+    if (!uri) {
+      return undefined
+    }
     const trimmed = uri.trim()
 
     if (trimmed.toLowerCase().startsWith('bitcoin:')) {
@@ -117,7 +121,9 @@ export function convertKeyFormat(
   targetFormat: string,
   network: AppNetwork
 ): string {
-  if (!key || !targetFormat || !network) return key
+  if (!key || !targetFormat || !network) {
+    return key
+  }
 
   try {
     const decoded = bs58check.decode(key)
@@ -180,14 +186,18 @@ export function getKeyFormatForScriptVersion(
 }
 
 export function detectNetworkFromKey(key: string): AppNetwork | null {
-  if (!key) return null
+  if (!key) {
+    return null
+  }
 
   const mainnetPrefixes = ['xpub', 'ypub', 'zpub']
   const testnetPrefixes = ['tpub', 'upub', 'vpub']
 
   const prefix = key.match(/^[tuvxyz](pub|prv)/)?.[0]
 
-  if (!prefix) return null
+  if (!prefix) {
+    return null
+  }
 
   if (mainnetPrefixes.includes(prefix)) {
     return 'bitcoin'

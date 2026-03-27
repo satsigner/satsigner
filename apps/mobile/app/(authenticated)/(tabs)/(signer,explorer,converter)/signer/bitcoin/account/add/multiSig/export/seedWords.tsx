@@ -43,7 +43,9 @@ export default function SeedWordsPage() {
   const key = accountData?.keys[keyIndexNum]
 
   const decryptMnemonic = useCallback(async () => {
-    if (!accountData || !key) return
+    if (!accountData || !key) {
+      return
+    }
 
     try {
       // During multisig creation, the secret is stored in plain text

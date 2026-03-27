@@ -71,7 +71,9 @@ export default function NodeSettingsPage() {
   }
 
   async function handleRefresh() {
-    if (!isConnected) return
+    if (!isConnected) {
+      return
+    }
     setIsLoading(true)
     await getInfo()
     setIsLoading(false)

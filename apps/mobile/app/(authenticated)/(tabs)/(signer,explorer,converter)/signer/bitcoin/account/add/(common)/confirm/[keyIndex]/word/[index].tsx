@@ -80,16 +80,21 @@ export default function Confirm() {
   }
 
   async function handleNavigateNextWord() {
-    if (!selectedCheckbox) return
+    if (!selectedCheckbox) {
+      return
+    }
 
-    if (candidateWords[selectedCheckbox - 1] !== mnemonic[Number(index)])
+    if (candidateWords[selectedCheckbox - 1] !== mnemonic[Number(index)]) {
       return setIncorrectWordModalVisible(true)
+    }
 
-    if (Number(index) + 1 < mnemonicWordCount)
+    if (Number(index) + 1 < mnemonicWordCount) {
       router.push(
         `/signer/bitcoin/account/add/confirm/${keyIndex}/word/${Number(index) + 1}`
       )
-    else return handleFinishWordsConfirmation()
+    } else {
+      return handleFinishWordsConfirmation()
+    }
   }
 
   async function handleFinishWordsConfirmation() {

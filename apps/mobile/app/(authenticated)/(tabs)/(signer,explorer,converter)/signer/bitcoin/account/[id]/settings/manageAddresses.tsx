@@ -71,7 +71,9 @@ export default function ManageAccountAddressesPage() {
     router.navigate(`/signer/bitcoin/account/${account!.id}/address/${address}`)
   }
 
-  if (!account || !isMultiAddressWatchOnly) return <Redirect href="/" />
+  if (!account || !isMultiAddressWatchOnly) {
+    return <Redirect href="/" />
+  }
 
   return (
     <ManageAccountAddresses

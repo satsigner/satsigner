@@ -255,16 +255,21 @@ export default function PayPage() {
 
   useEffect(() => {
     const paramValue = paymentRequestParam || invoiceParam
-    if (!paramValue) return
+    if (!paramValue) {
+      return
+    }
 
     const paymentRequestValue = Array.isArray(paramValue)
       ? paramValue[0]
       : paramValue
-    if (!paymentRequestValue) return
+    if (!paymentRequestValue) {
+      return
+    }
 
     const cleanText = paymentRequestValue.trim().replace(/^lightning:/i, '')
-    if (!cleanText.toLowerCase().startsWith('lnbc') && !isLNURL(cleanText))
+    if (!cleanText.toLowerCase().startsWith('lnbc') && !isLNURL(cleanText)) {
       return
+    }
 
     handlePaymentRequestChange(cleanText)
   }, [paymentRequestParam, invoiceParam, handlePaymentRequestChange])

@@ -227,7 +227,9 @@ export default function AccountList() {
   }, [])
 
   useEffect(() => {
-    if (!hasHydrated) return
+    if (!hasHydrated) {
+      return
+    }
     sampleAccountsOpacity.setValue(0)
     const timer = setTimeout(() => {
       Animated.timing(sampleAccountsOpacity, {
@@ -286,21 +288,32 @@ export default function AccountList() {
   }
 
   async function syncAccounts() {
-    if (connectionMode !== 'auto') return
+    if (connectionMode !== 'auto') {
+      return
+    }
 
     const now = time.now()
 
     const eligibleAccounts = accounts.filter((account) => {
-      if (account.network !== tabs[tabIndex].key) return false
-      if (account.syncStatus === 'syncing') return false
+      if (account.network !== tabs[tabIndex].key) {
+        return false
+      }
+      if (account.syncStatus === 'syncing') {
+        return false
+      }
       if (
         account.lastSyncedAt &&
         now > time.minutesAfter(account.lastSyncedAt, autoConnectDelay)
-      )
+      ) {
         return false
+      }
       const isImportAddress = account.keys[0].creationType === 'importAddress'
-      if (isImportAddress && !addresses[account.id]) return false
-      if (!isImportAddress && !wallets[account.id]) return false
+      if (isImportAddress && !addresses[account.id]) {
+        return false
+      }
+      if (!isImportAddress && !wallets[account.id]) {
+        return false
+      }
       return true
     })
 
@@ -498,7 +511,9 @@ export default function AccountList() {
       }
     }
 
-    if (type !== 'watchonlyTether' && type !== 'multisig') setKey(0)
+    if (type !== 'watchonlyTether' && type !== 'multisig') {
+      setKey(0)
+    }
 
     const account = getAccountData()
 

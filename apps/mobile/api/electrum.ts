@@ -90,8 +90,9 @@ type AddressInfo = {
 class ModifiedClient extends BlueWalletElectrumClient {
   // INFO: Override the default timeout for keeping client alive
   keepAlive() {
-    if (this.timeout !== null && this.timeout !== undefined)
+    if (this.timeout !== null && this.timeout !== undefined) {
       clearTimeout(this.timeout)
+    }
     const now = time.now()
     this.timeout = setTimeout(() => {
       if (this.timeLastCall !== 0 && now > this.timeLastCall + 500_000) {
@@ -198,7 +199,9 @@ class BaseElectrumClient {
 
       return true
     } catch (_err) {
-      if (timeoutId) clearTimeout(timeoutId)
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
       return false
     } finally {
       try {
@@ -457,7 +460,9 @@ class ElectrumClient extends BaseElectrumClient {
         transactions[i].vout.push({ address: addr, script, value })
 
         // Compute received value by checking if tx outputs match address
-        if (addr !== address) continue
+        if (addr !== address) {
+          continue
+        }
         transactions[i].received += value
       }
 
@@ -478,13 +483,17 @@ class ElectrumClient extends BaseElectrumClient {
           witness
         })
 
-        if (txDictionary[prevTxId] === undefined) continue
+        if (txDictionary[prevTxId] === undefined) {
+          continue
+        }
         const prevTxIndex = txDictionary[prevTxId]
         const parentTx = parsedTransactions[prevTxIndex]
         const addr = parentTx.generateOutputScriptAddress(vout, network)
 
         // Compute sent value by checking if tx inputs match address
-        if (addr !== address) continue
+        if (addr !== address) {
+          continue
+        }
         const value = Number(parentTx.getOutputValue(vout).value)
         transactions[i].sent += value
       }
@@ -506,7 +515,9 @@ class ElectrumClient extends BaseElectrumClient {
 
     for (const tx of transactions) {
       const { id, raw } = tx
-      if (!raw) continue
+      if (!raw) {
+        continue
+      }
       const txHex = bytesToHex(raw)
       txidToParsedTxIndex[id] = parsedTransactions.length
       parsedTransactions.push(TxDecoded.fromHex(txHex))
@@ -541,7 +552,9 @@ class ElectrumClient extends BaseElectrumClient {
         transactions[i].vout.push({ address: addr, script, value })
 
         // Compute received value by checking if tx outputs match address
-        if (addr !== address) continue
+        if (addr !== address) {
+          continue
+        }
         transactions[i].received += value
       }
 
@@ -562,13 +575,17 @@ class ElectrumClient extends BaseElectrumClient {
           witness
         })
 
-        if (txidToParsedTxIndex[prevTxId] === undefined) continue
+        if (txidToParsedTxIndex[prevTxId] === undefined) {
+          continue
+        }
         const prevTxIndex = txidToParsedTxIndex[prevTxId]
         const parentTx = parsedTransactions[prevTxIndex]
         const addr = parentTx.generateOutputScriptAddress(vout, this.network)
 
         // Compute sent value by checking if tx inputs match address
-        if (addr !== address) continue
+        if (addr !== address) {
+          continue
+        }
         const value = Number(parentTx.getOutputValue(vout).value)
         transactions[i].sent += value
       }

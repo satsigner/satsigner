@@ -755,7 +755,9 @@ function SSHistoryChart({
     }[] = []
 
     validChartData.forEach((d) => {
-      if (d.type === 'end') return
+      if (d.type === 'end') {
+        return
+      }
       const x = Math.round(xScale(d.date) + (d.type === 'receive' ? -5 : +5))
       const y = Math.round(yScale(d.balance) - 5)
       if (x < 0 || x > chartWidth || y < 0 || y > chartHeight) {
@@ -835,7 +837,9 @@ function SSHistoryChart({
 
     for (let i = 0; i < initialLabels.length - 1; i++) {
       const boundBoxA = initialLabels[i].boundBox
-      if (!boundBoxA) continue
+      if (!boundBoxA) {
+        continue
+      }
       for (let j = i + 1; j < initialLabels.length; j++) {
         const boundBoxB = initialLabels[j].boundBox
         if (boundBoxB && isOverlapping(boundBoxA, boundBoxB)) {
@@ -878,13 +882,19 @@ function SSHistoryChart({
   } as const
 
   const labelParagraphs = useMemo(() => {
-    if (!customFontManager) return new Map<string, SkParagraph>()
+    if (!customFontManager) {
+      return new Map<string, SkParagraph>()
+    }
     const paragraphs = new Map<string, SkParagraph>()
 
     txInfoLabels.forEach((label) => {
-      if (label.type === 'end') return
+      if (label.type === 'end') {
+        return
+      }
       const x = label.x
-      if (x < 0 || x > chartWidth) return
+      if (x < 0 || x > chartWidth) {
+        return
+      }
 
       const baseColor = label.type === 'receive' ? '#A7FFAF' : '#FF7171'
       const baseStyle = {
@@ -1178,7 +1188,9 @@ function YScaleRenderer({
     <>
       {yScale.ticks(4).map((tick) => {
         const yPosition = yScale(tick)
-        if (yPosition > chartHeight) return null
+        if (yPosition > chartHeight) {
+          return null
+        }
         return (
           <Fragment key={tick.toString()}>
             <Line

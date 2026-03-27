@@ -93,7 +93,9 @@ function SSSpiralBlocks({
   // Memoize the paragraph creation function to avoid recreating it on each render
   const createParagraph = useCallback(
     (text: string) => {
-      if (!customFontManager) return null
+      if (!customFontManager) {
+        return null
+      }
 
       const paragraph = Skia.ParagraphBuilder.Make(
         {
@@ -138,7 +140,9 @@ function SSSpiralBlocks({
   )
 
   const spiralBlocks = useMemo(() => {
-    if (!data || data.length === 0) return []
+    if (!data || data.length === 0) {
+      return []
+    }
 
     const blocks = []
     let phi_spiral = RADIUS_SPIRAL_START / FACTOR_SPIRAL_GROWTH

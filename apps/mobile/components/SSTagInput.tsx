@@ -32,21 +32,31 @@ function SSTagInput({
   const inputRef = useRef<TextInput>()
 
   function addTag(tag: string) {
-    if (tag.length < 2 || selectedTags.includes(tag)) return false
+    if (tag.length < 2 || selectedTags.includes(tag)) {
+      return false
+    }
 
-    if (onAdd) onAdd(tag)
-    else if (onSelect) onSelect([...selectedTags, tag])
+    if (onAdd) {
+      onAdd(tag)
+    } else if (onSelect) {
+      onSelect([...selectedTags, tag])
+    }
 
     return true
   }
 
   function enterTag() {
-    if (addTag(text)) setText('')
+    if (addTag(text)) {
+      setText('')
+    }
   }
 
   function removeTag(tag: string) {
-    if (onRemove) onRemove(tag)
-    else if (onSelect) onSelect(selectedTags.filter((t) => t !== tag))
+    if (onRemove) {
+      onRemove(tag)
+    } else if (onSelect) {
+      onSelect(selectedTags.filter((t) => t !== tag))
+    }
   }
 
   function search(a: string, b: string) {

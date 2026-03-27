@@ -54,7 +54,9 @@ export default function SelectUtxoList() {
     )
 
   useEffect(() => {
-    if (id) setAccountId(id)
+    if (id) {
+      setAccountId(id)
+    }
   }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -128,8 +130,11 @@ export default function SelectUtxoList() {
   function handleOnToggleSelected(utxo: Utxo) {
     const includesInput = hasInput(utxo)
 
-    if (includesInput) removeInput(utxo)
-    else addInput(utxo)
+    if (includesInput) {
+      removeInput(utxo)
+    } else {
+      addInput(utxo)
+    }
   }
 
   return (

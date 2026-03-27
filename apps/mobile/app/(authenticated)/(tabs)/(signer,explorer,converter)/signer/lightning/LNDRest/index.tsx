@@ -61,7 +61,9 @@ export default function LNDRestPage() {
     return lndConfig
   }
   const handleConnect = async () => {
-    if (!connectionString.trim()) return
+    if (!connectionString.trim()) {
+      return
+    }
 
     setIsConnecting(true)
     try {

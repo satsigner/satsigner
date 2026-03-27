@@ -275,7 +275,9 @@ export default function EcashSendPage() {
 
       // Clean the text and check if it's a valid invoice
       const cleanText = text.trim()
-      if (!cleanText) return
+      if (!cleanText) {
+        return
+      }
 
       // Check if it's LNURL-pay (not withdraw)
       const { isLNURL: isLNURLInput, type: lnurlType } = getLNURLType(cleanText)
@@ -326,7 +328,9 @@ export default function EcashSendPage() {
         try {
           const lndDecoded = await decodeInvoice(cleanText)
           setDecodedInvoice(lndDecoded)
-          if (!lndDecoded.num_satoshis) return
+          if (!lndDecoded.num_satoshis) {
+            return
+          }
           setAmount(lndDecoded.num_satoshis)
         } catch {
           setDecodedInvoice(null)

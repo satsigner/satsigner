@@ -107,7 +107,9 @@ export default function IOPreview() {
   const [shouldRemoveChange, setShouldRemoveChange] = useState(true)
 
   useEffect(() => {
-    if (!account || !wallet) return
+    if (!account || !wallet) {
+      return
+    }
     ;(async () => {
       const outputAddresses: Record<string, boolean> = {}
       account.transactions.forEach((tx) => {
@@ -134,7 +136,9 @@ export default function IOPreview() {
   // this removes the change address if the user goes back to the IO preview.
   // we add the change address as an output before moving to the next step.
   useEffect(() => {
-    if (!changeAddress || !shouldRemoveChange) return
+    if (!changeAddress || !shouldRemoveChange) {
+      return
+    }
     for (const output of outputs) {
       if (output.to === changeAddress) {
         removeOutput(output.localId)
@@ -253,13 +257,17 @@ export default function IOPreview() {
     content: string
   ): Promise<ParsedUriParams | null> {
     const parsed = parseUriParameters(content)
-    if (!parsed) return null
+    if (!parsed) {
+      return null
+    }
 
     const detectedContent = await detectContentByContext(
       parsed.address,
       'bitcoin'
     )
-    if (!detectedContent.isValid) return null
+    if (!detectedContent.isValid) {
+      return null
+    }
 
     return parsed
   }
@@ -296,7 +304,9 @@ export default function IOPreview() {
         setOutputLabel,
         setOutputTo
       })
-      if (success) return
+      if (success) {
+        return
+      }
     }
 
     // Step 4: Fallback - set as plain address
@@ -440,8 +450,11 @@ export default function IOPreview() {
       to: stripBitcoinPrefix(outputTo)
     }
 
-    if (outputIndex === -1) addOutput(output)
-    else updateOutput(outputs[outputIndex].localId, output)
+    if (outputIndex === -1) {
+      addOutput(output)
+    } else {
+      updateOutput(outputs[outputIndex].localId, output)
+    }
 
     setOutputsCount((prev: number) => prev + 1)
     setAddOutputModalVisible(false)
@@ -449,7 +462,9 @@ export default function IOPreview() {
   }
 
   function handleRemoveOutput() {
-    if (!currentOutputLocalId) return
+    if (!currentOutputLocalId) {
+      return
+    }
     removeOutput(currentOutputLocalId)
     setAddOutputModalVisible(false)
     resetLocalOutput()
@@ -474,7 +489,9 @@ export default function IOPreview() {
     const outputIndex = outputs.findIndex(
       (output) => output.localId === localId
     )
-    if (outputIndex === -1) return
+    if (outputIndex === -1) {
+      return
+    }
 
     setOutputTo(outputs[outputIndex].to)
     setOutputAmount(outputs[outputIndex].amount)
@@ -496,7 +513,9 @@ export default function IOPreview() {
   }
 
   function handleOnChangeUtxoSelection(type: AutoSelectUtxosAlgorithms) {
-    if (type === selectedAutoSelectUtxos) return
+    if (type === selectedAutoSelectUtxos) {
+      return
+    }
 
     if (outputs.length === 0 && (type === 'privacy' || type === 'efficiency')) {
       toast.error(
@@ -610,7 +629,9 @@ export default function IOPreview() {
 
   // Memoized set of own addresses for efficient lookup
   const ownAddressesSet = useMemo<Set<string>>(() => {
-    if (!account) return new Set<string>()
+    if (!account) {
+      return new Set<string>()
+    }
     return new Set<string>(account.addresses.map((a) => a.address))
   }, [account])
 

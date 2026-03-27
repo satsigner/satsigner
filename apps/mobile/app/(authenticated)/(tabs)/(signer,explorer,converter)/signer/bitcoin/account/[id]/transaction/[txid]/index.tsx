@@ -83,29 +83,53 @@ export default function TxDetails() {
   }, [])
 
   async function updateInfo() {
-    if (!tx) return
+    if (!tx) {
+      return
+    }
 
-    if (tx.blockHeight) setHeight(tx.blockHeight.toString())
+    if (tx.blockHeight) {
+      setHeight(tx.blockHeight.toString())
+    }
 
-    if (tx.size) setSize(tx.size.toString())
+    if (tx.size) {
+      setSize(tx.size.toString())
+    }
 
-    if (tx.vsize) setVsize(tx.vsize.toString())
+    if (tx.vsize) {
+      setVsize(tx.vsize.toString())
+    }
 
-    if (tx.weight) setWeight(tx.weight.toString())
+    if (tx.weight) {
+      setWeight(tx.weight.toString())
+    }
 
-    if (tx.fee) setFee(tx.fee.toString())
+    if (tx.fee) {
+      setFee(tx.fee.toString())
+    }
 
-    if (tx.fee && tx.size) setFeePerByte(formatNumber(tx.fee / tx.size))
+    if (tx.fee && tx.size) {
+      setFeePerByte(formatNumber(tx.fee / tx.size))
+    }
 
-    if (tx.fee && tx.vsize) setFeePerVByte(formatNumber(tx.fee / tx.vsize))
+    if (tx.fee && tx.vsize) {
+      setFeePerVByte(formatNumber(tx.fee / tx.vsize))
+    }
 
-    if (tx.version) setVersion(tx.version.toString())
+    if (tx.version) {
+      setVersion(tx.version.toString())
+    }
 
-    if (tx.vin) setInputsCount(tx.vin.length.toString())
+    if (tx.vin) {
+      setInputsCount(tx.vin.length.toString())
+    }
 
-    if (tx.vout) setOutputsCount(tx.vout.length.toString())
+    if (tx.vout) {
+      setOutputsCount(tx.vout.length.toString())
+    }
 
-    if (tx.raw) setRaw(bytesToHex(tx.raw))
+    if (tx.raw) {
+      setRaw(bytesToHex(tx.raw))
+    }
 
     if (tx.vin.some((input) => input.value === undefined)) {
       const vin = await getTransactionInputValues(
@@ -126,7 +150,9 @@ export default function TxDetails() {
     }
   }, [tx]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!accountId || !txid || !tx) return <Redirect href="/" />
+  if (!accountId || !txid || !tx) {
+    return <Redirect href="/" />
+  }
 
   return (
     <ScrollView>
@@ -242,19 +268,25 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
       : 0
 
   const updateInfo = async () => {
-    if (!tx) return
+    if (!tx) {
+      return
+    }
 
     const amount = tx.received - tx.sent
     setAmount(amount)
     setType(tx.type)
 
-    if (btcPrice) setPrice(formatFiatPrice(Number(amount), btcPrice))
+    if (btcPrice) {
+      setPrice(formatFiatPrice(Number(amount), btcPrice))
+    }
 
     if (tx.prices) {
       setOldPrice(formatFiatPrice(Number(amount), tx.prices[fiatCurrency] || 0))
     }
 
-    if (tx.vin) setInputsCount(tx.vin.length)
+    if (tx.vin) {
+      setInputsCount(tx.vin.length)
+    }
 
     if (tx.blockHeight && lastKnownBlockHeight === 0) {
       getBlockchainHeight()

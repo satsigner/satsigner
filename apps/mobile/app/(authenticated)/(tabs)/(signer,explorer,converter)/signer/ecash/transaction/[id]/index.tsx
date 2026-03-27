@@ -82,7 +82,9 @@ export default function EcashTransactionDetailPage() {
 
   // Define all callbacks before any conditional logic
   const handleCopyToken = useCallback(async () => {
-    if (!transaction?.token) return
+    if (!transaction?.token) {
+      return
+    }
 
     try {
       await Clipboard.setStringAsync(transaction.token)
@@ -93,7 +95,9 @@ export default function EcashTransactionDetailPage() {
   }, [transaction?.token])
 
   const handleCopyInvoice = useCallback(async () => {
-    if (!transaction?.invoice) return
+    if (!transaction?.invoice) {
+      return
+    }
 
     try {
       await Clipboard.setStringAsync(transaction.invoice)
@@ -104,7 +108,9 @@ export default function EcashTransactionDetailPage() {
   }, [transaction?.invoice])
 
   const handleCopyLightningInvoice = useCallback(async () => {
-    if (!lightningInvoice) return
+    if (!lightningInvoice) {
+      return
+    }
 
     try {
       await Clipboard.setStringAsync(lightningInvoice)
@@ -115,7 +121,9 @@ export default function EcashTransactionDetailPage() {
   }, [lightningInvoice])
 
   const handleCheckTokenStatus = useCallback(async () => {
-    if (!transaction?.token || !transaction?.mintUrl) return
+    if (!transaction?.token || !transaction?.mintUrl) {
+      return
+    }
 
     setIsCheckingStatus(true)
 
@@ -152,7 +160,9 @@ export default function EcashTransactionDetailPage() {
   ])
 
   const handleRedeemToken = useCallback(async () => {
-    if (!transaction?.token || !transaction?.mintUrl) return
+    if (!transaction?.token || !transaction?.mintUrl) {
+      return
+    }
 
     setIsRedeeming(true)
 

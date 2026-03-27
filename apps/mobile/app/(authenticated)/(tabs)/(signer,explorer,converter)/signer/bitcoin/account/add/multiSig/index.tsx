@@ -48,7 +48,9 @@ export default function MultiSig() {
     router.navigate('/signer/bitcoin/account/add/multiSig/manager')
   }
 
-  if (!name) return <Redirect href="/" />
+  if (!name) {
+    return <Redirect href="/" />
+  }
 
   return (
     <SSMainLayout>

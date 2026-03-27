@@ -42,7 +42,9 @@ export default function DescriptorPage() {
 
   useEffect(() => {
     async function getDescriptor() {
-      if (!keyIndex) return
+      if (!keyIndex) {
+        return
+      }
 
       setIsLoading(true)
 

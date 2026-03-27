@@ -11,10 +11,13 @@ type SSTimeAgoTextProps = {
 
 function SSTimeAgoText({ date, ...textProps }: SSTimeAgoTextProps) {
   function timeFormatter(value: number, unit: string, suffix: string) {
-    if (unit === 'second') return `${t('time.lessThanAMinute')} ${suffix}`
-    else if (unit === 'minute' || unit === 'hour')
+    if (unit === 'second') {
+      return `${t('time.lessThanAMinute')} ${suffix}`
+    } else if (unit === 'minute' || unit === 'hour') {
       return `${value} ${unit}${value !== 1 ? 's' : ''} ${suffix}`
-    else return `${formatDate(date)} - ${formatTime(date)}`
+    } else {
+      return `${formatDate(date)} - ${formatTime(date)}`
+    }
   }
 
   return (

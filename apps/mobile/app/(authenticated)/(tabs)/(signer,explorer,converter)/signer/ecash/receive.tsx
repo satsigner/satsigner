@@ -98,7 +98,9 @@ export default function EcashReceivePage() {
     setDecodedToken(null)
 
     const cleanText = text.trim()
-    if (!cleanText || !cleanText.toLowerCase().startsWith('cashu')) return
+    if (!cleanText || !cleanText.toLowerCase().startsWith('cashu')) {
+      return
+    }
     try {
       const decoded = getDecodedToken(cleanText) as EcashToken
       setDecodedToken(decoded)
@@ -110,7 +112,9 @@ export default function EcashReceivePage() {
   // Handle LNURL-w input
   const handleLNURLWithdrawInput = useCallback(async (input: string) => {
     const cleanInput = input.trim()
-    if (!cleanInput) return
+    if (!cleanInput) {
+      return
+    }
 
     const { isLNURL: isLNURLInput, type: lnurlType } = getLNURLType(cleanInput)
 
@@ -195,7 +199,9 @@ export default function EcashReceivePage() {
   }
 
   const handleSwitchToFiat = () => {
-    if (!btcPrice || btcPrice <= 0) return
+    if (!btcPrice || btcPrice <= 0) {
+      return
+    }
     if (amount) {
       const fiat = satsToFiat(parseInt(amount, 10))
       setLocalFiatAmount(fiat > 0 ? fiat.toFixed(2) : '')
@@ -274,7 +280,9 @@ export default function EcashReceivePage() {
       // Start automatic polling for payment status with a small delay
       setTimeout(() => {
         startPolling(async () => {
-          if (!activeMint || !quote) return false
+          if (!activeMint || !quote) {
+            return false
+          }
 
           try {
             const status = await checkMintQuote(activeMint.url, quote.quote)

@@ -32,7 +32,9 @@ export function useConnectionTest() {
   const [lastTestTime, setLastTestTime] = useState<number>(0)
 
   const cleanupPreviousConnection = useCallback(() => {
-    if (!currentClient) return
+    if (!currentClient) {
+      return
+    }
 
     // close TLS connection. Apply only toElectrum Client
     if (currentClient.close && typeof currentClient.close === 'function') {
@@ -165,7 +167,9 @@ export function useConnectionTest() {
     try {
       const result = await Promise.race([testPromise(), timeoutPromise()])
 
-      if (result && result.success) return result
+      if (result && result.success) {
+        return result
+      }
 
       const errorMessage = proxy?.enabled
         ? 'Proxy connection failed. Ensure Tor/Orbot is running.'

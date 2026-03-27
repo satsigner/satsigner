@@ -10,11 +10,21 @@ function isOpN(word: string) {
 }
 
 export function getOpcodeWord(word: string): OP_CODE_WORD {
-  if (OP_CODES[word as OP_CODE_WORD]) return word as OP_CODE_WORD
-  if (word === 'OP_0') return OP_CODE_WORD.OP_FALSE
-  if (word === 'OP_1') return OP_CODE_WORD.OP_TRUE
-  if (isOpPush(word)) return OP_CODE_WORD.OP_PUSH
-  if (isOpN(word)) return OP_CODE_WORD.OP_N
+  if (OP_CODES[word as OP_CODE_WORD]) {
+    return word as OP_CODE_WORD
+  }
+  if (word === 'OP_0') {
+    return OP_CODE_WORD.OP_FALSE
+  }
+  if (word === 'OP_1') {
+    return OP_CODE_WORD.OP_TRUE
+  }
+  if (isOpPush(word)) {
+    return OP_CODE_WORD.OP_PUSH
+  }
+  if (isOpN(word)) {
+    return OP_CODE_WORD.OP_N
+  }
   return OP_CODE_WORD.DATA
 }
 

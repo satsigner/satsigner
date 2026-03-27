@@ -45,7 +45,9 @@ function pruneProcessedIds(
   maxSize: number
 ): ProcessedIdsMap {
   const keys = Object.keys(ids)
-  if (keys.length <= maxSize) return ids
+  if (keys.length <= maxSize) {
+    return ids
+  }
 
   // Keep only the most recent entries (last maxSize keys)
   const keysToKeep = keys.slice(-maxSize)

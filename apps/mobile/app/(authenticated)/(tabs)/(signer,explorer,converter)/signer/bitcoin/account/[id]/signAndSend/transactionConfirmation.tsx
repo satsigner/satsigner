@@ -47,14 +47,18 @@ export default function TransactionConfirmation() {
 
   const mempoolConfig = useBlockchainStore((state) => state.configsMempool)
   const webExplorerUrl = useMemo(() => {
-    if (!account) return ''
+    if (!account) {
+      return ''
+    }
     const { network } = account
     const mempoolServerUrl = mempoolConfig[network]
     return mempoolServerUrl
   }, [account, mempoolConfig])
 
   const mempoolTxUrl = useMemo(() => {
-    if (!webExplorerUrl || !txBuilderResult) return ''
+    if (!webExplorerUrl || !txBuilderResult) {
+      return ''
+    }
     const base = webExplorerUrl.replace(/\/api\/?$/, '')
     return `${base}/tx/${txBuilderResult.txDetails.txid}`
   }, [webExplorerUrl, txBuilderResult])
@@ -64,7 +68,9 @@ export default function TransactionConfirmation() {
   }
 
   function handleOpenExternalWebsite() {
-    if (mempoolTxUrl) WebBrowser.openBrowserAsync(mempoolTxUrl)
+    if (mempoolTxUrl) {
+      WebBrowser.openBrowserAsync(mempoolTxUrl)
+    }
     setExternalWarningModalVisible(false)
   }
 
@@ -87,7 +93,9 @@ export default function TransactionConfirmation() {
         const output = outputs[i]
 
         // we deal with change address later
-        if (output.label === defaultChangeAddressLabel) continue
+        if (output.label === defaultChangeAddressLabel) {
+          continue
+        }
 
         const vout = i
 
@@ -147,12 +155,16 @@ export default function TransactionConfirmation() {
   // Optimistically update the account with the just-broadcast transaction so
   // the user sees it immediately without waiting for a full sync.
   useEffect(() => {
-    if (!txBuilderResult || !account || !broadcasted) return
+    if (!txBuilderResult || !account || !broadcasted) {
+      return
+    }
 
     const { txid } = txBuilderResult.txDetails
 
     // Idempotent — skip if sync already added it
-    if (account.transactions.some((tx) => tx.id === txid)) return
+    if (account.transactions.some((tx) => tx.id === txid)) {
+      return
+    }
 
     const inputsList = Array.from(inputs.values())
     const totalIn = inputsList.reduce((sum, u) => sum + u.value, 0)
@@ -215,9 +227,13 @@ export default function TransactionConfirmation() {
     }
   }, [broadcasted, account, txBuilderResult, id, router])
 
-  if (!account || !txBuilderResult) return <Redirect href="/" />
+  if (!account || !txBuilderResult) {
+    return <Redirect href="/" />
+  }
 
-  if (!broadcasted) return null
+  if (!broadcasted) {
+    return null
+  }
 
   return (
     <>

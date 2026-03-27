@@ -67,7 +67,9 @@ export function updateAccountObjectLabels(account: Account) {
       for (const output of tx.vout) {
         const outputAddress = output.address
         const outputLabel = labels[outputAddress]?.label
-        if (!outputLabel) continue
+        if (!outputLabel) {
+          continue
+        }
         label += outputLabel + ','
       }
       label = label.replace(/,$/, '')
@@ -132,7 +134,9 @@ export async function getPin() {
 // decrypt key secret without account context using provided PIN
 export async function decryptKeySecretUsingPin(key: Key, pin: string) {
   // object already decrypt
-  if (typeof key.secret === 'object') return key.secret
+  if (typeof key.secret === 'object') {
+    return key.secret
+  }
 
   // decryption validation
   let decryptedSecret = ''
@@ -299,12 +303,16 @@ export function getAccountFingerprint(
 export async function getAccountFingerprintWithDecryption(
   account: Account
 ): Promise<string> {
-  if (account.keys.length < 0) return ''
+  if (account.keys.length < 0) {
+    return ''
+  }
   return getKeyFingerprint(account.keys[0])
 }
 
 export async function getKeyFingerprint(key: Key): Promise<string> {
-  if (key.fingerprint) return key.fingerprint
+  if (key.fingerprint) {
+    return key.fingerprint
+  }
   const decryptedSecret = await decryptKeySecret(key)
   return decryptedSecret.fingerprint || ''
 }

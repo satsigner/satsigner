@@ -92,7 +92,9 @@ function AddressDetails() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!address) return
+    if (!address) {
+      return
+    }
     try {
       const rawScript = toOutputScript(
         address.address,

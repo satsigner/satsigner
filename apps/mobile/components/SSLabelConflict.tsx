@@ -53,9 +53,13 @@ export function detectConflcits(
 
   const conflicts: Conflict[] = []
   for (const incoming of incomingLabels) {
-    if (!currentLabelsDict[incoming.ref]) continue
+    if (!currentLabelsDict[incoming.ref]) {
+      continue
+    }
     const current = currentLabelsDict[incoming.ref]
-    if (current.label === incoming.label) continue
+    if (current.label === incoming.label) {
+      continue
+    }
     conflicts.push([current, incoming])
   }
   return conflicts

@@ -102,21 +102,24 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
               'account.sync.status.old.hour',
               { value: hours }
             )}`
-            if (days >= 1)
+            if (days >= 1) {
               text = `${t('account.sync.status.synced')} ${t(
                 'account.sync.status.old.day',
                 { value: days }
               )}`
-            if (months >= 1)
+            }
+            if (months >= 1) {
               text = `${t('account.sync.status.synced')} ${t(
                 'account.sync.status.old.month',
                 { value: months }
               )}`
-            if (years >= 1)
+            }
+            if (years >= 1) {
               text = `${t('account.sync.status.synced')} ${t(
                 'account.sync.status.old.year',
                 { value: years }
               )}`
+            }
           }
         }
         break

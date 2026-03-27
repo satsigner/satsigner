@@ -81,8 +81,12 @@ export function useNetworkInfo() {
       // keep previous values
     }
 
-    if (height !== null) setBlockHeight(height)
-    if (fee !== null) setNextBlockFee(Math.round(fee))
+    if (height !== null) {
+      setBlockHeight(height)
+    }
+    if (fee !== null) {
+      setNextBlockFee(Math.round(fee))
+    }
     setBlockHeightSource(source)
   }, [selectedNetwork, configsMempool, configs])
 

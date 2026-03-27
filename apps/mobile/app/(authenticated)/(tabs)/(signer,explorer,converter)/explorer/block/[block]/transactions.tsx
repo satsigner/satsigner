@@ -95,9 +95,15 @@ export default function BlockTransactions() {
   }
 
   useEffect(() => {
-    if (!blockHash || backend !== 'esplora') return
-    if (!block) fetchBlock()
-    if (Object.keys(blockTxs).length === 0) fetchBlockTransactions()
+    if (!blockHash || backend !== 'esplora') {
+      return
+    }
+    if (!block) {
+      fetchBlock()
+    }
+    if (Object.keys(blockTxs).length === 0) {
+      fetchBlockTransactions()
+    }
   }, [blockHash, backend]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (backend !== 'esplora') {

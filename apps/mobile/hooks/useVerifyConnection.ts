@@ -19,8 +19,9 @@ function useVerifyConnection() {
   const [connectionState, setConnectionState] = useState<boolean>(false)
   const connectionString = useMemo(() => {
     const trimmedUrl = trimOnionAddress(server.url)
-    if (config.connectionMode === 'auto')
+    if (config.connectionMode === 'auto') {
       return `${server.network} - ${server.name} (${trimmedUrl})`
+    }
 
     return `${server.network} - ${server.name} (${trimmedUrl}) [${config.connectionMode}]`
   }, [server.network, server.name, server.url, config.connectionMode])
@@ -70,7 +71,9 @@ function useVerifyConnection() {
   }, [])
 
   useEffect(() => {
-    if (config.connectionMode === 'manual') return
+    if (config.connectionMode === 'manual') {
+      return
+    }
     ;(async () => {
       await checkConnection()
       verifyConnection()

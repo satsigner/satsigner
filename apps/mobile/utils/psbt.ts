@@ -127,7 +127,9 @@ export async function findMatchingAccount(
       const key = account.keys[keyIndex]
       const keyFingerprint = await getKeyFingerprint(key)
 
-      if (!keyFingerprint) continue
+      if (!keyFingerprint) {
+        continue
+      }
 
       accountFingerprints.push(keyFingerprint)
       keyFingerprintMap.set(keyFingerprint, keyIndex)
@@ -137,13 +139,17 @@ export async function findMatchingAccount(
       accountFingerprints.includes(psbtFp)
     )
 
-    if (!allFingerprintsMatch) continue
+    if (!allFingerprintsMatch) {
+      continue
+    }
 
     const firstMatchingDerivation = derivations.find((d) =>
       accountFingerprints.includes(d.fingerprint)
     )
 
-    if (!firstMatchingDerivation) continue
+    if (!firstMatchingDerivation) {
+      continue
+    }
     const matchingKeyIndex = keyFingerprintMap.get(
       firstMatchingDerivation.fingerprint
     )!
@@ -393,7 +399,9 @@ export function extractTransactionDataFromPSBTEnhanced(
   psbtBase64: string,
   account: Account
 ): ExtractedTransactionData | null {
-  if (!psbtBase64 || !account) return null
+  if (!psbtBase64 || !account) {
+    return null
+  }
 
   const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
   const network = bitcoinjsNetwork(account.network)
@@ -550,15 +558,21 @@ export function extractOriginalPsbt(psbtBase64: string): string {
 
 export function getMultisigInfoFromPsbt(psbtBase64: string) {
   const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
-  if (psbt.data.inputs.length === 0) return null
+  if (psbt.data.inputs.length === 0) {
+    return null
+  }
 
   const firstInput = psbt.data.inputs[0]
   const script = firstInput.witnessScript || firstInput.redeemScript
 
-  if (!script) return null
+  if (!script) {
+    return null
+  }
 
   const decompiled = bitcoinjs.script.decompile(script)
-  if (!decompiled || decompiled.length < 4) return null
+  if (!decompiled || decompiled.length < 4) {
+    return null
+  }
 
   const mOp = decompiled[0]
   const nOp = decompiled[decompiled.length - 2]
@@ -1105,10 +1119,14 @@ export function matchSignedPsbtsToCosigners(
     let matched = false
     for (const pubkey of indivPubkeys) {
       const cosignerIndex = pubkeyToCosignerIndex.get(pubkey)
-      if (cosignerIndex === undefined) continue
+      if (cosignerIndex === undefined) {
+        continue
+      }
 
       const existing = existingSignedPsbts.get(cosignerIndex)
-      if (existing && existing.trim().length > 0) continue
+      if (existing && existing.trim().length > 0) {
+        continue
+      }
 
       matches.push({
         cosignerIndex,
@@ -1119,7 +1137,9 @@ export function matchSignedPsbtsToCosigners(
       break
     }
 
-    if (matched) continue
+    if (matched) {
+      continue
+    }
 
     const totalCosigners = account.keys?.length || 0
     for (let cosIdx = 0; cosIdx < totalCosigners; cosIdx++) {
@@ -1129,10 +1149,14 @@ export function matchSignedPsbtsToCosigners(
         cosIdx,
         decryptedKeys[cosIdx]
       )
-      if (!isValid) continue
+      if (!isValid) {
+        continue
+      }
 
       const existing = existingSignedPsbts.get(cosIdx)
-      if (existing && existing.trim().length > 0) break
+      if (existing && existing.trim().length > 0) {
+        break
+      }
 
       matches.push({
         cosignerIndex: cosIdx,

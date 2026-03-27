@@ -46,30 +46,44 @@ export const DescriptorUtils = {
   extractFingerprintFromXpub(xpubWithPrefix: string) {
     // Pattern 1: [fingerprint/derivation]xpub (with slash separator)
     const fingerprintMatch1 = xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})\//)
-    if (fingerprintMatch1) return fingerprintMatch1[1]
+    if (fingerprintMatch1) {
+      return fingerprintMatch1[1]
+    }
 
     // Pattern 2: [fingerprintderivation]xpub (no slash separator - legacy)
     const fingerprintMatch2 = xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})/)
-    if (fingerprintMatch2) return fingerprintMatch2[1]
+    if (fingerprintMatch2) {
+      return fingerprintMatch2[1]
+    }
 
     // Pattern 3: [fingerprint...]xpub (any length hex - fallback)
     const fingerprintMatch3 = xpubWithPrefix.match(/^\[([0-9a-fA-F]+)/)
-    if (fingerprintMatch3) return fingerprintMatch3[1]
+    if (fingerprintMatch3) {
+      return fingerprintMatch3[1]
+    }
 
     return null
   },
 
   getScriptVersionFromDerivation(derivationPath: string): ScriptVersionType {
-    if (derivationPath.includes("84'")) return 'P2WPKH'
-    if (derivationPath.includes("49'")) return 'P2SH-P2WPKH'
-    if (derivationPath.includes("44'")) return 'P2PKH'
+    if (derivationPath.includes("84'")) {
+      return 'P2WPKH'
+    }
+    if (derivationPath.includes("49'")) {
+      return 'P2SH-P2WPKH'
+    }
+    if (derivationPath.includes("44'")) {
+      return 'P2PKH'
+    }
     return 'P2WPKH' // Default fallback
   },
 
   parseJsonDescriptor(text: string) {
     try {
       const jsonData = JSON.parse(text)
-      if (!jsonData.descriptor) return null
+      if (!jsonData.descriptor) {
+        return null
+      }
 
       const original = jsonData.descriptor
       const withoutChecksum = original.replace(/#[a-z0-9]+$/, '')
@@ -86,7 +100,9 @@ export const DescriptorUtils = {
   },
 
   parseLegacyDescriptor(text: string) {
-    if (!text.includes('\n')) return null
+    if (!text.includes('\n')) {
+      return null
+    }
 
     const lines = text.split('\n')
     return {

@@ -81,7 +81,9 @@ export default function InvoicePage() {
 
   // Function to check invoice status
   const checkInvoiceStatus = useCallback(async () => {
-    if (!rHash || !qrModalVisible) return
+    if (!rHash || !qrModalVisible) {
+      return
+    }
 
     try {
       // Convert r_hash to hex if it's not already
@@ -105,7 +107,9 @@ export default function InvoicePage() {
 
   // Set up polling for invoice status
   useEffect(() => {
-    if (!qrModalVisible || !rHash) return
+    if (!qrModalVisible || !rHash) {
+      return
+    }
 
     // Check immediately
     checkInvoiceStatus()
@@ -132,7 +136,9 @@ export default function InvoicePage() {
   }
 
   const handleSwitchToFiat = () => {
-    if (!btcPrice || btcPrice <= 0) return
+    if (!btcPrice || btcPrice <= 0) {
+      return
+    }
     if (invoiceAmount) {
       const fiat = satsToFiat(parseInt(invoiceAmount, 10))
       setLocalFiatAmount(fiat > 0 ? fiat.toFixed(2) : '')

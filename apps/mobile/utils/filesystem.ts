@@ -28,6 +28,8 @@ export type PickFileProps = {
 
 export async function pickFile({ type, encodingOrOptions }: PickFileProps) {
   const file = await DocumentPicker.getDocumentAsync({ type })
-  if (file.canceled || !file.assets?.[0]) return
+  if (file.canceled || !file.assets?.[0]) {
+    return
+  }
   return FileSystem.readAsStringAsync(file.assets[0].uri, encodingOrOptions)
 }

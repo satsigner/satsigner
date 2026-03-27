@@ -83,7 +83,9 @@ export default function ExportDescriptors() {
 
   useEffect(() => {
     async function getDescriptors() {
-      if (!account) return
+      if (!account) {
+        return
+      }
       try {
         const isImportAddress =
           account.keys?.[0]?.creationType === 'importAddress'
@@ -209,8 +211,9 @@ export default function ExportDescriptors() {
               // Extract fingerprints and extended public keys for each key
               const keyData = await Promise.all(
                 temporaryAccount.keys.map(async (key, index) => {
-                  if (!key)
+                  if (!key) {
                     return { extendedPublicKey: '', fingerprint: '', index }
+                  }
 
                   const secret = key.secret as Secret
                   let extendedPublicKey = ''
@@ -530,7 +533,9 @@ export default function ExportDescriptors() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function exportDescriptors() {
-    if (!account) return
+    if (!account) {
+      return
+    }
     const date = new Date().toISOString().slice(0, -5)
     const ext = 'txt'
     const filename = `${t(
@@ -545,12 +550,16 @@ export default function ExportDescriptors() {
   }
 
   async function exportDescriptorsPDF() {
-    if (!account || !exportContent) return
+    if (!account || !exportContent) {
+      return
+    }
     generatePDF()
   }
 
   async function generatePDF() {
-    if (!account || !exportContent) return
+    if (!account || !exportContent) {
+      return
+    }
 
     try {
       // Capture QR code as image using react-native-view-shot
@@ -571,7 +580,9 @@ export default function ExportDescriptors() {
   }
 
   async function createPDFWithQR(qrDataURL: string) {
-    if (!account) return
+    if (!account) {
+      return
+    }
     const title = account.name
 
     const htmlContent = `
@@ -665,7 +676,9 @@ export default function ExportDescriptors() {
     }
   }
 
-  if (!account) return <Redirect href="/" />
+  if (!account) {
+    return <Redirect href="/" />
+  }
 
   const descriptors = (exportContent || '').split('\n').filter(Boolean)
 
