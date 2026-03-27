@@ -165,11 +165,9 @@ export default function CustomNetwork() {
         toast.warning(t('error.invalid.port'))
         return false
       }
-    } else {
-      if (formData.port.trim() && !formData.port.match(/^[0-9]+$/)) {
-        toast.warning(t('error.invalid.port'))
-        return false
-      }
+    } else if (formData.port.trim() && !formData.port.match(/^[0-9]+$/)) {
+      toast.warning(t('error.invalid.port'))
+      return false
     }
 
     return true

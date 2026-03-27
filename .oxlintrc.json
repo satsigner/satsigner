@@ -120,9 +120,7 @@
     "no-promise-executor-return": "allow",
     "no-empty-function": "allow",
     "guard-for-in": "allow",
-    "preserve-caught-error": "allow",
-    "no-lonely-if": "allow",
-    "no-control-regex": "allow"
+    "preserve-caught-error": "allow"
   },
   "overrides": [
     {

@@ -60,6 +60,7 @@ function SSNFCModal({
         .trim()
         .replace(/[^\S\n]+/g, '')
         .replace(/[\u200B-\u200D\uFEFF]/g, '')
+        // eslint-disable-next-line no-control-regex
         .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '')
         .normalize('NFKC')
 

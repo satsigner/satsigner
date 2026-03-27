@@ -449,6 +449,7 @@ export default function ImportExtendedPub() {
         .trim()
         .replace(/[^\S\n]+/g, '') // Remove all whitespace except newlines
         .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
+        // eslint-disable-next-line no-control-regex
         .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
         .normalize('NFKC') // Normalize unicode characters
         .replace(/^en/, '')
@@ -683,23 +684,21 @@ export default function ImportExtendedPub() {
         } catch {
           toast.error('Failed to decode UR crypto account')
         }
-      } else {
+      } else if (newScanned.size === total) {
         // For RAW and BBQR, wait for all chunks
-        if (newScanned.size === total) {
-          // All chunks collected, assemble the final result
-          const assembledData = assembleMultiPartQR(type, newChunks)
+        // All chunks collected, assemble the final result
+        const assembledData = assembleMultiPartQR(type, newChunks)
 
-          if (assembledData) {
-            setCameraModalVisible(false)
-            resetScanProgress()
+        if (assembledData) {
+          setCameraModalVisible(false)
+          resetScanProgress()
 
-            // Process the assembled data
-            updateXpub(assembledData)
-            toast.success(t('watchonly.success.qrScanned'))
-          } else {
-            toast.error('Failed to assemble multi-part QR code')
-            resetScanProgress()
-          }
+          // Process the assembled data
+          updateXpub(assembledData)
+          toast.success(t('watchonly.success.qrScanned'))
+        } else {
+          toast.error('Failed to assemble multi-part QR code')
+          resetScanProgress()
         }
       }
     }

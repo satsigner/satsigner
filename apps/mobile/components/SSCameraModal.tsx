@@ -358,44 +358,42 @@ function SSCameraModal({
             }
           }
         }
-      } else {
-        if (newScanned.size === total) {
-          const assembledData = await assembleMultiPartQR(type, newChunks)
+      } else if (newScanned.size === total) {
+        const assembledData = await assembleMultiPartQR(type, newChunks)
 
-          if (assembledData) {
-            const detectedContent = await detectContentByContext(
-              assembledData,
-              context
-            )
+        if (assembledData) {
+          const detectedContent = await detectContentByContext(
+            assembledData,
+            context
+          )
 
-            onClose()
-            resetScanProgress()
+          onClose()
+          resetScanProgress()
 
-            if (!detectedContent.isValid) {
-              setTimeout(() => {
-                toast.error(t('camera.error.invalidContent'))
-              }, 100)
-              return
-            }
-
-            onContentScanned(detectedContent)
-
-            if (
-              assembledData.toLowerCase().startsWith('70736274ff') ||
-              assembledData.startsWith('cHNidP')
-            ) {
-              toast.success(
-                `PSBT assembled successfully (${total} parts). Note: PSBT may need additional signatures to finalize.`
-              )
-            } else {
-              toast.success(
-                `Successfully assembled final transaction from ${total} parts`
-              )
-            }
-          } else {
-            toast.error(t('camera.error.assembleFailed'))
-            resetScanProgress()
+          if (!detectedContent.isValid) {
+            setTimeout(() => {
+              toast.error(t('camera.error.invalidContent'))
+            }, 100)
+            return
           }
+
+          onContentScanned(detectedContent)
+
+          if (
+            assembledData.toLowerCase().startsWith('70736274ff') ||
+            assembledData.startsWith('cHNidP')
+          ) {
+            toast.success(
+              `PSBT assembled successfully (${total} parts). Note: PSBT may need additional signatures to finalize.`
+            )
+          } else {
+            toast.success(
+              `Successfully assembled final transaction from ${total} parts`
+            )
+          }
+        } else {
+          toast.error(t('camera.error.assembleFailed'))
+          resetScanProgress()
         }
       }
     },

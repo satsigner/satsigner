@@ -62,11 +62,9 @@ export function useNFCReader() {
         if (match && match[1]) {
           ;[, result.txId] = match
           result.text = text
-        } else {
+        } else if (!result.text) {
           // For watch-only use cases, store any text content
-          if (!result.text) {
-            result.text = text
-          }
+          result.text = text
         }
       } else if (type === 'bitcoin.org:txn') {
         // Store the raw transaction data

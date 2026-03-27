@@ -1400,46 +1400,43 @@ function PreviewTransaction() {
       toast.success(
         `UR: Collected ${newScanned.size} fragments (need ~${targetForDisplay})`
       )
-    } else {
-      // For RAW and BBQR, wait for all chunks as before
-      if (newScanned.size === total) {
-        // All chunks collected, assemble the final result
-        const assembledData = await assembleMultiPartQR(type, newChunks)
+    } else if (newScanned.size === total) {
+      // All chunks collected, assemble the final result
+      const assembledData = await assembleMultiPartQR(type, newChunks)
 
-        if (assembledData) {
-          // Process the assembled data (convert PSBT to final transaction if needed)
-          const finalData = processScannedData(assembledData)
+      if (assembledData) {
+        // Process the assembled data (convert PSBT to final transaction if needed)
+        const finalData = processScannedData(assembledData)
 
-          // Use hook's updateSignedPsbt function
-          updateSignedPsbt(index ?? -1, finalData)
+        // Use hook's updateSignedPsbt function
+        updateSignedPsbt(index ?? -1, finalData)
 
-          setCameraModalVisible(false)
-          resetScanProgress()
+        setCameraModalVisible(false)
+        resetScanProgress()
 
-          // Check if the result is still a PSBT (not finalized)
-          if (
-            finalData.toLowerCase().startsWith('70736274ff') ||
-            finalData.startsWith('cHNidP')
-          ) {
-            toast.success(
-              `PSBT assembled successfully (${total} parts). Note: PSBT may need additional signatures to finalize.`
-            )
-          } else {
-            toast.success(
-              `Successfully assembled final transaction from ${total} parts`
-            )
-          }
+        // Check if the result is still a PSBT (not finalized)
+        if (
+          finalData.toLowerCase().startsWith('70736274ff') ||
+          finalData.startsWith('cHNidP')
+        ) {
+          toast.success(
+            `PSBT assembled successfully (${total} parts). Note: PSBT may need additional signatures to finalize.`
+          )
         } else {
-          toast.error(t('camera.error.assembleFailed'))
-          resetScanProgress()
+          toast.success(
+            `Successfully assembled final transaction from ${total} parts`
+          )
         }
       } else {
-        toast.success(
-          `Scanned part ${current + 1} of ${total} (${
-            newScanned.size
-          }/${total} complete)`
-        )
+        toast.error(t('camera.error.assembleFailed'))
+        resetScanProgress()
       }
+    } else {
+      toast.success(
+        `Scanned part ${current + 1} of ${total} (${
+          newScanned.size
+        }/${total} complete)`
+      )
     }
   }
 
