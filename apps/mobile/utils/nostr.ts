@@ -37,7 +37,7 @@ export async function generateColorFromNpub(npub: string): Promise<string> {
   const x = c * (1 - Math.abs((h % 2) - 1))
   const m = l - c / 2
 
-  let r, g, b
+  let b, g, r
   if (h < 1) {
     ;[r, g, b] = [c, x, 0]
   } else if (h < 2) {
