@@ -635,7 +635,7 @@ function SSHistoryChart({
     if (!showTransactionInfo) {
       return []
     }
-    const length = xScaleTransactions.length
+    const { length } = xScaleTransactions
     const xAxisLabels = xScaleTransactions.map((t) => {
       const amount = t.type === 'receive' ? t.received : t.received - t.sent
       const numberOfInput = t.vin?.length ?? 0
@@ -891,7 +891,7 @@ function SSHistoryChart({
       if (label.type === 'end') {
         return
       }
-      const x = label.x
+      const { x } = label
       if (x < 0 || x > chartWidth) {
         return
       }
@@ -1354,7 +1354,7 @@ function XScaleRenderer({
   return (
     <>
       {txXAxisLabels.map((t, index) => {
-        const x = t.x
+        const { x } = t
         return (
           <Fragment key={t.x + index.toString()}>
             <Group>

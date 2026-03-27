@@ -541,7 +541,7 @@ export default function ImportExtendedPub() {
                     /^\[([0-9a-fA-F]{8})\//
                   )
                   if (fingerprintMatch1) {
-                    extractedFingerprint = fingerprintMatch1[1]
+                    ;[, extractedFingerprint] = fingerprintMatch1
                   }
 
                   // Pattern 2: [fingerprintderivation]xpub (no slash separator - legacy)
@@ -549,7 +549,7 @@ export default function ImportExtendedPub() {
                     const fingerprintMatch2 =
                       xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})/)
                     if (fingerprintMatch2) {
-                      extractedFingerprint = fingerprintMatch2[1]
+                      ;[, extractedFingerprint] = fingerprintMatch2
                     }
                   }
 
@@ -558,7 +558,7 @@ export default function ImportExtendedPub() {
                     const fingerprintMatch3 =
                       xpubWithPrefix.match(/^\[([0-9a-fA-F]+)/)
                     if (fingerprintMatch3) {
-                      extractedFingerprint = fingerprintMatch3[1]
+                      ;[, extractedFingerprint] = fingerprintMatch3
                     }
                   }
 
@@ -571,7 +571,7 @@ export default function ImportExtendedPub() {
                     /\]([txyzuv]pub[a-zA-Z0-9]{107})$/
                   )
                   if (xpubMatch) {
-                    const extractedXpub = xpubMatch[1]
+                    const [, extractedXpub] = xpubMatch
                     updateXpub(extractedXpub)
                   } else {
                     // Fallback: use the full string if parsing fails
@@ -639,14 +639,14 @@ export default function ImportExtendedPub() {
                   /^\[([0-9a-fA-F]{8})\//
                 )
                 if (fingerprintMatch1) {
-                  extractedFingerprint = fingerprintMatch1[1]
+                  ;[, extractedFingerprint] = fingerprintMatch1
                 }
 
                 if (!extractedFingerprint) {
                   const fingerprintMatch2 =
                     xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})/)
                   if (fingerprintMatch2) {
-                    extractedFingerprint = fingerprintMatch2[1]
+                    ;[, extractedFingerprint] = fingerprintMatch2
                   }
                 }
 
@@ -654,7 +654,7 @@ export default function ImportExtendedPub() {
                   const fingerprintMatch3 =
                     xpubWithPrefix.match(/^\[([0-9a-fA-F]+)/)
                   if (fingerprintMatch3) {
-                    extractedFingerprint = fingerprintMatch3[1]
+                    ;[, extractedFingerprint] = fingerprintMatch3
                   }
                 }
 

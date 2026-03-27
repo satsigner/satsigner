@@ -66,7 +66,7 @@ function parseAccountAddressesDetails({
       }
 
       const prevTxIndex = txDictionary[prevTxId]
-      const vout = input.previousOutput.vout
+      const { vout } = input.previousOutput
       const prevTx = transactions[prevTxIndex]
 
       if (prevTx.vout[vout] === undefined) {
@@ -258,8 +258,7 @@ function parseUriParameters(content: string): ParsedUriParams | null {
     return null
   }
 
-  const addressPart = uriMatch[1]
-  const queryString = uriMatch[2]
+  const [, addressPart, queryString] = uriMatch
 
   if (!queryString) {
     return { address: addressPart }

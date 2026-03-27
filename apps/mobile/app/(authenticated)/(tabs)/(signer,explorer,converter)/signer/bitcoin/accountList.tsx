@@ -536,7 +536,7 @@ export default function AccountList() {
 
     // Additional validation for mnemonic-based wallets
     if (['segwit', 'legacy'].includes(type)) {
-      const key = account.keys[0]
+      const [key] = account.keys
       if (
         !key.secret ||
         typeof key.secret !== 'object' ||
@@ -569,7 +569,7 @@ export default function AccountList() {
         }
       }
       // Validate that third key has extended public key
-      const key3 = account.keys[2]
+      const [, , key3] = account.keys
       if (
         !key3.secret ||
         typeof key3.secret !== 'object' ||

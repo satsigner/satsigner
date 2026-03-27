@@ -195,9 +195,8 @@ export default function ImportDescriptor() {
         }
 
         const [, bracketContent, afterBracket] = bracketMatch
-        const bracketParts = bracketContent.split('/')
-        const fingerprint = bracketParts[0]
-        const derivationPath = bracketParts.slice(1).join('/')
+        const [fingerprint, ...restParts] = bracketContent.split('/')
+        const derivationPath = restParts.join('/')
 
         // Extract extended public key and address path
         const xpubMatch = afterBracket.match(/^([a-zA-Z0-9]+)(.*)$/)

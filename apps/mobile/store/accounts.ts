@@ -173,7 +173,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               (account: Account) => account.id === accountId
             )
             labels.forEach((labelObj) => {
-              const label = labelObj.label
+              const { label } = labelObj
 
               state.accounts[index].labels[labelObj.ref] = labelObj
 
@@ -210,7 +210,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       },
       loadTx: async (accountId, tx) => {
         const txid = tx.id
-        const accounts = get().accounts
+        const { accounts } = get()
         const accountIndex = accounts.findIndex(
           (account) => account.id === accountId
         )

@@ -42,7 +42,7 @@ export default function LNDRestPage() {
       throw new Error('Invalid config format: missing configurations array')
     }
 
-    const config = jsonConfig.configurations[0]
+    const [config] = jsonConfig.configurations
 
     const lndConfig: LNDConfig = {
       cert: config.cert,

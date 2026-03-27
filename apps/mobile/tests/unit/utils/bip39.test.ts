@@ -168,8 +168,7 @@ describe('bip39 utils', () => {
 
   it('gets extended public key from mnemonic', () => {
     for (const test of extendedPublicKeyTests) {
-      const [mnemonic, passphrase, network, scriptVersion] = test[0]
-      const actualKey = test[1]
+      const [[mnemonic, passphrase, network, scriptVersion], actualKey] = test
       const result = getExtendedPublicKeyFromMnemonic(
         mnemonic,
         passphrase,
@@ -182,8 +181,8 @@ describe('bip39 utils', () => {
 
   it('gets descriptor from mnemonic', () => {
     for (const test of descriptorTests) {
-      const [mnemonic, passphrase, network, scriptVersion] = test[0]
-      const actualDescriptor = test[1]
+      const [[mnemonic, passphrase, network, scriptVersion], actualDescriptor] =
+        test
       const result = getPublicDescriptorFromMnemonic(
         mnemonic,
         scriptVersion as ScriptVersionType,

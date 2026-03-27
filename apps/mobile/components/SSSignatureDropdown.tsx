@@ -171,7 +171,7 @@ function SSSignatureDropdown({
 
       if (typeof keyDetails.secret === 'string') {
         if (decryptedKey && typeof decryptedKey.secret === 'object') {
-          const secret = decryptedKey.secret
+          const { secret } = decryptedKey
           if (secret.extendedPublicKey) {
             setExtractedPublicKey(secret.extendedPublicKey)
             return
@@ -192,7 +192,7 @@ function SSSignatureDropdown({
       }
 
       if (typeof keyDetails.secret === 'object') {
-        const secret = keyDetails.secret
+        const { secret } = keyDetails
 
         if (secret.extendedPublicKey) {
           setExtractedPublicKey(secret.extendedPublicKey)

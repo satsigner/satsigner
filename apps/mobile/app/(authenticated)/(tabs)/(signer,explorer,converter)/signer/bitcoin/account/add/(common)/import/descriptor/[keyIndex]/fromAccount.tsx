@@ -66,20 +66,21 @@ function ImportDescriptorFromAccount() {
       return
     }
 
-    const iv = chosenAccount.keys[0].iv
-    const encryptedSecret = chosenAccount.keys[0].secret as string
+    const [firstKey] = chosenAccount.keys
+    const { iv } = firstKey
+    const encryptedSecret = firstKey.secret as string
 
     const accountSecretString = await aesDecrypt(encryptedSecret, pin, iv)
     const accountSecret = JSON.parse(accountSecretString) as Secret
 
-    const creationType = chosenAccount.keys[0].creationType
+    const { creationType } = firstKey
     let externalDescriptor: Descriptor | undefined
     let externalDescriptorString: Secret['externalDescriptor']
 
     if (creationType !== 'importDescriptor') {
-      const mnemonic = accountSecret.mnemonic
-      const scriptVersion = chosenAccount.keys[0].scriptVersion
-      const passphrase = accountSecret.passphrase
+      const { mnemonic } = accountSecret
+      const { scriptVersion } = firstKey
+      const { passphrase } = accountSecret
       if (!mnemonic || !scriptVersion) {
         return
       }

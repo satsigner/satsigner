@@ -240,7 +240,7 @@ export class NostrAPI {
     const signer = new NDKPrivateKeySigner(randomBytesArray)
     const user = await signer.user()
     const nsec = nip19.nsecEncode(randomBytesArray)
-    const npub = user.npub
+    const { npub } = user
 
     return {
       npub,
@@ -490,7 +490,7 @@ export class NostrAPI {
       event.ndk = this.ndk
     }
     if (!event.sig) {
-      const signer = this.ndk.signer
+      const { signer } = this.ndk
       if (!signer) {
         throw new Error('No signer available for event')
       }

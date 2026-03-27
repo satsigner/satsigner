@@ -134,7 +134,7 @@ function SSAmountInput({
         maximumValue={max}
         value={localValue}
         onValueChange={(value) => {
-          const sats = value[0]
+          const [sats] = value
           setLocalValue(sats)
           setLocalFiatValue(satsToFiat(sats))
         }}

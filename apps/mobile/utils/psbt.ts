@@ -398,7 +398,7 @@ export function extractTransactionIdFromPSBT(
     const tx = psbt.extractTransaction()
     return tx.getId()
   } catch {
-    const unsignedTx = psbt.data.globalMap.unsignedTx
+    const { unsignedTx } = psbt.data.globalMap
     if (unsignedTx) {
       const txBuffer = unsignedTx.toBuffer()
       const hash = bitcoinjs.crypto.hash256(txBuffer)
@@ -430,7 +430,7 @@ export function extractTransactionDataFromPSBTEnhanced(
     let address = ''
 
     if (psbtInput.witnessUtxo) {
-      value = psbtInput.witnessUtxo.value
+      ;({ value } = psbtInput.witnessUtxo)
       script = psbtInput.witnessUtxo.script?.toString('hex') || ''
     } else if (psbtInput.nonWitnessUtxo) {
       try {
@@ -469,7 +469,7 @@ export function extractTransactionDataFromPSBTEnhanced(
 
   const outputs = psbt.txOutputs.map((output, index) => {
     const script = output.script.toString('hex')
-    const value = output.value
+    const { value } = output
     let address = ''
 
     try {
@@ -575,7 +575,7 @@ export function getMultisigInfoFromPsbt(psbtBase64: string) {
     return null
   }
 
-  const firstInput = psbt.data.inputs[0]
+  const [firstInput] = psbt.data.inputs
   const script = firstInput.witnessScript || firstInput.redeemScript
 
   if (!script) {
@@ -587,7 +587,7 @@ export function getMultisigInfoFromPsbt(psbtBase64: string) {
     return null
   }
 
-  const mOp = decompiled[0]
+  const [mOp] = decompiled
   const nOp = decompiled[decompiled.length - 2]
 
   const m = bitcoinjs.script.number.decode(
@@ -936,7 +936,7 @@ function parseWitnessScript(witnessScript: Buffer) {
     return null
   }
 
-  const op = script[0]
+  const [op] = script
   if (!isValidOpCode(op)) {
     return null
   }

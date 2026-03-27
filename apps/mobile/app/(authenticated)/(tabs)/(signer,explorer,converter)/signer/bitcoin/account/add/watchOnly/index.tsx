@@ -786,9 +786,7 @@ export default function WatchOnly() {
         let externalDescriptor = text
         let internalDescriptor = ''
         if (text.includes('\n')) {
-          const lines = text.split('\n')
-          externalDescriptor = lines[0]
-          internalDescriptor = lines[1]
+          ;[externalDescriptor, internalDescriptor] = text.split('\n')
         }
 
         // Check if the descriptor is combined (contains <0;1> or <0,1>)

@@ -5,7 +5,7 @@ export function showNavigation(path: string = '/', depth: number = 0): boolean {
     return false
   }
 
-  const screen = path.replace(/^\/+/, '').split('/')[0]
+  const [screen] = path.replace(/^\/+/, '').split('/')
   if (noNavScreens.includes(screen)) {
     return false
   }

@@ -80,7 +80,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
 
     switch (status) {
       case 'unsynced':
-        color = Colors.gray[200]
+        color = Colors.gray[200] // eslint-disable-line prefer-destructuring
         text = t('account.sync.status.unsynced')
         break
       case 'synced': {
@@ -97,7 +97,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
           const years = Math.floor(days / 365)
 
           if (hours >= 1) {
-            color = Colors.gray[75]
+            color = Colors.gray[75] // eslint-disable-line prefer-destructuring
             text = `${t('account.sync.status.synced')} ${t(
               'account.sync.status.old.hour',
               { value: hours }

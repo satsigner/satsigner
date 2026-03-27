@@ -99,7 +99,7 @@ export function useEcash() {
   const connectToMintHandler = useCallback(
     async (mintUrl: string): Promise<EcashMint> => {
       if (mints.length > 0) {
-        const existingMint = mints[0]
+        const [existingMint] = mints
         removeMint(existingMint.url)
         clearWalletCache(existingMint.url)
         toast.info(t('ecash.info.mintDisconnected'))

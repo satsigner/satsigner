@@ -44,7 +44,7 @@ export function isValidBitcoinContent(text: string) {
   }
 
   if (trimmed.toLowerCase().startsWith('bitcoin:')) {
-    const addressPart = trimmed.substring(8).split('?')[0]
+    const [addressPart] = trimmed.substring(8).split('?')
     if (validateAddress(addressPart) || isBitcoinAddress(addressPart)) {
       return true
     }
@@ -86,7 +86,7 @@ export function processBitcoinContent(
 
   let processedAddress = trimmed
   if (processedAddress.toLowerCase().startsWith('bitcoin:')) {
-    processedAddress = processedAddress.substring(8).split('?')[0]
+    ;[processedAddress] = processedAddress.substring(8).split('?')
   }
 
   if (validateAddress(processedAddress)) {

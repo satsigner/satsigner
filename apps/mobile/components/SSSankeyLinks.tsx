@@ -341,17 +341,22 @@ const generateCustomLink = (points: LinkPoints) => {
 
   // Control points for the curve from B to D (bottom curve)
   // First control point extends horizontally from B, second from D
-  const bottomCurveCP1X = B[0] + controlPointOffset
-  const bottomCurveCP1Y = B[1]
-  const bottomCurveCP2X = D[0] - controlPointOffset
-  const bottomCurveCP2Y = D[1]
+  const [bX, bY] = B
+  const [dX, dY] = D
+  const [cX, cY] = C
+  const [aX, aY] = A
+
+  const bottomCurveCP1X = bX + controlPointOffset
+  const bottomCurveCP1Y = bY
+  const bottomCurveCP2X = dX - controlPointOffset
+  const bottomCurveCP2Y = dY
 
   // Control points for the curve from C to A (top curve)
   // First control point extends horizontally from C, second from A
-  const topCurveCP1X = C[0] - controlPointOffset
-  const topCurveCP1Y = C[1]
-  const topCurveCP2X = A[0] + controlPointOffset
-  const topCurveCP2Y = A[1]
+  const topCurveCP1X = cX - controlPointOffset
+  const topCurveCP1Y = cY
+  const topCurveCP2X = aX + controlPointOffset
+  const topCurveCP2Y = aY
 
   // Build the path
   const moveToA = `M ${A[0]} ${A[1]}`

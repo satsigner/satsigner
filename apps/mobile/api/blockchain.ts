@@ -189,7 +189,7 @@ export class MempoolOracle implements BlockchainOracle {
     const data = (await this.get(
       `/v1/historical-price?currency=${currency}&timestamp=${timestamp}`
     )) as { prices: Record<string, number>[] }
-    const prices = data.prices
+    const { prices } = data
     return prices[0][currency] as number
   }
 
@@ -237,7 +237,7 @@ export class MempoolOracle implements BlockchainOracle {
     const priceValues: PriceValue[] = []
     for (let i = 0; i < fiatPrices.length; i++) {
       const fiatPrice = fiatPrices[i]
-      const value = utxos[i].value
+      const { value } = utxos[i]
       const fiatValue = satoshiToFiat(fiatPrice, value)
       priceValues.push({ currency, fiatPrice, fiatValue, value })
     }
@@ -253,7 +253,7 @@ export class MempoolOracle implements BlockchainOracle {
     const fiatPrice = await this.getPriceAt(currency, timestamp)
     const priceValues: PriceValue[] = []
     for (const vin of tx.vin) {
-      const value = vin.prevout.value
+      const { value } = vin.prevout
       const fiatValue = satoshiToFiat(fiatPrice, value)
       priceValues.push({ currency, fiatPrice, fiatValue, value })
     }
@@ -269,7 +269,7 @@ export class MempoolOracle implements BlockchainOracle {
     const fiatPrice = await this.getPriceAt(currency, timestamp)
     const priceValues: PriceValue[] = []
     for (const vOut of tx.vout) {
-      const value = vOut.value
+      const { value } = vOut
       const fiatValue = satoshiToFiat(fiatPrice, value)
       priceValues.push({ currency, fiatPrice, fiatValue, value })
     }

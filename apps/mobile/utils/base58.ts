@@ -33,7 +33,7 @@ export function base85Decode(str: string): Buffer {
   const padChars = rem ? 5 - rem : 0
   const padBytes = padChars
 
-  const padChar = BASE85[84]
+  const padChar = BASE85.charAt(84)
   const full = padChars ? str + padChar.repeat(padChars) : str
 
   const out = []

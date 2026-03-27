@@ -98,7 +98,7 @@ function ExplorerDifficulty() {
       const fileName = getFileName(epoch)
       const response = await fetch(DATA_LINK + fileName)
       const rawData = (await response.json()) as DifficultyEpochsData[][]
-      const items = rawData[0]
+      const [items] = rawData
       const data = items.map(
         (value) =>
           ({
@@ -114,7 +114,7 @@ function ExplorerDifficulty() {
           }) as BlockDifficulty
       )
 
-      const firstBlock = data[0]
+      const [firstBlock] = data
       const lastBlock = data[data.length - 1]
 
       setHeightStart(firstBlock.height.toString())

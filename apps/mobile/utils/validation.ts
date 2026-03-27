@@ -128,7 +128,7 @@ async function validateDescriptorInternal(
     /\[([a-fA-F0-9]{8})?([0-9]+[h']?\/)*[0-9]+[h']?\]/
   )
   if (derivationPathMatch) {
-    const derivationPath = derivationPathMatch[0]
+    const [derivationPath] = derivationPathMatch
     // Validate fingerprint if present
     const fingerprintMatch = derivationPath.match(/\[([a-fA-F0-9]{8})/)
     if (fingerprintMatch && fingerprintMatch[1]) {

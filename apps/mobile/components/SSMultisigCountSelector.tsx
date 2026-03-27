@@ -52,7 +52,7 @@ function SSMultisigCountSelector({
     : Gesture.Pan()
         .activateAfterLongPress(30)
         .onStart((event) => {
-          const x = event.x
+          const { x } = event
           const index = centerPoints.findIndex((point) => {
             return (
               x >= point - RADIUS_INDICATOR && x <= point + RADIUS_INDICATOR
@@ -65,7 +65,7 @@ function SSMultisigCountSelector({
           }
         })
         .onUpdate((event) => {
-          const x = event.x
+          const { x } = event
           const index = centerPoints.findIndex((point) => {
             return (
               x >= point - RADIUS_INDICATOR && x <= point + RADIUS_INDICATOR

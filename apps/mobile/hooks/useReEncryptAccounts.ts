@@ -33,7 +33,7 @@ export default function useReEncryptAccounts() {
           )
           secret = JSON.parse(decryptedSecretString) as Secret
         } else {
-          secret = key.secret
+          ;({ secret } = key)
         }
 
         // encrypt secret with new pin

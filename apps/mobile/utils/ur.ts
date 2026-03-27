@@ -120,7 +120,7 @@ function isCBORByteStringLike(cborData: Uint8Array): boolean {
     return false
   }
 
-  const firstByte = cborData[0]
+  const [firstByte] = cborData
 
   if ((firstByte & 0xe0) !== 0x40) {
     return false
@@ -132,7 +132,7 @@ function isCBORByteStringLike(cborData: Uint8Array): boolean {
   }
 
   if (firstByte === 0x58 && cborData.length >= 2) {
-    const length = cborData[1]
+    const [, length] = cborData
     return 2 + length <= cborData.length
   }
 
@@ -391,7 +391,7 @@ function parseCBORByteString(cborData: Uint8Array): Uint8Array {
     throw new Error('CBOR data too short')
   }
 
-  const firstByte = cborData[0]
+  const [firstByte] = cborData
 
   // Handle major type 2 (byte strings)
   if ((firstByte & 0xe0) === 0x40) {
@@ -406,7 +406,7 @@ function parseCBORByteString(cborData: Uint8Array): Uint8Array {
       if (cborData.length < 2) {
         throw new Error('CBOR truncated at 1-byte length')
       }
-      length = cborData[1]
+      ;[, length] = cborData
       offset = 2
     } else if (firstByte === 0x59) {
       // 2-byte length follows (big endian)

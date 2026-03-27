@@ -49,8 +49,8 @@ function SSPinInput({
   useEffect(() => {
     KeyEvent.onKeyUpListener((keyEvent: KeyEventProps) => {
       // key code is from ASCII TABLE
-      const keyCode = keyEvent.keyCode
-      let pressedKey = keyEvent.pressedKey
+      const { keyCode } = keyEvent
+      let { pressedKey } = keyEvent
 
       if (
         keyCode === KEY_CODE_DELETE ||

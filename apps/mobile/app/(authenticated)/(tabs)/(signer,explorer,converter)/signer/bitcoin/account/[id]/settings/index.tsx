@@ -155,8 +155,9 @@ export default function AccountSettings() {
         return
       }
 
-      const iv = account.keys[0].iv
-      const encryptedSecret = account.keys[0].secret as string
+      const [firstKey] = account.keys
+      const { iv } = firstKey
+      const encryptedSecret = firstKey.secret as string
 
       const accountSecretString = await aesDecrypt(encryptedSecret, pin, iv)
       const accountSecret = JSON.parse(accountSecretString) as Secret

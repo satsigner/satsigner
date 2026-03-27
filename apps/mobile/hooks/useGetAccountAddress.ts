@@ -28,7 +28,7 @@ const useGetAccountAddress = (id: Account['id']) => {
       const temporaryAccount = await getAccountWithDecryptedKeys(account)
 
       if (account.keys[0].creationType === 'importAddress') {
-        const secret = temporaryAccount.keys[0].secret
+        const [{ secret }] = temporaryAccount.keys
         if (!secret.externalDescriptor) {
           return
         }

@@ -385,7 +385,7 @@ function useSyncAccountWithAddress() {
 
     for (const tx of pendingTx) {
       const txid = tx.tx_hash
-      const height = tx.height
+      const { height } = tx
 
       // fetch raw transaction
       const rawTx = await electrumClient.getTransaction(txid)
@@ -482,7 +482,7 @@ function useSyncAccountWithAddress() {
 
     // fetch timestamps for new utxos
     for (const electrumUtxo of pendingUtxos) {
-      const height = electrumUtxo.height
+      const { height } = electrumUtxo
 
       if (!timestampByHeight[height]) {
         timestampByHeight[height] =

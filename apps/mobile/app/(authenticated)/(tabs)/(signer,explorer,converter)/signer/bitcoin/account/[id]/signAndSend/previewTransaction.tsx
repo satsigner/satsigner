@@ -108,7 +108,7 @@ function hasEnoughSignatures(input: PsbtInputWithSignatures) {
       return false
     }
 
-    const op = script[0]
+    const [op] = script
 
     if (typeof op !== 'number' || op < 81 || op > 96) {
       return false

@@ -193,8 +193,8 @@ function trimOnionAddress(url: string): string {
     return url
   }
 
-  const fullOnion = onionMatch[1]
-  const port = onionMatch[2] || ''
+  const [, fullOnion, matchedPort] = onionMatch
+  const port = matchedPort || ''
 
   const onionPart = fullOnion.replace('.onion', '')
   const first5 = onionPart.substring(0, 5)

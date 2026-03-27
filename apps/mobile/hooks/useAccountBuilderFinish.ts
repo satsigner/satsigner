@@ -37,9 +37,10 @@ function useAccountBuilderFinish() {
 
   async function accountBuilderFinish(account: Account) {
     setLoading(true)
-    const isImportAddress = account.keys[0].creationType === 'importAddress'
+    const [firstKey] = account.keys
+    const isImportAddress = firstKey.creationType === 'importAddress'
     const { policyType } = account
-    const { creationType } = account.keys[0]
+    const { creationType } = firstKey
 
     const walletData = !isImportAddress
       ? await getWalletData(account, network as Network)

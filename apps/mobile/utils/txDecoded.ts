@@ -135,7 +135,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
   }
 
   getInputScript(index: number): TxDecodedField {
-    const script = this.ins[index].script
+    const { script } = this.ins[index]
     const hex = script.toString('hex')
     let value
     if (hex === '') {
@@ -173,7 +173,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
   }
 
   getOutputValue(index: number): TxDecodedField {
-    const value = this.outs[index].value
+    const { value } = this.outs[index]
     const hex = toBigUInt64LE(value)
     const field = TxField.TxOutValue
     const placeholders = { output: index }
@@ -189,7 +189,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
   }
 
   getOutputScript(index: number): TxDecodedField {
-    const script = this.outs[index].script
+    const { script } = this.outs[index]
     const hex = script.toString('hex')
     const value = bitcoinjs.script.toASM(script)
     const address = this.generateOutputScriptAddress(index)
@@ -213,7 +213,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
   }
 
   getWitnessStackElements(index: number): TxDecodedField[] {
-    const witness = this.ins[index].witness
+    const { witness } = this.ins[index]
     const witnessTuples = witness.map((_, i) => [
       this.getWitnessItemsVarInt(index, i),
       this.getWitnessItem(index, i)
@@ -257,7 +257,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     network: bitcoinjs.Network = bitcoinjs.networks.testnet
   ) {
     try {
-      const script = this.outs[index].script
+      const { script } = this.outs[index]
       const address = bitcoinjs.address.fromOutputScript(script, network)
       return address
     } catch {

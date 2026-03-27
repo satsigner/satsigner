@@ -302,9 +302,7 @@ export default function UnifiedImport() {
       } catch (_jsonError) {
         // Handle legacy formats
         if (text.includes('\n')) {
-          const lines = text.split('\n')
-          externalDescriptor = lines[0]
-          internalDescriptor = lines[1]
+          ;[externalDescriptor, internalDescriptor] = text.split('\n')
         }
       }
 
@@ -416,9 +414,7 @@ export default function UnifiedImport() {
         let internalDescriptor = ''
         const originalDescriptor = ''
         if (text.includes('\n')) {
-          const lines = text.split('\n')
-          externalDescriptor = lines[0]
-          internalDescriptor = lines[1]
+          ;[externalDescriptor, internalDescriptor] = text.split('\n')
         }
 
         // Check if the descriptor is combined (contains <0;1> or <0,1>)
@@ -521,9 +517,7 @@ export default function UnifiedImport() {
       } catch (_jsonError) {
         // Handle legacy formats
         if (data.includes('\n')) {
-          const lines = data.split('\n')
-          externalDescriptor = lines[0]
-          internalDescriptor = lines[1]
+          ;[externalDescriptor, internalDescriptor] = data.split('\n')
         }
       }
 

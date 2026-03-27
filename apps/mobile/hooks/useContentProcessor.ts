@@ -297,8 +297,8 @@ async function processBitcoinContent(
             /^([a-zA-Z0-9]{26,62})(\?.*)?$/
           )
           if (addressMatch) {
-            const address = addressMatch[1]
-            const queryString = addressMatch[2] || ''
+            const [, address, matchedQuery] = addressMatch
+            const queryString = matchedQuery || ''
 
             let amount = 1
             let label = ''

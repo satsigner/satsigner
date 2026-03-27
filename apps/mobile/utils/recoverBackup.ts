@@ -46,7 +46,7 @@ function parseBackupDate(v: string | number | Date | null | undefined): Date {
 export async function performRecoverOverwrite(
   decrypted: string
 ): Promise<{ success: boolean }> {
-  const skipPin = useAuthStore.getState().skipPin
+  const { skipPin } = useAuthStore.getState()
   const pin = await getPinForDecryption(skipPin)
   if (!pin) {
     return { success: false }

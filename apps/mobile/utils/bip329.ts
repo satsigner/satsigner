@@ -174,7 +174,7 @@ export function CSVtoLabels(CsvText: string): Label[] {
   if (lines.length < 0) {
     throw new Error('Empty CSV text')
   }
-  const header = lines[0]
+  const [header] = lines
   if (!header.match(/^([a-zA-Z()]+,?)+/)) {
     throw new Error('Invalid CSV header')
   }

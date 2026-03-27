@@ -358,7 +358,7 @@ export default function DevicesGroupChat() {
       return
     }
 
-    const relays = account.nostr.relays
+    const { relays } = account.nostr
     const fetchedRef = new Set<string>()
 
     ;(async () => {

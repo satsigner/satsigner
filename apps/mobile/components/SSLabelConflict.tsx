@@ -73,10 +73,10 @@ function solveConflict(
   let label = ''
   switch (strategy) {
     case 'current':
-      label = current.label
+      ;({ label } = current)
       break
     case 'incoming':
-      label = incoming.label
+      ;({ label } = incoming)
       break
     case 'merge':
       label = `${current.label}; ${incoming.label}`

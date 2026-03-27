@@ -272,10 +272,10 @@ export function getAccountFingerprint(
     return ''
   }
 
-  const firstKey = account.keys[0]
+  const [firstKey] = account.keys
 
   if (decryptedKeys && decryptedKeys.length > 0) {
-    const decryptedKey = decryptedKeys[0]
+    const [decryptedKey] = decryptedKeys
     if (decryptedKey) {
       if (
         typeof decryptedKey.secret === 'object' &&

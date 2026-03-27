@@ -143,7 +143,7 @@ async function detectBitcoinContent(
 
   const addressMatch = trimmed.match(/^([a-zA-Z0-9]{26,62})(\?.*)?$/)
   if (addressMatch) {
-    const addressPart = addressMatch[1]
+    const [, addressPart] = addressMatch
     if (isBitcoinAddress(addressPart)) {
       return {
         cleaned: trimmed,

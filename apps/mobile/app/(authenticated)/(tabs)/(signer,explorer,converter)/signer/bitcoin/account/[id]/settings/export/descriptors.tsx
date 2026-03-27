@@ -99,12 +99,12 @@ export default function ExportDescriptors() {
         } else if (!isImportAddress) {
           if (temporaryAccount.policyType === 'singlesig') {
             // For single signature accounts, generate single key descriptor
-            const key = temporaryAccount.keys[0]
+            const [key] = temporaryAccount.keys
             if (!key) {
               descriptorString =
                 'No key data available for single signature account'
             } else {
-              const secret = key.secret
+              const { secret } = key
               let extendedPublicKey = ''
               let fingerprint = ''
 
@@ -117,7 +117,7 @@ export default function ExportDescriptors() {
               // Get extended public key from various possible sources
               if (typeof secret === 'object') {
                 if (secret.extendedPublicKey) {
-                  extendedPublicKey = secret.extendedPublicKey
+                  ;({ extendedPublicKey } = secret)
                 } else if (secret.externalDescriptor) {
                   extendedPublicKey = getExtendedKeyFromDescriptor(
                     secret.externalDescriptor
@@ -152,7 +152,7 @@ export default function ExportDescriptors() {
 
               // If we still don't have a fingerprint, try to get it from the key's fingerprint property
               if (!fingerprint && key.fingerprint) {
-                fingerprint = key.fingerprint
+                ;({ fingerprint } = key)
               }
 
               if (fingerprint && extendedPublicKey) {
@@ -229,7 +229,7 @@ export default function ExportDescriptors() {
                   if (typeof secret === 'object') {
                     // First, try to get from extendedPublicKey directly
                     if (secret.extendedPublicKey) {
-                      extendedPublicKey = secret.extendedPublicKey
+                      ;({ extendedPublicKey } = secret)
                     } else if (secret.externalDescriptor) {
                       extendedPublicKey = getExtendedKeyFromDescriptor(
                         secret.externalDescriptor
@@ -265,7 +265,7 @@ export default function ExportDescriptors() {
 
                   // If we still don't have a fingerprint, try to get it from the key's fingerprint property
                   if (!fingerprint && key.fingerprint) {
-                    fingerprint = key.fingerprint
+                    ;({ fingerprint } = key)
                   }
 
                   // If we still don't have an extended public key, try to get it from the key's secret
@@ -347,7 +347,7 @@ export default function ExportDescriptors() {
                   }
                 } else {
                   // For single-sig accounts, create simple descriptor
-                  const singleKey = keySection.split(',')[0] // Use first (and only) key
+                  const [singleKey] = keySection.split(',') // Use first (and only) key
                   switch (scriptVersion) {
                     case 'P2PKH':
                       finalDescriptor = `pkh(${singleKey.replace(
@@ -400,7 +400,7 @@ export default function ExportDescriptors() {
             }
           } else {
             // For watchonly accounts, handle different creation types
-            const key = temporaryAccount.keys[0]
+            const [key] = temporaryAccount.keys
             if (!key) {
               descriptorString = 'No key data available for watch-only account'
             } else {
@@ -491,7 +491,7 @@ export default function ExportDescriptors() {
           }
         } else {
           // For importAddress, handle address-based accounts
-          const key = temporaryAccount.keys[0]
+          const [key] = temporaryAccount.keys
           if (!key) {
             descriptorString = 'No key data available for imported address'
           } else {

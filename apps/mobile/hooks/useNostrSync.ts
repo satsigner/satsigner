@@ -110,7 +110,7 @@ function useNostrSync() {
     const isImportAddress = account.keys[0].creationType === 'importAddress'
     const tmpAccount = await getAccountWithDecryptedKeys(account)
     if (isImportAddress) {
-      const secret = tmpAccount.keys[0].secret
+      const [{ secret }] = tmpAccount.keys
       return {
         externalDescriptor: secret.externalDescriptor,
         internalDescriptor: undefined
@@ -135,7 +135,7 @@ function useNostrSync() {
   const protocolSubscription = subscriptionManager.createProtocolSubscription
   const dataExchangeSubscription =
     subscriptionManager.createDataExchangeSubscription
-  const getActiveSubscriptions = subscriptionManager.getActiveSubscriptions
+  const { getActiveSubscriptions } = subscriptionManager
 
   const sendLabelsToNostr = useCallback(
     async (account?: Account, singleLabel?: Label) => {
@@ -146,7 +146,7 @@ function useNostrSync() {
 
   const loadStoredDMs = dms.load
   const clearStoredDMs = dms.clear
-  const processEvent = messages.processEvent
+  const { processEvent } = messages
   const deviceAnnouncement = device.announce
 
   return useMemo(

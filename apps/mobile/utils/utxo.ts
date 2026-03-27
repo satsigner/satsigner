@@ -272,7 +272,7 @@ function findExactMatch(utxos: _Utxo[], targetValue: number): Utxo[] | null {
 
   for (let i = 0; i < n; i++) {
     const utxo = utxos[i]
-    const effectiveValue = utxo.effectiveValue
+    const { effectiveValue } = utxo
 
     // Create a copy of current dp map to avoid modifying during iteration
     const currentDp = new Map(dp)
@@ -437,7 +437,7 @@ function selectStonewallUtxos(
 
     // Try to select inputs from different types
     for (let i = 0; i < numInputs; i++) {
-      const type = selectedTypes[0] // Always use the first available type
+      const [type] = selectedTypes // Always use the first available type
 
       if (utxosByType[type].length === 0) {
         // If we can't get enough inputs, this attempt fails
@@ -655,8 +655,8 @@ function calculateStonewallEntropy(solution: {
     return 0
   }
 
-  const inputs = solution.inputs
-  const outputs = solution.outputs
+  const { inputs } = solution
+  const { outputs } = solution
 
   let entropy = 0
 

@@ -57,7 +57,7 @@ function SSSlider({
         maximumTrackTintColor={Colors.gray[800]}
         thumbTintColor={Colors.white}
         onValueChange={(value) => {
-          const newValue = value[0]
+          const [newValue] = value
           setLocalValue(newValue)
           onValueChange(newValue)
         }}

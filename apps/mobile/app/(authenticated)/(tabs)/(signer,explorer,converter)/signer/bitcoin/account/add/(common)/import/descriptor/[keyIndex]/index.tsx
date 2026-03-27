@@ -402,7 +402,7 @@ export default function ImportDescriptor() {
 
     if (bracketMatch) {
       // Extract the full derivation path by removing fingerprint and brackets
-      const fullBracket = bracketMatch[0]
+      const [fullBracket] = bracketMatch
       const derivationPath = fullBracket
         .replace(/^\[[0-9a-fA-F]{8}\//, '') // Remove [fingerprint/
         .replace(/\]$/, '') // Remove closing ]
@@ -502,9 +502,7 @@ export default function ImportDescriptor() {
     } catch (_jsonError) {
       // Handle legacy formats
       if (text.includes('\n')) {
-        const lines = text.split('\n')
-        externalDescriptor = lines[0]
-        internalDescriptor = lines[1]
+        ;[externalDescriptor, internalDescriptor] = text.split('\n')
       }
     }
 
@@ -554,9 +552,7 @@ export default function ImportDescriptor() {
       let externalDescriptor = text
       let internalDescriptor = ''
       if (text.includes('\n')) {
-        const lines = text.split('\n')
-        externalDescriptor = lines[0]
-        internalDescriptor = lines[1]
+        ;[externalDescriptor, internalDescriptor] = text.split('\n')
       }
 
       // Handle combined descriptors with smart validation

@@ -60,7 +60,7 @@ export function useNFCReader() {
         // Extract transaction ID from text record
         const match = text.match(/Signed Transaction: ([a-f0-9]+)/i)
         if (match && match[1]) {
-          result.txId = match[1]
+          ;[, result.txId] = match
           result.text = text
         } else {
           // For watch-only use cases, store any text content

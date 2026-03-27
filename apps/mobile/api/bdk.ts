@@ -69,7 +69,7 @@ async function getWalletData(
         throw new Error('Invalid key count for singlesig')
       }
 
-      const key = account.keys[0]
+      const [key] = account.keys
 
       if (
         key.creationType === 'generateMnemonic' ||
@@ -117,7 +117,7 @@ async function getWalletData(
 
             // Get extended public key from various sources
             if (key.secret.extendedPublicKey) {
-              extendedPublicKey = key.secret.extendedPublicKey
+              ;({ extendedPublicKey } = key.secret)
             } else if (key.secret.externalDescriptor) {
               try {
                 const extractedKey = getExtendedKeyFromDescriptor(
@@ -265,7 +265,7 @@ async function getWalletData(
         throw new Error('Invalid key count for singlesig')
       }
 
-      const key = account.keys[0]
+      const [key] = account.keys
 
       if (key.creationType === 'importDescriptor') {
         if (typeof key.secret === 'string' || !key.secret.externalDescriptor) {
@@ -933,13 +933,16 @@ async function parseTransactionDetailsToTransaction(
   if (transaction) {
     const {
       inputs,
+      lockTime: txLockTime,
+      lockTimeEnabled: txLockTimeEnabled,
       outputs: outputsList,
-      ...metadata
+      raw: txRaw,
+      version: txVersion
     } = await getTransactionMetadataAndIo(transaction)
-    version = metadata.version
-    lockTime = metadata.lockTime
-    lockTimeEnabled = metadata.lockTimeEnabled
-    raw = metadata.raw
+    version = txVersion
+    lockTime = txLockTime
+    lockTimeEnabled = txLockTimeEnabled
+    raw = txRaw
 
     for (const index in inputs) {
       const input = inputs[index]
@@ -1043,7 +1046,7 @@ async function parseLocalUtxoToUtxo(
 
 async function getAddress(utxo: LocalUtxo, network: Network) {
   try {
-    const script = utxo.txout.script
+    const { script } = utxo.txout
     const address = await new Address().fromScript(script, network)
     return address ? address.asString() : ''
   } catch {

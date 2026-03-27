@@ -34,7 +34,7 @@ function extractServiceName(metadata: string): string {
   try {
     const parsed = JSON.parse(metadata)
     if (Array.isArray(parsed) && parsed.length > 0) {
-      const firstEntry = parsed[0]
+      const [firstEntry] = parsed
       if (Array.isArray(firstEntry) && firstEntry.length > 1) {
         return firstEntry[1] // Service name is usually the second element
       }
