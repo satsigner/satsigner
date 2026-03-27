@@ -122,10 +122,7 @@
     "guard-for-in": "allow",
     "preserve-caught-error": "allow",
     "no-lonely-if": "allow",
-    "no-control-regex": "allow",
-    "default-param-last": "allow",
-    "no-loop-func": "allow",
-    "sort-vars": "allow"
+    "no-control-regex": "allow"
   },
   "overrides": [
     {
