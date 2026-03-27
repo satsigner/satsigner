@@ -53,7 +53,7 @@ const useGetAccountAddress = (id: Account['id']) => {
       // For all other account types, use BDK to generate wallet and get first address
       const walletData = await getWalletData(
         temporaryAccount,
-        network as any // Cast to BDK Network type
+        network as unknown as Parameters<typeof getWalletData>[1] // Cast to BDK Network type
       )
 
       if (!walletData) {

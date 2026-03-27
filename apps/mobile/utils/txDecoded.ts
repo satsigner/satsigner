@@ -266,7 +266,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
   }
 
   // identifyWitnessItem takes a witness item and returns a description of the item and a decoded value
-  identifyWitnessItem(witnessItem: any) {
+  identifyWitnessItem(witnessItem: Buffer) {
     const hex = witnessItem.toString('hex')
     if (hex === '') {
       return { field: TxField.WitnessItemEmpty, value: '' }

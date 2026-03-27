@@ -3,7 +3,7 @@ import BIP32Factory from 'bip32'
 import * as bip39 from 'bip39'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
-import { type Account } from '@/types/models/Account'
+import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { getKeyFingerprint } from '@/utils/account'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
@@ -36,7 +36,20 @@ type SigningResult = {
   path?: string
   signature?: string
   signedInputsCount?: number
-  validation?: any
+  validation?: {
+    isValid: boolean
+    inputs: {
+      index: number
+      hasPartialSigs: boolean
+      partialSigs: { pubkey: string; signature: string }[]
+      hasWitnessUtxo: boolean
+      hasNonWitnessUtxo: boolean
+      hasBip32Derivation: boolean
+    }[]
+    signatures: { inputIndex: number; pubkey: string; signature: string }[]
+    warnings: string[]
+    errors: string[]
+  }
   error?: string
 }
 
@@ -772,7 +785,7 @@ export function validateSignedPSBTForCosigner(
   psbtBase64: string,
   account: Account,
   cosignerIndex: number,
-  decryptedKey?: any
+  decryptedKey?: Key
 ): boolean {
   if (!validateSignedPSBT(psbtBase64, account)) {
     return false
@@ -878,7 +891,9 @@ function validateInputsAndOutputs(psbt: bitcoinjs.Psbt) {
   }
 }
 
-function validateInput(input: any): boolean {
+function validateInput(
+  input: bitcoinjs.Psbt['data']['inputs'][number]
+): boolean {
   if (!input.witnessUtxo && !input.nonWitnessUtxo) {
     return false
   }
@@ -894,11 +909,16 @@ function validateInput(input: any): boolean {
   return true
 }
 
-function validateOutput(output: any): boolean {
+function validateOutput(
+  output: bitcoinjs.Psbt['data']['outputs'][number]
+): boolean {
   return !!output
 }
 
-function isValidWitnessUtxo(witnessUtxo: any): boolean {
+function isValidWitnessUtxo(witnessUtxo: {
+  script: Buffer
+  value: number
+}): boolean {
   return !!(
     witnessUtxo.script &&
     witnessUtxo.value !== undefined &&
@@ -906,7 +926,7 @@ function isValidWitnessUtxo(witnessUtxo: any): boolean {
   )
 }
 
-function isValidNonWitnessUtxo(nonWitnessUtxo: any): boolean {
+function isValidNonWitnessUtxo(nonWitnessUtxo: Buffer): boolean {
   return !!(nonWitnessUtxo && nonWitnessUtxo.length > 0)
 }
 
@@ -953,7 +973,9 @@ function isValidMultisigSignatureCount(
   return signatureCount > 0 && signatureCount <= totalKeys
 }
 
-function countSignatures(partialSig: any[] | any): number {
+function countSignatures(
+  partialSig: bitcoinjs.Psbt['data']['inputs'][number]['partialSig']
+): number {
   if (!partialSig) {
     return 0
   }
@@ -987,7 +1009,7 @@ function isValidSignature(
 
 function validateCosignerSignature(
   psbt: bitcoinjs.Psbt,
-  cosignerKey: any
+  cosignerKey: Key
 ): boolean {
   const cosignerPublicKey = extractCosignerPublicKey(psbt, cosignerKey)
 
@@ -1002,7 +1024,7 @@ function validateCosignerSignature(
 
 function extractCosignerPublicKey(
   psbt: bitcoinjs.Psbt,
-  cosignerKey: any
+  cosignerKey: Key
 ): string {
   if (typeof cosignerKey.secret === 'string') {
     return extractPublicKeyFromEncryptedKey(psbt, cosignerKey)
@@ -1017,7 +1039,7 @@ function extractCosignerPublicKey(
 
 function extractPublicKeyFromEncryptedKey(
   psbt: bitcoinjs.Psbt,
-  cosignerKey: any
+  cosignerKey: Key
 ): string {
   const cosignerFingerprint = cosignerKey.fingerprint
   if (!cosignerFingerprint) {
@@ -1029,9 +1051,9 @@ function extractPublicKeyFromEncryptedKey(
 
 function extractPublicKeyFromDecryptedKey(
   psbt: bitcoinjs.Psbt,
-  cosignerKey: any
+  cosignerKey: Key
 ) {
-  const innerFingerprint = cosignerKey.secret.fingerprint
+  const innerFingerprint = (cosignerKey.secret as Secret).fingerprint
   if (!innerFingerprint) {
     return ''
   }
@@ -1054,7 +1076,10 @@ export function findDerivedPublicKey(
   return ''
 }
 
-function findPublicKeyInInput(input: any, fingerprint: string): string {
+function findPublicKeyInInput(
+  input: bitcoinjs.Psbt['data']['inputs'][number],
+  fingerprint: string
+): string {
   if (!input.bip32Derivation) {
     return ''
   }
@@ -1081,7 +1106,10 @@ function checkSignatureForPublicKey(psbt: bitcoinjs.Psbt, publicKey: string) {
   )
 }
 
-function hasSignatureFromPublicKey(input: any, publicKey: string): boolean {
+function hasSignatureFromPublicKey(
+  input: bitcoinjs.Psbt['data']['inputs'][number],
+  publicKey: string
+): boolean {
   if (!input.partialSig || input.partialSig.length === 0) {
     return false
   }
@@ -1090,7 +1118,7 @@ function hasSignatureFromPublicKey(input: any, publicKey: string): boolean {
     ? input.partialSig
     : [input.partialSig]
 
-  return signatures.some((sig: any) => {
+  return signatures.some((sig: { pubkey: Buffer; signature: Buffer }) => {
     if (!sig.pubkey) {
       return false
     }
@@ -1109,7 +1137,7 @@ export function matchSignedPsbtsToCosigners(
   signedPsbts: Record<number, string>,
   pubkeyToCosignerIndex: Map<string, number>,
   account: Account,
-  decryptedKeys: any[],
+  decryptedKeys: Key[],
   existingSignedPsbts: Map<number, string>
 ) {
   const matches: SignedPsbtMatch[] = []

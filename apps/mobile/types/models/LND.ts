@@ -76,7 +76,7 @@ export type LNDChannel = {
   total_satoshis_sent: number
   total_satoshis_received: number
   num_updates: number
-  pending_htlcs: any[]
+  pending_htlcs: unknown[]
   csv_delay: number
   private: boolean
   initiator: boolean

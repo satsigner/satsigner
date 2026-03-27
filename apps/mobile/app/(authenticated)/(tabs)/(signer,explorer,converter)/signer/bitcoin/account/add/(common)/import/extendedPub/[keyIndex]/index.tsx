@@ -279,10 +279,10 @@ export default function ImportExtendedPub() {
     urDecoderRef.current = new URDecoder()
   }
 
-  function decodeURCryptoAccount(urData: Uint8Array): any {
+  function decodeURCryptoAccount(urData: Uint8Array): { xpub?: string } | null {
     try {
       const decoded = CBOR.decode(new Uint8Array(urData.buffer))
-      return decoded
+      return decoded as { xpub?: string }
     } catch (_error) {
       return null
     }
@@ -528,7 +528,7 @@ export default function ImportExtendedPub() {
                   new Uint8Array(result.cbor)
                 )
 
-                if (decodedAccount.xpub) {
+                if (decodedAccount && decodedAccount.xpub) {
                   // Extract the fingerprint and xpub separately
                   const xpubWithPrefix = decodedAccount.xpub
 
@@ -629,7 +629,7 @@ export default function ImportExtendedPub() {
                 new Uint8Array(result.cbor)
               )
 
-              if (decodedAccount.xpub) {
+              if (decodedAccount && decodedAccount.xpub) {
                 // Extract the fingerprint and xpub separately
                 const xpubWithPrefix = decodedAccount.xpub
 

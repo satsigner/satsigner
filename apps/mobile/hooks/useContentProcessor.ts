@@ -215,7 +215,9 @@ async function processBitcoinContent(
               0
             )
 
-            const psbt: PartiallySignedTransaction = { originalPsbt } as any
+            const psbt = {
+              originalPsbt
+            } as unknown as PartiallySignedTransaction
 
             const txDetails: TransactionDetails = {
               confirmationTime: undefined,

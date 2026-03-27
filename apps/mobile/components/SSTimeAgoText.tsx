@@ -24,11 +24,14 @@ function SSTimeAgoText({ date, ...textProps }: SSTimeAgoTextProps) {
     <TimeAgo
       date={date}
       live
-      component={(props: any) => (
-        <SSText color="muted" {...textProps}>
-          {props.children}
-        </SSText>
-      )}
+      component={
+        ((props: { children: React.ReactNode }) => (
+          <SSText color="muted" {...textProps}>
+            {props.children}
+          </SSText>
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        )) as any
+      }
       formatter={timeFormatter}
     />
   )

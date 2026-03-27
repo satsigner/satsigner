@@ -174,7 +174,11 @@ class BaseElectrumClient {
       // of inactivity. On physical devices over WiFi the TLS handshake can
       // take longer, so we disable the library's timer entirely and rely on
       // our outer JS timeout instead.
-      const conn = (client.client as any).conn
+      const conn = (
+        client.client as unknown as {
+          conn?: { setTimeout?: (ms: number) => void }
+        }
+      ).conn
       if (conn && typeof conn.setTimeout === 'function') {
         conn.setTimeout(0)
       }
@@ -219,7 +223,9 @@ class BaseElectrumClient {
     // Disable the library's 5s socket inactivity timer — on physical devices
     // over WiFi the TLS handshake can exceed 5s, and letting the timer fire
     // silently (or worse, destroying the socket) causes spurious failures.
-    const conn = (this.client as any).conn
+    const conn = (
+      this.client as unknown as { conn?: { setTimeout?: (ms: number) => void } }
+    ).conn
     if (conn && typeof conn.setTimeout === 'function') {
       conn.setTimeout(0)
     }

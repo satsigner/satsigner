@@ -1,5 +1,6 @@
 import { Buffer } from 'buffer'
 
+import { type TxBuilderResult } from 'bdk-rn/lib/classes/Bindings'
 import { setStringAsync } from 'expo-clipboard'
 import { useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
@@ -31,7 +32,7 @@ type SSSignatureDropdownProps = {
   totalKeys: number
   keyDetails: Key
   transactionId: string
-  txBuilderResult: any
+  txBuilderResult: TxBuilderResult
   serializedPsbt: string
   signedPsbt: string
   setSignedPsbt: (psbt: string) => void

@@ -261,15 +261,15 @@ const useAccountBuilderStore = create<
     set(
       produce((state: AccountBuilderState) => {
         state.keys[index] = {
-          creationType: undefined as any,
-          fingerprint: undefined as any,
+          creationType: undefined,
+          fingerprint: undefined,
           index,
-          iv: undefined as any,
-          mnemonicWordCount: undefined as any,
+          iv: undefined,
+          mnemonicWordCount: undefined,
           name: '',
-          scriptVersion: undefined as any,
-          secret: undefined as any
-        }
+          scriptVersion: undefined,
+          secret: undefined
+        } as unknown as Key
       })
     )
   },
@@ -402,7 +402,7 @@ const useAccountBuilderStore = create<
             state.keys[index].secret &&
             typeof state.keys[index].secret === 'object'
           ) {
-            ;(state.keys[index].secret as any).fingerprint = fingerprint
+            ;(state.keys[index].secret as Secret).fingerprint = fingerprint
           }
         }
       })

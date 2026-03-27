@@ -127,7 +127,9 @@ export default function SSSeedWordsInput({
     }))
     setSeedWordsInfo(initialSeedWordsInfo)
     // Initialize refs array
-    wordInputRefs.current = Array.from({ length: wordCount }).fill(null)
+    wordInputRefs.current = Array.from<TextInput | null>({
+      length: wordCount
+    }).fill(null)
   }, [wordCount])
 
   // Cleanup timeout on unmount

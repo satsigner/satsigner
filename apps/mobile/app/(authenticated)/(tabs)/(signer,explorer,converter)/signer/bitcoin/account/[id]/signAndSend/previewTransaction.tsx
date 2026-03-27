@@ -2048,7 +2048,7 @@ function PreviewTransaction() {
                           totalKeys={account.keys?.length || 0}
                           keyDetails={key}
                           transactionId={transactionId}
-                          txBuilderResult={txBuilderResult}
+                          txBuilderResult={txBuilderResult!}
                           serializedPsbt={serializedPsbt}
                           signedPsbt={signedPsbts.get(index) || ''}
                           setSignedPsbt={(psbt: string) =>

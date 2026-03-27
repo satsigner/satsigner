@@ -24,8 +24,8 @@ import { BLOCK_WIDTH, type Node } from '@/types/ui/sankey'
 import { logAttenuation } from '@/utils/math'
 
 interface ISSankeyNodes {
-  nodes: any[]
-  sankeyGenerator: any
+  nodes: Node[]
+  sankeyGenerator: { nodeWidth: () => number }
   selectedOutputNode?: string
   dimUnselected?: boolean
 }
@@ -357,7 +357,7 @@ function NodeText({
           fontSize: BASE_FONT_SIZE
         })
 
-        .addText(`${ioData?.value.toLocaleString()} `)
+        .addText(`${ioData?.value?.toLocaleString()} `)
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(Colors.gray[200]),
@@ -406,7 +406,7 @@ function NodeText({
           color: Skia.Color('white'),
           fontSize: BASE_FONT_SIZE
         })
-        .addText(`\n${ioData?.value.toLocaleString()} `) // Add nullish coalescing
+        .addText(`\n${ioData?.value?.toLocaleString()} `) // Add nullish coalescing
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(gray[200]),

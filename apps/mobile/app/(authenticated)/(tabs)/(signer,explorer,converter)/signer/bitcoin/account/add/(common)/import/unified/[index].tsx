@@ -483,7 +483,7 @@ export default function UnifiedImport() {
     }
   }
 
-  async function handleQRCodeScanned(scanningResult: any) {
+  async function handleQRCodeScanned(scanningResult: { data?: string }) {
     const data = scanningResult?.data
     if (!data) {
       return

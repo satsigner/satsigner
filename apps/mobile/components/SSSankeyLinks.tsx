@@ -46,7 +46,7 @@ interface LinkPoints {
 interface SSSankeyLinksProps {
   links: Link[]
   nodes: Node[]
-  sankeyGenerator: any
+  sankeyGenerator: { nodeWidth: () => number }
   BLOCK_WIDTH: number
   selectedOutputNode?: string
   dimUnselected?: boolean

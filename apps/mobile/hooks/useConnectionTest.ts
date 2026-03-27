@@ -28,7 +28,9 @@ type testResponse = {
 export function useConnectionTest() {
   const [testing, setTesting] = useState(false)
   const [nodeInfo, setNodeInfo] = useState<NodeInfo | null>(null)
-  const [currentClient, setCurrentClient] = useState<any>(null)
+  const [currentClient, setCurrentClient] = useState<
+    ElectrumClient | Esplora | null
+  >(null)
   const [lastTestTime, setLastTestTime] = useState<number>(0)
 
   const cleanupPreviousConnection = useCallback(() => {
@@ -36,8 +38,8 @@ export function useConnectionTest() {
       return
     }
 
-    // close TLS connection. Apply only toElectrum Client
-    if (currentClient.close && typeof currentClient.close === 'function') {
+    // close TLS connection. Apply only to Electrum Client
+    if ('close' in currentClient && typeof currentClient.close === 'function') {
       currentClient.close()
     }
 
@@ -84,7 +86,13 @@ export function useConnectionTest() {
         // Try block height via headers subscribe
         let blockHeight = 0
         try {
-          const tip = await (client.client as any).blockchainHeaders_subscribe()
+          const tip = await (
+            client.client as unknown as {
+              blockchainHeaders_subscribe: () => Promise<{
+                height: number
+              } | null>
+            }
+          ).blockchainHeaders_subscribe()
           if (tip?.height) {
             blockHeight = tip.height as number
           }
@@ -96,12 +104,17 @@ export function useConnectionTest() {
         let mempoolSize
         try {
           const mempoolInfo = await (
-            client.client as any
+            client.client as unknown as {
+              mempool_get_fee_histogram?: () => Promise<[number, number][]>
+            }
           ).mempool_get_fee_histogram?.()
           if (mempoolInfo && Array.isArray(mempoolInfo)) {
-            mempoolSize = mempoolInfo.reduce((sum: number, item: any) => {
-              return sum + (Array.isArray(item) && item[1] ? item[1] : 0)
-            }, 0)
+            mempoolSize = mempoolInfo.reduce(
+              (sum: number, item: [number, number]) => {
+                return sum + (Array.isArray(item) && item[1] ? item[1] : 0)
+              },
+              0
+            )
           }
         } catch {
           // optional
@@ -112,8 +125,8 @@ export function useConnectionTest() {
           mempoolSize,
           network: network as string,
           responseTime,
-          software: (serverInfo as any)?.[0] || 'Electrum',
-          version: (serverInfo as any)?.[1] || 'Unknown'
+          software: (serverInfo as unknown as string[])?.[0] || 'Electrum',
+          version: (serverInfo as unknown as string[])?.[1] || 'Unknown'
         })
 
         try {

@@ -46,7 +46,7 @@ export default class Esplora {
     return await this._call('/tx/' + txid + '/status')
   }
 
-  async getBlockTxids(hash: string): Promise<any> {
+  async getBlockTxids(hash: string): Promise<string[]> {
     return await this._call('/block/' + hash + '/txids')
   }
 

@@ -161,7 +161,7 @@ function SSBubbleChart({
               vout: packedUtxo.data.vout!
             }
 
-            const isSelected = inputs.some((input: any) => {
+            const isSelected = inputs.some((input: Utxo) => {
               return getUtxoOutpoint(input) === getUtxoOutpoint(utxo)
             })
 

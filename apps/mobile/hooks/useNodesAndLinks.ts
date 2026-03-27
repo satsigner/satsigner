@@ -20,12 +20,12 @@ export type TxNode = {
   nextTx?: string
   indexV?: number
   vout?: number
-  prevout?: any
+  prevout?: { txid: string; vout: number }
   localId?: string
   ioData: {
     address?: string
     label?: string
-    value: number
+    value?: number
     fiatValue?: string
     fiatCurrency?: string
     text?: string
@@ -36,7 +36,7 @@ export type TxNode = {
     blockHeight?: string
     blockRelativeTime?: string
     txSize?: number
-    txId?: number
+    txId?: number | string
     vSize?: number
     higherFee?: boolean // miner fee is 10% or higher of the total transaction value
     feePercentage?: number // miner fee is 10% or higher of the total transaction value
@@ -320,18 +320,18 @@ export const useNodesAndLinks = ({
                 label: `${input.label ?? ''}`,
                 text: t('common.from'),
                 txId: tx.id,
-                value: input.value
+                value: input.value ?? 0
               },
               prevout: input.previousOutput,
               txId: tx.id,
               type: 'text',
-              value: input.value,
+              value: input.value ?? 0,
               vout: input.previousOutput.vout
             }
 
             nodes.push(node)
             return nodes
-          }, [] as any[])
+          }, [] as TxNode[])
 
           const vsize = Math.ceil((tx?.weight ?? 0) * 0.25)
           const blockDepth = tx.depthH
@@ -357,7 +357,8 @@ export const useNodesAndLinks = ({
                 vSize: vsize
               },
               txId: tx.id,
-              type: 'block'
+              type: 'block',
+              value: totalOutputValue
             }
           ]
 
@@ -391,13 +392,13 @@ export const useNodesAndLinks = ({
                 isSelfSend: ownAddresses.has(output.address),
                 label,
                 text: t('common.from'),
-                value: output.value
+                value: output.value ?? 0
               },
               localId: undefined,
               nextTx,
               txId: tx.id,
               type: 'text',
-              value: output.value,
+              value: output.value ?? 0,
               vout: idx
             }
             return node

@@ -578,8 +578,8 @@ export default function ImportDescriptor() {
     }
   }
 
-  async function handleQRCodeScanned(scanningResult: any) {
-    const data = scanningResult?.data
+  async function handleQRCodeScanned(scanningResult: unknown) {
+    const data = (scanningResult as { data?: string })?.data
     if (!data) {
       toast.error(t('watchonly.read.qrError'))
       return

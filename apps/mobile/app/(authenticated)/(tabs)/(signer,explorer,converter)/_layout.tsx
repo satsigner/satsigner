@@ -55,7 +55,7 @@ function HeaderRight() {
   )
 }
 
-export default function StackLayout(params: any) {
+export default function StackLayout(params: { segment?: string }) {
   const currentPath = usePathname()
   const segments = useSegments()
   const [isShowNav, setShowNav] = useState(false)
@@ -65,7 +65,7 @@ export default function StackLayout(params: any) {
   }, [currentPath, segments])
 
   const router = useRouter()
-  const nav = useNavigation<DrawerNavigationProp<any>>()
+  const nav = useNavigation<DrawerNavigationProp<Record<string, undefined>>>()
 
   const isDrawerOpen = useDrawerStatus() === 'open'
 

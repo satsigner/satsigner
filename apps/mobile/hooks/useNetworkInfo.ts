@@ -45,7 +45,13 @@ export function useNetworkInfo() {
       try {
         client = ElectrumClient.fromUrl(server.url, selectedNetwork)
         await client.init()
-        const tip = await (client.client as any).blockchainHeaders_subscribe()
+        const tip = await (
+          client.client as unknown as {
+            blockchainHeaders_subscribe: () => Promise<{
+              height: number
+            } | null>
+          }
+        ).blockchainHeaders_subscribe()
         if (tip?.height) {
           height = tip.height as number
           source = 'backend'

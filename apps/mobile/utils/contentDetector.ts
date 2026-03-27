@@ -47,7 +47,7 @@ export type DetectedContent = {
   type: ContentType
   raw: string
   cleaned: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   isValid: boolean
 }
 

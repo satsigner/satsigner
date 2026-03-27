@@ -221,8 +221,8 @@ describe('recalculateDepthH', () => {
           ...minimalTxProps,
           depthH: 0,
           id: 'txA',
-          vin: [] as any,
-          vout: [] as any
+          vin: [] as unknown as ExtendedTransaction['vin'],
+          vout: [] as unknown as ExtendedTransaction['vout']
         }
       ],
       [
@@ -231,8 +231,8 @@ describe('recalculateDepthH', () => {
           ...minimalTxProps,
           depthH: 0,
           id: 'txB',
-          vin: [] as any,
-          vout: [] as any
+          vin: [] as unknown as ExtendedTransaction['vin'],
+          vout: [] as unknown as ExtendedTransaction['vout']
         }
       ]
     ])
@@ -249,8 +249,8 @@ describe('recalculateDepthH', () => {
           ...minimalTxProps,
           depthH: 0,
           id: 'txA',
-          vin: [] as any,
-          vout: [] as any
+          vin: [] as unknown as ExtendedTransaction['vin'],
+          vout: [] as unknown as ExtendedTransaction['vout']
         }
       ],
       [
@@ -259,8 +259,10 @@ describe('recalculateDepthH', () => {
           ...minimalTxProps,
           depthH: 0,
           id: 'txB',
-          vin: [{ previousOutput: { txid: 'txA', vout: 0 } }] as any,
-          vout: [] as any
+          vin: [
+            { previousOutput: { txid: 'txA', vout: 0 } }
+          ] as unknown as ExtendedTransaction['vin'],
+          vout: [] as unknown as ExtendedTransaction['vout']
         }
       ]
     ])
@@ -277,8 +279,8 @@ describe('recalculateDepthH', () => {
           ...minimalTxProps,
           depthH: 0,
           id: 'txA',
-          vin: [] as any,
-          vout: [] as any
+          vin: [] as unknown as ExtendedTransaction['vin'],
+          vout: [] as unknown as ExtendedTransaction['vout']
         }
       ],
       [
@@ -287,8 +289,10 @@ describe('recalculateDepthH', () => {
           ...minimalTxProps,
           depthH: 0,
           id: 'txB',
-          vin: [{ previousOutput: { txid: 'txA', vout: 0 } }] as any,
-          vout: [] as any
+          vin: [
+            { previousOutput: { txid: 'txA', vout: 0 } }
+          ] as unknown as ExtendedTransaction['vin'],
+          vout: [] as unknown as ExtendedTransaction['vout']
         }
       ],
       [
@@ -297,8 +301,10 @@ describe('recalculateDepthH', () => {
           ...minimalTxProps,
           depthH: 0,
           id: 'txC',
-          vin: [{ previousOutput: { txid: 'txB', vout: 0 } }] as any,
-          vout: [] as any
+          vin: [
+            { previousOutput: { txid: 'txB', vout: 0 } }
+          ] as unknown as ExtendedTransaction['vin'],
+          vout: [] as unknown as ExtendedTransaction['vout']
         }
       ]
     ])
@@ -316,8 +322,8 @@ describe('recalculateDepthH', () => {
           ...minimalTxProps,
           depthH: 0,
           id: 'txA',
-          vin: [] as any,
-          vout: [] as any
+          vin: [] as unknown as ExtendedTransaction['vin'],
+          vout: [] as unknown as ExtendedTransaction['vout']
         }
       ],
       [
@@ -326,8 +332,10 @@ describe('recalculateDepthH', () => {
           ...minimalTxProps,
           depthH: 0,
           id: 'txB',
-          vin: [{ previousOutput: { txid: 'txA', vout: 0 } }] as any,
-          vout: [] as any
+          vin: [
+            { previousOutput: { txid: 'txA', vout: 0 } }
+          ] as unknown as ExtendedTransaction['vin'],
+          vout: [] as unknown as ExtendedTransaction['vout']
         }
       ],
       [
@@ -336,8 +344,8 @@ describe('recalculateDepthH', () => {
           ...minimalTxProps,
           depthH: 0,
           id: 'txC',
-          vin: [] as any,
-          vout: [] as any
+          vin: [] as unknown as ExtendedTransaction['vin'],
+          vout: [] as unknown as ExtendedTransaction['vout']
         }
       ],
       [
@@ -349,8 +357,8 @@ describe('recalculateDepthH', () => {
           vin: [
             { previousOutput: { txid: 'txB', vout: 0 } },
             { previousOutput: { txid: 'txC', vout: 0 } }
-          ] as any,
-          vout: [] as any
+          ] as unknown as ExtendedTransaction['vin'],
+          vout: [] as unknown as ExtendedTransaction['vout']
         }
       ]
     ])
@@ -369,8 +377,10 @@ describe('recalculateDepthH', () => {
           ...minimalTxProps,
           depthH: 0,
           id: 'txA',
-          vin: [{ previousOutput: { txid: 'txExternal', vout: 0 } }] as any,
-          vout: [] as any
+          vin: [
+            { previousOutput: { txid: 'txExternal', vout: 0 } }
+          ] as unknown as ExtendedTransaction['vin'],
+          vout: [] as unknown as ExtendedTransaction['vout']
         }
       ]
     ])
@@ -386,8 +396,10 @@ describe('recalculateDepthH', () => {
           ...minimalTxProps,
           depthH: 0,
           id: 'txA',
-          vin: [{ previousOutput: { txid: 'txB', vout: 0 } }] as any,
-          vout: [] as any
+          vin: [
+            { previousOutput: { txid: 'txB', vout: 0 } }
+          ] as unknown as ExtendedTransaction['vin'],
+          vout: [] as unknown as ExtendedTransaction['vout']
         }
       ],
       [
@@ -396,8 +408,10 @@ describe('recalculateDepthH', () => {
           ...minimalTxProps,
           depthH: 0,
           id: 'txB',
-          vin: [{ previousOutput: { txid: 'txA', vout: 0 } }] as any,
-          vout: [] as any
+          vin: [
+            { previousOutput: { txid: 'txA', vout: 0 } }
+          ] as unknown as ExtendedTransaction['vin'],
+          vout: [] as unknown as ExtendedTransaction['vout']
         }
       ]
     ])
@@ -420,8 +434,10 @@ describe('recalculateDepthH', () => {
             ...minimalTxProps,
             depthH: 0,
             id: 'txA',
-            vin: [] as any,
-            vout: [{ address: 'addrA', value: 1000 }] as any
+            vin: [] as unknown as ExtendedTransaction['vin'],
+            vout: [
+              { address: 'addrA', value: 1000 }
+            ] as unknown as ExtendedTransaction['vout']
           }
         ],
         [
@@ -430,8 +446,12 @@ describe('recalculateDepthH', () => {
             ...minimalTxProps,
             depthH: 0,
             id: 'txB',
-            vin: [{ previousOutput: { txid: 'txExternal', vout: 0 } }] as any,
-            vout: [{ address: 'addrB', value: 2000 }] as any
+            vin: [
+              { previousOutput: { txid: 'txExternal', vout: 0 } }
+            ] as unknown as ExtendedTransaction['vin'],
+            vout: [
+              { address: 'addrB', value: 2000 }
+            ] as unknown as ExtendedTransaction['vout']
           }
         ]
       ])
@@ -452,8 +472,10 @@ describe('recalculateDepthH', () => {
             ...minimalTxProps,
             depthH: 0,
             id: 'txA',
-            vin: [] as any,
-            vout: [{ address: 'addrA_NotInSelected', value: 1000 }] as any
+            vin: [] as unknown as ExtendedTransaction['vin'],
+            vout: [
+              { address: 'addrA_NotInSelected', value: 1000 }
+            ] as unknown as ExtendedTransaction['vout']
           }
         ]
       ])
@@ -473,8 +495,10 @@ describe('recalculateDepthH', () => {
             ...minimalTxProps,
             depthH: 0,
             id: 'txA',
-            vin: [] as any,
-            vout: [{ address: 'addrA', value: 1000 }] as any
+            vin: [] as unknown as ExtendedTransaction['vin'],
+            vout: [
+              { address: 'addrA', value: 1000 }
+            ] as unknown as ExtendedTransaction['vout']
           }
         ],
         [
@@ -483,8 +507,10 @@ describe('recalculateDepthH', () => {
             ...minimalTxProps,
             depthH: 0,
             id: 'txB',
-            vin: [{ previousOutput: { txid: 'txA', vout: 0 } }] as any,
-            vout: [] as any
+            vin: [
+              { previousOutput: { txid: 'txA', vout: 0 } }
+            ] as unknown as ExtendedTransaction['vin'],
+            vout: [] as unknown as ExtendedTransaction['vout']
           }
         ]
       ])
@@ -505,8 +531,10 @@ describe('recalculateDepthH', () => {
             ...minimalTxProps,
             depthH: 0,
             id: 'txA',
-            vin: [] as any,
-            vout: [{ address: 'addrA', value: 1000 }] as any
+            vin: [] as unknown as ExtendedTransaction['vin'],
+            vout: [
+              { address: 'addrA', value: 1000 }
+            ] as unknown as ExtendedTransaction['vout']
           }
         ],
         [
@@ -515,8 +543,8 @@ describe('recalculateDepthH', () => {
             ...minimalTxProps,
             depthH: 0,
             id: 'txB',
-            vin: [] as any,
-            vout: [] as any
+            vin: [] as unknown as ExtendedTransaction['vin'],
+            vout: [] as unknown as ExtendedTransaction['vout']
           }
         ],
         [
@@ -525,8 +553,10 @@ describe('recalculateDepthH', () => {
             ...minimalTxProps,
             depthH: 0,
             id: 'txC',
-            vin: [{ previousOutput: { txid: 'txB', vout: 0 } }] as any,
-            vout: [] as any
+            vin: [
+              { previousOutput: { txid: 'txB', vout: 0 } }
+            ] as unknown as ExtendedTransaction['vin'],
+            vout: [] as unknown as ExtendedTransaction['vout']
           }
         ]
       ])
@@ -555,8 +585,10 @@ describe('recalculateDepthH', () => {
           ...minimalTxProps,
           depthH: 0,
           id: 'txA',
-          vin: [{ previousOutput: { txid: 'txExternal1', vout: 0 } }] as any,
-          vout: [] as any
+          vin: [
+            { previousOutput: { txid: 'txExternal1', vout: 0 } }
+          ] as unknown as ExtendedTransaction['vin'],
+          vout: [] as unknown as ExtendedTransaction['vout']
         }
       ],
       [
@@ -568,8 +600,8 @@ describe('recalculateDepthH', () => {
           vin: [
             { previousOutput: { txid: 'txA', vout: 0 } },
             { previousOutput: { txid: 'txExternal2', vout: 0 } }
-          ] as any,
-          vout: [] as any
+          ] as unknown as ExtendedTransaction['vin'],
+          vout: [] as unknown as ExtendedTransaction['vout']
         }
       ]
     ])
@@ -586,8 +618,8 @@ describe('recalculateDepthH', () => {
           ...minimalTxProps,
           depthH: 0,
           id: 'txA',
-          vin: [] as any,
-          vout: [] as any
+          vin: [] as unknown as ExtendedTransaction['vin'],
+          vout: [] as unknown as ExtendedTransaction['vout']
         }
       ]
     ])

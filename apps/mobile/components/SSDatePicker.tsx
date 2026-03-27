@@ -203,7 +203,7 @@ function DateBlock({
   const fadeFilled: string = hex2rgba(fadeColor || '#ffffff', 1)
   const fadeTransparent: string = hex2rgba('#000000', 0.7)
 
-  const scrollRef = useRef<any>(null)
+  const scrollRef = useRef<ScrollView>(null)
 
   const snapScrollToIndex = (index: number) => {
     scrollRef?.current?.scrollTo({ animated: true, y: dHeight * index })
@@ -215,7 +215,11 @@ function DateBlock({
     }, 0)
   }, [scrollRef.current]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleMomentumScrollEnd = ({ nativeEvent }: any) => {
+  const handleMomentumScrollEnd = ({
+    nativeEvent
+  }: {
+    nativeEvent: { contentOffset: { y: number } }
+  }) => {
     const digit = Math.round(nativeEvent.contentOffset.y / dHeight + digits[0])
     onChange(type, digit)
   }
