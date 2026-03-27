@@ -20,7 +20,7 @@ describe('efficiency UTXO Selection Algorithm', () => {
     }))
   }
 
-  it('it should select a single utxo when it exactly matches the target amount', () => {
+  it('should select a single utxo when it exactly matches the target amount', () => {
     const utxos = createMockUtxos([10000, 20000, 30000])
     const target = 10000
     const feeRate = 1
