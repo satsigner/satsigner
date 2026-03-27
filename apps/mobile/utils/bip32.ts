@@ -411,7 +411,7 @@ export function getVersionsForNetwork(network: 'mainnet' | 'testnet') {
  */
 export function getXpubForScriptVersion(
   mnemonic: string,
-  passphrase: string = '',
+  passphrase: string,
   scriptVersion: ScriptVersionType,
   network: 'mainnet' | 'testnet'
 ): string {
@@ -454,7 +454,7 @@ export function getXpubForScriptVersion(
 
 export function getAllXpubs(
   mnemonic: string,
-  passphrase: string = '',
+  passphrase: string,
   network: 'mainnet' | 'testnet'
 ) {
   const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)

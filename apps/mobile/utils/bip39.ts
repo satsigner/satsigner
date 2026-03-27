@@ -136,7 +136,7 @@ export async function getPrivateDescriptorFromElectrumMnemonic(
   mnemonic: string,
   electrumType: string,
   kind: KeychainKind,
-  passphrase: string = '',
+  passphrase: string,
   network: Network
 ): Promise<string> {
   const seed = await mnemonicToSeedElectrum(mnemonic, passphrase)
@@ -221,7 +221,7 @@ export function getFingerprintFromMnemonic(
 
 export function getExtendedPublicKeyFromMnemonic(
   mnemonic: string,
-  passphrase: string = '',
+  passphrase: string,
   network: Network,
   scriptVersion: ScriptVersionType
 ) {
@@ -267,7 +267,7 @@ interface DerivationStep {
 
 function deriveXpubFromMnemonic(
   mnemonic: string,
-  passphrase: string = '',
+  passphrase: string,
   opts: DeriveOptions = {}
 ) {
   const network: 'mainnet' | 'testnet' =
@@ -329,7 +329,7 @@ function deriveXpubFromMnemonic(
 
 function getExtendedPublicKeyFromMnemonicCustom(
   mnemonic: NonNullable<Secret['mnemonic']>,
-  passphrase: string = '',
+  passphrase: string,
   network: Network,
   scriptVersion?: ScriptVersionType,
   path?: string,
