@@ -95,11 +95,10 @@ export function formatAccountCreationDate(
 
   if (createdAt instanceof Date) {
     return formatDateUtil(createdAt)
-  } else {
-    const date = new Date(createdAt)
-    if (isNaN(date.getTime())) {
-      return 'Invalid date'
-    }
-    return formatDateUtil(date)
   }
+  const date = new Date(createdAt)
+  if (isNaN(date.getTime())) {
+    return 'Invalid date'
+  }
+  return formatDateUtil(date)
 }

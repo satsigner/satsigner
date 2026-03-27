@@ -80,9 +80,8 @@ function formatPageUrl(path: string, params: PageParams) {
 function formatPercentualChange(value: number, base: number) {
   if (value > base) {
     return `+${formatNumber(((value - base) * 100) / base, 1)}%`
-  } else {
-    return `-${formatNumber(((base - value) * 100) / base, 1)}%`
   }
+  return `-${formatNumber(((base - value) * 100) / base, 1)}%`
 }
 
 function formatFiatPrice(sats: number, btcPrice: number) {

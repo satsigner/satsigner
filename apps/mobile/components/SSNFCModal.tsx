@@ -132,17 +132,15 @@ function SSNFCModal({
   function getModeDescription() {
     if (mode === 'read') {
       return t('nfc.description.read')
-    } else {
-      return t('nfc.description.write')
     }
+    return t('nfc.description.write')
   }
 
   function getButtonLabel() {
     if (mode === 'read') {
       return isReading ? t('common.cancel') : t('nfc.button.startReading')
-    } else {
-      return isEmitting ? t('common.cancel') : t('nfc.button.startWriting')
     }
+    return isEmitting ? t('common.cancel') : t('nfc.button.startWriting')
   }
 
   function handleButtonPress() {

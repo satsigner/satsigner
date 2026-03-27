@@ -75,13 +75,12 @@ function detectQRType(data: string) {
           total,
           type: 'ur' as const
         }
-      } else {
-        return {
-          content: data,
-          current: 0,
-          total: 1,
-          type: 'ur' as const
-        }
+      }
+      return {
+        content: data,
+        current: 0,
+        total: 1,
+        type: 'ur' as const
       }
     }
   }

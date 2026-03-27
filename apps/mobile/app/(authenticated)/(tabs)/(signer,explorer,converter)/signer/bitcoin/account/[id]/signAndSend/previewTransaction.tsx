@@ -615,14 +615,13 @@ function PreviewTransaction() {
             total,
             type: 'ur' as const
           }
-        } else {
-          // Single-part UR
-          return {
-            content: data,
-            current: 0,
-            total: 1,
-            type: 'ur' as const
-          }
+        }
+        // Single-part UR
+        return {
+          content: data,
+          current: 0,
+          total: 1,
+          type: 'ur' as const
         }
       }
     }
@@ -660,9 +659,8 @@ function PreviewTransaction() {
         if (txBuilderResult?.psbt?.base64) {
           const convertedResult = convertPsbtToFinalTransaction(processedData)
           return convertedResult
-        } else {
-          return processedData
         }
+        return processedData
       }
       return processedData
     } catch {
@@ -740,12 +738,10 @@ function PreviewTransaction() {
               convertedResult.startsWith('cHNidP')
             ) {
               return convertedResult
-            } else {
-              return convertedResult
             }
-          } else {
-            return result
+            return convertedResult
           }
+          return result
         }
 
         default:
@@ -1796,9 +1792,8 @@ function PreviewTransaction() {
                 ...key,
                 secret: decryptedSecret
               }
-            } else {
-              return key
             }
+            return key
           })
         )
 

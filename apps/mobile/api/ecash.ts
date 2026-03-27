@@ -350,12 +350,11 @@ export async function validateEcashToken(
         isSpent: false,
         isValid: true
       }
-    } else {
-      return {
-        details: `Mixed state: ${spentProofs.length} spent, ${unspentProofs.length} unspent`,
-        isSpent: false,
-        isValid: true
-      }
+    }
+    return {
+      details: `Mixed state: ${spentProofs.length} spent, ${unspentProofs.length} unspent`,
+      isSpent: false,
+      isValid: true
     }
   } catch {
     return {

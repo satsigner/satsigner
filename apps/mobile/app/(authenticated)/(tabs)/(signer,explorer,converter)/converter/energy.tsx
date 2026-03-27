@@ -754,9 +754,8 @@ export default function Energy() {
           if (tx.txid) {
             // Convert txid to little-endian for merkle root
             return Buffer.from(tx.txid, 'hex').reverse()
-          } else {
-            throw new Error('Invalid transaction format')
           }
+          throw new Error('Invalid transaction format')
         })
 
         while (hashes.length > 1) {

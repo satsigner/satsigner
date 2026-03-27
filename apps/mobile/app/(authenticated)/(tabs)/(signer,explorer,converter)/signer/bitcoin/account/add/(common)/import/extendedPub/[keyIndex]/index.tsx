@@ -145,10 +145,9 @@ export default function ImportExtendedPub() {
         pulseAnimation.stop()
         scaleAnimation.stop()
       }
-    } else {
-      pulseAnim.setValue(0)
-      scaleAnim.setValue(1)
     }
+    pulseAnim.setValue(0)
+    scaleAnim.setValue(1)
   }, [isReading, pulseAnim, scaleAnim])
 
   function updateMasterFingerprint(fingerprint: string) {
@@ -248,14 +247,13 @@ export default function ImportExtendedPub() {
             total,
             type: 'ur' as const
           }
-        } else {
-          // Single-part UR
-          return {
-            content: data,
-            current: 0,
-            total: 1,
-            type: 'ur' as const
-          }
+        }
+        // Single-part UR
+        return {
+          content: data,
+          current: 0,
+          total: 1,
+          type: 'ur' as const
         }
       }
     }
@@ -582,10 +580,9 @@ export default function ImportExtendedPub() {
                   toast.success('Crypto account imported successfully')
                   setCameraModalVisible(false)
                   return
-                } else {
-                  toast.error('No extended public key found in crypto account')
-                  return
                 }
+                toast.error('No extended public key found in crypto account')
+                return
               }
             }
           } catch {

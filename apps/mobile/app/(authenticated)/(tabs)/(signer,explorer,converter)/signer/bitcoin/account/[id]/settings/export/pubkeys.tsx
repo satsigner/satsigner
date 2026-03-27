@@ -68,16 +68,15 @@ export default function ExportPubkeys() {
             if (isImportAddress) {
               // For watch-only accounts, we can get the extended public key from the secret
               return key.secret.extendedPublicKey || 'N/A'
-            } else {
-              // For regular accounts, we need to extract the extended public key from the descriptor
-              if (!walletData?.externalDescriptor) {
-                return 'N/A'
-              }
-              const extendedKey = getExtendedKeyFromDescriptor(
-                walletData.externalDescriptor
-              )
-              return extendedKey || 'N/A'
             }
+            // For regular accounts, we need to extract the extended public key from the descriptor
+            if (!walletData?.externalDescriptor) {
+              return 'N/A'
+            }
+            const extendedKey = getExtendedKeyFromDescriptor(
+              walletData.externalDescriptor
+            )
+            return extendedKey || 'N/A'
           })
         )
 

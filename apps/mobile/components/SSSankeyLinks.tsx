@@ -70,9 +70,8 @@ function SSSankeyLinks({
         const relevantLinks = links.filter((link) => {
           if (type === 'source') {
             return link.source === node.id
-          } else {
-            return link.target === node.id
           }
+          return link.target === node.id
         })
 
         for (const link of relevantLinks) {
@@ -129,9 +128,8 @@ function SSSankeyLinks({
         .filter((link) => {
           if (isSource) {
             return link.source === node.id
-          } else {
-            return link.target === node.id
           }
+          return link.target === node.id
         })
         .sort((a, b) => {
           const aNode = isSource

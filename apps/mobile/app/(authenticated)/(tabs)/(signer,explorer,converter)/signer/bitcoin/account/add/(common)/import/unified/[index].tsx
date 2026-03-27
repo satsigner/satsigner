@@ -582,29 +582,27 @@ export default function UnifiedImport() {
   function getImportLabel() {
     if (importType === 'descriptor') {
       return t('watchonly.importDescriptor.title')
-    } else {
-      // Return the appropriate label based on script version
-      switch (scriptVersion) {
-        case 'P2PKH':
-          return t('account.import.xpub')
-        case 'P2SH-P2WPKH':
-          return t('account.import.ypub')
-        case 'P2WPKH':
-          return t('account.import.zpub')
-        case 'P2TR':
-          return t('account.import.vpub')
-        default:
-          return t('account.import.xpub')
-      }
+    }
+    // Return the appropriate label based on script version
+    switch (scriptVersion) {
+      case 'P2PKH':
+        return t('account.import.xpub')
+      case 'P2SH-P2WPKH':
+        return t('account.import.ypub')
+      case 'P2WPKH':
+        return t('account.import.zpub')
+      case 'P2TR':
+        return t('account.import.vpub')
+      default:
+        return t('account.import.xpub')
     }
   }
 
   function getImportDescription() {
     if (importType === 'descriptor') {
       return t('watchonly.importDescriptor.text')
-    } else {
-      return t('watchonly.importExtendedPub.text')
     }
+    return t('watchonly.importExtendedPub.text')
   }
 
   if (!name) {

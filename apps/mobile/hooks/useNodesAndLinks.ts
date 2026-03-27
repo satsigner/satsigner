@@ -219,9 +219,8 @@ export const useNodesAndLinks = ({
         } as TxNode,
         ...outputNodes
       ]
-    } else {
-      return []
     }
+    return []
   }, [
     inputs,
     transactions.size,

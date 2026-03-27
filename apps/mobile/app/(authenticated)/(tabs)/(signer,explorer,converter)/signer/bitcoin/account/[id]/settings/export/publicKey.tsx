@@ -56,10 +56,9 @@ export default function PublicKeyPage() {
     } else if (scriptVersion === 'P2WSH') {
       // For P2WSH, default to zpub/vpub (more specific)
       return network === 'bitcoin' ? 'zpub' : 'vpub'
-    } else {
-      // For P2SH and others, default to xpub/tpub
-      return network === 'bitcoin' ? 'xpub' : 'tpub'
     }
+    // For P2SH and others, default to xpub/tpub
+    return network === 'bitcoin' ? 'xpub' : 'tpub'
   }
 
   const [selectedFormat, setSelectedFormat] = useState<PublicKeyFormat>('xpub')

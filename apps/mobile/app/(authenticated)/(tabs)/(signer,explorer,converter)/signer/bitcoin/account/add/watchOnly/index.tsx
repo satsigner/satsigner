@@ -220,10 +220,9 @@ export default function WatchOnly() {
         pulseAnimation.stop()
         scaleAnimation.stop()
       }
-    } else {
-      pulseAnim.setValue(0)
-      scaleAnim.setValue(1)
     }
+    pulseAnim.setValue(0)
+    scaleAnim.setValue(1)
   }, [isReading, pulseAnim, scaleAnim])
 
   const updateDescriptorValidationState = useCallback(() => {
@@ -507,14 +506,13 @@ export default function WatchOnly() {
             total,
             type: 'ur' as const
           }
-        } else {
-          // Single-part UR
-          return {
-            content: data,
-            current: 0,
-            total: 1,
-            type: 'ur' as const
-          }
+        }
+        // Single-part UR
+        return {
+          content: data,
+          current: 0,
+          total: 1,
+          type: 'ur' as const
         }
       }
     }

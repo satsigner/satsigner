@@ -29,10 +29,9 @@ export default class Esplora {
         return await response.json()
       } else if (contentType.includes('application/octet-stream')) {
         return await response.arrayBuffer()
-      } else {
-        // text/plain, text/html, missing content-type, etc. — return as text
-        return await response.text()
       }
+      // text/plain, text/html, missing content-type, etc. — return as text
+      return await response.text()
     } catch (e) {
       throw new Error(getVerboseErrorMessage(e), { cause: e })
     }

@@ -188,9 +188,8 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
       const contentTypeKey = `paste.validation.${detectedContentType}`
       const fallbackKey = 'paste.validation.valid'
       return t(contentTypeKey) || t(fallbackKey)
-    } else {
-      return t('paste.validation.invalid')
     }
+    return t('paste.validation.invalid')
   }
 
   function getButtonLabel() {

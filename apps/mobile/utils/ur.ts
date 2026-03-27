@@ -104,12 +104,10 @@ export function decodeURToPSBT(ur: string): string {
     // This ensures we preserve all the witness data and signatures
     if (psbtHex.toLowerCase().startsWith('70736274')) {
       return psbtHex
-    } else {
-      return psbtHex
     }
-  } else {
-    throw new Error('UR decoder not complete after receiving part')
+    return psbtHex
   }
+  throw new Error('UR decoder not complete after receiving part')
 }
 
 /**
@@ -271,9 +269,8 @@ export async function decodeMultiPartURToPSBT(
       // This ensures we preserve all the witness data and signatures
       if (psbtHex.toLowerCase().startsWith('70736274')) {
         return psbtHex
-      } else {
-        return psbtHex
       }
+      return psbtHex
     }
   }
 
@@ -293,9 +290,8 @@ export async function decodeMultiPartURToPSBT(
 
     if (psbtHex.toLowerCase().startsWith('70736274')) {
       return psbtHex
-    } else {
-      return psbtHex
     }
+    return psbtHex
   }
 
   throw new Error('UR decoder failed')

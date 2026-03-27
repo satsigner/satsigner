@@ -420,9 +420,8 @@ function useSyncAccountWithAddress() {
 
           if (outputAddr === address) {
             return previousValue + output.value
-          } else {
-            return previousValue
           }
+          return previousValue
         } catch {
           return previousValue
         }

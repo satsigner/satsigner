@@ -15,9 +15,8 @@ function SSTimeAgoText({ date, ...textProps }: SSTimeAgoTextProps) {
       return `${t('time.lessThanAMinute')} ${suffix}`
     } else if (unit === 'minute' || unit === 'hour') {
       return `${value} ${unit}${value !== 1 ? 's' : ''} ${suffix}`
-    } else {
-      return `${formatDate(date)} - ${formatTime(date)}`
     }
+    return `${formatDate(date)} - ${formatTime(date)}`
   }
 
   return (
