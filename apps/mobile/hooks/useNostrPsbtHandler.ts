@@ -10,9 +10,7 @@ import {
 } from './useNostrNotifyUtils'
 
 const psbtHandler: MessageHandler = {
-  canHandle: (context) => {
-    return context.data?.data_type === 'PSBT'
-  },
+  canHandle: (context) => context.data?.data_type === 'PSBT',
 
   handle: async (context) => {
     const { unwrappedEvent, eventContent, data, onPendingDM, account } = context

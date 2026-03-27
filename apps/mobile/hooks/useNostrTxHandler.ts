@@ -10,9 +10,7 @@ import {
 } from './useNostrNotifyUtils'
 
 const txHandler: MessageHandler = {
-  canHandle: (context) => {
-    return context.data?.data_type === 'Tx'
-  },
+  canHandle: (context) => context.data?.data_type === 'Tx',
 
   handle: async (context) => {
     const { unwrappedEvent, data, account } = context

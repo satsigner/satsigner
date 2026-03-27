@@ -130,22 +130,24 @@ function SSCurrentTransactionChart({
   const GRAPH_WIDTH = width
   const SANKEY_TOP_MARGIN = 200
 
-  const sankeyGenerator = useMemo(() => {
-    return sankey()
-      .nodeWidth(NODE_WIDTH)
-      .nodePadding(160)
-      .extent([
-        [0, SANKEY_TOP_MARGIN],
-        [
-          width,
-          height *
-            0.7 *
-            // (Math.max(inputMap.size, outputArray.length + 1) * 0.237) // + 1 for the miner output
-            (Math.max(inputMap.size, outputArray.length + 1) * 0.23)
-        ]
-      ])
-      .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
-  }, [inputMap, outputArray, width, height])
+  const sankeyGenerator = useMemo(
+    () =>
+      sankey()
+        .nodeWidth(NODE_WIDTH)
+        .nodePadding(160)
+        .extent([
+          [0, SANKEY_TOP_MARGIN],
+          [
+            width,
+            height *
+              0.7 *
+              // (Math.max(inputMap.size, outputArray.length + 1) * 0.237) // + 1 for the miner output
+              (Math.max(inputMap.size, outputArray.length + 1) * 0.23)
+          ]
+        ])
+        .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id),
+    [inputMap, outputArray, width, height]
+  )
 
   sankeyGenerator.nodeAlign((node: SankeyNodeMinimal<object, object>) => {
     const { depthH } = node as Node
@@ -306,27 +308,29 @@ function SSCurrentTransactionChart({
   })
 
   // calculating the sankey node styles to match in skia
-  const nodeStyles = useMemo(() => {
-    return nodes.map((node) => {
-      const isBlock = (node as Node).type === 'block'
-      const blockNodeHeight =
-        isBlock && (node as Node).ioData?.txSize
-          ? ((node as Node).ioData?.txSize ?? 0) * 0.1
-          : 0
+  const nodeStyles = useMemo(
+    () =>
+      nodes.map((node) => {
+        const isBlock = (node as Node).type === 'block'
+        const blockNodeHeight =
+          isBlock && (node as Node).ioData?.txSize
+            ? ((node as Node).ioData?.txSize ?? 0) * 0.1
+            : 0
 
-      // Safely handle NaN values from sankey generator
-      const safeX0 = Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)
-      const safeY0 = Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)
+        // Safely handle NaN values from sankey generator
+        const safeX0 = Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)
+        const safeY0 = Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)
 
-      return {
-        height: isBlock ? Math.max(blockNodeHeight, LINK_MAX_WIDTH) : 80,
-        localId: (node as Node).localId,
-        width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
-        x: isBlock ? safeX0 + (NODE_WIDTH - BLOCK_WIDTH) / 2 : safeX0,
-        y: safeY0
-      }
-    })
-  }, [nodes])
+        return {
+          height: isBlock ? Math.max(blockNodeHeight, LINK_MAX_WIDTH) : 80,
+          localId: (node as Node).localId,
+          width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
+          x: isBlock ? safeX0 + (NODE_WIDTH - BLOCK_WIDTH) / 2 : safeX0,
+          y: safeY0
+        }
+      }),
+    [nodes]
+  )
 
   const transformedLinks = links.map((link) => ({
     source: (link.source as Node).id,

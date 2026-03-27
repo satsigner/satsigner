@@ -133,13 +133,14 @@ export default function SSSeedWordsInput({
   }, [wordCount])
 
   // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       if (autoAdvanceTimeoutRef.current) {
         clearTimeout(autoAdvanceTimeoutRef.current)
       }
-    }
-  }, [])
+    },
+    []
+  )
 
   // Handle word selection from keyboard selector
   const handleWordSelected = useCallback(

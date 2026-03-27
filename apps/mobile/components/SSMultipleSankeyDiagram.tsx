@@ -56,11 +56,10 @@ function SSMultipleSankeyDiagram({
 
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
   // Calculate the maximum depthH value across all nodes
-  const maxDepthH = useMemo(() => {
-    return sankeyNodes.reduce((max, node) => {
-      return Math.max(max, node.depthH)
-    }, 0)
-  }, [sankeyNodes])
+  const maxDepthH = useMemo(
+    () => sankeyNodes.reduce((max, node) => Math.max(max, node.depthH), 0),
+    [sankeyNodes]
+  )
 
   // Calculate the maximum number of nodes at any depthH level
   const maxNodeCountInDepthH = useMemo(() => {
@@ -183,25 +182,27 @@ function SSMultipleSankeyDiagram({
   const GRAPH_WIDTH = width
 
   // calculating the sankey node styles to match in skia
-  const nodeStyles = useMemo(() => {
-    return nodes.map((node) => {
-      const isBlock = (node as Node).type === 'block'
-      const blockNodeHeight =
-        isBlock && (node as Node).ioData?.txSize
-          ? ((node as Node).ioData?.txSize ?? 0) * 0.1
-          : 0
+  const nodeStyles = useMemo(
+    () =>
+      nodes.map((node) => {
+        const isBlock = (node as Node).type === 'block'
+        const blockNodeHeight =
+          isBlock && (node as Node).ioData?.txSize
+            ? ((node as Node).ioData?.txSize ?? 0) * 0.1
+            : 0
 
-      return {
-        height: isBlock ? Math.max(blockNodeHeight, LINK_MAX_WIDTH) : 80,
-        localId: (node as Node).localId,
-        width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
-        x: isBlock
-          ? (node.x0 ?? 0) + (NODE_WIDTH - BLOCK_WIDTH) / 2
-          : (node.x0 ?? 0),
-        y: node.y0 ?? 0
-      }
-    })
-  }, [nodes])
+        return {
+          height: isBlock ? Math.max(blockNodeHeight, LINK_MAX_WIDTH) : 80,
+          localId: (node as Node).localId,
+          width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
+          x: isBlock
+            ? (node.x0 ?? 0) + (NODE_WIDTH - BLOCK_WIDTH) / 2
+            : (node.x0 ?? 0),
+          y: node.y0 ?? 0
+        }
+      }),
+    [nodes]
+  )
 
   if (!nodes?.length || !transformedLinks?.length) {
     return null

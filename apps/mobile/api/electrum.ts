@@ -396,18 +396,16 @@ class ElectrumClient extends BaseElectrumClient {
     timestamps: number[],
     addressKeychain: string
   ): Utxo[] {
-    return utxos.map((electrumUtxo, index) => {
-      return {
-        addressTo: address,
-        keychain: addressKeychain,
-        label: '',
-        script: [...bitcoinjs.address.toOutputScript(address, this.network)],
-        timestamp: new Date(timestamps[index] * 1000),
-        txid: electrumUtxo.tx_hash,
-        value: electrumUtxo.value,
-        vout: electrumUtxo.tx_pos
-      } as Utxo
-    })
+    return utxos.map((electrumUtxo, index) => ({
+      addressTo: address,
+      keychain: addressKeychain as Utxo['keychain'],
+      label: '',
+      script: [...bitcoinjs.address.toOutputScript(address, this.network)],
+      timestamp: new Date(timestamps[index] * 1000),
+      txid: electrumUtxo.tx_hash,
+      value: electrumUtxo.value,
+      vout: electrumUtxo.tx_pos
+    }))
   }
 
   parseAddressTransactions(

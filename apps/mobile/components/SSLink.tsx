@@ -14,11 +14,13 @@ type SSLinkProps = {
 }
 
 function SSLink({ url, text, size = 'sm' }: SSLinkProps) {
-  const textStyle = useMemo(() => {
-    return StyleSheet.compose(styles.textBase, {
-      ...{ fontSize: Sizes.text.fontSize[size] }
-    })
-  }, [size])
+  const textStyle = useMemo(
+    () =>
+      StyleSheet.compose(styles.textBase, {
+        ...{ fontSize: Sizes.text.fontSize[size] }
+      }),
+    [size]
+  )
 
   return (
     <TouchableOpacity

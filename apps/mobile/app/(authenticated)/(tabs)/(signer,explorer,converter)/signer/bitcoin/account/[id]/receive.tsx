@@ -80,13 +80,14 @@ export default function Receive() {
     return (address.match(/(.{1,4})/g) || []).join(' ')
   }
 
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       if (saveLabelTimeoutRef.current) {
         clearTimeout(saveLabelTimeoutRef.current)
       }
-    }
-  }, [])
+    },
+    []
+  )
 
   const localFinalAddressQR = useMemo(() => {
     if (!localAddressQR) {
@@ -196,9 +197,9 @@ export default function Receive() {
         localAddressQR: qrUri
       })
 
-      const existingAddress = account.addresses.find((addr) => {
-        return addr.address === address
-      })
+      const existingAddress = account.addresses.find(
+        (addr) => addr.address === address
+      )
       if (existingAddress?.label) {
         setLocalLabel(existingAddress.label)
       } else {

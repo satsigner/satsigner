@@ -64,14 +64,15 @@ export default function DeviceAliasPage() {
 
   const { restartSync } = useNostrSync()
   const trustSyncRestartRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       if (trustSyncRestartRef.current) {
         clearTimeout(trustSyncRestartRef.current)
         trustSyncRestartRef.current = null
       }
-    }
-  }, [accountId])
+    },
+    [accountId]
+  )
 
   const accountProfile = npub ? account?.nostr?.npubProfiles?.[npub] : undefined
   const isThisDevice = npub === account?.nostr?.deviceNpub

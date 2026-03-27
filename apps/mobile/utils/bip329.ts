@@ -78,40 +78,34 @@ for (const [key, aliases] of Object.entries(bip329Aliases)) {
 function formatAddressLabels(addresses: Address[]): Label[] {
   return addresses
     .filter((address) => address.label)
-    .map((address) => {
-      return {
-        label: address.label,
-        ref: address.address,
-        spendable: true,
-        type: 'addr'
-      } as Label
-    })
+    .map((address) => ({
+      label: address.label,
+      ref: address.address,
+      spendable: true,
+      type: 'addr'
+    }))
 }
 
 function formatTransactionLabels(transactions: Transaction[]): Label[] {
   return transactions
-    .filter((tx) => tx.label)
-    .map((tx) => {
-      return {
-        label: tx.label,
-        ref: tx.id,
-        spendable: true,
-        type: 'tx'
-      } as Label
-    })
+    .filter((tx): tx is Transaction & { label: string } => Boolean(tx.label))
+    .map((tx) => ({
+      label: tx.label,
+      ref: tx.id,
+      spendable: true,
+      type: 'tx' as const
+    }))
 }
 
 function formatUtxoLabels(utxos: Utxo[]): Label[] {
   return utxos
     .filter((utxo) => utxo.label)
-    .map((utxo) => {
-      return {
-        label: utxo.label!,
-        ref: getUtxoOutpoint(utxo),
-        spendable: true,
-        type: 'output' // TODO: allow the user to mark utxo as not spendable
-      }
-    })
+    .map((utxo) => ({
+      label: utxo.label!,
+      ref: getUtxoOutpoint(utxo),
+      spendable: true,
+      type: 'output' // TODO: allow the user to mark utxo as not spendable
+    }))
 }
 
 export function formatAccountLabels(account: Account): Label[] {

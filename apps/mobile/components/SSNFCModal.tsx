@@ -126,9 +126,8 @@ function SSNFCModal({
     }
   }, [visible, nfcPulseAnim])
 
-  const getModeTitle = () => {
-    return mode === 'read' ? t('nfc.mode.read') : t('nfc.mode.write')
-  }
+  const getModeTitle = () =>
+    mode === 'read' ? t('nfc.mode.read') : t('nfc.mode.write')
 
   function getModeDescription() {
     if (mode === 'read') {

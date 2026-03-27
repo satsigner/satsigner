@@ -25,15 +25,17 @@ function SSWordInput(
   }: SSWordInputProps,
   ref: ForwardedRef<TextInput>
 ) {
-  const textInputStyle = useMemo(() => {
-    return StyleSheet.compose(
-      {
-        ...styles.textInputBase,
-        ...(invalid ? styles.textInputInvalid : {})
-      },
-      style
-    )
-  }, [invalid, style])
+  const textInputStyle = useMemo(
+    () =>
+      StyleSheet.compose(
+        {
+          ...styles.textInputBase,
+          ...(invalid ? styles.textInputInvalid : {})
+        },
+        style
+      ),
+    [invalid, style]
+  )
 
   return (
     <View style={styles.containerBase}>

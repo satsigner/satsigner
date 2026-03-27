@@ -269,13 +269,15 @@ function TotalTransactions({
     useShallow((state) => [state.btcPrice, state.fiatCurrency])
   )
 
-  const sortedTransactions = useMemo(() => {
-    return sortTransactions([...account.transactions], sortDirection)
-  }, [account.transactions, sortDirection])
+  const sortedTransactions = useMemo(
+    () => sortTransactions([...account.transactions], sortDirection),
+    [account.transactions, sortDirection]
+  )
 
-  const chartTransactions = useMemo(() => {
-    return sortTransactions([...account.transactions], 'desc')
-  }, [account.transactions])
+  const chartTransactions = useMemo(
+    () => sortTransactions([...account.transactions], 'desc'),
+    [account.transactions]
+  )
 
   const transactionBalances = useMemo(() => {
     let balance = 0
@@ -586,12 +588,12 @@ function DerivedAddresses({
   const [addressView, setAddressView] = useState<'table' | 'list'>('table')
 
   const isUpdatingAddresses = useRef(false)
-  const isMultiAddressWatchOnly = useMemo(() => {
-    return (
+  const isMultiAddressWatchOnly = useMemo(
+    () =>
       account.keys.length > 1 &&
-      account.keys[0].creationType === 'importAddress'
-    )
-  }, [account])
+      account.keys[0].creationType === 'importAddress',
+    [account]
+  )
 
   function updateDerivationPath() {
     if (isMultiAddressWatchOnly) {
@@ -902,9 +904,10 @@ function SpendableOutputs({
   const GRAPH_HEIGHT = halfHeight
   const GRAPH_WIDTH = width - horizontalPadding
 
-  const totalBalance = useMemo(() => {
-    return account.utxos.reduce((sum, u) => sum + u.value, 0)
-  }, [account.utxos])
+  const totalBalance = useMemo(
+    () => account.utxos.reduce((sum, u) => sum + u.value, 0),
+    [account.utxos]
+  )
 
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>
@@ -1081,13 +1084,13 @@ export default function AccountView() {
   const wallet = useGetAccountWallet(id!)
   const watchOnlyWalletAddress = useGetAccountAddress(id!)
 
-  const isMultiAddressWatchOnly = useMemo(() => {
-    return (
+  const isMultiAddressWatchOnly = useMemo(
+    () =>
       account &&
       account.keys.length > 1 &&
-      account.keys[0].creationType === 'importAddress'
-    )
-  }, [account])
+      account.keys[0].creationType === 'importAddress',
+    [account]
+  )
 
   const [currencyUnit, useZeroPadding, privacyMode, togglePrivacyMode] =
     useSettingsStore(
@@ -1162,13 +1165,14 @@ export default function AccountView() {
 
   const { closeCameraModal, closeNFCModal, closePasteModal } = contentHandler
   useFocusEffect(
-    useCallback(() => {
-      return () => {
+    useCallback(
+      () => () => {
         closeCameraModal()
         closeNFCModal()
         closePasteModal()
-      }
-    }, [closeCameraModal, closeNFCModal, closePasteModal])
+      },
+      [closeCameraModal, closeNFCModal, closePasteModal]
+    )
   )
 
   useEffect(() => {

@@ -110,9 +110,8 @@ export function useConnectionTest() {
           ).mempool_get_fee_histogram?.()
           if (mempoolInfo && Array.isArray(mempoolInfo)) {
             mempoolSize = mempoolInfo.reduce(
-              (sum: number, item: [number, number]) => {
-                return sum + (Array.isArray(item) && item[1] ? item[1] : 0)
-              },
+              (sum: number, item: [number, number]) =>
+                sum + (Array.isArray(item) && item[1] ? item[1] : 0),
               0
             )
           }
@@ -221,11 +220,12 @@ export function useConnectionTest() {
   }
 
   // Cleanup on unmount
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       cleanupPreviousConnection()
-    }
-  }, [cleanupPreviousConnection])
+    },
+    [cleanupPreviousConnection]
+  )
 
   return {
     nodeInfo,

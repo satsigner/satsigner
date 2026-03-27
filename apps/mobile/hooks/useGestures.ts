@@ -70,11 +70,7 @@ export const useGestures = ({
 
   // Use useAnimatedReaction to update translation when initialTranslation prop changes
   useAnimatedReaction(
-    () => {
-      // Preparer function: runs on JS thread when dependencies change.
-      // Returns the data to be watched.
-      return { x: initialTranslation.x, y: initialTranslation.y }
-    },
+    () => ({ x: initialTranslation.x, y: initialTranslation.y }),
     (currentData) => {
       'worklet'
       // Reactor function: runs on UI thread if currentData is different from previousData.

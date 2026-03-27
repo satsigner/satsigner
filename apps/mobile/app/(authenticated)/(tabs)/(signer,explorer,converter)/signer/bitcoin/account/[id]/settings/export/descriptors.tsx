@@ -319,10 +319,10 @@ export default function ExportDescriptors() {
 
                 // Build key section with policy-based derivation paths
                 const keySection = sortedKeyData
-                  .map(({ fingerprint, extendedPublicKey }) => {
-                    // Format: [FINGERPRINT/POLICY_DERIVATION_PATH]XPUB/<0;1>/*
-                    return `[${fingerprint}/${cleanPolicyPath}]${extendedPublicKey}/<0;1>/*`
-                  })
+                  .map(
+                    ({ fingerprint, extendedPublicKey }) =>
+                      `[${fingerprint}/${cleanPolicyPath}]${extendedPublicKey}/<0;1>/*`
+                  )
                   .join(',')
 
                 // Create descriptor based on account type

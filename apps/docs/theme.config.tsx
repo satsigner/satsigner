@@ -9,13 +9,11 @@ const config: DocsThemeConfig = {
   footer: {
     text: 'SatSigner'
   },
-  head: () => {
-    return (
-      <>
-        <link rel="icon" href="/favicon.png" />
-      </>
-    )
-  },
+  head: () => (
+    <>
+      <link rel="icon" href="/favicon.png" />
+    </>
+  ),
   logo: <span>SatSigner</span>,
   project: {
     link: 'https://github.com/satsigner/satsigner'

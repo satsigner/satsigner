@@ -104,9 +104,7 @@ export default function CustomNetwork() {
   const backends: Backend[] = ['electrum', 'esplora']
   const protocols = ['ssl', 'tcp'] as const
 
-  const urlPreview = useMemo(() => {
-    return constructTrimmedUrl()
-  }, [constructTrimmedUrl])
+  const urlPreview = useMemo(() => constructTrimmedUrl(), [constructTrimmedUrl])
 
   useEffect(() => {
     if (testing && !connectionState) {

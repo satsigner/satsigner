@@ -45,13 +45,13 @@ export default function ManageAccountAddressesPage() {
     ])
   )
 
-  const isMultiAddressWatchOnly = useMemo(() => {
-    return (
+  const isMultiAddressWatchOnly = useMemo(
+    () =>
       account &&
       account.keys.length > 1 &&
-      account.keys[0].creationType === 'importAddress'
-    )
-  }, [account])
+      account.keys[0].creationType === 'importAddress',
+    [account]
+  )
 
   function handleUpdateAccount(newAccount: Account) {
     const addressesNotChanged = newAccount.addresses.every(

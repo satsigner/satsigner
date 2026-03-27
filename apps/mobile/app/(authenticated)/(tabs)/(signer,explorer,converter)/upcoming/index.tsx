@@ -24,9 +24,10 @@ export default function UpComing() {
   const CARD_WIDTH = width * 0.6
   const SNAP_INTERVAL = CARD_WIDTH + SPACING
 
-  const data = useMemo(() => {
-    return slides.find((item) => item.page === params.title)?.items ?? []
-  }, [params.title])
+  const data = useMemo(
+    () => slides.find((item) => item.page === params.title)?.items ?? [],
+    [params.title]
+  )
 
   useEffect(() => {
     if (!data.length) {

@@ -208,14 +208,15 @@ export default function NostrSync() {
 
   const previousRelaysRef = useRef<string[]>([])
   const trustSyncRestartRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       if (trustSyncRestartRef.current) {
         clearTimeout(trustSyncRestartRef.current)
         trustSyncRestartRef.current = null
       }
-    }
-  }, [accountId])
+    },
+    [accountId]
+  )
 
   // Prefer store for device keys so we show updated values immediately after saving on manage-keys page (no stale local state)
   const displayDeviceNpub = account?.nostr?.deviceNpub ?? deviceNpub

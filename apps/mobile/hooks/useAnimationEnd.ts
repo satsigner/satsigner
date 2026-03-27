@@ -37,10 +37,7 @@ const ANIMATION_VALUES = [
 
 const isAnimationComplete = (
   endValues: PartialEndValues
-): endValues is EndValues => {
-  'worklet'
-  return ANIMATION_VALUES.every((item) => !!endValues[item])
-}
+): endValues is EndValues => ANIMATION_VALUES.every((item) => !!endValues[item])
 
 export const useAnimationEnd = (
   onResetAnimationEnd?: OnResetAnimationEndCallback

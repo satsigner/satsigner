@@ -47,28 +47,26 @@ function TimeLock() {
   const [validMinute, setValidMinute] = useState(false)
   const [validBlockHeight, setValidBlockHeight] = useState(false)
 
-  const renderTab = () => {
-    return (
-      <SSHStack style={{ marginBottom: 24 }}>
-        {timeLockTypes.map((type, index) => (
-          <SSButton
-            key={type}
-            label={tabLabels[type]}
-            variant="outline"
-            onPress={() => {
-              setTimeLockType(type)
-              setTabIndex(index)
-            }}
-            style={{
-              borderColor: type === timeLockType ? 'white' : 'gray',
-              flexGrow: 1,
-              width: '45%'
-            }}
-          />
-        ))}
-      </SSHStack>
-    )
-  }
+  const renderTab = () => (
+    <SSHStack style={{ marginBottom: 24 }}>
+      {timeLockTypes.map((type, index) => (
+        <SSButton
+          key={type}
+          label={tabLabels[type]}
+          variant="outline"
+          onPress={() => {
+            setTimeLockType(type)
+            setTabIndex(index)
+          }}
+          style={{
+            borderColor: type === timeLockType ? 'white' : 'gray',
+            flexGrow: 1,
+            width: '45%'
+          }}
+        />
+      ))}
+    </SSHStack>
+  )
 
   const renderScene = ({
     route

@@ -54,9 +54,10 @@ function SSSankeyNodes({
   })
 
   // Find the maximum depth in nodes
-  const maxDepth = useMemo(() => {
-    return Math.max(...nodes.map((node) => node.depthH))
-  }, [nodes])
+  const maxDepth = useMemo(
+    () => Math.max(...nodes.map((node) => node.depthH)),
+    [nodes]
+  )
 
   const renderNode = (node: Node) => {
     const isHigherCurrentMinerFee =
@@ -230,8 +231,8 @@ function NodeText({
       }
     }
 
-    const createParagraphBuilder = () => {
-      return Skia.ParagraphBuilder.Make(
+    const createParagraphBuilder = () =>
+      Skia.ParagraphBuilder.Make(
         {
           strutStyle: {
             forceStrutHeight: true,
@@ -243,7 +244,6 @@ function NodeText({
         },
         customFontManager
       )
-    }
 
     const para = createParagraphBuilder()
 
@@ -300,8 +300,8 @@ function NodeText({
       }
     }
 
-    const createParagraphBuilder = () => {
-      return Skia.ParagraphBuilder.Make(
+    const createParagraphBuilder = () =>
+      Skia.ParagraphBuilder.Make(
         {
           ellipsis: '…',
           maxLines: isSelfSend ? 6 : 5,
@@ -314,8 +314,7 @@ function NodeText({
           textAlign: isBlock ? TextAlign.Center : TextAlign.Left
         },
         customFontManager
-      ) // Pass font manager here
-    }
+      )
 
     const buildBlockParagraph = () => {
       const para = createParagraphBuilder()

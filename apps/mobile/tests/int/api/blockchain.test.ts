@@ -34,9 +34,8 @@ describe('blockchain » price', () => {
 
 describe('blockchain » mempool', () => {
   const errorTolerance = 0.015 // 1.5%
-  const isDiffReasonable = (a: number, b: number) => {
-    return Math.abs((a - b) / b) < errorTolerance
-  }
+  const isDiffReasonable = (a: number, b: number) =>
+    Math.abs((a - b) / b) < errorTolerance
 
   it('get mempool info', async () => {
     const response = await mempoolspace.getMemPool()

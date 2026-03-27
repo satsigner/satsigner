@@ -41,15 +41,13 @@ export default function TabLayout() {
     }
   }
 
-  const renderTabButton = (props: BottomTabBarButtonProps, segment: string) => {
-    return (
-      <View style={props.style}>
-        <Pressable onPress={(e) => handleTabItemPress(props, segment, e)}>
-          {props.children}
-        </Pressable>
-      </View>
-    )
-  }
+  const renderTabButton = (props: BottomTabBarButtonProps, segment: string) => (
+    <View style={props.style}>
+      <Pressable onPress={(e) => handleTabItemPress(props, segment, e)}>
+        {props.children}
+      </Pressable>
+    </View>
+  )
 
   useEffect(() => {
     setShowTab(showNavigation(currentPath, segments.length))

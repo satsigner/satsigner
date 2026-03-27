@@ -8,14 +8,16 @@ type SSActionButtonProps = React.ComponentPropsWithoutRef<
 >
 
 function SSActionButton({ style, children, ...props }: SSActionButtonProps) {
-  const buttonStyle = useMemo(() => {
-    return StyleSheet.compose(
-      {
-        ...styles.buttonBase
-      },
-      style
-    )
-  }, [style])
+  const buttonStyle = useMemo(
+    () =>
+      StyleSheet.compose(
+        {
+          ...styles.buttonBase
+        },
+        style
+      ),
+    [style]
+  )
 
   return (
     <TouchableHighlight

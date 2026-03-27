@@ -87,12 +87,8 @@ const useTransactionBuilderStore = create<
   cpfp: true,
   fee: 0,
   feeRate: 0,
-  getInputs: () => {
-    return Array.from(get().inputs.values())
-  },
-  hasInput: (utxo) => {
-    return get().inputs.has(getUtxoOutpoint(utxo))
-  },
+  getInputs: () => Array.from(get().inputs.values()),
+  hasInput: (utxo) => get().inputs.has(getUtxoOutpoint(utxo)),
   inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
   outputs: [],
   rbf: true,

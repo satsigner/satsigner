@@ -503,14 +503,15 @@ export default function Energy() {
   }, [isConnected, fetchBlockTemplate])
 
   // Clean up on unmount
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       if (templateUpdateIntervalRef.current) {
         clearInterval(templateUpdateIntervalRef.current)
         templateUpdateIntervalRef.current = null
       }
-    }
-  }, [])
+    },
+    []
+  )
 
   // Add useEffect for initial address validation
   useEffect(() => {

@@ -18,20 +18,18 @@ function parseAccountAddressesDetails({
     labelsBackup[addr.address] = addr.label
   }
 
-  const addressesDetailed = addresses.map((addr) => {
-    return {
-      ...addr,
-      scriptVersion,
-      summary: {
-        balance: 0,
-        satsInMempool: 0,
-        transactions: 0,
-        utxos: 0
-      },
-      transactions: [] as string[],
-      utxos: [] as string[]
-    }
-  })
+  const addressesDetailed = addresses.map((addr) => ({
+    ...addr,
+    scriptVersion,
+    summary: {
+      balance: 0,
+      satsInMempool: 0,
+      transactions: 0,
+      utxos: 0
+    },
+    transactions: [] as string[],
+    utxos: [] as string[]
+  }))
 
   const addrDictionary: Record<string, number> = {}
 

@@ -51,9 +51,10 @@ function SSTransactionChart({
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
 
-  const totalOutputValue = transaction.vout.reduce((prevValue, output) => {
-    return prevValue + output.value
-  }, 0)
+  const totalOutputValue = transaction.vout.reduce(
+    (prevValue, output) => prevValue + output.value,
+    0
+  )
 
   const defaultInputValue = totalOutputValue / (transaction.vin.length || 1)
 
@@ -72,9 +73,10 @@ function SSTransactionChart({
 
   let minerFee: number | undefined
   if (inputs.every((input) => input.valueIsKnown)) {
-    const totalInputValue = inputs.reduce((prevValue, input) => {
-      return prevValue + input.value
-    }, 0)
+    const totalInputValue = inputs.reduce(
+      (prevValue, input) => prevValue + input.value,
+      0
+    )
     minerFee = totalInputValue - totalOutputValue
   }
 

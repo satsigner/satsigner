@@ -88,17 +88,16 @@ function useNostrSync() {
   /**
    * Check if an account has active subscriptions
    */
-  const hasActiveSubscription = useCallback((accountId: string) => {
-    return nostrSyncService.hasActiveSubscription(accountId)
-  }, [])
+  const hasActiveSubscription = useCallback(
+    (accountId: string) => nostrSyncService.hasActiveSubscription(accountId),
+    []
+  )
 
   /**
    * Get sync status for an account
    */
   const getStatus = useCallback(
-    (accountId: string) => {
-      return getSyncStatus(accountId)
-    },
+    (accountId: string) => getSyncStatus(accountId),
     [getSyncStatus]
   )
 

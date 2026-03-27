@@ -20,15 +20,18 @@ function SSCollapsible({ children }: SSCollapsibleProps) {
     setOpen(!open)
   }
 
-  const containerStyle = useMemo(() => {
-    return open ? styles.containerOpen : styles.containerClose
-  }, [open])
+  const containerStyle = useMemo(
+    () => (open ? styles.containerOpen : styles.containerClose),
+    [open]
+  )
 
-  const linearGradientStyle = useMemo(() => {
-    return StyleSheet.compose(styles.linearGradientBase, {
-      ...(open ? styles.linearGradientOpen : {})
-    })
-  }, [open])
+  const linearGradientStyle = useMemo(
+    () =>
+      StyleSheet.compose(styles.linearGradientBase, {
+        ...(open ? styles.linearGradientOpen : {})
+      }),
+    [open]
+  )
 
   return (
     <TouchableOpacity activeOpacity={1} onPress={() => handleSetOpen()}>

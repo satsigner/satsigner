@@ -90,11 +90,13 @@ function SSButton({
     return StyleSheet.compose({ ...textVariantStyles }, textStyle)
   }, [variant, textStyle])
 
-  const activityIndicatorColor = useMemo(() => {
-    return variant === 'secondary'
-      ? styles.activityIndicatorDark.color
-      : styles.activityIndicatorLight.color
-  }, [variant])
+  const activityIndicatorColor = useMemo(
+    () =>
+      variant === 'secondary'
+        ? styles.activityIndicatorDark.color
+        : styles.activityIndicatorLight.color,
+    [variant]
+  )
 
   return (
     <TouchableOpacity

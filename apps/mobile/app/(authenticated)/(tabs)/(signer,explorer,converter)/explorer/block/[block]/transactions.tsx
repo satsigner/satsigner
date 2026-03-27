@@ -191,28 +191,24 @@ export default function BlockTransactions() {
                     <SSVStack gap="xs" style={{ marginBottom: 20 }}>
                       {index > 0 && (
                         <SSTransactionVinList
-                          vin={tx.vin.map((input) => {
-                            return {
-                              previousOutput: {
-                                txid: input.txid,
-                                vout: input.vout
-                              },
-                              scriptSig: input.scriptsig_asm,
-                              sequence: input.sequence,
-                              value: input.prevout.value,
-                              witness: []
-                            }
-                          })}
+                          vin={tx.vin.map((input) => ({
+                            previousOutput: {
+                              txid: input.txid,
+                              vout: input.vout
+                            },
+                            scriptSig: input.scriptsig_asm,
+                            sequence: input.sequence,
+                            value: input.prevout.value,
+                            witness: []
+                          }))}
                         />
                       )}
                       <SSTransactionVoutList
-                        vout={tx.vout.map((output) => {
-                          return {
-                            address: output.scriptpubkey_address || '',
-                            script: output.scriptpubkey_asm || [],
-                            value: output.value
-                          }
-                        })}
+                        vout={tx.vout.map((output) => ({
+                          address: output.scriptpubkey_address || '',
+                          script: output.scriptpubkey_asm || [],
+                          value: output.value
+                        }))}
                         txid={tx.txid}
                       />
                     </SSVStack>

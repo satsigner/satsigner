@@ -37,9 +37,7 @@ function AddressDetails() {
     state.accounts.find((account) => account.id === accountId),
     state.accounts
       .find((account) => account.id === accountId)
-      ?.addresses.find((address) => {
-        return address.address === addr
-      })
+      ?.addresses.find((address) => address.address === addr)
   ])
 
   const transactions = useAccountsStore((state) =>
@@ -62,9 +60,7 @@ function AddressDetails() {
 
   const privacyMode = useSettingsStore((state) => state.privacyMode)
 
-  const addressUtxoInputs = useMemo(() => {
-    return addressUtxos || []
-  }, [addressUtxos])
+  const addressUtxoInputs = useMemo(() => addressUtxos || [], [addressUtxos])
 
   const getBlockchainHeight = useBlockchainStore(
     (state) => state.getBlockchainHeight

@@ -51,16 +51,14 @@ export default function SSDetailsList({
         rowGap: gap
       }}
     >
-      {items.map(([header, text, options], index) => {
-        return (
-          <SSDetailsListItem
-            key={index}
-            {...commonOptions}
-            {...options}
-            {...{ header, text, width: options?.width || width }}
-          />
-        )
-      })}
+      {items.map(([header, text, options], index) => (
+        <SSDetailsListItem
+          key={index}
+          {...commonOptions}
+          {...options}
+          {...{ header, text, width: options?.width || width }}
+        />
+      ))}
     </SSHStack>
   )
 }

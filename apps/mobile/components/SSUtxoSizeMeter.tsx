@@ -31,12 +31,14 @@ function SSUtxoSizeMeter({
   const percentage = scale(Math.round((expSize / largestExpSize) * 100))
   const percentageText = (percentage + '%') as DimensionValue
 
-  const selectedSizeBarStyle = useMemo(() => {
-    return StyleSheet.compose(styles.sizeBarBase, {
-      ...(selected ? styles.sizeBarSelected : {}),
-      width: percentageText
-    })
-  }, [selected, percentageText])
+  const selectedSizeBarStyle = useMemo(
+    () =>
+      StyleSheet.compose(styles.sizeBarBase, {
+        ...(selected ? styles.sizeBarSelected : {}),
+        width: percentageText
+      }),
+    [selected, percentageText]
+  )
 
   return (
     <View style={styles.containerBase}>

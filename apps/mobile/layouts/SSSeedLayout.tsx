@@ -12,12 +12,13 @@ type SSSeedLayoutProps = {
 }
 
 export default function SSSeedLayout({ count, children }: SSSeedLayoutProps) {
-  const containerStyle = useMemo(() => {
-    return {
+  const containerStyle = useMemo(
+    () => ({
       height:
         (count / NUMBER_OF_COLUMNS) * (Sizes.wordInput.height + HEIGHT_MARGIN)
-    }
-  }, [count])
+    }),
+    [count]
+  )
 
   return <View style={[styles.containerBase, containerStyle]}>{children}</View>
 }

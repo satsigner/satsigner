@@ -83,9 +83,10 @@ export const useLND = () => {
     [config, setConnecting, setConnected]
   )
 
-  const getBalance = useCallback(async () => {
-    return makeRequest('/v1/balance/blockchain')
-  }, [makeRequest])
+  const getBalance = useCallback(
+    async () => makeRequest('/v1/balance/blockchain'),
+    [makeRequest]
+  )
 
   const getChannels = useCallback(async (): Promise<LNDChannel[]> => {
     try {
@@ -101,15 +102,14 @@ export const useLND = () => {
   }, [makeRequest, setChannels])
 
   const createInvoice = useCallback(
-    async (amount: number, description: string) => {
-      return makeRequest('/v1/invoices', {
+    async (amount: number, description: string) =>
+      makeRequest('/v1/invoices', {
         body: {
           memo: description,
           value: amount
         },
         method: 'POST'
-      })
-    },
+      }),
     [makeRequest]
   )
 

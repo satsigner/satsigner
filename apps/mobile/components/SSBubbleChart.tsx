@@ -66,19 +66,17 @@ function SSBubbleChart({
 
   useEffect(() => {
     setUtxoList(
-      utxos.map((utxo) => {
-        return {
-          addressTo: utxo.addressTo || '',
-          children: [],
-          id: `${utxo.txid}:${utxo.vout}`,
-          keychain: utxo.keychain,
-          label: utxo.label || '',
-          timestamp: utxo.timestamp,
-          txid: utxo.txid,
-          value: utxo.value,
-          vout: utxo.vout
-        }
-      })
+      utxos.map((utxo) => ({
+        addressTo: utxo.addressTo || '',
+        children: [],
+        id: `${utxo.txid}:${utxo.vout}`,
+        keychain: utxo.keychain,
+        label: utxo.label || '',
+        timestamp: utxo.timestamp,
+        txid: utxo.txid,
+        value: utxo.value,
+        vout: utxo.vout
+      }))
     )
   }, [utxos])
 
@@ -161,9 +159,9 @@ function SSBubbleChart({
               vout: packedUtxo.data.vout!
             }
 
-            const isSelected = inputs.some((input: Utxo) => {
-              return getUtxoOutpoint(input) === getUtxoOutpoint(utxo)
-            })
+            const isSelected = inputs.some(
+              (input: Utxo) => getUtxoOutpoint(input) === getUtxoOutpoint(utxo)
+            )
 
             return (
               <SSBubble

@@ -80,11 +80,12 @@ export default function EcashReceivePage() {
   )
 
   // Cleanup polling when component unmounts or tab changes
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       stopPolling()
-    }
-  }, [stopPolling])
+    },
+    [stopPolling]
+  )
 
   // Stop polling when switching tabs
   useEffect(() => {

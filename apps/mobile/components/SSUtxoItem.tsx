@@ -36,13 +36,15 @@ function SSUtxoItem({
   const [currencyUnit, useZeroPadding] = useSettingsStore(
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
-  const selectIconStyle = useMemo(() => {
-    return StyleSheet.compose(styles.selectIconBase, {
-      ...(selected
-        ? { backgroundColor: Colors.error }
-        : { backgroundColor: Colors.gray[500] })
-    })
-  }, [selected])
+  const selectIconStyle = useMemo(
+    () =>
+      StyleSheet.compose(styles.selectIconBase, {
+        ...(selected
+          ? { backgroundColor: Colors.error }
+          : { backgroundColor: Colors.gray[500] })
+      }),
+    [selected]
+  )
 
   const label = normalizeUtxoLabelForDisplay(utxo.label || '')
 

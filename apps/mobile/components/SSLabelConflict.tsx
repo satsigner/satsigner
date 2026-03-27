@@ -154,18 +154,16 @@ function SSLabelConflictItem({
         <SSVStack gap="xs">
           <SSText size="md">{tl('manualSelection')}</SSText>
           <SSVStack gap="sm">
-            {conflictStrategies.map((strategy) => {
-              return (
-                <SSCheckbox
-                  key={strategy}
-                  selected={strategy === conflictStrategy}
-                  label={strategy}
-                  onPress={() => onSelectStrategy(strategy)}
-                  unFillColor={Colors.gray[400]}
-                  fillColor={Colors.gray[400]}
-                />
-              )
-            })}
+            {conflictStrategies.map((strategy) => (
+              <SSCheckbox
+                key={strategy}
+                selected={strategy === conflictStrategy}
+                label={strategy}
+                onPress={() => onSelectStrategy(strategy)}
+                unFillColor={Colors.gray[400]}
+                fillColor={Colors.gray[400]}
+              />
+            ))}
           </SSVStack>
         </SSVStack>
       )}
@@ -247,16 +245,14 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
             <SSText size="md">{tl('selection')}</SSText>
           </SSVStack>
           <SSVStack gap="sm">
-            {conflictStrategies.map((strategy) => {
-              return (
-                <SSCheckbox
-                  key={strategy}
-                  selected={strategy === conflictStrategy}
-                  label={strategy}
-                  onPress={() => setConflictStrategy(strategy)}
-                />
-              )
-            })}
+            {conflictStrategies.map((strategy) => (
+              <SSCheckbox
+                key={strategy}
+                selected={strategy === conflictStrategy}
+                label={strategy}
+                onPress={() => setConflictStrategy(strategy)}
+              />
+            ))}
           </SSVStack>
           <SSButton
             label={t('common.next')}
@@ -267,22 +263,20 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
       )}
       {stage !== 'selection' && (
         <SSVStack>
-          {conflicts.map(([current, incoming], index) => {
-            return (
-              <SSLabelConflictItem
-                key={current.ref}
-                conflict={[current, incoming]}
-                conflictStrategyGlobal={conflictStrategy}
-                conflictStrategy={conflictStrategyPerLabel[index]}
-                finalLabel={results[index].label}
-                index={index}
-                onChangeLabel={(text) => solveConflictManually(text, index)}
-                onSelectStrategy={(strategy) =>
-                  solveConflictByIndex(strategy, index)
-                }
-              />
-            )
-          })}
+          {conflicts.map(([current, incoming], index) => (
+            <SSLabelConflictItem
+              key={current.ref}
+              conflict={[current, incoming]}
+              conflictStrategyGlobal={conflictStrategy}
+              conflictStrategy={conflictStrategyPerLabel[index]}
+              finalLabel={results[index].label}
+              index={index}
+              onChangeLabel={(text) => solveConflictManually(text, index)}
+              onSelectStrategy={(strategy) =>
+                solveConflictByIndex(strategy, index)
+              }
+            />
+          ))}
           <SSVStack gap="sm" style={{ width: '100%' }}>
             <SSButton
               label={t('common.back')}

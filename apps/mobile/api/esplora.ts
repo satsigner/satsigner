@@ -65,18 +65,16 @@ export default class Esplora {
 
   async getTxInputValues(txid: string) {
     return this.getTxInfo(txid).then((data) =>
-      data.vin.map((input) => {
-        return {
-          previousOutput: {
-            txid: input.txid,
-            vout: input.vout
-          },
-          scriptSig: parseHexToBytes(input.scriptsig),
-          sequence: input.sequence,
-          value: input.prevout.value,
-          witness: input.witness.map(parseHexToBytes)
-        }
-      })
+      data.vin.map((input) => ({
+        previousOutput: {
+          txid: input.txid,
+          vout: input.vout
+        },
+        scriptSig: parseHexToBytes(input.scriptsig),
+        sequence: input.sequence,
+        value: input.prevout.value,
+        witness: input.witness.map(parseHexToBytes)
+      }))
     )
   }
 

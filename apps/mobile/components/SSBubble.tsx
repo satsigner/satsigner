@@ -91,9 +91,10 @@ function SSBubble({
     return withTiming(scale.value <= 1 || zoomedRadius <= 100 ? 0 : 1)
   }, [scale, radius])
 
-  const finalOpacity = useDerivedValue(() => {
-    return opacity.value * dimmedOpacity.value
-  }, [opacity, dimmedOpacity])
+  const finalOpacity = useDerivedValue(
+    () => opacity.value * dimmedOpacity.value,
+    [opacity, dimmedOpacity]
+  )
 
   const fontSize = radius / 6
   const satsFontSize = fontSize / 1.5

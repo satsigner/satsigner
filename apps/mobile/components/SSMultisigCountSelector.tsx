@@ -37,15 +37,18 @@ function SSMultisigCountSelector({
     setContainersize({ height, width })
   }
 
-  const sizeBetweenPoints = useMemo(() => {
-    return (containerSize.width - RADIUS_OUTER_RECT * 2) / (maxCount - 1)
-  }, [containerSize.width, maxCount])
+  const sizeBetweenPoints = useMemo(
+    () => (containerSize.width - RADIUS_OUTER_RECT * 2) / (maxCount - 1),
+    [containerSize.width, maxCount]
+  )
 
-  const centerPoints = useMemo(() => {
-    return Array.from({ length: maxCount }, (_, i) => i).map(
-      (i) => sizeBetweenPoints * i + RADIUS_OUTER_RECT
-    )
-  }, [maxCount, sizeBetweenPoints])
+  const centerPoints = useMemo(
+    () =>
+      Array.from({ length: maxCount }, (_, i) => i).map(
+        (i) => sizeBetweenPoints * i + RADIUS_OUTER_RECT
+      ),
+    [maxCount, sizeBetweenPoints]
+  )
 
   const panGesture = viewOnly
     ? Gesture.Pan()
@@ -53,11 +56,10 @@ function SSMultisigCountSelector({
         .activateAfterLongPress(30)
         .onStart((event) => {
           const { x } = event
-          const index = centerPoints.findIndex((point) => {
-            return (
+          const index = centerPoints.findIndex(
+            (point) =>
               x >= point - RADIUS_INDICATOR && x <= point + RADIUS_INDICATOR
-            )
-          })
+          )
           if (index + 1 === requiredNumber) {
             setActiveRequiredNumber(true)
           } else if (index + 1 === totalNumber) {
@@ -66,11 +68,10 @@ function SSMultisigCountSelector({
         })
         .onUpdate((event) => {
           const { x } = event
-          const index = centerPoints.findIndex((point) => {
-            return (
+          const index = centerPoints.findIndex(
+            (point) =>
               x >= point - RADIUS_INDICATOR && x <= point + RADIUS_INDICATOR
-            )
-          })
+          )
           if (index === -1) {
             return
           }

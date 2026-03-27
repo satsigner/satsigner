@@ -36,18 +36,19 @@ function SSCheckbox({
   disabled,
   ...props
 }: SSCheckboxProps) {
-  const innerIconStyle = useMemo(() => {
-    return StyleSheet.compose(styles.innerIconStyleBase, {
-      borderColor: selected ? Colors.white : Colors.transparent
-    })
-  }, [selected])
+  const innerIconStyle = useMemo(
+    () =>
+      StyleSheet.compose(styles.innerIconStyleBase, {
+        borderColor: selected ? Colors.white : Colors.transparent
+      }),
+    [selected]
+  )
 
-  const containerBase = useMemo(() => {
-    return StyleSheet.compose(
-      styles.containerBase,
-      disabled ? styles.disabled : {}
-    )
-  }, [disabled])
+  const containerBase = useMemo(
+    () =>
+      StyleSheet.compose(styles.containerBase, disabled ? styles.disabled : {}),
+    [disabled]
+  )
 
   return (
     <TouchableOpacity

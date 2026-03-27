@@ -21,12 +21,11 @@ function SSNavMenu(props: SSNavMenuProps) {
   const filteredNavMenuGroups = navMenuGroups.reduce(
     (acc, group) => {
       if (group.items && Array.isArray(group.items)) {
-        const filteredItems = group.items.filter((item) => {
-          return (
+        const filteredItems = group.items.filter(
+          (item) =>
             item.platform === PLATFORM.HYBRID ||
             item.platform === currentPlatform
-          )
-        })
+        )
         if (filteredItems.length > 0) {
           acc.push({ ...group, items: filteredItems })
         }
@@ -50,16 +49,14 @@ function SSNavMenu(props: SSNavMenuProps) {
         contentContainerStyle={styles.contentContainer}
       >
         <SSVStack style={styles.vStackWrapper}>
-          {filteredNavMenuGroups.map((group, index) => {
-            return (
-              <SSVStack
-                key={`${index} - ${group.title}`}
-                style={styles.groupWrapper}
-              >
-                <SSNavMenuGroup group={group} />
-              </SSVStack>
-            )
-          })}
+          {filteredNavMenuGroups.map((group, index) => (
+            <SSVStack
+              key={`${index} - ${group.title}`}
+              style={styles.groupWrapper}
+            >
+              <SSNavMenuGroup group={group} />
+            </SSVStack>
+          ))}
         </SSVStack>
         <SSVStack style={styles.versionWrapper}>
           <SSText size="sm" color="muted" style={styles.versionText}>

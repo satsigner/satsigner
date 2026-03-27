@@ -117,9 +117,8 @@ function SSDatePicker({
     }
   }
 
-  const getDaysInMonth = (month: number, year: number) => {
-    return new Date(year, month, 0).getDate()
-  }
+  const getDaysInMonth = (month: number, year: number) =>
+    new Date(year, month, 0).getDate()
 
   const getOrder = () => {
     const now = new Date()
@@ -160,24 +159,22 @@ function SSDatePicker({
         { height: pickerHeight, width: pickerWidth as DimensionValue }
       ]}
     >
-      {getOrder().map((el, index) => {
-        return (
-          <DateBlock
-            digits={el.digits}
-            value={el.value}
-            onChange={changeHandle}
-            height={pickerHeight}
-            fontSize={fontSize}
-            textColor={textColor}
-            markColor={markColor}
-            markHeight={markHeight}
-            markWidth={markWidth}
-            fadeColor={fadeColor}
-            type={el.name}
-            key={index}
-          />
-        )
-      })}
+      {getOrder().map((el, index) => (
+        <DateBlock
+          digits={el.digits}
+          value={el.value}
+          onChange={changeHandle}
+          height={pickerHeight}
+          fontSize={fontSize}
+          textColor={textColor}
+          markColor={markColor}
+          markHeight={markHeight}
+          markWidth={markWidth}
+          fadeColor={fadeColor}
+          type={el.name}
+          key={index}
+        />
+      ))}
     </View>
   )
 }
@@ -248,36 +245,32 @@ function DateBlock({
         nestedScrollEnabled
         onMomentumScrollEnd={handleMomentumScrollEnd}
       >
-        {digits.map((value: number, index: number) => {
-          return (
-            <TouchableOpacity
-              key={index}
-              onPress={() => {
-                onChange(type, digits[index])
-                snapScrollToIndex(index)
-              }}
+        {digits.map((value: number, index: number) => (
+          <TouchableOpacity
+            key={index}
+            onPress={() => {
+              onChange(type, digits[index])
+              snapScrollToIndex(index)
+            }}
+          >
+            <Text
+              style={[
+                styles.digit,
+                {
+                  color: textColor || '#000000',
+                  fontSize: fontSize || 22,
+                  height: dHeight,
+                  lineHeight: dHeight,
+                  marginBottom:
+                    index === digits.length - 1 ? height / 2 - dHeight / 2 : 0,
+                  marginTop: index === 0 ? height / 2 - dHeight / 2 : 0
+                }
+              ]}
             >
-              <Text
-                style={[
-                  styles.digit,
-                  {
-                    color: textColor || '#000000',
-                    fontSize: fontSize || 22,
-                    height: dHeight,
-                    lineHeight: dHeight,
-                    marginBottom:
-                      index === digits.length - 1
-                        ? height / 2 - dHeight / 2
-                        : 0,
-                    marginTop: index === 0 ? height / 2 - dHeight / 2 : 0
-                  }
-                ]}
-              >
-                {value}
-              </Text>
-            </TouchableOpacity>
-          )
-        })}
+              {value}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
       <LinearGradient
         style={[styles.gradient, { bottom: 0, height: height / 3 }]}

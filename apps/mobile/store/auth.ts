@@ -57,9 +57,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
       },
       duressPinEnabled: false,
       firstTime: true,
-      getPagesHistory: () => {
-        return ['/', ...get().pageHistory]
-      },
+      getPagesHistory: () => ['/', ...get().pageHistory],
       incrementPinTries: () => {
         set({ pinTries: get().pinTries + 1 })
         const triesLeft = get().pinMaxTries - get().pinTries

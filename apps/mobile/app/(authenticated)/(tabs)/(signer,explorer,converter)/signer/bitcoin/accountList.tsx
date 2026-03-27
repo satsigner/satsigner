@@ -248,9 +248,11 @@ export default function AccountList() {
     return index > 0 ? index : 0
   })
 
-  const filteredAccounts = useMemo(() => {
-    return accounts.filter((acc) => acc.network === tabs[tabIndex].key)
-  }, [accounts, tabIndex]) // eslint-disable-line react-hooks/exhaustive-deps
+  const filteredAccounts = useMemo(
+    () => accounts.filter((acc) => acc.network === tabs[tabIndex].key),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [accounts, tabIndex]
+  )
 
   const ACCOUNT_CARD_HEIGHT = 160
   const SEPARATOR_VERTICAL = 32
@@ -615,49 +617,47 @@ export default function AccountList() {
     toast.success('Sample wallet created successfully!')
   }
 
-  const renderTab = () => {
-    return (
-      <SSHStack
-        gap="none"
-        justifyEvenly
-        style={{
-          borderBottomColor: Colors.gray[800],
-          borderBottomWidth: 1,
-          paddingVertical: 0
-        }}
-      >
-        {tabs.map((tab, index) => (
-          <SSActionButton
-            key={tab.key}
-            style={{ height: 48, width: '30%' }}
-            onPress={() => setTabIndex(index)}
-          >
-            <SSVStack gap="none">
-              <SSText
-                center
-                uppercase
-                style={{ letterSpacing: 3, lineHeight: 20 }}
-              >
-                {tab.key}
-              </SSText>
-              {tabIndex === index && (
-                <View
-                  style={{
-                    alignSelf: 'center',
-                    backgroundColor: Colors.white,
-                    bottom: -15,
-                    height: 1,
-                    position: 'absolute',
-                    width: '100%'
-                  }}
-                />
-              )}
-            </SSVStack>
-          </SSActionButton>
-        ))}
-      </SSHStack>
-    )
-  }
+  const renderTab = () => (
+    <SSHStack
+      gap="none"
+      justifyEvenly
+      style={{
+        borderBottomColor: Colors.gray[800],
+        borderBottomWidth: 1,
+        paddingVertical: 0
+      }}
+    >
+      {tabs.map((tab, index) => (
+        <SSActionButton
+          key={tab.key}
+          style={{ height: 48, width: '30%' }}
+          onPress={() => setTabIndex(index)}
+        >
+          <SSVStack gap="none">
+            <SSText
+              center
+              uppercase
+              style={{ letterSpacing: 3, lineHeight: 20 }}
+            >
+              {tab.key}
+            </SSText>
+            {tabIndex === index && (
+              <View
+                style={{
+                  alignSelf: 'center',
+                  backgroundColor: Colors.white,
+                  bottom: -15,
+                  height: 1,
+                  position: 'absolute',
+                  width: '100%'
+                }}
+              />
+            )}
+          </SSVStack>
+        </SSActionButton>
+      ))}
+    </SSHStack>
+  )
 
   const renderSamplewallets = () => {
     switch (network) {

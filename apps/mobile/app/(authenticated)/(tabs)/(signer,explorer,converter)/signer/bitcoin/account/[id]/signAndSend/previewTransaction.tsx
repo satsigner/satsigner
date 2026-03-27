@@ -1752,8 +1752,8 @@ function PreviewTransaction() {
   }, [nfcModalVisible, nfcScanModalVisible, nfcPulseAnim])
 
   // Cleanup effect when component unmounts
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       // Cancel any running animations
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current)
@@ -1763,8 +1763,9 @@ function PreviewTransaction() {
       setQrChunks([])
       setUrChunks([])
       setRawPsbtChunks([])
-    }
-  }, [])
+    },
+    []
+  )
 
   // Decrypt keys to check for seed existence
   useEffect(() => {

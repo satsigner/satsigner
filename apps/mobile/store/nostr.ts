@@ -310,18 +310,11 @@ const useNostrStore = create<NostrState & NostrAction>()(
       clearSubscriptions: () => {
         set({ activeSubscriptions: new Set() })
       },
-      getActiveSubscriptions: () => {
-        return get().activeSubscriptions
-      },
-      getLastDataExchangeEOSE: (accountId) => {
-        return get().lastDataExchangeEOSE[accountId]
-      },
-      getLastProtocolEOSE: (accountId) => {
-        return get().lastProtocolEOSE[accountId]
-      },
-      getMembers: (accountId) => {
-        return get().members[accountId] || []
-      },
+      getActiveSubscriptions: () => get().activeSubscriptions,
+      getLastDataExchangeEOSE: (accountId) =>
+        get().lastDataExchangeEOSE[accountId],
+      getLastProtocolEOSE: (accountId) => get().lastProtocolEOSE[accountId],
+      getMembers: (accountId) => get().members[accountId] || [],
       getProcessedEvents: (accountId) => {
         const eventsMap = get().processedEvents[accountId] || {}
         return Object.keys(eventsMap)
@@ -330,15 +323,10 @@ const useNostrStore = create<NostrState & NostrAction>()(
         const idsMap = get().processedMessageIds[accountId] || {}
         return Object.keys(idsMap)
       },
-      getProfile: (npub) => {
-        return get().profiles[npub]
-      },
-      getSyncStatus: (accountId) => {
-        return get().syncStatus[accountId] || DEFAULT_SYNC_STATUS
-      },
-      getTrustedDevices: (accountId) => {
-        return get().trustedDevices[accountId] || []
-      },
+      getProfile: (npub) => get().profiles[npub],
+      getSyncStatus: (accountId) =>
+        get().syncStatus[accountId] || DEFAULT_SYNC_STATUS,
+      getTrustedDevices: (accountId) => get().trustedDevices[accountId] || [],
       incrementMessagesProcessed: (accountId, count = 1) => {
         set((state) => {
           const currentStatus =
@@ -369,9 +357,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
           }
         })
       },
-      isSyncing: (accountId) => {
-        return get().syncingAccounts[accountId] || false
-      },
+      isSyncing: (accountId) => get().syncingAccounts[accountId] || false,
       lastDataExchangeEOSE: {},
       lastProtocolEOSE: {},
       members: {},

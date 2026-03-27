@@ -46,9 +46,10 @@ function ImportDescriptorFromAccount() {
   )
   const network = useBlockchainStore((state) => state.selectedNetwork)
 
-  const singleSignatureAccounts = useMemo(() => {
-    return accounts.filter((account) => account.policyType === 'singlesig')
-  }, [accounts])
+  const singleSignatureAccounts = useMemo(
+    () => accounts.filter((account) => account.policyType === 'singlesig'),
+    [accounts]
+  )
 
   const [selectedAccountId, setSelectedAccountId] = useState<Account['id']>()
   const [loading, setLoading] = useState(false)

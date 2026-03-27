@@ -139,9 +139,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           }
         }
       },
-      getTags: () => {
-        return get().tags
-      },
+      getTags: () => get().tags,
       importLabels: (accountId: string, labels: Label[]) => {
         const account = get().accounts.find(
           (account) => account.id === accountId
@@ -473,9 +471,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
                 // also update the utxo object if it exist
                 const utxoIndex = state.accounts[index].utxos.findIndex(
-                  (utxo: Utxo) => {
-                    return utxo.txid === txid && utxo.vout === vout
-                  }
+                  (utxo: Utxo) => utxo.txid === txid && utxo.vout === vout
                 )
                 if (utxoIndex !== -1) {
                   state.accounts[index].utxos[utxoIndex].label = label
@@ -492,9 +488,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
                 // also update the address object if it exists
                 const addressIndex = state.accounts[index].addresses.findIndex(
-                  (address: Address) => {
-                    return address.address === addressRef
-                  }
+                  (address: Address) => address.address === addressRef
                 )
                 if (addressIndex !== -1) {
                   state.accounts[index].addresses[addressIndex].label = label
@@ -577,21 +571,17 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           return undefined
         }
 
-        const txIndex = account.transactions.findIndex((tx) => {
-          return tx.id === txid
-        })
+        const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
 
-        const utxoIndex = account.utxos.findIndex((u) => {
-          return u.txid === txid && u.vout === vout
-        })
+        const utxoIndex = account.utxos.findIndex(
+          (u) => u.txid === txid && u.vout === vout
+        )
 
         const address =
           utxoIndex !== -1 ? account.utxos[utxoIndex].addressTo : ''
 
         const addressIndex = address
-          ? account.addresses.findIndex((addr) => {
-              return addr.address === address
-            })
+          ? account.addresses.findIndex((addr) => addr.address === address)
           : -1
 
         set(

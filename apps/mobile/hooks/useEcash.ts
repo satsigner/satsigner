@@ -155,9 +155,8 @@ export function useEcash() {
   )
 
   const checkMintQuoteHandler = useCallback(
-    async (mintUrl: string, quoteId: string): Promise<MintQuoteState> => {
-      return checkMintQuote(mintUrl, quoteId)
-    },
+    async (mintUrl: string, quoteId: string): Promise<MintQuoteState> =>
+      checkMintQuote(mintUrl, quoteId),
     []
   )
 
@@ -620,13 +619,14 @@ export function useQuotePolling() {
   }, [])
 
   // Cleanup on unmount
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
       }
-    }
-  }, [])
+    },
+    []
+  )
 
   return {
     isPolling,

@@ -366,12 +366,12 @@ function useSyncAccountWithAddress() {
     account.syncProgress = { ...account.syncProgress }
 
     // transactions and utxos not known by the wallet
-    const pendingTx = addressTxs.filter((t) => {
-      return existingTx[t.tx_hash] === undefined
-    })
-    const pendingUtxos = addressUtxos.filter((u) => {
-      return existingUtxo[`${u.tx_hash}:${u.tx_pos}`] === undefined
-    })
+    const pendingTx = addressTxs.filter(
+      (t) => existingTx[t.tx_hash] === undefined
+    )
+    const pendingUtxos = addressUtxos.filter(
+      (u) => existingUtxo[`${u.tx_hash}:${u.tx_pos}`] === undefined
+    )
 
     // update progress
     const estimatedRequests = pendingTx.length * 2 + pendingUtxos.length

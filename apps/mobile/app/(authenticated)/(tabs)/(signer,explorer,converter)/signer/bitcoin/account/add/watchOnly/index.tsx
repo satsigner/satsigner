@@ -994,31 +994,29 @@ export default function WatchOnly() {
                   )}
                   {selectedOption === 'importAddress' && (
                     <>
-                      {addresses.map((address, index) => {
-                        return (
-                          <SSVStack
-                            key={address}
-                            gap="xs"
-                            style={{ marginVertical: 16 }}
-                          >
-                            <SSHStack justifyBetween>
-                              <SSText uppercase weight="bold">
-                                {`${t('bitcoin.address')} #${index + 1}`}
-                              </SSText>
-                              <TouchableOpacity
-                                onPress={() => deleteAddress(address)}
-                              >
-                                <SSIconTrash height={12} width={12} />
-                              </TouchableOpacity>
-                            </SSHStack>
-                            <SSAddressDisplay
-                              address={address}
-                              variant="bare"
-                              size="xs"
-                            />
-                          </SSVStack>
-                        )
-                      })}
+                      {addresses.map((address, index) => (
+                        <SSVStack
+                          key={address}
+                          gap="xs"
+                          style={{ marginVertical: 16 }}
+                        >
+                          <SSHStack justifyBetween>
+                            <SSText uppercase weight="bold">
+                              {`${t('bitcoin.address')} #${index + 1}`}
+                            </SSText>
+                            <TouchableOpacity
+                              onPress={() => deleteAddress(address)}
+                            >
+                              <SSIconTrash height={12} width={12} />
+                            </TouchableOpacity>
+                          </SSHStack>
+                          <SSAddressDisplay
+                            address={address}
+                            variant="bare"
+                            size="xs"
+                          />
+                        </SSVStack>
+                      ))}
                       <SSTextInput
                         value={addressInput}
                         style={isValidAddress ? styles.valid : styles.invalid}
