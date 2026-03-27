@@ -333,9 +333,7 @@ function NostrKeys() {
                               style={styles.keyText}
                               selectable
                             >
-                              {account.nostr.commonNsec.slice(0, 12) +
-                                '...' +
-                                account.nostr.commonNsec.slice(-4)}
+                              {`${account.nostr.commonNsec.slice(0, 12)}...${account.nostr.commonNsec.slice(-4)}`}
                             </SSText>
                           </SSTextClipboard>
                           <Pressable
@@ -381,9 +379,7 @@ function NostrKeys() {
                           style={styles.keyText}
                           selectable
                         >
-                          {account.nostr.commonNpub.slice(0, 12) +
-                            '...' +
-                            account.nostr.commonNpub.slice(-4)}
+                          {`${account.nostr.commonNpub.slice(0, 12)}...${account.nostr.commonNpub.slice(-4)}`}
                         </SSText>
                       </SSTextClipboard>
                     </SSVStack>
@@ -438,9 +434,7 @@ function NostrKeys() {
                           style={styles.keyText}
                           selectable
                         >
-                          {derivedNpub.slice(0, 12) +
-                            '...' +
-                            derivedNpub.slice(-4)}
+                          {`${derivedNpub.slice(0, 12)}...${derivedNpub.slice(-4)}`}
                         </SSText>
                       </SSTextClipboard>
                     </SSHStack>

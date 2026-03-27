@@ -91,7 +91,7 @@ function SSTransactionCard({
     const historicalPrice = prices?.[fiatCurrency]
     if (historicalPrice && historicalPrice > 0) {
       itemsToDisplay.push(
-        '(' + formatFiatPrice(Math.abs(amount), historicalPrice) + ')'
+        `(${formatFiatPrice(Math.abs(amount), historicalPrice)})`
       )
     }
 
@@ -134,7 +134,7 @@ function SSTransactionCard({
           <SSHStack gap="none">
             {(confirmations >= 0 || !hasConfirmation) && (
               <SSText size="xs" style={confirmationColor}>
-                {formatConfirmations(confirmations) + ' - '}
+                {`${formatConfirmations(confirmations)} - `}
               </SSText>
             )}
             <SSText

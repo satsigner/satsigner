@@ -107,7 +107,6 @@
     "no-param-reassign": "allow",
     "class-methods-use-this": "allow",
     "max-classes-per-file": "allow",
-    "prefer-template": "allow",
     "no-else-return": "allow",
     "prefer-exponentiation-operator": "allow",
     "operator-assignment": "allow",

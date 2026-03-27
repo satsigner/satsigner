@@ -59,7 +59,7 @@ function calculateDescriptorChecksum(descriptor: string): string {
 
     // Pad with leading '1's if needed
     while (result.length < 8) {
-      result = '1' + result
+      result = `1${result}`
     }
 
     return result

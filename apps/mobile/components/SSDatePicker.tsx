@@ -302,7 +302,7 @@ const hex2rgba = (hex: string, alpha: number): string => {
     16
   )
 
-  return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + alpha + ')'
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
 const styles = StyleSheet.create({

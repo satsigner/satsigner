@@ -336,8 +336,8 @@ export default function ImportExtendedPub() {
       if (xpub !== convertedXpub) {
         toast.info(
           t('watchonly.info.vpubConverted', {
-            tpub: convertedXpub.slice(0, 8) + '...',
-            vpub: xpub.slice(0, 8) + '...'
+            tpub: `${convertedXpub.slice(0, 8)}...`,
+            vpub: `${xpub.slice(0, 8)}...`
           })
         )
       }

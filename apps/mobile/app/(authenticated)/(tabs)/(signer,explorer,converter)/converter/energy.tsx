@@ -780,8 +780,7 @@ export default function Energy() {
         return hashes[0].toString('hex')
       } catch (error) {
         throw new Error(
-          'Failed to create merkle root: ' +
-            (error instanceof Error ? error.message : 'Unknown error'),
+          `Failed to create merkle root: ${error instanceof Error ? error.message : 'Unknown error'}`,
           { cause: error }
         )
       }
@@ -1255,16 +1254,14 @@ export default function Energy() {
         isMiningRef.current = false
         setIsMining(false)
         toast.error(
-          'Error starting mining: ' +
-            (error instanceof Error ? error.message : 'Unknown error')
+          `Error starting mining: ${error instanceof Error ? error.message : 'Unknown error'}`
         )
       }
     } catch (error) {
       isMiningRef.current = false
       setIsMining(false)
       toast.error(
-        'Error starting mining: ' +
-          (error instanceof Error ? error.message : 'Unknown error')
+        `Error starting mining: ${error instanceof Error ? error.message : 'Unknown error'}`
       )
     }
   }, [

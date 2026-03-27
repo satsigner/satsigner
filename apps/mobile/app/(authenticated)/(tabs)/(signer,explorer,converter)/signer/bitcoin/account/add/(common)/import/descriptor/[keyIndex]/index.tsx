@@ -409,7 +409,7 @@ export default function ImportDescriptor() {
 
       // Add 'm/' prefix if not present
       if (!derivationPath.startsWith('m/')) {
-        return 'm/' + derivationPath
+        return `m/${derivationPath}`
       }
 
       return derivationPath
@@ -418,7 +418,7 @@ export default function ImportDescriptor() {
     // Secondary method: Extract from /derivation/* pattern
     const pathMatch = descriptor.match(/\/([0-9]+[h']?\/)*[0-9]+[h']?\/\*/)
     if (pathMatch) {
-      return 'm/' + pathMatch[0].replace(/\/\*$/, '')
+      return `m/${pathMatch[0].replace(/\/\*$/, '')}`
     }
 
     // Fallback: Use default derivation path

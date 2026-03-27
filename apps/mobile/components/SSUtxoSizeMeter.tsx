@@ -29,7 +29,7 @@ function SSUtxoSizeMeter({
   ).clamp(true)
 
   const percentage = scale(Math.round((expSize / largestExpSize) * 100))
-  const percentageText = (percentage + '%') as DimensionValue
+  const percentageText = `${percentage}%` as DimensionValue
 
   const selectedSizeBarStyle = useMemo(
     () =>

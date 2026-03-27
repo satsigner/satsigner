@@ -108,7 +108,7 @@ export async function mnemonicToSeedElectrum(
     .toLowerCase()
     .trim()
     .replace(/\s+/g, ' ')
-  const salt = ('electrum' + passphrase).normalize('NFKD')
+  const salt = `electrum${passphrase}`.normalize('NFKD')
   return pbkdf2Async(sha512, enc.encode(normalizedMnemonic), enc.encode(salt), {
     c: 2048,
     dkLen: 64
@@ -245,7 +245,7 @@ function parsePath(path: string): number[] {
     const hardened = /('|h|H)$/.test(p)
     const index = parseInt(p.replace(/['hH]/, ''), 10)
     if (Number.isNaN(index)) {
-      throw new Error('Invalid path segment: ' + p)
+      throw new Error(`Invalid path segment: ${p}`)
     }
     return hardened ? index + HARDENED_OFFSET : index
   })

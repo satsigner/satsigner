@@ -31,7 +31,7 @@ function formatNumber(
   const [integerPart, decimalPart] = formatted.split('.')
   const formattedInteger = integerPart.replace(
     /(\d)(?=(\d{3})+(?!\d))/g,
-    '$1' + separator
+    `$1${separator}`
   )
 
   return decimalPart !== undefined
@@ -65,11 +65,11 @@ function formatTimestamp(date: Date) {
 }
 
 function formatPageUrl(path: string, params: PageParams) {
-  let url = '/' + (path || '')
+  let url = `/${path || ''}`
 
   for (const [key, paramValue] of Object.entries(params)) {
-    const value = '' + paramValue
-    url = url.replace(new RegExp('\\[' + key + '\\]'), value)
+    const value = String(paramValue)
+    url = url.replace(new RegExp(`\\[${key}\\]`), value)
   }
 
   url = url.replace(/index$/, '')
@@ -79,9 +79,9 @@ function formatPageUrl(path: string, params: PageParams) {
 
 function formatPercentualChange(value: number, base: number) {
   if (value > base) {
-    return '+' + formatNumber(((value - base) * 100) / base, 1) + '%'
+    return `+${formatNumber(((value - base) * 100) / base, 1)}%`
   } else {
-    return '-' + formatNumber(((base - value) * 100) / base, 1) + '%'
+    return `-${formatNumber(((base - value) * 100) / base, 1)}%`
   }
 }
 

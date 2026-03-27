@@ -39,23 +39,23 @@ export default class Esplora {
   }
 
   async getTxInfo(txid: string) {
-    return (await this._call('/tx/' + txid)) as EsploraTx
+    return (await this._call(`/tx/${txid}`)) as EsploraTx
   }
 
   async getTxStatus(txid: string) {
-    return await this._call('/tx/' + txid + '/status')
+    return await this._call(`/tx/${txid}/status`)
   }
 
   async getBlockTxids(hash: string): Promise<string[]> {
-    return await this._call('/block/' + hash + '/txids')
+    return await this._call(`/block/${hash}/txids`)
   }
 
   async getTxHex(txid: string) {
-    return await this._call('/tx/' + txid + '/hex')
+    return await this._call(`/tx/${txid}/hex`)
   }
 
   async getTxRaw(txid: string) {
-    return await this._call('/tx/' + txid + '/raw')
+    return await this._call(`/tx/${txid}/raw`)
   }
 
   async broadcastTransaction(txHex: string): Promise<string> {
@@ -79,29 +79,29 @@ export default class Esplora {
   }
 
   async getTxOutspends(txid: string) {
-    return (await this._call('/tx/' + txid + '/outspends')) as {
+    return (await this._call(`/tx/${txid}/outspends`)) as {
       spent: boolean
     }[]
   }
 
   async getBlockInfo(blockHash: string) {
-    return await this._call('/block/' + blockHash)
+    return await this._call(`/block/${blockHash}`)
   }
 
   async getBlockStatus(blockHash: string) {
-    return await this._call('/block/' + blockHash + '/status')
+    return await this._call(`/block/${blockHash}/status`)
   }
 
   async getBlockTransactions(blockHash: string, startIndex: number = 0) {
-    return await this._call('/block/' + blockHash + '/txs/' + startIndex)
+    return await this._call(`/block/${blockHash}/txs/${startIndex}`)
   }
 
   async getBlockTransactionIds(blockHash: string) {
-    return await this._call('/block/' + blockHash + '/txids')
+    return await this._call(`/block/${blockHash}/txids`)
   }
 
   async getBlockAtHeight(height: number) {
-    return await this._call('/block-height/' + height)
+    return await this._call(`/block-height/${height}`)
   }
 
   async getLatestBlockHash() {
@@ -113,7 +113,7 @@ export default class Esplora {
   }
 
   async getBlocks(startHeight: number) {
-    return await this._call('/blocks/' + startHeight)
+    return await this._call(`/blocks/${startHeight}`)
   }
 
   async getAddressTxs(address: string, stopAtTxids?: Set<string>) {
@@ -143,13 +143,11 @@ export default class Esplora {
   }
 
   async getAddressTxsInMempool(address: string) {
-    return (await this._call(
-      '/address/' + address + '/txs/mempool'
-    )) as EsploraTx[]
+    return (await this._call(`/address/${address}/txs/mempool`)) as EsploraTx[]
   }
 
   async getAddressUtxos(address: string): Promise<EsploraUtxo[]> {
-    return await this._call('/address/' + address + '/utxo')
+    return await this._call(`/address/${address}/utxo`)
   }
 
   async getMempoolInfo() {

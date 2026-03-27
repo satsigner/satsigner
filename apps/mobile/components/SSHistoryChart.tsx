@@ -193,7 +193,7 @@ function SSHistoryChart({
       if (t.type === 'receive') {
         for (const [outIdx, out] of t.vout.entries()) {
           if (walletAddresses.has(out.address)) {
-            const outName = t.id + '::' + outIdx
+            const outName = `${t.id}::${outIdx}`
             currentBalances.set(outName, {
               addressTo: out.address,
               keychain: 'internal',
@@ -206,8 +206,7 @@ function SSHistoryChart({
         }
       } else if (t.type === 'send') {
         for (const input of t.vin ?? []) {
-          const inputName =
-            input.previousOutput.txid + '::' + input.previousOutput.vout
+          const inputName = `${input.previousOutput.txid}::${input.previousOutput.vout}`
           if (currentBalances.has(inputName)) {
             currentBalances.delete(inputName)
           } else {
@@ -216,7 +215,7 @@ function SSHistoryChart({
         }
         for (const [outIdx, out] of (t.vout ?? []).entries()) {
           if (walletAddresses.has(out.address)) {
-            const outName = t.id + '::' + outIdx
+            const outName = `${t.id}::${outIdx}`
             currentBalances.set(outName, {
               addressTo: out.address,
               keychain: 'internal',
@@ -770,7 +769,7 @@ function SSHistoryChart({
         continue
       }
       if (showLabel && d.memo) {
-        const index = d.date.getTime().toString() + d.balance.toString() + 'L'
+        const index = `${d.date.getTime().toString()}${d.balance.toString()}L`
         const width = 40
         const height = 10
         const left = Math.round(d.type === 'receive' ? x - width : x)
@@ -795,7 +794,7 @@ function SSHistoryChart({
         })
       }
       if (showAmount) {
-        const index = d.date.getTime().toString() + d.balance.toString() + 'A'
+        const index = `${d.date.getTime().toString()}${d.balance.toString()}A`
         const width = 40
         const height = 10
         const left = Math.round(d.type === 'receive' ? x - width : x)

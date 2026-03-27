@@ -115,10 +115,7 @@ export function splitQRs(
     n += 1, offset += perEach
   ) {
     parts.push(
-      `B$${actualEncoding}${fileType}` +
-        intToBase36(count) +
-        intToBase36(n) +
-        encoded.slice(offset, offset + perEach)
+      `B$${actualEncoding}${fileType}${intToBase36(count)}${intToBase36(n)}${encoded.slice(offset, offset + perEach)}`
     )
   }
 

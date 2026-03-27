@@ -24,7 +24,7 @@ const formatNumberWithCommas = (numStr: string, decimal: number) => {
       rawText = combined + '0'.repeat(exponent - fractionalPart.length)
     } else {
       const zeros = Math.abs(exponent) - 1
-      rawText = '0.' + '0'.repeat(zeros) + integerPart + fractionalPart
+      rawText = `0.${'0'.repeat(zeros)}${integerPart}${fractionalPart}`
     }
   } else {
     rawText = numStr
@@ -37,7 +37,7 @@ const formatNumberWithCommas = (numStr: string, decimal: number) => {
     integerPart = integerPart.replace(/^0+/, '') || '0'
     decimalPart = decimalPart.slice(0, decimal)
     const formattedInt = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-    return formattedInt + '.' + decimalPart
+    return `${formattedInt}.${decimalPart}`
   }
 
   const cleanNum = rawText.replace(/^0+/, '') || '0'

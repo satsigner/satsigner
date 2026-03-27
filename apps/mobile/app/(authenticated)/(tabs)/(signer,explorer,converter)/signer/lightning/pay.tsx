@@ -88,7 +88,7 @@ export default function PayPage() {
   const decodeInvoice = useCallback(
     async (invoice: string) => {
       const response = await typedMakeRequest<LNDecodedInvoice>(
-        '/v1/payreq/' + invoice
+        `/v1/payreq/${invoice}`
       )
 
       // Update state with decoded invoice

@@ -116,7 +116,7 @@ export default function TransactionConfirmation() {
 
         // the tx label will inherit the output's label separated by comma.
         // this is what sparrow does.
-        txLabelText += output.label + ','
+        txLabelText += `${output.label},`
       }
 
       // trim the last comma before adding the tx label.

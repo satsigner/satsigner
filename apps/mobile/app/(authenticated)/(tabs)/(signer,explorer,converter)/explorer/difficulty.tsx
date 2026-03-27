@@ -124,7 +124,7 @@ function ExplorerDifficulty() {
 
       setData(data)
     } catch (error) {
-      throw new Error('Failed to fetch data:' + error, { cause: error })
+      throw new Error(`Failed to fetch data:${error}`, { cause: error })
     } finally {
       setLoading(false)
     }

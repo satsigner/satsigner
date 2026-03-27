@@ -68,7 +68,7 @@ export function updateAccountObjectLabels(account: Account) {
         if (!outputLabel) {
           continue
         }
-        label += outputLabel + ','
+        label += `${outputLabel},`
       }
       label = label.replace(/,$/, '')
     }
