@@ -336,6 +336,8 @@ export async function detectContentByContext(
         }
       }
       break
+    default:
+      break
   }
 
   if (!detected) {

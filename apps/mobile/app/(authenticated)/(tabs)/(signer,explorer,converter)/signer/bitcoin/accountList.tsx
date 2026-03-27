@@ -509,6 +509,8 @@ export default function AccountList() {
         setKey(2)
         break
       }
+      default:
+        break
     }
 
     if (type !== 'watchonlyTether' && type !== 'multisig') {
@@ -764,6 +766,8 @@ export default function AccountList() {
             />
           </SSVStack>
         )
+      default:
+        return null
     }
   }
 

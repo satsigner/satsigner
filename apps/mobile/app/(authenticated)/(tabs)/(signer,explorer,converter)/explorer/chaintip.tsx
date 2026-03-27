@@ -60,7 +60,9 @@ const DEFAULT_CHAIN_DATA: ChainData = {
 function safeClose(client: ElectrumClient | null): void {
   try {
     client?.close()
-  } catch {}
+  } catch {
+    /* silently ignored */
+  }
 }
 
 async function fetchFromEsplora(
@@ -80,7 +82,9 @@ async function fetchFromEsplora(
         data.hash = String(rawHash)
         data.block = await oracle.getBlock(data.hash)
         data.blockSource = 'backend'
-      } catch {}
+      } catch {
+        /* silently ignored */
+      }
     })(),
     (async () => {
       try {
@@ -93,7 +97,9 @@ async function fetchFromEsplora(
           }
           data.mempoolSource = 'backend'
         }
-      } catch {}
+      } catch {
+        /* silently ignored */
+      }
     })()
   ])
 
@@ -122,7 +128,9 @@ async function fetchFromElectrum(
             data.block = { height: data.height, timestamp: header.timestamp }
             data.blockSource = 'backend'
           }
-        } catch {}
+        } catch {
+          /* silently ignored */
+        }
       })(),
       (async () => {
         try {
@@ -132,7 +140,9 @@ async function fetchFromElectrum(
             data.mempool = { vsize }
             data.mempoolSource = 'backend'
           }
-        } catch {}
+        } catch {
+          /* silently ignored */
+        }
       })()
     ])
   } catch {
@@ -164,13 +174,17 @@ async function fetchMempoolFallback(
         if (data.hash === null && mHash !== null) {
           data.hash = mHash
         }
-      } catch {}
+      } catch {
+        /* silently ignored */
+      }
     })(),
     (async () => {
       try {
         data.fees = await oracle.getMemPoolFees()
         data.feesSource = 'mempool'
-      } catch {}
+      } catch {
+        /* silently ignored */
+      }
     })(),
     (async () => {
       if (data.mempool !== null) {
@@ -184,7 +198,9 @@ async function fetchMempoolFallback(
           vsize: md.vsize
         }
         data.mempoolSource = 'mempool'
-      } catch {}
+      } catch {
+        /* silently ignored */
+      }
     })()
   ])
 
@@ -192,7 +208,9 @@ async function fetchMempoolFallback(
     try {
       data.block = await oracle.getBlock(data.hash)
       data.blockSource = 'mempool'
-    } catch {}
+    } catch {
+      /* silently ignored */
+    }
   }
 
   return data

@@ -45,12 +45,16 @@ async function validateDescriptorChecksum(descriptor: string) {
   try {
     await new Descriptor().create(descriptor, Network.Bitcoin)
     return true
-  } catch {}
+  } catch {
+    /* silently ignored */
+  }
 
   try {
     await new Descriptor().create(descriptor, Network.Testnet)
     return true
-  } catch {}
+  } catch {
+    /* silently ignored */
+  }
 
   return false
 }
@@ -353,7 +357,9 @@ export async function validateCombinedDescriptor(
     try {
       await new Descriptor().create(combinedDescriptor, bdkNetwork)
       networkValidation = { isValid: true }
-    } catch {}
+    } catch {
+      /* silently ignored */
+    }
   }
 
   if (!networkValidation.isValid) {

@@ -266,7 +266,9 @@ export function useInputTransactions(
                           break // Found the height, no need to check other addresses
                         }
                       }
-                    } catch {}
+                    } catch {
+                      /* silently ignored */
+                    }
                   }
                   if (blockHeight) {
                     timestamp = new Date(
@@ -371,7 +373,9 @@ export function useInputTransactions(
                   // Skipping for now
                   transactionInputAddresses.set(txid, inputAddresses)
                 }
-              } catch {}
+              } catch {
+                /* silently ignored */
+              }
             }
 
             // Queue parent transactions only if we haven't reached max levelDeep

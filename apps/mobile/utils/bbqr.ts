@@ -132,7 +132,9 @@ export function createBBQRChunks(
       minSplit,
       minVersion: 5 as Version
     })
-  } catch {}
+  } catch {
+    /* silently ignored */
+  }
 
   if (result && result.parts && result.parts.length > 0) {
     return result.parts
@@ -156,7 +158,9 @@ export function createBBQRChunks(
       minSplit: fallbackMinSplit,
       minVersion: 5 as Version
     })
-  } catch {}
+  } catch {
+    /* silently ignored */
+  }
 
   if (result && result.parts && result.parts.length > 0) {
     return result.parts
@@ -171,7 +175,9 @@ export function createBBQRChunks(
       minSplit: 1,
       minVersion: 5 as Version
     })
-  } catch {}
+  } catch {
+    /* silently ignored */
+  }
 
   if (result && result.parts && result.parts.length > 0) {
     return result.parts
@@ -182,7 +188,9 @@ export function createBBQRChunks(
     result = splitQRs(data, officialFileType, {
       encoding: 'Z' // Let library choose all other defaults
     })
-  } catch {}
+  } catch {
+    /* silently ignored */
+  }
 
   if (result && result.parts && result.parts.length > 0) {
     return result.parts

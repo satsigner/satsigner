@@ -934,7 +934,9 @@ export default function WatchOnly() {
                   )
                 : await syncAccountWithAddress(data.accountWithEncryptedSecret)
             updateAccount(updatedAccount)
-          } catch {}
+          } catch {
+            /* silently ignored */
+          }
         }
       } catch {
         toast.error(t('watchonly.error.creationFailed'))

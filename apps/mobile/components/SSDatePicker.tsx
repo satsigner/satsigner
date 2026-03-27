@@ -105,6 +105,8 @@ function SSDatePicker({
         setSelectedYear(digit)
         newDate.setFullYear(digit)
         break
+      default:
+        break
     }
 
     const now = new Date()

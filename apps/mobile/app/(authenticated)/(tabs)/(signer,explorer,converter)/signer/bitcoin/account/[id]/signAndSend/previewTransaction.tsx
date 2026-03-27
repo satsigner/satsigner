@@ -1859,6 +1859,8 @@ function PreviewTransaction() {
         }
         return bbqrValue || 'NO_CHUNKS'
       }
+      default:
+        return 'NO_DATA'
     }
   }
 
@@ -1887,6 +1889,8 @@ function PreviewTransaction() {
         if (qrChunks.length > 0) {
           maxChunkSize = Math.max(...qrChunks.map((c) => c.length))
         }
+        break
+      default:
         break
     }
 
@@ -1946,6 +1950,8 @@ function PreviewTransaction() {
               total: qrChunks.length
             })
           : t('transaction.preview.singleChunk')
+      default:
+        return ''
     }
   }
 

@@ -118,6 +118,8 @@ export default function SingleSig() {
           })
           break
         }
+        default:
+          break
       }
     } else if (type === 'importMnemonic') {
       // For import, navigate to mnemonic input

@@ -114,10 +114,7 @@
     "operator-assignment": "allow",
     "require-await": "allow",
     "no-nested-ternary": "allow",
-    "complexity": "allow",
-    "no-empty": "allow",
-    "default-case": "allow",
-    "no-promise-executor-return": "allow"
+    "complexity": "allow"
   },
   "overrides": [
     {

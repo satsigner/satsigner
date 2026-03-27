@@ -378,6 +378,8 @@ function getExtendedPublicKeyFromMnemonicCustom(
         derivationPath = `m/86'/${coinType}'/0'` // BIP86
         break
       // P2WSH, P2SH-P2WSH, P2SH are typically multisig only
+      default:
+        break
     }
   }
 

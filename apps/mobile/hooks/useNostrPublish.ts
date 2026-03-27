@@ -4,7 +4,9 @@ import { type Account } from '@/types/models/Account'
 import { compressMessage } from '@/utils/nostr'
 
 function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms)
+  })
 }
 
 function useNostrPublish() {

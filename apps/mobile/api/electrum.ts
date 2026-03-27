@@ -208,7 +208,9 @@ class BaseElectrumClient {
     } finally {
       try {
         client?.close()
-      } catch {}
+      } catch {
+        /* silently ignored */
+      }
     }
   }
 

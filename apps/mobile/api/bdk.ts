@@ -428,6 +428,8 @@ async function getWalletData(
 
       break
     }
+    default:
+      break
   }
 }
 

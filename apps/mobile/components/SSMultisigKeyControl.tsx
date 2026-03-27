@@ -241,6 +241,8 @@ function SSMultisigKeyControl({
       case 'resetKey':
         setResetKeyModalVisible(true)
         break
+      default:
+        break
     }
   }
 

@@ -5,7 +5,9 @@ import { isValidBitcoinContent } from './bitcoinContent'
 export async function setClipboard(value: string): Promise<void> {
   try {
     await Clipboard.setStringAsync(value)
-  } catch {}
+  } catch {
+    /* silently ignored */
+  }
 }
 
 export async function getBitcoinAddressFromClipboard(): Promise<string | void> {
@@ -18,7 +20,9 @@ export async function getBitcoinAddressFromClipboard(): Promise<string | void> {
       return
     }
     return value
-  } catch {}
+  } catch {
+    /* silently ignored */
+  }
 }
 
 export async function getAllClipboardContent() {
@@ -27,11 +31,15 @@ export async function getAllClipboardContent() {
       return
     }
     return await Clipboard.getStringAsync()
-  } catch {}
+  } catch {
+    /* silently ignored */
+  }
 }
 
 export async function clearClipboard() {
   try {
     await Clipboard.setStringAsync('')
-  } catch {}
+  } catch {
+    /* silently ignored */
+  }
 }

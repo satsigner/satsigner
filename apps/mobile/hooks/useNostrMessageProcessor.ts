@@ -74,7 +74,9 @@ initializeHandlers()
 // setImmediate in React Native runs after the current event loop turn,
 // avoiding the overhead of creating a real OS timer like setTimeout.
 function yieldToJS(): Promise<void> {
-  return new Promise((resolve) => setImmediate(resolve))
+  return new Promise((resolve) => {
+    setImmediate(resolve)
+  })
 }
 
 const CHUNK_SIZE = 20
@@ -97,9 +99,9 @@ function useNostrMessageProcessor() {
 
       // Defer until any in-progress interactions (animations, transitions)
       // have finished so we don't block the UI thread during navigation.
-      await new Promise<void>((resolve) =>
+      await new Promise<void>((resolve) => {
         InteractionManager.runAfterInteractions(resolve)
-      )
+      })
 
       // Each batch gets its own local accumulator — no module-level state,
       // so concurrent batches and hot-reloads cannot interfere.

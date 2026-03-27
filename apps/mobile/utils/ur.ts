@@ -243,7 +243,9 @@ export async function decodeMultiPartURToPSBT(
       }
     }
     if (i + batchSize < sortedFragments.length) {
-      await new Promise((resolve) => setTimeout(resolve, 1))
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1)
+      })
     }
   }
 

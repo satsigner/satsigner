@@ -133,7 +133,9 @@ export const useLND = () => {
 
         while (attempts < maxAttempts) {
           attempts += 1
-          await new Promise((resolve) => setTimeout(resolve, pollInterval))
+          await new Promise((resolve) => {
+            setTimeout(resolve, pollInterval)
+          })
 
           try {
             const statusResponse = await makeRequest<{ status: string }>(

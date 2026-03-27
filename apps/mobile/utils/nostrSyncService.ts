@@ -283,13 +283,15 @@ async function doFetchOnce(
       useNostrStore.getState().getLastDataExchangeEOSE(account.id) || 0
 
     let resolveProtocolEose!: () => void
-    const protocolEosePromise = new Promise<void>(
-      (resolve) => (resolveProtocolEose = resolve)
-    )
+    const protocolEosePromise = new Promise<void>((resolve) => {
+      resolveProtocolEose = resolve
+    })
 
     let resolveDataExchangeEose!: () => void
     const dataExchangeEosePromise = dataExchangeApi
-      ? new Promise<void>((resolve) => (resolveDataExchangeEose = resolve))
+      ? new Promise<void>((resolve) => {
+          resolveDataExchangeEose = resolve
+        })
       : Promise.resolve()
 
     await Promise.all([
@@ -328,7 +330,9 @@ async function doFetchOnce(
     ])
 
     const timeout = (ms: number) =>
-      new Promise<void>((resolve) => setTimeout(resolve, ms))
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, ms)
+      })
 
     await Promise.all([
       Promise.race([protocolEosePromise, timeout(EOSE_TIMEOUT_MS)]),

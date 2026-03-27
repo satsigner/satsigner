@@ -131,7 +131,9 @@ export function useConnectionTest() {
 
         try {
           client.close()
-        } catch {}
+        } catch {
+          /* silently ignored */
+        }
 
         return {
           success: true
@@ -169,12 +171,12 @@ export function useConnectionTest() {
     }
 
     function timeoutPromise(): Promise<never> {
-      return new Promise((_, reject) =>
+      return new Promise((_, reject) => {
         setTimeout(
           () => reject(new Error('Connection test timeout')),
           connectionTimeout
         )
-      )
+      })
     }
 
     try {

@@ -46,6 +46,8 @@ function getBlockchainConfig(
         stopGap: options.stopGap || 20,
         timeout: options.timeout || 5
       }
+    default:
+      throw new Error('unreachable')
   }
 }
 

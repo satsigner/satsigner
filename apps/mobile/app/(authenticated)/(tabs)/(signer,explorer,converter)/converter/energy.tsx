@@ -1213,7 +1213,9 @@ export default function Energy() {
                 // Update last hash for UI
                 lastHashRef.current = hashHex
 
-                await new Promise((resolve) => setTimeout(resolve, 1000))
+                await new Promise((resolve) => {
+                  setTimeout(resolve, 1000)
+                })
               }
 
               if (checkDifficulty(hashHex, blockTemplate.bits)) {

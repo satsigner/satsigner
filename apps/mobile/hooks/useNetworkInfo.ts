@@ -61,7 +61,9 @@ export function useNetworkInfo() {
       } finally {
         try {
           client?.close()
-        } catch {}
+        } catch {
+          /* silently ignored */
+        }
       }
     }
 

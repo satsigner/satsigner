@@ -137,6 +137,8 @@ export function getDescriptorFromPubkey(
       return `sh(wsh(pk(${innerPart})))`
     case 'P2SH':
       return `sh(pk(${innerPart}))`
+    default:
+      throw new Error(`Unsupported script version: ${scriptVersion}`)
   }
 }
 
@@ -164,6 +166,8 @@ function getDescriptorFromPrivateKey(
       return `sh(wsh(pk(${innerPart})))`
     case 'P2SH':
       return `sh(pk(${innerPart}))`
+    default:
+      throw new Error(`Unsupported script version: ${scriptVersion}`)
   }
 }
 
@@ -183,6 +187,8 @@ export function getScriptVersionPurpose(
     case 'P2SH-P2WSH':
     case 'P2SH':
       return 44 // Use legacy for these
+    default:
+      return 84
   }
 }
 
@@ -261,6 +267,8 @@ export function getDescriptorsFromKey(
     case 'P2SH':
       externalDescriptor = `sh(${keyPart}/0/*)`
       internalDescriptor = `sh(${keyPart}/1/*)`
+      break
+    default:
       break
   }
 

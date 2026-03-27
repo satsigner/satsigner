@@ -173,7 +173,9 @@ export default function EcashSendPage() {
         setStatusMessage(t('ecash.status.lnurlInvoiceReceived'))
 
         // Small delay to ensure invoice is properly registered
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        await new Promise((resolve) => {
+          setTimeout(resolve, 1000)
+        })
       } else {
         // For bolt11, use invoice directly
         setStatusMessage(t('ecash.status.usingBolt11Invoice'))

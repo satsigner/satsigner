@@ -386,6 +386,8 @@ async function processBitcoinContent(
         pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
       })
       break
+    default:
+      break
   }
 }
 
@@ -405,6 +407,8 @@ function processLightningContent(
         },
         pathname: '/signer/lightning/pay'
       })
+      break
+    default:
       break
   }
 }
@@ -432,6 +436,8 @@ function processEcashContent(
         },
         pathname: '/signer/ecash/send'
       })
+      break
+    default:
       break
   }
 }

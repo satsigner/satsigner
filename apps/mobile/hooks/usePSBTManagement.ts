@@ -38,7 +38,9 @@ export function usePSBTManagement({
           const originalPsbt = bitcoinjs.Psbt.fromBase64(originalPsbtBase64)
           const signedPsbt = bitcoinjs.Psbt.fromBase64(signedPsbtBase64)
           combinedPsbt = originalPsbt.combine(signedPsbt)
-        } catch {}
+        } catch {
+          /* silently ignored */
+        }
       }
 
       if (combinedPsbt) {
@@ -90,7 +92,9 @@ export function usePSBTManagement({
       if (needsFinalization) {
         try {
           psbt.finalizeAllInputs()
-        } catch {}
+        } catch {
+          /* silently ignored */
+        }
       }
 
       try {

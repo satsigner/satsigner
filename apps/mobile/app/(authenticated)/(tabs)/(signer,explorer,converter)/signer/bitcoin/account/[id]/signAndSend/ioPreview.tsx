@@ -568,6 +568,8 @@ export default function IOPreview() {
 
         break
       }
+      default:
+        break
     }
 
     setSelectedAutoSelectUtxos(type)

@@ -449,7 +449,9 @@ export function useEcash() {
         // Continue processing other transactions on error
       } finally {
         removeCheckingTransaction(transaction.id)
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        await new Promise((resolve) => {
+          setTimeout(resolve, 500)
+        })
       }
     }
   }, [addCheckingTransaction, removeCheckingTransaction, updateTransaction]) // eslint-disable-line react-hooks/exhaustive-deps

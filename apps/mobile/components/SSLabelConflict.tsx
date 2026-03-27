@@ -84,6 +84,8 @@ function solveConflict(
     case 'manual':
       label = ''
       break
+    default:
+      break
   }
   return { ...current, ...incoming, label }
 }

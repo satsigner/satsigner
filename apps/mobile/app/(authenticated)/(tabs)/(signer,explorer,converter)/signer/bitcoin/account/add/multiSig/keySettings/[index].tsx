@@ -100,6 +100,8 @@ export default function MultiSigKeySettings() {
           })
           break
         }
+        default:
+          break
       }
     }
   }

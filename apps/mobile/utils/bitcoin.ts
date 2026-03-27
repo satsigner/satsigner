@@ -78,6 +78,8 @@ function bitcoinjsNetwork(network: AppNetwork): networks.Network {
       return networks['testnet']
     case 'testnet':
       return networks['testnet']
+    default:
+      return networks['bitcoin']
   }
 }
 

@@ -119,7 +119,9 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
     try {
       setIsProcessing(true)
 
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => {
+        setTimeout(resolve, 100)
+      })
 
       const processedContent =
         context === 'bitcoin' ? stripBitcoinPrefix(content) : content

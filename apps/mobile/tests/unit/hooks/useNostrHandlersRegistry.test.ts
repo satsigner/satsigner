@@ -214,7 +214,9 @@ describe('handler registry', () => {
       const handler: MessageHandler = {
         canHandle: () => true,
         handle: async () => {
-          await new Promise((resolve) => setTimeout(resolve, 10))
+          await new Promise((resolve) => {
+            setTimeout(resolve, 10)
+          })
           handlerCompleted = true
         }
       }

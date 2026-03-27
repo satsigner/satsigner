@@ -142,6 +142,8 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
         color = Colors.mainRed
         text = t('account.sync.status.timeout')
         break
+      default:
+        break
     }
 
     return (
