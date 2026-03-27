@@ -99,16 +99,16 @@ export async function connectToMint(mintUrl: string): Promise<EcashMint> {
   const mintInfo = wallet.getMintInfo()
   const keysets = await getKeysetsFromWallet(wallet)
   return {
-    url: mintUrl,
-    name: mintInfo.name || `Mint ${mintUrl}`,
+    balance: 0, // Will be calculated from proofs
     isConnected: true,
     keysets: keysets.map((ks) => ({
       active: ks.active,
       id: ks.id,
       unit: ks.unit
     })),
-    balance: 0, // Will be calculated from proofs
-    lastSync: new Date().toISOString()
+    lastSync: new Date().toISOString(),
+    name: mintInfo.name || `Mint ${mintUrl}`,
+    url: mintUrl
   }
 }
 
@@ -190,9 +190,9 @@ export async function meltProofs(
   const meltResult = result as MeltResult
 
   return {
+    change: result.change,
     paid: true, // If we get here without error, it was successful
-    preimage: meltResult.preimage || meltResult.payment_preimage || undefined,
-    change: result.change
+    preimage: meltResult.preimage || meltResult.payment_preimage || undefined
   }
 }
 

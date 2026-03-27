@@ -240,12 +240,12 @@ function detectEcashContent(data: string): DetectedContent | null {
     } catch {
       const isV4 = trimmed.startsWith('cashuB')
       return {
-        type: 'ecash_token',
-        raw: data,
         cleaned: trimmed,
-        metadata: { version: isV4 ? 'v4' : 'v3' },
         // v4 often needs keysets to decode (short keyset ID, key type); treat as valid when format is v4
-        isValid: isV4
+        isValid: isV4,
+        metadata: { version: isV4 ? 'v4' : 'v3' },
+        raw: data,
+        type: 'ecash_token'
       }
     }
   }

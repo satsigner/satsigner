@@ -356,9 +356,9 @@ export default function IOPreview() {
     // Always include remaining balance if there is any
     if (remainingBalance > 0) {
       chartOutputs.push({
-        localId: 'remainingBalance', // WARN: do not change it!
         amount: remainingBalance,
         label: '',
+        localId: 'remainingBalance', // WARN: do not change it!
         to: changeAddress
       })
     }

@@ -152,41 +152,40 @@ export function useInputTransactions(
 
               if (tx) {
                 const mappedTx: Transaction = {
+                  address: undefined, // Not directly available in EsploraTx
+                  blockHeight: tx.status.block_height,
+                  fee: tx.fee,
                   id: tx.txid,
-                  type: 'send', // Not needed
-                  sent: 0, // Not needed
+                  label: undefined, // TODO: add label
+                  lockTime: tx.locktime,
+                  lockTimeEnabled: tx.locktime > 0,
+                  prices: {},
+                  raw: undefined, // Not directly available in EsploraTx
                   received: 0, // Not needed
+                  sent: 0, // Not needed
+                  size: tx.size,
                   timestamp: tx.status.block_time
                     ? new Date(tx.status.block_time)
                     : undefined,
-                  blockHeight: tx.status.block_height,
-                  address: undefined, // Not directly available in EsploraTx
-                  label: undefined, // TODO: add label
-                  fee: tx.fee,
-                  size: tx.size,
-                  vsize: Math.ceil(tx.size * 0.25), // Calculate vsize as weight/4
-                  weight: tx.weight,
+                  type: 'send', // Not needed
                   version: tx.version,
-                  lockTime: tx.locktime,
-                  lockTimeEnabled: tx.locktime > 0,
-                  raw: undefined, // Not directly available in EsploraTx
                   vin: tx.vin.map((input) => ({
+                    address: input.prevout?.scriptpubkey_address,
+                    label: undefined, // TODO: add label
                     previousOutput: {
                       txid: input.txid,
                       vout: input.vout
                     },
-                    sequence: input.sequence,
                     scriptSig: input.scriptsig
                       ? Array.from(Buffer.from(input.scriptsig, 'hex'))
                       : [],
+                    sequence: input.sequence,
+                    value: input.prevout?.value,
                     witness: input.witness
                       ? input.witness.map((w) =>
                           Array.from(Buffer.from(w, 'hex'))
                         )
-                      : [],
-                    value: input.prevout?.value,
-                    label: undefined, // TODO: add label
-                    address: input.prevout?.scriptpubkey_address
+                      : []
                   })),
                   vout: tx.vout.map((output) => ({
                     address: output.scriptpubkey_address,
@@ -196,7 +195,8 @@ export function useInputTransactions(
                       : [],
                     value: output.value // TODO: add label
                   })),
-                  prices: {}
+                  vsize: Math.ceil(tx.size * 0.25), // Calculate vsize as weight/4
+                  weight: tx.weight
                 }
                 newTransactions.set(txid, {
                   ...(mappedTx as ExtendedTransaction),
@@ -294,22 +294,21 @@ export function useInputTransactions(
                   }
                   // Map parsed Electrum transaction to Transaction type structure
                   const mappedTx: Transaction = {
-                    id: txid,
-                    type: 'send', // Not needed
-                    sent: 0, // Not needed
-                    received: 0, // Not needed
-                    timestamp,
-                    blockHeight,
                     address: undefined, // Not directly available in raw tx
-                    label: undefined, // TODO: add label
+                    blockHeight,
                     fee: undefined, // Not directly available in raw tx
-                    size: parsedTx.byteLength(),
-                    vsize: parsedTx.virtualSize(),
-                    weight: parsedTx.weight(),
-                    version: parsedTx.version,
+                    id: txid,
+                    label: undefined, // TODO: add label
                     lockTime: parsedTx.locktime,
                     lockTimeEnabled: parsedTx.locktime > 0,
+                    prices: {},
                     raw: Array.from(Buffer.from(rawTx[0], 'hex')),
+                    received: 0, // Not needed
+                    sent: 0, // Not needed
+                    size: parsedTx.byteLength(),
+                    timestamp,
+                    type: 'send', // Not needed
+                    version: parsedTx.version,
                     vin: parsedTx.ins.map((input) => {
                       const prevTxid = input.hash.toString('hex') // input.hash is now little-endian here
                       const prevVout = input.index
@@ -332,25 +331,26 @@ export function useInputTransactions(
                       }
 
                       return {
+                        address, // Assign derived address
+                        label: undefined, // TODO: add label
                         previousOutput: {
                           txid: prevTxid,
                           vout: prevVout
                         },
-                        sequence: input.sequence,
                         scriptSig: Array.from(input.script),
-                        witness: input.witness.map((w) => Array.from(w)),
+                        sequence: input.sequence,
                         value, // Assign fetched value
-                        label: undefined, // TODO: add label
-                        address // Assign derived address
+                        witness: input.witness.map((w) => Array.from(w))
                       }
                     }),
                     vout: parsedTx.outs.map((output) => ({
-                      value: output.value,
                       address: '', // Set to empty string to satisfy required string type
+                      label: undefined, // TODO: add label
                       script: Array.from(output.script),
-                      label: undefined // TODO: add label
+                      value: output.value
                     })),
-                    prices: {}
+                    vsize: parsedTx.virtualSize(),
+                    weight: parsedTx.weight()
                   }
 
                   newTransactions.set(txid, {

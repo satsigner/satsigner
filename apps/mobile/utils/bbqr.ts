@@ -127,10 +127,10 @@ export function createBBQRChunks(
     // Try to split with the calculated constraints
     result = splitQRs(data, officialFileType, {
       encoding: 'Z', // Try compression first (same as original implementation)
-      minSplit,
       maxSplit,
-      minVersion: 5 as Version,
-      maxVersion: 40 as Version
+      maxVersion: 40 as Version,
+      minSplit,
+      minVersion: 5 as Version
     })
   } catch {}
 

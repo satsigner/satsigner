@@ -264,9 +264,9 @@ export default function SelectUtxoList() {
         <View style={styles.scrollBackgroundBase} />
         <View
           style={{
+            height,
             marginTop: 2,
-            paddingBottom: Platform.OS === 'android' ? 386 : 306, // TODO: Fix. This is not ideal
-            height
+            paddingBottom: Platform.OS === 'android' ? 386 : 306 // TODO: Fix. This is not ideal
           }}
         >
           <FlashList

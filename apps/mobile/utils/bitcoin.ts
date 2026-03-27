@@ -81,37 +81,34 @@ function bitcoinjsNetwork(network: AppNetwork): networks.Network {
 
 // Define version bytes for different key formats and networks
 const KEY_VERSION_BYTES = {
-  // Mainnet
-  xpub: new Uint8Array([0x04, 0x88, 0xb2, 0x1e]),
-  ypub: new Uint8Array([0x04, 0x9d, 0x7c, 0xb2]),
-  zpub: new Uint8Array([0x04, 0xb2, 0x47, 0x46]),
-  vpub_mainnet: new Uint8Array([0x04, 0x5f, 0x1c, 0xf6]),
-
-  // Testnet/Signet
   tpub: new Uint8Array([0x04, 0x35, 0x87, 0xcf]),
   upub: new Uint8Array([0x04, 0x4a, 0x52, 0x62]),
-  vpub_testnet: new Uint8Array([0x04, 0x5f, 0x1c, 0xf6])
+  vpub_mainnet: new Uint8Array([0x04, 0x5f, 0x1c, 0xf6]),
+  vpub_testnet: new Uint8Array([0x04, 0x5f, 0x1c, 0xf6]),
+  xpub: new Uint8Array([0x04, 0x88, 0xb2, 0x1e]),
+  ypub: new Uint8Array([0x04, 0x9d, 0x7c, 0xb2]),
+  zpub: new Uint8Array([0x04, 0xb2, 0x47, 0x46])
 }
 
 // Define key format mappings for each network
 const NETWORK_KEY_FORMATS: Record<AppNetwork, Record<string, string>> = {
   bitcoin: {
+    vpub: 'vpub', // P2TR
     xpub: 'xpub', // Legacy P2PKH
     ypub: 'ypub', // P2SH-P2WPKH
-    zpub: 'zpub', // P2WPKH
-    vpub: 'vpub' // P2TR
+    zpub: 'zpub' // P2WPKH
   },
   signet: {
+    vpub: 'vpub', // P2TR
     xpub: 'tpub', // Can be used for P2PKH, P2WPKH, P2SH-P2WPKH depending on derivation path
     ypub: 'upub', // P2SH-P2WPKH
-    zpub: 'vpub', // P2WPKH
-    vpub: 'vpub' // P2TR
+    zpub: 'vpub' // P2WPKH
   },
   testnet: {
+    vpub: 'vpub', // P2TR
     xpub: 'tpub', // Can be used for P2PKH, P2WPKH, P2SH-P2WPKH depending on derivation path
     ypub: 'upub', // P2SH-P2WPKH
-    zpub: 'vpub', // P2WPKH
-    vpub: 'vpub' // P2TR
+    zpub: 'vpub' // P2WPKH
   }
 }
 
@@ -170,12 +167,12 @@ export function getKeyFormatForScriptVersion(
 ): string {
   const formatMappings: Record<string, string> = {
     P2PKH: 'xpub',
+    P2SH: 'xpub', // P2SH uses xpub format
     'P2SH-P2WPKH': 'ypub',
-    P2WPKH: 'zpub',
-    P2TR: 'vpub',
-    P2WSH: 'xpub', // P2WSH uses xpub format
     'P2SH-P2WSH': 'xpub', // P2SH-P2WSH uses xpub format
-    P2SH: 'xpub' // P2SH uses xpub format
+    P2TR: 'vpub',
+    P2WPKH: 'zpub',
+    P2WSH: 'xpub' // P2WSH uses xpub format
   }
 
   const baseFormat = formatMappings[scriptVersion] || 'xpub'

@@ -8,12 +8,24 @@
 // ============================================================================
 
 export const addresses = {
+  // INVALID - For error testing
+  invalid: {
+    mixedCase: 'bc1qW508D6qejxtdg4y5r3zarvary0c5xw7kv8f3t4',
+    notBech32: 'not-an-address-at-all',
+    tooShort: 'bc1q',
+    wrongChecksum: 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t5', // last char wrong
+    wrongPrefix: 'ltc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4'
+  },
   mainnet: {
     p2pkh: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', // Satoshi's genesis address
     p2sh: '3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy',
-    p2wpkh: 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4',
     p2tr: 'bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0',
+    p2wpkh: 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4',
     p2wsh: 'bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3'
+  },
+  // REGTEST
+  regtest: {
+    p2wpkh: 'bcrt1q6rhpng9evdsfnn833a4f4vej0asu6dk5srld6x'
   },
   // TESTNET
   testnet: {
@@ -21,18 +33,6 @@ export const addresses = {
     p2sh: '2MzQwSSnBHWHqSAqtTVQ6v47XtaisrJa1Vc',
     p2tr: 'tb1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vq47zagq',
     p2wpkh: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
-  },
-  // REGTEST
-  regtest: {
-    p2wpkh: 'bcrt1q6rhpng9evdsfnn833a4f4vej0asu6dk5srld6x'
-  },
-  // INVALID - For error testing
-  invalid: {
-    tooShort: 'bc1q',
-    wrongChecksum: 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t5', // last char wrong
-    mixedCase: 'bc1qW508D6qejxtdg4y5r3zarvary0c5xw7kv8f3t4',
-    wrongPrefix: 'ltc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4',
-    notBech32: 'not-an-address-at-all'
   }
 }
 
@@ -51,44 +51,37 @@ export const bip321Uris = {
       'litecoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.001'
   },
   valid: {
-    // Basic
     addressOnly: 'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4',
-    withAmount:
-      'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.001',
-    withLabel:
-      'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?label=Donation',
-    withBoth:
-      'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.001&label=Coffee',
-    withMessage:
-      'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.5&label=Invoice&message=Payment%20for%20services',
-    // Amount edge cases
-    amountWholeNumber:
-      'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=1',
-    amountManyDecimals:
-      'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.00000001',
     amountLarge:
       'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=21000000',
+    amountManyDecimals:
+      'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.00000001',
+    amountWholeNumber:
+      'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=1',
     amountWithZeros:
       'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.10000000',
-    // Label edge cases
+    labelUnicode:
+      'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?label=%F0%9F%92%B0%20Tip',
     labelWithSpaces:
       'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?label=My%20Payment%20Label',
     labelWithSpecialChars:
       'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?label=%E2%82%BF%20Bitcoin%20%26%20More',
-    labelUnicode:
-      'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?label=%F0%9F%92%B0%20Tip',
-    // Case variations
-    uppercaseScheme:
-      'BITCOIN:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.001',
     mixedCaseScheme:
       'Bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.001',
-    // Testnet
-    testnet: 'bitcoin:tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx?amount=0.001',
-    // Regtest
-    regtest: 'bitcoin:bcrt1q6rhpng9evdsfnn833a4f4vej0asu6dk5srld6x?amount=0.01',
-    // Legacy addresses
     p2pkh: 'bitcoin:1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa?amount=0.001',
-    p2sh: 'bitcoin:3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy?amount=0.001'
+    p2sh: 'bitcoin:3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy?amount=0.001',
+    regtest: 'bitcoin:bcrt1q6rhpng9evdsfnn833a4f4vej0asu6dk5srld6x?amount=0.01',
+    testnet: 'bitcoin:tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx?amount=0.001',
+    uppercaseScheme:
+      'BITCOIN:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.001',
+    withAmount:
+      'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.001',
+    withBoth:
+      'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.001&label=Coffee',
+    withLabel:
+      'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?label=Donation',
+    withMessage:
+      'bitcoin:bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4?amount=0.5&label=Invoice&message=Payment%20for%20services'
   }
 }
 

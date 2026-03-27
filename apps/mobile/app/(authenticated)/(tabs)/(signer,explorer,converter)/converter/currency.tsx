@@ -58,14 +58,14 @@ export default function Converter() {
       }
 
       const updatedValues = {
-        sats: Math.round(bitcoinValue * SATS_PER_BITCOIN),
-        bitcoin: bitcoinValue,
-        USD: (prices.USD || 0) * bitcoinValue,
-        EUR: (prices.EUR || 0) * bitcoinValue,
-        GBP: (prices.GBP || 0) * bitcoinValue,
         CAD: (prices.CAD || 0) * bitcoinValue,
         CHF: (prices.CHF || 0) * bitcoinValue,
+        EUR: (prices.EUR || 0) * bitcoinValue,
+        GBP: (prices.GBP || 0) * bitcoinValue,
         JPY: (prices.JPY || 0) * bitcoinValue,
+        USD: (prices.USD || 0) * bitcoinValue,
+        bitcoin: bitcoinValue,
+        sats: Math.round(bitcoinValue * SATS_PER_BITCOIN),
         [key]: value
       }
 

@@ -231,17 +231,17 @@ export function useEcash() {
 
       // Add transaction record
       addTransaction({
-        id: `melt_${Date.now()}_${randomKey(9)}`,
-        type: 'melt',
         amount: quote.amount,
-        mintUrl,
-        timestamp: new Date().toISOString(),
-        status: 'settled',
-        invoice: quote.quote, // Store the invoice for reference
-        quoteId: quote.quote,
         expiry: quote.expiry,
+        id: `melt_${Date.now()}_${randomKey(9)}`,
+        invoice: quote.quote, // Store the invoice for reference
         label: description, // Use description as the transaction label
-        memo: description // Also store as memo for backward compatibility
+        memo: description, // Also store as memo for backward compatibility
+        mintUrl,
+        quoteId: quote.quote,
+        status: 'settled',
+        timestamp: new Date().toISOString(),
+        type: 'melt'
       })
 
       toast.success(t('ecash.success.tokensMelted'))
@@ -345,14 +345,14 @@ export function useEcash() {
 
         // Add failed transaction record
         addTransaction({
-          id: `receive_failed_${Date.now()}_${randomKey(9)}`,
-          type: 'receive',
           amount: 0, // Unknown amount for failed transactions
-          mintUrl,
-          timestamp: new Date().toISOString(),
-          status: 'failed',
+          id: `receive_failed_${Date.now()}_${randomKey(9)}`,
+          label: `Failed: ${errorMessage}`,
           memo: errorMessage,
-          label: `Failed: ${errorMessage}`
+          mintUrl,
+          status: 'failed',
+          timestamp: new Date().toISOString(),
+          type: 'receive'
         })
 
         toast.error(errorMessage)

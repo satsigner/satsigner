@@ -98,30 +98,24 @@ type AccountBuilderAction = {
 
 // Initial state for account builder store
 const initialState: AccountBuilderState = {
-  // Basic account information
-  name: '',
-  network: 'signet',
-  policyType: 'singlesig',
-
-  keyName: '',
   creationType: 'importMnemonic',
   entropy: 'none',
+  extendedPublicKey: undefined,
+  externalDescriptor: undefined,
+  fingerprint: undefined,
+  internalDescriptor: undefined,
+  keyCount: 0,
+  keyName: '',
+  keys: [],
+  keysRequired: 0,
+  mnemonic: '',
   mnemonicWordCount: 24,
   mnemonicWordList: 'english',
-  mnemonic: '',
+  name: '',
+  network: 'signet',
   passphrase: undefined,
-
-  // Descriptor and key data
-  externalDescriptor: undefined,
-  internalDescriptor: undefined,
-  extendedPublicKey: undefined,
-  fingerprint: undefined,
-  scriptVersion: 'P2WPKH',
-
-  // Multi-signature configuration
-  keys: [],
-  keyCount: 0,
-  keysRequired: 0
+  policyType: 'singlesig',
+  scriptVersion: 'P2WPKH'
 }
 
 // Account builder store using Zustand with Immer for immutable updates

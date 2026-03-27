@@ -420,24 +420,24 @@ function useSyncAccountWithAddress() {
       }, 0)
 
       const transaction: Transaction = {
-        id: rawTxParsed.getId(),
-        type: received > 0 ? 'receive' : 'send',
-        sent: 0, // THIS HAS TO BE COMPUTED LATER
-        received,
         address,
         blockHeight: height,
-        timestamp: new Date(timestamp * 1000),
+        id: rawTxParsed.getId(),
+        label: '',
         lockTime: rawTxParsed.locktime,
         lockTimeEnabled: rawTxParsed.locktime > 0,
-        version: rawTxParsed.version,
-        label: '',
+        prices: {},
         raw: parseHexToBytes(rawTx),
-        vout: [],
-        vin: [],
-        vsize: rawTxParsed.virtualSize(),
-        weight: rawTxParsed.weight(),
+        received,
+        sent: 0, // THIS HAS TO BE COMPUTED LATER
         size: rawTxParsed.byteLength(),
-        prices: {}
+        timestamp: new Date(timestamp * 1000),
+        type: received > 0 ? 'receive' : 'send',
+        version: rawTxParsed.version,
+        vin: [],
+        vout: [],
+        vsize: rawTxParsed.virtualSize(),
+        weight: rawTxParsed.weight()
       }
       account.transactions = [...account.transactions, transaction]
       updateAccount(account)
@@ -712,8 +712,8 @@ function useSyncAccountWithAddress() {
 
       // Merge account data while preserving the transactions with prices
       updatedAccount = Object.assign(updatedAccount, updatedData, {
-        transactions: updatedData.transactions, // Explicitly preserve the transactions with prices
-        summary: newSummary
+        summary: newSummary,
+        transactions: updatedData.transactions // Explicitly preserve the transactions with prices
       })
     }
 

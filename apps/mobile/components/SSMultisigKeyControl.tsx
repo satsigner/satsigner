@@ -449,11 +449,11 @@ function SSMultisigKeyControl({
         {/* Hidden content for measurement - always rendered but invisible */}
         <View
           style={{
-            position: 'absolute',
-            top: -10000, // Move off-screen
             left: 0,
+            opacity: 0,
+            position: 'absolute',
             right: 0,
-            opacity: 0
+            top: -10000 // Move off-screen
           }}
           onLayout={(event) => {
             const { height } = event.nativeEvent.layout

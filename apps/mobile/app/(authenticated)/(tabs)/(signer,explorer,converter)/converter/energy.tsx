@@ -34,19 +34,19 @@ type RpcRequestBody = {
 // Configure networks
 const networks = {
   mainnet: bitcoin.networks.bitcoin,
-  testnet: bitcoin.networks.testnet,
-  signet: bitcoin.networks.testnet, // Signet uses testnet address format
   regtest: {
     ...bitcoin.networks.testnet,
     bech32: 'bcrt',
-    pubKeyHash: 0x6f, // Same as testnet
-    scriptHash: 0xc4, // Same as testnet
-    wif: 0xef, // Same as testnet
     bip32: {
       private: 0x04358394,
       public: 0x043587cf
-    }
-  } as bitcoin.Network
+    },
+    pubKeyHash: 0x6f, // Same as testnet
+    scriptHash: 0xc4, // Same as testnet
+    wif: 0xef // Same as testnet
+  } as bitcoin.Network,
+  signet: bitcoin.networks.testnet, // Signet uses testnet address format
+  testnet: bitcoin.networks.testnet
 }
 
 // Add this helper function at the top level

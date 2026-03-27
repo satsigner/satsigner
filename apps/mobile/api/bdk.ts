@@ -250,12 +250,12 @@ async function getWalletData(
       const keyFingerprints = validKeyData.map((kd) => kd.fingerprint)
 
       return {
-        fingerprint: parsedDescriptor.fingerprint,
         derivationPath: parsedDescriptor.derivationPath,
         externalDescriptor: finalDescriptor, // Store the original multipath descriptor
+        fingerprint: parsedDescriptor.fingerprint,
         internalDescriptor: '',
-        wallet,
-        keyFingerprints
+        keyFingerprints,
+        wallet
       }
     }
     case 'watchonly': {

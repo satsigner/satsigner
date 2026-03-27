@@ -149,36 +149,31 @@ function useNostrSync() {
 
   return useMemo(
     () => ({
-      // New fire-and-forget API
-      startSync,
-      fetchOnce,
-      stopSync,
-      restartSync,
-      hasActiveSubscription,
-      getStatus,
-
-      // Clean API from the plan
-      subscribe: subscriptionManager.subscribe,
-      cleanup: subscriptionManager.cleanup,
-      syncLabels: labels.sync,
-      storeDM: dms.store,
-      loadDMs: dms.load,
-      clearDMs: dms.clear,
       announceDevice: device.announce,
-      generateKeys: generateCommonNostrKeys,
-
-      // Legacy API for backward compatibility
-      sendLabelsToNostr,
-      dataExchangeSubscription,
-      generateCommonNostrKeys,
-      loadStoredDMs,
+      cleanup: subscriptionManager.cleanup,
+      cleanupSubscriptions,
+      clearDMs: dms.clear,
       clearStoredDMs,
+      dataExchangeSubscription,
+      deviceAnnouncement,
+      fetchOnce,
+      generateCommonNostrKeys,
+      generateKeys: generateCommonNostrKeys,
+      getActiveSubscriptions,
+      getStatus,
+      hasActiveSubscription,
+      loadDMs: dms.load,
+      loadStoredDMs,
+      nostrSyncSubscriptions,
       processEvent,
       protocolSubscription,
-      cleanupSubscriptions,
-      deviceAnnouncement,
-      nostrSyncSubscriptions,
-      getActiveSubscriptions
+      restartSync,
+      sendLabelsToNostr,
+      startSync,
+      stopSync,
+      storeDM: dms.store,
+      subscribe: subscriptionManager.subscribe,
+      syncLabels: labels.sync
     }),
     [
       startSync,

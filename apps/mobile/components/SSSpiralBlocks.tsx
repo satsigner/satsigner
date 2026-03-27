@@ -420,11 +420,11 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   touchableOverlay: {
-    position: 'relative',
-    top: -0.7 * SCREEN_HEIGHT, // Adjust as needed
+    bottom: 0,
     left: 0, // Adjust as needed
+    position: 'relative',
     right: 0,
-    bottom: 0
+    top: -0.7 * SCREEN_HEIGHT // Adjust as needed
   }
 })
 

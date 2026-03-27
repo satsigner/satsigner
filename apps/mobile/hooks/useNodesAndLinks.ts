@@ -416,12 +416,8 @@ export const useNodesAndLinks = ({
                 : 0
 
             feeNode.push({
-              id: `vout-${feeOutputDepth}-fee-${tx.id}`, // Unique ID including txId
-              type: 'text',
               depthH: feeOutputDepth,
-              value: minerFee,
-              txId: tx.id,
-              vout: feeVoutIndex,
+              id: `vout-${feeOutputDepth}-fee-${tx.id}`, // Unique ID including txId
               ioData: {
                 feePercentage: Math.round(feePercentageForPastTx * 100) / 100,
                 feeRate: minerFeeRate,
@@ -432,7 +428,11 @@ export const useNodesAndLinks = ({
                 text: t('transaction.build.minerFee'),
                 value: minerFee
               },
-              localId: 'past-minerFee'
+              localId: 'past-minerFee',
+              txId: tx.id,
+              type: 'text',
+              value: minerFee,
+              vout: feeVoutIndex
             })
           }
 

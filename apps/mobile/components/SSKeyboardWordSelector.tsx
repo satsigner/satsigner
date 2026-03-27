@@ -133,10 +133,10 @@ function SSKeyboardWordSelector({
     return StyleSheet.compose(
       {
         ...styles.containerBase,
-        width, // Use actual screen width
-        top: topValue - 55, // Subtract the height of the word selector container
         bottom: undefined, // Remove bottom positioning
         opacity: opacityAnimated,
+        top: topValue - 55, // Subtract the height of the word selector container
+        width, // Use actual screen width
         zIndex: opacityAnimated.interpolate({
           inputRange: [0, 0.0001],
           outputRange: [0, 1000]
@@ -184,22 +184,22 @@ function SSKeyboardWordSelector({
 
 const styles = StyleSheet.create({
   containerBase: {
-    position: 'absolute',
     backgroundColor: Colors.white,
     color: Colors.black,
-    zIndex: 1000,
-    left: 0,
-    right: 0,
-    top: undefined,
-    height: 50,
     elevation: 1000, // For Android
+    height: 50,
+    left: 0,
+    position: 'absolute',
+    right: 0,
     shadowColor: '#000', // For iOS
     shadowOffset: {
       height: -20,
       width: 0
     },
     shadowOpacity: 0.25,
-    shadowRadius: 3.84
+    shadowRadius: 3.84,
+    top: undefined,
+    zIndex: 1000
   },
   noMatchingWordsContainerBase: {
     alignItems: 'center',

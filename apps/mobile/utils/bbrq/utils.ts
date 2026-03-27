@@ -170,9 +170,9 @@ export function encodeData(raw: Uint8Array, encoding?: Encoding) {
   }
 
   return {
-    encoding,
     // base32 without padding
-    encoded: base32.encode(raw).replace(/=*$/, '')
+    encoded: base32.encode(raw).replace(/=*$/, ''),
+    encoding
   }
 }
 

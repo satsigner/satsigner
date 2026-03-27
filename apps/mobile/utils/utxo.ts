@@ -35,8 +35,8 @@ function selectEfficientUtxos(
 } {
   // Default options
   const defaultOptions = {
-    dustThreshold: 546, // Min UTXO value in satoshis (Bitcoin dust limit)
     changeOutputSize: 34, // Size of change output in bytes
+    dustThreshold: 546, // Min UTXO value in satoshis (Bitcoin dust limit)
     inputSize: 148 // Average size of input in bytes
   }
 

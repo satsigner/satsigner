@@ -66,10 +66,10 @@ export function estimateTransactionSize(
   const allOutputs = [...outputs]
   if (hasChange) {
     allOutputs.push({
-      localId: 'change-output',
-      to: inputs[0].addressTo || '', // Assume that change address script type will be the same type of the first input
       amount: 0, // Amount not need for size estimation
-      label: 'change'
+      label: 'change',
+      localId: 'change-output',
+      to: inputs[0].addressTo || '' // Assume that change address script type will be the same type of the first input
     })
   }
 

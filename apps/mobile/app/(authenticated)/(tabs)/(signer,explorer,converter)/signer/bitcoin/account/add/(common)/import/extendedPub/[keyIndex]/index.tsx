@@ -208,10 +208,10 @@ export default function ImportExtendedPub() {
       const match = data.match(/^p(\d+)of(\d+)\s/)
       if (match) {
         return {
-          type: 'raw' as const,
+          content: data.substring(match[0].length),
           current: parseInt(match[1], 10) - 1, // Convert to 0-based index
           total: parseInt(match[2], 10),
-          content: data.substring(match[0].length)
+          type: 'raw' as const
         }
       }
     }
