@@ -116,14 +116,17 @@ export default function IOPreview() {
         })
       })
 
-      for (let i = 0; true; i += 1) {
+      let i = 0
+      while (true) {
         const addressObj = await wallet.getInternalAddress(i)
         const address = addressObj?.address
           ? await addressObj.address.asString()
           : ''
-        if (outputAddresses[address] === true) continue
-        setChangeAddress(address)
-        return
+        if (outputAddresses[address] !== true) {
+          setChangeAddress(address)
+          return
+        }
+        i += 1
       }
     })()
   }, [account, wallet])
