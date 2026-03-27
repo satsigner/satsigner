@@ -40,7 +40,7 @@ i18n.store({ en: generateJson(en) })
 const t = (key: string, options?: TranslateOptions) => i18n.t(key, options)
 
 const tn = (namespace: string) =>
-  function (key: string, options?: TranslateOptions) {
+  function namespacedTranslate(key: string, options?: TranslateOptions) {
     return t(`${namespace}.${key}`, options)
   }
 
