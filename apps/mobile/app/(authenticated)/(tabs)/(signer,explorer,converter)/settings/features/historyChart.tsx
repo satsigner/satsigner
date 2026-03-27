@@ -84,12 +84,12 @@ export default function HistoryChart() {
     <SSMainLayout>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSText uppercase>
               {t('settings.features.charts.historyChart.title')}
             </SSText>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <SSVStack justifyBetween>

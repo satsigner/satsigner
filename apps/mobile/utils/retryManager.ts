@@ -68,7 +68,7 @@ export function createRetryManager(
     const attempt = attempts.get(key) || 0
 
     if (attempt >= cfg.maxRetries) {
-      return { scheduled: false, delay: 0 }
+      return { delay: 0, scheduled: false }
     }
 
     const delay = calculateRetryDelay(attempt, cfg)
@@ -81,7 +81,7 @@ export function createRetryManager(
     }, delay)
 
     timers.set(key, timer)
-    return { scheduled: true, delay }
+    return { delay, scheduled: true }
   }
 
   function reset(key: string): void {

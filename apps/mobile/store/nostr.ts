@@ -33,9 +33,9 @@ interface NostrSyncStatus {
 }
 
 const DEFAULT_SYNC_STATUS: NostrSyncStatus = {
-  status: 'idle',
+  messagesProcessed: 0,
   messagesReceived: 0,
-  messagesProcessed: 0
+  status: 'idle'
 }
 
 // Prune oldest entries from a ProcessedIdsMap when it exceeds the limit
@@ -129,28 +129,7 @@ type NostrAction = {
 const useNostrStore = create<NostrState & NostrAction>()(
   persist(
     (set, get) => ({
-      members: {},
-      profiles: {},
-      processedMessageIds: {},
-      processedEvents: {},
-      lastProtocolEOSE: {},
-      lastDataExchangeEOSE: {},
-      trustedDevices: {},
-      syncStatus: {},
-      transactionToShare: null,
       activeSubscriptions: new Set<NostrAPI>(),
-      syncingAccounts: {},
-      setProfile: (npub, profile) => {
-        set((state) => ({
-          profiles: {
-            ...state.profiles,
-            [npub]: { ...state.profiles[npub], ...profile }
-          }
-        }))
-      },
-      getProfile: (npub) => {
-        return get().profiles[npub]
-      },
       addMember: async (accountId, npub) => {
         try {
           // Check if member already exists BEFORE generating color (expensive)
@@ -210,19 +189,58 @@ const useNostrStore = create<NostrState & NostrAction>()(
           })
         }
       },
-      removeMember: (accountId, npub) => {
+      addProcessedEvent: (accountId, eventId) => {
         set((state) => {
-          const currentMembers = state.members[accountId] || []
+          const currentEvents = state.processedEvents[accountId] || {}
+          if (currentEvents[eventId]) {
+            return state
+          }
+          const updated = { ...currentEvents, [eventId]: true as const }
+          const pruned = pruneProcessedIds(updated, MAX_PROCESSED_ITEMS)
           return {
-            members: {
-              ...state.members,
-              [accountId]: currentMembers.filter((m) => m.npub !== npub)
+            processedEvents: {
+              ...state.processedEvents,
+              [accountId]: pruned
             }
           }
         })
       },
-      getMembers: (accountId) => {
-        return get().members[accountId] || []
+      addProcessedMessageId: (accountId, messageId) => {
+        set((state) => {
+          const currentIds = state.processedMessageIds[accountId] || {}
+          if (currentIds[messageId]) {
+            return state
+          }
+          const updated = { ...currentIds, [messageId]: true as const }
+          const pruned = pruneProcessedIds(updated, MAX_PROCESSED_ITEMS)
+          return {
+            processedMessageIds: {
+              ...state.processedMessageIds,
+              [accountId]: pruned
+            }
+          }
+        })
+      },
+      addSubscription: (subscription: NostrAPI) => {
+        set((state) => {
+          const newSubscriptions = new Set(state.activeSubscriptions)
+          newSubscriptions.add(subscription)
+          return { activeSubscriptions: newSubscriptions }
+        })
+      },
+      addTrustedDevice: (accountId, deviceNpub) => {
+        set((state) => {
+          const currentDevices = state.trustedDevices[accountId] || []
+          if (!currentDevices.includes(deviceNpub)) {
+            return {
+              trustedDevices: {
+                ...state.trustedDevices,
+                [accountId]: [...currentDevices, deviceNpub]
+              }
+            }
+          }
+          return state
+        })
       },
       clearAllNostrState: () => {
         set({
@@ -271,25 +289,13 @@ const useNostrStore = create<NostrState & NostrAction>()(
           }
         }))
       },
-      addProcessedMessageId: (accountId, messageId) => {
-        set((state) => {
-          const currentIds = state.processedMessageIds[accountId] || {}
-          if (currentIds[messageId]) {
-            return state
+      clearProcessedEvents: (accountId) => {
+        set((state) => ({
+          processedEvents: {
+            ...state.processedEvents,
+            [accountId]: {}
           }
-          const updated = { ...currentIds, [messageId]: true as const }
-          const pruned = pruneProcessedIds(updated, MAX_PROCESSED_ITEMS)
-          return {
-            processedMessageIds: {
-              ...state.processedMessageIds,
-              [accountId]: pruned
-            }
-          }
-        })
-      },
-      getProcessedMessageIds: (accountId) => {
-        const idsMap = get().processedMessageIds[accountId] || {}
-        return Object.keys(idsMap)
+        }))
       },
       clearProcessedMessageIds: (accountId) => {
         set((state) => ({
@@ -299,112 +305,37 @@ const useNostrStore = create<NostrState & NostrAction>()(
           }
         }))
       },
-      addProcessedEvent: (accountId, eventId) => {
-        set((state) => {
-          const currentEvents = state.processedEvents[accountId] || {}
-          if (currentEvents[eventId]) {
-            return state
-          }
-          const updated = { ...currentEvents, [eventId]: true as const }
-          const pruned = pruneProcessedIds(updated, MAX_PROCESSED_ITEMS)
-          return {
-            processedEvents: {
-              ...state.processedEvents,
-              [accountId]: pruned
-            }
-          }
-        })
+      clearSubscriptions: () => {
+        set({ activeSubscriptions: new Set() })
+      },
+      getActiveSubscriptions: () => {
+        return get().activeSubscriptions
+      },
+      getLastDataExchangeEOSE: (accountId) => {
+        return get().lastDataExchangeEOSE[accountId]
+      },
+      getLastProtocolEOSE: (accountId) => {
+        return get().lastProtocolEOSE[accountId]
+      },
+      getMembers: (accountId) => {
+        return get().members[accountId] || []
       },
       getProcessedEvents: (accountId) => {
         const eventsMap = get().processedEvents[accountId] || {}
         return Object.keys(eventsMap)
       },
-      clearProcessedEvents: (accountId) => {
-        set((state) => ({
-          processedEvents: {
-            ...state.processedEvents,
-            [accountId]: {}
-          }
-        }))
+      getProcessedMessageIds: (accountId) => {
+        const idsMap = get().processedMessageIds[accountId] || {}
+        return Object.keys(idsMap)
       },
-      setLastProtocolEOSE: (accountId, timestamp) => {
-        set((state) => ({
-          lastProtocolEOSE: {
-            ...state.lastProtocolEOSE,
-            [accountId]: timestamp
-          }
-        }))
-      },
-      setLastDataExchangeEOSE: (accountId, timestamp) => {
-        set((state) => ({
-          lastDataExchangeEOSE: {
-            ...state.lastDataExchangeEOSE,
-            [accountId]: timestamp
-          }
-        }))
-      },
-      getLastProtocolEOSE: (accountId) => {
-        return get().lastProtocolEOSE[accountId]
-      },
-      getLastDataExchangeEOSE: (accountId) => {
-        return get().lastDataExchangeEOSE[accountId]
-      },
-      addTrustedDevice: (accountId, deviceNpub) => {
-        set((state) => {
-          const currentDevices = state.trustedDevices[accountId] || []
-          if (!currentDevices.includes(deviceNpub)) {
-            return {
-              trustedDevices: {
-                ...state.trustedDevices,
-                [accountId]: [...currentDevices, deviceNpub]
-              }
-            }
-          }
-          return state
-        })
-      },
-      removeTrustedDevice: (accountId, deviceNpub) => {
-        set((state) => ({
-          trustedDevices: {
-            ...state.trustedDevices,
-            [accountId]: (state.trustedDevices[accountId] || []).filter(
-              (d) => d !== deviceNpub
-            )
-          }
-        }))
-      },
-      getTrustedDevices: (accountId) => {
-        return get().trustedDevices[accountId] || []
-      },
-      setSyncStatus: (accountId, status) => {
-        set((state) => {
-          const currentStatus =
-            state.syncStatus[accountId] || DEFAULT_SYNC_STATUS
-          return {
-            syncStatus: {
-              ...state.syncStatus,
-              [accountId]: { ...currentStatus, ...status }
-            }
-          }
-        })
+      getProfile: (npub) => {
+        return get().profiles[npub]
       },
       getSyncStatus: (accountId) => {
         return get().syncStatus[accountId] || DEFAULT_SYNC_STATUS
       },
-      incrementMessagesReceived: (accountId, count = 1) => {
-        set((state) => {
-          const currentStatus =
-            state.syncStatus[accountId] || DEFAULT_SYNC_STATUS
-          return {
-            syncStatus: {
-              ...state.syncStatus,
-              [accountId]: {
-                ...currentStatus,
-                messagesReceived: currentStatus.messagesReceived + count
-              }
-            }
-          }
-        })
+      getTrustedDevices: (accountId) => {
+        return get().trustedDevices[accountId] || []
       },
       incrementMessagesProcessed: (accountId, count = 1) => {
         set((state) => {
@@ -421,18 +352,86 @@ const useNostrStore = create<NostrState & NostrAction>()(
           }
         })
       },
-      addSubscription: (subscription: NostrAPI) => {
+      incrementMessagesReceived: (accountId, count = 1) => {
         set((state) => {
-          const newSubscriptions = new Set(state.activeSubscriptions)
-          newSubscriptions.add(subscription)
-          return { activeSubscriptions: newSubscriptions }
+          const currentStatus =
+            state.syncStatus[accountId] || DEFAULT_SYNC_STATUS
+          return {
+            syncStatus: {
+              ...state.syncStatus,
+              [accountId]: {
+                ...currentStatus,
+                messagesReceived: currentStatus.messagesReceived + count
+              }
+            }
+          }
         })
       },
-      clearSubscriptions: () => {
-        set({ activeSubscriptions: new Set() })
+      isSyncing: (accountId) => {
+        return get().syncingAccounts[accountId] || false
       },
-      getActiveSubscriptions: () => {
-        return get().activeSubscriptions
+      lastDataExchangeEOSE: {},
+      lastProtocolEOSE: {},
+      members: {},
+      processedEvents: {},
+      processedMessageIds: {},
+      profiles: {},
+      removeMember: (accountId, npub) => {
+        set((state) => {
+          const currentMembers = state.members[accountId] || []
+          return {
+            members: {
+              ...state.members,
+              [accountId]: currentMembers.filter((m) => m.npub !== npub)
+            }
+          }
+        })
+      },
+      removeTrustedDevice: (accountId, deviceNpub) => {
+        set((state) => ({
+          trustedDevices: {
+            ...state.trustedDevices,
+            [accountId]: (state.trustedDevices[accountId] || []).filter(
+              (d) => d !== deviceNpub
+            )
+          }
+        }))
+      },
+      setLastDataExchangeEOSE: (accountId, timestamp) => {
+        set((state) => ({
+          lastDataExchangeEOSE: {
+            ...state.lastDataExchangeEOSE,
+            [accountId]: timestamp
+          }
+        }))
+      },
+      setLastProtocolEOSE: (accountId, timestamp) => {
+        set((state) => ({
+          lastProtocolEOSE: {
+            ...state.lastProtocolEOSE,
+            [accountId]: timestamp
+          }
+        }))
+      },
+      setProfile: (npub, profile) => {
+        set((state) => ({
+          profiles: {
+            ...state.profiles,
+            [npub]: { ...state.profiles[npub], ...profile }
+          }
+        }))
+      },
+      setSyncStatus: (accountId, status) => {
+        set((state) => {
+          const currentStatus =
+            state.syncStatus[accountId] || DEFAULT_SYNC_STATUS
+          return {
+            syncStatus: {
+              ...state.syncStatus,
+              [accountId]: { ...currentStatus, ...status }
+            }
+          }
+        })
       },
       setSyncing: (accountId, isSyncing) => {
         set((state) => ({
@@ -442,26 +441,13 @@ const useNostrStore = create<NostrState & NostrAction>()(
           }
         }))
       },
-      isSyncing: (accountId) => {
-        return get().syncingAccounts[accountId] || false
-      },
-      setTransactionToShare: (data) => set({ transactionToShare: data })
+      setTransactionToShare: (data) => set({ transactionToShare: data }),
+      syncStatus: {},
+      syncingAccounts: {},
+      transactionToShare: null,
+      trustedDevices: {}
     }),
     {
-      name: 'satsigner-nostr',
-      storage: createJSONStorage(() => mmkvStorage),
-      version: 1,
-      partialize: (state) => ({
-        members: state.members,
-        profiles: state.profiles,
-        processedMessageIds: state.processedMessageIds,
-        processedEvents: state.processedEvents,
-        lastProtocolEOSE: state.lastProtocolEOSE,
-        lastDataExchangeEOSE: state.lastDataExchangeEOSE,
-        trustedDevices: state.trustedDevices
-        // Excluded: syncStatus (runtime), activeSubscriptions (Set),
-        // syncingAccounts (runtime), transactionToShare (runtime)
-      }),
       migrate: (persistedState, version) => {
         const state = persistedState as Record<string, unknown> & {
           processedEvents?: Record<string, ProcessedIdsMap | string[]>
@@ -486,7 +472,21 @@ const useNostrStore = create<NostrState & NostrAction>()(
           }
         }
         return state
-      }
+      },
+      name: 'satsigner-nostr',
+      partialize: (state) => ({
+        members: state.members,
+        profiles: state.profiles,
+        processedMessageIds: state.processedMessageIds,
+        processedEvents: state.processedEvents,
+        lastProtocolEOSE: state.lastProtocolEOSE,
+        lastDataExchangeEOSE: state.lastDataExchangeEOSE,
+        trustedDevices: state.trustedDevices
+        // Excluded: syncStatus (runtime), activeSubscriptions (Set),
+        // syncingAccounts (runtime), transactionToShare (runtime)
+      }),
+      storage: createJSONStorage(() => mmkvStorage),
+      version: 1
     }
   )
 )

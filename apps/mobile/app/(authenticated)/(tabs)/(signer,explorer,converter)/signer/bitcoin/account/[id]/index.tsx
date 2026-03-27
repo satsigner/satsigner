@@ -128,10 +128,10 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
       <SSVStack
         gap="none"
         style={{
-          paddingHorizontal: 0,
-          paddingTop: 4,
+          opacity: 0.85,
           paddingBottom: 12,
-          opacity: 0.85
+          paddingHorizontal: 0,
+          paddingTop: 4
         }}
       >
         <SSHStack justifyBetween>
@@ -173,7 +173,7 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
               e.stopPropagation()
               clearTransaction()
             }}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            hitSlop={{ bottom: 8, left: 8, right: 8, top: 8 }}
           >
             <SSText size="xs" style={{ color: Colors.gray[500] }}>
               {t('transaction.discard')}
@@ -200,15 +200,15 @@ function TransactionStaggerItem({
     const timer = setTimeout(() => {
       Animated.parallel([
         Animated.timing(opacity, {
-          toValue: 1,
           duration: TX_STAGGER_DURATION_MS,
           easing: Easing.out(Easing.ease),
+          toValue: 1,
           useNativeDriver: true
         }),
         Animated.timing(translateY, {
-          toValue: 0,
           duration: TX_STAGGER_DURATION_MS,
           easing: Easing.out(Easing.ease),
+          toValue: 0,
           useNativeDriver: true
         })
       ]).start()
@@ -297,10 +297,10 @@ function TotalTransactions({
   const [showHistoryChart, setShowHistoryChart] = useState<boolean>(false)
 
   return (
-    <SSMainLayout style={{ paddingTop: 0, paddingHorizontal: 0 }}>
+    <SSMainLayout style={{ paddingHorizontal: 0, paddingTop: 0 }}>
       <SSHStack
         justifyBetween
-        style={{ paddingVertical: 16, paddingHorizontal: 16 }}
+        style={{ paddingHorizontal: 16, paddingVertical: 16 }}
       >
         <SSHStack>
           <SSIconButton onPress={() => handleOnRefresh()}>
@@ -347,11 +347,11 @@ function TotalTransactions({
         <SSVStack
           style={{
             flex: 1,
+            height: 400,
             marginLeft: 16,
             marginRight: 2,
-            paddingRight: 14,
-            height: 400,
-            minHeight: 200
+            minHeight: 200,
+            paddingRight: 14
           }}
           gap={expand ? 'sm' : 'md'}
         >
@@ -548,7 +548,7 @@ function SSAddressList({
           <SSButton
             variant="outline"
             uppercase
-            style={{ marginTop: 10, alignSelf: 'stretch' }}
+            style={{ alignSelf: 'stretch', marginTop: 10 }}
             label={t('common.loadMore')}
             disabled={isLoadingAddresses}
             onPress={onLoadMore}
@@ -786,7 +786,7 @@ function DerivedAddresses({
             <SSText>{addressPath}</SSText>
           </SSHStack>
         )}
-        <SSHStack gap="sm" style={{ width: 40, justifyContent: 'flex-end' }}>
+        <SSHStack gap="sm" style={{ justifyContent: 'flex-end', width: 40 }}>
           <SSSortDirectionToggle
             onDirectionChanged={() => setSortDirection()}
           />
@@ -962,7 +962,7 @@ function SpendableOutputs({
         {view === 'bubbles' && (
           <SSBubbleChart
             utxos={[...account.utxos]}
-            canvasSize={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
+            canvasSize={{ height: GRAPH_HEIGHT, width: GRAPH_WIDTH }}
             inputs={[]}
             onPress={({ txid, vout }: Utxo) =>
               router.navigate(
@@ -995,7 +995,7 @@ function SatsInMempool({
   if (mempoolTransactions.length === 0) {
     return (
       <SSMainLayout>
-        <SSVStack style={{ flex: 1, alignItems: 'center', paddingTop: 50 }}>
+        <SSVStack style={{ alignItems: 'center', flex: 1, paddingTop: 50 }}>
           <SSText color="muted">{t('accounts.noSatsOnMempool')}</SSText>
         </SSVStack>
       </SSMainLayout>
@@ -1132,15 +1132,15 @@ export default function AccountView() {
   } = useNetworkInfo()
 
   const bitcoinContentHandler = useBitcoinContentHandler({
-    accountId: id!,
-    account: account!
+    account: account!,
+    accountId: id!
   })
 
   const contentHandler = useContentHandler({
     context: 'bitcoin',
     onContentScanned: bitcoinContentHandler.handleContentScanned,
-    onSend: bitcoinContentHandler.handleSend,
-    onReceive: bitcoinContentHandler.handleReceive
+    onReceive: bitcoinContentHandler.handleReceive,
+    onSend: bitcoinContentHandler.handleSend
   })
 
   const { closeCameraModal, closeNFCModal, closePasteModal } = contentHandler
@@ -1306,9 +1306,9 @@ export default function AccountView() {
 
   function animateTransition(expandState: boolean) {
     Animated.timing(animationValue, {
-      toValue: expandState ? 1 : 0,
       duration: 300,
       easing: Easing.inOut(Easing.ease),
+      toValue: expandState ? 1 : 0,
       useNativeDriver: false
     }).start()
   }
@@ -1380,7 +1380,7 @@ export default function AccountView() {
         {!expand && (
           <SSHStack
             gap="none"
-            style={{ paddingVertical: 8, paddingHorizontal: '5%' }}
+            style={{ paddingHorizontal: '5%', paddingVertical: 8 }}
           >
             <SSActionButton
               style={{ width: tabWidth }}
@@ -1396,12 +1396,12 @@ export default function AccountView() {
                 {tabIndex === 0 && (
                   <View
                     style={{
-                      position: 'absolute',
-                      width: '100%',
-                      height: 2,
-                      bottom: -12,
                       alignSelf: 'center',
-                      backgroundColor: Colors.white
+                      backgroundColor: Colors.white,
+                      bottom: -12,
+                      height: 2,
+                      position: 'absolute',
+                      width: '100%'
                     }}
                   />
                 )}
@@ -1424,12 +1424,12 @@ export default function AccountView() {
                   {tabIndex === 1 && (
                     <View
                       style={{
-                        position: 'absolute',
-                        width: '100%',
-                        height: 2,
-                        bottom: -12,
                         alignSelf: 'center',
-                        backgroundColor: Colors.white
+                        backgroundColor: Colors.white,
+                        bottom: -12,
+                        height: 2,
+                        position: 'absolute',
+                        width: '100%'
                       }}
                     />
                   )}
@@ -1450,12 +1450,12 @@ export default function AccountView() {
                 {tabIndex === 2 && (
                   <View
                     style={{
-                      position: 'absolute',
-                      width: '100%',
-                      height: 2,
-                      bottom: -12,
                       alignSelf: 'center',
-                      backgroundColor: Colors.white
+                      backgroundColor: Colors.white,
+                      bottom: -12,
+                      height: 2,
+                      position: 'absolute',
+                      width: '100%'
                     }}
                   />
                 )}
@@ -1475,12 +1475,12 @@ export default function AccountView() {
                 {tabIndex === 3 && (
                   <View
                     style={{
-                      position: 'absolute',
-                      width: '100%',
-                      height: 2,
-                      bottom: -12,
                       alignSelf: 'center',
-                      backgroundColor: Colors.white
+                      backgroundColor: Colors.white,
+                      bottom: -12,
+                      height: 2,
+                      position: 'absolute',
+                      width: '100%'
                     }}
                   />
                 )}
@@ -1496,14 +1496,6 @@ export default function AccountView() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSHStack gap="sm">
-              <SSText uppercase>{account.name}</SSText>
-              {account.policyType === 'watchonly' && (
-                <SSIconEyeOn stroke="#fff" height={16} width={16} />
-              )}
-            </SSHStack>
-          ),
           headerBackground: () => (
             <View
               style={{
@@ -1514,14 +1506,22 @@ export default function AccountView() {
               }}
             />
           ),
-          headerRight
+          headerRight,
+          headerTitle: () => (
+            <SSHStack gap="sm">
+              <SSText uppercase>{account.name}</SSText>
+              {account.policyType === 'watchonly' && (
+                <SSIconEyeOn stroke="#fff" height={16} width={16} />
+              )}
+            </SSHStack>
+          )
         }}
       />
       <SSVStack gap="none" style={{ alignItems: 'center' }}>
         <TouchableOpacity
           onPress={() => router.navigate('/settings/network/server')}
         >
-          <SSHStack style={{ justifyContent: 'center', gap: 0 }}>
+          <SSHStack style={{ gap: 0, justifyContent: 'center' }}>
             {connectionState ? (
               isPrivateConnection ? (
                 <SSIconYellowIndicator height={24} width={24} />
@@ -1648,7 +1648,7 @@ export default function AccountView() {
         tasksDone !== undefined &&
         totalTasks !== undefined &&
         totalTasks > 0 && (
-          <View style={{ marginTop: 10, marginBottom: -10 }}>
+          <View style={{ marginBottom: -10, marginTop: 10 }}>
             <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
               <SSLoader size={24} />
               <SSText center>
@@ -1694,30 +1694,27 @@ const styles = StyleSheet.create({
   },
   loaderOverlay: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingTop: 16,
     backgroundColor: 'transparent',
     elevation: 0,
+    justifyContent: 'flex-start',
+    paddingTop: 16,
     shadowOpacity: 0,
     shadowRadius: 0
   }
 })
 
 const addressListStyles = StyleSheet.create({
-  container: {
-    paddingTop: 10,
-    paddingBottom: 10
-  },
-  header: {
-    paddingVertical: 4
-  },
-  headerText: {
-    color: '#777',
-    textTransform: 'uppercase'
+  addressText: {
+    color: '#fff',
+    flexWrap: 'nowrap'
   },
   columnAddress: {
     width: '25%'
+  },
+  columnIndex: {
+    width: '5%',
+    textAlign: 'center'
   },
   columnLabel: {
     width: '15%'
@@ -1735,26 +1732,12 @@ const addressListStyles = StyleSheet.create({
     width: '10%',
     textAlign: 'center'
   },
-  columnIndex: {
-    width: '5%',
-    textAlign: 'center'
+  container: {
+    paddingTop: 10,
+    paddingBottom: 10
   },
-  row: {
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderColor: '#333',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  indexText: {
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center'
-  },
-  addressText: {
-    color: '#fff',
-    flexWrap: 'nowrap'
+  header: {
+    paddingVertical: 4
   },
   headerRow: {
     paddingBottom: 10,
@@ -1766,13 +1749,27 @@ const addressListStyles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center'
   },
+  headerText: {
+    color: '#777',
+    textTransform: 'uppercase'
+  },
+  indexText: {
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center'
+  },
   receiveChangeContainer: {
     display: 'flex',
     width: '100%',
     marginTop: 10
   },
-  unreadBadgeWrapper: {
-    position: 'relative'
+  row: {
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderColor: '#333',
+    justifyContent: 'space-between',
+    alignItems: 'center'
   },
   unreadBadgeDot: {
     position: 'absolute',
@@ -1782,5 +1779,8 @@ const addressListStyles = StyleSheet.create({
     height: 9,
     borderRadius: 5,
     backgroundColor: Colors.error
+  },
+  unreadBadgeWrapper: {
+    position: 'relative'
   }
 })

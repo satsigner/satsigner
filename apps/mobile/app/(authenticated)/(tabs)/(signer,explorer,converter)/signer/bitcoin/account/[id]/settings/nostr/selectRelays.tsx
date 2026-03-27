@@ -155,9 +155,9 @@ const styles = StyleSheet.create({
   },
   relayInputAddOn: {
     backgroundColor: Colors.barGray,
-    paddingVertical: 14,
+    borderRadius: 2,
     paddingHorizontal: 7,
-    borderRadius: 2
+    paddingVertical: 14
   },
   relayInputContainer: {
     flexGrow: 1

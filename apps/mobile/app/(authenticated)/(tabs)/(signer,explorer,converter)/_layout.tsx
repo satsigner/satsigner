@@ -76,8 +76,8 @@ export default function StackLayout(params: any) {
           <Stack.Screen
             name="index"
             initialParams={{
-              tab: t('navigation.label.signer'),
-              segment: params?.segment
+              segment: params?.segment,
+              tab: t('navigation.label.signer')
             }}
             options={{ title: 'Signer' }}
           />
@@ -87,8 +87,8 @@ export default function StackLayout(params: any) {
           <Stack.Screen
             name="index"
             initialParams={{
-              tab: t('navigation.label.explorer'),
-              segment: params?.segment
+              segment: params?.segment,
+              tab: t('navigation.label.explorer')
             }}
             options={{ title: 'Explore' }}
           />
@@ -98,8 +98,8 @@ export default function StackLayout(params: any) {
           <Stack.Screen
             name="index"
             initialParams={{
-              tab: t('navigation.label.converter'),
-              segment: params?.segment
+              segment: params?.segment,
+              tab: t('navigation.label.converter')
             }}
             options={{ title: 'Converter' }}
           />
@@ -109,8 +109,8 @@ export default function StackLayout(params: any) {
           <Stack.Screen
             name="index"
             initialParams={{
-              tab: t('navigation.label.signer'),
-              segment: params?.segment
+              segment: params?.segment,
+              tab: t('navigation.label.signer')
             }}
             options={{ title: 'Signer' }}
           />
@@ -125,6 +125,8 @@ export default function StackLayout(params: any) {
           contentStyle: {
             backgroundColor: Colors.gray[950]
           },
+          headerBackTitleVisible: false,
+          headerBackVisible: false,
           headerBackground: () => (
             <View
               style={{
@@ -134,11 +136,6 @@ export default function StackLayout(params: any) {
                 backgroundColor: Colors.gray[950]
               }}
             />
-          ),
-          headerTitle: () => (
-            <SSText uppercase style={{ letterSpacing: 1 }}>
-              {t('app.name')}
-            </SSText>
           ),
           headerLeft: isShowNav
             ? () => (
@@ -167,10 +164,13 @@ export default function StackLayout(params: any) {
                 </SSIconButton>
               ),
           headerRight: () => <HeaderRight />,
-          headerTitleAlign: 'center',
           headerTintColor: Colors.gray[200],
-          headerBackTitleVisible: false,
-          headerBackVisible: false
+          headerTitle: () => (
+            <SSText uppercase style={{ letterSpacing: 1 }}>
+              {t('app.name')}
+            </SSText>
+          ),
+          headerTitleAlign: 'center'
         }}
       >
         {homeScreen}
@@ -182,7 +182,7 @@ export default function StackLayout(params: any) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: Colors.gray[950]
+    backgroundColor: Colors.gray[950],
+    flex: 1
   }
 })

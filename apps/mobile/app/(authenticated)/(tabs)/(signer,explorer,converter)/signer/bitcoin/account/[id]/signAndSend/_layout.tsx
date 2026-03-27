@@ -17,6 +17,7 @@ export default function SignAndSendLayout() {
     <>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
@@ -24,8 +25,7 @@ export default function SignAndSendLayout() {
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
               )}
             </SSHStack>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <Slot />

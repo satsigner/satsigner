@@ -42,13 +42,13 @@ function SSNostrMessage({
     hasSignFlow,
     formattedDate,
     error
-  } = useNostrMessage({ msg, account, formattedNpubs })
+  } = useNostrMessage({ account, formattedNpubs, msg })
 
   function handleAuthorPress() {
     if (!account?.id || !authorNpub) return
     router.push({
-      pathname: `/signer/bitcoin/account/${account.id}/settings/nostr/device/[npub]`,
-      params: { npub: authorNpub }
+      params: { npub: authorNpub },
+      pathname: `/signer/bitcoin/account/${account.id}/settings/nostr/device/[npub]`
     })
   }
 
@@ -147,8 +147,8 @@ function SSNostrMessage({
         <SSHStack
           gap="xs"
           style={{
-            alignSelf: 'flex-start',
             alignItems: 'flex-start',
+            alignSelf: 'flex-start',
             marginTop: -2
           }}
         >
@@ -183,28 +183,14 @@ function SSNostrMessage({
 }
 
 const styles = StyleSheet.create({
-  message: {
-    backgroundColor: Colors.gray[900],
-    padding: 10,
-    paddingBottom: 15,
-    paddingTop: 5,
-    borderRadius: 8,
-    marginTop: 8
-  },
-  deviceMessage: {
-    backgroundColor: Colors.gray[800]
-  },
-  authorPressable: {
-    alignSelf: 'flex-start'
-  },
-  authorPressablePressed: {
-    opacity: 0.7
-  },
   authorAvatar: {
     width: 24,
     height: 24,
     borderRadius: 12,
     marginRight: 6
+  },
+  authorBlock: {
+    gap: 0
   },
   authorIndicatorLarge: {
     width: 24,
@@ -218,11 +204,25 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginRight: 3
   },
-  authorBlock: {
-    gap: 0
-  },
   authorName: {
     color: Colors.white
+  },
+  authorPressable: {
+    alignSelf: 'flex-start'
+  },
+  authorPressablePressed: {
+    opacity: 0.7
+  },
+  deviceMessage: {
+    backgroundColor: Colors.gray[800]
+  },
+  message: {
+    backgroundColor: Colors.gray[900],
+    padding: 10,
+    paddingBottom: 15,
+    paddingTop: 5,
+    borderRadius: 8,
+    marginTop: 8
   },
   messageContentWrap: {
     paddingLeft: 30

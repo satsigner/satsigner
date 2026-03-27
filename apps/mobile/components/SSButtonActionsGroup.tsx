@@ -75,11 +75,11 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.gray[950],
     borderRadius: 4
   },
-  actionButtonWide: {
-    width: '25.25%'
-  },
   actionButtonNarrow: {
     width: '16.5%'
+  },
+  actionButtonWide: {
+    width: '25.25%'
   }
 })
 

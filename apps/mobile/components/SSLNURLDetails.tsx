@@ -144,32 +144,27 @@ function SSLNURLDetails({
 }
 
 const styles = StyleSheet.create({
-  lnurlDetails: {
-    marginTop: 16,
-    marginBottom: 16
+  detailLabel: {
+    minWidth: 100,
+    fontSize: 14
   },
   detailRow: {
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     flexWrap: 'wrap'
   },
-  detailLabel: {
-    minWidth: 100,
-    fontSize: 14
-  },
   detailValue: {
     flex: 1,
     textAlign: 'right'
-  },
-  loadingRow: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16
   },
   errorRow: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 16
+  },
+  fiatAmount: {
+    marginTop: 4,
+    marginLeft: 4
   },
   input: {
     backgroundColor: '#242424',
@@ -178,9 +173,14 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16
   },
-  fiatAmount: {
-    marginTop: 4,
-    marginLeft: 4
+  lnurlDetails: {
+    marginTop: 16,
+    marginBottom: 16
+  },
+  loadingRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16
   }
 })
 

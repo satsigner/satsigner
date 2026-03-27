@@ -229,13 +229,13 @@ function NodeText({
     const createParagraphBuilder = () => {
       return Skia.ParagraphBuilder.Make(
         {
-          textAlign: isBlock ? TextAlign.Center : TextAlign.Left,
           strutStyle: {
             strutEnabled: true,
             forceStrutHeight: true,
             heightMultiplier: 1,
             leading: 0
-          }
+          },
+          textAlign: isBlock ? TextAlign.Center : TextAlign.Left
         },
         customFontManager
       )
@@ -251,14 +251,14 @@ function NodeText({
       .addText(`${ioData?.blockHeight}\n`)
       .pushStyle({
         ...baseTextStyle,
-        fontSize: XS_FONT_SIZE,
-        color: Skia.Color(gray[500])
+        color: Skia.Color(gray[500]),
+        fontSize: XS_FONT_SIZE
       })
       .addText(`${ioData?.blockTime}\n`)
       .pushStyle({
         ...baseTextStyle,
-        fontSize: XS_FONT_SIZE,
-        color: Skia.Color(gray[500])
+        color: Skia.Color(gray[500]),
+        fontSize: XS_FONT_SIZE
       })
       .addText(`${ioData?.blockRelativeTime}\n`)
       .pushStyle({
@@ -297,15 +297,15 @@ function NodeText({
     const createParagraphBuilder = () => {
       return Skia.ParagraphBuilder.Make(
         {
-          maxLines: isSelfSend ? 6 : 5,
           ellipsis: '…',
-          textAlign: isBlock ? TextAlign.Center : TextAlign.Left,
+          maxLines: isSelfSend ? 6 : 5,
           strutStyle: {
             strutEnabled: true,
             forceStrutHeight: true,
             heightMultiplier: 1,
             leading: 0
-          }
+          },
+          textAlign: isBlock ? TextAlign.Center : TextAlign.Left
         },
         customFontManager
       ) // Pass font manager here
@@ -322,8 +322,8 @@ function NodeText({
         .addText(`${ioData?.txSize} B`)
         .pushStyle({
           ...baseTextStyle,
-          fontSize: XS_FONT_SIZE,
-          color: Skia.Color('white')
+          color: Skia.Color('white'),
+          fontSize: XS_FONT_SIZE
         })
         .addText(`\n${Math.ceil(ioData.vSize ?? 0)} vB`)
         .pop()
@@ -347,26 +347,26 @@ function NodeText({
         .addText(` ${t('bitcoin.sats').toLowerCase()}/vB \n`)
         .pushStyle({
           ...baseTextStyle,
-          fontSize: BASE_FONT_SIZE,
-          color: Skia.Color('white')
+          color: Skia.Color('white'),
+          fontSize: BASE_FONT_SIZE
         })
 
         .addText(`${ioData?.value.toLocaleString()} `)
         .pushStyle({
           ...baseTextStyle,
-          fontSize: XS_FONT_SIZE,
-          color: Skia.Color(Colors.gray[200])
+          color: Skia.Color(Colors.gray[200]),
+          fontSize: XS_FONT_SIZE
         })
         .addText(`sats\n`)
         .addText(`${ioData.fiatValue} ${ioData.fiatCurrency}\n`)
         .pushStyle({
           // Style for the icon + text line (red for both current and past miner fee)
           ...baseTextStyle,
+          color: Skia.Color(mainRed),
           fontSize: XS_FONT_SIZE,
           fontStyle: {
             weight: 800
-          },
-          color: Skia.Color(mainRed)
+          }
         })
         // Add placeholder for the miner svg icon
         .addPlaceholder(
@@ -397,36 +397,36 @@ function NodeText({
         .addText(ioData?.text ?? '') // Add nullish coalescing
         .pushStyle({
           ...baseTextStyle,
-          fontSize: BASE_FONT_SIZE,
-          color: Skia.Color('white')
+          color: Skia.Color('white'),
+          fontSize: BASE_FONT_SIZE
         })
         .addText(`\n${ioData?.value.toLocaleString()} `) // Add nullish coalescing
         .pushStyle({
           ...baseTextStyle,
-          fontSize: XS_FONT_SIZE,
-          color: Skia.Color(gray[200])
+          color: Skia.Color(gray[200]),
+          fontSize: XS_FONT_SIZE
         })
         .addText(`sats\n`)
         .pushStyle({
           ...baseTextStyle,
-          fontSize: XS_FONT_SIZE,
-          color: Skia.Color(gray[300])
+          color: Skia.Color(gray[300]),
+          fontSize: XS_FONT_SIZE
         })
         .addText(`${ioData.fiatValue} ${ioData.fiatCurrency}\n`)
         .addText(ioData?.address ? `${t('common.to')} ` : '')
         .pushStyle({
           ...baseTextStyle,
-          fontSize: XS_FONT_SIZE,
-          color: Skia.Color('white')
+          color: Skia.Color('white'),
+          fontSize: XS_FONT_SIZE
         })
         .addText(ioData?.address ? `${ioData?.address}\n` : '')
         .pushStyle({
           ...baseTextStyle,
+          color: Skia.Color(isChange || isSelfSend ? mainGreen : gray[300]),
           fontSize: XS_FONT_SIZE,
           fontStyle: {
             weight: 800
-          },
-          color: Skia.Color(isChange || isSelfSend ? mainGreen : gray[300])
+          }
         })
         // Single placeholder for icon (change, self-send, or label)
         .addPlaceholder(
@@ -445,11 +445,11 @@ function NodeText({
         )
         .pushStyle({
           ...baseTextStyle,
+          color: Skia.Color(gray[300]),
           fontSize: XS_FONT_SIZE,
           fontStyle: {
             weight: 800
-          },
-          color: Skia.Color(gray[300])
+          }
         })
         .addText(isSelfSend && ioData?.label ? ` ${ioData.label}` : '')
         .pop()
@@ -474,21 +474,21 @@ function NodeText({
         .addText(` ${t('bitcoin.sats').toLowerCase()}\n`)
         .pushStyle({
           ...baseTextStyle,
-          fontSize: XS_FONT_SIZE,
-          color: Skia.Color(gray[300])
+          color: Skia.Color(gray[300]),
+          fontSize: XS_FONT_SIZE
         })
         .addText(`${ioData.fiatValue} ${ioData.fiatCurrency}\n`)
         .addText(`${ioData?.text} `)
         .pushStyle({
           ...baseTextStyle,
-          fontSize: XS_FONT_SIZE,
-          color: Skia.Color('white')
+          color: Skia.Color('white'),
+          fontSize: XS_FONT_SIZE
         })
         .addText(`${ioData?.address ?? ''}\n`) // Add nullish coalescing
         .pushStyle({
           ...baseTextStyle,
-          fontSize: XS_FONT_SIZE,
-          color: hasLabel ? Skia.Color('white') : Skia.Color(gray[300])
+          color: hasLabel ? Skia.Color('white') : Skia.Color(gray[300]),
+          fontSize: XS_FONT_SIZE
         })
         .addText(
           hasLabel ? `${ioData.label ?? ''}\n` : `${t('common.noLabel')}\n`

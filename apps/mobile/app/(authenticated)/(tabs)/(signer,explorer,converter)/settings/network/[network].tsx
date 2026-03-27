@@ -178,11 +178,11 @@ export default function CustomNetwork() {
 
     const url = constructUrl()
     const server: Server = {
-      name: formData.name,
       backend: formData.backend,
+      name: formData.name,
       network: networkType,
-      url,
-      proxy: formData.proxy.enabled ? formData.proxy : undefined
+      proxy: formData.proxy.enabled ? formData.proxy : undefined,
+      url
     }
 
     setSelectedNetwork(networkType)
@@ -200,11 +200,11 @@ export default function CustomNetwork() {
 
       const url = constructUrl()
       const server: Server = {
-        name: formData.name,
         backend: formData.backend,
+        name: formData.name,
         network: networkType,
-        url,
-        proxy: formData.proxy.enabled ? formData.proxy : undefined
+        proxy: formData.proxy.enabled ? formData.proxy : undefined,
+        url
       }
 
       if (editingServer) {
@@ -228,10 +228,10 @@ export default function CustomNetwork() {
     <SSMainLayout>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSText uppercase>{t('settings.network.custom.title')}</SSText>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <SSVStack gap="lg" justifyBetween>
@@ -336,7 +336,7 @@ export default function CustomNetwork() {
                   {t('settings.network.server.portLabel')}
                   {formData.backend === 'esplora' && (
                     <SSText
-                      style={{ textTransform: 'none', fontWeight: 'normal' }}
+                      style={{ fontWeight: 'normal', textTransform: 'none' }}
                     >
                       {' '}
                       ({t('common.optional')})
@@ -368,7 +368,7 @@ export default function CustomNetwork() {
               />
               {testing && (
                 <SSHStack
-                  style={{ justifyContent: 'center', gap: 0, marginBottom: 24 }}
+                  style={{ gap: 0, justifyContent: 'center', marginBottom: 24 }}
                 >
                   {connectionState ? (
                     isPrivateConnection ? (
@@ -428,7 +428,7 @@ export default function CustomNetwork() {
               if (data) handleScanResult(data)
             }}
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            style={{ width: 340, height: 340 }}
+            style={{ height: 340, width: 340 }}
           />
         </SSVStack>
       </SSModal>

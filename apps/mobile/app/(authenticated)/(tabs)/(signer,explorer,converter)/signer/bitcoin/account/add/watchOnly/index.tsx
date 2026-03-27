@@ -171,10 +171,10 @@ export default function WatchOnly() {
     scanned: Set<number>
     chunks: Map<number, string>
   }>({
-    type: null,
-    total: 0,
+    chunks: new Map(),
     scanned: new Set(),
-    chunks: new Map()
+    total: 0,
+    type: null
   })
 
   const pulseAnim = useRef(new Animated.Value(0)).current
@@ -186,13 +186,13 @@ export default function WatchOnly() {
       const pulseAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
-            toValue: 1,
             duration: 500,
+            toValue: 1,
             useNativeDriver: false
           }),
           Animated.timing(pulseAnim, {
-            toValue: 0,
             duration: 500,
+            toValue: 0,
             useNativeDriver: false
           })
         ])
@@ -201,13 +201,13 @@ export default function WatchOnly() {
       const scaleAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(scaleAnim, {
-            toValue: 0.98,
             duration: 500,
+            toValue: 0.98,
             useNativeDriver: false
           }),
           Animated.timing(scaleAnim, {
-            toValue: 1,
             duration: 500,
+            toValue: 1,
             useNativeDriver: false
           })
         ])
@@ -420,8 +420,8 @@ export default function WatchOnly() {
           errorMessage.includes('network')
         ) {
           networkValidation = {
-            isValid: false,
-            error: 'networkIncompatible'
+            error: 'networkIncompatible',
+            isValid: false
           }
         } else {
           // For other BDK errors, still consider it valid for now
@@ -478,10 +478,10 @@ export default function WatchOnly() {
       const total = parseInt(data.slice(4, 6), 36)
       const current = parseInt(data.slice(6, 8), 36)
       return {
-        type: 'bbqr' as const,
+        content: data,
         current,
         total,
-        content: data
+        type: 'bbqr' as const
       }
     }
 
@@ -498,37 +498,37 @@ export default function WatchOnly() {
           const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
           const total = parseInt(totalStr, 10)
           return {
-            type: 'ur' as const,
+            content: data,
             current,
             total,
-            content: data
+            type: 'ur' as const
           }
         } else {
           // Single-part UR
           return {
-            type: 'ur' as const,
+            content: data,
             current: 0,
             total: 1,
-            content: data
+            type: 'ur' as const
           }
         }
       }
     }
 
     return {
-      type: 'single' as const,
+      content: data,
       current: 0,
       total: 1,
-      content: data
+      type: 'single' as const
     }
   }
 
   function resetScanProgress() {
     setScanProgress({
-      type: null,
-      total: 0,
+      chunks: new Map(),
       scanned: new Set(),
-      chunks: new Map()
+      total: 0,
+      type: null
     })
     urDecoderRef.current = new URDecoder()
   }
@@ -1042,8 +1042,8 @@ export default function WatchOnly() {
                         inputRange: [0, 1],
                         outputRange: [1, 0.7]
                       }),
-                      transform: [{ scale: scaleAnim }],
-                      overflow: 'hidden'
+                      overflow: 'hidden',
+                      transform: [{ scale: scaleAnim }]
                     }}
                   >
                     <SSButton
@@ -1306,17 +1306,13 @@ export default function WatchOnly() {
 }
 
 const styles = StyleSheet.create({
-  progressBarOuter: {
-    width: 300,
-    height: 4,
-    backgroundColor: Colors.gray[700],
-    borderRadius: 2
+  cameraView: {
+    width: 340,
+    height: 340
   },
-  progressBarInner: {
-    height: 4,
-    maxWidth: 300,
-    backgroundColor: Colors.white,
-    borderRadius: 2
+  innerScrollContainer: {
+    paddingBottom: 20,
+    flex: 1
   },
   invalid: {
     borderColor: Colors.error,
@@ -1324,23 +1320,27 @@ const styles = StyleSheet.create({
     height: 'auto',
     paddingVertical: 10
   },
-  valid: {
-    height: 'auto',
-    paddingVertical: 10
-  },
   mainContainer: {
     paddingTop: 0,
     paddingBottom: 10
   },
+  progressBarInner: {
+    height: 4,
+    maxWidth: 300,
+    backgroundColor: Colors.white,
+    borderRadius: 2
+  },
+  progressBarOuter: {
+    width: 300,
+    height: 4,
+    backgroundColor: Colors.gray[700],
+    borderRadius: 2
+  },
   scrollContainer: {
     minHeight: '100%'
   },
-  innerScrollContainer: {
-    paddingBottom: 20,
-    flex: 1
-  },
-  cameraView: {
-    width: 340,
-    height: 340
+  valid: {
+    height: 'auto',
+    paddingVertical: 10
   }
 })

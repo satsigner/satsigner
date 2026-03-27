@@ -102,8 +102,8 @@ function useAccountBuilderFinish() {
 
     setLoading(false)
     return {
-      wallet: walletData?.wallet,
-      accountWithEncryptedSecret
+      accountWithEncryptedSecret,
+      wallet: walletData?.wallet
     }
   }
 

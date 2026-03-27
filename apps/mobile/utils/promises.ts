@@ -65,8 +65,8 @@ export function setPromiseError(
     ...statuses,
     [name]: {
       ...(statuses[name] || {}),
-      status: 'error',
-      error: error || ''
+      error: error || '',
+      status: 'error'
     }
   } as PromiseStatuses
 }

@@ -256,10 +256,10 @@ export const useGestures = ({
           // With boundaries when scale > 1
           translate.x.value = withDecay(
             {
-              velocity: event.velocityX * 0.6,
+              clamp: [leftLimit - focal.x.value, rightLimit - focal.x.value],
               rubberBandEffect: true,
               rubberBandFactor: 0.9,
-              clamp: [leftLimit - focal.x.value, rightLimit - focal.x.value]
+              velocity: event.velocityX * 0.6
             },
             () => {
               if (event.velocityX >= event.velocityY) {
@@ -286,10 +286,10 @@ export const useGestures = ({
           // With boundaries when scale > 1
           translate.y.value = withDecay(
             {
-              velocity: event.velocityY * 0.6,
+              clamp: [topLimit - focal.y.value, bottomLimit - focal.y.value],
               rubberBandEffect: true,
               rubberBandFactor: 0.9,
-              clamp: [topLimit - focal.y.value, bottomLimit - focal.y.value]
+              velocity: event.velocityY * 0.6
             },
             () => {
               if (event.velocityY > event.velocityX) {
@@ -411,11 +411,11 @@ export const useGestures = ({
   const gestures = Gesture.Race(tapGestures, pinchPanGestures)
 
   return {
-    gestures,
     animatedStyle,
-    reset,
-    transform,
+    gestures,
     isZoomedIn,
-    scale
+    reset,
+    scale,
+    transform
   }
 }

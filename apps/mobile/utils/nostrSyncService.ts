@@ -46,13 +46,13 @@ function emitStatus(
 ): void {
   const event: SyncStatusEvent = {
     accountId,
-    status,
-    lastError
+    lastError,
+    status
   }
   useNostrStore.getState().setSyncStatus(accountId, {
-    status,
     lastError,
-    lastSyncAt: status === 'syncing' ? Date.now() : undefined
+    lastSyncAt: status === 'syncing' ? Date.now() : undefined,
+    status
   })
   emitter.emit('status', event)
 }
@@ -212,9 +212,9 @@ async function doStartSync(
     ])
 
     subscriptions.set(account.id, {
-      protocolApi,
+      accountId: account.id,
       dataExchangeApi,
-      accountId: account.id
+      protocolApi
     })
 
     retryAttempts.delete(account.id)

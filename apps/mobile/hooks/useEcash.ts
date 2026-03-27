@@ -276,13 +276,13 @@ export function useEcash() {
 
         // Add transaction record
         addTransaction({
-          id: `send_${Date.now()}_${randomKey(9)}`,
-          type: 'send',
           amount,
+          id: `send_${Date.now()}_${randomKey(9)}`,
           memo,
           mintUrl,
           timestamp: new Date().toISOString(),
-          token: result.token
+          token: result.token,
+          type: 'send'
         })
 
         toast.success(t('ecash.success.tokenGenerated'))
@@ -326,15 +326,15 @@ export function useEcash() {
 
         // Add transaction record
         addTransaction({
-          id: `receive_${Date.now()}_${randomKey(9)}`,
-          type: 'receive',
           amount: result.totalAmount,
-          mintUrl,
-          timestamp: new Date().toISOString(),
-          status: 'completed',
-          tokenStatus: 'unspent',
+          id: `receive_${Date.now()}_${randomKey(9)}`,
+          label: result.memo,
           memo: result.memo,
-          label: result.memo
+          mintUrl,
+          status: 'completed',
+          timestamp: new Date().toISOString(),
+          tokenStatus: 'unspent',
+          type: 'receive'
         })
 
         toast.success(t('ecash.success.tokenRedeemed'))
@@ -509,29 +509,29 @@ export function useEcash() {
   )
 
   return {
-    mints,
     activeMint,
-    proofs,
-    transactions,
-    mintQuotes,
-    checkingTransactionIds,
-    connectToMint: connectToMintHandler,
-    disconnectMint,
-    createMintQuote: createMintQuoteHandler,
     checkMintQuote: checkMintQuoteHandler,
-    mintProofs: mintProofsHandler,
-    createMeltQuote: createMeltQuoteHandler,
-    meltProofs: meltProofsHandler,
-    sendEcash: sendEcashHandler,
-    receiveEcash: receiveEcashHandler,
-    updateTransaction,
-    validateToken,
-    markReceivedTokensAsSpent,
-    resumePollingForTransaction,
-    restoreFromBackup: restoreFromBackupHandler,
-    clearAllData: clearAllDataHandler,
     checkPendingTransactionStatus,
-    setActiveMint
+    checkingTransactionIds,
+    clearAllData: clearAllDataHandler,
+    connectToMint: connectToMintHandler,
+    createMeltQuote: createMeltQuoteHandler,
+    createMintQuote: createMintQuoteHandler,
+    disconnectMint,
+    markReceivedTokensAsSpent,
+    meltProofs: meltProofsHandler,
+    mintProofs: mintProofsHandler,
+    mintQuotes,
+    mints,
+    proofs,
+    receiveEcash: receiveEcashHandler,
+    restoreFromBackup: restoreFromBackupHandler,
+    resumePollingForTransaction,
+    sendEcash: sendEcashHandler,
+    setActiveMint,
+    transactions,
+    updateTransaction,
+    validateToken
   }
 }
 

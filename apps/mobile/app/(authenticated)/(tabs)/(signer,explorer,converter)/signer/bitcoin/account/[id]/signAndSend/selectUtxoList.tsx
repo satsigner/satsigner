@@ -208,7 +208,7 @@ export default function SelectUtxoList() {
           </SSVStack>
         </SSVStack>
       </SSMainLayout>
-      <SSSeparator color="grayDark" style={{ width: '100%', marginTop: 12 }} />
+      <SSSeparator color="grayDark" style={{ marginTop: 12, width: '100%' }} />
       <SSHStack
         justifyBetween
         style={{
@@ -233,8 +233,8 @@ export default function SelectUtxoList() {
             textStyle={{
               color: Colors.gray[75],
               textAlign: 'left',
-              textTransform: 'none',
-              textDecorationLine: 'underline'
+              textDecorationLine: 'underline',
+              textTransform: 'none'
             }}
             onPress={() =>
               selectedAllUtxos
@@ -299,7 +299,7 @@ export default function SelectUtxoList() {
           variant="secondary"
           disabled={!hasSelectedUtxos}
           style={[
-            { width: '92%', opacity: 100 },
+            { opacity: 100, width: '92%' },
             !hasSelectedUtxos && {
               backgroundColor: Colors.gray[700]
             }
@@ -317,13 +317,6 @@ export default function SelectUtxoList() {
 }
 
 const styles = StyleSheet.create({
-  scrollBackgroundBase: {
-    position: 'absolute',
-    width: '100%',
-    backgroundColor: Colors.gray[950],
-    top: 2,
-    height: 1000
-  },
   absoluteSubmitContainer: {
     position: 'absolute',
     bottom: 20,
@@ -333,5 +326,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.transparent,
     paddingHorizontal: 0,
     paddingTop: 0
+  },
+  scrollBackgroundBase: {
+    position: 'absolute',
+    width: '100%',
+    backgroundColor: Colors.gray[950],
+    top: 2,
+    height: 1000
   }
 })

@@ -47,9 +47,9 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
     if (account.syncStatus === 'syncing') {
       animationRef.current = Animated.loop(
         Animated.timing(rotateAnim, {
-          toValue: 1,
           duration: 1500,
           easing: Easing.linear,
+          toValue: 1,
           useNativeDriver: true
         })
       )
@@ -145,10 +145,10 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
       <SSHStack
         gap="xs"
         style={{
+          opacity: 0.6,
           position: 'absolute',
-          top: 0,
           right: 6,
-          opacity: 0.6
+          top: 0
         }}
       >
         <SSText size="xs" uppercase style={{ color }}>

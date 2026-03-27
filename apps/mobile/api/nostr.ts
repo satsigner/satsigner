@@ -120,7 +120,7 @@ export class NostrAPI {
           try {
             const relay = this.ndk?.pool.relays.get(url)
             if (!relay) {
-              return { url, status: 'not_found' }
+              return { status: 'not_found', url }
             }
 
             const testEvent = await this.ndk?.fetchEvent(
@@ -129,17 +129,17 @@ export class NostrAPI {
               { relayUrl: url }
             )
 
-            return { url, status: 'connected', testEvent: testEvent !== null }
+            return { status: 'connected', testEvent: testEvent !== null, url }
           } catch (_error) {
             if (attempt === 2) {
-              return { url, status: 'error' }
+              return { status: 'error', url }
             }
             await new Promise((resolve) =>
               setTimeout(resolve, 1000 * (attempt + 1))
             )
           }
         }
-        return { url, status: 'error' }
+        return { status: 'error', url }
       })
     )
 
@@ -200,8 +200,8 @@ export class NostrAPI {
     if (!this.ndk) return null
 
     const filter = {
-      kinds: [0 as NDKKind],
       authors: [hexPubkey],
+      kinds: [0 as NDKKind],
       limit: 10
     }
     const FETCH_KIND0_TIMEOUT_MS = 15000
@@ -235,8 +235,8 @@ export class NostrAPI {
     const npub = user.npub
 
     return {
-      nsec,
       npub,
+      nsec,
       secretNostrKey: randomBytesArray
     }
   }
@@ -290,8 +290,8 @@ export class NostrAPI {
     const sinceTimestamp = since && since > 0 ? since - TWO_DAYS : undefined
 
     const subscriptionQuery = {
-      kinds: [1059 as NDKKind],
       '#p': [recipientPubKeyHex],
+      kinds: [1059 as NDKKind],
       ...(limit && { limit }),
       ...(sinceTimestamp !== undefined && { since: sinceTimestamp })
     }
@@ -337,9 +337,9 @@ export class NostrAPI {
             this.eventQueue.shift()
           }
           const message = {
-            id: unwrappedEvent.id,
             content: unwrappedEvent,
             created_at: unwrappedEvent.created_at ?? 0,
+            id: unwrappedEvent.id,
             pubkey: event.pubkey
           }
           this.eventQueue.push(message)
@@ -438,8 +438,8 @@ export class NostrAPI {
     const tempNdk = new NDK({ explicitRelayUrls: this.relays })
     tempNdk.signer = signer
     const event = new NDKEvent(tempNdk, {
-      kind: 5,
       content: '',
+      kind: 5,
       tags: hexIds.map((id) => ['e', id])
     })
     await event.sign(signer)
@@ -476,7 +476,7 @@ export class NostrAPI {
     const publishPromises = connectedRelays.map(async (url) => {
       const relay = this.ndk?.pool.relays.get(url)
       if (!relay) {
-        return { url, success: false as const, error: 'Relay not found' }
+        return { error: 'Relay not found', success: false as const, url }
       }
 
       try {
@@ -493,10 +493,10 @@ export class NostrAPI {
           )
         )
         await Promise.race([relay.publish(event), timeoutPromise])
-        return { url, success: true as const }
+        return { success: true as const, url }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error)
-        return { url, success: false as const, error: errorMsg }
+        return { error: errorMsg, success: false as const, url }
       }
     })
 

@@ -86,15 +86,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Sizes.checkbox.height / 2
   },
+  disabled: {
+    opacity: 0.3
+  },
   iconStyleBase: {
     borderRadius: Sizes.checkbox.borderRadius
   },
   innerIconStyleBase: {
     borderWidth: Sizes.checkbox.borderWidth,
     borderRadius: Sizes.checkbox.borderRadius
-  },
-  disabled: {
-    opacity: 0.3
   }
 })
 

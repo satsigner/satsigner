@@ -23,16 +23,8 @@ type EnergyAction = {
 const useEnergyStore = create<EnergyState & EnergyAction>()(
   persist(
     (set) => ({
-      rpcUrl: '',
-      rpcUsername: '',
-      rpcPassword: '',
       miningAddress: '',
       opReturnContent: '',
-      setRpcUrl: (rpcUrl) => set({ rpcUrl }),
-      setRpcUsername: (rpcUsername) => set({ rpcUsername }),
-      setRpcPassword: (rpcPassword) => set({ rpcPassword }),
-      setMiningAddress: (miningAddress) => set({ miningAddress }),
-      setOpReturnContent: (opReturnContent) => set({ opReturnContent }),
       resetEnergyConfig: () =>
         set({
           rpcUrl: '',
@@ -40,7 +32,15 @@ const useEnergyStore = create<EnergyState & EnergyAction>()(
           rpcPassword: '',
           miningAddress: '',
           opReturnContent: ''
-        })
+        }),
+      rpcPassword: '',
+      rpcUrl: '',
+      rpcUsername: '',
+      setMiningAddress: (miningAddress) => set({ miningAddress }),
+      setOpReturnContent: (opReturnContent) => set({ opReturnContent }),
+      setRpcPassword: (rpcPassword) => set({ rpcPassword }),
+      setRpcUrl: (rpcUrl) => set({ rpcUrl }),
+      setRpcUsername: (rpcUsername) => set({ rpcUsername })
     }),
     {
       name: 'energy-store',

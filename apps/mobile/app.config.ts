@@ -2,32 +2,6 @@ import { type ConfigContext, type ExpoConfig } from 'expo/config'
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'satsigner',
-  slug: 'satsigner',
-  version: '0.2.1',
-  description: 'Privacy-first Bitcoin signer with complete UTXO control',
-  orientation: 'portrait',
-  icon: './assets/icon.png',
-  scheme: 'satsigner',
-  userInterfaceStyle: 'dark',
-  splash: {
-    image: './assets/splash.png',
-    resizeMode: 'contain',
-    backgroundColor: '#121212'
-  },
-  experiments: {
-    typedRoutes: true
-  },
-  assetBundlePatterns: ['**/*'],
-  ios: {
-    supportsTablet: true,
-    bundleIdentifier: 'com.satsigner.satsigner',
-    infoPlist: {
-      NFCReaderUsageDescription:
-        'This app uses NFC to read and write data from NFC tags',
-      'com.apple.developer.nfc.readersession.formats': ['NDEF', 'TAG']
-    }
-  },
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
@@ -39,9 +13,31 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   androidStatusBar: {
     barStyle: 'light-content'
   },
-  web: {
-    favicon: './assets/favicon.png'
+  assetBundlePatterns: ['**/*'],
+  description: 'Privacy-first Bitcoin signer with complete UTXO control',
+  experiments: {
+    typedRoutes: true
   },
+  extra: {
+    router: {
+      origin: false
+    },
+    eas: {
+      projectId: 'ab95f67d-1c03-4593-940d-fde0b7cdc34a'
+    }
+  },
+  icon: './assets/icon.png',
+  ios: {
+    supportsTablet: true,
+    bundleIdentifier: 'com.satsigner.satsigner',
+    infoPlist: {
+      NFCReaderUsageDescription:
+        'This app uses NFC to read and write data from NFC tags',
+      'com.apple.developer.nfc.readersession.formats': ['NDEF', 'TAG']
+    }
+  },
+  name: 'satsigner',
+  orientation: 'portrait',
   plugins: [
     [
       'expo-router',
@@ -76,12 +72,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     'expo-localization'
   ],
-  extra: {
-    router: {
-      origin: false
-    },
-    eas: {
-      projectId: 'ab95f67d-1c03-4593-940d-fde0b7cdc34a'
-    }
+  scheme: 'satsigner',
+  slug: 'satsigner',
+  splash: {
+    image: './assets/splash.png',
+    resizeMode: 'contain',
+    backgroundColor: '#121212'
+  },
+  userInterfaceStyle: 'dark',
+  version: '0.2.1',
+  web: {
+    favicon: './assets/favicon.png'
   }
 })

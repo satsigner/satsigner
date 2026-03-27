@@ -75,6 +75,10 @@ export default function AccountSettings() {
   const labelCounts = useMemo(() => {
     const labels = account?.labels ? Object.values(account.labels) : []
     return {
+      addresses: {
+        labeled: labels.filter((l) => l.type === 'addr').length,
+        total: account?.addresses?.length || 0
+      },
       transactions: {
         labeled: labels.filter((l) => l.type === 'tx').length,
         total: account?.transactions?.length || 0
@@ -82,10 +86,6 @@ export default function AccountSettings() {
       utxos: {
         labeled: labels.filter((l) => l.type === 'output').length,
         total: account?.utxos?.length || 0
-      },
-      addresses: {
-        labeled: labels.filter((l) => l.type === 'addr').length,
-        total: account?.addresses?.length || 0
       }
     }
   }, [
@@ -206,6 +206,7 @@ export default function AccountSettings() {
     <ScrollView>
       <Stack.Screen
         options={{
+          headerRight: () => null,
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
@@ -213,8 +214,7 @@ export default function AccountSettings() {
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
               )}
             </SSHStack>
-          ),
-          headerRight: () => null
+          )
         }}
       />
       <SSVStack gap="lg" style={styles.mainLayout}>
@@ -596,11 +596,18 @@ const styles = StyleSheet.create({
   button: {
     flex: 1
   },
+  copyButton: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: Colors.gray[700]
+  },
+  copyButtonContainer: {
+    width: '100%',
+    padding: 12,
+    paddingTop: 0
+  },
   deleteButton: {
     backgroundColor: Colors.error
-  },
-  infoTable: {
-    width: '100%'
   },
   deleteModalInnerContainer: {
     flexWrap: 'wrap'
@@ -612,16 +619,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center'
   },
+  electrumWarning: {
+    borderWidth: 1,
+    borderColor: Colors.warning,
+    borderRadius: 5,
+    padding: 10
+  },
+  electrumWarningText: {
+    color: Colors.warning
+  },
+  infoTable: {
+    width: '100%'
+  },
   mainLayout: {
     padding: 20
   },
-  multiSigContainer: {
-    backgroundColor: '#131313',
-    paddingHorizontal: 0
-  },
-  multiSigKeyControlCOntainer: {
-    marginHorizontal: 0,
-    marginBottom: 50
+  mnemonicColumn: {
+    flex: 1,
+    maxWidth: '32%'
   },
   mnemonicGrid: {
     flexDirection: 'row',
@@ -629,9 +644,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 8
   },
-  mnemonicColumn: {
+  mnemonicModalContainer: {
+    width: '100%',
+    padding: 0,
+    flex: 0
+  },
+  mnemonicModalOuterContainer: {
     flex: 1,
-    maxWidth: '32%'
+    width: '100%',
+    justifyContent: 'space-between'
   },
   mnemonicWordContainer: {
     marginBottom: 8,
@@ -648,6 +669,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row'
   },
+  mnemonicWordsContainer: {
+    width: '100%',
+    marginBottom: 16
+  },
+  multiSigContainer: {
+    backgroundColor: '#131313',
+    paddingHorizontal: 0
+  },
+  multiSigKeyControlCOntainer: {
+    marginHorizontal: 0,
+    marginBottom: 50
+  },
   wordIndex: {
     minWidth: 24,
     textAlign: 'center',
@@ -657,38 +690,5 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'left',
     lineHeight: 20
-  },
-  mnemonicModalOuterContainer: {
-    flex: 1,
-    width: '100%',
-    justifyContent: 'space-between'
-  },
-  mnemonicModalContainer: {
-    width: '100%',
-    padding: 0,
-    flex: 0
-  },
-  mnemonicWordsContainer: {
-    width: '100%',
-    marginBottom: 16
-  },
-  copyButtonContainer: {
-    width: '100%',
-    padding: 12,
-    paddingTop: 0
-  },
-  copyButton: {
-    width: '100%',
-    borderWidth: 1,
-    borderColor: Colors.gray[700]
-  },
-  electrumWarning: {
-    borderWidth: 1,
-    borderColor: Colors.warning,
-    borderRadius: 5,
-    padding: 10
-  },
-  electrumWarningText: {
-    color: Colors.warning
   }
 })

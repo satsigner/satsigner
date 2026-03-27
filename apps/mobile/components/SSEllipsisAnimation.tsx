@@ -46,9 +46,9 @@ function SSEllipsisAnimation({ size = 3 }: SSEllipsisAnimationProps) {
 
   const dotStyle = useMemo(() => {
     return StyleSheet.compose(styles.circleBase, {
-      width: size,
+      borderRadius: Math.round(size / 2),
       height: size,
-      borderRadius: Math.round(size / 2)
+      width: size
     })
   }, [size])
 
@@ -62,13 +62,13 @@ function SSEllipsisAnimation({ size = 3 }: SSEllipsisAnimationProps) {
 }
 
 const styles = StyleSheet.create({
+  circleBase: {
+    backgroundColor: Colors.gray[400]
+  },
   containerBase: {
     height: 20,
     flexDirection: 'row',
     alignItems: 'center'
-  },
-  circleBase: {
-    backgroundColor: Colors.gray[400]
   }
 })
 

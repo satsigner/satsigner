@@ -70,16 +70,16 @@ export function useNostrSignFlow() {
     inputs.forEach((input) => {
       addInput({
         ...input,
-        script: parseHexToBytes(input.script),
-        keychain: input.keychain || 'external'
+        keychain: input.keychain || 'external',
+        script: parseHexToBytes(input.script)
       })
     })
 
     outputs.forEach((output) => {
       addOutput({
-        to: output.address,
         amount: output.value,
-        label: output.label || ''
+        label: output.label || '',
+        to: output.address
       })
     })
 
@@ -144,12 +144,12 @@ export function useNostrSignFlow() {
     const psbt = new PartiallySignedTransaction(originalPsbt)
 
     const txDetails: TransactionDetails = {
-      txid: extractedTxid,
-      fee,
-      sent,
-      received,
       confirmationTime: undefined,
-      transaction: undefined
+      fee,
+      received,
+      sent,
+      transaction: undefined,
+      txid: extractedTxid
     }
 
     const txBuilderResult: TxBuilderResult = {

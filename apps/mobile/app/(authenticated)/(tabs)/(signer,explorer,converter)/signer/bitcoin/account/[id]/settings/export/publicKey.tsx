@@ -272,9 +272,9 @@ export default function PublicKeyPage() {
       parseInt(keyIndex || '0', 10) + 1
     }_${selectedFormat.toUpperCase()}_${date}.${ext}`
     shareFile({
-      filename,
-      fileContent: publicKey,
       dialogTitle: t('export.file.save'),
+      fileContent: publicKey,
+      filename,
       mimeType: `text/plain`
     })
   }
@@ -287,10 +287,10 @@ export default function PublicKeyPage() {
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSText uppercase>{t('common.publicKeys')}</SSText>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <SSVStack style={{ padding: 20 }}>
@@ -327,8 +327,8 @@ export default function PublicKeyPage() {
             <View
               style={{
                 backgroundColor: 'white',
-                padding: 20,
-                borderRadius: 10
+                borderRadius: 10,
+                padding: 20
               }}
             >
               <SSQRCode
@@ -346,9 +346,9 @@ export default function PublicKeyPage() {
           <>
             <View
               style={{
-                padding: 10,
                 backgroundColor: Colors.gray[950],
-                borderRadius: 5
+                borderRadius: 5,
+                padding: 10
               }}
             >
               <SSText color="white" size="lg" type="mono" selectable>

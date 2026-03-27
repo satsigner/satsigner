@@ -30,14 +30,14 @@ function SSChecksumStatus({ valid }: SSChecksumStatusProps) {
 
 const styles = StyleSheet.create({
   containerBase: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
     gap: 4
   },
   statusBase: {
-    width: 11,
+    borderRadius: 11 / 2,
     height: 11,
-    borderRadius: 11 / 2
+    width: 11
   },
   textBase: {
     textTransform: 'lowercase'

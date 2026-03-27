@@ -47,11 +47,11 @@ function SSMultipleSankeyDiagram({
   const { transactions } = useInputTransactions(inputs, DEEP_LEVEL)
 
   const { nodes: sankeyNodes, links: sankeyLinks } = useNodesAndLinks({
-    transactions,
+    feeRate,
     inputs,
     outputs,
-    feeRate,
-    ownAddresses // pass to hook for future use
+    ownAddresses,
+    transactions // pass to hook for future use
   })
 
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
@@ -94,16 +94,16 @@ function SSMultipleSankeyDiagram({
   const { nodes, links } = useMemo(() => {
     try {
       const layout = sankeyGenerator({
-        nodes: sankeyNodes,
-        links: sankeyLinks as Link[]
+        links: sankeyLinks as Link[],
+        nodes: sankeyNodes
       })
       return {
-        nodes: layout.nodes as unknown as Node[],
-        links: layout.links as unknown as Link[]
+        links: layout.links as unknown as Link[],
+        nodes: layout.nodes as unknown as Node[]
       }
     } catch {
       // If layout fails (e.g. invalid array), return empty nodes/links
-      return { nodes: [], links: [] }
+      return { links: [], nodes: [] }
     }
   }, [sankeyGenerator, sankeyNodes, sankeyLinks])
 
@@ -163,19 +163,19 @@ function SSMultipleSankeyDiagram({
   }, [maxDepthH, nodes, w])
 
   const { animatedStyle, gestures, transform } = useGestures({
-    width: w,
-    height: h,
     center,
-    isDoubleTapEnabled: true,
-    maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
-    minPanPointers: 1,
-    maxScale: 20,
-    minScale: 0.2,
-    shouldResetOnInteractionEnd: false,
+    height: h,
     initialTranslation: {
       x: initialXTranslation,
       y: 0
-    }
+    },
+    isDoubleTapEnabled: true,
+    maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
+    maxScale: 20,
+    minPanPointers: 1,
+    minScale: 0.2,
+    shouldResetOnInteractionEnd: false,
+    width: w
   })
   const topHeaderHeight = useHeaderHeight()
   const { width, height } = useWindowDimensions()
@@ -192,13 +192,13 @@ function SSMultipleSankeyDiagram({
           : 0
 
       return {
+        height: isBlock ? Math.max(blockNodeHeight, LINK_MAX_WIDTH) : 80,
         localId: (node as Node).localId,
+        width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
         x: isBlock
           ? (node.x0 ?? 0) + (NODE_WIDTH - BLOCK_WIDTH) / 2
           : (node.x0 ?? 0),
-        y: node.y0 ?? 0,
-        width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
-        height: isBlock ? Math.max(blockNodeHeight, LINK_MAX_WIDTH) : 80
+        y: node.y0 ?? 0
       }
     })
   }, [nodes])
@@ -213,7 +213,7 @@ function SSMultipleSankeyDiagram({
     transformedLinks?.length > 0 ? (
     <View style={{ flex: 1 }}>
       <Canvas
-        style={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
+        style={{ height: GRAPH_HEIGHT, width: GRAPH_WIDTH }}
         onLayout={onCanvasLayout}
         pointerEvents="box-none"
       >
@@ -257,7 +257,7 @@ function SSMultipleSankeyDiagram({
           <Animated.View
             style={[
               styles.sankeyOverlay,
-              { width: GRAPH_WIDTH, height: GRAPH_HEIGHT },
+              { height: GRAPH_HEIGHT, width: GRAPH_WIDTH },
               animatedStyle
             ]}
             onLayout={onCanvasLayout}
@@ -268,11 +268,11 @@ function SSMultipleSankeyDiagram({
                 style={[
                   styles.node,
                   {
-                    position: 'absolute',
+                    height: style.height,
                     left: style.x,
+                    position: 'absolute',
                     top: style.y,
-                    width: style.width,
-                    height: style.height
+                    width: style.width
                   }
                 ]}
                 onPress={
@@ -298,8 +298,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0
   },
-  sankeyOverlay: {
-    position: 'relative'
+  iconContainer: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    padding: 5
   },
   node: {
     backgroundColor: 'transparent',
@@ -307,11 +310,8 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%'
   },
-  iconContainer: {
-    position: 'absolute',
-    top: 5,
-    right: 5,
-    padding: 5
+  sankeyOverlay: {
+    position: 'relative'
   }
 })
 

@@ -80,11 +80,11 @@ export default function DescriptorPage() {
       const checksum = checksumMatch ? checksumMatch[1] : ''
 
       return {
-        scriptFunction,
-        fingerprint,
+        checksum,
         derivationPath,
+        fingerprint,
         publicKey,
-        checksum
+        scriptFunction
       }
     } catch {
       return null
@@ -374,9 +374,9 @@ export default function DescriptorPage() {
     const ext = 'txt'
     const filename = `Descriptor_${account.name}_${keyName}_${date}.${ext}`
     shareFile({
-      filename,
-      fileContent: descriptor,
       dialogTitle: t('export.file.save'),
+      fileContent: descriptor,
+      filename,
       mimeType: `text/plain`
     })
   }
@@ -387,10 +387,10 @@ export default function DescriptorPage() {
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSText uppercase>{t('account.descriptor.title')}</SSText>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <SSVStack style={{ padding: 20 }}>
@@ -427,8 +427,8 @@ export default function DescriptorPage() {
             <View
               style={{
                 backgroundColor: 'white',
-                padding: 20,
-                borderRadius: 10
+                borderRadius: 10,
+                padding: 20
               }}
             >
               <SSQRCode
@@ -446,9 +446,9 @@ export default function DescriptorPage() {
           <>
             <View
               style={{
-                padding: 10,
                 backgroundColor: Colors.gray[950],
-                borderRadius: 5
+                borderRadius: 5,
+                padding: 10
               }}
             >
               <SSText color="white" size="lg" type="mono" selectable>

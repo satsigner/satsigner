@@ -9,13 +9,13 @@ import { joinQRs, splitQRs } from './bbrq'
 
 // Re-export the official FileType but with enum-like access for backward compatibility
 export const BBQRFileTypes = {
+  BINARY: 'B' as const,
+  CBOR: 'C' as const,
+  EXECUTABLE: 'X' as const,
+  JSON: 'J' as const,
   PSBT: 'P' as const,
   TXN: 'T' as const,
-  JSON: 'J' as const,
-  CBOR: 'C' as const,
-  UNICODE: 'U' as const,
-  BINARY: 'B' as const,
-  EXECUTABLE: 'X' as const
+  UNICODE: 'U' as const
 } as const
 
 // Export type for the FileType values
@@ -151,10 +151,10 @@ export function createBBQRChunks(
   try {
     result = splitQRs(data, officialFileType, {
       encoding: 'Z',
-      minSplit: fallbackMinSplit,
       maxSplit: fallbackMaxSplit,
-      minVersion: 5 as Version,
-      maxVersion: 40 as Version
+      maxVersion: 40 as Version,
+      minSplit: fallbackMinSplit,
+      minVersion: 5 as Version
     })
   } catch {}
 
@@ -166,10 +166,10 @@ export function createBBQRChunks(
     // let the library decide with minimal constraints
     result = splitQRs(data, officialFileType, {
       encoding: 'Z',
-      minSplit: 1,
       maxSplit: Math.min(50, targetChunks * 2),
-      minVersion: 5 as Version,
-      maxVersion: 40 as Version
+      maxVersion: 40 as Version,
+      minSplit: 1,
+      minVersion: 5 as Version
     })
   } catch {}
 

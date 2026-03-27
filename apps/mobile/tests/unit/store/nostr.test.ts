@@ -12,12 +12,12 @@ jest.mock<typeof import('@/storage/mmkv')>('@/storage/mmkv', () => {
   return {
     __esModule: true,
     default: {
-      setItem: jest.fn((name: string, value: string) => {
-        storage[name] = value
-      }),
       getItem: jest.fn((name: string) => storage[name] ?? null),
       removeItem: jest.fn((name: string) => {
         delete storage[name]
+      }),
+      setItem: jest.fn((name: string, value: string) => {
+        storage[name] = value
       })
     }
   }
@@ -34,16 +34,16 @@ jest.mock<typeof import('@/api/nostr')>('@/api/nostr', () => ({
 describe('nostr store', () => {
   beforeEach(() => {
     useNostrStore.setState({
-      members: {},
-      processedMessageIds: {},
-      processedEvents: {},
-      lastProtocolEOSE: {},
-      lastDataExchangeEOSE: {},
-      trustedDevices: {},
-      syncStatus: {},
       activeSubscriptions: new Set(),
+      lastDataExchangeEOSE: {},
+      lastProtocolEOSE: {},
+      members: {},
+      processedEvents: {},
+      processedMessageIds: {},
+      syncStatus: {},
       syncingAccounts: {},
-      transactionToShare: null
+      transactionToShare: null,
+      trustedDevices: {}
     })
   })
 
@@ -55,8 +55,8 @@ describe('nostr store', () => {
       const members = getMembers(accountIds.primary)
       expect(members).toHaveLength(1)
       expect(members[0]).toStrictEqual({
-        npub: nostrKeys.alice.npub,
-        color: '#ff5500'
+        color: '#ff5500',
+        npub: nostrKeys.alice.npub
       })
     })
 
@@ -330,8 +330,8 @@ describe('nostr store', () => {
 
       setSyncStatus(accountIds.primary, { status: 'syncing' })
       setSyncStatus(accountIds.secondary, {
-        status: 'error',
-        lastError: 'Network failed'
+        lastError: 'Network failed',
+        status: 'error'
       })
 
       expect(getSyncStatus(accountIds.primary).status).toBe('syncing')
@@ -350,8 +350,8 @@ describe('nostr store', () => {
       } = useNostrStore.getState()
 
       setSyncStatus(accountIds.primary, {
-        messagesReceived: 10,
-        messagesProcessed: 8
+        messagesProcessed: 8,
+        messagesReceived: 10
       })
 
       const status = getSyncStatus(accountIds.primary)
@@ -395,7 +395,7 @@ describe('nostr store', () => {
       const { setSyncStatus, getSyncStatus } = useNostrStore.getState()
       const now = Date.now()
 
-      setSyncStatus(accountIds.primary, { status: 'syncing', lastSyncAt: now })
+      setSyncStatus(accountIds.primary, { lastSyncAt: now, status: 'syncing' })
 
       expect(getSyncStatus(accountIds.primary).lastSyncAt).toBe(now)
     })
@@ -404,8 +404,8 @@ describe('nostr store', () => {
       const { setSyncStatus, getSyncStatus } = useNostrStore.getState()
 
       setSyncStatus(accountIds.primary, {
-        status: 'syncing',
-        messagesReceived: 10
+        messagesReceived: 10,
+        status: 'syncing'
       })
 
       setSyncStatus(accountIds.primary, {
@@ -430,8 +430,8 @@ describe('nostr store', () => {
       store.setLastDataExchangeEOSE(accountIds.primary, timestamps.recent)
       store.addTrustedDevice(accountIds.primary, nostrKeys.bob.npub)
       store.setSyncStatus(accountIds.primary, {
-        status: 'syncing',
-        messagesReceived: 100
+        messagesReceived: 100,
+        status: 'syncing'
       })
 
       // Clear state

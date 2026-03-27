@@ -13,21 +13,21 @@ const INPUT_SIZES: Record<
 > = {
   P2PKH: { base: 147, witness: 0 },
   P2SH: { base: 147, witness: 0 },
-  P2WPKH: { base: 41, witness: 107 },
-  P2WSH: { base: 41, witness: 107 },
-  P2TR: { base: 41, witness: 66 },
   'P2SH-P2WPKH': { base: 91, witness: 107 },
-  'P2SH-P2WSH': { base: 41, witness: 107 }
+  'P2SH-P2WSH': { base: 41, witness: 107 },
+  P2TR: { base: 41, witness: 66 },
+  P2WPKH: { base: 41, witness: 107 },
+  P2WSH: { base: 41, witness: 107 }
 }
 
 const OUTPUT_SIZES: Record<ScriptVersionType, number> = {
   P2PKH: 34,
   P2SH: 34,
-  P2WPKH: 31,
-  P2WSH: 43,
-  P2TR: 43,
   'P2SH-P2WPKH': 31,
-  'P2SH-P2WSH': 43
+  'P2SH-P2WSH': 43,
+  P2TR: 43,
+  P2WPKH: 31,
+  P2WSH: 43
 }
 
 // TODO: To be removed

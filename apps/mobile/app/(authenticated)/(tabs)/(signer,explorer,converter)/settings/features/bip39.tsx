@@ -31,8 +31,8 @@ export default function Bip39() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>,
-          headerRight: undefined
+          headerRight: undefined,
+          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>
         }}
       />
       <SSMainLayout style={styles.mainLayout}>

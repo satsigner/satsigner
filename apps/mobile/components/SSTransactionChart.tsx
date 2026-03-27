@@ -58,16 +58,16 @@ function SSTransactionChart({
   const defaultInputValue = totalOutputValue / (transaction.vin.length || 1)
 
   const inputs = transaction.vin.map((input) => ({
+    label: input.label || '',
     txid: input.previousOutput.txid,
     value: input.value || defaultInputValue,
-    valueIsKnown: input.value !== undefined,
-    label: input.label || ''
+    valueIsKnown: input.value !== undefined
   }))
 
   const outputs = transaction.vout.map((output) => ({
     address: output.address,
-    value: output.value,
-    label: output.label || ''
+    label: output.label || '',
+    value: output.value
   }))
 
   let minerFee: number | undefined
@@ -121,9 +121,8 @@ function SSTransactionChart({
     if (inputs.length === 0 || outputs.length === 0) return []
 
     const inputNodes: TxNode[] = inputs.map((input, index) => ({
-      id: String(index + 1),
-      type: 'text',
       depthH: 0,
+      id: String(index + 1),
       ioData: {
         address: formatAddress(input.txid, 4),
         label: input.label ?? t('common.noLabel'),
@@ -132,20 +131,21 @@ function SSTransactionChart({
         fiatCurrency,
         text: t('common.from')
       },
+      type: 'text',
       value: input.value
     }))
 
     const blockNode: TxNode[] = [
       {
-        id: String(inputs.length + 1),
-        type: 'block',
         depthH: 1,
-        value: totalOutputValue,
+        id: String(inputs.length + 1),
         ioData: {
           txSize,
           vSize: txVsize,
           value: totalOutputValue
-        }
+        },
+        type: 'block',
+        value: totalOutputValue
       }
     ]
 
@@ -156,10 +156,8 @@ function SSTransactionChart({
         label.includes('Change') || label.includes('[Change for]')
 
       return {
-        id: nodeId,
-        type: 'text',
         depthH: 2,
-        localId: isChange ? 'remainingBalance' : `output-${index}`,
+        id: nodeId,
         ioData: {
           value: output.value,
           fiatValue: formatNumber(satsToFiat(output.value), 2),
@@ -170,6 +168,8 @@ function SSTransactionChart({
           isUnspent: true,
           isSelfSend: !!(output.address && ownAddresses.has(output.address))
         },
+        localId: isChange ? 'remainingBalance' : `output-${index}`,
+        type: 'text',
         value: output.value
       }
     })
@@ -191,9 +191,8 @@ function SSTransactionChart({
 
     if (minerFee !== undefined) {
       outputNodes.push({
-        id: String(inputs.length + outputs.length + 2),
-        type: 'text',
         depthH: 2,
+        id: String(inputs.length + outputs.length + 2),
         ioData: {
           value: minerFee,
           fiatValue: formatNumber(satsToFiat(minerFee), 2),
@@ -203,8 +202,9 @@ function SSTransactionChart({
           higherFee,
           feePercentage: Math.round(feePercentage * 100) / 100 // round to 2 decimals
         },
-        value: minerFee,
-        localId: 'past-minerFee'
+        localId: 'past-minerFee',
+        type: 'text',
+        value: minerFee
       })
     }
 
@@ -258,8 +258,8 @@ function SSTransactionChart({
   }
 
   const { nodes, links } = sankeyGenerator({
-    nodes: sankeyNodes,
-    links: sankeyLinks
+    links: sankeyLinks,
+    nodes: sankeyNodes
   })
 
   const transformedLinks = links.map((link) => ({
@@ -275,7 +275,7 @@ function SSTransactionChart({
   return (
     <View style={{ flex: 1, height: GRAPH_HEIGHT / 2, overflow: 'hidden' }}>
       <Canvas
-        style={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT / 2 }}
+        style={{ height: GRAPH_HEIGHT / 2, width: GRAPH_WIDTH }}
         onLayout={onCanvasLayout}
       >
         <Group origin={{ x: w / 2, y: h / 2 }}>

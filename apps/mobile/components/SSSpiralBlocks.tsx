@@ -64,15 +64,15 @@ function SSSpiralBlocks({
 
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
   const { animatedStyle, gestures, transform } = useGestures({
-    width: w,
-    height: h,
     center,
+    height: h,
     isDoubleTapEnabled: true,
     maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
-    minPanPointers: 1,
     maxScale: 1000,
+    minPanPointers: 1,
     minScale: 0.1,
-    shouldResetOnInteractionEnd: false
+    shouldResetOnInteractionEnd: false,
+    width: w
   })
 
   const fontSize = 12
@@ -169,13 +169,13 @@ function SSSpiralBlocks({
       const brightness = MIN_BRIGHTNESS + (size / MAX_BRIGHTNESS_SIZE) * 256
 
       blocks.push({
-        x,
-        y,
+        color: `rgb(${brightness},${brightness},${brightness})`,
+        height: currentBlock?.height || null,
         index: i,
         rotation: phi_spiral,
-        color: `rgb(${brightness},${brightness},${brightness})`,
         timeDifference,
-        height: currentBlock?.height || null
+        x,
+        y
       })
     }
     return blocks
@@ -221,13 +221,13 @@ function SSSpiralBlocks({
     return spiralBlocks.map((block) => {
       const overlaySize = BLOCK_SIZE + 3 // Define overlay size
       return {
+        backgroundColor: 'rgba(255, 255, 255, 0)',
+        borderRadius: 25,
+        height: overlaySize,
+        left: canvasWidth / 2 + block.x - overlaySize / 2,
         position: 'absolute',
         top: canvasHeight / 2 + block.y - overlaySize / 2,
-        left: canvasWidth / 2 + block.x - overlaySize / 2,
-        width: overlaySize,
-        height: overlaySize,
-        borderRadius: 25,
-        backgroundColor: 'rgba(255, 255, 255, 0)'
+        width: overlaySize
       } as StyleProp<ViewStyle>
     })
   }, [spiralBlocks, canvasHeight, canvasWidth])
@@ -271,7 +271,7 @@ function SSSpiralBlocks({
         style={[
           styles.container,
           styles.loadingContainer,
-          { width: canvasWidth, height: canvasHeight }
+          { height: canvasHeight, width: canvasWidth }
         ]}
       >
         <SSLoader size={120} />
@@ -282,7 +282,7 @@ function SSSpiralBlocks({
   return (
     <View style={styles.container}>
       <Canvas
-        style={[styles.canvas, { width: canvasWidth, height: canvasHeight }]}
+        style={[styles.canvas, { height: canvasHeight, width: canvasWidth }]}
         onLayout={onCanvasLayout}
       >
         <Group
@@ -311,21 +311,21 @@ function SSSpiralBlocks({
       <GestureDetector gesture={gestures}>
         <View
           style={{
-            flex: 1,
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            bottom: 0,
-            left: 0,
             alignItems: 'center',
-            justifyContent: 'center'
+            bottom: 0,
+            flex: 1,
+            justifyContent: 'center',
+            left: 0,
+            position: 'absolute',
+            right: 0,
+            top: 0
           }}
         >
           <Animated.View
             style={[
               {
-                width: canvasWidth,
-                height: canvasHeight
+                height: canvasHeight,
+                width: canvasWidth
               },
               animatedStyle
             ]}
@@ -373,24 +373,9 @@ function newtonRaphson(
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#000000',
-    borderColor: 'yellow'
-  },
-  loadingContainer: {},
   canvas: {
     position: 'relative',
     backgroundColor: '#000'
-  },
-  touchableOverlay: {
-    position: 'relative',
-    top: -0.7 * SCREEN_HEIGHT, // Adjust as needed
-    left: 0, // Adjust as needed
-    right: 0,
-    bottom: 0
   },
   closeButton: {
     paddingHorizontal: 20,
@@ -402,6 +387,14 @@ const styles = StyleSheet.create({
     color: 'black',
     fontSize: 14
   },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000000',
+    borderColor: 'yellow'
+  },
+  loadingContainer: {},
   overlay: {
     position: 'absolute',
     top: 0,
@@ -425,6 +418,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
     textAlign: 'center'
+  },
+  touchableOverlay: {
+    position: 'relative',
+    top: -0.7 * SCREEN_HEIGHT, // Adjust as needed
+    left: 0, // Adjust as needed
+    right: 0,
+    bottom: 0
   }
 })
 

@@ -70,7 +70,7 @@ describe('compressMessage and decompressMessage', () => {
   it('roundtrips nested data structures', () => {
     const original = {
       messages: [nostrMessages.labelSync, nostrMessages.psbtShare],
-      metadata: { version: 1, timestamp: 1704067200 }
+      metadata: { timestamp: 1704067200, version: 1 }
     }
     expect(decompressMessage(compressMessage(original))).toStrictEqual(original)
   })
@@ -87,9 +87,9 @@ describe('compressMessage and decompressMessage', () => {
   it('compresses large payloads effectively', () => {
     const largePayload = {
       labels: Array.from({ length: 100 }, (_, i) => ({
-        type: 'tx',
+        label: `Transaction ${i}`,
         ref: `txid${i.toString().padStart(64, '0')}`,
-        label: `Transaction ${i}`
+        type: 'tx'
       }))
     }
     const compressed = compressMessage(largePayload)
@@ -118,14 +118,14 @@ describe('generateColorFromNpub', () => {
 
   it('returns valid hex color for valid npub', async () => {
     const { nip19 } = require('nostr-tools')
-    nip19.decode.mockReturnValue({ type: 'npub', data: 'validpubkey' })
+    nip19.decode.mockReturnValue({ data: 'validpubkey', type: 'npub' })
     const color = await generateColorFromNpub(nostrKeys.alice.npub)
     expect(color).toMatch(/^#[0-9a-fA-F]{6}$/)
   })
 
   it('returns deterministic color for same npub', async () => {
     const { nip19 } = require('nostr-tools')
-    nip19.decode.mockReturnValue({ type: 'npub', data: 'validpubkey' })
+    nip19.decode.mockReturnValue({ data: 'validpubkey', type: 'npub' })
     const color1 = await generateColorFromNpub(nostrKeys.alice.npub)
     const color2 = await generateColorFromNpub(nostrKeys.alice.npub)
     expect(color1).toBe(color2)
@@ -133,7 +133,7 @@ describe('generateColorFromNpub', () => {
 
   it('returns different colors for different npubs', async () => {
     const { nip19 } = require('nostr-tools')
-    nip19.decode.mockReturnValue({ type: 'npub', data: 'validpubkey' })
+    nip19.decode.mockReturnValue({ data: 'validpubkey', type: 'npub' })
     const colorAlice = await generateColorFromNpub(nostrKeys.alice.npub)
     const colorBob = await generateColorFromNpub(nostrKeys.bob.npub)
     expect(colorAlice).not.toBe(colorBob)
@@ -141,7 +141,7 @@ describe('generateColorFromNpub', () => {
 
   it('returns default color for wrong type', async () => {
     const { nip19 } = require('nostr-tools')
-    nip19.decode.mockReturnValue({ type: 'nsec', data: 'secretkey' })
+    nip19.decode.mockReturnValue({ data: 'secretkey', type: 'nsec' })
     const color = await generateColorFromNpub(nostrKeys.alice.nsec)
     expect(color).toBe(NOSTR_FALLBACK_NPUB_COLOR)
   })

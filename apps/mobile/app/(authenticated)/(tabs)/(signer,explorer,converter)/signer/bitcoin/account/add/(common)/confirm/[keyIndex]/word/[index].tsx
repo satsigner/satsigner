@@ -257,8 +257,8 @@ export default function Confirm() {
 
 const styles = StyleSheet.create({
   skipModalContainer: {
-    width: '100%',
     height: '100%',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    width: '100%'
   }
 })

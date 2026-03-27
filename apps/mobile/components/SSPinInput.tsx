@@ -179,13 +179,13 @@ function SSPinInput({
 
 const styles = StyleSheet.create({
   pinInputBase: {
-    borderRadius: Sizes.pinInput.borderRadius,
-    height: Sizes.pinInput.height,
-    width: Sizes.pinInput.width,
-    textAlign: 'center',
     backgroundColor: Colors.gray[850],
+    borderRadius: Sizes.pinInput.borderRadius,
     color: Colors.white,
-    fontSize: Sizes.textInput.fontSize.default
+    fontSize: Sizes.textInput.fontSize.default,
+    height: Sizes.pinInput.height,
+    textAlign: 'center',
+    width: Sizes.pinInput.width
   }
 })
 

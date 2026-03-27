@@ -43,8 +43,8 @@ const networks = {
     scriptHash: 0xc4, // Same as testnet
     wif: 0xef, // Same as testnet
     bip32: {
-      public: 0x043587cf,
-      private: 0x04358394
+      private: 0x04358394,
+      public: 0x043587cf
     }
   } as bitcoin.Network
 }
@@ -151,9 +151,9 @@ export default function Energy() {
   const [miningIntensity, setMiningIntensity] = useState(10)
   const [miningIntervalTime, setMiningIntervalTime] = useState(1000)
   const [miningStats, setMiningStats] = useState({
+    attempts: 0,
     hashesPerSecond: 0,
-    lastHash: '',
-    attempts: 0
+    lastHash: ''
   })
 
   const [networkHashRate, setNetworkHashRate] = useState('0')
@@ -191,8 +191,8 @@ export default function Energy() {
       const authorization = `Basic ${credentialsBase64}`
 
       const headers = {
-        'Content-Type': 'application/json',
-        Authorization: authorization
+        Authorization: authorization,
+        'Content-Type': 'application/json'
       }
 
       const method = 'POST'
@@ -201,9 +201,9 @@ export default function Energy() {
       const timeoutId = setTimeout(() => controller.abort(), 10000)
 
       return fetch(adjustedUrl, {
-        method,
-        headers,
         body,
+        headers,
+        method,
         signal: controller.signal
       })
         .then((response) => {
@@ -253,7 +253,6 @@ export default function Energy() {
       // Only show essential fields to reduce data size
       const essentialData = {
         ...data,
-        transactions: data.transactions?.length || 0,
         transactionSample:
           data.transactions
             ?.slice(0, 20)
@@ -261,7 +260,8 @@ export default function Energy() {
               txid: tx.txid,
               fee: tx.fee,
               weight: tx.weight
-            })) || []
+            })) || [],
+        transactions: data.transactions?.length || 0
       }
       return JSON.stringify(essentialData, null, 2)
     } catch {
@@ -283,8 +283,8 @@ export default function Energy() {
 
       try {
         const networkResponse = await fetchRpc({
-          jsonrpc: '1.0',
           id: '1',
+          jsonrpc: '1.0',
           method: 'getblockchaininfo',
           params: []
         })
@@ -307,8 +307,8 @@ export default function Energy() {
       }
 
       const response = await fetchRpc({
-        jsonrpc: '1.0',
         id: '1',
+        jsonrpc: '1.0',
         method: 'getblocktemplate',
         params: [{ rules }]
       })
@@ -365,8 +365,8 @@ export default function Energy() {
     setIsLoadingInfo(true)
     try {
       const response = await fetchRpc({
-        jsonrpc: '1.0',
         id: '1',
+        jsonrpc: '1.0',
         method: 'getblockchaininfo',
         params: []
       })
@@ -532,8 +532,8 @@ export default function Energy() {
 
     try {
       const response = await fetchRpc({
-        jsonrpc: '1.0',
         id: '1',
+        jsonrpc: '1.0',
         method: 'getblockchaininfo',
         params: []
       })
@@ -724,9 +724,9 @@ export default function Energy() {
 
       return {
         data: tx.toHex(),
+        depends: [],
         hash: tx.getHash().toString('hex'),
-        txid: tx.getId(),
-        depends: []
+        txid: tx.getId()
       }
     },
     [miningAddress, opReturnContent]
@@ -824,8 +824,8 @@ export default function Energy() {
 
         // First get fresh blockchain info
         const networkResponse = await fetchRpc({
-          jsonrpc: '1.0',
           id: '1',
+          jsonrpc: '1.0',
           method: 'getblockchaininfo',
           params: []
         })
@@ -846,8 +846,8 @@ export default function Energy() {
 
         // Then get fresh template
         const templateResponse = await fetchRpc({
-          jsonrpc: '1.0',
           id: '1',
+          jsonrpc: '1.0',
           method: 'getblocktemplate',
           params: [{ rules: ['segwit'] }]
         })
@@ -920,8 +920,8 @@ export default function Energy() {
         ])
 
         const response = await fetchRpc({
-          jsonrpc: '1.0',
           id: '1',
+          jsonrpc: '1.0',
           method: 'submitblock',
           params: [blockData.toString('hex')]
         })
@@ -984,8 +984,8 @@ export default function Energy() {
     try {
       // Validate network and address first - only once at start
       const networkResponse = await fetchRpc({
-        jsonrpc: '1.0',
         id: '1',
+        jsonrpc: '1.0',
         method: 'getblockchaininfo',
         params: []
       })
@@ -1084,8 +1084,8 @@ export default function Energy() {
             setEnergyRate(powerConsumption)
             setMiningStats((prev) => ({
               ...prev,
-              hashesPerSecond,
               attempts: hashes,
+              hashesPerSecond,
               lastHash: lastHashRef.current
             }))
             if (currentHeaderRef.current) {
@@ -1288,9 +1288,9 @@ export default function Energy() {
     requestAnimationFrame(() => {
       setEnergyRate('0')
       setMiningStats({
+        attempts: 0,
         hashesPerSecond: 0,
-        lastHash: '',
-        attempts: 0
+        lastHash: ''
       })
       setBlockHeader('')
       currentHeaderRef.current = null
@@ -1309,8 +1309,8 @@ export default function Energy() {
 
     try {
       const response = await fetchRpc({
-        jsonrpc: '1.0',
         id: '1',
+        jsonrpc: '1.0',
         method: 'getrawtransaction',
         params: [txId, true]
       })
@@ -1848,26 +1848,21 @@ export default function Energy() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    paddingBottom: 100
-  },
-  mainContent: {
-    flex: 1,
-    padding: 20
-  },
   bigNumber: {
     fontWeight: '100',
     marginBottom: -10
   },
-
   buttonContainer: {
     width: '100%',
     paddingVertical: 20
   },
-  statsContainer: {
-    width: '100%',
-    paddingVertical: 20
+  chainInfoContainer: {
+    paddingTop: 40
+  },
+
+  container: {
+    flexGrow: 1,
+    paddingBottom: 100
   },
   difficultyBar: {
     width: '100%',
@@ -1882,23 +1877,64 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: 4
   },
-  statsGrid: {
-    width: '100%'
-  },
-  formContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 20
-  },
-  sectionTitle: {
-    marginBottom: 16,
-    textAlign: 'center'
+  errorContainer: {
+    backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 100
   },
   errorText: {
     marginTop: 8,
     textAlign: 'center'
   },
-  chainInfoContainer: {
-    paddingTop: 40
+  formContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 20
+  },
+  hashScroll: {
+    backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    padding: 16,
+    maxHeight: 70,
+    height: 70
+  },
+  headerScroll: {
+    backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    padding: 16,
+    maxHeight: 95,
+    height: 95
+  },
+  loadingContainer: {
+    backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 100
+  },
+  mainContent: {
+    flex: 1,
+    padding: 20
+  },
+  sectionTitle: {
+    marginBottom: 16,
+    textAlign: 'center'
+  },
+  slider: {
+    width: '100%',
+    height: 60,
+    marginHorizontal: 0,
+    backgroundColor: Colors.gray[850]
+  },
+  statsContainer: {
+    width: '100%',
+    paddingVertical: 20
+  },
+  statsGrid: {
+    width: '100%'
   },
   templateContainer: {
     padding: 20,
@@ -1913,41 +1949,5 @@ const styles = StyleSheet.create({
   templateText: {
     fontFamily: 'monospace',
     fontSize: 8
-  },
-  loadingContainer: {
-    backgroundColor: Colors.gray[900],
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 100
-  },
-  errorContainer: {
-    backgroundColor: Colors.gray[900],
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 100
-  },
-  slider: {
-    width: '100%',
-    height: 60,
-    marginHorizontal: 0,
-    backgroundColor: Colors.gray[850]
-  },
-  headerScroll: {
-    backgroundColor: Colors.gray[900],
-    borderRadius: 8,
-    padding: 16,
-    maxHeight: 95,
-    height: 95
-  },
-  hashScroll: {
-    backgroundColor: Colors.gray[900],
-    borderRadius: 8,
-    padding: 16,
-    maxHeight: 70,
-    height: 70
   }
 })

@@ -55,7 +55,7 @@ function findBestVersion(length: number, opts: Required<SplitOptions>) {
     const { count, perEach } = numQRNeeded(version, length, opts.encoding)
 
     if (opts.minSplit <= count && count <= opts.maxSplit) {
-      options.push({ version, count, perEach })
+      options.push({ count, perEach, version })
     }
   }
 
@@ -114,7 +114,7 @@ export function splitQRs(
     )
   }
 
-  return { version, parts, encoding: actualEncoding }
+  return { encoding: actualEncoding, parts, version }
 }
 
 /**

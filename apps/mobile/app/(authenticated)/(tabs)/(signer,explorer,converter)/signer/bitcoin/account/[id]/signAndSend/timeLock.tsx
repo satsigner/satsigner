@@ -60,9 +60,9 @@ function TimeLock() {
               setTabIndex(index)
             }}
             style={{
+              borderColor: type === timeLockType ? 'white' : 'gray',
               flexGrow: 1,
-              width: '45%',
-              borderColor: type === timeLockType ? 'white' : 'gray'
+              width: '45%'
             }}
           />
         ))}
@@ -90,7 +90,7 @@ function TimeLock() {
         return (
           <SSVStack gap="lg">
             <SSHStack>
-              <View style={{ width: 'auto', flexGrow: 1 }}>
+              <View style={{ flexGrow: 1, width: 'auto' }}>
                 <SSNumberInput
                   min={2025}
                   max={2050}
@@ -100,7 +100,7 @@ function TimeLock() {
                   onValidate={setValidYear}
                 />
               </View>
-              <View style={{ width: 'auto', flexGrow: 1 }}>
+              <View style={{ flexGrow: 1, width: 'auto' }}>
                 <SSNumberInput
                   min={1}
                   max={12}
@@ -110,7 +110,7 @@ function TimeLock() {
                   onValidate={setValidMonth}
                 />
               </View>
-              <View style={{ width: 'auto', flexGrow: 1 }}>
+              <View style={{ flexGrow: 1, width: 'auto' }}>
                 <SSNumberInput
                   min={1}
                   max={DAYS_BY_MONTH[Number(month) - 1 || 0]}
@@ -122,7 +122,7 @@ function TimeLock() {
               </View>
             </SSHStack>
             <SSHStack>
-              <View style={{ width: 'auto', flexGrow: 1 }}>
+              <View style={{ flexGrow: 1, width: 'auto' }}>
                 <SSNumberInput
                   min={0}
                   max={23}
@@ -132,7 +132,7 @@ function TimeLock() {
                   onValidate={setValidHour}
                 />
               </View>
-              <View style={{ width: 'auto', flexGrow: 1 }}>
+              <View style={{ flexGrow: 1, width: 'auto' }}>
                 <SSNumberInput
                   min={0}
                   max={60}

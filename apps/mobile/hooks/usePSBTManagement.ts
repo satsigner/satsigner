@@ -72,12 +72,12 @@ export function usePSBTManagement({
         const hasPartialSigs = input.partialSig && input.partialSig.length > 0
 
         inputDetails.push({
-          index: i,
           hasFinalScriptSig,
           hasFinalScriptWitness,
-          hasWitnessScript,
-          hasRedeemScript,
           hasPartialSigs,
+          hasRedeemScript,
+          hasWitnessScript,
+          index: i,
           partialSigCount: input.partialSig?.length || 0
         })
 
@@ -209,13 +209,13 @@ export function usePSBTManagement({
   )
 
   return {
-    signedPsbt,
-    signedPsbts,
-    setSignedPsbt,
-    setSignedPsbts,
     convertPsbtToFinalTransaction,
     handleSignWithLocalKey,
     handleSignWithSeedQR,
+    setSignedPsbt,
+    setSignedPsbts,
+    signedPsbt,
+    signedPsbts,
     updateSignedPsbt
   }
 }

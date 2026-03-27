@@ -209,17 +209,17 @@ export default function ImportDescriptor() {
 
         const [, extendedPublicKey, addressPath] = xpubMatch
         return {
-          fingerprint,
+          addressPath: addressPath || '/<0;1>/*',
           derivationPath,
           extendedPublicKey,
-          addressPath: addressPath || '/<0;1>/*'
+          fingerprint
         }
       })
 
       return {
-        keysRequired,
         keyCount: keys.length,
         keyData,
+        keysRequired,
         scriptVersion: (cleanDescriptor.startsWith('wsh(')
           ? 'P2WSH'
           : cleanDescriptor.startsWith('sh(')
@@ -312,7 +312,7 @@ export default function ImportDescriptor() {
                 multiline
                 numberOfLines={3}
                 style={[
-                  { padding: 5, height: 'auto' },
+                  { height: 'auto', padding: 5 },
                   styles.textArea,
                   !isValidDescriptor && descriptor.trim()
                     ? styles.invalid
@@ -348,8 +348,8 @@ export default function ImportDescriptor() {
                 style={{
                   color: Colors.error,
                   fontSize: 12,
-                  textAlign: 'center',
-                  marginTop: 4
+                  marginTop: 4,
+                  textAlign: 'center'
                 }}
               >
                 {descriptorError}
@@ -360,8 +360,8 @@ export default function ImportDescriptor() {
                 style={{
                   color: Colors.gray[500],
                   fontSize: 12,
-                  textAlign: 'center',
-                  marginTop: 4
+                  marginTop: 4,
+                  textAlign: 'center'
                 }}
               >
                 {t('common.loading')}...
@@ -425,6 +425,9 @@ export default function ImportDescriptor() {
 }
 
 const styles = StyleSheet.create({
+  invalid: {
+    borderColor: Colors.error
+  },
   textArea: {
     minHeight: 120,
     textAlignVertical: 'top',
@@ -432,8 +435,5 @@ const styles = StyleSheet.create({
   },
   valid: {
     borderColor: Colors.success
-  },
-  invalid: {
-    borderColor: Colors.error
   }
 })

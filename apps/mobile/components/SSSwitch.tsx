@@ -25,45 +25,45 @@ function SSSwitch({
   onToggle
 }: SSSwitchProps) {
   const scaleBySize: Record<TextFontSize, number> = {
-    '2xxs': 0.3,
-    xxs: 0.4,
-    xs: 0.5,
-    sm: 0.6,
-    md: 0.7,
-    lg: 0.8,
-    xl: 0.9,
     '2xl': 1.1,
+    '2xxs': 0.3,
     '3xl': 1.3,
     '4xl': 1.5,
     '5xl': 1.7,
     '6xl': 1.9,
     '7xl': 2.2,
-    '8xl': 2.4
+    '8xl': 2.4,
+    lg: 0.8,
+    md: 0.7,
+    sm: 0.6,
+    xl: 0.9,
+    xs: 0.5,
+    xxs: 0.4
   }
 
   const gapBySize: Record<TextFontSize, HStackGap> = {
-    '2xxs': 'none',
-    xxs: 'none',
-    xs: 'none',
-    sm: 'none',
-    md: 'none',
-    lg: 'none',
-    xl: 'xxs',
     '2xl': 'sm',
+    '2xxs': 'none',
     '3xl': 'md',
     '4xl': 'md',
     '5xl': 'lg',
     '6xl': 'lg',
     '7xl': 'lg',
-    '8xl': 'lg'
+    '8xl': 'lg',
+    lg: 'none',
+    md: 'none',
+    sm: 'none',
+    xl: 'xxs',
+    xs: 'none',
+    xxs: 'none'
   }
 
   return (
     <SSHStack
       gap={gapBySize[size]}
       style={{
-        alignItems: 'center',
-        alignContent: 'center'
+        alignContent: 'center',
+        alignItems: 'center'
       }}
     >
       {position === 'left' && (

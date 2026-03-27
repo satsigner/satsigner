@@ -60,9 +60,9 @@ function autoSelectUtxos(
   }
 
   const result = selectEfficientUtxos(account.utxos, targetAmount, 1, {
+    changeOutputSize: 34,
     dustThreshold: 546,
-    inputSize: 148,
-    changeOutputSize: 34
+    inputSize: 148
   })
 
   if (result.error) {
@@ -214,12 +214,12 @@ async function processBitcoinContent(
             const psbt: PartiallySignedTransaction = { originalPsbt } as any
 
             const txDetails: TransactionDetails = {
-              txid: extractedTxid,
-              fee,
-              sent,
-              received,
               confirmationTime: undefined,
-              transaction: undefined
+              fee,
+              received,
+              sent,
+              transaction: undefined,
+              txid: extractedTxid
             }
 
             const txBuilderResult: TxBuilderResult = {
@@ -250,8 +250,8 @@ async function processBitcoinContent(
 
     case 'bitcoin_transaction':
       navigate({
-        pathname: '/signer/bitcoin/account/[id]/signAndSend/previewTransaction',
-        params: { id: accountId, signedPsbt: content.cleaned }
+        params: { id: accountId, signedPsbt: content.cleaned },
+        pathname: '/signer/bitcoin/account/[id]/signAndSend/previewTransaction'
       })
       break
 
@@ -283,8 +283,8 @@ async function processBitcoinContent(
           }
 
           navigate({
-            pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview',
-            params: { id: accountId }
+            params: { id: accountId },
+            pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
           })
         } else {
           const addressMatch = content.cleaned.match(
@@ -332,8 +332,8 @@ async function processBitcoinContent(
             }
 
             navigate({
-              pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview',
-              params: { id: accountId }
+              params: { id: accountId },
+              pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
             })
           }
         }
@@ -351,8 +351,8 @@ async function processBitcoinContent(
         }
 
         navigate({
-          pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview',
-          params: { id: accountId }
+          params: { id: accountId },
+          pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
         })
       }
       break
@@ -372,8 +372,8 @@ async function processBitcoinContent(
       }
 
       navigate({
-        pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview',
-        params: { id: accountId }
+        params: { id: accountId },
+        pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
       })
       break
   }
@@ -389,11 +389,11 @@ function processLightningContent(
     case 'lightning_invoice':
     case 'lnurl':
       navigate({
-        pathname: '/signer/lightning/pay',
         params: {
           invoice: content.cleaned,
           type: content.type
-        }
+        },
+        pathname: '/signer/lightning/pay'
       })
       break
   }
@@ -408,19 +408,19 @@ function processEcashContent(
   switch (content.type) {
     case 'ecash_token':
       navigate({
-        pathname: '/signer/ecash/receive',
-        params: { token: content.cleaned }
+        params: { token: content.cleaned },
+        pathname: '/signer/ecash/receive'
       })
       break
 
     case 'lightning_invoice':
     case 'lnurl':
       navigate({
-        pathname: '/signer/ecash/send',
         params: {
           invoice: content.cleaned,
           type: content.type
-        }
+        },
+        pathname: '/signer/ecash/send'
       })
       break
   }

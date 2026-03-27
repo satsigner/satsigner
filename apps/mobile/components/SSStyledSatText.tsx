@@ -52,8 +52,6 @@ function SSStyledSatText({
             size={textSize}
             weight={weight}
             style={{
-              letterSpacing,
-              lineHeight: text.fontSize[textSize],
               color: noColor
                 ? isBeforeFirstNonZero
                   ? Colors.softWhite
@@ -64,7 +62,9 @@ function SSStyledSatText({
                     : Colors.mainRed
                   : isBeforeFirstNonZero
                     ? Colors.softGreen
-                    : Colors.mainGreen
+                    : Colors.mainGreen,
+              letterSpacing,
+              lineHeight: text.fontSize[textSize]
             }}
           >
             {char}

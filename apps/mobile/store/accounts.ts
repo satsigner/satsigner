@@ -76,146 +76,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
   persist(
     (set, get) => ({
       accounts: [],
-      tags: [],
       addAccount: (account) => {
         set(
           produce((state: AccountsState) => {
             state.accounts.push(account)
-          })
-        )
-      },
-      updateAccount: (account) => {
-        set(
-          produce((state: AccountsState) => {
-            const index = state.accounts.findIndex(
-              (_account) => _account.id === account.id
-            )
-            if (index !== -1) {
-              // Merge labels from current state with incoming account to prevent
-              // race condition where Nostr labels are overwritten by wallet sync
-              const currentLabels = state.accounts[index].labels || {}
-              const incomingLabels = account.labels || {}
-              const mergedLabels = { ...incomingLabels, ...currentLabels }
-
-              state.accounts[index] = {
-                ...account,
-                labels: mergedLabels
-              }
-
-              // Re-apply merged labels to transactions, utxos, and addresses
-              for (const ref in mergedLabels) {
-                const labelObj = mergedLabels[ref]
-                if (labelObj.type === 'tx') {
-                  const txIndex = state.accounts[index].transactions.findIndex(
-                    (tx: Transaction) => tx.id === ref
-                  )
-                  if (txIndex !== -1) {
-                    state.accounts[index].transactions[txIndex].label =
-                      labelObj.label
-                  }
-                } else if (labelObj.type === 'output') {
-                  const utxoIndex = state.accounts[index].utxos.findIndex(
-                    (utxo: Utxo) => getUtxoOutpoint(utxo) === ref
-                  )
-                  if (utxoIndex !== -1) {
-                    state.accounts[index].utxos[utxoIndex].label =
-                      labelObj.label
-                  }
-                } else if (labelObj.type === 'addr') {
-                  const addrIndex = state.accounts[index].addresses.findIndex(
-                    (addr: Address) => addr.address === ref
-                  )
-                  if (addrIndex !== -1) {
-                    state.accounts[index].addresses[addrIndex].label =
-                      labelObj.label
-                  }
-                }
-              }
-            }
-          })
-        )
-      },
-      updateAccountName: (id, newName) => {
-        set(
-          produce((state: AccountsState) => {
-            const index = state.accounts.findIndex(
-              (account) => account.id === id
-            )
-            if (index !== -1) state.accounts[index].name = newName
-          })
-        )
-      },
-      updateKeyName: (id, keyIndex, newName) => {
-        set(
-          produce((state: AccountsState) => {
-            const index = state.accounts.findIndex(
-              (account) => account.id === id
-            )
-            if (index === -1) return
-            state.accounts[index].keys[keyIndex].name = newName
-          })
-        )
-      },
-      updateAccountNostr: (id, nostr) => {
-        set(
-          produce((state: AccountsState) => {
-            const index = state.accounts.findIndex(
-              (account) => account.id === id
-            )
-            if (index === -1) return
-            state.accounts[index].nostr = {
-              ...state.accounts[index].nostr,
-              ...nostr
-            }
-          })
-        )
-      },
-      markDmsAsRead: (id) => {
-        set(
-          produce((state: AccountsState) => {
-            const index = state.accounts.findIndex(
-              (account) => account.id === id
-            )
-            if (index === -1 || !state.accounts[index].nostr) return
-            state.accounts[index].nostr.dms = state.accounts[
-              index
-            ].nostr.dms.map((dm) =>
-              dm.read === false ? { ...dm, read: true } : dm
-            )
-          })
-        )
-      },
-      setLastSyncedAt: (id, date) => {
-        set(
-          produce((state: AccountsState) => {
-            const index = state.accounts.findIndex(
-              (account) => account.id === id
-            )
-            if (index !== -1) state.accounts[index].lastSyncedAt = date
-          })
-        )
-      },
-      setSyncStatus: (id, syncStatus) => {
-        set(
-          produce((state: AccountsState) => {
-            const index = state.accounts.findIndex(
-              (account) => account.id === id
-            )
-            if (index !== -1) state.accounts[index].syncStatus = syncStatus
-          })
-        )
-      },
-      setSyncProgress: (id, syncProgress) => {
-        set(
-          produce((state: AccountsState) => {
-            const index = state.accounts.findIndex(
-              (account) => account.id === id
-            )
-            if (index !== -1) {
-              state.accounts[index].syncProgress = {
-                ...syncProgress
-              }
-            }
           })
         )
       },
@@ -233,6 +97,112 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       },
       deleteAccounts: () => {
         set(() => ({ accounts: [] }))
+      },
+      deleteTags: () => {
+        set({ tags: [] })
+      },
+      dropSeedFromKey: async (accountId, keyIndex) => {
+        // TODO: store should not be the one doing validation or error handling.
+        // It should be handled by the one calling the store methods.
+        const state = get()
+        const account = state.accounts.find((acc) => acc.id === accountId)
+
+        if (!account || !account.keys[keyIndex]) {
+          return {
+            success: false,
+            message: 'Account or key not found'
+          }
+        }
+
+        try {
+          const newKey = await dropSeedFromKey(account.keys[keyIndex])
+          set(
+            produce((state) => {
+              const accountIndex = state.accounts.findIndex(
+                (acc: Account) => acc.id === accountId
+              )
+              if (accountIndex !== -1) throw new Error('Account not found')
+              state.accounts[accountIndex].keys[keyIndex] = newKey
+            })
+          )
+          return {
+            success: true,
+            message: 'Seed dropped successfully'
+          }
+        } catch (err) {
+          const reason = err instanceof Error ? err.message : 'unknown reason'
+          return {
+            success: false,
+            message: `Failed to drop seed: ${reason}`
+          }
+        }
+      },
+      getTags: () => {
+        return get().tags
+      },
+      importLabels: (accountId: string, labels: Label[]) => {
+        const account = get().accounts.find(
+          (account) => account.id === accountId
+        )
+
+        if (!account) return 0
+
+        const transactionMap: Record<string, number> = {}
+        const utxoMap: Record<string, number> = {}
+        const addressMap: Record<string, number> = {}
+
+        account.transactions.forEach((tx, index) => {
+          transactionMap[tx.id] = index
+        })
+        account.utxos.forEach((utxo, index) => {
+          utxoMap[getUtxoOutpoint(utxo)] = index
+        })
+        account.addresses.forEach((address, index) => {
+          addressMap[address.address] = index
+        })
+
+        let labelsAdded = 0
+
+        set(
+          produce((state) => {
+            const index = state.accounts.findIndex(
+              (account: Account) => account.id === accountId
+            )
+            labels.forEach((labelObj) => {
+              const label = labelObj.label
+
+              state.accounts[index].labels[labelObj.ref] = labelObj
+
+              if (
+                labelObj.type === 'tx' &&
+                transactionMap[labelObj.ref] !== undefined
+              ) {
+                const txIndex = transactionMap[labelObj.ref]
+                state.accounts[index].transactions[txIndex].label = label
+                labelsAdded += 1
+              }
+
+              if (
+                labelObj.type === 'output' &&
+                utxoMap[labelObj.ref] !== undefined
+              ) {
+                const utxoIndex = utxoMap[labelObj.ref]
+                state.accounts[index].utxos[utxoIndex].label = label
+                labelsAdded += 1
+              }
+
+              if (
+                labelObj.type === 'addr' &&
+                addressMap[labelObj.ref] !== undefined
+              ) {
+                const addrIndex = addressMap[labelObj.ref]
+                state.accounts[index].addresses[addrIndex].label = label
+                labelsAdded += 1
+              }
+            })
+          })
+        )
+        return labelsAdded
       },
       loadTx: async (accountId, tx) => {
         const txid = tx.id
@@ -254,14 +224,40 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           })
         )
       },
-      getTags: () => {
-        return get().tags
+      markDmsAsRead: (id) => {
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.id === id
+            )
+            if (index === -1 || !state.accounts[index].nostr) return
+            state.accounts[index].nostr.dms = state.accounts[
+              index
+            ].nostr.dms.map((dm) =>
+              dm.read === false ? { ...dm, read: true } : dm
+            )
+          })
+        )
       },
-      setTags: (tags: string[]) => {
-        set({ tags })
-      },
-      deleteTags: () => {
-        set({ tags: [] })
+      resetKey: async (accountId, keyIndex) => {
+        set(
+          produce((state) => {
+            const accountIndex = state.accounts.findIndex(
+              (acc: Account) => acc.id === accountId
+            )
+            if (accountIndex === -1) return
+            state.accounts[accountIndex].keys[keyIndex] = {
+              index: keyIndex,
+              name: '',
+              creationType: undefined,
+              secret: undefined,
+              iv: undefined,
+              fingerprint: undefined,
+              scriptVersion: undefined,
+              mnemonicWordCount: undefined
+            }
+          })
+        )
       },
       setAddrLabel: (accountId, addr, label) => {
         const account = get().accounts.find(
@@ -364,6 +360,43 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
 
         return get().accounts.find((a) => a.id === accountId)
+      },
+      setLastSyncedAt: (id, date) => {
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.id === id
+            )
+            if (index !== -1) state.accounts[index].lastSyncedAt = date
+          })
+        )
+      },
+      setSyncProgress: (id, syncProgress) => {
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.id === id
+            )
+            if (index !== -1) {
+              state.accounts[index].syncProgress = {
+                ...syncProgress
+              }
+            }
+          })
+        )
+      },
+      setSyncStatus: (id, syncStatus) => {
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.id === id
+            )
+            if (index !== -1) state.accounts[index].syncStatus = syncStatus
+          })
+        )
+      },
+      setTags: (tags: string[]) => {
+        set({ tags })
       },
       setTxLabel: (accountId, txid, label) => {
         const account = get().accounts.find(
@@ -602,131 +635,96 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
         return get().accounts.find((a) => a.id === accountId)
       },
-      importLabels: (accountId: string, labels: Label[]) => {
-        const account = get().accounts.find(
-          (account) => account.id === accountId
-        )
-
-        if (!account) return 0
-
-        const transactionMap: Record<string, number> = {}
-        const utxoMap: Record<string, number> = {}
-        const addressMap: Record<string, number> = {}
-
-        account.transactions.forEach((tx, index) => {
-          transactionMap[tx.id] = index
-        })
-        account.utxos.forEach((utxo, index) => {
-          utxoMap[getUtxoOutpoint(utxo)] = index
-        })
-        account.addresses.forEach((address, index) => {
-          addressMap[address.address] = index
-        })
-
-        let labelsAdded = 0
-
+      tags: [],
+      updateAccount: (account) => {
         set(
-          produce((state) => {
+          produce((state: AccountsState) => {
             const index = state.accounts.findIndex(
-              (account: Account) => account.id === accountId
+              (_account) => _account.id === account.id
             )
-            labels.forEach((labelObj) => {
-              const label = labelObj.label
+            if (index !== -1) {
+              // Merge labels from current state with incoming account to prevent
+              // race condition where Nostr labels are overwritten by wallet sync
+              const currentLabels = state.accounts[index].labels || {}
+              const incomingLabels = account.labels || {}
+              const mergedLabels = { ...incomingLabels, ...currentLabels }
 
-              state.accounts[index].labels[labelObj.ref] = labelObj
-
-              if (
-                labelObj.type === 'tx' &&
-                transactionMap[labelObj.ref] !== undefined
-              ) {
-                const txIndex = transactionMap[labelObj.ref]
-                state.accounts[index].transactions[txIndex].label = label
-                labelsAdded += 1
+              state.accounts[index] = {
+                ...account,
+                labels: mergedLabels
               }
 
-              if (
-                labelObj.type === 'output' &&
-                utxoMap[labelObj.ref] !== undefined
-              ) {
-                const utxoIndex = utxoMap[labelObj.ref]
-                state.accounts[index].utxos[utxoIndex].label = label
-                labelsAdded += 1
+              // Re-apply merged labels to transactions, utxos, and addresses
+              for (const ref in mergedLabels) {
+                const labelObj = mergedLabels[ref]
+                if (labelObj.type === 'tx') {
+                  const txIndex = state.accounts[index].transactions.findIndex(
+                    (tx: Transaction) => tx.id === ref
+                  )
+                  if (txIndex !== -1) {
+                    state.accounts[index].transactions[txIndex].label =
+                      labelObj.label
+                  }
+                } else if (labelObj.type === 'output') {
+                  const utxoIndex = state.accounts[index].utxos.findIndex(
+                    (utxo: Utxo) => getUtxoOutpoint(utxo) === ref
+                  )
+                  if (utxoIndex !== -1) {
+                    state.accounts[index].utxos[utxoIndex].label =
+                      labelObj.label
+                  }
+                } else if (labelObj.type === 'addr') {
+                  const addrIndex = state.accounts[index].addresses.findIndex(
+                    (addr: Address) => addr.address === ref
+                  )
+                  if (addrIndex !== -1) {
+                    state.accounts[index].addresses[addrIndex].label =
+                      labelObj.label
+                  }
+                }
               }
-
-              if (
-                labelObj.type === 'addr' &&
-                addressMap[labelObj.ref] !== undefined
-              ) {
-                const addrIndex = addressMap[labelObj.ref]
-                state.accounts[index].addresses[addrIndex].label = label
-                labelsAdded += 1
-              }
-            })
+            }
           })
         )
-        return labelsAdded
       },
-      dropSeedFromKey: async (accountId, keyIndex) => {
-        // TODO: store should not be the one doing validation or error handling.
-        // It should be handled by the one calling the store methods.
-        const state = get()
-        const account = state.accounts.find((acc) => acc.id === accountId)
-
-        if (!account || !account.keys[keyIndex]) {
-          return {
-            success: false,
-            message: 'Account or key not found'
-          }
-        }
-
-        try {
-          const newKey = await dropSeedFromKey(account.keys[keyIndex])
-          set(
-            produce((state) => {
-              const accountIndex = state.accounts.findIndex(
-                (acc: Account) => acc.id === accountId
-              )
-              if (accountIndex !== -1) throw new Error('Account not found')
-              state.accounts[accountIndex].keys[keyIndex] = newKey
-            })
-          )
-          return {
-            success: true,
-            message: 'Seed dropped successfully'
-          }
-        } catch (err) {
-          const reason = err instanceof Error ? err.message : 'unknown reason'
-          return {
-            success: false,
-            message: `Failed to drop seed: ${reason}`
-          }
-        }
-      },
-      resetKey: async (accountId, keyIndex) => {
+      updateAccountName: (id, newName) => {
         set(
-          produce((state) => {
-            const accountIndex = state.accounts.findIndex(
-              (acc: Account) => acc.id === accountId
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.id === id
             )
-            if (accountIndex === -1) return
-            state.accounts[accountIndex].keys[keyIndex] = {
-              index: keyIndex,
-              name: '',
-              creationType: undefined,
-              secret: undefined,
-              iv: undefined,
-              fingerprint: undefined,
-              scriptVersion: undefined,
-              mnemonicWordCount: undefined
+            if (index !== -1) state.accounts[index].name = newName
+          })
+        )
+      },
+      updateAccountNostr: (id, nostr) => {
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.id === id
+            )
+            if (index === -1) return
+            state.accounts[index].nostr = {
+              ...state.accounts[index].nostr,
+              ...nostr
             }
+          })
+        )
+      },
+      updateKeyName: (id, keyIndex, newName) => {
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.id === id
+            )
+            if (index === -1) return
+            state.accounts[index].keys[keyIndex].name = newName
           })
         )
       }
     }),
     {
       name: 'satsigner-accounts',
-      storage: createJSONStorage(() => mmkvStorage),
-      partialize: (state) => state,
       onRehydrateStorage: () => (state) => {
         // Convert string dates back to Date objects after rehydration
         if (state?.accounts) {
@@ -754,7 +752,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             }
           })
         }
-      }
+      },
+      partialize: (state) => state,
+      storage: createJSONStorage(() => mmkvStorage)
     }
   )
 )

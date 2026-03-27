@@ -124,6 +124,12 @@ function SSButton({
 }
 
 const styles = StyleSheet.create({
+  activityIndicatorDark: {
+    color: Colors.black
+  },
+  activityIndicatorLight: {
+    color: Colors.white
+  },
   buttonBase: {
     borderRadius: Sizes.button.borderRadius,
     height: Sizes.button.height,
@@ -132,22 +138,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
+  buttonDanger: {
+    backgroundColor: Colors.error
+  },
   buttonDefault: {
     backgroundColor: Colors.gray[600]
   },
-  buttonSecondary: {
-    backgroundColor: Colors.white
-  },
-  buttonOutline: {
-    backgroundColor: Colors.transparent,
-    borderWidth: 1,
-    borderColor: Colors.white
-  },
   buttonGhost: {
     backgroundColor: Colors.transparent
-  },
-  buttonSubtle: {
-    backgroundColor: Colors.gray[900]
   },
   buttonGradient: {
     position: 'absolute',
@@ -156,36 +154,38 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  buttonDanger: {
-    backgroundColor: Colors.error
+  buttonOutline: {
+    backgroundColor: Colors.transparent,
+    borderWidth: 1,
+    borderColor: Colors.white
+  },
+  buttonSecondary: {
+    backgroundColor: Colors.white
+  },
+  buttonSubtle: {
+    backgroundColor: Colors.gray[900]
   },
   buttonWithSelect: {
     backgroundColor: Colors.gray[850]
   },
+  disabled: {
+    opacity: 0.3
+  },
   textDefault: {
     color: Colors.white,
-    letterSpacing: 1
-  },
-  textSecondary: {
-    color: Colors.black,
     letterSpacing: 1
   },
   textGhost: {
     color: Colors.gray[200],
     letterSpacing: 1
   },
+  textSecondary: {
+    color: Colors.black,
+    letterSpacing: 1
+  },
   textSubtle: {
     color: Colors.gray[100],
     letterSpacing: 1
-  },
-  disabled: {
-    opacity: 0.3
-  },
-  activityIndicatorLight: {
-    color: Colors.white
-  },
-  activityIndicatorDark: {
-    color: Colors.black
   }
 })
 

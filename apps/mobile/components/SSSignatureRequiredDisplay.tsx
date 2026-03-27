@@ -20,11 +20,11 @@ function SSSignatureRequiredDisplay({
   collectedSignatures = [],
   validationResults
 }: SSSignatureRequiredDisplayProps) {
-  const [containerSize, setContainersize] = useState({ width: 0, height: 0 })
+  const [containerSize, setContainersize] = useState({ height: 0, width: 0 })
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout
-    setContainersize({ width, height })
+    setContainersize({ height, width })
   }
 
   const sizeBetweenPoints = useMemo(() => {
@@ -61,8 +61,8 @@ function SSSignatureRequiredDisplay({
   return (
     <View
       style={{
-        flexDirection: 'column',
-        alignItems: 'center'
+        alignItems: 'center',
+        flexDirection: 'column'
       }}
     >
       <View

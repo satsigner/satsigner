@@ -53,12 +53,6 @@ const createDefaultNetworkConfig = (
   url: string = '',
   name: string = `Default ${network}`
 ): NetworkConfig => ({
-  server: {
-    backend,
-    url,
-    name,
-    network
-  },
   config: {
     timeout: DEFAULT_TIME_OUT,
     retries: DEFAULT_RETRIES,
@@ -66,14 +60,22 @@ const createDefaultNetworkConfig = (
     connectionMode: 'auto',
     connectionTestInterval: 60,
     timeDiffBeforeAutoSync: 30
+  },
+  server: {
+    backend,
+    url,
+    name,
+    network
   }
 })
 
 const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
   persist(
     (set, get) => ({
-      lastKnownBlockHeight: 0,
-      selectedNetwork: 'signet',
+      addCustomServer: (server) => {
+        const { customServers } = get()
+        set({ customServers: [...customServers, server] })
+      },
       configs: {
         bitcoin: createDefaultNetworkConfig(
           'bitcoin',
@@ -96,50 +98,6 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
       },
       configsMempool: MempoolServers,
       customServers: [],
-      setSelectedNetwork: (selectedNetwork) => set({ selectedNetwork }),
-      updateServer: (network, server) => {
-        set(
-          produce((state: BlockchainState) => {
-            state.configs[network].server = server as Server
-          })
-        )
-      },
-      updateConfig: (network, config) => {
-        set(
-          produce((state: BlockchainState) => {
-            state.configs[network].config = config as Config
-          })
-        )
-      },
-      updateConfigMempool: (network, config) => {
-        set(
-          produce((state: BlockchainState) => {
-            state.configsMempool[network] = config
-          })
-        )
-      },
-      addCustomServer: (server) => {
-        const { customServers } = get()
-        set({ customServers: [...customServers, server] })
-      },
-      removeCustomServer: (server) => {
-        const { customServers } = get()
-        set({
-          customServers: customServers.filter((sv) => sv !== server)
-        })
-      },
-      updateCustomServer: (oldServer, newServer) => {
-        const { customServers } = get()
-        set({
-          customServers: customServers.map((s) =>
-            s.url === oldServer.url &&
-            s.name === oldServer.name &&
-            s.network === oldServer.network
-              ? newServer
-              : s
-          )
-        })
-      },
       getBlockchain: async (network = get().selectedNetwork) => {
         const { server, config } = get().configs[network]
 
@@ -159,6 +117,48 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
         const height = await blockchain.getHeight()
         set({ lastKnownBlockHeight: height })
         return height
+      },
+      lastKnownBlockHeight: 0,
+      removeCustomServer: (server) => {
+        const { customServers } = get()
+        set({
+          customServers: customServers.filter((sv) => sv !== server)
+        })
+      },
+      selectedNetwork: 'signet',
+      setSelectedNetwork: (selectedNetwork) => set({ selectedNetwork }),
+      updateConfig: (network, config) => {
+        set(
+          produce((state: BlockchainState) => {
+            state.configs[network].config = config as Config
+          })
+        )
+      },
+      updateConfigMempool: (network, config) => {
+        set(
+          produce((state: BlockchainState) => {
+            state.configsMempool[network] = config
+          })
+        )
+      },
+      updateCustomServer: (oldServer, newServer) => {
+        const { customServers } = get()
+        set({
+          customServers: customServers.map((s) =>
+            s.url === oldServer.url &&
+            s.name === oldServer.name &&
+            s.network === oldServer.network
+              ? newServer
+              : s
+          )
+        })
+      },
+      updateServer: (network, server) => {
+        set(
+          produce((state: BlockchainState) => {
+            state.configs[network].server = server as Server
+          })
+        )
       }
     }),
     {

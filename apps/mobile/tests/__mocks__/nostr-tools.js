@@ -5,11 +5,11 @@ export const nip19 = {
       return { type: 'nsec', data: new Uint8Array(32) }
     throw new Error('Invalid bech32')
   }),
-  nsecEncode: jest.fn(
-    (bytes) => `nsec1${Buffer.from(bytes).toString('hex').slice(0, 58)}`
-  ),
   npubEncode: jest.fn(
     (bytes) => `npub1${Buffer.from(bytes).toString('hex').slice(0, 58)}`
+  ),
+  nsecEncode: jest.fn(
+    (bytes) => `nsec1${Buffer.from(bytes).toString('hex').slice(0, 58)}`
   )
 }
 
@@ -24,21 +24,21 @@ export const getPublicKey = jest.fn((privKey) => {
 
 export const nip17 = {
   wrapEvent: jest.fn(() => ({
-    kind: 1059,
     content: 'wrapped-content',
-    tags: [],
     created_at: Math.floor(Date.now() / 1000),
-    pubkey: 'mock-pubkey'
+    kind: 1059,
+    pubkey: 'mock-pubkey',
+    tags: []
   }))
 }
 
 export const nip59 = {
   unwrapEvent: jest.fn(() => ({
-    id: 'mock-event-id',
     content: '{"description": "test message"}',
     created_at: Math.floor(Date.now() / 1000),
-    pubkey: 'mock-pubkey',
+    id: 'mock-event-id',
     kind: 14,
+    pubkey: 'mock-pubkey',
     tags: []
   }))
 }

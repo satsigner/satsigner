@@ -31,10 +31,10 @@ function SSActionButton({ style, children, ...props }: SSActionButtonProps) {
 
 const styles = StyleSheet.create({
   buttonBase: {
-    height: Sizes.actionButton.height,
+    alignItems: 'center',
     display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center'
+    height: Sizes.actionButton.height,
+    justifyContent: 'center'
   }
 })
 

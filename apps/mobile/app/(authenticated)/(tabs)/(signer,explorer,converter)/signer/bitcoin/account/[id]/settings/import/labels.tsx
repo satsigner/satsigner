@@ -158,6 +158,7 @@ export default function ImportLabels() {
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
@@ -165,8 +166,7 @@ export default function ImportLabels() {
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
               )}
             </SSHStack>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <SSVStack style={{ padding: 20 }}>
@@ -191,11 +191,11 @@ export default function ImportLabels() {
           <SSVStack>
             <View
               style={{
-                padding: 10,
                 backgroundColor: Colors.gray[950],
+                borderColor: invalidContent ? Colors.error : Colors.gray[800],
                 borderRadius: 5,
                 borderWidth: 1,
-                borderColor: invalidContent ? Colors.error : Colors.gray[800]
+                padding: 10
               }}
             >
               <SSText color="white" size="sm" type="mono">
@@ -252,7 +252,7 @@ export default function ImportLabels() {
       <SSModal visible={successMsgVisible} onClose={router.back} fullOpacity>
         <SSVStack
           gap="lg"
-          style={{ justifyContent: 'center', height: '100%', width: '100%' }}
+          style={{ height: '100%', justifyContent: 'center', width: '100%' }}
         >
           <SSText uppercase size="md" center weight="bold">
             {t('import.success', { importCount, total: importCountTotal })}

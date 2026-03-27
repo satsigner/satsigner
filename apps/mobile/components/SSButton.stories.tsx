@@ -7,13 +7,6 @@ import SSButton from './SSButton'
 import storybookLayoutDecorator from './SSStoryBookLayout'
 
 const meta = {
-  title: 'SSButton',
-  component: SSButton,
-  args: {
-    label: 'Satsigner',
-    variant: 'default',
-    gradientType: 'default'
-  },
   argTypes: {
     variant: {
       control: 'select',
@@ -40,10 +33,17 @@ const meta = {
       description: 'Text uppercase'
     }
   },
+  args: {
+    label: 'Satsigner',
+    variant: 'default',
+    gradientType: 'default'
+  },
+  component: SSButton,
   decorators: [storybookLayoutDecorator, withBackgrounds],
   parameters: {
     backgrounds: storybookBackgrounds
-  }
+  },
+  title: 'SSButton'
 } satisfies Meta<typeof SSButton>
 
 export default meta
@@ -77,14 +77,14 @@ export const Subtle: Story = {
 }
 
 export const Gradient: Story = {
-  args: {
-    variant: 'gradient'
-  },
   argTypes: {
     gradientType: {
       control: 'select',
       options: ['default', 'special']
     }
+  },
+  args: {
+    variant: 'gradient'
   }
 }
 

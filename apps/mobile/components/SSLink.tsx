@@ -33,9 +33,9 @@ function SSLink({ url, text, size = 'sm' }: SSLinkProps) {
 const styles = StyleSheet.create({
   textBase: {
     color: Colors.gray[300],
-    textDecorationLine: 'underline',
+    marginBottom: Platform.OS === 'android' ? -8 : -2.5,
     marginHorizontal: 4,
-    marginBottom: Platform.OS === 'android' ? -8 : -2.5 // TODO: changeme
+    textDecorationLine: 'underline' // TODO: changeme
   }
 })
 

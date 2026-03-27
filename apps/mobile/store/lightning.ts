@@ -29,30 +29,30 @@ const initialStatus: LNDConnectionStatus = {
 export const useLightningStore = create<LightningState>()(
   persist(
     (set) => ({
-      config: null,
-      status: initialStatus,
-      setConfig: (config) => set({ config }),
       clearConfig: () =>
         set({
           config: null,
           status: initialStatus
         }),
-      setConnecting: (isConnecting) =>
+      config: null,
+      setChannels: (channels) =>
         set((state) => ({
-          status: { ...state.status, isConnecting }
+          status: { ...state.status, channels }
         })),
+      setConfig: (config) => set({ config }),
       setConnected: (isConnected) =>
         set((state) => ({
           status: { ...state.status, isConnected, isConnecting: false }
+        })),
+      setConnecting: (isConnecting) =>
+        set((state) => ({
+          status: { ...state.status, isConnecting }
         })),
       setNodeInfo: (nodeInfo) =>
         set((state) => ({
           status: { ...state.status, nodeInfo }
         })),
-      setChannels: (channels) =>
-        set((state) => ({
-          status: { ...state.status, channels }
-        })),
+      status: initialStatus,
       updateLastSync: () =>
         set((state) => ({
           status: { ...state.status, lastSync: new Date().toISOString() }
@@ -60,7 +60,6 @@ export const useLightningStore = create<LightningState>()(
     }),
     {
       name: 'satsigner-lightning',
-      storage: createJSONStorage(() => mmkvStorage),
       partialize: (state) => ({
         config: state.config,
         status: {
@@ -69,7 +68,8 @@ export const useLightningStore = create<LightningState>()(
           channels: state.status.channels,
           lastSync: state.status.lastSync
         }
-      })
+      }),
+      storage: createJSONStorage(() => mmkvStorage)
     }
   )
 )

@@ -60,42 +60,42 @@ export default function TabLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
+          tabBarActiveBackgroundColor: 'black',
+          tabBarActiveTintColor: 'white',
+          tabBarItemStyle: styles.tabBarItem,
+          tabBarLabelStyle: styles.tabBarLabel,
           tabBarStyle: [
             styles.tabBar,
             { display: isShowTab ? 'flex' : 'none' }
-          ],
-          tabBarItemStyle: styles.tabBarItem,
-          tabBarLabelStyle: styles.tabBarLabel,
-          tabBarActiveBackgroundColor: 'black',
-          tabBarActiveTintColor: 'white'
+          ]
         }}
         backBehavior="initialRoute"
       >
         <Tabs.Screen
           name="(signer)"
           options={{
-            title: 'Signer',
+            tabBarButton: (props) => renderTabButton(props, '(signer)'),
             tabBarIcon: ({ focused }) =>
               renderTabIcon(focused, SSIconSignerActive, SSIconSigner),
-            tabBarButton: (props) => renderTabButton(props, '(signer)')
+            title: 'Signer'
           }}
         />
         <Tabs.Screen
           name="(explorer)"
           options={{
-            title: 'Explorer',
+            tabBarButton: (props) => renderTabButton(props, '(explorer)'),
             tabBarIcon: ({ focused }) =>
               renderTabIcon(focused, SSIconExplorerActive, SSIconExplorer),
-            tabBarButton: (props) => renderTabButton(props, '(explorer)')
+            title: 'Explorer'
           }}
         />
         <Tabs.Screen
           name="(converter)"
           options={{
-            title: 'Converter',
+            tabBarButton: (props) => renderTabButton(props, '(converter)'),
             tabBarIcon: ({ focused }) =>
               renderTabIcon(focused, SSIconConverterActive, SSIconConverter),
-            tabBarButton: (props) => renderTabButton(props, '(converter)')
+            title: 'Converter'
           }}
         />
       </Tabs>
@@ -117,6 +117,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.gray[950]
+  },
+  iconContainer: {
+    width: 24,
+    height: 24,
+    marginTop: 2,
+    justifyContent: 'flex-start',
+    alignItems: 'center'
   },
   tabBar: {
     backgroundColor: '#1F1F1F',
@@ -140,12 +147,5 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginTop: 2,
     paddingBottom: 2
-  },
-  iconContainer: {
-    width: 24,
-    height: 24,
-    marginTop: 2,
-    justifyContent: 'flex-start',
-    alignItems: 'center'
   }
 })

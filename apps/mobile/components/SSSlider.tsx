@@ -52,7 +52,7 @@ function SSSlider({
         maximumValue={max}
         value={localValue}
         step={step}
-        containerStyle={{ width: '100%', flex: 1 }}
+        containerStyle={{ flex: 1, width: '100%' }}
         minimumTrackTintColor={Colors.white}
         maximumTrackTintColor={Colors.gray[800]}
         thumbTintColor={Colors.white}
@@ -61,8 +61,8 @@ function SSSlider({
           setLocalValue(newValue)
           onValueChange(newValue)
         }}
-        trackStyle={{ height: 12, borderRadius: 6 }}
-        thumbStyle={{ width: 22, height: 22, borderRadius: 11 }}
+        trackStyle={{ borderRadius: 6, height: 12 }}
+        thumbStyle={{ borderRadius: 11, height: 22, width: 22 }}
       />
     </SSVStack>
   )

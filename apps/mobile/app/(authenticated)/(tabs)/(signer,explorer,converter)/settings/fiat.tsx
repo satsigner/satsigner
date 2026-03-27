@@ -10,13 +10,13 @@ import { usePriceStore } from '@/store/price'
 import { type Currency } from '@/types/models/Blockchain'
 
 const CURRENCIES: { value: Currency; label: string }[] = [
-  { value: 'USD', label: 'USD – US Dollar' },
-  { value: 'EUR', label: 'EUR – Euro' },
-  { value: 'GBP', label: 'GBP – British Pound' },
-  { value: 'CAD', label: 'CAD – Canadian Dollar' },
-  { value: 'CHF', label: 'CHF – Swiss Franc' },
-  { value: 'AUD', label: 'AUD – Australian Dollar' },
-  { value: 'JPY', label: 'JPY – Japanese Yen' }
+  { label: 'USD – US Dollar', value: 'USD' },
+  { label: 'EUR – Euro', value: 'EUR' },
+  { label: 'GBP – British Pound', value: 'GBP' },
+  { label: 'CAD – Canadian Dollar', value: 'CAD' },
+  { label: 'CHF – Swiss Franc', value: 'CHF' },
+  { label: 'AUD – Australian Dollar', value: 'AUD' },
+  { label: 'JPY – Japanese Yen', value: 'JPY' }
 ]
 
 export default function FiatCurrency() {
@@ -28,10 +28,10 @@ export default function FiatCurrency() {
     <>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSText uppercase>{t('settings.fiat.title')}</SSText>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <SSMainLayout>

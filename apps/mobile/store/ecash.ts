@@ -62,69 +62,14 @@ const initialStatus: EcashConnectionStatus = {
 export const useEcashStore = create<EcashState & EcashAction>()(
   persist(
     (set) => ({
-      mints: [],
       activeMint: null,
-      proofs: [],
-      transactions: [],
-      quotes: {
-        mint: [],
-        melt: []
-      },
-      status: initialStatus,
-      checkingTransactionIds: [],
-      setMints: (mints) => set({ mints }),
-      addMint: (mint) =>
+      addCheckingTransaction: (transactionId) =>
         set((state) => ({
-          mints: [...state.mints, mint]
-        })),
-      removeMint: (mintUrl) =>
-        set((state) => ({
-          mints: state.mints.filter((mint) => mint.url !== mintUrl),
-          activeMint:
-            state.activeMint?.url === mintUrl ? null : state.activeMint
-        })),
-      setActiveMint: (mint) =>
-        set((state) => {
-          if (mint) {
-            const mintFromArray = state.mints.find((m) => m.url === mint.url)
-            return { activeMint: mintFromArray || mint }
-          }
-          return { activeMint: null }
-        }),
-      setProofs: (proofs) => set({ proofs }),
-      addProofs: (proofs) =>
-        set((state) => ({
-          proofs: [...state.proofs, ...proofs]
-        })),
-      removeProofs: (proofIds) =>
-        set((state) => ({
-          proofs: state.proofs.filter((proof) => !proofIds.includes(proof.id))
-        })),
-      setConnecting: (isConnecting) =>
-        set((state) => ({
-          status: { ...state.status, isConnecting }
-        })),
-      setConnected: (isConnected) =>
-        set((state) => ({
-          status: { ...state.status, isConnected, isConnecting: false }
-        })),
-      updateLastSync: () =>
-        set((state) => ({
-          status: { ...state.status, lastSync: new Date().toISOString() }
-        })),
-      addMintQuote: (quote) =>
-        set((state) => ({
-          quotes: {
-            ...state.quotes,
-            mint: [...state.quotes.mint, quote]
-          }
-        })),
-      removeMintQuote: (quoteId) =>
-        set((state) => ({
-          quotes: {
-            ...state.quotes,
-            mint: state.quotes.mint.filter((quote) => quote.quote !== quoteId)
-          }
+          checkingTransactionIds: state.checkingTransactionIds.includes(
+            transactionId
+          )
+            ? state.checkingTransactionIds
+            : [...state.checkingTransactionIds, transactionId]
         })),
       addMeltQuote: (quote) =>
         set((state) => ({
@@ -133,6 +78,53 @@ export const useEcashStore = create<EcashState & EcashAction>()(
             melt: [...state.quotes.melt, quote]
           }
         })),
+      addMint: (mint) =>
+        set((state) => ({
+          mints: [...state.mints, mint]
+        })),
+      addMintQuote: (quote) =>
+        set((state) => ({
+          quotes: {
+            ...state.quotes,
+            mint: [...state.quotes.mint, quote]
+          }
+        })),
+      addProofs: (proofs) =>
+        set((state) => ({
+          proofs: [...state.proofs, ...proofs]
+        })),
+      addTransaction: (transaction) =>
+        set((state) => ({
+          transactions: [transaction, ...state.transactions]
+        })),
+      checkingTransactionIds: [],
+      clearAllData: () =>
+        set({
+          mints: [],
+          activeMint: null,
+          proofs: [],
+          transactions: [],
+          quotes: {
+            mint: [],
+            melt: []
+          },
+          status: initialStatus,
+          checkingTransactionIds: []
+        }),
+      clearCheckingTransactions: () => set({ checkingTransactionIds: [] }),
+      clearTransactions: () => set({ transactions: [] }),
+      mints: [],
+      proofs: [],
+      quotes: {
+        mint: [],
+        melt: []
+      },
+      removeCheckingTransaction: (transactionId) =>
+        set((state) => ({
+          checkingTransactionIds: state.checkingTransactionIds.filter(
+            (id) => id !== transactionId
+          )
+        })),
       removeMeltQuote: (quoteId) =>
         set((state) => ({
           quotes: {
@@ -140,39 +132,23 @@ export const useEcashStore = create<EcashState & EcashAction>()(
             melt: state.quotes.melt.filter((quote) => quote.quote !== quoteId)
           }
         })),
-      updateMintBalance: (mintUrl, balance) =>
+      removeMint: (mintUrl) =>
         set((state) => ({
-          mints: state.mints.map((mint) =>
-            mint.url === mintUrl ? { ...mint, balance } : mint
-          ),
+          mints: state.mints.filter((mint) => mint.url !== mintUrl),
           activeMint:
-            state.activeMint?.url === mintUrl
-              ? { ...state.activeMint, balance }
-              : state.activeMint
+            state.activeMint?.url === mintUrl ? null : state.activeMint
         })),
-      updateMintConnection: (mintUrl, isConnected) =>
+      removeMintQuote: (quoteId) =>
         set((state) => ({
-          mints: state.mints.map((mint) =>
-            mint.url === mintUrl ? { ...mint, isConnected } : mint
-          ),
-          activeMint:
-            state.activeMint?.url === mintUrl
-              ? { ...state.activeMint, isConnected }
-              : state.activeMint
+          quotes: {
+            ...state.quotes,
+            mint: state.quotes.mint.filter((quote) => quote.quote !== quoteId)
+          }
         })),
-      addTransaction: (transaction) =>
+      removeProofs: (proofIds) =>
         set((state) => ({
-          transactions: [transaction, ...state.transactions]
+          proofs: state.proofs.filter((proof) => !proofIds.includes(proof.id))
         })),
-      updateTransaction: (transactionId, updates) =>
-        set((state) => ({
-          transactions: state.transactions.map((transaction) =>
-            transaction.id === transactionId
-              ? { ...transaction, ...updates }
-              : transaction
-          )
-        })),
-      clearTransactions: () => set({ transactions: [] }),
       restoreFromBackup: (backupData) =>
         set(() => {
           if (!backupData || typeof backupData !== 'object') {
@@ -207,38 +183,61 @@ export const useEcashStore = create<EcashState & EcashAction>()(
             }
           }
         }),
-      clearAllData: () =>
-        set({
-          mints: [],
-          activeMint: null,
-          proofs: [],
-          transactions: [],
-          quotes: {
-            mint: [],
-            melt: []
-          },
-          status: initialStatus,
-          checkingTransactionIds: []
+      setActiveMint: (mint) =>
+        set((state) => {
+          if (mint) {
+            const mintFromArray = state.mints.find((m) => m.url === mint.url)
+            return { activeMint: mintFromArray || mint }
+          }
+          return { activeMint: null }
         }),
-      addCheckingTransaction: (transactionId) =>
+      setConnected: (isConnected) =>
         set((state) => ({
-          checkingTransactionIds: state.checkingTransactionIds.includes(
-            transactionId
-          )
-            ? state.checkingTransactionIds
-            : [...state.checkingTransactionIds, transactionId]
+          status: { ...state.status, isConnected, isConnecting: false }
         })),
-      removeCheckingTransaction: (transactionId) =>
+      setConnecting: (isConnecting) =>
         set((state) => ({
-          checkingTransactionIds: state.checkingTransactionIds.filter(
-            (id) => id !== transactionId
-          )
+          status: { ...state.status, isConnecting }
         })),
-      clearCheckingTransactions: () => set({ checkingTransactionIds: [] })
+      setMints: (mints) => set({ mints }),
+      setProofs: (proofs) => set({ proofs }),
+      status: initialStatus,
+      transactions: [],
+      updateLastSync: () =>
+        set((state) => ({
+          status: { ...state.status, lastSync: new Date().toISOString() }
+        })),
+      updateMintBalance: (mintUrl, balance) =>
+        set((state) => ({
+          mints: state.mints.map((mint) =>
+            mint.url === mintUrl ? { ...mint, balance } : mint
+          ),
+          activeMint:
+            state.activeMint?.url === mintUrl
+              ? { ...state.activeMint, balance }
+              : state.activeMint
+        })),
+      updateMintConnection: (mintUrl, isConnected) =>
+        set((state) => ({
+          mints: state.mints.map((mint) =>
+            mint.url === mintUrl ? { ...mint, isConnected } : mint
+          ),
+          activeMint:
+            state.activeMint?.url === mintUrl
+              ? { ...state.activeMint, isConnected }
+              : state.activeMint
+        })),
+      updateTransaction: (transactionId, updates) =>
+        set((state) => ({
+          transactions: state.transactions.map((transaction) =>
+            transaction.id === transactionId
+              ? { ...transaction, ...updates }
+              : transaction
+          )
+        }))
     }),
     {
       name: 'satsigner-ecash',
-      storage: createJSONStorage(() => mmkvStorage),
       partialize: (state) => ({
         mints: state.mints,
         activeMint: state.activeMint,
@@ -250,7 +249,8 @@ export const useEcashStore = create<EcashState & EcashAction>()(
           lastSync: state.status.lastSync
         },
         checkingTransactionIds: [] // Don't persist checking state
-      })
+      }),
+      storage: createJSONStorage(() => mmkvStorage)
     }
   )
 )

@@ -47,6 +47,11 @@ function SSAddressDisplay({
 }
 
 const styles = StyleSheet.create({
+  bare: {
+    flexWrap: 'wrap',
+    padding: 0,
+    width: '100%'
+  },
   default: {
     backgroundColor: Colors.gray[800],
     borderRadius: 5,
@@ -62,11 +67,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'center',
     padding: 12,
-    width: '100%'
-  },
-  bare: {
-    flexWrap: 'wrap',
-    padding: 0,
     width: '100%'
   }
 })

@@ -298,19 +298,16 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
 }
 
 const styles = StyleSheet.create({
+  accepted: {
+    backgroundColor: Colors.softBarGreen
+  },
   box: {
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 4
   },
-  accepted: {
-    backgroundColor: Colors.softBarGreen
-  },
-  rejected: {
-    backgroundColor: Colors.softBarRed
-  },
-  none: {
-    backgroundColor: Colors.gray[400]
+  button: {
+    width: '100%'
   },
   info: {
     backgroundColor: Colors.success
@@ -319,28 +316,31 @@ const styles = StyleSheet.create({
     borderColor: Colors.error,
     borderWidth: 2
   },
-  button: {
-    width: '100%'
-  },
   labelItem: {
     backgroundColor: '#333',
     borderRadius: 4,
     padding: 8
+  },
+  none: {
+    backgroundColor: Colors.gray[400]
+  },
+  rejected: {
+    backgroundColor: Colors.softBarRed
   }
 })
 
 const bgStyles = {
   current: {
     current: styles.accepted,
-    merge: styles.accepted,
     incoming: styles.rejected,
-    manual: styles.none
+    manual: styles.none,
+    merge: styles.accepted
   },
   incoming: {
-    incoming: styles.accepted,
-    merge: styles.accepted,
     current: styles.rejected,
-    manual: styles.none
+    incoming: styles.accepted,
+    manual: styles.none,
+    merge: styles.accepted
   }
 }
 

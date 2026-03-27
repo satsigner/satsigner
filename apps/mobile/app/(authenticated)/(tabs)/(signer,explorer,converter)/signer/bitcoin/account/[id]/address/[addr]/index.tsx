@@ -168,10 +168,10 @@ function AddressDetails() {
                     {transactions.map((tx, index) => (
                       <SSTransactionCard
                         style={{
-                          paddingHorizontal: 0,
-                          paddingBottom: 8,
+                          borderColor: Colors.gray[700],
                           borderTopWidth: index > 0 ? 1 : 0,
-                          borderColor: Colors.gray[700]
+                          paddingBottom: 8,
+                          paddingHorizontal: 0
                         }}
                         transaction={tx}
                         key={tx.id}
@@ -199,8 +199,8 @@ function AddressDetails() {
                       <SSBubbleChart
                         utxos={allAccountUtxos}
                         canvasSize={{
-                          width: GRAPH_WIDTH,
-                          height: GRAPH_HEIGHT
+                          height: GRAPH_HEIGHT,
+                          width: GRAPH_WIDTH
                         }}
                         inputs={addressUtxoInputs}
                         dimUnselected

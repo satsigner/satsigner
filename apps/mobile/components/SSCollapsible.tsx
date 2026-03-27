@@ -51,15 +51,15 @@ function SSCollapsible({ children }: SSCollapsibleProps) {
 }
 
 const styles = StyleSheet.create({
-  containerOpen: {
-    height: 'auto',
+  containerClose: {
+    overflow: 'hidden',
+    height: 65,
     position: 'relative',
     flexDirection: 'row',
     flexWrap: 'wrap'
   },
-  containerClose: {
-    overflow: 'hidden',
-    height: 65,
+  containerOpen: {
+    height: 'auto',
     position: 'relative',
     flexDirection: 'row',
     flexWrap: 'wrap'

@@ -21,8 +21,8 @@ export default function Settings() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{t('settings.title')}</SSText>,
-          headerRight: undefined
+          headerRight: undefined,
+          headerTitle: () => <SSText uppercase>{t('settings.title')}</SSText>
         }}
       />
       <ScrollView>

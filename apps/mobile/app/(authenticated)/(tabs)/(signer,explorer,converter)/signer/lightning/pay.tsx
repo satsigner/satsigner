@@ -400,9 +400,34 @@ export default function PayPage() {
 }
 
 const styles = StyleSheet.create({
-  inputHeader: {
-    justifyContent: 'space-between',
+  actionButton: {
+    flex: 1
+  },
+  actionButtons: {
+    width: '100%'
+  },
+  actions: {
+    gap: 12,
+    marginTop: 16
+  },
+  button: {
+    width: '100%'
+  },
+  buttonIcon: {
+    marginRight: 4
+  },
+  buttonWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8
+  },
+  fetchingDetails: {
     alignItems: 'center'
+  },
+  fiatAmount: {
+    marginTop: 4,
+    marginLeft: 4
   },
   input: {
     backgroundColor: '#242424',
@@ -411,42 +436,17 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16
   },
-  textArea: {
-    height: 180,
-    textAlignVertical: 'top'
+  inputHeader: {
+    justifyContent: 'space-between',
+    alignItems: 'center'
   },
   monospaceInput: {
     fontFamily: Typography.sfProMono,
     fontSize: 14,
     letterSpacing: 0.5
   },
-  actions: {
-    gap: 12,
-    marginTop: 16
-  },
-  actionButtons: {
-    width: '100%'
-  },
-  actionButton: {
-    flex: 1
-  },
-  button: {
-    width: '100%'
-  },
-  buttonWithIcon: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8
-  },
-  buttonIcon: {
-    marginRight: 4
-  },
-  fetchingDetails: {
-    alignItems: 'center'
-  },
-  fiatAmount: {
-    marginTop: 4,
-    marginLeft: 4
+  textArea: {
+    height: 180,
+    textAlignVertical: 'top'
   }
 })

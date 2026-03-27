@@ -105,7 +105,7 @@ function useSyncAccountWithWallet() {
     }
   }
 
-  return { syncAccountWithWallet, loading }
+  return { loading, syncAccountWithWallet }
 }
 
 export default useSyncAccountWithWallet

@@ -165,13 +165,13 @@ function SSTransactionDecodedBytes({
                           ? {
                               backgroundColor: 'white',
                               color: 'black',
-                              padding: 2.6,
-                              marginBottom: -1
+                              marginBottom: -1,
+                              padding: 2.6
                             }
                           : {
                               color: colors[item.field as TxField],
-                              padding: 2.6,
-                              marginBottom: -1
+                              marginBottom: -1,
+                              padding: 2.6
                             }
                       }
                     >
@@ -223,12 +223,12 @@ function SSTransactionDecodedItem({
 
 const styles = StyleSheet.create({
   bytesContainer: {
-    flexWrap: 'wrap',
-    alignItems: 'flex-start',
     alignContent: 'center',
-    width: 'auto',
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
     justifyContent: 'flex-start',
-    marginLeft: 'auto'
+    marginLeft: 'auto',
+    width: 'auto'
   },
   selectedItemContainer: {
     marginTop: 10

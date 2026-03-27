@@ -101,13 +101,13 @@ const NETWORK_KEY_FORMATS: Record<AppNetwork, Record<string, string>> = {
     zpub: 'zpub', // P2WPKH
     vpub: 'vpub' // P2TR
   },
-  testnet: {
+  signet: {
     xpub: 'tpub', // Can be used for P2PKH, P2WPKH, P2SH-P2WPKH depending on derivation path
     ypub: 'upub', // P2SH-P2WPKH
     zpub: 'vpub', // P2WPKH
     vpub: 'vpub' // P2TR
   },
-  signet: {
+  testnet: {
     xpub: 'tpub', // Can be used for P2PKH, P2WPKH, P2SH-P2WPKH depending on derivation path
     ypub: 'upub', // P2SH-P2WPKH
     zpub: 'vpub', // P2WPKH

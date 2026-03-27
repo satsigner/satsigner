@@ -74,21 +74,21 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const value = this.version
     const hex = toUInt32LE(value)
     const field = TxField.Version
-    return { hex, value, field }
+    return { field, hex, value }
   }
 
   getMarker(): TxDecodedField {
     const value = TxDecoded.ADVANCED_TRANSACTION_MARKER
     const hex = toUInt8(value)
     const field = TxField.Marker
-    return { hex, value, field }
+    return { field, hex, value }
   }
 
   getFlag(): TxDecodedField {
     const value = TxDecoded.ADVANCED_TRANSACTION_FLAG
     const hex = toUInt8(value)
     const field = TxField.Flag
-    return { hex, value, field }
+    return { field, hex, value }
   }
 
   getInputs(): TxDecodedField[] {
@@ -106,7 +106,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const value = this.ins.length
     const hex = toVarInt(value)
     const field = TxField.TxInVarInt
-    return { hex, value, field }
+    return { field, hex, value }
   }
 
   getInputHash(index: number): TxDecodedField {
@@ -115,7 +115,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const value = Endian(bigEndianHash.toString('hex'))
     const field = TxField.TxInHash
     const placeholders = { input: index }
-    return { hex, value, field, placeholders }
+    return { field, hex, placeholders, value }
   }
 
   getInputIndex(index: number): TxDecodedField {
@@ -123,7 +123,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const hex = toUInt32LE(value)
     const field = TxField.TxInIndex
     const placeholders = { input: index }
-    return { hex, value, field, placeholders }
+    return { field, hex, placeholders, value }
   }
 
   getInputScriptVarInt(index: number): TxDecodedField {
@@ -131,7 +131,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const hex = toVarInt(value)
     const field = TxField.TxInScriptVarInt
     const placeholders = { input: index }
-    return { hex, value, field, placeholders }
+    return { field, hex, placeholders, value }
   }
 
   getInputScript(index: number): TxDecodedField {
@@ -145,7 +145,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     }
     const field = TxField.TxInScript
     const placeholders = { input: index }
-    return { hex, value, field, placeholders }
+    return { field, hex, placeholders, value }
   }
 
   getInputSequence(index: number): TxDecodedField {
@@ -153,7 +153,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const hex = toUInt32LE(value)
     const field = TxField.TxInSequence
     const placeholders = { input: index }
-    return { hex, value, field, placeholders }
+    return { field, hex, placeholders, value }
   }
 
   getOutputs(): TxDecodedField[] {
@@ -169,7 +169,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const value = this.outs.length
     const hex = toVarInt(value)
     const field = TxField.TxOutVarInt
-    return { hex, value, field }
+    return { field, hex, value }
   }
 
   getOutputValue(index: number): TxDecodedField {
@@ -177,7 +177,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const hex = toBigUInt64LE(value)
     const field = TxField.TxOutValue
     const placeholders = { output: index }
-    return { hex, value, field, placeholders }
+    return { field, hex, placeholders, value }
   }
 
   getOutputScriptVarInt(index: number): TxDecodedField {
@@ -185,7 +185,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const hex = toVarInt(value)
     const field = TxField.TxOutScriptVarInt
     const placeholders = { output: index }
-    return { hex, value, field, placeholders }
+    return { field, hex, placeholders, value }
   }
 
   getOutputScript(index: number): TxDecodedField {
@@ -196,8 +196,8 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const field = address
       ? TxField.TxOutScriptStandard
       : TxField.TxOutScriptNonStandard
-    const placeholders = { output: index, address }
-    return { hex, value, field, placeholders }
+    const placeholders = { address, output: index }
+    return { field, hex, placeholders, value }
   }
 
   getOutputsScripts(): TxDecodedField[] {
@@ -226,7 +226,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const hex = toVarInt(value)
     const field = TxField.WitnessVarInt
     const placeholders = { witness: index }
-    return { hex, value, field, placeholders }
+    return { field, hex, placeholders, value }
   }
 
   getWitnessItemsVarInt(index: number, witnessIndex: number): TxDecodedField {
@@ -234,7 +234,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const hex = toVarInt(value)
     const field = TxField.WitnessItemsVarInt
     const placeholders = { input: index, witness: witnessIndex }
-    return { hex, field, value, placeholders }
+    return { field, hex, placeholders, value }
   }
 
   getWitnessItem(index: number, witnessIndex: number): TxDecodedField {
@@ -242,14 +242,14 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const hex = witnessItem.toString('hex')
     const { field, value } = this.identifyWitnessItem(witnessItem)
     const placeholders = { input: index, witness: witnessIndex }
-    return { hex, field, value, placeholders }
+    return { field, hex, placeholders, value }
   }
 
   getLocktime(): TxDecodedField {
     const value = this.locktime
     const hex = toUInt32LE(value)
     const field = TxField.Locktime
-    return { hex, field, value }
+    return { field, hex, value }
   }
 
   generateOutputScriptAddress(

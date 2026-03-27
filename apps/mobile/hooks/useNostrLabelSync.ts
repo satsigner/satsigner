@@ -66,12 +66,12 @@ function useNostrLabelSync() {
             ? label.time.getTime() / 1000
             : nowTimestamp
       const entry: Record<string, unknown> = {
-        __class__: 'Label',
         VERSION: '0.0.3',
-        type: label.type,
-        ref: label.ref,
+        __class__: 'Label',
         label: label.label,
-        timestamp
+        ref: label.ref,
+        timestamp,
+        type: label.type
       }
       if (label.spendable !== undefined) {
         entry.spendable = label.spendable
@@ -106,9 +106,9 @@ function useNostrLabelSync() {
     const buildMessage = (jsonl: string) =>
       JSON.stringify({
         created_at: Math.floor(Date.now() / 1000),
-        label: 1,
+        data: { data: jsonl, data_type: 'LabelsBip329' },
         description: '',
-        data: { data: jsonl, data_type: 'LabelsBip329' }
+        label: 1
       })
 
     const nostrApi = new NostrAPI(relays)

@@ -40,12 +40,12 @@ const styles = StyleSheet.create({
   containerBase: {
     flexDirection: 'column'
   },
+  itemsCenter: {
+    alignItems: 'center'
+  },
   justifyBetween: {
     flex: 1,
     justifyContent: 'space-between'
-  },
-  itemsCenter: {
-    alignItems: 'center'
   },
   widthFull: {
     width: '100%'

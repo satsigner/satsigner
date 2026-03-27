@@ -52,7 +52,7 @@ export const useAnimationEnd = (
       'worklet'
       if (onResetAnimationEnd) {
         const currentEndValues = endValues.value[interactionId] || {}
-        currentEndValues[value] = { finished, current }
+        currentEndValues[value] = { current, finished }
         if (isAnimationComplete(currentEndValues)) {
           const completed = !Object.values(currentEndValues).some(
             (item) => !item.finished

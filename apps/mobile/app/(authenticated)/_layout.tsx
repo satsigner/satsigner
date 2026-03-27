@@ -154,8 +154,8 @@ export default function AuthenticatedLayout() {
       const { ...filteredRouteParams } = routeParams
 
       markPageVisited({
-        path: routeName,
-        params: filteredRouteParams
+        params: filteredRouteParams,
+        path: routeName
       } as PageRoute)
     }
   }, [routeName, routeParams, markPageVisited])
@@ -171,9 +171,9 @@ export default function AuthenticatedLayout() {
         drawerContent={(props) => <SSNavMenu {...props} />}
         screenOptions={{
           drawerPosition: 'left',
-          headerShown: false,
+          drawerStyle: { width: 300 },
           drawerType: 'slide',
-          drawerStyle: { width: 300 }
+          headerShown: false
         }}
       >
         <Drawer.Screen name="(tabs)" />

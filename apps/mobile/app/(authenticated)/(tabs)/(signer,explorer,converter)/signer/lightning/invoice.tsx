@@ -579,22 +579,53 @@ export default function InvoicePage() {
 }
 
 const styles = StyleSheet.create({
-  mainLayout: {
-    paddingTop: 32,
-    paddingHorizontal: '5%'
+  actionButton: {
+    flex: 1
+  },
+  actionButtons: {
+    width: '100%',
+    marginBottom: 8
+  },
+  actions: {
+    gap: 12,
+    marginTop: 8
+  },
+  amountContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'baseline'
+  },
+  button: {
+    width: '100%'
   },
   content: {
     flex: 1,
     gap: 24
+  },
+  detailLabel: {
+    minWidth: 100,
+    fontSize: 14
+  },
+  detailRow: {
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap'
+  },
+  detailSection: {
+    gap: 12
+  },
+  detailValue: {
+    flex: 1,
+    textAlign: 'right'
+  },
+  detailsContent: {
+    gap: 16
   },
   form: {
     backgroundColor: '#1a1a1a',
     borderRadius: 12,
     padding: 20,
     gap: 16
-  },
-  inputContainer: {
-    gap: 8
   },
   input: {
     backgroundColor: '#242424',
@@ -603,61 +634,34 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16
   },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top'
+  inputContainer: {
+    gap: 8
   },
-  actions: {
-    gap: 12,
-    marginTop: 8
-  },
-  button: {
-    width: '100%'
-  },
-  modalScrollView: {
-    width: '100%',
-    maxHeight: '90%'
-  },
-  modalContent: {
-    width: '100%',
-    padding: 10
+  inputHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
   },
   invoiceDetails: {
     width: '100%',
     gap: 12
   },
-  detailsContent: {
-    gap: 16
+  mainLayout: {
+    paddingTop: 32,
+    paddingHorizontal: '5%'
   },
-  detailSection: {
-    gap: 12
+  modalActions: {
+    gap: 12,
+    marginTop: 16,
+    width: '100%'
   },
-  detailRow: {
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap'
-  },
-  detailLabel: {
-    minWidth: 100,
-    fontSize: 14
-  },
-  detailValue: {
-    flex: 1,
-    textAlign: 'right'
-  },
-  amountContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'baseline'
-  },
-  qrContainer: {
+  modalContent: {
     width: '100%',
-    aspectRatio: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    padding: 16
+    padding: 10
+  },
+  modalScrollView: {
+    width: '100%',
+    maxHeight: '90%'
   },
   paymentRequestContainer: {
     width: '100%',
@@ -669,27 +673,23 @@ const styles = StyleSheet.create({
     padding: 12,
     width: '100%'
   },
-  modalActions: {
-    gap: 12,
-    marginTop: 16,
-    width: '100%'
-  },
-  inputHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
+  qrContainer: {
+    width: '100%',
+    aspectRatio: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    padding: 16
   },
   scanButton: {
     minWidth: 100
   },
-  actionButtons: {
-    width: '100%',
-    marginBottom: 8
-  },
-  actionButton: {
-    flex: 1
-  },
   switchableAmount: {
     textDecorationLine: 'underline'
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top'
   }
 })

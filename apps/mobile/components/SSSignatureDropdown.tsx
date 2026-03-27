@@ -93,9 +93,9 @@ function SSSignatureDropdown({
 
   const { hasLocalSeed, isSignatureCompleted } = useSignatureDropdownValidation(
     {
+      decryptedKey,
       keyDetails,
       seedDropped,
-      decryptedKey,
       signedPsbt
     }
   )
@@ -153,11 +153,11 @@ function SSSignatureDropdown({
   ])
 
   const { sourceLabel } = useKeySourceLabel({
+    decryptedKey,
     keyDetails,
-    scriptVersion,
     network,
-    seedDropped,
-    decryptedKey
+    scriptVersion,
+    seedDropped
   })
 
   // Extract public key from descriptor when key details change
@@ -348,7 +348,7 @@ function SSSignatureDropdown({
       </TouchableOpacity>
 
       {isExpanded && (
-        <SSVStack style={{ paddingHorizontal: 8, paddingBottom: 8 }} gap="sm">
+        <SSVStack style={{ paddingBottom: 8, paddingHorizontal: 8 }} gap="sm">
           {hasLocalSeed ? (
             <SSButton
               label={t('transaction.preview.signWithLocalKey')}
@@ -527,20 +527,14 @@ const styles = {
     borderTopWidth: 1,
     borderColor: Colors.gray[700]
   },
-  lastItem: {
-    borderBottomWidth: 1
-  },
   header: {
     paddingVertical: 8
   },
   headerDisabled: {
     opacity: 0.5
   },
-  signatureIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: Colors.gray[800]
+  lastItem: {
+    borderBottomWidth: 1
   },
   psbtDisplay: {
     minHeight: 200,
@@ -555,5 +549,11 @@ const styles = {
     fontSize: 12,
     color: Colors.white,
     lineHeight: 18
+  },
+  signatureIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.gray[800]
   }
 }

@@ -65,18 +65,18 @@ function ExplorerBlock() {
     const block = await electrum.getBlock(height)
     electrum.close()
     return {
-      id: block.getId(),
-      height,
-      merkle_root: block.merkleRoot?.toString('hex'),
-      previousblockhash: block.prevHash?.toString('hex'),
-      timestamp: block.timestamp,
-      weight: block.weight(),
-      size: block.weight() * 4,
-      version: block.version,
-      nonce: block.nonce,
       difficulty: getDifficultyFromBits(block.bits),
+      height,
+      id: block.getId(),
+      mediantime: undefined,
+      merkle_root: block.merkleRoot?.toString('hex'),
+      nonce: block.nonce,
+      previousblockhash: block.prevHash?.toString('hex'),
+      size: block.weight() * 4,
+      timestamp: block.timestamp,
       tx_count: block.transactions?.length,
-      mediantime: undefined
+      version: block.version,
+      weight: block.weight()
     }
   }
 
@@ -203,10 +203,10 @@ function ExplorerBlock() {
 
 const styles = StyleSheet.create({
   chevronButton: {
-    padding: 15,
-    borderWidth: 1,
     borderColor: Colors.gray[500],
-    borderRadius: 10
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 15
   },
   input: {
     textAlign: 'center'

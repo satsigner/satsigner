@@ -11,8 +11,8 @@ bitcoinjs.initEccLib(ecc)
 // Define valid key prefixes for each network
 const NETWORK_KEY_PREFIXES: Record<AppNetwork, string[]> = {
   bitcoin: ['xpub', 'ypub', 'zpub', 'vpub'],
-  testnet: ['tpub', 'upub', 'vpub'],
-  signet: ['tpub', 'upub', 'vpub']
+  signet: ['tpub', 'upub', 'vpub'],
+  testnet: ['tpub', 'upub', 'vpub']
 }
 
 export function validateExtendedKey(key: string, network?: AppNetwork) {
@@ -236,12 +236,12 @@ export function validateDescriptorScriptVersion(
   const cleanDescriptor = descriptor.replace(/#[a-z0-9]{8}$/, '')
   const compatibilityMatrix: Record<ScriptVersionType, string> = {
     P2PKH: 'pkh',
+    P2SH: 'sh',
     'P2SH-P2WPKH': 'sh',
-    P2WPKH: 'wpkh',
-    P2TR: 'tr',
-    P2WSH: 'wsh',
     'P2SH-P2WSH': 'sh',
-    P2SH: 'sh'
+    P2TR: 'tr',
+    P2WPKH: 'wpkh',
+    P2WSH: 'wsh'
   }
   const scriptPrefix = compatibilityMatrix[scriptVersion]
   return cleanDescriptor.match(new RegExp(`^${scriptPrefix}\\(`)) !== null
@@ -297,10 +297,10 @@ export async function validateCombinedDescriptor(
       separateCombinedDescriptor(combinedDescriptor)
 
     return {
-      isValid: false,
       error: 'invalid descriptor',
       externalDescriptor: external,
-      internalDescriptor: internal
+      internalDescriptor: internal,
+      isValid: false
     }
   }
 
@@ -318,10 +318,10 @@ export async function validateCombinedDescriptor(
       separateCombinedDescriptor(combinedDescriptor)
 
     return {
-      isValid: false,
       error: 'invalid script version',
       externalDescriptor: external,
-      internalDescriptor: internal
+      internalDescriptor: internal,
+      isValid: false
     }
   }
 
@@ -348,16 +348,16 @@ export async function validateCombinedDescriptor(
 
   if (!networkValidation.isValid) {
     return {
-      isValid: false,
       error: networkValidation.error,
       externalDescriptor: externalDesc,
-      internalDescriptor: internalDesc
+      internalDescriptor: internalDesc,
+      isValid: false
     }
   }
 
   return {
-    isValid: true,
     externalDescriptor: externalDesc,
-    internalDescriptor: internalDesc
+    internalDescriptor: internalDesc,
+    isValid: true
   }
 }

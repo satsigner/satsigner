@@ -40,7 +40,7 @@ function SSSelectModal({
 
   return (
     <Modal visible={visible} transparent={false}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.black }}>
+      <SafeAreaView style={{ backgroundColor: Colors.black, flex: 1 }}>
         <SSMainLayout black style={{ paddingBottom: 20 }}>
           <ScrollView>
             <SSVStack gap="lg">

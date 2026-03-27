@@ -136,8 +136,8 @@ function createMockTxBuilderResult(
       txid: () => Promise.resolve(txid)
     },
     txDetails: {
-      txid,
-      fee: txFee
+      fee: txFee,
+      txid
     }
   }
 }
@@ -240,9 +240,9 @@ function PreviewTransaction() {
   const [currentMnemonic, setCurrentMnemonic] = useState('')
 
   const [wordSelectorState, setWordSelectorState] = useState({
+    onWordSelected: () => {},
     visible: false,
-    wordStart: '',
-    onWordSelected: () => {}
+    wordStart: ''
   })
 
   const [permission, requestPermission] = useCameraPermissions()
@@ -262,23 +262,23 @@ function PreviewTransaction() {
   const nfcPulseAnim = useSharedValue(0)
 
   const nfcPulseStyle = useAnimatedStyle(() => ({
-    width: 200,
-    height: 200,
+    alignItems: 'center' as const,
     backgroundColor: interpolateColor(
       nfcPulseAnim.value,
       [0, 1],
       [Colors.gray[800], Colors.gray[400]]
     ),
     borderRadius: 100,
+    height: 200,
     justifyContent: 'center' as const,
-    alignItems: 'center' as const
+    width: 200
   }))
 
   // PSBT Management Hook
   const psbtManagement = usePSBTManagement({
-    txBuilderResult,
     account,
-    decryptedKeys
+    decryptedKeys,
+    txBuilderResult
   })
 
   // Destructure hook values for easier access
@@ -296,13 +296,13 @@ function PreviewTransaction() {
     extractedData.inputs.forEach(
       (input: ExtractedTransactionData['inputs'][number]) => {
         addInput({
-          txid: input.txid,
-          vout: input.vout,
-          value: input.value,
-          script: Buffer.from(input.script, 'hex').toJSON().data,
+          addressTo: input.address,
           keychain: input.keychain || 'external',
           label: input.label,
-          addressTo: input.address
+          script: Buffer.from(input.script, 'hex').toJSON().data,
+          txid: input.txid,
+          value: input.value,
+          vout: input.vout
         })
       }
     )
@@ -310,9 +310,9 @@ function PreviewTransaction() {
     extractedData.outputs.forEach(
       (output: ExtractedTransactionData['outputs'][number]) => {
         addOutput({
-          to: output.address,
           amount: output.value,
-          label: output.label || ''
+          label: output.label || '',
+          to: output.address
         })
       }
     )
@@ -548,10 +548,10 @@ function PreviewTransaction() {
     scanned: Set<number>
     chunks: Map<number, string>
   }>({
-    type: null,
-    total: 0,
+    chunks: new Map(),
     scanned: new Set(),
-    chunks: new Map()
+    total: 0,
+    type: null
   })
 
   // Helper functions for QR code detection and parsing
@@ -574,10 +574,10 @@ function PreviewTransaction() {
       const total = parseInt(data.slice(4, 6), 36)
       const current = parseInt(data.slice(6, 8), 36)
       return {
-        type: 'bbqr' as const,
+        content: data,
         current,
         total,
-        content: data
+        type: 'bbqr' as const
       }
     }
 
@@ -594,18 +594,18 @@ function PreviewTransaction() {
           const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
           const total = parseInt(totalStr, 10)
           return {
-            type: 'ur' as const,
+            content: data,
             current,
             total,
-            content: data
+            type: 'ur' as const
           }
         } else {
           // Single-part UR
           return {
-            type: 'ur' as const,
+            content: data,
             current: 0,
             total: 1,
-            content: data
+            type: 'ur' as const
           }
         }
       }
@@ -613,19 +613,19 @@ function PreviewTransaction() {
 
     // Single QR code (no multi-part format detected)
     return {
-      type: 'single' as const,
+      content: data,
       current: 0,
       total: 1,
-      content: data
+      type: 'single' as const
     }
   }
 
   const resetScanProgress = () => {
     setScanProgress({
-      type: null,
-      total: 0,
+      chunks: new Map(),
       scanned: new Set(),
-      chunks: new Map()
+      total: 0,
+      type: null
     })
   }
 
@@ -848,18 +848,18 @@ function PreviewTransaction() {
         : legacyEstimateTransactionSize(inputs.size, outputs.length)
 
     const vin = Array.from(inputs.values()).map((input: Utxo) => ({
+      label: input.label || '',
       previousOutput: { txid: input.txid, vout: input.vout },
-      value: input.value,
-      label: input.label || ''
+      value: input.value
     }))
 
     const vout = outputs.map((output: Output) => ({
       address: output.to,
-      value: output.amount,
-      label: output.label || ''
+      label: output.label || '',
+      value: output.amount
     }))
 
-    return { id: transactionId, size, vsize, vin, vout } as never as Transaction
+    return { id: transactionId, size, vin, vout, vsize } as never as Transaction
   }, [inputs, outputs, transactionId])
 
   useEffect(() => {
@@ -896,10 +896,10 @@ function PreviewTransaction() {
         const transaction = await buildTransaction(
           wallet,
           {
-            inputs: inputArray,
-            outputs: outputArray,
             fee,
-            options: { rbf }
+            inputs: inputArray,
+            options: { rbf },
+            outputs: outputArray
           },
           network as Network
         )
@@ -1294,10 +1294,10 @@ function PreviewTransaction() {
       const newChunks = new Map([[current, content]])
 
       setScanProgress({
-        type,
-        total,
+        chunks: newChunks,
         scanned: newScanned,
-        chunks: newChunks
+        total,
+        type
       })
 
       return
@@ -1314,10 +1314,10 @@ function PreviewTransaction() {
     const newChunks = new Map(scanProgress.chunks).set(current, content)
 
     setScanProgress({
-      type,
-      total,
+      chunks: newChunks,
       scanned: newScanned,
-      chunks: newChunks
+      total,
+      type
     })
 
     // For UR format, use fountain encoding logic
@@ -2181,15 +2181,15 @@ function PreviewTransaction() {
                     </SSText>
                     <View
                       style={{
-                        minHeight: 200,
-                        maxHeight: 600,
-                        paddingTop: 12,
-                        paddingBottom: 12,
-                        paddingHorizontal: 12,
                         backgroundColor: Colors.gray[900],
+                        borderColor: Colors.gray[700],
                         borderRadius: 8,
                         borderWidth: 1,
-                        borderColor: Colors.gray[700]
+                        maxHeight: 600,
+                        minHeight: 200,
+                        paddingBottom: 12,
+                        paddingHorizontal: 12,
+                        paddingTop: 12
                       }}
                     >
                       <ScrollView
@@ -2199,9 +2199,9 @@ function PreviewTransaction() {
                       >
                         <SSText
                           style={{
+                            color: Colors.white,
                             fontFamily: Typography.sfProMono,
                             fontSize: 12,
-                            color: Colors.white,
                             lineHeight: 18
                           }}
                         >
@@ -2269,9 +2269,9 @@ function PreviewTransaction() {
           <SSVStack
             gap="xs"
             style={{
+              alignItems: 'center',
               flex: 1,
               justifyContent: 'center',
-              alignItems: 'center',
               padding: containerPadding
             }}
           >
@@ -2286,12 +2286,12 @@ function PreviewTransaction() {
               <>
                 <View
                   style={{
-                    padding: 5,
-                    backgroundColor: Colors.white,
                     alignItems: 'center',
+                    backgroundColor: Colors.white,
+                    borderRadius: 2,
                     marginBottom: 0,
-                    width: qrSize + 10,
-                    borderRadius: 2
+                    padding: 5,
+                    width: qrSize + 10
                   }}
                 >
                   <SSQRCode
@@ -2303,7 +2303,7 @@ function PreviewTransaction() {
                 </View>
                 <SSHStack
                   gap="xs"
-                  style={{ width: screenWidth * 0.92, marginBottom: 10 }}
+                  style={{ marginBottom: 10, width: screenWidth * 0.92 }}
                 >
                   <SSButton
                     variant={
@@ -2370,13 +2370,13 @@ function PreviewTransaction() {
                   size="sm"
                   type="mono"
                   style={{
-                    padding: 5,
-                    width: screenWidth * 0.92,
-                    height: 80,
                     backgroundColor: Colors.gray[900],
                     borderRadius: 2,
+                    height: 80,
+                    padding: 5,
+                    paddingHorizontal: 20,
                     textAlignVertical: 'center',
-                    paddingHorizontal: 20
+                    width: screenWidth * 0.92
                   }}
                 >
                   {getQRValue().length > 100
@@ -2385,7 +2385,7 @@ function PreviewTransaction() {
                 </SSText>
                 <SSHStack
                   justifyEvenly
-                  style={{ width: screenWidth * 0.9, marginBottom: 20 }}
+                  style={{ marginBottom: 20, width: screenWidth * 0.9 }}
                 >
                   <SSVStack gap="xs">
                     <SSText color="white" size="sm" center>
@@ -2487,7 +2487,7 @@ function PreviewTransaction() {
                 handleQRCodeScanned(res.raw, currentCosignerIndex ?? undefined)
               }}
               barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-              style={{ width: 340, height: 340 }}
+              style={{ height: 340, width: 340 }}
             />
 
             {/* Show progress if scanning multi-part QR */}
@@ -2517,21 +2517,21 @@ function PreviewTransaction() {
                           </SSText>
                           <View
                             style={{
-                              width: 300,
-                              height: 4,
                               backgroundColor: Colors.gray[700],
-                              borderRadius: 2
+                              borderRadius: 2,
+                              height: 4,
+                              width: 300
                             }}
                           >
                             <View
                               style={{
-                                width:
-                                  (scanProgress.scanned.size / displayTarget) *
-                                  300,
+                                backgroundColor: Colors.white,
+                                borderRadius: 2,
                                 height: 4,
                                 maxWidth: 300,
-                                backgroundColor: Colors.white,
-                                borderRadius: 2
+                                width:
+                                  (scanProgress.scanned.size / displayTarget) *
+                                  300
                               }}
                             />
                           </View>
@@ -2549,21 +2549,21 @@ function PreviewTransaction() {
                     </SSText>
                     <View
                       style={{
-                        width: 300,
-                        height: 4,
                         backgroundColor: Colors.gray[700],
-                        borderRadius: 2
+                        borderRadius: 2,
+                        height: 4,
+                        width: 300
                       }}
                     >
                       <View
                         style={{
-                          width:
-                            (scanProgress.scanned.size / scanProgress.total) *
-                            300,
+                          backgroundColor: Colors.white,
+                          borderRadius: 2,
                           height: 4,
                           maxWidth: scanProgress.total * 300,
-                          backgroundColor: Colors.white,
-                          borderRadius: 2
+                          width:
+                            (scanProgress.scanned.size / scanProgress.total) *
+                            300
                         }}
                       />
                     </View>
@@ -2693,7 +2693,7 @@ function PreviewTransaction() {
             setCurrentCosignerIndex(null)
           }}
         >
-          <ScrollView style={{ width: '100%', maxWidth: 400, maxHeight: 600 }}>
+          <ScrollView style={{ maxHeight: 600, maxWidth: 400, width: '100%' }}>
             <View style={{ paddingHorizontal: 16 }}>
               <SSVStack gap="lg">
                 <SSText center uppercase>
@@ -2741,8 +2741,8 @@ function PreviewTransaction() {
 }
 
 const styles = StyleSheet.create({
-  mainLayout: { paddingTop: 0, paddingBottom: 20 },
-  modalStack: { marginVertical: 32, width: '100%', paddingHorizontal: 32 }
+  mainLayout: { paddingBottom: 20, paddingTop: 0 },
+  modalStack: { marginVertical: 32, paddingHorizontal: 32, width: '100%' }
 })
 
 export default PreviewTransaction

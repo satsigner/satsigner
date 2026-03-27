@@ -92,5 +92,5 @@ export function useNetworkInfo() {
     return () => clearInterval(interval)
   }, [fetchNetworkInfo])
 
-  return { blockHeight, nextBlockFee, blockHeightSource }
+  return { blockHeight, blockHeightSource, nextBlockFee }
 }

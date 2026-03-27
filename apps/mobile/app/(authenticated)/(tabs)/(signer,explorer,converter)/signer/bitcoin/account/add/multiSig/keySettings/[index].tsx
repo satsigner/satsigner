@@ -88,15 +88,15 @@ export default function MultiSigKeySettings() {
         }
         case 'coin': {
           router.navigate({
-            pathname: '/signer/bitcoin/account/add/entropy/coin',
-            params: { index }
+            params: { index },
+            pathname: '/signer/bitcoin/account/add/entropy/coin'
           })
           break
         }
         case 'dice': {
           router.navigate({
-            pathname: '/signer/bitcoin/account/add/entropy/dice',
-            params: { index }
+            params: { index },
+            pathname: '/signer/bitcoin/account/add/entropy/dice'
           })
           break
         }

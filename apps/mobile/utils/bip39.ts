@@ -125,9 +125,9 @@ export function isElectrumDerivationPath(path: string): boolean {
 
 // scriptVersion for Electrum seed type: segwit → P2WPKH, standard → P2PKH
 const ELECTRUM_SCRIPT_VERSION: Record<string, ScriptVersionType> = {
+  '2fa-standard': 'P2PKH',
   segwit: 'P2WPKH',
-  standard: 'P2PKH',
-  '2fa-standard': 'P2PKH'
+  standard: 'P2PKH'
 }
 
 export async function getPrivateDescriptorFromElectrumMnemonic(
@@ -297,9 +297,9 @@ function deriveXpubFromMnemonic(
 
     steps.push({
       depth: node.depth,
+      fingerprint: fingerprintToHex(node.fingerprint),
       index,
       parentFingerprint: fingerprintToHex(node.parentFingerprint || 0),
-      fingerprint: fingerprintToHex(node.fingerprint),
       publicExtendedKey: node.publicExtendedKey
     })
   })
@@ -307,13 +307,13 @@ function deriveXpubFromMnemonic(
   const accountXpub = node.publicExtendedKey
 
   return {
-    network,
-    path,
     masterFingerprint: masterFingerprintHex,
     masterPubkeyHex,
-    xpub: accountXpub,
+    network,
     parentFingerprint: fingerprintToHex(parentFingerprint),
-    steps
+    path,
+    steps,
+    xpub: accountXpub
   }
 }
 

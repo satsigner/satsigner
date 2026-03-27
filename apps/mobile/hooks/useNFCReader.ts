@@ -91,9 +91,9 @@ export function useNFCReader() {
   }
 
   return {
+    cancelNFCScan,
     isAvailable,
     isReading,
-    readNFCTag,
-    cancelNFCScan
+    readNFCTag
   }
 }

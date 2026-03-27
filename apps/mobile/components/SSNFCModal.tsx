@@ -104,13 +104,13 @@ function SSNFCModal({
       const pulseAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(nfcPulseAnim, {
-            toValue: 1,
             duration: 1000,
+            toValue: 1,
             useNativeDriver: false
           }),
           Animated.timing(nfcPulseAnim, {
-            toValue: 0,
             duration: 1000,
+            toValue: 0,
             useNativeDriver: false
           })
         ])
@@ -203,11 +203,11 @@ const styles = StyleSheet.create({
     maxWidth: 300
   },
   nfcCircle: {
-    width: 200,
-    height: 200,
+    alignItems: 'center',
     borderRadius: 100,
+    height: 200,
     justifyContent: 'center',
-    alignItems: 'center'
+    width: 200
   }
 })
 

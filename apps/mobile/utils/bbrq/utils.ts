@@ -92,11 +92,11 @@ export function validateSplitOptions(opts: SplitOptions) {
   // ensure all split options are valid, filling in defaults as needed
 
   const allOpts = {
-    minVersion: opts.minVersion ?? 5,
+    encoding: opts.encoding ?? 'Z',
+    maxSplit: opts.maxSplit ?? 1295,
     maxVersion: opts.maxVersion ?? 40,
     minSplit: opts.minSplit ?? 1,
-    maxSplit: opts.maxSplit ?? 1295,
-    encoding: opts.encoding ?? 'Z'
+    minVersion: opts.minVersion ?? 5
   } as const
 
   if (
@@ -149,10 +149,10 @@ export function encodeData(raw: Uint8Array, encoding?: Encoding) {
 
   if (encoding === 'H') {
     return {
-      encoding,
       encoded: raw
         .reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), '')
-        .toUpperCase()
+        .toUpperCase(),
+      encoding
     }
   }
 

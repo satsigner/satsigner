@@ -13,8 +13,8 @@ import {
 
 // HD key versions for different networks
 const VERSIONS = {
-  mainnet: { public: 0x0488b21e, private: 0x0488ade4 },
-  testnet: { public: 0x043587cf, private: 0x04358394 }
+  mainnet: { private: 0x0488ade4, public: 0x0488b21e },
+  testnet: { private: 0x04358394, public: 0x043587cf }
 }
 
 const bip32 = BIP32Factory(ecc)
@@ -30,16 +30,16 @@ We need to convert BDK Network enum type to the type used by BIP32Interface.
 
 const BIP32NetworkMainnet: BIP32Interface['network'] = {
   bip32: {
-    public: 0x0488b21e,
-    private: 0x0488ade4
+    private: 0x0488ade4,
+    public: 0x0488b21e
   },
   wif: 0x80
 }
 
 const BIP32NetworkTestnet: BIP32Interface['network'] = {
   bip32: {
-    public: 0x043587cf,
-    private: 0x04358394
+    private: 0x04358394,
+    public: 0x043587cf
   },
   wif: 0xef
 }
@@ -440,13 +440,13 @@ export function getXpubForScriptVersion(
     ScriptVersionType,
     (seed: Uint8Array, network: 'mainnet' | 'testnet') => string
   > = {
-    P2SH: getP2SHXpub,
-    'P2SH-P2WSH': getP2SHP2WSHXpub,
-    P2WSH: getP2WSHXpub,
-    P2WPKH: getP2WPKHXpub,
     P2PKH: getP2PKHXpub,
+    P2SH: getP2SHXpub,
     'P2SH-P2WPKH': getP2SHP2WPKHXpub,
-    P2TR: getP2TRXpub
+    'P2SH-P2WSH': getP2SHP2WSHXpub,
+    P2TR: getP2TRXpub,
+    P2WPKH: getP2WPKHXpub,
+    P2WSH: getP2WSHXpub
   }
 
   return xpubFunctions[scriptVersion](seed, network)

@@ -100,15 +100,15 @@ function AccountCardStaggerItem({
     const timer = setTimeout(() => {
       Animated.parallel([
         Animated.timing(opacity, {
-          toValue: 1,
           duration: STAGGER_DURATION_MS,
           easing: Easing.out(Easing.ease),
+          toValue: 1,
           useNativeDriver: true
         }),
         Animated.timing(translateY, {
-          toValue: 0,
           duration: STAGGER_DURATION_MS,
           easing: Easing.out(Easing.ease),
+          toValue: 0,
           useNativeDriver: true
         })
       ]).start()
@@ -231,9 +231,9 @@ export default function AccountList() {
     sampleAccountsOpacity.setValue(0)
     const timer = setTimeout(() => {
       Animated.timing(sampleAccountsOpacity, {
-        toValue: 1,
         duration: 320,
         easing: Easing.out(Easing.ease),
+        toValue: 1,
         useNativeDriver: true
       }).start()
     }, 400)
@@ -604,34 +604,34 @@ export default function AccountList() {
         gap="none"
         justifyEvenly
         style={{
-          paddingVertical: 0,
+          borderBottomColor: Colors.gray[800],
           borderBottomWidth: 1,
-          borderBottomColor: Colors.gray[800]
+          paddingVertical: 0
         }}
       >
         {tabs.map((tab, index) => (
           <SSActionButton
             key={tab.key}
-            style={{ width: '30%', height: 48 }}
+            style={{ height: 48, width: '30%' }}
             onPress={() => setTabIndex(index)}
           >
             <SSVStack gap="none">
               <SSText
                 center
                 uppercase
-                style={{ lineHeight: 20, letterSpacing: 3 }}
+                style={{ letterSpacing: 3, lineHeight: 20 }}
               >
                 {tab.key}
               </SSText>
               {tabIndex === index && (
                 <View
                   style={{
-                    position: 'absolute',
-                    width: '100%',
-                    height: 1,
-                    bottom: -15,
                     alignSelf: 'center',
-                    backgroundColor: Colors.white
+                    backgroundColor: Colors.white,
+                    bottom: -15,
+                    height: 1,
+                    position: 'absolute',
+                    width: '100%'
                   }}
                 />
               )}
@@ -767,7 +767,7 @@ export default function AccountList() {
         <TouchableOpacity
           onPress={() => router.navigate('/settings/network/server')}
         >
-          <SSHStack style={{ justifyContent: 'center', gap: 0 }}>
+          <SSHStack style={{ gap: 0, justifyContent: 'center' }}>
             {connectionState ? (
               isPrivateConnection ? (
                 <SSIconYellowIndicator height={24} width={24} />
@@ -812,11 +812,11 @@ export default function AccountList() {
           <SSButton
             label={t('account.add')}
             style={{
-              borderTopWidth: 1,
-              borderTopColor: Colors.gray[700],
-              borderBottomWidth: 1,
               borderBottomColor: Colors.gray[875],
-              borderRadius: 0
+              borderBottomWidth: 1,
+              borderRadius: 0,
+              borderTopColor: Colors.gray[700],
+              borderTopWidth: 1
             }}
             onPress={handleOnNavigateToAddAccount}
             variant="gradient"
@@ -824,7 +824,7 @@ export default function AccountList() {
           />
         </View>
       </SSHStack>
-      <SSMainLayout style={{ paddingTop: 32, paddingHorizontal: '5%' }}>
+      <SSMainLayout style={{ paddingHorizontal: '5%', paddingTop: 32 }}>
         <TabView
           swipeEnabled={false}
           navigationState={{ index: tabIndex, routes: tabs }}
@@ -880,7 +880,7 @@ export default function AccountList() {
                     ListEmptyComponent={
                       <SSVStack
                         itemsCenter
-                        style={{ paddingTop: 32, paddingBottom: 32 }}
+                        style={{ paddingBottom: 32, paddingTop: 32 }}
                       >
                         <SSText uppercase>{t('accounts.empty')}</SSText>
                       </SSVStack>

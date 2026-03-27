@@ -32,9 +32,9 @@ jest.mock<typeof import('@/store/nostr')>('@/store/nostr', () => ({
 
 jest.mock<typeof import('sonner-native')>('sonner-native', () => ({
   toast: {
-    success: jest.fn(),
     error: jest.fn(),
-    info: jest.fn()
+    info: jest.fn(),
+    success: jest.fn()
   }
 }))
 
@@ -80,18 +80,18 @@ describe('handler registry', () => {
         trustedMemberDevices: []
       }
     },
-    unwrappedEvent: {
-      id: 'event-123',
-      pubkey: nostrKeys.bob.publicKeyHex,
-      content: JSON.stringify(nostrMessages.directMessage)
-    },
     eventContent: nostrMessages.directMessage as unknown as Record<
       string,
       unknown
     >,
     lastDataExchangeEOSE: 0,
-    syncStartSec: 0,
     onPendingDM: () => {},
+    syncStartSec: 0,
+    unwrappedEvent: {
+      id: 'event-123',
+      pubkey: nostrKeys.bob.publicKeyHex,
+      content: JSON.stringify(nostrMessages.directMessage)
+    },
     ...overrides
   })
 

@@ -54,8 +54,8 @@ export function processBitcoinContent(
 
   if (isPSBT(trimmed)) {
     return {
-      type: 'psbt',
-      content: trimmed
+      content: trimmed,
+      type: 'psbt'
     }
   }
 
@@ -64,11 +64,11 @@ export function processBitcoinContent(
     if (!parsed.isValid || !parsed.address) return null
 
     return {
-      type: 'bip21',
       address: parsed.address,
       amount: (parsed.amount || 0) * SATS_PER_BITCOIN || 1,
+      content: trimmed,
       label: parsed.label || '',
-      content: trimmed
+      type: 'bip21'
     }
   }
 
@@ -79,11 +79,11 @@ export function processBitcoinContent(
 
   if (validateAddress(processedAddress)) {
     return {
-      type: 'address',
       address: processedAddress,
       amount: 1,
+      content: trimmed,
       label: '',
-      content: trimmed
+      type: 'address'
     }
   }
 

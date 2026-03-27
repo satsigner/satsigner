@@ -124,10 +124,9 @@ export const useNodesAndLinks = ({
       let outputNodes: TxNode[] = []
 
       outputNodes = outputs.map((output, index) => ({
-        id: `vout-${blockDepth + 1}-${index + 1}`,
-        localId: output.localId,
-        type: 'text',
         depthH: blockDepth + 1,
+        id: `vout-${blockDepth + 1}-${index + 1}`,
+        indexV: index,
         ioData: {
           isUnspent: true,
           label: output.label,
@@ -138,8 +137,9 @@ export const useNodesAndLinks = ({
           fiatCurrency,
           isSelfSend: ownAddresses.has(output.to)
         },
+        localId: output.localId,
+        type: 'text',
         value: output.amount,
-        indexV: index,
         vout: index
       }))
 
@@ -147,9 +147,9 @@ export const useNodesAndLinks = ({
 
       if (remainingBalance > 0) {
         outputNodes.push({
-          id: `vout-${blockDepth + 1}-${outputs.length + 1}`,
-          type: 'text',
           depthH: blockDepth + 1,
+          id: `vout-${blockDepth + 1}-${outputs.length + 1}`,
+          indexV: outputs.length,
           ioData: {
             value: remainingBalance,
             fiatValue: formatNumber(satsToFiat(remainingBalance), 2),
@@ -157,10 +157,10 @@ export const useNodesAndLinks = ({
             text: t('transaction.build.unspent'),
             isUnspent: true
           },
+          localId: 'remainingBalance',
+          type: 'text',
           value: remainingBalance,
-          indexV: outputs.length,
-          vout: outputs.length,
-          localId: 'remainingBalance'
+          vout: outputs.length
         })
       }
 
@@ -181,10 +181,9 @@ export const useNodesAndLinks = ({
           : 0
 
       outputNodes.push({
-        id: `vout-${blockDepth + 1}-0`,
-        type: 'text',
         depthH: blockDepth + 1,
-        value: minerFee,
+        id: `vout-${blockDepth + 1}-0`,
+        indexV: outputs.length + (remainingBalance > 0 ? 1 : 0),
         ioData: {
           feeRate: Math.round(feeRate),
           minerFee,
@@ -195,18 +194,17 @@ export const useNodesAndLinks = ({
           higherFee: higherFeeForCurrentTx,
           feePercentage: Math.round(feePercentageForCurrentTx * 100) / 100
         },
-        indexV: outputs.length + (remainingBalance > 0 ? 1 : 0),
-        vout: outputs.length + (remainingBalance > 0 ? 1 : 0),
-        localId: 'current-minerFee'
+        localId: 'current-minerFee',
+        type: 'text',
+        value: minerFee,
+        vout: outputs.length + (remainingBalance > 0 ? 1 : 0)
       })
 
       return [
         {
-          localId: undefined,
-          id: `block-${blockDepth}-0`,
-          type: 'block',
           depthH: blockDepth,
-          value: totalOutputValue - minerFee,
+          id: `block-${blockDepth}-0`,
+          indexV: 0,
           ioData: {
             blockHeight: '',
             blockRelativeTime: '',
@@ -215,7 +213,9 @@ export const useNodesAndLinks = ({
             vSize: vsize,
             value: totalOutputValue - minerFee
           },
-          indexV: 0
+          localId: undefined,
+          type: 'block',
+          value: totalOutputValue - minerFee
         } as TxNode,
         ...outputNodes
       ]
@@ -251,10 +251,10 @@ export const useNodesAndLinks = ({
     () =>
       Array.from(transactions.values()).flatMap((tx) =>
         tx.vin.map((input) => ({
-          txid: tx.id,
           inputTxId: input.previousOutput.txid,
-          vout: input.previousOutput.vout,
-          prevValue: input.value
+          prevValue: input.value,
+          txid: tx.id,
+          vout: input.previousOutput.vout
         }))
       ),
     [transactions]
@@ -304,9 +304,8 @@ export const useNodesAndLinks = ({
             //   input.indexV = currentIndex
             // }
             const node = {
-              id: `vin-${depthH}-${currentIndex}`,
-              type: 'text',
               depthH,
+              id: `vin-${depthH}-${currentIndex}`,
               ioData: {
                 value: input.value,
                 fiatValue: formatNumber(satsToFiat(input.value ?? 0), 2),
@@ -317,9 +316,10 @@ export const useNodesAndLinks = ({
                 text: t('common.from'),
                 isSelfSend: ownAddresses.has(input.address)
               },
-              value: input.value,
-              txId: tx.id,
               prevout: input.previousOutput,
+              txId: tx.id,
+              type: 'text',
+              value: input.value,
               vout: input.previousOutput.vout
             }
 
@@ -339,9 +339,9 @@ export const useNodesAndLinks = ({
           blockDepthIndices.set(blockDepth, blockIndex + 1)
           const blockNode = [
             {
-              id: `block-${blockDepth}-${blockIndex}`,
-              type: 'block',
               depthH: blockDepth,
+              id: `block-${blockDepth}-${blockIndex}`,
+              indexV: blockIndex,
               ioData: {
                 blockTime,
                 blockHeight,
@@ -351,7 +351,7 @@ export const useNodesAndLinks = ({
                 txId: formatTxId(tx?.id, 6)
               },
               txId: tx.id,
-              indexV: blockIndex
+              type: 'block'
             }
           ]
 
@@ -376,10 +376,8 @@ export const useNodesAndLinks = ({
               )?.label ?? ''
 
             const node = {
-              localId: undefined,
-              id: `vout-${outputDepth}-${output.index}`,
-              type: 'text',
               depthH: outputDepth,
+              id: `vout-${outputDepth}-${output.index}`,
               ioData: {
                 label,
                 address: formatAddress(output.address, 4),
@@ -389,9 +387,11 @@ export const useNodesAndLinks = ({
                 text: t('common.from'),
                 isSelfSend: ownAddresses.has(output.address)
               },
-              value: output.value,
-              txId: tx.id,
+              localId: undefined,
               nextTx,
+              txId: tx.id,
+              type: 'text',
+              value: output.value,
               vout: idx
             }
             return node
@@ -423,14 +423,14 @@ export const useNodesAndLinks = ({
               txId: tx.id,
               vout: feeVoutIndex,
               ioData: {
+                feePercentage: Math.round(feePercentageForPastTx * 100) / 100,
                 feeRate: minerFeeRate,
-                value: minerFee,
-                minerFee,
-                fiatValue: formatNumber(satsToFiat(minerFee), 2),
                 fiatCurrency,
-                text: t('transaction.build.minerFee'),
+                fiatValue: formatNumber(satsToFiat(minerFee), 2),
                 higherFee: higherFeeForPastTx,
-                feePercentage: Math.round(feePercentageForPastTx * 100) / 100
+                minerFee,
+                text: t('transaction.build.minerFee'),
+                value: minerFee
               },
               localId: 'past-minerFee'
             })
@@ -568,6 +568,6 @@ export const useNodesAndLinks = ({
     outputNodesCurrentTransaction,
     inputs
   ])
-  if (transactions.size === 0) return { nodes: [], links: [] }
-  return { nodes, links }
+  if (transactions.size === 0) return { links: [], nodes: [] }
+  return { links, nodes }
 }

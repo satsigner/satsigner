@@ -60,9 +60,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[950]
   },
   bottomSheet: {
-    borderTopWidth: 1,
+    borderColor: Colors.gray[500],
     borderRadius: 6,
-    borderColor: Colors.gray[500]
+    borderTopWidth: 1
   },
   handle: {
     display: 'none'

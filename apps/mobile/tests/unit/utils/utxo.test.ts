@@ -10,13 +10,13 @@ describe('efficiency UTXO Selection Algorithm', () => {
   // helper function to create mock utxos
   function createMockUtxos(value: number[]) {
     return value.map((value, index) => ({
-      txid: `tx${index}`,
-      vout: 0,
-      value,
-      label: '',
-      keychain: 'external' as const,
       effectiveValue: value,
-      scriptType: 'p2wpkh' as const
+      keychain: 'external' as const,
+      label: '',
+      scriptType: 'p2wpkh' as const,
+      txid: `tx${index}`,
+      value,
+      vout: 0
     }))
   }
 
@@ -81,28 +81,28 @@ describe('efficiency UTXO Selection Algorithm', () => {
   it('should handle extremely small values correctly', () => {
     const utxos = [
       {
-        txid: 'tx1',
-        vout: 0,
-        value: 1,
-        keychain: 'external' as const,
         effectiveValue: 1,
-        scriptType: 'p2wpkh' as const
+        keychain: 'external' as const,
+        scriptType: 'p2wpkh' as const,
+        txid: 'tx1',
+        value: 1,
+        vout: 0
       }, // 1 satoshi
       {
-        txid: 'tx2',
-        vout: 0,
-        value: 2,
-        keychain: 'external' as const,
         effectiveValue: 2,
-        scriptType: 'p2wpkh' as const
+        keychain: 'external' as const,
+        scriptType: 'p2wpkh' as const,
+        txid: 'tx2',
+        value: 2,
+        vout: 0
       }, // 2 satoshis
       {
-        txid: 'tx3',
-        vout: 0,
-        value: 10000,
-        keychain: 'external' as const,
         effectiveValue: 10000,
-        scriptType: 'p2wpkh' as const
+        keychain: 'external' as const,
+        scriptType: 'p2wpkh' as const,
+        txid: 'tx3',
+        value: 10000,
+        vout: 0
       } // One normal UTXO
     ]
 
@@ -124,14 +124,14 @@ describe('stonewall utxo selection algorithm', () => {
     options?: { scriptTypes?: ('p2pkh' | 'p2wpkh' | 'p2sh-p2wpkh')[] }
   ) {
     return values.map((value, index) => ({
-      txid: `tx${index}`,
-      vout: 0,
-      value,
       confirmations: 6,
-      scriptPubKey: 'mock-script',
-      keychain: 'external' as const,
       effectiveValue: value,
-      scriptType: options?.scriptTypes?.[0] || 'p2wpkh'
+      keychain: 'external' as const,
+      scriptPubKey: 'mock-script',
+      scriptType: options?.scriptTypes?.[0] || 'p2wpkh',
+      txid: `tx${index}`,
+      value,
+      vout: 0
     }))
   }
 
@@ -217,42 +217,42 @@ describe('stonewall utxo selection algorithm', () => {
     const mockSolution = {
       inputs: [
         {
-          txid: 'tx1',
-          vout: 0,
-          value: 10000,
-          keychain: 'external' as const,
           effectiveValue: 10000,
-          scriptType: 'p2wpkh' as const
+          keychain: 'external' as const,
+          scriptType: 'p2wpkh' as const,
+          txid: 'tx1',
+          value: 10000,
+          vout: 0
         },
         {
-          txid: 'tx2',
-          vout: 0,
-          value: 20000,
-          keychain: 'external' as const,
           effectiveValue: 20000,
-          scriptType: 'p2wpkh' as const
+          keychain: 'external' as const,
+          scriptType: 'p2wpkh' as const,
+          txid: 'tx2',
+          value: 20000,
+          vout: 0
         },
         {
-          txid: 'tx3',
-          vout: 0,
-          value: 30000,
-          keychain: 'external' as const,
           effectiveValue: 30000,
-          scriptType: 'p2wpkh' as const
+          keychain: 'external' as const,
+          scriptType: 'p2wpkh' as const,
+          txid: 'tx3',
+          value: 30000,
+          vout: 0
         },
         {
-          txid: 'tx4',
-          vout: 0,
-          value: 40000,
-          keychain: 'external' as const,
           effectiveValue: 40000,
-          scriptType: 'p2wpkh' as const
+          keychain: 'external' as const,
+          scriptType: 'p2wpkh' as const,
+          txid: 'tx4',
+          value: 40000,
+          vout: 0
         }
       ],
       outputs: [
-        { type: 'p2wpkh', value: 50000, recipient: true, size: 31 },
-        { type: 'p2wpkh', value: 25000, size: 31 },
-        { type: 'p2wpkh', value: 20000, size: 31 }
+        { recipient: true, size: 31, type: 'p2wpkh', value: 50000 },
+        { size: 31, type: 'p2wpkh', value: 25000 },
+        { size: 31, type: 'p2wpkh', value: 20000 }
       ]
     }
 

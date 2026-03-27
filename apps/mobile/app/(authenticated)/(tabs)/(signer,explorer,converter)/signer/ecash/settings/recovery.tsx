@@ -122,13 +122,13 @@ export default function EcashRecoveryPage() {
         `This will restore:\n• ${mintCount} mint(s)\n• ${proofCount} proof(s)\n• ${transactionCount} transaction(s)\n• ${formatNumber(totalBalance)} sats total balance\n\nThis will replace all current ecash data. Continue?`,
         [
           {
-            text: t('common.cancel'),
-            style: 'cancel'
+            style: 'cancel',
+            text: t('common.cancel')
           },
           {
-            text: t('ecash.recovery.restore'),
+            onPress: () => handleRestoreBackup(validatedData),
             style: 'destructive',
-            onPress: () => handleRestoreBackup(validatedData)
+            text: t('ecash.recovery.restore')
           }
         ]
       )
@@ -145,10 +145,10 @@ export default function EcashRecoveryPage() {
     <SSMainLayout>
       <Stack.Screen
         options={{
+          headerRight: () => null,
           headerTitle: () => (
             <SSText uppercase>{t('ecash.recovery.title')}</SSText>
-          ),
-          headerRight: () => null
+          )
         }}
       />
       <ScrollView>
@@ -189,13 +189,13 @@ export default function EcashRecoveryPage() {
 
 const styles = StyleSheet.create({
   backupInput: {
-    minHeight: 200,
-    textAlignVertical: 'top',
     fontFamily: 'monospace',
     fontSize: 12,
-    padding: 10,
     height: 'auto',
-    width: '100%',
-    textAlign: 'left'
+    minHeight: 200,
+    padding: 10,
+    textAlign: 'left',
+    textAlignVertical: 'top',
+    width: '100%'
   }
 })

@@ -5,11 +5,11 @@ import { nostrSyncService, resetInstance } from '@/utils/nostrSyncService'
 // Mock dependencies
 jest.mock<typeof import('@/api/nostr')>('@/api/nostr', () => ({
   NostrAPI: jest.fn().mockReturnValue({
-    connect: jest.fn().mockResolvedValue(true),
-    subscribeToKind1059: jest.fn().mockResolvedValue(undefined),
-    flushQueue: jest.fn().mockResolvedValue(undefined),
     closeAllSubscriptions: jest.fn().mockResolvedValue(undefined),
-    setLoadingCallback: jest.fn()
+    connect: jest.fn().mockResolvedValue(true),
+    flushQueue: jest.fn().mockResolvedValue(undefined),
+    setLoadingCallback: jest.fn(),
+    subscribeToKind1059: jest.fn().mockResolvedValue(undefined)
   })
 }))
 
@@ -23,12 +23,12 @@ jest.mock<typeof import('@/storage/mmkv')>('@/storage/mmkv', () => {
   return {
     __esModule: true,
     default: {
-      setItem: jest.fn((name: string, value: string) => {
-        storage[name] = value
-      }),
       getItem: jest.fn((name: string) => storage[name] ?? null),
       removeItem: jest.fn((name: string) => {
         delete storage[name]
+      }),
+      setItem: jest.fn((name: string, value: string) => {
+        storage[name] = value
       })
     }
   }
@@ -39,26 +39,15 @@ jest.mock<typeof import('@/utils/nostr')>('@/utils/nostr', () => ({
 }))
 
 const mockAccount: Account = {
+  addresses: [],
+  createdAt: new Date(),
   id: 'test-account-1',
+  keyCount: 1,
+  keys: [],
+  keysRequired: 1,
+  labels: {},
   name: 'Test Account',
   network: 'bitcoin',
-  policyType: 'singlesig',
-  keyCount: 1,
-  keysRequired: 1,
-  keys: [],
-  addresses: [],
-  transactions: [],
-  utxos: [],
-  labels: {},
-  createdAt: new Date(),
-  syncStatus: 'unsynced',
-  summary: {
-    balance: 0,
-    numberOfAddresses: 0,
-    numberOfTransactions: 0,
-    numberOfUtxos: 0,
-    satsInMempool: 0
-  },
   nostr: {
     autoSync: true,
     relays: ['wss://relay.damus.io'],
@@ -70,7 +59,18 @@ const mockAccount: Account = {
     lastUpdated: new Date(),
     syncStart: new Date(),
     trustedMemberDevices: []
-  }
+  },
+  policyType: 'singlesig',
+  summary: {
+    balance: 0,
+    numberOfAddresses: 0,
+    numberOfTransactions: 0,
+    numberOfUtxos: 0,
+    satsInMempool: 0
+  },
+  syncStatus: 'unsynced',
+  transactions: [],
+  utxos: []
 }
 
 describe('nostrSyncService', () => {
@@ -82,16 +82,16 @@ describe('nostrSyncService', () => {
     mockProcessor = jest.fn()
 
     useNostrStore.setState({
-      members: {},
-      processedMessageIds: {},
-      processedEvents: {},
-      lastProtocolEOSE: {},
-      lastDataExchangeEOSE: {},
-      trustedDevices: {},
-      syncStatus: {},
       activeSubscriptions: new Set(),
+      lastDataExchangeEOSE: {},
+      lastProtocolEOSE: {},
+      members: {},
+      processedEvents: {},
+      processedMessageIds: {},
+      syncStatus: {},
       syncingAccounts: {},
-      transactionToShare: null
+      transactionToShare: null,
+      trustedDevices: {}
     })
   })
 

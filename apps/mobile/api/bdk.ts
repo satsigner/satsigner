@@ -134,7 +134,7 @@ async function getWalletData(
             fingerprint = getFingerprintFromExtendedPublicKey(extendedPublicKey)
           }
 
-          return { fingerprint, extendedPublicKey, index: keyIndex }
+          return { extendedPublicKey, fingerprint, index: keyIndex }
         })
       )
 
@@ -293,11 +293,11 @@ async function getWalletData(
         )
 
         return {
-          fingerprint: parsedDescriptor.fingerprint,
           derivationPath: parsedDescriptor.derivationPath,
           externalDescriptor: externalDescriptor
             ? await externalDescriptor.asString()
             : '',
+          fingerprint: parsedDescriptor.fingerprint,
           internalDescriptor: internalDescriptor
             ? await internalDescriptor.asString()
             : '',
@@ -407,11 +407,11 @@ async function getWalletData(
         )
 
         return {
-          fingerprint: parsedDescriptor.fingerprint,
           derivationPath: parsedDescriptor.derivationPath,
           externalDescriptor: externalDescriptor
             ? await externalDescriptor.asString()
             : '',
+          fingerprint: parsedDescriptor.fingerprint,
           internalDescriptor: internalDescriptor
             ? await internalDescriptor.asString()
             : '',
@@ -496,11 +496,11 @@ async function getWalletDataFromMnemonic(
   ])
 
   return {
-    fingerprint,
     derivationPath,
     externalDescriptor: externalDescriptor
       ? await externalDescriptor.asString()
       : '',
+    fingerprint,
     internalDescriptor: internalDescriptor
       ? await internalDescriptor.asString()
       : '',
@@ -559,13 +559,13 @@ async function getDescriptorObject(
 // TODO: refactor it to be synchronous and replace occurrences
 async function parseDescriptor(descriptor: Descriptor) {
   if (!descriptor) {
-    return { fingerprint: '', derivationPath: '' }
+    return { derivationPath: '', fingerprint: '' }
   }
   const descriptorString = await descriptor.asString()
   const match = descriptorString.match(/\[([0-9a-f]+)([0-9'/]+)\]/)
   return match
-    ? { fingerprint: match[1], derivationPath: `m${match[2]}` }
-    : { fingerprint: '', derivationPath: '' }
+    ? { derivationPath: `m${match[2]}`, fingerprint: match[1] }
+    : { derivationPath: '', fingerprint: '' }
 }
 
 async function getWalletFromDescriptor(
@@ -639,18 +639,18 @@ async function getWalletAddresses(
     const receiveAddr = address ? await address.asString() : ''
     addresses.push({
       address: receiveAddr,
-      keychain: 'external',
-      transactions: [],
-      utxos: [],
       index: i,
-      network: network as BlockchainNetwork,
+      keychain: 'external',
       label: '',
+      network: network as BlockchainNetwork,
       summary: {
         transactions: 0,
         utxos: 0,
         balance: 0,
         satsInMempool: 0
-      }
+      },
+      transactions: [],
+      utxos: []
     })
 
     const changeAddrInfo = await wallet.getInternalAddress(i)
@@ -660,18 +660,18 @@ async function getWalletAddresses(
 
     addresses.push({
       address: changeAddr,
-      keychain: 'internal',
-      transactions: [],
-      utxos: [],
       index: i,
-      network: network as BlockchainNetwork,
+      keychain: 'internal',
       label: '',
+      network: network as BlockchainNetwork,
       summary: {
         transactions: 0,
         utxos: 0,
         balance: 0,
         satsInMempool: 0
-      }
+      },
+      transactions: [],
+      utxos: []
     })
   }
 
@@ -702,18 +702,18 @@ async function getWalletAddressesUsingStopGap(
       : ''
     addresses.push({
       address: receiveAddr,
-      keychain: 'external',
-      transactions: [],
-      utxos: [],
       index: i,
-      network: network as BlockchainNetwork,
+      keychain: 'external',
       label: '',
+      network: network as BlockchainNetwork,
       summary: {
         transactions: 0,
         utxos: 0,
         balance: 0,
         satsInMempool: 0
-      }
+      },
+      transactions: [],
+      utxos: []
     })
 
     if (seenAddresses[receiveAddr] !== undefined) {
@@ -727,18 +727,18 @@ async function getWalletAddressesUsingStopGap(
 
     addresses.push({
       address: changeAddr,
-      keychain: 'internal',
-      transactions: [],
-      utxos: [],
       index: i,
-      network: network as BlockchainNetwork,
+      keychain: 'internal',
       label: '',
+      network: network as BlockchainNetwork,
       summary: {
         transactions: 0,
         utxos: 0,
         balance: 0,
         satsInMempool: 0
-      }
+      },
+      transactions: [],
+      utxos: []
     })
 
     // Extend stop-gap for internal (change) addresses too so high-index
@@ -758,8 +758,6 @@ async function getWalletOverview(
 ): Promise<Pick<Account, 'transactions' | 'utxos' | 'addresses' | 'summary'>> {
   if (!wallet) {
     return {
-      transactions: [],
-      utxos: [],
       addresses: [],
       summary: {
         balance: 0,
@@ -767,7 +765,9 @@ async function getWalletOverview(
         numberOfTransactions: 0,
         numberOfUtxos: 0,
         satsInMempool: 0
-      }
+      },
+      transactions: [],
+      utxos: []
     }
   }
 
@@ -807,14 +807,14 @@ async function getWalletOverview(
   )
 
   addresses = parseAccountAddressesDetails({
-    transactions,
-    utxos,
     addresses,
     keys: [
       {
         scriptVersion: undefined
       }
-    ]
+    ],
+    transactions,
+    utxos
   } as Account)
 
   const seenAddress: Record<string, boolean> = {}
@@ -835,15 +835,15 @@ async function getWalletOverview(
 
   return {
     addresses,
-    transactions,
-    utxos,
     summary: {
       balance: balance.confirmed,
       numberOfAddresses,
       numberOfTransactions: transactionsDetails.length,
       numberOfUtxos: localUtxos.length,
       satsInMempool: balance.trustedPending + balance.untrustedPending
-    }
+    },
+    transactions,
+    utxos
   }
 }
 
@@ -959,7 +959,7 @@ async function parseTransactionDetailsToTransaction(
       } catch {
         // Intentionally ignore: non-standard scripts (OP_RETURN, bare multisig, etc.) can't be converted to addresses; leave address empty
       }
-      vout.push({ value, address: outputAddress, script })
+      vout.push({ address: outputAddress, script, value })
     }
 
     if (raw?.length) {
@@ -970,27 +970,27 @@ async function parseTransactionDetailsToTransaction(
   }
 
   return {
-    id: txid,
-    type: sent ? 'send' : 'receive',
-    sent,
-    received,
-    label: '',
+    address,
+    blockHeight: confirmationTime?.height,
     fee,
+    id: txid,
+    label: '',
+    lockTime,
+    lockTimeEnabled,
     prices: {},
+    raw,
+    received,
+    sent,
+    size,
     timestamp: confirmationTime?.timestamp
       ? new Date(confirmationTime.timestamp * 1000)
       : undefined,
-    blockHeight: confirmationTime?.height,
-    address,
-    size,
-    vsize,
-    vout,
+    type: sent ? 'send' : 'receive',
     version,
-    weight,
-    lockTime,
-    lockTimeEnabled,
-    raw,
-    vin
+    vin,
+    vout,
+    vsize,
+    weight
   }
 }
 
@@ -1014,16 +1014,16 @@ async function parseLocalUtxoToUtxo(
   }
 
   return {
-    txid: transactionId,
-    vout: localUtxo?.outpoint.vout,
-    value: localUtxo?.txout.value,
+    addressTo,
+    keychain: 'external',
+    label: '',
+    script,
     timestamp: transactionDetails?.confirmationTime?.timestamp
       ? new Date(transactionDetails.confirmationTime.timestamp * 1000)
       : undefined,
-    label: '',
-    addressTo,
-    script,
-    keychain: 'external'
+    txid: transactionId,
+    value: localUtxo?.txout.value,
+    vout: localUtxo?.outpoint.vout
   }
 }
 

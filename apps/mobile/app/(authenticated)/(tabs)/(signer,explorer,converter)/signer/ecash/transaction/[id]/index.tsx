@@ -583,7 +583,6 @@ export default function EcashTransactionDetailPage() {
 }
 
 const styles = StyleSheet.create({
-  headerCard: {},
   dataInput: {
     minHeight: 120,
     height: 'auto',
@@ -591,5 +590,6 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     fontSize: 12,
     padding: 12
-  }
+  },
+  headerCard: {}
 })

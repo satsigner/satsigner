@@ -47,13 +47,13 @@ function SSUtxoSizeMeter({
 }
 
 const styles = StyleSheet.create({
+  backgroundBarBase: {
+    backgroundColor: Colors.gray[850],
+    height: 2
+  },
   containerBase: {
     position: 'absolute',
     width: '100%',
-    height: 2
-  },
-  backgroundBarBase: {
-    backgroundColor: Colors.gray[850],
     height: 2
   },
   sizeBarBase: {

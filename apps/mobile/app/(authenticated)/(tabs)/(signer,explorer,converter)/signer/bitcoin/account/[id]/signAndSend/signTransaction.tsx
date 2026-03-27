@@ -96,23 +96,23 @@ export default function SignTransaction() {
     )
 
     const vin = Array.from(inputs.values()).map((input: Utxo) => ({
+      label: input.label || '',
       previousOutput: { txid: input.txid, vout: input.vout },
-      value: input.value,
-      label: input.label || ''
+      value: input.value
     }))
 
     const vout = outputs.map((output: Output) => ({
       address: output.to,
-      value: output.amount,
-      label: output.label || ''
+      label: output.label || '',
+      value: output.amount
     }))
 
     return {
       id: txBuilderResult.txDetails.txid,
       size,
-      vsize,
       vin,
-      vout
+      vout,
+      vsize
     } as never as Transaction
   }, [inputs, outputs, txBuilderResult])
 
@@ -254,7 +254,7 @@ export default function SignTransaction() {
 
   return (
     <>
-      <SSMainLayout style={{ paddingTop: 0, paddingBottom: 20 }}>
+      <SSMainLayout style={{ paddingBottom: 20, paddingTop: 0 }}>
         <ScrollView>
           <SSVStack justifyBetween style={{ minHeight: '100%' }}>
             <SSVStack itemsCenter>
@@ -288,7 +288,7 @@ export default function SignTransaction() {
                   {t('transaction.build.preview.contents')}
                 </SSText>
                 {transaction && (
-                  <View style={{ width: '100%', overflow: 'hidden' }}>
+                  <View style={{ overflow: 'hidden', width: '100%' }}>
                     <SSTransactionChart
                       transaction={transaction}
                       ownAddresses={ownAddresses}

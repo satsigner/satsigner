@@ -32,8 +32,8 @@ function TransactionLabel() {
     const singleLabelData: Label = {
       label,
       ref: txid!,
-      type: 'tx',
-      spendable: true
+      spendable: true,
+      type: 'tx'
     }
 
     if (updatedAccount?.nostr?.autoSync) {

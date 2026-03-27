@@ -58,9 +58,31 @@ function SSTextInput(
 }
 
 const styles = StyleSheet.create({
+  actionRightBase: {
+    position: 'absolute',
+    top: '50%',
+    right: 12,
+    transform: [{ translateY: -12 }]
+  },
+  alignCenter: {
+    textAlign: 'center',
+    paddingHorizontal: 12
+  },
+  alignLeft: {
+    textAlign: 'left',
+    paddingHorizontal: 12
+  },
   containerBase: {
     position: 'relative',
     width: '100%'
+  },
+  sizeDefault: {
+    fontSize: Sizes.textInput.fontSize.default,
+    height: Sizes.textInput.height.default
+  },
+  sizeSmall: {
+    fontSize: Sizes.textInput.fontSize.small,
+    height: Sizes.textInput.height.small
   },
   textInputBase: {
     borderRadius: Sizes.textInput.borderRadius,
@@ -74,28 +96,6 @@ const styles = StyleSheet.create({
   variantOutline: {
     borderWidth: 1,
     borderColor: Colors.gray[400]
-  },
-  sizeDefault: {
-    fontSize: Sizes.textInput.fontSize.default,
-    height: Sizes.textInput.height.default
-  },
-  sizeSmall: {
-    fontSize: Sizes.textInput.fontSize.small,
-    height: Sizes.textInput.height.small
-  },
-  alignCenter: {
-    textAlign: 'center',
-    paddingHorizontal: 12
-  },
-  alignLeft: {
-    textAlign: 'left',
-    paddingHorizontal: 12
-  },
-  actionRightBase: {
-    position: 'absolute',
-    top: '50%',
-    right: 12,
-    transform: [{ translateY: -12 }]
   }
 })
 

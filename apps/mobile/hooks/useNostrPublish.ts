@@ -71,8 +71,8 @@ function useNostrPublish() {
     let nostrApi: NostrAPI | null = null
     const messageContent = {
       created_at: Math.floor(Date.now() / 1000),
-      description: 'PSBT for signing',
-      data: { data: psbt, data_type: 'PSBT' }
+      data: { data: psbt, data_type: 'PSBT' },
+      description: 'PSBT for signing'
     }
 
     const compressedMessage = compressMessage(messageContent)

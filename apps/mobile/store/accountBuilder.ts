@@ -129,17 +129,155 @@ const useAccountBuilderStore = create<
   AccountBuilderState & AccountBuilderAction
 >()((set, get) => ({
   ...initialState,
-  setName: (name) => {
-    set({ name })
+  clearAccount: () => {
+    set({ ...initialState })
   },
-  setNetwork: (network) => {
-    set({ network })
+  clearAllKeys: () => {
+    const { name, network, policyType, scriptVersion, keyCount, keysRequired } =
+      get()
+    set({
+      name,
+      network,
+      policyType,
+      scriptVersion,
+      keyCount,
+      keysRequired,
+      keyName: '',
+      creationType: 'importMnemonic',
+      entropy: 'none',
+      mnemonicWordCount: 24,
+      mnemonic: '',
+      passphrase: undefined,
+      externalDescriptor: undefined,
+      internalDescriptor: undefined,
+      extendedPublicKey: undefined,
+      fingerprint: undefined,
+      keys: []
+    })
   },
-  setPolicyType: (policyType) => {
-    set({ policyType })
+  clearKeyState: () => {
+    const { policyType, creationType, keys, scriptVersion } = get()
+    const extendedPublicKey =
+      keys[0]?.secret && typeof keys[0].secret === 'object'
+        ? keys[0].secret.extendedPublicKey
+        : undefined
+
+    const externalDescriptor =
+      keys[0]?.secret && typeof keys[0].secret === 'object'
+        ? keys[0].secret.externalDescriptor
+        : undefined
+
+    const internalDescriptor =
+      keys[0]?.secret && typeof keys[0].secret === 'object'
+        ? keys[0].secret.internalDescriptor
+        : undefined
+
+    set({
+      keyName: '',
+      creationType,
+      entropy: 'none',
+      mnemonicWordCount: 24,
+      mnemonic: '',
+      passphrase: undefined,
+      fingerprint: undefined,
+      scriptVersion,
+      externalDescriptor,
+      internalDescriptor,
+      extendedPublicKey,
+      policyType
+    })
   },
-  setKeyName: (keyName) => {
-    set({ keyName })
+  dropSeedFromKey: async (index) => {
+    // TODO: store should not be the one responsible for validation & error
+    // handling, it should only care about updating current state. Also, ideally
+    // this should be synchronous code and not async.
+    const state = get()
+    if (!state.keys[index] || !state.keys[index].secret) {
+      return {
+        success: false,
+        message: 'Key not found or invalid'
+      }
+    }
+
+    try {
+      const newKey = await dropSeedFromKey(state.keys[index])
+      set(
+        produce((state: AccountBuilderState) => {
+          state.keys[index] = newKey
+        })
+      )
+      return {
+        success: true,
+        message: 'Seed dropped successfully'
+      }
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : 'unknown reason'
+      return {
+        success: false,
+        message: `Failed to drop seed: ${reason}`
+      }
+    }
+  },
+  getAccountData: () => {
+    const { name, network, policyType, keys, keyCount, keysRequired } = get()
+
+    const account: Account = {
+      id: randomUuid(),
+      name,
+      network,
+      policyType,
+      keys,
+      keyCount,
+      keysRequired,
+      summary: {
+        balance: 0,
+        numberOfAddresses: 0,
+        numberOfTransactions: 0,
+        numberOfUtxos: 0,
+        satsInMempool: 0
+      },
+      labels: {},
+      transactions: [],
+      utxos: [],
+      addresses: [],
+      createdAt: new Date(),
+      lastSyncedAt: new Date(),
+      syncStatus: 'unsynced',
+      syncProgress: {
+        tasksDone: 0,
+        totalTasks: 0
+      },
+      nostr: {
+        commonNpub: '',
+        commonNsec: '',
+        relays: [],
+        autoSync: false,
+        deviceNpub: '',
+        deviceNsec: '',
+        trustedMemberDevices: [],
+        dms: [] as NostrDM[],
+        lastUpdated: new Date(),
+        syncStart: new Date()
+      }
+    }
+
+    return account
+  },
+  resetKey: (index) => {
+    set(
+      produce((state: AccountBuilderState) => {
+        state.keys[index] = {
+          index,
+          name: '',
+          creationType: undefined as any,
+          secret: undefined as any,
+          iv: undefined as any,
+          fingerprint: undefined as any,
+          scriptVersion: undefined as any,
+          mnemonicWordCount: undefined as any
+        }
+      })
+    )
   },
   setCreationType: (creationType) => {
     set({ creationType })
@@ -147,32 +285,17 @@ const useAccountBuilderStore = create<
   setEntropy: (entropy) => {
     set({ entropy })
   },
-  setMnemonicWordCount: (mnemonicWordCount) => {
-    set({ mnemonicWordCount })
-  },
-  setMnemonicWordList: (mnemonicWordList) => {
-    set({ mnemonicWordList })
-  },
-  setMnemonic: (mnemonic) => {
-    set({ mnemonic })
-  },
-  setPassphrase: (passphrase) => {
-    set({ passphrase })
+  setExtendedPublicKey: (extendedPublicKey) => {
+    set({ extendedPublicKey })
   },
   setExternalDescriptor: (externalDescriptor) => {
     set({ externalDescriptor })
   },
-  setInternalDescriptor: (internalDescriptor) => {
-    set({ internalDescriptor })
-  },
-  setExtendedPublicKey: (extendedPublicKey) => {
-    set({ extendedPublicKey })
-  },
   setFingerprint: (fingerprint) => {
     set({ fingerprint })
   },
-  setScriptVersion: (scriptVersion) => {
-    set({ scriptVersion })
+  setInternalDescriptor: (internalDescriptor) => {
+    set({ internalDescriptor })
   },
   setKey: (index) => {
     const {
@@ -234,14 +357,47 @@ const useAccountBuilderStore = create<
 
     return key
   },
-  updateKeySecret: (index, newSecret) => {
+  setKeyCount: (keyCount) => {
+    set({ keyCount })
+  },
+  setKeyDerivationPath: (index, derivationPath) => {
     set(
       produce((state: AccountBuilderState) => {
         if (state.keys[index]) {
-          state.keys[index].secret = newSecret
+          state.keys[index].derivationPath = derivationPath
         }
       })
     )
+  },
+  setKeyName: (keyName) => {
+    set({ keyName })
+  },
+  setKeysRequired: (keysRequired) => {
+    set({ keysRequired })
+  },
+  setMnemonic: (mnemonic) => {
+    set({ mnemonic })
+  },
+  setMnemonicWordCount: (mnemonicWordCount) => {
+    set({ mnemonicWordCount })
+  },
+  setMnemonicWordList: (mnemonicWordList) => {
+    set({ mnemonicWordList })
+  },
+  setName: (name) => {
+    set({ name })
+  },
+  setNetwork: (network) => {
+    set({ network })
+  },
+  setPassphrase: (passphrase) => {
+    set({ passphrase })
+  },
+  setPolicyType: (policyType) => {
+    set({ policyType })
+  },
+  setScriptVersion: (scriptVersion) => {
+    set({ scriptVersion })
   },
   updateKeyFingerprint: (index, fingerprint) => {
     set(
@@ -258,167 +414,11 @@ const useAccountBuilderStore = create<
       })
     )
   },
-  setKeyDerivationPath: (index, derivationPath) => {
+  updateKeySecret: (index, newSecret) => {
     set(
       produce((state: AccountBuilderState) => {
         if (state.keys[index]) {
-          state.keys[index].derivationPath = derivationPath
-        }
-      })
-    )
-  },
-  setKeyCount: (keyCount) => {
-    set({ keyCount })
-  },
-  setKeysRequired: (keysRequired) => {
-    set({ keysRequired })
-  },
-  getAccountData: () => {
-    const { name, network, policyType, keys, keyCount, keysRequired } = get()
-
-    const account: Account = {
-      id: randomUuid(),
-      name,
-      network,
-      policyType,
-      keys,
-      keyCount,
-      keysRequired,
-      summary: {
-        balance: 0,
-        numberOfAddresses: 0,
-        numberOfTransactions: 0,
-        numberOfUtxos: 0,
-        satsInMempool: 0
-      },
-      labels: {},
-      transactions: [],
-      utxos: [],
-      addresses: [],
-      createdAt: new Date(),
-      lastSyncedAt: new Date(),
-      syncStatus: 'unsynced',
-      syncProgress: {
-        tasksDone: 0,
-        totalTasks: 0
-      },
-      nostr: {
-        commonNpub: '',
-        commonNsec: '',
-        relays: [],
-        autoSync: false,
-        deviceNpub: '',
-        deviceNsec: '',
-        trustedMemberDevices: [],
-        dms: [] as NostrDM[],
-        lastUpdated: new Date(),
-        syncStart: new Date()
-      }
-    }
-
-    return account
-  },
-  clearKeyState: () => {
-    const { policyType, creationType, keys, scriptVersion } = get()
-    const extendedPublicKey =
-      keys[0]?.secret && typeof keys[0].secret === 'object'
-        ? keys[0].secret.extendedPublicKey
-        : undefined
-
-    const externalDescriptor =
-      keys[0]?.secret && typeof keys[0].secret === 'object'
-        ? keys[0].secret.externalDescriptor
-        : undefined
-
-    const internalDescriptor =
-      keys[0]?.secret && typeof keys[0].secret === 'object'
-        ? keys[0].secret.internalDescriptor
-        : undefined
-
-    set({
-      keyName: '',
-      creationType,
-      entropy: 'none',
-      mnemonicWordCount: 24,
-      mnemonic: '',
-      passphrase: undefined,
-      fingerprint: undefined,
-      scriptVersion,
-      externalDescriptor,
-      internalDescriptor,
-      extendedPublicKey,
-      policyType
-    })
-  },
-  clearAccount: () => {
-    set({ ...initialState })
-  },
-  clearAllKeys: () => {
-    const { name, network, policyType, scriptVersion, keyCount, keysRequired } =
-      get()
-    set({
-      name,
-      network,
-      policyType,
-      scriptVersion,
-      keyCount,
-      keysRequired,
-      keyName: '',
-      creationType: 'importMnemonic',
-      entropy: 'none',
-      mnemonicWordCount: 24,
-      mnemonic: '',
-      passphrase: undefined,
-      externalDescriptor: undefined,
-      internalDescriptor: undefined,
-      extendedPublicKey: undefined,
-      fingerprint: undefined,
-      keys: []
-    })
-  },
-  dropSeedFromKey: async (index) => {
-    // TODO: store should not be the one responsible for validation & error
-    // handling, it should only care about updating current state. Also, ideally
-    // this should be synchronous code and not async.
-    const state = get()
-    if (!state.keys[index] || !state.keys[index].secret) {
-      return {
-        success: false,
-        message: 'Key not found or invalid'
-      }
-    }
-
-    try {
-      const newKey = await dropSeedFromKey(state.keys[index])
-      set(
-        produce((state: AccountBuilderState) => {
-          state.keys[index] = newKey
-        })
-      )
-      return {
-        success: true,
-        message: 'Seed dropped successfully'
-      }
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : 'unknown reason'
-      return {
-        success: false,
-        message: `Failed to drop seed: ${reason}`
-      }
-    }
-  },
-  resetKey: (index) => {
-    set(
-      produce((state: AccountBuilderState) => {
-        state.keys[index] = {
-          index,
-          name: '',
-          creationType: undefined as any,
-          secret: undefined as any,
-          iv: undefined as any,
-          fingerprint: undefined as any,
-          scriptVersion: undefined as any,
-          mnemonicWordCount: undefined as any
+          state.keys[index].secret = newSecret
         }
       })
     )

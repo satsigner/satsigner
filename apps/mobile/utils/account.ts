@@ -30,9 +30,9 @@ export function updateAccountObjectLabels(account: Account) {
   const labels = { ...account.labels }
   const updatedAccount: Account = {
     ...account,
+    addresses: account.addresses.map((a) => ({ ...a })),
     transactions: account.transactions.map((t) => ({ ...t })),
-    utxos: account.utxos.map((u) => ({ ...u })),
-    addresses: account.addresses.map((a) => ({ ...a }))
+    utxos: account.utxos.map((u) => ({ ...u }))
   }
 
   for (const index in updatedAccount.utxos) {
@@ -48,9 +48,9 @@ export function updateAccountObjectLabels(account: Account) {
     // save label inherited from address
     if (label && !labels[utxoRef]) {
       labels[utxoRef] = {
-        type: 'output',
+        label,
         ref: utxoRef,
-        label
+        type: 'output'
       }
     }
     updatedAccount.utxos[index].label = label || ''
@@ -76,9 +76,9 @@ export function updateAccountObjectLabels(account: Account) {
     // save label inherited from address
     if (label && !labels[txRef]) {
       labels[txRef] = {
-        type: 'tx',
+        label,
         ref: txRef,
-        label
+        type: 'tx'
       }
     }
 
@@ -172,8 +172,8 @@ export async function dropSeedFromKey(key: Key) {
   const secretWithoutSeed: Secret = {
     extendedPublicKey: decryptedSecret.extendedPublicKey,
     externalDescriptor: decryptedSecret.externalDescriptor,
-    internalDescriptor: decryptedSecret.internalDescriptor,
-    fingerprint: decryptedSecret.fingerprint
+    fingerprint: decryptedSecret.fingerprint,
+    internalDescriptor: decryptedSecret.internalDescriptor
   }
   const stringifiedSecret = JSON.stringify(secretWithoutSeed)
   const encryptedSecret = await aesEncrypt(stringifiedSecret, pin, key.iv)

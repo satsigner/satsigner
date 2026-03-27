@@ -116,18 +116,18 @@ function SSTagInput({
 }
 
 const styles = StyleSheet.create({
-  tag: {
-    backgroundColor: Colors.gray[850],
-    borderRadius: 3,
-    borderStyle: 'solid',
-    padding: 5
-  },
   button: {
     borderRadius: 5,
     paddingHorizontal: 8,
     backgroundColor: Colors.gray[800],
     height: 'auto',
     width: 'auto'
+  },
+  tag: {
+    backgroundColor: Colors.gray[850],
+    borderRadius: 3,
+    borderStyle: 'solid',
+    padding: 5
   }
 })
 

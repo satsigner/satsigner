@@ -124,12 +124,12 @@ function useNostrMessageProcessor() {
 
           const context: MessageHandlerContext = {
             account,
-            unwrappedEvent,
-            eventContent,
             data,
+            eventContent,
             lastDataExchangeEOSE,
+            onPendingDM: (dm) => pendingDms.push(dm),
             syncStartSec,
-            onPendingDM: (dm) => pendingDms.push(dm)
+            unwrappedEvent
           }
 
           await processMessage(context)
@@ -150,9 +150,9 @@ function useNostrMessageProcessor() {
     ): Promise<void> => {
       await processEventBatch(account, [
         {
-          id: unwrappedEvent.id,
           content: unwrappedEvent,
-          created_at: unwrappedEvent.created_at ?? 0
+          created_at: unwrappedEvent.created_at ?? 0,
+          id: unwrappedEvent.id
         }
       ])
     },

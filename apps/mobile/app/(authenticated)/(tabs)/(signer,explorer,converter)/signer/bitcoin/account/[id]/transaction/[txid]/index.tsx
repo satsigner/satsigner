@@ -172,7 +172,7 @@ export default function TxDetails() {
                 [
                   t('transaction.hash'),
                   txid,
-                  { width: '100%', copyToClipboard: true }
+                  { copyToClipboard: true, width: '100%' }
                 ],
                 [t('transaction.size'), size],
                 [t('transaction.weight'), weight],
@@ -337,13 +337,13 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
     flexDirection: 'column',
+    flexGrow: 1,
     justifyContent: 'space-between',
     padding: 20
   },
   loadingContainer: {
-    paddingVertical: 60,
-    alignItems: 'center'
+    alignItems: 'center',
+    paddingVertical: 60
   }
 })

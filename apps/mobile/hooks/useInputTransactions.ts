@@ -61,7 +61,7 @@ export function useInputTransactions(
           if (!vinsByDepth.has(tx.depthH)) {
             vinsByDepth.set(tx.depthH, [])
           }
-          vinsByDepth.get(tx.depthH)?.push({ txid, index })
+          vinsByDepth.get(tx.depthH)?.push({ index, txid })
         })
       }
 
@@ -70,7 +70,7 @@ export function useInputTransactions(
           if (!voutsByDepth.has(tx.depthH)) {
             voutsByDepth.set(tx.depthH, [])
           }
-          voutsByDepth.get(tx.depthH)?.push({ txid, index })
+          voutsByDepth.get(tx.depthH)?.push({ index, txid })
         })
       }
     }
@@ -113,8 +113,8 @@ export function useInputTransactions(
 
     const newTransactions = new Map<string, ExtendedTransaction>()
     const queue = Array.from(inputs.values()).map((input) => ({
-      txid: input.txid,
-      level: 1
+      level: 1,
+      txid: input.txid
     }))
     const processed = new Set<string>()
     let currentLevelDeep = 0
@@ -189,12 +189,12 @@ export function useInputTransactions(
                     address: input.prevout?.scriptpubkey_address
                   })),
                   vout: tx.vout.map((output) => ({
-                    value: output.value,
                     address: output.scriptpubkey_address,
+                    label: undefined,
                     script: output.scriptpubkey
                       ? Array.from(Buffer.from(output.scriptpubkey, 'hex'))
                       : [],
-                    label: undefined // TODO: add label
+                    value: output.value // TODO: add label
                   })),
                   prices: {}
                 }
@@ -376,8 +376,8 @@ export function useInputTransactions(
                   !queue.some((item) => item.txid === parentTxid)
                 ) {
                   queue.push({
-                    txid: parentTxid,
-                    level: level + 1
+                    level: level + 1,
+                    txid: parentTxid
                   })
                 }
               })
@@ -442,8 +442,8 @@ export function useInputTransactions(
           Array.from(inputs.entries()).map(([key, utxo]) => [
             key,
             {
-              value: utxo.value,
-              scriptpubkey_address: utxo.addressTo || ''
+              scriptpubkey_address: utxo.addressTo || '',
+              value: utxo.value
             }
           ])
         )
@@ -479,5 +479,5 @@ export function useInputTransactions(
     fetchInputTransactions()
   }, [fetchInputTransactions])
 
-  return { transactions, loading, error, fetchInputTransactions }
+  return { error, fetchInputTransactions, loading, transactions }
 }

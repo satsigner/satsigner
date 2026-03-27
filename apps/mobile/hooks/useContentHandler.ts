@@ -66,19 +66,19 @@ export function useContentHandler({
 
   return {
     cameraModalVisible,
-    nfcModalVisible,
-    pasteModalVisible,
     closeCameraModal,
     closeNFCModal,
     closePasteModal,
-    handleSend: onSend,
-    handlePaste,
     handleCamera,
-    handleNFC,
-    handleReceive: onReceive,
-    handleContentScanned: onContentScanned,
     handleContentPasted,
+    handleContentScanned: onContentScanned,
+    handleNFC,
     handleNFCContentRead,
-    nfcAvailable
+    handlePaste,
+    handleReceive: onReceive,
+    handleSend: onSend,
+    nfcAvailable,
+    nfcModalVisible,
+    pasteModalVisible
   }
 }

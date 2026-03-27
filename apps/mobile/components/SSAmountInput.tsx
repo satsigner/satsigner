@@ -149,17 +149,17 @@ function SSAmountInput({
 }
 
 const styles = StyleSheet.create({
-  track: {
-    height: 12,
-    borderRadius: 6
+  switchable: {
+    textDecorationLine: 'underline'
   },
   thumb: {
     width: 22,
     height: 22,
     borderRadius: 11
   },
-  switchable: {
-    textDecorationLine: 'underline'
+  track: {
+    height: 12,
+    borderRadius: 6
   }
 })
 

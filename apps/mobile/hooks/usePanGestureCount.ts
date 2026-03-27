@@ -7,5 +7,5 @@ export const usePanGestureCount = () => {
   const startPan = () => panGestureCount.current++
   const endPan = () => panGestureCount.current > 0 && panGestureCount.current--
 
-  return { isPanning, startPan, endPan }
+  return { endPan, isPanning, startPan }
 }

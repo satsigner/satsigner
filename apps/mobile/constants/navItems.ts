@@ -17,7 +17,6 @@ import { type NavMenuGroup, PLATFORM } from '@/types/navigation/navMenu'
 
 export const navMenuGroups: NavMenuGroup[] = [
   {
-    title: t('navigation.label.signer'),
     items: [
       {
         title: t('navigation.item.bitcoin'),
@@ -54,10 +53,10 @@ export const navMenuGroups: NavMenuGroup[] = [
         isSoon: true,
         platform: PLATFORM.HYBRID
       }
-    ]
+    ],
+    title: t('navigation.label.signer')
   },
   {
-    title: t('navigation.label.explorer'),
     items: [
       {
         title: t('navigation.item.chaintip'),
@@ -101,10 +100,10 @@ export const navMenuGroups: NavMenuGroup[] = [
         isSoon: true,
         platform: PLATFORM.HYBRID
       }
-    ]
+    ],
+    title: t('navigation.label.explorer')
   },
   {
-    title: t('navigation.label.converter'),
     items: [
       {
         title: t('navigation.item.currency'),
@@ -127,6 +126,7 @@ export const navMenuGroups: NavMenuGroup[] = [
         isSoon: false,
         platform: PLATFORM.ANDROID
       }
-    ]
+    ],
+    title: t('navigation.label.converter')
   }
 ]

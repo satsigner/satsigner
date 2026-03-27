@@ -71,10 +71,10 @@ export function useKeyValidation({
   }, [signedPsbt])
 
   return {
-    isKeyCompleted,
-    hasSeed,
-    hasNoSecret,
     hasLocalSeed,
+    hasNoSecret,
+    hasSeed,
+    isKeyCompleted,
     isSignatureCompleted
   }
 }
@@ -117,5 +117,5 @@ export function useSignatureDropdownValidation({
   decryptedKey,
   signedPsbt
 }: UseKeyValidationParams & { signedPsbt?: string }) {
-  return useKeyValidation({ keyDetails, seedDropped, decryptedKey, signedPsbt })
+  return useKeyValidation({ decryptedKey, keyDetails, seedDropped, signedPsbt })
 }

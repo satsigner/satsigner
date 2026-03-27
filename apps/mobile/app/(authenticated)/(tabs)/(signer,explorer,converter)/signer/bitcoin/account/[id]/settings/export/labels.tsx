@@ -46,9 +46,9 @@ export default function ExportLabels() {
     )}_${accountId}_${date}.${ext}`
     const mime = bip329mimes[exportType]
     shareFile({
-      filename,
-      fileContent: exportContent,
       dialogTitle: t('export.file.save'),
+      fileContent: exportContent,
+      filename,
       mimeType: mime
     })
   }
@@ -59,6 +59,7 @@ export default function ExportLabels() {
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
@@ -66,8 +67,7 @@ export default function ExportLabels() {
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
               )}
             </SSHStack>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <SSVStack style={{ padding: 20 }}>
@@ -102,11 +102,11 @@ export default function ExportLabels() {
             </SSHStack>
             <View
               style={{
-                padding: 10,
                 backgroundColor: Colors.gray[950],
+                borderColor: Colors.gray[800],
                 borderRadius: 5,
                 borderWidth: 1,
-                borderColor: Colors.gray[800]
+                padding: 10
               }}
             >
               <SSText color="white" size="sm" type="mono">

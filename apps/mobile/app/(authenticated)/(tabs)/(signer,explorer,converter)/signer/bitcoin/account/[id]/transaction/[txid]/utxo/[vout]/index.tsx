@@ -109,7 +109,7 @@ function UtxoDetails({
               <GestureHandlerRootView style={{ flex: 1 }}>
                 <SSBubbleChart
                   utxos={allAccountUtxos}
-                  canvasSize={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
+                  canvasSize={{ height: GRAPH_HEIGHT, width: GRAPH_WIDTH }}
                   inputs={currentUtxoInputs}
                   dimUnselected
                   onPress={({ txid, vout }: Utxo) =>
@@ -286,13 +286,13 @@ function UtxoDetailsPage() {
 }
 
 const styles = StyleSheet.create({
-  outerContainer: {
-    padding: 20
-  },
   innerContainer: {
     flexGrow: 1,
     flexDirection: 'column',
     justifyContent: 'space-between'
+  },
+  outerContainer: {
+    padding: 20
   }
 })
 

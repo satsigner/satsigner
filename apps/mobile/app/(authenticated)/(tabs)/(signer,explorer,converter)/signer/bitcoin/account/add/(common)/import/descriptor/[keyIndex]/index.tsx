@@ -64,10 +64,10 @@ export default function ImportDescriptor() {
     scanned: Set<number>
     chunks: Map<number, string>
   }>({
-    type: null,
-    total: 0,
+    chunks: new Map(),
     scanned: new Set(),
-    chunks: new Map()
+    total: 0,
+    type: null
   })
 
   const pulseAnim = useRef(new Animated.Value(0)).current
@@ -78,13 +78,13 @@ export default function ImportDescriptor() {
       const pulseAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
-            toValue: 1,
             duration: 500,
+            toValue: 1,
             useNativeDriver: false
           }),
           Animated.timing(pulseAnim, {
-            toValue: 0,
             duration: 500,
+            toValue: 0,
             useNativeDriver: false
           })
         ])
@@ -283,10 +283,10 @@ export default function ImportDescriptor() {
       const total = parseInt(data.slice(4, 6), 36)
       const current = parseInt(data.slice(6, 8), 36)
       return {
-        type: 'bbqr' as const,
+        content: data,
         current,
         total,
-        content: data
+        type: 'bbqr' as const
       }
     }
 
@@ -303,18 +303,18 @@ export default function ImportDescriptor() {
           const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
           const total = parseInt(totalStr, 10)
           return {
-            type: 'ur' as const,
+            content: data,
             current,
             total,
-            content: data
+            type: 'ur' as const
           }
         } else {
           // Single-part UR
           return {
-            type: 'ur' as const,
+            content: data,
             current: 0,
             total: 1,
-            content: data
+            type: 'ur' as const
           }
         }
       }
@@ -322,19 +322,19 @@ export default function ImportDescriptor() {
 
     // Default to raw data
     return {
-      type: 'raw' as const,
+      content: data,
       current: 0,
       total: 1,
-      content: data
+      type: 'raw' as const
     }
   }
 
   function resetScanProgress() {
     setScanProgress({
-      type: null,
-      total: 0,
+      chunks: new Map(),
       scanned: new Set(),
-      chunks: new Map()
+      total: 0,
+      type: null
     })
     urDecoderRef.current = new URDecoder()
   }
@@ -390,7 +390,7 @@ export default function ImportDescriptor() {
     // Extract derivation path with improved logic
     const derivationPath = extractDerivationPathFromDescriptor(descriptor)
 
-    return { extendedPublicKey, derivationPath }
+    return { derivationPath, extendedPublicKey }
   }
 
   function extractDerivationPathFromDescriptor(descriptor: string) {
@@ -633,10 +633,10 @@ export default function ImportDescriptor() {
       newScanned.add(current)
 
       setScanProgress({
-        type: qrInfo.type,
-        total,
+        chunks: newChunks,
         scanned: newScanned,
-        chunks: newChunks
+        total,
+        type: qrInfo.type
       })
 
       // Check if we have all chunks
@@ -739,8 +739,8 @@ export default function ImportDescriptor() {
                     style={{
                       color: Colors.error,
                       fontSize: 12,
-                      textAlign: 'center',
-                      marginTop: 4
+                      marginTop: 4,
+                      textAlign: 'center'
                     }}
                   >
                     {externalDescriptorError}
@@ -764,8 +764,8 @@ export default function ImportDescriptor() {
                     style={{
                       color: Colors.error,
                       fontSize: 12,
-                      textAlign: 'center',
-                      marginTop: 4
+                      marginTop: 4,
+                      textAlign: 'center'
                     }}
                   >
                     {internalDescriptorError}
@@ -788,8 +788,8 @@ export default function ImportDescriptor() {
                     inputRange: [0, 1],
                     outputRange: [1, 0.7]
                   }),
-                  transform: [{ scale: scaleAnim }],
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  transform: [{ scale: scaleAnim }]
                 }}
               >
                 <SSButton
@@ -857,7 +857,7 @@ export default function ImportDescriptor() {
               handleQRCodeScanned(res.raw)
             }}
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            style={{ width: 340, height: 340 }}
+            style={{ height: 340, width: 340 }}
           />
 
           {/* Show progress if scanning multi-part QR */}
@@ -873,20 +873,20 @@ export default function ImportDescriptor() {
                     </SSText>
                     <View
                       style={{
-                        width: 300,
-                        height: 4,
                         backgroundColor: Colors.gray[700],
-                        borderRadius: 2
+                        borderRadius: 2,
+                        height: 4,
+                        width: 300
                       }}
                     >
                       <View
                         style={{
-                          width:
-                            (scanProgress.scanned.size / displayTarget) * 300,
+                          backgroundColor: Colors.white,
+                          borderRadius: 2,
                           height: 4,
                           maxWidth: 300,
-                          backgroundColor: Colors.white,
-                          borderRadius: 2
+                          width:
+                            (scanProgress.scanned.size / displayTarget) * 300
                         }}
                       />
                     </View>
@@ -899,21 +899,21 @@ export default function ImportDescriptor() {
                     </SSText>
                     <View
                       style={{
-                        width: 300,
-                        height: 4,
                         backgroundColor: Colors.gray[700],
-                        borderRadius: 2
+                        borderRadius: 2,
+                        height: 4,
+                        width: 300
                       }}
                     >
                       <View
                         style={{
-                          width:
-                            (scanProgress.scanned.size / scanProgress.total) *
-                            300,
+                          backgroundColor: Colors.white,
+                          borderRadius: 2,
                           height: 4,
                           maxWidth: 300,
-                          backgroundColor: Colors.white,
-                          borderRadius: 2
+                          width:
+                            (scanProgress.scanned.size / scanProgress.total) *
+                            300
                         }}
                       />
                     </View>

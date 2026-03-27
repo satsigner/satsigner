@@ -25,15 +25,15 @@ function SSDice({ children, onPress, style }: SSDiceProps) {
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    padding: 4,
-    borderRadius: 12,
-    opacity: 0.2
-  },
   dice: {
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center'
+  },
+  wrapper: {
+    padding: 4,
+    borderRadius: 12,
+    opacity: 0.2
   }
 })
 

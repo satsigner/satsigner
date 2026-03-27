@@ -72,12 +72,12 @@ function selectEfficientUtxos(
 
   if (exactMatch)
     return {
-      inputs: [exactMatch],
-      fee: (opts.inputSize + opts.changeOutputSize) * feeRate,
       change:
         exactMatch.value -
         targetAmount -
-        (opts.inputSize + opts.changeOutputSize) * feeRate
+        (opts.inputSize + opts.changeOutputSize) * feeRate,
+      fee: (opts.inputSize + opts.changeOutputSize) * feeRate,
+      inputs: [exactMatch]
     }
 
   // Try branch and bound algorithm for optimal selection
@@ -117,12 +117,12 @@ function selectEfficientUtxos(
 
   // Insufficient funds
   if (selectedAmount < targetAmount + estimatedFee)
-    return { inputs: [], fee: 0, change: 0, error: 'Insufficient funds' }
+    return { change: 0, error: 'Insufficient funds', fee: 0, inputs: [] }
 
   return {
-    inputs: selectedUtxos,
+    change,
     fee: estimatedFee,
-    change
+    inputs: selectedUtxos
   }
 }
 
@@ -165,9 +165,9 @@ function branchAndBoundUtxoSelection(
   if (exactMatchSet) {
     const fee = exactMatchSet.length * inputCost
     return {
-      inputs: exactMatchSet,
+      change: 0,
       fee,
-      change: 0 // No change as we have exact match
+      inputs: exactMatchSet // No change as we have exact match
     }
   }
 
@@ -233,15 +233,15 @@ function branchAndBoundUtxoSelection(
     // If change is less than dust, add it to fee
     if (change > 0 && change < opts.dustThreshold)
       return {
-        inputs: bestSelection,
+        change: 0,
         fee: fee + change,
-        change: 0
+        inputs: bestSelection
       }
 
     return {
-      inputs: bestSelection,
+      change: change > 0 ? change : 0,
       fee,
-      change: change > 0 ? change : 0
+      inputs: bestSelection
     }
   }
 
@@ -322,17 +322,17 @@ function selectStonewallUtxos(
   // Default options
   const defaultOptions = {
     dustThreshold: 546,
-    minOutputs: 2,
+    maxAttempts: 1000,
+    maxInputs: 10,
     maxOutputs: 4,
     minInputs: 4,
-    maxInputs: 10,
-    sizeP2PKH: 148,
-    sizeP2WPKH: 68,
-    sizeP2SHP2WPKH: 91,
+    minOutputs: 2,
     outputSizeP2PKH: 34,
     outputSizeP2WPKH: 31,
-    txOverhead: 10,
-    maxAttempts: 1000
+    sizeP2PKH: 148,
+    sizeP2SHP2WPKH: 91,
+    sizeP2WPKH: 68,
+    txOverhead: 10
   }
 
   const opts = { ...defaultOptions, ...options }
@@ -341,12 +341,12 @@ function selectStonewallUtxos(
   const totalAvailable = utxos.reduce((sum, utxo) => sum + utxo.value, 0)
   if (totalAvailable < targetAmount) {
     return {
+      error: 'Insufficient funds',
+      fee: 0,
       inputs: [],
       outputs: [],
-      fee: 0,
       privacyScore: 0,
-      txSize: 0,
-      error: 'Insufficient funds'
+      txSize: 0
     }
   }
 
@@ -524,9 +524,9 @@ function selectStonewallUtxos(
 
       // Create change output
       changeOutputs.push({
+        size: changeOutputSizes[i],
         type: selectedTypes[Math.floor(randomNum() * selectedTypes.length)],
-        value: changeAmount,
-        size: changeOutputSizes[i]
+        value: changeAmount
       })
     }
 
@@ -581,6 +581,7 @@ function selectStonewallUtxos(
     if (privacyScore > bestPrivacyScore) {
       bestPrivacyScore = privacyScore
       bestSolution = {
+        fee: finalFee,
         inputs: selectedInputs,
         outputs: [
           {
@@ -590,7 +591,6 @@ function selectStonewallUtxos(
           },
           ...changeOutputs
         ],
-        fee: finalFee,
         privacyScore,
         txSize: totalTxSize
       }
@@ -599,12 +599,12 @@ function selectStonewallUtxos(
 
   if (!bestSolution) {
     return {
+      error: 'Could not find a suitable STONEWALL structure',
+      fee: 0,
       inputs: [],
       outputs: [],
-      fee: 0,
       privacyScore: 0,
-      txSize: 0,
-      error: 'Could not find a suitable STONEWALL structure'
+      txSize: 0
     }
   }
 

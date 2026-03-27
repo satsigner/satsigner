@@ -210,7 +210,7 @@ export default function ExportDescriptors() {
               const keyData = await Promise.all(
                 temporaryAccount.keys.map(async (key, index) => {
                   if (!key)
-                    return { fingerprint: '', extendedPublicKey: '', index }
+                    return { extendedPublicKey: '', fingerprint: '', index }
 
                   const secret = key.secret as Secret
                   let extendedPublicKey = ''
@@ -275,7 +275,7 @@ export default function ExportDescriptors() {
                     }
                   }
 
-                  return { fingerprint, extendedPublicKey, index }
+                  return { extendedPublicKey, fingerprint, index }
                 })
               )
 
@@ -537,9 +537,9 @@ export default function ExportDescriptors() {
       'export.file.name.descriptors'
     )}_${accountId}_${date}.${ext}`
     shareFile({
-      filename,
-      fileContent: exportContent,
       dialogTitle: t('export.file.save'),
+      fileContent: exportContent,
+      filename,
       mimeType: `text/plain`
     })
   }
@@ -649,15 +649,15 @@ export default function ExportDescriptors() {
 
     try {
       const { uri } = await Print.printToFileAsync({
-        html: htmlContent,
-        base64: false
+        base64: false,
+        html: htmlContent
       })
 
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {
-          mimeType: 'application/pdf',
+          UTI: 'com.adobe.pdf',
           dialogTitle: t('export.file.save'),
-          UTI: 'com.adobe.pdf'
+          mimeType: 'application/pdf'
         })
       }
     } catch {
@@ -673,6 +673,7 @@ export default function ExportDescriptors() {
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
@@ -680,8 +681,7 @@ export default function ExportDescriptors() {
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
               )}
             </SSHStack>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <SSVStack style={{ padding: 20 }} gap="lg">
@@ -724,8 +724,8 @@ export default function ExportDescriptors() {
                     <View
                       style={{
                         backgroundColor: Colors.white,
-                        padding: 16,
-                        borderRadius: 2
+                        borderRadius: 2,
+                        padding: 16
                       }}
                     >
                       <SSQRCode
@@ -748,8 +748,8 @@ export default function ExportDescriptors() {
                   ref={qrRef}
                   style={{
                     backgroundColor: Colors.white,
-                    padding: 16,
-                    borderRadius: 2
+                    borderRadius: 2,
+                    padding: 16
                   }}
                 >
                   <SSQRCode
@@ -763,9 +763,9 @@ export default function ExportDescriptors() {
             )}
             <View
               style={{
-                padding: 10,
                 backgroundColor: Colors.gray[950],
-                borderRadius: 5
+                borderRadius: 5,
+                padding: 10
               }}
             >
               <SSText color="white" size="md" type="mono">
@@ -806,9 +806,9 @@ export default function ExportDescriptors() {
 
 const styles = StyleSheet.create({
   electrumWarning: {
-    borderWidth: 1,
     borderColor: Colors.warning,
     borderRadius: 5,
+    borderWidth: 1,
     padding: 10
   },
   electrumWarningText: {

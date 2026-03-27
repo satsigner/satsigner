@@ -15,7 +15,7 @@ describe('calculateRetryDelay', () => {
   })
 
   it('uses exponential backoff', () => {
-    const config = { baseDelayMs: 1000, maxDelayMs: 60000, jitterFactor: 0 }
+    const config = { baseDelayMs: 1000, jitterFactor: 0, maxDelayMs: 60000 }
 
     const delays = [0, 1, 2, 3, 4].map((attempt) =>
       calculateRetryDelay(attempt, config)
@@ -29,7 +29,7 @@ describe('calculateRetryDelay', () => {
   })
 
   it('caps at maxDelayMs', () => {
-    const config = { baseDelayMs: 1000, maxDelayMs: 60000, jitterFactor: 0 }
+    const config = { baseDelayMs: 1000, jitterFactor: 0, maxDelayMs: 60000 }
 
     const delay = calculateRetryDelay(10, config)
 
@@ -37,7 +37,7 @@ describe('calculateRetryDelay', () => {
   })
 
   it('adds jitter to prevent thundering herd', () => {
-    const config = { baseDelayMs: 1000, maxDelayMs: 60000, jitterFactor: 0.2 }
+    const config = { baseDelayMs: 1000, jitterFactor: 0.2, maxDelayMs: 60000 }
 
     const delay = calculateRetryDelay(0, config)
 
@@ -51,7 +51,7 @@ describe('calculateRetryDelay', () => {
   })
 
   it('varies jitter based on random value', () => {
-    const config = { baseDelayMs: 1000, maxDelayMs: 60000, jitterFactor: 0.2 }
+    const config = { baseDelayMs: 1000, jitterFactor: 0.2, maxDelayMs: 60000 }
 
     jest.spyOn(Math, 'random').mockReturnValue(0)
     const delayMin = calculateRetryDelay(0, config)
@@ -70,9 +70,9 @@ describe('createRetryManager', () => {
     jest.useFakeTimers()
     manager = createRetryManager({
       baseDelayMs: 1000,
+      jitterFactor: 0,
       maxDelayMs: 60000,
-      maxRetries: 5,
-      jitterFactor: 0
+      maxRetries: 5
     })
   })
 

@@ -48,8 +48,8 @@ export default function useReEncryptAccounts() {
         // update secret while avoiding mutating nested objects in store
         updatedAccount.keys[k] = {
           ...account.keys[k],
-          secret: newSecret,
-          iv: newIv
+          iv: newIv,
+          secret: newSecret
         }
       }
 

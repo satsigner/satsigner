@@ -47,13 +47,13 @@ type ChainData = {
 }
 
 const DEFAULT_CHAIN_DATA: ChainData = {
-  height: null,
-  hash: null,
   block: null,
-  fees: null,
-  mempool: null,
   blockSource: 'mempool',
+  fees: null,
   feesSource: 'mempool',
+  hash: null,
+  height: null,
+  mempool: null,
   mempoolSource: 'mempool'
 }
 
@@ -88,8 +88,8 @@ async function fetchFromEsplora(
         if (info) {
           data.mempool = {
             count: info.count,
-            vsize: info.vsize,
-            total_fee: info.total_fee
+            total_fee: info.total_fee,
+            vsize: info.vsize
           }
           data.mempoolSource = 'backend'
         }
@@ -178,8 +178,8 @@ async function fetchMempoolFallback(
         const md = await oracle.getMemPool()
         data.mempool = {
           count: md.count,
-          vsize: md.vsize,
-          total_fee: md.total_fee
+          total_fee: md.total_fee,
+          vsize: md.vsize
         }
         data.mempoolSource = 'mempool'
       } catch {}
@@ -231,7 +231,6 @@ export default function ChainTip() {
 
   const [feeChartTimeRange] = useState<'week' | 'day' | '2hours'>('2hours')
   const { data: mempoolStatistics } = useQuery<MempoolStatistics[]>({
-    queryKey: ['chaintip-statistics', feeChartTimeRange],
     queryFn: () =>
       fallbackOracle.getMempoolStatistics(
         feeChartTimeRange === '2hours'
@@ -240,6 +239,7 @@ export default function ChainTip() {
             ? '24h'
             : '1w'
       ),
+    queryKey: ['chaintip-statistics', feeChartTimeRange],
     staleTime: time.minutes(5)
   })
 
@@ -248,7 +248,6 @@ export default function ChainTip() {
     timestamps: number[]
     prices: number[]
   }>({
-    queryKey: ['chaintip-price-history', fiatCurrency],
     queryFn: async () => {
       const now = Math.floor(Date.now() / 1000)
       const timestamps = Array.from(
@@ -258,6 +257,7 @@ export default function ChainTip() {
       const prices = await fallbackOracle.getPricesAt(fiatCurrency, timestamps)
       return { timestamps, prices }
     },
+    queryKey: ['chaintip-price-history', fiatCurrency],
     staleTime: time.minutes(10)
   })
 
@@ -268,7 +268,7 @@ export default function ChainTip() {
     )
       return []
     const { timestamps, prices } = priceHistoryResult
-    return timestamps.map((ts, i) => ({ x: ts, price: prices[i] ?? 0 }))
+    return timestamps.map((ts, i) => ({ price: prices[i] ?? 0, x: ts }))
   }, [priceHistoryResult])
 
   const priceChartDomain = useMemo(() => {
@@ -289,8 +289,8 @@ export default function ChainTip() {
 
   function formatPriceChartDate(timestampSeconds: number) {
     return new Intl.DateTimeFormat(undefined, {
-      month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      month: 'short'
     }).format(new Date(timestampSeconds * 1000))
   }
 
@@ -308,7 +308,7 @@ export default function ChainTip() {
         }}
       />
       <ScrollView showsVerticalScrollIndicator={false}>
-        <SSVStack gap="xl" style={{ paddingTop: 20, paddingBottom: 32 }}>
+        <SSVStack gap="xl" style={{ paddingBottom: 32, paddingTop: 20 }}>
           {/* Latest Block */}
           <SSVStack gap="sm">
             <SectionHeader
@@ -477,18 +477,18 @@ export default function ChainTip() {
                   xKey="x"
                   yKeys={['price']}
                   domain={priceChartDomain}
-                  padding={{ left: 48, right: 16, top: 8, bottom: 32 }}
+                  padding={{ bottom: 32, left: 48, right: 16, top: 8 }}
                   axisOptions={{
+                    axisSide: { x: 'bottom', y: 'left' },
                     font: priceChartFont ?? undefined,
                     formatXLabel: (v) => formatPriceChartDate(Number(v)),
                     formatYLabel: (v) =>
                       `${Number(v).toLocaleString(undefined, {
                         maximumFractionDigits: 0
                       })} ${fiatCurrency}`,
-                    axisSide: { x: 'bottom', y: 'left' },
                     labelColor: { x: '#787878', y: '#ffffff' },
-                    tickCount: { x: 7, y: 6 },
-                    labelOffset: { x: 6, y: 8 }
+                    labelOffset: { x: 6, y: 8 },
+                    tickCount: { x: 7, y: 6 }
                   }}
                 >
                   {({ points }) =>
@@ -565,30 +565,12 @@ const styles = StyleSheet.create({
   container: {
     paddingTop: 0
   },
-  sectionTitle: {
-    color: Colors.gray['400'],
-    letterSpacing: 1.5
-  },
-  row: {
-    alignItems: 'center',
-    paddingVertical: 4
-  },
-  labelText: {
-    color: Colors.gray['400']
-  },
-  valueText: {
-    color: Colors.gray['100']
-  },
   hashText: {
     color: Colors.gray['100'],
     fontFamily: 'monospace'
   },
-  sourceBackend: {
-    color: Colors.mainGreen,
-    opacity: 0.8
-  },
-  sourceMempool: {
-    color: Colors.gray['500']
+  labelText: {
+    color: Colors.gray['400']
   },
   priceChartWrapper: {
     borderColor: Colors.gray[700],
@@ -598,5 +580,23 @@ const styles = StyleSheet.create({
     marginTop: 8,
     overflow: 'hidden',
     padding: 12
+  },
+  row: {
+    alignItems: 'center',
+    paddingVertical: 4
+  },
+  sectionTitle: {
+    color: Colors.gray['400'],
+    letterSpacing: 1.5
+  },
+  sourceBackend: {
+    color: Colors.mainGreen,
+    opacity: 0.8
+  },
+  sourceMempool: {
+    color: Colors.gray['500']
+  },
+  valueText: {
+    color: Colors.gray['100']
   }
 })

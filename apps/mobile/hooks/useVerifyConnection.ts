@@ -28,10 +28,10 @@ function useVerifyConnection() {
   const connectionParts = useMemo(() => {
     const trimmedUrl = trimOnionAddress(server.url)
     return {
-      network: server.network,
+      mode: config.connectionMode !== 'auto' ? config.connectionMode : null,
       name: server.name,
-      url: trimmedUrl,
-      mode: config.connectionMode !== 'auto' ? config.connectionMode : null
+      network: server.network,
+      url: trimmedUrl
     }
   }, [server.network, server.name, server.url, config.connectionMode])
 

@@ -111,10 +111,10 @@ export default function RootLayout() {
           theme="dark"
           position="top-center"
           style={{
-            borderRadius: 8,
             backgroundColor: Colors.gray[950],
-            borderWidth: 1,
             borderColor: Colors.gray[800],
+            borderRadius: 8,
+            borderWidth: 1,
             zIndex: 999999
           }}
         />
@@ -125,8 +125,8 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: Colors.gray[950]
+    backgroundColor: Colors.gray[950],
+    flex: 1
   },
   privacyScreen: {
     ...StyleSheet.absoluteFillObject,

@@ -27,14 +27,14 @@ function SSMultisigCountSelector({
   onChangeRequiredNumber = () => {},
   onChangeTotalNumber = () => {}
 }: SSMultisigCountSelectorProps) {
-  const [containerSize, setContainersize] = useState({ width: 0, height: 0 })
+  const [containerSize, setContainersize] = useState({ height: 0, width: 0 })
   const [activeTotalNumber, setActiveTotalNumber] = useState<boolean>(false)
   const [activeRequiredNumber, setActiveRequiredNumber] =
     useState<boolean>(false)
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout
-    setContainersize({ width, height })
+    setContainersize({ height, width })
   }
 
   const sizeBetweenPoints = useMemo(() => {

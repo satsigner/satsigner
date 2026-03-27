@@ -134,12 +134,12 @@ function SSHistoryChart({
           : (transaction?.received ?? 0) - (transaction?.sent ?? 0)
       sum += amount
       return {
-        memo: transaction.label ?? '',
-        date: new Date(transaction?.timestamp ?? currentDate.current),
-        type: transaction.type ?? 'receive',
-        balance: sum,
         amount,
-        id: transaction.id
+        balance: sum,
+        date: new Date(transaction?.timestamp ?? currentDate.current),
+        id: transaction.id,
+        memo: transaction.label ?? '',
+        type: transaction.type ?? 'receive'
       }
     })
   }, [transactions])
@@ -150,8 +150,8 @@ function SSHistoryChart({
           currentDate.current.getDate() + 10
         ) - chartData[0].date.getTime()
       : 0
-  const margin = { top: 30, right: 10, bottom: 80, left: 40 }
-  const [containerSize, setContainersize] = useState({ width: 0, height: 0 })
+  const margin = { bottom: 80, left: 40, right: 10, top: 30 }
+  const [containerSize, setContainersize] = useState({ height: 0, width: 0 })
   const prevScale = useRef<number>(1)
   const scaleRef = useRef<number>(1)
   const [cursorX, setCursorX] = useState<Date | undefined>(undefined)
@@ -197,11 +197,11 @@ function SSHistoryChart({
             const outName = t.id + '::' + index
             currentBalances.set(outName, {
               addressTo: out.address,
-              value: out.value,
-              vout: index,
-              label: '',
               keychain: 'internal',
-              txid: t.id
+              label: '',
+              txid: t.id,
+              value: out.value,
+              vout: index
             })
           }
         })
@@ -220,11 +220,11 @@ function SSHistoryChart({
             const outName = t.id + '::' + index
             currentBalances.set(outName, {
               addressTo: out.address,
-              value: out.value,
-              vout: index,
-              txid: t.id,
               keychain: 'internal',
-              label: ''
+              label: '',
+              txid: t.id,
+              value: out.value,
+              vout: index
             })
           }
         })
@@ -257,30 +257,30 @@ function SSHistoryChart({
       1
     )
     validData.unshift({
-      date: startDate,
       amount: 0,
       balance: startBalance,
+      date: startDate,
+      id: '',
       memo: '',
-      type: 'end',
-      id: ''
+      type: 'end'
     })
     if (endDate.getTime() <= currentDate.current.getTime()) {
       validData.push({
-        date: endDate,
         amount: 0,
         balance: validData[validData.length - 1]?.balance ?? 0,
+        date: endDate,
+        id: '',
         memo: '',
-        type: 'end',
-        id: ''
+        type: 'end'
       })
     } else {
       validData.push({
-        date: currentDate.current,
         amount: 0,
         balance: validData[validData.length - 1]?.balance ?? 0,
+        date: currentDate.current,
+        id: '',
         memo: '',
-        type: 'end',
-        id: ''
+        type: 'end'
       })
     }
     return [maxBalance, validData]
@@ -355,12 +355,12 @@ function SSHistoryChart({
             }
           }
           return {
+            gradientType,
+            utxo,
             x1,
             x2,
             y1,
-            y2,
-            utxo,
-            gradientType
+            y2
           }
         })
       })
@@ -403,11 +403,11 @@ function SSHistoryChart({
         totalBalance += utxo.value
         if (utxo.txid === transactions.at(index)?.id) {
           result.push({
+            utxo,
             x1,
             x2,
             y1,
-            y2,
-            utxo
+            y2
           })
         }
       })
@@ -614,7 +614,7 @@ function SSHistoryChart({
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout
-    setContainersize({ width, height })
+    setContainersize({ height, width })
   }, [])
 
   const txXAxisLabels = useMemo<
@@ -654,32 +654,32 @@ function SSHistoryChart({
             : `${numberCommaFormatter(confirmationsCount)} confs`
           : undefined
       return {
-        x: xScale(new Date(t.timestamp ?? new Date())),
-        index: t.index,
-        textColor: '',
         amountString: `${amount >= 0 ? '+' : ''}${formatNumber(
           amount,
           0,
           zeroPadding
         )}`,
-        type: t.type,
-        numberOfOutput,
-        numberOfInput,
-        hasChange,
-        fee: t.fee,
         confirmations,
-        label: t.label
+        fee: t.fee,
+        hasChange,
+        index: t.index,
+        label: t.label,
+        numberOfInput,
+        numberOfOutput,
+        textColor: '',
+        type: t.type,
+        x: xScale(new Date(t.timestamp ?? new Date()))
       }
     })
     const boundaryBoxes: { [key: string]: Rectangle } = {}
     xAxisLabels.forEach((t) => {
       boundaryBoxes[t.index] = {
+        bottom: chartHeight + 50,
+        height: 50,
         left: t.x,
         right: 60 + t.x,
         top: chartHeight,
-        bottom: chartHeight + 50,
-        width: 60,
-        height: 50
+        width: 60
       }
     })
     const visible: { [key: string]: boolean } = {}
@@ -770,10 +770,6 @@ function SSHistoryChart({
         const bottom = y
         const top = y - height
         initialLabels.push({
-          x,
-          y: y + (showAmount ? -15 : 0),
-          memo: d.memo,
-          type: d.type,
           boundBox: {
             left,
             right,
@@ -782,8 +778,12 @@ function SSHistoryChart({
             width,
             height
           },
+          id: d.id,
           index,
-          id: d.id
+          memo: d.memo,
+          type: d.type,
+          x,
+          y: y + (showAmount ? -15 : 0)
         })
       }
       if (showAmount) {
@@ -807,15 +807,7 @@ function SSHistoryChart({
             : undefined
 
         initialLabels.push({
-          x,
-          y: showFiatOnChart && btcPrice > 0 ? y - 10 : y,
           amount: d.amount,
-          fiatValue:
-            showFiatOnChart && btcPrice > 0 && d.amount !== undefined
-              ? satsToFiat(d.amount)
-              : undefined,
-          historicalFiatValue,
-          type: d.type,
           boundBox: {
             left,
             right,
@@ -827,8 +819,16 @@ function SSHistoryChart({
                 ? height + (showFiatAtTxTime && historicalFiatValue ? 12 : 12)
                 : height
           },
+          fiatValue:
+            showFiatOnChart && btcPrice > 0 && d.amount !== undefined
+              ? satsToFiat(d.amount)
+              : undefined,
+          historicalFiatValue,
+          id: d.id,
           index,
-          id: d.id
+          type: d.type,
+          x,
+          y: showFiatOnChart && btcPrice > 0 ? y - 10 : y
         })
       }
     })
@@ -1064,9 +1064,9 @@ function SSHistoryChart({
       <View style={styles.container} onLayout={handleLayout}>
         <Canvas
           style={{
-            width: containerSize.width,
+            flex: 1,
             height: containerSize.height,
-            flex: 1
+            width: containerSize.width
           }}
           pointerEvents="box-none"
         >
@@ -1250,8 +1250,8 @@ function formatAmountWithLeadingZeros(
   parts.forEach((part, partIndex) => {
     if (partIndex > 0) {
       segments.push({
-        text: ' | ',
         color: '#666666',
+        text: ' | ',
         x: currentX
       })
       currentX += font.measureText(' | ').width
@@ -1259,18 +1259,18 @@ function formatAmountWithLeadingZeros(
 
     if (part.startsWith('Fee: ')) {
       const feePart = part.substring(5)
-      segments.push({ text: 'Fee: ', color: '#666666', x: currentX })
+      segments.push({ color: '#666666', text: 'Fee: ', x: currentX })
       currentX += font.measureText('Fee: ').width
 
       const firstNonZeroIndex = feePart.search(/[1-9]/)
       if (firstNonZeroIndex === -1) {
-        segments.push({ text: feePart, color: '#666666', x: currentX })
+        segments.push({ color: '#666666', text: feePart, x: currentX })
         currentX += font.measureText(feePart).width
       } else {
         if (firstNonZeroIndex > 0) {
           segments.push({
-            text: feePart.substring(0, firstNonZeroIndex),
             color: '#666666',
+            text: feePart.substring(0, firstNonZeroIndex),
             x: currentX
           })
           currentX += font.measureText(
@@ -1278,8 +1278,8 @@ function formatAmountWithLeadingZeros(
           ).width
         }
         segments.push({
-          text: feePart.substring(firstNonZeroIndex),
           color: '#999999',
+          text: feePart.substring(firstNonZeroIndex),
           x: currentX
         })
         currentX += font.measureText(feePart.substring(firstNonZeroIndex)).width
@@ -1289,23 +1289,23 @@ function formatAmountWithLeadingZeros(
       const numberPart = sign ? part.substring(1) : part
 
       if (sign) {
-        segments.push({ text: sign, color: baseColor, x: currentX })
+        segments.push({ color: baseColor, text: sign, x: currentX })
         currentX += font.measureText(sign).width
       }
 
       const firstNonZeroIndex = numberPart.search(/[1-9]/)
       if (firstNonZeroIndex === -1) {
         segments.push({
-          text: numberPart,
           color: hexToRgba(baseColor, 0.4),
+          text: numberPart,
           x: currentX
         })
         currentX += font.measureText(numberPart).width
       } else {
         if (firstNonZeroIndex > 0) {
           segments.push({
-            text: numberPart.substring(0, firstNonZeroIndex),
             color: hexToRgba(baseColor, 0.4),
+            text: numberPart.substring(0, firstNonZeroIndex),
             x: currentX
           })
           currentX += font.measureText(
@@ -1313,8 +1313,8 @@ function formatAmountWithLeadingZeros(
           ).width
         }
         segments.push({
-          text: numberPart.substring(firstNonZeroIndex),
           color: baseColor,
+          text: numberPart.substring(firstNonZeroIndex),
           x: currentX
         })
         currentX += font.measureText(
@@ -1736,13 +1736,13 @@ function TransactionInfoRenderer({
           : font.measureText(text).width
 
         labelRectRef.current.push({
+          id: label.id,
           rect: {
             left: label.type === 'receive' ? label.x - textWidth : label.x,
             right: label.type === 'receive' ? label.x : label.x + textWidth,
             bottom: label.y,
             top: label.y - 10
-          },
-          id: label.id
+          }
         })
 
         if (paragraph) {

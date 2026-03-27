@@ -41,8 +41,8 @@ function getMatchingWords(wordStart: string, wordList: string[]): WordInfo[] {
   const result = wordList
     .map((w) => ({
       index: index++,
-      word: w,
-      mispells: wordStartMispells(w, wordStart)
+      mispells: wordStartMispells(w, wordStart),
+      word: w
     }))
     .filter((w) => w.mispells <= maxMisspells)
 
@@ -87,14 +87,14 @@ function SSKeyboardWordSelector({
 
   if (keyboardOpen && visible && data.length > 0) {
     Animated.timing(opacityAnimated, {
-      toValue: 1,
       duration: 200,
+      toValue: 1,
       useNativeDriver: true
     }).start()
   } else if (!keyboardOpen || !visible) {
     Animated.timing(opacityAnimated, {
-      toValue: 0,
       duration: 200,
+      toValue: 0,
       useNativeDriver: true
     }).start()
   }
@@ -206,6 +206,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
+  separator: {
+    height: '100%',
+    backgroundColor: Colors.gray[50],
+    width: 1
+  },
   wordContainerBase: {
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -218,11 +223,6 @@ const styles = StyleSheet.create({
   wordText: {
     fontSize: Sizes.text.fontSize.lg,
     color: Colors.black
-  },
-  separator: {
-    height: '100%',
-    backgroundColor: Colors.gray[50],
-    width: 1
   }
 })
 

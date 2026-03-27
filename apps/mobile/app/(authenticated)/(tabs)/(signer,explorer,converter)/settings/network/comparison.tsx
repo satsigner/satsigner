@@ -28,8 +28,8 @@ export default function NetworksComparison() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>,
-          headerRight: undefined
+          headerRight: undefined,
+          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>
         }}
       />
       <SSMainLayout style={{ paddingTop: 0 }}>

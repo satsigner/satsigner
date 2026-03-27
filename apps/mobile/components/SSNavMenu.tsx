@@ -76,6 +76,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.black
   },
+  contentContainer: {
+    flexGrow: 1
+  },
   gradientOverlay: {
     position: 'absolute',
     top: 0,
@@ -93,21 +96,18 @@ const styles = StyleSheet.create({
   groupWrapper: {
     gap: 0
   },
-  contentContainer: {
-    flexGrow: 1
-  },
   vStackWrapper: {
     gap: 60,
     padding: 12,
     paddingRight: 32,
     paddingTop: 40
   },
+  versionText: {
+    letterSpacing: 2
+  },
   versionWrapper: {
     marginVertical: 40,
     marginLeft: 30
-  },
-  versionText: {
-    letterSpacing: 2
   }
 })
 

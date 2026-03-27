@@ -152,8 +152,8 @@ export default function Receive() {
       setAddressData({
         localAddress: address,
         localAddressNumber: addressInfo.index,
-        localAddressQR: qrUri,
-        localAddressPath: `${account?.keys[0].derivationPath}/0/${addressInfo.index}`
+        localAddressPath: `${account?.keys[0].derivationPath}/0/${addressInfo.index}`,
+        localAddressQR: qrUri
       })
 
       // Set existing label if found
@@ -186,8 +186,8 @@ export default function Receive() {
       setAddressData({
         localAddress: address,
         localAddressNumber: nextIndex,
-        localAddressQR: qrUri,
-        localAddressPath: `${account.keys[0].derivationPath}/0/${nextIndex}`
+        localAddressPath: `${account.keys[0].derivationPath}/0/${nextIndex}`,
+        localAddressQR: qrUri
       })
 
       const existingAddress = account.addresses.find((addr) => {
@@ -226,8 +226,8 @@ export default function Receive() {
             const singleLabelData: Label = {
               label: text.trim(),
               ref: localAddress,
-              type: 'addr',
-              spendable: true
+              spendable: true,
+              type: 'addr'
             }
             sendLabelsToNostr(updatedAccount, singleLabelData)
           }
@@ -329,10 +329,10 @@ export default function Receive() {
     <SSMainLayout style={{ paddingTop: 0 }}>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle() {
             return <SSText uppercase>{account.name}</SSText>
-          },
-          headerRight: undefined
+          }
         }}
       />
       <ScrollView>
@@ -561,20 +561,6 @@ export default function Receive() {
 }
 
 const styles = StyleSheet.create({
-  uriTextInput: {
-    fontFamily: 'monospace',
-    color: Colors.white,
-    padding: 8,
-    backgroundColor: Colors.gray[800],
-    borderRadius: 4,
-    minWidth: 280,
-    minHeight: 80,
-    fontSize: 14,
-    textAlign: 'left',
-    paddingBottom: 32,
-    lineHeight: 18,
-    letterSpacing: 0.5
-  },
   addressTextInput: {
     fontFamily: 'monospace',
     color: Colors.white,
@@ -586,16 +572,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 30,
     letterSpacing: 1.5,
-    textAlign: 'left'
-  },
-  labelTextInput: {
-    height: 'auto',
-    textAlignVertical: 'top',
-    padding: 16,
-    paddingBottom: 32,
-    fontSize: 14,
-    lineHeight: 22,
-    letterSpacing: 0.5,
     textAlign: 'left'
   },
   amountTextInput: {
@@ -610,13 +586,37 @@ const styles = StyleSheet.create({
     height: 58,
     paddingHorizontal: 12
   },
-  switchableAmount: {
-    textDecorationLine: 'underline'
+  labelTextInput: {
+    height: 'auto',
+    textAlignVertical: 'top',
+    padding: 16,
+    paddingBottom: 32,
+    fontSize: 14,
+    lineHeight: 22,
+    letterSpacing: 0.5,
+    textAlign: 'left'
   },
   sectionSpacing: {
     marginVertical: 10
   },
+  switchableAmount: {
+    textDecorationLine: 'underline'
+  },
   toggleButton: {
     flex: 1
+  },
+  uriTextInput: {
+    fontFamily: 'monospace',
+    color: Colors.white,
+    padding: 8,
+    backgroundColor: Colors.gray[800],
+    borderRadius: 4,
+    minWidth: 280,
+    minHeight: 80,
+    fontSize: 14,
+    textAlign: 'left',
+    paddingBottom: 32,
+    lineHeight: 18,
+    letterSpacing: 0.5
   }
 })

@@ -52,65 +52,22 @@ type AuthAction = {
 const useAuthStore = create<AuthState & AuthAction>()(
   persist(
     (set, get) => ({
-      firstTime: true,
-      requiresAuth: false,
-      lockTriggered: false,
-      lockDeltaTime: DEFAULT_LOCK_DELTA_TIME_SECONDS,
-      pinTries: 0,
-      pinMaxTries: DEFAULT_PIN_MAX_TRIES,
-      pageHistory: [],
-      skipPin: false,
+      clearPageHistory() {
+        set({ pageHistory: [] })
+      },
       duressPinEnabled: false,
-      justUnlocked: false,
-      pendingRecoverData: null,
-      setFirstTime: (firstTime: boolean) => {
-        set({ firstTime })
-      },
-      setRequiresAuth: (requiresAuth) => {
-        set({ requiresAuth })
-      },
-      setLockTriggered: (lockTriggered) => {
-        set({ lockTriggered })
-      },
-      setPin: async (pin) => {
-        const salt = await generateSalt()
-        const encryptedPin = await pbkdf2Encrypt(pin, salt)
-        await setItem(SALT_KEY, salt)
-        await setItem(PIN_KEY, encryptedPin)
-      },
-      setDuressPin: async (pin) => {
-        const salt = await generateSalt()
-        const encryptedPin = await pbkdf2Encrypt(pin, salt)
-        await setItem(SALT_KEY, salt)
-        await setItem(DURESS_PIN_KEY, encryptedPin)
-      },
-      setSkipPin(skipPin) {
-        set({ skipPin })
-      },
-      setDuressPinEnabled(duressPinEnabled) {
-        set({ duressPinEnabled })
-      },
-      validatePin: async (pin) => {
-        const salt = await getItem(SALT_KEY)
-        if (!salt) throw new Error('Failed to validate PIN')
-        const encrypted = await pbkdf2Encrypt(pin, salt)
-        const savedPin = await getItem(PIN_KEY)
-        return encrypted === savedPin
+      firstTime: true,
+      getPagesHistory: () => {
+        return ['/', ...get().pageHistory]
       },
       incrementPinTries: () => {
         set({ pinTries: get().pinTries + 1 })
         const triesLeft = get().pinMaxTries - get().pinTries
         return triesLeft
       },
-      resetPinTries: () => {
-        set({ pinTries: 0 })
-      },
-      setPinMaxTries: (maxTries) => {
-        set({ pinMaxTries: maxTries })
-      },
-      setLockDeltaTime: (deltaTime) => {
-        set({ lockDeltaTime: deltaTime })
-      },
+      justUnlocked: false,
+      lockDeltaTime: DEFAULT_LOCK_DELTA_TIME_SECONDS,
+      lockTriggered: false,
       markPageVisited: (page: PageRoute) => {
         const pages = get().pageHistory
         const { path, params } = page
@@ -130,26 +87,69 @@ const useAuthStore = create<AuthState & AuthAction>()(
         pages.push(actualPage)
         set({ pageHistory: pages })
       },
-      getPagesHistory: () => {
-        return ['/', ...get().pageHistory]
+      pageHistory: [],
+      pendingRecoverData: null,
+      pinMaxTries: DEFAULT_PIN_MAX_TRIES,
+      pinTries: 0,
+      requiresAuth: false,
+      resetPinTries: () => {
+        set({ pinTries: 0 })
       },
-      clearPageHistory() {
-        set({ pageHistory: [] })
+      setDuressPin: async (pin) => {
+        const salt = await generateSalt()
+        const encryptedPin = await pbkdf2Encrypt(pin, salt)
+        await setItem(SALT_KEY, salt)
+        await setItem(DURESS_PIN_KEY, encryptedPin)
+      },
+      setDuressPinEnabled(duressPinEnabled) {
+        set({ duressPinEnabled })
+      },
+      setFirstTime: (firstTime: boolean) => {
+        set({ firstTime })
       },
       setJustUnlocked(justUnlocked) {
         set({ justUnlocked })
       },
+      setLockDeltaTime: (deltaTime) => {
+        set({ lockDeltaTime: deltaTime })
+      },
+      setLockTriggered: (lockTriggered) => {
+        set({ lockTriggered })
+      },
       setPendingRecoverData(pendingRecoverData) {
         set({ pendingRecoverData })
+      },
+      setPin: async (pin) => {
+        const salt = await generateSalt()
+        const encryptedPin = await pbkdf2Encrypt(pin, salt)
+        await setItem(SALT_KEY, salt)
+        await setItem(PIN_KEY, encryptedPin)
+      },
+      setPinMaxTries: (maxTries) => {
+        set({ pinMaxTries: maxTries })
+      },
+      setRequiresAuth: (requiresAuth) => {
+        set({ requiresAuth })
+      },
+      setSkipPin(skipPin) {
+        set({ skipPin })
+      },
+      skipPin: false,
+      validatePin: async (pin) => {
+        const salt = await getItem(SALT_KEY)
+        if (!salt) throw new Error('Failed to validate PIN')
+        const encrypted = await pbkdf2Encrypt(pin, salt)
+        const savedPin = await getItem(PIN_KEY)
+        return encrypted === savedPin
       }
     }),
     {
       name: 'satsigner-auth',
-      storage: createJSONStorage(() => mmkvStorage),
       partialize: (state) => {
         const { pendingRecoverData: _, ...rest } = state
         return rest
-      }
+      },
+      storage: createJSONStorage(() => mmkvStorage)
     }
   )
 )

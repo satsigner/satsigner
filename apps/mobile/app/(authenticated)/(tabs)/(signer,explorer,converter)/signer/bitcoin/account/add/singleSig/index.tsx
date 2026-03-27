@@ -106,15 +106,15 @@ export default function SingleSig() {
         }
         case 'coin': {
           router.navigate({
-            pathname: '/signer/bitcoin/account/add/entropy/coin',
-            params: { index: 0 }
+            params: { index: 0 },
+            pathname: '/signer/bitcoin/account/add/entropy/coin'
           })
           break
         }
         case 'dice': {
           router.navigate({
-            pathname: '/signer/bitcoin/account/add/entropy/dice',
-            params: { index: 0 }
+            params: { index: 0 },
+            pathname: '/signer/bitcoin/account/add/entropy/dice'
           })
           break
         }

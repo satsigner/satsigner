@@ -49,8 +49,8 @@ function SSExploreBlock({ block }: SSExploreBlockProps) {
           style={[
             styles.rectangle,
             {
-              height: 100 - percentageWeight,
-              backgroundColor: Colors.white
+              backgroundColor: Colors.white,
+              height: 100 - percentageWeight
             }
           ]}
         >
@@ -66,8 +66,8 @@ function SSExploreBlock({ block }: SSExploreBlockProps) {
           style={[
             styles.rectangle,
             {
-              height: percentageWeight,
               backgroundColor: Colors.gray['300'],
+              height: percentageWeight,
               justifyContent: 'center'
             }
           ]}
@@ -87,7 +87,7 @@ function SSExploreBlock({ block }: SSExploreBlockProps) {
           [
             t('explorer.block.id'),
             formatBlockHash(block?.id),
-            { width: '100%', copyToClipboard: true }
+            { copyToClipboard: true, width: '100%' }
           ],
           [t('explorer.block.date'), formatBlockDate(block?.timestamp)],
           [t('explorer.block.dateMedian'), formatBlockDate(block?.mediantime)],
@@ -118,16 +118,16 @@ function SSExploreBlock({ block }: SSExploreBlockProps) {
 }
 
 const styles = StyleSheet.create({
-  rectangle: {
-    width: 100,
-    backgroundColor: 'white',
-    justifyContent: 'center'
-  },
   centered: {
     alignItems: 'center'
   },
   halfWidth: {
     width: '45%'
+  },
+  rectangle: {
+    width: 100,
+    backgroundColor: 'white',
+    justifyContent: 'center'
   }
 })
 

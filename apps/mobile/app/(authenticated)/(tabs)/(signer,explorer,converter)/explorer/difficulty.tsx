@@ -100,15 +100,15 @@ function ExplorerDifficulty() {
       const data = items.map(
         (value) =>
           ({
-            height: value[0].height,
-            timestamp: value[1].time,
-            txCount: value[2].nTx,
             chainWork: value[3].chainwork,
+            cycleHeight: value[7].block_in_cycle,
+            height: value[0].height,
             nonce: value[4].nonce,
             size: value[5].size,
-            weight: value[6].weight,
-            cycleHeight: value[7].block_in_cycle,
-            timeDifference: value[8].time_difference
+            timeDifference: value[8].time_difference,
+            timestamp: value[1].time,
+            txCount: value[2].nTx,
+            weight: value[6].weight
           }) as BlockDifficulty
       )
 
@@ -228,7 +228,7 @@ function ExplorerDifficulty() {
               value={epoch}
               onChangeText={setEpoch}
               textAlign="center"
-              style={{ borderWidth: 1, borderColor: '#fff' }}
+              style={{ borderColor: '#fff', borderWidth: 1 }}
             />
           </SSVStack>
           <SSActionButton style={styles.button} onPress={nextEpoch}>
@@ -364,25 +364,48 @@ function getFileName(index: number) {
 }
 
 const styles = StyleSheet.create({
+  blockDetailsSection: {
+    flexGrow: 1
+  },
+  blockDetailsSectionGroup: {
+    alignItems: 'flex-start',
+    gap: 0
+  },
   button: {
     borderWidth: 1,
     borderRadius: 5,
     borderColor: Colors.white,
     padding: 20
   },
+  canvasContainer: {
+    marginTop: 140,
+    flex: 1
+  },
   dateContainer: {
     alignItems: 'center',
     justifyContent: 'center'
+  },
+  footerContainer: {
+    justifyContent: 'center'
+  },
+  fullWidth: {
+    width: '100%',
+    textAlign: 'center'
+  },
+  headerCaption: {
+    flexShrink: 1
+  },
+  headerContainer: {
+    alignItems: 'flex-start'
+  },
+  headerRight: {
+    textAlign: 'right'
   },
   inputContainer: {
     flexGrow: 1,
     justifyContent: 'center',
     alignContent: 'center',
     alignItems: 'center'
-  },
-  canvasContainer: {
-    marginTop: 140,
-    flex: 1
   },
   mainContainer: {
     backgroundColor: Colors.black,
@@ -397,29 +420,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     justifyContent: 'center',
     alignItems: 'center'
-  },
-  blockDetailsSection: {
-    flexGrow: 1
-  },
-  blockDetailsSectionGroup: {
-    alignItems: 'flex-start',
-    gap: 0
-  },
-  fullWidth: {
-    width: '100%',
-    textAlign: 'center'
-  },
-  headerContainer: {
-    alignItems: 'flex-start'
-  },
-  headerCaption: {
-    flexShrink: 1
-  },
-  headerRight: {
-    textAlign: 'right'
-  },
-  footerContainer: {
-    justifyContent: 'center'
   }
 })
 

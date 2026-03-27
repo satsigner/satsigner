@@ -85,10 +85,10 @@ function extractPSBTDerivations(psbtBase64: string) {
         const publicKey = derivation.pubkey.toString('hex')
 
         derivations.push({
-          fingerprint,
           derivationPath,
-          publicKey,
-          inputIndex
+          fingerprint,
+          inputIndex,
+          publicKey
         })
       })
     }
@@ -150,8 +150,8 @@ export async function findMatchingAccount(
     return {
       account,
       cosignerIndex: matchingKeyIndex,
-      fingerprint: firstMatchingDerivation.fingerprint,
       derivationPath: firstMatchingDerivation.derivationPath,
+      fingerprint: firstMatchingDerivation.fingerprint,
       publicKey: firstMatchingDerivation.publicKey
     }
   }
@@ -191,10 +191,10 @@ export function signPSBTWithSeed(
     if (input.bip32Derivation) {
       input.bip32Derivation.forEach((derivation) => {
         derivations.push({
-          inputIndex,
-          pubkey: derivation.pubkey.toString('hex'),
           fingerprint: derivation.masterFingerprint.toString('hex'),
-          path: derivation.path
+          inputIndex,
+          path: derivation.path,
+          pubkey: derivation.pubkey.toString('hex')
         })
       })
     }
@@ -291,20 +291,20 @@ export function signPSBTWithSeed(
   const validation = getSignedPSBTValidationInfo(signedPSBT)
 
   return {
-    success: true,
-    originalPSBT: psbtBase64,
-    signedPSBT,
+    fingerprint: seedFingerprint,
     inputIndex: matchingDerivations[0].inputIndex,
     inputIndices: matchingDerivations.map((d) => d.inputIndex),
-    publicKey: matchingDerivations[0].pubkey,
-    privateKey: '',
-    fingerprint: seedFingerprint,
+    originalPSBT: psbtBase64,
     path: matchingDerivations[0].path,
+    privateKey: '',
+    publicKey: matchingDerivations[0].pubkey,
     signature:
       psbt.data.inputs[
         matchingDerivations[0].inputIndex
       ].partialSig?.[0]?.signature?.toString('hex') || '',
     signedInputsCount: signedInputs,
+    signedPSBT,
+    success: true,
     validation
   }
 }
@@ -312,14 +312,7 @@ export function signPSBTWithSeed(
 function getSignedPSBTValidationInfo(signedPSBT: string) {
   const psbt = bitcoinjs.Psbt.fromBase64(signedPSBT)
   const validation = {
-    isValid: true,
     errors: [] as string[],
-    warnings: [] as string[],
-    signatures: [] as {
-      inputIndex: number
-      pubkey: string
-      signature: string
-    }[],
     inputs: [] as {
       index: number
       hasPartialSigs: boolean
@@ -330,21 +323,28 @@ function getSignedPSBTValidationInfo(signedPSBT: string) {
       hasWitnessUtxo: boolean
       hasNonWitnessUtxo: boolean
       hasBip32Derivation: boolean
-    }[]
+    }[],
+    isValid: true,
+    signatures: [] as {
+      inputIndex: number
+      pubkey: string
+      signature: string
+    }[],
+    warnings: [] as string[]
   }
 
   // Check each input for signatures
   psbt.data.inputs.forEach((input, inputIndex) => {
     const inputInfo = {
-      index: inputIndex,
+      hasBip32Derivation: !!input.bip32Derivation,
+      hasNonWitnessUtxo: !!input.nonWitnessUtxo,
       hasPartialSigs: false,
+      hasWitnessUtxo: !!input.witnessUtxo,
+      index: inputIndex,
       partialSigs: [] as {
         pubkey: string
         signature: string
-      }[],
-      hasWitnessUtxo: !!input.witnessUtxo,
-      hasNonWitnessUtxo: !!input.nonWitnessUtxo,
-      hasBip32Derivation: !!input.bip32Derivation
+      }[]
     }
 
     // Check for partial signatures
@@ -436,13 +436,13 @@ export function extractTransactionDataFromPSBTEnhanced(
     }
 
     return {
-      txid,
-      vout,
-      value,
-      script,
       address,
+      keychain: 'external' as const,
       label: `Input ${index + 1}`,
-      keychain: 'external' as const
+      script,
+      txid,
+      value,
+      vout
     }
   })
 
@@ -462,9 +462,9 @@ export function extractTransactionDataFromPSBTEnhanced(
 
     return {
       address,
-      value,
+      label: `Output ${index + 1}`,
       script,
-      label: `Output ${index + 1}`
+      value
     }
   })
 
@@ -479,13 +479,13 @@ export function extractTransactionDataFromPSBTEnhanced(
   const fee = Math.max(totalInputValue - totalOutputValue, 0)
 
   return {
-    inputs,
-    outputs,
     fee,
+    inputs,
     network: (account.network === 'bitcoin' ? 'mainnet' : account.network) as
       | 'mainnet'
       | 'testnet'
-      | 'signet'
+      | 'signet',
+    outputs
   }
 }
 
@@ -1112,8 +1112,8 @@ export function matchSignedPsbtsToCosigners(
 
       matches.push({
         cosignerIndex,
-        signedPsbtBase64: indivBase64,
-        matchMethod: 'pubkey'
+        matchMethod: 'pubkey',
+        signedPsbtBase64: indivBase64
       })
       matched = true
       break
@@ -1136,8 +1136,8 @@ export function matchSignedPsbtsToCosigners(
 
       matches.push({
         cosignerIndex: cosIdx,
-        signedPsbtBase64: indivBase64,
-        matchMethod: 'validation'
+        matchMethod: 'validation',
+        signedPsbtBase64: indivBase64
       })
       break
     }

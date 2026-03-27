@@ -181,11 +181,11 @@ function useNostrSubscriptionManager() {
 
   return useMemo(
     () => ({
-      subscribe,
       cleanup,
-      createProtocolSubscription,
       createDataExchangeSubscription,
-      getActiveSubscriptions
+      createProtocolSubscription,
+      getActiveSubscriptions,
+      subscribe
     }),
     [
       subscribe,

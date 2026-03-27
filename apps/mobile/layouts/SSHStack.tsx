@@ -35,8 +35,8 @@ export default function SSHStack({
 
 const styles = StyleSheet.create({
   containerBase: {
-    flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    flexDirection: 'row'
   },
   justifyBetween: {
     justifyContent: 'space-between'

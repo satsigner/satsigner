@@ -24,9 +24,9 @@ export default function SSSeedLayout({ count, children }: SSSeedLayoutProps) {
 
 const styles = StyleSheet.create({
   containerBase: {
+    alignContent: 'space-between',
     flex: 1,
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    alignContent: 'space-between'
+    justifyContent: 'space-between'
   }
 })

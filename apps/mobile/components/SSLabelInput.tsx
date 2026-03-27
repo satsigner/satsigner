@@ -98,8 +98,8 @@ function SSLabelInput({
         blurOnSubmit
         style={{
           height: 'auto',
-          textAlignVertical: 'top',
-          padding: 10
+          padding: 10,
+          textAlignVertical: 'top'
         }}
         value={label}
         onChangeText={setLabel}

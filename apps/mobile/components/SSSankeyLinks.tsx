@@ -218,12 +218,12 @@ function SSSankeyLinks({
               ? (sourceNode.x1 ?? 0) -
                 (sankeyGenerator.nodeWidth() - BLOCK_WIDTH) / 2
               : (sourceNode.x1 ?? 0),
-          y1,
           x2:
             targetNode.type === 'block'
               ? (targetNode.x0 ?? 0) +
                 (sankeyGenerator.nodeWidth() - BLOCK_WIDTH) / 2
               : (targetNode.x0 ?? 0),
+          y1,
           y2
         }
         const path1 = generateCustomLink(points)

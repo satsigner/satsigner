@@ -85,9 +85,9 @@ export default function ImportMnemonic() {
     useState(false)
 
   const [wordSelectorState, setWordSelectorState] = useState({
+    onWordSelected: () => {},
     visible: false,
-    wordStart: '',
-    onWordSelected: () => {}
+    wordStart: ''
   })
 
   // Handle mnemonic validation from the component

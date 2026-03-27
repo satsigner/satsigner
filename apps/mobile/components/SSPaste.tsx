@@ -284,19 +284,19 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
 
 const styles = StyleSheet.create({
   textInput: {
-    minHeight: 200,
-    maxHeight: 400,
-    height: 'auto',
-    width: '100%',
-    maxWidth: 320,
-    textAlign: 'left',
-    fontSize: 14,
-    letterSpacing: 0.5,
-    fontFamily: 'monospace',
-    borderWidth: 1,
-    padding: 10,
+    backgroundColor: Colors.gray[900],
     borderRadius: 5,
-    backgroundColor: Colors.gray[900]
+    borderWidth: 1,
+    fontFamily: 'monospace',
+    fontSize: 14,
+    height: 'auto',
+    letterSpacing: 0.5,
+    maxHeight: 400,
+    maxWidth: 320,
+    minHeight: 200,
+    padding: 10,
+    textAlign: 'left',
+    width: '100%'
   }
 })
 

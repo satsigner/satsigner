@@ -96,16 +96,16 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center'
   },
-  qrContainer: {
-    padding: 10,
-    backgroundColor: Colors.white,
-    borderRadius: 8
-  },
   dataContainer: {
     width: '100%',
     padding: 10,
     backgroundColor: Colors.gray[900],
     borderRadius: 8,
     marginTop: 10
+  },
+  qrContainer: {
+    padding: 10,
+    backgroundColor: Colors.white,
+    borderRadius: 8
   }
 })

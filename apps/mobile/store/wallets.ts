@@ -18,14 +18,20 @@ type WalletsAction = {
 }
 
 const useWalletsStore = create<WalletsState & WalletsAction>((set) => ({
-  wallets: {},
-  addresses: {},
+  addAccountAddress: (accountId, address) =>
+    set(
+      produce((state) => {
+        state.addresses[accountId] = address
+      })
+    ),
   addAccountWallet: (accountId, wallet) =>
     set(
       produce((state) => {
         state.wallets[accountId] = wallet
       })
     ),
+  addresses: {},
+  deleteWallets: () => set({ wallets: {}, addresses: {} }),
   removeAccountWallet: (accountId) =>
     set(
       produce((state) => {
@@ -33,13 +39,7 @@ const useWalletsStore = create<WalletsState & WalletsAction>((set) => ({
         delete state.addresses[accountId]
       })
     ),
-  deleteWallets: () => set({ wallets: {}, addresses: {} }),
-  addAccountAddress: (accountId, address) =>
-    set(
-      produce((state) => {
-        state.addresses[accountId] = address
-      })
-    )
+  wallets: {}
 }))
 
 export { useWalletsStore }

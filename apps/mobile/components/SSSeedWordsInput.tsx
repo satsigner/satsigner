@@ -121,9 +121,9 @@ export default function SSSeedWordsInput({
   // Initialize seed words info
   useEffect(() => {
     const initialSeedWordsInfo = Array.from({ length: wordCount }, () => ({
-      value: '',
+      dirty: false,
       valid: false,
-      dirty: false
+      value: ''
     }))
     setSeedWordsInfo(initialSeedWordsInfo)
     // Initialize refs array
@@ -213,9 +213,9 @@ export default function SSSeedWordsInput({
   // Notify parent about word selector state changes
   useEffect(() => {
     onWordSelectorStateChange?.({
+      onWordSelected: (word?: string) => handleWordSelectedRef.current?.(word),
       visible: keyboardWordSelectorVisible,
-      wordStart: currentWordText,
-      onWordSelected: (word?: string) => handleWordSelectedRef.current?.(word)
+      wordStart: currentWordText
     })
   }, [keyboardWordSelectorVisible, currentWordText, onWordSelectorStateChange])
 
@@ -240,9 +240,9 @@ export default function SSSeedWordsInput({
   const fillOutSeedWords = useCallback(
     async (seed: string[]) => {
       const newSeedWordsInfo = seed.map((value) => ({
-        value,
+        dirty: false,
         valid: true,
-        dirty: false
+        value
       }))
 
       setSeedWordsInfo(newSeedWordsInfo)

@@ -162,9 +162,9 @@ export default function DescriptorPage() {
     const ext = 'txt'
     const filename = `Descriptor_${accountData.name}_${keyName}_${date}.${ext}`
     shareFile({
-      filename,
-      fileContent: descriptor,
       dialogTitle: t('export.file.save'),
+      fileContent: descriptor,
+      filename,
       mimeType: `text/plain`
     })
   }
@@ -205,8 +205,8 @@ export default function DescriptorPage() {
             <View
               style={{
                 backgroundColor: 'white',
-                padding: 20,
-                borderRadius: 10
+                borderRadius: 10,
+                padding: 20
               }}
             >
               <SSQRCode
@@ -224,9 +224,9 @@ export default function DescriptorPage() {
           <>
             <View
               style={{
-                padding: 10,
                 backgroundColor: Colors.gray[950],
-                borderRadius: 5
+                borderRadius: 5,
+                padding: 10
               }}
             >
               <SSText color="white" size="lg" type="mono" selectable>

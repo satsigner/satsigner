@@ -127,8 +127,7 @@ export function ManageAccountAddresses({
     const newAddress: WatchedAddress = {
       address,
       label: '',
-      transactions: [],
-      utxos: [],
+      new: true,
       scriptVersion: getScriptVersionType(address) || undefined,
       summary: {
         utxos: 0,
@@ -136,7 +135,8 @@ export function ManageAccountAddresses({
         satsInMempool: 0,
         balance: 0
       },
-      new: true
+      transactions: [],
+      utxos: []
     }
     setAddresses([...addresses, newAddress])
   }
@@ -185,10 +185,10 @@ export function ManageAccountAddresses({
         externalDescriptor: `addr(${addr.address})`
       }
       const key: Key = {
-        index,
-        secret,
         creationType: 'importAddress',
-        iv: randomIv()
+        index,
+        iv: randomIv(),
+        secret
       }
       return key
     })
@@ -196,9 +196,9 @@ export function ManageAccountAddresses({
 
     const updatedAccount: Account = {
       ...account,
-      transactions: [],
-      utxos: [],
       addresses,
+      keyCount,
+      keys,
       summary: {
         satsInMempool: 0,
         numberOfUtxos: 0,
@@ -207,8 +207,8 @@ export function ManageAccountAddresses({
         balance: 0
       },
       syncStatus: 'unsynced',
-      keyCount,
-      keys
+      transactions: [],
+      utxos: []
     }
 
     onUpdateAccount(updatedAccount)
@@ -322,11 +322,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: '#333'
   },
-  modalContainer: {
-    justifyContent: 'center',
-    height: '100%',
-    width: '100%'
-  },
   container: {
     flex: 1,
     overflow: 'visible'
@@ -335,5 +330,10 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     marginTop: 0,
     marginBottom: 20
+  },
+  modalContainer: {
+    justifyContent: 'center',
+    height: '100%',
+    width: '100%'
   }
 })

@@ -138,8 +138,8 @@ function SSBubble({
 
   // Utxo date
   const dateText = new Date(utxo?.timestamp || '').toLocaleDateString('en-US', {
-    month: 'short',
     day: 'numeric',
+    month: 'short',
     year: 'numeric'
   })
   const dateY = useMemo(() => {

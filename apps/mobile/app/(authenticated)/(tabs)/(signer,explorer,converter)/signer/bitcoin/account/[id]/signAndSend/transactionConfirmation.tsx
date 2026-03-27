@@ -94,16 +94,16 @@ export default function TransactionConfirmation() {
         // output label
         const outputRef = `${txid}:${vout}`
         labels.push({
-          ref: outputRef,
           label: output.label,
+          ref: outputRef,
           type: 'output'
         })
 
         // output's address label
         labels.push({
+          label: output.label,
           ref: output.to,
-          type: 'addr',
-          label: output.label
+          type: 'addr'
         })
 
         // the tx label will inherit the output's label separated by comma.
@@ -114,8 +114,8 @@ export default function TransactionConfirmation() {
       // trim the last comma before adding the tx label.
       txLabelText = txLabelText.replace(/,$/, '')
       labels.push({
-        ref: txid,
         label: txLabelText,
+        ref: txid,
         type: 'tx'
       })
 
@@ -129,14 +129,14 @@ export default function TransactionConfirmation() {
           txlabel: txLabelText
         })
         labels.push({
+          label: changeLabel,
           ref: `${txid}:${changeOutputIndex}`,
-          type: 'output',
-          label: changeLabel
+          type: 'output'
         })
         labels.push({
+          label: changeLabel,
           ref: changeOutput.to,
-          type: 'addr',
-          label: changeLabel
+          type: 'addr'
         })
       }
 
@@ -163,14 +163,15 @@ export default function TransactionConfirmation() {
       .reduce((sum, o) => sum + o.amount, 0)
 
     const optimisticTx: Transaction = {
-      id: txid,
-      type: 'send',
-      sent: totalIn,
-      received: receivedChange,
-      timestamp: new Date(),
       blockHeight: undefined,
       fee,
+      id: txid,
       lockTimeEnabled: false,
+      prices: {},
+      received: receivedChange,
+      sent: totalIn,
+      timestamp: new Date(),
+      type: 'send',
       vin: inputsList.map((u) => ({
         previousOutput: { txid: u.txid, vout: u.vout },
         sequence: 0xffffffff,
@@ -184,8 +185,7 @@ export default function TransactionConfirmation() {
         address: o.to,
         script: '',
         label: o.label
-      })),
-      prices: {}
+      }))
     }
 
     const spentOutpoints = new Set(inputsList.map((u) => `${u.txid}:${u.vout}`))
@@ -195,14 +195,14 @@ export default function TransactionConfirmation() {
 
     updateAccount({
       ...account,
-      transactions: [optimisticTx, ...account.transactions],
-      utxos: remainingUtxos,
       summary: {
         ...account.summary,
         balance: account.summary.balance - (totalIn - receivedChange),
         numberOfTransactions: account.summary.numberOfTransactions + 1,
         numberOfUtxos: remainingUtxos.length
-      }
+      },
+      transactions: [optimisticTx, ...account.transactions],
+      utxos: remainingUtxos
     })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

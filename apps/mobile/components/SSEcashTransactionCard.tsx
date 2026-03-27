@@ -93,8 +93,8 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
     <TouchableOpacity
       onPress={() =>
         router.push({
-          pathname: '/signer/ecash/transaction/[id]',
-          params: { id: transaction.id }
+          params: { id: transaction.id },
+          pathname: '/signer/ecash/transaction/[id]'
         } as never)
       }
       activeOpacity={0.7}
@@ -180,8 +180,8 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
         <SSVStack gap="none" style={{ marginTop: 5 }}>
           <SSHStack
             style={{
-              justifyContent: 'space-between',
-              alignItems: 'flex-end'
+              alignItems: 'flex-end',
+              justifyContent: 'space-between'
             }}
           >
             <SSHStack
@@ -243,8 +243,8 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
             <SSText
               size="xs"
               style={{
-                textAlign: 'left',
-                flex: 1
+                flex: 1,
+                textAlign: 'left'
               }}
             >
               {transaction.label || transaction.memo}
@@ -258,11 +258,11 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 0,
-    paddingTop: 4,
-    paddingBottom: 2,
+    borderColor: Colors.gray[800],
     borderTopWidth: 1,
-    borderColor: Colors.gray[800]
+    paddingBottom: 2,
+    paddingHorizontal: 0,
+    paddingTop: 4
   }
 })
 

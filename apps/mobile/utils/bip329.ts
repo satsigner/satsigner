@@ -32,39 +32,39 @@ export type Bip329FileType = 'JSONL' | 'JSON' | 'CSV'
 export const bip329FileTypes: Bip329FileType[] = ['JSONL', 'JSON', 'CSV']
 
 export const bip329parser = {
+  CSV: CSVtoLabels,
   JSON: JSONtoLabels,
-  JSONL: JSONLtoLabels,
-  CSV: CSVtoLabels
+  JSONL: JSONLtoLabels
 } as Record<Bip329FileType, (text: string) => Label[]>
 
 export const bip329export = {
+  CSV: labelsToCSV,
   JSON: labelsToJSON,
-  JSONL: labelsToJSONL,
-  CSV: labelsToCSV
+  JSONL: labelsToJSONL
 } as Record<Bip329FileType, (labels: Label[]) => string>
 
 export const bip329mimes = {
+  CSV: 'text/csv',
   JSON: 'application/json',
-  JSONL: 'text/plain',
-  CSV: 'text/csv'
+  JSONL: 'text/plain'
 } as Record<Bip329FileType, PickFileProps['type']>
 
 // These aliases is to handle importing from wallets which do not respect the
 // standard names defined in BIP329 but define their own nonsense
 const bip329Aliases: Partial<Record<keyof Label, string[]>> = {
-  type: ['type'],
-  ref: ['ref', 'txid', 'address', 'Payment Address'],
-  label: ['label', 'memo'],
-  spendable: ['spendable'],
-
   fee: ['fee', 'Fee sat/vbyte'],
   fmv: ['fmv'],
   height: ['height', 'Block height', 'Blockheight'],
   heights: ['heights', 'Block heights'],
+
   keypath: ['keypath', 'index'],
+  label: ['label', 'memo'],
   origin: ['origin', 'derivation'],
   rate: ['rate', 'Prices', 'Value (USD)'],
+  ref: ['ref', 'txid', 'address', 'Payment Address'],
+  spendable: ['spendable'],
   time: ['date', 'Date (UTC)', 'time', 'timestamp'],
+  type: ['type'],
   value: ['value', 'sats', 'satoshis', 'amount']
 }
 
@@ -81,9 +81,9 @@ function formatAddressLabels(addresses: Address[]): Label[] {
     .map((address) => {
       return {
         label: address.label,
-        type: 'addr',
         ref: address.address,
-        spendable: true
+        spendable: true,
+        type: 'addr'
       } as Label
     })
 }
@@ -94,9 +94,9 @@ function formatTransactionLabels(transactions: Transaction[]): Label[] {
     .map((tx) => {
       return {
         label: tx.label,
-        type: 'tx',
         ref: tx.id,
-        spendable: true
+        spendable: true,
+        type: 'tx'
       } as Label
     })
 }
@@ -107,9 +107,9 @@ function formatUtxoLabels(utxos: Utxo[]): Label[] {
     .map((utxo) => {
       return {
         label: utxo.label!,
-        type: 'output',
         ref: getUtxoOutpoint(utxo),
-        spendable: true // TODO: allow the user to mark utxo as not spendable
+        spendable: true,
+        type: 'output' // TODO: allow the user to mark utxo as not spendable
       }
     })
 }

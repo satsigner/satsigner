@@ -28,8 +28,8 @@ export default function SSMainLayout({
 
 const styles = StyleSheet.create({
   containerBase: {
+    flex: 1,
     paddingHorizontal: Layout.mainContainer.paddingHorizontal,
-    paddingTop: Layout.mainContainer.paddingTop,
-    flex: 1
+    paddingTop: Layout.mainContainer.paddingTop
   }
 })

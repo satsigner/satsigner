@@ -21,15 +21,15 @@ function parseAccountAddressesDetails({
   const addressesDetailed = addresses.map((addr) => {
     return {
       ...addr,
-      transactions: [] as string[],
-      utxos: [] as string[],
+      scriptVersion,
       summary: {
         utxos: 0,
         transactions: 0,
         balance: 0,
         satsInMempool: 0
       },
-      scriptVersion
+      transactions: [] as string[],
+      utxos: [] as string[]
     }
   })
 
@@ -172,9 +172,9 @@ function parseTXOutputs(input: string): Omit<Output, 'localId'>[] {
     const label = params.get('label')
 
     return {
-      to: address,
       amount: amount ? Number(amount) : 0,
-      label: label ? label.replace(/(^["“]|["”]$)/g, '') : t('common.noLabel')
+      label: label ? label.replace(/(^["“]|["”]$)/g, '') : t('common.noLabel'),
+      to: address
     }
   })
 }

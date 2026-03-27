@@ -5,39 +5,6 @@ import { validateCombinedDescriptor } from '@/utils/validation'
 // we implement it ourselves.
 
 export const DescriptorUtils = {
-  extractFingerprint(descriptor: string): string {
-    const fingerprintMatch = descriptor.match(/\[([0-9a-fA-F]{8})([0-9'/h]+)\]/)
-    return fingerprintMatch ? fingerprintMatch[1] : ''
-  },
-
-  extractFingerprintFromXpub(xpubWithPrefix: string) {
-    // Pattern 1: [fingerprint/derivation]xpub (with slash separator)
-    const fingerprintMatch1 = xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})\//)
-    if (fingerprintMatch1) return fingerprintMatch1[1]
-
-    // Pattern 2: [fingerprintderivation]xpub (no slash separator - legacy)
-    const fingerprintMatch2 = xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})/)
-    if (fingerprintMatch2) return fingerprintMatch2[1]
-
-    // Pattern 3: [fingerprint...]xpub (any length hex - fallback)
-    const fingerprintMatch3 = xpubWithPrefix.match(/^\[([0-9a-fA-F]+)/)
-    if (fingerprintMatch3) return fingerprintMatch3[1]
-
-    return null
-  },
-
-  extractCleanXpub(xpubWithPrefix: string): string {
-    const xpubMatch = xpubWithPrefix.match(/\]([txyzuv]pub[a-zA-Z0-9]{107})$/)
-    return xpubMatch ? xpubMatch[1] : xpubWithPrefix
-  },
-
-  getScriptVersionFromDerivation(derivationPath: string): ScriptVersionType {
-    if (derivationPath.includes("84'")) return 'P2WPKH'
-    if (derivationPath.includes("49'")) return 'P2SH-P2WPKH'
-    if (derivationPath.includes("44'")) return 'P2PKH'
-    return 'P2WPKH' // Default fallback
-  },
-
   createDescriptorFromXpub(
     xpubWithPrefix: string,
     scriptVersion: ScriptVersionType
@@ -64,6 +31,39 @@ export const DescriptorUtils = {
           internal: `wpkh(${xpubWithPrefix}/1/*)`
         }
     }
+  },
+
+  extractCleanXpub(xpubWithPrefix: string): string {
+    const xpubMatch = xpubWithPrefix.match(/\]([txyzuv]pub[a-zA-Z0-9]{107})$/)
+    return xpubMatch ? xpubMatch[1] : xpubWithPrefix
+  },
+
+  extractFingerprint(descriptor: string): string {
+    const fingerprintMatch = descriptor.match(/\[([0-9a-fA-F]{8})([0-9'/h]+)\]/)
+    return fingerprintMatch ? fingerprintMatch[1] : ''
+  },
+
+  extractFingerprintFromXpub(xpubWithPrefix: string) {
+    // Pattern 1: [fingerprint/derivation]xpub (with slash separator)
+    const fingerprintMatch1 = xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})\//)
+    if (fingerprintMatch1) return fingerprintMatch1[1]
+
+    // Pattern 2: [fingerprintderivation]xpub (no slash separator - legacy)
+    const fingerprintMatch2 = xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})/)
+    if (fingerprintMatch2) return fingerprintMatch2[1]
+
+    // Pattern 3: [fingerprint...]xpub (any length hex - fallback)
+    const fingerprintMatch3 = xpubWithPrefix.match(/^\[([0-9a-fA-F]+)/)
+    if (fingerprintMatch3) return fingerprintMatch3[1]
+
+    return null
+  },
+
+  getScriptVersionFromDerivation(derivationPath: string): ScriptVersionType {
+    if (derivationPath.includes("84'")) return 'P2WPKH'
+    if (derivationPath.includes("49'")) return 'P2SH-P2WPKH'
+    if (derivationPath.includes("44'")) return 'P2PKH'
+    return 'P2WPKH' // Default fallback
   },
 
   parseJsonDescriptor(text: string) {
@@ -95,10 +95,6 @@ export const DescriptorUtils = {
     }
   },
 
-  removeChecksum(descriptor: string): string {
-    return descriptor.replace(/#[a-z0-9]+$/, '')
-  },
-
   async processCombinedDescriptor(
     descriptor: string,
     scriptVersion: ScriptVersionType
@@ -127,5 +123,9 @@ export const DescriptorUtils = {
       internal: validation.internalDescriptor,
       fingerprint
     }
+  },
+
+  removeChecksum(descriptor: string): string {
+    return descriptor.replace(/#[a-z0-9]+$/, '')
   }
 }

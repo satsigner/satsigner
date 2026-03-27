@@ -24,8 +24,8 @@ export default function NetworkSettings() {
 
   const [tempConfigs, setTempConfigs] = useState<Record<Network, Config>>({
     bitcoin: configs.bitcoin.config,
-    testnet: configs.testnet.config,
-    signet: configs.signet.config
+    signet: configs.signet.config,
+    testnet: configs.testnet.config
   })
 
   const networks: Network[] = ['bitcoin', 'testnet', 'signet']
@@ -55,8 +55,8 @@ export default function NetworkSettings() {
     <SSMainLayout style={{ paddingTop: 0 }}>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>,
-          headerRight: undefined
+          headerRight: undefined,
+          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>
         }}
       />
       <SSVStack gap="lg" justifyBetween>

@@ -28,11 +28,11 @@ export default function LightningPage() {
   const handleConfigPress = () => {
     if (config) {
       router.navigate({
-        pathname: '/signer/lightning/node',
         params: {
           alias: nodeInfo?.alias || 'Unknown Node',
           pubkey: nodeInfo?.identity_pubkey || 'Not connected'
-        }
+        },
+        pathname: '/signer/lightning/node'
       })
     }
   }
@@ -160,28 +160,13 @@ export default function LightningPage() {
 }
 
 const styles = StyleSheet.create({
-  mainLayout: {
-    paddingTop: 32,
-    paddingHorizontal: '5%'
-  },
-  content: {
-    flex: 1,
-    alignItems: 'center'
-  },
-  headerText: {
-    marginBottom: 8
-  },
-  subtitle: {
-    marginBottom: 32,
-    textAlign: 'center'
+  button: {
+    width: '100%'
   },
   buttonContainer: {
     width: '100%',
     gap: 16,
     marginTop: 24
-  },
-  button: {
-    width: '100%'
   },
   card: {
     width: '100%',
@@ -197,19 +182,34 @@ const styles = StyleSheet.create({
   cardDetails: {
     gap: 8
   },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  content: {
+    flex: 1,
+    alignItems: 'center'
+  },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center'
   },
+  headerText: {
+    marginBottom: 8
+  },
+  mainLayout: {
+    paddingTop: 32,
+    paddingHorizontal: '5%'
+  },
   pubkey: {
     maxWidth: '70%',
     fontFamily: 'monospace'
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
+  subtitle: {
+    marginBottom: 32,
+    textAlign: 'center'
   },
   tapHint: {
     alignSelf: 'center',

@@ -150,7 +150,7 @@ export function useClipboardPaste({
 
   return {
     pasteFromClipboard,
-    pasteFromClipboardWithValidation,
-    pasteFromClipboardSilent
+    pasteFromClipboardSilent,
+    pasteFromClipboardWithValidation
   }
 }

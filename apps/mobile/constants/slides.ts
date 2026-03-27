@@ -2,11 +2,10 @@ import { t } from '@/locales'
 
 export const slides = [
   {
-    page: t('navigation.item.bitcoin'),
-    items: []
+    items: [],
+    page: t('navigation.item.bitcoin')
   },
   {
-    page: t('navigation.item.lightning'),
     items: [
       {
         title: t('upcoming.lightning.title_1'),
@@ -38,20 +37,20 @@ export const slides = [
         description: t('upcoming.lightning.description_6'),
         image: require('@/assets/images/ln_6.jpg')
       }
-    ]
+    ],
+    page: t('navigation.item.lightning')
   },
   {
-    page: t('navigation.item.liquid'),
     items: [
       {
         title: t('upcoming.liquid.title'),
         description: t('upcoming.liquid.description'),
         image: require('@/assets/images/liquid_0.jpg')
       }
-    ]
+    ],
+    page: t('navigation.item.liquid')
   },
   {
-    page: t('navigation.item.ecash'),
     items: [
       {
         title: t('upcoming.ecash.title_1'),
@@ -63,10 +62,10 @@ export const slides = [
         description: t('upcoming.ecash.description_2'),
         image: require('@/assets/images/ecash_2.jpg')
       }
-    ]
+    ],
+    page: t('navigation.item.ecash')
   },
   {
-    page: t('navigation.item.nostr'),
     items: [
       {
         title: t('upcoming.nostr.title_1'),
@@ -83,40 +82,40 @@ export const slides = [
         description: t('upcoming.nostr.description_3'),
         image: require('@/assets/images/nostr_3.jpg')
       }
-    ]
+    ],
+    page: t('navigation.item.nostr')
   },
   {
-    page: t('navigation.item.chaintip'),
     items: [
       {
         title: t('upcoming.chaintip.title'),
         description: t('upcoming.chaintip.description'),
         image: require('@/assets/images/chaintip.jpg')
       }
-    ]
+    ],
+    page: t('navigation.item.chaintip')
   },
   {
-    page: t('navigation.item.mempool'),
     items: [
       {
         title: t('upcoming.mempool.title'),
         description: t('upcoming.mempool.description'),
         image: require('@/assets/images/mempool.jpg')
       }
-    ]
+    ],
+    page: t('navigation.item.mempool')
   },
   {
-    page: t('navigation.item.difficulty'),
     items: [
       {
         title: t('upcoming.difficulty.title'),
         description: t('upcoming.difficulty.description'),
         image: require('@/assets/images/difficulty.jpg')
       }
-    ]
+    ],
+    page: t('navigation.item.difficulty')
   },
   {
-    page: t('navigation.item.halving'),
     items: [
       {
         title: t('upcoming.halving.title_1'),
@@ -128,10 +127,10 @@ export const slides = [
         description: t('upcoming.halving.description_2'),
         image: require('@/assets/images/halving_2.jpg')
       }
-    ]
+    ],
+    page: t('navigation.item.halving')
   },
   {
-    page: t('navigation.item.chain'),
     items: [
       {
         title: t('upcoming.chain.title_1'),
@@ -148,10 +147,10 @@ export const slides = [
         description: t('upcoming.chain.description_3'),
         image: require('@/assets/images/chain_3.jpg')
       }
-    ]
+    ],
+    page: t('navigation.item.chain')
   },
   {
-    page: t('navigation.item.currency'),
     items: [
       {
         title: t('upcoming.currency.title_1'),
@@ -163,10 +162,10 @@ export const slides = [
         description: t('upcoming.currency.description_2'),
         image: require('@/assets/images/currency_2.jpg')
       }
-    ]
+    ],
+    page: t('navigation.item.currency')
   },
   {
-    page: t('navigation.item.time'),
     items: [
       {
         title: t('upcoming.time.title_1'),
@@ -178,10 +177,10 @@ export const slides = [
         description: t('upcoming.time.description_2'),
         image: require('@/assets/images/time_2.jpg')
       }
-    ]
+    ],
+    page: t('navigation.item.time')
   },
   {
-    page: t('navigation.item.energy'),
     items: [
       {
         title: t('upcoming.energy.title_1'),
@@ -193,6 +192,7 @@ export const slides = [
         description: t('upcoming.energy.description_2'),
         image: require('@/assets/images/energy_2.jpg')
       }
-    ]
+    ],
+    page: t('navigation.item.energy')
   }
 ]

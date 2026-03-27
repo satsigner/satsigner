@@ -74,7 +74,7 @@ export function joinQRs(parts: string[]): JoinResult {
 
   const raw = decodeData(orderedParts, encoding)
 
-  return { fileType, encoding, raw }
+  return { encoding, fileType, raw }
 }
 
 // EOF

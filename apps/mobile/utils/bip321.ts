@@ -109,12 +109,12 @@ export function parseBitcoinUri(
     return {
       address: bitcoinMethod?.value || result.address || '',
       amount: result.amount,
+      isValid: true,
       label: result.label,
-      message: result.message,
       lightning: result.paymentMethods?.find((m) => m.type === 'lightning')
         ?.value,
-      network: bip321NetworkToAppNetwork(result.network),
-      isValid: true
+      message: result.message,
+      network: bip321NetworkToAppNetwork(result.network)
     }
   } catch {
     return {
@@ -176,15 +176,15 @@ export function encodeBitcoinUri(
     const result = encodeBIP321(encodeParams)
 
     return {
-      uri: result.uri || '',
+      error: result.errors?.join(', '),
       isValid: result.valid,
-      error: result.errors?.join(', ')
+      uri: result.uri || ''
     }
   } catch (error) {
     return {
-      uri: '',
+      error: error instanceof Error ? error.message : 'Unknown error',
       isValid: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      uri: ''
     }
   }
 }
@@ -228,26 +228,26 @@ export function validateBitcoinAddressWithNetwork(
 ): BitcoinAddressValidationResult {
   const result = validateBitcoinAddress(address)
   return {
+    error: result.error,
     isValid: result.valid,
-    network: bip321NetworkToAppNetwork(result.network),
-    error: result.error
+    network: bip321NetworkToAppNetwork(result.network)
   }
 }
 
 export function validateLightning(invoice: string): LightningValidationResult {
   const result = validateLightningInvoice(invoice)
   return {
-    isValid: result.valid,
-    network: result.network,
     appNetwork: bip321NetworkToAppNetwork(result.network),
-    error: result.error
+    error: result.error,
+    isValid: result.valid,
+    network: result.network
   }
 }
 
 export function validateBolt12(offer: string): Bolt12ValidationResult {
   const result = validateBolt12Offer(offer)
   return {
-    isValid: result.valid,
-    error: result.error
+    error: result.error,
+    isValid: result.valid
   }
 }

@@ -154,8 +154,8 @@ export default function UnifiedImport() {
           errorMessage.includes('network')
         ) {
           networkValidation = {
-            isValid: false,
-            error: 'networkIncompatible'
+            error: 'networkIncompatible',
+            isValid: false
           }
         } else {
           // For other BDK errors, still consider it valid for now
@@ -203,8 +203,8 @@ export default function UnifiedImport() {
           errorMessage.includes('network')
         ) {
           networkValidation = {
-            isValid: false,
-            error: 'networkIncompatible'
+            error: 'networkIncompatible',
+            isValid: false
           }
         } else {
           // For other BDK errors, still consider it valid for now
@@ -680,8 +680,8 @@ export default function UnifiedImport() {
                         style={{
                           color: Colors.error,
                           fontSize: 12,
-                          textAlign: 'center',
-                          marginTop: 4
+                          marginTop: 4,
+                          textAlign: 'center'
                         }}
                       >
                         {externalDescriptorError}
@@ -704,8 +704,8 @@ export default function UnifiedImport() {
                         style={{
                           color: Colors.error,
                           fontSize: 12,
-                          textAlign: 'center',
-                          marginTop: 4
+                          marginTop: 4,
+                          textAlign: 'center'
                         }}
                       >
                         {internalDescriptorError}
@@ -795,7 +795,7 @@ export default function UnifiedImport() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  camera: {
     flex: 1
   },
   cameraContainer: {
@@ -807,13 +807,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.gray[600]
   },
-  camera: {
-    flex: 1
-  },
   cameraPlaceholder: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16
+  },
+  container: {
+    flex: 1
   }
 })

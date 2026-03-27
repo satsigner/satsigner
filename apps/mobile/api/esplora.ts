@@ -11,12 +11,12 @@ export default class Esplora {
   async _call(params: string, method: 'GET' | 'POST' = 'GET', body?: string) {
     try {
       const response = await fetch(this.esploraUrl + params, {
-        method,
+        body,
         cache: 'no-cache',
         headers: {
           'Content-Type': 'text/plain'
         },
-        body
+        method
       })
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`)
@@ -71,8 +71,8 @@ export default class Esplora {
             txid: input.txid,
             vout: input.vout
           },
-          sequence: input.sequence,
           scriptSig: parseHexToBytes(input.scriptsig),
+          sequence: input.sequence,
           value: input.prevout.value,
           witness: input.witness.map(parseHexToBytes)
         }

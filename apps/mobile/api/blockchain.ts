@@ -141,10 +141,10 @@ export class MempoolOracle implements BlockchainOracle {
   async getMemPoolFees(): Promise<MemPoolFees> {
     const data = await this.get(`/v1/fees/recommended`)
     const fees: MemPoolFees = {
-      none: data.minimumFee,
+      high: data.fastestFee,
       low: data.economyFee,
       medium: data.hourFee,
-      high: data.fastestFee
+      none: data.minimumFee
     }
     return fees
   }
@@ -215,7 +215,7 @@ export class MempoolOracle implements BlockchainOracle {
       const fiatPrice = fiatPrices[i]
       const value = utxos[i].value
       const fiatValue = satoshiToFiat(fiatPrice, value)
-      priceValues.push({ currency, value, fiatValue, fiatPrice })
+      priceValues.push({ currency, fiatPrice, fiatValue, value })
     }
     return priceValues
   }
@@ -231,7 +231,7 @@ export class MempoolOracle implements BlockchainOracle {
     for (const vin of tx.vin) {
       const value = vin.prevout.value
       const fiatValue = satoshiToFiat(fiatPrice, value)
-      priceValues.push({ currency, fiatPrice, value, fiatValue })
+      priceValues.push({ currency, fiatPrice, fiatValue, value })
     }
     return priceValues
   }
@@ -247,7 +247,7 @@ export class MempoolOracle implements BlockchainOracle {
     for (const vOut of tx.vout) {
       const value = vOut.value
       const fiatValue = satoshiToFiat(fiatPrice, value)
-      priceValues.push({ currency, fiatPrice, value, fiatValue })
+      priceValues.push({ currency, fiatPrice, fiatValue, value })
     }
     return priceValues
   }

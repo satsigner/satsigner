@@ -99,7 +99,7 @@ function SSUtxoItem({
                 </SSText>
               )}
             </SSHStack>
-            <SSText style={{ color: Colors.gray[100], alignSelf: 'flex-end' }}>
+            <SSText style={{ alignSelf: 'flex-end', color: Colors.gray[100] }}>
               {utxo.timestamp ? formatDate(utxo.timestamp) : ''}
             </SSText>
           </SSVStack>
@@ -116,13 +116,13 @@ function SSUtxoItem({
 
 const styles = StyleSheet.create({
   selectIconBase: {
-    justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'baseline',
-    height: 20,
-    width: 20,
     borderRadius: 10,
-    marginTop: 2
+    height: 20,
+    justifyContent: 'center',
+    marginTop: 2,
+    width: 20
   }
 })
 

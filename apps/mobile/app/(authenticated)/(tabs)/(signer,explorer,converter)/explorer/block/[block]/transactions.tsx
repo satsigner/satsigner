@@ -52,14 +52,14 @@ export default function BlockTransactions() {
 
   async function fetchBlockTransactions() {
     await runRequest({
-      name: 'txs',
       callback: async () => {
         const blockTxids = await esploraClient.getBlockTransactionIds(
           blockHash!
         )
         setBlockTxids(blockTxids)
       },
-      errorMessage: 'Failed to fetch block transactions'
+      errorMessage: 'Failed to fetch block transactions',
+      name: 'txs'
     })
   }
 
@@ -69,7 +69,6 @@ export default function BlockTransactions() {
 
   async function loadTxData(txid: Tx['txid']) {
     await runRequest({
-      name: txid,
       callback: async () => {
         const txInfo = await esploraClient.getTxInfo(txid)
         setBlockTxs((txs) =>
@@ -82,7 +81,8 @@ export default function BlockTransactions() {
           })
         )
       },
-      errorMessage: 'Failed to get tx info'
+      errorMessage: 'Failed to get tx info',
+      name: txid
     })
   }
 
@@ -191,8 +191,8 @@ export default function BlockTransactions() {
                                 txid: input.txid,
                                 vout: input.vout
                               },
-                              sequence: input.sequence,
                               scriptSig: input.scriptsig_asm,
+                              sequence: input.sequence,
                               value: input.prevout.value,
                               witness: []
                             }
@@ -202,9 +202,9 @@ export default function BlockTransactions() {
                       <SSTransactionVoutList
                         vout={tx.vout.map((output) => {
                           return {
-                            value: output.value,
                             address: output.scriptpubkey_address || '',
-                            script: output.scriptpubkey_asm || []
+                            script: output.scriptpubkey_asm || [],
+                            value: output.value
                           }
                         })}
                         txid={tx.txid}
@@ -260,7 +260,7 @@ export default function BlockTransactions() {
 const styles = StyleSheet.create({
   txListItem: {
     borderTopColor: Colors.barGray,
-    paddingVertical: 8,
-    borderTopWidth: 1
+    borderTopWidth: 1,
+    paddingVertical: 8
   }
 })

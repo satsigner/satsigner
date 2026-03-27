@@ -61,17 +61,17 @@ function buildNewMessage(
   const created_at = eventContent.created_at as number
   const description = (eventContent.description as string) ?? ''
   return {
-    id: unwrappedEvent.id,
     author: unwrappedEvent.pubkey,
-    created_at,
-    description,
-    event: JSON.stringify(unwrappedEvent),
-    label: 1,
     content: {
       description,
       created_at,
       pubkey: unwrappedEvent.pubkey
-    }
+    },
+    created_at,
+    description,
+    event: JSON.stringify(unwrappedEvent),
+    id: unwrappedEvent.id,
+    label: 1
   }
 }
 
@@ -283,10 +283,10 @@ function useNostrDMStorage() {
 
   return useMemo(
     () => ({
-      store,
-      storeBatch,
+      clear,
       load,
-      clear
+      store,
+      storeBatch
     }),
     [store, storeBatch, load, clear]
   )

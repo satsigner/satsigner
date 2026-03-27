@@ -231,11 +231,11 @@ export default function EcashReceivePage() {
         ) {
           toast.error(
             t('ecash.error.amountOutOfRange', {
-              min: Math.ceil(
-                lnurlWithdrawDetails.minWithdrawable / 1000
-              ).toString(),
               max: Math.floor(
                 lnurlWithdrawDetails.maxWithdrawable / 1000
+              ).toString(),
+              min: Math.ceil(
+                lnurlWithdrawDetails.minWithdrawable / 1000
               ).toString()
             })
           )
@@ -698,6 +698,23 @@ export default function EcashReceivePage() {
 }
 
 const styles = StyleSheet.create({
+  detailRow: {
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap'
+  },
+  lnurlDetails: {
+    padding: 12,
+    backgroundColor: Colors.gray[900],
+    borderRadius: 4
+  },
+  qrContainer: {
+    alignItems: 'center',
+    paddingVertical: 20
+  },
+  switchableAmount: {
+    textDecorationLine: 'underline'
+  },
   tokenInput: {
     height: 'auto',
     minHeight: 100,
@@ -705,22 +722,5 @@ const styles = StyleSheet.create({
     padding: 10,
     fontSize: 14,
     fontFamily: 'monospace'
-  },
-  qrContainer: {
-    alignItems: 'center',
-    paddingVertical: 20
-  },
-  lnurlDetails: {
-    padding: 12,
-    backgroundColor: Colors.gray[900],
-    borderRadius: 4
-  },
-  detailRow: {
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap'
-  },
-  switchableAmount: {
-    textDecorationLine: 'underline'
   }
 })

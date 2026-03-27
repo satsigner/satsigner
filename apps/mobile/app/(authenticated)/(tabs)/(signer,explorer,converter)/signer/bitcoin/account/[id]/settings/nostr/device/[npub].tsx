@@ -126,8 +126,8 @@ export default function DeviceAliasPage() {
           }
         }
         const payload: Parameters<typeof updateAccountNostr>[1] = {
-          npubProfiles: updated,
-          lastUpdated: new Date()
+          lastUpdated: new Date(),
+          npubProfiles: updated
         }
         if (npub === account.nostr.deviceNpub) {
           payload.deviceDisplayName = profile.displayName
@@ -159,8 +159,8 @@ export default function DeviceAliasPage() {
     const profiles = { ...(account.nostr.npubProfiles || {}) }
     delete profiles[npub]
     const payload: Parameters<typeof updateAccountNostr>[1] = {
-      npubProfiles: Object.keys(profiles).length > 0 ? profiles : undefined,
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
+      npubProfiles: Object.keys(profiles).length > 0 ? profiles : undefined
     }
     if (npub === account.nostr.deviceNpub) {
       payload.deviceDisplayName = undefined
@@ -191,9 +191,9 @@ export default function DeviceAliasPage() {
     }
 
     updateAccountNostr(accountId, {
+      lastUpdated: new Date(),
       npubAliases:
-        Object.keys(updatedAliases).length > 0 ? updatedAliases : undefined,
-      lastUpdated: new Date()
+        Object.keys(updatedAliases).length > 0 ? updatedAliases : undefined
     })
 
     toast.success(t('account.nostrSync.deviceAlias.aliasSaved'))
@@ -208,16 +208,16 @@ export default function DeviceAliasPage() {
 
     if (isTrusted) {
       updateAccountNostr(accountId, {
+        lastUpdated: new Date(),
         trustedMemberDevices: account.nostr.trustedMemberDevices.filter(
           (m) => m !== npub
-        ),
-        lastUpdated: new Date()
+        )
       })
       toast.success(t('account.nostrSync.deviceDistrusted'))
     } else {
       updateAccountNostr(accountId, {
-        trustedMemberDevices: [...account.nostr.trustedMemberDevices, npub],
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
+        trustedMemberDevices: [...account.nostr.trustedMemberDevices, npub]
       })
       if (trustSyncRestartRef.current) {
         clearTimeout(trustSyncRestartRef.current)
@@ -242,6 +242,7 @@ export default function DeviceAliasPage() {
     <SSMainLayout style={styles.mainLayout}>
       <Stack.Screen
         options={{
+          headerRight: () => null,
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
@@ -249,8 +250,7 @@ export default function DeviceAliasPage() {
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
               )}
             </SSHStack>
-          ),
-          headerRight: () => null
+          )
         }}
       />
       <SSVStack style={styles.pageContainer} gap="lg">
@@ -362,17 +362,9 @@ export default function DeviceAliasPage() {
 }
 
 const styles = StyleSheet.create({
-  mainLayout: {
-    paddingTop: 10,
-    paddingBottom: 20
-  },
-  pageContainer: {
-    justifyContent: 'space-between',
-    flex: 1
-  },
-  npubRow: {
-    width: '100%',
-    justifyContent: 'center'
+  cancelButton: {
+    alignSelf: 'stretch',
+    marginTop: 8
   },
   colorDot: {
     width: 10,
@@ -380,37 +372,45 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginRight: 4
   },
-  npubText: {
-    letterSpacing: 1
-  },
-  profileRow: {
-    alignItems: 'center',
-    marginBottom: 4
-  },
-  profilePicture: {
-    width: 64,
-    height: 64,
-    borderRadius: 32
+  kind0Row: {
+    alignSelf: 'stretch'
   },
   loadingRow: {
     alignSelf: 'stretch',
     alignItems: 'center',
     justifyContent: 'center'
   },
-  trustButton: {
-    alignSelf: 'stretch'
+  mainLayout: {
+    paddingTop: 10,
+    paddingBottom: 20
   },
-  kind0Row: {
-    alignSelf: 'stretch'
+  npubRow: {
+    width: '100%',
+    justifyContent: 'center'
   },
-  saveRemoveRow: {
-    alignSelf: 'stretch'
+  npubText: {
+    letterSpacing: 1
+  },
+  pageContainer: {
+    justifyContent: 'space-between',
+    flex: 1
+  },
+  profilePicture: {
+    width: 64,
+    height: 64,
+    borderRadius: 32
+  },
+  profileRow: {
+    alignItems: 'center',
+    marginBottom: 4
   },
   saveClearButton: {
     flex: 1
   },
-  cancelButton: {
-    alignSelf: 'stretch',
-    marginTop: 8
+  saveRemoveRow: {
+    alignSelf: 'stretch'
+  },
+  trustButton: {
+    alignSelf: 'stretch'
   }
 })

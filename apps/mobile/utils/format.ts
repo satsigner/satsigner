@@ -22,8 +22,8 @@ function formatNumber(
   const formatted = padding
     ? (n / 10 ** 8).toFixed(8)
     : n.toLocaleString(undefined, {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals
+        maximumFractionDigits: decimals,
+        minimumFractionDigits: decimals
       })
 
   const [integerPart, decimalPart] = formatted.split('.')
@@ -52,8 +52,8 @@ function formatDate(date: Date | string | number) {
     typeof date === 'string' || typeof date === 'number' ? new Date(date) : date
 
   return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
     day: 'numeric',
+    month: 'short',
     year: 'numeric'
   }).format(dateObj)
 }
@@ -160,14 +160,14 @@ function formatTxOutputToUtxo(
   if (!tx || !tx.vout[vout]) return undefined
   const output = tx.vout[vout]
   return {
-    txid: tx.id,
-    vout,
-    value: output.value,
-    label: output.label,
     addressTo: output.address,
+    keychain,
+    label: output.label,
     script: output.script,
     timestamp: tx.timestamp,
-    keychain
+    txid: tx.id,
+    value: output.value,
+    vout
   }
 }
 

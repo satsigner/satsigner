@@ -284,15 +284,15 @@ export default function SeedWordsPage() {
 }
 
 const styles = StyleSheet.create({
+  mnemonicColumn: {
+    flex: 1,
+    maxWidth: '32%'
+  },
   mnemonicGrid: {
     flexDirection: 'row',
     width: '100%',
     justifyContent: 'space-between',
     gap: 8
-  },
-  mnemonicColumn: {
-    flex: 1,
-    maxWidth: '32%'
   },
   mnemonicWordContainer: {
     marginBottom: 8,
@@ -309,6 +309,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row'
   },
+  mnemonicWordsContainer: {
+    width: '100%',
+    marginBottom: 16
+  },
   wordIndex: {
     minWidth: 24,
     textAlign: 'center',
@@ -318,9 +322,5 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'left',
     lineHeight: 20
-  },
-  mnemonicWordsContainer: {
-    width: '100%',
-    marginBottom: 16
   }
 })

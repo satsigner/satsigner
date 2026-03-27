@@ -136,15 +136,15 @@ function SSDatePicker({
     return (format || 'dd-mm-yyyy').split('-').map((type, index) => {
       switch (type) {
         case 'dd':
-          return { name: 'day', digits: filteredDays, value: date.getDate() }
+          return { digits: filteredDays, name: 'day', value: date.getDate() }
         case 'mm':
-          return { name: 'month', digits: filteredMonths, value: selectedMonth }
+          return { digits: filteredMonths, name: 'month', value: selectedMonth }
         case 'yyyy':
-          return { name: 'year', digits: years, value: selectedYear }
+          return { digits: years, name: 'year', value: selectedYear }
         default:
           return {
-            name: ['day', 'month', 'year'][index],
             digits: [filteredDays, filteredMonths, years][index],
+            name: ['day', 'month', 'year'][index],
             value: [date.getDate(), selectedMonth, selectedYear][index]
           }
       }
@@ -206,7 +206,7 @@ function DateBlock({
   const scrollRef = useRef<any>(null)
 
   const snapScrollToIndex = (index: number) => {
-    scrollRef?.current?.scrollTo({ y: dHeight * index, animated: true })
+    scrollRef?.current?.scrollTo({ animated: true, y: dHeight * index })
   }
 
   useEffect(() => {
@@ -226,9 +226,9 @@ function DateBlock({
         style={[
           styles.mark,
           {
-            top: (height - mHeight) / 2,
             backgroundColor: markColor || 'rgba(0, 0, 0, 0.05)',
             height: mHeight,
+            top: (height - mHeight) / 2,
             width: mWidth as DimensionValue
           }
         ]}
@@ -255,15 +255,15 @@ function DateBlock({
                 style={[
                   styles.digit,
                   {
-                    fontSize: fontSize || 22,
                     color: textColor || '#000000',
+                    fontSize: fontSize || 22,
+                    height: dHeight,
+                    lineHeight: dHeight,
                     marginBottom:
                       index === digits.length - 1
                         ? height / 2 - dHeight / 2
                         : 0,
-                    marginTop: index === 0 ? height / 2 - dHeight / 2 : 0,
-                    lineHeight: dHeight,
-                    height: dHeight
+                    marginTop: index === 0 ? height / 2 - dHeight / 2 : 0
                   }
                 ]}
               >
@@ -279,7 +279,7 @@ function DateBlock({
         pointerEvents="none"
       />
       <LinearGradient
-        style={[styles.gradient, { top: 0, height: height / 3 }]}
+        style={[styles.gradient, { height: height / 3, top: 0 }]}
         colors={[fadeFilled, fadeTransparent]}
         pointerEvents="none"
       />
@@ -307,29 +307,29 @@ const hex2rgba = (hex: string, alpha: number): string => {
 }
 
 const styles = StyleSheet.create({
-  picker: {
-    flexDirection: 'row',
-    width: '100%'
-  },
   block: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     height: '100%'
   },
-  scroll: {
-    width: '100%'
-  },
   digit: {
     fontSize: 20,
     textAlign: 'center'
+  },
+  gradient: {
+    position: 'absolute',
+    width: '100%'
   },
   mark: {
     position: 'absolute',
     borderRadius: 10
   },
-  gradient: {
-    position: 'absolute',
+  picker: {
+    flexDirection: 'row',
+    width: '100%'
+  },
+  scroll: {
     width: '100%'
   }
 })

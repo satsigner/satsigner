@@ -150,8 +150,8 @@ function NostrKeys() {
         updateAccountNostr(account.id, {
           deviceDisplayName: profile.displayName,
           devicePicture: profile.picture,
-          npubProfiles,
-          lastUpdated: new Date()
+          lastUpdated: new Date(),
+          npubProfiles
         })
         toast.success(t('account.nostrSync.fetchKind0Success'))
       } else {
@@ -181,8 +181,8 @@ function NostrKeys() {
       const keys = await generateCommonNostrKeys(account)
       if (keys && 'commonNsec' in keys && 'commonNpub' in keys) {
         updateAccountNostr(account.id, {
-          commonNsec: keys.commonNsec,
           commonNpub: keys.commonNpub,
+          commonNsec: keys.commonNsec,
           lastUpdated: new Date()
         })
       } else if (keys && 'externalDescriptor' in keys) {
@@ -237,8 +237,8 @@ function NostrKeys() {
     const nsecChanged = account.nostr.deviceNsec !== deviceNsec
     const updates: Parameters<typeof updateAccountNostr>[1] = {
       ...account.nostr,
-      deviceNsec,
       deviceNpub: derivedNpub,
+      deviceNsec,
       lastUpdated: new Date()
     }
     if (nsecChanged) {
@@ -265,8 +265,8 @@ function NostrKeys() {
     updateAccountNostr(accountId, {
       deviceDisplayName: undefined,
       devicePicture: undefined,
-      npubProfiles: Object.keys(profiles).length > 0 ? profiles : undefined,
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
+      npubProfiles: Object.keys(profiles).length > 0 ? profiles : undefined
     })
     toast.success(t('account.nostrSync.clearKind0Success'))
   }
@@ -277,6 +277,7 @@ function NostrKeys() {
     <SSMainLayout style={styles.mainLayout}>
       <Stack.Screen
         options={{
+          headerRight: () => null,
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
@@ -284,8 +285,7 @@ function NostrKeys() {
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
               )}
             </SSHStack>
-          ),
-          headerRight: () => null
+          )
         }}
       />
       <SSVStack style={styles.pageContainer}>
@@ -600,27 +600,35 @@ function NostrKeys() {
 }
 
 const styles = StyleSheet.create({
-  mainLayout: {
-    paddingTop: 10,
-    paddingBottom: 20
+  cancelButton: {
+    marginTop: 8
   },
-  pageContainer: {
-    flex: 1
+  clearPasteButton: {
+    flex: 1,
+    minWidth: 0
   },
-  scrollView: {
-    flex: 1
+  clearPasteRow: {
+    marginTop: 4,
+    paddingBottom: 10,
+    flexDirection: 'row',
+    flexWrap: 'nowrap'
   },
-  scrollContent: {
-    paddingBottom: 24,
-    flexGrow: 1
+  deviceColorCircle: {
+    width: 10,
+    height: 10,
+    borderRadius: 5
   },
   input: {
     height: 'auto',
     padding: 10,
     minHeight: 80
   },
-  monoInput: {
-    fontFamily: 'SF-NS-Mono'
+  keyContainerLoading: {
+    justifyContent: 'center',
+    paddingVertical: 10
+  },
+  keyText: {
+    letterSpacing: 1
   },
   keysContainer: {
     backgroundColor: '#1a1a1a',
@@ -630,20 +638,40 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     paddingHorizontal: 28
   },
-  keyText: {
-    letterSpacing: 1
-  },
-  keyContainerLoading: {
+  kind0Loading: {
+    alignSelf: 'stretch',
     justifyContent: 'center',
-    paddingVertical: 10
+    paddingVertical: 8
   },
-  revealRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16
+  kind0Picture: {
+    width: 64,
+    height: 64,
+    borderRadius: 32
+  },
+  kind0Profile: {
+    marginTop: 8,
+    alignItems: 'center'
+  },
+  kind0Row: {
+    alignSelf: 'stretch'
+  },
+  kind0RowButton: {
+    flex: 1
+  },
+  mainLayout: {
+    paddingTop: 10,
+    paddingBottom: 20
+  },
+  monoInput: {
+    fontFamily: 'SF-NS-Mono'
+  },
+  npubActions: {
+    flexWrap: 'wrap',
+    justifyContent: 'center'
+  },
+  npubRow: {
+    alignSelf: 'center',
+    alignItems: 'center'
   },
   nsecContainer: {
     backgroundColor: '#1a1a1a',
@@ -656,63 +684,17 @@ const styles = StyleSheet.create({
   nsecContainerExpanded: {
     paddingTop: 16
   },
-  clearPasteRow: {
-    marginTop: 4,
-    paddingBottom: 10,
-    flexDirection: 'row',
-    flexWrap: 'nowrap'
-  },
-  clearPasteButton: {
-    flex: 1,
-    minWidth: 0
-  },
-  cancelButton: {
-    marginTop: 8
-  },
-  deviceColorCircle: {
-    width: 10,
-    height: 10,
-    borderRadius: 5
-  },
-  npubRow: {
-    alignSelf: 'center',
-    alignItems: 'center'
-  },
-  npubActions: {
-    flexWrap: 'wrap',
-    justifyContent: 'center'
-  },
-  kind0Loading: {
-    alignSelf: 'stretch',
-    justifyContent: 'center',
-    paddingVertical: 8
-  },
-  kind0Profile: {
-    marginTop: 8,
-    alignItems: 'center'
-  },
-  kind0Picture: {
-    width: 64,
-    height: 64,
-    borderRadius: 32
-  },
-  kind0Row: {
-    alignSelf: 'stretch'
-  },
-  kind0RowButton: {
+  pageContainer: {
     flex: 1
-  },
-  showQrButton: {
-    marginTop: 20
-  },
-  qrModalContent: {
-    paddingHorizontal: 16,
-    alignItems: 'center'
   },
   qrCodeWrapper: {
     padding: 16,
     backgroundColor: Colors.gray[950],
     borderRadius: 10
+  },
+  qrModalContent: {
+    paddingHorizontal: 16,
+    alignItems: 'center'
   },
   qrModalDataBox: {
     padding: 12,
@@ -722,6 +704,24 @@ const styles = StyleSheet.create({
   },
   qrModalDataText: {
     textAlign: 'center'
+  },
+  revealRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16
+  },
+  scrollContent: {
+    paddingBottom: 24,
+    flexGrow: 1
+  },
+  scrollView: {
+    flex: 1
+  },
+  showQrButton: {
+    marginTop: 20
   }
 })
 

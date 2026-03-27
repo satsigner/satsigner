@@ -45,9 +45,9 @@ export default function SSDetailsList({
   return (
     <SSHStack
       style={{
+        columnGap: 0,
         flexWrap: 'wrap',
         justifyContent: 'space-between',
-        columnGap: 0,
         rowGap: gap
       }}
     >

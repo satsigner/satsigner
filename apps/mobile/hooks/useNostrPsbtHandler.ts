@@ -56,9 +56,9 @@ const psbtHandler: MessageHandler = {
     }
 
     onPendingDM({
-      unwrappedEvent,
       eventContent: psbtEventContent,
-      skipToast: true
+      skipToast: true,
+      unwrappedEvent
     })
   }
 }

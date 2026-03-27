@@ -140,5 +140,5 @@ export async function deriveNostrKeysFromDescriptor(
   const publicKey = getPublicKey(privateKeyBytes)
   const commonNsec = nip19.nsecEncode(privateKeyBytes)
   const commonNpub = nip19.npubEncode(publicKey)
-  return { commonNsec, commonNpub, privateKeyBytes }
+  return { commonNpub, commonNsec, privateKeyBytes }
 }

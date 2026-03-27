@@ -48,7 +48,7 @@ function ImportOuputs() {
           headerTitle: () => <SSText uppercase>EXTRA SECURITY</SSText>
         }}
       />
-      <SSMainLayout style={{ paddingTop: 12, paddingBottom: 24 }}>
+      <SSMainLayout style={{ paddingBottom: 24, paddingTop: 12 }}>
         <SSVStack justifyBetween>
           <SSVStack>
             <SSText uppercase center size="lg">
@@ -57,10 +57,10 @@ function ImportOuputs() {
             <ScrollView>
               <View
                 style={{
-                  padding: 10,
                   backgroundColor: Colors.gray[950],
                   borderRadius: 5,
-                  minHeight: 400
+                  minHeight: 400,
+                  padding: 10
                 }}
               >
                 <SSText color="white" size="md" type="mono">
@@ -73,12 +73,12 @@ function ImportOuputs() {
             <SSHStack>
               <SSButton
                 label="PASTE"
-                style={{ width: '45%', flexGrow: 1 }}
+                style={{ flexGrow: 1, width: '45%' }}
                 onPress={readFromClibpoard}
               />
               <SSButton
                 label="SCAN QRCODE"
-                style={{ width: '45%', flexGrow: 1 }}
+                style={{ flexGrow: 1, width: '45%' }}
                 disabled
               />
             </SSHStack>

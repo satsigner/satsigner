@@ -18,7 +18,7 @@ export async function shareFile({
   const fileUri = FileSystem.documentDirectory + filename
 
   await FileSystem.writeAsStringAsync(fileUri, fileContent)
-  await Sharing.shareAsync(fileUri, { mimeType, dialogTitle })
+  await Sharing.shareAsync(fileUri, { dialogTitle, mimeType })
 }
 
 export type PickFileProps = {

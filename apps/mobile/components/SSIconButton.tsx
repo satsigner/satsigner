@@ -29,11 +29,11 @@ function SSIconButton({
 
 const styles = StyleSheet.create({
   rounded: {
-    borderColor: 'gray',
     backgroundColor: 'gray',
+    borderColor: 'gray',
+    borderRadius: 20,
     borderStyle: 'solid',
     borderWidth: 1,
-    borderRadius: 20,
     padding: 5
   }
 })

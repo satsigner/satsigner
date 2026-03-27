@@ -305,10 +305,10 @@ export default function Developer() {
     <>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSText uppercase>{t('settings.developer.title')}</SSText>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <SSMainLayout>
@@ -580,9 +580,11 @@ const styles = StyleSheet.create({
     maxHeight: '80%',
     paddingVertical: 8
   },
-  recoverModal: {
-    maxHeight: '85%',
-    paddingVertical: 8
+  backupPreviewText: {
+    color: Colors.gray['200'],
+    fontFamily: 'monospace',
+    fontSize: 11,
+    padding: 8
   },
   modalTextAreaScroll: {
     borderColor: Colors.gray[500],
@@ -600,10 +602,8 @@ const styles = StyleSheet.create({
     color: Colors.gray['200'],
     padding: 12
   },
-  backupPreviewText: {
-    color: Colors.gray['200'],
-    fontFamily: 'monospace',
-    fontSize: 11,
-    padding: 8
+  recoverModal: {
+    maxHeight: '85%',
+    paddingVertical: 8
   }
 })

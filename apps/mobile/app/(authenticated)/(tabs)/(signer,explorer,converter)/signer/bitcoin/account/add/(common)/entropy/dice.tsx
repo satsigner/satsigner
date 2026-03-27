@@ -106,12 +106,12 @@ export default function DiceEntropy() {
       >
         <View
           style={{
+            backgroundColor: Colors.gray[950],
+            borderRadius: 8,
             minHeight: 180,
             minWidth: '100%',
-            borderRadius: 8,
-            paddingVertical: 16,
             paddingHorizontal: 8,
-            backgroundColor: Colors.gray[950]
+            paddingVertical: 16
           }}
         >
           <SSBinaryDisplay binary={bits} />
@@ -156,10 +156,10 @@ const styles = StyleSheet.create({
     paddingBottom: 12
   },
   grid: {
-    flexWrap: 'wrap',
-    justifyContent: 'center',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 12,
+    justifyContent: 'center',
     marginTop: 24
   }
 })
