@@ -1,5 +1,6 @@
-import { UR, URDecoder, UREncoder } from '@ngraveio/bc-ur'
 import { Buffer } from 'buffer'
+
+import { UR, URDecoder, UREncoder } from '@ngraveio/bc-ur'
 
 /**
  * Manually create CBOR-encoded crypto-psbt UR data

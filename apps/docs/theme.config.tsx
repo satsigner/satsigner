@@ -1,5 +1,5 @@
-import React from 'react'
 import { DocsThemeConfig } from 'nextra-theme-docs'
+import React from 'react'
 
 const config: DocsThemeConfig = {
   head: () => {

@@ -29,41 +29,40 @@ export function useKeyValidation({
   const isKeyCompleted = useMemo(() => {
     return Boolean(
       keyDetails &&
-        keyDetails.creationType &&
-        ((typeof keyDetails.secret === 'object' &&
-          keyDetails.secret.fingerprint &&
-          (keyDetails.secret.extendedPublicKey ||
-            keyDetails.secret.externalDescriptor ||
-            keyDetails.secret.mnemonic)) ||
-          (typeof keyDetails.secret === 'string' &&
-            keyDetails.secret.length > 0))
+      keyDetails.creationType &&
+      ((typeof keyDetails.secret === 'object' &&
+        keyDetails.secret.fingerprint &&
+        (keyDetails.secret.extendedPublicKey ||
+          keyDetails.secret.externalDescriptor ||
+          keyDetails.secret.mnemonic)) ||
+        (typeof keyDetails.secret === 'string' && keyDetails.secret.length > 0))
     )
   }, [keyDetails])
 
   const hasSeed = useMemo(() => {
     return Boolean(
       !seedDropped &&
-        keyDetails &&
-        typeof keyDetails.secret === 'object' &&
-        keyDetails.secret.mnemonic
+      keyDetails &&
+      typeof keyDetails.secret === 'object' &&
+      keyDetails.secret.mnemonic
     )
   }, [seedDropped, keyDetails])
 
   const hasNoSecret = useMemo(() => {
     return Boolean(
       isKeyCompleted &&
-        keyDetails &&
-        typeof keyDetails.secret === 'object' &&
-        !keyDetails.secret.mnemonic
+      keyDetails &&
+      typeof keyDetails.secret === 'object' &&
+      !keyDetails.secret.mnemonic
     )
   }, [isKeyCompleted, keyDetails])
 
   const hasLocalSeed = useMemo(() => {
     return Boolean(
       decryptedKey?.secret &&
-        typeof decryptedKey.secret === 'object' &&
-        'mnemonic' in decryptedKey.secret &&
-        decryptedKey.secret.mnemonic
+      typeof decryptedKey.secret === 'object' &&
+      'mnemonic' in decryptedKey.secret &&
+      decryptedKey.secret.mnemonic
     )
   }, [decryptedKey])
 

@@ -89,8 +89,8 @@ function SSSankeyNodes({
         const isCurrentTxBlockNode = node.depthH === maxDepth - 1
 
         // Safely handle NaN values from sankey generator
-        const safeX0 = Number.isNaN(node.x0) ? 0 : node.x0 ?? 0
-        const safeY0 = Number.isNaN(node.y0) ? 0 : node.y0 ?? 0
+        const safeX0 = Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)
+        const safeY0 = Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)
 
         const x = safeX0 + (sankeyGenerator.nodeWidth() - BLOCK_WIDTH) / 2
         const y = safeY0
@@ -143,8 +143,8 @@ function SSSankeyNodes({
         <NodeText
           isBlock={node.depthH % 2 !== 0}
           width={sankeyGenerator.nodeWidth()}
-          x={Number.isNaN(node.x0) ? 0 : node.x0 ?? 0}
-          y={(Number.isNaN(node.y0) ? 0 : node.y0 ?? 0) - 1.6}
+          x={Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)}
+          y={(Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)) - 1.6}
           ioData={node.ioData}
           customFontManager={customFontManager}
           localId={node?.localId ?? ''}

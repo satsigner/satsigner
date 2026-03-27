@@ -112,7 +112,7 @@ export async function performRecoverOverwrite(
         keysRequired:
           acc.policyType === 'singlesig'
             ? 1
-            : acc.keysRequired ?? acc.keys.length,
+            : (acc.keysRequired ?? acc.keys.length),
         summary: {
           balance: 0,
           numberOfAddresses: 0,

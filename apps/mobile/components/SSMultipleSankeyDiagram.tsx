@@ -195,7 +195,7 @@ function SSMultipleSankeyDiagram({
         localId: (node as Node).localId,
         x: isBlock
           ? (node.x0 ?? 0) + (NODE_WIDTH - BLOCK_WIDTH) / 2
-          : node.x0 ?? 0,
+          : (node.x0 ?? 0),
         y: node.y0 ?? 0,
         width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
         height: isBlock ? Math.max(blockNodeHeight, LINK_MAX_WIDTH) : 80

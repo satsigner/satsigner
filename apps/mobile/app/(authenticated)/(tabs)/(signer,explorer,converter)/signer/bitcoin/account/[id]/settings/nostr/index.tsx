@@ -64,7 +64,7 @@ function MemberNameBlock({
   const titleLine =
     displayName && alias
       ? `${displayName} (${alias})`
-      : displayName ?? alias ?? null
+      : (displayName ?? alias ?? null)
   const npubShort = `${npub.slice(0, 12)}...${npub.slice(-4)}`
 
   return (

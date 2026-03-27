@@ -361,7 +361,7 @@ export default function ChainTip() {
                   {tn('hash')}
                 </SSText>
                 <SSText size="xs" style={styles.hashText} numberOfLines={2}>
-                  {loading ? '--' : chainData?.hash ?? '--'}
+                  {loading ? '--' : (chainData?.hash ?? '--')}
                 </SSText>
               </SSVStack>
             </SSVStack>

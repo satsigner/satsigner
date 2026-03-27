@@ -1,5 +1,4 @@
 import '@/shim'
-
 import {
   type DrawerNavigationProp,
   useDrawerStatus

@@ -944,7 +944,7 @@ function SpendableOutputs({
               )
               const addressEntry = idx >= 0 ? account.addresses[idx] : null
               const addressIndex =
-                addressEntry !== null ? addressEntry.index ?? idx : undefined
+                addressEntry !== null ? (addressEntry.index ?? idx) : undefined
               return (
                 <SSVStack gap="xs" key={getUtxoOutpoint(utxo)}>
                   <SSUtxoCard
@@ -1175,9 +1175,9 @@ export default function AccountView() {
 
   const hasNostrReady = Boolean(
     account?.nostr?.autoSync &&
-      account?.nostr?.relays?.length &&
-      account?.nostr?.deviceNsec &&
-      account?.nostr?.deviceNpub
+    account?.nostr?.relays?.length &&
+    account?.nostr?.deviceNsec &&
+    account?.nostr?.deviceNpub
   )
 
   // Keep the Nostr subscription open for the entire account session.

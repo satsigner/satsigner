@@ -311,8 +311,8 @@ function SSCurrentTransactionChart({
           : 0
 
       // Safely handle NaN values from sankey generator
-      const safeX0 = Number.isNaN(node.x0) ? 0 : node.x0 ?? 0
-      const safeY0 = Number.isNaN(node.y0) ? 0 : node.y0 ?? 0
+      const safeX0 = Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)
+      const safeY0 = Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)
 
       return {
         localId: (node as Node).localId,

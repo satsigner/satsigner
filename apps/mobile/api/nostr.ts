@@ -1,6 +1,7 @@
+import { Buffer } from 'buffer'
+
 import type { NDKKind, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
-import { Buffer } from 'buffer'
 import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
 
 import {

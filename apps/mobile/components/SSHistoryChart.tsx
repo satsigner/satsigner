@@ -130,7 +130,7 @@ function SSHistoryChart({
     return transactions.map((transaction) => {
       const amount =
         transaction.type === 'receive'
-          ? transaction?.received ?? 0
+          ? (transaction?.received ?? 0)
           : (transaction?.received ?? 0) - (transaction?.sent ?? 0)
       sum += amount
       return {
