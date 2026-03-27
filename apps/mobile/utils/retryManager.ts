@@ -26,7 +26,7 @@ export function calculateRetryDelay(
     jitterFactor = DEFAULT_RETRY_CONFIG.jitterFactor
   } = config
 
-  const exponentialDelay = baseDelayMs * Math.pow(2, attempt)
+  const exponentialDelay = baseDelayMs * 2 ** attempt
   const cappedDelay = Math.min(exponentialDelay, maxDelayMs)
   const jitter = cappedDelay * jitterFactor * Math.random()
 

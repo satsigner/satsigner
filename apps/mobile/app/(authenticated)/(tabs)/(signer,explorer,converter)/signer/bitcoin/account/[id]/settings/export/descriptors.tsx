@@ -43,7 +43,7 @@ function calculateDescriptorChecksum(descriptor: string): string {
     for (let i = 0; i < descriptor.length; i += 1) {
       const char = descriptor.charCodeAt(i)
       hash = (hash << 5) - hash + char
-      hash = hash & hash // Convert to 32-bit integer
+      hash &= hash // Convert to 32-bit integer
     }
 
     // Convert to base58-like string

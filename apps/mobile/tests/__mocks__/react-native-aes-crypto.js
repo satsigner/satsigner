@@ -5,7 +5,7 @@ function simpleHash(text) {
   for (let i = 0; i < text.length; i += 1) {
     const char = text.charCodeAt(i)
     hash = (hash << 5) - hash + char
-    hash = hash & hash
+    hash &= hash
   }
   const positiveHash = Math.abs(hash)
   const hexBase = positiveHash.toString(16).padStart(8, '0')

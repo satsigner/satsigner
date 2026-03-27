@@ -375,7 +375,7 @@ function newtonRaphson(
     if (Math.abs(f_t) < tolerance) {
       return t
     }
-    t = t - f_t / df_t
+    t -= f_t / df_t
   }
 
   throw new Error('Convergence Failed!')

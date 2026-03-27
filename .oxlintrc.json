@@ -107,8 +107,6 @@
     "no-param-reassign": "allow",
     "class-methods-use-this": "allow",
     "max-classes-per-file": "allow",
-    "prefer-exponentiation-operator": "allow",
-    "operator-assignment": "allow",
     "require-await": "allow",
     "no-nested-ternary": "allow",
     "complexity": "allow"

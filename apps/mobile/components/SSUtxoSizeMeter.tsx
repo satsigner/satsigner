@@ -18,8 +18,8 @@ function SSUtxoSizeMeter({
   // Collapse the range of values for display so small and medium
   // UTXO sizes don't look so tiny compared to larger values
   const root = 2
-  const expSize = Math.pow(size, 1 / root)
-  const largestExpSize = Math.pow(largestSize, 1 / root)
+  const expSize = size ** (1 / root)
+  const largestExpSize = largestSize ** (1 / root)
 
   const minDisplayPercentage = 1
   const maxDisplayPercentage = 82

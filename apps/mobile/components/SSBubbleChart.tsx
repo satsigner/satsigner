@@ -128,8 +128,7 @@ function SSBubbleChart({
     const touchPointX = event.nativeEvent.locationX
     const touchPointY = event.nativeEvent.locationY
     const distanceSquared =
-      Math.pow(touchPointX - packedUtxo.r, 2) +
-      Math.pow(touchPointY - packedUtxo.r, 2)
+      (touchPointX - packedUtxo.r) ** 2 + (touchPointY - packedUtxo.r) ** 2
 
     if (distanceSquared <= rSquared) {
       onPress({
