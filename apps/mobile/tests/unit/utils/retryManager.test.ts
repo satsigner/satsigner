@@ -238,7 +238,7 @@ describe('createRetryManager', () => {
   })
 })
 
-describe('DEFAULT_RETRY_CONFIG', () => {
+describe('default retry config', () => {
   it('has sensible defaults', () => {
     expect(DEFAULT_RETRY_CONFIG.baseDelayMs).toBe(1000)
     expect(DEFAULT_RETRY_CONFIG.maxDelayMs).toBe(60000)

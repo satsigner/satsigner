@@ -54,17 +54,17 @@ describe('compressMessage and decompressMessage', () => {
 
   it('roundtrips label sync message', () => {
     const original = nostrMessages.labelSync
-    expect(decompressMessage(compressMessage(original))).toEqual(original)
+    expect(decompressMessage(compressMessage(original))).toStrictEqual(original)
   })
 
   it('roundtrips PSBT share message', () => {
     const original = nostrMessages.psbtShare
-    expect(decompressMessage(compressMessage(original))).toEqual(original)
+    expect(decompressMessage(compressMessage(original))).toStrictEqual(original)
   })
 
   it('roundtrips device announcement', () => {
     const original = nostrMessages.deviceAnnouncement
-    expect(decompressMessage(compressMessage(original))).toEqual(original)
+    expect(decompressMessage(compressMessage(original))).toStrictEqual(original)
   })
 
   it('roundtrips nested data structures', () => {
@@ -72,7 +72,7 @@ describe('compressMessage and decompressMessage', () => {
       messages: [nostrMessages.labelSync, nostrMessages.psbtShare],
       metadata: { version: 1, timestamp: 1704067200 }
     }
-    expect(decompressMessage(compressMessage(original))).toEqual(original)
+    expect(decompressMessage(compressMessage(original))).toStrictEqual(original)
   })
 
   it('throws on invalid compressed data', () => {
@@ -90,7 +90,7 @@ describe('compressMessage and decompressMessage', () => {
     }
     const compressed = compressMessage(largePayload)
     expect(compressed.length).toBeLessThan(JSON.stringify(largePayload).length)
-    expect(decompressMessage(compressed)).toEqual(largePayload)
+    expect(decompressMessage(compressed)).toStrictEqual(largePayload)
   })
 })
 
@@ -155,7 +155,7 @@ describe('deriveNostrKeysFromDescriptor', () => {
     expect(result.commonNsec).toMatch(/^nsec1/)
     expect(result.commonNpub).toMatch(/^npub1/)
     expect(result.privateKeyBytes).toBeInstanceOf(Uint8Array)
-    expect(result.privateKeyBytes.length).toBe(32)
+    expect(result.privateKeyBytes).toHaveLength(32)
   })
 
   it('derives valid keys from multisig descriptor', async () => {
@@ -164,7 +164,7 @@ describe('deriveNostrKeysFromDescriptor', () => {
     )
     expect(result.commonNsec).toMatch(/^nsec1/)
     expect(result.commonNpub).toMatch(/^npub1/)
-    expect(result.privateKeyBytes.length).toBe(32)
+    expect(result.privateKeyBytes).toHaveLength(32)
   })
 
   it('derives valid keys from mainnet descriptor', async () => {
@@ -184,7 +184,7 @@ describe('deriveNostrKeysFromDescriptor', () => {
     )
     expect(result1.commonNsec).toBe(result2.commonNsec)
     expect(result1.commonNpub).toBe(result2.commonNpub)
-    expect(Array.from(result1.privateKeyBytes)).toEqual(
+    expect(Array.from(result1.privateKeyBytes)).toStrictEqual(
       Array.from(result2.privateKeyBytes)
     )
   })

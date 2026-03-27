@@ -9,17 +9,19 @@ const mempoolspace: BlockchainOracle = new MempoolOracle(
   'https://mempool.space/api'
 )
 
-describe('Blockchain » price', () => {
+describe('blockchain » price', () => {
   it('get price at given currency', async () => {
     const response = await mempoolspace.getPrice('CAD')
     expect(typeof response).toBe('number')
   })
+
   it('get price at given currency at given time', async () => {
     const timestamp = 1500000000
     const expectedPrice = 1964
     const response = await mempoolspace.getPriceAt('EUR', timestamp)
     expect(response).toBe(expectedPrice)
   })
+
   it('get prices list at given time', async () => {
     const timestamp = 1500000000
     const expectedPrice = 2254.9
@@ -30,7 +32,7 @@ describe('Blockchain » price', () => {
   })
 })
 
-describe('Blockchain » mempool', () => {
+describe('blockchain » mempool', () => {
   const errorTolerance = 0.015 // 1.5%
   const isDiffReasonable = (a: number, b: number) => {
     return Math.abs((a - b) / b) < errorTolerance
@@ -91,15 +93,17 @@ describe('Blockchain » mempool', () => {
   })
 })
 
-describe('Blockchain » hashrate/difficulty', () => {
+describe('blockchain » hashrate/difficulty', () => {
   it('get hashrate', async () => {
     const response = await mempoolspace.getCurrentHashRate()
     expect(typeof response).toBe('number')
   })
+
   it('get difficulty', async () => {
     const response = await mempoolspace.getCurrentDifficulty()
     expect(typeof response).toBe('number')
   })
+
   it('get difficulty adjusment', async () => {
     const response = await mempoolspace.getDifficultyAdjustment()
     expect(typeof response.remainingTime).toBe('number')
@@ -108,11 +112,12 @@ describe('Blockchain » hashrate/difficulty', () => {
   })
 })
 
-describe('Blockchain » tip block', () => {
+describe('blockchain » tip block', () => {
   it('get tip block height', async () => {
     const response = await mempoolspace.getCurrentBlockHeight()
     expect(typeof response).toBe('number')
   })
+
   it('get tip block hash', async () => {
     const response = await mempoolspace.getCurrentBlockHash()
     expect(typeof response).toBe('string')

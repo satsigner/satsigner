@@ -81,44 +81,44 @@ export const sampleTransactions = [
   }
 ]
 
-describe('Transaction decoding', () => {
+describe('transaction decoding', () => {
   for (const sampleTx of sampleTransactions) {
     const { label, hex, expected } = sampleTx
     describe(`Decodes ${label}`, () => {
       const decodedTx = TxDecoded.fromHex(hex)
 
-      it('Decodes the version', () => {
+      it('decodes the version', () => {
         expect(decodedTx.getVersion().value).toBe(expected.version)
       })
 
       if (expected.flag !== undefined) {
-        it('Decodes the flag', () => {
+        it('decodes the flag', () => {
           expect(decodedTx.getFlag().value).toBe(expected.flag)
         })
       }
 
       if (expected.marker !== undefined) {
-        it('Decodes the marker', () => {
+        it('decodes the marker', () => {
           expect(decodedTx.getMarker().value).toBe(expected.marker)
         })
       }
 
-      it('Decodes the input count', () => {
+      it('decodes the input count', () => {
         expect(decodedTx.getInputCount().value).toBe(expected.vinCount)
       })
 
-      it('Decodes the output count', () => {
+      it('decodes the output count', () => {
         expect(decodedTx.getOutputCount().value).toBe(expected.voutCount)
       })
 
-      it('Decodes the output values', () => {
+      it('decodes the output values', () => {
         for (let i = 0; i < expected.voutCount; i += 1) {
           expect(decodedTx.getOutputValue(i).value).toBe(expected.voutSats[i])
         }
       })
 
       if (expected.witnessCount !== undefined) {
-        it('Decodes the witness count', () => {
+        it('decodes the witness count', () => {
           for (let i = 0; i < expected.witnessCount.length; i += 1) {
             expect(decodedTx.getWitnessVarInt(i).value).toBe(
               expected.witnessCount[i]
@@ -127,7 +127,7 @@ describe('Transaction decoding', () => {
         })
       }
 
-      it('Decodes locktime', () => {
+      it('decodes locktime', () => {
         expect(decodedTx.getLocktime().value).toBe(expected.locktime)
       })
     })

@@ -12,7 +12,7 @@ import {
 import { accountIds, nostrKeys, nostrMessages } from '../utils/nostr_samples'
 
 // Mock dependencies
-jest.mock('@/store/accounts', () => ({
+jest.mock<typeof import('@/store/accounts')>('@/store/accounts', () => ({
   useAccountsStore: {
     getState: jest.fn(() => ({
       accounts: [],
@@ -22,7 +22,7 @@ jest.mock('@/store/accounts', () => ({
   }
 }))
 
-jest.mock('@/store/nostr', () => ({
+jest.mock<typeof import('@/store/nostr')>('@/store/nostr', () => ({
   useNostrStore: {
     getState: jest.fn(() => ({
       addMember: jest.fn()
@@ -30,7 +30,7 @@ jest.mock('@/store/nostr', () => ({
   }
 }))
 
-jest.mock('sonner-native', () => ({
+jest.mock<typeof import('sonner-native')>('sonner-native', () => ({
   toast: {
     success: jest.fn(),
     error: jest.fn(),
@@ -239,7 +239,7 @@ describe('handler registry', () => {
       const handlers2 = getHandlers()
 
       expect(handlers1).not.toBe(handlers2)
-      expect(handlers1).toEqual(handlers2)
+      expect(handlers1).toStrictEqual(handlers2)
     })
 
     it('modifications to returned array do not affect registry', () => {

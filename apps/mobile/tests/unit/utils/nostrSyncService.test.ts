@@ -3,7 +3,7 @@ import { type Account } from '@/types/models/Account'
 import { nostrSyncService, resetInstance } from '@/utils/nostrSyncService'
 
 // Mock dependencies
-jest.mock('@/api/nostr', () => ({
+jest.mock<typeof import('@/api/nostr')>('@/api/nostr', () => ({
   NostrAPI: jest.fn().mockImplementation(() => ({
     connect: jest.fn().mockResolvedValue(true),
     subscribeToKind1059: jest.fn().mockResolvedValue(undefined),
@@ -13,12 +13,12 @@ jest.mock('@/api/nostr', () => ({
   }))
 }))
 
-jest.mock('@/constants/nostr', () => ({
+jest.mock<typeof import('@/constants/nostr')>('@/constants/nostr', () => ({
   ...jest.requireActual('@/constants/nostr'),
   PROTOCOL_SUBSCRIPTION_LIMIT: 1500
 }))
 
-jest.mock('@/storage/mmkv', () => {
+jest.mock<typeof import('@/storage/mmkv')>('@/storage/mmkv', () => {
   const storage: Record<string, string> = {}
   return {
     __esModule: true,
@@ -34,7 +34,7 @@ jest.mock('@/storage/mmkv', () => {
   }
 })
 
-jest.mock('@/utils/nostr', () => ({
+jest.mock<typeof import('@/utils/nostr')>('@/utils/nostr', () => ({
   generateColorFromNpub: jest.fn().mockResolvedValue('#ff5500')
 }))
 
@@ -116,7 +116,7 @@ describe('nostrSyncService', () => {
       resetInstance()
       expect(nostrSyncService.getActiveSubscriptionCount()).toBe(0)
       nostrSyncService.setMessageProcessor(mockAccount.id, mockProcessor)
-      expect(nostrSyncService.getActiveAccountIds()).toEqual([])
+      expect(nostrSyncService.getActiveAccountIds()).toStrictEqual([])
     })
   })
 
@@ -273,7 +273,7 @@ describe('nostrSyncService', () => {
 
   describe('getActiveAccountIds', () => {
     it('returns empty array when no subscriptions', () => {
-      expect(nostrSyncService.getActiveAccountIds()).toEqual([])
+      expect(nostrSyncService.getActiveAccountIds()).toStrictEqual([])
     })
   })
 })

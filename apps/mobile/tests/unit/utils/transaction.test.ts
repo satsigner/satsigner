@@ -26,7 +26,7 @@ const minimalTxProps = {
   prices: {}
 }
 
-describe('Transaction Utils', () => {
+describe('transaction Utils', () => {
   describe('estimateTransactionSize', () => {
     it('should correctly estimate transaction size for legacy inputs and outputs', () => {
       const utxo1: Utxo = {

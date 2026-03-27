@@ -14,7 +14,7 @@ import {
 
 import { accountIds, nostrKeys } from '../utils/nostr_samples'
 
-jest.mock('sonner-native', () => ({
+jest.mock<typeof import('sonner-native')>('sonner-native', () => ({
   toast: {
     success: jest.fn(),
     error: jest.fn(),
@@ -28,7 +28,7 @@ const mockUpdateAccountNostr = jest.fn()
 const mockAddMember = jest.fn()
 
 // Mock stores with persistent mock functions
-jest.mock('@/store/accounts', () => ({
+jest.mock<typeof import('@/store/accounts')>('@/store/accounts', () => ({
   useAccountsStore: {
     getState: () => ({
       accounts: [],
@@ -38,7 +38,7 @@ jest.mock('@/store/accounts', () => ({
   }
 }))
 
-jest.mock('@/store/nostr', () => ({
+jest.mock<typeof import('@/store/nostr')>('@/store/nostr', () => ({
   useNostrStore: {
     getState: () => ({
       addMember: mockAddMember
@@ -47,14 +47,14 @@ jest.mock('@/store/nostr', () => ({
 }))
 
 // Mock nostr-tools
-jest.mock('nostr-tools', () => ({
+jest.mock<typeof import('nostr-tools')>('nostr-tools', () => ({
   nip19: {
     npubEncode: jest.fn((pubkey: string) => `npub1${pubkey.slice(0, 8)}...`)
   }
 }))
 
 // Mock bip329
-jest.mock('@/utils/bip329', () => ({
+jest.mock<typeof import('@/utils/bip329')>('@/utils/bip329', () => ({
   JSONLtoLabels: jest.fn((jsonl: string) => {
     const lines = jsonl.split('\n').filter((l: string) => l.trim())
     return lines.map((line: string) => JSON.parse(line))

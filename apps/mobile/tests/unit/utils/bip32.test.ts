@@ -69,27 +69,35 @@ const sampleDescriptorsScriptVersion: ScriptVersionType[] = [
 const descriptorCount = 7
 
 describe('bip32 descriptor utils', () => {
-  it('Gets extended key from descriptor (mainnet)', () => {
+  it('gets extended key from descriptor (mainnet)', () => {
     for (let i = 0; i < descriptorCount; i += 1) {
       const key = sampleMainnetKeys[i]
       const externalDescriptor = sampleMainnetExternalDescriptors[i]
       const internalDescriptor = sampleMainnetInternalDescriptors[i]
-      expect(getExtendedKeyFromDescriptor(externalDescriptor)).toEqual(key)
-      expect(getExtendedKeyFromDescriptor(internalDescriptor)).toEqual(key)
+      expect(getExtendedKeyFromDescriptor(externalDescriptor)).toStrictEqual(
+        key
+      )
+      expect(getExtendedKeyFromDescriptor(internalDescriptor)).toStrictEqual(
+        key
+      )
     }
   })
 
-  it('Gets extended key from descriptor (testnet)', () => {
+  it('gets extended key from descriptor (testnet)', () => {
     for (let i = 0; i < descriptorCount; i += 1) {
       const key = sampleTestnetKeys[i]
       const externalDescriptor = sampleTestnetExternalDescriptors[i]
       const internalDescriptor = sampleTestnetInternalDescriptors[i]
-      expect(getExtendedKeyFromDescriptor(externalDescriptor)).toEqual(key)
-      expect(getExtendedKeyFromDescriptor(internalDescriptor)).toEqual(key)
+      expect(getExtendedKeyFromDescriptor(externalDescriptor)).toStrictEqual(
+        key
+      )
+      expect(getExtendedKeyFromDescriptor(internalDescriptor)).toStrictEqual(
+        key
+      )
     }
   })
 
-  it('Gets descriptor from extended key (mainnet)', () => {
+  it('gets descriptor from extended key (mainnet)', () => {
     for (let i = 0; i < descriptorCount; i += 1) {
       const key = sampleMainnetKeys[i]
       const scriptVersion = sampleDescriptorsScriptVersion[i]
@@ -102,12 +110,12 @@ describe('bip32 descriptor utils', () => {
         scriptVersion,
         network
       )
-      expect(result.externalDescriptor).toEqual(externalDescriptor)
-      expect(result.internalDescriptor).toEqual(internalDescriptor)
+      expect(result.externalDescriptor).toStrictEqual(externalDescriptor)
+      expect(result.internalDescriptor).toStrictEqual(internalDescriptor)
     }
   })
 
-  it('Gets descriptor from extended key (testnet)', () => {
+  it('gets descriptor from extended key (testnet)', () => {
     for (let i = 0; i < descriptorCount; i += 1) {
       const key = sampleTestnetKeys[i]
       const scriptVersion = sampleDescriptorsScriptVersion[i]
@@ -120,8 +128,8 @@ describe('bip32 descriptor utils', () => {
         scriptVersion,
         network
       )
-      expect(result.externalDescriptor).toEqual(externalDescriptor)
-      expect(result.internalDescriptor).toEqual(internalDescriptor)
+      expect(result.externalDescriptor).toStrictEqual(externalDescriptor)
+      expect(result.internalDescriptor).toStrictEqual(internalDescriptor)
     }
   })
 })

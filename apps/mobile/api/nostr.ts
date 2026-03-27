@@ -60,9 +60,9 @@ function unwrapNip59EventOrNull(
 
 export class NostrAPI {
   private ndk: NDK | null = null
-  private activeSubscriptions: Set<NDKSubscription> = new Set()
-  private processedMessageIds: Set<string> = new Set()
-  private processedRawEventIds: Set<string> = new Set()
+  private activeSubscriptions = new Set<NDKSubscription>()
+  private processedMessageIds = new Set<string>()
+  private processedRawEventIds = new Set<string>()
   private eventQueue: NostrMessage[] = []
   private isProcessingQueue = false
   private readonly BATCH_SIZE = 10

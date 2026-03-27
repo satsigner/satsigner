@@ -6,7 +6,7 @@ import {
   selectStonewallUtxos
 } from '@/utils/utxo'
 
-describe('Efficiency UTXO Selection Algorithm', () => {
+describe('efficiency UTXO Selection Algorithm', () => {
   // helper function to create mock utxos
   function createMockUtxos(value: number[]) {
     return value.map((value, index) => ({
@@ -20,16 +20,16 @@ describe('Efficiency UTXO Selection Algorithm', () => {
     }))
   }
 
-  test('it should select a single utxo when it exactly matches the target amount', () => {
+  it('it should select a single utxo when it exactly matches the target amount', () => {
     const utxos = createMockUtxos([10000, 20000, 30000])
     const target = 10000
     const feeRate = 1
     const result = selectEfficientUtxos(utxos, target, feeRate)
-    expect(result.inputs.length).toBe(1)
+    expect(result.inputs).toHaveLength(1)
     expect(result.inputs[0].value).toBe(10000)
   })
 
-  test('should return error when there are insufficient funds', () => {
+  it('should return error when there are insufficient funds', () => {
     const utxos = createMockUtxos([1000, 2000])
     const targetAmount = 10000
     const feeRate = 1
@@ -37,11 +37,11 @@ describe('Efficiency UTXO Selection Algorithm', () => {
     const result = selectEfficientUtxos(utxos, targetAmount, feeRate)
     if ('error' in result) {
       expect(result.error).toBe('Insufficient funds')
-      expect(result.inputs.length).toBe(0)
+      expect(result.inputs).toHaveLength(0)
     }
   })
 
-  test('should select multiple UTXOs when needed', () => {
+  it('should select multiple UTXOs when needed', () => {
     const utxos = createMockUtxos([5000, 3000, 2000, 1000])
     const targetAmount = 4000
     const feeRate = 1
@@ -55,7 +55,7 @@ describe('Efficiency UTXO Selection Algorithm', () => {
     expect(totalSelected).toBeGreaterThanOrEqual(targetAmount + result.fee)
   })
 
-  test('should handle high fee rates properly', () => {
+  it('should handle high fee rates properly', () => {
     const utxos = createMockUtxos([10000, 20000, 30000])
     const targetAmount = 25000
     const feeRate = 50 // Very high fee rate
@@ -69,7 +69,7 @@ describe('Efficiency UTXO Selection Algorithm', () => {
     expect(totalSelected - result.fee - targetAmount).toBeGreaterThanOrEqual(0)
   })
 
-  test('should find optimal selection using branch and bound', () => {
+  it('should find optimal selection using branch and bound', () => {
     const utxos = createMockUtxos([1000, 2000, 3000, 4000, 5000, 6000, 7000])
     const targetAmount = 8000
     const feeRate = 1
@@ -80,7 +80,7 @@ describe('Efficiency UTXO Selection Algorithm', () => {
     expect(result.inputs.length).toBeLessThanOrEqual(3)
   })
 
-  test('should handle extremely small values correctly', () => {
+  it('should handle extremely small values correctly', () => {
     const utxos = [
       {
         txid: 'tx1',
@@ -114,12 +114,12 @@ describe('Efficiency UTXO Selection Algorithm', () => {
     const result = selectEfficientUtxos(utxos, targetAmount, feeRate)
 
     // Should ignore tiny UTXOs that would cost more to spend than they're worth
-    expect(result.inputs.length).toBe(1)
+    expect(result.inputs).toHaveLength(1)
     expect(result.inputs[0].txid).toBe('tx3')
   })
 })
 
-describe('STONEWALL UTXO Selection Algorithm', () => {
+describe('stonewall utxo selection algorithm', () => {
   // Helper functions for creating test UTXOs
   function createMockUtxos(
     values: number[],
@@ -137,7 +137,7 @@ describe('STONEWALL UTXO Selection Algorithm', () => {
     }))
   }
 
-  test('should create a valid STONEWALL transaction with sufficient funds', () => {
+  it('should create a valid STONEWALL transaction with sufficient funds', () => {
     const utxos = createMockUtxos([10000, 20000, 30000, 40000, 50000, 60000], {
       scriptTypes: ['p2pkh', 'p2wpkh']
     })
@@ -166,14 +166,14 @@ describe('STONEWALL UTXO Selection Algorithm', () => {
       (sum, output) => sum + output.value,
       0
     )
-    expect(totalInput).toEqual(totalOutput + result.fee)
+    expect(totalInput).toStrictEqual(totalOutput + result.fee)
 
     // Verify privacy score is calculated
     expect(result.privacyScore).toBeGreaterThan(0)
   })
 
   // Test with insufficient funds
-  test('should return error when there are insufficient funds', () => {
+  it('should return error when there are insufficient funds', () => {
     const utxos = createMockUtxos([1000, 2000])
     const targetAmount = 10000
     const feeRate = 1
@@ -184,7 +184,7 @@ describe('STONEWALL UTXO Selection Algorithm', () => {
   })
 
   // Test change output distribution
-  test('should create well-distributed change outputs', () => {
+  it('should create well-distributed change outputs', () => {
     const utxos = createMockUtxos([100000, 200000])
     const targetAmount = 50000
     const feeRate = 1
@@ -215,7 +215,7 @@ describe('STONEWALL UTXO Selection Algorithm', () => {
   })
 
   // Test entropy calculation
-  test('should calculate entropy correctly', () => {
+  it('should calculate entropy correctly', () => {
     const mockSolution = {
       inputs: [
         {
@@ -266,7 +266,7 @@ describe('STONEWALL UTXO Selection Algorithm', () => {
   })
 
   // Test change distribution function
-  test('should distribute change with privacy in mind', () => {
+  it('should distribute change with privacy in mind', () => {
     const totalChange = 100000
     const numOutputs = 3
     const dustThreshold = 546
@@ -278,7 +278,7 @@ describe('STONEWALL UTXO Selection Algorithm', () => {
     )
 
     // Should create the requested number of outputs
-    expect(changeValues.length).toBe(numOutputs)
+    expect(changeValues).toHaveLength(numOutputs)
 
     // Total should match the input amount
     const sum = changeValues.reduce((acc, val) => acc + val, 0)
@@ -293,7 +293,7 @@ describe('STONEWALL UTXO Selection Algorithm', () => {
   })
 
   // Test performance with large UTXO set
-  test('should handle large UTXO sets efficiently', () => {
+  it('should handle large UTXO sets efficiently', () => {
     // Create 100 UTXOs
     const values = Array(100)
       .fill(0)

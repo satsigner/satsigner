@@ -75,7 +75,7 @@ describe('encryption utils', () => {
       expect(aesCrypto.sha256).toHaveBeenCalledTimes(2)
       expect(aesCrypto.sha256).toHaveBeenNthCalledWith(1, text)
 
-      const sha256Mock = aesCrypto.sha256 as jest.Mock
+      const sha256Mock = jest.mocked(aesCrypto.sha256)
       const firstHash = await sha256Mock.mock.results[0].value
       expect(aesCrypto.sha256).toHaveBeenNthCalledWith(2, firstHash)
 

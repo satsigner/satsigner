@@ -155,13 +155,13 @@ describe('bip39 utils', () => {
   })
 
   it('get fingerprint from mnemonic in multiple languages', () => {
-    expect(getFingerprintFromMnemonic(englishMnemonic)).toEqual(
+    expect(getFingerprintFromMnemonic(englishMnemonic)).toStrictEqual(
       englishMnemonicFingerprint
     )
-    expect(getFingerprintFromMnemonic(spanishMnemonic)).toEqual(
+    expect(getFingerprintFromMnemonic(spanishMnemonic)).toStrictEqual(
       spanishMnemonicFingerprint
     )
-    expect(getFingerprintFromMnemonic(frenchMnemonic)).toEqual(
+    expect(getFingerprintFromMnemonic(frenchMnemonic)).toStrictEqual(
       frenchMnemonicFingerprint
     )
   })
@@ -196,7 +196,7 @@ describe('bip39 utils', () => {
   })
 })
 
-describe('Electrum seed utils', () => {
+describe('electrum seed utils', () => {
   describe('detectElectrumSeed', () => {
     it('detects a known Electrum segwit seed', async () => {
       const result = await detectElectrumSeed(electrumSegwitMnemonic)
@@ -218,8 +218,8 @@ describe('Electrum seed utils', () => {
     it('is case and whitespace insensitive', async () => {
       const upper = electrumSegwitMnemonic.toUpperCase()
       const extraSpaces = electrumSegwitMnemonic.replace(/ /g, '  ')
-      expect(await detectElectrumSeed(upper)).toBe('segwit')
-      expect(await detectElectrumSeed(extraSpaces)).toBe('segwit')
+      await expect(detectElectrumSeed(upper)).resolves.toBe('segwit')
+      await expect(detectElectrumSeed(extraSpaces)).resolves.toBe('segwit')
     })
   })
 
@@ -259,7 +259,7 @@ describe('Electrum seed utils', () => {
 
     it('produces a 64-byte seed', async () => {
       const seed = await mnemonicToSeedElectrum(electrumSegwitMnemonic)
-      expect(seed.length).toBe(64)
+      expect(seed).toHaveLength(64)
     })
 
     it('is deterministic', async () => {

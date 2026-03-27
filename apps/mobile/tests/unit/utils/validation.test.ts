@@ -5,7 +5,7 @@ import {
   validateFingerprint
 } from '@/utils/validation'
 
-describe('Validates addresses', () => {
+describe('validates addresses', () => {
   const validAddresses = [
     // BITCOIN MAINNET ADDRESSES
     '1HQQLXjYGesJunxE5fwFxHbG9Ks53nyZr9', // P2PKH (Pay to Public Key Hash):
@@ -24,20 +24,20 @@ describe('Validates addresses', () => {
     'bc5p5cyxnuxmeuwuvkwfem96l8z2f8g8g8g8g8g8g8'
   ]
 
-  it('Recognizes valid addresses', () => {
+  it('recognizes valid addresses', () => {
     for (const address of validAddresses) {
       expect(validateAddress(address)).toBe(true)
     }
   })
 
-  it('Recognizes invalid addresses', () => {
+  it('recognizes invalid addresses', () => {
     for (const address of invalidAddresses) {
       expect(validateAddress(address)).toBe(false)
     }
   })
 })
 
-describe('Validates derivation paths', () => {
+describe('validates derivation paths', () => {
   const validDerivationPaths = [
     "m/44'/0'/0'/0",
     "m/84'/0'/0'/0",
@@ -63,20 +63,20 @@ describe('Validates derivation paths', () => {
   ]
   const invalidDerivationPaths = ["m/44'/0'/0'/0/", 'm/44h/0h/0h/0/', 'm/a/b/c']
 
-  it('Recognizes valid derivation paths', () => {
+  it('recognizes valid derivation paths', () => {
     for (const path of validDerivationPaths) {
       expect(validateDerivationPath(path)).toBe(true)
     }
   })
 
-  it('Recognizes invalid derivation paths', () => {
+  it('recognizes invalid derivation paths', () => {
     for (const path of invalidDerivationPaths) {
       expect(validateDerivationPath(path)).toBe(false)
     }
   })
 })
 
-describe('Validates master fingerprints', () => {
+describe('validates master fingerprints', () => {
   const validFingerprints = [
     'a0b1c2d3',
     '0dfe45ff',
@@ -93,20 +93,20 @@ describe('Validates master fingerprints', () => {
     '1234'
   ]
 
-  it('Recognizes valid fingerprints', () => {
+  it('recognizes valid fingerprints', () => {
     for (const fingerprint of validFingerprints) {
       expect(validateFingerprint(fingerprint)).toBe(true)
     }
   })
 
-  it('Recognizes invalid fingerprints', () => {
+  it('recognizes invalid fingerprints', () => {
     for (const fingerprint of invalidFingerprints) {
       expect(validateFingerprint(fingerprint)).toBe(false)
     }
   })
 })
 
-describe('Validates extended keys', () => {
+describe('validates extended keys', () => {
   const validExtendedKeys = [
     'xprvA3aefawL5RncTfcTBQCcD54pyyjJEe9FnNDHUh4tKFEQ7oZbxcKRETqLTJ4axsBwYzBBmqBYZYhM2a1pyZZKme265kU87bSezSS9kjN3huL',
     'xpub69M34K123tT7uiHGKBGrMe4KNnKuedu3hQFDhzovR938S3V5E5x7bv58sfej8rQ7hZLtXbTdDkjLpn5crdRKm3uphmEY24q28rMYT7qyXEr',
@@ -116,7 +116,7 @@ describe('Validates extended keys', () => {
     'zpub6meLgZBh2ond7rC77f8jHxKUgd8bChCimrCQgEpiEC2NGzWZTbTsdq2cszuAJ1KwUgv8no6cweqrGHWDQ1Mi92H3tq1f7nhFJiBSkRFPNKR'
   ]
 
-  it('Recognizes valid extended keys', () => {
+  it('recognizes valid extended keys', () => {
     for (const key of validExtendedKeys) {
       expect(validateExtendedKey(key)).toBe(true)
     }

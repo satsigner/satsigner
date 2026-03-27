@@ -6,7 +6,7 @@ beforeAll(async () => {
   esplora = new Esplora('https://mempool.space/api')
 })
 
-describe('Esplora tests', () => {
+describe('esplora tests', () => {
   it('get tx status', async () => {
     const txid =
       '591e91f809d716912ca1d4a9295e70c3e78bab077683f79350f101da64588073'
