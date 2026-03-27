@@ -1,5 +1,5 @@
 {
-  "name": "SatSigner snippets",
+  "name": "satsigner-snippets",
   "description": "Metadata file that tells IDEs from where to load project snippets",
   "engines": {
     "vscode": "^1.11.0"
@@ -7,9 +7,7 @@
   "contributes": {
     "snippets": [
       {
-        "language": [
-          "typescriptreact"
-        ],
+        "language": "typescriptreact",
         "path": "./typescriptreact.code-snippets"
       }
     ]
