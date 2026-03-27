@@ -233,16 +233,16 @@ const useAccountBuilderStore = create<
       name,
       network,
       nostr: {
+        autoSync: false,
         commonNpub: '',
         commonNsec: '',
-        relays: [],
-        autoSync: false,
         deviceNpub: '',
         deviceNsec: '',
-        trustedMemberDevices: [],
         dms: [] as NostrDM[],
         lastUpdated: new Date(),
-        syncStart: new Date()
+        relays: [],
+        syncStart: new Date(),
+        trustedMemberDevices: []
       },
       policyType,
       summary: {

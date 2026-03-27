@@ -105,8 +105,8 @@ export const useEcashStore = create<EcashState & EcashAction>()(
           mints: [],
           proofs: [],
           quotes: {
-            mint: [],
-            melt: []
+            melt: [],
+            mint: []
           },
           status: initialStatus,
           transactions: []
@@ -172,8 +172,8 @@ export const useEcashStore = create<EcashState & EcashAction>()(
             mints: restoredMints,
             proofs: restoredProofs,
             quotes: {
-              mint: [],
-              melt: []
+              melt: [],
+              mint: []
             },
             status: {
               isConnected: false,
