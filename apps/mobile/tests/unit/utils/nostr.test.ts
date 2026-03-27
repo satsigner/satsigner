@@ -76,7 +76,9 @@ describe('compressMessage and decompressMessage', () => {
   })
 
   it('throws on invalid compressed data', () => {
-    expect(() => decompressMessage('invalid-data')).toThrow('incorrect header check')
+    expect(() => decompressMessage('invalid-data')).toThrow(
+      'incorrect header check'
+    )
     expect(() => decompressMessage(nostrKeys.invalid.notBech32)).toThrow(
       'incorrect header check'
     )
