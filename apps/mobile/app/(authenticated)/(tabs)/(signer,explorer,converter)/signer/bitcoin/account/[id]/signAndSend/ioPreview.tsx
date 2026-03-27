@@ -300,7 +300,7 @@ export default function IOPreview() {
     if (detectedContent.isValid) {
       const success = processContentForOutput(detectedContent, {
         onError: () => setOutputTo(processedContent),
-        onWarning: () => {},
+        onWarning: () => undefined,
         remainingSats,
         setOutputAmount,
         setOutputLabel,

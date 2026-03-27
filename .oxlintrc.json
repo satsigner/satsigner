@@ -117,10 +117,7 @@
     "complexity": "allow",
     "no-empty": "allow",
     "default-case": "allow",
-    "no-promise-executor-return": "allow",
-    "no-empty-function": "allow",
-    "guard-for-in": "allow",
-    "preserve-caught-error": "allow"
+    "no-promise-executor-return": "allow"
   },
   "overrides": [
     {

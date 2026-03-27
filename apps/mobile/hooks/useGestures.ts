@@ -48,8 +48,8 @@ export const useGestures = ({
   onPinchEnd,
   onPanStart,
   onPanEnd,
-  onDoubleTap = () => {},
-  onSingleTap = () => {},
+  onDoubleTap = () => undefined,
+  onSingleTap = () => undefined,
   initialTranslation = { x: 0, y: 0 }
 }: ZoomUseGesturesProps) => {
   const isInteracting = useRef(false)

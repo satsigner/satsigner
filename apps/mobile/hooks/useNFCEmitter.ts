@@ -77,7 +77,9 @@ export function useNFCEmitter() {
     } catch (writeError) {
       setIsEmitting(false)
       NfcManager.cancelTechnologyRequest()
-      throw new Error(getVerboseError(writeError, 'Failed to write NFC tag'))
+      throw new Error(getVerboseError(writeError, 'Failed to write NFC tag'), {
+        cause: writeError
+      })
     }
   }
 

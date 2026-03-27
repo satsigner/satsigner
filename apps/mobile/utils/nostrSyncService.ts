@@ -171,15 +171,23 @@ async function cleanupSubscription(accountId: string): Promise<void> {
 
   if (handle.protocolApi) {
     cleanupPromises.push(
-      handle.protocolApi.flushQueue().catch(() => {}),
-      handle.protocolApi.closeAllSubscriptions().catch(() => {})
+      handle.protocolApi.flushQueue().catch(() => {
+        /* intentionally swallowed */
+      }),
+      handle.protocolApi.closeAllSubscriptions().catch(() => {
+        /* intentionally swallowed */
+      })
     )
   }
 
   if (handle.dataExchangeApi) {
     cleanupPromises.push(
-      handle.dataExchangeApi.flushQueue().catch(() => {}),
-      handle.dataExchangeApi.closeAllSubscriptions().catch(() => {})
+      handle.dataExchangeApi.flushQueue().catch(() => {
+        /* intentionally swallowed */
+      }),
+      handle.dataExchangeApi.closeAllSubscriptions().catch(() => {
+        /* intentionally swallowed */
+      })
     )
   }
 
@@ -388,7 +396,9 @@ function restartSync(
   onLoadingChange?: (loading: boolean) => void
 ): void {
   cleanupSubscription(account.id)
-    .catch(() => {})
+    .catch(() => {
+      /* intentionally swallowed */
+    })
     .finally(() => {
       cancelRetry(account.id)
       emitStatus(account.id, 'idle')

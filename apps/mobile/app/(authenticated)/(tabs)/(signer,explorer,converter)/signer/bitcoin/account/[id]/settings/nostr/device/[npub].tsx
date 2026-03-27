@@ -241,7 +241,7 @@ export default function DeviceAliasPage() {
           .getState()
           .accounts.find((a) => a.id === accountId)
         if (current) {
-          restartSync(current, () => {})
+          restartSync(current, () => undefined)
         }
       }, TRUST_SYNC_RESTART_DELAY_MS)
       toast.success(t('account.nostrSync.deviceTrusted'))

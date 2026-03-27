@@ -67,8 +67,8 @@ function formatTimestamp(date: Date) {
 function formatPageUrl(path: string, params: PageParams) {
   let url = '/' + (path || '')
 
-  for (const key in params) {
-    const value = '' + params[key]
+  for (const [key, paramValue] of Object.entries(params)) {
+    const value = '' + paramValue
     url = url.replace(new RegExp('\\[' + key + '\\]'), value)
   }
 

@@ -944,8 +944,7 @@ async function parseTransactionDetailsToTransaction(
     lockTimeEnabled = txLockTimeEnabled
     raw = txRaw
 
-    for (const index in inputs) {
-      const input = inputs[index]
+    for (const [, input] of inputs.entries()) {
       if (!input?.scriptSig) {
         continue
       }
@@ -958,8 +957,8 @@ async function parseTransactionDetailsToTransaction(
       }
     }
 
-    for (const index in outputsList) {
-      const { value, script: scriptObj } = outputsList[index]
+    for (const [, outputItem] of outputsList.entries()) {
+      const { value, script: scriptObj } = outputItem
       if (!scriptObj) {
         continue
       }
@@ -1080,10 +1079,10 @@ async function getTransactionInputValues(
 
   // merge the old input object -- which may have label,
   // with the new one -- which has the value of the input.
-  for (const index in vin) {
+  for (const [index, vinItem] of vin.entries()) {
     vin[index] = {
       ...(tx.vin[index] || {}),
-      ...vin[index]
+      ...vinItem
     }
   }
 

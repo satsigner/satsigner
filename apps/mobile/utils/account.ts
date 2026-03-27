@@ -35,8 +35,7 @@ export function updateAccountObjectLabels(account: Account) {
     utxos: account.utxos.map((u) => ({ ...u }))
   }
 
-  for (const index in updatedAccount.utxos) {
-    const utxo = updatedAccount.utxos[index]
+  for (const [index, utxo] of updatedAccount.utxos.entries()) {
     const utxoRef = getUtxoOutpoint(utxo)
     let label = labels[utxoRef]?.label
 
@@ -56,8 +55,7 @@ export function updateAccountObjectLabels(account: Account) {
     updatedAccount.utxos[index].label = label || ''
   }
 
-  for (const index in updatedAccount.transactions) {
-    const tx = updatedAccount.transactions[index]
+  for (const [index, tx] of updatedAccount.transactions.entries()) {
     const { id: txRef, vout, vin } = tx
     let label = labels[txRef]?.label
 
@@ -112,8 +110,8 @@ export function updateAccountObjectLabels(account: Account) {
     })
   }
 
-  for (const index in updatedAccount.addresses) {
-    const addressRef = updatedAccount.addresses[index].address
+  for (const [index, addr] of updatedAccount.addresses.entries()) {
+    const addressRef = addr.address
     const label = labels[addressRef]?.label
     updatedAccount.addresses[index].label = label || ''
   }

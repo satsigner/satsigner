@@ -240,7 +240,9 @@ function PreviewTransaction() {
   const [currentMnemonic, setCurrentMnemonic] = useState('')
 
   const [wordSelectorState, setWordSelectorState] = useState({
-    onWordSelected: () => {},
+    onWordSelected: () => {
+      // noop
+    },
     visible: false,
     wordStart: ''
   })

@@ -910,7 +910,11 @@ function SpendableOutputs({
     <SSMainLayout style={{ paddingTop: 0 }}>
       <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
         <SSHStack>
-          <SSIconButton onPress={() => {}}>
+          <SSIconButton
+            onPress={() => {
+              /* TODO */
+            }}
+          >
             <SSIconRefresh height={18} width={22} />
           </SSIconButton>
           <SSIconButton onPress={() => handleOnExpand(!expand)}>

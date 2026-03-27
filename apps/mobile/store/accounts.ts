@@ -687,8 +687,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               }
 
               // Re-apply merged labels to transactions, utxos, and addresses
-              for (const ref in mergedLabels) {
-                const labelObj = mergedLabels[ref]
+              for (const [ref, labelObj] of Object.entries(mergedLabels)) {
                 if (labelObj.type === 'tx') {
                   const txIndex = state.accounts[index].transactions.findIndex(
                     (tx: Transaction) => tx.id === ref

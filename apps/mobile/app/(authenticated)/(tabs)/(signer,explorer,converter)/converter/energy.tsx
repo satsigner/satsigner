@@ -780,7 +780,8 @@ export default function Energy() {
       } catch (error) {
         throw new Error(
           'Failed to create merkle root: ' +
-            (error instanceof Error ? error.message : 'Unknown error')
+            (error instanceof Error ? error.message : 'Unknown error'),
+          { cause: error }
         )
       }
     },
@@ -1487,7 +1488,9 @@ export default function Energy() {
             />
             <SSButton
               label={tn('joinPool').toUpperCase()}
-              onPress={() => {}}
+              onPress={() => {
+                /* TODO */
+              }}
               variant="outline"
               disabled
             />
@@ -1832,19 +1835,25 @@ export default function Energy() {
                 </SSText>
                 <SSButton
                   label={tn('template.selectA')}
-                  onPress={() => {}}
+                  onPress={() => {
+                    /* TODO */
+                  }}
                   variant="outline"
                   disabled
                 />
                 <SSButton
                   label={tn('template.selectB')}
-                  onPress={() => {}}
+                  onPress={() => {
+                    /* TODO */
+                  }}
                   variant="outline"
                   disabled
                 />
                 <SSButton
                   label={tn('template.selectC')}
-                  onPress={() => {}}
+                  onPress={() => {
+                    /* TODO */
+                  }}
                   variant="outline"
                   disabled
                 />

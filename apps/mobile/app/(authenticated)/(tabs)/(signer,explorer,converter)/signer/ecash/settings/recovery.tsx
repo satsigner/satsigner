@@ -62,7 +62,8 @@ export default function EcashRecoveryPage() {
       return parsed
     } catch (error) {
       throw new Error(
-        `Invalid backup data: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Invalid backup data: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { cause: error }
       )
     }
   }, [])

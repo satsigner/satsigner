@@ -69,8 +69,8 @@ const bip329Aliases: Partial<Record<keyof Label, string[]>> = {
 }
 
 const bip329Alias: Record<string, keyof Label> = {}
-for (const key in bip329Aliases) {
-  for (const value of bip329Aliases[key as keyof Label] as string[]) {
+for (const [key, aliases] of Object.entries(bip329Aliases)) {
+  for (const value of aliases as string[]) {
     bip329Alias[value.toLowerCase()] = key as keyof Label
   }
 }
@@ -120,8 +120,7 @@ export function formatAccountLabels(account: Account): Label[] {
 
   // Add all labels from the account.labels dictionary
   if (account.labels) {
-    for (const ref in account.labels) {
-      const label = account.labels[ref]
+    for (const [ref, label] of Object.entries(account.labels)) {
       if (label && label.label) {
         labelsByRef.set(ref, label)
       }
@@ -195,8 +194,8 @@ export function CSVtoLabels(CsvText: string): Label[] {
 
     const rowItems = row.split(',')
     const label = {} as Label
-    for (const index in columns) {
-      const column = columns[index].toLowerCase()
+    for (const [index, col] of columns.entries()) {
+      const column = col.toLowerCase()
       const value = removeQuotes(rowItems[index]) as never
 
       // INFO: the following is meant to parse CSV from nunchuk.
@@ -261,7 +260,7 @@ export function JSONLtoLabels(JSONLines: string): Label[] {
       throw new Error('Invalid line (JSONL)')
     }
     const obj = JSON.parse(line)
-    for (const key in obj) {
+    for (const key of Object.keys(obj)) {
       const aliasKey = key.toLowerCase()
       if (bip329Alias[aliasKey] !== undefined) {
         const field = bip329Alias[aliasKey]

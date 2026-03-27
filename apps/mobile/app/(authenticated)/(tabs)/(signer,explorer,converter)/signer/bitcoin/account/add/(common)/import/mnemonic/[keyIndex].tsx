@@ -85,7 +85,9 @@ export default function ImportMnemonic() {
     useState(false)
 
   const [wordSelectorState, setWordSelectorState] = useState({
-    onWordSelected: () => {},
+    onWordSelected: () => {
+      // noop
+    },
     visible: false,
     wordStart: ''
   })

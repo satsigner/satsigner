@@ -34,7 +34,7 @@ export default class Esplora {
         return await response.text()
       }
     } catch (e) {
-      throw new Error(getVerboseErrorMessage(e))
+      throw new Error(getVerboseErrorMessage(e), { cause: e })
     }
   }
 
@@ -186,7 +186,7 @@ export default class Esplora {
       }
       return false
     } catch (e) {
-      throw new Error(getVerboseErrorMessage(e))
+      throw new Error(getVerboseErrorMessage(e), { cause: e })
     }
   }
 }

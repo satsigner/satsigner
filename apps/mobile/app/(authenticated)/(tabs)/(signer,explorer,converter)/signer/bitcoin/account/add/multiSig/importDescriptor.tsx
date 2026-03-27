@@ -227,7 +227,8 @@ export default function ImportDescriptor() {
       }
     } catch (error) {
       throw new Error(
-        `Failed to parse multisig descriptor: ${(error as Error).message}`
+        `Failed to parse multisig descriptor: ${(error as Error).message}`,
+        { cause: error }
       )
     }
   }

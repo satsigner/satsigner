@@ -24,8 +24,8 @@ function SSMultisigCountSelector({
   requiredNumber,
   totalNumber,
   viewOnly,
-  onChangeRequiredNumber = () => {},
-  onChangeTotalNumber = () => {}
+  onChangeRequiredNumber = () => undefined,
+  onChangeTotalNumber = () => undefined
 }: SSMultisigCountSelectorProps) {
   const [containerSize, setContainersize] = useState({ height: 0, width: 0 })
   const [activeTotalNumber, setActiveTotalNumber] = useState<boolean>(false)
