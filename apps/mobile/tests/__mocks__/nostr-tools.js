@@ -1,8 +1,8 @@
 export const nip19 = {
   decode: jest.fn((str) => {
-    if (str.startsWith('npub1')) return { type: 'npub', data: str.slice(5) }
+    if (str.startsWith('npub1')) return { data: str.slice(5), type: 'npub' }
     if (str.startsWith('nsec1'))
-      return { type: 'nsec', data: new Uint8Array(32) }
+      return { data: new Uint8Array(32), type: 'nsec' }
     throw new Error('Invalid bech32')
   }),
   npubEncode: jest.fn(

@@ -96,13 +96,13 @@ const size = 15
 
 const styles = StyleSheet.create({
   thumb: {
+    borderRadius: size,
     height: size * 2,
-    width: size * 2,
-    borderRadius: size
+    width: size * 2
   },
   track: {
-    height: size,
-    borderRadius: size / 2
+    borderRadius: size / 2,
+    height: size
   }
 })
 

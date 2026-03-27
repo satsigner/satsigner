@@ -608,20 +608,20 @@ const styles = StyleSheet.create({
     minWidth: 0
   },
   clearPasteRow: {
-    marginTop: 4,
-    paddingBottom: 10,
     flexDirection: 'row',
-    flexWrap: 'nowrap'
+    flexWrap: 'nowrap',
+    marginTop: 4,
+    paddingBottom: 10
   },
   deviceColorCircle: {
-    width: 10,
+    borderRadius: 5,
     height: 10,
-    borderRadius: 5
+    width: 10
   },
   input: {
     height: 'auto',
-    padding: 10,
-    minHeight: 80
+    minHeight: 80,
+    padding: 10
   },
   keyContainerLoading: {
     justifyContent: 'center',
@@ -632,8 +632,8 @@ const styles = StyleSheet.create({
   },
   keysContainer: {
     backgroundColor: '#1a1a1a',
-    borderRadius: 8,
     borderColor: Colors.white,
+    borderRadius: 8,
     padding: 10,
     paddingBottom: 30,
     paddingHorizontal: 28
@@ -644,13 +644,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8
   },
   kind0Picture: {
-    width: 64,
+    borderRadius: 32,
     height: 64,
-    borderRadius: 32
+    width: 64
   },
   kind0Profile: {
-    marginTop: 8,
-    alignItems: 'center'
+    alignItems: 'center',
+    marginTop: 8
   },
   kind0Row: {
     alignSelf: 'stretch'
@@ -659,8 +659,8 @@ const styles = StyleSheet.create({
     flex: 1
   },
   mainLayout: {
-    paddingTop: 10,
-    paddingBottom: 20
+    paddingBottom: 20,
+    paddingTop: 10
   },
   monoInput: {
     fontFamily: 'SF-NS-Mono'
@@ -670,14 +670,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   npubRow: {
-    alignSelf: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    alignSelf: 'center'
   },
   nsecContainer: {
     backgroundColor: '#1a1a1a',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
     padding: 10,
     paddingHorizontal: 16
   },
@@ -688,34 +688,34 @@ const styles = StyleSheet.create({
     flex: 1
   },
   qrCodeWrapper: {
-    padding: 16,
     backgroundColor: Colors.gray[950],
-    borderRadius: 10
+    borderRadius: 10,
+    padding: 16
   },
   qrModalContent: {
-    paddingHorizontal: 16,
-    alignItems: 'center'
+    alignItems: 'center',
+    paddingHorizontal: 16
   },
   qrModalDataBox: {
-    padding: 12,
     backgroundColor: Colors.gray[900],
     borderRadius: 8,
-    maxWidth: '100%'
+    maxWidth: '100%',
+    padding: 12
   },
   qrModalDataText: {
     textAlign: 'center'
   },
   revealRow: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: 'row',
     gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12
   },
   scrollContent: {
-    paddingBottom: 24,
-    flexGrow: 1
+    flexGrow: 1,
+    paddingBottom: 24
   },
   scrollView: {
     flex: 1

@@ -117,10 +117,10 @@ function SSTagInput({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 5,
-    paddingHorizontal: 8,
     backgroundColor: Colors.gray[800],
+    borderRadius: 5,
     height: 'auto',
+    paddingHorizontal: 8,
     width: 'auto'
   },
   tag: {

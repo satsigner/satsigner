@@ -60,8 +60,8 @@ export const useLND = () => {
       const response = await fetch(`${config.url}${endpoint}`, {
         body: body ? JSON.stringify(body) : undefined,
         headers: {
-          'Grpc-Metadata-macaroon': config.macaroon,
           'Content-Type': 'application/json',
+          'Grpc-Metadata-macaroon': config.macaroon,
           ...headers
         },
         method
@@ -104,8 +104,8 @@ export const useLND = () => {
     async (amount: number, description: string) => {
       return makeRequest('/v1/invoices', {
         body: {
-          value: amount,
-          memo: description
+          memo: description,
+          value: amount
         },
         method: 'POST'
       })

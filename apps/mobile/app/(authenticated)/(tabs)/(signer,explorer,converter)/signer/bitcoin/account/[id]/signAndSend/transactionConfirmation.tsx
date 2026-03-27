@@ -173,18 +173,18 @@ export default function TransactionConfirmation() {
       timestamp: new Date(),
       type: 'send',
       vin: inputsList.map((u) => ({
+        label: u.label,
         previousOutput: { txid: u.txid, vout: u.vout },
-        sequence: 0xffffffff,
         scriptSig: [],
-        witness: [],
+        sequence: 0xffffffff,
         value: u.value,
-        label: u.label
+        witness: []
       })),
       vout: outputs.map((o) => ({
-        value: o.amount,
         address: o.to,
+        label: o.label,
         script: '',
-        label: o.label
+        value: o.amount
       }))
     }
 

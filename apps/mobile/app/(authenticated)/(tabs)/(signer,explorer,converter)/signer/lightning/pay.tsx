@@ -417,28 +417,28 @@ const styles = StyleSheet.create({
     marginRight: 4
   },
   buttonWithIcon: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'center'
   },
   fetchingDetails: {
     alignItems: 'center'
   },
   fiatAmount: {
-    marginTop: 4,
-    marginLeft: 4
+    marginLeft: 4,
+    marginTop: 4
   },
   input: {
     backgroundColor: '#242424',
     borderRadius: 3,
-    padding: 12,
     color: 'white',
-    fontSize: 16
+    fontSize: 16,
+    padding: 12
   },
   inputHeader: {
-    justifyContent: 'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
+    justifyContent: 'space-between'
   },
   monospaceInput: {
     fontFamily: Typography.sfProMono,

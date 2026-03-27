@@ -66,9 +66,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[400]
   },
   containerBase: {
-    height: 20,
+    alignItems: 'center',
     flexDirection: 'row',
-    alignItems: 'center'
+    height: 20
   }
 })
 

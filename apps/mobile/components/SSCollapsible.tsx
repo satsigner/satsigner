@@ -52,23 +52,23 @@ function SSCollapsible({ children }: SSCollapsibleProps) {
 
 const styles = StyleSheet.create({
   containerClose: {
-    overflow: 'hidden',
-    height: 65,
-    position: 'relative',
     flexDirection: 'row',
-    flexWrap: 'wrap'
+    flexWrap: 'wrap',
+    height: 65,
+    overflow: 'hidden',
+    position: 'relative'
   },
   containerOpen: {
-    height: 'auto',
-    position: 'relative',
     flexDirection: 'row',
-    flexWrap: 'wrap'
+    flexWrap: 'wrap',
+    height: 'auto',
+    position: 'relative'
   },
   linearGradientBase: {
-    height: 22,
-    position: 'absolute',
     bottom: 0,
+    height: 22,
     left: 0,
+    position: 'absolute',
     right: 0
   },
   linearGradientOpen: {

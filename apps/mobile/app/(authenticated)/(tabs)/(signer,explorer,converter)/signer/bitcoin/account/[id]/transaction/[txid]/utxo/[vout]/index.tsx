@@ -287,8 +287,8 @@ function UtxoDetailsPage() {
 
 const styles = StyleSheet.create({
   innerContainer: {
-    flexGrow: 1,
     flexDirection: 'column',
+    flexGrow: 1,
     justifyContent: 'space-between'
   },
   outerContainer: {

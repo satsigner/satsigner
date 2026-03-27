@@ -562,16 +562,16 @@ export default function Receive() {
 
 const styles = StyleSheet.create({
   addressTextInput: {
-    fontFamily: 'monospace',
-    color: Colors.white,
-    padding: 16,
-    paddingBottom: 22,
     backgroundColor: Colors.gray[800],
     borderRadius: 4,
-    minWidth: 280,
+    color: Colors.white,
+    fontFamily: 'monospace',
     fontSize: 16,
-    lineHeight: 30,
     letterSpacing: 1.5,
+    lineHeight: 30,
+    minWidth: 280,
+    padding: 16,
+    paddingBottom: 22,
     textAlign: 'left'
   },
   amountTextInput: {
@@ -581,20 +581,20 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[850],
     borderRadius: 3,
     color: Colors.white,
-    textAlign: 'center',
-    width: '100%',
     height: 58,
-    paddingHorizontal: 12
+    paddingHorizontal: 12,
+    textAlign: 'center',
+    width: '100%'
   },
   labelTextInput: {
+    fontSize: 14,
     height: 'auto',
-    textAlignVertical: 'top',
+    letterSpacing: 0.5,
+    lineHeight: 22,
     padding: 16,
     paddingBottom: 32,
-    fontSize: 14,
-    lineHeight: 22,
-    letterSpacing: 0.5,
-    textAlign: 'left'
+    textAlign: 'left',
+    textAlignVertical: 'top'
   },
   sectionSpacing: {
     marginVertical: 10
@@ -606,17 +606,17 @@ const styles = StyleSheet.create({
     flex: 1
   },
   uriTextInput: {
-    fontFamily: 'monospace',
-    color: Colors.white,
-    padding: 8,
     backgroundColor: Colors.gray[800],
     borderRadius: 4,
-    minWidth: 280,
-    minHeight: 80,
+    color: Colors.white,
+    fontFamily: 'monospace',
     fontSize: 14,
-    textAlign: 'left',
-    paddingBottom: 32,
+    letterSpacing: 0.5,
     lineHeight: 18,
-    letterSpacing: 0.5
+    minHeight: 80,
+    minWidth: 280,
+    padding: 8,
+    paddingBottom: 32,
+    textAlign: 'left'
   }
 })

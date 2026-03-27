@@ -120,18 +120,18 @@ function SSEcashTokenDetails({
 
 const styles = StyleSheet.create({
   amountContainer: {
+    alignItems: 'baseline',
     flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'baseline'
+    justifyContent: 'flex-end'
   },
   detailLabel: {
-    minWidth: 100,
-    fontSize: 14
+    fontSize: 14,
+    minWidth: 100
   },
   detailRow: {
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap'
+    flexWrap: 'wrap',
+    justifyContent: 'space-between'
   },
   detailSection: {
     gap: 12
@@ -149,23 +149,23 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5
   },
   proofContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
     alignItems: 'baseline',
-    gap: 8
+    flex: 1,
+    gap: 8,
+    justifyContent: 'flex-end'
   },
   proofId: {
-    opacity: 0.8,
+    fontFamily: Typography.sfProMono,
     fontSize: 10,
-    fontFamily: Typography.sfProMono
+    opacity: 0.8
   },
   proofRow: {
     alignItems: 'flex-start',
     justifyContent: 'space-between'
   },
   tokenDetails: {
-    marginTop: 16,
-    marginBottom: 16
+    marginBottom: 16,
+    marginTop: 16
   }
 })
 

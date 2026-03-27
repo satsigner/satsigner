@@ -658,8 +658,8 @@ function SSMultisigKeyControl({
             paddingVertical: 20,
             shadowColor: '#000',
             shadowOffset: {
-              width: 0,
-              height: 2
+              height: 2,
+              width: 0
             },
             shadowOpacity: 0.25,
             shadowRadius: 3.84
@@ -732,8 +732,8 @@ function SSMultisigKeyControl({
             paddingVertical: 20,
             shadowColor: '#000',
             shadowOffset: {
-              width: 0,
-              height: 2
+              height: 2,
+              width: 0
             },
             shadowOpacity: 0.25,
             shadowRadius: 3.84

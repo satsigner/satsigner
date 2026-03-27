@@ -644,10 +644,10 @@ async function getWalletAddresses(
       label: '',
       network: network as BlockchainNetwork,
       summary: {
-        transactions: 0,
-        utxos: 0,
         balance: 0,
-        satsInMempool: 0
+        satsInMempool: 0,
+        transactions: 0,
+        utxos: 0
       },
       transactions: [],
       utxos: []
@@ -665,10 +665,10 @@ async function getWalletAddresses(
       label: '',
       network: network as BlockchainNetwork,
       summary: {
-        transactions: 0,
-        utxos: 0,
         balance: 0,
-        satsInMempool: 0
+        satsInMempool: 0,
+        transactions: 0,
+        utxos: 0
       },
       transactions: [],
       utxos: []
@@ -707,10 +707,10 @@ async function getWalletAddressesUsingStopGap(
       label: '',
       network: network as BlockchainNetwork,
       summary: {
-        transactions: 0,
-        utxos: 0,
         balance: 0,
-        satsInMempool: 0
+        satsInMempool: 0,
+        transactions: 0,
+        utxos: 0
       },
       transactions: [],
       utxos: []
@@ -732,10 +732,10 @@ async function getWalletAddressesUsingStopGap(
       label: '',
       network: network as BlockchainNetwork,
       summary: {
-        transactions: 0,
-        utxos: 0,
         balance: 0,
-        satsInMempool: 0
+        satsInMempool: 0,
+        transactions: 0,
+        utxos: 0
       },
       transactions: [],
       utxos: []

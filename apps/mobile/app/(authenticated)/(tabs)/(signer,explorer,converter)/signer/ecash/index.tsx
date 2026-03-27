@@ -219,23 +219,23 @@ const styles = StyleSheet.create({
     paddingBottom: 12
   },
   connectButton: {
-    width: '100%',
-    maxWidth: 280
+    maxWidth: 280,
+    width: '100%'
   },
   errorText: {
     paddingTop: 4,
     textAlign: 'center'
   },
   moreTransactions: {
-    textAlign: 'center',
-    paddingVertical: 8
+    paddingVertical: 8,
+    textAlign: 'center'
   },
   noMintContainer: {
-    paddingVertical: 60,
-    paddingHorizontal: 20
+    paddingHorizontal: 20,
+    paddingVertical: 60
   },
   statusContainer: {
-    paddingBottom: 20,
-    alignItems: 'center'
+    alignItems: 'center',
+    paddingBottom: 20
   }
 })

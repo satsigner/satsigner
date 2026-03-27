@@ -187,31 +187,31 @@ export default function LNDRestPage() {
 
 const styles = StyleSheet.create({
   buttonContainer: {
-    width: '100%',
-    gap: 16
+    gap: 16,
+    width: '100%'
   },
   buttonRow: {
-    width: '100%',
-    gap: 12
+    gap: 12,
+    width: '100%'
   },
   buttonRowItem: {
     flex: 1
   },
   content: {
-    flex: 1,
-    alignItems: 'center'
+    alignItems: 'center',
+    flex: 1
   },
   headerText: {
     marginBottom: 8
   },
   inputContainer: {
-    width: '100%',
+    gap: 12,
     marginBottom: 24,
-    gap: 12
+    width: '100%'
   },
   mainLayout: {
-    paddingTop: 32,
-    paddingHorizontal: '5%'
+    paddingHorizontal: '5%',
+    paddingTop: 32
   },
   pasteButton: {
     width: '100%'
@@ -221,14 +221,14 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   textArea: {
-    width: '100%',
-    height: 100,
-    borderWidth: 1,
+    backgroundColor: '#1a1a1a',
     borderColor: '#333',
     borderRadius: 8,
-    padding: 12,
+    borderWidth: 1,
     color: '#fff',
-    backgroundColor: '#1a1a1a',
-    textAlignVertical: 'top'
+    height: 100,
+    padding: 12,
+    textAlignVertical: 'top',
+    width: '100%'
   }
 })

@@ -1224,10 +1224,10 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   colorCircle: {
-    width: 12,
-    height: 12,
     borderRadius: 6,
-    marginRight: 4
+    height: 12,
+    marginRight: 4,
+    width: 12
   },
   deletionModalContent: {
     paddingVertical: 8
@@ -1236,15 +1236,15 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   deviceColorCircle: {
-    width: 10,
+    borderRadius: 5,
     height: 10,
-    borderRadius: 5
+    width: 10
   },
   deviceProfilePicture: {
-    width: 64,
-    height: 64,
     borderRadius: 32,
-    marginTop: 12
+    height: 64,
+    marginTop: 12,
+    width: 64
   },
   deviceProfileRow: {
     alignItems: 'center',
@@ -1259,39 +1259,39 @@ const styles = StyleSheet.create({
   },
   keysContainer: {
     backgroundColor: '#1a1a1a',
-    borderRadius: 8,
     borderColor: Colors.white,
+    borderRadius: 8,
     padding: 10,
     paddingBottom: 30,
     paddingHorizontal: 28
   },
   memberAvatar: {
-    width: 24,
+    borderRadius: 12,
     height: 24,
-    borderRadius: 12
+    width: 24
   },
   memberAvatarCircle: {
-    width: 24,
+    borderRadius: 12,
     height: 24,
-    borderRadius: 12
+    width: 24
   },
   memberBlock: {
-    gap: 0,
     flex: 1,
+    gap: 0,
     marginLeft: 8
   },
   memberColorDot: {
-    width: 8,
+    borderRadius: 4,
     height: 8,
-    borderRadius: 4
+    width: 8
   },
   memberNpubRow: {
     alignItems: 'center',
     marginTop: 2
   },
   memberNpubText: {
-    letterSpacing: 1,
-    color: Colors.gray[400]
+    color: Colors.gray[400],
+    letterSpacing: 1
   },
   memberNpubUnderAlias: {
     letterSpacing: 1
@@ -1300,20 +1300,20 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   memberText: {
-    letterSpacing: 1,
     color: Colors.white,
+    letterSpacing: 1,
     marginBottom: -4
   },
   membersContainer: {
     backgroundColor: '#1a1a1a',
-    borderRadius: 8,
     borderColor: Colors.white,
-    paddingVertical: 15,
-    paddingLeft: 12
+    borderRadius: 8,
+    paddingLeft: 12,
+    paddingVertical: 15
   },
   npubRow: {
-    alignSelf: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    alignSelf: 'center'
   },
   relayStatusContainer: {
     backgroundColor: '#1a1a1a',

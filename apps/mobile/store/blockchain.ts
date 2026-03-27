@@ -54,18 +54,18 @@ const createDefaultNetworkConfig = (
   name: string = `Default ${network}`
 ): NetworkConfig => ({
   config: {
-    timeout: DEFAULT_TIME_OUT,
-    retries: DEFAULT_RETRIES,
-    stopGap: DEFAULT_STOP_GAP,
     connectionMode: 'auto',
     connectionTestInterval: 60,
-    timeDiffBeforeAutoSync: 30
+    retries: DEFAULT_RETRIES,
+    stopGap: DEFAULT_STOP_GAP,
+    timeDiffBeforeAutoSync: 30,
+    timeout: DEFAULT_TIME_OUT
   },
   server: {
     backend,
-    url,
     name,
-    network
+    network,
+    url
   }
 })
 

@@ -585,9 +585,9 @@ function selectStonewallUtxos(
         inputs: selectedInputs,
         outputs: [
           {
+            size: getOutputSize(options.recipientType || 'p2pkh'),
             type: options.recipientType || 'p2pkh',
-            value: targetAmount,
-            size: getOutputSize(options.recipientType || 'p2pkh')
+            value: targetAmount
           },
           ...changeOutputs
         ],

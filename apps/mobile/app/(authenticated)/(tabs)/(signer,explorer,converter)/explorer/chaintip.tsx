@@ -255,7 +255,7 @@ export default function ChainTip() {
         (_, i) => now - (PRICE_CHART_DAYS - 1 - i) * 86400
       )
       const prices = await fallbackOracle.getPricesAt(fiatCurrency, timestamps)
-      return { timestamps, prices }
+      return { prices, timestamps }
     },
     queryKey: ['chaintip-price-history', fiatCurrency],
     staleTime: time.minutes(10)

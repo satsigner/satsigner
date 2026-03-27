@@ -799,18 +799,18 @@ const styles = StyleSheet.create({
     flex: 1
   },
   cameraContainer: {
-    flex: 1,
-    backgroundColor: Colors.black
+    backgroundColor: Colors.black,
+    flex: 1
   },
   cameraHeader: {
-    padding: 16,
+    borderBottomColor: Colors.gray[600],
     borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[600]
+    padding: 16
   },
   cameraPlaceholder: {
+    alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
     padding: 16
   },
   container: {

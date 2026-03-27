@@ -130,10 +130,10 @@ export default function StackLayout(params: any) {
           headerBackground: () => (
             <View
               style={{
-                height: '100%',
-                justifyContent: 'center',
                 alignItems: 'center',
-                backgroundColor: Colors.gray[950]
+                backgroundColor: Colors.gray[950],
+                height: '100%',
+                justifyContent: 'center'
               }}
             />
           ),
@@ -153,10 +153,10 @@ export default function StackLayout(params: any) {
             : () => (
                 <SSIconButton
                   style={{
-                    paddingTop: 8,
+                    height: 30,
                     paddingHorizontal: 8,
-                    width: 30,
-                    height: 30
+                    paddingTop: 8,
+                    width: 30
                   }}
                   onPress={() => router.back()}
                 >

@@ -125,9 +125,9 @@ const styles = StyleSheet.create({
     width: '45%'
   },
   rectangle: {
-    width: 100,
     backgroundColor: 'white',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    width: 100
   }
 })
 

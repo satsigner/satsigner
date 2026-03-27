@@ -29,14 +29,14 @@ const usePriceStore = create<PriceState & PriceAction>()(
         const oracle = new MempoolOracle(mempoolUrl)
         const prices = await oracle.getFullPriceAt(fiatCurrency, timestamp)
         const btcPrice = prices[fiatCurrency] ?? 0
-        set({ prices, btcPrice })
+        set({ btcPrice, prices })
       },
       fetchPrices: async (mempoolUrl: string) => {
         const oracle = new MempoolOracle(mempoolUrl)
         const prices = await oracle.getPrices()
         const { fiatCurrency } = get()
         const btcPrice = prices[fiatCurrency] ?? 0
-        set({ prices, btcPrice })
+        set({ btcPrice, prices })
       },
       fiatCurrency: 'USD',
       prices: {
@@ -56,7 +56,7 @@ const usePriceStore = create<PriceState & PriceAction>()(
       },
       setFiatCurrency: (currency: Currency) => {
         const { prices } = get()
-        set({ fiatCurrency: currency, btcPrice: prices[currency] ?? 0 })
+        set({ btcPrice: prices[currency] ?? 0, fiatCurrency: currency })
       }
     }),
     {

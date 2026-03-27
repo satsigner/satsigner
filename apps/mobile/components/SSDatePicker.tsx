@@ -308,10 +308,10 @@ const hex2rgba = (hex: string, alpha: number): string => {
 
 const styles = StyleSheet.create({
   block: {
-    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%'
+    flex: 1,
+    height: '100%',
+    justifyContent: 'center'
   },
   digit: {
     fontSize: 20,
@@ -322,8 +322,8 @@ const styles = StyleSheet.create({
     width: '100%'
   },
   mark: {
-    position: 'absolute',
-    borderRadius: 10
+    borderRadius: 10,
+    position: 'absolute'
   },
   picker: {
     flexDirection: 'row',

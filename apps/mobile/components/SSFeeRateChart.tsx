@@ -324,16 +324,16 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
 
 const styles = StyleSheet.create({
   arrow: {
-    justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   arrowContainer: {
-    flexDirection: 'row',
     alignItems: 'flex-end',
-    justifyContent: 'flex-end',
+    alignSelf: 'flex-end',
+    flexDirection: 'row',
     height: 250,
-    width: 55,
-    alignSelf: 'flex-end'
+    justifyContent: 'flex-end',
+    width: 55
   },
   chartBorderWrapper: {
     borderColor: Colors.gray[700],
@@ -360,9 +360,9 @@ const styles = StyleSheet.create({
     fontSize: LABEL_FONT_SIZE
   },
   keyLabels: {
+    flexShrink: 0,
     height: CHART_HEIGHT,
     minWidth: 56,
-    flexShrink: 0,
     paddingLeft: 8,
     paddingVertical: 2,
     position: 'relative'

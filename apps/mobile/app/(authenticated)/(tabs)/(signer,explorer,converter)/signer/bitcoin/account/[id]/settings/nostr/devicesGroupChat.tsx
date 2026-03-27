@@ -185,8 +185,8 @@ export default function DevicesGroupChat() {
       const optimisticMessage: NostrDM = {
         author: devicePubkeyHex,
         content: {
-          description: trimmed,
           created_at,
+          description: trimmed,
           pubkey: devicePubkeyHex
         },
         created_at,
@@ -577,65 +577,65 @@ export default function DevicesGroupChat() {
 
 const styles = StyleSheet.create({
   authorIndicator: {
-    width: 8,
-    height: 8,
     borderRadius: 4,
+    height: 8,
+    marginRight: 3,
     marginTop: 1,
-    marginRight: 3
+    width: 8
   },
   deviceMessage: {
     backgroundColor: Colors.gray[800]
   },
   input: {
     backgroundColor: Colors.gray[900],
-    color: Colors.white,
-    padding: 10,
     borderRadius: 8,
+    color: Colors.white,
+    flex: 0.8,
     minHeight: 60,
-    textAlignVertical: 'top',
-    flex: 0.8
+    padding: 10,
+    textAlignVertical: 'top'
   },
   inputContainer: {
-    paddingHorizontal: 0,
-    paddingBottom: 16
+    paddingBottom: 16,
+    paddingHorizontal: 0
   },
   loadingContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+    alignItems: 'center',
     bottom: 0,
     justifyContent: 'center',
-    alignItems: 'center',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
     zIndex: 1
   },
   message: {
     backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    marginTop: 8,
     padding: 10,
     paddingBottom: 15,
-    paddingTop: 5,
-    borderRadius: 8,
-    marginTop: 8
+    paddingTop: 5
   },
   messagesContainer: {
     flex: 1,
     paddingBottom: 8
   },
   modalContainer: {
+    alignItems: 'center',
+    backgroundColor: 'transparent',
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    backgroundColor: 'transparent'
+    width: '100%'
   },
   modalContent: {
     backgroundColor: Colors.gray[900],
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    width: '100%',
-    minHeight: '60%',
+    justifyContent: 'space-between',
     maxHeight: '85%',
-    justifyContent: 'space-between'
+    minHeight: '60%',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    width: '100%'
   },
   modalMessageText: {
     maxHeight: 300
@@ -647,22 +647,22 @@ const styles = StyleSheet.create({
     paddingBottom: 4
   },
   newMessageButtonContainer: {
-    position: 'absolute',
-    bottom: 70,
     alignSelf: 'center',
+    bottom: 70,
+    position: 'absolute',
     zIndex: 2
   },
   sendButton: {
     flex: 0.2
   },
   signFlowButton: {
-    marginTop: 8,
-    alignSelf: 'flex-start'
+    alignSelf: 'flex-start',
+    marginTop: 8
   },
   statusContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'center'
   }
 })

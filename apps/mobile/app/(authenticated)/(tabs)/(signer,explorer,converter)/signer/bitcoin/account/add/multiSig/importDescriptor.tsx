@@ -429,9 +429,9 @@ const styles = StyleSheet.create({
     borderColor: Colors.error
   },
   textArea: {
+    marginBottom: 8,
     minHeight: 120,
-    textAlignVertical: 'top',
-    marginBottom: 8
+    textAlignVertical: 'top'
   },
   valid: {
     borderColor: Colors.success

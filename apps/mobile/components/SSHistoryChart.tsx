@@ -771,12 +771,12 @@ function SSHistoryChart({
         const top = y - height
         initialLabels.push({
           boundBox: {
+            bottom: bottom + (showAmount ? -15 : 0),
+            height,
             left,
             right,
             top: top + (showAmount ? -15 : 0),
-            bottom: bottom + (showAmount ? -15 : 0),
-            width,
-            height
+            width
           },
           id: d.id,
           index,
@@ -809,15 +809,15 @@ function SSHistoryChart({
         initialLabels.push({
           amount: d.amount,
           boundBox: {
-            left,
-            right,
-            top: showFiatOnChart && btcPrice > 0 ? top - 10 : top,
             bottom: showFiatOnChart && btcPrice > 0 ? bottom - 10 : bottom,
-            width,
             height:
               showFiatOnChart && btcPrice > 0
                 ? height + (showFiatAtTxTime && historicalFiatValue ? 12 : 12)
-                : height
+                : height,
+            left,
+            right,
+            top: showFiatOnChart && btcPrice > 0 ? top - 10 : top,
+            width
           },
           fiatValue:
             showFiatOnChart && btcPrice > 0 && d.amount !== undefined
@@ -1738,9 +1738,9 @@ function TransactionInfoRenderer({
         labelRectRef.current.push({
           id: label.id,
           rect: {
+            bottom: label.y,
             left: label.type === 'receive' ? label.x - textWidth : label.x,
             right: label.type === 'receive' ? label.x : label.x + textWidth,
-            bottom: label.y,
             top: label.y - 10
           }
         })

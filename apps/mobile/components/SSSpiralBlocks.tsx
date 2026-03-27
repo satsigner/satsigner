@@ -374,44 +374,44 @@ function newtonRaphson(
 
 const styles = StyleSheet.create({
   canvas: {
-    position: 'relative',
-    backgroundColor: '#000'
+    backgroundColor: '#000',
+    position: 'relative'
   },
   closeButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
     backgroundColor: 'white',
-    borderRadius: 4
+    borderRadius: 4,
+    paddingHorizontal: 20,
+    paddingVertical: 10
   },
   closeButtonText: {
     color: 'black',
     fontSize: 14
   },
   container: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#000000',
-    borderColor: 'yellow'
+    borderColor: 'yellow',
+    flex: 1,
+    justifyContent: 'center'
   },
   loadingContainer: {},
   overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0)',
-    justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10,
-    padding: 20
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    bottom: 0,
+    justifyContent: 'center',
+    left: 0,
+    padding: 20,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 10
   },
   overlayCanvas: {
-    width: 200,
-    height: 200,
     backgroundColor: '#000',
-    marginBottom: 16
+    height: 200,
+    marginBottom: 16,
+    width: 200
   },
   overlayText: {
     color: 'white',

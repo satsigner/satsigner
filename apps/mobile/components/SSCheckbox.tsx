@@ -82,8 +82,8 @@ function SSCheckbox({
 
 const styles = StyleSheet.create({
   containerBase: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
     gap: Sizes.checkbox.height / 2
   },
   disabled: {
@@ -93,8 +93,8 @@ const styles = StyleSheet.create({
     borderRadius: Sizes.checkbox.borderRadius
   },
   innerIconStyleBase: {
-    borderWidth: Sizes.checkbox.borderWidth,
-    borderRadius: Sizes.checkbox.borderRadius
+    borderRadius: Sizes.checkbox.borderRadius,
+    borderWidth: Sizes.checkbox.borderWidth
   }
 })
 

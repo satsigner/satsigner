@@ -54,13 +54,13 @@ export const textInput = {
   borderRadius: 3,
   fontSize: {
     default: text.fontSize['2xl'],
-    small: text.fontSize['lg'],
-    large: text.fontSize['3xl']
+    large: text.fontSize['3xl'],
+    small: text.fontSize['lg']
   },
   height: {
     default: 58,
-    small: 34,
-    large: 42
+    large: 42,
+    small: 34
   }
 }
 

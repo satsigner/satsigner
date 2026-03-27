@@ -160,11 +160,11 @@ function SSCurrentTransactionChart({
       id: String(index + 1),
       ioData: {
         address: formatAddress(input.txid, 4),
-        label: input.label ?? t('common.noLabel'),
-        value: input.value,
-        fiatValue: formatNumber(satsToFiat(input.value), 2),
         fiatCurrency,
-        text: t('common.from')
+        fiatValue: formatNumber(satsToFiat(input.value), 2),
+        label: input.label ?? t('common.noLabel'),
+        text: t('common.from'),
+        value: input.value
       },
       type: 'text',
       value: input.value
@@ -188,14 +188,14 @@ function SSCurrentTransactionChart({
       depthH: 2,
       id: String(index + 2 + inputArray.length),
       ioData: {
-        isUnspent: true,
-        value: output.amount,
-        fiatValue: formatNumber(satsToFiat(output.amount), 2),
-        fiatCurrency,
         address: output?.to ? formatAddress(output?.to, 6) : '',
+        fiatCurrency,
+        fiatValue: formatNumber(satsToFiat(output.amount), 2),
+        isSelfSend: !!(output.to && ownAddresses.has(output.to)),
+        isUnspent: true,
         label: output.label,
         text: t('transaction.build.unspent'),
-        isSelfSend: !!(output.to && ownAddresses.has(output.to))
+        value: output.amount
       },
       localId: output.to ? output.localId : 'remainingBalance',
       type: 'text',
@@ -222,14 +222,14 @@ function SSCurrentTransactionChart({
         depthH: 2,
         id: String(inputArray.length + outputArray.length + 2),
         ioData: {
-          value: minerFee,
-          fiatValue: formatNumber(satsToFiat(minerFee), 2),
-          fiatCurrency,
+          feePercentage: Math.round(feePercentage * 100) / 100,
           feeRate:
             feeRateProp !== undefined ? Math.round(feeRateProp) : undefined,
-          text: t('transaction.build.minerFee'),
+          fiatCurrency,
+          fiatValue: formatNumber(satsToFiat(minerFee), 2),
           higherFee,
-          feePercentage: Math.round(feePercentage * 100) / 100 // round to 2 decimals
+          text: t('transaction.build.minerFee'),
+          value: minerFee // round to 2 decimals
         },
         localId: 'current-minerFee',
         type: 'text',
@@ -439,18 +439,18 @@ function SSCurrentTransactionChart({
 
 const styles = StyleSheet.create({
   gestureContainer: {
-    flex: 1,
-    position: 'absolute',
-    top: 0,
-    right: 0,
     bottom: 0,
-    left: 0
+    flex: 1,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0
   },
   node: {
     backgroundColor: 'transparent',
     borderRadius: 0,
-    width: '100%',
-    height: '100%'
+    height: '100%',
+    width: '100%'
   },
   sankeyOverlay: {
     position: 'relative'

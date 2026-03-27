@@ -288,9 +288,7 @@ export default function PublicKeyPage() {
       <Stack.Screen
         options={{
           headerRight: undefined,
-          headerTitle: () => (
-            <SSText uppercase>{t('common.publicKeys')}</SSText>
-          )
+          headerTitle: () => <SSText uppercase>{t('common.publicKeys')}</SSText>
         }}
       />
       <SSVStack style={{ padding: 20 }}>

@@ -184,25 +184,25 @@ function SSNostrMessage({
 
 const styles = StyleSheet.create({
   authorAvatar: {
-    width: 24,
-    height: 24,
     borderRadius: 12,
-    marginRight: 6
+    height: 24,
+    marginRight: 6,
+    width: 24
   },
   authorBlock: {
     gap: 0
   },
   authorIndicatorLarge: {
-    width: 24,
-    height: 24,
     borderRadius: 12,
-    marginRight: 6
+    height: 24,
+    marginRight: 6,
+    width: 24
   },
   authorIndicatorSmall: {
-    width: 8,
-    height: 8,
     borderRadius: 4,
-    marginRight: 3
+    height: 8,
+    marginRight: 3,
+    width: 8
   },
   authorName: {
     color: Colors.white
@@ -218,11 +218,11 @@ const styles = StyleSheet.create({
   },
   message: {
     backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    marginTop: 8,
     padding: 10,
     paddingBottom: 15,
-    paddingTop: 5,
-    borderRadius: 8,
-    marginTop: 8
+    paddingTop: 5
   },
   messageContentWrap: {
     paddingLeft: 30

@@ -367,38 +367,38 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   colorDot: {
-    width: 10,
-    height: 10,
     borderRadius: 5,
-    marginRight: 4
+    height: 10,
+    marginRight: 4,
+    width: 10
   },
   kind0Row: {
     alignSelf: 'stretch'
   },
   loadingRow: {
-    alignSelf: 'stretch',
     alignItems: 'center',
+    alignSelf: 'stretch',
     justifyContent: 'center'
   },
   mainLayout: {
-    paddingTop: 10,
-    paddingBottom: 20
+    paddingBottom: 20,
+    paddingTop: 10
   },
   npubRow: {
-    width: '100%',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    width: '100%'
   },
   npubText: {
     letterSpacing: 1
   },
   pageContainer: {
-    justifyContent: 'space-between',
-    flex: 1
+    flex: 1,
+    justifyContent: 'space-between'
   },
   profilePicture: {
-    width: 64,
+    borderRadius: 32,
     height: 64,
-    borderRadius: 32
+    width: 64
   },
   profileRow: {
     alignItems: 'center',

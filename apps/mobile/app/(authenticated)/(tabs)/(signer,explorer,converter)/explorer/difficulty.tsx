@@ -372,14 +372,14 @@ const styles = StyleSheet.create({
     gap: 0
   },
   button: {
-    borderWidth: 1,
-    borderRadius: 5,
     borderColor: Colors.white,
+    borderRadius: 5,
+    borderWidth: 1,
     padding: 20
   },
   canvasContainer: {
-    marginTop: 140,
-    flex: 1
+    flex: 1,
+    marginTop: 140
   },
   dateContainer: {
     alignItems: 'center',
@@ -389,8 +389,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   fullWidth: {
-    width: '100%',
-    textAlign: 'center'
+    textAlign: 'center',
+    width: '100%'
   },
   headerCaption: {
     flexShrink: 1
@@ -402,24 +402,24 @@ const styles = StyleSheet.create({
     textAlign: 'right'
   },
   inputContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
     alignContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    flexGrow: 1,
+    justifyContent: 'center'
   },
   mainContainer: {
     backgroundColor: Colors.black,
-    paddingTop: 10,
-    paddingBottom: 20
+    paddingBottom: 20,
+    paddingTop: 10
   },
   modalContainer: {
-    zIndex: 120,
+    alignItems: 'center',
     backgroundColor: 'black',
     height: '100%',
-    width: '100%',
-    paddingHorizontal: 20,
     justifyContent: 'center',
-    alignItems: 'center'
+    paddingHorizontal: 20,
+    width: '100%',
+    zIndex: 120
   }
 })
 

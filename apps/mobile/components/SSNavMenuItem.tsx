@@ -78,27 +78,27 @@ const styles = StyleSheet.create({
     paddingVertical: 10
   },
   gradient: {
-    width: '100%',
-    height: '100%',
+    borderColor: '#262626',
     borderRadius: 3,
     borderWidth: 1,
-    borderColor: '#262626'
+    height: '100%',
+    width: '100%'
   },
   iconWrapper: {
-    width: 30,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    width: 30
   },
   shadow: {
-    width: '100%',
-    height: 46
+    height: 46,
+    width: '100%'
   },
   text: {
     letterSpacing: 3
   },
   touchable: {
-    width: '100%',
-    height: 46
+    height: 46,
+    width: '100%'
   }
 })
 

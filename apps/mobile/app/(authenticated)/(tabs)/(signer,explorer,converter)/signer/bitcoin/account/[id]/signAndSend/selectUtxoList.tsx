@@ -318,20 +318,20 @@ export default function SelectUtxoList() {
 
 const styles = StyleSheet.create({
   absoluteSubmitContainer: {
-    position: 'absolute',
+    backgroundColor: Colors.transparent,
     bottom: 20,
-    width: '100%',
     flexDirection: 'row',
     justifyContent: 'center',
-    backgroundColor: Colors.transparent,
     paddingHorizontal: 0,
-    paddingTop: 0
+    paddingTop: 0,
+    position: 'absolute',
+    width: '100%'
   },
   scrollBackgroundBase: {
-    position: 'absolute',
-    width: '100%',
     backgroundColor: Colors.gray[950],
+    height: 1000,
+    position: 'absolute',
     top: 2,
-    height: 1000
+    width: '100%'
   }
 })

@@ -106,10 +106,10 @@ export const DescriptorUtils = {
 
     if (!validation.isValid) {
       return {
-        success: false,
+        error: validation.error,
         external: validation.externalDescriptor,
         internal: validation.internalDescriptor,
-        error: validation.error
+        success: false
       }
     }
 
@@ -118,10 +118,10 @@ export const DescriptorUtils = {
     )
 
     return {
-      success: true,
       external: validation.externalDescriptor,
+      fingerprint,
       internal: validation.internalDescriptor,
-      fingerprint
+      success: true
     }
   },
 

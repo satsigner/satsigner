@@ -257,8 +257,8 @@ export default function Energy() {
           data.transactions
             ?.slice(0, 20)
             .map((tx: BlockTemplateTransaction) => ({
-              txid: tx.txid,
               fee: tx.fee,
+              txid: tx.txid,
               weight: tx.weight
             })) || [],
         transactions: data.transactions?.length || 0
@@ -1853,8 +1853,8 @@ const styles = StyleSheet.create({
     marginBottom: -10
   },
   buttonContainer: {
-    width: '100%',
-    paddingVertical: 20
+    paddingVertical: 20,
+    width: '100%'
   },
   chainInfoContainer: {
     paddingTop: 40
@@ -1865,25 +1865,25 @@ const styles = StyleSheet.create({
     paddingBottom: 100
   },
   difficultyBar: {
-    width: '100%',
-    height: 8,
     backgroundColor: Colors.gray[900],
     borderRadius: 4,
-    marginVertical: 10
+    height: 8,
+    marginVertical: 10,
+    width: '100%'
   },
   difficultyProgress: {
-    width: '0%',
-    height: '100%',
     backgroundColor: Colors.white,
-    borderRadius: 4
+    borderRadius: 4,
+    height: '100%',
+    width: '0%'
   },
   errorContainer: {
+    alignItems: 'center',
     backgroundColor: Colors.gray[900],
     borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 100
+    minHeight: 100,
+    padding: 16
   },
   errorText: {
     marginTop: 8,
@@ -1896,24 +1896,24 @@ const styles = StyleSheet.create({
   hashScroll: {
     backgroundColor: Colors.gray[900],
     borderRadius: 8,
-    padding: 16,
+    height: 70,
     maxHeight: 70,
-    height: 70
+    padding: 16
   },
   headerScroll: {
     backgroundColor: Colors.gray[900],
     borderRadius: 8,
-    padding: 16,
+    height: 95,
     maxHeight: 95,
-    height: 95
+    padding: 16
   },
   loadingContainer: {
+    alignItems: 'center',
     backgroundColor: Colors.gray[900],
     borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 100
+    minHeight: 100,
+    padding: 16
   },
   mainContent: {
     flex: 1,
@@ -1924,14 +1924,14 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   slider: {
-    width: '100%',
+    backgroundColor: Colors.gray[850],
     height: 60,
     marginHorizontal: 0,
-    backgroundColor: Colors.gray[850]
+    width: '100%'
   },
   statsContainer: {
-    width: '100%',
-    paddingVertical: 20
+    paddingVertical: 20,
+    width: '100%'
   },
   statsGrid: {
     width: '100%'

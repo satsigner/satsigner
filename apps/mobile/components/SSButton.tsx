@@ -131,12 +131,12 @@ const styles = StyleSheet.create({
     color: Colors.white
   },
   buttonBase: {
+    alignItems: 'center',
     borderRadius: Sizes.button.borderRadius,
-    height: Sizes.button.height,
-    width: '100%',
     flexDirection: 'row',
+    height: Sizes.button.height,
     justifyContent: 'center',
-    alignItems: 'center'
+    width: '100%'
   },
   buttonDanger: {
     backgroundColor: Colors.error
@@ -148,16 +148,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.transparent
   },
   buttonGradient: {
-    position: 'absolute',
-    width: '100%',
+    alignItems: 'center',
     height: '100%',
     justifyContent: 'center',
-    alignItems: 'center'
+    position: 'absolute',
+    width: '100%'
   },
   buttonOutline: {
     backgroundColor: Colors.transparent,
-    borderWidth: 1,
-    borderColor: Colors.white
+    borderColor: Colors.white,
+    borderWidth: 1
   },
   buttonSecondary: {
     backgroundColor: Colors.white

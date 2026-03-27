@@ -63,10 +63,10 @@ export const useLightningStore = create<LightningState>()(
       partialize: (state) => ({
         config: state.config,
         status: {
-          isConnected: state.status.isConnected,
-          nodeInfo: state.status.nodeInfo,
           channels: state.status.channels,
-          lastSync: state.status.lastSync
+          isConnected: state.status.isConnected,
+          lastSync: state.status.lastSync,
+          nodeInfo: state.status.nodeInfo
         }
       }),
       storage: createJSONStorage(() => mmkvStorage)

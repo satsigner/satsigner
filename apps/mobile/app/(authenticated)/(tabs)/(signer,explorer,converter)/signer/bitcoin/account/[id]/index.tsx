@@ -1499,10 +1499,10 @@ export default function AccountView() {
           headerBackground: () => (
             <View
               style={{
-                height: '100%',
-                justifyContent: 'center',
                 alignItems: 'center',
-                backgroundColor: Colors.gray[950]
+                backgroundColor: Colors.gray[950],
+                height: '100%',
+                justifyContent: 'center'
               }}
             />
           ),
@@ -1713,72 +1713,72 @@ const addressListStyles = StyleSheet.create({
     width: '25%'
   },
   columnIndex: {
-    width: '5%',
-    textAlign: 'center'
+    textAlign: 'center',
+    width: '5%'
   },
   columnLabel: {
     width: '15%'
   },
   columnSats: {
     flexWrap: 'nowrap',
-    width: '18%',
-    textAlign: 'center'
+    textAlign: 'center',
+    width: '18%'
   },
   columnTxs: {
-    width: '10%',
-    textAlign: 'center'
+    textAlign: 'center',
+    width: '10%'
   },
   columnUtxos: {
-    width: '10%',
-    textAlign: 'center'
+    textAlign: 'center',
+    width: '10%'
   },
   container: {
-    paddingTop: 10,
-    paddingBottom: 10
+    paddingBottom: 10,
+    paddingTop: 10
   },
   header: {
     paddingVertical: 4
   },
   headerRow: {
-    paddingBottom: 10,
-    paddingTop: 10,
-    paddingHorizontal: 4,
+    alignItems: 'center',
+    backgroundColor: '#111',
     borderBottomWidth: 1,
     borderColor: '#333',
-    backgroundColor: '#111',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    paddingBottom: 10,
+    paddingHorizontal: 4,
+    paddingTop: 10
   },
   headerText: {
     color: '#777',
     textTransform: 'uppercase'
   },
   indexText: {
-    fontWeight: 'bold',
     color: '#fff',
+    fontWeight: 'bold',
     textAlign: 'center'
   },
   receiveChangeContainer: {
     display: 'flex',
-    width: '100%',
-    marginTop: 10
+    marginTop: 10,
+    width: '100%'
   },
   row: {
-    paddingVertical: 12,
-    paddingHorizontal: 4,
+    alignItems: 'center',
     borderBottomWidth: 1,
     borderColor: '#333',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    paddingHorizontal: 4,
+    paddingVertical: 12
   },
   unreadBadgeDot: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    width: 9,
-    height: 9,
+    backgroundColor: Colors.error,
     borderRadius: 5,
-    backgroundColor: Colors.error
+    height: 9,
+    position: 'absolute',
+    right: -4,
+    top: -4,
+    width: 9
   },
   unreadBadgeWrapper: {
     position: 'relative'

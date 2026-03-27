@@ -153,13 +153,13 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline'
   },
   thumb: {
-    width: 22,
+    borderRadius: 11,
     height: 22,
-    borderRadius: 11
+    width: 22
   },
   track: {
-    height: 12,
-    borderRadius: 6
+    borderRadius: 6,
+    height: 12
   }
 })
 

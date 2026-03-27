@@ -259,10 +259,10 @@ function useSyncAccountWithAddress() {
         address,
         label: '',
         summary: {
-          transactions: esploraTxs.length,
-          utxos: esploraUtxos.length,
           balance: confirmed,
-          satsInMempool: unconfirmed
+          satsInMempool: unconfirmed,
+          transactions: esploraTxs.length,
+          utxos: esploraUtxos.length
         },
         transactions: esploraTxs.map((t) => t.txid),
         utxos: esploraUtxos.map((u) => `${u.txid}:${u.vout}`)
@@ -341,10 +341,10 @@ function useSyncAccountWithAddress() {
         address,
         label: '',
         summary: {
-          utxos: addressUtxos.length,
-          transactions: addressTxs.length,
           balance: balance.confirmed,
-          satsInMempool: balance.unconfirmed
+          satsInMempool: balance.unconfirmed,
+          transactions: addressTxs.length,
+          utxos: addressUtxos.length
         },
         transactions: addressTxs.map((t) => t.tx_hash),
         utxos: addressUtxos.map((u) => `${u.tx_hash}:${u.tx_pos}`)

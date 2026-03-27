@@ -957,8 +957,7 @@ export default function ImportExtendedPub() {
                         height: 4,
                         maxWidth: scanProgress.total * 300,
                         width:
-                          (scanProgress.scanned.size / scanProgress.total) *
-                          300
+                          (scanProgress.scanned.size / scanProgress.total) * 300
                       }}
                     />
                   </View>

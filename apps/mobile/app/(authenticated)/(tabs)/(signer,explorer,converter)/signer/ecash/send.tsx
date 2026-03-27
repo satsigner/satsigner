@@ -604,15 +604,15 @@ export default function EcashSendPage() {
 
 const styles = StyleSheet.create({
   fiatAmount: {
-    marginTop: 4,
-    marginLeft: 4
+    marginLeft: 4,
+    marginTop: 4
   },
   input: {
     backgroundColor: '#242424',
     borderRadius: 3,
-    padding: 12,
     color: 'white',
-    fontSize: 16
+    fontSize: 16,
+    padding: 12
   },
   invoiceInput: {
     fontFamily: 'monospace',
@@ -621,11 +621,11 @@ const styles = StyleSheet.create({
     padding: 10
   },
   tokenInput: {
-    minHeight: 100,
-    textAlignVertical: 'top',
     fontFamily: 'monospace',
     fontSize: 12,
     height: 'auto',
-    padding: 10
+    minHeight: 100,
+    padding: 10,
+    textAlignVertical: 'top'
   }
 })

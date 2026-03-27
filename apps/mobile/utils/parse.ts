@@ -23,10 +23,10 @@ function parseAccountAddressesDetails({
       ...addr,
       scriptVersion,
       summary: {
-        utxos: 0,
-        transactions: 0,
         balance: 0,
-        satsInMempool: 0
+        satsInMempool: 0,
+        transactions: 0,
+        utxos: 0
       },
       transactions: [] as string[],
       utxos: [] as string[]

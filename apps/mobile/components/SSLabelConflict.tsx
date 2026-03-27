@@ -302,9 +302,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.softBarGreen
   },
   box: {
-    paddingVertical: 6,
+    borderRadius: 4,
     paddingHorizontal: 8,
-    borderRadius: 4
+    paddingVertical: 6
   },
   button: {
     width: '100%'

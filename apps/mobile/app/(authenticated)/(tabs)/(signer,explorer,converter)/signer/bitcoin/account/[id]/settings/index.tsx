@@ -597,14 +597,14 @@ const styles = StyleSheet.create({
     flex: 1
   },
   copyButton: {
-    width: '100%',
+    borderColor: Colors.gray[700],
     borderWidth: 1,
-    borderColor: Colors.gray[700]
+    width: '100%'
   },
   copyButtonContainer: {
-    width: '100%',
     padding: 12,
-    paddingTop: 0
+    paddingTop: 0,
+    width: '100%'
   },
   deleteButton: {
     backgroundColor: Colors.error
@@ -613,16 +613,16 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap'
   },
   deleteModalOuterContainer: {
-    padding: 0,
-    width: '100%',
-    height: '100%',
     alignItems: 'center',
-    justifyContent: 'center'
+    height: '100%',
+    justifyContent: 'center',
+    padding: 0,
+    width: '100%'
   },
   electrumWarning: {
-    borderWidth: 1,
     borderColor: Colors.warning,
     borderRadius: 5,
+    borderWidth: 1,
     padding: 10
   },
   electrumWarningText: {
@@ -640,55 +640,55 @@ const styles = StyleSheet.create({
   },
   mnemonicGrid: {
     flexDirection: 'row',
-    width: '100%',
+    gap: 8,
     justifyContent: 'space-between',
-    gap: 8
+    width: '100%'
   },
   mnemonicModalContainer: {
-    width: '100%',
+    flex: 0,
     padding: 0,
-    flex: 0
+    width: '100%'
   },
   mnemonicModalOuterContainer: {
     flex: 1,
-    width: '100%',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
+    width: '100%'
   },
   mnemonicWordContainer: {
-    marginBottom: 8,
-    height: 48
+    height: 48,
+    marginBottom: 8
   },
   mnemonicWordInnerContainer: {
-    flex: 1,
-    padding: 3,
-    borderRadius: 8,
-    borderColor: Colors.gray[800],
-    borderWidth: 1,
-    backgroundColor: Colors.gray[900],
     alignItems: 'center',
+    backgroundColor: Colors.gray[900],
+    borderColor: Colors.gray[800],
+    borderRadius: 8,
+    borderWidth: 1,
+    flex: 1,
+    flexDirection: 'row',
     justifyContent: 'center',
-    flexDirection: 'row'
+    padding: 3
   },
   mnemonicWordsContainer: {
-    width: '100%',
-    marginBottom: 16
+    marginBottom: 16,
+    width: '100%'
   },
   multiSigContainer: {
     backgroundColor: '#131313',
     paddingHorizontal: 0
   },
   multiSigKeyControlCOntainer: {
-    marginHorizontal: 0,
-    marginBottom: 50
+    marginBottom: 50,
+    marginHorizontal: 0
   },
   wordIndex: {
+    lineHeight: 20,
     minWidth: 24,
-    textAlign: 'center',
-    lineHeight: 20
+    textAlign: 'center'
   },
   wordText: {
     flex: 1,
-    textAlign: 'left',
-    lineHeight: 20
+    lineHeight: 20,
+    textAlign: 'left'
   }
 })

@@ -73,25 +73,25 @@ function SSNavMenu(props: SSNavMenuProps) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: Colors.black
+    backgroundColor: Colors.black,
+    flex: 1
   },
   contentContainer: {
     flexGrow: 1
   },
   gradientOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+    elevation: 5,
     height: '100%',
-    width: '100%',
-    zIndex: 99999,
+    left: 0,
+    position: 'absolute',
+    right: 0,
     shadowColor: Colors.black,
     shadowOffset: { width: 2, height: 0 },
     shadowOpacity: 0.25,
     shadowRadius: 3,
-    elevation: 5
+    top: 0,
+    width: '100%',
+    zIndex: 99999
   },
   groupWrapper: {
     gap: 0
@@ -106,8 +106,8 @@ const styles = StyleSheet.create({
     letterSpacing: 2
   },
   versionWrapper: {
-    marginVertical: 40,
-    marginLeft: 30
+    marginLeft: 30,
+    marginVertical: 40
   }
 })
 

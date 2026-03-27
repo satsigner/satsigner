@@ -206,8 +206,8 @@ const styles = StyleSheet.create({
     opacity: 0.7
   },
   emptyState: {
-    paddingVertical: 40,
-    alignItems: 'center'
+    alignItems: 'center',
+    paddingVertical: 40
   },
   errorText: {
     paddingTop: 4,
@@ -215,20 +215,20 @@ const styles = StyleSheet.create({
   },
   mintCard: {
     backgroundColor: '#1a1a1a',
+    borderColor: '#333333',
     borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#333333'
+    marginBottom: 12,
+    padding: 16
   },
   removeButton: {
     marginTop: 8
   },
   warningContainer: {
     backgroundColor: Colors.gray[900],
+    borderColor: Colors.warning,
     borderRadius: 4,
-    padding: 12,
     borderWidth: 1,
-    borderColor: Colors.warning
+    padding: 12
   }
 })

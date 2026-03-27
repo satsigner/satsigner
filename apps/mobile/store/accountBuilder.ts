@@ -136,23 +136,23 @@ const useAccountBuilderStore = create<
     const { name, network, policyType, scriptVersion, keyCount, keysRequired } =
       get()
     set({
-      name,
-      network,
-      policyType,
-      scriptVersion,
-      keyCount,
-      keysRequired,
-      keyName: '',
       creationType: 'importMnemonic',
       entropy: 'none',
-      mnemonicWordCount: 24,
-      mnemonic: '',
-      passphrase: undefined,
-      externalDescriptor: undefined,
-      internalDescriptor: undefined,
       extendedPublicKey: undefined,
+      externalDescriptor: undefined,
       fingerprint: undefined,
-      keys: []
+      internalDescriptor: undefined,
+      keyCount,
+      keyName: '',
+      keys: [],
+      keysRequired,
+      mnemonic: '',
+      mnemonicWordCount: 24,
+      name,
+      network,
+      passphrase: undefined,
+      policyType,
+      scriptVersion
     })
   },
   clearKeyState: () => {
@@ -173,18 +173,18 @@ const useAccountBuilderStore = create<
         : undefined
 
     set({
-      keyName: '',
       creationType,
       entropy: 'none',
-      mnemonicWordCount: 24,
-      mnemonic: '',
-      passphrase: undefined,
-      fingerprint: undefined,
-      scriptVersion,
-      externalDescriptor,
-      internalDescriptor,
       extendedPublicKey,
-      policyType
+      externalDescriptor,
+      fingerprint: undefined,
+      internalDescriptor,
+      keyName: '',
+      mnemonic: '',
+      mnemonicWordCount: 24,
+      passphrase: undefined,
+      policyType,
+      scriptVersion
     })
   },
   dropSeedFromKey: async (index) => {
@@ -194,8 +194,8 @@ const useAccountBuilderStore = create<
     const state = get()
     if (!state.keys[index] || !state.keys[index].secret) {
       return {
-        success: false,
-        message: 'Key not found or invalid'
+        message: 'Key not found or invalid',
+        success: false
       }
     }
 
@@ -207,14 +207,14 @@ const useAccountBuilderStore = create<
         })
       )
       return {
-        success: true,
-        message: 'Seed dropped successfully'
+        message: 'Seed dropped successfully',
+        success: true
       }
     } catch (err) {
       const reason = err instanceof Error ? err.message : 'unknown reason'
       return {
-        success: false,
-        message: `Failed to drop seed: ${reason}`
+        message: `Failed to drop seed: ${reason}`,
+        success: false
       }
     }
   },
@@ -222,31 +222,16 @@ const useAccountBuilderStore = create<
     const { name, network, policyType, keys, keyCount, keysRequired } = get()
 
     const account: Account = {
-      id: randomUuid(),
-      name,
-      network,
-      policyType,
-      keys,
-      keyCount,
-      keysRequired,
-      summary: {
-        balance: 0,
-        numberOfAddresses: 0,
-        numberOfTransactions: 0,
-        numberOfUtxos: 0,
-        satsInMempool: 0
-      },
-      labels: {},
-      transactions: [],
-      utxos: [],
       addresses: [],
       createdAt: new Date(),
+      id: randomUuid(),
+      keyCount,
+      keys,
+      keysRequired,
+      labels: {},
       lastSyncedAt: new Date(),
-      syncStatus: 'unsynced',
-      syncProgress: {
-        tasksDone: 0,
-        totalTasks: 0
-      },
+      name,
+      network,
       nostr: {
         commonNpub: '',
         commonNsec: '',
@@ -258,7 +243,22 @@ const useAccountBuilderStore = create<
         dms: [] as NostrDM[],
         lastUpdated: new Date(),
         syncStart: new Date()
-      }
+      },
+      policyType,
+      summary: {
+        balance: 0,
+        numberOfAddresses: 0,
+        numberOfTransactions: 0,
+        numberOfUtxos: 0,
+        satsInMempool: 0
+      },
+      syncProgress: {
+        tasksDone: 0,
+        totalTasks: 0
+      },
+      syncStatus: 'unsynced',
+      transactions: [],
+      utxos: []
     }
 
     return account
@@ -267,14 +267,14 @@ const useAccountBuilderStore = create<
     set(
       produce((state: AccountBuilderState) => {
         state.keys[index] = {
-          index,
-          name: '',
           creationType: undefined as any,
-          secret: undefined as any,
-          iv: undefined as any,
           fingerprint: undefined as any,
+          index,
+          iv: undefined as any,
+          mnemonicWordCount: undefined as any,
+          name: '',
           scriptVersion: undefined as any,
-          mnemonicWordCount: undefined as any
+          secret: undefined as any
         }
       })
     )
@@ -332,11 +332,13 @@ const useAccountBuilderStore = create<
     }
 
     const key: Key = {
-      index,
-      name: keyName,
       creationType,
+      index,
+      iv: randomIv(),
       mnemonicWordCount,
       mnemonicWordList,
+      name: keyName,
+      scriptVersion,
       secret: {
         ...(mnemonic && { mnemonic }),
         ...(passphrase && { passphrase }),
@@ -344,9 +346,7 @@ const useAccountBuilderStore = create<
         ...(internalDescriptor && { internalDescriptor }),
         ...(extendedPublicKey && { extendedPublicKey }),
         ...(fingerprint && { fingerprint })
-      },
-      iv: randomIv(),
-      scriptVersion
+      }
     }
 
     set(

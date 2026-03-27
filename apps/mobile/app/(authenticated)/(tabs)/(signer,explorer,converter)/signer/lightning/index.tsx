@@ -164,48 +164,48 @@ const styles = StyleSheet.create({
     width: '100%'
   },
   buttonContainer: {
-    width: '100%',
     gap: 16,
-    marginTop: 24
+    marginTop: 24,
+    width: '100%'
   },
   card: {
-    width: '100%',
     backgroundColor: '#1a1a1a',
     borderRadius: 12,
     marginTop: 24,
-    overflow: 'hidden'
+    overflow: 'hidden',
+    width: '100%'
   },
   cardContent: {
-    padding: 16,
-    gap: 12
+    gap: 12,
+    padding: 16
   },
   cardDetails: {
     gap: 8
   },
   cardHeader: {
+    alignItems: 'center',
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
+    justifyContent: 'space-between'
   },
   content: {
-    flex: 1,
-    alignItems: 'center'
+    alignItems: 'center',
+    flex: 1
   },
   detailRow: {
+    alignItems: 'center',
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
+    justifyContent: 'space-between'
   },
   headerText: {
     marginBottom: 8
   },
   mainLayout: {
-    paddingTop: 32,
-    paddingHorizontal: '5%'
+    paddingHorizontal: '5%',
+    paddingTop: 32
   },
   pubkey: {
-    maxWidth: '70%',
-    fontFamily: 'monospace'
+    fontFamily: 'monospace',
+    maxWidth: '70%'
   },
   subtitle: {
     marginBottom: 32,

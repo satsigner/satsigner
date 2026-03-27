@@ -230,10 +230,10 @@ function NodeText({
       return Skia.ParagraphBuilder.Make(
         {
           strutStyle: {
-            strutEnabled: true,
             forceStrutHeight: true,
             heightMultiplier: 1,
-            leading: 0
+            leading: 0,
+            strutEnabled: true
           },
           textAlign: isBlock ? TextAlign.Center : TextAlign.Left
         },
@@ -300,10 +300,10 @@ function NodeText({
           ellipsis: '…',
           maxLines: isSelfSend ? 6 : 5,
           strutStyle: {
-            strutEnabled: true,
             forceStrutHeight: true,
             heightMultiplier: 1,
-            leading: 0
+            leading: 0,
+            strutEnabled: true
           },
           textAlign: isBlock ? TextAlign.Center : TextAlign.Left
         },

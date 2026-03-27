@@ -130,10 +130,10 @@ export function ManageAccountAddresses({
       new: true,
       scriptVersion: getScriptVersionType(address) || undefined,
       summary: {
-        utxos: 0,
-        transactions: 0,
+        balance: 0,
         satsInMempool: 0,
-        balance: 0
+        transactions: 0,
+        utxos: 0
       },
       transactions: [],
       utxos: []
@@ -200,11 +200,11 @@ export function ManageAccountAddresses({
       keyCount,
       keys,
       summary: {
-        satsInMempool: 0,
-        numberOfUtxos: 0,
-        numberOfTransactions: 0,
+        balance: 0,
         numberOfAddresses: addresses.length,
-        balance: 0
+        numberOfTransactions: 0,
+        numberOfUtxos: 0,
+        satsInMempool: 0
       },
       syncStatus: 'unsynced',
       transactions: [],
@@ -317,23 +317,23 @@ const styles = StyleSheet.create({
     marginVertical: 10
   },
   addressItemActive: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    backgroundColor: '#333',
     borderRadius: 16,
-    backgroundColor: '#333'
+    paddingHorizontal: 16,
+    paddingVertical: 12
   },
   container: {
     flex: 1,
     overflow: 'visible'
   },
   mainContainer: {
-    paddingTop: 0,
+    marginBottom: 20,
     marginTop: 0,
-    marginBottom: 20
+    paddingTop: 0
   },
   modalContainer: {
-    justifyContent: 'center',
     height: '100%',
+    justifyContent: 'center',
     width: '100%'
   }
 })

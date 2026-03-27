@@ -136,21 +136,21 @@ function SSCurrencyInput(
 const styles = StyleSheet.create({
   actionRightBase: {
     position: 'absolute',
-    top: '50%',
     right: 12,
+    top: '50%',
     transform: [{ translateY: -12 }]
   },
   alignCenter: {
-    textAlign: 'center',
-    paddingHorizontal: 12
+    paddingHorizontal: 12,
+    textAlign: 'center'
   },
   alignLeft: {
-    textAlign: 'left',
-    paddingHorizontal: 12
+    paddingHorizontal: 12,
+    textAlign: 'left'
   },
   borderInvalid: {
-    borderWidth: 2,
-    borderColor: Colors.error
+    borderColor: Colors.error,
+    borderWidth: 2
   },
   containerBase: {
     position: 'relative',
@@ -170,17 +170,17 @@ const styles = StyleSheet.create({
   },
   textInputBase: {
     borderRadius: Sizes.textInput.borderRadius,
-    width: '100%',
-    textAlign: 'center',
     color: Colors.white,
-    fontFamily: Typography.sfProTextRegular
+    fontFamily: Typography.sfProTextRegular,
+    textAlign: 'center',
+    width: '100%'
   },
   variantDefault: {
     backgroundColor: Colors.gray[850]
   },
   variantOutline: {
-    borderWidth: 1,
-    borderColor: Colors.gray[400]
+    borderColor: Colors.gray[400],
+    borderWidth: 1
   }
 })
 

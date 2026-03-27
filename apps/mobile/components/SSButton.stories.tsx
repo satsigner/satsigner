@@ -8,6 +8,14 @@ import storybookLayoutDecorator from './SSStoryBookLayout'
 
 const meta = {
   argTypes: {
+    loading: {
+      control: 'boolean',
+      description: 'Button loading'
+    },
+    uppercase: {
+      control: 'boolean',
+      description: 'Text uppercase'
+    },
     variant: {
       control: 'select',
       options: [
@@ -20,23 +28,15 @@ const meta = {
         'danger'
       ]
     },
-    loading: {
-      control: 'boolean',
-      description: 'Button loading'
-    },
     withSelect: {
       control: 'boolean',
       description: 'With select icon'
-    },
-    uppercase: {
-      control: 'boolean',
-      description: 'Text uppercase'
     }
   },
   args: {
+    gradientType: 'default',
     label: 'Satsigner',
-    variant: 'default',
-    gradientType: 'default'
+    variant: 'default'
   },
   component: SSButton,
   decorators: [storybookLayoutDecorator, withBackgrounds],

@@ -50,13 +50,13 @@ const mockAccount: Account = {
   network: 'bitcoin',
   nostr: {
     autoSync: true,
-    relays: ['wss://relay.damus.io'],
-    commonNsec: 'nsec1test',
     commonNpub: 'npub1test',
-    deviceNsec: 'nsec1device',
+    commonNsec: 'nsec1test',
     deviceNpub: 'npub1device',
+    deviceNsec: 'nsec1device',
     dms: [],
     lastUpdated: new Date(),
+    relays: ['wss://relay.damus.io'],
     syncStart: new Date(),
     trustedMemberDevices: []
   },

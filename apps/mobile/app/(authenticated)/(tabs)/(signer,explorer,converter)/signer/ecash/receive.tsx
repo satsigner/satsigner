@@ -700,13 +700,13 @@ export default function EcashReceivePage() {
 const styles = StyleSheet.create({
   detailRow: {
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap'
+    flexWrap: 'wrap',
+    justifyContent: 'space-between'
   },
   lnurlDetails: {
-    padding: 12,
     backgroundColor: Colors.gray[900],
-    borderRadius: 4
+    borderRadius: 4,
+    padding: 12
   },
   qrContainer: {
     alignItems: 'center',
@@ -716,11 +716,11 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline'
   },
   tokenInput: {
+    fontFamily: 'monospace',
+    fontSize: 14,
     height: 'auto',
     minHeight: 100,
-    textAlignVertical: 'top',
     padding: 10,
-    fontSize: 14,
-    fontFamily: 'monospace'
+    textAlignVertical: 'top'
   }
 })

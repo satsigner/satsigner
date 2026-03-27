@@ -195,34 +195,34 @@ const styles = StyleSheet.create({
     elevation: 1000, // For Android
     shadowColor: '#000', // For iOS
     shadowOffset: {
-      width: 0,
-      height: -20
+      height: -20,
+      width: 0
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84
   },
   noMatchingWordsContainerBase: {
+    alignItems: 'center',
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center'
+    justifyContent: 'center'
   },
   separator: {
-    height: '100%',
     backgroundColor: Colors.gray[50],
+    height: '100%',
     width: 1
   },
   wordContainerBase: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRightWidth: 1,
-    borderColor: Colors.gray[100],
-    minWidth: 80,
     alignItems: 'center',
-    justifyContent: 'center'
+    borderColor: Colors.gray[100],
+    borderRightWidth: 1,
+    justifyContent: 'center',
+    minWidth: 80,
+    paddingHorizontal: 16,
+    paddingVertical: 12
   },
   wordText: {
-    fontSize: Sizes.text.fontSize.lg,
-    color: Colors.black
+    color: Colors.black,
+    fontSize: Sizes.text.fontSize.lg
   }
 })
 

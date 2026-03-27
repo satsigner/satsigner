@@ -109,8 +109,8 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
         if (!account || !account.keys[keyIndex]) {
           return {
-            success: false,
-            message: 'Account or key not found'
+            message: 'Account or key not found',
+            success: false
           }
         }
 
@@ -126,14 +126,14 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             })
           )
           return {
-            success: true,
-            message: 'Seed dropped successfully'
+            message: 'Seed dropped successfully',
+            success: true
           }
         } catch (err) {
           const reason = err instanceof Error ? err.message : 'unknown reason'
           return {
-            success: false,
-            message: `Failed to drop seed: ${reason}`
+            message: `Failed to drop seed: ${reason}`,
+            success: false
           }
         }
       },
@@ -247,14 +247,14 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             )
             if (accountIndex === -1) return
             state.accounts[accountIndex].keys[keyIndex] = {
-              index: keyIndex,
-              name: '',
               creationType: undefined,
-              secret: undefined,
-              iv: undefined,
               fingerprint: undefined,
+              index: keyIndex,
+              iv: undefined,
+              mnemonicWordCount: undefined,
+              name: '',
               scriptVersion: undefined,
-              mnemonicWordCount: undefined
+              secret: undefined
             }
           })
         )
@@ -276,9 +276,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             )
 
             state.accounts[index].labels[addr] = {
-              type: 'addr',
+              label,
               ref: addr,
-              label
+              type: 'addr'
             }
 
             if (addrIndex !== -1) {
@@ -296,9 +296,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 const utxoHasLabel = state.accounts[index].labels[utxoRef]
                 if (!utxoHasLabel) {
                   state.accounts[index].labels[utxoRef] = {
-                    type: 'output',
+                    label,
                     ref: utxoRef,
-                    label
+                    type: 'output'
                   }
                   newUtxo.label = label
                 }
@@ -320,9 +320,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               const txHasLabel = state.accounts[index].labels[tx.id]
               if (!txHasLabel) {
                 state.accounts[index].labels[tx.id] = {
-                  type: 'tx',
+                  label,
                   ref: tx.id,
-                  label
+                  type: 'tx'
                 }
                 newTx.label = label
               }
@@ -348,9 +348,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 const txHasLabel = state.accounts[index].labels[tx.id]
                 if (!txHasLabel) {
                   state.accounts[index].labels[tx.id] = {
-                    type: 'tx',
+                    label,
                     ref: tx.id,
-                    label
+                    type: 'tx'
                   }
                   state.accounts[index].transactions[txIdx].label = label
                 }
@@ -416,9 +416,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const currentLabel = state.accounts[index].labels[txid] || {}
             state.accounts[index].labels[txid] = {
               ...currentLabel,
-              type: 'tx',
+              label,
               ref: txid,
-              label
+              type: 'tx'
             }
 
             if (txIndex === -1) return
@@ -436,9 +436,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 // output label inheritance
                 if (!outputHasLabel) {
                   state.accounts[index].labels[outputRef] = {
-                    type: 'output',
+                    label,
                     ref: outputRef,
-                    label
+                    type: 'output'
                   }
 
                   // also update the utxo object if it exist
@@ -455,9 +455,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 // address label inheritance
                 if (!addressHasLabel) {
                   state.accounts[index].labels[addressRef] = {
-                    type: 'addr',
+                    label,
                     ref: addressRef,
-                    label
+                    type: 'addr'
                   }
 
                   // also update the address object if it exists
@@ -483,9 +483,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 // input label inheritance (the input's previous output)
                 if (!outputHasLabel) {
                   state.accounts[index].labels[outputRef] = {
-                    type: 'output',
+                    label,
                     ref: outputRef,
-                    label
+                    type: 'output'
                   }
 
                   // we do not have to update any utxo object, like we did when
@@ -520,9 +520,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 const addressHasLabel = state.accounts[index].labels[address]
                 if (!addressHasLabel) {
                   state.accounts[index].labels[address] = {
-                    type: 'addr',
+                    label,
                     ref: address,
-                    label
+                    type: 'addr'
                   }
                   const addrIdx = state.accounts[index].addresses.findIndex(
                     (a: Address) => a.address === address
@@ -571,9 +571,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             // UTXO label update
             const utxoRef = `${txid}:${vout}`
             state.accounts[index].labels[utxoRef] = {
-              type: 'output',
+              label,
               ref: utxoRef,
-              label
+              type: 'output'
             }
 
             if (utxoIndex !== -1) {
@@ -584,9 +584,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const txHasLabel = state.accounts[index].labels[txid]
             if (!txHasLabel) {
               state.accounts[index].labels[txid] = {
-                type: 'tx',
+                label,
                 ref: txid,
-                label
+                type: 'tx'
               }
 
               if (txIndex !== -1) {
@@ -620,9 +620,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
               if (!addressHasLabel) {
                 state.accounts[index].labels[address] = {
-                  type: 'addr',
+                  label,
                   ref: address,
-                  label
+                  type: 'addr'
                 }
 
                 if (addressIndex !== -1) {

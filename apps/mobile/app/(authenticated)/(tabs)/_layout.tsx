@@ -64,10 +64,7 @@ export default function TabLayout() {
           tabBarActiveTintColor: 'white',
           tabBarItemStyle: styles.tabBarItem,
           tabBarLabelStyle: styles.tabBarLabel,
-          tabBarStyle: [
-            styles.tabBar,
-            { display: isShowTab ? 'flex' : 'none' }
-          ]
+          tabBarStyle: [styles.tabBar, { display: isShowTab ? 'flex' : 'none' }]
         }}
         backBehavior="initialRoute"
       >
@@ -115,37 +112,37 @@ const renderTabIcon = (
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: Colors.gray[950]
+    backgroundColor: Colors.gray[950],
+    flex: 1
   },
   iconContainer: {
-    width: 24,
+    alignItems: 'center',
     height: 24,
-    marginTop: 2,
     justifyContent: 'flex-start',
-    alignItems: 'center'
+    marginTop: 2,
+    width: 24
   },
   tabBar: {
+    alignItems: 'center',
     backgroundColor: '#1F1F1F',
     borderTopColor: '#323232',
-    paddingTop: 10,
-    paddingBottom: 16,
-    height: 74,
-    alignItems: 'center',
     elevation: 0,
+    height: 74,
+    paddingBottom: 16,
+    paddingTop: 10,
     shadowOpacity: 0
   },
   tabBarItem: {
-    marginHorizontal: 16,
-    padding: 4,
     borderRadius: 4,
-    maxWidth: 90
+    marginHorizontal: 16,
+    maxWidth: 90,
+    padding: 4
   },
   tabBarLabel: {
-    textTransform: 'uppercase',
     fontSize: text.fontSize.xxs,
     letterSpacing: 1,
     marginTop: 2,
-    paddingBottom: 2
+    paddingBottom: 2,
+    textTransform: 'uppercase'
   }
 })

@@ -226,13 +226,13 @@ const styles = StyleSheet.create({
     minHeight: 40
   },
   hash: {
-    maxWidth: '70%',
-    fontFamily: 'monospace'
+    fontFamily: 'monospace',
+    maxWidth: '70%'
   },
   infoItem: {
+    alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
     paddingVertical: 4
   },
   mainLayout: {

@@ -63,8 +63,8 @@ function buildNewMessage(
   return {
     author: unwrappedEvent.pubkey,
     content: {
-      description,
       created_at,
+      description,
       pubkey: unwrappedEvent.pubkey
     },
     created_at,

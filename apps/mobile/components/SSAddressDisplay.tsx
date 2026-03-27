@@ -56,14 +56,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[800],
     borderRadius: 5,
     flexWrap: 'wrap',
-    padding: 12,
     justifyContent: 'center',
+    padding: 12,
     width: '100%'
   },
   outline: {
     borderColor: Colors.gray[600],
-    borderWidth: 1,
     borderRadius: 5,
+    borderWidth: 1,
     flexWrap: 'wrap',
     justifyContent: 'center',
     padding: 12,

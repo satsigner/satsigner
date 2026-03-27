@@ -265,10 +265,10 @@ export default function Converter() {
 
 const styles = StyleSheet.create({
   currencyBlock: {
-    flex: 1,
-    padding: 12,
+    borderColor: Colors.gray[875],
     borderRightWidth: 1,
-    borderColor: Colors.gray[875]
+    flex: 1,
+    padding: 12
   },
   currencyBlockNoBorder: {
     flex: 1,
@@ -278,15 +278,15 @@ const styles = StyleSheet.create({
     backgroundColor: transparent
   },
   currencySection: {
-    borderTopWidth: 1,
-    borderColor: Colors.gray[875]
+    borderColor: Colors.gray[875],
+    borderTopWidth: 1
   },
   dateContainer: {
+    alignItems: 'center',
+    backgroundColor: 'black',
     flexGrow: 1,
     justifyContent: 'flex-end',
-    padding: 20,
-    alignItems: 'center',
-    backgroundColor: 'black'
+    padding: 20
   },
   gradient: {
     position: 'absolute',
@@ -296,11 +296,11 @@ const styles = StyleSheet.create({
     letterSpacing: 1
   },
   inputContainer: {
-    borderTopWidth: 1,
     borderColor: Colors.gray[875],
-    paddingTop: 20,
+    borderTopWidth: 1,
+    gap: -2,
     paddingBottom: 6,
-    gap: -2
+    paddingTop: 20
   },
   rowSeparator: {
     borderBottomWidth: 1,

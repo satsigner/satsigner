@@ -74,14 +74,14 @@ const useTransactionBuilderStore = create<
   clearTransaction: () => {
     set({
       accountId: undefined,
+      broadcasted: false,
+      feeRate: 0,
       inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
       outputs: [],
-      feeRate: 0,
-      txBuilderResult: undefined,
       psbt: undefined,
+      signedPsbts: new Map<number, string>(),
       signedTx: undefined,
-      broadcasted: false,
-      signedPsbts: new Map<number, string>()
+      txBuilderResult: undefined
     })
   },
   cpfp: true,

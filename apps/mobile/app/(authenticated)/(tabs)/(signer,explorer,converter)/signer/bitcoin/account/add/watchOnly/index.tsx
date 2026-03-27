@@ -1307,12 +1307,12 @@ export default function WatchOnly() {
 
 const styles = StyleSheet.create({
   cameraView: {
-    width: 340,
-    height: 340
+    height: 340,
+    width: 340
   },
   innerScrollContainer: {
-    paddingBottom: 20,
-    flex: 1
+    flex: 1,
+    paddingBottom: 20
   },
   invalid: {
     borderColor: Colors.error,
@@ -1321,20 +1321,20 @@ const styles = StyleSheet.create({
     paddingVertical: 10
   },
   mainContainer: {
-    paddingTop: 0,
-    paddingBottom: 10
+    paddingBottom: 10,
+    paddingTop: 0
   },
   progressBarInner: {
-    height: 4,
-    maxWidth: 300,
     backgroundColor: Colors.white,
-    borderRadius: 2
+    borderRadius: 2,
+    height: 4,
+    maxWidth: 300
   },
   progressBarOuter: {
-    width: 300,
-    height: 4,
     backgroundColor: Colors.gray[700],
-    borderRadius: 2
+    borderRadius: 2,
+    height: 4,
+    width: 300
   },
   scrollContainer: {
     minHeight: '100%'

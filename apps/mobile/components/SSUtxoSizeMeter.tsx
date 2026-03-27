@@ -52,23 +52,23 @@ const styles = StyleSheet.create({
     height: 2
   },
   containerBase: {
+    height: 2,
     position: 'absolute',
-    width: '100%',
-    height: 2
+    width: '100%'
   },
   sizeBarBase: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
     backgroundColor: Colors.white,
+    height: 2,
+    left: 0,
     opacity: 0.3,
-    height: 2
+    position: 'absolute',
+    top: 0
   },
   sizeBarSelected: {
-    top: -2,
-    opacity: 1,
     borderRadius: 1,
-    height: 6
+    height: 6,
+    opacity: 1,
+    top: -2
   }
 })
 

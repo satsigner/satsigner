@@ -141,10 +141,10 @@ export default function UpComing() {
 
 const styles = StyleSheet.create({
   card: {
+    alignItems: 'center',
     flex: 1,
     height: '100%',
     overflow: 'hidden',
-    alignItems: 'center',
     padding: 2
   },
   cardContainer: {
@@ -159,10 +159,10 @@ const styles = StyleSheet.create({
     lineHeight: 16
   },
   dot: {
-    height: 4,
-    width: 4,
     borderRadius: 2,
-    marginHorizontal: 10
+    height: 4,
+    marginHorizontal: 10,
+    width: 4
   },
   dotContainer: {
     flexDirection: 'row',
@@ -175,22 +175,22 @@ const styles = StyleSheet.create({
     letterSpacing: 1
   },
   image: {
-    height: '100%',
     aspectRatio: '6 / 13',
-    resizeMode: 'contain',
     borderColor: white,
+    borderRadius: 16,
     borderWidth: 1,
-    borderRadius: 16
+    height: '100%',
+    resizeMode: 'contain'
   },
   mainContainer: {
     flex: 1,
-    paddingTop: 40,
+    gap: 60,
     paddingBottom: 15,
-    gap: 60
+    paddingTop: 40
   },
   textContainer: {
-    width: '100%',
-    paddingHorizontal: 10
+    paddingHorizontal: 10,
+    width: '100%'
   },
   titleText: {
     lineHeight: 20

@@ -93,19 +93,19 @@ export default function SSSeedQR({
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    alignItems: 'center'
+    alignItems: 'center',
+    padding: 20
   },
   dataContainer: {
-    width: '100%',
-    padding: 10,
     backgroundColor: Colors.gray[900],
     borderRadius: 8,
-    marginTop: 10
+    marginTop: 10,
+    padding: 10,
+    width: '100%'
   },
   qrContainer: {
-    padding: 10,
     backgroundColor: Colors.white,
-    borderRadius: 8
+    borderRadius: 8,
+    padding: 10
   }
 })
