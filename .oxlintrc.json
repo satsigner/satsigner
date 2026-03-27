@@ -19,6 +19,7 @@
       }
     ],
     "typescript/consistent-type-definitions": ["allow", "type"],
+    "no-negated-condition": "allow",
     "no-inline-comments": "allow", // Remove it later
     "no-warning-comments": "allow", // Remove it later
     "no-shadow": "allow", // Remove it later
@@ -103,7 +104,6 @@
     "unicorn/no-await-expression-member": "allow",
     "unicorn/empty-brace-spaces": "allow",
     "no-bitwise": "allow",
-    "no-negated-condition": "allow",
     "no-param-reassign": "allow",
     "class-methods-use-this": "allow",
     "max-classes-per-file": "allow",
