@@ -288,10 +288,6 @@ export function signPSBTWithSeed(
     try {
       psbt.signInput(derivation.inputIndex, signer)
       signedInputs += 1
-
-      const input = psbt.data.inputs[derivation.inputIndex]
-      if (!input.partialSig || input.partialSig.length === 0) {
-      }
     } catch {
       continue
     }
