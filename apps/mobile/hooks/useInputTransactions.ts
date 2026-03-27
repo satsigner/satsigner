@@ -264,7 +264,7 @@ export function useInputTransactions(
                           break // Found the height, no need to check other addresses
                         }
                       }
-                    } catch (_addrError) {}
+                    } catch {}
                   }
                   if (blockHeight) {
                     timestamp = new Date(
@@ -292,7 +292,7 @@ export function useInputTransactions(
                         try {
                           const parsedPrevTx = TxDecoded.fromHex(rawPrevTx)
                           prevTxsMap.set(currentTxidForMap, parsedPrevTx)
-                        } catch (_parseError) {
+                        } catch {
                           // Failed to parse, skip this one
                         }
                       }
@@ -369,7 +369,7 @@ export function useInputTransactions(
                   // Skipping for now
                   transactionInputAddresses.set(txid, inputAddresses)
                 }
-              } catch (_electrumError) {}
+              } catch {}
             }
 
             // Queue parent transactions only if we haven't reached max levelDeep

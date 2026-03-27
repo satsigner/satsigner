@@ -146,7 +146,7 @@ export default function Developer() {
       const payload = await buildBackupWithSeeds()
       setBackupPreviewPayload(payload)
       setBackupPreviewVisible(true)
-    } catch (_error) {
+    } catch {
       toast.error(t('settings.developer.backupError'))
     }
   }
@@ -186,7 +186,7 @@ export default function Developer() {
         setBackupPreviewPayload(null)
         setBackupPassphrase('')
       }
-    } catch (_error) {
+    } catch {
       toast.error(t('settings.developer.backupError'))
     }
   }
@@ -228,7 +228,7 @@ export default function Developer() {
       const key = await pbkdf2Encrypt(recoverPassphrase, payload.salt)
       const plain = await aesDecrypt(payload.cipher, key, payload.iv)
       setRecoverDecrypted(plain)
-    } catch (_err) {
+    } catch {
       toast.error(t('settings.developer.recoverDecryptError'))
     }
   }

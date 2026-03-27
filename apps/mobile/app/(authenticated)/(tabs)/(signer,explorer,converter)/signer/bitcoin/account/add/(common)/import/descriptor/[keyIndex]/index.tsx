@@ -499,7 +499,7 @@ export default function ImportDescriptor() {
           internalDescriptor += checksum[0]
         }
       }
-    } catch (_jsonError) {
+    } catch {
       // Handle legacy formats
       if (text.includes('\n')) {
         ;[externalDescriptor, internalDescriptor] = text.split('\n')

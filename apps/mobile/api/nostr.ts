@@ -132,7 +132,7 @@ export class NostrAPI {
             )
 
             return { status: 'connected', testEvent: testEvent !== null, url }
-          } catch (_error) {
+          } catch {
             if (attempt === 2) {
               return { status: 'error', url }
             }

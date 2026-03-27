@@ -166,7 +166,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
               }
             }
           })
-        } catch (_error) {
+        } catch {
           set((state) => {
             const existingMembers = state.members[accountId] || []
             const normalizedMembers = existingMembers.map((member) =>

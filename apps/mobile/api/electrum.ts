@@ -200,7 +200,7 @@ class BaseElectrumClient {
       }
 
       return true
-    } catch (_err) {
+    } catch {
       if (timeoutId) {
         clearTimeout(timeoutId)
       }

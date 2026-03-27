@@ -299,7 +299,7 @@ export default function UnifiedImport() {
             '/1/*'
           )
         }
-      } catch (_jsonError) {
+      } catch {
         // Handle legacy formats
         if (text.includes('\n')) {
           ;[externalDescriptor, internalDescriptor] = text.split('\n')
@@ -372,7 +372,7 @@ export default function UnifiedImport() {
       const finalContent = clipboardContent.trim()
       updateMasterFingerprint(finalContent)
       toast.success(t('watchonly.success.clipboardPasted'))
-    } catch (_error) {
+    } catch {
       toast.error(t('watchonly.error.clipboardPaste'))
     }
   }
@@ -514,7 +514,7 @@ export default function UnifiedImport() {
             '/1/*'
           )
         }
-      } catch (_jsonError) {
+      } catch {
         // Handle legacy formats
         if (data.includes('\n')) {
           ;[externalDescriptor, internalDescriptor] = data.split('\n')

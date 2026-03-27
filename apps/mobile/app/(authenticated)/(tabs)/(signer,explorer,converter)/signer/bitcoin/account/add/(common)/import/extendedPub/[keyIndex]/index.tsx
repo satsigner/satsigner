@@ -283,7 +283,7 @@ export default function ImportExtendedPub() {
     try {
       const decoded = CBOR.decode(new Uint8Array(urData.buffer))
       return decoded as { xpub?: string }
-    } catch (_error) {
+    } catch {
       return null
     }
   }
@@ -319,7 +319,7 @@ export default function ImportExtendedPub() {
         }
       }
       return null
-    } catch (_error) {
+    } catch {
       return null
     }
   }
@@ -405,7 +405,7 @@ export default function ImportExtendedPub() {
       const finalContent = clipboardContent.trim()
       updateXpub(finalContent)
       toast.success(t('watchonly.success.clipboardPasted'))
-    } catch (_error) {
+    } catch {
       toast.error(t('watchonly.error.clipboardPaste'))
     }
   }
@@ -421,7 +421,7 @@ export default function ImportExtendedPub() {
       const finalContent = clipboardContent.trim()
       updateMasterFingerprint(finalContent)
       toast.success(t('watchonly.success.clipboardPasted'))
-    } catch (_error) {
+    } catch {
       toast.error(t('watchonly.error.clipboardPaste'))
     }
   }
@@ -455,7 +455,7 @@ export default function ImportExtendedPub() {
 
       updateXpub(text)
       toast.success(t('watchonly.success.nfcRead'))
-    } catch (_error) {
+    } catch {
       toast.error(t('watchonly.error.nfcRead'))
     }
   }
@@ -499,7 +499,7 @@ export default function ImportExtendedPub() {
             try {
               const stringResult = Buffer.from(decoded).toString('utf8')
               finalContent = stringResult
-            } catch (_error) {
+            } catch {
               // Fallback to hex if string conversion fails
               const hexResult = Buffer.from(decoded).toString('hex')
               finalContent = hexResult
@@ -597,7 +597,7 @@ export default function ImportExtendedPub() {
         updateXpub(finalContent)
         setCameraModalVisible(false)
         toast.success(t('watchonly.success.qrScanned'))
-      } catch (_error) {
+      } catch {
         toast.error(t('watchonly.read.qrError'))
       }
     } else {

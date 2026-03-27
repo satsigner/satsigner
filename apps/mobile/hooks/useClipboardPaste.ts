@@ -70,7 +70,7 @@ export function useClipboardPaste({
 
       // Call success callback
       onSuccess?.(finalContent)
-    } catch (_error) {
+    } catch {
       const errorMessage = t('watchonly.error.clipboardPaste')
       if (showToast) {
         toast.error(errorMessage)
@@ -121,7 +121,7 @@ export function useClipboardPaste({
 
         // Call success callback
         onSuccess?.(finalContent)
-      } catch (_error) {
+      } catch {
         const errorMessage = t('watchonly.error.clipboardPaste')
         if (showToast) {
           toast.error(errorMessage)

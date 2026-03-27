@@ -50,7 +50,7 @@ export function useNFCEmitter() {
     try {
       const isNFCAvailable = await NfcManager.isEnabled()
       setIsAvailable(isNFCAvailable)
-    } catch (_error) {
+    } catch {
       setIsAvailable(false)
     }
   }

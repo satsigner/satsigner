@@ -192,7 +192,7 @@ function NostrKeys() {
       } else if (keys && 'externalDescriptor' in keys) {
         toast.error('Common keys are not available for watch-only accounts')
       }
-    } catch (_error) {
+    } catch {
       toast.error('Failed to generate common keys')
     } finally {
       setLoadingCommonKeys(false)
