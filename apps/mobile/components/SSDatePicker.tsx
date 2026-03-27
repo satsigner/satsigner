@@ -72,9 +72,12 @@ function SSDatePicker({
     const end = endYear || new Date().getFullYear()
     const start = !startYear || startYear > end ? end - 100 : startYear
 
-    const days = [...Array(31)].map((_, index) => index + 1)
-    const months = [...Array(12)].map((_, index) => index + 1)
-    const years = [...Array(end - start + 1)].map((_, index) => start + index)
+    const days = Array.from({ length: 31 }, (_, index) => index + 1)
+    const months = Array.from({ length: 12 }, (_, index) => index + 1)
+    const years = Array.from(
+      { length: end - start + 1 },
+      (_, index) => start + index
+    )
 
     setDays(days)
     setMonths(months)

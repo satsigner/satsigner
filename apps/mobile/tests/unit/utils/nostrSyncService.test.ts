@@ -4,13 +4,13 @@ import { nostrSyncService, resetInstance } from '@/utils/nostrSyncService'
 
 // Mock dependencies
 jest.mock<typeof import('@/api/nostr')>('@/api/nostr', () => ({
-  NostrAPI: jest.fn().mockImplementation(() => ({
+  NostrAPI: jest.fn().mockReturnValue({
     connect: jest.fn().mockResolvedValue(true),
     subscribeToKind1059: jest.fn().mockResolvedValue(undefined),
     flushQueue: jest.fn().mockResolvedValue(undefined),
     closeAllSubscriptions: jest.fn().mockResolvedValue(undefined),
     setLoadingCallback: jest.fn()
-  }))
+  })
 }))
 
 jest.mock<typeof import('@/constants/nostr')>('@/constants/nostr', () => ({
@@ -212,10 +212,10 @@ describe('nostrSyncService', () => {
       nostrSyncService.setMessageProcessor(mockAccount.id, mockProcessor)
 
       const { NostrAPI } = require('@/api/nostr')
-      NostrAPI.mockImplementation(() => ({
+      NostrAPI.mockReturnValue({
         connect: jest.fn().mockRejectedValue(new Error('Network error')),
         setLoadingCallback: jest.fn()
-      }))
+      })
 
       nostrSyncService.startSync(mockAccount)
       await jest.runAllTimersAsync()

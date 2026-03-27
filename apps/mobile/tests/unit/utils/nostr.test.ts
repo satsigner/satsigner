@@ -76,8 +76,10 @@ describe('compressMessage and decompressMessage', () => {
   })
 
   it('throws on invalid compressed data', () => {
-    expect(() => decompressMessage('invalid-data')).toThrow()
-    expect(() => decompressMessage(nostrKeys.invalid.notBech32)).toThrow()
+    expect(() => decompressMessage('invalid-data')).toThrow('incorrect header check')
+    expect(() => decompressMessage(nostrKeys.invalid.notBech32)).toThrow(
+      'incorrect header check'
+    )
   })
 
   it('compresses large payloads effectively', () => {
@@ -104,12 +106,12 @@ describe('generateColorFromNpub', () => {
     nip19.decode.mockImplementation(() => {
       throw new Error('Invalid bech32')
     })
-    await expect(
-      generateColorFromNpub(nostrKeys.invalid.npub)
-    ).rejects.toThrow()
+    await expect(generateColorFromNpub(nostrKeys.invalid.npub)).rejects.toThrow(
+      expect.any(Error)
+    )
     await expect(
       generateColorFromNpub(nostrKeys.invalid.notBech32)
-    ).rejects.toThrow()
+    ).rejects.toThrow(expect.any(Error))
   })
 
   it('returns valid hex color for valid npub', async () => {

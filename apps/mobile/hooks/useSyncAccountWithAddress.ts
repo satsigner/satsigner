@@ -711,12 +711,10 @@ function useSyncAccountWithAddress() {
       const newSummary = updatedData.summary as Account['summary']
 
       // Merge account data while preserving the transactions with prices
-      updatedAccount = {
-        ...updatedAccount,
-        ...updatedData,
+      updatedAccount = Object.assign(updatedAccount, updatedData, {
         transactions: updatedData.transactions, // Explicitly preserve the transactions with prices
         summary: newSummary
-      }
+      })
     }
 
     // make sure the final summary is right

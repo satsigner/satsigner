@@ -11,14 +11,9 @@ type PromiseStatusObj = {
 export type PromiseStatuses = Record<PromiseName, PromiseStatusObj>
 
 export function initPromiseStatuses(promiseNames: string[]) {
-  return promiseNames.reduce((initialStatuses, promiseName) => {
-    return {
-      ...initialStatuses,
-      [promiseName]: {
-        status: 'idle'
-      }
-    }
-  }, {}) as PromiseStatuses
+  return Object.fromEntries(
+    promiseNames.map((promiseName) => [promiseName, { status: 'idle' }])
+  ) as PromiseStatuses
 }
 
 export function setPromiseStatus(
