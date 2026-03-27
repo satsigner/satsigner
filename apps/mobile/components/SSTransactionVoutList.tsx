@@ -10,9 +10,12 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type Transaction } from '@/types/models/Transaction'
+import { SAFE_LIMIT_OF_INPUTS_OUTPUTS } from '@/types/ui/sankey'
 import { setClipboard } from '@/utils/clipboard'
 import { formatNumber } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
+
+import { withPerformanceWarning } from './SSPerformanceWarning'
 
 type SSTransactionVoutListProps = {
   txid?: Transaction['id']
@@ -20,7 +23,7 @@ type SSTransactionVoutListProps = {
   accountId?: string
 }
 
-export default function SSTransactionVoutList({
+export function SSTransactionVoutList({
   txid,
   vout,
   accountId
@@ -122,3 +125,12 @@ export default function SSTransactionVoutList({
     </SSVStack>
   )
 }
+
+const thresholdCheck = ({ vout }: SSTransactionVoutListProps) =>
+  vout !== undefined && vout.length > SAFE_LIMIT_OF_INPUTS_OUTPUTS
+
+export default withPerformanceWarning<SSTransactionVoutListProps>(
+  SSTransactionVoutList,
+  thresholdCheck,
+  'Too many outputs.\nDisplaying it may freeze the app.'
+)

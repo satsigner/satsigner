@@ -588,6 +588,7 @@
     "valueFiat": "Fiat value",
     "version": "Version",
     "warning": "Warning",
+    "warningPerformance": "Trying to load this content may freeze the app",
     "yes": "Yes"
   },
   "content": {
@@ -1618,6 +1619,7 @@
     "build.unspent": "Unspent",
     "build.update.fee.title": "Change fee",
     "build.update.outputs": "Remove or decrease outputs",
+    "chart.warning": "Transaction has too many inputs and/or outputs.\nTrying to display it may freeze the app.",
     "checkStatus": "Check Status",
     "coinbase": "Coinbase",
     "decoded.btnCollapse": "Collapse",

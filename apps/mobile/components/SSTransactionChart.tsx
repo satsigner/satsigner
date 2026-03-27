@@ -9,8 +9,14 @@ import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { type Transaction } from '@/types/models/Transaction'
+import {
+  BLOCK_WIDTH,
+  NODE_WIDTH,
+  SAFE_LIMIT_OF_INPUTS_OUTPUTS
+} from '@/types/ui/sankey'
 import { formatAddress, formatNumber } from '@/utils/format'
 
+import { withPerformanceWarning } from './SSPerformanceWarning'
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
 
@@ -25,9 +31,6 @@ interface Node extends SankeyNodeMinimal<object, object> {
   ioData: TxNode['ioData']
   nextTx?: string
 }
-
-const BLOCK_WIDTH = 50
-const NODE_WIDTH = 98
 
 type SSTransactionChartProps = {
   transaction: Transaction
@@ -304,4 +307,12 @@ function SSTransactionChart({
   )
 }
 
-export default SSTransactionChart
+const thresholdCheck = ({ transaction }: SSTransactionChartProps) =>
+  transaction.vin.length + transaction.vout.length >
+  SAFE_LIMIT_OF_INPUTS_OUTPUTS
+
+export default withPerformanceWarning<SSTransactionChartProps>(
+  SSTransactionChart,
+  thresholdCheck,
+  t('transaction.chart.warning')
+)

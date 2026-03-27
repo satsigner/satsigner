@@ -7,6 +7,7 @@ import { tn as _tn } from '@/locales'
 import { TxDecoded, type TxDecodedField, TxField } from '@/utils/txDecoded'
 
 import { SSIconChevronDown, SSIconChevronUp } from './icons'
+import { withPerformanceWarning } from './SSPerformanceWarning'
 import SSText from './SSText'
 
 const tn = _tn('transaction.decoded')
@@ -243,4 +244,11 @@ const styles = StyleSheet.create({
   }
 })
 
-export default SSTransactionDecoded
+const thresholdCheck = ({ txHex }: SSTransactionDecodedProps) =>
+  txHex.length > 2048
+
+export default withPerformanceWarning<SSTransactionDecodedProps>(
+  SSTransactionDecoded,
+  thresholdCheck,
+  'Transaction too large. Trying to decode it may freeze the app.'
+)

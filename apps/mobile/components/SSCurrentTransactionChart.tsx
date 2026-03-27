@@ -19,10 +19,16 @@ import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import type { Output } from '@/types/models/Output'
 import type { Utxo } from '@/types/models/Utxo'
-import { BLOCK_WIDTH } from '@/types/ui/sankey'
+import {
+  BLOCK_WIDTH,
+  LINK_MAX_WIDTH,
+  NODE_WIDTH,
+  SAFE_LIMIT_OF_INPUTS_OUTPUTS
+} from '@/types/ui/sankey'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { estimateTransactionSize } from '@/utils/transaction'
 
+import { withPerformanceWarning } from './SSPerformanceWarning'
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
 
@@ -38,9 +44,6 @@ interface Node extends SankeyNodeMinimal<object, object> {
   nextTx?: string
   localId?: string
 }
-
-const LINK_MAX_WIDTH = 60
-const NODE_WIDTH = 98
 
 type SSCurrentTransactionChartProps = {
   inputs: Map<string, Utxo>
@@ -454,4 +457,11 @@ const styles = StyleSheet.create({
   }
 })
 
-export default SSCurrentTransactionChart
+const thresholdCheck = (props: SSCurrentTransactionChartProps) =>
+  props.inputs.size + props.outputs.length > SAFE_LIMIT_OF_INPUTS_OUTPUTS
+
+export default withPerformanceWarning<SSCurrentTransactionChartProps>(
+  SSCurrentTransactionChart,
+  thresholdCheck,
+  t('transaction.chart.warning')
+)

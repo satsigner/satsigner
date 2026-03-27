@@ -5,11 +5,14 @@ import { t } from '@/locales'
 import { OP_CODE_WORD } from '@/types/logic/opcode'
 import { getOpcodeDetails, getOpcodeWord } from '@/utils/scripts'
 
+import { withPerformanceWarning } from './SSPerformanceWarning'
 import SSText from './SSText'
 
 type SSScriptDecodedProps = {
   script: number[] | string
 }
+
+const SAFE_SCRIPT_SIZE = 2048
 
 function SSScriptDecoded({ script }: SSScriptDecodedProps) {
   let decodedScript: string | undefined
@@ -53,4 +56,11 @@ function SSScriptDecoded({ script }: SSScriptDecodedProps) {
   )
 }
 
-export default SSScriptDecoded
+const thresholdCheck = ({ script }: SSScriptDecodedProps) =>
+  Array.isArray(script) && Buffer.from(script).byteLength > SAFE_SCRIPT_SIZE
+
+export default withPerformanceWarning<SSScriptDecodedProps>(
+  SSScriptDecoded,
+  thresholdCheck,
+  'Script is too big. Trying to decode it may freeze the app'
+)

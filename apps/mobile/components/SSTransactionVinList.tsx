@@ -4,16 +4,16 @@ import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { type Transaction } from '@/types/models/Transaction'
+import { SAFE_LIMIT_OF_INPUTS_OUTPUTS } from '@/types/ui/sankey'
 
+import { withPerformanceWarning } from './SSPerformanceWarning'
 import SSSeparator from './SSSeparator'
 
 type SSTransactionVinListProps = {
   vin?: Transaction['vin']
 }
 
-export default function SSTransactionVinList({
-  vin
-}: SSTransactionVinListProps) {
+export function SSTransactionVinList({ vin }: SSTransactionVinListProps) {
   return (
     <SSVStack>
       {(vin || []).map((input, index) => (
@@ -51,3 +51,12 @@ export default function SSTransactionVinList({
     </SSVStack>
   )
 }
+
+const thresholdCheck = ({ vin }: SSTransactionVinListProps) =>
+  vin !== undefined && vin.length > SAFE_LIMIT_OF_INPUTS_OUTPUTS
+
+export default withPerformanceWarning<SSTransactionVinListProps>(
+  SSTransactionVinList,
+  thresholdCheck,
+  'Too many transaction inputs.\nDisplaying it may freeze the app.'
+)
