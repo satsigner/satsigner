@@ -57,39 +57,39 @@ export function useInputTransactions(
     // First pass: group by depthH
     for (const [txid, tx] of transactions.entries()) {
       if (tx.vin) {
-        tx.vin.forEach((_, index) => {
+        for (const [index] of tx.vin.entries()) {
           if (!vinsByDepth.has(tx.depthH)) {
             vinsByDepth.set(tx.depthH, [])
           }
           vinsByDepth.get(tx.depthH)?.push({ index, txid })
-        })
+        }
       }
 
       if (tx.vout) {
-        tx.vout.forEach((_, index) => {
+        for (const [index] of tx.vout.entries()) {
           if (!voutsByDepth.has(tx.depthH)) {
             voutsByDepth.set(tx.depthH, [])
           }
           voutsByDepth.get(tx.depthH)?.push({ index, txid })
-        })
+        }
       }
     }
 
     // Second pass: assign index
     for (const [_depthH, vins] of vinsByDepth.entries()) {
       let currentIndex = 0
-      vins.forEach(({ txid, index }) => {
+      for (const { txid, index } of vins) {
         const tx = transactions.get(txid)
         if (tx?.vin?.[index]) {
           tx.vin[index] = { ...tx.vin[index], index: currentIndex }
           currentIndex += 1
         }
-      })
+      }
     }
 
     for (const [_depthH, vouts] of voutsByDepth.entries()) {
       let currentIndex = 0
-      vouts.forEach(({ txid, index }) => {
+      for (const { txid, index } of vouts) {
         const tx = transactions.get(txid)
         if (tx?.vout?.[index]) {
           tx.vout[index] = {
@@ -99,7 +99,7 @@ export function useInputTransactions(
           }
           currentIndex += 1
         }
-      })
+      }
     }
 
     return transactions
@@ -210,20 +210,20 @@ export function useInputTransactions(
                 })
 
                 // Collect output addresses
-                mappedTx.vout?.forEach((vout) => {
+                for (const vout of mappedTx.vout ?? []) {
                   if (vout.address) {
                     allOutputAddresses.add(vout.address)
                   }
-                })
+                }
 
                 // Store input addresses
                 const inputAddresses = new Set<string>()
                 // Extract input addresses from the vin array's prevout field
-                tx.vin?.forEach((vin) => {
+                for (const vin of tx.vin ?? []) {
                   if (vin.prevout?.scriptpubkey_address) {
                     inputAddresses.add(vin.prevout.scriptpubkey_address)
                   }
-                })
+                }
                 transactionInputAddresses.set(txid, inputAddresses)
               }
             } else if (server.backend === 'electrum' && electrumClient) {
@@ -286,7 +286,7 @@ export function useInputTransactions(
                   // Parse previous transactions and store in a map
                   const prevTxsMap = new Map<string, TxDecoded>()
                   if (rawPrevTxs) {
-                    rawPrevTxs.forEach((rawPrevTx, index) => {
+                    for (const [index, rawPrevTx] of rawPrevTxs.entries()) {
                       const currentTxidForMap = uniquePrevTxids[index]
                       if (rawPrevTx) {
                         try {
@@ -296,7 +296,7 @@ export function useInputTransactions(
                           // Failed to parse, skip this one
                         }
                       }
-                    })
+                    }
                   }
                   // Map parsed Electrum transaction to Transaction type structure
                   const mappedTx: Transaction = {
@@ -374,7 +374,7 @@ export function useInputTransactions(
 
             // Queue parent transactions only if we haven't reached max levelDeep
             if (level < levelDeep && tx?.vin) {
-              tx.vin.forEach((vin) => {
+              for (const vin of tx.vin) {
                 const parentTxid = vin.txid
                 if (
                   parentTxid &&
@@ -386,7 +386,7 @@ export function useInputTransactions(
                     txid: parentTxid
                   })
                 }
-              })
+              }
             }
           })
         )

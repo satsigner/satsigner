@@ -155,15 +155,15 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         const utxoMap: Record<string, number> = {}
         const addressMap: Record<string, number> = {}
 
-        account.transactions.forEach((tx, index) => {
+        for (const [index, tx] of account.transactions.entries()) {
           transactionMap[tx.id] = index
-        })
-        account.utxos.forEach((utxo, index) => {
+        }
+        for (const [index, utxo] of account.utxos.entries()) {
           utxoMap[getUtxoOutpoint(utxo)] = index
-        })
-        account.addresses.forEach((address, index) => {
+        }
+        for (const [index, address] of account.addresses.entries()) {
           addressMap[address.address] = index
-        })
+        }
 
         let labelsAdded = 0
 
@@ -172,7 +172,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (account: Account) => account.id === accountId
             )
-            labels.forEach((labelObj) => {
+            for (const labelObj of labels) {
               const { label } = labelObj
 
               state.accounts[index].labels[labelObj.ref] = labelObj
@@ -203,7 +203,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 state.accounts[index].addresses[addrIndex].label = label
                 labelsAdded += 1
               }
-            })
+            }
           })
         )
         return labelsAdded
@@ -349,33 +349,33 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             })
 
             // Transactions that spent from this address also inherit its label
-            state.accounts[index].transactions.forEach(
-              (tx: Transaction, txIdx: number) => {
-                const spendFromAddr = tx.vin.some(
-                  (input: Transaction['vin'][number]) => {
-                    const resolved = resolveOutputAddress(
-                      state.accounts[index].transactions,
-                      input.previousOutput.txid,
-                      input.previousOutput.vout
-                    )
-                    return resolved === addr
-                  }
-                )
-                if (!spendFromAddr) {
-                  return
+            for (const [txIdx, tx] of (
+              state.accounts[index].transactions as Transaction[]
+            ).entries()) {
+              const spendFromAddr = tx.vin.some(
+                (input: Transaction['vin'][number]) => {
+                  const resolved = resolveOutputAddress(
+                    state.accounts[index].transactions,
+                    input.previousOutput.txid,
+                    input.previousOutput.vout
+                  )
+                  return resolved === addr
                 }
-
-                const txHasLabel = state.accounts[index].labels[tx.id]
-                if (!txHasLabel) {
-                  state.accounts[index].labels[tx.id] = {
-                    label,
-                    ref: tx.id,
-                    type: 'tx'
-                  }
-                  state.accounts[index].transactions[txIdx].label = label
-                }
+              )
+              if (!spendFromAddr) {
+                continue
               }
-            )
+
+              const txHasLabel = state.accounts[index].labels[tx.id]
+              if (!txHasLabel) {
+                state.accounts[index].labels[tx.id] = {
+                  label,
+                  ref: tx.id,
+                  type: 'tx'
+                }
+                state.accounts[index].transactions[txIdx].label = label
+              }
+            }
           })
         )
 
@@ -454,115 +454,115 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             state.accounts[index].transactions[txIndex].label = label
 
             // Labeless outputs and their addresses will inherit the tx label
-            state.accounts[index].transactions[txIndex].vout.forEach(
-              (output: Transaction['vout'][number], vout: number) => {
-                const outputRef = `${txid}:${vout}`
-                const addressRef = output.address
-                const outputHasLabel = state.accounts[index].labels[outputRef]
-                const addressHasLabel = state.accounts[index].labels[addressRef]
+            for (const [vout, output] of (
+              state.accounts[index].transactions[txIndex]
+                .vout as Transaction['vout']
+            ).entries()) {
+              const outputRef = `${txid}:${vout}`
+              const addressRef = output.address
+              const outputHasLabel = state.accounts[index].labels[outputRef]
+              const addressHasLabel = state.accounts[index].labels[addressRef]
 
-                // output label inheritance
-                if (!outputHasLabel) {
-                  state.accounts[index].labels[outputRef] = {
-                    label,
-                    ref: outputRef,
-                    type: 'output'
-                  }
-
-                  // also update the utxo object if it exist
-                  const utxoIndex = state.accounts[index].utxos.findIndex(
-                    (utxo: Utxo) => {
-                      return utxo.txid === txid && utxo.vout === vout
-                    }
-                  )
-                  if (utxoIndex !== -1) {
-                    state.accounts[index].utxos[utxoIndex].label = label
-                  }
+              // output label inheritance
+              if (!outputHasLabel) {
+                state.accounts[index].labels[outputRef] = {
+                  label,
+                  ref: outputRef,
+                  type: 'output'
                 }
 
-                // address label inheritance
-                if (!addressHasLabel) {
-                  state.accounts[index].labels[addressRef] = {
-                    label,
-                    ref: addressRef,
-                    type: 'addr'
+                // also update the utxo object if it exist
+                const utxoIndex = state.accounts[index].utxos.findIndex(
+                  (utxo: Utxo) => {
+                    return utxo.txid === txid && utxo.vout === vout
                   }
-
-                  // also update the address object if it exists
-                  const addressIndex = state.accounts[
-                    index
-                  ].addresses.findIndex((address: Address) => {
-                    return address.address === addressRef
-                  })
-                  if (addressIndex !== -1) {
-                    state.accounts[index].addresses[addressIndex].label = label
-                  }
+                )
+                if (utxoIndex !== -1) {
+                  state.accounts[index].utxos[utxoIndex].label = label
                 }
               }
-            )
+
+              // address label inheritance
+              if (!addressHasLabel) {
+                state.accounts[index].labels[addressRef] = {
+                  label,
+                  ref: addressRef,
+                  type: 'addr'
+                }
+
+                // also update the address object if it exists
+                const addressIndex = state.accounts[index].addresses.findIndex(
+                  (address: Address) => {
+                    return address.address === addressRef
+                  }
+                )
+                if (addressIndex !== -1) {
+                  state.accounts[index].addresses[addressIndex].label = label
+                }
+              }
+            }
 
             // Labeless inputs and their addresses will inherit the tx label
-            state.accounts[index].transactions[txIndex].vin.forEach(
-              (input: Transaction['vin'][number]) => {
-                const { txid, vout } = input.previousOutput
-                const outputRef = `${txid}:${vout}`
-                const outputHasLabel = state.accounts[index].labels[outputRef]
+            for (const input of state.accounts[index].transactions[txIndex]
+              .vin as Transaction['vin']) {
+              const { txid, vout } = input.previousOutput
+              const outputRef = `${txid}:${vout}`
+              const outputHasLabel = state.accounts[index].labels[outputRef]
 
-                // input label inheritance (the input's previous output)
+              // input label inheritance (the input's previous output)
+              if (!outputHasLabel) {
+                state.accounts[index].labels[outputRef] = {
+                  label,
+                  ref: outputRef,
+                  type: 'output'
+                }
+
+                // we do not have to update any utxo object, like we did when
+                // looping throughout the vout property. Because the input has
+                // been spent, its previous output cannot be an utxo (unspent
+                // tx output)
+              }
+
+              // Update the vout object on the referenced transaction
+              const refTxIndex = state.accounts[index].transactions.findIndex(
+                (tx: Transaction) => tx.id === txid
+              )
+              if (
+                refTxIndex !== -1 &&
+                state.accounts[index].transactions[refTxIndex].vout[vout]
+              ) {
                 if (!outputHasLabel) {
-                  state.accounts[index].labels[outputRef] = {
-                    label,
-                    ref: outputRef,
-                    type: 'output'
-                  }
-
-                  // we do not have to update any utxo object, like we did when
-                  // looping throughout the vout property. Because the input has
-                  // been spent, its previous output cannot be an utxo (unspent
-                  // tx output)
-                }
-
-                // Update the vout object on the referenced transaction
-                const refTxIndex = state.accounts[index].transactions.findIndex(
-                  (tx: Transaction) => tx.id === txid
-                )
-                if (
-                  refTxIndex !== -1 &&
-                  state.accounts[index].transactions[refTxIndex].vout[vout]
-                ) {
-                  if (!outputHasLabel) {
-                    state.accounts[index].transactions[refTxIndex].vout[
-                      vout
-                    ].label = label
-                  }
-                }
-
-                // Cascade to the address of the input's previous output
-                const address = resolveOutputAddress(
-                  state.accounts[index].transactions,
-                  txid,
-                  vout
-                )
-                if (!address) {
-                  return
-                }
-
-                const addressHasLabel = state.accounts[index].labels[address]
-                if (!addressHasLabel) {
-                  state.accounts[index].labels[address] = {
-                    label,
-                    ref: address,
-                    type: 'addr'
-                  }
-                  const addrIdx = state.accounts[index].addresses.findIndex(
-                    (a: Address) => a.address === address
-                  )
-                  if (addrIdx !== -1) {
-                    state.accounts[index].addresses[addrIdx].label = label
-                  }
+                  state.accounts[index].transactions[refTxIndex].vout[
+                    vout
+                  ].label = label
                 }
               }
-            )
+
+              // Cascade to the address of the input's previous output
+              const address = resolveOutputAddress(
+                state.accounts[index].transactions,
+                txid,
+                vout
+              )
+              if (!address) {
+                continue
+              }
+
+              const addressHasLabel = state.accounts[index].labels[address]
+              if (!addressHasLabel) {
+                state.accounts[index].labels[address] = {
+                  label,
+                  ref: address,
+                  type: 'addr'
+                }
+                const addrIdx = state.accounts[index].addresses.findIndex(
+                  (a: Address) => a.address === address
+                )
+                if (addrIdx !== -1) {
+                  state.accounts[index].addresses[addrIdx].label = label
+                }
+              }
+            }
           })
         )
 
@@ -766,7 +766,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       onRehydrateStorage: () => (state) => {
         // Convert string dates back to Date objects after rehydration
         if (state?.accounts) {
-          state.accounts.forEach((account) => {
+          for (const account of state.accounts) {
             if (account.createdAt && typeof account.createdAt === 'string') {
               account.createdAt = new Date(account.createdAt)
             }
@@ -788,7 +788,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             ) {
               account.nostr.syncStart = new Date(account.nostr.syncStart)
             }
-          })
+          }
         }
       },
       partialize: (state) => state,

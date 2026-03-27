@@ -57,12 +57,12 @@ function useSyncAccountWithAddress() {
     // early-stop pagination and for preserving labels on existing UTXOs
     const existingTxs: Record<Transaction['id'], number> = {}
     const existingUtxos: Record<string, number> = {}
-    account.transactions.forEach((tx, index) => {
+    for (const [index, tx] of account.transactions.entries()) {
       existingTxs[tx.id] = index
-    })
-    account.utxos.forEach((u, index) => {
+    }
+    for (const [index, u] of account.utxos.entries()) {
       existingUtxos[getUtxoOutpoint(u)] = index
-    })
+    }
 
     // update sync progress
     account.syncProgress = {
@@ -88,16 +88,16 @@ function useSyncAccountWithAddress() {
     // compute new tx count and new utxo count
     let newTxsCount = 0
     let newUtxosCount = 0
-    esploraTxs.forEach((tx) => {
+    for (const tx of esploraTxs) {
       if (existingTxs[tx.txid] === undefined) {
         newTxsCount += 1
       }
-    })
-    esploraUtxos.forEach((utxo) => {
+    }
+    for (const utxo of esploraUtxos) {
       if (existingUtxos[`${utxo.txid}:${utxo.vout}`] === undefined) {
         newUtxosCount += 1
       }
-    })
+    }
 
     // update account summary with new transactions and utxos
     account.summary = {
@@ -133,9 +133,9 @@ function useSyncAccountWithAddress() {
       const hexResults = await Promise.all(
         batch.map(({ t }) => esploraClient.getTxHex(t.txid))
       )
-      batch.forEach(({ t }, idx) => {
+      for (const [idx, { t }] of batch.entries()) {
         rawHexMap[t.txid] = hexResults[idx]
-      })
+      }
     }
 
     // Build transaction objects using pre-fetched hex
@@ -145,7 +145,7 @@ function useSyncAccountWithAddress() {
       let sent = 0
       let received = 0
 
-      t.vin.forEach((input) => {
+      for (const input of t.vin) {
         vin.push({
           previousOutput: {
             txid: input.txid,
@@ -158,9 +158,9 @@ function useSyncAccountWithAddress() {
         if (input.prevout.scriptpubkey_address === address) {
           sent += input.prevout.value
         }
-      })
+      }
 
-      t.vout.forEach((out) => {
+      for (const out of t.vout) {
         vout.push({
           address: out.scriptpubkey_address,
           script: parseHexToBytes(out.scriptpubkey),
@@ -169,7 +169,7 @@ function useSyncAccountWithAddress() {
         if (out.scriptpubkey_address === address) {
           received += out.value
         }
-      })
+      }
 
       const tx: Transaction = {
         address,
@@ -208,13 +208,13 @@ function useSyncAccountWithAddress() {
     // iterating descriptors.
     let confirmed = 0
     let unconfirmed = 0
-    esploraUtxos.forEach((u) => {
+    for (const u of esploraUtxos) {
       if (u.status.confirmed) {
         confirmed += u.value
       } else {
         unconfirmed += u.value
       }
-    })
+    }
 
     // Replace the stored UTXOs for this address with the fresh set from the
     // API. This handles both new UTXOs appearing and spent UTXOs disappearing.
@@ -314,25 +314,25 @@ function useSyncAccountWithAddress() {
     // track transactions and utxos already known
     const existingTx: Record<string, number> = {}
     const existingUtxo: Record<string, number> = {}
-    account.transactions.forEach((tx, index) => {
+    for (const [index, tx] of account.transactions.entries()) {
       existingTx[tx.id] = index
-    })
-    account.utxos.forEach((utxo, index) => {
+    }
+    for (const [index, utxo] of account.utxos.entries()) {
       existingUtxo[getUtxoOutpoint(utxo)] = index
-    })
+    }
 
     let newTxsCount = 0
     let newUtxosCount = 0
-    addressTxs.forEach((t) => {
+    for (const t of addressTxs) {
       if (existingTx[t.tx_hash] === undefined) {
         newTxsCount += 1
       }
-    })
-    addressUtxos.forEach((u) => {
+    }
+    for (const u of addressUtxos) {
       if (existingUtxo[`${u.tx_hash}:${u.tx_pos}`] === undefined) {
         newUtxosCount += 1
       }
-    })
+    }
 
     // update summary
     account.summary = {
@@ -457,9 +457,9 @@ function useSyncAccountWithAddress() {
 
     //
     const addressTxsDict: Record<string, boolean> = {}
-    addressTxs.forEach((tx) => {
+    for (const tx of addressTxs) {
       addressTxsDict[tx.tx_hash] = true
-    })
+    }
 
     // Parse the raw transaction and timestamps to transaction objects.
     // This will  correctly include vin, vout, sent and received.

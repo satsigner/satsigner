@@ -82,9 +82,9 @@ function useSyncAccountWithWallet() {
         const oracle = new MempoolOracle(mempoolUrl)
         const fetchedPrices = await oracle.getPricesAt('USD', uniqueTimestamps)
         const priceMap: Record<number, number> = {}
-        uniqueTimestamps.forEach((ts, i) => {
+        for (const [i, ts] of uniqueTimestamps.entries()) {
           priceMap[ts] = fetchedPrices[i]
-        })
+        }
         for (const tx of updatedAccount.transactions) {
           if (!tx.prices?.USD && tx.timestamp) {
             const price = priceMap[formatTimestamp(tx.timestamp)]

@@ -401,7 +401,9 @@ function stopAll(): void {
   for (const accountId of accountIds) {
     stopSync(accountId)
   }
-  retryTimers.forEach((timer) => clearTimeout(timer))
+  for (const timer of retryTimers.values()) {
+    clearTimeout(timer)
+  }
   retryTimers.clear()
   retryAttempts.clear()
   isSubscribingMap.clear()

@@ -104,23 +104,21 @@ function SSHistoryChart({
   const walletAddresses = useMemo(() => {
     const addresses = new Set<string>()
     const transactionsMap = new Map<string, Transaction>()
-    utxos.forEach((val) => {
+    for (const val of utxos) {
       addresses.add(val.addressTo ?? '')
-    })
-    transactions.forEach((t) => {
+    }
+    for (const t of transactions) {
       transactionsMap.set(t.id, t)
-    })
-    transactions
-      .filter((t) => t.type === 'send')
-      .forEach((t) => {
-        t.vin?.forEach((input) => {
-          addresses.add(
-            transactionsMap
-              .get(input?.previousOutput?.txid ?? '')
-              ?.vout?.at(input?.previousOutput?.vout ?? 0)?.address ?? ''
-          )
-        })
-      })
+    }
+    for (const t of transactions.filter((t) => t.type === 'send')) {
+      for (const input of t.vin ?? []) {
+        addresses.add(
+          transactionsMap
+            .get(input?.previousOutput?.txid ?? '')
+            ?.vout?.at(input?.previousOutput?.vout ?? 0)?.address ?? ''
+        )
+      }
+    }
     addresses.delete('')
     return addresses
   }, [transactions, utxos])
@@ -184,29 +182,29 @@ function SSHistoryChart({
   const balanceHistory = useMemo(() => {
     const history = new Map<number, Map<string, Utxo>>()
     const pendingDeleteBalances = new Set<string>()
-    transactions.forEach((t, index) => {
+    for (const [index, t] of transactions.entries()) {
       const currentBalances = new Map<string, Utxo>()
       if (index > 0) {
-        history
-          .get(index - 1)!
-          .forEach((value, key) => currentBalances.set(key, { ...value }))
+        for (const [key, value] of history.get(index - 1)!) {
+          currentBalances.set(key, { ...value })
+        }
       }
       if (t.type === 'receive') {
-        t.vout.forEach((out, index) => {
+        for (const [outIdx, out] of t.vout.entries()) {
           if (walletAddresses.has(out.address)) {
-            const outName = t.id + '::' + index
+            const outName = t.id + '::' + outIdx
             currentBalances.set(outName, {
               addressTo: out.address,
               keychain: 'internal',
               label: '',
               txid: t.id,
               value: out.value,
-              vout: index
+              vout: outIdx
             })
           }
-        })
+        }
       } else if (t.type === 'send') {
-        t.vin?.forEach((input) => {
+        for (const input of t.vin ?? []) {
           const inputName =
             input.previousOutput.txid + '::' + input.previousOutput.vout
           if (currentBalances.has(inputName)) {
@@ -214,31 +212,31 @@ function SSHistoryChart({
           } else {
             pendingDeleteBalances.add(inputName)
           }
-        })
-        t.vout?.forEach((out, index) => {
+        }
+        for (const [outIdx, out] of (t.vout ?? []).entries()) {
           if (walletAddresses.has(out.address)) {
-            const outName = t.id + '::' + index
+            const outName = t.id + '::' + outIdx
             currentBalances.set(outName, {
               addressTo: out.address,
               keychain: 'internal',
               label: '',
               txid: t.id,
               value: out.value,
-              vout: index
+              vout: outIdx
             })
           }
-        })
+        }
       }
       history.set(index, currentBalances)
-    })
-    pendingDeleteBalances.forEach((value) => {
-      Array.from(history.entries()).forEach(([, historyBalance]) => {
+    }
+    for (const value of pendingDeleteBalances) {
+      for (const [, historyBalance] of history.entries()) {
         if (historyBalance.has(value)) {
           historyBalance.delete(value)
         }
-      })
+      }
       pendingDeleteBalances.delete(value)
-    })
+    }
     return history
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletAddresses])
@@ -382,7 +380,7 @@ function SSHistoryChart({
       y2: number
       utxo: Utxo
     }[] = []
-    Array.from(balanceHistory.entries()).forEach(([index, balances]) => {
+    for (const [index, balances] of balanceHistory.entries()) {
       const x1 = xScale(
         new Date(transactions.at(index)?.timestamp ?? currentDate.current)
       )
@@ -394,10 +392,10 @@ function SSHistoryChart({
             )
       )
       if (x2 < 0 && x1 >= chartWidth) {
-        return
+        continue
       }
       let totalBalance = 0
-      Array.from(balances.entries()).forEach(([, utxo]) => {
+      for (const [, utxo] of balances.entries()) {
         const y1 = yScale(totalBalance)
         const y2 = yScale(totalBalance + utxo.value)
         totalBalance += utxo.value
@@ -410,8 +408,8 @@ function SSHistoryChart({
             y2
           })
         }
-      })
-    })
+      }
+    }
     return result
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [balanceHistory, xScale, yScale])
@@ -672,7 +670,7 @@ function SSHistoryChart({
       }
     })
     const boundaryBoxes: { [key: string]: Rectangle } = {}
-    xAxisLabels.forEach((t) => {
+    for (const t of xAxisLabels) {
       boundaryBoxes[t.index] = {
         bottom: chartHeight + 50,
         height: 50,
@@ -681,7 +679,7 @@ function SSHistoryChart({
         top: chartHeight,
         width: 60
       }
-    })
+    }
     const visible: { [key: string]: boolean } = {}
     for (let i = 0; i < length; i += 1) {
       visible[xScaleTransactions[i].index] = true
@@ -718,9 +716,9 @@ function SSHistoryChart({
 
   const transactionsMap = useMemo(() => {
     const map = new Map<string, Transaction>()
-    transactions.forEach((t) => {
+    for (const t of transactions) {
       map.set(t.id, t)
-    })
+    }
     return map
   }, [transactions])
 
@@ -754,14 +752,14 @@ function SSHistoryChart({
       id: string
     }[] = []
 
-    validChartData.forEach((d) => {
+    for (const d of validChartData) {
       if (d.type === 'end') {
-        return
+        continue
       }
       const x = Math.round(xScale(d.date) + (d.type === 'receive' ? -5 : +5))
       const y = Math.round(yScale(d.balance) - 5)
       if (x < 0 || x > chartWidth || y < 0 || y > chartHeight) {
-        return
+        continue
       }
       if (showLabel && d.memo) {
         const index = d.date.getTime().toString() + d.balance.toString() + 'L'
@@ -833,7 +831,7 @@ function SSHistoryChart({
           y: showFiatOnChart && btcPrice > 0 ? y - 10 : y
         })
       }
-    })
+    }
 
     for (let i = 0; i < initialLabels.length - 1; i += 1) {
       const boundBoxA = initialLabels[i].boundBox
@@ -887,13 +885,13 @@ function SSHistoryChart({
     }
     const paragraphs = new Map<string, SkParagraph>()
 
-    txInfoLabels.forEach((label) => {
+    for (const label of txInfoLabels) {
       if (label.type === 'end') {
-        return
+        continue
       }
       const { x } = label
       if (x < 0 || x > chartWidth) {
-        return
+        continue
       }
 
       const baseColor = label.type === 'receive' ? '#A7FFAF' : '#FF7171'
@@ -1045,7 +1043,7 @@ function SSHistoryChart({
       const builtPara = para.build()
       builtPara.layout(10000)
       paragraphs.set(label.index, builtPara)
-    })
+    }
 
     return paragraphs
   }, [
@@ -1259,7 +1257,7 @@ function formatAmountWithLeadingZeros(
   const segments: { text: string; color: string; x: number }[] = []
   let currentX = 0
 
-  parts.forEach((part, partIndex) => {
+  for (const [partIndex, part] of parts.entries()) {
     if (partIndex > 0) {
       segments.push({
         color: '#666666',
@@ -1334,7 +1332,7 @@ function formatAmountWithLeadingZeros(
         ).width
       }
     }
-  })
+  }
 
   return segments
 }

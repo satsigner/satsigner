@@ -253,9 +253,9 @@ export default function NostrSync() {
         'connected' | 'connecting' | 'disconnected'
       > = {}
 
-      relays.forEach((relay) => {
+      for (const relay of relays) {
         statuses[relay] = 'connecting'
-      })
+      }
       setRelayConnectionStatuses(statuses)
 
       // Test connectivity only - don't publish events here to avoid rate limiting
@@ -508,9 +508,9 @@ export default function NostrSync() {
           'connected' | 'connecting' | 'disconnected'
         > = {}
         if (account.nostr.relays) {
-          account.nostr.relays.forEach((relay) => {
+          for (const relay of account.nostr.relays) {
             allRelaysDisconnected[relay] = 'disconnected'
-          })
+          }
         }
         setRelayConnectionStatuses(allRelaysDisconnected)
 

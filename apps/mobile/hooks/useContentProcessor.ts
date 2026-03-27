@@ -73,7 +73,9 @@ function autoSelectUtxos(
     )
     addInput?.(highestUtxo)
   } else {
-    result.inputs.forEach((utxo) => addInput?.(utxo))
+    for (const utxo of result.inputs) {
+      addInput?.(utxo)
+    }
   }
 }
 
@@ -135,9 +137,9 @@ async function processBitcoinContent(
               )
 
               const pubkeyToCosignerIndex = new Map<string, number>()
-              combinedPsbt.data.inputs.forEach((input) => {
+              for (const input of combinedPsbt.data.inputs) {
                 if (input.bip32Derivation) {
-                  input.bip32Derivation.forEach((derivation) => {
+                  for (const derivation of input.bip32Derivation) {
                     const fingerprint =
                       derivation.masterFingerprint.toString('hex')
                     const pubkey = derivation.pubkey.toString('hex')
@@ -147,17 +149,17 @@ async function processBitcoinContent(
                     if (cosignerIndex !== undefined) {
                       pubkeyToCosignerIndex.set(pubkey, cosignerIndex)
                     }
-                  })
+                  }
                 }
                 if (input.partialSig) {
-                  input.partialSig.forEach((sig) => {
+                  for (const sig of input.partialSig) {
                     bitcoinjs.crypto
                       .hash160(sig.pubkey)
                       .slice(0, 4)
                       .toString('hex')
-                  })
+                  }
                 }
-              })
+              }
 
               const individualSignedPsbts = extractIndividualSignedPsbts(
                 psbtBase64,
@@ -166,7 +168,7 @@ async function processBitcoinContent(
 
               const psbtsByCosigner = new Map<number, string[]>()
 
-              Object.values(individualSignedPsbts).forEach((psbtStr) => {
+              for (const psbtStr of Object.values(individualSignedPsbts)) {
                 const pubkeys = getCollectedSignerPubkeys(psbtStr)
                 if (pubkeys.size > 0) {
                   const pubkey = pubkeys.values().next().value
@@ -180,7 +182,7 @@ async function processBitcoinContent(
                     }
                   }
                 }
-              })
+              }
 
               for (const [cosignerIndex, psbts] of psbtsByCosigner.entries()) {
                 if (psbts.length > 1) {
@@ -195,9 +197,11 @@ async function processBitcoinContent(
                 psbtBase64,
                 originalPsbt
               )
-              Object.entries(individualSignedPsbts).forEach(([key, value]) => {
+              for (const [key, value] of Object.entries(
+                individualSignedPsbts
+              )) {
                 finalSignedPsbtsMap.set(parseInt(key, 10), value as string)
-              })
+              }
             }
             actions.setSignedPsbts?.(finalSignedPsbtsMap)
 

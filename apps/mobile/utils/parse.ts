@@ -14,9 +14,9 @@ function parseAccountAddressesDetails({
 }: Account): Account['addresses'] {
   const labelsBackup: Record<string, string> = {}
 
-  addresses.forEach((addr) => {
+  for (const addr of addresses) {
     labelsBackup[addr.address] = addr.label
-  })
+  }
 
   const addressesDetailed = addresses.map((addr) => {
     return {
@@ -101,9 +101,9 @@ function parseAccountAddressesDetails({
   }
 
   // Restore labels from backup
-  addressesDetailed.forEach((addr) => {
+  for (const addr of addressesDetailed) {
     addr.label = labelsBackup[addr.address] || ''
-  })
+  }
 
   return addressesDetailed
 }

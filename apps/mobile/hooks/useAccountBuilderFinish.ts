@@ -69,11 +69,12 @@ function useAccountBuilderFinish() {
       if (walletData) {
         if (account.policyType === 'multisig' && walletData.keyFingerprints) {
           // For multisig, use individual key fingerprints
-          walletData.keyFingerprints.forEach(
-            (fingerprint: string, index: number) => {
-              updateKeyFingerprint(index, fingerprint)
-            }
-          )
+          for (const [
+            index,
+            fingerprint
+          ] of walletData.keyFingerprints.entries()) {
+            updateKeyFingerprint(index, fingerprint as string)
+          }
         } else {
           // For singlesig, use the single fingerprint
           updateKeyFingerprint(key.index, walletData.fingerprint)

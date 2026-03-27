@@ -47,10 +47,10 @@ describe('esplora tests', () => {
       '591e91f809d716912ca1d4a9295e70c3e78bab077683f79350f101da64588073'
     const resp = await esplora.getTxOutspends(txid)
     expect(Array.isArray(resp)).toBe(true)
-    resp.forEach((outspend) => {
+    for (const outspend of resp) {
       expect(outspend).toHaveProperty('spent')
       expect(typeof outspend.spent).toBe('boolean')
-    })
+    }
   })
 
   it('get address tx', async () => {
@@ -65,20 +65,20 @@ describe('esplora tests', () => {
     const address = 'bc1qs308e0rcv8aycdq3jcdxxu60ws3a6a5rcnhfyv'
     const resp = await esplora.getAddressTxsInMempool(address)
     expect(Array.isArray(resp)).toBe(true)
-    resp.forEach((tx) => {
+    for (const tx of resp) {
       expect(tx).toHaveProperty('txid')
       expect(typeof tx.txid).toBe('string')
-    })
+    }
   })
 
   it('get address utxos', async () => {
     const address = 'bc1qs308e0rcv8aycdq3jcdxxu60ws3a6a5rcnhfyv'
     const resp = await esplora.getAddressUtxos(address)
     expect(Array.isArray(resp)).toBe(true)
-    resp.forEach((utxo) => {
+    for (const utxo of resp) {
       expect(utxo).toHaveProperty('txid')
       expect(utxo).toHaveProperty('value')
-    })
+    }
   })
 
   it('get fee estimates', async () => {

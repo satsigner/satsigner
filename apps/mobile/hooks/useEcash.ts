@@ -86,14 +86,14 @@ export function useEcash() {
   )
 
   const markReceivedTokensAsSpent = useCallback(() => {
-    transactions.forEach((transaction) => {
+    for (const transaction of transactions) {
       if (
         transaction.type === 'receive' &&
         transaction.tokenStatus === 'unspent'
       ) {
         updateTransaction(transaction.id, { tokenStatus: 'spent' })
       }
-    })
+    }
   }, [transactions, updateTransaction])
 
   const connectToMintHandler = useCallback(

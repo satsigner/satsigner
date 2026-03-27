@@ -67,21 +67,21 @@ export function useNostrSignFlow() {
     const sent = outputs.reduce((acc, output) => acc + output.value, 0)
     const received = inputs.reduce((acc, input) => acc + (input.value || 0), 0)
 
-    inputs.forEach((input) => {
+    for (const input of inputs) {
       addInput({
         ...input,
         keychain: input.keychain || 'external',
         script: parseHexToBytes(input.script)
       })
-    })
+    }
 
-    outputs.forEach((output) => {
+    for (const output of outputs) {
       addOutput({
         amount: output.value,
         label: output.label || '',
         to: output.address
       })
-    })
+    }
 
     if (fee) {
       setFee(fee)
@@ -118,13 +118,13 @@ export function useNostrSignFlow() {
       )
 
       const pubkeyToCosignerIndexMap = new Map<string, number>()
-      cosignerPubkeys.forEach((pubkey, index) => {
+      for (const [index, pubkey] of cosignerPubkeys.entries()) {
         if (pubkey) {
           pubkeyToCosignerIndexMap.set(pubkey, index)
         }
-      })
+      }
 
-      Object.entries(derivedSignedPsbts).forEach(([key, psbt]) => {
+      for (const [key, psbt] of Object.entries(derivedSignedPsbts)) {
         const index = parseInt(key, 10)
         const signerPubkey = signerPubkeys[index]
         if (signerPubkey) {
@@ -133,14 +133,14 @@ export function useNostrSignFlow() {
             remappedPsbts[cosignerIndex] = psbt
           }
         }
-      })
+      }
       finalSignedPsbts = remappedPsbts
     }
 
     const signedPsbtsMap = new Map<number, string>()
-    Object.entries(finalSignedPsbts).forEach(([key, value]) => {
+    for (const [key, value] of Object.entries(finalSignedPsbts)) {
       signedPsbtsMap.set(parseInt(key, 10), value)
-    })
+    }
     setSignedPsbts(signedPsbtsMap)
 
     const psbt = new PartiallySignedTransaction(originalPsbt)

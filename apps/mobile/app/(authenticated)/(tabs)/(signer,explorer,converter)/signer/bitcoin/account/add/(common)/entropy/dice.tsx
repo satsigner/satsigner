@@ -63,9 +63,9 @@ export default function DiceEntropy() {
       setRolls(updatedRolls)
 
       let base10 = BigInt(0)
-      updatedRolls.forEach((digit) => {
+      for (const digit of updatedRolls) {
         base10 = base10 * BigInt(6) + BigInt(digit)
-      })
+      }
 
       let newBits = base10.toString(2)
       const padded = Math.ceil(newBits.length / 8) * 8

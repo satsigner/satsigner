@@ -114,11 +114,11 @@ export default function IOPreview() {
     }
     ;(async () => {
       const outputAddresses: Record<string, boolean> = {}
-      account.transactions.forEach((tx) => {
-        tx.vout.forEach((output) => {
+      for (const tx of account.transactions) {
+        for (const output of tx.vout) {
           outputAddresses[output.address] = true
-        })
-      })
+        }
+      }
 
       let i = 0
       while (true) {

@@ -456,10 +456,10 @@ export default function AccountList() {
       case 'watchonlyTether':
         setPolicyType('watchonly')
         setCreationType('importAddress')
-        sampleMultiAddressTether.forEach((address, index) => {
+        for (const [index, address] of sampleMultiAddressTether.entries()) {
           setExternalDescriptor(`addr(${address})`)
           setKey(index)
-        })
+        }
         break
       case 'multisig': {
         // Set up multisig configuration

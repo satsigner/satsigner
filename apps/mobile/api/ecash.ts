@@ -208,13 +208,13 @@ async function validateProofs(
   const validProofs: EcashProof[] = []
   const spentProofs: EcashProof[] = []
 
-  proofStates.forEach((state, index) => {
+  for (const [index, state] of proofStates.entries()) {
     if (state.state === 'UNSPENT' || state.state === 'PENDING') {
       validProofs.push(proofs[index])
     } else if (state.state === 'SPENT') {
       spentProofs.push(proofs[index])
     }
-  })
+  }
 
   return { spentProofs, validProofs }
 }

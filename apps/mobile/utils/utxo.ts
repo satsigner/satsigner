@@ -390,20 +390,20 @@ function selectStonewallUtxos(
 
   // Group UTXOs by script type to help with fingerprinting avoidance
   const utxosByType: { [key: string]: _Utxo[] } = {}
-  eligibleUtxos.forEach((utxo) => {
+  for (const utxo of eligibleUtxos) {
     const type = utxo.scriptType || 'p2pkh'
     if (!utxosByType[type]) {
       utxosByType[type] = []
     }
     utxosByType[type].push(utxo)
-  })
+  }
 
   // Sort UTXOs by size within each type
-  Object.keys(utxosByType).forEach((type) => {
+  for (const type of Object.keys(utxosByType)) {
     utxosByType[type].sort(
       (a: { value: number }, b: { value: number }) => a.value - b.value
     )
-  })
+  }
 
   // Try to find a suitable STONEWALL structure
   let bestSolution = null
@@ -666,16 +666,16 @@ function calculateStonewallEntropy(solution: {
   ]
   const valueDistribution: { [key: number]: number } = {}
 
-  allValues.forEach((value) => {
+  for (const value of allValues) {
     valueDistribution[value] = (valueDistribution[value] || 0) + 1
-  })
+  }
 
   // Calculate entropy
   const totalCount = allValues.length
-  Object.values(valueDistribution).forEach((count) => {
+  for (const count of Object.values(valueDistribution)) {
     const probability = count / totalCount
     entropy -= probability * Math.log2(probability)
-  })
+  }
 
   // Scale entropy to a 0-100 score
   const normalizedEntropy = Math.min(100, entropy * 25)

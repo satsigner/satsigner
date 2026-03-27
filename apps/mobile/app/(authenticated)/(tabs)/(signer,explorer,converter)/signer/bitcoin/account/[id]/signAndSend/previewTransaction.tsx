@@ -293,29 +293,25 @@ function PreviewTransaction() {
   } = psbtManagement
 
   function processExtractedPsbtData(extractedData: ExtractedTransactionData) {
-    extractedData.inputs.forEach(
-      (input: ExtractedTransactionData['inputs'][number]) => {
-        addInput({
-          addressTo: input.address,
-          keychain: input.keychain || 'external',
-          label: input.label,
-          script: Buffer.from(input.script, 'hex').toJSON().data,
-          txid: input.txid,
-          value: input.value,
-          vout: input.vout
-        })
-      }
-    )
+    for (const input of extractedData.inputs) {
+      addInput({
+        addressTo: input.address,
+        keychain: input.keychain || 'external',
+        label: input.label,
+        script: Buffer.from(input.script, 'hex').toJSON().data,
+        txid: input.txid,
+        value: input.value,
+        vout: input.vout
+      })
+    }
 
-    extractedData.outputs.forEach(
-      (output: ExtractedTransactionData['outputs'][number]) => {
-        addOutput({
-          amount: output.value,
-          label: output.label || '',
-          to: output.address
-        })
-      }
-    )
+    for (const output of extractedData.outputs) {
+      addOutput({
+        amount: output.value,
+        label: output.label || '',
+        to: output.address
+      })
+    }
 
     if (extractedData.fee) {
       setFee(extractedData.fee)
@@ -456,20 +452,20 @@ function PreviewTransaction() {
 
       // Build a map of pubkey to cosigner index from BIP32 derivations
       const pubkeyToCosignerIndex = new Map<string, number>()
-      psbtObj.data.inputs.forEach((input) => {
+      for (const input of psbtObj.data.inputs) {
         if (!input.bip32Derivation) {
-          return
+          continue
         }
-        input.bip32Derivation.forEach((derivation) => {
+        for (const derivation of input.bip32Derivation) {
           const fingerprint = derivation.masterFingerprint.toString('hex')
           const pubkey = derivation.pubkey.toString('hex')
           const cosignerIndex = keyFingerprintToCosignerIndex.get(fingerprint)
           if (cosignerIndex === undefined) {
-            return
+            continue
           }
           pubkeyToCosignerIndex.set(pubkey, cosignerIndex)
-        })
-      })
+        }
+      }
 
       // Get all pubkeys that have signatures in the PSBT
       const signerPubkeys = getCollectedSignerPubkeys(combinedPsbtBase64)
@@ -496,14 +492,14 @@ function PreviewTransaction() {
       )
 
       // Apply matches and show notifications
-      matches.forEach((match) => {
+      for (const match of matches) {
         updateSignedPsbt(match.cosignerIndex, match.signedPsbtBase64)
         toast.success(
           t('transaction.build.preview.detectedSignature', {
             cosigner: match.cosignerIndex + 1
           })
         )
-      })
+      }
     }
 
     detectSignatures()

@@ -46,7 +46,7 @@ export function useNFCReader() {
     const result: NFCReadResult = {}
 
     // Process each record
-    tag.ndefMessage.forEach((record) => {
+    for (const record of tag.ndefMessage) {
       // Convert type to string if it's an array of numbers
       const type =
         typeof record.type === 'string'
@@ -72,7 +72,7 @@ export function useNFCReader() {
         // Store the raw transaction data
         result.txData = new Uint8Array(record.payload)
       }
-    })
+    }
 
     if (result.txData || result.txId || result.text) {
       setIsReading(false)

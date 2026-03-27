@@ -66,10 +66,10 @@ function SSMultipleSankeyDiagram({
   const maxNodeCountInDepthH = useMemo(() => {
     const depthCounts = new Map<number, number>()
 
-    sankeyNodes.forEach((node) => {
+    for (const node of sankeyNodes) {
       const count = depthCounts.get(node.depthH) || 0
       depthCounts.set(node.depthH, count + 1)
-    })
+    }
 
     return depthCounts.size > 0
       ? Math.max(...Array.from(depthCounts.values()))
@@ -130,7 +130,7 @@ function SSMultipleSankeyDiagram({
     let minX = Infinity
     let maxX = -Infinity
 
-    nodes.forEach((node) => {
+    for (const node of nodes) {
       const typedNode = node as Node
       if (
         lastThreeLevels.includes(typedNode.depthH) &&
@@ -139,7 +139,7 @@ function SSMultipleSankeyDiagram({
         minX = Math.min(minX, typedNode.x0)
         maxX = Math.max(maxX, typedNode.x0)
       }
-    })
+    }
 
     // Calculate the width of the last three levels
     const lastThreeLevelsWidth = maxX - minX + NODE_WIDTH

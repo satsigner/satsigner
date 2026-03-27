@@ -476,15 +476,15 @@ export const useNodesAndLinks = ({
       const links: Link[] = []
       const depthMap = new Map()
 
-      nodes.forEach((node: TxNode) => {
-        const depth = node.depthH
+      for (const node of nodes) {
+        const depth = (node as TxNode).depthH
         if (!depthMap.has(depth)) {
           depthMap.set(depth, [])
         }
         depthMap.get(depth).push(node)
-      })
+      }
 
-      nodes.forEach((node: TxNode) => {
+      for (const node of nodes) {
         if (node.type === 'text' && node.depthH === 0) {
           // vin node in the first depth
           const nextDepthNodes = depthMap.get(node.depthH + 1) || []
@@ -505,9 +505,9 @@ export const useNodesAndLinks = ({
             (n: TxNode) => n.type === 'text' && n.txId === node.txId
           )
 
-          vouts.forEach((vout: TxNode) => {
+          for (const vout of vouts as TxNode[]) {
             links.push({ source: node.id, target: vout.id, value: vout.value })
-          })
+          }
         } else if (node.type === 'text' && node.nextTx) {
           // vout node that has connection to block
           const targetBlock = nodes.find(
@@ -554,7 +554,7 @@ export const useNodesAndLinks = ({
             value: node.value
           })
         }
-      })
+      }
 
       for (const node of outputNodesCurrentTransaction.slice(1)) {
         links.push({

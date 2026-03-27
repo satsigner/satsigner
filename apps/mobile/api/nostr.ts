@@ -257,7 +257,9 @@ export class NostrAPI {
     this.isProcessingQueue = true
     const batch = this.eventQueue.splice(0, this.BATCH_SIZE)
     const toProcess = batch.filter((m) => !this.processedMessageIds.has(m.id))
-    toProcess.forEach((m) => this.processedMessageIds.add(m.id))
+    for (const m of toProcess) {
+      this.processedMessageIds.add(m.id)
+    }
 
     if (toProcess.length > 0 && this._callback) {
       try {
@@ -343,9 +345,9 @@ export class NostrAPI {
         if (rawId) {
           if (this.processedRawEventIds.size >= MAX_PROCESSED_RAW_IDS) {
             const entries = Array.from(this.processedRawEventIds)
-            entries
-              .slice(0, Math.floor(entries.length / 2))
-              .forEach((id) => this.processedRawEventIds.delete(id))
+            for (const id of entries.slice(0, Math.floor(entries.length / 2))) {
+              this.processedRawEventIds.delete(id)
+            }
           }
           this.processedRawEventIds.add(rawId)
         }

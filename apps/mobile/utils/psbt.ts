@@ -90,9 +90,9 @@ function extractPSBTDerivations(psbtBase64: string) {
     inputIndex: number
   }[] = []
 
-  psbt.data.inputs.forEach((input, inputIndex) => {
+  for (const [inputIndex, input] of psbt.data.inputs.entries()) {
     if (input.bip32Derivation) {
-      input.bip32Derivation.forEach((derivation) => {
+      for (const derivation of input.bip32Derivation) {
         const fingerprint = derivation.masterFingerprint.toString('hex')
         const derivationPath = derivation.path
         const publicKey = derivation.pubkey.toString('hex')
@@ -103,9 +103,9 @@ function extractPSBTDerivations(psbtBase64: string) {
           inputIndex,
           publicKey
         })
-      })
+      }
     }
-  })
+  }
 
   return derivations
 }
@@ -206,18 +206,18 @@ export function signPSBTWithSeed(
     path: string
   }[] = []
 
-  psbt.data.inputs.forEach((input, inputIndex) => {
+  for (const [inputIndex, input] of psbt.data.inputs.entries()) {
     if (input.bip32Derivation) {
-      input.bip32Derivation.forEach((derivation) => {
+      for (const derivation of input.bip32Derivation) {
         derivations.push({
           fingerprint: derivation.masterFingerprint.toString('hex'),
           inputIndex,
           path: derivation.path,
           pubkey: derivation.pubkey.toString('hex')
         })
-      })
+      }
     }
-  })
+  }
 
   // Find ALL matching derivations for our seed (not just the first one)
   const matchingDerivations = derivations.filter(
@@ -349,7 +349,7 @@ function getSignedPSBTValidationInfo(signedPSBT: string) {
   }
 
   // Check each input for signatures
-  psbt.data.inputs.forEach((input, inputIndex) => {
+  for (const [inputIndex, input] of psbt.data.inputs.entries()) {
     const inputInfo = {
       hasBip32Derivation: !!input.bip32Derivation,
       hasNonWitnessUtxo: !!input.nonWitnessUtxo,
@@ -365,7 +365,7 @@ function getSignedPSBTValidationInfo(signedPSBT: string) {
     // Check for partial signatures
     if (input.partialSig && input.partialSig.length > 0) {
       inputInfo.hasPartialSigs = true
-      input.partialSig.forEach((sig) => {
+      for (const sig of input.partialSig) {
         inputInfo.partialSigs.push({
           pubkey: sig.pubkey.toString('hex'),
           signature: sig.signature.toString('hex')
@@ -375,13 +375,13 @@ function getSignedPSBTValidationInfo(signedPSBT: string) {
           pubkey: sig.pubkey.toString('hex'),
           signature: sig.signature.toString('hex')
         })
-      })
+      }
     } else {
       validation.warnings.push(`Input ${inputIndex} has no partial signatures`)
     }
 
     validation.inputs.push(inputInfo)
-  })
+  }
 
   return validation
 }
@@ -533,22 +533,22 @@ export function extractOriginalPsbt(psbtBase64: string): string {
   newPsbt.setVersion(tx.version)
   newPsbt.setLocktime(tx.locktime)
 
-  psbt.txInputs.forEach((input) => {
+  for (const input of psbt.txInputs) {
     newPsbt.addInput({
       hash: input.hash,
       index: input.index,
       sequence: input.sequence
     })
-  })
+  }
 
-  psbt.txOutputs.forEach((output) => {
+  for (const output of psbt.txOutputs) {
     newPsbt.addOutput({
       script: output.script,
       value: output.value
     })
-  })
+  }
 
-  psbt.data.inputs.forEach((input, index) => {
+  for (const [index, input] of psbt.data.inputs.entries()) {
     const {
       partialSig: _partialSig,
       finalScriptSig: _finalScriptSig,
@@ -556,11 +556,11 @@ export function extractOriginalPsbt(psbtBase64: string): string {
       ...nonSignatureData
     } = input
     newPsbt.updateInput(index, nonSignatureData)
-  })
+  }
 
-  psbt.data.outputs.forEach((output, index) => {
+  for (const [index, output] of psbt.data.outputs.entries()) {
     newPsbt.updateOutput(index, output)
-  })
+  }
 
   return newPsbt.toBase64()
 }
@@ -626,10 +626,10 @@ export function extractIndividualSignedPsbts(
   const signerPubkeys = getCollectedSignerPubkeys(combinedPsbtBase64)
   const signerPubkeyArray = Array.from(signerPubkeys)
 
-  signerPubkeyArray.forEach((pubkey, index) => {
+  for (const [index, pubkey] of signerPubkeyArray.entries()) {
     const individualPsbt = bitcoinjs.Psbt.fromBase64(originalPsbtBase64)
 
-    combinedPsbt.data.inputs.forEach((input, inputIndex) => {
+    for (const [inputIndex, input] of combinedPsbt.data.inputs.entries()) {
       if (input.partialSig && input.partialSig.length > 0) {
         const signerSigs = input.partialSig.filter(
           (sig) => sig.pubkey.toString('hex') === pubkey
@@ -641,10 +641,10 @@ export function extractIndividualSignedPsbts(
           })
         }
       }
-    })
+    }
 
     individualSignedPsbts[index] = individualPsbt.toBase64()
-  })
+  }
 
   return individualSignedPsbts
 }
@@ -661,7 +661,7 @@ export function validatePsbt(
 
   // 1. Validate all inputs are valid
   const invalidInputs: number[] = []
-  psbt.data.inputs.forEach((input, index) => {
+  for (const [index, input] of psbt.data.inputs.entries()) {
     if (!input.witnessUtxo && !input.nonWitnessUtxo) {
       invalidInputs.push(index)
     } else if (input.witnessUtxo) {
@@ -684,7 +684,7 @@ export function validatePsbt(
         invalidInputs.push(index)
       }
     }
-  })
+  }
 
   if (invalidInputs.length > 0) {
     errors.push(
@@ -695,11 +695,11 @@ export function validatePsbt(
   // 2. Check if UTXOs are spendable (exist in wallet)
   const unspendableUtxos: string[] = []
   const utxoMap = new Map<string, Utxo>()
-  utxos.forEach((utxo) => {
+  for (const utxo of utxos) {
     utxoMap.set(`${utxo.txid}:${utxo.vout}`, utxo)
-  })
+  }
 
-  psbt.txInputs.forEach((txInput, index) => {
+  for (const [index, txInput] of psbt.txInputs.entries()) {
     const txid = txInput.hash.reverse().toString('hex')
     const vout = txInput.index
     const utxoKey = `${txid}:${vout}`
@@ -709,7 +709,7 @@ export function validatePsbt(
         `Input ${index + 1} (${txid.substring(0, 8)}...:${vout})`
       )
     }
-  })
+  }
 
   if (unspendableUtxos.length > 0) {
     warnings.push(

@@ -421,7 +421,7 @@ class ElectrumClient extends BaseElectrumClient {
     const parsedTransactions: TxDecoded[] = []
     const txDictionary: Record<string, number> = {}
 
-    rawTransactions.forEach((rawTx, index) => {
+    for (const [index, rawTx] of rawTransactions.entries()) {
       const parsedTx = TxDecoded.fromHex(rawTx)
       const tx: Transaction = {
         address,
@@ -447,7 +447,7 @@ class ElectrumClient extends BaseElectrumClient {
       transactions.push(tx)
       parsedTransactions.push(parsedTx)
       txDictionary[tx.id] = index
-    })
+    }
 
     // Compute sent and received vales
     // Also, add the fields VINS && VOUTS to the transaction

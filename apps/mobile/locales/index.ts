@@ -6,21 +6,21 @@ function generateJson(j: Record<string, unknown>): Record<string, unknown> {
   function nestKeys(obj: Record<string, unknown>): Record<string, unknown> {
     const nestedObj: Record<string, unknown> = {}
 
-    Object.entries(obj).forEach(([key, value]) => {
+    for (const [key, value] of Object.entries(obj)) {
       if (typeof value === 'object' && value !== null) {
         nestedObj[key] = nestKeys(value as Record<string, unknown>)
       } else {
         const keys = key.split('.')
         let current = nestedObj
 
-        keys.forEach((k, index) => {
+        for (const [index, k] of keys.entries()) {
           if (!current[k]) {
             current[k] = index === keys.length - 1 ? value : {}
           }
           current = current[k] as Record<string, unknown>
-        })
+        }
       }
-    })
+    }
 
     return nestedObj
   }

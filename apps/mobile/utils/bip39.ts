@@ -298,7 +298,7 @@ function deriveXpubFromMnemonic(
 
   let parentFingerprint = 0
 
-  indices.forEach((index, i) => {
+  for (const [i, index] of indices.entries()) {
     node = node.deriveChild(index)
 
     if (i === 2) {
@@ -312,7 +312,7 @@ function deriveXpubFromMnemonic(
       parentFingerprint: fingerprintToHex(node.parentFingerprint || 0),
       publicExtendedKey: node.publicExtendedKey
     })
-  })
+  }
 
   const accountXpub = node.publicExtendedKey
 
