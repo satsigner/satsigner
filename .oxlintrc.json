@@ -7,7 +7,28 @@
   ],
   "ignorePatterns": [".agents", ".claude", ".cursor"],
   "rules": {
-    "no-use-before-define": "allow"
+    "no-use-before-define": "allow",
+    "sort-keys": "allow",
+    "func-style": "allow",
+    "no-inline-comments": "allow",
+    "no-shadow": "allow",
+    "prefer-destructuring": "allow",
+    "no-bitwise": "allow",
+    "no-plusplus": "allow",
+    "no-warning-comments": "allow",
+    "no-negated-condition": "allow",
+    "no-param-reassign": "allow",
+    "no-eq-null": "allow",
+    "class-methods-use-this": "allow",
+    "max-classes-per-file": "allow",
+    "react-perf/jsx-no-new-function-as-prop": "allow",
+    "unicorn/filename-case": "allow",
+    "unicorn/no-nested-ternary": "allow",
+    "unicorn/prefer-module": "allow",
+    "unicorn/no-array-sort": "allow",
+    "unicorn/prefer-ternary": "allow",
+    "node/global-require": "allow",
+    "promise/avoid-new": "allow"
   },
   "overrides": [
     {
