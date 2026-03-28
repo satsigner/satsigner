@@ -298,10 +298,7 @@ export async function receiveEcash(
   }
 }
 
-export function getMintBalance(
-  _mintUrl: string,
-  proofs: EcashProof[]
-): Promise<number> {
+export function getMintBalance(_mintUrl: string, proofs: EcashProof[]): number {
   return proofs.reduce((sum, proof) => sum + proof.amount, 0)
 }
 

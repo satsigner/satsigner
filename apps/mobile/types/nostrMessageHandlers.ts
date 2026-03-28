@@ -29,7 +29,7 @@ export type MessageHandlerContext = {
 
 export type MessageHandler = {
   canHandle: (context: MessageHandlerContext) => boolean
-  handle: (context: MessageHandlerContext) => Promise<void>
+  handle: (context: MessageHandlerContext) => void | Promise<void>
 }
 
 export type PendingDM = {
