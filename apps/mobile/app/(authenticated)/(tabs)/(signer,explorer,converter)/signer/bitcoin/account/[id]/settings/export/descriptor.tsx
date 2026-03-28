@@ -1,5 +1,4 @@
-import { Descriptor } from 'bdk-rn'
-import { KeychainKind, type Network as BDKNetwork } from 'bdk-rn/lib/lib/enums'
+import { KeychainKind, walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
@@ -20,7 +19,7 @@ import { type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { getDescriptorsFromKey } from '@/utils/bip32'
 import { getPublicDescriptorFromMnemonic } from '@/utils/bip39'
-import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
+import { appNetworkToBdkNetwork, getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
 
@@ -140,16 +139,10 @@ export default function DescriptorPage() {
           if (decryptedSecret.externalDescriptor) {
             descriptorString = decryptedSecret.externalDescriptor
 
-            // If the descriptor doesn't have a checksum, add one
+            // Validate descriptor with BDK (checksum is part of the string)
             if (descriptorString && !descriptorString.includes('#')) {
               try {
-                const descriptor = await new Descriptor().create(
-                  descriptorString,
-                  network as BDKNetwork
-                )
-                if (descriptor) {
-                  descriptorString = await descriptor.asString()
-                }
+                walletNameFromDescriptor(descriptorString, undefined, appNetworkToBdkNetwork(network))
               } catch {
                 // Keep the original descriptor if BDK fails
               }
@@ -160,23 +153,17 @@ export default function DescriptorPage() {
               key.scriptVersion,
               KeychainKind.External,
               decryptedSecret.passphrase,
-              account.network as BDKNetwork
+              appNetworkToBdkNetwork(network)
             )
           }
         } else if (key.creationType === 'importDescriptor') {
           // For descriptor-based keys, use the stored descriptor and ensure it has checksum
           descriptorString = decryptedSecret.externalDescriptor || ''
 
-          // If the descriptor doesn't have a checksum, add one
+          // Validate descriptor with BDK
           if (descriptorString && !descriptorString.includes('#')) {
             try {
-              const descriptor = await new Descriptor().create(
-                descriptorString,
-                network as BDKNetwork
-              )
-              if (descriptor) {
-                descriptorString = await descriptor.asString()
-              }
+              walletNameFromDescriptor(descriptorString, undefined, appNetworkToBdkNetwork(network))
             } catch {
               // Keep the original descriptor if BDK fails
             }
@@ -224,15 +211,9 @@ export default function DescriptorPage() {
                 descriptorString = `wpkh(${keyPart})`
             }
 
-            // Add checksum using BDK
+            // Validate descriptor with BDK
             try {
-              const descriptor = await new Descriptor().create(
-                descriptorString,
-                network as BDKNetwork
-              )
-              if (descriptor) {
-                descriptorString = await descriptor.asString()
-              }
+              walletNameFromDescriptor(descriptorString, undefined, appNetworkToBdkNetwork(network))
             } catch {
               // Keep the descriptor without checksum if BDK fails
             }
@@ -250,7 +231,7 @@ export default function DescriptorPage() {
                   decryptedSecret.extendedPublicKey,
                   fingerprint,
                   key.scriptVersion || 'P2WPKH',
-                  network as BDKNetwork
+                  appNetworkToBdkNetwork(network)
                 )
                 descriptorString = descriptors.externalDescriptor
               } catch {
@@ -295,15 +276,9 @@ export default function DescriptorPage() {
                     descriptorString = `wpkh(${keyPart})`
                 }
 
-                // Add checksum using BDK
+                // Validate descriptor with BDK
                 try {
-                  const descriptor = await new Descriptor().create(
-                    descriptorString,
-                    network as BDKNetwork
-                  )
-                  if (descriptor) {
-                    descriptorString = await descriptor.asString()
-                  }
+                  walletNameFromDescriptor(descriptorString, undefined, appNetworkToBdkNetwork(network))
                 } catch {
                   // Keep the descriptor without checksum if BDK fails
                 }
@@ -338,15 +313,9 @@ export default function DescriptorPage() {
                   descriptorString = `wpkh(${keyPart})`
               }
 
-              // Add checksum using BDK
+              // Validate descriptor with BDK
               try {
-                const descriptor = await new Descriptor().create(
-                  descriptorString,
-                  network as BDKNetwork
-                )
-                if (descriptor) {
-                  descriptorString = await descriptor.asString()
-                }
+                walletNameFromDescriptor(descriptorString, undefined, appNetworkToBdkNetwork(network))
               } catch {
                 // Keep the descriptor without checksum if BDK fails
               }

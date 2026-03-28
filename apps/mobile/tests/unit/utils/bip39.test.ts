@@ -1,4 +1,4 @@
-import { KeychainKind, Network as BdkNetwork } from 'bdk-rn/lib/lib/enums'
+import { KeychainKind, Network as BdkNetwork } from 'react-native-bdk-sdk'
 
 import { type ScriptVersionType } from '@/types/models/Account'
 import { getFingerprintFromSeed } from '@/utils/bip32'

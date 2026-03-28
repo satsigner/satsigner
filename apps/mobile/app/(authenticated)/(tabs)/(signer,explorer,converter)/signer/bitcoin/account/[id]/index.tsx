@@ -1,6 +1,5 @@
 import { useFocusEffect } from '@react-navigation/native'
 import { FlashList } from '@shopify/flash-list'
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import {
   Redirect,
   router,
@@ -31,6 +30,7 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getLastUnusedAddressFromWallet, getWalletAddresses } from '@/api/bdk'
+import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import {
   SSIconBlackIndicator,
   SSIconBubbles,
@@ -573,9 +573,9 @@ function DerivedAddresses({
   perPage = 10
 }: DerivedAddressesProps) {
   const wallet = useGetAccountWallet(account.id!)
-  const network = useBlockchainStore(
+  const network = appNetworkToBdkNetwork(useBlockchainStore(
     (state) => state.selectedNetwork
-  ) as Network
+  ))
   const updateAccount = useAccountsStore((state) => state.updateAccount)
 
   const _windowDimensions = useWindowDimensions()
@@ -1110,10 +1110,10 @@ export default function AccountView() {
       state.btcPrice
     ])
   )
-  const [getBlockchainHeight, mempoolUrl, connectionMode, autoConnectDelay] =
+  const [lastKnownBlockHeight, mempoolUrl, connectionMode, autoConnectDelay] =
     useBlockchainStore(
       useShallow((state) => [
-        state.getBlockchainHeight,
+        state.lastKnownBlockHeight,
         state.configsMempool['bitcoin'],
         state.configs[state.selectedNetwork].config.connectionMode,
         state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
@@ -1132,7 +1132,7 @@ export default function AccountView() {
     useState<Direction>('desc')
   const [sortDirectionDerivedAddresses, setSortDirectionDerivedAddresses] =
     useState<Direction>('desc')
-  const [blockchainHeight, setBlockchainHeight] = useState<number>(0)
+  const blockchainHeight = lastKnownBlockHeight
 
   const tabs = [
     { key: 'totalTransactions' },
@@ -1348,11 +1348,6 @@ export default function AccountView() {
     )
   }
 
-  async function refreshBlockchainHeight() {
-    const height = await getBlockchainHeight()
-    setBlockchainHeight(height)
-  }
-
   async function refreshAccount() {
     if (!account) {
       return
@@ -1390,7 +1385,6 @@ export default function AccountView() {
   async function handleOnRefresh() {
     setRefreshing(true)
     await fetchPrices(mempoolUrl)
-    await refreshBlockchainHeight()
     await refreshAccount()
     // Fire-and-forget - don't block refresh completion for Nostr sync
     refreshAccountLabels()

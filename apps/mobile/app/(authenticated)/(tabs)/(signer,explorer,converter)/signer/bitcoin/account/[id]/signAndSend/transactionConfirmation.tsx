@@ -26,11 +26,11 @@ export default function TransactionConfirmation() {
   const [externalWarningModalVisible, setExternalWarningModalVisible] =
     useState(false)
 
-  const [clearTransaction, txBuilderResult, broadcasted, outputs, inputs, fee] =
+  const [clearTransaction, psbt, broadcasted, outputs, inputs, fee] =
     useTransactionBuilderStore(
       useShallow((state) => [
         state.clearTransaction,
-        state.txBuilderResult,
+        state.psbt,
         state.broadcasted,
         state.outputs,
         state.inputs,
@@ -56,12 +56,12 @@ export default function TransactionConfirmation() {
   }, [account, mempoolConfig])
 
   const mempoolTxUrl = useMemo(() => {
-    if (!webExplorerUrl || !txBuilderResult) {
+    if (!webExplorerUrl || !psbt) {
       return ''
     }
     const base = webExplorerUrl.replace(/\/api\/?$/, '')
-    return `${base}/tx/${txBuilderResult.txDetails.txid}`
-  }, [webExplorerUrl, txBuilderResult])
+    return `${base}/tx/${psbt.txid()}`
+  }, [webExplorerUrl, psbt])
 
   function handleViewOnMempool() {
     setExternalWarningModalVisible(true)
@@ -83,8 +83,8 @@ export default function TransactionConfirmation() {
   // we store the labels in account.labels, then later on the labels will be
   // restored when the wallet data is fetched.
   useEffect(() => {
-    if (txBuilderResult) {
-      const { txid } = txBuilderResult.txDetails
+    if (psbt) {
+      const txid = psbt.txid()
       const labels: Label[] = []
       const defaultChangeAddressLabel = t('sign.changeAddressLabelDefault')
 
@@ -150,16 +150,16 @@ export default function TransactionConfirmation() {
 
       importLabels(id!, labels)
     }
-  }, [id, txBuilderResult, outputs, importLabels])
+  }, [id, psbt, outputs, importLabels])
 
   // Optimistically update the account with the just-broadcast transaction so
   // the user sees it immediately without waiting for a full sync.
   useEffect(() => {
-    if (!txBuilderResult || !account || !broadcasted) {
+    if (!psbt || !account || !broadcasted) {
       return
     }
 
-    const { txid } = txBuilderResult.txDetails
+    const txid = psbt.txid()
 
     // Idempotent — skip if sync already added it
     if (account.transactions.some((tx) => tx.id === txid)) {
@@ -220,14 +220,14 @@ export default function TransactionConfirmation() {
 
   // Redirect if transaction hasn't been broadcasted
   useEffect(() => {
-    if (!broadcasted && account && txBuilderResult) {
+    if (!broadcasted && account && psbt) {
       router.replace(
         `/signer/bitcoin/account/${id}/signAndSend/signTransaction`
       )
     }
-  }, [broadcasted, account, txBuilderResult, id, router])
+  }, [broadcasted, account, psbt, id, router])
 
-  if (!account || !txBuilderResult) {
+  if (!account || !psbt) {
     return <Redirect href="/" />
   }
 
@@ -247,12 +247,12 @@ export default function TransactionConfirmation() {
               <SSText color="muted" uppercase>
                 {t('transaction.id')}
               </SSText>
-              <SSText>{formatAddress(txBuilderResult.txDetails.txid)}</SSText>
+              <SSText>{formatAddress(psbt.txid())}</SSText>
             </SSVStack>
             <SSIconSuccess width={159} height={159} />
           </SSVStack>
           <SSVStack>
-            <SSClipboardCopy text={txBuilderResult.txDetails.txid}>
+            <SSClipboardCopy text={psbt.txid()}>
               <SSButton variant="outline" label={t('sent.copyTransactionId')} />
             </SSClipboardCopy>
             <SSButton

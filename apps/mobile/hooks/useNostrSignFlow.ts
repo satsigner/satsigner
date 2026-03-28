@@ -1,8 +1,4 @@
-import { PartiallySignedTransaction } from 'bdk-rn'
-import {
-  type TransactionDetails,
-  type TxBuilderResult
-} from 'bdk-rn/lib/classes/Bindings'
+import { type PsbtLike } from 'react-native-bdk-sdk'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { useRouter } from 'expo-router'
 import { toast } from 'sonner-native'
@@ -32,7 +28,7 @@ export function useNostrSignFlow() {
     addOutput,
     setFee,
     setRbf,
-    setTxBuilderResult,
+    setPsbt,
     setSignedPsbts
   } = useTransactionBuilderStore()
 
@@ -143,22 +139,13 @@ export function useNostrSignFlow() {
     }
     setSignedPsbts(signedPsbtsMap)
 
-    const psbt = new PartiallySignedTransaction(originalPsbt)
-
-    const txDetails: TransactionDetails = {
-      confirmationTime: undefined,
-      fee,
-      received,
-      sent,
-      transaction: undefined,
-      txid: extractedTxid
-    }
-
-    const txBuilderResult: TxBuilderResult = {
-      psbt,
-      txDetails
-    }
-    setTxBuilderResult(txBuilderResult)
+    const mockPsbt = {
+      extractTxHex: () => '',
+      feeAmount: () => fee,
+      toBase64: () => originalPsbt,
+      txid: () => extractedTxid
+    } as unknown as PsbtLike
+    setPsbt(mockPsbt)
 
     router.replace(
       `/signer/bitcoin/account/${accountMatch.account.id}/signAndSend/previewTransaction`

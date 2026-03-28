@@ -1,6 +1,5 @@
 import { URDecoder } from '@ngraveio/bc-ur'
-import { Descriptor } from 'bdk-rn'
-import { type Network } from 'bdk-rn/lib/lib/enums'
+import { walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
@@ -46,6 +45,7 @@ import {
 import { type WatchOnlySearchParams } from '@/types/navigation/searchParams'
 import { isBBQRFragment } from '@/utils/bbqr'
 import {
+  appNetworkToBdkNetwork,
   bitcoinjsNetwork,
   getDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
@@ -60,6 +60,7 @@ import {
   validateExtendedKey,
   validateFingerprint
 } from '@/utils/validation'
+
 
 const WATCH_ONLY_OPTIONS: CreationType[] = [
   'importExtendedPub',
@@ -407,8 +408,8 @@ export default function WatchOnly() {
 
     if (basicValidation && descriptor) {
       try {
-        // Try to create descriptor with BDK to check network compatibility
-        await new Descriptor().create(descriptor, network as Network)
+        // Try to validate descriptor with BDK to check network compatibility
+        walletNameFromDescriptor(descriptor, undefined, appNetworkToBdkNetwork(network))
         networkValidation = { isValid: true }
       } catch (error) {
         const errorMessage =

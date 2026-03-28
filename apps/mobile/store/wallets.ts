@@ -1,17 +1,17 @@
-import { type Wallet } from 'bdk-rn'
+import { type BdkWallet } from 'react-native-bdk-sdk'
 import { produce } from 'immer'
 import { create } from 'zustand'
 
 import { type Account } from '@/types/models/Account'
 
 type WalletsState = {
-  wallets: Record<Account['id'], Wallet | undefined>
+  wallets: Record<Account['id'], BdkWallet | undefined>
   /** For watch-only address wallets */
   addresses: Record<Account['id'], string | undefined>
 }
 
 type WalletsAction = {
-  addAccountWallet: (accountId: Account['id'], wallet: Wallet) => void
+  addAccountWallet: (accountId: Account['id'], wallet: BdkWallet) => void
   removeAccountWallet: (accountId: Account['id']) => void
   deleteWallets: () => void
   addAccountAddress: (accountId: Account['id'], address: string) => void

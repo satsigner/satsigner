@@ -1,10 +1,10 @@
-import { KeychainKind, type Network } from 'bdk-rn/lib/lib/enums'
+import { KeychainKind } from 'react-native-bdk-sdk'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getDescriptorObject, parseDescriptor } from '@/api/bdk'
+import { getDescriptorString, parseDescriptor } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSFingerprint from '@/components/SSFingerprint'
@@ -27,6 +27,7 @@ import {
   validateMnemonic
 } from '@/utils/bip39'
 import {
+  appNetworkToBdkNetwork,
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
@@ -113,7 +114,7 @@ export default function GenerateMnemonic() {
       const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
         mnemonic,
         passphrase || '',
-        network as Network,
+        appNetworkToBdkNetwork(network),
         scriptVersion
       )
 
@@ -124,7 +125,7 @@ export default function GenerateMnemonic() {
             extendedPublicKey,
             fingerprint,
             scriptVersion,
-            network as Network,
+            appNetworkToBdkNetwork(network),
             policyType === 'multisig' // Pass multisig flag
           )
 
@@ -140,14 +141,14 @@ export default function GenerateMnemonic() {
     } else {
       // For single-sig accounts, try to extract from BDK descriptor first
       try {
-        const externalDescriptor = await getDescriptorObject(
+        const externalDescriptor = await getDescriptorString(
           mnemonic,
           scriptVersion, // Use the script version from store
           KeychainKind.External,
           passphrase || '', // Use passphrase from store
-          network as Network
+          appNetworkToBdkNetwork(network)
         )
-        const parsedDescriptor = await parseDescriptor(externalDescriptor)
+        const parsedDescriptor = parseDescriptor(externalDescriptor)
         derivationPath = parsedDescriptor.derivationPath
       } catch {
         // Use default derivation path if extraction fails

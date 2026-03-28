@@ -1,3 +1,4 @@
+import { KeychainKind } from 'react-native-bdk-sdk'
 import { useEffect } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -7,6 +8,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { useWalletsStore } from '@/store/wallets'
 import { type Account } from '@/types/models/Account'
 import { getAccountWithDecryptedKeys } from '@/utils/account'
+import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 
 const useGetAccountAddress = (id: Account['id']) => {
   const [address, addAccountAddress] = useWalletsStore(
@@ -53,7 +55,7 @@ const useGetAccountAddress = (id: Account['id']) => {
       // For all other account types, use BDK to generate wallet and get first address
       const walletData = await getWalletData(
         temporaryAccount,
-        network as unknown as Parameters<typeof getWalletData>[1] // Cast to BDK Network type
+        appNetworkToBdkNetwork(network)
       )
 
       if (!walletData) {
@@ -61,9 +63,8 @@ const useGetAccountAddress = (id: Account['id']) => {
       }
 
       // Get the first address from the wallet
-      const addressInfo = await walletData.wallet.getAddress(0)
-      const address = addressInfo?.address
-      const firstAddress = address ? await address.asString() : ''
+      const addressInfo = walletData.wallet.peekAddress(KeychainKind.External, 0)
+      const firstAddress = addressInfo?.address ?? ''
       addAccountAddress(account.id, firstAddress)
     } catch (err) {
       const reason = err instanceof Error ? err.message : 'unknown reason'

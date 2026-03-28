@@ -1,10 +1,9 @@
-import { type Blockchain } from 'bdk-rn'
 import { produce } from 'immer'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import { getBlockchain } from '@/api/bdk'
 import {
+  type BlockchainConfig,
   DEFAULT_RETRIES,
   DEFAULT_STOP_GAP,
   DEFAULT_TIME_OUT,
@@ -43,8 +42,8 @@ type BlockchainAction = {
   addCustomServer: (server: Server) => void
   removeCustomServer: (server: Server) => void
   updateCustomServer: (oldServer: Server, newServer: Server) => void
-  getBlockchain: (network?: Network) => Promise<Blockchain>
-  getBlockchainHeight: (network?: Network) => Promise<number>
+  getBlockchainConfig: (network?: Network) => BlockchainConfig
+  setLastKnownBlockHeight: (height: number) => void
 }
 
 const createDefaultNetworkConfig = (
@@ -98,25 +97,16 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
       },
       configsMempool: MempoolServers,
       customServers: [],
-      getBlockchain: async (network = get().selectedNetwork) => {
+      getBlockchainConfig: (network = get().selectedNetwork) => {
         const { server, config } = get().configs[network]
 
-        const blockchainConfig = getBlockchainConfig(
-          server.backend,
-          server.url,
-          {
-            ...config,
-            proxy: server.proxy
-          }
-        )
-
-        return getBlockchain(server.backend, blockchainConfig)
+        return getBlockchainConfig(server.backend, server.url, {
+          ...config,
+          proxy: server.proxy
+        })
       },
-      getBlockchainHeight: async (network = get().selectedNetwork) => {
-        const blockchain = await get().getBlockchain(network)
-        const height = await blockchain.getHeight()
+      setLastKnownBlockHeight: (height: number) => {
         set({ lastKnownBlockHeight: height })
-        return height
       },
       lastKnownBlockHeight: 0,
       removeCustomServer: (server) => {

@@ -1,5 +1,4 @@
 import { FlashList } from '@shopify/flash-list'
-import { Network as BdkNetwork } from 'bdk-rn/lib/lib/enums'
 import { Stack, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -41,6 +40,7 @@ import {
   sampleSignetXpubFingerprint,
   sampleTestnet4Address
 } from '@/constants/samples'
+import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
@@ -68,19 +68,6 @@ import { time } from '@/utils/time'
 
 const ACCOUNT_SKELETON_COUNT = 3
 
-// Helper function to map local Network type to bdk-rn Network enum
-function mapNetworkToBdkNetwork(network: 'bitcoin' | 'testnet' | 'signet') {
-  switch (network) {
-    case 'bitcoin':
-      return BdkNetwork.Bitcoin
-    case 'testnet':
-      return BdkNetwork.Testnet
-    case 'signet':
-      return BdkNetwork.Signet
-    default:
-      return BdkNetwork.Bitcoin
-  }
-}
 
 const STAGGER_DELAY_MS = 70
 const STAGGER_DURATION_MS = 320
@@ -383,7 +370,7 @@ export default function AccountList() {
 
     const currentNetwork = tabs[tabIndex].key as Network
 
-    const bdkNetwork = mapNetworkToBdkNetwork(currentNetwork)
+    const bdkNetwork = appNetworkToBdkNetwork(currentNetwork)
 
     setNetwork(currentNetwork)
 

@@ -1,6 +1,4 @@
 import { URDecoder } from '@ngraveio/bc-ur'
-import { Descriptor } from 'bdk-rn'
-import { Network } from 'bdk-rn/lib/lib/enums'
 import * as CBOR from 'cbor-js'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
@@ -33,19 +31,6 @@ import { validateExtendedKey, validateFingerprint } from '@/utils/validation'
 
 type ImportExtendedPubSearchParams = {
   keyIndex: string
-}
-
-function mapNetworkToBdkNetwork(network: 'bitcoin' | 'testnet' | 'signet') {
-  switch (network) {
-    case 'bitcoin':
-      return Network.Bitcoin
-    case 'testnet':
-      return Network.Testnet
-    case 'signet':
-      return Network.Signet
-    default:
-      return Network.Bitcoin
-  }
 }
 
 export default function ImportExtendedPub() {
@@ -355,11 +340,7 @@ export default function ImportExtendedPub() {
         try {
           // Create a descriptor from the extended public key to extract derivation path
           const descriptorString = `pkh(${convertedXpub})`
-          const descriptor = await new Descriptor().create(
-            descriptorString,
-            mapNetworkToBdkNetwork(network)
-          )
-          const parsedDescriptor = await parseDescriptor(descriptor)
+          const parsedDescriptor = parseDescriptor(descriptorString)
           derivationPath = parsedDescriptor.derivationPath
         } catch {
           // Use default derivation path if extraction fails

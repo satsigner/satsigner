@@ -1,4 +1,3 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
@@ -51,7 +50,7 @@ import {
 } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
 import {
-  type MockTxBuilderResult,
+  type MockPsbt,
   type PsbtInputWithSignatures
 } from '@/types/models/Psbt'
 import { type Transaction } from '@/types/models/Transaction'
@@ -64,7 +63,7 @@ import {
   decodeBBQRChunks,
   isBBQRFragment
 } from '@/utils/bbqr'
-import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { appNetworkToBdkNetwork, bitcoinjsNetwork } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { parseHexToBytes } from '@/utils/parse'
 import {
@@ -124,21 +123,16 @@ function hasEnoughSignatures(input: PsbtInputWithSignatures) {
   }
 }
 
-function createMockTxBuilderResult(
+function createMockPsbt(
   psbtBase64: string,
   txid: string,
   txFee: number
-): MockTxBuilderResult {
+): MockPsbt {
   return {
-    psbt: {
-      base64: psbtBase64,
-      serialize: () => Promise.resolve(psbtBase64),
-      txid: () => Promise.resolve(txid)
-    },
-    txDetails: {
-      fee: txFee,
-      txid
-    }
+    extractTxHex: () => '',
+    feeAmount: () => txFee,
+    toBase64: () => psbtBase64,
+    txid: () => txid
   }
 }
 
@@ -179,7 +173,7 @@ function PreviewTransaction() {
     outputs,
     fee,
     rbf,
-    setTxBuilderResult,
+    setPsbt,
     txBuilderResult,
     setSignedTx,
     addInput,
@@ -194,8 +188,8 @@ function PreviewTransaction() {
       state.outputs,
       state.fee,
       state.rbf,
-      state.setTxBuilderResult,
-      state.txBuilderResult,
+      state.setPsbt,
+      state.psbt,
       state.setSignedTx,
       state.addInput,
       state.addOutput,
@@ -280,7 +274,7 @@ function PreviewTransaction() {
   const psbtManagement = usePSBTManagement({
     account,
     decryptedKeys,
-    txBuilderResult
+    psbt: txBuilderResult
   })
 
   // Destructure hook values for easier access
@@ -325,8 +319,8 @@ function PreviewTransaction() {
   function processBasicPsbt(psbtBase64: string) {
     const txid = generateTransactionId(psbtBase64)
     setTransactionId(txid)
-    const mockResult = createMockTxBuilderResult(psbtBase64, txid, 0)
-    setTxBuilderResult(mockResult as never)
+    const mockResult = createMockPsbt(psbtBase64, txid, 0)
+    setPsbt(mockResult as never)
     setIsLoadingPSBT(false)
   }
 
@@ -350,12 +344,12 @@ function PreviewTransaction() {
 
       const txid = generateTransactionId(psbtBase64)
       setTransactionId(txid)
-      const mockResult = createMockTxBuilderResult(
+      const mockResult = createMockPsbt(
         psbtBase64,
         txid,
         extractedData.fee
       )
-      setTxBuilderResult(mockResult as never)
+      setPsbt(mockResult as never)
       setIsLoadingPSBT(false)
     } catch (error) {
       handlePsbtExtractionError(error)
@@ -656,7 +650,7 @@ function PreviewTransaction() {
       // Check if data is a PSBT and convert to final transaction
       if (processedData.toLowerCase().startsWith('70736274ff')) {
         // Only attempt conversion if we have the original PSBT context
-        if (txBuilderResult?.psbt?.base64) {
+        if (txBuilderResult?.toBase64()) {
           const convertedResult = convertPsbtToFinalTransaction(processedData)
           return convertedResult
         }
@@ -883,15 +877,15 @@ function PreviewTransaction() {
   }, [signedPsbtsFromStore, setSignedPsbts])
 
   useEffect(() => {
-    if (psbt && txBuilderResult?.txDetails?.txid) {
-      setTransactionId(txBuilderResult.txDetails.txid)
+    if (psbt && txBuilderResult?.txid()) {
+      setTransactionId(txBuilderResult.txid())
     }
     if (psbt) {
       return
     }
 
-    if (txBuilderResult?.txDetails?.txid) {
-      setTransactionId(txBuilderResult.txDetails.txid)
+    if (txBuilderResult?.txid()) {
+      setTransactionId(txBuilderResult.txid())
       return
     }
 
@@ -916,12 +910,11 @@ function PreviewTransaction() {
             inputs: inputArray,
             options: { rbf },
             outputs: outputArray
-          },
-          network as Network
+          }
         )
 
-        setTransactionId(transaction.txDetails.txid)
-        setTxBuilderResult(transaction)
+        setTransactionId(transaction.txid())
+        setPsbt(transaction)
       } catch (err) {
         const errorMessage = String(err)
         if (errorMessage.includes('UTXO not found') && !psbt) {
@@ -942,7 +935,7 @@ function PreviewTransaction() {
     fee,
     rbf,
     network,
-    setTxBuilderResult,
+    setPsbt,
     txBuilderResult,
     psbt
   ])
@@ -981,23 +974,14 @@ function PreviewTransaction() {
     }
   }, [account, outputs, txBuilderResult])
 
-  const getPsbtString = useCallback(async () => {
-    if (!txBuilderResult?.psbt) {
+  const getPsbtString = useCallback(() => {
+    if (!txBuilderResult) {
       return null
     }
 
     try {
-      const serializedPsbt = await txBuilderResult.psbt.serialize()
-
-      // Check if serializedPsbt is already a string (base64) or binary data
-      let psbtBuffer: Buffer
-      if (typeof serializedPsbt === 'string') {
-        // If it's a string, assume it's base64 and decode it to binary
-        psbtBuffer = Buffer.from(serializedPsbt, 'base64')
-      } else {
-        // If it's binary data (Uint8Array or similar), convert directly
-        psbtBuffer = Buffer.from(serializedPsbt)
-      }
+      const base64 = txBuilderResult.toBase64()
+      const psbtBuffer = Buffer.from(base64, 'base64')
 
       // Store the hex representation for other uses
       const psbtHex = psbtBuffer.toString('hex')
@@ -1019,7 +1003,7 @@ function PreviewTransaction() {
 
     const updateQrChunks = async () => {
       try {
-        const psbtHex = await getPsbtString()
+        const psbtHex = getPsbtString()
         if (!psbtHex || !isMounted) {
           if (isMounted) {
             setQrError(t('error.psbt.notAvailable'))
@@ -1078,13 +1062,13 @@ function PreviewTransaction() {
           psbtBuffer.fill(0)
           psbtBuffer = null
 
-          if (!txBuilderResult?.psbt?.base64) {
+          if (!txBuilderResult?.toBase64()) {
             throw new Error('PSBT data not available')
           }
 
           // Generate raw PSBT chunks using complexity setting
           const rawChunks = createRawPsbtChunks(
-            txBuilderResult.psbt.base64,
+            txBuilderResult.toBase64(),
             qrComplexity
           )
 
@@ -1094,20 +1078,20 @@ function PreviewTransaction() {
           if (qrComplexity === 12) {
             // Complexity 12: Create single static UR fragment
             // Check if the data would be too large for a single QR code
-            const estimatedURSize = txBuilderResult.psbt.base64.length * 1.5 // UR encoding adds overhead
+            const estimatedURSize = txBuilderResult.toBase64().length * 1.5 // UR encoding adds overhead
             if (estimatedURSize > 1500) {
               // Fall back to the most dense possible configuration
               const urFragmentSize = Math.max(50, 15 * 12) // Use maximum density (180 characters per fragment)
               urFragments = getURFragmentsFromPSBT(
-                txBuilderResult.psbt.base64,
+                txBuilderResult.toBase64(),
                 'base64',
                 urFragmentSize
               )
             } else {
               urFragments = getURFragmentsFromPSBT(
-                txBuilderResult.psbt.base64,
+                txBuilderResult.toBase64(),
                 'base64',
-                txBuilderResult.psbt.base64.length // Use full length for single fragment
+                txBuilderResult.toBase64().length // Use full length for single fragment
               )
             }
           } else {
@@ -1115,7 +1099,7 @@ function PreviewTransaction() {
             // Increase the fragment size significantly - UR can handle much more data
             const urFragmentSize = Math.max(50, 15 * qrComplexity)
             urFragments = getURFragmentsFromPSBT(
-              txBuilderResult.psbt.base64,
+              txBuilderResult.toBase64(),
               'base64',
               urFragmentSize
             )
@@ -1161,7 +1145,7 @@ function PreviewTransaction() {
     }
   }, [
     getPsbtString,
-    txBuilderResult?.psbt?.base64,
+    txBuilderResult,
     qrComplexity,
     createRawPsbtChunks
   ])
@@ -1611,7 +1595,7 @@ function PreviewTransaction() {
       toast.error(t('account.nostrSync.autoSyncMustBeEnabled'))
       return
     }
-    const base64 = txBuilderResult?.psbt?.base64
+    const base64 = txBuilderResult?.toBase64()
     if (!base64) {
       toast.error(t('account.nostrSync.transactionDataNotAvailable'))
       return
@@ -1642,7 +1626,7 @@ function PreviewTransaction() {
 
   const combineAndFinalizeMultisigPSBTs = async () => {
     try {
-      const originalPsbtBase64 = txBuilderResult?.psbt?.base64
+      const originalPsbtBase64 = txBuilderResult?.toBase64()
       if (!originalPsbtBase64) {
         toast.error(t('common.error.noOriginalPSBT'))
         return null
@@ -1823,7 +1807,7 @@ function PreviewTransaction() {
           return value
         }
         // Fallback to full base64 PSBT if chunks not ready
-        const base64Psbt = txBuilderResult?.psbt?.base64
+        const base64Psbt = txBuilderResult?.toBase64()
         if (base64Psbt && base64Psbt.length > 1500) {
           return 'DATA_TOO_LARGE'
         }
@@ -1862,7 +1846,7 @@ function PreviewTransaction() {
 
   // Helper function to check if data would be too large for single QR code
   const isDataTooLargeForSingleQR = () => {
-    const base64Psbt = txBuilderResult?.psbt?.base64
+    const base64Psbt = txBuilderResult?.toBase64()
     if (!base64Psbt) {
       return false
     }
@@ -2131,7 +2115,7 @@ function PreviewTransaction() {
                     }}
                   />
                   {account?.nostr?.autoSync &&
-                    txBuilderResult?.psbt?.base64 && (
+                    txBuilderResult?.toBase64() && (
                       <SSButton
                         variant="ghost"
                         label={t('account.nostrSync.shareWithGroup')}
@@ -2161,9 +2145,9 @@ function PreviewTransaction() {
                         label={t('common.copy')}
                         style={{ width: '48%' }}
                         onPress={() => {
-                          if (txBuilderResult?.psbt?.base64) {
+                          if (txBuilderResult?.toBase64()) {
                             Clipboard.setStringAsync(
-                              txBuilderResult.psbt.base64
+                              txBuilderResult.toBase64()
                             )
                             toast(t('common.copiedToClipboard'))
                           }
@@ -2744,7 +2728,7 @@ function PreviewTransaction() {
               <SSSeedWordsInput
                 wordCount={selectedWordCount}
                 wordListName="english"
-                network={network as Network}
+                network={appNetworkToBdkNetwork(network)}
                 onMnemonicValid={handleMnemonicValid}
                 onMnemonicInvalid={handleMnemonicInvalid}
                 showPassphrase

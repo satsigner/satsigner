@@ -1,10 +1,6 @@
 import { Buffer } from 'buffer'
 
-import { type PartiallySignedTransaction } from 'bdk-rn'
-import {
-  type TransactionDetails,
-  type TxBuilderResult
-} from 'bdk-rn/lib/classes/Bindings'
+import { type PsbtLike } from 'react-native-bdk-sdk'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { SATS_PER_BITCOIN } from '@/constants/btc'
@@ -35,7 +31,7 @@ type ProcessorActions = {
   setFeeRate?: (rate: number) => void
   setRbf?: (enabled: boolean) => void
   setSignedPsbts?: (psbts: Map<number, string>) => void
-  setTxBuilderResult?: (result: TxBuilderResult) => void
+  setPsbt?: (psbt: PsbtLike) => void
 }
 
 function autoSelectUtxos(
@@ -219,24 +215,13 @@ async function processBitcoinContent(
               0
             )
 
-            const psbt = {
-              originalPsbt
-            } as unknown as PartiallySignedTransaction
-
-            const txDetails: TransactionDetails = {
-              confirmationTime: undefined,
-              fee,
-              received,
-              sent,
-              transaction: undefined,
-              txid: extractedTxid
-            }
-
-            const txBuilderResult: TxBuilderResult = {
-              psbt,
-              txDetails
-            }
-            actions.setTxBuilderResult?.(txBuilderResult)
+            const mockPsbt = {
+              extractTxHex: () => '',
+              feeAmount: () => fee,
+              toBase64: () => originalPsbt,
+              txid: () => extractedTxid
+            } as unknown as PsbtLike
+            actions.setPsbt?.(mockPsbt)
           }
         }
       }

@@ -1,4 +1,3 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
@@ -24,6 +23,7 @@ import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
 import { getExtendedPublicKeyFromMnemonic } from '@/utils/bip39'
+import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 export default function ImportMnemonic() {
@@ -146,7 +146,7 @@ export default function ImportMnemonic() {
       const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
         currentMnemonic,
         passphrase || '',
-        network as Network,
+        appNetworkToBdkNetwork(network),
         scriptVersion
       )
       setExtendedPublicKey(extendedPublicKey)
@@ -190,7 +190,7 @@ export default function ImportMnemonic() {
         <SSSeedWordsInput
           wordCount={mnemonicWordCount}
           wordListName={mnemonicWordList}
-          network={network as Network}
+          network={appNetworkToBdkNetwork(network)}
           onMnemonicValid={handleMnemonicValid}
           onMnemonicInvalid={handleMnemonicInvalid}
           showPassphrase

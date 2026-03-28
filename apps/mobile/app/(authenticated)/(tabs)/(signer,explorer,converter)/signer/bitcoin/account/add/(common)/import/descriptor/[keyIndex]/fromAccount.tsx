@@ -1,11 +1,10 @@
-import { Descriptor } from 'bdk-rn'
-import { KeychainKind, type Network } from 'bdk-rn/lib/lib/enums'
+import { KeychainKind } from 'react-native-bdk-sdk'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { ScrollView, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getDescriptorObject } from '@/api/bdk'
+import { getDescriptorString } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
@@ -21,6 +20,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { type Account, type Secret } from '@/types/models/Account'
 import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
+import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 
 function ImportDescriptorFromAccount() {
@@ -75,7 +75,6 @@ function ImportDescriptorFromAccount() {
     const accountSecret = JSON.parse(accountSecretString) as Secret
 
     const { creationType } = firstKey
-    let externalDescriptor: Descriptor | undefined
     let externalDescriptorString: Secret['externalDescriptor']
 
     if (creationType !== 'importDescriptor') {
@@ -86,25 +85,18 @@ function ImportDescriptorFromAccount() {
         return
       }
 
-      externalDescriptor = await getDescriptorObject(
+      externalDescriptorString = await getDescriptorString(
         mnemonic,
         scriptVersion,
         KeychainKind.External,
         passphrase,
-        network as Network
+        appNetworkToBdkNetwork(network)
       )
-      externalDescriptorString = externalDescriptor
-        ? await externalDescriptor.asString()
-        : ''
     } else {
       if (!accountSecret.externalDescriptor) {
         return
       }
       externalDescriptorString = accountSecret.externalDescriptor
-      externalDescriptor = await new Descriptor().create(
-        externalDescriptorString,
-        network as Network
-      )
     }
 
     if (!externalDescriptorString) {

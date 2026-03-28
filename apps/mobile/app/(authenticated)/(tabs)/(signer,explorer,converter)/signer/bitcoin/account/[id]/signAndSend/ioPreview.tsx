@@ -1,3 +1,4 @@
+import { KeychainKind } from 'react-native-bdk-sdk'
 import type BottomSheet from '@gorhom/bottom-sheet'
 import { useIsFocused } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
@@ -122,10 +123,8 @@ export default function IOPreview() {
 
       let i = 0
       while (true) {
-        const addressObj = await wallet.getInternalAddress(i)
-        const address = addressObj?.address
-          ? await addressObj.address.asString()
-          : ''
+        const addressObj = wallet.peekAddress(KeychainKind.Internal, i)
+        const address = addressObj?.address ?? ''
         if (outputAddresses[address] !== true) {
           setChangeAddress(address)
           return

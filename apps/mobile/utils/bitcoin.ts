@@ -1,8 +1,23 @@
 import { networks } from 'bitcoinjs-lib'
 import bs58check from 'bs58check'
+import { Network as BdkNetwork } from 'react-native-bdk-sdk'
 
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { isBitcoinUri, parseBitcoinUri } from '@/utils/bip321'
+
+/** Convert app string network to BDK numeric Network enum */
+export function appNetworkToBdkNetwork(network: AppNetwork): BdkNetwork {
+  switch (network) {
+    case 'bitcoin':
+      return BdkNetwork.Bitcoin
+    case 'signet':
+      return BdkNetwork.Signet
+    case 'testnet':
+      return BdkNetwork.Testnet
+    default:
+      return BdkNetwork.Testnet
+  }
+}
 
 // TODO: delete this and replace all of its references with bitcoinjs-lib,
 // since it provides more reliable validation function

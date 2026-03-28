@@ -1,7 +1,7 @@
 import ecc from '@bitcoinerlab/secp256k1'
 import { HDKey } from '@scure/bip32' // TODO: remove @scure
 import * as bip39 from '@scure/bip39' // TODO: remove @scure
-import { KeychainKind, Network as BDKNetwork } from 'bdk-rn/lib/lib/enums'
+import { KeychainKind, Network as BDKNetwork } from 'react-native-bdk-sdk'
 import { BIP32Factory, type BIP32Interface } from 'bip32'
 
 import type { ScriptVersionType } from '@/types/models/Account'
@@ -51,12 +51,23 @@ const BIP32Networks: Record<BDKNetwork, BIP32Interface['network']> = {
   [BDKNetwork.Testnet]: BIP32NetworkTestnet
 }
 
+function bdkNetworkToAppNetwork(network: BDKNetwork): AppNetwork {
+  switch (network) {
+    case BDKNetwork.Bitcoin:
+      return 'bitcoin'
+    case BDKNetwork.Signet:
+      return 'signet'
+    default:
+      return 'testnet'
+  }
+}
+
 function getStandardPath(
   scriptVersion: ScriptVersionType,
   network: BDKNetwork,
   isMultiSig = false
 ) {
-  const appNetwork = network as AppNetwork
+  const appNetwork = bdkNetworkToAppNetwork(network)
   return isMultiSig
     ? getMultisigDerivationPathFromScriptVersion(scriptVersion, appNetwork)
     : getDerivationPathFromScriptVersion(scriptVersion, appNetwork)

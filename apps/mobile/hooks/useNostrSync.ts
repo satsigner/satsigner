@@ -1,4 +1,3 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { useCallback, useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -6,6 +5,7 @@ import { getWalletData } from '@/api/bdk'
 import { useNostrStore } from '@/store/nostr'
 import type { Account } from '@/types/models/Account'
 import { getAccountWithDecryptedKeys } from '@/utils/account'
+import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { type Label } from '@/utils/bip329'
 import { deriveNostrKeysFromDescriptor } from '@/utils/nostr'
 import { nostrSyncService } from '@/utils/nostrSyncService'
@@ -118,7 +118,7 @@ function useNostrSync() {
 
     const walletData = await getWalletData(
       tmpAccount,
-      tmpAccount.network as Network
+      appNetworkToBdkNetwork(tmpAccount.network)
     )
     if (!walletData?.externalDescriptor) {
       throw new Error('Failed to get wallet data')

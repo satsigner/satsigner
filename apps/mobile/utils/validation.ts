@@ -1,6 +1,8 @@
 import ecc from '@bitcoinerlab/secp256k1'
-import { Descriptor } from 'bdk-rn'
-import { Network } from 'bdk-rn/lib/lib/enums'
+import {
+  Network,
+  validateDescriptor as bdkValidateDescriptor
+} from 'react-native-bdk-sdk'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { type ScriptVersionType } from '@/types/models/Account'
@@ -41,22 +43,11 @@ export function validateFingerprint(fingerprint: string) {
 }
 
 // Function to validate descriptor checksum using BDK
-async function validateDescriptorChecksum(descriptor: string) {
-  try {
-    await new Descriptor().create(descriptor, Network.Bitcoin)
-    return true
-  } catch {
-    /* silently ignored */
-  }
-
-  try {
-    await new Descriptor().create(descriptor, Network.Testnet)
-    return true
-  } catch {
-    /* silently ignored */
-  }
-
-  return false
+function validateDescriptorChecksum(descriptor: string) {
+  return (
+    bdkValidateDescriptor(descriptor, Network.Bitcoin) ||
+    bdkValidateDescriptor(descriptor, Network.Testnet)
+  )
 }
 
 export async function validateDescriptor(descriptor: string) {
@@ -354,11 +345,8 @@ export async function validateCombinedDescriptor(
     if (networkType === 'signet') {
       bdkNetwork = Network.Signet
     }
-    try {
-      await new Descriptor().create(combinedDescriptor, bdkNetwork)
+    if (bdkValidateDescriptor(combinedDescriptor, bdkNetwork)) {
       networkValidation = { isValid: true }
-    } catch {
-      /* silently ignored */
     }
   }
 

@@ -1,33 +1,34 @@
-import { type Wallet } from 'bdk-rn'
-import { type Network } from 'bdk-rn/lib/lib/enums'
+import { type BdkWallet } from 'react-native-bdk-sdk'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletOverview, syncWallet } from '@/api/bdk'
 import { MempoolOracle } from '@/api/blockchain'
-import { getBlockchainConfig } from '@/config/servers'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
 import { updateAccountObjectLabels } from '@/utils/account'
+import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatTimestamp } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 
 function useSyncAccountWithWallet() {
   const setSyncStatus = useAccountsStore((state) => state.setSyncStatus)
 
-  const [selectedNetwork, configs, configsMempol] = useBlockchainStore(
-    useShallow((state) => [
-      state.selectedNetwork,
-      state.configs,
-      state.configsMempool
-    ])
-  )
+  const [selectedNetwork, configs, configsMempol, setLastKnownBlockHeight] =
+    useBlockchainStore(
+      useShallow((state) => [
+        state.selectedNetwork,
+        state.configs,
+        state.configsMempool,
+        state.setLastKnownBlockHeight
+      ])
+    )
   const { server, config } = configs[selectedNetwork]
 
   const [loading, setLoading] = useState(false)
 
-  async function syncAccountWithWallet(account: Account, wallet: Wallet) {
+  async function syncAccountWithWallet(account: Account, wallet: BdkWallet) {
     try {
       setLoading(true)
       setSyncStatus(account.id, 'syncing')
@@ -35,16 +36,19 @@ function useSyncAccountWithWallet() {
       await syncWallet(
         wallet,
         server.backend,
-        getBlockchainConfig(server.backend, server.url, {
-          retries: config.retries,
-          stopGap: config.stopGap,
-          timeout: config.timeout * 1000
-        })
+        server.url,
+        config.stopGap
       )
 
-      const walletSummary = await getWalletOverview(
+      // Update block height from wallet's latest checkpoint
+      const checkpoint = wallet.latestCheckpoint()
+      if (checkpoint) {
+        setLastKnownBlockHeight(checkpoint.height)
+      }
+
+      const walletSummary = getWalletOverview(
         wallet,
-        server.network as Network,
+        appNetworkToBdkNetwork(server.network),
         config.stopGap
       )
 

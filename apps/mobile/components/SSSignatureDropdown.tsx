@@ -1,6 +1,6 @@
 import { Buffer } from 'buffer'
 
-import { type TxBuilderResult } from 'bdk-rn/lib/classes/Bindings'
+import { type PsbtLike } from 'react-native-bdk-sdk'
 import { setStringAsync } from 'expo-clipboard'
 import { useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
@@ -32,7 +32,7 @@ type SSSignatureDropdownProps = {
   totalKeys: number
   keyDetails: Key
   transactionId: string
-  txBuilderResult: TxBuilderResult
+  txBuilderResult: PsbtLike
   serializedPsbt: string
   signedPsbt: string
   setSignedPsbt: (psbt: string) => void
@@ -107,7 +107,7 @@ function SSSignatureDropdown({
       return
     }
 
-    if (!transactionId || !txBuilderResult?.psbt?.base64) {
+    if (!transactionId || !txBuilderResult?.toBase64()) {
       toast.error(t('account.nostrSync.transactionDataNotAvailable'))
       return
     }
@@ -121,7 +121,7 @@ function SSSignatureDropdown({
         }, {})
 
       const psbtsToCombine = [
-        txBuilderResult.psbt.base64,
+        txBuilderResult.toBase64(),
         ...Object.values(collectedSignedPsbts)
       ]
       const combinedPsbt = combinePsbts(psbtsToCombine)
@@ -393,8 +393,8 @@ function SSSignatureDropdown({
               label={t('common.copy')}
               style={{ width: '48%' }}
               onPress={() => {
-                if (txBuilderResult?.psbt?.base64) {
-                  setStringAsync(txBuilderResult.psbt.base64)
+                if (txBuilderResult?.toBase64()) {
+                  setStringAsync(txBuilderResult.toBase64())
                   toast(t('common.copiedToClipboard'))
                 }
               }}

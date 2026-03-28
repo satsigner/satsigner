@@ -1,4 +1,3 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -10,6 +9,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useWalletsStore } from '@/store/wallets'
 import { type Account } from '@/types/models/Account'
+import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { aesEncrypt } from '@/utils/crypto'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 
@@ -43,7 +43,7 @@ function useAccountBuilderFinish() {
     const { creationType } = firstKey
 
     const walletData = !isImportAddress
-      ? await getWalletData(account, network as Network)
+      ? await getWalletData(account, appNetworkToBdkNetwork(network))
       : undefined
 
     if (!isImportAddress && !walletData) {

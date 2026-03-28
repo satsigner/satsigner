@@ -1,5 +1,6 @@
-import { Descriptor } from 'bdk-rn'
-import { type Network as BdkNetwork } from 'bdk-rn/lib/lib/enums'
+import {
+  walletNameFromDescriptor
+} from 'react-native-bdk-sdk'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
@@ -22,7 +23,7 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type CreationType, type PolicyType } from '@/types/models/Account'
-import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
+import { appNetworkToBdkNetwork, getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 import {
   isCombinedDescriptor,
   validateCombinedDescriptor,
@@ -143,8 +144,8 @@ export default function UnifiedImport() {
     }
     if (basicValidation && descriptor) {
       try {
-        // Try to create descriptor with BDK to check network compatibility
-        await new Descriptor().create(descriptor, network as BdkNetwork)
+        // Try to validate descriptor with BDK to check network compatibility
+        walletNameFromDescriptor(descriptor, undefined, appNetworkToBdkNetwork(network))
         networkValidation = { isValid: true }
       } catch (error) {
         const errorMessage =
@@ -192,8 +193,8 @@ export default function UnifiedImport() {
     }
     if (basicValidation && descriptor) {
       try {
-        // Try to create descriptor with BDK to check network compatibility
-        await new Descriptor().create(descriptor, network as BdkNetwork)
+        // Try to validate descriptor with BDK to check network compatibility
+        walletNameFromDescriptor(descriptor, undefined, appNetworkToBdkNetwork(network))
         networkValidation = { isValid: true }
       } catch (error) {
         const errorMessage =

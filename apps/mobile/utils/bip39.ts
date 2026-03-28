@@ -2,8 +2,7 @@ import { hmac } from '@noble/hashes/hmac'
 import { pbkdf2Async } from '@noble/hashes/pbkdf2'
 import { sha512 } from '@noble/hashes/sha512'
 import { HDKey } from '@scure/bip32'
-import type { KeychainKind } from 'bdk-rn/lib/lib/enums'
-import { Network } from 'bdk-rn/lib/lib/enums'
+import { type KeychainKind, Network } from 'react-native-bdk-sdk'
 import * as bip39 from 'bip39'
 
 import type {

@@ -31,7 +31,7 @@ export function useBitcoinContentHandler({
     setFeeRate,
     setRbf,
     setSignedPsbts,
-    setTxBuilderResult
+    setPsbt
   ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.clearTransaction,
@@ -40,7 +40,7 @@ export function useBitcoinContentHandler({
       state.setFeeRate,
       state.setRbf,
       state.setSignedPsbts,
-      state.setTxBuilderResult
+      state.setPsbt
     ])
   )
 
@@ -71,7 +71,7 @@ export function useBitcoinContentHandler({
               setFeeRate,
               setRbf,
               setSignedPsbts,
-              setTxBuilderResult
+              setPsbt
             },
             accountId,
             account
@@ -102,7 +102,7 @@ export function useBitcoinContentHandler({
       setFeeRate,
       setRbf,
       setSignedPsbts,
-      setTxBuilderResult
+      setPsbt
     ]
   )
 

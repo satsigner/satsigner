@@ -1,4 +1,4 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
+import { type Network } from 'react-native-bdk-sdk'
 import * as Clipboard from 'expo-clipboard'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { StyleProp, TextInput, ViewStyle } from 'react-native'

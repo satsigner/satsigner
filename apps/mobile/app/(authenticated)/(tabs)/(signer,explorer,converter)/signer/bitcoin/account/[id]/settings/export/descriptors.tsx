@@ -1,4 +1,3 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as Print from 'expo-print'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import * as Sharing from 'expo-sharing'
@@ -30,7 +29,8 @@ import { isElectrumDerivationPath } from '@/utils/bip39'
 import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion,
-  getMultisigScriptTypeFromScriptVersion
+  getMultisigScriptTypeFromScriptVersion,
+  appNetworkToBdkNetwork
 } from '@/utils/bitcoin'
 import { shareFile } from '@/utils/filesystem'
 
@@ -133,7 +133,7 @@ export default function ExportDescriptors() {
                             passphrase: secret.passphrase
                           }
                         },
-                        network as Network
+                        appNetworkToBdkNetwork(network)
                       )
                     if (extendedKey) {
                       extendedPublicKey = extendedKey
@@ -246,7 +246,7 @@ export default function ExportDescriptors() {
                                 passphrase: secret.passphrase
                               }
                             },
-                            network as Network
+                            appNetworkToBdkNetwork(network)
                           )
                         if (extendedKey) {
                           extendedPublicKey = extendedKey
