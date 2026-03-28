@@ -1,6 +1,6 @@
 import { URDecoder } from '@ngraveio/bc-ur'
 import * as CBOR from 'cbor-js'
-import { CameraView, useCameraPermissions } from 'expo-camera/next'
+import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'

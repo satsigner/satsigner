@@ -4,7 +4,6 @@ import { relays } from '../utils/nostr_samples'
 
 jest.mock('nostr-tools')
 jest.mock('@nostr-dev-kit/ndk')
-jest.mock('react-native-aes-crypto')
 jest.mock<typeof import('sonner-native')>('sonner-native', () => ({
   toast: { error: jest.fn(), info: jest.fn(), success: jest.fn() }
 }))

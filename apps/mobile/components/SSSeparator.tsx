@@ -5,7 +5,7 @@ import { Colors } from '@/styles'
 
 type SSSeparatorProps = {
   color?: 'grayDark' | 'gradient' | 'custom'
-  colors?: string[]
+  colors?: [string, string, ...string[]]
   percentages?: number[]
   style?: StyleProp<ViewStyle>
 }

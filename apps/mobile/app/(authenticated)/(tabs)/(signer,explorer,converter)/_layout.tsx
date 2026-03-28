@@ -125,7 +125,6 @@ export default function StackLayout(params: { segment?: string }) {
           contentStyle: {
             backgroundColor: Colors.gray[950]
           },
-          headerBackTitleVisible: false,
           headerBackVisible: false,
           headerBackground: () => (
             <View

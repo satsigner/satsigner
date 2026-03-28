@@ -10,7 +10,6 @@ import {
 import { descriptors, nostrKeys, nostrMessages, psbts } from './nostr_samples'
 
 jest.mock('nostr-tools')
-jest.mock('react-native-aes-crypto')
 
 describe('parseNostrTransaction', () => {
   it('returns TransactionData for valid PSBT', () => {

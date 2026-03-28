@@ -8,7 +8,7 @@ import { type DetectedContent } from '@/utils/contentDetector'
 
 type NavigatePath =
   | string
-  | { pathname: string; params?: Record<string, unknown> }
+  | { pathname: string; params?: Record<string, string | number | undefined> }
 
 export function useEcashContentHandler() {
   const router = useRouter()

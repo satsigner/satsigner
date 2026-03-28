@@ -1,4 +1,4 @@
-import { CameraView, useCameraPermissions } from 'expo-camera/next'
+import { CameraView, useCameraPermissions } from 'expo-camera'
 import { useCallback, useEffect, useState } from 'react'
 import { View } from 'react-native'
 import { toast } from 'sonner-native'

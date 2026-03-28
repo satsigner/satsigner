@@ -5,7 +5,9 @@ process.env.TZ = 'UTC'
 const config = {
   moduleNameMapper: {
     '^bip-321$': '<rootDir>/__mocks__/bip-321.ts',
-    '^react-native-bdk-sdk$': '<rootDir>/__mocks__/react-native-bdk-sdk.ts'
+    '^react-native-bdk-sdk$': '<rootDir>/__mocks__/react-native-bdk-sdk.ts',
+    '^react-native-quick-crypto$':
+      '<rootDir>/__mocks__/react-native-quick-crypto.ts'
   },
   preset: 'jest-expo',
   transformIgnorePatterns: [

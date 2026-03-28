@@ -23,7 +23,12 @@ import { selectEfficientUtxos } from '@/utils/utxo'
 
 type ProcessorActions = {
   navigate: (
-    path: string | { pathname: string; params?: Record<string, unknown> }
+    path:
+      | string
+      | {
+          pathname: string
+          params?: Record<string, string | number | undefined>
+        }
   ) => void
   clearTransaction?: () => void
   addOutput?: (output: { amount: number; label: string; to: string }) => void

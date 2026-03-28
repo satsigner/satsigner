@@ -40,6 +40,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   orientation: 'portrait',
   plugins: [
     [
+      'expo-build-properties',
+      {
+        android: { newArchEnabled: true },
+        ios: { newArchEnabled: true }
+      }
+    ],
+    [
       'expo-router',
       {
         ...(process.env.EXPO_PUBLIC_STORYBOOK_ENABLED === 'true'

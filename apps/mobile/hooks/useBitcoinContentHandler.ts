@@ -11,7 +11,7 @@ import { type DetectedContent } from '@/utils/contentDetector'
 
 type NavigatePath =
   | string
-  | { pathname: string; params?: Record<string, unknown> }
+  | { pathname: string; params?: Record<string, string | number | undefined> }
 
 type UseBitcoinContentHandlerProps = {
   accountId: string

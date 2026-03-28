@@ -1,8 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import { useCallback, useMemo } from 'react'
-import { StyleSheet, TouchableOpacity } from 'react-native'
-import { Shadow } from 'react-native-shadow-2'
+import { StyleSheet, TouchableOpacity, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import { type NavMenuItem } from '@/types/navigation/navMenu'
@@ -53,7 +52,7 @@ function SSNavMenuItem({ group, item, focused = false }: SSNavMenuItemProps) {
 
   const focusedContent = useMemo(
     () => (
-      <Shadow distance={25} startColor="#FFFFFF15" style={styles.shadow}>
+      <View style={styles.shadow}>
         <LinearGradient
           colors={['#3F3F3F', '#101010']}
           start={{ x: 0, y: 0 }}
@@ -62,7 +61,7 @@ function SSNavMenuItem({ group, item, focused = false }: SSNavMenuItemProps) {
         >
           {content}
         </LinearGradient>
-      </Shadow>
+      </View>
     ),
     [content]
   )
@@ -90,6 +89,7 @@ const styles = StyleSheet.create({
     width: 30
   },
   shadow: {
+    boxShadow: '0 0 25px #FFFFFF15',
     height: 46,
     width: '100%'
   },
