@@ -1,7 +1,7 @@
-import { KeychainKind } from 'react-native-bdk-sdk'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
+import { KeychainKind } from 'react-native-bdk-sdk'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getDescriptorString, parseDescriptor } from '@/api/bdk'

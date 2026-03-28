@@ -1,9 +1,9 @@
 import ecc from '@bitcoinerlab/secp256k1'
+import * as bitcoinjs from 'bitcoinjs-lib'
 import {
   Network,
   validateDescriptor as bdkValidateDescriptor
 } from 'react-native-bdk-sdk'
-import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { type ScriptVersionType } from '@/types/models/Account'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'

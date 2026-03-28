@@ -1,10 +1,9 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, View } from 'react-native'
+import { Psbt } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
-
-import { Psbt } from 'react-native-bdk-sdk'
 
 import { broadcastTransaction, signTransaction } from '@/api/bdk'
 import ElectrumClient from '@/api/electrum'
@@ -35,18 +34,25 @@ export default function SignTransaction() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const [psbt, setPsbt, signedTx, inputs, outputs, broadcasted, setBroadcasted] =
-    useTransactionBuilderStore(
-      useShallow((state) => [
-        state.psbt,
-        state.setPsbt,
-        state.signedTx,
-        state.inputs,
-        state.outputs,
-        state.broadcasted,
-        state.setBroadcasted
-      ])
-    )
+  const [
+    psbt,
+    setPsbt,
+    signedTx,
+    inputs,
+    outputs,
+    broadcasted,
+    setBroadcasted
+  ] = useTransactionBuilderStore(
+    useShallow((state) => [
+      state.psbt,
+      state.setPsbt,
+      state.signedTx,
+      state.inputs,
+      state.outputs,
+      state.broadcasted,
+      state.setBroadcasted
+    ])
+  )
   const account = useAccountsStore(
     useShallow((state) => state.accounts.find((account) => account.id === id))
   )

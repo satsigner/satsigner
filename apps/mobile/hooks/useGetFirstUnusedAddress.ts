@@ -1,5 +1,9 @@
-import { type AddressInfo, KeychainKind, type BdkWallet } from 'react-native-bdk-sdk'
 import { useEffect, useState } from 'react'
+import {
+  type AddressInfo,
+  KeychainKind,
+  type BdkWallet
+} from 'react-native-bdk-sdk'
 
 import { type Account } from '@/types/models/Account'
 

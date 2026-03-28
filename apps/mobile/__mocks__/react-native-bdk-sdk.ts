@@ -1,3 +1,4 @@
+/* eslint-disable */
 // Jest mock for react-native-bdk-sdk (native TurboModule can't load in Jest)
 
 export enum Network {
@@ -103,11 +104,11 @@ export class BdkWallet {
   static fromRaw = jest.fn()
   getBalance = jest.fn(() => ({
     confirmed: 0,
-    trustedPending: 0,
-    untrustedPending: 0,
     immature: 0,
+    total: 0,
+    trustedPending: 0,
     trustedSpendable: 0,
-    total: 0
+    untrustedPending: 0
   }))
   transactions = jest.fn(() => [])
   listUnspent = jest.fn(() => [])
@@ -149,7 +150,7 @@ export class BdkWallet {
   derivationIndex = jest.fn(() => undefined)
   nextDerivationIndex = jest.fn(() => 0)
   checkpoints = jest.fn(() => [])
-  sentAndReceived = jest.fn(() => ({ sent: 0, received: 0 }))
+  sentAndReceived = jest.fn(() => ({ received: 0, sent: 0 }))
   calculateFee = jest.fn(() => 0)
   calculateFeeRate = jest.fn(() => 0)
   buildFeeBump = jest.fn(() => new Psbt(''))
@@ -181,8 +182,8 @@ export class BdkElectrumClient {
   }
 }
 
-export const bdkCreateWallet = jest.fn(
-  () => Promise.resolve(new BdkWallet('', undefined, Network.Testnet, ''))
+export const bdkCreateWallet = jest.fn(() =>
+  Promise.resolve(new BdkWallet('', undefined, Network.Testnet, ''))
 )
 
 // Keep raw classes for backward compatibility

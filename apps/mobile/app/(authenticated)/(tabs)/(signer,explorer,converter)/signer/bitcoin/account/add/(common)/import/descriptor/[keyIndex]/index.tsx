@@ -1,10 +1,10 @@
 import { URDecoder } from '@ngraveio/bc-ur'
-import { type Network as _Network } from 'react-native-bdk-sdk'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Animated, ScrollView, StyleSheet, View } from 'react-native'
+import { type Network as _Network } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 

@@ -40,7 +40,6 @@ import {
   sampleSignetXpubFingerprint,
   sampleTestnet4Address
 } from '@/constants/samples'
-import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
@@ -63,11 +62,11 @@ import {
   getExtendedPublicKeyFromMnemonicCustom,
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
+import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
 import { time } from '@/utils/time'
 
 const ACCOUNT_SKELETON_COUNT = 3
-
 
 const STAGGER_DELAY_MS = 70
 const STAGGER_DURATION_MS = 320

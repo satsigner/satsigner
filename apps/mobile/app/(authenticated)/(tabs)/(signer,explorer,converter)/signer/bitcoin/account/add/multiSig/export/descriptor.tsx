@@ -1,7 +1,7 @@
-import { KeychainKind, walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
+import { KeychainKind, walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -21,7 +21,10 @@ import type {
 } from '@/types/models/Account'
 import { getDescriptorsFromKey } from '@/utils/bip32'
 import { getPublicDescriptorFromMnemonic } from '@/utils/bip39'
-import { appNetworkToBdkNetwork, getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
+import {
+  appNetworkToBdkNetwork,
+  getDerivationPathFromScriptVersion
+} from '@/utils/bitcoin'
 import { shareFile } from '@/utils/filesystem'
 
 export default function DescriptorPage() {
@@ -126,7 +129,11 @@ export default function DescriptorPage() {
 
             // Validate descriptor with BDK
             try {
-              walletNameFromDescriptor(externalDescriptor, undefined, appNetworkToBdkNetwork(network))
+              walletNameFromDescriptor(
+                externalDescriptor,
+                undefined,
+                appNetworkToBdkNetwork(network)
+              )
               foundDescriptor = externalDescriptor
               setDescriptor(foundDescriptor)
             } catch {

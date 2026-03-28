@@ -1,10 +1,10 @@
 import { Buffer } from 'buffer'
 
-import { type PsbtLike } from 'react-native-bdk-sdk'
 import { setStringAsync } from 'expo-clipboard'
 import { useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, TouchableOpacity, View } from 'react-native'
+import { type PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
 import { SSIconCircleX, SSIconGreen } from '@/components/icons'

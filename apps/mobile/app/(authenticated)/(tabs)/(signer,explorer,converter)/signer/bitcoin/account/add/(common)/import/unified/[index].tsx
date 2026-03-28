@@ -1,11 +1,9 @@
-import {
-  walletNameFromDescriptor
-} from 'react-native-bdk-sdk'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
+import { walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -23,7 +21,10 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type CreationType, type PolicyType } from '@/types/models/Account'
-import { appNetworkToBdkNetwork, getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
+import {
+  appNetworkToBdkNetwork,
+  getDerivationPathFromScriptVersion
+} from '@/utils/bitcoin'
 import {
   isCombinedDescriptor,
   validateCombinedDescriptor,
@@ -145,7 +146,11 @@ export default function UnifiedImport() {
     if (basicValidation && descriptor) {
       try {
         // Try to validate descriptor with BDK to check network compatibility
-        walletNameFromDescriptor(descriptor, undefined, appNetworkToBdkNetwork(network))
+        walletNameFromDescriptor(
+          descriptor,
+          undefined,
+          appNetworkToBdkNetwork(network)
+        )
         networkValidation = { isValid: true }
       } catch (error) {
         const errorMessage =
@@ -194,7 +199,11 @@ export default function UnifiedImport() {
     if (basicValidation && descriptor) {
       try {
         // Try to validate descriptor with BDK to check network compatibility
-        walletNameFromDescriptor(descriptor, undefined, appNetworkToBdkNetwork(network))
+        walletNameFromDescriptor(
+          descriptor,
+          undefined,
+          appNetworkToBdkNetwork(network)
+        )
         networkValidation = { isValid: true }
       } catch (error) {
         const errorMessage =

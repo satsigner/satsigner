@@ -23,7 +23,7 @@ export async function generateColorFromNpub(npub: string): Promise<string> {
   // Generate color from hash - match Python's hashlib.sha256() output
   const hash = bitcoinjs.crypto.sha256(Buffer.from(pubkey)).toString('hex')
   const seed = BigInt(`0x${hash}`)
-  const hue = Number(seed % BigInt(360)) // Map to a hue value between 0-359
+  const hue = Number(seed % 360n) // Map to a hue value between 0-359
 
   const saturation = 255 // High saturation for vividness
   const lightness = 180 // Dark mode value (180/255 * 100 ≈ 70%)

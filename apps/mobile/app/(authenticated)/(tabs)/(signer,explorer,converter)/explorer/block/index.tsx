@@ -25,13 +25,12 @@ function getDifficultyFromBits(bits: number): number {
   let target = BigInt(mantissa)
   const shift = 8 * (exponent - 3)
   if (shift >= 0) {
-    target *= BigInt(1) << BigInt(shift)
+    target *= 1n << BigInt(shift)
   } else {
-    target /= BigInt(1) << BigInt(-shift)
+    target /= 1n << BigInt(-shift)
   }
-  const maxTarget = BigInt(
-    '0x00000000ffff0000000000000000000000000000000000000000000000000000'
-  )
+  const maxTarget =
+    0x00000000ffff0000000000000000000000000000000000000000000000000000n
   return Number(maxTarget) / Number(target)
 }
 

@@ -80,7 +80,6 @@
     "typescript/no-unsafe-function-type": "allow",
     "typescript/ban-types": "allow",
     "unicorn/prefer-type-error": "allow",
-    "unicorn/prefer-bigint-literals": "allow",
     "unicorn/prefer-math-min-max": "allow",
     "unicorn/prefer-date-now": "allow",
     "unicorn/prefer-math-trunc": "allow",

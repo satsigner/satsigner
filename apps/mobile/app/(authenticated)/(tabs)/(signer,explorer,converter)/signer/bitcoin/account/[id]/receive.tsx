@@ -1,8 +1,8 @@
-import { KeychainKind } from 'react-native-bdk-sdk'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, TextInput } from 'react-native'
+import { KeychainKind } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -150,7 +150,7 @@ export default function Receive() {
         return
       }
 
-      const address = addressInfo.address
+      const { address } = addressInfo
       const qrUri = `bitcoin:${address}`
 
       setAddressData({
@@ -183,7 +183,10 @@ export default function Receive() {
     setIsGenerating(true)
     try {
       const nextIndex = (localAddressNumber || 0) + 1
-      const newAddressInfo = wallet.peekAddress(KeychainKind.External, nextIndex)
+      const newAddressInfo = wallet.peekAddress(
+        KeychainKind.External,
+        nextIndex
+      )
       const address = newAddressInfo?.address ?? ''
       const qrUri = address ? `bitcoin:${address}` : ''
 

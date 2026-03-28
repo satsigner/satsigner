@@ -1,4 +1,3 @@
-import { KeychainKind } from 'react-native-bdk-sdk'
 import type BottomSheet from '@gorhom/bottom-sheet'
 import { useIsFocused } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
@@ -11,6 +10,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native'
+import { KeychainKind } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 

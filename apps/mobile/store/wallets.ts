@@ -1,5 +1,5 @@
-import { type BdkWallet } from 'react-native-bdk-sdk'
 import { produce } from 'immer'
+import { type BdkWallet } from 'react-native-bdk-sdk'
 import { create } from 'zustand'
 
 import { type Account } from '@/types/models/Account'

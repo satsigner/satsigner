@@ -30,7 +30,6 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getLastUnusedAddressFromWallet, getWalletAddresses } from '@/api/bdk'
-import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import {
   SSIconBlackIndicator,
   SSIconBubbles,
@@ -94,6 +93,7 @@ import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import { compareTimestamp, sortTransactions } from '@/utils/sort'
@@ -573,9 +573,9 @@ function DerivedAddresses({
   perPage = 10
 }: DerivedAddressesProps) {
   const wallet = useGetAccountWallet(account.id!)
-  const network = appNetworkToBdkNetwork(useBlockchainStore(
-    (state) => state.selectedNetwork
-  ))
+  const network = appNetworkToBdkNetwork(
+    useBlockchainStore((state) => state.selectedNetwork)
+  )
   const updateAccount = useAccountsStore((state) => state.updateAccount)
 
   const _windowDimensions = useWindowDimensions()

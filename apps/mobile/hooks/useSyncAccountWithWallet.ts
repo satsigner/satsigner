@@ -1,5 +1,5 @@
-import { type BdkWallet } from 'react-native-bdk-sdk'
 import { useState } from 'react'
+import { type BdkWallet } from 'react-native-bdk-sdk'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletOverview, syncWallet } from '@/api/bdk'
@@ -33,12 +33,7 @@ function useSyncAccountWithWallet() {
       setLoading(true)
       setSyncStatus(account.id, 'syncing')
 
-      await syncWallet(
-        wallet,
-        server.backend,
-        server.url,
-        config.stopGap
-      )
+      await syncWallet(wallet, server.backend, server.url, config.stopGap)
 
       // Update block height from wallet's latest checkpoint
       const checkpoint = wallet.latestCheckpoint()

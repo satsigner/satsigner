@@ -278,8 +278,8 @@ async function getWalletData(
           throw new Error('Invalid secret')
         }
 
-        const externalDescriptor = key.secret.externalDescriptor
-        const internalDescriptor = key.secret.internalDescriptor
+        const { externalDescriptor } = key.secret
+        const { internalDescriptor } = key.secret
 
         const parsedDescriptor = parseDescriptor(externalDescriptor)
         const wallet = await getWalletFromDescriptor(
@@ -495,7 +495,12 @@ async function getWalletFromDescriptor(
     internalDescriptor,
     network
   )
-  return bdkCreateWallet(externalDescriptor, internalDescriptor, network, dbPath)
+  return bdkCreateWallet(
+    externalDescriptor,
+    internalDescriptor,
+    network,
+    dbPath
+  )
 }
 
 async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
@@ -716,7 +721,18 @@ function parseTxDetailsToTransaction(
     }
   }
 
-  const { txid, sent, received, fee, confirmationBlockTime, txHex, version, locktime, inputs, outputs } = txDetails
+  const {
+    txid,
+    sent,
+    received,
+    fee,
+    confirmationBlockTime,
+    txHex,
+    version,
+    locktime,
+    inputs,
+    outputs
+  } = txDetails
 
   const raw = txHex ? hexToBytes(txHex) : []
 

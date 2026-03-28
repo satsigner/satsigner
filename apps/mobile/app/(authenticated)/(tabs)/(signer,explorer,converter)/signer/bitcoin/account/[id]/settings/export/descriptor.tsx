@@ -1,7 +1,7 @@
-import { KeychainKind, walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
+import { KeychainKind, walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -19,7 +19,10 @@ import { type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { getDescriptorsFromKey } from '@/utils/bip32'
 import { getPublicDescriptorFromMnemonic } from '@/utils/bip39'
-import { appNetworkToBdkNetwork, getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
+import {
+  appNetworkToBdkNetwork,
+  getDerivationPathFromScriptVersion
+} from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
 
@@ -142,7 +145,11 @@ export default function DescriptorPage() {
             // Validate descriptor with BDK (checksum is part of the string)
             if (descriptorString && !descriptorString.includes('#')) {
               try {
-                walletNameFromDescriptor(descriptorString, undefined, appNetworkToBdkNetwork(network))
+                walletNameFromDescriptor(
+                  descriptorString,
+                  undefined,
+                  appNetworkToBdkNetwork(network)
+                )
               } catch {
                 // Keep the original descriptor if BDK fails
               }
@@ -163,7 +170,11 @@ export default function DescriptorPage() {
           // Validate descriptor with BDK
           if (descriptorString && !descriptorString.includes('#')) {
             try {
-              walletNameFromDescriptor(descriptorString, undefined, appNetworkToBdkNetwork(network))
+              walletNameFromDescriptor(
+                descriptorString,
+                undefined,
+                appNetworkToBdkNetwork(network)
+              )
             } catch {
               // Keep the original descriptor if BDK fails
             }
@@ -213,7 +224,11 @@ export default function DescriptorPage() {
 
             // Validate descriptor with BDK
             try {
-              walletNameFromDescriptor(descriptorString, undefined, appNetworkToBdkNetwork(network))
+              walletNameFromDescriptor(
+                descriptorString,
+                undefined,
+                appNetworkToBdkNetwork(network)
+              )
             } catch {
               // Keep the descriptor without checksum if BDK fails
             }
@@ -278,7 +293,11 @@ export default function DescriptorPage() {
 
                 // Validate descriptor with BDK
                 try {
-                  walletNameFromDescriptor(descriptorString, undefined, appNetworkToBdkNetwork(network))
+                  walletNameFromDescriptor(
+                    descriptorString,
+                    undefined,
+                    appNetworkToBdkNetwork(network)
+                  )
                 } catch {
                   // Keep the descriptor without checksum if BDK fails
                 }
@@ -315,7 +334,11 @@ export default function DescriptorPage() {
 
               // Validate descriptor with BDK
               try {
-                walletNameFromDescriptor(descriptorString, undefined, appNetworkToBdkNetwork(network))
+                walletNameFromDescriptor(
+                  descriptorString,
+                  undefined,
+                  appNetworkToBdkNetwork(network)
+                )
               } catch {
                 // Keep the descriptor without checksum if BDK fails
               }

@@ -1,7 +1,7 @@
-import { type Network } from 'react-native-bdk-sdk'
 import * as Clipboard from 'expo-clipboard'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { StyleProp, TextInput, ViewStyle } from 'react-native'
+import { type Network } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'

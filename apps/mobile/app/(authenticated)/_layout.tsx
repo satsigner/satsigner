@@ -113,7 +113,10 @@ export default function AuthenticatedLayout() {
         }
 
         const walletData = !isImportAddress
-          ? await getWalletData(tmpAccount, appNetworkToBdkNetwork(account.network))
+          ? await getWalletData(
+              tmpAccount,
+              appNetworkToBdkNetwork(account.network)
+            )
           : undefined
         if (walletData) {
           addAccountWallet(account.id, walletData.wallet)

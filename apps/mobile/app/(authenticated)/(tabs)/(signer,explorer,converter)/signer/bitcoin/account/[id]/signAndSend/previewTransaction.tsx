@@ -344,11 +344,7 @@ function PreviewTransaction() {
 
       const txid = generateTransactionId(psbtBase64)
       setTransactionId(txid)
-      const mockResult = createMockPsbt(
-        psbtBase64,
-        txid,
-        extractedData.fee
-      )
+      const mockResult = createMockPsbt(psbtBase64, txid, extractedData.fee)
       setPsbt(mockResult as never)
       setIsLoadingPSBT(false)
     } catch (error) {
@@ -903,15 +899,12 @@ function PreviewTransaction() {
         const inputArray = Array.from(inputs.values())
         const outputArray = Array.from(outputs.values())
 
-        const transaction = await buildTransaction(
-          wallet,
-          {
-            fee,
-            inputs: inputArray,
-            options: { rbf },
-            outputs: outputArray
-          }
-        )
+        const transaction = await buildTransaction(wallet, {
+          fee,
+          inputs: inputArray,
+          options: { rbf },
+          outputs: outputArray
+        })
 
         setTransactionId(transaction.txid())
         setPsbt(transaction)
@@ -1143,12 +1136,7 @@ function PreviewTransaction() {
         psbtBuffer = null
       }
     }
-  }, [
-    getPsbtString,
-    txBuilderResult,
-    qrComplexity,
-    createRawPsbtChunks
-  ])
+  }, [getPsbtString, txBuilderResult, qrComplexity, createRawPsbtChunks])
 
   // High-performance animation using requestAnimationFrame
   useEffect(() => {
@@ -2114,14 +2102,13 @@ function PreviewTransaction() {
                       }
                     }}
                   />
-                  {account?.nostr?.autoSync &&
-                    txBuilderResult?.toBase64() && (
-                      <SSButton
-                        variant="ghost"
-                        label={t('account.nostrSync.shareWithGroup')}
-                        onPress={handleShareWithNostrGroup}
-                      />
-                    )}
+                  {account?.nostr?.autoSync && txBuilderResult?.toBase64() && (
+                    <SSButton
+                      variant="ghost"
+                      label={t('account.nostrSync.shareWithGroup')}
+                      onPress={handleShareWithNostrGroup}
+                    />
+                  )}
                 </>
               ) : (
                 account.keys &&
@@ -2146,9 +2133,7 @@ function PreviewTransaction() {
                         style={{ width: '48%' }}
                         onPress={() => {
                           if (txBuilderResult?.toBase64()) {
-                            Clipboard.setStringAsync(
-                              txBuilderResult.toBase64()
-                            )
+                            Clipboard.setStringAsync(txBuilderResult.toBase64())
                             toast(t('common.copiedToClipboard'))
                           }
                         }}

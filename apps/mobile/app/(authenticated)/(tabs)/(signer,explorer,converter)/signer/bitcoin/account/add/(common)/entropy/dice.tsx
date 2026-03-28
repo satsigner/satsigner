@@ -62,9 +62,9 @@ export default function DiceEntropy() {
       const updatedRolls = [...rolls, value]
       setRolls(updatedRolls)
 
-      let base10 = BigInt(0)
+      let base10 = 0n
       for (const digit of updatedRolls) {
-        base10 = base10 * BigInt(6) + BigInt(digit)
+        base10 = base10 * 6n + BigInt(digit)
       }
 
       let newBits = base10.toString(2)

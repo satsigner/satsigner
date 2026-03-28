@@ -69,9 +69,9 @@ export function useBitcoinContentHandler({
                 router.navigate(path)
               },
               setFeeRate,
+              setPsbt,
               setRbf,
-              setSignedPsbts,
-              setPsbt
+              setSignedPsbts
             },
             accountId,
             account

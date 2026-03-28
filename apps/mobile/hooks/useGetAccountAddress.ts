@@ -1,5 +1,5 @@
-import { KeychainKind } from 'react-native-bdk-sdk'
 import { useEffect } from 'react'
+import { KeychainKind } from 'react-native-bdk-sdk'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
@@ -63,7 +63,10 @@ const useGetAccountAddress = (id: Account['id']) => {
       }
 
       // Get the first address from the wallet
-      const addressInfo = walletData.wallet.peekAddress(KeychainKind.External, 0)
+      const addressInfo = walletData.wallet.peekAddress(
+        KeychainKind.External,
+        0
+      )
       const firstAddress = addressInfo?.address ?? ''
       addAccountAddress(account.id, firstAddress)
     } catch (err) {

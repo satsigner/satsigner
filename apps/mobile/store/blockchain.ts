@@ -105,9 +105,6 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
           proxy: server.proxy
         })
       },
-      setLastKnownBlockHeight: (height: number) => {
-        set({ lastKnownBlockHeight: height })
-      },
       lastKnownBlockHeight: 0,
       removeCustomServer: (server) => {
         const { customServers } = get()
@@ -116,6 +113,9 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
         })
       },
       selectedNetwork: 'signet',
+      setLastKnownBlockHeight: (height: number) => {
+        set({ lastKnownBlockHeight: height })
+      },
       setSelectedNetwork: (selectedNetwork) => set({ selectedNetwork }),
       updateConfig: (network, config) => {
         set(

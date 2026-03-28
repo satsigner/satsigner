@@ -1,7 +1,7 @@
 import { Buffer } from 'buffer'
 
-import { type PsbtLike } from 'react-native-bdk-sdk'
 import * as bitcoinjs from 'bitcoinjs-lib'
+import { type PsbtLike } from 'react-native-bdk-sdk'
 
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { t } from '@/locales'
@@ -206,11 +206,11 @@ async function processBitcoinContent(
               return
             }
 
-            const sent = outputs.reduce(
+            const _sent = outputs.reduce(
               (acc: number, output) => acc + output.value,
               0
             )
-            const received = inputs.reduce(
+            const _received = inputs.reduce(
               (acc: number, input) => acc + (input.value || 0),
               0
             )
