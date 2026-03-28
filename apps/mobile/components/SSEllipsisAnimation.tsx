@@ -38,19 +38,23 @@ function SSEllipsisAnimation({ size = 3 }: SSEllipsisAnimationProps) {
     )
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const containerStyle = useMemo(() => {
-    return StyleSheet.compose(styles.containerBase, {
-      gap: Math.round(size * 2)
-    })
-  }, [size])
+  const containerStyle = useMemo(
+    () =>
+      StyleSheet.compose(styles.containerBase, {
+        gap: Math.round(size * 2)
+      }),
+    [size]
+  )
 
-  const dotStyle = useMemo(() => {
-    return StyleSheet.compose(styles.circleBase, {
-      width: size,
-      height: size,
-      borderRadius: Math.round(size / 2)
-    })
-  }, [size])
+  const dotStyle = useMemo(
+    () =>
+      StyleSheet.compose(styles.circleBase, {
+        borderRadius: Math.round(size / 2),
+        height: size,
+        width: size
+      }),
+    [size]
+  )
 
   return (
     <View style={containerStyle}>
@@ -62,13 +66,13 @@ function SSEllipsisAnimation({ size = 3 }: SSEllipsisAnimationProps) {
 }
 
 const styles = StyleSheet.create({
-  containerBase: {
-    height: 20,
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
   circleBase: {
     backgroundColor: Colors.gray[400]
+  },
+  containerBase: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    height: 20
   }
 })
 

@@ -47,14 +47,18 @@ export default function TransactionConfirmation() {
 
   const mempoolConfig = useBlockchainStore((state) => state.configsMempool)
   const webExplorerUrl = useMemo(() => {
-    if (!account) return ''
+    if (!account) {
+      return ''
+    }
     const { network } = account
     const mempoolServerUrl = mempoolConfig[network]
     return mempoolServerUrl
   }, [account, mempoolConfig])
 
   const mempoolTxUrl = useMemo(() => {
-    if (!webExplorerUrl || !txBuilderResult) return ''
+    if (!webExplorerUrl || !txBuilderResult) {
+      return ''
+    }
     const base = webExplorerUrl.replace(/\/api\/?$/, '')
     return `${base}/tx/${txBuilderResult.txDetails.txid}`
   }, [webExplorerUrl, txBuilderResult])
@@ -64,7 +68,9 @@ export default function TransactionConfirmation() {
   }
 
   function handleOpenExternalWebsite() {
-    if (mempoolTxUrl) WebBrowser.openBrowserAsync(mempoolTxUrl)
+    if (mempoolTxUrl) {
+      WebBrowser.openBrowserAsync(mempoolTxUrl)
+    }
     setExternalWarningModalVisible(false)
   }
 
@@ -87,35 +93,37 @@ export default function TransactionConfirmation() {
         const output = outputs[i]
 
         // we deal with change address later
-        if (output.label === defaultChangeAddressLabel) continue
+        if (output.label === defaultChangeAddressLabel) {
+          continue
+        }
 
         const vout = i
 
         // output label
         const outputRef = `${txid}:${vout}`
         labels.push({
-          ref: outputRef,
           label: output.label,
+          ref: outputRef,
           type: 'output'
         })
 
         // output's address label
         labels.push({
+          label: output.label,
           ref: output.to,
-          type: 'addr',
-          label: output.label
+          type: 'addr'
         })
 
         // the tx label will inherit the output's label separated by comma.
         // this is what sparrow does.
-        txLabelText += output.label + ','
+        txLabelText += `${output.label},`
       }
 
       // trim the last comma before adding the tx label.
       txLabelText = txLabelText.replace(/,$/, '')
       labels.push({
-        ref: txid,
         label: txLabelText,
+        ref: txid,
         type: 'tx'
       })
 
@@ -129,14 +137,14 @@ export default function TransactionConfirmation() {
           txlabel: txLabelText
         })
         labels.push({
+          label: changeLabel,
           ref: `${txid}:${changeOutputIndex}`,
-          type: 'output',
-          label: changeLabel
+          type: 'output'
         })
         labels.push({
+          label: changeLabel,
           ref: changeOutput.to,
-          type: 'addr',
-          label: changeLabel
+          type: 'addr'
         })
       }
 
@@ -147,12 +155,16 @@ export default function TransactionConfirmation() {
   // Optimistically update the account with the just-broadcast transaction so
   // the user sees it immediately without waiting for a full sync.
   useEffect(() => {
-    if (!txBuilderResult || !account || !broadcasted) return
+    if (!txBuilderResult || !account || !broadcasted) {
+      return
+    }
 
     const { txid } = txBuilderResult.txDetails
 
     // Idempotent — skip if sync already added it
-    if (account.transactions.some((tx) => tx.id === txid)) return
+    if (account.transactions.some((tx) => tx.id === txid)) {
+      return
+    }
 
     const inputsList = Array.from(inputs.values())
     const totalIn = inputsList.reduce((sum, u) => sum + u.value, 0)
@@ -163,29 +175,29 @@ export default function TransactionConfirmation() {
       .reduce((sum, o) => sum + o.amount, 0)
 
     const optimisticTx: Transaction = {
-      id: txid,
-      type: 'send',
-      sent: totalIn,
-      received: receivedChange,
-      timestamp: new Date(),
       blockHeight: undefined,
       fee,
+      id: txid,
       lockTimeEnabled: false,
+      prices: {},
+      received: receivedChange,
+      sent: totalIn,
+      timestamp: new Date(),
+      type: 'send',
       vin: inputsList.map((u) => ({
+        label: u.label,
         previousOutput: { txid: u.txid, vout: u.vout },
-        sequence: 0xffffffff,
         scriptSig: [],
-        witness: [],
+        sequence: 0xffffffff,
         value: u.value,
-        label: u.label
+        witness: []
       })),
       vout: outputs.map((o) => ({
-        value: o.amount,
         address: o.to,
+        label: o.label,
         script: '',
-        label: o.label
-      })),
-      prices: {}
+        value: o.amount
+      }))
     }
 
     const spentOutpoints = new Set(inputsList.map((u) => `${u.txid}:${u.vout}`))
@@ -195,14 +207,14 @@ export default function TransactionConfirmation() {
 
     updateAccount({
       ...account,
-      transactions: [optimisticTx, ...account.transactions],
-      utxos: remainingUtxos,
       summary: {
         ...account.summary,
         balance: account.summary.balance - (totalIn - receivedChange),
         numberOfTransactions: account.summary.numberOfTransactions + 1,
         numberOfUtxos: remainingUtxos.length
-      }
+      },
+      transactions: [optimisticTx, ...account.transactions],
+      utxos: remainingUtxos
     })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -215,9 +227,13 @@ export default function TransactionConfirmation() {
     }
   }, [broadcasted, account, txBuilderResult, id, router])
 
-  if (!account || !txBuilderResult) return <Redirect href="/" />
+  if (!account || !txBuilderResult) {
+    return <Redirect href="/" />
+  }
 
-  if (!broadcasted) return null
+  if (!broadcasted) {
+    return null
+  }
 
   return (
     <>

@@ -2,7 +2,7 @@
 
 **Privacy-first Bitcoin signer with complete UTXO control**
 
-<img width="3508" height="2480" alt="image" src="https://github.com/user-attachments/assets/5690172b-17db-4d51-8033-9b7ed07bef50" />
+<img width="3508" height="2480" alt="Banner" src="https://github.com/user-attachments/assets/5690172b-17db-4d51-8033-9b7ed07bef50" />
 
 ## Why work on this?
 

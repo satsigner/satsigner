@@ -41,7 +41,9 @@ function getAuthorColor(
   members: { npub: string; color: string }[]
 ): string {
   const cached = colorCache.get(pubkey)
-  if (cached) return cached
+  if (cached) {
+    return cached
+  }
 
   try {
     const npub = nip19.npubEncode(pubkey)
@@ -142,8 +144,8 @@ export default function DevicesGroupChat() {
   const membersList = useMemo(
     () =>
       members.map((member: { npub: string; color?: string }) => ({
-        npub: member.npub,
-        color: member.color || Colors.gray[500]
+        color: member.color || Colors.gray[500],
+        npub: member.npub
       })),
     [members]
   )
@@ -183,21 +185,21 @@ export default function DevicesGroupChat() {
       const created_at = Math.floor(Date.now() / 1000)
       pendingId = `pending-${Date.now()}`
       const optimisticMessage: NostrDM = {
-        id: pendingId,
         author: devicePubkeyHex,
+        content: {
+          created_at,
+          description: trimmed,
+          pubkey: devicePubkeyHex
+        },
         created_at,
         description: trimmed,
         event: '',
+        id: pendingId,
         label: 1,
-        content: {
-          description: trimmed,
-          created_at,
-          pubkey: devicePubkeyHex
-        },
         pending: true
       }
       updateAccountNostr(accountId!, {
-        dms: [...(account.nostr?.dms ?? []), optimisticMessage].sort(
+        dms: [...(account.nostr?.dms ?? []), optimisticMessage].toSorted(
           (a, b) => a.created_at - b.created_at
         )
       })
@@ -268,7 +270,9 @@ export default function DevicesGroupChat() {
   }
 
   async function handleShareInChat() {
-    if (!account || !transactionToShareLocal) return
+    if (!account || !transactionToShareLocal) {
+      return
+    }
 
     setIsLoading(true)
     try {
@@ -298,7 +302,9 @@ export default function DevicesGroupChat() {
     const aliases = account?.nostr?.npubAliases ?? {}
 
     for (const msg of memoizedMessages) {
-      if (!msg.author) continue
+      if (!msg.author) {
+        continue
+      }
       const color = getAuthorColor(msg.author, membersList)
       let npub: string
       try {
@@ -322,13 +328,13 @@ export default function DevicesGroupChat() {
         ? formatNpubText(msg.author)
         : msg.author.slice(0, 8)
       newFormattedNpubs.set(msg.author, {
+        alias: alias || undefined,
+        color,
         displayName:
           profile?.displayName ??
           accountProfile?.displayName ??
           deviceDisplayName,
-        alias: alias || undefined,
         npubShort,
-        color,
         picture: profile?.picture ?? accountProfile?.picture ?? devicePicture
       })
     }
@@ -348,14 +354,18 @@ export default function DevicesGroupChat() {
   // Fetch kind0 profiles for authors we haven't resolved yet.
   // Fire-and-forget: results land in the persisted nostr store.
   useEffect(() => {
-    if (!account?.nostr?.relays?.length) return
+    if (!account?.nostr?.relays?.length) {
+      return
+    }
 
-    const relays = account.nostr.relays
+    const { relays } = account.nostr
     const fetchedRef = new Set<string>()
 
     ;(async () => {
       for (const msg of memoizedMessages) {
-        if (!msg.author) continue
+        if (!msg.author) {
+          continue
+        }
         let npub: string
         try {
           npub = nip19.npubEncode(msg.author)
@@ -367,8 +377,9 @@ export default function DevicesGroupChat() {
           profiles[npub]?.displayName ||
           profiles[npub]?.picture ||
           fetchedRef.has(npub)
-        )
+        ) {
           continue
+        }
         fetchedRef.add(npub)
 
         try {
@@ -397,7 +408,7 @@ export default function DevicesGroupChat() {
 
   function handleScrollToBottom() {
     if (flatListRef.current) {
-      flatListRef.current.scrollToOffset({ offset: 0, animated: true })
+      flatListRef.current.scrollToOffset({ animated: true, offset: 0 })
       isAtBottomRef.current = true
       setShowNewMessageButton(false)
     }
@@ -414,7 +425,9 @@ export default function DevicesGroupChat() {
     const atBottom = contentOffset.y <= SCROLL_THRESHOLD
     if (isAtBottomRef.current !== atBottom) {
       isAtBottomRef.current = atBottom
-      if (atBottom) setShowNewMessageButton(false)
+      if (atBottom) {
+        setShowNewMessageButton(false)
+      }
     }
     const nearTop =
       contentSize.height > layoutMeasurement.height &&
@@ -439,18 +452,20 @@ export default function DevicesGroupChat() {
     }
   }, [transactionToShare, setTransactionToShare])
 
-  if (!accountId || !account) return <Redirect href="/" />
+  if (!accountId || !account) {
+    return <Redirect href="/" />
+  }
 
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>
       <Stack.Screen
         options={{
+          headerRight: () => null,
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
             </SSHStack>
-          ),
-          headerRight: () => null
+          )
         }}
       />
       <SSVStack gap="sm" style={{ flex: 1 }}>
@@ -576,79 +591,69 @@ export default function DevicesGroupChat() {
 }
 
 const styles = StyleSheet.create({
-  messagesContainer: {
-    flex: 1,
-    paddingBottom: 8
-  },
-  message: {
-    backgroundColor: Colors.gray[900],
-    padding: 10,
-    paddingBottom: 15,
-    paddingTop: 5,
-    borderRadius: 8,
-    marginTop: 8
+  authorIndicator: {
+    borderRadius: 4,
+    height: 8,
+    marginRight: 3,
+    marginTop: 1,
+    width: 8
   },
   deviceMessage: {
     backgroundColor: Colors.gray[800]
   },
-  authorIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginTop: 1,
-    marginRight: 3
-  },
-  inputContainer: {
-    paddingHorizontal: 0,
-    paddingBottom: 16
-  },
   input: {
     backgroundColor: Colors.gray[900],
-    color: Colors.white,
-    padding: 10,
     borderRadius: 8,
+    color: Colors.white,
+    flex: 0.8,
     minHeight: 60,
-    textAlignVertical: 'top',
-    flex: 0.8
+    padding: 10,
+    textAlignVertical: 'top'
   },
-  sendButton: {
-    flex: 0.2
-  },
-  statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10
+  inputContainer: {
+    paddingBottom: 16,
+    paddingHorizontal: 0
   },
   loadingContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+    alignItems: 'center',
     bottom: 0,
     justifyContent: 'center',
-    alignItems: 'center',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
     zIndex: 1
   },
-  signFlowButton: {
+  message: {
+    backgroundColor: Colors.gray[900],
+    borderRadius: 8,
     marginTop: 8,
-    alignSelf: 'flex-start'
+    padding: 10,
+    paddingBottom: 15,
+    paddingTop: 5
+  },
+  messagesContainer: {
+    flex: 1,
+    paddingBottom: 8
   },
   modalContainer: {
+    alignItems: 'center',
+    backgroundColor: 'transparent',
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    backgroundColor: 'transparent'
+    width: '100%'
   },
   modalContent: {
     backgroundColor: Colors.gray[900],
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    width: '100%',
-    minHeight: '60%',
+    justifyContent: 'space-between',
     maxHeight: '85%',
-    justifyContent: 'space-between'
+    minHeight: '60%',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    width: '100%'
+  },
+  modalMessageText: {
+    maxHeight: 300
   },
   modalScroll: {
     width: '100%'
@@ -656,13 +661,23 @@ const styles = StyleSheet.create({
   modalScrollContent: {
     paddingBottom: 4
   },
-  modalMessageText: {
-    maxHeight: 300
-  },
   newMessageButtonContainer: {
-    position: 'absolute',
-    bottom: 70,
     alignSelf: 'center',
+    bottom: 70,
+    position: 'absolute',
     zIndex: 2
+  },
+  sendButton: {
+    flex: 0.2
+  },
+  signFlowButton: {
+    alignSelf: 'flex-start',
+    marginTop: 8
+  },
+  statusContainer: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'center'
   }
 })

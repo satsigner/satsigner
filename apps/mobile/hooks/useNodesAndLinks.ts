@@ -20,12 +20,12 @@ export type TxNode = {
   nextTx?: string
   indexV?: number
   vout?: number
-  prevout?: any
+  prevout?: { txid: string; vout: number }
   localId?: string
   ioData: {
     address?: string
     label?: string
-    value: number
+    value?: number
     fiatValue?: string
     fiatCurrency?: string
     text?: string
@@ -36,7 +36,7 @@ export type TxNode = {
     blockHeight?: string
     blockRelativeTime?: string
     txSize?: number
-    txId?: number
+    txId?: number | string
     vSize?: number
     higherFee?: boolean // miner fee is 10% or higher of the total transaction value
     feePercentage?: number // miner fee is 10% or higher of the total transaction value
@@ -124,22 +124,22 @@ export const useNodesAndLinks = ({
       let outputNodes: TxNode[] = []
 
       outputNodes = outputs.map((output, index) => ({
-        id: `vout-${blockDepth + 1}-${index + 1}`,
-        localId: output.localId,
-        type: 'text',
         depthH: blockDepth + 1,
+        id: `vout-${blockDepth + 1}-${index + 1}`,
+        indexV: index,
         ioData: {
+          address: formatAddress(output.to, 4),
+          fiatCurrency,
+          fiatValue: formatNumber(satsToFiat(output.amount), 2),
+          isSelfSend: ownAddresses.has(output.to),
           isUnspent: true,
           label: output.label,
-          address: formatAddress(output.to, 4),
           text: t('transaction.build.unspent'),
-          value: output.amount,
-          fiatValue: formatNumber(satsToFiat(output.amount), 2),
-          fiatCurrency,
-          isSelfSend: ownAddresses.has(output.to)
+          value: output.amount
         },
+        localId: output.localId,
+        type: 'text',
         value: output.amount,
-        indexV: index,
         vout: index
       }))
 
@@ -147,20 +147,20 @@ export const useNodesAndLinks = ({
 
       if (remainingBalance > 0) {
         outputNodes.push({
-          id: `vout-${blockDepth + 1}-${outputs.length + 1}`,
-          type: 'text',
           depthH: blockDepth + 1,
-          ioData: {
-            value: remainingBalance,
-            fiatValue: formatNumber(satsToFiat(remainingBalance), 2),
-            fiatCurrency,
-            text: t('transaction.build.unspent'),
-            isUnspent: true
-          },
-          value: remainingBalance,
+          id: `vout-${blockDepth + 1}-${outputs.length + 1}`,
           indexV: outputs.length,
-          vout: outputs.length,
-          localId: 'remainingBalance'
+          ioData: {
+            fiatCurrency,
+            fiatValue: formatNumber(satsToFiat(remainingBalance), 2),
+            isUnspent: true,
+            text: t('transaction.build.unspent'),
+            value: remainingBalance
+          },
+          localId: 'remainingBalance',
+          type: 'text',
+          value: remainingBalance,
+          vout: outputs.length
         })
       }
 
@@ -181,32 +181,30 @@ export const useNodesAndLinks = ({
           : 0
 
       outputNodes.push({
-        id: `vout-${blockDepth + 1}-0`,
-        type: 'text',
         depthH: blockDepth + 1,
-        value: minerFee,
-        ioData: {
-          feeRate: Math.round(feeRate),
-          minerFee,
-          fiatValue: formatNumber(satsToFiat(minerFee), 2),
-          fiatCurrency,
-          text: t('transaction.build.minerFee'),
-          value: minerFee,
-          higherFee: higherFeeForCurrentTx,
-          feePercentage: Math.round(feePercentageForCurrentTx * 100) / 100
-        },
+        id: `vout-${blockDepth + 1}-0`,
         indexV: outputs.length + (remainingBalance > 0 ? 1 : 0),
-        vout: outputs.length + (remainingBalance > 0 ? 1 : 0),
-        localId: 'current-minerFee'
+        ioData: {
+          feePercentage: Math.round(feePercentageForCurrentTx * 100) / 100,
+          feeRate: Math.round(feeRate),
+          fiatCurrency,
+          fiatValue: formatNumber(satsToFiat(minerFee), 2),
+          higherFee: higherFeeForCurrentTx,
+          minerFee,
+          text: t('transaction.build.minerFee'),
+          value: minerFee
+        },
+        localId: 'current-minerFee',
+        type: 'text',
+        value: minerFee,
+        vout: outputs.length + (remainingBalance > 0 ? 1 : 0)
       })
 
       return [
         {
-          localId: undefined,
-          id: `block-${blockDepth}-0`,
-          type: 'block',
           depthH: blockDepth,
-          value: totalOutputValue - minerFee,
+          id: `block-${blockDepth}-0`,
+          indexV: 0,
           ioData: {
             blockHeight: '',
             blockRelativeTime: '',
@@ -215,13 +213,14 @@ export const useNodesAndLinks = ({
             vSize: vsize,
             value: totalOutputValue - minerFee
           },
-          indexV: 0
+          localId: undefined,
+          type: 'block',
+          value: totalOutputValue - minerFee
         } as TxNode,
         ...outputNodes
       ]
-    } else {
-      return []
     }
+    return []
   }, [
     inputs,
     transactions.size,
@@ -234,14 +233,18 @@ export const useNodesAndLinks = ({
   ])
 
   const outputAddresses = useMemo(() => {
-    if (transactions.size === 0) return []
+    if (transactions.size === 0) {
+      return []
+    }
     return Array.from(transactions.values()).flatMap(
       (tx) => tx.vout?.map((output) => output.address) ?? []
     )
   }, [transactions])
 
   const outputValues = useMemo(() => {
-    if (transactions.size === 0) return []
+    if (transactions.size === 0) {
+      return []
+    }
     return Array.from(transactions.values()).flatMap(
       (tx) => tx.vout?.map((output) => output.value) ?? []
     )
@@ -251,10 +254,10 @@ export const useNodesAndLinks = ({
     () =>
       Array.from(transactions.values()).flatMap((tx) =>
         tx.vin.map((input) => ({
-          txid: tx.id,
           inputTxId: input.previousOutput.txid,
-          vout: input.previousOutput.vout,
-          prevValue: input.value
+          prevValue: input.value,
+          txid: tx.id,
+          vout: input.previousOutput.vout
         }))
       ),
     [transactions]
@@ -266,7 +269,9 @@ export const useNodesAndLinks = ({
       const blockDepthIndices = new Map<number, number>()
       const previousConfirmedNodes = Array.from(transactions.entries()).flatMap(
         ([, tx]) => {
-          if (!tx.vin || !tx.vout) return []
+          if (!tx.vin || !tx.vout) {
+            return []
+          }
 
           // Calculate total input and output values for *this* transaction
           const totalInputValue = tx.vin.reduce(
@@ -304,28 +309,28 @@ export const useNodesAndLinks = ({
             //   input.indexV = currentIndex
             // }
             const node = {
-              id: `vin-${depthH}-${currentIndex}`,
-              type: 'text',
               depthH,
+              id: `vin-${depthH}-${currentIndex}`,
               ioData: {
-                value: input.value,
-                fiatValue: formatNumber(satsToFiat(input.value ?? 0), 2),
-                fiatCurrency,
                 address: `${formatAddress(input.address, 4)}`,
+                fiatCurrency,
+                fiatValue: formatNumber(satsToFiat(input.value ?? 0), 2),
+                isSelfSend: ownAddresses.has(input.address),
                 label: `${input.label ?? ''}`,
-                txId: tx.id,
                 text: t('common.from'),
-                isSelfSend: ownAddresses.has(input.address)
+                txId: tx.id,
+                value: input.value ?? 0
               },
-              value: input.value,
-              txId: tx.id,
               prevout: input.previousOutput,
+              txId: tx.id,
+              type: 'text',
+              value: input.value ?? 0,
               vout: input.previousOutput.vout
             }
 
             nodes.push(node)
             return nodes
-          }, [] as any[])
+          }, [] as TxNode[])
 
           const vsize = Math.ceil((tx?.weight ?? 0) * 0.25)
           const blockDepth = tx.depthH
@@ -339,19 +344,20 @@ export const useNodesAndLinks = ({
           blockDepthIndices.set(blockDepth, blockIndex + 1)
           const blockNode = [
             {
-              id: `block-${blockDepth}-${blockIndex}`,
-              type: 'block',
               depthH: blockDepth,
+              id: `block-${blockDepth}-${blockIndex}`,
+              indexV: blockIndex,
               ioData: {
-                blockTime,
                 blockHeight,
                 blockRelativeTime,
+                blockTime,
+                txId: formatTxId(tx?.id, 6),
                 txSize: tx.size,
-                vSize: vsize,
-                txId: formatTxId(tx?.id, 6)
+                vSize: vsize
               },
               txId: tx.id,
-              indexV: blockIndex
+              type: 'block',
+              value: totalOutputValue
             }
           ]
 
@@ -376,22 +382,22 @@ export const useNodesAndLinks = ({
               )?.label ?? ''
 
             const node = {
-              localId: undefined,
-              id: `vout-${outputDepth}-${output.index}`,
-              type: 'text',
               depthH: outputDepth,
+              id: `vout-${outputDepth}-${output.index}`,
               ioData: {
-                label,
                 address: formatAddress(output.address, 4),
-                value: output.value,
-                fiatValue: formatNumber(satsToFiat(output.value ?? 0), 2),
                 fiatCurrency,
+                fiatValue: formatNumber(satsToFiat(output.value ?? 0), 2),
+                isSelfSend: ownAddresses.has(output.address),
+                label,
                 text: t('common.from'),
-                isSelfSend: ownAddresses.has(output.address)
+                value: output.value ?? 0
               },
-              value: output.value,
-              txId: tx.id,
+              localId: undefined,
               nextTx,
+              txId: tx.id,
+              type: 'text',
+              value: output.value ?? 0,
               vout: idx
             }
             return node
@@ -416,23 +422,23 @@ export const useNodesAndLinks = ({
                 : 0
 
             feeNode.push({
-              id: `vout-${feeOutputDepth}-fee-${tx.id}`, // Unique ID including txId
-              type: 'text',
               depthH: feeOutputDepth,
-              value: minerFee,
-              txId: tx.id,
-              vout: feeVoutIndex,
+              id: `vout-${feeOutputDepth}-fee-${tx.id}`, // Unique ID including txId
               ioData: {
+                feePercentage: Math.round(feePercentageForPastTx * 100) / 100,
                 feeRate: minerFeeRate,
-                value: minerFee,
-                minerFee,
-                fiatValue: formatNumber(satsToFiat(minerFee), 2),
                 fiatCurrency,
-                text: t('transaction.build.minerFee'),
+                fiatValue: formatNumber(satsToFiat(minerFee), 2),
                 higherFee: higherFeeForPastTx,
-                feePercentage: Math.round(feePercentageForPastTx * 100) / 100
+                minerFee,
+                text: t('transaction.build.minerFee'),
+                value: minerFee
               },
-              localId: 'past-minerFee'
+              localId: 'past-minerFee',
+              txId: tx.id,
+              type: 'text',
+              value: minerFee,
+              vout: feeVoutIndex
             })
           }
 
@@ -441,7 +447,7 @@ export const useNodesAndLinks = ({
             ...blockNode,
             ...outputNodes,
             ...feeNode
-          ].sort((a, b) => a.depthH - b.depthH)
+          ].toSorted((a, b) => a.depthH - b.depthH)
         }
       )
 
@@ -462,22 +468,22 @@ export const useNodesAndLinks = ({
   const nodes = [
     ...previousConfirmedNodes,
     ...outputNodesCurrentTransaction
-  ].sort((a, b) => a.depthH - b.depthH)
+  ].toSorted((a, b) => a.depthH - b.depthH)
 
   const links = useMemo(() => {
     function generateSankeyLinks(nodes: TxNode[]) {
       const links: Link[] = []
       const depthMap = new Map()
 
-      nodes.forEach((node: TxNode) => {
-        const depth = node.depthH
+      for (const node of nodes) {
+        const depth = (node as TxNode).depthH
         if (!depthMap.has(depth)) {
           depthMap.set(depth, [])
         }
         depthMap.get(depth).push(node)
-      })
+      }
 
-      nodes.forEach((node: TxNode) => {
+      for (const node of nodes) {
         if (node.type === 'text' && node.depthH === 0) {
           // vin node in the first depth
           const nextDepthNodes = depthMap.get(node.depthH + 1) || []
@@ -498,9 +504,9 @@ export const useNodesAndLinks = ({
             (n: TxNode) => n.type === 'text' && n.txId === node.txId
           )
 
-          vouts.forEach((vout: TxNode) => {
+          for (const vout of vouts as TxNode[]) {
             links.push({ source: node.id, target: vout.id, value: vout.value })
-          })
+          }
         } else if (node.type === 'text' && node.nextTx) {
           // vout node that has connection to block
           const targetBlock = nodes.find(
@@ -547,19 +553,21 @@ export const useNodesAndLinks = ({
             value: node.value
           })
         }
-      })
+      }
 
-      outputNodesCurrentTransaction.slice(1).map((node) => {
+      for (const node of outputNodesCurrentTransaction.slice(1)) {
         links.push({
           source: outputNodesCurrentTransaction[0].id,
           target: node.id,
           value: node.value ?? 0
         })
-      })
+      }
       return links
     }
 
-    if (nodes?.length === 0) return []
+    if (nodes?.length === 0) {
+      return []
+    }
 
     return generateSankeyLinks(previousConfirmedNodes)
   }, [
@@ -568,6 +576,8 @@ export const useNodesAndLinks = ({
     outputNodesCurrentTransaction,
     inputs
   ])
-  if (transactions.size === 0) return { nodes: [], links: [] }
-  return { nodes, links }
+  if (transactions.size === 0) {
+    return { links: [], nodes: [] }
+  }
+  return { links, nodes }
 }

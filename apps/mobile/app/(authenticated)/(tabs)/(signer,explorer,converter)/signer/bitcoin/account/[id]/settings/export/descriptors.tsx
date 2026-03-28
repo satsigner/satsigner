@@ -40,10 +40,10 @@ function calculateDescriptorChecksum(descriptor: string): string {
     // Simple checksum calculation for React Native
     // This is a simplified version that creates a basic checksum
     let hash = 0
-    for (let i = 0; i < descriptor.length; i++) {
+    for (let i = 0; i < descriptor.length; i += 1) {
       const char = descriptor.charCodeAt(i)
       hash = (hash << 5) - hash + char
-      hash = hash & hash // Convert to 32-bit integer
+      hash &= hash // Convert to 32-bit integer
     }
 
     // Convert to base58-like string
@@ -59,7 +59,7 @@ function calculateDescriptorChecksum(descriptor: string): string {
 
     // Pad with leading '1's if needed
     while (result.length < 8) {
-      result = '1' + result
+      result = `1${result}`
     }
 
     return result
@@ -83,7 +83,9 @@ export default function ExportDescriptors() {
 
   useEffect(() => {
     async function getDescriptors() {
-      if (!account) return
+      if (!account) {
+        return
+      }
       try {
         const isImportAddress =
           account.keys?.[0]?.creationType === 'importAddress'
@@ -97,12 +99,12 @@ export default function ExportDescriptors() {
         } else if (!isImportAddress) {
           if (temporaryAccount.policyType === 'singlesig') {
             // For single signature accounts, generate single key descriptor
-            const key = temporaryAccount.keys[0]
+            const [key] = temporaryAccount.keys
             if (!key) {
               descriptorString =
                 'No key data available for single signature account'
             } else {
-              const secret = key.secret
+              const { secret } = key
               let extendedPublicKey = ''
               let fingerprint = ''
 
@@ -115,7 +117,7 @@ export default function ExportDescriptors() {
               // Get extended public key from various possible sources
               if (typeof secret === 'object') {
                 if (secret.extendedPublicKey) {
-                  extendedPublicKey = secret.extendedPublicKey
+                  ;({ extendedPublicKey } = secret)
                 } else if (secret.externalDescriptor) {
                   extendedPublicKey = getExtendedKeyFromDescriptor(
                     secret.externalDescriptor
@@ -150,7 +152,7 @@ export default function ExportDescriptors() {
 
               // If we still don't have a fingerprint, try to get it from the key's fingerprint property
               if (!fingerprint && key.fingerprint) {
-                fingerprint = key.fingerprint
+                ;({ fingerprint } = key)
               }
 
               if (fingerprint && extendedPublicKey) {
@@ -209,8 +211,9 @@ export default function ExportDescriptors() {
               // Extract fingerprints and extended public keys for each key
               const keyData = await Promise.all(
                 temporaryAccount.keys.map(async (key, index) => {
-                  if (!key)
-                    return { fingerprint: '', extendedPublicKey: '', index }
+                  if (!key) {
+                    return { extendedPublicKey: '', fingerprint: '', index }
+                  }
 
                   const secret = key.secret as Secret
                   let extendedPublicKey = ''
@@ -226,7 +229,7 @@ export default function ExportDescriptors() {
                   if (typeof secret === 'object') {
                     // First, try to get from extendedPublicKey directly
                     if (secret.extendedPublicKey) {
-                      extendedPublicKey = secret.extendedPublicKey
+                      ;({ extendedPublicKey } = secret)
                     } else if (secret.externalDescriptor) {
                       extendedPublicKey = getExtendedKeyFromDescriptor(
                         secret.externalDescriptor
@@ -262,7 +265,7 @@ export default function ExportDescriptors() {
 
                   // If we still don't have a fingerprint, try to get it from the key's fingerprint property
                   if (!fingerprint && key.fingerprint) {
-                    fingerprint = key.fingerprint
+                    ;({ fingerprint } = key)
                   }
 
                   // If we still don't have an extended public key, try to get it from the key's secret
@@ -275,7 +278,7 @@ export default function ExportDescriptors() {
                     }
                   }
 
-                  return { fingerprint, extendedPublicKey, index }
+                  return { extendedPublicKey, fingerprint, index }
                 })
               )
 
@@ -310,16 +313,16 @@ export default function ExportDescriptors() {
                 )
 
                 // Sort keys by extended public key to ensure consistent ordering with other Bitcoin wallets
-                const sortedKeyData = validKeyData.sort((a, b) =>
+                const sortedKeyData = validKeyData.toSorted((a, b) =>
                   a.extendedPublicKey.localeCompare(b.extendedPublicKey)
                 )
 
                 // Build key section with policy-based derivation paths
                 const keySection = sortedKeyData
-                  .map(({ fingerprint, extendedPublicKey }) => {
-                    // Format: [FINGERPRINT/POLICY_DERIVATION_PATH]XPUB/<0;1>/*
-                    return `[${fingerprint}/${cleanPolicyPath}]${extendedPublicKey}/<0;1>/*`
-                  })
+                  .map(
+                    ({ fingerprint, extendedPublicKey }) =>
+                      `[${fingerprint}/${cleanPolicyPath}]${extendedPublicKey}/<0;1>/*`
+                  )
                   .join(',')
 
                 // Create descriptor based on account type
@@ -344,7 +347,7 @@ export default function ExportDescriptors() {
                   }
                 } else {
                   // For single-sig accounts, create simple descriptor
-                  const singleKey = keySection.split(',')[0] // Use first (and only) key
+                  const [singleKey] = keySection.split(',') // Use first (and only) key
                   switch (scriptVersion) {
                     case 'P2PKH':
                       finalDescriptor = `pkh(${singleKey.replace(
@@ -397,7 +400,7 @@ export default function ExportDescriptors() {
             }
           } else {
             // For watchonly accounts, handle different creation types
-            const key = temporaryAccount.keys[0]
+            const [key] = temporaryAccount.keys
             if (!key) {
               descriptorString = 'No key data available for watch-only account'
             } else {
@@ -488,7 +491,7 @@ export default function ExportDescriptors() {
           }
         } else {
           // For importAddress, handle address-based accounts
-          const key = temporaryAccount.keys[0]
+          const [key] = temporaryAccount.keys
           if (!key) {
             descriptorString = 'No key data available for imported address'
           } else {
@@ -529,28 +532,34 @@ export default function ExportDescriptors() {
     getDescriptors()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function exportDescriptors() {
-    if (!account) return
+  function exportDescriptors() {
+    if (!account) {
+      return
+    }
     const date = new Date().toISOString().slice(0, -5)
     const ext = 'txt'
     const filename = `${t(
       'export.file.name.descriptors'
     )}_${accountId}_${date}.${ext}`
     shareFile({
-      filename,
-      fileContent: exportContent,
       dialogTitle: t('export.file.save'),
+      fileContent: exportContent,
+      filename,
       mimeType: `text/plain`
     })
   }
 
-  async function exportDescriptorsPDF() {
-    if (!account || !exportContent) return
+  function exportDescriptorsPDF() {
+    if (!account || !exportContent) {
+      return
+    }
     generatePDF()
   }
 
   async function generatePDF() {
-    if (!account || !exportContent) return
+    if (!account || !exportContent) {
+      return
+    }
 
     try {
       // Capture QR code as image using react-native-view-shot
@@ -571,7 +580,9 @@ export default function ExportDescriptors() {
   }
 
   async function createPDFWithQR(qrDataURL: string) {
-    if (!account) return
+    if (!account) {
+      return
+    }
     const title = account.name
 
     const htmlContent = `
@@ -649,15 +660,15 @@ export default function ExportDescriptors() {
 
     try {
       const { uri } = await Print.printToFileAsync({
-        html: htmlContent,
-        base64: false
+        base64: false,
+        html: htmlContent
       })
 
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {
-          mimeType: 'application/pdf',
+          UTI: 'com.adobe.pdf',
           dialogTitle: t('export.file.save'),
-          UTI: 'com.adobe.pdf'
+          mimeType: 'application/pdf'
         })
       }
     } catch {
@@ -665,7 +676,9 @@ export default function ExportDescriptors() {
     }
   }
 
-  if (!account) return <Redirect href="/" />
+  if (!account) {
+    return <Redirect href="/" />
+  }
 
   const descriptors = (exportContent || '').split('\n').filter(Boolean)
 
@@ -673,6 +686,7 @@ export default function ExportDescriptors() {
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
@@ -680,8 +694,7 @@ export default function ExportDescriptors() {
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
               )}
             </SSHStack>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <SSVStack style={{ padding: 20 }} gap="lg">
@@ -724,8 +737,8 @@ export default function ExportDescriptors() {
                     <View
                       style={{
                         backgroundColor: Colors.white,
-                        padding: 16,
-                        borderRadius: 2
+                        borderRadius: 2,
+                        padding: 16
                       }}
                     >
                       <SSQRCode
@@ -748,8 +761,8 @@ export default function ExportDescriptors() {
                   ref={qrRef}
                   style={{
                     backgroundColor: Colors.white,
-                    padding: 16,
-                    borderRadius: 2
+                    borderRadius: 2,
+                    padding: 16
                   }}
                 >
                   <SSQRCode
@@ -763,9 +776,9 @@ export default function ExportDescriptors() {
             )}
             <View
               style={{
-                padding: 10,
                 backgroundColor: Colors.gray[950],
-                borderRadius: 5
+                borderRadius: 5,
+                padding: 10
               }}
             >
               <SSText color="white" size="md" type="mono">
@@ -806,9 +819,9 @@ export default function ExportDescriptors() {
 
 const styles = StyleSheet.create({
   electrumWarning: {
-    borderWidth: 1,
     borderColor: Colors.warning,
     borderRadius: 5,
+    borderWidth: 1,
     padding: 10
   },
   electrumWarningText: {

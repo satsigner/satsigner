@@ -56,48 +56,10 @@ type TransactionBuilderAction = {
 const useTransactionBuilderStore = create<
   TransactionBuilderState & TransactionBuilderAction
 >()((set, get) => ({
-  inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
-  outputs: [],
-  feeRate: 0,
-  fee: 0,
-  timeLock: 0,
-  rbf: true,
-  cpfp: true,
-  broadcasted: false,
-  signedPsbts: new Map<number, string>(),
-  clearTransaction: () => {
-    set({
-      accountId: undefined,
-      inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
-      outputs: [],
-      feeRate: 0,
-      txBuilderResult: undefined,
-      psbt: undefined,
-      signedTx: undefined,
-      broadcasted: false,
-      signedPsbts: new Map<number, string>()
-    })
-  },
-  setAccountId: (accountId) => {
-    set({ accountId })
-  },
-  getInputs: () => {
-    return Array.from(get().inputs.values())
-  },
-  hasInput: (utxo) => {
-    return get().inputs.has(getUtxoOutpoint(utxo))
-  },
   addInput: (utxo) => {
     set(
       produce((state: TransactionBuilderState) => {
         state.inputs.set(getUtxoOutpoint(utxo), utxo)
-      })
-    )
-  },
-  removeInput: (utxo) => {
-    set(
-      produce((state: TransactionBuilderState) => {
-        state.inputs.delete(getUtxoOutpoint(utxo))
       })
     )
   },
@@ -108,13 +70,32 @@ const useTransactionBuilderStore = create<
       })
     )
   },
-  updateOutput: (localId, output) => {
+  broadcasted: false,
+  clearTransaction: () => {
+    set({
+      accountId: undefined,
+      broadcasted: false,
+      feeRate: 0,
+      inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
+      outputs: [],
+      psbt: undefined,
+      signedPsbts: new Map<number, string>(),
+      signedTx: undefined,
+      txBuilderResult: undefined
+    })
+  },
+  cpfp: true,
+  fee: 0,
+  feeRate: 0,
+  getInputs: () => Array.from(get().inputs.values()),
+  hasInput: (utxo) => get().inputs.has(getUtxoOutpoint(utxo)),
+  inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
+  outputs: [],
+  rbf: true,
+  removeInput: (utxo) => {
     set(
       produce((state: TransactionBuilderState) => {
-        const index = state.outputs.findIndex(
-          (output) => output.localId === localId
-        )
-        if (index !== -1) state.outputs[index] = { localId, ...output }
+        state.inputs.delete(getUtxoOutpoint(utxo))
       })
     )
   },
@@ -124,9 +105,17 @@ const useTransactionBuilderStore = create<
         const index = state.outputs.findIndex(
           (output) => output.localId === localId
         )
-        if (index !== -1) state.outputs.splice(index, 1)
+        if (index !== -1) {
+          state.outputs.splice(index, 1)
+        }
       })
     )
+  },
+  setAccountId: (accountId) => {
+    set({ accountId })
+  },
+  setBroadcasted: (broadcasted) => {
+    set({ broadcasted })
   },
   setFee: (fee) => {
     set({ fee })
@@ -134,23 +123,34 @@ const useTransactionBuilderStore = create<
   setFeeRate: (feeRate) => {
     set({ feeRate })
   },
-  setRbf: (rbf) => {
-    set({ rbf })
-  },
-  setTxBuilderResult: (txBuilderResult) => {
-    set({ txBuilderResult })
-  },
   setPsbt: (psbt) => {
     set({ psbt })
   },
-  setSignedTx: (signedTx) => {
-    set({ signedTx })
+  setRbf: (rbf) => {
+    set({ rbf })
   },
   setSignedPsbts: (signedPsbts) => {
     set({ signedPsbts })
   },
-  setBroadcasted: (broadcasted) => {
-    set({ broadcasted })
+  setSignedTx: (signedTx) => {
+    set({ signedTx })
+  },
+  setTxBuilderResult: (txBuilderResult) => {
+    set({ txBuilderResult })
+  },
+  signedPsbts: new Map<number, string>(),
+  timeLock: 0,
+  updateOutput: (localId, output) => {
+    set(
+      produce((state: TransactionBuilderState) => {
+        const index = state.outputs.findIndex(
+          (output) => output.localId === localId
+        )
+        if (index !== -1) {
+          state.outputs[index] = { localId, ...output }
+        }
+      })
+    )
   }
 }))
 

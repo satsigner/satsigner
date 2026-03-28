@@ -90,29 +90,31 @@ function ExplorerDifficulty() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchData(epoch: number) {
-    if (loading) return
+    if (loading) {
+      return
+    }
     setLoading(true)
     try {
       const fileName = getFileName(epoch)
       const response = await fetch(DATA_LINK + fileName)
       const rawData = (await response.json()) as DifficultyEpochsData[][]
-      const items = rawData[0]
+      const [items] = rawData
       const data = items.map(
         (value) =>
           ({
-            height: value[0].height,
-            timestamp: value[1].time,
-            txCount: value[2].nTx,
             chainWork: value[3].chainwork,
+            cycleHeight: value[7].block_in_cycle,
+            height: value[0].height,
             nonce: value[4].nonce,
             size: value[5].size,
-            weight: value[6].weight,
-            cycleHeight: value[7].block_in_cycle,
-            timeDifference: value[8].time_difference
+            timeDifference: value[8].time_difference,
+            timestamp: value[1].time,
+            txCount: value[2].nTx,
+            weight: value[6].weight
           }) as BlockDifficulty
       )
 
-      const firstBlock = data[0]
+      const [firstBlock] = data
       const lastBlock = data[data.length - 1]
 
       setHeightStart(firstBlock.height.toString())
@@ -122,13 +124,13 @@ function ExplorerDifficulty() {
 
       setData(data)
     } catch (error) {
-      throw new Error('Failed to fetch data:' + error)
+      throw new Error(`Failed to fetch data:${error}`, { cause: error })
     } finally {
       setLoading(false)
     }
   }
 
-  async function fetchLatestEpoch() {
+  function fetchLatestEpoch() {
     // INFO: this is how we would get the latest epoch:
     // const oracle = new MempoolOracle(url)
     // const blockHeight = await oracle.getCurrentBlockHeight()
@@ -154,7 +156,7 @@ function ExplorerDifficulty() {
     setSelectedBlock(block)
   }
 
-  async function fetchEpoch() {
+  function fetchEpoch() {
     fetchData(Number(epoch))
   }
 
@@ -228,7 +230,7 @@ function ExplorerDifficulty() {
               value={epoch}
               onChangeText={setEpoch}
               textAlign="center"
-              style={{ borderWidth: 1, borderColor: '#fff' }}
+              style={{ borderColor: '#fff', borderWidth: 1 }}
             />
           </SSVStack>
           <SSActionButton style={styles.button} onPress={nextEpoch}>
@@ -364,40 +366,6 @@ function getFileName(index: number) {
 }
 
 const styles = StyleSheet.create({
-  button: {
-    borderWidth: 1,
-    borderRadius: 5,
-    borderColor: Colors.white,
-    padding: 20
-  },
-  dateContainer: {
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  inputContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    alignContent: 'center',
-    alignItems: 'center'
-  },
-  canvasContainer: {
-    marginTop: 140,
-    flex: 1
-  },
-  mainContainer: {
-    backgroundColor: Colors.black,
-    paddingTop: 10,
-    paddingBottom: 20
-  },
-  modalContainer: {
-    zIndex: 120,
-    backgroundColor: 'black',
-    height: '100%',
-    width: '100%',
-    paddingHorizontal: 20,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
   blockDetailsSection: {
     flexGrow: 1
   },
@@ -405,21 +373,55 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 0
   },
-  fullWidth: {
-    width: '100%',
-    textAlign: 'center'
+  button: {
+    borderColor: Colors.white,
+    borderRadius: 5,
+    borderWidth: 1,
+    padding: 20
   },
-  headerContainer: {
-    alignItems: 'flex-start'
+  canvasContainer: {
+    flex: 1,
+    marginTop: 140
+  },
+  dateContainer: {
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  footerContainer: {
+    justifyContent: 'center'
+  },
+  fullWidth: {
+    textAlign: 'center',
+    width: '100%'
   },
   headerCaption: {
     flexShrink: 1
   },
+  headerContainer: {
+    alignItems: 'flex-start'
+  },
   headerRight: {
     textAlign: 'right'
   },
-  footerContainer: {
+  inputContainer: {
+    alignContent: 'center',
+    alignItems: 'center',
+    flexGrow: 1,
     justifyContent: 'center'
+  },
+  mainContainer: {
+    backgroundColor: Colors.black,
+    paddingBottom: 20,
+    paddingTop: 10
+  },
+  modalContainer: {
+    alignItems: 'center',
+    backgroundColor: 'black',
+    height: '100%',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    width: '100%',
+    zIndex: 120
   }
 })
 

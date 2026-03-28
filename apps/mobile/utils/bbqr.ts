@@ -9,13 +9,13 @@ import { joinQRs, splitQRs } from './bbrq'
 
 // Re-export the official FileType but with enum-like access for backward compatibility
 export const BBQRFileTypes = {
+  BINARY: 'B' as const,
+  CBOR: 'C' as const,
+  EXECUTABLE: 'X' as const,
+  JSON: 'J' as const,
   PSBT: 'P' as const,
   TXN: 'T' as const,
-  JSON: 'J' as const,
-  CBOR: 'C' as const,
-  UNICODE: 'U' as const,
-  BINARY: 'B' as const,
-  EXECUTABLE: 'X' as const
+  UNICODE: 'U' as const
 } as const
 
 // Export type for the FileType values
@@ -127,12 +127,14 @@ export function createBBQRChunks(
     // Try to split with the calculated constraints
     result = splitQRs(data, officialFileType, {
       encoding: 'Z', // Try compression first (same as original implementation)
-      minSplit,
       maxSplit,
-      minVersion: 5 as Version,
-      maxVersion: 40 as Version
+      maxVersion: 40 as Version,
+      minSplit,
+      minVersion: 5 as Version
     })
-  } catch {}
+  } catch {
+    /* silently ignored */
+  }
 
   if (result && result.parts && result.parts.length > 0) {
     return result.parts
@@ -151,12 +153,14 @@ export function createBBQRChunks(
   try {
     result = splitQRs(data, officialFileType, {
       encoding: 'Z',
-      minSplit: fallbackMinSplit,
       maxSplit: fallbackMaxSplit,
-      minVersion: 5 as Version,
-      maxVersion: 40 as Version
+      maxVersion: 40 as Version,
+      minSplit: fallbackMinSplit,
+      minVersion: 5 as Version
     })
-  } catch {}
+  } catch {
+    /* silently ignored */
+  }
 
   if (result && result.parts && result.parts.length > 0) {
     return result.parts
@@ -166,12 +170,14 @@ export function createBBQRChunks(
     // let the library decide with minimal constraints
     result = splitQRs(data, officialFileType, {
       encoding: 'Z',
-      minSplit: 1,
       maxSplit: Math.min(50, targetChunks * 2),
-      minVersion: 5 as Version,
-      maxVersion: 40 as Version
+      maxVersion: 40 as Version,
+      minSplit: 1,
+      minVersion: 5 as Version
     })
-  } catch {}
+  } catch {
+    /* silently ignored */
+  }
 
   if (result && result.parts && result.parts.length > 0) {
     return result.parts
@@ -182,7 +188,9 @@ export function createBBQRChunks(
     result = splitQRs(data, officialFileType, {
       encoding: 'Z' // Let library choose all other defaults
     })
-  } catch {}
+  } catch {
+    /* silently ignored */
+  }
 
   if (result && result.parts && result.parts.length > 0) {
     return result.parts

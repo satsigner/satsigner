@@ -58,22 +58,23 @@ function SSTextInput(
 }
 
 const styles = StyleSheet.create({
+  actionRightBase: {
+    position: 'absolute',
+    right: 12,
+    top: '50%',
+    transform: [{ translateY: -12 }]
+  },
+  alignCenter: {
+    paddingHorizontal: 12,
+    textAlign: 'center'
+  },
+  alignLeft: {
+    paddingHorizontal: 12,
+    textAlign: 'left'
+  },
   containerBase: {
     position: 'relative',
     width: '100%'
-  },
-  textInputBase: {
-    borderRadius: Sizes.textInput.borderRadius,
-    width: '100%',
-    textAlign: 'center',
-    color: Colors.white
-  },
-  variantDefault: {
-    backgroundColor: Colors.gray[850]
-  },
-  variantOutline: {
-    borderWidth: 1,
-    borderColor: Colors.gray[400]
   },
   sizeDefault: {
     fontSize: Sizes.textInput.fontSize.default,
@@ -83,19 +84,18 @@ const styles = StyleSheet.create({
     fontSize: Sizes.textInput.fontSize.small,
     height: Sizes.textInput.height.small
   },
-  alignCenter: {
+  textInputBase: {
+    borderRadius: Sizes.textInput.borderRadius,
+    color: Colors.white,
     textAlign: 'center',
-    paddingHorizontal: 12
+    width: '100%'
   },
-  alignLeft: {
-    textAlign: 'left',
-    paddingHorizontal: 12
+  variantDefault: {
+    backgroundColor: Colors.gray[850]
   },
-  actionRightBase: {
-    position: 'absolute',
-    top: '50%',
-    right: 12,
-    transform: [{ translateY: -12 }]
+  variantOutline: {
+    borderColor: Colors.gray[400],
+    borderWidth: 1
   }
 })
 

@@ -2,7 +2,9 @@ import { t } from '@/locales'
 import { formatDate as formatDateUtil } from '@/utils/format'
 
 export const formatRelativeTime = (timestamp: number | undefined): string => {
-  if (!timestamp) return ''
+  if (!timestamp) {
+    return ''
+  }
 
   const now = Math.floor(Date.now() / 1000)
   const diff = now - timestamp
@@ -14,23 +16,49 @@ export const formatRelativeTime = (timestamp: number | undefined): string => {
   const months = Math.floor(days / 30)
   const years = Math.floor(days / 365)
 
-  if (years > 1) return `(${t('time.yearsAgo', { value: years })})`
-  if (years === 1) return `(${t('time.yearAgo')})`
-  if (months > 1) return `(${t('time.monthsAgo', { value: months })})`
-  if (months === 1) return `(${t('time.monthAgo')})`
-  if (weeks > 1) return `(${t('time.weeksAgo', { value: weeks })})`
-  if (weeks === 1) return `(${t('time.weekAgo')})`
-  if (days > 1) return `(${t('time.daysAgo', { value: days })})`
-  if (days === 1) return `(${t('time.dayAgo')})`
-  if (hours > 1) return `(${t('time.hoursAgo', { value: hours })})`
-  if (hours === 1) return `(${t('time.hourAgo')})`
-  if (minutes > 1) return `(${t('time.minutesAgo', { value: minutes })})`
-  if (minutes === 1) return `(${t('time.minuteAgo')})`
+  if (years > 1) {
+    return `(${t('time.yearsAgo', { value: years })})`
+  }
+  if (years === 1) {
+    return `(${t('time.yearAgo')})`
+  }
+  if (months > 1) {
+    return `(${t('time.monthsAgo', { value: months })})`
+  }
+  if (months === 1) {
+    return `(${t('time.monthAgo')})`
+  }
+  if (weeks > 1) {
+    return `(${t('time.weeksAgo', { value: weeks })})`
+  }
+  if (weeks === 1) {
+    return `(${t('time.weekAgo')})`
+  }
+  if (days > 1) {
+    return `(${t('time.daysAgo', { value: days })})`
+  }
+  if (days === 1) {
+    return `(${t('time.dayAgo')})`
+  }
+  if (hours > 1) {
+    return `(${t('time.hoursAgo', { value: hours })})`
+  }
+  if (hours === 1) {
+    return `(${t('time.hourAgo')})`
+  }
+  if (minutes > 1) {
+    return `(${t('time.minutesAgo', { value: minutes })})`
+  }
+  if (minutes === 1) {
+    return `(${t('time.minuteAgo')})`
+  }
   return `(${t('time.justNow')})`
 }
 
 export const formatDate = (timestamp: number | undefined): string => {
-  if (typeof timestamp !== 'number') return ''
+  if (typeof timestamp !== 'number') {
+    return ''
+  }
 
   const date = new Date(timestamp * 1000)
 
@@ -46,13 +74,15 @@ export const formatDate = (timestamp: number | undefined): string => {
 
 /** Same format as chat message cards: "Feb 22, 2025, 03:45 PM" */
 export function formatDateShort(timestamp: number | undefined): string {
-  if (typeof timestamp !== 'number') return ''
+  if (typeof timestamp !== 'number') {
+    return ''
+  }
   return new Date(timestamp * 1000).toLocaleString('en-US', {
-    month: 'short',
     day: 'numeric',
-    year: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    month: 'short',
+    year: 'numeric'
   })
 }
 
@@ -65,11 +95,10 @@ export function formatAccountCreationDate(
 
   if (createdAt instanceof Date) {
     return formatDateUtil(createdAt)
-  } else {
-    const date = new Date(createdAt)
-    if (isNaN(date.getTime())) {
-      return 'Invalid date'
-    }
-    return formatDateUtil(date)
   }
+  const date = new Date(createdAt)
+  if (isNaN(date.getTime())) {
+    return 'Invalid date'
+  }
+  return formatDateUtil(date)
 }

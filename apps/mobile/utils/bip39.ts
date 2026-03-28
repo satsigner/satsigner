@@ -71,9 +71,7 @@ const ELECTRUM_SEED_VERSIONS: Record<string, string> = {
 
 const enc = new TextEncoder()
 
-export async function detectElectrumSeed(
-  mnemonic: string
-): Promise<string | null> {
+export function detectElectrumSeed(mnemonic: string): string | null {
   const normalized = mnemonic
     .normalize('NFKD')
     .toLowerCase()
@@ -87,7 +85,9 @@ export async function detectElectrumSeed(
     )
     const hmacHex = Buffer.from(result).toString('hex')
     const firstDigit = parseInt(hmacHex[0], 16)
-    if (isNaN(firstDigit)) return null
+    if (isNaN(firstDigit)) {
+      return null
+    }
     const prefixLength = firstDigit + 2
     const prefixSlice = hmacHex.slice(0, prefixLength).toLowerCase()
     return ELECTRUM_SEED_VERSIONS[prefixSlice] ?? null
@@ -97,7 +97,7 @@ export async function detectElectrumSeed(
 }
 
 // Electrum seed derivation: PBKDF2(HMAC-SHA512, pass=NFKD(mnemonic), salt="electrum"+NFKD(passphrase), rounds=2048)
-export async function mnemonicToSeedElectrum(
+export function mnemonicToSeedElectrum(
   mnemonic: string,
   passphrase: string = ''
 ): Promise<Uint8Array> {
@@ -106,7 +106,7 @@ export async function mnemonicToSeedElectrum(
     .toLowerCase()
     .trim()
     .replace(/\s+/g, ' ')
-  const salt = ('electrum' + passphrase).normalize('NFKD')
+  const salt = `electrum${passphrase}`.normalize('NFKD')
   return pbkdf2Async(sha512, enc.encode(normalizedMnemonic), enc.encode(salt), {
     c: 2048,
     dkLen: 64
@@ -125,16 +125,16 @@ export function isElectrumDerivationPath(path: string): boolean {
 
 // scriptVersion for Electrum seed type: segwit → P2WPKH, standard → P2PKH
 const ELECTRUM_SCRIPT_VERSION: Record<string, ScriptVersionType> = {
+  '2fa-standard': 'P2PKH',
   segwit: 'P2WPKH',
-  standard: 'P2PKH',
-  '2fa-standard': 'P2PKH'
+  standard: 'P2PKH'
 }
 
 export async function getPrivateDescriptorFromElectrumMnemonic(
   mnemonic: string,
   electrumType: string,
   kind: KeychainKind,
-  passphrase: string = '',
+  passphrase: string,
   network: Network
 ): Promise<string> {
   const seed = await mnemonicToSeedElectrum(mnemonic, passphrase)
@@ -164,10 +164,12 @@ export function generateMnemonicFromEntropy(
   entropy: string,
   wordListName: string = 'english'
 ) {
-  if (entropy.length < 128 || entropy.length > 256)
+  if (entropy.length < 128 || entropy.length > 256) {
     throw new Error('Invalid Entropy: it must be range of [128, 256]')
-  if (entropy.length % 32 !== 0)
+  }
+  if (entropy.length % 32 !== 0) {
     throw new Error('Invalid Entropy: it must be divisible by 32')
+  }
   const wordlist = bip39.wordlists[wordListName]
   return bip39.entropyToMnemonic(entropy, wordlist)
 }
@@ -217,7 +219,7 @@ export function getFingerprintFromMnemonic(
 
 export function getExtendedPublicKeyFromMnemonic(
   mnemonic: string,
-  passphrase: string = '',
+  passphrase: string,
   network: Network,
   scriptVersion: ScriptVersionType
 ) {
@@ -226,17 +228,23 @@ export function getExtendedPublicKeyFromMnemonic(
 }
 /** Parse BIP32 path like "m/48'/0'/0'/2'" -> array of indexes (with hardened offset) */
 function parsePath(path: string): number[] {
-  if (!path || path === 'm') return []
+  if (!path || path === 'm') {
+    return []
+  }
 
   const parts = path.split('/')
-  if (parts[0] !== 'm') throw new Error('Derivation path must start with "m"')
+  if (parts[0] !== 'm') {
+    throw new Error('Derivation path must start with "m"')
+  }
 
   const HARDENED_OFFSET = 0x80000000 // replace HDKey.HARDENED_OFFSET
 
   const items = parts.slice(1).map((p: string) => {
     const hardened = /('|h|H)$/.test(p)
     const index = parseInt(p.replace(/['hH]/, ''), 10)
-    if (Number.isNaN(index)) throw new Error('Invalid path segment: ' + p)
+    if (Number.isNaN(index)) {
+      throw new Error(`Invalid path segment: ${p}`)
+    }
     return hardened ? index + HARDENED_OFFSET : index
   })
 
@@ -257,7 +265,7 @@ interface DerivationStep {
 
 function deriveXpubFromMnemonic(
   mnemonic: string,
-  passphrase: string = '',
+  passphrase: string,
   opts: DeriveOptions = {}
 ) {
   const network: 'mainnet' | 'testnet' =
@@ -288,7 +296,7 @@ function deriveXpubFromMnemonic(
 
   let parentFingerprint = 0
 
-  indices.forEach((index, i) => {
+  for (const [i, index] of indices.entries()) {
     node = node.deriveChild(index)
 
     if (i === 2) {
@@ -297,29 +305,29 @@ function deriveXpubFromMnemonic(
 
     steps.push({
       depth: node.depth,
+      fingerprint: fingerprintToHex(node.fingerprint),
       index,
       parentFingerprint: fingerprintToHex(node.parentFingerprint || 0),
-      fingerprint: fingerprintToHex(node.fingerprint),
       publicExtendedKey: node.publicExtendedKey
     })
-  })
+  }
 
   const accountXpub = node.publicExtendedKey
 
   return {
-    network,
-    path,
     masterFingerprint: masterFingerprintHex,
     masterPubkeyHex,
-    xpub: accountXpub,
+    network,
     parentFingerprint: fingerprintToHex(parentFingerprint),
-    steps
+    path,
+    steps,
+    xpub: accountXpub
   }
 }
 
 function getExtendedPublicKeyFromMnemonicCustom(
   mnemonic: NonNullable<Secret['mnemonic']>,
-  passphrase: string = '',
+  passphrase: string,
   network: Network,
   scriptVersion?: ScriptVersionType,
   path?: string,
@@ -368,6 +376,8 @@ function getExtendedPublicKeyFromMnemonicCustom(
         derivationPath = `m/86'/${coinType}'/0'` // BIP86
         break
       // P2WSH, P2SH-P2WSH, P2SH are typically multisig only
+      default:
+        break
     }
   }
 

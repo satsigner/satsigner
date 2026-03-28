@@ -47,7 +47,7 @@ export function useLightningContentHandler() {
 
   return {
     handleContentScanned,
-    handleSend,
-    handleReceive
+    handleReceive,
+    handleSend
   }
 }

@@ -51,30 +51,32 @@ function SSTransactionChart({
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
 
-  const totalOutputValue = transaction.vout.reduce((prevValue, output) => {
-    return prevValue + output.value
-  }, 0)
+  const totalOutputValue = transaction.vout.reduce(
+    (prevValue, output) => prevValue + output.value,
+    0
+  )
 
   const defaultInputValue = totalOutputValue / (transaction.vin.length || 1)
 
   const inputs = transaction.vin.map((input) => ({
+    label: input.label || '',
     txid: input.previousOutput.txid,
     value: input.value || defaultInputValue,
-    valueIsKnown: input.value !== undefined,
-    label: input.label || ''
+    valueIsKnown: input.value !== undefined
   }))
 
   const outputs = transaction.vout.map((output) => ({
     address: output.address,
-    value: output.value,
-    label: output.label || ''
+    label: output.label || '',
+    value: output.value
   }))
 
   let minerFee: number | undefined
   if (inputs.every((input) => input.valueIsKnown)) {
-    const totalInputValue = inputs.reduce((prevValue, input) => {
-      return prevValue + input.value
-    }, 0)
+    const totalInputValue = inputs.reduce(
+      (prevValue, input) => prevValue + input.value,
+      0
+    )
     minerFee = totalInputValue - totalOutputValue
   }
 
@@ -118,34 +120,36 @@ function SSTransactionChart({
   })
 
   const sankeyNodes = useMemo(() => {
-    if (inputs.length === 0 || outputs.length === 0) return []
+    if (inputs.length === 0 || outputs.length === 0) {
+      return []
+    }
 
     const inputNodes: TxNode[] = inputs.map((input, index) => ({
-      id: String(index + 1),
-      type: 'text',
       depthH: 0,
+      id: String(index + 1),
       ioData: {
         address: formatAddress(input.txid, 4),
-        label: input.label ?? t('common.noLabel'),
-        value: input.valueIsKnown ? input.value : 0,
-        fiatValue: formatNumber(satsToFiat(input.value), 2),
         fiatCurrency,
-        text: t('common.from')
+        fiatValue: formatNumber(satsToFiat(input.value), 2),
+        label: input.label ?? t('common.noLabel'),
+        text: t('common.from'),
+        value: input.valueIsKnown ? input.value : 0
       },
+      type: 'text',
       value: input.value
     }))
 
     const blockNode: TxNode[] = [
       {
-        id: String(inputs.length + 1),
-        type: 'block',
         depthH: 1,
-        value: totalOutputValue,
+        id: String(inputs.length + 1),
         ioData: {
           txSize,
           vSize: txVsize,
           value: totalOutputValue
-        }
+        },
+        type: 'block',
+        value: totalOutputValue
       }
     ]
 
@@ -156,20 +160,20 @@ function SSTransactionChart({
         label.includes('Change') || label.includes('[Change for]')
 
       return {
-        id: nodeId,
-        type: 'text',
         depthH: 2,
-        localId: isChange ? 'remainingBalance' : `output-${index}`,
+        id: nodeId,
         ioData: {
-          value: output.value,
-          fiatValue: formatNumber(satsToFiat(output.value), 2),
-          fiatCurrency,
           address: formatAddress(output.address, 6),
+          fiatCurrency,
+          fiatValue: formatNumber(satsToFiat(output.value), 2),
+          isSelfSend: !!(output.address && ownAddresses.has(output.address)),
+          isUnspent: true,
           label: label || t('common.noLabel'),
           text: t('transaction.build.unspent'),
-          isUnspent: true,
-          isSelfSend: !!(output.address && ownAddresses.has(output.address))
+          value: output.value
         },
+        localId: isChange ? 'remainingBalance' : `output-${index}`,
+        type: 'text',
         value: output.value
       }
     })
@@ -191,20 +195,20 @@ function SSTransactionChart({
 
     if (minerFee !== undefined) {
       outputNodes.push({
-        id: String(inputs.length + outputs.length + 2),
-        type: 'text',
         depthH: 2,
+        id: String(inputs.length + outputs.length + 2),
         ioData: {
-          value: minerFee,
-          fiatValue: formatNumber(satsToFiat(minerFee), 2),
-          fiatCurrency,
+          feePercentage: Math.round(feePercentage * 100) / 100,
           feeRate: feeRate !== undefined ? Math.round(feeRate) : undefined,
-          text: t('transaction.build.minerFee'),
+          fiatCurrency,
+          fiatValue: formatNumber(satsToFiat(minerFee), 2),
           higherFee,
-          feePercentage: Math.round(feePercentage * 100) / 100 // round to 2 decimals
+          text: t('transaction.build.minerFee'),
+          value: minerFee // round to 2 decimals
         },
-        value: minerFee,
-        localId: 'past-minerFee'
+        localId: 'past-minerFee',
+        type: 'text',
+        value: minerFee
       })
     }
 
@@ -223,7 +227,9 @@ function SSTransactionChart({
   ])
 
   const sankeyLinks = useMemo(() => {
-    if (inputs.length === 0 || outputs.length === 0) return []
+    if (inputs.length === 0 || outputs.length === 0) {
+      return []
+    }
 
     const inputToBlockLinks = inputs.map((input, index) => ({
       source: String(index + 1),
@@ -257,9 +263,9 @@ function SSTransactionChart({
     return <View style={{ height: GRAPH_HEIGHT / 2, overflow: 'hidden' }} />
   }
 
-  const { nodes, links } = sankeyGenerator({
-    nodes: sankeyNodes,
-    links: sankeyLinks
+  const { links, nodes } = sankeyGenerator({
+    links: sankeyLinks,
+    nodes: sankeyNodes
   })
 
   const transformedLinks = links.map((link) => ({
@@ -275,7 +281,7 @@ function SSTransactionChart({
   return (
     <View style={{ flex: 1, height: GRAPH_HEIGHT / 2, overflow: 'hidden' }}>
       <Canvas
-        style={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT / 2 }}
+        style={{ height: GRAPH_HEIGHT / 2, width: GRAPH_WIDTH }}
         onLayout={onCanvasLayout}
       >
         <Group origin={{ x: w / 2, y: h / 2 }}>
@@ -292,7 +298,7 @@ function SSTransactionChart({
             dimUnselected={dimUnselected}
           />
           <SSSankeyNodes
-            nodes={nodes}
+            nodes={nodes as Node[]}
             sankeyGenerator={sankeyGenerator}
             selectedOutputNode={
               selectedOutputIndex !== undefined

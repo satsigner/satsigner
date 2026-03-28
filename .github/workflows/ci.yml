@@ -36,15 +36,8 @@ jobs:
           cmd: type-check
           dir: apps/mobile
 
-      - name: format
-        uses: borales/actions-yarn@v4.2.0
-        with:
-          cmd: format
-
-      - name: lint
-        uses: borales/actions-yarn@v4.2.0
-        with:
-          cmd: lint
+      - name: lint & format
+        run: yarn run check
 
       - name: test
         uses: borales/actions-yarn@v4.2.0

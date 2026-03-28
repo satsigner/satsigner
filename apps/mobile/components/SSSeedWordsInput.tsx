@@ -120,31 +120,34 @@ export default function SSSeedWordsInput({
 
   // Initialize seed words info
   useEffect(() => {
-    const initialSeedWordsInfo = Array(wordCount)
-      .fill(null)
-      .map(() => ({
-        value: '',
-        valid: false,
-        dirty: false
-      }))
+    const initialSeedWordsInfo = Array.from({ length: wordCount }, () => ({
+      dirty: false,
+      valid: false,
+      value: ''
+    }))
     setSeedWordsInfo(initialSeedWordsInfo)
     // Initialize refs array
-    wordInputRefs.current = Array(wordCount).fill(null)
+    wordInputRefs.current = Array.from<TextInput | null>({
+      length: wordCount
+    }).fill(null)
   }, [wordCount])
 
   // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       if (autoAdvanceTimeoutRef.current) {
         clearTimeout(autoAdvanceTimeoutRef.current)
       }
-    }
-  }, [])
+    },
+    []
+  )
 
   // Handle word selection from keyboard selector
   const handleWordSelected = useCallback(
     async (word?: string) => {
-      if (!word) return
+      if (!word) {
+        return
+      }
       const newSeedWordsInfo = [...seedWordsInfo]
       const currentWord = newSeedWordsInfo[currentWordIndex]
 
@@ -181,7 +184,7 @@ export default function SSSeedWordsInput({
           setFingerprint(fingerprintResult)
           onMnemonicValid?.(mnemonic, fingerprintResult)
         } else {
-          const electrumType = await detectElectrumSeed(mnemonic)
+          const electrumType = detectElectrumSeed(mnemonic)
           setElectrumSeedType(electrumType)
           if (electrumType) {
             const seed = await mnemonicToSeedElectrum(mnemonic, passphrase)
@@ -215,22 +218,28 @@ export default function SSSeedWordsInput({
   // Notify parent about word selector state changes
   useEffect(() => {
     onWordSelectorStateChange?.({
+      onWordSelected: (word?: string) => handleWordSelectedRef.current?.(word),
       visible: keyboardWordSelectorVisible,
-      wordStart: currentWordText,
-      onWordSelected: (word?: string) => handleWordSelectedRef.current?.(word)
+      wordStart: currentWordText
     })
   }, [keyboardWordSelectorVisible, currentWordText, onWordSelectorStateChange])
 
   // Check if clipboard contains valid seed (BIP39 or Electrum)
   const checkClipboardForSeed = useCallback(
     (text: string): string[] => {
-      if (!text || text === '') return []
+      if (!text || text === '') {
+        return []
+      }
       const delimiters = [' ', '\n', ',', ', ']
       for (const delimiter of delimiters) {
         const seedCandidate = text.split(delimiter)
-        if (seedCandidate.length !== wordCount) continue
+        if (seedCandidate.length !== wordCount) {
+          continue
+        }
         const validWords = seedCandidate.every((x) => wordList.includes(x))
-        if (!validWords) continue
+        if (!validWords) {
+          continue
+        }
         return seedCandidate
       }
       return []
@@ -242,9 +251,9 @@ export default function SSSeedWordsInput({
   const fillOutSeedWords = useCallback(
     async (seed: string[]) => {
       const newSeedWordsInfo = seed.map((value) => ({
-        value,
+        dirty: false,
         valid: true,
-        dirty: false
+        value
       }))
 
       setSeedWordsInfo(newSeedWordsInfo)
@@ -262,7 +271,7 @@ export default function SSSeedWordsInput({
         setFingerprint(fingerprintResult)
         onMnemonicValid?.(mnemonic, fingerprintResult)
       } else {
-        const electrumType = await detectElectrumSeed(mnemonic)
+        const electrumType = detectElectrumSeed(mnemonic)
         setElectrumSeedType(electrumType)
         if (electrumType) {
           const seedBytes = await mnemonicToSeedElectrum(mnemonic, passphrase)
@@ -304,7 +313,9 @@ export default function SSSeedWordsInput({
 
   const handleSeedQRScanned = useCallback(
     (content: DetectedContent) => {
-      if (content.type !== 'seed_qr' || !content.metadata?.mnemonic) return
+      if (content.type !== 'seed_qr' || !content.metadata?.mnemonic) {
+        return
+      }
       const mnemonic = content.metadata.mnemonic as string
       const seed = mnemonic.trim().split(/\s+/)
       if (seed.length !== wordCount) {
@@ -396,7 +407,7 @@ export default function SSSeedWordsInput({
         setFingerprint(fingerprintResult)
         onMnemonicValid?.(mnemonic, fingerprintResult)
       } else {
-        const electrumType = await detectElectrumSeed(mnemonic)
+        const electrumType = detectElectrumSeed(mnemonic)
         setElectrumSeedType(electrumType)
         if (electrumType) {
           const seed = await mnemonicToSeedElectrum(mnemonic, passphrase)

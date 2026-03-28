@@ -34,19 +34,19 @@ type RpcRequestBody = {
 // Configure networks
 const networks = {
   mainnet: bitcoin.networks.bitcoin,
-  testnet: bitcoin.networks.testnet,
-  signet: bitcoin.networks.testnet, // Signet uses testnet address format
   regtest: {
     ...bitcoin.networks.testnet,
     bech32: 'bcrt',
+    bip32: {
+      private: 0x04358394,
+      public: 0x043587cf
+    },
     pubKeyHash: 0x6f, // Same as testnet
     scriptHash: 0xc4, // Same as testnet
-    wif: 0xef, // Same as testnet
-    bip32: {
-      public: 0x043587cf,
-      private: 0x04358394
-    }
-  } as bitcoin.Network
+    wif: 0xef // Same as testnet
+  } as bitcoin.Network,
+  signet: bitcoin.networks.testnet, // Signet uses testnet address format
+  testnet: bitcoin.networks.testnet
 }
 
 // Add this helper function at the top level
@@ -86,7 +86,9 @@ const getNetworkFromAddress = (address: string) => {
 
 // Add this helper function after bitsToTarget
 const encodeScriptNum = (num: number): Buffer => {
-  if (num === 0) return Buffer.alloc(0)
+  if (num === 0) {
+    return Buffer.alloc(0)
+  }
   const negative = num < 0
   let absvalue = Math.abs(num)
   const result = []
@@ -151,9 +153,9 @@ export default function Energy() {
   const [miningIntensity, setMiningIntensity] = useState(10)
   const [miningIntervalTime, setMiningIntervalTime] = useState(1000)
   const [miningStats, setMiningStats] = useState({
+    attempts: 0,
     hashesPerSecond: 0,
-    lastHash: '',
-    attempts: 0
+    lastHash: ''
   })
 
   const [networkHashRate, setNetworkHashRate] = useState('0')
@@ -184,15 +186,15 @@ export default function Energy() {
   }, [blockchainInfo?.chain])
 
   const fetchRpc = useCallback(
-    async (requestBody: RpcRequestBody) => {
+    (requestBody: RpcRequestBody) => {
       const adjustedUrl = getAdjustedRpcUrl(rpcUrl)
       const credentials = `${rpcUsername}:${rpcPassword}`
       const credentialsBase64 = Buffer.from(credentials).toString('base64')
       const authorization = `Basic ${credentialsBase64}`
 
       const headers = {
-        'Content-Type': 'application/json',
-        Authorization: authorization
+        Authorization: authorization,
+        'Content-Type': 'application/json'
       }
 
       const method = 'POST'
@@ -201,9 +203,9 @@ export default function Energy() {
       const timeoutId = setTimeout(() => controller.abort(), 10000)
 
       return fetch(adjustedUrl, {
-        method,
-        headers,
         body,
+        headers,
+        method,
         signal: controller.signal
       })
         .then((response) => {
@@ -253,15 +255,15 @@ export default function Energy() {
       // Only show essential fields to reduce data size
       const essentialData = {
         ...data,
-        transactions: data.transactions?.length || 0,
         transactionSample:
           data.transactions
             ?.slice(0, 20)
             .map((tx: BlockTemplateTransaction) => ({
-              txid: tx.txid,
               fee: tx.fee,
+              txid: tx.txid,
               weight: tx.weight
-            })) || []
+            })) || [],
+        transactions: data.transactions?.length || 0
       }
       return JSON.stringify(essentialData, null, 2)
     } catch {
@@ -270,7 +272,9 @@ export default function Energy() {
   }, [])
 
   const fetchBlockTemplate = useCallback(async () => {
-    if (!isConnected) return
+    if (!isConnected) {
+      return
+    }
 
     const now = Date.now()
     if (now - lastTemplateUpdateRef.current < 30000) {
@@ -283,8 +287,8 @@ export default function Energy() {
 
       try {
         const networkResponse = await fetchRpc({
-          jsonrpc: '1.0',
           id: '1',
+          jsonrpc: '1.0',
           method: 'getblockchaininfo',
           params: []
         })
@@ -307,8 +311,8 @@ export default function Energy() {
       }
 
       const response = await fetchRpc({
-        jsonrpc: '1.0',
         id: '1',
+        jsonrpc: '1.0',
         method: 'getblocktemplate',
         params: [{ rules }]
       })
@@ -360,13 +364,15 @@ export default function Energy() {
   }, [isConnected, formatTemplateData, fetchRpc, blockTemplate])
 
   const fetchBlockchainInfo = useCallback(async () => {
-    if (!isConnected) return
+    if (!isConnected) {
+      return
+    }
 
     setIsLoadingInfo(true)
     try {
       const response = await fetchRpc({
-        jsonrpc: '1.0',
         id: '1',
+        jsonrpc: '1.0',
         method: 'getblockchaininfo',
         params: []
       })
@@ -497,14 +503,15 @@ export default function Energy() {
   }, [isConnected, fetchBlockTemplate])
 
   // Clean up on unmount
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       if (templateUpdateIntervalRef.current) {
         clearInterval(templateUpdateIntervalRef.current)
         templateUpdateIntervalRef.current = null
       }
-    }
-  }, [])
+    },
+    []
+  )
 
   // Add useEffect for initial address validation
   useEffect(() => {
@@ -532,8 +539,8 @@ export default function Energy() {
 
     try {
       const response = await fetchRpc({
-        jsonrpc: '1.0',
         id: '1',
+        jsonrpc: '1.0',
         method: 'getblockchaininfo',
         params: []
       })
@@ -724,9 +731,9 @@ export default function Energy() {
 
       return {
         data: tx.toHex(),
+        depends: [],
         hash: tx.getHash().toString('hex'),
-        txid: tx.getId(),
-        depends: []
+        txid: tx.getId()
       }
     },
     [miningAddress, opReturnContent]
@@ -747,9 +754,8 @@ export default function Energy() {
           if (tx.txid) {
             // Convert txid to little-endian for merkle root
             return Buffer.from(tx.txid, 'hex').reverse()
-          } else {
-            throw new Error('Invalid transaction format')
           }
+          throw new Error('Invalid transaction format')
         })
 
         while (hashes.length > 1) {
@@ -773,8 +779,8 @@ export default function Energy() {
         return hashes[0].toString('hex')
       } catch (error) {
         throw new Error(
-          'Failed to create merkle root: ' +
-            (error instanceof Error ? error.message : 'Unknown error')
+          `Failed to create merkle root: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          { cause: error }
         )
       }
     },
@@ -824,8 +830,8 @@ export default function Energy() {
 
         // First get fresh blockchain info
         const networkResponse = await fetchRpc({
-          jsonrpc: '1.0',
           id: '1',
+          jsonrpc: '1.0',
           method: 'getblockchaininfo',
           params: []
         })
@@ -846,8 +852,8 @@ export default function Energy() {
 
         // Then get fresh template
         const templateResponse = await fetchRpc({
-          jsonrpc: '1.0',
           id: '1',
+          jsonrpc: '1.0',
           method: 'getblocktemplate',
           params: [{ rules: ['segwit'] }]
         })
@@ -920,8 +926,8 @@ export default function Energy() {
         ])
 
         const response = await fetchRpc({
-          jsonrpc: '1.0',
           id: '1',
+          jsonrpc: '1.0',
           method: 'submitblock',
           params: [blockData.toString('hex')]
         })
@@ -984,8 +990,8 @@ export default function Energy() {
     try {
       // Validate network and address first - only once at start
       const networkResponse = await fetchRpc({
-        jsonrpc: '1.0',
         id: '1',
+        jsonrpc: '1.0',
         method: 'getblockchaininfo',
         params: []
       })
@@ -1084,8 +1090,8 @@ export default function Energy() {
             setEnergyRate(powerConsumption)
             setMiningStats((prev) => ({
               ...prev,
-              hashesPerSecond,
               attempts: hashes,
+              hashesPerSecond,
               lastHash: lastHashRef.current
             }))
             if (currentHeaderRef.current) {
@@ -1129,7 +1135,7 @@ export default function Energy() {
             }
 
             // Number of hashes to mine for each mining batch
-            for (let i = 0; i < miningIntensity; i++) {
+            for (let i = 0; i < miningIntensity; i += 1) {
               if (!isMiningRef.current) {
                 clearInterval(miningInterval)
                 return
@@ -1150,9 +1156,10 @@ export default function Energy() {
                       true
                     )
                     if (cachedCoinbaseTx) {
+                      const coinbaseTxid = cachedCoinbaseTx.txid
                       cachedMempoolTxs =
                         blockTemplate.transactions?.filter(
-                          (tx) => tx.txid !== cachedCoinbaseTx?.txid
+                          (tx) => tx.txid !== coinbaseTxid
                         ) || []
                       cachedMerkleRoot = createMerkleRoot([
                         cachedCoinbaseTx,
@@ -1162,7 +1169,7 @@ export default function Energy() {
                   }
                 } else {
                   // Just update extra nonce in existing coinbase
-                  extraNonce++
+                  extraNonce += 1
                   if (blockTemplate && cachedCoinbaseTx) {
                     cachedCoinbaseTx = createCoinbaseTransaction(
                       blockTemplate,
@@ -1187,8 +1194,9 @@ export default function Energy() {
               const header = createBlockHeader(
                 blockTemplate,
                 cachedMerkleRoot,
-                nonce++
+                nonce
               )
+              nonce += 1
 
               // Double SHA256 of header (result is in big-endian)
               const hash = bitcoin.crypto.sha256(bitcoin.crypto.sha256(header))
@@ -1196,7 +1204,7 @@ export default function Energy() {
               const hashReversed = Buffer.from(hash).reverse()
               const hashHex = hashReversed.toString('hex')
 
-              hashes++
+              hashes += 1
 
               if (hashes % miningIntensity === 0 || miningIntensity === 10) {
                 // Update current header for UI
@@ -1204,7 +1212,9 @@ export default function Energy() {
                 // Update last hash for UI
                 lastHashRef.current = hashHex
 
-                await new Promise((resolve) => setTimeout(resolve, 1000))
+                await new Promise((resolve) => {
+                  setTimeout(resolve, 1000)
+                })
               }
 
               if (checkDifficulty(hashHex, blockTemplate.bits)) {
@@ -1243,16 +1253,14 @@ export default function Energy() {
         isMiningRef.current = false
         setIsMining(false)
         toast.error(
-          'Error starting mining: ' +
-            (error instanceof Error ? error.message : 'Unknown error')
+          `Error starting mining: ${error instanceof Error ? error.message : 'Unknown error'}`
         )
       }
     } catch (error) {
       isMiningRef.current = false
       setIsMining(false)
       toast.error(
-        'Error starting mining: ' +
-          (error instanceof Error ? error.message : 'Unknown error')
+        `Error starting mining: ${error instanceof Error ? error.message : 'Unknown error'}`
       )
     }
   }, [
@@ -1288,9 +1296,9 @@ export default function Energy() {
     requestAnimationFrame(() => {
       setEnergyRate('0')
       setMiningStats({
+        attempts: 0,
         hashesPerSecond: 0,
-        lastHash: '',
-        attempts: 0
+        lastHash: ''
       })
       setBlockHeader('')
       currentHeaderRef.current = null
@@ -1302,15 +1310,17 @@ export default function Energy() {
   }, [isMining]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchTransaction = useCallback(async () => {
-    if (!txId || !isConnected) return
+    if (!txId || !isConnected) {
+      return
+    }
 
     setIsLoadingTx(true)
     setTxError('')
 
     try {
       const response = await fetchRpc({
-        jsonrpc: '1.0',
         id: '1',
+        jsonrpc: '1.0',
         method: 'getrawtransaction',
         params: [txId, true]
       })
@@ -1477,7 +1487,9 @@ export default function Energy() {
             />
             <SSButton
               label={tn('joinPool').toUpperCase()}
-              onPress={() => {}}
+              onPress={() => {
+                /* TODO */
+              }}
               variant="outline"
               disabled
             />
@@ -1822,19 +1834,25 @@ export default function Energy() {
                 </SSText>
                 <SSButton
                   label={tn('template.selectA')}
-                  onPress={() => {}}
+                  onPress={() => {
+                    /* TODO */
+                  }}
                   variant="outline"
                   disabled
                 />
                 <SSButton
                   label={tn('template.selectB')}
-                  onPress={() => {}}
+                  onPress={() => {
+                    /* TODO */
+                  }}
                   variant="outline"
                   disabled
                 />
                 <SSButton
                   label={tn('template.selectC')}
-                  onPress={() => {}}
+                  onPress={() => {
+                    /* TODO */
+                  }}
                   variant="outline"
                   disabled
                 />
@@ -1848,57 +1866,93 @@ export default function Energy() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    paddingBottom: 100
-  },
-  mainContent: {
-    flex: 1,
-    padding: 20
-  },
   bigNumber: {
     fontWeight: '100',
     marginBottom: -10
   },
-
   buttonContainer: {
-    width: '100%',
-    paddingVertical: 20
-  },
-  statsContainer: {
-    width: '100%',
-    paddingVertical: 20
-  },
-  difficultyBar: {
-    width: '100%',
-    height: 8,
-    backgroundColor: Colors.gray[900],
-    borderRadius: 4,
-    marginVertical: 10
-  },
-  difficultyProgress: {
-    width: '0%',
-    height: '100%',
-    backgroundColor: Colors.white,
-    borderRadius: 4
-  },
-  statsGrid: {
+    paddingVertical: 20,
     width: '100%'
   },
-  formContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 20
+  chainInfoContainer: {
+    paddingTop: 40
   },
-  sectionTitle: {
-    marginBottom: 16,
-    textAlign: 'center'
+
+  container: {
+    flexGrow: 1,
+    paddingBottom: 100
+  },
+  difficultyBar: {
+    backgroundColor: Colors.gray[900],
+    borderRadius: 4,
+    height: 8,
+    marginVertical: 10,
+    width: '100%'
+  },
+  difficultyProgress: {
+    backgroundColor: Colors.white,
+    borderRadius: 4,
+    height: '100%',
+    width: '0%'
+  },
+  errorContainer: {
+    alignItems: 'center',
+    backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    justifyContent: 'center',
+    minHeight: 100,
+    padding: 16
   },
   errorText: {
     marginTop: 8,
     textAlign: 'center'
   },
-  chainInfoContainer: {
-    paddingTop: 40
+  formContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 20
+  },
+  hashScroll: {
+    backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    height: 70,
+    maxHeight: 70,
+    padding: 16
+  },
+  headerScroll: {
+    backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    height: 95,
+    maxHeight: 95,
+    padding: 16
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    justifyContent: 'center',
+    minHeight: 100,
+    padding: 16
+  },
+  mainContent: {
+    flex: 1,
+    padding: 20
+  },
+  sectionTitle: {
+    marginBottom: 16,
+    textAlign: 'center'
+  },
+  slider: {
+    backgroundColor: Colors.gray[850],
+    height: 60,
+    marginHorizontal: 0,
+    width: '100%'
+  },
+  statsContainer: {
+    paddingVertical: 20,
+    width: '100%'
+  },
+  statsGrid: {
+    width: '100%'
   },
   templateContainer: {
     padding: 20,
@@ -1913,41 +1967,5 @@ const styles = StyleSheet.create({
   templateText: {
     fontFamily: 'monospace',
     fontSize: 8
-  },
-  loadingContainer: {
-    backgroundColor: Colors.gray[900],
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 100
-  },
-  errorContainer: {
-    backgroundColor: Colors.gray[900],
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 100
-  },
-  slider: {
-    width: '100%',
-    height: 60,
-    marginHorizontal: 0,
-    backgroundColor: Colors.gray[850]
-  },
-  headerScroll: {
-    backgroundColor: Colors.gray[900],
-    borderRadius: 8,
-    padding: 16,
-    maxHeight: 95,
-    height: 95
-  },
-  hashScroll: {
-    backgroundColor: Colors.gray[900],
-    borderRadius: 8,
-    padding: 16,
-    maxHeight: 70,
-    height: 70
   }
 })

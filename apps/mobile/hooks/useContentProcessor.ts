@@ -1,10 +1,11 @@
+import { Buffer } from 'buffer'
+
 import { type PartiallySignedTransaction } from 'bdk-rn'
 import {
   type TransactionDetails,
   type TxBuilderResult
 } from 'bdk-rn/lib/classes/Bindings'
 import * as bitcoinjs from 'bitcoinjs-lib'
-import { Buffer } from 'buffer'
 
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { t } from '@/locales'
@@ -42,7 +43,9 @@ function autoSelectUtxos(
   targetAmount: number,
   actions: Pick<ProcessorActions, 'addInput' | 'setFeeRate'>
 ) {
-  if (!account || account.utxos.length === 0) return
+  if (!account || account.utxos.length === 0) {
+    return
+  }
 
   const { addInput, setFeeRate } = actions
 
@@ -59,9 +62,9 @@ function autoSelectUtxos(
   }
 
   const result = selectEfficientUtxos(account.utxos, targetAmount, 1, {
+    changeOutputSize: 34,
     dustThreshold: 546,
-    inputSize: 148,
-    changeOutputSize: 34
+    inputSize: 148
   })
 
   if (result.error) {
@@ -70,7 +73,9 @@ function autoSelectUtxos(
     )
     addInput?.(highestUtxo)
   } else {
-    result.inputs.forEach((utxo) => addInput?.(utxo))
+    for (const utxo of result.inputs) {
+      addInput?.(utxo)
+    }
   }
 }
 
@@ -125,14 +130,16 @@ async function processBitcoinContent(
               await Promise.all(
                 accountMatch.account.keys.map(async (key, index) => {
                   const fp = await getKeyFingerprint(key)
-                  if (fp) keyFingerprintToCosignerIndex.set(fp, index)
+                  if (fp) {
+                    keyFingerprintToCosignerIndex.set(fp, index)
+                  }
                 })
               )
 
               const pubkeyToCosignerIndex = new Map<string, number>()
-              combinedPsbt.data.inputs.forEach((input) => {
+              for (const input of combinedPsbt.data.inputs) {
                 if (input.bip32Derivation) {
-                  input.bip32Derivation.forEach((derivation) => {
+                  for (const derivation of input.bip32Derivation) {
                     const fingerprint =
                       derivation.masterFingerprint.toString('hex')
                     const pubkey = derivation.pubkey.toString('hex')
@@ -142,17 +149,17 @@ async function processBitcoinContent(
                     if (cosignerIndex !== undefined) {
                       pubkeyToCosignerIndex.set(pubkey, cosignerIndex)
                     }
-                  })
+                  }
                 }
                 if (input.partialSig) {
-                  input.partialSig.forEach((sig) => {
+                  for (const sig of input.partialSig) {
                     bitcoinjs.crypto
                       .hash160(sig.pubkey)
                       .slice(0, 4)
                       .toString('hex')
-                  })
+                  }
                 }
-              })
+              }
 
               const individualSignedPsbts = extractIndividualSignedPsbts(
                 psbtBase64,
@@ -161,7 +168,7 @@ async function processBitcoinContent(
 
               const psbtsByCosigner = new Map<number, string[]>()
 
-              Object.values(individualSignedPsbts).forEach((psbtStr) => {
+              for (const psbtStr of Object.values(individualSignedPsbts)) {
                 const pubkeys = getCollectedSignerPubkeys(psbtStr)
                 if (pubkeys.size > 0) {
                   const pubkey = pubkeys.values().next().value
@@ -175,7 +182,7 @@ async function processBitcoinContent(
                     }
                   }
                 }
-              })
+              }
 
               for (const [cosignerIndex, psbts] of psbtsByCosigner.entries()) {
                 if (psbts.length > 1) {
@@ -190,9 +197,11 @@ async function processBitcoinContent(
                 psbtBase64,
                 originalPsbt
               )
-              Object.entries(individualSignedPsbts).forEach(([key, value]) => {
+              for (const [key, value] of Object.entries(
+                individualSignedPsbts
+              )) {
                 finalSignedPsbtsMap.set(parseInt(key, 10), value as string)
-              })
+              }
             }
             actions.setSignedPsbts?.(finalSignedPsbtsMap)
 
@@ -210,15 +219,17 @@ async function processBitcoinContent(
               0
             )
 
-            const psbt: PartiallySignedTransaction = { originalPsbt } as any
+            const psbt = {
+              originalPsbt
+            } as unknown as PartiallySignedTransaction
 
             const txDetails: TransactionDetails = {
-              txid: extractedTxid,
-              fee,
-              sent,
-              received,
               confirmationTime: undefined,
-              transaction: undefined
+              fee,
+              received,
+              sent,
+              transaction: undefined,
+              txid: extractedTxid
             }
 
             const txBuilderResult: TxBuilderResult = {
@@ -249,8 +260,8 @@ async function processBitcoinContent(
 
     case 'bitcoin_transaction':
       navigate({
-        pathname: '/signer/bitcoin/account/[id]/signAndSend/previewTransaction',
-        params: { id: accountId, signedPsbt: content.cleaned }
+        params: { id: accountId, signedPsbt: content.cleaned },
+        pathname: '/signer/bitcoin/account/[id]/signAndSend/previewTransaction'
       })
       break
 
@@ -282,16 +293,16 @@ async function processBitcoinContent(
           }
 
           navigate({
-            pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview',
-            params: { id: accountId }
+            params: { id: accountId },
+            pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
           })
         } else {
           const addressMatch = content.cleaned.match(
             /^([a-zA-Z0-9]{26,62})(\?.*)?$/
           )
           if (addressMatch) {
-            const address = addressMatch[1]
-            const queryString = addressMatch[2] || ''
+            const [, address, matchedQuery] = addressMatch
+            const queryString = matchedQuery || ''
 
             let amount = 1
             let label = ''
@@ -331,8 +342,8 @@ async function processBitcoinContent(
             }
 
             navigate({
-              pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview',
-              params: { id: accountId }
+              params: { id: accountId },
+              pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
             })
           }
         }
@@ -350,8 +361,8 @@ async function processBitcoinContent(
         }
 
         navigate({
-          pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview',
-          params: { id: accountId }
+          params: { id: accountId },
+          pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
         })
       }
       break
@@ -371,9 +382,11 @@ async function processBitcoinContent(
       }
 
       navigate({
-        pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview',
-        params: { id: accountId }
+        params: { id: accountId },
+        pathname: '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
       })
+      break
+    default:
       break
   }
 }
@@ -388,12 +401,14 @@ function processLightningContent(
     case 'lightning_invoice':
     case 'lnurl':
       navigate({
-        pathname: '/signer/lightning/pay',
         params: {
           invoice: content.cleaned,
           type: content.type
-        }
+        },
+        pathname: '/signer/lightning/pay'
       })
+      break
+    default:
       break
   }
 }
@@ -407,20 +422,22 @@ function processEcashContent(
   switch (content.type) {
     case 'ecash_token':
       navigate({
-        pathname: '/signer/ecash/receive',
-        params: { token: content.cleaned }
+        params: { token: content.cleaned },
+        pathname: '/signer/ecash/receive'
       })
       break
 
     case 'lightning_invoice':
     case 'lnurl':
       navigate({
-        pathname: '/signer/ecash/send',
         params: {
           invoice: content.cleaned,
           type: content.type
-        }
+        },
+        pathname: '/signer/ecash/send'
       })
+      break
+    default:
       break
   }
 }

@@ -54,24 +54,26 @@ export default function NodeSettingsPage() {
       'Are you sure you want to clear this node configuration? This action cannot be undone.',
       [
         {
-          text: 'Cancel',
-          style: 'cancel'
+          style: 'cancel',
+          text: 'Cancel'
         },
         {
-          text: 'Clear',
-          style: 'destructive',
-          onPress: async () => {
+          onPress: () => {
             setIsDeleting(false)
             clearConfig()
             router.navigate('/signer/lightning')
-          }
+          },
+          style: 'destructive',
+          text: 'Clear'
         }
       ]
     )
   }
 
   async function handleRefresh() {
-    if (!isConnected) return
+    if (!isConnected) {
+      return
+    }
     setIsLoading(true)
     await getInfo()
     setIsLoading(false)
@@ -81,11 +83,6 @@ export default function NodeSettingsPage() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase style={{ letterSpacing: 1 }}>
-              {params.alias} Settings
-            </SSText>
-          ),
           headerLeft: () => (
             <SSIconButton onPress={handleBack}>
               <SSIconChevronLeft height={20} width={20} />
@@ -98,6 +95,11 @@ export default function NodeSettingsPage() {
             >
               <SSIconRefresh height={18} width={22} />
             </SSIconButton>
+          ),
+          headerTitle: () => (
+            <SSText uppercase style={{ letterSpacing: 1 }}>
+              {params.alias} Settings
+            </SSText>
           )
         }}
       />
@@ -219,30 +221,6 @@ export default function NodeSettingsPage() {
 }
 
 const styles = StyleSheet.create({
-  mainLayout: {
-    flex: 1,
-    paddingTop: 10
-  },
-  scrollView: {
-    flex: 1
-  },
-  scrollContent: {
-    flexGrow: 1,
-    gap: 16,
-    paddingBottom: 32
-  },
-  section: {
-    padding: 16
-  },
-  sectionTitle: {
-    marginBottom: 4
-  },
-  infoItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4
-  },
   actions: {
     marginTop: 8
   },
@@ -250,7 +228,31 @@ const styles = StyleSheet.create({
     minHeight: 40
   },
   hash: {
-    maxWidth: '70%',
-    fontFamily: 'monospace'
+    fontFamily: 'monospace',
+    maxWidth: '70%'
+  },
+  infoItem: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 4
+  },
+  mainLayout: {
+    flex: 1,
+    paddingTop: 10
+  },
+  scrollContent: {
+    flexGrow: 1,
+    gap: 16,
+    paddingBottom: 32
+  },
+  scrollView: {
+    flex: 1
+  },
+  section: {
+    padding: 16
+  },
+  sectionTitle: {
+    marginBottom: 4
   }
 })

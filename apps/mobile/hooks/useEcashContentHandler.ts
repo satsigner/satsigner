@@ -47,7 +47,7 @@ export function useEcashContentHandler() {
 
   return {
     handleContentScanned,
-    handleSend,
-    handleReceive
+    handleReceive,
+    handleSend
   }
 }

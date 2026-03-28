@@ -50,7 +50,7 @@ function SSUtxoCard({ utxo, totalBalance, addressIndex }: SSUtxoCardProps) {
       )}
       <SSHStack
         justifyBetween
-        style={{ paddingTop: 8, flex: 1, alignItems: 'stretch' }}
+        style={{ alignItems: 'stretch', flex: 1, paddingTop: 8 }}
       >
         <SSVStack gap="none" style={{}}>
           <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>

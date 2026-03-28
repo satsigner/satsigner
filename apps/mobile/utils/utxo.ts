@@ -35,8 +35,8 @@ function selectEfficientUtxos(
 } {
   // Default options
   const defaultOptions = {
-    dustThreshold: 546, // Min UTXO value in satoshis (Bitcoin dust limit)
     changeOutputSize: 34, // Size of change output in bytes
+    dustThreshold: 546, // Min UTXO value in satoshis (Bitcoin dust limit)
     inputSize: 148 // Average size of input in bytes
   }
 
@@ -52,7 +52,7 @@ function selectEfficientUtxos(
   const usableUtxos = spendableUtxos.length > 0 ? spendableUtxos : [...utxos]
 
   // Sort UTXOs by value (ascending)
-  const sortedUtxos = [...usableUtxos].sort((a, b) => a.value - b.value)
+  const sortedUtxos = usableUtxos.toSorted((a, b) => a.value - b.value)
 
   // Store our selection results
   const selectedUtxos = []
@@ -70,15 +70,16 @@ function selectEfficientUtxos(
     return Math.abs(netValue - targetAmount) < opts.dustThreshold
   })
 
-  if (exactMatch)
+  if (exactMatch) {
     return {
-      inputs: [exactMatch],
-      fee: (opts.inputSize + opts.changeOutputSize) * feeRate,
       change:
         exactMatch.value -
         targetAmount -
-        (opts.inputSize + opts.changeOutputSize) * feeRate
+        (opts.inputSize + opts.changeOutputSize) * feeRate,
+      fee: (opts.inputSize + opts.changeOutputSize) * feeRate,
+      inputs: [exactMatch]
     }
+  }
 
   // Try branch and bound algorithm for optimal selection
   const result = branchAndBoundUtxoSelection(
@@ -87,7 +88,9 @@ function selectEfficientUtxos(
     feeRate,
     opts
   )
-  if (result) return result
+  if (result) {
+    return result
+  }
 
   // Fallback to coin selection with accumulative strategy
   // Start with largest UTXOs (reverse the sorted list) for fewer inputs
@@ -116,13 +119,14 @@ function selectEfficientUtxos(
   }
 
   // Insufficient funds
-  if (selectedAmount < targetAmount + estimatedFee)
-    return { inputs: [], fee: 0, change: 0, error: 'Insufficient funds' }
+  if (selectedAmount < targetAmount + estimatedFee) {
+    return { change: 0, error: 'Insufficient funds', fee: 0, inputs: [] }
+  }
 
   return {
-    inputs: selectedUtxos,
+    change,
     fee: estimatedFee,
-    change
+    inputs: selectedUtxos
   }
 }
 
@@ -158,16 +162,18 @@ function branchAndBoundUtxoSelection(
   )
 
   // If total value is less than target, impossible to satisfy
-  if (totalEffectiveValue < targetAmount) return null
+  if (totalEffectiveValue < targetAmount) {
+    return null
+  }
 
   // If we have exact match, return it
   const exactMatchSet = findExactMatch(effectiveUtxos, targetAmount)
   if (exactMatchSet) {
     const fee = exactMatchSet.length * inputCost
     return {
-      inputs: exactMatchSet,
+      change: 0,
       fee,
-      change: 0 // No change as we have exact match
+      inputs: exactMatchSet // No change as we have exact match
     }
   }
 
@@ -182,7 +188,9 @@ function branchAndBoundUtxoSelection(
     depth: number,
     tries: number
   ): null | boolean {
-    if (tries > MAX_TRIES) return false
+    if (tries > MAX_TRIES) {
+      return false
+    }
 
     if (effectiveValue >= targetAmount) {
       // Calculate waste as the sum of all inputs minus target
@@ -196,7 +204,9 @@ function branchAndBoundUtxoSelection(
       return true
     }
 
-    if (depth >= effectiveUtxos.length) return false
+    if (depth >= effectiveUtxos.length) {
+      return false
+    }
 
     // Try including this UTXO
     selection.push(effectiveUtxos[depth])
@@ -231,17 +241,18 @@ function branchAndBoundUtxoSelection(
       fee
 
     // If change is less than dust, add it to fee
-    if (change > 0 && change < opts.dustThreshold)
+    if (change > 0 && change < opts.dustThreshold) {
       return {
-        inputs: bestSelection,
+        change: 0,
         fee: fee + change,
-        change: 0
+        inputs: bestSelection
       }
+    }
 
     return {
-      inputs: bestSelection,
+      change: change > 0 ? change : 0,
       fee,
-      change: change > 0 ? change : 0
+      inputs: bestSelection
     }
   }
 
@@ -259,9 +270,9 @@ function findExactMatch(utxos: _Utxo[], targetValue: number): Utxo[] | null {
   const dp = new Map()
   dp.set(0, [])
 
-  for (let i = 0; i < n; i++) {
+  for (let i = 0; i < n; i += 1) {
     const utxo = utxos[i]
-    const effectiveValue = utxo.effectiveValue
+    const { effectiveValue } = utxo
 
     // Create a copy of current dp map to avoid modifying during iteration
     const currentDp = new Map(dp)
@@ -322,17 +333,17 @@ function selectStonewallUtxos(
   // Default options
   const defaultOptions = {
     dustThreshold: 546,
-    minOutputs: 2,
+    maxAttempts: 1000,
+    maxInputs: 10,
     maxOutputs: 4,
     minInputs: 4,
-    maxInputs: 10,
-    sizeP2PKH: 148,
-    sizeP2WPKH: 68,
-    sizeP2SHP2WPKH: 91,
+    minOutputs: 2,
     outputSizeP2PKH: 34,
     outputSizeP2WPKH: 31,
-    txOverhead: 10,
-    maxAttempts: 1000
+    sizeP2PKH: 148,
+    sizeP2SHP2WPKH: 91,
+    sizeP2WPKH: 68,
+    txOverhead: 10
   }
 
   const opts = { ...defaultOptions, ...options }
@@ -341,12 +352,12 @@ function selectStonewallUtxos(
   const totalAvailable = utxos.reduce((sum, utxo) => sum + utxo.value, 0)
   if (totalAvailable < targetAmount) {
     return {
+      error: 'Insufficient funds',
+      fee: 0,
       inputs: [],
       outputs: [],
-      fee: 0,
       privacyScore: 0,
-      txSize: 0,
-      error: 'Insufficient funds'
+      txSize: 0
     }
   }
 
@@ -355,7 +366,9 @@ function selectStonewallUtxos(
 
   // Get input size based on script type
   function getInputSize(utxo: Partial<Pick<_Utxo, 'scriptType'>>) {
-    if (!utxo.scriptType) return opts.sizeP2PKH // Default to P2PKH
+    if (!utxo.scriptType) {
+      return opts.sizeP2PKH
+    } // Default to P2PKH
 
     switch (utxo.scriptType) {
       case 'p2wpkh':
@@ -369,32 +382,34 @@ function selectStonewallUtxos(
 
   // Get output size based on script type
   function getOutputSize(scriptType: string) {
-    if (scriptType === 'p2wpkh') return opts.outputSizeP2WPKH
+    if (scriptType === 'p2wpkh') {
+      return opts.outputSizeP2WPKH
+    }
     return opts.outputSizeP2PKH
   }
 
   // Group UTXOs by script type to help with fingerprinting avoidance
   const utxosByType: { [key: string]: _Utxo[] } = {}
-  eligibleUtxos.forEach((utxo) => {
+  for (const utxo of eligibleUtxos) {
     const type = utxo.scriptType || 'p2pkh'
     if (!utxosByType[type]) {
       utxosByType[type] = []
     }
     utxosByType[type].push(utxo)
-  })
+  }
 
   // Sort UTXOs by size within each type
-  Object.keys(utxosByType).forEach((type) => {
-    utxosByType[type].sort(
+  for (const type of Object.keys(utxosByType)) {
+    utxosByType[type] = utxosByType[type].toSorted(
       (a: { value: number }, b: { value: number }) => a.value - b.value
     )
-  })
+  }
 
   // Try to find a suitable STONEWALL structure
   let bestSolution = null
   let bestPrivacyScore = 0
 
-  for (let attempt = 0; attempt < opts.maxAttempts; attempt++) {
+  for (let attempt = 0; attempt < opts.maxAttempts; attempt += 1) {
     // Step 1: Decide how many outputs to create (including recipient)
     const numOutputs =
       Math.floor(randomNum() * (opts.maxOutputs - opts.minOutputs + 1)) +
@@ -409,7 +424,9 @@ function selectStonewallUtxos(
     const availableTypes = Object.keys(utxosByType).filter(
       (type) => utxosByType[type].length > 0
     )
-    if (availableTypes.length === 0) continue
+    if (availableTypes.length === 0) {
+      continue
+    }
 
     // Simplified type selection
     const selectedTypes = [availableTypes[0]]
@@ -419,8 +436,8 @@ function selectStonewallUtxos(
     let totalInputValue = 0
 
     // Try to select inputs from different types
-    for (let i = 0; i < numInputs; i++) {
-      const type = selectedTypes[0] // Always use the first available type
+    for (let i = 0; i < numInputs; i += 1) {
+      const [type] = selectedTypes // Always use the first available type
 
       if (utxosByType[type].length === 0) {
         // If we can't get enough inputs, this attempt fails
@@ -464,19 +481,23 @@ function selectStonewallUtxos(
     const remainingAmount = totalInputValue - targetAmount - baseFee
 
     // If we don't have enough funds, try again
-    if (remainingAmount <= 0) continue
+    if (remainingAmount <= 0) {
+      continue
+    }
 
     // Step 5: Calculate change outputs
     const changeOutputs: ChangeOutput[] = []
     const numChangeOutputs = numOutputs - 1 // Excluding recipient
 
-    if (numChangeOutputs <= 0) continue
+    if (numChangeOutputs <= 0) {
+      continue
+    }
 
     // Add sizes for change outputs
     let totalChangeOutputSize = 0
     const changeOutputSizes = []
 
-    for (let i = 0; i < numChangeOutputs; i++) {
+    for (let i = 0; i < numChangeOutputs; i += 1) {
       // Randomly select script type for change
       const changeType =
         selectedTypes[Math.floor(randomNum() * selectedTypes.length)]
@@ -497,10 +518,12 @@ function selectStonewallUtxos(
     const totalChangeAmount = totalInputValue - targetAmount - totalFee
 
     // If total change is less than dust threshold * number of change outputs, try again
-    if (totalChangeAmount < opts.dustThreshold * numChangeOutputs) continue
+    if (totalChangeAmount < opts.dustThreshold * numChangeOutputs) {
+      continue
+    }
 
     // Distribute change amount across change outputs
-    for (let i = 0; i < numChangeOutputs; i++) {
+    for (let i = 0; i < numChangeOutputs; i += 1) {
       let changeAmount
 
       if (i === numChangeOutputs - 1) {
@@ -520,18 +543,22 @@ function selectStonewallUtxos(
       }
 
       // Ensure change amount is above dust threshold
-      if (changeAmount < opts.dustThreshold) continue
+      if (changeAmount < opts.dustThreshold) {
+        continue
+      }
 
       // Create change output
       changeOutputs.push({
+        size: changeOutputSizes[i],
         type: selectedTypes[Math.floor(randomNum() * selectedTypes.length)],
-        value: changeAmount,
-        size: changeOutputSizes[i]
+        value: changeAmount
       })
     }
 
     // Make sure all change outputs are created and above dust
-    if (changeOutputs.length !== numChangeOutputs) continue
+    if (changeOutputs.length !== numChangeOutputs) {
+      continue
+    }
 
     // Verify the total matches our calculations
     const finalTotalOutput =
@@ -575,22 +602,24 @@ function selectStonewallUtxos(
         break
       }
     }
-    if (!hasExactInputMatch) privacyScore += 30
+    if (!hasExactInputMatch) {
+      privacyScore += 30
+    }
 
     // Update best solution if this one has a better privacy score
     if (privacyScore > bestPrivacyScore) {
       bestPrivacyScore = privacyScore
       bestSolution = {
+        fee: finalFee,
         inputs: selectedInputs,
         outputs: [
           {
+            size: getOutputSize(options.recipientType || 'p2pkh'),
             type: options.recipientType || 'p2pkh',
-            value: targetAmount,
-            size: getOutputSize(options.recipientType || 'p2pkh')
+            value: targetAmount
           },
           ...changeOutputs
         ],
-        fee: finalFee,
         privacyScore,
         txSize: totalTxSize
       }
@@ -599,12 +628,12 @@ function selectStonewallUtxos(
 
   if (!bestSolution) {
     return {
+      error: 'Could not find a suitable STONEWALL structure',
+      fee: 0,
       inputs: [],
       outputs: [],
-      fee: 0,
       privacyScore: 0,
-      txSize: 0,
-      error: 'Could not find a suitable STONEWALL structure'
+      txSize: 0
     }
   }
 
@@ -626,8 +655,8 @@ function calculateStonewallEntropy(solution: {
     return 0
   }
 
-  const inputs = solution.inputs
-  const outputs = solution.outputs
+  const { inputs } = solution
+  const { outputs } = solution
 
   let entropy = 0
 
@@ -637,16 +666,16 @@ function calculateStonewallEntropy(solution: {
   ]
   const valueDistribution: { [key: number]: number } = {}
 
-  allValues.forEach((value) => {
+  for (const value of allValues) {
     valueDistribution[value] = (valueDistribution[value] || 0) + 1
-  })
+  }
 
   // Calculate entropy
   const totalCount = allValues.length
-  Object.values(valueDistribution).forEach((count) => {
+  for (const count of Object.values(valueDistribution)) {
     const probability = count / totalCount
     entropy -= probability * Math.log2(probability)
-  })
+  }
 
   // Scale entropy to a 0-100 score
   const normalizedEntropy = Math.min(100, entropy * 25)
@@ -667,8 +696,12 @@ function distributeChangeWithPrivacy(
   numOutputs: number,
   dustThreshold: number
 ): number[] {
-  if (numOutputs <= 0) return []
-  if (numOutputs === 1) return [totalChange]
+  if (numOutputs <= 0) {
+    return []
+  }
+  if (numOutputs === 1) {
+    return [totalChange]
+  }
 
   // Make sure we have enough for all outputs
   if (totalChange < dustThreshold * numOutputs) {
@@ -679,7 +712,7 @@ function distributeChangeWithPrivacy(
   let remainingAmount = totalChange
 
   // Create n-1 outputs with privacy-focused values
-  for (let i = 0; i < numOutputs - 1; i++) {
+  for (let i = 0; i < numOutputs - 1; i += 1) {
     // Calculate remaining average
     const avgRemaining = remainingAmount / (numOutputs - i)
 

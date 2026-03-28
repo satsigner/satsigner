@@ -39,8 +39,8 @@ export function useNostrMessage({
 
       const isDeviceMessage = msgAuthorNpub === account?.nostr?.deviceNpub
       const authorDisplayName = formattedNpubs.get(msg.author) || {
-        npubShort: `${msgAuthorNpub.slice(0, 12)}...${msgAuthorNpub.slice(-4)}`,
-        color: NOSTR_FALLBACK_NPUB_COLOR
+        color: NOSTR_FALLBACK_NPUB_COLOR,
+        npubShort: `${msgAuthorNpub.slice(0, 12)}...${msgAuthorNpub.slice(-4)}`
       }
 
       const messageContent =
@@ -56,28 +56,28 @@ export function useNostrMessage({
       const formattedDate = formatDateShort(msg.created_at)
 
       return {
-        authorNpub: msgAuthorNpub,
-        isDeviceMessage,
         authorDisplayName,
-        messageContent,
-        transactionData,
-        hasSignFlow,
+        authorNpub: msgAuthorNpub,
+        error: null,
         formattedDate,
-        error: null
+        hasSignFlow,
+        isDeviceMessage,
+        messageContent,
+        transactionData
       }
     } catch (error) {
       return {
+        authorDisplayName: { color: '', npubShort: '' },
         authorNpub: '',
-        isDeviceMessage: false,
-        authorDisplayName: { npubShort: '', color: '' },
-        messageContent: '',
-        transactionData: null,
-        hasSignFlow: false,
-        formattedDate: '',
         error:
           error instanceof Error
             ? error
-            : new Error('Failed to process Nostr message')
+            : new Error('Failed to process Nostr message'),
+        formattedDate: '',
+        hasSignFlow: false,
+        isDeviceMessage: false,
+        messageContent: '',
+        transactionData: null
       }
     }
   }, [msg, account, formattedNpubs])

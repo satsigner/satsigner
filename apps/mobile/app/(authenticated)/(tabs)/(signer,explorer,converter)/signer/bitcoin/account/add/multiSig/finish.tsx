@@ -64,7 +64,9 @@ export default function ConfirmScreen() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function rotate() {
-    if (completed) return
+    if (completed) {
+      return
+    }
     setRotation((prev: number) => (prev + 20) % 360)
     setTimeout(() => {
       rotate()
@@ -96,9 +98,9 @@ export default function ConfirmScreen() {
       <SSVStack
         style={{
           flex: 1,
-          paddingTop: 80,
+          paddingBottom: 30,
           paddingHorizontal: 24,
-          paddingBottom: 30
+          paddingTop: 80
         }}
         justifyBetween
       >
@@ -109,7 +111,7 @@ export default function ConfirmScreen() {
               : t('account.multisig.creating')}
           </SSText>
           <SSHStack style={{ alignSelf: 'center', marginTop: 40 }}>
-            <View style={{ width: 163, height: 163 }}>
+            <View style={{ height: 163, width: 163 }}>
               {completed ? (
                 <SSIconSuccess width={159} height={159} />
               ) : (

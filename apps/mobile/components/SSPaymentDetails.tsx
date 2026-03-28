@@ -81,13 +81,13 @@ function SSPaymentDetails({
                 {new Date(
                   Number(decodedInvoice.timestamp) * 1000
                 ).toLocaleString('en-US', {
-                  month: 'long',
                   day: 'numeric',
-                  year: 'numeric',
                   hour: '2-digit',
+                  hour12: true,
                   minute: '2-digit',
+                  month: 'long',
                   second: '2-digit',
-                  hour12: true
+                  year: 'numeric'
                 })}
               </SSText>
             </SSHStack>
@@ -101,13 +101,13 @@ function SSPaymentDetails({
                 Number(decodedInvoice.timestamp) * 1000 +
                   Number(decodedInvoice.expiry) * 1000
               ).toLocaleString('en-US', {
-                month: 'long',
                 day: 'numeric',
-                year: 'numeric',
                 hour: '2-digit',
+                hour12: true,
                 minute: '2-digit',
+                month: 'long',
                 second: '2-digit',
-                hour12: true
+                year: 'numeric'
               })}
             </SSText>
           </SSHStack>
@@ -137,48 +137,48 @@ function SSPaymentDetails({
 }
 
 const styles = StyleSheet.create({
-  invoiceDetails: {
-    marginTop: 16,
-    marginBottom: 16
+  amountContainer: {
+    alignItems: 'baseline',
+    flex: 1,
+    justifyContent: 'flex-end'
   },
-  detailsContent: {
-    gap: 16
-  },
-  detailSection: {
-    gap: 12
+  detailLabel: {
+    fontSize: 14,
+    minWidth: 100
   },
   detailRow: {
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap'
+    flexWrap: 'wrap',
+    justifyContent: 'space-between'
   },
-  detailLabel: {
-    minWidth: 100,
-    fontSize: 14
+  detailSection: {
+    gap: 12
   },
   detailValue: {
     flex: 1,
     textAlign: 'right'
   },
-  amountContainer: {
+  detailsContent: {
+    gap: 16
+  },
+  hashContainer: {
     flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'baseline'
+    marginLeft: 8,
+    minWidth: 0
   },
   hashRow: {
     alignItems: 'flex-start',
     justifyContent: 'space-between'
   },
-  hashContainer: {
-    flex: 1,
-    minWidth: 0,
-    marginLeft: 8
-  },
   hashText: {
-    opacity: 0.8,
+    fontFamily: Typography.sfProMono,
     fontSize: 12,
-    textAlign: 'right',
-    fontFamily: Typography.sfProMono
+    opacity: 0.8,
+    textAlign: 'right'
+  },
+  invoiceDetails: {
+    marginBottom: 16,
+    marginTop: 16
   },
   monospaceInput: {
     fontFamily: Typography.sfProMono,

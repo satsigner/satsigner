@@ -39,6 +39,6 @@ function sum(...animatedValues: SharedValue<number>[]) {
   )
 }
 
-const limits = { right, left, top, bottom }
+const limits = { bottom, left, right, top }
 
 export { clamp, limits, sum }

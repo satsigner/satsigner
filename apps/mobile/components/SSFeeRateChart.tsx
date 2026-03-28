@@ -81,7 +81,9 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
   const isMvB = useRef(false)
 
   const data = useMemo(() => {
-    if (!mempoolStatistics) return []
+    if (!mempoolStatistics) {
+      return []
+    }
 
     const totalVsizes = mempoolStatistics.map((entry) =>
       entry.vsizes.reduce((sum, v) => sum + (v || 0), 0)
@@ -104,66 +106,68 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
         } else if (timeRange === 'day') {
           timestamp = date.toLocaleTimeString([], {
             hour: '2-digit',
-            minute: '2-digit',
+            hour12: false,
             hourCycle: 'h24',
-            hour12: false
+            minute: '2-digit'
           })
         } else {
           timestamp = date.toLocaleTimeString([], {
             hour: '2-digit',
-            minute: '2-digit',
+            hour12: false,
             hourCycle: 'h24',
-            hour12: false
+            minute: '2-digit'
           })
         }
 
         const totalVsize = totalVsizes[i] ?? 0
         const convertedTotal = convertFunction(totalVsize)
-        if (convertedTotal > maxYDomain) maxYDomain = convertedTotal
+        if (convertedTotal > maxYDomain) {
+          maxYDomain = convertedTotal
+        }
 
         return {
-          x: timestamp,
           '0-1': convertFunction(entry.vsizes[0] || 0),
           '1-2': convertFunction(entry.vsizes[1] || 0),
-          '2-3': convertFunction(entry.vsizes[2] || 0),
-          '3-4': convertFunction(entry.vsizes[3] || 0),
-          '4-5': convertFunction(entry.vsizes[4] || 0),
-          '5-6': convertFunction(entry.vsizes[5] || 0),
-          '6-8': convertFunction(entry.vsizes[6] || 0),
-          '8-10': convertFunction(entry.vsizes[7] || 0),
           '10-12': convertFunction(entry.vsizes[8] || 0),
-          '12-15': convertFunction(entry.vsizes[9] || 0),
-          '15-20': convertFunction(entry.vsizes[10] || 0),
-          '20-30': convertFunction(entry.vsizes[11] || 0),
-          '30-40': convertFunction(entry.vsizes[12] || 0),
-          '40-50': convertFunction(entry.vsizes[13] || 0),
-          '50-60': convertFunction(entry.vsizes[14] || 0),
-          '60-70': convertFunction(entry.vsizes[15] || 0),
-          '70-80': convertFunction(entry.vsizes[16] || 0),
-          '80-90': convertFunction(entry.vsizes[17] || 0),
-          '90-100': convertFunction(entry.vsizes[18] || 0),
           '100-125': convertFunction(entry.vsizes[19] || 0),
-          '125-150': convertFunction(entry.vsizes[20] || 0),
-          '150-175': convertFunction(entry.vsizes[21] || 0),
-          '175-200': convertFunction(entry.vsizes[22] || 0),
-          '200-250': convertFunction(entry.vsizes[23] || 0),
-          '250-300': convertFunction(entry.vsizes[24] || 0),
-          '300-350': convertFunction(entry.vsizes[25] || 0),
-          '350-400': convertFunction(entry.vsizes[26] || 0),
-          '400-500': convertFunction(entry.vsizes[27] || 0),
-          '500-600': convertFunction(entry.vsizes[28] || 0),
-          '600-700': convertFunction(entry.vsizes[29] || 0),
-          '700-800': convertFunction(entry.vsizes[30] || 0),
-          '800-900': convertFunction(entry.vsizes[31] || 0),
-          '900-1000': convertFunction(entry.vsizes[32] || 0),
           '1000-1200': convertFunction(entry.vsizes[33] || 0),
+          '12-15': convertFunction(entry.vsizes[9] || 0),
           '1200-1400': convertFunction(entry.vsizes[34] || 0),
+          '125-150': convertFunction(entry.vsizes[20] || 0),
           '1400+': convertFunction(
             (entry.vsizes[35] || 0) +
               (entry.vsizes[36] || 0) +
               (entry.vsizes[37] || 0) +
               (entry.vsizes[38] || 0)
-          )
+          ),
+          '15-20': convertFunction(entry.vsizes[10] || 0),
+          '150-175': convertFunction(entry.vsizes[21] || 0),
+          '175-200': convertFunction(entry.vsizes[22] || 0),
+          '2-3': convertFunction(entry.vsizes[2] || 0),
+          '20-30': convertFunction(entry.vsizes[11] || 0),
+          '200-250': convertFunction(entry.vsizes[23] || 0),
+          '250-300': convertFunction(entry.vsizes[24] || 0),
+          '3-4': convertFunction(entry.vsizes[3] || 0),
+          '30-40': convertFunction(entry.vsizes[12] || 0),
+          '300-350': convertFunction(entry.vsizes[25] || 0),
+          '350-400': convertFunction(entry.vsizes[26] || 0),
+          '4-5': convertFunction(entry.vsizes[4] || 0),
+          '40-50': convertFunction(entry.vsizes[13] || 0),
+          '400-500': convertFunction(entry.vsizes[27] || 0),
+          '5-6': convertFunction(entry.vsizes[5] || 0),
+          '50-60': convertFunction(entry.vsizes[14] || 0),
+          '500-600': convertFunction(entry.vsizes[28] || 0),
+          '6-8': convertFunction(entry.vsizes[6] || 0),
+          '60-70': convertFunction(entry.vsizes[15] || 0),
+          '600-700': convertFunction(entry.vsizes[29] || 0),
+          '70-80': convertFunction(entry.vsizes[16] || 0),
+          '700-800': convertFunction(entry.vsizes[30] || 0),
+          '8-10': convertFunction(entry.vsizes[7] || 0),
+          '80-90': convertFunction(entry.vsizes[17] || 0),
+          '800-900': convertFunction(entry.vsizes[31] || 0),
+          '90-100': convertFunction(entry.vsizes[18] || 0),
+          '900-1000': convertFunction(entry.vsizes[32] || 0),
+          x: timestamp
         }
       })
       .reverse()
@@ -174,10 +178,14 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
   }, [mempoolStatistics, timeRange])
 
   const keysWithData = useMemo(() => {
-    if (data.length === 0) return []
+    if (data.length === 0) {
+      return []
+    }
     const last = data[data.length - 1]
     const total = Y_KEYS.reduce((sum, key) => sum + (last[key] ?? 0), 0)
-    if (total <= 0) return []
+    if (total <= 0) {
+      return []
+    }
     return Y_KEYS.filter((key) => {
       const value = last[key] ?? 0
       return value > 0 && value / total >= MIN_KEY_SHARE
@@ -188,12 +196,13 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
     setLabelTopsFromChart(labelTopsRef.current)
   }, [chartBounds, data, keysWithData])
 
-  if (!mempoolStatistics)
+  if (!mempoolStatistics) {
     return (
       <View style={{ flex: 1 }}>
         <Text style={{ color: '#fff', padding: 16 }}>Loading chart...</Text>
       </View>
     )
+  }
 
   return (
     <View style={styles.container}>
@@ -209,12 +218,12 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
               domainPadding={{ top: 100 }}
               onChartBoundsChange={(bounds) => setChartBounds(bounds)}
               axisOptions={{
+                axisSide: { x: 'bottom', y: 'left' },
                 font: labelFont ?? font,
                 formatYLabel: (v) => `${v} ${isMvB.current ? 'MvB' : 'kvB'}`,
-                axisSide: { x: 'bottom', y: 'left' },
                 labelColor: { x: '#787878', y: '#ffffff' },
-                tickCount: { x: 4, y: 8 },
-                labelOffset: { x: 4, y: 8 }
+                labelOffset: { x: 4, y: 8 },
+                tickCount: { x: 4, y: 8 }
               }}
             >
               {({ points, chartBounds: bounds }) => {
@@ -226,8 +235,9 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
                         !pts ||
                         typeof pts.length !== 'number' ||
                         pts.length === 0
-                      )
+                      ) {
                         return null
+                      }
                       const last = pts[pts.length - 1] as {
                         x: number
                         y: number
@@ -237,7 +247,7 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
                     })
                     .filter((x): x is { key: YKey; top: number } => x !== null)
                   const spaced = [...withTops]
-                  for (let i = spaced.length - 2; i >= 0; i--) {
+                  for (let i = spaced.length - 2; i >= 0; i -= 1) {
                     const below = spaced[i + 1].top + LABEL_LINE_HEIGHT
                     if (spaced[i].top < below) {
                       spaced[i].top = Math.min(
@@ -323,6 +333,18 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
 }
 
 const styles = StyleSheet.create({
+  arrow: {
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  arrowContainer: {
+    alignItems: 'flex-end',
+    alignSelf: 'flex-end',
+    flexDirection: 'row',
+    height: 250,
+    justifyContent: 'flex-end',
+    width: 55
+  },
   chartBorderWrapper: {
     borderColor: Colors.gray[700],
     borderRadius: 4,
@@ -343,29 +365,17 @@ const styles = StyleSheet.create({
     flex: 1,
     height: CHART_HEIGHT + BORDER_PADDING * 2
   },
-  keyLabels: {
-    height: CHART_HEIGHT,
-    minWidth: 56,
-    flexShrink: 0,
-    paddingLeft: 8,
-    paddingVertical: 2,
-    position: 'relative'
-  },
   keyLabelText: {
     color: '#B0B0B0',
     fontSize: LABEL_FONT_SIZE
   },
-  arrowContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'flex-end',
-    height: 250,
-    width: 55,
-    alignSelf: 'flex-end'
-  },
-  arrow: {
-    justifyContent: 'center',
-    alignItems: 'center'
+  keyLabels: {
+    flexShrink: 0,
+    height: CHART_HEIGHT,
+    minWidth: 56,
+    paddingLeft: 8,
+    paddingVertical: 2,
+    position: 'relative'
   }
 })
 

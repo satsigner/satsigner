@@ -28,16 +28,16 @@ export default function EcashSettingsPage() {
       t('ecash.recovery.clearAllDataWarning'),
       [
         {
-          text: t('common.cancel'),
-          style: 'cancel'
+          style: 'cancel',
+          text: t('common.cancel')
         },
         {
-          text: t('ecash.recovery.clear'),
-          style: 'destructive',
           onPress: () => {
             clearAllData()
             router.back()
-          }
+          },
+          style: 'destructive',
+          text: t('ecash.recovery.clear')
         }
       ]
     )
@@ -47,10 +47,10 @@ export default function EcashSettingsPage() {
     <SSMainLayout>
       <Stack.Screen
         options={{
+          headerRight: () => null,
           headerTitle: () => (
             <SSText uppercase>{t('ecash.settings.title')}</SSText>
-          ),
-          headerRight: () => null
+          )
         }}
       />
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -94,7 +94,7 @@ export default function EcashSettingsPage() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 20,
-    paddingBottom: 60
+    paddingBottom: 60,
+    paddingTop: 20
   }
 })

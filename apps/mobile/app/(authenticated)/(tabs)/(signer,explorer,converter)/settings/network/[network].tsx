@@ -104,12 +104,12 @@ export default function CustomNetwork() {
   const backends: Backend[] = ['electrum', 'esplora']
   const protocols = ['ssl', 'tcp'] as const
 
-  const urlPreview = useMemo(() => {
-    return constructTrimmedUrl()
-  }, [constructTrimmedUrl])
+  const urlPreview = useMemo(() => constructTrimmedUrl(), [constructTrimmedUrl])
 
   useEffect(() => {
-    if (testing && !connectionState) toast.error(t('error.invalid.backend'))
+    if (testing && !connectionState) {
+      toast.error(t('error.invalid.backend'))
+    }
   }, [testing, connectionState])
 
   async function handlePaste() {
@@ -127,7 +127,9 @@ export default function CustomNetwork() {
 
   async function handleOpenScan() {
     const { granted } = await requestCameraPermission()
-    if (!granted) return
+    if (!granted) {
+      return
+    }
     setScanModalVisible(true)
   }
 
@@ -161,11 +163,9 @@ export default function CustomNetwork() {
         toast.warning(t('error.invalid.port'))
         return false
       }
-    } else {
-      if (formData.port.trim() && !formData.port.match(/^[0-9]+$/)) {
-        toast.warning(t('error.invalid.port'))
-        return false
-      }
+    } else if (formData.port.trim() && !formData.port.match(/^[0-9]+$/)) {
+      toast.warning(t('error.invalid.port'))
+      return false
     }
 
     return true
@@ -174,15 +174,17 @@ export default function CustomNetwork() {
   function handleTest() {
     setTesting(false)
 
-    if (!isValid()) return
+    if (!isValid()) {
+      return
+    }
 
     const url = constructUrl()
     const server: Server = {
-      name: formData.name,
       backend: formData.backend,
+      name: formData.name,
       network: networkType,
-      url,
-      proxy: formData.proxy.enabled ? formData.proxy : undefined
+      proxy: formData.proxy.enabled ? formData.proxy : undefined,
+      url
     }
 
     setSelectedNetwork(networkType)
@@ -200,11 +202,11 @@ export default function CustomNetwork() {
 
       const url = constructUrl()
       const server: Server = {
-        name: formData.name,
         backend: formData.backend,
+        name: formData.name,
         network: networkType,
-        url,
-        proxy: formData.proxy.enabled ? formData.proxy : undefined
+        proxy: formData.proxy.enabled ? formData.proxy : undefined,
+        url
       }
 
       if (editingServer) {
@@ -228,10 +230,10 @@ export default function CustomNetwork() {
     <SSMainLayout>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSText uppercase>{t('settings.network.custom.title')}</SSText>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <SSVStack gap="lg" justifyBetween>
@@ -336,7 +338,7 @@ export default function CustomNetwork() {
                   {t('settings.network.server.portLabel')}
                   {formData.backend === 'esplora' && (
                     <SSText
-                      style={{ textTransform: 'none', fontWeight: 'normal' }}
+                      style={{ fontWeight: 'normal', textTransform: 'none' }}
                     >
                       {' '}
                       ({t('common.optional')})
@@ -368,7 +370,7 @@ export default function CustomNetwork() {
               />
               {testing && (
                 <SSHStack
-                  style={{ justifyContent: 'center', gap: 0, marginBottom: 24 }}
+                  style={{ gap: 0, justifyContent: 'center', marginBottom: 24 }}
                 >
                   {connectionState ? (
                     isPrivateConnection ? (
@@ -425,10 +427,12 @@ export default function CustomNetwork() {
           </SSText>
           <CameraView
             onBarcodeScanned={({ data }) => {
-              if (data) handleScanResult(data)
+              if (data) {
+                handleScanResult(data)
+              }
             }}
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            style={{ width: 340, height: 340 }}
+            style={{ height: 340, width: 340 }}
           />
         </SSVStack>
       </SSModal>

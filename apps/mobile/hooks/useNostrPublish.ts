@@ -4,7 +4,9 @@ import { type Account } from '@/types/models/Account'
 import { compressMessage } from '@/utils/nostr'
 
 function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms)
+  })
 }
 
 function useNostrPublish() {
@@ -13,8 +15,12 @@ function useNostrPublish() {
   }
 
   async function sendDM(account: Account, message: string) {
-    if (!account?.nostr?.autoSync) return
-    if (!account || !account.nostr) return
+    if (!account?.nostr?.autoSync) {
+      return
+    }
+    if (!account || !account.nostr) {
+      return
+    }
 
     const { commonNsec, commonNpub, deviceNsec, deviceNpub, relays } =
       account.nostr
@@ -39,7 +45,7 @@ function useNostrPublish() {
     nostrApi = new NostrAPI(relays)
     await nostrApi.connect()
 
-    let eventKind1059 = await nostrApi.createKind1059(
+    let eventKind1059 = nostrApi.createKind1059(
       deviceNsec,
       deviceNpub,
       compressedMessage
@@ -49,8 +55,10 @@ function useNostrPublish() {
     const trustedDevices = getTrustedDevices(account)
     for (const trustedDeviceNpub of trustedDevices) {
       await delay(DELAY_BETWEEN_PUBLISHES_MS)
-      if (!deviceNsec) continue
-      eventKind1059 = await nostrApi!.createKind1059(
+      if (!deviceNsec) {
+        continue
+      }
+      eventKind1059 = nostrApi!.createKind1059(
         deviceNsec,
         trustedDeviceNpub,
         compressedMessage
@@ -60,8 +68,12 @@ function useNostrPublish() {
   }
 
   async function sendPSBT(account: Account, psbt: string) {
-    if (!account?.nostr?.autoSync) return
-    if (!account || !account.nostr) return
+    if (!account?.nostr?.autoSync) {
+      return
+    }
+    if (!account || !account.nostr) {
+      return
+    }
     const { deviceNsec, deviceNpub, relays } = account.nostr
 
     if (!deviceNsec || !deviceNpub || relays.length === 0) {
@@ -71,15 +83,15 @@ function useNostrPublish() {
     let nostrApi: NostrAPI | null = null
     const messageContent = {
       created_at: Math.floor(Date.now() / 1000),
-      description: 'PSBT for signing',
-      data: { data: psbt, data_type: 'PSBT' }
+      data: { data: psbt, data_type: 'PSBT' },
+      description: 'PSBT for signing'
     }
 
     const compressedMessage = compressMessage(messageContent)
     nostrApi = new NostrAPI(relays)
     await nostrApi.connect()
 
-    const selfEvent = await nostrApi.createKind1059(
+    const selfEvent = nostrApi.createKind1059(
       deviceNsec,
       deviceNpub,
       compressedMessage
@@ -88,10 +100,14 @@ function useNostrPublish() {
 
     const trustedDevices = getTrustedDevices(account)
     for (const trustedDeviceNpub of trustedDevices) {
-      if (trustedDeviceNpub === deviceNpub) continue
+      if (trustedDeviceNpub === deviceNpub) {
+        continue
+      }
       await delay(DELAY_BETWEEN_PUBLISHES_MS)
-      if (!deviceNsec) continue
-      const eventKind1059 = await nostrApi.createKind1059(
+      if (!deviceNsec) {
+        continue
+      }
+      const eventKind1059 = nostrApi.createKind1059(
         deviceNsec,
         trustedDeviceNpub,
         compressedMessage

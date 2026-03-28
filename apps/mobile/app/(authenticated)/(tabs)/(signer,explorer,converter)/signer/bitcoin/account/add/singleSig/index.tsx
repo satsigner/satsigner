@@ -74,7 +74,7 @@ export default function SingleSig() {
 
   const [loading, setLoading] = useState(false)
 
-  async function handleOnPress(type: NonNullable<Key['creationType']>) {
+  function handleOnPress(type: NonNullable<Key['creationType']>) {
     setCreationType(type)
     setScriptVersion(localScriptVersion)
     setEntropy(localEntropyType)
@@ -106,18 +106,20 @@ export default function SingleSig() {
         }
         case 'coin': {
           router.navigate({
-            pathname: '/signer/bitcoin/account/add/entropy/coin',
-            params: { index: 0 }
+            params: { index: 0 },
+            pathname: '/signer/bitcoin/account/add/entropy/coin'
           })
           break
         }
         case 'dice': {
           router.navigate({
-            pathname: '/signer/bitcoin/account/add/entropy/dice',
-            params: { index: 0 }
+            params: { index: 0 },
+            pathname: '/signer/bitcoin/account/add/entropy/dice'
           })
           break
         }
+        default:
+          break
       }
     } else if (type === 'importMnemonic') {
       // For import, navigate to mnemonic input
@@ -140,7 +142,9 @@ export default function SingleSig() {
     setEntropyModalVisible(false)
   }
 
-  if (!name) return <Redirect href="/" />
+  if (!name) {
+    return <Redirect href="/" />
+  }
 
   return (
     <SSMainLayout>

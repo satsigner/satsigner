@@ -57,39 +57,39 @@ export function useInputTransactions(
     // First pass: group by depthH
     for (const [txid, tx] of transactions.entries()) {
       if (tx.vin) {
-        tx.vin.forEach((_, index) => {
+        for (const [index] of tx.vin.entries()) {
           if (!vinsByDepth.has(tx.depthH)) {
             vinsByDepth.set(tx.depthH, [])
           }
-          vinsByDepth.get(tx.depthH)?.push({ txid, index })
-        })
+          vinsByDepth.get(tx.depthH)?.push({ index, txid })
+        }
       }
 
       if (tx.vout) {
-        tx.vout.forEach((_, index) => {
+        for (const [index] of tx.vout.entries()) {
           if (!voutsByDepth.has(tx.depthH)) {
             voutsByDepth.set(tx.depthH, [])
           }
-          voutsByDepth.get(tx.depthH)?.push({ txid, index })
-        })
+          voutsByDepth.get(tx.depthH)?.push({ index, txid })
+        }
       }
     }
 
     // Second pass: assign index
     for (const [_depthH, vins] of vinsByDepth.entries()) {
       let currentIndex = 0
-      vins.forEach(({ txid, index }) => {
+      for (const { txid, index } of vins) {
         const tx = transactions.get(txid)
         if (tx?.vin?.[index]) {
           tx.vin[index] = { ...tx.vin[index], index: currentIndex }
-          currentIndex++
+          currentIndex += 1
         }
-      })
+      }
     }
 
     for (const [_depthH, vouts] of voutsByDepth.entries()) {
       let currentIndex = 0
-      vouts.forEach(({ txid, index }) => {
+      for (const { txid, index } of vouts) {
         const tx = transactions.get(txid)
         if (tx?.vout?.[index]) {
           tx.vout[index] = {
@@ -97,24 +97,26 @@ export function useInputTransactions(
             index: currentIndex,
             vout: index // Set vout to the original array index
           }
-          currentIndex++
+          currentIndex += 1
         }
-      })
+      }
     }
 
     return transactions
   }
 
   const fetchInputTransactions = useCallback(async () => {
-    if (inputs.size === 0) return
+    if (inputs.size === 0) {
+      return
+    }
 
     setLoading(true)
     setError(null)
 
     const newTransactions = new Map<string, ExtendedTransaction>()
     const queue = Array.from(inputs.values()).map((input) => ({
-      txid: input.txid,
-      level: 1
+      level: 1,
+      txid: input.txid
     }))
     const processed = new Set<string>()
     let currentLevelDeep = 0
@@ -134,14 +136,20 @@ export function useInputTransactions(
       }
 
       while (currentLevelDeep < levelDeep && queue.length > 0) {
+        const targetLevel = currentLevelDeep + 1
         const currentLevelTxids = queue.filter(
-          (item) => item.level === currentLevelDeep + 1
+          (item) => item.level === targetLevel
         )
-        if (currentLevelTxids.length === 0) break
+        if (currentLevelTxids.length === 0) {
+          break
+        }
 
         await Promise.all(
+          // eslint-disable-next-line no-loop-func
           currentLevelTxids.map(async ({ txid, level }) => {
-            if (processed.has(txid)) return
+            if (processed.has(txid)) {
+              return
+            }
             processed.add(txid)
 
             let tx
@@ -152,51 +160,51 @@ export function useInputTransactions(
 
               if (tx) {
                 const mappedTx: Transaction = {
+                  address: undefined, // Not directly available in EsploraTx
+                  blockHeight: tx.status.block_height,
+                  fee: tx.fee,
                   id: tx.txid,
-                  type: 'send', // Not needed
-                  sent: 0, // Not needed
+                  label: undefined, // TODO: add label
+                  lockTime: tx.locktime,
+                  lockTimeEnabled: tx.locktime > 0,
+                  prices: {},
+                  raw: undefined, // Not directly available in EsploraTx
                   received: 0, // Not needed
+                  sent: 0, // Not needed
+                  size: tx.size,
                   timestamp: tx.status.block_time
                     ? new Date(tx.status.block_time)
                     : undefined,
-                  blockHeight: tx.status.block_height,
-                  address: undefined, // Not directly available in EsploraTx
-                  label: undefined, // TODO: add label
-                  fee: tx.fee,
-                  size: tx.size,
-                  vsize: Math.ceil(tx.size * 0.25), // Calculate vsize as weight/4
-                  weight: tx.weight,
+                  type: 'send', // Not needed
                   version: tx.version,
-                  lockTime: tx.locktime,
-                  lockTimeEnabled: tx.locktime > 0,
-                  raw: undefined, // Not directly available in EsploraTx
                   vin: tx.vin.map((input) => ({
+                    address: input.prevout?.scriptpubkey_address,
+                    label: undefined, // TODO: add label
                     previousOutput: {
                       txid: input.txid,
                       vout: input.vout
                     },
-                    sequence: input.sequence,
                     scriptSig: input.scriptsig
                       ? Array.from(Buffer.from(input.scriptsig, 'hex'))
                       : [],
+                    sequence: input.sequence,
+                    value: input.prevout?.value,
                     witness: input.witness
                       ? input.witness.map((w) =>
                           Array.from(Buffer.from(w, 'hex'))
                         )
-                      : [],
-                    value: input.prevout?.value,
-                    label: undefined, // TODO: add label
-                    address: input.prevout?.scriptpubkey_address
+                      : []
                   })),
                   vout: tx.vout.map((output) => ({
-                    value: output.value,
                     address: output.scriptpubkey_address,
+                    label: undefined,
                     script: output.scriptpubkey
                       ? Array.from(Buffer.from(output.scriptpubkey, 'hex'))
                       : [],
-                    label: undefined // TODO: add label
+                    value: output.value // TODO: add label
                   })),
-                  prices: {}
+                  vsize: Math.ceil(tx.size * 0.25), // Calculate vsize as weight/4
+                  weight: tx.weight
                 }
                 newTransactions.set(txid, {
                   ...(mappedTx as ExtendedTransaction),
@@ -204,20 +212,20 @@ export function useInputTransactions(
                 })
 
                 // Collect output addresses
-                mappedTx.vout?.forEach((vout) => {
+                for (const vout of mappedTx.vout ?? []) {
                   if (vout.address) {
                     allOutputAddresses.add(vout.address)
                   }
-                })
+                }
 
                 // Store input addresses
                 const inputAddresses = new Set<string>()
                 // Extract input addresses from the vin array's prevout field
-                tx.vin?.forEach((vin) => {
+                for (const vin of tx.vin ?? []) {
                   if (vin.prevout?.scriptpubkey_address) {
                     inputAddresses.add(vin.prevout.scriptpubkey_address)
                   }
-                })
+                }
                 transactionInputAddresses.set(txid, inputAddresses)
               }
             } else if (server.backend === 'electrum' && electrumClient) {
@@ -258,7 +266,9 @@ export function useInputTransactions(
                           break // Found the height, no need to check other addresses
                         }
                       }
-                    } catch (_addrError) {}
+                    } catch {
+                      /* silently ignored */
+                    }
                   }
                   if (blockHeight) {
                     timestamp = new Date(
@@ -280,36 +290,35 @@ export function useInputTransactions(
                   // Parse previous transactions and store in a map
                   const prevTxsMap = new Map<string, TxDecoded>()
                   if (rawPrevTxs) {
-                    rawPrevTxs.forEach((rawPrevTx, index) => {
+                    for (const [index, rawPrevTx] of rawPrevTxs.entries()) {
                       const currentTxidForMap = uniquePrevTxids[index]
                       if (rawPrevTx) {
                         try {
                           const parsedPrevTx = TxDecoded.fromHex(rawPrevTx)
                           prevTxsMap.set(currentTxidForMap, parsedPrevTx)
-                        } catch (_parseError) {
+                        } catch {
                           // Failed to parse, skip this one
                         }
                       }
-                    })
+                    }
                   }
                   // Map parsed Electrum transaction to Transaction type structure
                   const mappedTx: Transaction = {
-                    id: txid,
-                    type: 'send', // Not needed
-                    sent: 0, // Not needed
-                    received: 0, // Not needed
-                    timestamp,
-                    blockHeight,
                     address: undefined, // Not directly available in raw tx
-                    label: undefined, // TODO: add label
+                    blockHeight,
                     fee: undefined, // Not directly available in raw tx
-                    size: parsedTx.byteLength(),
-                    vsize: parsedTx.virtualSize(),
-                    weight: parsedTx.weight(),
-                    version: parsedTx.version,
+                    id: txid,
+                    label: undefined, // TODO: add label
                     lockTime: parsedTx.locktime,
                     lockTimeEnabled: parsedTx.locktime > 0,
+                    prices: {},
                     raw: Array.from(Buffer.from(rawTx[0], 'hex')),
+                    received: 0, // Not needed
+                    sent: 0, // Not needed
+                    size: parsedTx.byteLength(),
+                    timestamp,
+                    type: 'send', // Not needed
+                    version: parsedTx.version,
                     vin: parsedTx.ins.map((input) => {
                       const prevTxid = input.hash.toString('hex') // input.hash is now little-endian here
                       const prevVout = input.index
@@ -332,25 +341,26 @@ export function useInputTransactions(
                       }
 
                       return {
+                        address, // Assign derived address
+                        label: undefined, // TODO: add label
                         previousOutput: {
                           txid: prevTxid,
                           vout: prevVout
                         },
-                        sequence: input.sequence,
                         scriptSig: Array.from(input.script),
-                        witness: input.witness.map((w) => Array.from(w)),
+                        sequence: input.sequence,
                         value, // Assign fetched value
-                        label: undefined, // TODO: add label
-                        address // Assign derived address
+                        witness: input.witness.map((w) => Array.from(w))
                       }
                     }),
                     vout: parsedTx.outs.map((output) => ({
-                      value: output.value,
                       address: '', // Set to empty string to satisfy required string type
+                      label: undefined, // TODO: add label
                       script: Array.from(output.script),
-                      label: undefined // TODO: add label
+                      value: output.value
                     })),
-                    prices: {}
+                    vsize: parsedTx.virtualSize(),
+                    weight: parsedTx.weight()
                   }
 
                   newTransactions.set(txid, {
@@ -363,12 +373,14 @@ export function useInputTransactions(
                   // Skipping for now
                   transactionInputAddresses.set(txid, inputAddresses)
                 }
-              } catch (_electrumError) {}
+              } catch {
+                /* silently ignored */
+              }
             }
 
             // Queue parent transactions only if we haven't reached max levelDeep
             if (level < levelDeep && tx?.vin) {
-              tx.vin.forEach((vin) => {
+              for (const vin of tx.vin) {
                 const parentTxid = vin.txid
                 if (
                   parentTxid &&
@@ -376,16 +388,16 @@ export function useInputTransactions(
                   !queue.some((item) => item.txid === parentTxid)
                 ) {
                   queue.push({
-                    txid: parentTxid,
-                    level: level + 1
+                    level: level + 1,
+                    txid: parentTxid
                   })
                 }
-              })
+              }
             }
           })
         )
 
-        currentLevelDeep++
+        currentLevelDeep += 1
       }
 
       // Filter transactions based on input/output address matching
@@ -394,7 +406,9 @@ export function useInputTransactions(
       // First, collect all valid transactions
       for (const [txid, tx] of newTransactions.entries()) {
         const inputAddresses = transactionInputAddresses.get(txid)
-        if (!inputAddresses) continue
+        if (!inputAddresses) {
+          continue
+        }
 
         // Check if any input address matches with output addresses from other transactions
         let hasMatchingAddress = false
@@ -442,8 +456,8 @@ export function useInputTransactions(
           Array.from(inputs.entries()).map(([key, utxo]) => [
             key,
             {
-              value: utxo.value,
-              scriptpubkey_address: utxo.addressTo || ''
+              scriptpubkey_address: utxo.addressTo || '',
+              value: utxo.value
             }
           ])
         )
@@ -479,5 +493,5 @@ export function useInputTransactions(
     fetchInputTransactions()
   }, [fetchInputTransactions])
 
-  return { transactions, loading, error, fetchInputTransactions }
+  return { error, fetchInputTransactions, loading, transactions }
 }

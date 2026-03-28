@@ -201,11 +201,15 @@ export default function PublicKeyPage() {
 
   useEffect(() => {
     async function getPublicKey() {
-      if (!keyIndex) return
+      if (!keyIndex) {
+        return
+      }
 
       setIsLoading(true)
       const pin = await getItem(PIN_KEY)
-      if (!pin) return
+      if (!pin) {
+        return
+      }
 
       try {
         const accountData = getAccountData()
@@ -264,7 +268,7 @@ export default function PublicKeyPage() {
     }
   }, [selectedFormat, rawPublicKey, convertPublicKeyFormat])
 
-  async function exportPublicKey() {
+  function exportPublicKey() {
     const accountData = getAccountData()
     const date = new Date().toISOString().slice(0, -5)
     const ext = 'txt'
@@ -272,9 +276,9 @@ export default function PublicKeyPage() {
       parseInt(keyIndex || '0', 10) + 1
     }_${selectedFormat.toUpperCase()}_${date}.${ext}`
     shareFile({
-      filename,
-      fileContent: publicKey,
       dialogTitle: t('export.file.save'),
+      fileContent: publicKey,
+      filename,
       mimeType: `text/plain`
     })
   }
@@ -317,8 +321,8 @@ export default function PublicKeyPage() {
             <View
               style={{
                 backgroundColor: 'white',
-                padding: 20,
-                borderRadius: 10
+                borderRadius: 10,
+                padding: 20
               }}
             >
               <SSQRCode
@@ -336,9 +340,9 @@ export default function PublicKeyPage() {
           <>
             <View
               style={{
-                padding: 10,
                 backgroundColor: Colors.gray[950],
-                borderRadius: 5
+                borderRadius: 5,
+                padding: 10
               }}
             >
               <SSText color="white" size="lg" type="mono" selectable>

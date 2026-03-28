@@ -20,8 +20,8 @@ export default function Home() {
     (page: NavMenuItem) => {
       if (page.isSoon) {
         router.navigate({
-          pathname: `${segment}/upcoming/`,
-          params: { title: page.title }
+          params: { title: page.title },
+          pathname: `${segment}/upcoming/`
         })
       } else {
         router.navigate(`${segment}${page.url}`)
@@ -76,39 +76,39 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  mainLayout: {
-    flexGrow: 1,
-    paddingHorizontal: 2,
-    gap: 60,
-    paddingTop: 50,
-    marginBottom: 50
-  },
-  headerContainer: {
-    flex: 1,
-    alignItems: 'center'
-  },
-  headerText: {
-    color: Colors.gray[200],
-    letterSpacing: 6,
-    lineHeight: 26
-  },
-  buttonRow: {
-    paddingHorizontal: '5%'
+  button: {
+    borderBottomColor: '#222222',
+    borderBottomWidth: 1,
+    borderRadius: 0,
+    borderTopColor: '#303030',
+    borderTopWidth: 1
   },
   buttonContainer: {
     flex: 1
   },
-  button: {
-    borderTopWidth: 1,
-    borderTopColor: '#303030',
-    borderBottomWidth: 1,
-    borderBottomColor: '#222222',
-    borderRadius: 0
+  buttonRow: {
+    paddingHorizontal: '5%'
   },
   buttonText: {
     color: Colors.white
   },
   buttonTextSoon: {
     color: Colors.gray[450]
+  },
+  headerContainer: {
+    alignItems: 'center',
+    flex: 1
+  },
+  headerText: {
+    color: Colors.gray[200],
+    letterSpacing: 6,
+    lineHeight: 26
+  },
+  mainLayout: {
+    flexGrow: 1,
+    gap: 60,
+    marginBottom: 50,
+    paddingHorizontal: 2,
+    paddingTop: 50
   }
 })

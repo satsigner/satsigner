@@ -7,41 +7,43 @@ import {
   timestamps
 } from '../utils/nostr_samples'
 
-jest.mock('@/storage/mmkv', () => {
+jest.mock<typeof import('@/storage/mmkv')>('@/storage/mmkv', () => {
   const storage: Record<string, string> = {}
   return {
     __esModule: true,
     default: {
-      setItem: jest.fn((name: string, value: string) => {
-        storage[name] = value
-      }),
       getItem: jest.fn((name: string) => storage[name] ?? null),
       removeItem: jest.fn((name: string) => {
         delete storage[name]
+      }),
+      setItem: jest.fn((name: string, value: string) => {
+        storage[name] = value
       })
     }
   }
 })
 
-jest.mock('@/utils/nostr', () => ({
-  generateColorFromNpub: jest.fn().mockResolvedValue('#ff5500')
+jest.mock<typeof import('@/utils/nostr')>('@/utils/nostr', () => ({
+  generateColorFromNpub: jest.fn().mockReturnValue('#ff5500')
 }))
 
-jest.mock('@/api/nostr', () => ({ NostrAPI: jest.fn() }))
+jest.mock<typeof import('@/api/nostr')>('@/api/nostr', () => ({
+  NostrAPI: jest.fn()
+}))
 
 describe('nostr store', () => {
   beforeEach(() => {
     useNostrStore.setState({
-      members: {},
-      processedMessageIds: {},
-      processedEvents: {},
-      lastProtocolEOSE: {},
-      lastDataExchangeEOSE: {},
-      trustedDevices: {},
-      syncStatus: {},
       activeSubscriptions: new Set(),
+      lastDataExchangeEOSE: {},
+      lastProtocolEOSE: {},
+      members: {},
+      processedEvents: {},
+      processedMessageIds: {},
+      syncStatus: {},
       syncingAccounts: {},
-      transactionToShare: null
+      transactionToShare: null,
+      trustedDevices: {}
     })
   })
 
@@ -52,9 +54,9 @@ describe('nostr store', () => {
 
       const members = getMembers(accountIds.primary)
       expect(members).toHaveLength(1)
-      expect(members[0]).toEqual({
-        npub: nostrKeys.alice.npub,
-        color: '#ff5500'
+      expect(members[0]).toStrictEqual({
+        color: '#ff5500',
+        npub: nostrKeys.alice.npub
       })
     })
 
@@ -92,7 +94,7 @@ describe('nostr store', () => {
     it('returns empty array for unknown account', () => {
       expect(
         useNostrStore.getState().getMembers(accountIds.nonexistent)
-      ).toEqual([])
+      ).toStrictEqual([])
     })
 
     it('isolates members between accounts', async () => {
@@ -118,7 +120,9 @@ describe('nostr store', () => {
       }
       addProcessedMessageId(accountIds.primary, messageIds[0]) // duplicate
 
-      expect(getProcessedMessageIds(accountIds.primary)).toEqual(messageIds)
+      expect(getProcessedMessageIds(accountIds.primary)).toStrictEqual(
+        messageIds
+      )
     })
 
     it('tracks processed event IDs without duplicates', () => {
@@ -130,7 +134,7 @@ describe('nostr store', () => {
       }
       addProcessedEvent(accountIds.primary, eventIds[0]) // duplicate
 
-      expect(getProcessedEvents(accountIds.primary)).toEqual(eventIds)
+      expect(getProcessedEvents(accountIds.primary)).toStrictEqual(eventIds)
     })
 
     it('clears processed message IDs', () => {
@@ -144,7 +148,7 @@ describe('nostr store', () => {
       addProcessedMessageId(accountIds.primary, 'msg-2')
       clearProcessedMessageIds(accountIds.primary)
 
-      expect(getProcessedMessageIds(accountIds.primary)).toEqual([])
+      expect(getProcessedMessageIds(accountIds.primary)).toStrictEqual([])
     })
 
     it('clears processed events', () => {
@@ -154,7 +158,7 @@ describe('nostr store', () => {
       addProcessedEvent(accountIds.primary, 'evt-1')
       clearProcessedEvents(accountIds.primary)
 
-      expect(getProcessedEvents(accountIds.primary)).toEqual([])
+      expect(getProcessedEvents(accountIds.primary)).toStrictEqual([])
     })
 
     it('isolates processed data between accounts', () => {
@@ -164,16 +168,16 @@ describe('nostr store', () => {
       addProcessedMessageId(accountIds.primary, 'msg-primary')
       addProcessedMessageId(accountIds.secondary, 'msg-secondary')
 
-      expect(getProcessedMessageIds(accountIds.primary)).toEqual([
+      expect(getProcessedMessageIds(accountIds.primary)).toStrictEqual([
         'msg-primary'
       ])
-      expect(getProcessedMessageIds(accountIds.secondary)).toEqual([
+      expect(getProcessedMessageIds(accountIds.secondary)).toStrictEqual([
         'msg-secondary'
       ])
     })
   })
 
-  describe('EOSE timestamps', () => {
+  describe('eose timestamps', () => {
     it('sets and gets protocol EOSE timestamp', () => {
       const { setLastProtocolEOSE, getLastProtocolEOSE } =
         useNostrStore.getState()
@@ -228,14 +232,14 @@ describe('nostr store', () => {
       addTrustedDevice(accountIds.primary, nostrKeys.alice.npub)
       addTrustedDevice(accountIds.primary, nostrKeys.bob.npub)
 
-      expect(getTrustedDevices(accountIds.primary)).toEqual([
+      expect(getTrustedDevices(accountIds.primary)).toStrictEqual([
         nostrKeys.alice.npub,
         nostrKeys.bob.npub
       ])
 
       removeTrustedDevice(accountIds.primary, nostrKeys.alice.npub)
 
-      expect(getTrustedDevices(accountIds.primary)).toEqual([
+      expect(getTrustedDevices(accountIds.primary)).toStrictEqual([
         nostrKeys.bob.npub
       ])
     })
@@ -252,7 +256,7 @@ describe('nostr store', () => {
     it('returns empty array for unknown account', () => {
       expect(
         useNostrStore.getState().getTrustedDevices(accountIds.nonexistent)
-      ).toEqual([])
+      ).toStrictEqual([])
     })
   })
 
@@ -295,7 +299,7 @@ describe('nostr store', () => {
       }
 
       setTransactionToShare(txData)
-      expect(useNostrStore.getState().transactionToShare).toEqual(txData)
+      expect(useNostrStore.getState().transactionToShare).toStrictEqual(txData)
 
       setTransactionToShare(null)
       expect(useNostrStore.getState().transactionToShare).toBeNull()
@@ -326,8 +330,8 @@ describe('nostr store', () => {
 
       setSyncStatus(accountIds.primary, { status: 'syncing' })
       setSyncStatus(accountIds.secondary, {
-        status: 'error',
-        lastError: 'Network failed'
+        lastError: 'Network failed',
+        status: 'error'
       })
 
       expect(getSyncStatus(accountIds.primary).status).toBe('syncing')
@@ -346,8 +350,8 @@ describe('nostr store', () => {
       } = useNostrStore.getState()
 
       setSyncStatus(accountIds.primary, {
-        messagesReceived: 10,
-        messagesProcessed: 8
+        messagesProcessed: 8,
+        messagesReceived: 10
       })
 
       const status = getSyncStatus(accountIds.primary)
@@ -391,7 +395,7 @@ describe('nostr store', () => {
       const { setSyncStatus, getSyncStatus } = useNostrStore.getState()
       const now = Date.now()
 
-      setSyncStatus(accountIds.primary, { status: 'syncing', lastSyncAt: now })
+      setSyncStatus(accountIds.primary, { lastSyncAt: now, status: 'syncing' })
 
       expect(getSyncStatus(accountIds.primary).lastSyncAt).toBe(now)
     })
@@ -400,8 +404,8 @@ describe('nostr store', () => {
       const { setSyncStatus, getSyncStatus } = useNostrStore.getState()
 
       setSyncStatus(accountIds.primary, {
-        status: 'syncing',
-        messagesReceived: 10
+        messagesReceived: 10,
+        status: 'syncing'
       })
 
       setSyncStatus(accountIds.primary, {
@@ -426,20 +430,20 @@ describe('nostr store', () => {
       store.setLastDataExchangeEOSE(accountIds.primary, timestamps.recent)
       store.addTrustedDevice(accountIds.primary, nostrKeys.bob.npub)
       store.setSyncStatus(accountIds.primary, {
-        status: 'syncing',
-        messagesReceived: 100
+        messagesReceived: 100,
+        status: 'syncing'
       })
 
       // Clear state
       store.clearNostrState(accountIds.primary)
 
       // Verify all cleared
-      expect(store.getMembers(accountIds.primary)).toEqual([])
-      expect(store.getProcessedMessageIds(accountIds.primary)).toEqual([])
-      expect(store.getProcessedEvents(accountIds.primary)).toEqual([])
+      expect(store.getMembers(accountIds.primary)).toStrictEqual([])
+      expect(store.getProcessedMessageIds(accountIds.primary)).toStrictEqual([])
+      expect(store.getProcessedEvents(accountIds.primary)).toStrictEqual([])
       expect(store.getLastProtocolEOSE(accountIds.primary)).toBe(0)
       expect(store.getLastDataExchangeEOSE(accountIds.primary)).toBe(0)
-      expect(store.getTrustedDevices(accountIds.primary)).toEqual([])
+      expect(store.getTrustedDevices(accountIds.primary)).toStrictEqual([])
       expect(store.getSyncStatus(accountIds.primary).status).toBe('idle')
       expect(store.getSyncStatus(accountIds.primary).messagesReceived).toBe(0)
     })
@@ -452,7 +456,7 @@ describe('nostr store', () => {
 
       store.clearNostrState(accountIds.primary)
 
-      expect(store.getMembers(accountIds.primary)).toEqual([])
+      expect(store.getMembers(accountIds.primary)).toStrictEqual([])
       expect(store.getMembers(accountIds.secondary)).toHaveLength(1)
     })
   })

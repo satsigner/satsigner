@@ -43,7 +43,7 @@ export default function CoinEntropy() {
   const [step, setStep] = useState(0)
   const [bits, setBits] = useState('')
 
-  async function handleFlip(bit: '0' | '1') {
+  function handleFlip(bit: '0' | '1') {
     if (step < length) {
       const newBits = bits + bit
       setBits(newBits)
@@ -74,12 +74,12 @@ export default function CoinEntropy() {
       <SSVStack itemsCenter gap="lg" justifyBetween style={{ flex: 1 }}>
         <View
           style={{
+            backgroundColor: Colors.gray[950],
+            borderRadius: 8,
             minHeight: 180,
             minWidth: '100%',
-            borderRadius: 8,
-            paddingVertical: 16,
             paddingHorizontal: 8,
-            backgroundColor: Colors.gray[950]
+            paddingVertical: 16
           }}
         >
           <SSBinaryDisplay binary={bits} />
@@ -116,9 +116,9 @@ export default function CoinEntropy() {
                 style={[
                   styles.coin,
                   {
+                    borderRadius: coinSize / 2,
                     height: coinSize,
-                    width: coinSize,
-                    borderRadius: coinSize / 2
+                    width: coinSize
                   }
                 ]}
                 onPress={() => handleFlip('0')}
@@ -129,9 +129,9 @@ export default function CoinEntropy() {
                 style={[
                   styles.coin,
                   {
+                    borderRadius: coinSize / 2,
                     height: coinSize,
-                    width: coinSize,
-                    borderRadius: coinSize / 2
+                    width: coinSize
                   }
                 ]}
                 onPress={() => handleFlip('1')}

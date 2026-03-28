@@ -42,13 +42,15 @@ function SSNostrMessage({
     hasSignFlow,
     formattedDate,
     error
-  } = useNostrMessage({ msg, account, formattedNpubs })
+  } = useNostrMessage({ account, formattedNpubs, msg })
 
   function handleAuthorPress() {
-    if (!account?.id || !authorNpub) return
+    if (!account?.id || !authorNpub) {
+      return
+    }
     router.push({
-      pathname: `/signer/bitcoin/account/${account.id}/settings/nostr/device/[npub]`,
-      params: { npub: authorNpub }
+      params: { npub: authorNpub },
+      pathname: `/signer/bitcoin/account/${account.id}/settings/nostr/device/[npub]`
     })
   }
 
@@ -147,8 +149,8 @@ function SSNostrMessage({
         <SSHStack
           gap="xs"
           style={{
-            alignSelf: 'flex-start',
             alignItems: 'flex-start',
+            alignSelf: 'flex-start',
             marginTop: -2
           }}
         >
@@ -183,16 +185,29 @@ function SSNostrMessage({
 }
 
 const styles = StyleSheet.create({
-  message: {
-    backgroundColor: Colors.gray[900],
-    padding: 10,
-    paddingBottom: 15,
-    paddingTop: 5,
-    borderRadius: 8,
-    marginTop: 8
+  authorAvatar: {
+    borderRadius: 12,
+    height: 24,
+    marginRight: 6,
+    width: 24
   },
-  deviceMessage: {
-    backgroundColor: Colors.gray[800]
+  authorBlock: {
+    gap: 0
+  },
+  authorIndicatorLarge: {
+    borderRadius: 12,
+    height: 24,
+    marginRight: 6,
+    width: 24
+  },
+  authorIndicatorSmall: {
+    borderRadius: 4,
+    height: 8,
+    marginRight: 3,
+    width: 8
+  },
+  authorName: {
+    color: Colors.white
   },
   authorPressable: {
     alignSelf: 'flex-start'
@@ -200,29 +215,16 @@ const styles = StyleSheet.create({
   authorPressablePressed: {
     opacity: 0.7
   },
-  authorAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    marginRight: 6
+  deviceMessage: {
+    backgroundColor: Colors.gray[800]
   },
-  authorIndicatorLarge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    marginRight: 6
-  },
-  authorIndicatorSmall: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 3
-  },
-  authorBlock: {
-    gap: 0
-  },
-  authorName: {
-    color: Colors.white
+  message: {
+    backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    marginTop: 8,
+    padding: 10,
+    paddingBottom: 15,
+    paddingTop: 5
   },
   messageContentWrap: {
     paddingLeft: 30

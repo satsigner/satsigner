@@ -18,25 +18,27 @@ export default function SSHStack({
   children,
   style
 }: SSHStackProps) {
-  const containerStyle = useMemo(() => {
-    return StyleSheet.compose(
-      {
-        ...styles.containerBase,
-        ...{ gap: Layout.hStack.gap[gap] },
-        ...(justifyBetween ? styles.justifyBetween : {}),
-        ...(justifyEvenly ? styles.justifyEvenly : {})
-      },
-      style
-    )
-  }, [gap, justifyBetween, justifyEvenly, style])
+  const containerStyle = useMemo(
+    () =>
+      StyleSheet.compose(
+        {
+          ...styles.containerBase,
+          ...{ gap: Layout.hStack.gap[gap] },
+          ...(justifyBetween ? styles.justifyBetween : {}),
+          ...(justifyEvenly ? styles.justifyEvenly : {})
+        },
+        style
+      ),
+    [gap, justifyBetween, justifyEvenly, style]
+  )
 
   return <View style={containerStyle}>{children}</View>
 }
 
 const styles = StyleSheet.create({
   containerBase: {
-    flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    flexDirection: 'row'
   },
   justifyBetween: {
     justifyContent: 'space-between'

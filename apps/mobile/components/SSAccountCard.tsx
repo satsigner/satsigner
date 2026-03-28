@@ -47,9 +47,9 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
     if (account.syncStatus === 'syncing') {
       animationRef.current = Animated.loop(
         Animated.timing(rotateAnim, {
-          toValue: 1,
           duration: 1500,
           easing: Easing.linear,
+          toValue: 1,
           useNativeDriver: true
         })
       )
@@ -80,7 +80,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
 
     switch (status) {
       case 'unsynced':
-        color = Colors.gray[200]
+        color = Colors.gray[200] // eslint-disable-line prefer-destructuring
         text = t('account.sync.status.unsynced')
         break
       case 'synced': {
@@ -97,26 +97,29 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
           const years = Math.floor(days / 365)
 
           if (hours >= 1) {
-            color = Colors.gray[75]
+            color = Colors.gray[75] // eslint-disable-line prefer-destructuring
             text = `${t('account.sync.status.synced')} ${t(
               'account.sync.status.old.hour',
               { value: hours }
             )}`
-            if (days >= 1)
+            if (days >= 1) {
               text = `${t('account.sync.status.synced')} ${t(
                 'account.sync.status.old.day',
                 { value: days }
               )}`
-            if (months >= 1)
+            }
+            if (months >= 1) {
               text = `${t('account.sync.status.synced')} ${t(
                 'account.sync.status.old.month',
                 { value: months }
               )}`
-            if (years >= 1)
+            }
+            if (years >= 1) {
               text = `${t('account.sync.status.synced')} ${t(
                 'account.sync.status.old.year',
                 { value: years }
               )}`
+            }
           }
         }
         break
@@ -139,16 +142,18 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
         color = Colors.mainRed
         text = t('account.sync.status.timeout')
         break
+      default:
+        break
     }
 
     return (
       <SSHStack
         gap="xs"
         style={{
+          opacity: 0.6,
           position: 'absolute',
-          top: 0,
           right: 6,
-          opacity: 0.6
+          top: 0
         }}
       >
         <SSText size="xs" uppercase style={{ color }}>

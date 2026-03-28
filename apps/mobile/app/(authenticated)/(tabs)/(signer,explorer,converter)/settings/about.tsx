@@ -12,10 +12,10 @@ export default function About() {
     <>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSText uppercase>{t('settings.about.title')}</SSText>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <SSMainLayout>

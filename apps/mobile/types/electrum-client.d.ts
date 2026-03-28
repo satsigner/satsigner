@@ -1,12 +1,12 @@
 declare module 'electrum-client' {
   export default class ElectrumClient {
     constructor(
-      net: any,
-      tls: any,
+      net: unknown,
+      tls: unknown,
       port: number,
       host: string,
       protocol: string,
-      options: any
+      options: Record<string, unknown>
     )
     timeout?: NodeJS.Timeout
     timeLastCall: number

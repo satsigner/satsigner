@@ -66,27 +66,25 @@ function SSBubbleChart({
 
   useEffect(() => {
     setUtxoList(
-      utxos.map((utxo) => {
-        return {
-          id: `${utxo.txid}:${utxo.vout}`,
-          children: [],
-          value: utxo.value,
-          timestamp: utxo.timestamp,
-          txid: utxo.txid,
-          vout: utxo.vout,
-          label: utxo.label || '',
-          addressTo: utxo.addressTo || '',
-          keychain: utxo.keychain
-        }
-      })
+      utxos.map((utxo) => ({
+        addressTo: utxo.addressTo || '',
+        children: [],
+        id: `${utxo.txid}:${utxo.vout}`,
+        keychain: utxo.keychain,
+        label: utxo.label || '',
+        timestamp: utxo.timestamp,
+        txid: utxo.txid,
+        value: utxo.value,
+        vout: utxo.vout
+      }))
     )
   }, [utxos])
 
   const utxoPack = useMemo(() => {
     const utxoHierarchy = () =>
       hierarchy<UtxoListBubble>({
-        id: 'root',
         children: utxoList,
+        id: 'root',
         value: utxoList.reduce((acc, cur) => acc + cur.value, 0)
       })
         .sum((d) => d?.value ?? 0)
@@ -111,14 +109,14 @@ function SSBubbleChart({
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
   const { animatedStyle, gestures, transform, isZoomedIn, scale } = useGestures(
     {
-      width: w,
-      height: h,
       center,
+      height: h,
       isDoubleTapEnabled: true,
       maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
-      minPanPointers: 1,
       maxScale: 1000,
-      minScale: 0.1
+      minPanPointers: 1,
+      minScale: 0.1,
+      width: w
     }
   )
 
@@ -130,18 +128,17 @@ function SSBubbleChart({
     const touchPointX = event.nativeEvent.locationX
     const touchPointY = event.nativeEvent.locationY
     const distanceSquared =
-      Math.pow(touchPointX - packedUtxo.r, 2) +
-      Math.pow(touchPointY - packedUtxo.r, 2)
+      (touchPointX - packedUtxo.r) ** 2 + (touchPointY - packedUtxo.r) ** 2
 
     if (distanceSquared <= rSquared) {
       onPress({
-        txid: packedUtxo.data.txid!,
-        vout: packedUtxo.data.vout!,
-        value: packedUtxo.data.value,
-        timestamp: packedUtxo.data.timestamp,
-        label: packedUtxo.data.label || '',
         addressTo: packedUtxo.data.addressTo,
-        keychain: packedUtxo.data.keychain!
+        keychain: packedUtxo.data.keychain!,
+        label: packedUtxo.data.label || '',
+        timestamp: packedUtxo.data.timestamp,
+        txid: packedUtxo.data.txid!,
+        value: packedUtxo.data.value,
+        vout: packedUtxo.data.vout!
       })
     }
   }
@@ -152,18 +149,18 @@ function SSBubbleChart({
         <Group transform={transform} origin={{ x: centerX, y: centerY }}>
           {utxoPack.map((packedUtxo, index) => {
             const utxo: Utxo = {
-              txid: packedUtxo.data.txid!,
-              vout: packedUtxo.data.vout!,
-              value: packedUtxo.data.value!,
-              timestamp: packedUtxo.data.timestamp,
-              label: packedUtxo.data.label || '',
               addressTo: packedUtxo.data.addressTo,
-              keychain: packedUtxo.data.keychain!
+              keychain: packedUtxo.data.keychain!,
+              label: packedUtxo.data.label || '',
+              timestamp: packedUtxo.data.timestamp,
+              txid: packedUtxo.data.txid!,
+              value: packedUtxo.data.value!,
+              vout: packedUtxo.data.vout!
             }
 
-            const isSelected = inputs.some((input: any) => {
-              return getUtxoOutpoint(input) === getUtxoOutpoint(utxo)
-            })
+            const isSelected = inputs.some(
+              (input: Utxo) => getUtxoOutpoint(input) === getUtxoOutpoint(utxo)
+            )
 
             return (
               <SSBubble
@@ -186,12 +183,12 @@ function SSBubbleChart({
       <GestureDetector gesture={gestures}>
         <View
           style={{
-            flex: 1,
-            position: 'absolute',
-            top: 0,
-            right: 0,
             bottom: 0,
-            left: 0
+            flex: 1,
+            left: 0,
+            position: 'absolute',
+            right: 0,
+            top: 0
           }}
         >
           <Animated.View
@@ -208,20 +205,30 @@ function SSBubbleChart({
               const top = packedUtxo.y - packedUtxo.r
               const borderRadius = packedUtxo.r
 
-              if (width) style.width = width
-              if (height) style.height = height
-              if (left) style.left = left
-              if (top) style.top = top
-              if (borderRadius) style.borderRadius = borderRadius
+              if (width) {
+                style.width = width
+              }
+              if (height) {
+                style.height = height
+              }
+              if (left) {
+                style.left = left
+              }
+              if (top) {
+                style.top = top
+              }
+              if (borderRadius) {
+                style.borderRadius = borderRadius
+              }
 
               return (
                 <TouchableOpacity
                   key={packedUtxo.data.id}
                   style={{
                     ...style,
-                    position: 'absolute',
+                    backgroundColor: 'transparent',
                     overflow: 'hidden',
-                    backgroundColor: 'transparent'
+                    position: 'absolute'
                   }}
                   delayPressIn={0}
                   delayPressOut={0}

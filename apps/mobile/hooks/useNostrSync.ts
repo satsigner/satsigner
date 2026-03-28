@@ -88,27 +88,28 @@ function useNostrSync() {
   /**
    * Check if an account has active subscriptions
    */
-  const hasActiveSubscription = useCallback((accountId: string) => {
-    return nostrSyncService.hasActiveSubscription(accountId)
-  }, [])
+  const hasActiveSubscription = useCallback(
+    (accountId: string) => nostrSyncService.hasActiveSubscription(accountId),
+    []
+  )
 
   /**
    * Get sync status for an account
    */
   const getStatus = useCallback(
-    (accountId: string) => {
-      return getSyncStatus(accountId)
-    },
+    (accountId: string) => getSyncStatus(accountId),
     [getSyncStatus]
   )
 
   const generateCommonNostrKeys = useCallback(async (account?: Account) => {
-    if (!account?.keys?.length) return
+    if (!account?.keys?.length) {
+      return
+    }
 
     const isImportAddress = account.keys[0].creationType === 'importAddress'
     const tmpAccount = await getAccountWithDecryptedKeys(account)
     if (isImportAddress) {
-      const secret = tmpAccount.keys[0].secret
+      const [{ secret }] = tmpAccount.keys
       return {
         externalDescriptor: secret.externalDescriptor,
         internalDescriptor: undefined
@@ -133,7 +134,7 @@ function useNostrSync() {
   const protocolSubscription = subscriptionManager.createProtocolSubscription
   const dataExchangeSubscription =
     subscriptionManager.createDataExchangeSubscription
-  const getActiveSubscriptions = subscriptionManager.getActiveSubscriptions
+  const { getActiveSubscriptions } = subscriptionManager
 
   const sendLabelsToNostr = useCallback(
     async (account?: Account, singleLabel?: Label) => {
@@ -144,41 +145,36 @@ function useNostrSync() {
 
   const loadStoredDMs = dms.load
   const clearStoredDMs = dms.clear
-  const processEvent = messages.processEvent
+  const { processEvent } = messages
   const deviceAnnouncement = device.announce
 
   return useMemo(
     () => ({
-      // New fire-and-forget API
-      startSync,
-      fetchOnce,
-      stopSync,
-      restartSync,
-      hasActiveSubscription,
-      getStatus,
-
-      // Clean API from the plan
-      subscribe: subscriptionManager.subscribe,
-      cleanup: subscriptionManager.cleanup,
-      syncLabels: labels.sync,
-      storeDM: dms.store,
-      loadDMs: dms.load,
-      clearDMs: dms.clear,
       announceDevice: device.announce,
-      generateKeys: generateCommonNostrKeys,
-
-      // Legacy API for backward compatibility
-      sendLabelsToNostr,
-      dataExchangeSubscription,
-      generateCommonNostrKeys,
-      loadStoredDMs,
+      cleanup: subscriptionManager.cleanup,
+      cleanupSubscriptions,
+      clearDMs: dms.clear,
       clearStoredDMs,
+      dataExchangeSubscription,
+      deviceAnnouncement,
+      fetchOnce,
+      generateCommonNostrKeys,
+      generateKeys: generateCommonNostrKeys,
+      getActiveSubscriptions,
+      getStatus,
+      hasActiveSubscription,
+      loadDMs: dms.load,
+      loadStoredDMs,
+      nostrSyncSubscriptions,
       processEvent,
       protocolSubscription,
-      cleanupSubscriptions,
-      deviceAnnouncement,
-      nostrSyncSubscriptions,
-      getActiveSubscriptions
+      restartSync,
+      sendLabelsToNostr,
+      startSync,
+      stopSync,
+      storeDM: dms.store,
+      subscribe: subscriptionManager.subscribe,
+      syncLabels: labels.sync
     }),
     [
       startSync,

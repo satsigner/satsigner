@@ -46,7 +46,7 @@ export function useNFCReader() {
     const result: NFCReadResult = {}
 
     // Process each record
-    tag.ndefMessage.forEach((record) => {
+    for (const record of tag.ndefMessage) {
       // Convert type to string if it's an array of numbers
       const type =
         typeof record.type === 'string'
@@ -60,19 +60,17 @@ export function useNFCReader() {
         // Extract transaction ID from text record
         const match = text.match(/Signed Transaction: ([a-f0-9]+)/i)
         if (match && match[1]) {
-          result.txId = match[1]
+          ;[, result.txId] = match
           result.text = text
-        } else {
+        } else if (!result.text) {
           // For watch-only use cases, store any text content
-          if (!result.text) {
-            result.text = text
-          }
+          result.text = text
         }
       } else if (type === 'bitcoin.org:txn') {
         // Store the raw transaction data
         result.txData = new Uint8Array(record.payload)
       }
-    })
+    }
 
     if (result.txData || result.txId || result.text) {
       setIsReading(false)
@@ -91,9 +89,9 @@ export function useNFCReader() {
   }
 
   return {
+    cancelNFCScan,
     isAvailable,
     isReading,
-    readNFCTag,
-    cancelNFCScan
+    readNFCTag
   }
 }

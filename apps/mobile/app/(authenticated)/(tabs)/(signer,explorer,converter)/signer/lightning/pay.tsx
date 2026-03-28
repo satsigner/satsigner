@@ -88,7 +88,7 @@ export default function PayPage() {
   const decodeInvoice = useCallback(
     async (invoice: string) => {
       const response = await typedMakeRequest<LNDecodedInvoice>(
-        '/v1/payreq/' + invoice
+        `/v1/payreq/${invoice}`
       )
 
       // Update state with decoded invoice
@@ -255,16 +255,21 @@ export default function PayPage() {
 
   useEffect(() => {
     const paramValue = paymentRequestParam || invoiceParam
-    if (!paramValue) return
+    if (!paramValue) {
+      return
+    }
 
     const paymentRequestValue = Array.isArray(paramValue)
       ? paramValue[0]
       : paramValue
-    if (!paymentRequestValue) return
+    if (!paymentRequestValue) {
+      return
+    }
 
     const cleanText = paymentRequestValue.trim().replace(/^lightning:/i, '')
-    if (!cleanText.toLowerCase().startsWith('lnbc') && !isLNURL(cleanText))
+    if (!cleanText.toLowerCase().startsWith('lnbc') && !isLNURL(cleanText)) {
       return
+    }
 
     handlePaymentRequestChange(cleanText)
   }, [paymentRequestParam, invoiceParam, handlePaymentRequestChange])
@@ -400,53 +405,53 @@ export default function PayPage() {
 }
 
 const styles = StyleSheet.create({
-  inputHeader: {
-    justifyContent: 'space-between',
+  actionButton: {
+    flex: 1
+  },
+  actionButtons: {
+    width: '100%'
+  },
+  actions: {
+    gap: 12,
+    marginTop: 16
+  },
+  button: {
+    width: '100%'
+  },
+  buttonIcon: {
+    marginRight: 4
+  },
+  buttonWithIcon: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'center'
+  },
+  fetchingDetails: {
     alignItems: 'center'
+  },
+  fiatAmount: {
+    marginLeft: 4,
+    marginTop: 4
   },
   input: {
     backgroundColor: '#242424',
     borderRadius: 3,
-    padding: 12,
     color: 'white',
-    fontSize: 16
+    fontSize: 16,
+    padding: 12
   },
-  textArea: {
-    height: 180,
-    textAlignVertical: 'top'
+  inputHeader: {
+    alignItems: 'center',
+    justifyContent: 'space-between'
   },
   monospaceInput: {
     fontFamily: Typography.sfProMono,
     fontSize: 14,
     letterSpacing: 0.5
   },
-  actions: {
-    gap: 12,
-    marginTop: 16
-  },
-  actionButtons: {
-    width: '100%'
-  },
-  actionButton: {
-    flex: 1
-  },
-  button: {
-    width: '100%'
-  },
-  buttonWithIcon: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8
-  },
-  buttonIcon: {
-    marginRight: 4
-  },
-  fetchingDetails: {
-    alignItems: 'center'
-  },
-  fiatAmount: {
-    marginTop: 4,
-    marginLeft: 4
+  textArea: {
+    height: 180,
+    textAlignVertical: 'top'
   }
 })

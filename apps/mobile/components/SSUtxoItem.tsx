@@ -36,13 +36,15 @@ function SSUtxoItem({
   const [currencyUnit, useZeroPadding] = useSettingsStore(
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
-  const selectIconStyle = useMemo(() => {
-    return StyleSheet.compose(styles.selectIconBase, {
-      ...(selected
-        ? { backgroundColor: Colors.error }
-        : { backgroundColor: Colors.gray[500] })
-    })
-  }, [selected])
+  const selectIconStyle = useMemo(
+    () =>
+      StyleSheet.compose(styles.selectIconBase, {
+        ...(selected
+          ? { backgroundColor: Colors.error }
+          : { backgroundColor: Colors.gray[500] })
+      }),
+    [selected]
+  )
 
   const label = normalizeUtxoLabelForDisplay(utxo.label || '')
 
@@ -99,7 +101,7 @@ function SSUtxoItem({
                 </SSText>
               )}
             </SSHStack>
-            <SSText style={{ color: Colors.gray[100], alignSelf: 'flex-end' }}>
+            <SSText style={{ alignSelf: 'flex-end', color: Colors.gray[100] }}>
               {utxo.timestamp ? formatDate(utxo.timestamp) : ''}
             </SSText>
           </SSVStack>
@@ -116,13 +118,13 @@ function SSUtxoItem({
 
 const styles = StyleSheet.create({
   selectIconBase: {
-    justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'baseline',
-    height: 20,
-    width: 20,
     borderRadius: 10,
-    marginTop: 2
+    height: 20,
+    justifyContent: 'center',
+    marginTop: 2,
+    width: 20
   }
 })
 

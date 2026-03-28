@@ -66,12 +66,14 @@ function SSLabelInput({
     const newTags = [] as string[]
     const newSelectedTags = [] as string[]
 
-    matches
-      .map((match) => match.replace('#', ''))
-      .forEach((tag: string) => {
-        if (!tags.includes(tag)) newTags.push(tag)
-        if (!selectedTags.includes(tag)) newSelectedTags.push(tag)
-      })
+    for (const tag of matches.map((match) => match.replace('#', ''))) {
+      if (!tags.includes(tag)) {
+        newTags.push(tag)
+      }
+      if (!selectedTags.includes(tag)) {
+        newSelectedTags.push(tag)
+      }
+    }
 
     if (newTags.length > 0) {
       const allTags = [...tags, ...newTags]
@@ -98,8 +100,8 @@ function SSLabelInput({
         blurOnSubmit
         style={{
           height: 'auto',
-          textAlignVertical: 'top',
-          padding: 10
+          padding: 10,
+          textAlignVertical: 'top'
         }}
         value={label}
         onChangeText={setLabel}

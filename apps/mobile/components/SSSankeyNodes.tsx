@@ -24,8 +24,8 @@ import { BLOCK_WIDTH, type Node } from '@/types/ui/sankey'
 import { logAttenuation } from '@/utils/math'
 
 interface ISSankeyNodes {
-  nodes: any[]
-  sankeyGenerator: any
+  nodes: Node[]
+  sankeyGenerator: { nodeWidth: () => number }
   selectedOutputNode?: string
   dimUnselected?: boolean
 }
@@ -54,9 +54,10 @@ function SSSankeyNodes({
   })
 
   // Find the maximum depth in nodes
-  const maxDepth = useMemo(() => {
-    return Math.max(...nodes.map((node) => node.depthH))
-  }, [nodes])
+  const maxDepth = useMemo(
+    () => Math.max(...nodes.map((node) => node.depthH)),
+    [nodes]
+  )
 
   const renderNode = (node: Node) => {
     const isHigherCurrentMinerFee =
@@ -89,8 +90,8 @@ function SSSankeyNodes({
         const isCurrentTxBlockNode = node.depthH === maxDepth - 1
 
         // Safely handle NaN values from sankey generator
-        const safeX0 = Number.isNaN(node.x0) ? 0 : node.x0 ?? 0
-        const safeY0 = Number.isNaN(node.y0) ? 0 : node.y0 ?? 0
+        const safeX0 = Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)
+        const safeY0 = Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)
 
         const x = safeX0 + (sankeyGenerator.nodeWidth() - BLOCK_WIDTH) / 2
         const y = safeY0
@@ -143,8 +144,8 @@ function SSSankeyNodes({
         <NodeText
           isBlock={node.depthH % 2 !== 0}
           width={sankeyGenerator.nodeWidth()}
-          x={Number.isNaN(node.x0) ? 0 : node.x0 ?? 0}
-          y={(Number.isNaN(node.y0) ? 0 : node.y0 ?? 0) - 1.6}
+          x={Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)}
+          y={(Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)) - 1.6}
           ioData={node.ioData}
           customFontManager={customFontManager}
           localId={node?.localId ?? ''}
@@ -159,7 +160,9 @@ function SSSankeyNodes({
     )
   }
 
-  if (!customFontManager) return null
+  if (!customFontManager) {
+    return null
+  }
 
   return <>{nodes.map(renderNode)}</>
 }
@@ -215,7 +218,9 @@ function NodeText({
   const minerFeeIconSvg = useSVG(require('@/assets/red-miner.svg'))
   const pastTxMinerFeeIconSvg = useSVG(require('@/assets/gray-miner.svg'))
   const blockNodeParagraph = useMemo(() => {
-    if (!customFontManager) return null
+    if (!customFontManager) {
+      return null
+    }
 
     const baseTextStyle = {
       color: Skia.Color('white'),
@@ -226,20 +231,19 @@ function NodeText({
       }
     }
 
-    const createParagraphBuilder = () => {
-      return Skia.ParagraphBuilder.Make(
+    const createParagraphBuilder = () =>
+      Skia.ParagraphBuilder.Make(
         {
-          textAlign: isBlock ? TextAlign.Center : TextAlign.Left,
           strutStyle: {
-            strutEnabled: true,
             forceStrutHeight: true,
             heightMultiplier: 1,
-            leading: 0
-          }
+            leading: 0,
+            strutEnabled: true
+          },
+          textAlign: isBlock ? TextAlign.Center : TextAlign.Left
         },
         customFontManager
       )
-    }
 
     const para = createParagraphBuilder()
 
@@ -251,14 +255,14 @@ function NodeText({
       .addText(`${ioData?.blockHeight}\n`)
       .pushStyle({
         ...baseTextStyle,
-        fontSize: XS_FONT_SIZE,
-        color: Skia.Color(gray[500])
+        color: Skia.Color(gray[500]),
+        fontSize: XS_FONT_SIZE
       })
       .addText(`${ioData?.blockTime}\n`)
       .pushStyle({
         ...baseTextStyle,
-        fontSize: XS_FONT_SIZE,
-        color: Skia.Color(gray[500])
+        color: Skia.Color(gray[500]),
+        fontSize: XS_FONT_SIZE
       })
       .addText(`${ioData?.blockRelativeTime}\n`)
       .pushStyle({
@@ -283,7 +287,9 @@ function NodeText({
   const isPastMinerFee = localId === 'past-minerFee'
 
   const mainParagraph = useMemo(() => {
-    if (!customFontManager) return null
+    if (!customFontManager) {
+      return null
+    }
 
     const baseTextStyle = {
       color: Skia.Color('white'),
@@ -294,22 +300,21 @@ function NodeText({
       }
     }
 
-    const createParagraphBuilder = () => {
-      return Skia.ParagraphBuilder.Make(
+    const createParagraphBuilder = () =>
+      Skia.ParagraphBuilder.Make(
         {
-          maxLines: isSelfSend ? 6 : 5,
           ellipsis: '…',
-          textAlign: isBlock ? TextAlign.Center : TextAlign.Left,
+          maxLines: isSelfSend ? 6 : 5,
           strutStyle: {
-            strutEnabled: true,
             forceStrutHeight: true,
             heightMultiplier: 1,
-            leading: 0
-          }
+            leading: 0,
+            strutEnabled: true
+          },
+          textAlign: isBlock ? TextAlign.Center : TextAlign.Left
         },
         customFontManager
-      ) // Pass font manager here
-    }
+      )
 
     const buildBlockParagraph = () => {
       const para = createParagraphBuilder()
@@ -322,8 +327,8 @@ function NodeText({
         .addText(`${ioData?.txSize} B`)
         .pushStyle({
           ...baseTextStyle,
-          fontSize: XS_FONT_SIZE,
-          color: Skia.Color('white')
+          color: Skia.Color('white'),
+          fontSize: XS_FONT_SIZE
         })
         .addText(`\n${Math.ceil(ioData.vSize ?? 0)} vB`)
         .pop()
@@ -347,26 +352,26 @@ function NodeText({
         .addText(` ${t('bitcoin.sats').toLowerCase()}/vB \n`)
         .pushStyle({
           ...baseTextStyle,
-          fontSize: BASE_FONT_SIZE,
-          color: Skia.Color('white')
+          color: Skia.Color('white'),
+          fontSize: BASE_FONT_SIZE
         })
 
-        .addText(`${ioData?.value.toLocaleString()} `)
+        .addText(`${ioData?.value?.toLocaleString()} `)
         .pushStyle({
           ...baseTextStyle,
-          fontSize: XS_FONT_SIZE,
-          color: Skia.Color(Colors.gray[200])
+          color: Skia.Color(Colors.gray[200]),
+          fontSize: XS_FONT_SIZE
         })
         .addText(`sats\n`)
         .addText(`${ioData.fiatValue} ${ioData.fiatCurrency}\n`)
         .pushStyle({
           // Style for the icon + text line (red for both current and past miner fee)
           ...baseTextStyle,
+          color: Skia.Color(mainRed),
           fontSize: XS_FONT_SIZE,
           fontStyle: {
             weight: 800
-          },
-          color: Skia.Color(mainRed)
+          }
         })
         // Add placeholder for the miner svg icon
         .addPlaceholder(
@@ -397,36 +402,36 @@ function NodeText({
         .addText(ioData?.text ?? '') // Add nullish coalescing
         .pushStyle({
           ...baseTextStyle,
-          fontSize: BASE_FONT_SIZE,
-          color: Skia.Color('white')
+          color: Skia.Color('white'),
+          fontSize: BASE_FONT_SIZE
         })
-        .addText(`\n${ioData?.value.toLocaleString()} `) // Add nullish coalescing
+        .addText(`\n${ioData?.value?.toLocaleString()} `) // Add nullish coalescing
         .pushStyle({
           ...baseTextStyle,
-          fontSize: XS_FONT_SIZE,
-          color: Skia.Color(gray[200])
+          color: Skia.Color(gray[200]),
+          fontSize: XS_FONT_SIZE
         })
         .addText(`sats\n`)
         .pushStyle({
           ...baseTextStyle,
-          fontSize: XS_FONT_SIZE,
-          color: Skia.Color(gray[300])
+          color: Skia.Color(gray[300]),
+          fontSize: XS_FONT_SIZE
         })
         .addText(`${ioData.fiatValue} ${ioData.fiatCurrency}\n`)
         .addText(ioData?.address ? `${t('common.to')} ` : '')
         .pushStyle({
           ...baseTextStyle,
-          fontSize: XS_FONT_SIZE,
-          color: Skia.Color('white')
+          color: Skia.Color('white'),
+          fontSize: XS_FONT_SIZE
         })
         .addText(ioData?.address ? `${ioData?.address}\n` : '')
         .pushStyle({
           ...baseTextStyle,
+          color: Skia.Color(isChange || isSelfSend ? mainGreen : gray[300]),
           fontSize: XS_FONT_SIZE,
           fontStyle: {
             weight: 800
-          },
-          color: Skia.Color(isChange || isSelfSend ? mainGreen : gray[300])
+          }
         })
         // Single placeholder for icon (change, self-send, or label)
         .addPlaceholder(
@@ -445,11 +450,11 @@ function NodeText({
         )
         .pushStyle({
           ...baseTextStyle,
+          color: Skia.Color(gray[300]),
           fontSize: XS_FONT_SIZE,
           fontStyle: {
             weight: 800
-          },
-          color: Skia.Color(gray[300])
+          }
         })
         .addText(isSelfSend && ioData?.label ? ` ${ioData.label}` : '')
         .pop()
@@ -474,21 +479,21 @@ function NodeText({
         .addText(` ${t('bitcoin.sats').toLowerCase()}\n`)
         .pushStyle({
           ...baseTextStyle,
-          fontSize: XS_FONT_SIZE,
-          color: Skia.Color(gray[300])
+          color: Skia.Color(gray[300]),
+          fontSize: XS_FONT_SIZE
         })
         .addText(`${ioData.fiatValue} ${ioData.fiatCurrency}\n`)
         .addText(`${ioData?.text} `)
         .pushStyle({
           ...baseTextStyle,
-          fontSize: XS_FONT_SIZE,
-          color: Skia.Color('white')
+          color: Skia.Color('white'),
+          fontSize: XS_FONT_SIZE
         })
         .addText(`${ioData?.address ?? ''}\n`) // Add nullish coalescing
         .pushStyle({
           ...baseTextStyle,
-          fontSize: XS_FONT_SIZE,
-          color: hasLabel ? Skia.Color('white') : Skia.Color(gray[300])
+          color: hasLabel ? Skia.Color('white') : Skia.Color(gray[300]),
+          fontSize: XS_FONT_SIZE
         })
         .addText(
           hasLabel ? `${ioData.label ?? ''}\n` : `${t('common.noLabel')}\n`
@@ -557,7 +562,9 @@ function NodeText({
     return []
   }, [mainParagraph, isUnspent])
 
-  if (!customFontManager || !mainParagraph) return null
+  if (!customFontManager || !mainParagraph) {
+    return null
+  }
 
   const paragraphActualWidth = isBlock ? width * 0.6 : width - PADDING_LEFT
   const paragraphActualHeight = mainParagraph.getHeight()

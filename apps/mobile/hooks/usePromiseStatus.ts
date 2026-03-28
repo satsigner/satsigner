@@ -37,12 +37,16 @@ export function usePromiseStatuses(promiseNames: string[] = []) {
           status: 'success'
         }
       }))
-      if (onSuccess) await onSuccess()
+      if (onSuccess) {
+        await onSuccess()
+      }
     } catch (error: unknown) {
       const defaultErrorMsg = error instanceof Error ? error.message : ''
       const errorMsg = errorMessage || defaultErrorMsg
       setStatuses((value) => setPromiseError(value, name, errorMsg))
-      if (onError) await onError()
+      if (onError) {
+        await onError()
+      }
     }
   }
 

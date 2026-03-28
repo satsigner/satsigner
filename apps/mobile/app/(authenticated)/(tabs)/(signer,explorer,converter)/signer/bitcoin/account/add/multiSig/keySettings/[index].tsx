@@ -58,7 +58,7 @@ export default function MultiSigKeySettings() {
 
   const [loading, setLoading] = useState(false)
 
-  async function handleOnPress(type: NonNullable<Key['creationType']>) {
+  function handleOnPress(type: NonNullable<Key['creationType']>) {
     setCreationType(type)
     setEntropy(localEntropyType)
     setMnemonicWordCount(localMnemonicWordCount)
@@ -88,18 +88,20 @@ export default function MultiSigKeySettings() {
         }
         case 'coin': {
           router.navigate({
-            pathname: '/signer/bitcoin/account/add/entropy/coin',
-            params: { index }
+            params: { index },
+            pathname: '/signer/bitcoin/account/add/entropy/coin'
           })
           break
         }
         case 'dice': {
           router.navigate({
-            pathname: '/signer/bitcoin/account/add/entropy/dice',
-            params: { index }
+            params: { index },
+            pathname: '/signer/bitcoin/account/add/entropy/dice'
           })
           break
         }
+        default:
+          break
       }
     }
   }
@@ -114,7 +116,9 @@ export default function MultiSigKeySettings() {
     setEntropyModalVisible(false)
   }
 
-  if (!name) return <Redirect href="/" />
+  if (!name) {
+    return <Redirect href="/" />
+  }
 
   return (
     <SSMainLayout>

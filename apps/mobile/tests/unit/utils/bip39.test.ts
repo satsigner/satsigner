@@ -155,21 +155,20 @@ describe('bip39 utils', () => {
   })
 
   it('get fingerprint from mnemonic in multiple languages', () => {
-    expect(getFingerprintFromMnemonic(englishMnemonic)).toEqual(
+    expect(getFingerprintFromMnemonic(englishMnemonic)).toStrictEqual(
       englishMnemonicFingerprint
     )
-    expect(getFingerprintFromMnemonic(spanishMnemonic)).toEqual(
+    expect(getFingerprintFromMnemonic(spanishMnemonic)).toStrictEqual(
       spanishMnemonicFingerprint
     )
-    expect(getFingerprintFromMnemonic(frenchMnemonic)).toEqual(
+    expect(getFingerprintFromMnemonic(frenchMnemonic)).toStrictEqual(
       frenchMnemonicFingerprint
     )
   })
 
   it('gets extended public key from mnemonic', () => {
     for (const test of extendedPublicKeyTests) {
-      const [mnemonic, passphrase, network, scriptVersion] = test[0]
-      const actualKey = test[1]
+      const [[mnemonic, passphrase, network, scriptVersion], actualKey] = test
       const result = getExtendedPublicKeyFromMnemonic(
         mnemonic,
         passphrase,
@@ -182,8 +181,8 @@ describe('bip39 utils', () => {
 
   it('gets descriptor from mnemonic', () => {
     for (const test of descriptorTests) {
-      const [mnemonic, passphrase, network, scriptVersion] = test[0]
-      const actualDescriptor = test[1]
+      const [[mnemonic, passphrase, network, scriptVersion], actualDescriptor] =
+        test
       const result = getPublicDescriptorFromMnemonic(
         mnemonic,
         scriptVersion as ScriptVersionType,
@@ -196,30 +195,30 @@ describe('bip39 utils', () => {
   })
 })
 
-describe('Electrum seed utils', () => {
+describe('electrum seed utils', () => {
   describe('detectElectrumSeed', () => {
-    it('detects a known Electrum segwit seed', async () => {
-      const result = await detectElectrumSeed(electrumSegwitMnemonic)
+    it('detects a known Electrum segwit seed', () => {
+      const result = detectElectrumSeed(electrumSegwitMnemonic)
       expect(result).toBe('segwit')
     })
 
-    it('returns null for a BIP39 mnemonic', async () => {
-      const result = await detectElectrumSeed(englishMnemonic)
+    it('returns null for a BIP39 mnemonic', () => {
+      const result = detectElectrumSeed(englishMnemonic)
       expect(result).toBeNull()
     })
 
-    it('returns null for garbage input', async () => {
-      const result = await detectElectrumSeed(
+    it('returns null for garbage input', () => {
+      const result = detectElectrumSeed(
         'this is not a valid seed phrase at all'
       )
       expect(result).toBeNull()
     })
 
-    it('is case and whitespace insensitive', async () => {
+    it('is case and whitespace insensitive', () => {
       const upper = electrumSegwitMnemonic.toUpperCase()
       const extraSpaces = electrumSegwitMnemonic.replace(/ /g, '  ')
-      expect(await detectElectrumSeed(upper)).toBe('segwit')
-      expect(await detectElectrumSeed(extraSpaces)).toBe('segwit')
+      expect(detectElectrumSeed(upper)).toBe('segwit')
+      expect(detectElectrumSeed(extraSpaces)).toBe('segwit')
     })
   })
 
@@ -259,7 +258,7 @@ describe('Electrum seed utils', () => {
 
     it('produces a 64-byte seed', async () => {
       const seed = await mnemonicToSeedElectrum(electrumSegwitMnemonic)
-      expect(seed.length).toBe(64)
+      expect(seed).toHaveLength(64)
     })
 
     it('is deterministic', async () => {

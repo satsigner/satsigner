@@ -12,7 +12,7 @@ import {
 import { accountIds, nostrKeys, nostrMessages } from '../utils/nostr_samples'
 
 // Mock dependencies
-jest.mock('@/store/accounts', () => ({
+jest.mock<typeof import('@/store/accounts')>('@/store/accounts', () => ({
   useAccountsStore: {
     getState: jest.fn(() => ({
       accounts: [],
@@ -22,7 +22,7 @@ jest.mock('@/store/accounts', () => ({
   }
 }))
 
-jest.mock('@/store/nostr', () => ({
+jest.mock<typeof import('@/store/nostr')>('@/store/nostr', () => ({
   useNostrStore: {
     getState: jest.fn(() => ({
       addMember: jest.fn()
@@ -30,11 +30,11 @@ jest.mock('@/store/nostr', () => ({
   }
 }))
 
-jest.mock('sonner-native', () => ({
+jest.mock<typeof import('sonner-native')>('sonner-native', () => ({
   toast: {
-    success: jest.fn(),
     error: jest.fn(),
-    info: jest.fn()
+    info: jest.fn(),
+    success: jest.fn()
   }
 }))
 
@@ -47,26 +47,15 @@ describe('handler registry', () => {
     overrides: Partial<MessageHandlerContext> = {}
   ): MessageHandlerContext => ({
     account: {
+      addresses: [],
+      createdAt: new Date(),
       id: accountIds.primary,
+      keyCount: 1,
+      keys: [],
+      keysRequired: 1,
+      labels: {},
       name: 'Test Account',
       network: 'testnet',
-      policyType: 'singlesig',
-      keys: [],
-      keyCount: 1,
-      keysRequired: 1,
-      summary: {
-        balance: 0,
-        numberOfAddresses: 0,
-        numberOfTransactions: 0,
-        numberOfUtxos: 0,
-        satsInMempool: 0
-      },
-      transactions: [],
-      utxos: [],
-      addresses: [],
-      labels: {},
-      createdAt: new Date(),
-      syncStatus: 'synced',
       nostr: {
         autoSync: true,
         commonNpub: nostrKeys.alice.npub,
@@ -78,20 +67,31 @@ describe('handler registry', () => {
         relays: ['wss://relay.damus.io'],
         syncStart: new Date(),
         trustedMemberDevices: []
-      }
-    },
-    unwrappedEvent: {
-      id: 'event-123',
-      pubkey: nostrKeys.bob.publicKeyHex,
-      content: JSON.stringify(nostrMessages.directMessage)
+      },
+      policyType: 'singlesig',
+      summary: {
+        balance: 0,
+        numberOfAddresses: 0,
+        numberOfTransactions: 0,
+        numberOfUtxos: 0,
+        satsInMempool: 0
+      },
+      syncStatus: 'synced',
+      transactions: [],
+      utxos: []
     },
     eventContent: nostrMessages.directMessage as unknown as Record<
       string,
       unknown
     >,
     lastDataExchangeEOSE: 0,
-    syncStartSec: 0,
     onPendingDM: () => {},
+    syncStartSec: 0,
+    unwrappedEvent: {
+      content: JSON.stringify(nostrMessages.directMessage),
+      id: 'event-123',
+      pubkey: nostrKeys.bob.publicKeyHex
+    },
     ...overrides
   })
 
@@ -214,7 +214,9 @@ describe('handler registry', () => {
       const handler: MessageHandler = {
         canHandle: () => true,
         handle: async () => {
-          await new Promise((resolve) => setTimeout(resolve, 10))
+          await new Promise((resolve) => {
+            setTimeout(resolve, 10)
+          })
           handlerCompleted = true
         }
       }
@@ -239,7 +241,7 @@ describe('handler registry', () => {
       const handlers2 = getHandlers()
 
       expect(handlers1).not.toBe(handlers2)
-      expect(handlers1).toEqual(handlers2)
+      expect(handlers1).toStrictEqual(handlers2)
     })
 
     it('modifications to returned array do not affect registry', () => {

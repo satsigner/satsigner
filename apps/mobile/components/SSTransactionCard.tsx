@@ -91,7 +91,7 @@ function SSTransactionCard({
     const historicalPrice = prices?.[fiatCurrency]
     if (historicalPrice && historicalPrice > 0) {
       itemsToDisplay.push(
-        '(' + formatFiatPrice(Math.abs(amount), historicalPrice) + ')'
+        `(${formatFiatPrice(Math.abs(amount), historicalPrice)})`
       )
     }
 
@@ -119,9 +119,9 @@ function SSTransactionCard({
       <SSVStack
         style={[
           {
+            paddingBottom: expand ? 6 : 12,
             paddingHorizontal: 0,
-            paddingTop: expand ? 0 : 4,
-            paddingBottom: expand ? 6 : 12
+            paddingTop: expand ? 0 : 4
           },
           style
         ]}
@@ -134,7 +134,7 @@ function SSTransactionCard({
           <SSHStack gap="none">
             {(confirmations >= 0 || !hasConfirmation) && (
               <SSText size="xs" style={confirmationColor}>
-                {formatConfirmations(confirmations) + ' - '}
+                {`${formatConfirmations(confirmations)} - `}
               </SSText>
             )}
             <SSText
@@ -159,8 +159,8 @@ function SSTransactionCard({
         <SSVStack gap="none" style={{ marginTop: 5 }}>
           <SSHStack
             style={{
-              justifyContent: 'space-between',
-              alignItems: 'flex-end'
+              alignItems: 'flex-end',
+              justifyContent: 'space-between'
             }}
           >
             <SSHStack
@@ -287,9 +287,9 @@ function SSTransactionCard({
             size={smallView ? 'xxs' : 'xs'}
             style={[
               {
-                textAlign: 'left',
                 flex: 1,
-                marginBottom: transaction.label ? 4 : 0
+                marginBottom: transaction.label ? 4 : 0,
+                textAlign: 'left'
               },
               !transaction.label && { color: Colors.gray[500] }
             ]}
@@ -314,12 +314,12 @@ function SSTransactionCard({
                   key={index}
                   size={smallView ? 'xxs' : 'xs'}
                   style={[
-                    { textAlign: 'right', alignSelf: 'flex-start' },
+                    { alignSelf: 'flex-start', textAlign: 'right' },
                     {
                       backgroundColor: Colors.gray[700],
-                      paddingVertical: 2,
+                      borderRadius: 4,
                       paddingHorizontal: 6,
-                      borderRadius: 4
+                      paddingVertical: 2
                     }
                   ]}
                   uppercase
@@ -333,13 +333,13 @@ function SSTransactionCard({
                 size={smallView ? 'xxs' : 'xs'}
                 style={[
                   {
-                    textAlign: 'right',
-                    color: Colors.gray[500]
+                    color: Colors.gray[500],
+                    textAlign: 'right'
                   },
                   {
                     backgroundColor: Colors.gray[950],
-                    paddingVertical: smallView ? 0 : 2,
-                    borderRadius: 4
+                    borderRadius: 4,
+                    paddingVertical: smallView ? 0 : 2
                   }
                 ]}
                 uppercase
@@ -356,14 +356,14 @@ function SSTransactionCard({
 }
 
 const styles = StyleSheet.create({
-  unconfirmed: {
-    color: Colors.error
+  confirmedEnough: {
+    color: Colors.softBarGreen
   },
   confirmedFew: {
     color: Colors.warning
   },
-  confirmedEnough: {
-    color: Colors.softBarGreen
+  unconfirmed: {
+    color: Colors.error
   }
 })
 

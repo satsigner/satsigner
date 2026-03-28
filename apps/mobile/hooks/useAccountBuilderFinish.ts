@@ -37,9 +37,10 @@ function useAccountBuilderFinish() {
 
   async function accountBuilderFinish(account: Account) {
     setLoading(true)
-    const isImportAddress = account.keys[0].creationType === 'importAddress'
+    const [firstKey] = account.keys
+    const isImportAddress = firstKey.creationType === 'importAddress'
     const { policyType } = account
-    const { creationType } = account.keys[0]
+    const { creationType } = firstKey
 
     const walletData = !isImportAddress
       ? await getWalletData(account, network as Network)
@@ -68,11 +69,12 @@ function useAccountBuilderFinish() {
       if (walletData) {
         if (account.policyType === 'multisig' && walletData.keyFingerprints) {
           // For multisig, use individual key fingerprints
-          walletData.keyFingerprints.forEach(
-            (fingerprint: string, index: number) => {
-              updateKeyFingerprint(index, fingerprint)
-            }
-          )
+          for (const [
+            index,
+            fingerprint
+          ] of walletData.keyFingerprints.entries()) {
+            updateKeyFingerprint(index, fingerprint as string)
+          }
         } else {
           // For singlesig, use the single fingerprint
           updateKeyFingerprint(key.index, walletData.fingerprint)
@@ -92,18 +94,19 @@ function useAccountBuilderFinish() {
       addAccountWallet(accountWithEncryptedSecret.id, walletData.wallet)
     }
 
-    if (isImportAddress && typeof account.keys[0].secret === 'object')
+    if (isImportAddress && typeof account.keys[0].secret === 'object') {
       addAccountAddress(
         accountWithEncryptedSecret.id,
         parseAddressDescriptorToAddress(
           account.keys[0].secret.externalDescriptor!
         )
       )
+    }
 
     setLoading(false)
     return {
-      wallet: walletData?.wallet,
-      accountWithEncryptedSecret
+      accountWithEncryptedSecret,
+      wallet: walletData?.wallet
     }
   }
 

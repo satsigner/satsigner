@@ -95,14 +95,14 @@ function SSFeeInput({
 const size = 15
 
 const styles = StyleSheet.create({
-  track: {
-    height: size,
-    borderRadius: size / 2
-  },
   thumb: {
+    borderRadius: size,
     height: size * 2,
-    width: size * 2,
-    borderRadius: size
+    width: size * 2
+  },
+  track: {
+    borderRadius: size / 2,
+    height: size
   }
 })
 

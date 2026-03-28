@@ -37,9 +37,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10
   },
   groupTitle: {
-    marginLeft: 12,
+    letterSpacing: 6,
     marginBottom: 8,
-    letterSpacing: 6
+    marginLeft: 12
   }
 })
 

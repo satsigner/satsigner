@@ -16,44 +16,46 @@ const {
   sampleJsonlExpected
 } = require('./bip329_samples')
 
-describe('JSONL to labels', () => {
+describe('jsonl to labels', () => {
   it('parses JSON to labels', () => {
-    expect(JSONLtoLabels(sampleJsonl)).toEqual(sampleJsonlExpected)
+    expect(JSONLtoLabels(sampleJsonl)).toStrictEqual(sampleJsonlExpected)
   })
 })
 
-describe('CSV to labels', () => {
+describe('csv to labels', () => {
   it('parses Nonchuk CSV Utxo', () => {
-    expect(CSVtoLabels(sampleCsvNonchukUtxo)).toEqual(
+    expect(CSVtoLabels(sampleCsvNonchukUtxo)).toStrictEqual(
       sampleCsvNonchukUtxoExpected
     )
   })
 
   it('parses Nonchuk CSV Tx', () => {
-    expect(CSVtoLabels(sampleCsvNonchukTx)).toEqual(sampleCsvNonchukTxExpected)
+    expect(CSVtoLabels(sampleCsvNonchukTx)).toStrictEqual(
+      sampleCsvNonchukTxExpected
+    )
   })
 
   it('parses Sparrow CSV Utxo', () => {
-    expect(CSVtoLabels(sampleCsvSparrowUtxo)).toEqual(
+    expect(CSVtoLabels(sampleCsvSparrowUtxo)).toStrictEqual(
       sampleCsvSparrowUtxoExpected
     )
   })
 
   it('parses Sparrow CSV Addresses', () => {
-    expect(sampleCsvSparrowAddr.length).toBe(
+    expect(sampleCsvSparrowAddr).toHaveLength(
       sampleCsvSparrowAddrExpected.length
     )
     for (let i = 0; i < sampleCsvSparrowAddr.length; i += 1) {
-      expect(CSVtoLabels(sampleCsvSparrowAddr[i])).toEqual(
+      expect(CSVtoLabels(sampleCsvSparrowAddr[i])).toStrictEqual(
         sampleCsvSparrowAddrExpected[i]
       )
     }
   })
 
   it('parses Sparrow CSV Tx', () => {
-    expect(sampleCsvSparrowTx.length).toBe(sampleCsvSparrowTxExpected.length)
+    expect(sampleCsvSparrowTx).toHaveLength(sampleCsvSparrowTxExpected.length)
     for (let i = 0; i < sampleCsvSparrowTx.length; i += 1) {
-      expect(CSVtoLabels(sampleCsvSparrowTx[i])).toEqual(
+      expect(CSVtoLabels(sampleCsvSparrowTx[i])).toStrictEqual(
         sampleCsvSparrowTxExpected[i]
       )
     }

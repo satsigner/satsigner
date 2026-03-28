@@ -38,7 +38,9 @@ export function usePSBTManagement({
           const originalPsbt = bitcoinjs.Psbt.fromBase64(originalPsbtBase64)
           const signedPsbt = bitcoinjs.Psbt.fromBase64(signedPsbtBase64)
           combinedPsbt = originalPsbt.combine(signedPsbt)
-        } catch {}
+        } catch {
+          /* silently ignored */
+        }
       }
 
       if (combinedPsbt) {
@@ -63,7 +65,7 @@ export function usePSBTManagement({
       // Check if inputs are already finalized
       let needsFinalization = false
       const inputDetails = []
-      for (let i = 0; i < psbt.data.inputs.length; i++) {
+      for (let i = 0; i < psbt.data.inputs.length; i += 1) {
         const input = psbt.data.inputs[i]
         const hasFinalScriptSig = !!input.finalScriptSig
         const hasFinalScriptWitness = !!input.finalScriptWitness
@@ -72,12 +74,12 @@ export function usePSBTManagement({
         const hasPartialSigs = input.partialSig && input.partialSig.length > 0
 
         inputDetails.push({
-          index: i,
           hasFinalScriptSig,
           hasFinalScriptWitness,
-          hasWitnessScript,
-          hasRedeemScript,
           hasPartialSigs,
+          hasRedeemScript,
+          hasWitnessScript,
+          index: i,
           partialSigCount: input.partialSig?.length || 0
         })
 
@@ -90,7 +92,9 @@ export function usePSBTManagement({
       if (needsFinalization) {
         try {
           psbt.finalizeAllInputs()
-        } catch {}
+        } catch {
+          /* silently ignored */
+        }
       }
 
       try {
@@ -119,7 +123,7 @@ export function usePSBTManagement({
   }, [])
 
   const handleSignWithLocalKey = useCallback(
-    async (index: number) => {
+    (index: number) => {
       const cosignerKey = decryptedKeys[index]
       if (!cosignerKey?.secret) {
         toast.error('No decrypted key found for this cosigner')
@@ -166,7 +170,7 @@ export function usePSBTManagement({
   )
 
   const handleSignWithSeedQR = useCallback(
-    async (index: number, mnemonic: string) => {
+    (index: number, mnemonic: string) => {
       // Get the cosigner's key details
       const cosignerKey = account?.keys?.[index]
       if (!cosignerKey) {
@@ -209,13 +213,13 @@ export function usePSBTManagement({
   )
 
   return {
-    signedPsbt,
-    signedPsbts,
-    setSignedPsbt,
-    setSignedPsbts,
     convertPsbtToFinalTransaction,
     handleSignWithLocalKey,
     handleSignWithSeedQR,
+    setSignedPsbt,
+    setSignedPsbts,
+    signedPsbt,
+    signedPsbts,
     updateSignedPsbt
   }
 }

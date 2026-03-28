@@ -15,7 +15,7 @@ export function base85Encode(buf: Buffer): string {
   for (let i = 0; i < data.length; i += 4) {
     let acc = data.readUInt32BE(i)
     let chunk = ''
-    for (let j = 0; j < 5; j++) {
+    for (let j = 0; j < 5; j += 1) {
       chunk = BASE85[acc % 85] + chunk
       acc = Math.floor(acc / 85)
     }
@@ -33,13 +33,13 @@ export function base85Decode(str: string): Buffer {
   const padChars = rem ? 5 - rem : 0
   const padBytes = padChars
 
-  const padChar = BASE85[84]
+  const padChar = BASE85.charAt(84)
   const full = padChars ? str + padChar.repeat(padChars) : str
 
   const out = []
   for (let i = 0; i < full.length; i += 5) {
     let acc = 0
-    for (let j = 0; j < 5; j++) {
+    for (let j = 0; j < 5; j += 1) {
       const ch = full[i + j]
       const val = BASE85_DECODE[ch]
       if (val === undefined) {

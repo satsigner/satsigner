@@ -24,8 +24,8 @@ function UtxoLabel() {
     const singleLabelData: Label = {
       label,
       ref: `${txid}:${vout}`,
-      type: 'output',
-      spendable: true
+      spendable: true,
+      type: 'output'
     }
 
     if (updatedAccount?.nostr?.autoSync) {
@@ -34,7 +34,9 @@ function UtxoLabel() {
     router.back()
   }
 
-  if (!utxo || !txid || !accountId || !vout) return <Redirect href="/" />
+  if (!utxo || !txid || !accountId || !vout) {
+    return <Redirect href="/" />
+  }
 
   return (
     <ScrollView>

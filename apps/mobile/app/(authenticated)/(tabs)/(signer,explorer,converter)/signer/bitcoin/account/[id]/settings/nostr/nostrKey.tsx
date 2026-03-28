@@ -85,7 +85,7 @@ function NostrKeys() {
 
   useEffect(() => {
     if (derivedNpub) {
-      generateColorFromNpub(derivedNpub).then(setDeviceColor)
+      setDeviceColor(generateColorFromNpub(derivedNpub))
     } else {
       setDeviceColor(NOSTR_FALLBACK_NPUB_COLOR)
     }
@@ -117,7 +117,9 @@ function NostrKeys() {
   ])
 
   async function fetchKind0Profile() {
-    if (loadingFetchKind0) return
+    if (loadingFetchKind0) {
+      return
+    }
 
     // Show feedback when we can't fetch: no device key, sync off, or no relays
     if (!derivedNpub) {
@@ -150,8 +152,8 @@ function NostrKeys() {
         updateAccountNostr(account.id, {
           deviceDisplayName: profile.displayName,
           devicePicture: profile.picture,
-          npubProfiles,
-          lastUpdated: new Date()
+          lastUpdated: new Date(),
+          npubProfiles
         })
         toast.success(t('account.nostrSync.fetchKind0Success'))
       } else {
@@ -174,21 +176,23 @@ function NostrKeys() {
   }
 
   async function loadCommonNostrKeys() {
-    if (loadingCommonKeys || !account || !accountId) return
+    if (loadingCommonKeys || !account || !accountId) {
+      return
+    }
 
     setLoadingCommonKeys(true)
     try {
       const keys = await generateCommonNostrKeys(account)
       if (keys && 'commonNsec' in keys && 'commonNpub' in keys) {
         updateAccountNostr(account.id, {
-          commonNsec: keys.commonNsec,
           commonNpub: keys.commonNpub,
+          commonNsec: keys.commonNsec,
           lastUpdated: new Date()
         })
       } else if (keys && 'externalDescriptor' in keys) {
         toast.error('Common keys are not available for watch-only accounts')
       }
-    } catch (_error) {
+    } catch {
       toast.error('Failed to generate common keys')
     } finally {
       setLoadingCommonKeys(false)
@@ -211,7 +215,9 @@ function NostrKeys() {
   async function generateNewNsec() {
     try {
       const keys = await NostrAPI.generateNostrKeys()
-      if (!keys) return
+      if (!keys) {
+        return
+      }
       setNsec(keys.nsec)
     } catch {
       toast.error('Failed to generate key')
@@ -233,20 +239,26 @@ function NostrKeys() {
   }
 
   function saveChanges() {
-    if (!accountId || !account?.nostr || !derivedNpub) return
+    if (!accountId || !account?.nostr || !derivedNpub) {
+      return
+    }
     const nsecChanged = account.nostr.deviceNsec !== deviceNsec
     const updates: Parameters<typeof updateAccountNostr>[1] = {
       ...account.nostr,
-      deviceNsec,
       deviceNpub: derivedNpub,
+      deviceNsec,
       lastUpdated: new Date()
     }
     if (nsecChanged) {
       updates.deviceDisplayName = undefined
       updates.devicePicture = undefined
       const profiles = { ...(account.nostr.npubProfiles || {}) }
-      if (account.nostr.deviceNpub) delete profiles[account.nostr.deviceNpub]
-      if (derivedNpub) delete profiles[derivedNpub]
+      if (account.nostr.deviceNpub) {
+        delete profiles[account.nostr.deviceNpub]
+      }
+      if (derivedNpub) {
+        delete profiles[derivedNpub]
+      }
       updates.npubProfiles =
         Object.keys(profiles).length > 0 ? profiles : undefined
     } else if (kind0Profile) {
@@ -258,25 +270,32 @@ function NostrKeys() {
   }
 
   function clearKind0Profile() {
-    if (!accountId || !account?.nostr) return
+    if (!accountId || !account?.nostr) {
+      return
+    }
     setKind0Profile(null)
     const profiles = { ...(account.nostr.npubProfiles || {}) }
-    if (derivedNpub) delete profiles[derivedNpub]
+    if (derivedNpub) {
+      delete profiles[derivedNpub]
+    }
     updateAccountNostr(accountId, {
       deviceDisplayName: undefined,
       devicePicture: undefined,
-      npubProfiles: Object.keys(profiles).length > 0 ? profiles : undefined,
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
+      npubProfiles: Object.keys(profiles).length > 0 ? profiles : undefined
     })
     toast.success(t('account.nostrSync.clearKind0Success'))
   }
 
-  if (!accountId || !account) return <Redirect href="/" />
+  if (!accountId || !account) {
+    return <Redirect href="/" />
+  }
 
   return (
     <SSMainLayout style={styles.mainLayout}>
       <Stack.Screen
         options={{
+          headerRight: () => null,
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
@@ -284,8 +303,7 @@ function NostrKeys() {
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
               )}
             </SSHStack>
-          ),
-          headerRight: () => null
+          )
         }}
       />
       <SSVStack style={styles.pageContainer}>
@@ -315,9 +333,7 @@ function NostrKeys() {
                               style={styles.keyText}
                               selectable
                             >
-                              {account.nostr.commonNsec.slice(0, 12) +
-                                '...' +
-                                account.nostr.commonNsec.slice(-4)}
+                              {`${account.nostr.commonNsec.slice(0, 12)}...${account.nostr.commonNsec.slice(-4)}`}
                             </SSText>
                           </SSTextClipboard>
                           <Pressable
@@ -363,9 +379,7 @@ function NostrKeys() {
                           style={styles.keyText}
                           selectable
                         >
-                          {account.nostr.commonNpub.slice(0, 12) +
-                            '...' +
-                            account.nostr.commonNpub.slice(-4)}
+                          {`${account.nostr.commonNpub.slice(0, 12)}...${account.nostr.commonNpub.slice(-4)}`}
                         </SSText>
                       </SSTextClipboard>
                     </SSVStack>
@@ -420,9 +434,7 @@ function NostrKeys() {
                           style={styles.keyText}
                           selectable
                         >
-                          {derivedNpub.slice(0, 12) +
-                            '...' +
-                            derivedNpub.slice(-4)}
+                          {`${derivedNpub.slice(0, 12)}...${derivedNpub.slice(-4)}`}
                         </SSText>
                       </SSTextClipboard>
                     </SSHStack>
@@ -600,101 +612,57 @@ function NostrKeys() {
 }
 
 const styles = StyleSheet.create({
-  mainLayout: {
-    paddingTop: 10,
-    paddingBottom: 20
-  },
-  pageContainer: {
-    flex: 1
-  },
-  scrollView: {
-    flex: 1
-  },
-  scrollContent: {
-    paddingBottom: 24,
-    flexGrow: 1
-  },
-  input: {
-    height: 'auto',
-    padding: 10,
-    minHeight: 80
-  },
-  monoInput: {
-    fontFamily: 'SF-NS-Mono'
-  },
-  keysContainer: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 8,
-    borderColor: Colors.white,
-    padding: 10,
-    paddingBottom: 30,
-    paddingHorizontal: 28
-  },
-  keyText: {
-    letterSpacing: 1
-  },
-  keyContainerLoading: {
-    justifyContent: 'center',
-    paddingVertical: 10
-  },
-  revealRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16
-  },
-  nsecContainer: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
-    padding: 10,
-    paddingHorizontal: 16
-  },
-  nsecContainerExpanded: {
-    paddingTop: 16
-  },
-  clearPasteRow: {
-    marginTop: 4,
-    paddingBottom: 10,
-    flexDirection: 'row',
-    flexWrap: 'nowrap'
+  cancelButton: {
+    marginTop: 8
   },
   clearPasteButton: {
     flex: 1,
     minWidth: 0
   },
-  cancelButton: {
-    marginTop: 8
+  clearPasteRow: {
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    marginTop: 4,
+    paddingBottom: 10
   },
   deviceColorCircle: {
-    width: 10,
+    borderRadius: 5,
     height: 10,
-    borderRadius: 5
+    width: 10
   },
-  npubRow: {
-    alignSelf: 'center',
-    alignItems: 'center'
+  input: {
+    height: 'auto',
+    minHeight: 80,
+    padding: 10
   },
-  npubActions: {
-    flexWrap: 'wrap',
-    justifyContent: 'center'
+  keyContainerLoading: {
+    justifyContent: 'center',
+    paddingVertical: 10
+  },
+  keyText: {
+    letterSpacing: 1
+  },
+  keysContainer: {
+    backgroundColor: '#1a1a1a',
+    borderColor: Colors.white,
+    borderRadius: 8,
+    padding: 10,
+    paddingBottom: 30,
+    paddingHorizontal: 28
   },
   kind0Loading: {
     alignSelf: 'stretch',
     justifyContent: 'center',
     paddingVertical: 8
   },
-  kind0Profile: {
-    marginTop: 8,
-    alignItems: 'center'
-  },
   kind0Picture: {
-    width: 64,
+    borderRadius: 32,
     height: 64,
-    borderRadius: 32
+    width: 64
+  },
+  kind0Profile: {
+    alignItems: 'center',
+    marginTop: 8
   },
   kind0Row: {
     alignSelf: 'stretch'
@@ -702,26 +670,70 @@ const styles = StyleSheet.create({
   kind0RowButton: {
     flex: 1
   },
-  showQrButton: {
-    marginTop: 20
+  mainLayout: {
+    paddingBottom: 20,
+    paddingTop: 10
   },
-  qrModalContent: {
-    paddingHorizontal: 16,
-    alignItems: 'center'
+  monoInput: {
+    fontFamily: 'SF-NS-Mono'
+  },
+  npubActions: {
+    flexWrap: 'wrap',
+    justifyContent: 'center'
+  },
+  npubRow: {
+    alignItems: 'center',
+    alignSelf: 'center'
+  },
+  nsecContainer: {
+    backgroundColor: '#1a1a1a',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 10,
+    paddingHorizontal: 16
+  },
+  nsecContainerExpanded: {
+    paddingTop: 16
+  },
+  pageContainer: {
+    flex: 1
   },
   qrCodeWrapper: {
-    padding: 16,
     backgroundColor: Colors.gray[950],
-    borderRadius: 10
+    borderRadius: 10,
+    padding: 16
+  },
+  qrModalContent: {
+    alignItems: 'center',
+    paddingHorizontal: 16
   },
   qrModalDataBox: {
-    padding: 12,
     backgroundColor: Colors.gray[900],
     borderRadius: 8,
-    maxWidth: '100%'
+    maxWidth: '100%',
+    padding: 12
   },
   qrModalDataText: {
     textAlign: 'center'
+  },
+  revealRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 24
+  },
+  scrollView: {
+    flex: 1
+  },
+  showQrButton: {
+    marginTop: 20
   }
 })
 

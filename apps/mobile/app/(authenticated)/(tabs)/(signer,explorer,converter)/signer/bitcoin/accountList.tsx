@@ -100,15 +100,15 @@ function AccountCardStaggerItem({
     const timer = setTimeout(() => {
       Animated.parallel([
         Animated.timing(opacity, {
-          toValue: 1,
           duration: STAGGER_DURATION_MS,
           easing: Easing.out(Easing.ease),
+          toValue: 1,
           useNativeDriver: true
         }),
         Animated.timing(translateY, {
-          toValue: 0,
           duration: STAGGER_DURATION_MS,
           easing: Easing.out(Easing.ease),
+          toValue: 0,
           useNativeDriver: true
         })
       ]).start()
@@ -227,13 +227,15 @@ export default function AccountList() {
   }, [])
 
   useEffect(() => {
-    if (!hasHydrated) return
+    if (!hasHydrated) {
+      return
+    }
     sampleAccountsOpacity.setValue(0)
     const timer = setTimeout(() => {
       Animated.timing(sampleAccountsOpacity, {
-        toValue: 1,
         duration: 320,
         easing: Easing.out(Easing.ease),
+        toValue: 1,
         useNativeDriver: true
       }).start()
     }, 400)
@@ -246,9 +248,11 @@ export default function AccountList() {
     return index > 0 ? index : 0
   })
 
-  const filteredAccounts = useMemo(() => {
-    return accounts.filter((acc) => acc.network === tabs[tabIndex].key)
-  }, [accounts, tabIndex]) // eslint-disable-line react-hooks/exhaustive-deps
+  const filteredAccounts = useMemo(
+    () => accounts.filter((acc) => acc.network === tabs[tabIndex].key),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [accounts, tabIndex]
+  )
 
   const ACCOUNT_CARD_HEIGHT = 160
   const SEPARATOR_VERTICAL = 32
@@ -286,21 +290,32 @@ export default function AccountList() {
   }
 
   async function syncAccounts() {
-    if (connectionMode !== 'auto') return
+    if (connectionMode !== 'auto') {
+      return
+    }
 
     const now = time.now()
 
     const eligibleAccounts = accounts.filter((account) => {
-      if (account.network !== tabs[tabIndex].key) return false
-      if (account.syncStatus === 'syncing') return false
+      if (account.network !== tabs[tabIndex].key) {
+        return false
+      }
+      if (account.syncStatus === 'syncing') {
+        return false
+      }
       if (
         account.lastSyncedAt &&
         now > time.minutesAfter(account.lastSyncedAt, autoConnectDelay)
-      )
+      ) {
         return false
+      }
       const isImportAddress = account.keys[0].creationType === 'importAddress'
-      if (isImportAddress && !addresses[account.id]) return false
-      if (!isImportAddress && !wallets[account.id]) return false
+      if (isImportAddress && !addresses[account.id]) {
+        return false
+      }
+      if (!isImportAddress && !wallets[account.id]) {
+        return false
+      }
       return true
     })
 
@@ -443,10 +458,10 @@ export default function AccountList() {
       case 'watchonlyTether':
         setPolicyType('watchonly')
         setCreationType('importAddress')
-        sampleMultiAddressTether.forEach((address, index) => {
+        for (const [index, address] of sampleMultiAddressTether.entries()) {
           setExternalDescriptor(`addr(${address})`)
           setKey(index)
-        })
+        }
         break
       case 'multisig': {
         // Set up multisig configuration
@@ -496,9 +511,13 @@ export default function AccountList() {
         setKey(2)
         break
       }
+      default:
+        break
     }
 
-    if (type !== 'watchonlyTether' && type !== 'multisig') setKey(0)
+    if (type !== 'watchonlyTether' && type !== 'multisig') {
+      setKey(0)
+    }
 
     const account = getAccountData()
 
@@ -521,7 +540,7 @@ export default function AccountList() {
 
     // Additional validation for mnemonic-based wallets
     if (['segwit', 'legacy'].includes(type)) {
-      const key = account.keys[0]
+      const [key] = account.keys
       if (
         !key.secret ||
         typeof key.secret !== 'object' ||
@@ -543,7 +562,7 @@ export default function AccountList() {
         throw new Error('Multisig configuration invalid')
       }
       // Validate that first two keys have mnemonic secrets
-      for (let i = 0; i < 2; i++) {
+      for (let i = 0; i < 2; i += 1) {
         const key = account.keys[i]
         if (
           !key.secret ||
@@ -554,7 +573,7 @@ export default function AccountList() {
         }
       }
       // Validate that third key has extended public key
-      const key3 = account.keys[2]
+      const [, , key3] = account.keys
       if (
         !key3.secret ||
         typeof key3.secret !== 'object' ||
@@ -598,49 +617,47 @@ export default function AccountList() {
     toast.success('Sample wallet created successfully!')
   }
 
-  const renderTab = () => {
-    return (
-      <SSHStack
-        gap="none"
-        justifyEvenly
-        style={{
-          paddingVertical: 0,
-          borderBottomWidth: 1,
-          borderBottomColor: Colors.gray[800]
-        }}
-      >
-        {tabs.map((tab, index) => (
-          <SSActionButton
-            key={tab.key}
-            style={{ width: '30%', height: 48 }}
-            onPress={() => setTabIndex(index)}
-          >
-            <SSVStack gap="none">
-              <SSText
-                center
-                uppercase
-                style={{ lineHeight: 20, letterSpacing: 3 }}
-              >
-                {tab.key}
-              </SSText>
-              {tabIndex === index && (
-                <View
-                  style={{
-                    position: 'absolute',
-                    width: '100%',
-                    height: 1,
-                    bottom: -15,
-                    alignSelf: 'center',
-                    backgroundColor: Colors.white
-                  }}
-                />
-              )}
-            </SSVStack>
-          </SSActionButton>
-        ))}
-      </SSHStack>
-    )
-  }
+  const renderTab = () => (
+    <SSHStack
+      gap="none"
+      justifyEvenly
+      style={{
+        borderBottomColor: Colors.gray[800],
+        borderBottomWidth: 1,
+        paddingVertical: 0
+      }}
+    >
+      {tabs.map((tab, index) => (
+        <SSActionButton
+          key={tab.key}
+          style={{ height: 48, width: '30%' }}
+          onPress={() => setTabIndex(index)}
+        >
+          <SSVStack gap="none">
+            <SSText
+              center
+              uppercase
+              style={{ letterSpacing: 3, lineHeight: 20 }}
+            >
+              {tab.key}
+            </SSText>
+            {tabIndex === index && (
+              <View
+                style={{
+                  alignSelf: 'center',
+                  backgroundColor: Colors.white,
+                  bottom: -15,
+                  height: 1,
+                  position: 'absolute',
+                  width: '100%'
+                }}
+              />
+            )}
+          </SSVStack>
+        </SSActionButton>
+      ))}
+    </SSHStack>
+  )
 
   const renderSamplewallets = () => {
     switch (network) {
@@ -749,6 +766,8 @@ export default function AccountList() {
             />
           </SSVStack>
         )
+      default:
+        return null
     }
   }
 
@@ -767,7 +786,7 @@ export default function AccountList() {
         <TouchableOpacity
           onPress={() => router.navigate('/settings/network/server')}
         >
-          <SSHStack style={{ justifyContent: 'center', gap: 0 }}>
+          <SSHStack style={{ gap: 0, justifyContent: 'center' }}>
             {connectionState ? (
               isPrivateConnection ? (
                 <SSIconYellowIndicator height={24} width={24} />
@@ -812,11 +831,11 @@ export default function AccountList() {
           <SSButton
             label={t('account.add')}
             style={{
-              borderTopWidth: 1,
-              borderTopColor: Colors.gray[700],
-              borderBottomWidth: 1,
               borderBottomColor: Colors.gray[875],
-              borderRadius: 0
+              borderBottomWidth: 1,
+              borderRadius: 0,
+              borderTopColor: Colors.gray[700],
+              borderTopWidth: 1
             }}
             onPress={handleOnNavigateToAddAccount}
             variant="gradient"
@@ -824,7 +843,7 @@ export default function AccountList() {
           />
         </View>
       </SSHStack>
-      <SSMainLayout style={{ paddingTop: 32, paddingHorizontal: '5%' }}>
+      <SSMainLayout style={{ paddingHorizontal: '5%', paddingTop: 32 }}>
         <TabView
           swipeEnabled={false}
           navigationState={{ index: tabIndex, routes: tabs }}
@@ -838,9 +857,8 @@ export default function AccountList() {
                   gap="none"
                   style={{ minHeight: listContainerMinHeight }}
                 >
-                  {Array(ACCOUNT_SKELETON_COUNT)
-                    .fill(null)
-                    .map((_, i) => (
+                  {Array.from({ length: ACCOUNT_SKELETON_COUNT }).map(
+                    (_, i) => (
                       <SSVStack key={i}>
                         <SSAccountCardSkeleton />
                         {i < ACCOUNT_SKELETON_COUNT - 1 && (
@@ -850,7 +868,8 @@ export default function AccountList() {
                           />
                         )}
                       </SSVStack>
-                    ))}
+                    )
+                  )}
                 </SSVStack>
               ) : (
                 <Animated.View
@@ -880,7 +899,7 @@ export default function AccountList() {
                     ListEmptyComponent={
                       <SSVStack
                         itemsCenter
-                        style={{ paddingTop: 32, paddingBottom: 32 }}
+                        style={{ paddingBottom: 32, paddingTop: 32 }}
                       >
                         <SSText uppercase>{t('accounts.empty')}</SSText>
                       </SSVStack>

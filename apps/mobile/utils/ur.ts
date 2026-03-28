@@ -1,5 +1,6 @@
-import { UR, URDecoder, UREncoder } from '@ngraveio/bc-ur'
 import { Buffer } from 'buffer'
+
+import { UR, URDecoder, UREncoder } from '@ngraveio/bc-ur'
 
 /**
  * Manually create CBOR-encoded crypto-psbt UR data
@@ -67,7 +68,7 @@ export function getURFragmentsFromPSBT(
   const encoder = new UREncoder(ur, finalFragmentSize)
 
   const fragments: string[] = []
-  for (let i = 0; i < encoder.fragments.length; i++) {
+  for (let i = 0; i < encoder.fragments.length; i += 1) {
     const fragment = encoder.nextPart()
 
     if (!fragment.toLowerCase().startsWith('ur:crypto-psbt/')) {
@@ -103,12 +104,10 @@ export function decodeURToPSBT(ur: string): string {
     // This ensures we preserve all the witness data and signatures
     if (psbtHex.toLowerCase().startsWith('70736274')) {
       return psbtHex
-    } else {
-      return psbtHex
     }
-  } else {
-    throw new Error('UR decoder not complete after receiving part')
+    return psbtHex
   }
+  throw new Error('UR decoder not complete after receiving part')
 }
 
 /**
@@ -119,7 +118,7 @@ function isCBORByteStringLike(cborData: Uint8Array): boolean {
     return false
   }
 
-  const firstByte = cborData[0]
+  const [firstByte] = cborData
 
   if ((firstByte & 0xe0) !== 0x40) {
     return false
@@ -131,7 +130,7 @@ function isCBORByteStringLike(cborData: Uint8Array): boolean {
   }
 
   if (firstByte === 0x58 && cborData.length >= 2) {
-    const length = cborData[1]
+    const [, length] = cborData
     return 2 + length <= cborData.length
   }
 
@@ -214,7 +213,7 @@ export async function decodeMultiPartURToPSBT(
 
   // Sort fragments by sequence number first (following Java implementation pattern)
   // Use a more memory-efficient sorting approach
-  const sortedFragments = urFragments.sort((a, b) => {
+  const sortedFragments = urFragments.toSorted((a, b) => {
     // Extract sequence number from fragments like "UR:CRYPTO-PSBT/881-13/..."
     const aMatch = a.match(/ur:crypto-psbt\/(\d+)-(\d+)\//i)
     const bMatch = b.match(/ur:crypto-psbt\/(\d+)-(\d+)\//i)
@@ -242,7 +241,9 @@ export async function decodeMultiPartURToPSBT(
       }
     }
     if (i + batchSize < sortedFragments.length) {
-      await new Promise((resolve) => setTimeout(resolve, 1))
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1)
+      })
     }
   }
 
@@ -268,9 +269,8 @@ export async function decodeMultiPartURToPSBT(
       // This ensures we preserve all the witness data and signatures
       if (psbtHex.toLowerCase().startsWith('70736274')) {
         return psbtHex
-      } else {
-        return psbtHex
       }
+      return psbtHex
     }
   }
 
@@ -290,9 +290,8 @@ export async function decodeMultiPartURToPSBT(
 
     if (psbtHex.toLowerCase().startsWith('70736274')) {
       return psbtHex
-    } else {
-      return psbtHex
     }
+    return psbtHex
   }
 
   throw new Error('UR decoder failed')
@@ -327,7 +326,7 @@ function processURGenericResult(result: UR) {
 export function decodeMultiPartURGeneric(urFragments: string[]): string {
   const decoder = new URDecoder()
 
-  const sortedFragments = urFragments.sort((a, b) => {
+  const sortedFragments = urFragments.toSorted((a, b) => {
     const aMatch = a.match(/ur:([^/]+)\/(\d+)-(\d+)\//i)
     const bMatch = b.match(/ur:([^/]+)\/(\d+)-(\d+)\//i)
 
@@ -390,7 +389,7 @@ function parseCBORByteString(cborData: Uint8Array): Uint8Array {
     throw new Error('CBOR data too short')
   }
 
-  const firstByte = cborData[0]
+  const [firstByte] = cborData
 
   // Handle major type 2 (byte strings)
   if ((firstByte & 0xe0) === 0x40) {
@@ -402,20 +401,23 @@ function parseCBORByteString(cborData: Uint8Array): Uint8Array {
       length = firstByte & 0x1f
     } else if (firstByte === 0x58) {
       // 1-byte length follows
-      if (cborData.length < 2)
+      if (cborData.length < 2) {
         throw new Error('CBOR truncated at 1-byte length')
-      length = cborData[1]
+      }
+      ;[, length] = cborData
       offset = 2
     } else if (firstByte === 0x59) {
       // 2-byte length follows (big endian)
-      if (cborData.length < 3)
+      if (cborData.length < 3) {
         throw new Error('CBOR truncated at 2-byte length')
+      }
       length = (cborData[1] << 8) | cborData[2]
       offset = 3
     } else if (firstByte === 0x5a) {
       // 4-byte length follows (big endian)
-      if (cborData.length < 5)
+      if (cborData.length < 5) {
         throw new Error('CBOR truncated at 4-byte length')
+      }
       length =
         (cborData[1] << 24) |
         (cborData[2] << 16) |
@@ -424,8 +426,9 @@ function parseCBORByteString(cborData: Uint8Array): Uint8Array {
       offset = 5
     } else if (firstByte === 0x5b) {
       // 8-byte length follows (big endian) - needed for larger PSBTs
-      if (cborData.length < 9)
+      if (cborData.length < 9) {
         throw new Error('CBOR truncated at 8-byte length')
+      }
 
       // JavaScript safe integer limit is 2^53-1, so we'll handle first 4 bytes as high part
       const high =

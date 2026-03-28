@@ -108,7 +108,7 @@ function hasEnoughSignatures(input: PsbtInputWithSignatures) {
       return false
     }
 
-    const op = script[0]
+    const [op] = script
 
     if (typeof op !== 'number' || op < 81 || op > 96) {
       return false
@@ -136,8 +136,8 @@ function createMockTxBuilderResult(
       txid: () => Promise.resolve(txid)
     },
     txDetails: {
-      txid,
-      fee: txFee
+      fee: txFee,
+      txid
     }
   }
 }
@@ -240,9 +240,11 @@ function PreviewTransaction() {
   const [currentMnemonic, setCurrentMnemonic] = useState('')
 
   const [wordSelectorState, setWordSelectorState] = useState({
+    onWordSelected: () => {
+      // noop
+    },
     visible: false,
-    wordStart: '',
-    onWordSelected: () => {}
+    wordStart: ''
   })
 
   const [permission, requestPermission] = useCameraPermissions()
@@ -262,23 +264,23 @@ function PreviewTransaction() {
   const nfcPulseAnim = useSharedValue(0)
 
   const nfcPulseStyle = useAnimatedStyle(() => ({
-    width: 200,
-    height: 200,
+    alignItems: 'center' as const,
     backgroundColor: interpolateColor(
       nfcPulseAnim.value,
       [0, 1],
       [Colors.gray[800], Colors.gray[400]]
     ),
     borderRadius: 100,
+    height: 200,
     justifyContent: 'center' as const,
-    alignItems: 'center' as const
+    width: 200
   }))
 
   // PSBT Management Hook
   const psbtManagement = usePSBTManagement({
-    txBuilderResult,
     account,
-    decryptedKeys
+    decryptedKeys,
+    txBuilderResult
   })
 
   // Destructure hook values for easier access
@@ -293,29 +295,25 @@ function PreviewTransaction() {
   } = psbtManagement
 
   function processExtractedPsbtData(extractedData: ExtractedTransactionData) {
-    extractedData.inputs.forEach(
-      (input: ExtractedTransactionData['inputs'][number]) => {
-        addInput({
-          txid: input.txid,
-          vout: input.vout,
-          value: input.value,
-          script: Buffer.from(input.script, 'hex').toJSON().data,
-          keychain: input.keychain || 'external',
-          label: input.label,
-          addressTo: input.address
-        })
-      }
-    )
+    for (const input of extractedData.inputs) {
+      addInput({
+        addressTo: input.address,
+        keychain: input.keychain || 'external',
+        label: input.label,
+        script: Buffer.from(input.script, 'hex').toJSON().data,
+        txid: input.txid,
+        value: input.value,
+        vout: input.vout
+      })
+    }
 
-    extractedData.outputs.forEach(
-      (output: ExtractedTransactionData['outputs'][number]) => {
-        addOutput({
-          to: output.address,
-          amount: output.value,
-          label: output.label || ''
-        })
-      }
-    )
+    for (const output of extractedData.outputs) {
+      addOutput({
+        amount: output.value,
+        label: output.label || '',
+        to: output.address
+      })
+    }
 
     if (extractedData.fee) {
       setFee(extractedData.fee)
@@ -387,7 +385,9 @@ function PreviewTransaction() {
   }
 
   useEffect(() => {
-    if (!psbt) return
+    if (!psbt) {
+      return
+    }
 
     setIsLoadingPSBT(true)
     clearTransaction()
@@ -403,13 +403,17 @@ function PreviewTransaction() {
 
   // Separate effect to detect existing signatures - runs when both PSBT and decryptedKeys are ready
   useEffect(() => {
-    if (!psbt || !account || decryptedKeys.length === 0 || !account.keys) return
+    if (!psbt || !account || decryptedKeys.length === 0 || !account.keys) {
+      return
+    }
 
     const currentAccount = account
     const currentPsbt = psbt
 
     async function detectSignatures() {
-      if (!currentAccount || !currentAccount.keys || !currentPsbt) return
+      if (!currentAccount || !currentAccount.keys || !currentPsbt) {
+        return
+      }
 
       const combinedPsbtBase64: string = currentPsbt
 
@@ -425,7 +429,9 @@ function PreviewTransaction() {
       const psbtHasSignatures = psbtObj.data.inputs.some(
         (input) => input.partialSig && input.partialSig.length > 0
       )
-      if (!psbtHasSignatures) return
+      if (!psbtHasSignatures) {
+        return
+      }
 
       // Extract original PSBT - if this fails, the PSBT structure is invalid
       let originalPsbtBase64: string
@@ -440,33 +446,43 @@ function PreviewTransaction() {
       await Promise.all(
         currentAccount.keys.map(async (key, index) => {
           const fp = await getKeyFingerprint(key)
-          if (fp) keyFingerprintToCosignerIndex.set(fp, index)
+          if (fp) {
+            keyFingerprintToCosignerIndex.set(fp, index)
+          }
         })
       )
 
       // Build a map of pubkey to cosigner index from BIP32 derivations
       const pubkeyToCosignerIndex = new Map<string, number>()
-      psbtObj.data.inputs.forEach((input) => {
-        if (!input.bip32Derivation) return
-        input.bip32Derivation.forEach((derivation) => {
+      for (const input of psbtObj.data.inputs) {
+        if (!input.bip32Derivation) {
+          continue
+        }
+        for (const derivation of input.bip32Derivation) {
           const fingerprint = derivation.masterFingerprint.toString('hex')
           const pubkey = derivation.pubkey.toString('hex')
           const cosignerIndex = keyFingerprintToCosignerIndex.get(fingerprint)
-          if (cosignerIndex === undefined) return
+          if (cosignerIndex === undefined) {
+            continue
+          }
           pubkeyToCosignerIndex.set(pubkey, cosignerIndex)
-        })
-      })
+        }
+      }
 
       // Get all pubkeys that have signatures in the PSBT
       const signerPubkeys = getCollectedSignerPubkeys(combinedPsbtBase64)
-      if (signerPubkeys.size === 0) return
+      if (signerPubkeys.size === 0) {
+        return
+      }
 
       // Split combined PSBT into per-signer PSBTs (by pubkey)
       const bySigner = extractIndividualSignedPsbts(
         combinedPsbtBase64,
         originalPsbtBase64
       ) as Record<number, string>
-      if (Object.keys(bySigner).length === 0) return
+      if (Object.keys(bySigner).length === 0) {
+        return
+      }
 
       // Match signed PSBTs to cosigners using the utility function
       const matches = matchSignedPsbtsToCosigners(
@@ -478,14 +494,14 @@ function PreviewTransaction() {
       )
 
       // Apply matches and show notifications
-      matches.forEach((match) => {
+      for (const match of matches) {
         updateSignedPsbt(match.cosignerIndex, match.signedPsbtBase64)
         toast.success(
           t('transaction.build.preview.detectedSignature', {
             cosigner: match.cosignerIndex + 1
           })
         )
-      })
+      }
     }
 
     detectSignatures()
@@ -548,10 +564,10 @@ function PreviewTransaction() {
     scanned: Set<number>
     chunks: Map<number, string>
   }>({
-    type: null,
-    total: 0,
+    chunks: new Map(),
     scanned: new Set(),
-    chunks: new Map()
+    total: 0,
+    type: null
   })
 
   // Helper functions for QR code detection and parsing
@@ -561,10 +577,10 @@ function PreviewTransaction() {
       const match = data.match(/^p(\d+)of(\d+)\s/)
       if (match) {
         return {
-          type: 'raw' as const,
+          content: data.substring(match[0].length),
           current: parseInt(match[1], 10) - 1, // Convert to 0-based index
           total: parseInt(match[2], 10),
-          content: data.substring(match[0].length)
+          type: 'raw' as const
         }
       }
     }
@@ -574,10 +590,10 @@ function PreviewTransaction() {
       const total = parseInt(data.slice(4, 6), 36)
       const current = parseInt(data.slice(6, 8), 36)
       return {
-        type: 'bbqr' as const,
+        content: data,
         current,
         total,
-        content: data
+        type: 'bbqr' as const
       }
     }
 
@@ -594,38 +610,37 @@ function PreviewTransaction() {
           const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
           const total = parseInt(totalStr, 10)
           return {
-            type: 'ur' as const,
+            content: data,
             current,
             total,
-            content: data
+            type: 'ur' as const
           }
-        } else {
-          // Single-part UR
-          return {
-            type: 'ur' as const,
-            current: 0,
-            total: 1,
-            content: data
-          }
+        }
+        // Single-part UR
+        return {
+          content: data,
+          current: 0,
+          total: 1,
+          type: 'ur' as const
         }
       }
     }
 
     // Single QR code (no multi-part format detected)
     return {
-      type: 'single' as const,
+      content: data,
       current: 0,
       total: 1,
-      content: data
+      type: 'single' as const
     }
   }
 
   const resetScanProgress = () => {
     setScanProgress({
-      type: null,
-      total: 0,
+      chunks: new Map(),
       scanned: new Set(),
-      chunks: new Map()
+      total: 0,
+      type: null
     })
   }
 
@@ -644,9 +659,8 @@ function PreviewTransaction() {
         if (txBuilderResult?.psbt?.base64) {
           const convertedResult = convertPsbtToFinalTransaction(processedData)
           return convertedResult
-        } else {
-          return processedData
         }
+        return processedData
       }
       return processedData
     } catch {
@@ -662,7 +676,7 @@ function PreviewTransaction() {
       switch (type) {
         case 'raw': {
           const sortedChunks = Array.from(chunks.entries())
-            .sort(([a], [b]) => a - b)
+            .toSorted(([a], [b]) => a - b)
             .map(([, content]) => content)
           const assembled = sortedChunks.join('')
 
@@ -677,7 +691,7 @@ function PreviewTransaction() {
         case 'bbqr': {
           // Assemble BBQR format chunks
           const sortedChunks = Array.from(chunks.entries())
-            .sort(([a], [b]) => a - b)
+            .toSorted(([a], [b]) => a - b)
             .map(([, content]) => content)
 
           const decoded = decodeBBQRChunks(sortedChunks)
@@ -694,7 +708,7 @@ function PreviewTransaction() {
         case 'ur': {
           // UR format assembly using proper UR decoder
           const sortedChunks = Array.from(chunks.entries())
-            .sort(([a], [b]) => a - b)
+            .toSorted(([a], [b]) => a - b)
             .map(([, content]) => content)
 
           let result: string
@@ -724,12 +738,10 @@ function PreviewTransaction() {
               convertedResult.startsWith('cHNidP')
             ) {
               return convertedResult
-            } else {
-              return convertedResult
             }
-          } else {
-            return result
+            return convertedResult
           }
+          return result
         }
 
         default:
@@ -759,7 +771,7 @@ function PreviewTransaction() {
           }
 
           const totalChunks = dataChunks.length
-          for (let i = 0; i < totalChunks; i++) {
+          for (let i = 0; i < totalChunks; i += 1) {
             const header = `p${i + 1}of${totalChunks}`
             chunks.push(`${header} ${dataChunks[i]}`)
           }
@@ -785,7 +797,7 @@ function PreviewTransaction() {
 
       // Second pass: add headers to each chunk
       const totalChunks = dataChunks.length
-      for (let i = 0; i < totalChunks; i++) {
+      for (let i = 0; i < totalChunks; i += 1) {
         const header = `p${i + 1}of${totalChunks}`
         chunks.push(`${header} ${dataChunks[i]}`)
       }
@@ -796,7 +808,9 @@ function PreviewTransaction() {
   )
 
   const transactionHex = useMemo(() => {
-    if (!account) return ''
+    if (!account) {
+      return ''
+    }
 
     const transaction = new bitcoinjs.Transaction()
     const network = bitcoinjsNetwork(account.network)
@@ -848,18 +862,18 @@ function PreviewTransaction() {
         : legacyEstimateTransactionSize(inputs.size, outputs.length)
 
     const vin = Array.from(inputs.values()).map((input: Utxo) => ({
+      label: input.label || '',
       previousOutput: { txid: input.txid, vout: input.vout },
-      value: input.value,
-      label: input.label || ''
+      value: input.value
     }))
 
     const vout = outputs.map((output: Output) => ({
       address: output.to,
-      value: output.amount,
-      label: output.label || ''
+      label: output.label || '',
+      value: output.amount
     }))
 
-    return { id: transactionId, size, vsize, vin, vout } as never as Transaction
+    return { id: transactionId, size, vin, vout, vsize } as never as Transaction
   }, [inputs, outputs, transactionId])
 
   useEffect(() => {
@@ -872,7 +886,9 @@ function PreviewTransaction() {
     if (psbt && txBuilderResult?.txDetails?.txid) {
       setTransactionId(txBuilderResult.txDetails.txid)
     }
-    if (psbt) return
+    if (psbt) {
+      return
+    }
 
     if (txBuilderResult?.txDetails?.txid) {
       setTransactionId(txBuilderResult.txDetails.txid)
@@ -896,10 +912,10 @@ function PreviewTransaction() {
         const transaction = await buildTransaction(
           wallet,
           {
-            inputs: inputArray,
-            outputs: outputArray,
             fee,
-            options: { rbf }
+            inputs: inputArray,
+            options: { rbf },
+            outputs: outputArray
           },
           network as Network
         )
@@ -934,7 +950,9 @@ function PreviewTransaction() {
   // Separate effect to validate addresses and show errors
   // Only validate when we have a complete transaction (not during editing)
   useEffect(() => {
-    if (!account || !outputs.length || !txBuilderResult) return
+    if (!account || !outputs.length || !txBuilderResult) {
+      return
+    }
 
     const network = bitcoinjsNetwork(account.network)
 
@@ -1052,7 +1070,9 @@ function PreviewTransaction() {
             bbqrChunks = []
           }
 
-          if (!isMounted) return
+          if (!isMounted) {
+            return
+          }
 
           // Clear the buffer to help garbage collection
           psbtBuffer.fill(0)
@@ -1101,7 +1121,9 @@ function PreviewTransaction() {
             )
           }
 
-          if (!isMounted) return
+          if (!isMounted) {
+            return
+          }
 
           setQrChunks(bbqrChunks)
           setUrChunks(urFragments)
@@ -1294,10 +1316,10 @@ function PreviewTransaction() {
       const newChunks = new Map([[current, content]])
 
       setScanProgress({
-        type,
-        total,
+        chunks: newChunks,
         scanned: newScanned,
-        chunks: newChunks
+        total,
+        type
       })
 
       return
@@ -1314,10 +1336,10 @@ function PreviewTransaction() {
     const newChunks = new Map(scanProgress.chunks).set(current, content)
 
     setScanProgress({
-      type,
-      total,
+      chunks: newChunks,
       scanned: newScanned,
-      chunks: newChunks
+      total,
+      type
     })
 
     // For UR format, use fountain encoding logic
@@ -1376,46 +1398,43 @@ function PreviewTransaction() {
       toast.success(
         `UR: Collected ${newScanned.size} fragments (need ~${targetForDisplay})`
       )
-    } else {
-      // For RAW and BBQR, wait for all chunks as before
-      if (newScanned.size === total) {
-        // All chunks collected, assemble the final result
-        const assembledData = await assembleMultiPartQR(type, newChunks)
+    } else if (newScanned.size === total) {
+      // All chunks collected, assemble the final result
+      const assembledData = await assembleMultiPartQR(type, newChunks)
 
-        if (assembledData) {
-          // Process the assembled data (convert PSBT to final transaction if needed)
-          const finalData = processScannedData(assembledData)
+      if (assembledData) {
+        // Process the assembled data (convert PSBT to final transaction if needed)
+        const finalData = processScannedData(assembledData)
 
-          // Use hook's updateSignedPsbt function
-          updateSignedPsbt(index ?? -1, finalData)
+        // Use hook's updateSignedPsbt function
+        updateSignedPsbt(index ?? -1, finalData)
 
-          setCameraModalVisible(false)
-          resetScanProgress()
+        setCameraModalVisible(false)
+        resetScanProgress()
 
-          // Check if the result is still a PSBT (not finalized)
-          if (
-            finalData.toLowerCase().startsWith('70736274ff') ||
-            finalData.startsWith('cHNidP')
-          ) {
-            toast.success(
-              `PSBT assembled successfully (${total} parts). Note: PSBT may need additional signatures to finalize.`
-            )
-          } else {
-            toast.success(
-              `Successfully assembled final transaction from ${total} parts`
-            )
-          }
+        // Check if the result is still a PSBT (not finalized)
+        if (
+          finalData.toLowerCase().startsWith('70736274ff') ||
+          finalData.startsWith('cHNidP')
+        ) {
+          toast.success(
+            `PSBT assembled successfully (${total} parts). Note: PSBT may need additional signatures to finalize.`
+          )
         } else {
-          toast.error(t('camera.error.assembleFailed'))
-          resetScanProgress()
+          toast.success(
+            `Successfully assembled final transaction from ${total} parts`
+          )
         }
       } else {
-        toast.success(
-          `Scanned part ${current + 1} of ${total} (${
-            newScanned.size
-          }/${total} complete)`
-        )
+        toast.error(t('camera.error.assembleFailed'))
+        resetScanProgress()
       }
+    } else {
+      toast.success(
+        `Scanned part ${current + 1} of ${total} (${
+          newScanned.size
+        }/${total} complete)`
+      )
     }
   }
 
@@ -1536,13 +1555,13 @@ function PreviewTransaction() {
   }
 
   // Handle seed QR scanning for dropped seeds
-  const handleSeedQRScanned = async (index: number) => {
+  const handleSeedQRScanned = (index: number) => {
     setCameraModalVisible(true)
     setCurrentCosignerIndex(index)
   }
 
   // Handle seed words modal for dropped seeds
-  const handleSeedWordsScanned = async (index: number) => {
+  const handleSeedWordsScanned = (index: number) => {
     setCurrentCosignerIndex(index)
     setWordCountModalVisible(true)
   }
@@ -1621,7 +1640,7 @@ function PreviewTransaction() {
     return hasEnough
   }
 
-  const combineAndFinalizeMultisigPSBTs = async () => {
+  const combineAndFinalizeMultisigPSBTs = () => {
     try {
       const originalPsbtBase64 = txBuilderResult?.psbt?.base64
       if (!originalPsbtBase64) {
@@ -1645,7 +1664,7 @@ function PreviewTransaction() {
       // Step 2: Combine all signed PSBTs with the original
       const combinedPsbt = originalPsbt
 
-      for (let i = 0; i < collectedSignedPsbts.length; i++) {
+      for (let i = 0; i < collectedSignedPsbts.length; i += 1) {
         const signedPsbtBase64 = collectedSignedPsbts[i]
 
         try {
@@ -1673,7 +1692,7 @@ function PreviewTransaction() {
       try {
         combinedPsbt.finalizeAllInputs()
       } catch {
-        for (let i = 0; i < combinedPsbt.data.inputs.length; i++) {
+        for (let i = 0; i < combinedPsbt.data.inputs.length; i += 1) {
           try {
             combinedPsbt.finalizeInput(i)
           } catch {
@@ -1729,8 +1748,8 @@ function PreviewTransaction() {
   }, [nfcModalVisible, nfcScanModalVisible, nfcPulseAnim])
 
   // Cleanup effect when component unmounts
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       // Cancel any running animations
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current)
@@ -1740,16 +1759,21 @@ function PreviewTransaction() {
       setQrChunks([])
       setUrChunks([])
       setRawPsbtChunks([])
-    }
-  }, [])
+    },
+    []
+  )
 
   // Decrypt keys to check for seed existence
   useEffect(() => {
     async function decryptKeys() {
-      if (!account || !account.keys || account.keys.length === 0) return
+      if (!account || !account.keys || account.keys.length === 0) {
+        return
+      }
 
       const pin = await getItem(PIN_KEY)
-      if (!pin) return
+      if (!pin) {
+        return
+      }
 
       try {
         const decryptedKeysData = await Promise.all(
@@ -1768,9 +1792,8 @@ function PreviewTransaction() {
                 ...key,
                 secret: decryptedSecret
               }
-            } else {
-              return key
             }
+            return key
           })
         )
 
@@ -1832,13 +1855,17 @@ function PreviewTransaction() {
         }
         return bbqrValue || 'NO_CHUNKS'
       }
+      default:
+        return 'NO_DATA'
     }
   }
 
   // Helper function to check if data would be too large for single QR code
   const isDataTooLargeForSingleQR = () => {
     const base64Psbt = txBuilderResult?.psbt?.base64
-    if (!base64Psbt) return false
+    if (!base64Psbt) {
+      return false
+    }
 
     // Check the actual chunk sizes for the current display mode
     let maxChunkSize = 0
@@ -1858,6 +1885,8 @@ function PreviewTransaction() {
         if (qrChunks.length > 0) {
           maxChunkSize = Math.max(...qrChunks.map((c) => c.length))
         }
+        break
+      default:
         break
     }
 
@@ -1917,10 +1946,14 @@ function PreviewTransaction() {
               total: qrChunks.length
             })
           : t('transaction.preview.singleChunk')
+      default:
+        return ''
     }
   }
 
-  if (!id || !account) return <Redirect href="/" />
+  if (!id || !account) {
+    return <Redirect href="/" />
+  }
 
   // Calculate responsive dimensions
   const qrSize = Math.min(screenWidth * 0.9, screenHeight * 0.5, 700) // 80% of screen width, max 500px
@@ -2012,7 +2045,7 @@ function PreviewTransaction() {
                           totalKeys={account.keys?.length || 0}
                           keyDetails={key}
                           transactionId={transactionId}
-                          txBuilderResult={txBuilderResult}
+                          txBuilderResult={txBuilderResult!}
                           serializedPsbt={serializedPsbt}
                           signedPsbt={signedPsbts.get(index) || ''}
                           setSignedPsbt={(psbt: string) =>
@@ -2181,15 +2214,15 @@ function PreviewTransaction() {
                     </SSText>
                     <View
                       style={{
-                        minHeight: 200,
-                        maxHeight: 600,
-                        paddingTop: 12,
-                        paddingBottom: 12,
-                        paddingHorizontal: 12,
                         backgroundColor: Colors.gray[900],
+                        borderColor: Colors.gray[700],
                         borderRadius: 8,
                         borderWidth: 1,
-                        borderColor: Colors.gray[700]
+                        maxHeight: 600,
+                        minHeight: 200,
+                        paddingBottom: 12,
+                        paddingHorizontal: 12,
+                        paddingTop: 12
                       }}
                     >
                       <ScrollView
@@ -2199,9 +2232,9 @@ function PreviewTransaction() {
                       >
                         <SSText
                           style={{
+                            color: Colors.white,
                             fontFamily: Typography.sfProMono,
                             fontSize: 12,
-                            color: Colors.white,
                             lineHeight: 18
                           }}
                         >
@@ -2269,9 +2302,9 @@ function PreviewTransaction() {
           <SSVStack
             gap="xs"
             style={{
+              alignItems: 'center',
               flex: 1,
               justifyContent: 'center',
-              alignItems: 'center',
               padding: containerPadding
             }}
           >
@@ -2286,12 +2319,12 @@ function PreviewTransaction() {
               <>
                 <View
                   style={{
-                    padding: 5,
-                    backgroundColor: Colors.white,
                     alignItems: 'center',
+                    backgroundColor: Colors.white,
+                    borderRadius: 2,
                     marginBottom: 0,
-                    width: qrSize + 10,
-                    borderRadius: 2
+                    padding: 5,
+                    width: qrSize + 10
                   }}
                 >
                   <SSQRCode
@@ -2303,7 +2336,7 @@ function PreviewTransaction() {
                 </View>
                 <SSHStack
                   gap="xs"
-                  style={{ width: screenWidth * 0.92, marginBottom: 10 }}
+                  style={{ marginBottom: 10, width: screenWidth * 0.92 }}
                 >
                   <SSButton
                     variant={
@@ -2370,13 +2403,13 @@ function PreviewTransaction() {
                   size="sm"
                   type="mono"
                   style={{
-                    padding: 5,
-                    width: screenWidth * 0.92,
-                    height: 80,
                     backgroundColor: Colors.gray[900],
                     borderRadius: 2,
+                    height: 80,
+                    padding: 5,
+                    paddingHorizontal: 20,
                     textAlignVertical: 'center',
-                    paddingHorizontal: 20
+                    width: screenWidth * 0.92
                   }}
                 >
                   {getQRValue().length > 100
@@ -2385,7 +2418,7 @@ function PreviewTransaction() {
                 </SSText>
                 <SSHStack
                   justifyEvenly
-                  style={{ width: screenWidth * 0.9, marginBottom: 20 }}
+                  style={{ marginBottom: 20, width: screenWidth * 0.9 }}
                 >
                   <SSVStack gap="xs">
                     <SSText color="white" size="sm" center>
@@ -2487,7 +2520,7 @@ function PreviewTransaction() {
                 handleQRCodeScanned(res.raw, currentCosignerIndex ?? undefined)
               }}
               barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-              style={{ width: 340, height: 340 }}
+              style={{ height: 340, width: 340 }}
             />
 
             {/* Show progress if scanning multi-part QR */}
@@ -2517,21 +2550,21 @@ function PreviewTransaction() {
                           </SSText>
                           <View
                             style={{
-                              width: 300,
-                              height: 4,
                               backgroundColor: Colors.gray[700],
-                              borderRadius: 2
+                              borderRadius: 2,
+                              height: 4,
+                              width: 300
                             }}
                           >
                             <View
                               style={{
-                                width:
-                                  (scanProgress.scanned.size / displayTarget) *
-                                  300,
+                                backgroundColor: Colors.white,
+                                borderRadius: 2,
                                 height: 4,
                                 maxWidth: 300,
-                                backgroundColor: Colors.white,
-                                borderRadius: 2
+                                width:
+                                  (scanProgress.scanned.size / displayTarget) *
+                                  300
                               }}
                             />
                           </View>
@@ -2549,27 +2582,27 @@ function PreviewTransaction() {
                     </SSText>
                     <View
                       style={{
-                        width: 300,
-                        height: 4,
                         backgroundColor: Colors.gray[700],
-                        borderRadius: 2
+                        borderRadius: 2,
+                        height: 4,
+                        width: 300
                       }}
                     >
                       <View
                         style={{
-                          width:
-                            (scanProgress.scanned.size / scanProgress.total) *
-                            300,
+                          backgroundColor: Colors.white,
+                          borderRadius: 2,
                           height: 4,
                           maxWidth: scanProgress.total * 300,
-                          backgroundColor: Colors.white,
-                          borderRadius: 2
+                          width:
+                            (scanProgress.scanned.size / scanProgress.total) *
+                            300
                         }}
                       />
                     </View>
                     <SSText color="muted" size="sm" center>
                       {`Scanned parts: ${Array.from(scanProgress.scanned)
-                        .sort((a, b) => a - b)
+                        .toSorted((a, b) => a - b)
                         .map((n) => n + 1)
                         .join(', ')}`}
                     </SSText>
@@ -2604,7 +2637,9 @@ function PreviewTransaction() {
           onClose={() => {
             setNfcModalVisible(false)
             setNfcError(null)
-            if (isEmitting) cancelNFCEmitterScan()
+            if (isEmitting) {
+              cancelNFCEmitterScan()
+            }
           }}
         >
           <SSVStack itemsCenter gap="lg">
@@ -2629,7 +2664,9 @@ function PreviewTransaction() {
           fullOpacity
           onClose={() => {
             setNfcScanModalVisible(false)
-            if (isReading) cancelNFCScan()
+            if (isReading) {
+              cancelNFCScan()
+            }
           }}
         >
           <SSVStack itemsCenter gap="lg">
@@ -2693,7 +2730,7 @@ function PreviewTransaction() {
             setCurrentCosignerIndex(null)
           }}
         >
-          <ScrollView style={{ width: '100%', maxWidth: 400, maxHeight: 600 }}>
+          <ScrollView style={{ maxHeight: 600, maxWidth: 400, width: '100%' }}>
             <View style={{ paddingHorizontal: 16 }}>
               <SSVStack gap="lg">
                 <SSText center uppercase>
@@ -2741,8 +2778,8 @@ function PreviewTransaction() {
 }
 
 const styles = StyleSheet.create({
-  mainLayout: { paddingTop: 0, paddingBottom: 20 },
-  modalStack: { marginVertical: 32, width: '100%', paddingHorizontal: 32 }
+  mainLayout: { paddingBottom: 20, paddingTop: 0 },
+  modalStack: { marginVertical: 32, paddingHorizontal: 32, width: '100%' }
 })
 
 export default PreviewTransaction

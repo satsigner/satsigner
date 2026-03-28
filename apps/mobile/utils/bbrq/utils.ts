@@ -25,7 +25,7 @@ export function base64ToBytes(base64: string) {
   const len = binaryString.length
   const bytes = new Uint8Array(len)
 
-  for (let i = 0; i < len; i++) {
+  for (let i = 0; i < len; i += 1) {
     bytes[i] = binaryString.charCodeAt(i)
   }
 
@@ -42,7 +42,7 @@ export function intToBase36(n: number) {
   return n.toString(36).toUpperCase().padStart(2, '0')
 }
 
-export async function fileToBytes(file: File) {
+export function fileToBytes(file: File) {
   // read a File's contents and return as a Uint8Array
 
   const reader = new FileReader()
@@ -92,11 +92,11 @@ export function validateSplitOptions(opts: SplitOptions) {
   // ensure all split options are valid, filling in defaults as needed
 
   const allOpts = {
-    minVersion: opts.minVersion ?? 5,
+    encoding: opts.encoding ?? 'Z',
+    maxSplit: opts.maxSplit ?? 1295,
     maxVersion: opts.maxVersion ?? 40,
     minSplit: opts.minSplit ?? 1,
-    maxSplit: opts.maxSplit ?? 1295,
-    encoding: opts.encoding ?? 'Z'
+    minVersion: opts.minVersion ?? 5
   } as const
 
   if (
@@ -149,10 +149,10 @@ export function encodeData(raw: Uint8Array, encoding?: Encoding) {
 
   if (encoding === 'H') {
     return {
-      encoding,
       encoded: raw
         .reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), '')
-        .toUpperCase()
+        .toUpperCase(),
+      encoding
     }
   }
 
@@ -170,9 +170,9 @@ export function encodeData(raw: Uint8Array, encoding?: Encoding) {
   }
 
   return {
-    encoding,
     // base32 without padding
-    encoded: base32.encode(raw).replace(/=*$/, '')
+    encoded: base32.encode(raw).replace(/=*$/, ''),
+    encoding
   }
 }
 

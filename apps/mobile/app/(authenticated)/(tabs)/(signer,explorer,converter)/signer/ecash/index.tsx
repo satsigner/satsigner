@@ -60,8 +60,8 @@ export default function EcashLanding() {
   const contentHandler = useContentHandler({
     context: 'ecash',
     onContentScanned: ecashContentHandler.handleContentScanned,
-    onSend: ecashContentHandler.handleSend,
-    onReceive: ecashContentHandler.handleReceive
+    onReceive: ecashContentHandler.handleReceive,
+    onSend: ecashContentHandler.handleSend
   })
 
   const totalBalance = proofs.reduce((sum, proof) => sum + proof.amount, 0)
@@ -70,9 +70,6 @@ export default function EcashLanding() {
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>{t('navigation.item.ecash')}</SSText>
-          ),
           headerRight: () => (
             <SSIconButton
               onPress={handleSettingsPress}
@@ -80,6 +77,9 @@ export default function EcashLanding() {
             >
               <SSIconECash height={16} width={16} />
             </SSIconButton>
+          ),
+          headerTitle: () => (
+            <SSText uppercase>{t('navigation.item.ecash')}</SSText>
           )
         }}
       />
@@ -218,24 +218,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 12
   },
-  statusContainer: {
-    paddingBottom: 20,
-    alignItems: 'center'
-  },
-  moreTransactions: {
-    textAlign: 'center',
-    paddingVertical: 8
+  connectButton: {
+    maxWidth: 280,
+    width: '100%'
   },
   errorText: {
     paddingTop: 4,
     textAlign: 'center'
   },
-  noMintContainer: {
-    paddingVertical: 60,
-    paddingHorizontal: 20
+  moreTransactions: {
+    paddingVertical: 8,
+    textAlign: 'center'
   },
-  connectButton: {
-    width: '100%',
-    maxWidth: 280
+  noMintContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 60
+  },
+  statusContainer: {
+    alignItems: 'center',
+    paddingBottom: 20
   }
 })

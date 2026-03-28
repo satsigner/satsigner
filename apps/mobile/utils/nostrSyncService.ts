@@ -46,13 +46,13 @@ function emitStatus(
 ): void {
   const event: SyncStatusEvent = {
     accountId,
-    status,
-    lastError
+    lastError,
+    status
   }
   useNostrStore.getState().setSyncStatus(accountId, {
-    status,
     lastError,
-    lastSyncAt: status === 'syncing' ? Date.now() : undefined
+    lastSyncAt: status === 'syncing' ? Date.now() : undefined,
+    status
   })
   emitter.emit('status', event)
 }
@@ -160,7 +160,9 @@ async function createDataExchangeSubscription(
 
 async function cleanupSubscription(accountId: string): Promise<void> {
   const handle = subscriptions.get(accountId)
-  if (!handle) return
+  if (!handle) {
+    return
+  }
 
   subscriptions.delete(accountId)
   useNostrStore.getState().setSyncing(accountId, false)
@@ -169,15 +171,19 @@ async function cleanupSubscription(accountId: string): Promise<void> {
 
   if (handle.protocolApi) {
     cleanupPromises.push(
-      handle.protocolApi.flushQueue().catch(() => {}),
-      handle.protocolApi.closeAllSubscriptions().catch(() => {})
+      handle.protocolApi.flushQueue().catch(() => {
+        /* intentionally swallowed */
+      }),
+      Promise.resolve(handle.protocolApi.closeAllSubscriptions())
     )
   }
 
   if (handle.dataExchangeApi) {
     cleanupPromises.push(
-      handle.dataExchangeApi.flushQueue().catch(() => {}),
-      handle.dataExchangeApi.closeAllSubscriptions().catch(() => {})
+      handle.dataExchangeApi.flushQueue().catch(() => {
+        /* intentionally swallowed */
+      }),
+      Promise.resolve(handle.dataExchangeApi.closeAllSubscriptions())
     )
   }
 
@@ -191,11 +197,21 @@ async function doStartSync(
   const { autoSync, commonNsec, commonNpub, deviceNsec, deviceNpub, relays } =
     account.nostr || {}
 
-  if (!autoSync) return
-  if (!relays?.length) return
-  if (!commonNsec || !commonNpub || !deviceNsec || !deviceNpub) return
-  if (isSubscribingMap.get(account.id)) return
-  if (subscriptions.has(account.id)) return
+  if (!autoSync) {
+    return
+  }
+  if (!relays?.length) {
+    return
+  }
+  if (!commonNsec || !commonNpub || !deviceNsec || !deviceNpub) {
+    return
+  }
+  if (isSubscribingMap.get(account.id)) {
+    return
+  }
+  if (subscriptions.has(account.id)) {
+    return
+  }
 
   isSubscribingMap.set(account.id, true)
   emitStatus(account.id, 'connecting')
@@ -212,9 +228,9 @@ async function doStartSync(
     ])
 
     subscriptions.set(account.id, {
-      protocolApi,
+      accountId: account.id,
       dataExchangeApi,
-      accountId: account.id
+      protocolApi
     })
 
     retryAttempts.delete(account.id)
@@ -234,8 +250,12 @@ async function doFetchOnce(
   const { autoSync, commonNsec, commonNpub, deviceNsec, deviceNpub, relays } =
     account.nostr || {}
 
-  if (!autoSync) return
-  if (!relays?.length || !commonNsec || !commonNpub) return
+  if (!autoSync) {
+    return
+  }
+  if (!relays?.length || !commonNsec || !commonNpub) {
+    return
+  }
 
   emitStatus(account.id, 'syncing')
 
@@ -259,13 +279,15 @@ async function doFetchOnce(
       useNostrStore.getState().getLastDataExchangeEOSE(account.id) || 0
 
     let resolveProtocolEose!: () => void
-    const protocolEosePromise = new Promise<void>(
-      (resolve) => (resolveProtocolEose = resolve)
-    )
+    const protocolEosePromise = new Promise<void>((resolve) => {
+      resolveProtocolEose = resolve
+    })
 
     let resolveDataExchangeEose!: () => void
     const dataExchangeEosePromise = dataExchangeApi
-      ? new Promise<void>((resolve) => (resolveDataExchangeEose = resolve))
+      ? new Promise<void>((resolve) => {
+          resolveDataExchangeEose = resolve
+        })
       : Promise.resolve()
 
     await Promise.all([
@@ -304,7 +326,9 @@ async function doFetchOnce(
     ])
 
     const timeout = (ms: number) =>
-      new Promise<void>((resolve) => setTimeout(resolve, ms))
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, ms)
+      })
 
     await Promise.all([
       Promise.race([protocolEosePromise, timeout(EOSE_TIMEOUT_MS)]),
@@ -372,7 +396,9 @@ function restartSync(
   onLoadingChange?: (loading: boolean) => void
 ): void {
   cleanupSubscription(account.id)
-    .catch(() => {})
+    .catch(() => {
+      /* intentionally swallowed */
+    })
     .finally(() => {
       cancelRetry(account.id)
       emitStatus(account.id, 'idle')
@@ -385,7 +411,9 @@ function stopAll(): void {
   for (const accountId of accountIds) {
     stopSync(accountId)
   }
-  retryTimers.forEach((timer) => clearTimeout(timer))
+  for (const timer of retryTimers.values()) {
+    clearTimeout(timer)
+  }
   retryTimers.clear()
   retryAttempts.clear()
   isSubscribingMap.clear()

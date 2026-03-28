@@ -35,7 +35,7 @@ export default function Warning() {
           <SSVStack itemsCenter>
             <Image
               source={require('@/assets/icon.png')}
-              style={{ width: 64, height: 64 }}
+              style={{ height: 64, width: 64 }}
             />
 
             <SSVStack gap="xs" itemsCenter>
@@ -51,7 +51,7 @@ export default function Warning() {
                 size="5xl"
                 color="white"
                 uppercase
-                style={{ lineHeight: 35, fontWeight: '300', letterSpacing: 2 }}
+                style={{ fontWeight: '300', letterSpacing: 2, lineHeight: 35 }}
               >
                 {t('common.warning')}
               </SSText>

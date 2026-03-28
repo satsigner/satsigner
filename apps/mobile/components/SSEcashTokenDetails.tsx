@@ -119,53 +119,53 @@ function SSEcashTokenDetails({
 }
 
 const styles = StyleSheet.create({
-  tokenDetails: {
-    marginTop: 16,
-    marginBottom: 16
+  amountContainer: {
+    alignItems: 'baseline',
+    flex: 1,
+    justifyContent: 'flex-end'
   },
-  detailsContent: {
-    gap: 16
-  },
-  detailSection: {
-    gap: 12
+  detailLabel: {
+    fontSize: 14,
+    minWidth: 100
   },
   detailRow: {
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap'
+    flexWrap: 'wrap',
+    justifyContent: 'space-between'
   },
-  detailLabel: {
-    minWidth: 100,
-    fontSize: 14
+  detailSection: {
+    gap: 12
   },
   detailValue: {
     flex: 1,
     textAlign: 'right'
   },
-  amountContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'baseline'
-  },
-  proofRow: {
-    alignItems: 'flex-start',
-    justifyContent: 'space-between'
-  },
-  proofContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'baseline',
-    gap: 8
-  },
-  proofId: {
-    opacity: 0.8,
-    fontSize: 10,
-    fontFamily: Typography.sfProMono
+  detailsContent: {
+    gap: 16
   },
   monospaceInput: {
     fontFamily: Typography.sfProMono,
     fontSize: 14,
     letterSpacing: 0.5
+  },
+  proofContainer: {
+    alignItems: 'baseline',
+    flex: 1,
+    gap: 8,
+    justifyContent: 'flex-end'
+  },
+  proofId: {
+    fontFamily: Typography.sfProMono,
+    fontSize: 10,
+    opacity: 0.8
+  },
+  proofRow: {
+    alignItems: 'flex-start',
+    justifyContent: 'space-between'
+  },
+  tokenDetails: {
+    marginBottom: 16,
+    marginTop: 16
   }
 })
 

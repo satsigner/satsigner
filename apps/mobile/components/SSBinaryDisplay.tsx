@@ -22,9 +22,9 @@ function SSBinaryDisplay({ binary, ...props }: SSBinaryDisplayProps) {
 
 const styles = StyleSheet.create({
   container: {
+    alignItems: 'center',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    alignItems: 'center',
     width: 'auto'
   }
 })

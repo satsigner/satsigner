@@ -39,7 +39,9 @@ export default function ExportPubkeys() {
   const [rawPubkeys, setRawPubkeys] = useState<string[]>([])
 
   useEffect(() => {
-    if (!rawPubkeys.length) return
+    if (!rawPubkeys.length) {
+      return
+    }
     const formattedPubkeys =
       pubkeyFormat === 'xpub'
         ? rawPubkeys
@@ -49,7 +51,9 @@ export default function ExportPubkeys() {
 
   useEffect(() => {
     async function getPubkeys() {
-      if (!account) return
+      if (!account) {
+        return
+      }
       setIsLoading(true)
       try {
         const isImportAddress = account.keys[0].creationType === 'importAddress'
@@ -60,18 +64,19 @@ export default function ExportPubkeys() {
 
         // For each key in the account, get its public key from the wallet data
         const pubkeys = await Promise.all(
-          tmpAccount.keys.map(async (key) => {
+          tmpAccount.keys.map((key) => {
             if (isImportAddress) {
               // For watch-only accounts, we can get the extended public key from the secret
               return key.secret.extendedPublicKey || 'N/A'
-            } else {
-              // For regular accounts, we need to extract the extended public key from the descriptor
-              if (!walletData?.externalDescriptor) return 'N/A'
-              const extendedKey = getExtendedKeyFromDescriptor(
-                walletData.externalDescriptor
-              )
-              return extendedKey || 'N/A'
             }
+            // For regular accounts, we need to extract the extended public key from the descriptor
+            if (!walletData?.externalDescriptor) {
+              return 'N/A'
+            }
+            const extendedKey = getExtendedKeyFromDescriptor(
+              walletData.externalDescriptor
+            )
+            return extendedKey || 'N/A'
           })
         )
 
@@ -87,25 +92,30 @@ export default function ExportPubkeys() {
     getPubkeys()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function exportPubkeys() {
-    if (!account) return
+  function exportPubkeys() {
+    if (!account) {
+      return
+    }
     const date = new Date().toISOString().slice(0, -5)
     const ext = 'txt'
     const filename = `PublicKeys_${accountId}_${date}.${ext}`
     shareFile({
-      filename,
-      fileContent: exportContent,
       dialogTitle: t('export.file.save'),
+      fileContent: exportContent,
+      filename,
       mimeType: `text/plain`
     })
   }
 
-  if (!account) return <Redirect href="/" />
+  if (!account) {
+    return <Redirect href="/" />
+  }
 
   return (
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
@@ -113,8 +123,7 @@ export default function ExportPubkeys() {
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
               )}
             </SSHStack>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <SSVStack style={{ padding: 20 }}>
@@ -129,7 +138,7 @@ export default function ExportPubkeys() {
           </View>
         )}
         {!isLoading && rawPubkeys.length > 0 && (
-          <SSHStack style={{ justifyContent: 'center', gap: 10 }}>
+          <SSHStack style={{ gap: 10, justifyContent: 'center' }}>
             <SSButton
               label={t('account.export.xpubFormat')}
               variant={pubkeyFormat === 'xpub' ? 'outline' : 'subtle'}
@@ -157,8 +166,8 @@ export default function ExportPubkeys() {
             <View
               style={{
                 backgroundColor: 'white',
-                padding: 20,
-                borderRadius: 10
+                borderRadius: 10,
+                padding: 20
               }}
             >
               <SSQRCode
@@ -174,9 +183,9 @@ export default function ExportPubkeys() {
           <>
             <View
               style={{
-                padding: 10,
                 backgroundColor: Colors.gray[950],
-                borderRadius: 5
+                borderRadius: 5,
+                padding: 10
               }}
             >
               <SSText color="white" size="lg" type="mono">
@@ -208,9 +217,9 @@ export default function ExportPubkeys() {
 
 const styles = StyleSheet.create({
   electrumWarning: {
-    borderWidth: 1,
     borderColor: Colors.warning,
     borderRadius: 5,
+    borderWidth: 1,
     padding: 10
   },
   electrumWarningText: {

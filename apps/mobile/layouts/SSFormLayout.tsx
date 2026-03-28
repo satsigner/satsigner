@@ -31,8 +31,8 @@ function FormLayout({ children }: SSFormLayoutProps) {
 const styles = StyleSheet.create({
   containerForm: {
     flexDirection: 'column',
-    width: '100%',
-    gap: Layout.form.gap
+    gap: Layout.form.gap,
+    width: '100%'
   },
   containerFormItem: {
     flexDirection: 'column',

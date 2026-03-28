@@ -49,8 +49,8 @@ function SSPinInput({
   useEffect(() => {
     KeyEvent.onKeyUpListener((keyEvent: KeyEventProps) => {
       // key code is from ASCII TABLE
-      const keyCode = keyEvent.keyCode
-      let pressedKey = keyEvent.pressedKey
+      const { keyCode } = keyEvent
+      let { pressedKey } = keyEvent
 
       if (
         keyCode === KEY_CODE_DELETE ||
@@ -79,17 +79,27 @@ function SSPinInput({
     newPin[index] = text
     setPin(newPin)
 
-    if (text !== '') setCurrentIndex(index + 1)
+    if (text !== '') {
+      setCurrentIndex(index + 1)
+    }
 
-    if (text === '') return
+    if (text === '') {
+      return
+    }
 
-    if (index + 1 < PIN_SIZE) inputRefs.current[index + 1]?.focus()
+    if (index + 1 < PIN_SIZE) {
+      inputRefs.current[index + 1]?.focus()
+    }
 
-    if (index === PIN_SIZE - 1) handleLastPin(newPin)
+    if (index === PIN_SIZE - 1) {
+      handleLastPin(newPin)
+    }
   }
 
   function handleBackspace(index: number) {
-    if (hasJustDeletedChar) return
+    if (hasJustDeletedChar) {
+      return
+    }
     const newPin = [...pin]
     setIsBackspace(true)
     const previousPinIndex = index - 1
@@ -123,7 +133,9 @@ function SSPinInput({
 
   function handleLastPin(pin: string[]) {
     const finalPin = pin.join('')
-    if (finalPin.length !== PIN_SIZE) return
+    if (finalPin.length !== PIN_SIZE) {
+      return
+    }
     setIsBackspace(false)
     onFillEnded?.(finalPin)
     Keyboard.dismiss()
@@ -158,7 +170,7 @@ function SSPinInput({
 
   return (
     <SSHStack gap="sm">
-      {[...Array(PIN_SIZE)].map((_, index) => (
+      {Array.from({ length: PIN_SIZE }).map((_, index) => (
         <TextInput
           key={index}
           ref={(input) => inputRefs.current.push(input as TextInput)}
@@ -179,13 +191,13 @@ function SSPinInput({
 
 const styles = StyleSheet.create({
   pinInputBase: {
-    borderRadius: Sizes.pinInput.borderRadius,
-    height: Sizes.pinInput.height,
-    width: Sizes.pinInput.width,
-    textAlign: 'center',
     backgroundColor: Colors.gray[850],
+    borderRadius: Sizes.pinInput.borderRadius,
     color: Colors.white,
-    fontSize: Sizes.textInput.fontSize.default
+    fontSize: Sizes.textInput.fontSize.default,
+    height: Sizes.pinInput.height,
+    textAlign: 'center',
+    width: Sizes.pinInput.width
   }
 })
 

@@ -32,8 +32,8 @@ function TransactionLabel() {
     const singleLabelData: Label = {
       label,
       ref: txid!,
-      type: 'tx',
-      spendable: true
+      spendable: true,
+      type: 'tx'
     }
 
     if (updatedAccount?.nostr?.autoSync) {
@@ -42,7 +42,9 @@ function TransactionLabel() {
     router.back()
   }
 
-  if (!tx || !accountId) return <Redirect href="/" />
+  if (!tx || !accountId) {
+    return <Redirect href="/" />
+  }
 
   return (
     <ScrollView>

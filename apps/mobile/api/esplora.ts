@@ -11,12 +11,12 @@ export default class Esplora {
   async _call(params: string, method: 'GET' | 'POST' = 'GET', body?: string) {
     try {
       const response = await fetch(this.esploraUrl + params, {
-        method,
+        body,
         cache: 'no-cache',
         headers: {
           'Content-Type': 'text/plain'
         },
-        body
+        method
       })
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`)
@@ -29,33 +29,32 @@ export default class Esplora {
         return await response.json()
       } else if (contentType.includes('application/octet-stream')) {
         return await response.arrayBuffer()
-      } else {
-        // text/plain, text/html, missing content-type, etc. — return as text
-        return await response.text()
       }
+      // text/plain, text/html, missing content-type, etc. — return as text
+      return await response.text()
     } catch (e) {
-      throw new Error(getVerboseErrorMessage(e))
+      throw new Error(getVerboseErrorMessage(e), { cause: e })
     }
   }
 
   async getTxInfo(txid: string) {
-    return (await this._call('/tx/' + txid)) as EsploraTx
+    return (await this._call(`/tx/${txid}`)) as EsploraTx
   }
 
   async getTxStatus(txid: string) {
-    return await this._call('/tx/' + txid + '/status')
+    return await this._call(`/tx/${txid}/status`)
   }
 
-  async getBlockTxids(hash: string): Promise<any> {
-    return await this._call('/block/' + hash + '/txids')
+  async getBlockTxids(hash: string): Promise<string[]> {
+    return await this._call(`/block/${hash}/txids`)
   }
 
   async getTxHex(txid: string) {
-    return await this._call('/tx/' + txid + '/hex')
+    return await this._call(`/tx/${txid}/hex`)
   }
 
   async getTxRaw(txid: string) {
-    return await this._call('/tx/' + txid + '/raw')
+    return await this._call(`/tx/${txid}/raw`)
   }
 
   async broadcastTransaction(txHex: string): Promise<string> {
@@ -63,47 +62,45 @@ export default class Esplora {
     return result as string
   }
 
-  async getTxInputValues(txid: string) {
+  getTxInputValues(txid: string) {
     return this.getTxInfo(txid).then((data) =>
-      data.vin.map((input) => {
-        return {
-          previousOutput: {
-            txid: input.txid,
-            vout: input.vout
-          },
-          sequence: input.sequence,
-          scriptSig: parseHexToBytes(input.scriptsig),
-          value: input.prevout.value,
-          witness: input.witness.map(parseHexToBytes)
-        }
-      })
+      data.vin.map((input) => ({
+        previousOutput: {
+          txid: input.txid,
+          vout: input.vout
+        },
+        scriptSig: parseHexToBytes(input.scriptsig),
+        sequence: input.sequence,
+        value: input.prevout.value,
+        witness: input.witness.map(parseHexToBytes)
+      }))
     )
   }
 
   async getTxOutspends(txid: string) {
-    return (await this._call('/tx/' + txid + '/outspends')) as {
+    return (await this._call(`/tx/${txid}/outspends`)) as {
       spent: boolean
     }[]
   }
 
   async getBlockInfo(blockHash: string) {
-    return await this._call('/block/' + blockHash)
+    return await this._call(`/block/${blockHash}`)
   }
 
   async getBlockStatus(blockHash: string) {
-    return await this._call('/block/' + blockHash + '/status')
+    return await this._call(`/block/${blockHash}/status`)
   }
 
   async getBlockTransactions(blockHash: string, startIndex: number = 0) {
-    return await this._call('/block/' + blockHash + '/txs/' + startIndex)
+    return await this._call(`/block/${blockHash}/txs/${startIndex}`)
   }
 
   async getBlockTransactionIds(blockHash: string) {
-    return await this._call('/block/' + blockHash + '/txids')
+    return await this._call(`/block/${blockHash}/txids`)
   }
 
   async getBlockAtHeight(height: number) {
-    return await this._call('/block-height/' + height)
+    return await this._call(`/block-height/${height}`)
   }
 
   async getLatestBlockHash() {
@@ -115,7 +112,7 @@ export default class Esplora {
   }
 
   async getBlocks(startHeight: number) {
-    return await this._call('/blocks/' + startHeight)
+    return await this._call(`/blocks/${startHeight}`)
   }
 
   async getAddressTxs(address: string, stopAtTxids?: Set<string>) {
@@ -129,7 +126,9 @@ export default class Esplora {
     let lastPage = transactions
     while (lastPage.length >= perPage) {
       // Early stop: if every txid on this page is already known, no need to paginate further
-      if (stopAtTxids && lastPage.every((tx) => stopAtTxids.has(tx.txid))) break
+      if (stopAtTxids && lastPage.every((tx) => stopAtTxids.has(tx.txid))) {
+        break
+      }
 
       const lastTxId = transactions[transactions.length - 1].txid
       const nextPage = (await this._call(
@@ -143,13 +142,11 @@ export default class Esplora {
   }
 
   async getAddressTxsInMempool(address: string) {
-    return (await this._call(
-      '/address/' + address + '/txs/mempool'
-    )) as EsploraTx[]
+    return (await this._call(`/address/${address}/txs/mempool`)) as EsploraTx[]
   }
 
   async getAddressUtxos(address: string): Promise<EsploraUtxo[]> {
-    return await this._call('/address/' + address + '/utxo')
+    return await this._call(`/address/${address}/utxo`)
   }
 
   async getMempoolInfo() {
@@ -171,18 +168,20 @@ export default class Esplora {
   static async test(url: string, timeout: number) {
     const esploraClient = new Esplora(url)
     const fetchPromise = esploraClient.getLatestBlockHeight
-    const timeoutPromise = new Promise((_resolve, reject) =>
+    const timeoutPromise = new Promise((_resolve, reject) => {
       setTimeout(() => {
         reject(new Error('timeout'))
       }, timeout)
-    )
+    })
 
     try {
       const result = await Promise.race([fetchPromise, timeoutPromise])
-      if (result) return true
+      if (result) {
+        return true
+      }
       return false
     } catch (e) {
-      throw new Error(getVerboseErrorMessage(e))
+      throw new Error(getVerboseErrorMessage(e), { cause: e })
     }
   }
 }
@@ -215,7 +214,9 @@ const verboseErrorMessages = [
 ]
 
 function getVerboseErrorMessage(error: unknown) {
-  if (!(error instanceof Error)) return 'Unkown error'
+  if (!(error instanceof Error)) {
+    return 'Unkown error'
+  }
   for (const errorType of verboseErrorMessages) {
     if (error.message.match(errorType.error)) {
       return errorType.reason

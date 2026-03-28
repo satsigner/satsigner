@@ -7,14 +7,15 @@ import SSButton from './SSButton'
 import storybookLayoutDecorator from './SSStoryBookLayout'
 
 const meta = {
-  title: 'SSButton',
-  component: SSButton,
-  args: {
-    label: 'Satsigner',
-    variant: 'default',
-    gradientType: 'default'
-  },
   argTypes: {
+    loading: {
+      control: 'boolean',
+      description: 'Button loading'
+    },
+    uppercase: {
+      control: 'boolean',
+      description: 'Text uppercase'
+    },
     variant: {
       control: 'select',
       options: [
@@ -27,23 +28,22 @@ const meta = {
         'danger'
       ]
     },
-    loading: {
-      control: 'boolean',
-      description: 'Button loading'
-    },
     withSelect: {
       control: 'boolean',
       description: 'With select icon'
-    },
-    uppercase: {
-      control: 'boolean',
-      description: 'Text uppercase'
     }
   },
+  args: {
+    gradientType: 'default',
+    label: 'Satsigner',
+    variant: 'default'
+  },
+  component: SSButton,
   decorators: [storybookLayoutDecorator, withBackgrounds],
   parameters: {
     backgrounds: storybookBackgrounds
-  }
+  },
+  title: 'SSButton'
 } satisfies Meta<typeof SSButton>
 
 export default meta
@@ -77,14 +77,14 @@ export const Subtle: Story = {
 }
 
 export const Gradient: Story = {
-  args: {
-    variant: 'gradient'
-  },
   argTypes: {
     gradientType: {
       control: 'select',
       options: ['default', 'special']
     }
+  },
+  args: {
+    variant: 'gradient'
   }
 }
 

@@ -26,16 +26,10 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
   persist(
     (set) => ({
       currencyUnit: 'sats',
-      useZeroPadding: false,
-      showWarning: true,
-      skipSeedConfirmation: true,
       mnemonicWordList: DEFAULT_WORD_LIST,
       privacyMode: false,
       setCurrencyUnit: (currencyUnit) => {
         set({ currencyUnit })
-      },
-      setUseZeroPadding: (useZeroPadding) => {
-        set({ useZeroPadding })
       },
       setMnemonicWordList: (mnemonicWordList) => {
         set({ mnemonicWordList })
@@ -46,8 +40,14 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       setSkipSeedConfirmation: (skipSeedConfirmation) => {
         set({ skipSeedConfirmation })
       },
+      setUseZeroPadding: (useZeroPadding) => {
+        set({ useZeroPadding })
+      },
+      showWarning: true,
+      skipSeedConfirmation: true,
       togglePrivacyMode: () =>
-        set((state) => ({ privacyMode: !state.privacyMode }))
+        set((state) => ({ privacyMode: !state.privacyMode })),
+      useZeroPadding: false
     }),
     { name: 'settings-store', storage: createJSONStorage(() => mmkvStorage) }
   )

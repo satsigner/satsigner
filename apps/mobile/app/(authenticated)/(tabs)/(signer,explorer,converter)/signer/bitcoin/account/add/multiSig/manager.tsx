@@ -113,16 +113,14 @@ export default function MultiSigManager() {
             gap="none"
             style={{ paddingHorizontal: 16, paddingTop: 16 }}
           >
-            {Array.from({ length: keyCount }, (_, i) => i).map((index) => {
-              return (
-                <SSMultisigKeyControl
-                  key={index}
-                  index={index}
-                  keyCount={keyCount}
-                  keyDetails={keys[index]}
-                />
-              )
-            })}
+            {Array.from({ length: keyCount }, (_, i) => i).map((index) => (
+              <SSMultisigKeyControl
+                key={index}
+                index={index}
+                keyCount={keyCount}
+                keyDetails={keys[index]}
+              />
+            ))}
           </SSVStack>
           <SSVStack style={{ padding: 16 }}>
             <SSButton

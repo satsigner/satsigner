@@ -41,7 +41,9 @@ function SSNostrRelaysSelection() {
   )
 
   function saveChanges() {
-    if (!accountId) return
+    if (!accountId) {
+      return
+    }
     updateAccountNostr(accountId, { relays: selectedRelays })
     router.back()
   }
@@ -55,7 +57,9 @@ function SSNostrRelaysSelection() {
   }
 
   function handleAddCustomRelay() {
-    if (!customRelayUrl) return
+    if (!customRelayUrl) {
+      return
+    }
 
     const relayUrl = RELAY_PROTOCOL_PREFIX + customRelayUrl
 
@@ -155,9 +159,9 @@ const styles = StyleSheet.create({
   },
   relayInputAddOn: {
     backgroundColor: Colors.barGray,
-    paddingVertical: 14,
+    borderRadius: 2,
     paddingHorizontal: 7,
-    borderRadius: 2
+    paddingVertical: 14
   },
   relayInputContainer: {
     flexGrow: 1

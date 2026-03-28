@@ -42,7 +42,9 @@ export default function DescriptorPage() {
 
   useEffect(() => {
     async function getDescriptor() {
-      if (!keyIndex) return
+      if (!keyIndex) {
+        return
+      }
 
       setIsLoading(true)
 
@@ -151,7 +153,7 @@ export default function DescriptorPage() {
     getDescriptor()
   }, [keyIndex]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function exportDescriptor() {
+  function exportDescriptor() {
     if (!descriptor) {
       toast.error('No descriptor available')
       return
@@ -162,9 +164,9 @@ export default function DescriptorPage() {
     const ext = 'txt'
     const filename = `Descriptor_${accountData.name}_${keyName}_${date}.${ext}`
     shareFile({
-      filename,
-      fileContent: descriptor,
       dialogTitle: t('export.file.save'),
+      fileContent: descriptor,
+      filename,
       mimeType: `text/plain`
     })
   }
@@ -205,8 +207,8 @@ export default function DescriptorPage() {
             <View
               style={{
                 backgroundColor: 'white',
-                padding: 20,
-                borderRadius: 10
+                borderRadius: 10,
+                padding: 20
               }}
             >
               <SSQRCode
@@ -224,9 +226,9 @@ export default function DescriptorPage() {
           <>
             <View
               style={{
-                padding: 10,
                 backgroundColor: Colors.gray[950],
-                borderRadius: 5
+                borderRadius: 5,
+                padding: 10
               }}
             >
               <SSText color="white" size="lg" type="mono" selectable>

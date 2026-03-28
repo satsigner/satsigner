@@ -21,12 +21,11 @@ function SSNavMenu(props: SSNavMenuProps) {
   const filteredNavMenuGroups = navMenuGroups.reduce(
     (acc, group) => {
       if (group.items && Array.isArray(group.items)) {
-        const filteredItems = group.items.filter((item) => {
-          return (
+        const filteredItems = group.items.filter(
+          (item) =>
             item.platform === PLATFORM.HYBRID ||
             item.platform === currentPlatform
-          )
-        })
+        )
         if (filteredItems.length > 0) {
           acc.push({ ...group, items: filteredItems })
         }
@@ -50,16 +49,14 @@ function SSNavMenu(props: SSNavMenuProps) {
         contentContainerStyle={styles.contentContainer}
       >
         <SSVStack style={styles.vStackWrapper}>
-          {filteredNavMenuGroups.map((group, index) => {
-            return (
-              <SSVStack
-                key={`${index} - ${group.title}`}
-                style={styles.groupWrapper}
-              >
-                <SSNavMenuGroup group={group} />
-              </SSVStack>
-            )
-          })}
+          {filteredNavMenuGroups.map((group, index) => (
+            <SSVStack
+              key={`${index} - ${group.title}`}
+              style={styles.groupWrapper}
+            >
+              <SSNavMenuGroup group={group} />
+            </SSVStack>
+          ))}
         </SSVStack>
         <SSVStack style={styles.versionWrapper}>
           <SSText size="sm" color="muted" style={styles.versionText}>
@@ -73,28 +70,28 @@ function SSNavMenu(props: SSNavMenuProps) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: Colors.black
-  },
-  gradientOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '100%',
-    width: '100%',
-    zIndex: 99999,
-    shadowColor: Colors.black,
-    shadowOffset: { width: 2, height: 0 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    elevation: 5
-  },
-  groupWrapper: {
-    gap: 0
+    backgroundColor: Colors.black,
+    flex: 1
   },
   contentContainer: {
     flexGrow: 1
+  },
+  gradientOverlay: {
+    elevation: 5,
+    height: '100%',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    shadowColor: Colors.black,
+    shadowOffset: { height: 0, width: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    top: 0,
+    width: '100%',
+    zIndex: 99999
+  },
+  groupWrapper: {
+    gap: 0
   },
   vStackWrapper: {
     gap: 60,
@@ -102,12 +99,12 @@ const styles = StyleSheet.create({
     paddingRight: 32,
     paddingTop: 40
   },
-  versionWrapper: {
-    marginVertical: 40,
-    marginLeft: 30
-  },
   versionText: {
     letterSpacing: 2
+  },
+  versionWrapper: {
+    marginLeft: 30,
+    marginVertical: 40
   }
 })
 

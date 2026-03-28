@@ -104,23 +104,21 @@ function SSHistoryChart({
   const walletAddresses = useMemo(() => {
     const addresses = new Set<string>()
     const transactionsMap = new Map<string, Transaction>()
-    utxos.forEach((val) => {
+    for (const val of utxos) {
       addresses.add(val.addressTo ?? '')
-    })
-    transactions.forEach((t) => {
+    }
+    for (const t of transactions) {
       transactionsMap.set(t.id, t)
-    })
-    transactions
-      .filter((t) => t.type === 'send')
-      .forEach((t) => {
-        t.vin?.forEach((input) => {
-          addresses.add(
-            transactionsMap
-              .get(input?.previousOutput?.txid ?? '')
-              ?.vout?.at(input?.previousOutput?.vout ?? 0)?.address ?? ''
-          )
-        })
-      })
+    }
+    for (const t of transactions.filter((t) => t.type === 'send')) {
+      for (const input of t.vin ?? []) {
+        addresses.add(
+          transactionsMap
+            .get(input?.previousOutput?.txid ?? '')
+            ?.vout?.at(input?.previousOutput?.vout ?? 0)?.address ?? ''
+        )
+      }
+    }
     addresses.delete('')
     return addresses
   }, [transactions, utxos])
@@ -130,16 +128,16 @@ function SSHistoryChart({
     return transactions.map((transaction) => {
       const amount =
         transaction.type === 'receive'
-          ? transaction?.received ?? 0
+          ? (transaction?.received ?? 0)
           : (transaction?.received ?? 0) - (transaction?.sent ?? 0)
       sum += amount
       return {
-        memo: transaction.label ?? '',
-        date: new Date(transaction?.timestamp ?? currentDate.current),
-        type: transaction.type ?? 'receive',
-        balance: sum,
         amount,
-        id: transaction.id
+        balance: sum,
+        date: new Date(transaction?.timestamp ?? currentDate.current),
+        id: transaction.id,
+        memo: transaction.label ?? '',
+        type: transaction.type ?? 'receive'
       }
     })
   }, [transactions])
@@ -150,8 +148,8 @@ function SSHistoryChart({
           currentDate.current.getDate() + 10
         ) - chartData[0].date.getTime()
       : 0
-  const margin = { top: 30, right: 10, bottom: 80, left: 40 }
-  const [containerSize, setContainersize] = useState({ width: 0, height: 0 })
+  const margin = { bottom: 80, left: 40, right: 10, top: 30 }
+  const [containerSize, setContainersize] = useState({ height: 0, width: 0 })
   const prevScale = useRef<number>(1)
   const scaleRef = useRef<number>(1)
   const [cursorX, setCursorX] = useState<Date | undefined>(undefined)
@@ -177,68 +175,68 @@ function SSHistoryChart({
   const gestureUpdateAnimationFrameRef = useRef<number | null>(null)
   const isGestureActiveRef = useRef<boolean>(false)
 
-  const startDate = useMemo<Date>(() => {
-    return new Date(endDate.getTime() - timeOffset / scale)
-  }, [endDate, scale, timeOffset])
+  const startDate = useMemo<Date>(
+    () => new Date(endDate.getTime() - timeOffset / scale),
+    [endDate, scale, timeOffset]
+  )
 
   const balanceHistory = useMemo(() => {
     const history = new Map<number, Map<string, Utxo>>()
     const pendingDeleteBalances = new Set<string>()
-    transactions.forEach((t, index) => {
+    for (const [index, t] of transactions.entries()) {
       const currentBalances = new Map<string, Utxo>()
       if (index > 0) {
-        history
-          .get(index - 1)!
-          .forEach((value, key) => currentBalances.set(key, { ...value }))
+        for (const [key, value] of history.get(index - 1)!) {
+          currentBalances.set(key, { ...value })
+        }
       }
       if (t.type === 'receive') {
-        t.vout.forEach((out, index) => {
+        for (const [outIdx, out] of t.vout.entries()) {
           if (walletAddresses.has(out.address)) {
-            const outName = t.id + '::' + index
+            const outName = `${t.id}::${outIdx}`
             currentBalances.set(outName, {
               addressTo: out.address,
-              value: out.value,
-              vout: index,
-              label: '',
               keychain: 'internal',
-              txid: t.id
+              label: '',
+              txid: t.id,
+              value: out.value,
+              vout: outIdx
             })
           }
-        })
+        }
       } else if (t.type === 'send') {
-        t.vin?.forEach((input) => {
-          const inputName =
-            input.previousOutput.txid + '::' + input.previousOutput.vout
+        for (const input of t.vin ?? []) {
+          const inputName = `${input.previousOutput.txid}::${input.previousOutput.vout}`
           if (currentBalances.has(inputName)) {
             currentBalances.delete(inputName)
           } else {
             pendingDeleteBalances.add(inputName)
           }
-        })
-        t.vout?.forEach((out, index) => {
+        }
+        for (const [outIdx, out] of (t.vout ?? []).entries()) {
           if (walletAddresses.has(out.address)) {
-            const outName = t.id + '::' + index
+            const outName = `${t.id}::${outIdx}`
             currentBalances.set(outName, {
               addressTo: out.address,
-              value: out.value,
-              vout: index,
-              txid: t.id,
               keychain: 'internal',
-              label: ''
+              label: '',
+              txid: t.id,
+              value: out.value,
+              vout: outIdx
             })
           }
-        })
+        }
       }
       history.set(index, currentBalances)
-    })
-    pendingDeleteBalances.forEach((value) => {
-      Array.from(history.entries()).forEach(([, historyBalance]) => {
+    }
+    for (const value of pendingDeleteBalances) {
+      for (const [, historyBalance] of history.entries()) {
         if (historyBalance.has(value)) {
           historyBalance.delete(value)
         }
-      })
+      }
       pendingDeleteBalances.delete(value)
-    })
+    }
     return history
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletAddresses])
@@ -257,30 +255,30 @@ function SSHistoryChart({
       1
     )
     validData.unshift({
-      date: startDate,
       amount: 0,
       balance: startBalance,
+      date: startDate,
+      id: '',
       memo: '',
-      type: 'end',
-      id: ''
+      type: 'end'
     })
     if (endDate.getTime() <= currentDate.current.getTime()) {
       validData.push({
-        date: endDate,
         amount: 0,
         balance: validData[validData.length - 1]?.balance ?? 0,
+        date: endDate,
+        id: '',
         memo: '',
-        type: 'end',
-        id: ''
+        type: 'end'
       })
     } else {
       validData.push({
-        date: currentDate.current,
         amount: 0,
         balance: validData[validData.length - 1]?.balance ?? 0,
+        date: currentDate.current,
+        id: '',
         memo: '',
-        type: 'end',
-        id: ''
+        type: 'end'
       })
     }
     return [maxBalance, validData]
@@ -289,19 +287,24 @@ function SSHistoryChart({
   const chartWidth = containerSize.width - margin.left - margin.right
   const chartHeight = containerSize.height - margin.top - margin.bottom
 
-  const xScale = useMemo(() => {
-    return d3.scaleTime().domain([startDate, endDate]).range([0, chartWidth])
-  }, [chartWidth, endDate, startDate])
+  const xScale = useMemo(
+    () => d3.scaleTime().domain([startDate, endDate]).range([0, chartWidth]),
+    [chartWidth, endDate, startDate]
+  )
 
-  const yScale = useMemo(() => {
-    return d3
-      .scaleLinear()
-      .domain([
-        lockZoomToXAxis ? 0 : startY,
-        lockZoomToXAxis ? maxBalance * 1.2 : startY + (maxBalance * 1.2) / scale
-      ])
-      .range([chartHeight, 0])
-  }, [chartHeight, lockZoomToXAxis, maxBalance, scale, startY])
+  const yScale = useMemo(
+    () =>
+      d3
+        .scaleLinear()
+        .domain([
+          lockZoomToXAxis ? 0 : startY,
+          lockZoomToXAxis
+            ? maxBalance * 1.2
+            : startY + (maxBalance * 1.2) / scale
+        ])
+        .range([chartHeight, 0]),
+    [chartHeight, lockZoomToXAxis, maxBalance, scale, startY]
+  )
 
   const utxoRectangleData: {
     x1: number
@@ -310,63 +313,65 @@ function SSHistoryChart({
     y2: number
     utxo: Utxo
     gradientType: number
-  }[] = useMemo(() => {
-    return Array.from(balanceHistory.entries())
-      .flatMap(([index, balances]) => {
-        const x1 = xScale(
-          new Date(transactions.at(index)?.timestamp ?? currentDate.current)
-        )
-        const x2 = xScale(
-          index === transactions.length - 1
-            ? currentDate.current
-            : new Date(
-                transactions.at(index + 1)?.timestamp ?? currentDate.current
-              )
-        )
-        if (x2 < 0 && x1 >= chartWidth) {
-          return []
-        }
-        let totalBalance = 0
-        return Array.from(balances.entries()).map(([, utxo]) => {
-          const y1 = yScale(totalBalance)
-          const y2 = yScale(totalBalance + utxo.value)
-          let gradientType = 0
-          totalBalance += utxo.value
-          if (
-            transactions.at(index + 1) !== undefined &&
-            transactions.at(index + 1)?.type === 'send'
-          ) {
-            const result = transactions
-              .at(index + 1)
-              ?.vin!.find(
-                (input) =>
-                  input.previousOutput.txid === utxo.txid &&
-                  input.previousOutput.vout === utxo.vout
-              )
-            if (result !== undefined) {
-              gradientType = 1
+  }[] = useMemo(
+    () =>
+      Array.from(balanceHistory.entries())
+        .flatMap(([index, balances]) => {
+          const x1 = xScale(
+            new Date(transactions.at(index)?.timestamp ?? currentDate.current)
+          )
+          const x2 = xScale(
+            index === transactions.length - 1
+              ? currentDate.current
+              : new Date(
+                  transactions.at(index + 1)?.timestamp ?? currentDate.current
+                )
+          )
+          if (x2 < 0 && x1 >= chartWidth) {
+            return []
+          }
+          let totalBalance = 0
+          return Array.from(balances.entries()).map(([, utxo]) => {
+            const y1 = yScale(totalBalance)
+            const y2 = yScale(totalBalance + utxo.value)
+            let gradientType = 0
+            totalBalance += utxo.value
+            if (
+              transactions.at(index + 1) !== undefined &&
+              transactions.at(index + 1)?.type === 'send'
+            ) {
+              const result = transactions
+                .at(index + 1)
+                ?.vin!.find(
+                  (input) =>
+                    input.previousOutput.txid === utxo.txid &&
+                    input.previousOutput.vout === utxo.vout
+                )
+              if (result !== undefined) {
+                gradientType = 1
+              }
             }
-          }
-          if (utxo.txid === transactions.at(index)?.id) {
-            if (gradientType === 1) {
-              gradientType = 2
-            } else {
-              gradientType = -1
+            if (utxo.txid === transactions.at(index)?.id) {
+              if (gradientType === 1) {
+                gradientType = 2
+              } else {
+                gradientType = -1
+              }
             }
-          }
-          return {
-            x1,
-            x2,
-            y1,
-            y2,
-            utxo,
-            gradientType
-          }
+            return {
+              gradientType,
+              utxo,
+              x1,
+              x2,
+              y1,
+              y2
+            }
+          })
         })
-      })
-      .filter((v) => v !== undefined)
+        .filter((v) => v !== undefined),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [balanceHistory, xScale, yScale])
+    [balanceHistory, xScale, yScale]
+  )
 
   const utxoLabels: {
     x1: number
@@ -382,7 +387,7 @@ function SSHistoryChart({
       y2: number
       utxo: Utxo
     }[] = []
-    Array.from(balanceHistory.entries()).forEach(([index, balances]) => {
+    for (const [index, balances] of balanceHistory.entries()) {
       const x1 = xScale(
         new Date(transactions.at(index)?.timestamp ?? currentDate.current)
       )
@@ -394,37 +399,39 @@ function SSHistoryChart({
             )
       )
       if (x2 < 0 && x1 >= chartWidth) {
-        return
+        continue
       }
       let totalBalance = 0
-      Array.from(balances.entries()).forEach(([, utxo]) => {
+      for (const [, utxo] of balances.entries()) {
         const y1 = yScale(totalBalance)
         const y2 = yScale(totalBalance + utxo.value)
         totalBalance += utxo.value
         if (utxo.txid === transactions.at(index)?.id) {
           result.push({
+            utxo,
             x1,
             x2,
             y1,
-            y2,
-            utxo
+            y2
           })
         }
-      })
-    })
+      }
+    }
     return result
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [balanceHistory, xScale, yScale])
 
-  const xScaleTransactions = useMemo(() => {
-    return transactions
-      .map((t, index) => ({ ...t, index }))
-      .filter(
-        (t) =>
-          new Date(t?.timestamp ?? 0) >= startDate &&
-          new Date(t?.timestamp ?? 0) <= endDate
-      )
-  }, [endDate, startDate, transactions])
+  const xScaleTransactions = useMemo(
+    () =>
+      transactions
+        .map((t, index) => ({ ...t, index }))
+        .filter(
+          (t) =>
+            new Date(t?.timestamp ?? 0) >= startDate &&
+            new Date(t?.timestamp ?? 0) <= endDate
+        ),
+    [endDate, startDate, transactions]
+  )
 
   const updateLocationState = useCallback(() => {
     if (gestureUpdateAnimationFrameRef.current) {
@@ -579,22 +586,26 @@ function SSHistoryChart({
     longPressGesture
   )
 
-  const lineGenerator = useMemo(() => {
-    return d3
-      .line<HistoryChartData>()
-      .x((d) => xScale(d.date))
-      .y((d) => yScale(d.balance))
-      .curve(d3.curveStepAfter)
-  }, [xScale, yScale])
+  const lineGenerator = useMemo(
+    () =>
+      d3
+        .line<HistoryChartData>()
+        .x((d) => xScale(d.date))
+        .y((d) => yScale(d.balance))
+        .curve(d3.curveStepAfter),
+    [xScale, yScale]
+  )
 
-  const areaGenerator = useMemo(() => {
-    return d3
-      .area<HistoryChartData>()
-      .x((d) => xScale(d.date))
-      .y0(chartHeight * scale)
-      .y1((d) => yScale(d.balance))
-      .curve(d3.curveStepAfter)
-  }, [chartHeight, scale, xScale, yScale])
+  const areaGenerator = useMemo(
+    () =>
+      d3
+        .area<HistoryChartData>()
+        .x((d) => xScale(d.date))
+        .y0(chartHeight * scale)
+        .y1((d) => yScale(d.balance))
+        .curve(d3.curveStepAfter),
+    [chartHeight, scale, xScale, yScale]
+  )
 
   const linePath = useMemo(
     () => lineGenerator(validChartData),
@@ -605,16 +616,12 @@ function SSHistoryChart({
     [areaGenerator, validChartData]
   )
 
-  const yAxisFormatter = useMemo(() => {
-    return d3.format('.3s')
-  }, [])
-  const numberCommaFormatter = useMemo(() => {
-    return d3.format(',')
-  }, [])
+  const yAxisFormatter = useMemo(() => d3.format('.3s'), [])
+  const numberCommaFormatter = useMemo(() => d3.format(','), [])
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout
-    setContainersize({ width, height })
+    setContainersize({ height, width })
   }, [])
 
   const txXAxisLabels = useMemo<
@@ -635,7 +642,7 @@ function SSHistoryChart({
     if (!showTransactionInfo) {
       return []
     }
-    const length = xScaleTransactions.length
+    const { length } = xScaleTransactions
     const xAxisLabels = xScaleTransactions.map((t) => {
       const amount = t.type === 'receive' ? t.received : t.received - t.sent
       const numberOfInput = t.vin?.length ?? 0
@@ -654,39 +661,39 @@ function SSHistoryChart({
             : `${numberCommaFormatter(confirmationsCount)} confs`
           : undefined
       return {
-        x: xScale(new Date(t.timestamp ?? new Date())),
-        index: t.index,
-        textColor: '',
         amountString: `${amount >= 0 ? '+' : ''}${formatNumber(
           amount,
           0,
           zeroPadding
         )}`,
-        type: t.type,
-        numberOfOutput,
-        numberOfInput,
-        hasChange,
-        fee: t.fee,
         confirmations,
-        label: t.label
+        fee: t.fee,
+        hasChange,
+        index: t.index,
+        label: t.label,
+        numberOfInput,
+        numberOfOutput,
+        textColor: '',
+        type: t.type,
+        x: xScale(new Date(t.timestamp ?? new Date()))
       }
     })
     const boundaryBoxes: { [key: string]: Rectangle } = {}
-    xAxisLabels.forEach((t) => {
+    for (const t of xAxisLabels) {
       boundaryBoxes[t.index] = {
+        bottom: chartHeight + 50,
+        height: 50,
         left: t.x,
         right: 60 + t.x,
         top: chartHeight,
-        bottom: chartHeight + 50,
-        width: 60,
-        height: 50
+        width: 60
       }
-    })
+    }
     const visible: { [key: string]: boolean } = {}
-    for (let i = 0; i < length; i++) {
+    for (let i = 0; i < length; i += 1) {
       visible[xScaleTransactions[i].index] = true
     }
-    for (let i = 0; i < length - 1; i++) {
+    for (let i = 0; i < length - 1; i += 1) {
       if (
         boundaryBoxes[xScaleTransactions[i].index] !== undefined &&
         boundaryBoxes[xScaleTransactions[i + 1].index] !== undefined &&
@@ -698,12 +705,10 @@ function SSHistoryChart({
         visible[xScaleTransactions[i].index] = false
       }
     }
-    const result = xAxisLabels.map((x) => {
-      return {
-        ...x,
-        textColor: visible[x.index] ? 'white' : 'transparent'
-      }
-    })
+    const result = xAxisLabels.map((x) => ({
+      ...x,
+      textColor: visible[x.index] ? 'white' : 'transparent'
+    }))
     return result
   }, [
     walletAddresses,
@@ -718,9 +723,9 @@ function SSHistoryChart({
 
   const transactionsMap = useMemo(() => {
     const map = new Map<string, Transaction>()
-    transactions.forEach((t) => {
+    for (const t of transactions) {
       map.set(t.id, t)
-    })
+    }
     return map
   }, [transactions])
 
@@ -754,15 +759,17 @@ function SSHistoryChart({
       id: string
     }[] = []
 
-    validChartData.forEach((d) => {
-      if (d.type === 'end') return
+    for (const d of validChartData) {
+      if (d.type === 'end') {
+        continue
+      }
       const x = Math.round(xScale(d.date) + (d.type === 'receive' ? -5 : +5))
       const y = Math.round(yScale(d.balance) - 5)
       if (x < 0 || x > chartWidth || y < 0 || y > chartHeight) {
-        return
+        continue
       }
       if (showLabel && d.memo) {
-        const index = d.date.getTime().toString() + d.balance.toString() + 'L'
+        const index = `${d.date.getTime().toString()}${d.balance.toString()}L`
         const width = 40
         const height = 10
         const left = Math.round(d.type === 'receive' ? x - width : x)
@@ -770,24 +777,24 @@ function SSHistoryChart({
         const bottom = y
         const top = y - height
         initialLabels.push({
-          x,
-          y: y + (showAmount ? -15 : 0),
-          memo: d.memo,
-          type: d.type,
           boundBox: {
+            bottom: bottom + (showAmount ? -15 : 0),
+            height,
             left,
             right,
             top: top + (showAmount ? -15 : 0),
-            bottom: bottom + (showAmount ? -15 : 0),
-            width,
-            height
+            width
           },
+          id: d.id,
           index,
-          id: d.id
+          memo: d.memo,
+          type: d.type,
+          x,
+          y: y + (showAmount ? -15 : 0)
         })
       }
       if (showAmount) {
-        const index = d.date.getTime().toString() + d.balance.toString() + 'A'
+        const index = `${d.date.getTime().toString()}${d.balance.toString()}A`
         const width = 40
         const height = 10
         const left = Math.round(d.type === 'receive' ? x - width : x)
@@ -807,36 +814,38 @@ function SSHistoryChart({
             : undefined
 
         initialLabels.push({
-          x,
-          y: showFiatOnChart && btcPrice > 0 ? y - 10 : y,
           amount: d.amount,
+          boundBox: {
+            bottom: showFiatOnChart && btcPrice > 0 ? bottom - 10 : bottom,
+            height:
+              showFiatOnChart && btcPrice > 0
+                ? height + (showFiatAtTxTime && historicalFiatValue ? 12 : 12)
+                : height,
+            left,
+            right,
+            top: showFiatOnChart && btcPrice > 0 ? top - 10 : top,
+            width
+          },
           fiatValue:
             showFiatOnChart && btcPrice > 0 && d.amount !== undefined
               ? satsToFiat(d.amount)
               : undefined,
           historicalFiatValue,
-          type: d.type,
-          boundBox: {
-            left,
-            right,
-            top: showFiatOnChart && btcPrice > 0 ? top - 10 : top,
-            bottom: showFiatOnChart && btcPrice > 0 ? bottom - 10 : bottom,
-            width,
-            height:
-              showFiatOnChart && btcPrice > 0
-                ? height + (showFiatAtTxTime && historicalFiatValue ? 12 : 12)
-                : height
-          },
+          id: d.id,
           index,
-          id: d.id
+          type: d.type,
+          x,
+          y: showFiatOnChart && btcPrice > 0 ? y - 10 : y
         })
       }
-    })
+    }
 
-    for (let i = 0; i < initialLabels.length - 1; i++) {
+    for (let i = 0; i < initialLabels.length - 1; i += 1) {
       const boundBoxA = initialLabels[i].boundBox
-      if (!boundBoxA) continue
-      for (let j = i + 1; j < initialLabels.length; j++) {
+      if (!boundBoxA) {
+        continue
+      }
+      for (let j = i + 1; j < initialLabels.length; j += 1) {
         const boundBoxB = initialLabels[j].boundBox
         if (boundBoxB && isOverlapping(boundBoxA, boundBoxB)) {
           initialLabels[j].y -= 30
@@ -878,13 +887,19 @@ function SSHistoryChart({
   } as const
 
   const labelParagraphs = useMemo(() => {
-    if (!customFontManager) return new Map<string, SkParagraph>()
+    if (!customFontManager) {
+      return new Map<string, SkParagraph>()
+    }
     const paragraphs = new Map<string, SkParagraph>()
 
-    txInfoLabels.forEach((label) => {
-      if (label.type === 'end') return
-      const x = label.x
-      if (x < 0 || x > chartWidth) return
+    for (const label of txInfoLabels) {
+      if (label.type === 'end') {
+        continue
+      }
+      const { x } = label
+      if (x < 0 || x > chartWidth) {
+        continue
+      }
 
       const baseColor = label.type === 'receive' ? '#A7FFAF' : '#FF7171'
       const baseStyle = {
@@ -1035,7 +1050,7 @@ function SSHistoryChart({
       const builtPara = para.build()
       builtPara.layout(10000)
       paragraphs.set(label.index, builtPara)
-    })
+    }
 
     return paragraphs
   }, [
@@ -1064,9 +1079,9 @@ function SSHistoryChart({
       <View style={styles.container} onLayout={handleLayout}>
         <Canvas
           style={{
-            width: containerSize.width,
+            flex: 1,
             height: containerSize.height,
-            flex: 1
+            width: containerSize.width
           }}
           pointerEvents="box-none"
         >
@@ -1178,7 +1193,9 @@ function YScaleRenderer({
     <>
       {yScale.ticks(4).map((tick) => {
         const yPosition = yScale(tick)
-        if (yPosition > chartHeight) return null
+        if (yPosition > chartHeight) {
+          return null
+        }
         return (
           <Fragment key={tick.toString()}>
             <Line
@@ -1247,11 +1264,11 @@ function formatAmountWithLeadingZeros(
   const segments: { text: string; color: string; x: number }[] = []
   let currentX = 0
 
-  parts.forEach((part, partIndex) => {
+  for (const [partIndex, part] of parts.entries()) {
     if (partIndex > 0) {
       segments.push({
-        text: ' | ',
         color: '#666666',
+        text: ' | ',
         x: currentX
       })
       currentX += font.measureText(' | ').width
@@ -1259,18 +1276,18 @@ function formatAmountWithLeadingZeros(
 
     if (part.startsWith('Fee: ')) {
       const feePart = part.substring(5)
-      segments.push({ text: 'Fee: ', color: '#666666', x: currentX })
+      segments.push({ color: '#666666', text: 'Fee: ', x: currentX })
       currentX += font.measureText('Fee: ').width
 
       const firstNonZeroIndex = feePart.search(/[1-9]/)
       if (firstNonZeroIndex === -1) {
-        segments.push({ text: feePart, color: '#666666', x: currentX })
+        segments.push({ color: '#666666', text: feePart, x: currentX })
         currentX += font.measureText(feePart).width
       } else {
         if (firstNonZeroIndex > 0) {
           segments.push({
-            text: feePart.substring(0, firstNonZeroIndex),
             color: '#666666',
+            text: feePart.substring(0, firstNonZeroIndex),
             x: currentX
           })
           currentX += font.measureText(
@@ -1278,8 +1295,8 @@ function formatAmountWithLeadingZeros(
           ).width
         }
         segments.push({
-          text: feePart.substring(firstNonZeroIndex),
           color: '#999999',
+          text: feePart.substring(firstNonZeroIndex),
           x: currentX
         })
         currentX += font.measureText(feePart.substring(firstNonZeroIndex)).width
@@ -1289,23 +1306,23 @@ function formatAmountWithLeadingZeros(
       const numberPart = sign ? part.substring(1) : part
 
       if (sign) {
-        segments.push({ text: sign, color: baseColor, x: currentX })
+        segments.push({ color: baseColor, text: sign, x: currentX })
         currentX += font.measureText(sign).width
       }
 
       const firstNonZeroIndex = numberPart.search(/[1-9]/)
       if (firstNonZeroIndex === -1) {
         segments.push({
-          text: numberPart,
           color: hexToRgba(baseColor, 0.4),
+          text: numberPart,
           x: currentX
         })
         currentX += font.measureText(numberPart).width
       } else {
         if (firstNonZeroIndex > 0) {
           segments.push({
-            text: numberPart.substring(0, firstNonZeroIndex),
             color: hexToRgba(baseColor, 0.4),
+            text: numberPart.substring(0, firstNonZeroIndex),
             x: currentX
           })
           currentX += font.measureText(
@@ -1313,8 +1330,8 @@ function formatAmountWithLeadingZeros(
           ).width
         }
         segments.push({
-          text: numberPart.substring(firstNonZeroIndex),
           color: baseColor,
+          text: numberPart.substring(firstNonZeroIndex),
           x: currentX
         })
         currentX += font.measureText(
@@ -1322,7 +1339,7 @@ function formatAmountWithLeadingZeros(
         ).width
       }
     }
-  })
+  }
 
   return segments
 }
@@ -1342,7 +1359,7 @@ function XScaleRenderer({
   return (
     <>
       {txXAxisLabels.map((t, index) => {
-        const x = t.x
+        const { x } = t
         return (
           <Fragment key={t.x + index.toString()}>
             <Group>
@@ -1571,9 +1588,23 @@ function UtxoRectRenderer({
   }
   return (
     <>
-      {utxoRectangleData.map((data, index) => {
-        return (
-          <Fragment key={getUtxoOutpoint(data.utxo) + index}>
+      {utxoRectangleData.map((data, index) => (
+        <Fragment key={getUtxoOutpoint(data.utxo) + index}>
+          <Rect
+            x={data.x1}
+            y={data.y1}
+            width={data.x2 - data.x1}
+            height={data.y2 - data.y1}
+            style="fill"
+            strokeWidth={0.5}
+          >
+            <LinearGradient
+              start={vec(0, data.y2)}
+              end={vec(0, data.y1)}
+              colors={['#FFFFFF99', '#FFFFFF55']}
+            />
+          </Rect>
+          {(data.gradientType === -1 || data.gradientType === 2) && (
             <Rect
               x={data.x1}
               y={data.y1}
@@ -1583,48 +1614,32 @@ function UtxoRectRenderer({
               strokeWidth={0.5}
             >
               <LinearGradient
-                start={vec(0, data.y2)}
-                end={vec(0, data.y1)}
-                colors={['#FFFFFF99', '#FFFFFF55']}
+                start={vec(data.x1, data.y1)}
+                end={vec(data.x2, data.y1)}
+                colors={['#FFFFFF55', '#FFFFFF00', '#FFFFFF00']}
+                positions={[0, 0.3, 1]}
               />
             </Rect>
-            {(data.gradientType === -1 || data.gradientType === 2) && (
-              <Rect
-                x={data.x1}
-                y={data.y1}
-                width={data.x2 - data.x1}
-                height={data.y2 - data.y1}
-                style="fill"
-                strokeWidth={0.5}
-              >
-                <LinearGradient
-                  start={vec(data.x1, data.y1)}
-                  end={vec(data.x2, data.y1)}
-                  colors={['#FFFFFF55', '#FFFFFF00', '#FFFFFF00']}
-                  positions={[0, 0.3, 1]}
-                />
-              </Rect>
-            )}
-            {(data.gradientType === 1 || data.gradientType === 2) && (
-              <Rect
-                x={data.x1}
-                y={data.y1}
-                width={data.x2 - data.x1}
-                height={data.y2 - data.y1}
-                style="fill"
-                strokeWidth={0.5}
-              >
-                <LinearGradient
-                  start={vec(data.x1, data.y1)}
-                  end={vec(data.x2, data.y1)}
-                  colors={['#00000000', '#00000000', '#00000055']}
-                  positions={[0, 0.7, 1]}
-                />
-              </Rect>
-            )}
-          </Fragment>
-        )
-      })}
+          )}
+          {(data.gradientType === 1 || data.gradientType === 2) && (
+            <Rect
+              x={data.x1}
+              y={data.y1}
+              width={data.x2 - data.x1}
+              height={data.y2 - data.y1}
+              style="fill"
+              strokeWidth={0.5}
+            >
+              <LinearGradient
+                start={vec(data.x1, data.y1)}
+                end={vec(data.x2, data.y1)}
+                colors={['#00000000', '#00000000', '#00000055']}
+                positions={[0, 0.7, 1]}
+              />
+            </Rect>
+          )}
+        </Fragment>
+      ))}
     </>
   )
 }
@@ -1736,13 +1751,13 @@ function TransactionInfoRenderer({
           : font.measureText(text).width
 
         labelRectRef.current.push({
+          id: label.id,
           rect: {
+            bottom: label.y,
             left: label.type === 'receive' ? label.x - textWidth : label.x,
             right: label.type === 'receive' ? label.x : label.x + textWidth,
-            bottom: label.y,
             top: label.y - 10
-          },
-          id: label.id
+          }
         })
 
         if (paragraph) {
@@ -1839,9 +1854,9 @@ const styles = StyleSheet.create({
   }
 })
 
-export default memo(SSHistoryChart, (prevProps, nextProps) => {
-  return (
+export default memo(
+  SSHistoryChart,
+  (prevProps, nextProps) =>
     prevProps.transactions === nextProps.transactions &&
     prevProps.utxos === nextProps.utxos
-  )
-})
+)

@@ -44,9 +44,9 @@ async function getKeysetsFromWallet(
             ks && typeof ks === 'object' && typeof ks.id === 'string'
         )
         .map((ks) => ({
+          active: ks.active !== false,
           id: ks.id,
-          unit: 'sat' as const,
-          active: ks.active !== false
+          unit: 'sat' as const
         }))
     }
   }
@@ -71,9 +71,9 @@ async function getKeysetsFromWallet(
               ks && typeof ks === 'object' && typeof ks.id === 'string'
           )
           .map((ks) => ({
+            active: ks.active !== false,
             id: ks.id,
-            unit: 'sat' as const,
-            active: ks.active !== false
+            unit: 'sat' as const
           }))
       }
     }
@@ -99,16 +99,16 @@ export async function connectToMint(mintUrl: string): Promise<EcashMint> {
   const mintInfo = wallet.getMintInfo()
   const keysets = await getKeysetsFromWallet(wallet)
   return {
-    url: mintUrl,
-    name: mintInfo.name || `Mint ${mintUrl}`,
+    balance: 0, // Will be calculated from proofs
     isConnected: true,
     keysets: keysets.map((ks) => ({
+      active: ks.active,
       id: ks.id,
-      unit: ks.unit,
-      active: ks.active
+      unit: ks.unit
     })),
-    balance: 0, // Will be calculated from proofs
-    lastSync: new Date().toISOString()
+    lastSync: new Date().toISOString(),
+    name: mintInfo.name || `Mint ${mintUrl}`,
+    url: mintUrl
   }
 }
 
@@ -120,10 +120,10 @@ export async function createMintQuote(
   await wallet.loadMint()
   const quote = await wallet.createMintQuote(amount)
   return {
-    quote: quote.quote,
-    request: quote.request,
     expiry: quote.expiry,
-    paid: false
+    paid: false,
+    quote: quote.quote,
+    request: quote.request
   }
 }
 
@@ -158,11 +158,11 @@ export async function createMeltQuote(
   const wallet = getWallet(mintUrl)
   const quote = await wallet.createMeltQuote(invoice)
   return {
-    quote: quote.quote,
     amount: quote.amount,
+    expiry: quote.expiry,
     fee_reserve: quote.fee_reserve,
     paid: false,
-    expiry: quote.expiry
+    quote: quote.quote
   }
 }
 
@@ -190,9 +190,9 @@ export async function meltProofs(
   const meltResult = result as MeltResult
 
   return {
+    change: result.change,
     paid: true, // If we get here without error, it was successful
-    preimage: meltResult.preimage || meltResult.payment_preimage || undefined,
-    change: result.change
+    preimage: meltResult.preimage || meltResult.payment_preimage || undefined
   }
 }
 
@@ -208,15 +208,15 @@ async function validateProofs(
   const validProofs: EcashProof[] = []
   const spentProofs: EcashProof[] = []
 
-  proofStates.forEach((state, index) => {
+  for (const [index, state] of proofStates.entries()) {
     if (state.state === 'UNSPENT' || state.state === 'PENDING') {
       validProofs.push(proofs[index])
     } else if (state.state === 'SPENT') {
       spentProofs.push(proofs[index])
     }
-  })
+  }
 
-  return { validProofs, spentProofs }
+  return { spentProofs, validProofs }
 }
 
 export async function sendEcash(
@@ -262,16 +262,16 @@ export async function sendEcash(
   })
 
   const token = getEncodedTokenV4({
+    memo,
     mint: mintUrl,
     proofs: send,
-    unit: 'sat',
-    memo
+    unit: 'sat'
   })
 
   return {
-    token,
     keep,
-    send
+    send,
+    token
   }
 }
 
@@ -292,16 +292,13 @@ export async function receiveEcash(
   const totalAmount = proofs.reduce((sum, proof) => sum + proof.amount, 0)
 
   return {
+    memo: decodedToken.memo,
     proofs,
-    totalAmount,
-    memo: decodedToken.memo
+    totalAmount
   }
 }
 
-export async function getMintBalance(
-  _mintUrl: string,
-  proofs: EcashProof[]
-): Promise<number> {
+export function getMintBalance(_mintUrl: string, proofs: EcashProof[]): number {
   return proofs.reduce((sum, proof) => sum + proof.amount, 0)
 }
 
@@ -314,12 +311,12 @@ export async function validateEcashToken(
 
     const wallet = getWallet(mintUrl)
     if (!wallet) {
-      return { isValid: false, details: 'Wallet not found for mint' }
+      return { details: 'Wallet not found for mint', isValid: false }
     }
 
     const proofs = decodedToken.proofs || []
     if (proofs.length === 0) {
-      return { isValid: false, details: 'No proofs found in token' }
+      return { details: 'No proofs found in token', isValid: false }
     }
 
     const proofStates = await wallet.checkProofsStates(proofs)
@@ -334,33 +331,32 @@ export async function validateEcashToken(
 
     if (spentProofs.length === proofs.length) {
       return {
-        isValid: true,
+        details: 'All proofs have been spent',
         isSpent: true,
-        details: 'All proofs have been spent'
+        isValid: true
       }
     } else if (unspentProofs.length === proofs.length) {
       return {
-        isValid: true,
+        details: 'All proofs are unspent',
         isSpent: false,
-        details: 'All proofs are unspent'
+        isValid: true
       }
     } else if (pendingProofs.length > 0) {
       return {
-        isValid: true,
+        details: `${pendingProofs.length} proof(s) are pending`,
         isSpent: false,
-        details: `${pendingProofs.length} proof(s) are pending`
+        isValid: true
       }
-    } else {
-      return {
-        isValid: true,
-        isSpent: false,
-        details: `Mixed state: ${spentProofs.length} spent, ${unspentProofs.length} unspent`
-      }
+    }
+    return {
+      details: `Mixed state: ${spentProofs.length} spent, ${unspentProofs.length} unspent`,
+      isSpent: false,
+      isValid: true
     }
   } catch {
     return {
-      isValid: false,
-      details: `Failed to check proof states,.`
+      details: `Failed to check proof states,.`,
+      isValid: false
     }
   }
 }

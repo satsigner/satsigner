@@ -48,8 +48,8 @@ export const useGestures = ({
   onPinchEnd,
   onPanStart,
   onPanEnd,
-  onDoubleTap = () => {},
-  onSingleTap = () => {},
+  onDoubleTap = () => undefined,
+  onSingleTap = () => undefined,
   initialTranslation = { x: 0, y: 0 }
 }: ZoomUseGesturesProps) => {
   const isInteracting = useRef(false)
@@ -70,11 +70,7 @@ export const useGestures = ({
 
   // Use useAnimatedReaction to update translation when initialTranslation prop changes
   useAnimatedReaction(
-    () => {
-      // Preparer function: runs on JS thread when dependencies change.
-      // Returns the data to be watched.
-      return { x: initialTranslation.x, y: initialTranslation.y }
-    },
+    () => ({ x: initialTranslation.x, y: initialTranslation.y }),
     (currentData) => {
       'worklet'
       // Reactor function: runs on UI thread if currentData is different from previousData.
@@ -256,10 +252,10 @@ export const useGestures = ({
           // With boundaries when scale > 1
           translate.x.value = withDecay(
             {
-              velocity: event.velocityX * 0.6,
+              clamp: [leftLimit - focal.x.value, rightLimit - focal.x.value],
               rubberBandEffect: true,
               rubberBandFactor: 0.9,
-              clamp: [leftLimit - focal.x.value, rightLimit - focal.x.value]
+              velocity: event.velocityX * 0.6
             },
             () => {
               if (event.velocityX >= event.velocityY) {
@@ -286,10 +282,10 @@ export const useGestures = ({
           // With boundaries when scale > 1
           translate.y.value = withDecay(
             {
-              velocity: event.velocityY * 0.6,
+              clamp: [topLimit - focal.y.value, bottomLimit - focal.y.value],
               rubberBandEffect: true,
               rubberBandFactor: 0.9,
-              clamp: [topLimit - focal.y.value, bottomLimit - focal.y.value]
+              velocity: event.velocityY * 0.6
             },
             () => {
               if (event.velocityY > event.velocityX) {
@@ -411,11 +407,11 @@ export const useGestures = ({
   const gestures = Gesture.Race(tapGestures, pinchPanGestures)
 
   return {
-    gestures,
     animatedStyle,
-    reset,
-    transform,
+    gestures,
     isZoomedIn,
-    scale
+    reset,
+    scale,
+    transform
   }
 }

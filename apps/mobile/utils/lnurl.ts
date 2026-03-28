@@ -229,10 +229,10 @@ export async function fetchLNURLWithdrawDetails(
 
   return {
     callback: data.callback,
-    k1: data.k1,
-    minWithdrawable: data.minWithdrawable,
-    maxWithdrawable: data.maxWithdrawable,
     defaultDescription: data.defaultDescription,
+    k1: data.k1,
+    maxWithdrawable: data.maxWithdrawable,
+    minWithdrawable: data.minWithdrawable,
     tag: data.tag
   }
 }

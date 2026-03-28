@@ -7,7 +7,7 @@ import {
 } from '@/utils/bitcoin'
 import { validateExtendedKey } from '@/utils/validation'
 
-describe('Network-aware key handling', () => {
+describe('network-aware key handling', () => {
   describe('validateExtendedKey', () => {
     it('should validate mainnet keys correctly', () => {
       // Test with valid prefixes (we're testing the prefix logic, not the actual key validity)
@@ -105,9 +105,9 @@ describe('Network-aware key handling', () => {
     })
 
     it('should return null for invalid keys', () => {
-      expect(detectNetworkFromKey('')).toBe(null)
-      expect(detectNetworkFromKey('invalid')).toBe(null)
-      expect(detectNetworkFromKey('pub123456789abcdef')).toBe(null)
+      expect(detectNetworkFromKey('')).toBeNull()
+      expect(detectNetworkFromKey('invalid')).toBeNull()
+      expect(detectNetworkFromKey('pub123456789abcdef')).toBeNull()
     })
   })
 
@@ -128,29 +128,29 @@ describe('Network-aware key handling', () => {
   })
 })
 
-describe('Button Label Generation', () => {
-  test('should generate correct button labels for mainnet', () => {
+describe('button Label Generation', () => {
+  it('should generate correct button labels for mainnet', () => {
     expect(getKeyFormatForScriptVersion('P2PKH', 'bitcoin')).toBe('xpub')
     expect(getKeyFormatForScriptVersion('P2SH-P2WPKH', 'bitcoin')).toBe('ypub')
     expect(getKeyFormatForScriptVersion('P2WPKH', 'bitcoin')).toBe('zpub')
     expect(getKeyFormatForScriptVersion('P2TR', 'bitcoin')).toBe('vpub')
   })
 
-  test('should generate correct button labels for testnet', () => {
+  it('should generate correct button labels for testnet', () => {
     expect(getKeyFormatForScriptVersion('P2PKH', 'testnet')).toBe('tpub')
     expect(getKeyFormatForScriptVersion('P2SH-P2WPKH', 'testnet')).toBe('upub')
     expect(getKeyFormatForScriptVersion('P2WPKH', 'testnet')).toBe('vpub')
     expect(getKeyFormatForScriptVersion('P2TR', 'testnet')).toBe('vpub')
   })
 
-  test('should generate correct button labels for signet', () => {
+  it('should generate correct button labels for signet', () => {
     expect(getKeyFormatForScriptVersion('P2PKH', 'signet')).toBe('tpub')
     expect(getKeyFormatForScriptVersion('P2SH-P2WPKH', 'signet')).toBe('upub')
     expect(getKeyFormatForScriptVersion('P2WPKH', 'signet')).toBe('vpub')
     expect(getKeyFormatForScriptVersion('P2TR', 'signet')).toBe('vpub')
   })
 
-  test('should generate correct translation keys for UI buttons', () => {
+  it('should generate correct translation keys for UI buttons', () => {
     // Test that the function returns the correct format for translation keys
     expect(getKeyFormatForScriptVersion('P2PKH', 'bitcoin')).toBe('xpub')
     expect(getKeyFormatForScriptVersion('P2SH-P2WPKH', 'bitcoin')).toBe('ypub')
@@ -165,7 +165,7 @@ describe('Button Label Generation', () => {
 })
 
 describe('getDerivationPathFromScriptVersion', () => {
-  test('should return correct derivation paths for mainnet', () => {
+  it('should return correct derivation paths for mainnet', () => {
     expect(getDerivationPathFromScriptVersion('P2PKH', 'bitcoin')).toBe(
       "44'/0'/0'"
     )
@@ -189,7 +189,7 @@ describe('getDerivationPathFromScriptVersion', () => {
     )
   })
 
-  test('should return correct derivation paths for testnet', () => {
+  it('should return correct derivation paths for testnet', () => {
     expect(getDerivationPathFromScriptVersion('P2PKH', 'testnet')).toBe(
       "44'/1'/0'"
     )
@@ -213,7 +213,7 @@ describe('getDerivationPathFromScriptVersion', () => {
     )
   })
 
-  test('should return correct derivation paths for signet', () => {
+  it('should return correct derivation paths for signet', () => {
     expect(getDerivationPathFromScriptVersion('P2PKH', 'signet')).toBe(
       "44'/1'/0'"
     )
@@ -237,7 +237,7 @@ describe('getDerivationPathFromScriptVersion', () => {
     )
   })
 
-  test('should return default derivation path for unknown script version', () => {
+  it('should return default derivation path for unknown script version', () => {
     expect(getDerivationPathFromScriptVersion('UNKNOWN', 'bitcoin')).toBe(
       "84'/0'/0'"
     )
@@ -251,7 +251,7 @@ describe('getDerivationPathFromScriptVersion', () => {
 })
 
 describe('getMultisigDerivationPathFromScriptVersion', () => {
-  test('should return correct multisig derivation paths for mainnet', () => {
+  it('should return correct multisig derivation paths for mainnet', () => {
     expect(getMultisigDerivationPathFromScriptVersion('P2PKH', 'bitcoin')).toBe(
       "45'/0'/0'"
     )
@@ -275,7 +275,7 @@ describe('getMultisigDerivationPathFromScriptVersion', () => {
     )
   })
 
-  test('should return correct multisig derivation paths for testnet', () => {
+  it('should return correct multisig derivation paths for testnet', () => {
     expect(getMultisigDerivationPathFromScriptVersion('P2PKH', 'testnet')).toBe(
       "45'/1'/0'"
     )
@@ -299,7 +299,7 @@ describe('getMultisigDerivationPathFromScriptVersion', () => {
     )
   })
 
-  test('should return correct multisig derivation paths for signet', () => {
+  it('should return correct multisig derivation paths for signet', () => {
     expect(getMultisigDerivationPathFromScriptVersion('P2PKH', 'signet')).toBe(
       "45'/1'/0'"
     )
@@ -323,7 +323,7 @@ describe('getMultisigDerivationPathFromScriptVersion', () => {
     )
   })
 
-  test('should return default multisig derivation path for unknown script version', () => {
+  it('should return default multisig derivation path for unknown script version', () => {
     expect(
       getMultisigDerivationPathFromScriptVersion('UNKNOWN', 'bitcoin')
     ).toBe("48'/0'/0'/2'")

@@ -21,7 +21,7 @@ export function joinQRs(parts: string[]): JoinResult {
     throw new Error('conflicting/variable filetype/encodings/sizes')
   }
 
-  const header = [...headers][0]
+  const [header] = [...headers]
 
   if (header.slice(0, 2) !== 'B$') {
     throw new Error('fixed header not found, expected B$')
@@ -32,7 +32,7 @@ export function joinQRs(parts: string[]): JoinResult {
   }
 
   const encoding = header[2] as Encoding
-  const fileType = header[3]
+  const fileType = header.charAt(3)
 
   if (!/^[A-Z]$/.test(fileType)) {
     throw new Error('fileType must be a single uppercase letter')
@@ -62,7 +62,7 @@ export function joinQRs(parts: string[]): JoinResult {
 
   const orderedParts = []
 
-  for (let i = 0; i < numParts; i++) {
+  for (let i = 0; i < numParts; i += 1) {
     const p = data.get(i)
 
     if (!p) {
@@ -74,7 +74,7 @@ export function joinQRs(parts: string[]): JoinResult {
 
   const raw = decodeData(orderedParts, encoding)
 
-  return { fileType, encoding, raw }
+  return { encoding, fileType, raw }
 }
 
 // EOF

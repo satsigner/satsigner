@@ -9,3 +9,5 @@ tags-lock
 .idea
 
 *.log
+
+.claude/settings.local.json

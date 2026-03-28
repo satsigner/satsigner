@@ -1,26 +1,26 @@
 export const text = {
   fontSize: {
-    '2xxs': 8,
-    xxs: 9,
-    xs: 10,
-    sm: 12,
-    md: 14,
-    lg: 16,
-    xl: 18,
     '2xl': 20,
+    '2xxs': 8,
     '3xl': 24,
     '4xl': 30,
     '5xl': 36,
     '6xl': 42,
     '7xl': 50,
-    '8xl': 62
+    '8xl': 62,
+    lg: 16,
+    md: 14,
+    sm: 12,
+    xl: 18,
+    xs: 10,
+    xxs: 9
   },
   fontWeight: {
-    ultralight: '200',
+    bold: '700',
     light: '300',
-    regular: '400',
     medium: '500',
-    bold: '700'
+    regular: '400',
+    ultralight: '200'
   } as const
 }
 
@@ -29,13 +29,13 @@ export type TextFontWeight = keyof (typeof text)['fontWeight']
 
 export const button = {
   borderRadius: 3,
-  height: 58,
-  fontSize: text.fontSize.sm
+  fontSize: text.fontSize.sm,
+  height: 58
 }
 
 export const actionButton = {
-  height: 62,
-  fontSize: text.fontSize.md
+  fontSize: text.fontSize.md,
+  height: 62
 }
 
 export const checkbox = {
@@ -52,22 +52,22 @@ export const radioButton = {
 
 export const textInput = {
   borderRadius: 3,
-  height: {
-    default: 58,
-    small: 34,
-    large: 42
-  },
   fontSize: {
     default: text.fontSize['2xl'],
-    small: text.fontSize['lg'],
-    large: text.fontSize['3xl']
+    large: text.fontSize['3xl'],
+    small: text.fontSize['lg']
+  },
+  height: {
+    default: 58,
+    large: 42,
+    small: 34
   }
 }
 
 export const wordInput = {
   borderRadius: 3,
-  height: 44,
   fontSize: text.fontSize.lg,
+  height: 44,
   lineHeight: 12
 }
 

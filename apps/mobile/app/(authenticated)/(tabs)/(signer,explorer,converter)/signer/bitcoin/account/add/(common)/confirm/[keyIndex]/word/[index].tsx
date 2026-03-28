@@ -55,9 +55,11 @@ export default function Confirm() {
   )
   const { accountBuilderFinish } = useAccountBuilderFinish()
 
-  const candidateWords = useMemo(() => {
-    return getConfirmWordCandidates(mnemonic[Number(index)], mnemonic.join(' '))
-  }, [index]) // eslint-disable-line react-hooks/exhaustive-deps
+  const candidateWords = useMemo(
+    () => getConfirmWordCandidates(mnemonic[Number(index)], mnemonic.join(' ')),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [index]
+  )
 
   const [selectedCheckbox, setSelectedCheckbox] = useState<1 | 2 | 3>()
 
@@ -79,17 +81,22 @@ export default function Confirm() {
     await handleFinishWordsConfirmation()
   }
 
-  async function handleNavigateNextWord() {
-    if (!selectedCheckbox) return
+  function handleNavigateNextWord() {
+    if (!selectedCheckbox) {
+      return
+    }
 
-    if (candidateWords[selectedCheckbox - 1] !== mnemonic[Number(index)])
+    if (candidateWords[selectedCheckbox - 1] !== mnemonic[Number(index)]) {
       return setIncorrectWordModalVisible(true)
+    }
 
-    if (Number(index) + 1 < mnemonicWordCount)
+    if (Number(index) + 1 < mnemonicWordCount) {
       router.push(
         `/signer/bitcoin/account/add/confirm/${keyIndex}/word/${Number(index) + 1}`
       )
-    else return handleFinishWordsConfirmation()
+    } else {
+      return handleFinishWordsConfirmation()
+    }
   }
 
   async function handleFinishWordsConfirmation() {
@@ -257,8 +264,8 @@ export default function Confirm() {
 
 const styles = StyleSheet.create({
   skipModalContainer: {
-    width: '100%',
     height: '100%',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    width: '100%'
   }
 })

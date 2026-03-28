@@ -64,8 +64,8 @@ export default function Security() {
     <SSMainLayout style={{ paddingTop: 0 }}>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>,
-          headerRight: undefined
+          headerRight: undefined,
+          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>
         }}
       />
       <SSVStack gap="md" justifyBetween>
@@ -87,8 +87,8 @@ export default function Security() {
                 label={tn('changePin')}
                 onPress={() =>
                   router.navigate({
-                    pathname: '/setPin',
-                    params: { source: 'settings' }
+                    params: { source: 'settings' },
+                    pathname: '/setPin'
                   })
                 }
               />
@@ -181,13 +181,13 @@ export default function Security() {
 }
 
 const styles = StyleSheet.create({
+  duressPinModalBtn: {
+    width: '100%'
+  },
   duressPinModalContainer: {
     flex: 1,
     flexGrow: 1,
     height: '100%',
-    width: '100%'
-  },
-  duressPinModalBtn: {
     width: '100%'
   }
 })

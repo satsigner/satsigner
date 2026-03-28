@@ -53,9 +53,13 @@ export function detectConflcits(
 
   const conflicts: Conflict[] = []
   for (const incoming of incomingLabels) {
-    if (!currentLabelsDict[incoming.ref]) continue
+    if (!currentLabelsDict[incoming.ref]) {
+      continue
+    }
     const current = currentLabelsDict[incoming.ref]
-    if (current.label === incoming.label) continue
+    if (current.label === incoming.label) {
+      continue
+    }
     conflicts.push([current, incoming])
   }
   return conflicts
@@ -69,16 +73,18 @@ function solveConflict(
   let label = ''
   switch (strategy) {
     case 'current':
-      label = current.label
+      ;({ label } = current)
       break
     case 'incoming':
-      label = incoming.label
+      ;({ label } = incoming)
       break
     case 'merge':
       label = `${current.label}; ${incoming.label}`
       break
     case 'manual':
       label = ''
+      break
+    default:
       break
   }
   return { ...current, ...incoming, label }
@@ -148,18 +154,16 @@ function SSLabelConflictItem({
         <SSVStack gap="xs">
           <SSText size="md">{tl('manualSelection')}</SSText>
           <SSVStack gap="sm">
-            {conflictStrategies.map((strategy) => {
-              return (
-                <SSCheckbox
-                  key={strategy}
-                  selected={strategy === conflictStrategy}
-                  label={strategy}
-                  onPress={() => onSelectStrategy(strategy)}
-                  unFillColor={Colors.gray[400]}
-                  fillColor={Colors.gray[400]}
-                />
-              )
-            })}
+            {conflictStrategies.map((strategy) => (
+              <SSCheckbox
+                key={strategy}
+                selected={strategy === conflictStrategy}
+                label={strategy}
+                onPress={() => onSelectStrategy(strategy)}
+                unFillColor={Colors.gray[400]}
+                fillColor={Colors.gray[400]}
+              />
+            ))}
           </SSVStack>
         </SSVStack>
       )}
@@ -223,7 +227,9 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
       conflictStrategy === 'manual'
     ) {
       setConflictStrategyPerLabel(
-        Array(conflicts.length).fill('manual') as ConflictStrategy[]
+        Array.from<ConflictStrategy>({ length: conflicts.length }).fill(
+          'manual'
+        )
       )
     }
   }, [conflicts, conflictStrategy]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -239,16 +245,14 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
             <SSText size="md">{tl('selection')}</SSText>
           </SSVStack>
           <SSVStack gap="sm">
-            {conflictStrategies.map((strategy) => {
-              return (
-                <SSCheckbox
-                  key={strategy}
-                  selected={strategy === conflictStrategy}
-                  label={strategy}
-                  onPress={() => setConflictStrategy(strategy)}
-                />
-              )
-            })}
+            {conflictStrategies.map((strategy) => (
+              <SSCheckbox
+                key={strategy}
+                selected={strategy === conflictStrategy}
+                label={strategy}
+                onPress={() => setConflictStrategy(strategy)}
+              />
+            ))}
           </SSVStack>
           <SSButton
             label={t('common.next')}
@@ -259,22 +263,20 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
       )}
       {stage !== 'selection' && (
         <SSVStack>
-          {conflicts.map(([current, incoming], index) => {
-            return (
-              <SSLabelConflictItem
-                key={current.ref}
-                conflict={[current, incoming]}
-                conflictStrategyGlobal={conflictStrategy}
-                conflictStrategy={conflictStrategyPerLabel[index]}
-                finalLabel={results[index].label}
-                index={index}
-                onChangeLabel={(text) => solveConflictManually(text, index)}
-                onSelectStrategy={(strategy) =>
-                  solveConflictByIndex(strategy, index)
-                }
-              />
-            )
-          })}
+          {conflicts.map(([current, incoming], index) => (
+            <SSLabelConflictItem
+              key={current.ref}
+              conflict={[current, incoming]}
+              conflictStrategyGlobal={conflictStrategy}
+              conflictStrategy={conflictStrategyPerLabel[index]}
+              finalLabel={results[index].label}
+              index={index}
+              onChangeLabel={(text) => solveConflictManually(text, index)}
+              onSelectStrategy={(strategy) =>
+                solveConflictByIndex(strategy, index)
+              }
+            />
+          ))}
           <SSVStack gap="sm" style={{ width: '100%' }}>
             <SSButton
               label={t('common.back')}
@@ -296,19 +298,16 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
 }
 
 const styles = StyleSheet.create({
-  box: {
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderRadius: 4
-  },
   accepted: {
     backgroundColor: Colors.softBarGreen
   },
-  rejected: {
-    backgroundColor: Colors.softBarRed
+  box: {
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 6
   },
-  none: {
-    backgroundColor: Colors.gray[400]
+  button: {
+    width: '100%'
   },
   info: {
     backgroundColor: Colors.success
@@ -317,28 +316,31 @@ const styles = StyleSheet.create({
     borderColor: Colors.error,
     borderWidth: 2
   },
-  button: {
-    width: '100%'
-  },
   labelItem: {
     backgroundColor: '#333',
     borderRadius: 4,
     padding: 8
+  },
+  none: {
+    backgroundColor: Colors.gray[400]
+  },
+  rejected: {
+    backgroundColor: Colors.softBarRed
   }
 })
 
 const bgStyles = {
   current: {
     current: styles.accepted,
-    merge: styles.accepted,
     incoming: styles.rejected,
-    manual: styles.none
+    manual: styles.none,
+    merge: styles.accepted
   },
   incoming: {
-    incoming: styles.accepted,
-    merge: styles.accepted,
     current: styles.rejected,
-    manual: styles.none
+    incoming: styles.accepted,
+    manual: styles.none,
+    merge: styles.accepted
   }
 }
 

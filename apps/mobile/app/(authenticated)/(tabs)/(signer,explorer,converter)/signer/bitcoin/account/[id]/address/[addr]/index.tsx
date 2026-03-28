@@ -37,9 +37,7 @@ function AddressDetails() {
     state.accounts.find((account) => account.id === accountId),
     state.accounts
       .find((account) => account.id === accountId)
-      ?.addresses.find((address) => {
-        return address.address === addr
-      })
+      ?.addresses.find((address) => address.address === addr)
   ])
 
   const transactions = useAccountsStore((state) =>
@@ -62,9 +60,7 @@ function AddressDetails() {
 
   const privacyMode = useSettingsStore((state) => state.privacyMode)
 
-  const addressUtxoInputs = useMemo(() => {
-    return addressUtxos || []
-  }, [addressUtxos])
+  const addressUtxoInputs = useMemo(() => addressUtxos || [], [addressUtxos])
 
   const getBlockchainHeight = useBlockchainStore(
     (state) => state.getBlockchainHeight
@@ -92,7 +88,9 @@ function AddressDetails() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!address) return
+    if (!address) {
+      return
+    }
     try {
       const rawScript = toOutputScript(
         address.address,
@@ -168,10 +166,10 @@ function AddressDetails() {
                     {transactions.map((tx, index) => (
                       <SSTransactionCard
                         style={{
-                          paddingHorizontal: 0,
-                          paddingBottom: 8,
+                          borderColor: Colors.gray[700],
                           borderTopWidth: index > 0 ? 1 : 0,
-                          borderColor: Colors.gray[700]
+                          paddingBottom: 8,
+                          paddingHorizontal: 0
                         }}
                         transaction={tx}
                         key={tx.id}
@@ -199,8 +197,8 @@ function AddressDetails() {
                       <SSBubbleChart
                         utxos={allAccountUtxos}
                         canvasSize={{
-                          width: GRAPH_WIDTH,
-                          height: GRAPH_HEIGHT
+                          height: GRAPH_HEIGHT,
+                          width: GRAPH_WIDTH
                         }}
                         inputs={addressUtxoInputs}
                         dimUnselected

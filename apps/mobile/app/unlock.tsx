@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSPinEntry from '@/components/SSPinEntry'
-import { DURESS_PIN_KEY, PIN_KEY, PIN_SIZE, SALT_KEY } from '@/config/auth'
+import { DURESS_PIN_KEY, PIN_KEY, SALT_KEY } from '@/config/auth'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import { deleteItem, getItem, setItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
@@ -12,6 +12,7 @@ import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
 import { Layout } from '@/styles'
 import { pbkdf2Encrypt } from '@/utils/crypto'
+import { emptyPin } from '@/utils/pin'
 
 export default function Unlock() {
   const router = useRouter()
@@ -42,16 +43,18 @@ export default function Unlock() {
   )
   const deleteWallets = useWalletsStore((state) => state.deleteWallets)
 
-  const [pin, setPin] = useState<string[]>(Array(PIN_SIZE).fill(''))
+  const [pin, setPin] = useState<string[]>(emptyPin)
 
   function clearPin() {
-    setPin(Array(PIN_SIZE).fill(''))
+    setPin(emptyPin())
   }
 
   async function handleOnFillEnded(pin: string) {
     const salt = await getItem(SALT_KEY)
     const storedEncryptedPin = await getItem(PIN_KEY)
-    if (!salt || !storedEncryptedPin) return // TODO: handle error
+    if (!salt || !storedEncryptedPin) {
+      return
+    } // TODO: handle error
 
     let storedEncryptedDuressPin: string | null = null
     try {
@@ -91,8 +94,11 @@ export default function Unlock() {
       // for (const page of pages) {
       //   router.push(page as any)
       // }
-      if (showWarning) router.push('./warning')
-      else router.push('/')
+      if (showWarning) {
+        router.push('./warning')
+      } else {
+        router.push('/')
+      }
     } else {
       clearPin()
 

@@ -4,7 +4,6 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { Colors } from '@/styles'
 
-const SKELETON_COLOR = Colors.gray[700]
 const SKELETON_CARD_HEIGHT = 160
 
 function SkeletonBox({
@@ -20,7 +19,7 @@ function SkeletonBox({
     <View
       style={[
         {
-          backgroundColor: SKELETON_COLOR,
+          backgroundColor: Colors.gray[700],
           borderRadius: 4,
           height,
           width

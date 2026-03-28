@@ -80,11 +80,12 @@ export default function EcashReceivePage() {
   )
 
   // Cleanup polling when component unmounts or tab changes
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       stopPolling()
-    }
-  }, [stopPolling])
+    },
+    [stopPolling]
+  )
 
   // Stop polling when switching tabs
   useEffect(() => {
@@ -98,7 +99,9 @@ export default function EcashReceivePage() {
     setDecodedToken(null)
 
     const cleanText = text.trim()
-    if (!cleanText || !cleanText.toLowerCase().startsWith('cashu')) return
+    if (!cleanText || !cleanText.toLowerCase().startsWith('cashu')) {
+      return
+    }
     try {
       const decoded = getDecodedToken(cleanText) as EcashToken
       setDecodedToken(decoded)
@@ -110,7 +113,9 @@ export default function EcashReceivePage() {
   // Handle LNURL-w input
   const handleLNURLWithdrawInput = useCallback(async (input: string) => {
     const cleanInput = input.trim()
-    if (!cleanInput) return
+    if (!cleanInput) {
+      return
+    }
 
     const { isLNURL: isLNURLInput, type: lnurlType } = getLNURLType(cleanInput)
 
@@ -195,7 +200,9 @@ export default function EcashReceivePage() {
   }
 
   const handleSwitchToFiat = () => {
-    if (!btcPrice || btcPrice <= 0) return
+    if (!btcPrice || btcPrice <= 0) {
+      return
+    }
     if (amount) {
       const fiat = satsToFiat(parseInt(amount, 10))
       setLocalFiatAmount(fiat > 0 ? fiat.toFixed(2) : '')
@@ -231,11 +238,11 @@ export default function EcashReceivePage() {
         ) {
           toast.error(
             t('ecash.error.amountOutOfRange', {
-              min: Math.ceil(
-                lnurlWithdrawDetails.minWithdrawable / 1000
-              ).toString(),
               max: Math.floor(
                 lnurlWithdrawDetails.maxWithdrawable / 1000
+              ).toString(),
+              min: Math.ceil(
+                lnurlWithdrawDetails.minWithdrawable / 1000
               ).toString()
             })
           )
@@ -274,7 +281,9 @@ export default function EcashReceivePage() {
       // Start automatic polling for payment status with a small delay
       setTimeout(() => {
         startPolling(async () => {
-          if (!activeMint || !quote) return false
+          if (!activeMint || !quote) {
+            return false
+          }
 
           try {
             const status = await checkMintQuote(activeMint.url, quote.quote)
@@ -698,29 +707,29 @@ export default function EcashReceivePage() {
 }
 
 const styles = StyleSheet.create({
-  tokenInput: {
-    height: 'auto',
-    minHeight: 100,
-    textAlignVertical: 'top',
-    padding: 10,
-    fontSize: 14,
-    fontFamily: 'monospace'
+  detailRow: {
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between'
+  },
+  lnurlDetails: {
+    backgroundColor: Colors.gray[900],
+    borderRadius: 4,
+    padding: 12
   },
   qrContainer: {
     alignItems: 'center',
     paddingVertical: 20
   },
-  lnurlDetails: {
-    padding: 12,
-    backgroundColor: Colors.gray[900],
-    borderRadius: 4
-  },
-  detailRow: {
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap'
-  },
   switchableAmount: {
     textDecorationLine: 'underline'
+  },
+  tokenInput: {
+    fontFamily: 'monospace',
+    fontSize: 14,
+    height: 'auto',
+    minHeight: 100,
+    padding: 10,
+    textAlignVertical: 'top'
   }
 })

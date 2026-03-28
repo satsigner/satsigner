@@ -37,10 +37,7 @@ const ANIMATION_VALUES = [
 
 const isAnimationComplete = (
   endValues: PartialEndValues
-): endValues is EndValues => {
-  'worklet'
-  return ANIMATION_VALUES.every((item) => !!endValues[item])
-}
+): endValues is EndValues => ANIMATION_VALUES.every((item) => !!endValues[item])
 
 export const useAnimationEnd = (
   onResetAnimationEnd?: OnResetAnimationEndCallback
@@ -52,7 +49,7 @@ export const useAnimationEnd = (
       'worklet'
       if (onResetAnimationEnd) {
         const currentEndValues = endValues.value[interactionId] || {}
-        currentEndValues[value] = { finished, current }
+        currentEndValues[value] = { current, finished }
         if (isAnimationComplete(currentEndValues)) {
           const completed = !Object.values(currentEndValues).some(
             (item) => !item.finished

@@ -19,6 +19,7 @@ import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { decryptKeySecret } from '@/utils/account'
+import { emptyPin } from '@/utils/pin'
 
 export default function SeedWordsPage() {
   const { id: accountId, keyIndex } = useLocalSearchParams<
@@ -32,7 +33,7 @@ export default function SeedWordsPage() {
 
   const [mnemonic, setMnemonic] = useState('')
   const [isLoading, setIsLoading] = useState(true)
-  const [pin, setPin] = useState<string[]>(() => Array(4).fill(''))
+  const [pin, setPin] = useState<string[]>(emptyPin)
   const [showPinEntry, setShowPinEntry] = useState(false)
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
   const [noMnemonicAvailable, setNoMnemonicAvailable] = useState(false)
@@ -41,7 +42,9 @@ export default function SeedWordsPage() {
   const key = account?.keys[keyIndexNum]
 
   const decryptMnemonic = useCallback(async () => {
-    if (!account || !key) return
+    if (!account || !key) {
+      return
+    }
 
     try {
       const secret = await decryptKeySecret(key)
@@ -244,43 +247,43 @@ export default function SeedWordsPage() {
 }
 
 const styles = StyleSheet.create({
-  mnemonicGrid: {
-    flexDirection: 'row',
-    width: '100%',
-    justifyContent: 'space-between',
-    gap: 8
-  },
   mnemonicColumn: {
     flex: 1,
     maxWidth: '32%'
   },
+  mnemonicGrid: {
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'space-between',
+    width: '100%'
+  },
   mnemonicWordContainer: {
-    marginBottom: 8,
-    height: 48
+    height: 48,
+    marginBottom: 8
   },
   mnemonicWordInnerContainer: {
-    flex: 1,
-    padding: 3,
-    borderRadius: 8,
-    borderColor: Colors.gray[800],
-    borderWidth: 1,
-    backgroundColor: Colors.gray[900],
     alignItems: 'center',
+    backgroundColor: Colors.gray[900],
+    borderColor: Colors.gray[800],
+    borderRadius: 8,
+    borderWidth: 1,
+    flex: 1,
+    flexDirection: 'row',
     justifyContent: 'center',
-    flexDirection: 'row'
+    padding: 3
+  },
+  mnemonicWordsContainer: {
+    marginBottom: 16,
+    width: '100%'
   },
   wordIndex: {
+    lineHeight: 20,
     minWidth: 24,
-    textAlign: 'center',
-    lineHeight: 20
+    textAlign: 'center'
   },
   wordText: {
     flex: 1,
-    textAlign: 'left',
-    lineHeight: 20
-  },
-  mnemonicWordsContainer: {
-    width: '100%',
-    marginBottom: 16
+    lineHeight: 20,
+    textAlign: 'left'
   }
 })

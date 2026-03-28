@@ -31,8 +31,8 @@ function AddressLabel() {
     const singleLabelData: Label = {
       label,
       ref: addr!,
-      type: 'addr',
-      spendable: true
+      spendable: true,
+      type: 'addr'
     }
 
     if (updatedAccount?.nostr?.autoSync) {
@@ -41,7 +41,9 @@ function AddressLabel() {
     router.back()
   }
 
-  if (!address || !addr) return <Redirect href="/" />
+  if (!address || !addr) {
+    return <Redirect href="/" />
+  }
 
   return (
     <ScrollView>

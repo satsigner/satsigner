@@ -60,6 +60,7 @@ function SSNFCModal({
         .trim()
         .replace(/[^\S\n]+/g, '')
         .replace(/[\u200B-\u200D\uFEFF]/g, '')
+        // eslint-disable-next-line no-control-regex
         .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '')
         .normalize('NFKC')
 
@@ -104,13 +105,13 @@ function SSNFCModal({
       const pulseAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(nfcPulseAnim, {
-            toValue: 1,
             duration: 1000,
+            toValue: 1,
             useNativeDriver: false
           }),
           Animated.timing(nfcPulseAnim, {
-            toValue: 0,
             duration: 1000,
+            toValue: 0,
             useNativeDriver: false
           })
         ])
@@ -125,24 +126,21 @@ function SSNFCModal({
     }
   }, [visible, nfcPulseAnim])
 
-  const getModeTitle = () => {
-    return mode === 'read' ? t('nfc.mode.read') : t('nfc.mode.write')
-  }
+  const getModeTitle = () =>
+    mode === 'read' ? t('nfc.mode.read') : t('nfc.mode.write')
 
   function getModeDescription() {
     if (mode === 'read') {
       return t('nfc.description.read')
-    } else {
-      return t('nfc.description.write')
     }
+    return t('nfc.description.write')
   }
 
   function getButtonLabel() {
     if (mode === 'read') {
       return isReading ? t('common.cancel') : t('nfc.button.startReading')
-    } else {
-      return isEmitting ? t('common.cancel') : t('nfc.button.startWriting')
     }
+    return isEmitting ? t('common.cancel') : t('nfc.button.startWriting')
   }
 
   function handleButtonPress() {
@@ -203,11 +201,11 @@ const styles = StyleSheet.create({
     maxWidth: 300
   },
   nfcCircle: {
-    width: 200,
-    height: 200,
+    alignItems: 'center',
     borderRadius: 100,
+    height: 200,
     justifyContent: 'center',
-    alignItems: 'center'
+    width: 200
   }
 })
 

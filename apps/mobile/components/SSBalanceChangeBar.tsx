@@ -16,7 +16,9 @@ function SSBalanceChangeBar({
   maxBalance = 1,
   style
 }: SSBalanceChangeBarProps) {
-  if (!transaction) return null
+  if (!transaction) {
+    return null
+  }
 
   const safeMaxBalance = maxBalance || 1
 
@@ -65,9 +67,9 @@ function SSBalanceChangeBar({
 
 const styles = StyleSheet.create({
   containerBase: {
-    width: '100%',
+    flexDirection: 'row',
     height: 1.5,
-    flexDirection: 'row'
+    width: '100%'
   },
   segment: {
     height: '100%'

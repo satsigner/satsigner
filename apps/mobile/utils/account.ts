@@ -30,13 +30,12 @@ export function updateAccountObjectLabels(account: Account) {
   const labels = { ...account.labels }
   const updatedAccount: Account = {
     ...account,
+    addresses: account.addresses.map((a) => ({ ...a })),
     transactions: account.transactions.map((t) => ({ ...t })),
-    utxos: account.utxos.map((u) => ({ ...u })),
-    addresses: account.addresses.map((a) => ({ ...a }))
+    utxos: account.utxos.map((u) => ({ ...u }))
   }
 
-  for (const index in updatedAccount.utxos) {
-    const utxo = updatedAccount.utxos[index]
+  for (const [index, utxo] of updatedAccount.utxos.entries()) {
     const utxoRef = getUtxoOutpoint(utxo)
     let label = labels[utxoRef]?.label
 
@@ -48,16 +47,15 @@ export function updateAccountObjectLabels(account: Account) {
     // save label inherited from address
     if (label && !labels[utxoRef]) {
       labels[utxoRef] = {
-        type: 'output',
+        label,
         ref: utxoRef,
-        label
+        type: 'output'
       }
     }
     updatedAccount.utxos[index].label = label || ''
   }
 
-  for (const index in updatedAccount.transactions) {
-    const tx = updatedAccount.transactions[index]
+  for (const [index, tx] of updatedAccount.transactions.entries()) {
     const { id: txRef, vout, vin } = tx
     let label = labels[txRef]?.label
 
@@ -67,8 +65,10 @@ export function updateAccountObjectLabels(account: Account) {
       for (const output of tx.vout) {
         const outputAddress = output.address
         const outputLabel = labels[outputAddress]?.label
-        if (!outputLabel) continue
-        label += outputLabel + ','
+        if (!outputLabel) {
+          continue
+        }
+        label += `${outputLabel},`
       }
       label = label.replace(/,$/, '')
     }
@@ -76,9 +76,9 @@ export function updateAccountObjectLabels(account: Account) {
     // save label inherited from address
     if (label && !labels[txRef]) {
       labels[txRef] = {
-        type: 'tx',
+        label,
         ref: txRef,
-        label
+        type: 'tx'
       }
     }
 
@@ -110,8 +110,8 @@ export function updateAccountObjectLabels(account: Account) {
     })
   }
 
-  for (const index in updatedAccount.addresses) {
-    const addressRef = updatedAccount.addresses[index].address
+  for (const [index, addr] of updatedAccount.addresses.entries()) {
+    const addressRef = addr.address
     const label = labels[addressRef]?.label
     updatedAccount.addresses[index].label = label || ''
   }
@@ -132,7 +132,9 @@ export async function getPin() {
 // decrypt key secret without account context using provided PIN
 export async function decryptKeySecretUsingPin(key: Key, pin: string) {
   // object already decrypt
-  if (typeof key.secret === 'object') return key.secret
+  if (typeof key.secret === 'object') {
+    return key.secret
+  }
 
   // decryption validation
   let decryptedSecret = ''
@@ -172,8 +174,8 @@ export async function dropSeedFromKey(key: Key) {
   const secretWithoutSeed: Secret = {
     extendedPublicKey: decryptedSecret.extendedPublicKey,
     externalDescriptor: decryptedSecret.externalDescriptor,
-    internalDescriptor: decryptedSecret.internalDescriptor,
-    fingerprint: decryptedSecret.fingerprint
+    fingerprint: decryptedSecret.fingerprint,
+    internalDescriptor: decryptedSecret.internalDescriptor
   }
   const stringifiedSecret = JSON.stringify(secretWithoutSeed)
   const encryptedSecret = await aesEncrypt(stringifiedSecret, pin, key.iv)
@@ -231,7 +233,7 @@ export async function decryptAllAccountKeySecrets(account: Account) {
   try {
     const secrets: Secret[] = []
     const pin = await getPin()
-    for (let index = 0; index < account.keys.length; index++) {
+    for (let index = 0; index < account.keys.length; index += 1) {
       const secret = await decryptKeySecretAt(account.keys, index, pin)
       secrets.push(secret)
     }
@@ -268,10 +270,10 @@ export function getAccountFingerprint(
     return ''
   }
 
-  const firstKey = account.keys[0]
+  const [firstKey] = account.keys
 
   if (decryptedKeys && decryptedKeys.length > 0) {
-    const decryptedKey = decryptedKeys[0]
+    const [decryptedKey] = decryptedKeys
     if (decryptedKey) {
       if (
         typeof decryptedKey.secret === 'object' &&
@@ -296,15 +298,16 @@ export function getAccountFingerprint(
   return ''
 }
 
-export async function getAccountFingerprintWithDecryption(
+export function getAccountFingerprintWithDecryption(
   account: Account
 ): Promise<string> {
-  if (account.keys.length < 0) return ''
   return getKeyFingerprint(account.keys[0])
 }
 
 export async function getKeyFingerprint(key: Key): Promise<string> {
-  if (key.fingerprint) return key.fingerprint
+  if (key.fingerprint) {
+    return key.fingerprint
+  }
   const decryptedSecret = await decryptKeySecret(key)
   return decryptedSecret.fingerprint || ''
 }

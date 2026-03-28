@@ -62,12 +62,12 @@ export function useBitcoinContentHandler({
             content,
             'bitcoin',
             {
+              addInput,
+              addOutput,
+              clearTransaction,
               navigate: (path: NavigatePath) => {
                 router.navigate(path)
               },
-              clearTransaction,
-              addOutput,
-              addInput,
               setFeeRate,
               setRbf,
               setSignedPsbts,
@@ -120,7 +120,7 @@ export function useBitcoinContentHandler({
 
   return {
     handleContentScanned,
-    handleSend,
-    handleReceive
+    handleReceive,
+    handleSend
   }
 }

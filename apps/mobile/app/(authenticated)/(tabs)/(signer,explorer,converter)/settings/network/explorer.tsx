@@ -37,8 +37,8 @@ export default function NetworkSettings() {
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>,
-          headerRight: undefined
+          headerRight: undefined,
+          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>
         }}
       />
       <SSVStack gap="lg" justifyBetween>

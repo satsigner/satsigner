@@ -45,7 +45,13 @@ export function useNetworkInfo() {
       try {
         client = ElectrumClient.fromUrl(server.url, selectedNetwork)
         await client.init()
-        const tip = await (client.client as any).blockchainHeaders_subscribe()
+        const tip = await (
+          client.client as unknown as {
+            blockchainHeaders_subscribe: () => Promise<{
+              height: number
+            } | null>
+          }
+        ).blockchainHeaders_subscribe()
         if (tip?.height) {
           height = tip.height as number
           source = 'backend'
@@ -55,7 +61,9 @@ export function useNetworkInfo() {
       } finally {
         try {
           client?.close()
-        } catch {}
+        } catch {
+          /* silently ignored */
+        }
       }
     }
 
@@ -74,15 +82,19 @@ export function useNetworkInfo() {
         height = mempoolHeight as number
         source = 'mempool'
       }
-      if (fees?.high != null) {
+      if (fees?.high !== null && fees?.high !== undefined) {
         fee = fees.high
       }
     } catch {
       // keep previous values
     }
 
-    if (height !== null) setBlockHeight(height)
-    if (fee !== null) setNextBlockFee(Math.round(fee))
+    if (height !== null) {
+      setBlockHeight(height)
+    }
+    if (fee !== null) {
+      setNextBlockFee(Math.round(fee))
+    }
     setBlockHeightSource(source)
   }, [selectedNetwork, configsMempool, configs])
 
@@ -92,5 +104,5 @@ export function useNetworkInfo() {
     return () => clearInterval(interval)
   }, [fetchNetworkInfo])
 
-  return { blockHeight, nextBlockFee, blockHeightSource }
+  return { blockHeight, blockHeightSource, nextBlockFee }
 }

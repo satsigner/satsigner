@@ -2,25 +2,25 @@ import { I18n, type TranslateOptions } from 'i18n-js'
 
 import en from './en.json'
 
-function generateJson(j: Record<string, any>): Record<string, any> {
-  function nestKeys(obj: Record<string, any>): Record<string, any> {
-    const nestedObj: Record<string, any> = {}
+function generateJson(j: Record<string, unknown>): Record<string, unknown> {
+  function nestKeys(obj: Record<string, unknown>): Record<string, unknown> {
+    const nestedObj: Record<string, unknown> = {}
 
-    Object.entries(obj).forEach(([key, value]) => {
+    for (const [key, value] of Object.entries(obj)) {
       if (typeof value === 'object' && value !== null) {
-        nestedObj[key] = nestKeys(value)
+        nestedObj[key] = nestKeys(value as Record<string, unknown>)
       } else {
         const keys = key.split('.')
         let current = nestedObj
 
-        keys.forEach((k, index) => {
+        for (const [index, k] of keys.entries()) {
           if (!current[k]) {
             current[k] = index === keys.length - 1 ? value : {}
           }
-          current = current[k]
-        })
+          current = current[k] as Record<string, unknown>
+        }
       }
-    })
+    }
 
     return nestedObj
   }
@@ -40,7 +40,7 @@ i18n.store({ en: generateJson(en) })
 const t = (key: string, options?: TranslateOptions) => i18n.t(key, options)
 
 const tn = (namespace: string) =>
-  function (key: string, options?: TranslateOptions) {
+  function namespacedTranslate(key: string, options?: TranslateOptions) {
     return t(`${namespace}.${key}`, options)
   }
 

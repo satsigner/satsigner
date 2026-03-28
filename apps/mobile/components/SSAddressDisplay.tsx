@@ -34,10 +34,11 @@ function SSAddressDisplay({
   copyToClipboard = true,
   ...props
 }: SSAddressDisplayProps) {
-  if (!copyToClipboard)
+  if (!copyToClipboard) {
     return (
       <AddressDisplayContent address={address} variant={variant} {...props} />
     )
+  }
 
   return (
     <SSClipboardCopy text={address}>
@@ -47,26 +48,26 @@ function SSAddressDisplay({
 }
 
 const styles = StyleSheet.create({
+  bare: {
+    flexWrap: 'wrap',
+    padding: 0,
+    width: '100%'
+  },
   default: {
     backgroundColor: Colors.gray[800],
     borderRadius: 5,
     flexWrap: 'wrap',
-    padding: 12,
     justifyContent: 'center',
+    padding: 12,
     width: '100%'
   },
   outline: {
     borderColor: Colors.gray[600],
-    borderWidth: 1,
     borderRadius: 5,
+    borderWidth: 1,
     flexWrap: 'wrap',
     justifyContent: 'center',
     padding: 12,
-    width: '100%'
-  },
-  bare: {
-    flexWrap: 'wrap',
-    padding: 0,
     width: '100%'
   }
 })

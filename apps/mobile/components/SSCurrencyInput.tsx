@@ -15,7 +15,8 @@ const formatNumberWithCommas = (numStr: string, decimal: number) => {
     const [baseStr, exponentStr] = numStr.split('e')
     const exponent = parseInt(exponentStr, 10)
 
-    let [integerPart, fractionalPart = ''] = baseStr.split('.')
+    const [integerPart, rawFractional] = baseStr.split('.')
+    let fractionalPart = rawFractional ?? ''
 
     if (exponent > 0) {
       fractionalPart = fractionalPart.padEnd(exponent, '0')
@@ -23,7 +24,7 @@ const formatNumberWithCommas = (numStr: string, decimal: number) => {
       rawText = combined + '0'.repeat(exponent - fractionalPart.length)
     } else {
       const zeros = Math.abs(exponent) - 1
-      rawText = '0.' + '0'.repeat(zeros) + integerPart + fractionalPart
+      rawText = `0.${'0'.repeat(zeros)}${integerPart}${fractionalPart}`
     }
   } else {
     rawText = numStr
@@ -36,7 +37,7 @@ const formatNumberWithCommas = (numStr: string, decimal: number) => {
     integerPart = integerPart.replace(/^0+/, '') || '0'
     decimalPart = decimalPart.slice(0, decimal)
     const formattedInt = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-    return formattedInt + '.' + decimalPart
+    return `${formattedInt}.${decimalPart}`
   }
 
   const cleanNum = rawText.replace(/^0+/, '') || '0'
@@ -71,7 +72,9 @@ function SSCurrencyInput(
   function handleTextChange(text: string) {
     if (text === '') {
       setLocalValue('0')
-      if (onChangeValue) onChangeValue(0)
+      if (onChangeValue) {
+        onChangeValue(0)
+      }
       return
     }
 
@@ -134,53 +137,53 @@ function SSCurrencyInput(
 }
 
 const styles = StyleSheet.create({
+  actionRightBase: {
+    position: 'absolute',
+    right: 12,
+    top: '50%',
+    transform: [{ translateY: -12 }]
+  },
+  alignCenter: {
+    paddingHorizontal: 12,
+    textAlign: 'center'
+  },
+  alignLeft: {
+    paddingHorizontal: 12,
+    textAlign: 'left'
+  },
+  borderInvalid: {
+    borderColor: Colors.error,
+    borderWidth: 2
+  },
   containerBase: {
     position: 'relative',
     width: '100%'
-  },
-  textInputBase: {
-    borderRadius: Sizes.textInput.borderRadius,
-    width: '100%',
-    textAlign: 'center',
-    color: Colors.white,
-    fontFamily: Typography.sfProTextRegular
-  },
-  variantDefault: {
-    backgroundColor: Colors.gray[850]
-  },
-  variantOutline: {
-    borderWidth: 1,
-    borderColor: Colors.gray[400]
   },
   sizeDefault: {
     fontSize: Sizes.textInput.fontSize.default,
     height: Sizes.textInput.height.default
   },
-  sizeSmall: {
-    fontSize: Sizes.textInput.fontSize.small,
-    height: Sizes.textInput.height.small
-  },
   sizeLarge: {
     fontSize: Sizes.textInput.fontSize.large,
     height: Sizes.textInput.height.large
   },
-  alignCenter: {
+  sizeSmall: {
+    fontSize: Sizes.textInput.fontSize.small,
+    height: Sizes.textInput.height.small
+  },
+  textInputBase: {
+    borderRadius: Sizes.textInput.borderRadius,
+    color: Colors.white,
+    fontFamily: Typography.sfProTextRegular,
     textAlign: 'center',
-    paddingHorizontal: 12
+    width: '100%'
   },
-  alignLeft: {
-    textAlign: 'left',
-    paddingHorizontal: 12
+  variantDefault: {
+    backgroundColor: Colors.gray[850]
   },
-  actionRightBase: {
-    position: 'absolute',
-    top: '50%',
-    right: 12,
-    transform: [{ translateY: -12 }]
-  },
-  borderInvalid: {
-    borderWidth: 2,
-    borderColor: Colors.error
+  variantOutline: {
+    borderColor: Colors.gray[400],
+    borderWidth: 1
   }
 })
 

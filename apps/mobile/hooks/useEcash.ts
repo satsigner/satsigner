@@ -86,20 +86,20 @@ export function useEcash() {
   )
 
   const markReceivedTokensAsSpent = useCallback(() => {
-    transactions.forEach((transaction) => {
+    for (const transaction of transactions) {
       if (
         transaction.type === 'receive' &&
         transaction.tokenStatus === 'unspent'
       ) {
         updateTransaction(transaction.id, { tokenStatus: 'spent' })
       }
-    })
+    }
   }, [transactions, updateTransaction])
 
   const connectToMintHandler = useCallback(
     async (mintUrl: string): Promise<EcashMint> => {
       if (mints.length > 0) {
-        const existingMint = mints[0]
+        const [existingMint] = mints
         removeMint(existingMint.url)
         clearWalletCache(existingMint.url)
         toast.info(t('ecash.info.mintDisconnected'))
@@ -136,16 +136,16 @@ export function useEcash() {
       addMintQuote(quote)
 
       const transaction: EcashTransaction = {
-        id: quote.quote,
-        type: 'mint',
         amount,
-        memo,
+        expiry: quote.expiry,
+        id: quote.quote,
         label: memo, // Use memo as the transaction label
+        memo,
         mintUrl,
-        timestamp: new Date().toISOString(),
-        status: 'pending',
         quoteId: quote.quote,
-        expiry: quote.expiry
+        status: 'pending',
+        timestamp: new Date().toISOString(),
+        type: 'mint'
       }
       addTransaction(transaction)
 
@@ -155,9 +155,8 @@ export function useEcash() {
   )
 
   const checkMintQuoteHandler = useCallback(
-    async (mintUrl: string, quoteId: string): Promise<MintQuoteState> => {
-      return checkMintQuote(mintUrl, quoteId)
-    },
+    (mintUrl: string, quoteId: string): Promise<MintQuoteState> =>
+      checkMintQuote(mintUrl, quoteId),
     []
   )
 
@@ -172,7 +171,7 @@ export function useEcash() {
       removeMintQuote(quoteId)
       updateMintBalance(
         mintUrl,
-        await getMintBalance(mintUrl, [...proofs, ...result.proofs])
+        getMintBalance(mintUrl, [...proofs, ...result.proofs])
       )
 
       // Update existing transaction status to completed
@@ -220,7 +219,7 @@ export function useEcash() {
 
       updateMintBalance(
         mintUrl,
-        await getMintBalance(
+        getMintBalance(
           mintUrl,
           proofs.filter((p) => !proofIds.includes(p.id))
         )
@@ -231,17 +230,17 @@ export function useEcash() {
 
       // Add transaction record
       addTransaction({
-        id: `melt_${Date.now()}_${randomKey(9)}`,
-        type: 'melt',
         amount: quote.amount,
-        mintUrl,
-        timestamp: new Date().toISOString(),
-        status: 'settled',
-        invoice: quote.quote, // Store the invoice for reference
-        quoteId: quote.quote,
         expiry: quote.expiry,
+        id: `melt_${Date.now()}_${randomKey(9)}`,
+        invoice: quote.quote, // Store the invoice for reference
         label: description, // Use description as the transaction label
-        memo: description // Also store as memo for backward compatibility
+        memo: description, // Also store as memo for backward compatibility
+        mintUrl,
+        quoteId: quote.quote,
+        status: 'settled',
+        timestamp: new Date().toISOString(),
+        type: 'melt'
       })
 
       toast.success(t('ecash.success.tokensMelted'))
@@ -269,20 +268,20 @@ export function useEcash() {
         const proofIds = result.send.map((proof) => proof.id)
         removeProofs(proofIds)
         addProofs(result.keep)
-        updateMintBalance(mintUrl, await getMintBalance(mintUrl, result.keep))
+        updateMintBalance(mintUrl, getMintBalance(mintUrl, result.keep))
 
         // Mark received tokens as spent
         markReceivedTokensAsSpent()
 
         // Add transaction record
         addTransaction({
-          id: `send_${Date.now()}_${randomKey(9)}`,
-          type: 'send',
           amount,
+          id: `send_${Date.now()}_${randomKey(9)}`,
           memo,
           mintUrl,
           timestamp: new Date().toISOString(),
-          token: result.token
+          token: result.token,
+          type: 'send'
         })
 
         toast.success(t('ecash.success.tokenGenerated'))
@@ -321,20 +320,20 @@ export function useEcash() {
         addProofs(result.proofs)
         updateMintBalance(
           mintUrl,
-          await getMintBalance(mintUrl, [...proofs, ...result.proofs])
+          getMintBalance(mintUrl, [...proofs, ...result.proofs])
         )
 
         // Add transaction record
         addTransaction({
-          id: `receive_${Date.now()}_${randomKey(9)}`,
-          type: 'receive',
           amount: result.totalAmount,
-          mintUrl,
-          timestamp: new Date().toISOString(),
-          status: 'completed',
-          tokenStatus: 'unspent',
+          id: `receive_${Date.now()}_${randomKey(9)}`,
+          label: result.memo,
           memo: result.memo,
-          label: result.memo
+          mintUrl,
+          status: 'completed',
+          timestamp: new Date().toISOString(),
+          tokenStatus: 'unspent',
+          type: 'receive'
         })
 
         toast.success(t('ecash.success.tokenRedeemed'))
@@ -345,14 +344,14 @@ export function useEcash() {
 
         // Add failed transaction record
         addTransaction({
-          id: `receive_failed_${Date.now()}_${randomKey(9)}`,
-          type: 'receive',
           amount: 0, // Unknown amount for failed transactions
-          mintUrl,
-          timestamp: new Date().toISOString(),
-          status: 'failed',
+          id: `receive_failed_${Date.now()}_${randomKey(9)}`,
+          label: `Failed: ${errorMessage}`,
           memo: errorMessage,
-          label: `Failed: ${errorMessage}`
+          mintUrl,
+          status: 'failed',
+          timestamp: new Date().toISOString(),
+          type: 'receive'
         })
 
         toast.error(errorMessage)
@@ -449,13 +448,15 @@ export function useEcash() {
         // Continue processing other transactions on error
       } finally {
         removeCheckingTransaction(transaction.id)
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        await new Promise((resolve) => {
+          setTimeout(resolve, 500)
+        })
       }
     }
   }, [addCheckingTransaction, removeCheckingTransaction, updateTransaction]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const resumePollingForTransaction = useCallback(
-    async (
+    (
       transactionId: string,
       startPolling: (pollFunction: () => Promise<boolean>) => void
     ) => {
@@ -509,29 +510,29 @@ export function useEcash() {
   )
 
   return {
-    mints,
     activeMint,
-    proofs,
-    transactions,
-    mintQuotes,
-    checkingTransactionIds,
-    connectToMint: connectToMintHandler,
-    disconnectMint,
-    createMintQuote: createMintQuoteHandler,
     checkMintQuote: checkMintQuoteHandler,
-    mintProofs: mintProofsHandler,
-    createMeltQuote: createMeltQuoteHandler,
-    meltProofs: meltProofsHandler,
-    sendEcash: sendEcashHandler,
-    receiveEcash: receiveEcashHandler,
-    updateTransaction,
-    validateToken,
-    markReceivedTokensAsSpent,
-    resumePollingForTransaction,
-    restoreFromBackup: restoreFromBackupHandler,
-    clearAllData: clearAllDataHandler,
     checkPendingTransactionStatus,
-    setActiveMint
+    checkingTransactionIds,
+    clearAllData: clearAllDataHandler,
+    connectToMint: connectToMintHandler,
+    createMeltQuote: createMeltQuoteHandler,
+    createMintQuote: createMintQuoteHandler,
+    disconnectMint,
+    markReceivedTokensAsSpent,
+    meltProofs: meltProofsHandler,
+    mintProofs: mintProofsHandler,
+    mintQuotes,
+    mints,
+    proofs,
+    receiveEcash: receiveEcashHandler,
+    restoreFromBackup: restoreFromBackupHandler,
+    resumePollingForTransaction,
+    sendEcash: sendEcashHandler,
+    setActiveMint,
+    transactions,
+    updateTransaction,
+    validateToken
   }
 }
 
@@ -571,7 +572,7 @@ export function useQuotePolling() {
 
       try {
         const shouldStop = await pollFunction()
-        currentPollCount++
+        currentPollCount += 1
         currentLastPollTime = now
         setPollCount(currentPollCount)
         setLastPollTime(currentLastPollTime)
@@ -588,7 +589,7 @@ export function useQuotePolling() {
           timeoutRef.current = setTimeout(poll, POLL_INTERVAL)
         }
       } catch {
-        currentPollCount++
+        currentPollCount += 1
         currentLastPollTime = now
         setPollCount(currentPollCount)
         setLastPollTime(currentLastPollTime)
@@ -618,13 +619,14 @@ export function useQuotePolling() {
   }, [])
 
   // Cleanup on unmount
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
       }
-    }
-  }, [])
+    },
+    []
+  )
 
   return {
     isPolling,

@@ -76,7 +76,7 @@ export default function GenerateMnemonic() {
   const [checksumValid, setChecksumValid] = useState(true)
 
   // TODO: Debounce this
-  async function handleUpdatePassphrase(passphrase: string) {
+  function handleUpdatePassphrase(passphrase: string) {
     setPassphrase(passphrase)
 
     const validMnemonic = validateMnemonic(mnemonic, mnemonicWordList)
@@ -89,8 +89,11 @@ export default function GenerateMnemonic() {
   }
 
   function handleOnPressCancel() {
-    if (policyType === 'multisig') router.back()
-    else if (policyType === 'singlesig') router.dismissAll()
+    if (policyType === 'multisig') {
+      router.back()
+    } else if (policyType === 'singlesig') {
+      router.dismissAll()
+    }
   }
 
   async function handleOnPressConfirm() {
@@ -174,7 +177,7 @@ export default function GenerateMnemonic() {
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.mnemonic.title')} />
               <SSSeedLayout count={mnemonicWordCount}>
-                {[...Array(mnemonicWordCount)].map((_, index) => (
+                {Array.from({ length: mnemonicWordCount }).map((_, index) => (
                   <SSWordInput
                     key={index}
                     position={index + 1}

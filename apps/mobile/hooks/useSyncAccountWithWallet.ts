@@ -82,13 +82,15 @@ function useSyncAccountWithWallet() {
         const oracle = new MempoolOracle(mempoolUrl)
         const fetchedPrices = await oracle.getPricesAt('USD', uniqueTimestamps)
         const priceMap: Record<number, number> = {}
-        uniqueTimestamps.forEach((ts, i) => {
+        for (const [i, ts] of uniqueTimestamps.entries()) {
           priceMap[ts] = fetchedPrices[i]
-        })
+        }
         for (const tx of updatedAccount.transactions) {
           if (!tx.prices?.USD && tx.timestamp) {
             const price = priceMap[formatTimestamp(tx.timestamp)]
-            if (price !== undefined) tx.prices = { USD: price }
+            if (price !== undefined) {
+              tx.prices = { USD: price }
+            }
           }
         }
       }
@@ -105,7 +107,7 @@ function useSyncAccountWithWallet() {
     }
   }
 
-  return { syncAccountWithWallet, loading }
+  return { loading, syncAccountWithWallet }
 }
 
 export default useSyncAccountWithWallet

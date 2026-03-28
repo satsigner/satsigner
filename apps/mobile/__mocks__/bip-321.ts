@@ -34,11 +34,11 @@ export type BIP321EncodeResult = {
 
 export function parseBIP321(uri: string): BIP321ParseResult {
   const base = {
+    errors: [] as string[],
+    optionalParams: {},
     paymentMethods: [] as PaymentMethod[],
     requiredParams: [],
-    optionalParams: {},
-    valid: false,
-    errors: [] as string[]
+    valid: false
   }
   const trimmed = uri.trim()
   if (!trimmed.toLowerCase().startsWith('bitcoin:')) {
@@ -60,8 +60,8 @@ export function parseBIP321(uri: string): BIP321ParseResult {
   }
   const result: BIP321ParseResult = {
     ...base,
-    valid: true,
-    errors: []
+    errors: [],
+    valid: true
   }
   if (address) {
     const network: Network | undefined = address.startsWith('bcrt1')
@@ -74,24 +74,26 @@ export function parseBIP321(uri: string): BIP321ParseResult {
     result.address = address
     result.network = network
     result.paymentMethods.push({
-      type: 'onchain',
-      value: address,
       network: result.network,
-      valid: true
+      type: 'onchain',
+      valid: true,
+      value: address
     })
   }
   if (query) {
     const params = new URLSearchParams(query)
     const amountStr = params.get('amount')
-    if (amountStr) result.amount = parseFloat(amountStr)
+    if (amountStr) {
+      result.amount = parseFloat(amountStr)
+    }
     result.label = params.get('label') ?? undefined
     result.message = params.get('message') ?? undefined
     const lightning = params.get('lightning')
     if (lightning) {
       result.paymentMethods.push({
         type: 'lightning',
-        value: lightning,
-        valid: true
+        valid: true,
+        value: lightning
       })
     }
   }
@@ -108,7 +110,7 @@ export function encodeBIP321(params: {
   const ok =
     params.address && params.address.length >= 26 && params.address.length <= 90
   if (!ok) {
-    return { valid: false, errors: ['Invalid address'] }
+    return { errors: ['Invalid address'], valid: false }
   }
   let uri = `bitcoin:${params.address}`
   const parts: string[] = []
@@ -117,12 +119,19 @@ export function encodeBIP321(params: {
       `amount=${params.amount < 0.0001 ? params.amount.toFixed(8).replace(/\.?0+$/, '') : params.amount}`
     )
   }
-  if (params.label) parts.push(`label=${encodeURIComponent(params.label)}`)
-  if (params.message)
+  if (params.label) {
+    parts.push(`label=${encodeURIComponent(params.label)}`)
+  }
+  if (params.message) {
     parts.push(`message=${encodeURIComponent(params.message)}`)
-  if (params.lightning) parts.push(`lightning=${params.lightning}`)
-  if (parts.length) uri += `?${parts.join('&')}`
-  return { valid: true, uri }
+  }
+  if (params.lightning) {
+    parts.push(`lightning=${params.lightning}`)
+  }
+  if (parts.length) {
+    uri += `?${parts.join('&')}`
+  }
+  return { uri, valid: true }
 }
 
 export function validateBitcoinAddress(address: string): {
@@ -131,7 +140,9 @@ export function validateBitcoinAddress(address: string): {
   error?: string
 } {
   const ok = address && address.length >= 26 && address.length <= 90
-  if (!ok) return { valid: false, error: 'Invalid address format' }
+  if (!ok) {
+    return { error: 'Invalid address format', valid: false }
+  }
   const network: Network | undefined = address.startsWith('bcrt1')
     ? 'regtest'
     : address.startsWith('tb1') || /^[mn2]/.test(address)
@@ -139,7 +150,7 @@ export function validateBitcoinAddress(address: string): {
       : address.startsWith('bc1') || /^[13]/.test(address)
         ? 'mainnet'
         : undefined
-  return { valid: true, network }
+  return { network, valid: true }
 }
 
 export function validateLightningInvoice(invoice: string): {
@@ -156,9 +167,9 @@ export function validateLightningInvoice(invoice: string): {
         : lower.startsWith('lntbs')
           ? 'signet'
           : 'testnet'
-    return { valid: true, network }
+    return { network, valid: true }
   }
-  return { valid: false, error: 'Invalid Lightning invoice prefix' }
+  return { error: 'Invalid Lightning invoice prefix', valid: false }
 }
 
 export function validateBolt12Offer(offer: string): {
@@ -169,5 +180,5 @@ export function validateBolt12Offer(offer: string): {
   if (lower.startsWith('lno1') || lower.startsWith('lno')) {
     return { valid: lower.length > 10 }
   }
-  return { valid: false, error: 'Invalid BOLT12 offer' }
+  return { error: 'Invalid BOLT12 offer', valid: false }
 }

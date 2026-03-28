@@ -31,21 +31,23 @@ function getBlockchainConfig(
   switch (backend) {
     case 'electrum':
       return {
-        url,
-        sock5: proxyString,
         retry: options.retries || 5,
-        timeout: options.timeout || 5,
+        sock5: proxyString,
         stopGap: options.stopGap || 20,
+        timeout: options.timeout || 5,
+        url,
         validateDomain: false
       }
     case 'esplora':
       return {
         baseUrl: url,
-        timeout: options.timeout || 5,
-        stopGap: options.stopGap || 20,
+        concurrency: 4,
         proxy: proxyString,
-        concurrency: 4
+        stopGap: options.stopGap || 20,
+        timeout: options.timeout || 5
       }
+    default:
+      throw new Error('unreachable')
   }
 }
 

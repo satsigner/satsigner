@@ -10,7 +10,9 @@ import { sha256 } from '@/utils/crypto'
 
 function useNostrLabelSync() {
   const sync = useCallback(async (account?: Account, singleLabel?: Label) => {
-    if (!account || !account.nostr || !account.nostr.autoSync) return
+    if (!account || !account.nostr || !account.nostr.autoSync) {
+      return
+    }
 
     const { commonNsec, commonNpub, relays, deviceNpub, deviceNsec } =
       account.nostr
@@ -66,12 +68,12 @@ function useNostrLabelSync() {
             ? label.time.getTime() / 1000
             : nowTimestamp
       const entry: Record<string, unknown> = {
-        __class__: 'Label',
         VERSION: '0.0.3',
-        type: label.type,
-        ref: label.ref,
+        __class__: 'Label',
         label: label.label,
-        timestamp
+        ref: label.ref,
+        timestamp,
+        type: label.type
       }
       if (label.spendable !== undefined) {
         entry.spendable = label.spendable
@@ -99,16 +101,18 @@ function useNostrLabelSync() {
         current.push(line)
         currentLen += line.length + 1
       }
-      if (current.length) buckets.push(current)
+      if (current.length) {
+        buckets.push(current)
+      }
       chunks = buckets.map((b) => b.join('\n'))
     }
 
     const buildMessage = (jsonl: string) =>
       JSON.stringify({
         created_at: Math.floor(Date.now() / 1000),
-        label: 1,
+        data: { data: jsonl, data_type: 'LabelsBip329' },
         description: '',
-        data: { data: jsonl, data_type: 'LabelsBip329' }
+        label: 1
       })
 
     const nostrApi = new NostrAPI(relays)
@@ -121,13 +125,15 @@ function useNostrLabelSync() {
         .accounts.find((a) => a.id === account.id)
       const trustedDevices = currentAccount?.nostr?.trustedMemberDevices || []
 
-      if (trustedDevices.length === 0) return
+      if (trustedDevices.length === 0) {
+        return
+      }
 
       // Send each chunk to every trusted device in parallel.
       const allPromises = trustedDevices.flatMap((trustedDeviceNpub) =>
-        chunks.map(async (jsonl) => {
+        chunks.map((jsonl) => {
           const messageContent = buildMessage(jsonl)
-          const eventKind1059 = await nostrApi.createKind1059(
+          const eventKind1059 = nostrApi.createKind1059(
             deviceNsec,
             trustedDeviceNpub,
             messageContent

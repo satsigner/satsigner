@@ -47,7 +47,7 @@ export type DetectedContent = {
   type: ContentType
   raw: string
   cleaned: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   isValid: boolean
 }
 
@@ -63,22 +63,22 @@ async function detectBitcoinContent(
   const descriptorValidation = await validateDescriptorFormat(trimmed)
   if (descriptorValidation) {
     return {
-      type: 'bitcoin_descriptor',
-      raw: data,
       cleaned: trimmed,
       isValid: true,
       metadata: {
         isCombined: isCombinedDescriptor(trimmed)
-      }
+      },
+      raw: data,
+      type: 'bitcoin_descriptor'
     }
   }
 
   if (isPSBT(trimmed)) {
     return {
-      type: 'psbt',
-      raw: data,
       cleaned: trimmed,
-      isValid: true
+      isValid: true,
+      raw: data,
+      type: 'psbt'
     }
   }
 
@@ -86,28 +86,28 @@ async function detectBitcoinContent(
   const transactionData = stripBitcoinPrefix(trimmed)
   if (isBitcoinTransaction(transactionData)) {
     return {
-      type: 'bitcoin_transaction',
-      raw: data,
       cleaned: transactionData,
-      isValid: true
+      isValid: true,
+      raw: data,
+      type: 'bitcoin_transaction'
     }
   }
 
   if (isExtendedPublicKey(trimmed)) {
     return {
-      type: 'extended_public_key',
-      raw: data,
       cleaned: trimmed,
-      isValid: true
+      isValid: true,
+      raw: data,
+      type: 'extended_public_key'
     }
   }
 
   if (isBitcoinUri(trimmed)) {
     return {
-      type: 'bitcoin_uri',
-      raw: data,
       cleaned: trimmed,
-      isValid: true
+      isValid: true,
+      raw: data,
+      type: 'bitcoin_uri'
     }
   }
 
@@ -115,41 +115,41 @@ async function detectBitcoinContent(
     const uriPart = trimmed.substring(8)
     if (isBitcoinUri(trimmed)) {
       return {
-        type: 'bitcoin_uri',
-        raw: data,
         cleaned: trimmed,
-        isValid: true
+        isValid: true,
+        raw: data,
+        type: 'bitcoin_uri'
       }
     }
     const addressMatch = uriPart.match(/^([^?]+)(\?.*)?$/)
     if (addressMatch && isBitcoinAddress(addressMatch[1])) {
       return {
-        type: 'bitcoin_uri',
-        raw: data,
         cleaned: trimmed,
-        isValid: true
+        isValid: true,
+        raw: data,
+        type: 'bitcoin_uri'
       }
     }
   }
 
   if (isBitcoinAddress(trimmed)) {
     return {
-      type: 'bitcoin_address',
-      raw: data,
       cleaned: trimmed,
-      isValid: true
+      isValid: true,
+      raw: data,
+      type: 'bitcoin_address'
     }
   }
 
   const addressMatch = trimmed.match(/^([a-zA-Z0-9]{26,62})(\?.*)?$/)
   if (addressMatch) {
-    const addressPart = addressMatch[1]
+    const [, addressPart] = addressMatch
     if (isBitcoinAddress(addressPart)) {
       return {
-        type: 'bitcoin_uri',
-        raw: data,
         cleaned: trimmed,
-        isValid: true
+        isValid: true,
+        raw: data,
+        type: 'bitcoin_uri'
       }
     }
   }
@@ -172,22 +172,22 @@ function detectLightningContent(data: string): DetectedContent | null {
     const validation = validateLightning(lowerTrimmed)
     if (validation.isValid) {
       return {
-        type: 'lightning_invoice',
-        raw: data,
         cleaned: trimmed,
+        isValid: true,
         metadata: {
           network: validation.appNetwork
         },
-        isValid: true
+        raw: data,
+        type: 'lightning_invoice'
       }
     }
     // Even if validation fails, still detect as lightning invoice
     // to allow the user to see the content type
     return {
-      type: 'lightning_invoice',
-      raw: data,
       cleaned: trimmed,
-      isValid: true
+      isValid: true,
+      raw: data,
+      type: 'lightning_invoice'
     }
   }
 
@@ -195,23 +195,23 @@ function detectLightningContent(data: string): DetectedContent | null {
   if (lowerTrimmed.startsWith('lno')) {
     const validation = validateBolt12(lowerTrimmed)
     return {
-      type: 'lightning_invoice',
-      raw: data,
       cleaned: trimmed,
+      isValid: validation.isValid,
       metadata: {
         isBolt12: true,
         isValid: validation.isValid
       },
-      isValid: validation.isValid
+      raw: data,
+      type: 'lightning_invoice'
     }
   }
 
   if (isLNURL(lowerTrimmed)) {
     return {
-      type: 'lnurl',
-      raw: data,
       cleaned: trimmed,
-      isValid: true
+      isValid: true,
+      raw: data,
+      type: 'lnurl'
     }
   }
 
@@ -226,26 +226,26 @@ function detectEcashContent(data: string): DetectedContent | null {
       const decoded = getDecodedToken(trimmed)
       if (decoded) {
         return {
-          type: 'ecash_token',
-          raw: data,
           cleaned: trimmed,
+          isValid: true,
           metadata: {
-            version: trimmed.startsWith('cashuA') ? 'v3' : 'v4',
             mint: decoded.mint,
-            proofs: decoded.proofs?.length || 0
+            proofs: decoded.proofs?.length || 0,
+            version: trimmed.startsWith('cashuA') ? 'v3' : 'v4'
           },
-          isValid: true
+          raw: data,
+          type: 'ecash_token'
         }
       }
     } catch {
       const isV4 = trimmed.startsWith('cashuB')
       return {
-        type: 'ecash_token',
-        raw: data,
         cleaned: trimmed,
-        metadata: { version: isV4 ? 'v4' : 'v3' },
         // v4 often needs keysets to decode (short keyset ID, key type); treat as valid when format is v4
-        isValid: isV4
+        isValid: isV4,
+        metadata: { version: isV4 ? 'v4' : 'v3' },
+        raw: data,
+        type: 'ecash_token'
       }
     }
   }
@@ -253,39 +253,37 @@ function detectEcashContent(data: string): DetectedContent | null {
   return null
 }
 
-async function detectImportContent(
-  data: string
-): Promise<DetectedContent | null> {
+function detectImportContent(data: string): DetectedContent | null {
   const trimmed = data.trim()
 
   if (isBBQRFragment(trimmed)) {
     return {
-      type: 'bbqr_fragment',
-      raw: data,
       cleaned: trimmed,
-      isValid: true
+      isValid: true,
+      raw: data,
+      type: 'bbqr_fragment'
     }
   }
 
   if (trimmed.toLowerCase().startsWith('ur:crypto-psbt/')) {
     return {
-      type: 'ur',
-      raw: data,
       cleaned: trimmed,
-      isValid: true
+      isValid: true,
+      raw: data,
+      type: 'ur'
     }
   }
 
   const decodedSeed = detectAndDecodeSeedQR(trimmed)
   if (decodedSeed) {
     return {
-      type: 'seed_qr',
-      raw: data,
       cleaned: trimmed,
+      isValid: true,
       metadata: {
         mnemonic: decodedSeed
       },
-      isValid: true
+      raw: data,
+      type: 'seed_qr'
     }
   }
 
@@ -298,10 +296,10 @@ export async function detectContentByContext(
 ): Promise<DetectedContent> {
   if (!data || data.trim().length === 0) {
     return {
-      type: 'unknown',
-      raw: data,
       cleaned: data,
-      isValid: false
+      isValid: false,
+      raw: data,
+      type: 'unknown'
     }
   }
 
@@ -336,18 +334,20 @@ export async function detectContentByContext(
         }
       }
       break
+    default:
+      break
   }
 
   if (!detected) {
-    detected = await detectImportContent(data)
+    detected = detectImportContent(data)
   }
 
   if (!detected) {
     return {
-      type: 'unknown',
-      raw: data,
       cleaned: data.trim(),
-      isValid: false
+      isValid: false,
+      raw: data,
+      type: 'unknown'
     }
   }
 

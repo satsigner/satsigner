@@ -195,9 +195,8 @@ export default function ImportDescriptor() {
         }
 
         const [, bracketContent, afterBracket] = bracketMatch
-        const bracketParts = bracketContent.split('/')
-        const fingerprint = bracketParts[0]
-        const derivationPath = bracketParts.slice(1).join('/')
+        const [fingerprint, ...restParts] = bracketContent.split('/')
+        const derivationPath = restParts.join('/')
 
         // Extract extended public key and address path
         const xpubMatch = afterBracket.match(/^([a-zA-Z0-9]+)(.*)$/)
@@ -209,17 +208,17 @@ export default function ImportDescriptor() {
 
         const [, extendedPublicKey, addressPath] = xpubMatch
         return {
-          fingerprint,
+          addressPath: addressPath || '/<0;1>/*',
           derivationPath,
           extendedPublicKey,
-          addressPath: addressPath || '/<0;1>/*'
+          fingerprint
         }
       })
 
       return {
-        keysRequired,
         keyCount: keys.length,
         keyData,
+        keysRequired,
         scriptVersion: (cleanDescriptor.startsWith('wsh(')
           ? 'P2WSH'
           : cleanDescriptor.startsWith('sh(')
@@ -228,7 +227,8 @@ export default function ImportDescriptor() {
       }
     } catch (error) {
       throw new Error(
-        `Failed to parse multisig descriptor: ${(error as Error).message}`
+        `Failed to parse multisig descriptor: ${(error as Error).message}`,
+        { cause: error }
       )
     }
   }
@@ -260,7 +260,7 @@ export default function ImportDescriptor() {
       setInternalDescriptor(internalDescriptor)
 
       // Set up each key in the account builder store
-      for (let i = 0; i < parsedData.keyData.length; i++) {
+      for (let i = 0; i < parsedData.keyData.length; i += 1) {
         const keyData = parsedData.keyData[i]
 
         // Set key properties
@@ -312,7 +312,7 @@ export default function ImportDescriptor() {
                 multiline
                 numberOfLines={3}
                 style={[
-                  { padding: 5, height: 'auto' },
+                  { height: 'auto', padding: 5 },
                   styles.textArea,
                   !isValidDescriptor && descriptor.trim()
                     ? styles.invalid
@@ -348,8 +348,8 @@ export default function ImportDescriptor() {
                 style={{
                   color: Colors.error,
                   fontSize: 12,
-                  textAlign: 'center',
-                  marginTop: 4
+                  marginTop: 4,
+                  textAlign: 'center'
                 }}
               >
                 {descriptorError}
@@ -360,8 +360,8 @@ export default function ImportDescriptor() {
                 style={{
                   color: Colors.gray[500],
                   fontSize: 12,
-                  textAlign: 'center',
-                  marginTop: 4
+                  marginTop: 4,
+                  textAlign: 'center'
                 }}
               >
                 {t('common.loading')}...
@@ -425,15 +425,15 @@ export default function ImportDescriptor() {
 }
 
 const styles = StyleSheet.create({
+  invalid: {
+    borderColor: Colors.error
+  },
   textArea: {
+    marginBottom: 8,
     minHeight: 120,
-    textAlignVertical: 'top',
-    marginBottom: 8
+    textAlignVertical: 'top'
   },
   valid: {
     borderColor: Colors.success
-  },
-  invalid: {
-    borderColor: Colors.error
   }
 })

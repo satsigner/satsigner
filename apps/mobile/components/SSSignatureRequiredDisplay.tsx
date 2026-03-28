@@ -20,15 +20,17 @@ function SSSignatureRequiredDisplay({
   collectedSignatures = [],
   validationResults
 }: SSSignatureRequiredDisplayProps) {
-  const [containerSize, setContainersize] = useState({ width: 0, height: 0 })
+  const [containerSize, setContainersize] = useState({ height: 0, width: 0 })
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout
-    setContainersize({ width, height })
+    setContainersize({ height, width })
   }
 
   const sizeBetweenPoints = useMemo(() => {
-    if (totalNumber <= 1) return 0
+    if (totalNumber <= 1) {
+      return 0
+    }
 
     const availableWidth = Math.max(
       MIN_CONTAINER_WIDTH,
@@ -40,7 +42,9 @@ function SSSignatureRequiredDisplay({
   }, [containerSize.width, totalNumber])
 
   const centerPoints = useMemo(() => {
-    if (totalNumber <= 1) return [RADIUS_OUTER_RECT]
+    if (totalNumber <= 1) {
+      return [RADIUS_OUTER_RECT]
+    }
 
     return Array.from({ length: totalNumber }, (_, i) => i).map(
       (i) => sizeBetweenPoints * i + RADIUS_OUTER_RECT
@@ -48,7 +52,9 @@ function SSSignatureRequiredDisplay({
   }, [totalNumber, sizeBetweenPoints])
 
   const svgWidth = useMemo(() => {
-    if (totalNumber <= 1) return MIN_CONTAINER_WIDTH
+    if (totalNumber <= 1) {
+      return MIN_CONTAINER_WIDTH
+    }
 
     const calculatedWidth =
       sizeBetweenPoints * (totalNumber - 1) + RADIUS_OUTER_RECT * 2
@@ -61,8 +67,8 @@ function SSSignatureRequiredDisplay({
   return (
     <View
       style={{
-        flexDirection: 'column',
-        alignItems: 'center'
+        alignItems: 'center',
+        flexDirection: 'column'
       }}
     >
       <View

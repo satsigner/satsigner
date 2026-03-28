@@ -5,11 +5,11 @@ import { type ZoomLayoutState } from '@/types/ui/gestures'
 
 export const useLayout = () => {
   const [state, setState] = useState<ZoomLayoutState>({
-    x: 0,
-    y: 0,
-    width: 0,
+    center: { x: 0, y: 0 },
     height: 0,
-    center: { x: 0, y: 0 }
+    width: 0,
+    x: 0,
+    y: 0
   })
 
   const onCanvasLayout = (event: LayoutChangeEvent) => {

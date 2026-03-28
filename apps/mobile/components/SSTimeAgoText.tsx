@@ -11,21 +11,26 @@ type SSTimeAgoTextProps = {
 
 function SSTimeAgoText({ date, ...textProps }: SSTimeAgoTextProps) {
   function timeFormatter(value: number, unit: string, suffix: string) {
-    if (unit === 'second') return `${t('time.lessThanAMinute')} ${suffix}`
-    else if (unit === 'minute' || unit === 'hour')
+    if (unit === 'second') {
+      return `${t('time.lessThanAMinute')} ${suffix}`
+    } else if (unit === 'minute' || unit === 'hour') {
       return `${value} ${unit}${value !== 1 ? 's' : ''} ${suffix}`
-    else return `${formatDate(date)} - ${formatTime(date)}`
+    }
+    return `${formatDate(date)} - ${formatTime(date)}`
   }
 
   return (
     <TimeAgo
       date={date}
       live
-      component={(props: any) => (
-        <SSText color="muted" {...textProps}>
-          {props.children}
-        </SSText>
-      )}
+      component={
+        ((props: { children: React.ReactNode }) => (
+          <SSText color="muted" {...textProps}>
+            {props.children}
+          </SSText>
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        )) as any
+      }
       formatter={timeFormatter}
     />
   )

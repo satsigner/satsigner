@@ -23,6 +23,22 @@ type PriceAction = {
 const usePriceStore = create<PriceState & PriceAction>()(
   persist(
     (set, get) => ({
+      btcPrice: 0,
+      fetchFullPriceAt: async (mempoolUrl: string, timestamp: number) => {
+        const { fiatCurrency } = get()
+        const oracle = new MempoolOracle(mempoolUrl)
+        const prices = await oracle.getFullPriceAt(fiatCurrency, timestamp)
+        const btcPrice = prices[fiatCurrency] ?? 0
+        set({ btcPrice, prices })
+      },
+      fetchPrices: async (mempoolUrl: string) => {
+        const oracle = new MempoolOracle(mempoolUrl)
+        const prices = await oracle.getPrices()
+        const { fiatCurrency } = get()
+        const btcPrice = prices[fiatCurrency] ?? 0
+        set({ btcPrice, prices })
+      },
+      fiatCurrency: 'USD',
       prices: {
         AUD: 0,
         CAD: 0,
@@ -32,37 +48,25 @@ const usePriceStore = create<PriceState & PriceAction>()(
         JPY: 0,
         USD: 0
       },
-      fiatCurrency: 'USD',
-      btcPrice: 0,
       satsToFiat: (sats, btcPrice = 0) => {
-        if (!sats || sats <= 0) return 0
+        if (!sats || sats <= 0) {
+          return 0
+        }
         const bitcoinPrice = btcPrice || get().btcPrice
-        if (bitcoinPrice <= 0) return 0
+        if (bitcoinPrice <= 0) {
+          return 0
+        }
         return (sats / SATS_PER_BITCOIN) * bitcoinPrice
       },
       setFiatCurrency: (currency: Currency) => {
         const { prices } = get()
-        set({ fiatCurrency: currency, btcPrice: prices[currency] ?? 0 })
-      },
-      fetchPrices: async (mempoolUrl: string) => {
-        const oracle = new MempoolOracle(mempoolUrl)
-        const prices = await oracle.getPrices()
-        const { fiatCurrency } = get()
-        const btcPrice = prices[fiatCurrency] ?? 0
-        set({ prices, btcPrice })
-      },
-      fetchFullPriceAt: async (mempoolUrl: string, timestamp: number) => {
-        const { fiatCurrency } = get()
-        const oracle = new MempoolOracle(mempoolUrl)
-        const prices = await oracle.getFullPriceAt(fiatCurrency, timestamp)
-        const btcPrice = prices[fiatCurrency] ?? 0
-        set({ prices, btcPrice })
+        set({ btcPrice: prices[currency] ?? 0, fiatCurrency: currency })
       }
     }),
     {
       name: 'price-store',
-      storage: createJSONStorage(() => mmkvStorage),
-      partialize: (state) => ({ fiatCurrency: state.fiatCurrency })
+      partialize: (state) => ({ fiatCurrency: state.fiatCurrency }),
+      storage: createJSONStorage(() => mmkvStorage)
     }
   )
 )

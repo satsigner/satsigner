@@ -28,21 +28,20 @@ function wordStartMispells(haystack: string, needle: string) {
   for (let i = 0; i < needle.length; i += 1) {
     // add a penalty which puts weight on misspells close to the word start
     const penalty = (needle.length - i + 1) / 10
-    if (haystack.length <= i || needle[i] !== haystack[i])
+    if (haystack.length <= i || needle[i] !== haystack[i]) {
       mismatches += 1 + penalty
+    }
   }
   return mismatches
 }
 
 function getMatchingWords(wordStart: string, wordList: string[]): WordInfo[] {
   const maxMisspells = 2
-  let index = 0
-
   const result = wordList
-    .map((w) => ({
-      index: index++,
-      word: w,
-      mispells: wordStartMispells(w, wordStart)
+    .map((w, index) => ({
+      index,
+      mispells: wordStartMispells(w, wordStart),
+      word: w
     }))
     .filter((w) => w.mispells <= maxMisspells)
 
@@ -87,14 +86,14 @@ function SSKeyboardWordSelector({
 
   if (keyboardOpen && visible && data.length > 0) {
     Animated.timing(opacityAnimated, {
-      toValue: 1,
       duration: 200,
+      toValue: 1,
       useNativeDriver: true
     }).start()
   } else if (!keyboardOpen || !visible) {
     Animated.timing(opacityAnimated, {
-      toValue: 0,
       duration: 200,
+      toValue: 0,
       useNativeDriver: true
     }).start()
   }
@@ -133,10 +132,10 @@ function SSKeyboardWordSelector({
     return StyleSheet.compose(
       {
         ...styles.containerBase,
-        width, // Use actual screen width
-        top: topValue - 55, // Subtract the height of the word selector container
         bottom: undefined, // Remove bottom positioning
         opacity: opacityAnimated,
+        top: topValue - 55, // Subtract the height of the word selector container
+        width, // Use actual screen width
         zIndex: opacityAnimated.interpolate({
           inputRange: [0, 0.0001],
           outputRange: [0, 1000]
@@ -184,45 +183,45 @@ function SSKeyboardWordSelector({
 
 const styles = StyleSheet.create({
   containerBase: {
-    position: 'absolute',
     backgroundColor: Colors.white,
     color: Colors.black,
-    zIndex: 1000,
-    left: 0,
-    right: 0,
-    top: undefined,
-    height: 50,
     elevation: 1000, // For Android
+    height: 50,
+    left: 0,
+    position: 'absolute',
+    right: 0,
     shadowColor: '#000', // For iOS
     shadowOffset: {
-      width: 0,
-      height: -20
+      height: -20,
+      width: 0
     },
     shadowOpacity: 0.25,
-    shadowRadius: 3.84
+    shadowRadius: 3.84,
+    top: undefined,
+    zIndex: 1000
   },
   noMatchingWordsContainerBase: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  wordContainerBase: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRightWidth: 1,
-    borderColor: Colors.gray[100],
-    minWidth: 80,
     alignItems: 'center',
+    flex: 1,
     justifyContent: 'center'
   },
-  wordText: {
-    fontSize: Sizes.text.fontSize.lg,
-    color: Colors.black
-  },
   separator: {
-    height: '100%',
     backgroundColor: Colors.gray[50],
+    height: '100%',
     width: 1
+  },
+  wordContainerBase: {
+    alignItems: 'center',
+    borderColor: Colors.gray[100],
+    borderRightWidth: 1,
+    justifyContent: 'center',
+    minWidth: 80,
+    paddingHorizontal: 16,
+    paddingVertical: 12
+  },
+  wordText: {
+    color: Colors.black,
+    fontSize: Sizes.text.fontSize.lg
   }
 })
 

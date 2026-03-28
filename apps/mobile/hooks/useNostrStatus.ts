@@ -33,15 +33,15 @@ function useNostrStatus(accountId: string) {
   }, [accountId])
 
   return {
-    status: status.status,
+    isConnecting: status.status === 'connecting',
+    isError: status.status === 'error',
+    isIdle: status.status === 'idle',
+    isSyncing: status.status === 'syncing',
     lastError: status.lastError,
     lastSyncAt: status.lastSyncAt,
-    messagesReceived: status.messagesReceived,
     messagesProcessed: status.messagesProcessed,
-    isConnecting: status.status === 'connecting',
-    isSyncing: status.status === 'syncing',
-    isError: status.status === 'error',
-    isIdle: status.status === 'idle'
+    messagesReceived: status.messagesReceived,
+    status: status.status
   }
 }
 

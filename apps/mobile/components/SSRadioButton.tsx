@@ -63,32 +63,32 @@ function SSRadioButton({
 
 const styles = StyleSheet.create({
   buttonBase: {
+    alignItems: 'center',
     borderRadius: Sizes.radioButton.borderRadius,
-    height: Sizes.radioButton.height,
-    width: '100%',
     flexDirection: 'row',
+    height: Sizes.radioButton.height,
     justifyContent: 'center',
-    alignItems: 'center'
+    width: '100%'
+  },
+  disabled: {
+    opacity: 0.3
   },
   selectedDefault: {
     backgroundColor: Colors.gray[600],
-    borderWidth: Sizes.radioButton.borderWidth,
+    borderColor: 'rgba(255, 255, 255, 0.68)',
     borderStyle: 'solid',
-    borderColor: 'rgba(255, 255, 255, 0.68)'
+    borderWidth: Sizes.radioButton.borderWidth
+  },
+  selectedOutline: {
+    borderColor: Colors.white,
+    borderWidth: Sizes.radioButton.borderWidth
   },
   unselectedDefault: {
     backgroundColor: Colors.gray[950]
   },
-  selectedOutline: {
-    borderWidth: Sizes.radioButton.borderWidth,
-    borderColor: Colors.white
-  },
   unselectedOutline: {
-    borderWidth: Sizes.radioButton.borderWidth,
-    borderColor: Colors.gray[700]
-  },
-  disabled: {
-    opacity: 0.3
+    borderColor: Colors.gray[700],
+    borderWidth: Sizes.radioButton.borderWidth
   }
 })
 

@@ -32,7 +32,7 @@ function SSGradientModal({
           {children}
           <SSButton
             label={closeText || t('common.close')}
-            style={{ borderTopRightRadius: 0, borderTopLeftRadius: 0 }}
+            style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
             onPress={() => onClose()}
           />
         </LinearGradient>
@@ -44,13 +44,13 @@ function SSGradientModal({
 const styles = StyleSheet.create({
   containerBase: {
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.65)'
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'center'
   },
   gradientContainerBase: {
     alignItems: 'center',
-    width: '100%',
-    borderRadius: 3
+    borderRadius: 3,
+    width: '100%'
   }
 })
 

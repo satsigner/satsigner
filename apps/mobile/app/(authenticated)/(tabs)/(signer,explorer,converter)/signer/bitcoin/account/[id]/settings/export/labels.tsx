@@ -37,8 +37,10 @@ export default function ExportLabels() {
     setExportContent(bip329export[exportType](labels))
   }, [exportType]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function exportLabels() {
-    if (!account) return
+  function exportLabels() {
+    if (!account) {
+      return
+    }
     const date = new Date().toISOString().slice(0, -5)
     const ext = exportType.toLowerCase()
     const filename = `${t(
@@ -46,19 +48,22 @@ export default function ExportLabels() {
     )}_${accountId}_${date}.${ext}`
     const mime = bip329mimes[exportType]
     shareFile({
-      filename,
-      fileContent: exportContent,
       dialogTitle: t('export.file.save'),
+      fileContent: exportContent,
+      filename,
       mimeType: mime
     })
   }
 
-  if (!account) return <Redirect href="/" />
+  if (!account) {
+    return <Redirect href="/" />
+  }
 
   return (
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
         options={{
+          headerRight: undefined,
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
@@ -66,8 +71,7 @@ export default function ExportLabels() {
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
               )}
             </SSHStack>
-          ),
-          headerRight: undefined
+          )
         }}
       />
       <SSVStack style={{ padding: 20 }}>
@@ -102,11 +106,11 @@ export default function ExportLabels() {
             </SSHStack>
             <View
               style={{
-                padding: 10,
                 backgroundColor: Colors.gray[950],
+                borderColor: Colors.gray[800],
                 borderRadius: 5,
                 borderWidth: 1,
-                borderColor: Colors.gray[800]
+                padding: 10
               }}
             >
               <SSText color="white" size="sm" type="mono">

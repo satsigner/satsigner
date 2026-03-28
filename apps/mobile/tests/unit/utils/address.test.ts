@@ -15,7 +15,7 @@ const SIGNET_P2TR =
 const MAINNET_P2WPKH = 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq'
 const SIGNET_P2WPKH = 'tb1q7sudg83ang34cezufnd4zvm6rr7tjujuteqeqp'
 
-describe('Address Utils', () => {
+describe('address Utils', () => {
   describe('getScriptVersionType', () => {
     it('should return P2PKH for P2PKH addresses', () => {
       expect(getScriptVersionType(MAINNET_P2PKH)).toBe('P2PKH')

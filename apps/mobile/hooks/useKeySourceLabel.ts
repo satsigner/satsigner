@@ -199,9 +199,9 @@ export function useKeySourceLabel({
   }, [scriptVersion, network])
 
   return {
-    sourceLabel,
-    importExtendedLabel,
     dropSeedLabel,
-    shareXpubLabel
+    importExtendedLabel,
+    shareXpubLabel,
+    sourceLabel
   }
 }

@@ -45,22 +45,20 @@ export default function SSDetailsList({
   return (
     <SSHStack
       style={{
+        columnGap: 0,
         flexWrap: 'wrap',
         justifyContent: 'space-between',
-        columnGap: 0,
         rowGap: gap
       }}
     >
-      {items.map(([header, text, options], index) => {
-        return (
-          <SSDetailsListItem
-            key={index}
-            {...commonOptions}
-            {...options}
-            {...{ header, text, width: options?.width || width }}
-          />
-        )
-      })}
+      {items.map(([header, text, options], index) => (
+        <SSDetailsListItem
+          key={index}
+          {...commonOptions}
+          {...options}
+          {...{ header, text, width: options?.width || width }}
+        />
+      ))}
     </SSHStack>
   )
 }

@@ -154,8 +154,8 @@ export default function UnifiedImport() {
           errorMessage.includes('network')
         ) {
           networkValidation = {
-            isValid: false,
-            error: 'networkIncompatible'
+            error: 'networkIncompatible',
+            isValid: false
           }
         } else {
           // For other BDK errors, still consider it valid for now
@@ -203,8 +203,8 @@ export default function UnifiedImport() {
           errorMessage.includes('network')
         ) {
           networkValidation = {
-            isValid: false,
-            error: 'networkIncompatible'
+            error: 'networkIncompatible',
+            isValid: false
           }
         } else {
           // For other BDK errors, still consider it valid for now
@@ -237,8 +237,10 @@ export default function UnifiedImport() {
     }
   }
 
-  async function confirmKeyImport() {
-    if (disabled) return
+  function confirmKeyImport() {
+    if (disabled) {
+      return
+    }
 
     setLoadingWallet(true)
 
@@ -269,7 +271,9 @@ export default function UnifiedImport() {
 
   async function pasteFromClipboard() {
     const text = await Clipboard.getStringAsync()
-    if (!text) return
+    if (!text) {
+      return
+    }
 
     if (importType === 'descriptor') {
       let externalDescriptor = text
@@ -295,12 +299,10 @@ export default function UnifiedImport() {
             '/1/*'
           )
         }
-      } catch (_jsonError) {
+      } catch {
         // Handle legacy formats
         if (text.includes('\n')) {
-          const lines = text.split('\n')
-          externalDescriptor = lines[0]
-          internalDescriptor = lines[1]
+          ;[externalDescriptor, internalDescriptor] = text.split('\n')
         }
       }
 
@@ -348,7 +350,9 @@ export default function UnifiedImport() {
           const descriptorToValidate = originalDescriptor || externalDescriptor
           updateExternalDescriptor(descriptorToValidate)
         }
-        if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+        if (internalDescriptor) {
+          updateInternalDescriptor(internalDescriptor)
+        }
       }
     }
 
@@ -368,7 +372,7 @@ export default function UnifiedImport() {
       const finalContent = clipboardContent.trim()
       updateMasterFingerprint(finalContent)
       toast.success(t('watchonly.success.clipboardPasted'))
-    } catch (_error) {
+    } catch {
       toast.error(t('watchonly.error.clipboardPaste'))
     }
   }
@@ -401,6 +405,7 @@ export default function UnifiedImport() {
         .trim()
         .replace(/[^\S\n]+/g, '') // Remove all whitespace except newlines
         .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
+        // eslint-disable-next-line no-control-regex
         .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
         .normalize('NFKC') // Normalize unicode characters
         .replace(/^en/, '')
@@ -410,9 +415,7 @@ export default function UnifiedImport() {
         let internalDescriptor = ''
         const originalDescriptor = ''
         if (text.includes('\n')) {
-          const lines = text.split('\n')
-          externalDescriptor = lines[0]
-          internalDescriptor = lines[1]
+          ;[externalDescriptor, internalDescriptor] = text.split('\n')
         }
 
         // Check if the descriptor is combined (contains <0;1> or <0,1>)
@@ -460,7 +463,9 @@ export default function UnifiedImport() {
               originalDescriptor || externalDescriptor
             updateExternalDescriptor(descriptorToValidate)
           }
-          if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+          if (internalDescriptor) {
+            updateInternalDescriptor(internalDescriptor)
+          }
         }
       }
 
@@ -475,9 +480,11 @@ export default function UnifiedImport() {
     }
   }
 
-  async function handleQRCodeScanned(scanningResult: any) {
+  async function handleQRCodeScanned(scanningResult: { data?: string }) {
     const data = scanningResult?.data
-    if (!data) return
+    if (!data) {
+      return
+    }
 
     // Handle fingerprint scanning
     if (scanningFor === 'fingerprint') {
@@ -508,12 +515,10 @@ export default function UnifiedImport() {
             '/1/*'
           )
         }
-      } catch (_jsonError) {
+      } catch {
         // Handle legacy formats
         if (data.includes('\n')) {
-          const lines = data.split('\n')
-          externalDescriptor = lines[0]
-          internalDescriptor = lines[1]
+          ;[externalDescriptor, internalDescriptor] = data.split('\n')
         }
       }
 
@@ -561,7 +566,9 @@ export default function UnifiedImport() {
           const descriptorToValidate = originalDescriptor || externalDescriptor
           updateExternalDescriptor(descriptorToValidate)
         }
-        if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+        if (internalDescriptor) {
+          updateInternalDescriptor(internalDescriptor)
+        }
       }
     }
 
@@ -575,32 +582,32 @@ export default function UnifiedImport() {
   function getImportLabel() {
     if (importType === 'descriptor') {
       return t('watchonly.importDescriptor.title')
-    } else {
-      // Return the appropriate label based on script version
-      switch (scriptVersion) {
-        case 'P2PKH':
-          return t('account.import.xpub')
-        case 'P2SH-P2WPKH':
-          return t('account.import.ypub')
-        case 'P2WPKH':
-          return t('account.import.zpub')
-        case 'P2TR':
-          return t('account.import.vpub')
-        default:
-          return t('account.import.xpub')
-      }
+    }
+    // Return the appropriate label based on script version
+    switch (scriptVersion) {
+      case 'P2PKH':
+        return t('account.import.xpub')
+      case 'P2SH-P2WPKH':
+        return t('account.import.ypub')
+      case 'P2WPKH':
+        return t('account.import.zpub')
+      case 'P2TR':
+        return t('account.import.vpub')
+      default:
+        return t('account.import.xpub')
     }
   }
 
   function getImportDescription() {
     if (importType === 'descriptor') {
       return t('watchonly.importDescriptor.text')
-    } else {
-      return t('watchonly.importExtendedPub.text')
     }
+    return t('watchonly.importExtendedPub.text')
   }
 
-  if (!name) return <Redirect href="/" />
+  if (!name) {
+    return <Redirect href="/" />
+  }
 
   return (
     <SSMainLayout>
@@ -680,8 +687,8 @@ export default function UnifiedImport() {
                         style={{
                           color: Colors.error,
                           fontSize: 12,
-                          textAlign: 'center',
-                          marginTop: 4
+                          marginTop: 4,
+                          textAlign: 'center'
                         }}
                       >
                         {externalDescriptorError}
@@ -704,8 +711,8 @@ export default function UnifiedImport() {
                         style={{
                           color: Colors.error,
                           fontSize: 12,
-                          textAlign: 'center',
-                          marginTop: 4
+                          marginTop: 4,
+                          textAlign: 'center'
                         }}
                       >
                         {internalDescriptorError}
@@ -795,25 +802,25 @@ export default function UnifiedImport() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1
-  },
-  cameraContainer: {
-    flex: 1,
-    backgroundColor: Colors.black
-  },
-  cameraHeader: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[600]
-  },
   camera: {
     flex: 1
   },
+  cameraContainer: {
+    backgroundColor: Colors.black,
+    flex: 1
+  },
+  cameraHeader: {
+    borderBottomColor: Colors.gray[600],
+    borderBottomWidth: 1,
+    padding: 16
+  },
   cameraPlaceholder: {
+    alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
     padding: 16
+  },
+  container: {
+    flex: 1
   }
 })

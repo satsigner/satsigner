@@ -43,19 +43,19 @@ function mapBolt11DecodeToDecodedInvoice(
   const numSatoshis = Math.ceil(numMsats / 1000).toString()
 
   return {
-    payment_request: originalInvoice,
-    value: numSatoshis,
     description: (descriptionSection?.value || '').toString(),
-    timestamp: (timestampSection?.value || '').toString(),
     expiry: (expirySection?.value || '').toString(),
-    payment_hash: (paymentHashSection?.value || '').toString(),
-    payment_addr: '',
-    num_satoshis: numSatoshis,
-    num_msat: numMsats.toString(),
     features: {},
-    route_hints: bolt11Decoded.route_hints || [],
+    min_final_cltv_expiry: (minFinalCltvExpirySection?.value || '').toString(),
+    num_msat: numMsats.toString(),
+    num_satoshis: numSatoshis,
+    payment_addr: '',
+    payment_hash: (paymentHashSection?.value || '').toString(),
+    payment_request: originalInvoice,
     payment_secret: (paymentSecretSection?.value || '').toString(),
-    min_final_cltv_expiry: (minFinalCltvExpirySection?.value || '').toString()
+    route_hints: bolt11Decoded.route_hints || [],
+    timestamp: (timestampSection?.value || '').toString(),
+    value: numSatoshis
   }
 }
 
@@ -65,7 +65,9 @@ export function decodeLightningInvoice(invoice: string): LNDecodedInvoice {
 }
 
 export function isLightningInvoice(invoice: string) {
-  if (!invoice || typeof invoice !== 'string') return false
+  if (!invoice || typeof invoice !== 'string') {
+    return false
+  }
 
   const trimmed = invoice.trim()
   return (

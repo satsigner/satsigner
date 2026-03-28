@@ -95,21 +95,21 @@ function SSTransactionDetails({
   )
   const collectedSignatures = Object.keys(signedPsbts || {}).map(Number)
   const vin = finalInputs.map((input) => ({
+    label: input.label || '',
     previousOutput: { txid: input.txid, vout: input.vout },
-    value: input.value,
-    label: input.label || ''
+    value: input.value
   }))
   const vout = finalOutputs.map((output) => ({
     address: output.address,
-    value: output.value,
-    label: output.label || ''
+    label: output.label || '',
+    value: output.value
   }))
   const transaction = {
     id: txid,
     size,
-    vsize,
     vin,
-    vout
+    vout,
+    vsize
   } as unknown as Transaction
 
   const textSize = onToggleVisibility ? 'lg' : 'md'
@@ -195,25 +195,25 @@ function SSTransactionDetails({
 
 const styles = StyleSheet.create({
   chartContainer: {
-    width: '100%',
     overflow: 'hidden',
     paddingLeft: 8,
-    paddingRight: 16
+    paddingRight: 16,
+    width: '100%'
   },
   chatChartContainer: {
+    alignItems: 'center',
     backgroundColor: '#151515',
     borderRadius: 8,
-    padding: 8,
-    paddingLeft: 46,
     marginTop: 2,
-    alignItems: 'center'
+    padding: 8,
+    paddingLeft: 46
+  },
+  signFlowButton: {
+    alignSelf: 'flex-start',
+    marginTop: 8
   },
   signatureContainer: {
     alignItems: 'center'
-  },
-  signFlowButton: {
-    marginTop: 8,
-    alignSelf: 'flex-start'
   }
 })
 

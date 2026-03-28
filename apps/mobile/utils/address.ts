@@ -6,7 +6,9 @@ export function getScriptVersionType(
   const isBase58 = /^[1-9A-HJ-NP-Za-km-z]+$/.test(address)
   const isBech32 = /^(bc1|tb1)[0-9a-z]+$/.test(address.toLowerCase())
 
-  if (!isBase58 && !isBech32) return null
+  if (!isBase58 && !isBech32) {
+    return null
+  }
 
   if (isBase58 && !isBech32) {
     switch (address[0]) {
@@ -29,8 +31,12 @@ export function getScriptVersionType(
     case 'p':
       return 'P2TR'
     case 'q':
-      if (address.length >= 42 && address.length <= 44) return 'P2WPKH'
-      if (address.length >= 60 && address.length <= 62) return 'P2WSH'
+      if (address.length >= 42 && address.length <= 44) {
+        return 'P2WPKH'
+      }
+      if (address.length >= 60 && address.length <= 62) {
+        return 'P2WSH'
+      }
       break
     default:
       break

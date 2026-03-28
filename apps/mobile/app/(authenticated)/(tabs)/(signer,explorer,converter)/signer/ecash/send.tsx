@@ -173,7 +173,9 @@ export default function EcashSendPage() {
         setStatusMessage(t('ecash.status.lnurlInvoiceReceived'))
 
         // Small delay to ensure invoice is properly registered
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        await new Promise((resolve) => {
+          setTimeout(resolve, 1000)
+        })
       } else {
         // For bolt11, use invoice directly
         setStatusMessage(t('ecash.status.usingBolt11Invoice'))
@@ -275,7 +277,9 @@ export default function EcashSendPage() {
 
       // Clean the text and check if it's a valid invoice
       const cleanText = text.trim()
-      if (!cleanText) return
+      if (!cleanText) {
+        return
+      }
 
       // Check if it's LNURL-pay (not withdraw)
       const { isLNURL: isLNURLInput, type: lnurlType } = getLNURLType(cleanText)
@@ -326,7 +330,9 @@ export default function EcashSendPage() {
         try {
           const lndDecoded = await decodeInvoice(cleanText)
           setDecodedInvoice(lndDecoded)
-          if (!lndDecoded.num_satoshis) return
+          if (!lndDecoded.num_satoshis) {
+            return
+          }
           setAmount(lndDecoded.num_satoshis)
         } catch {
           setDecodedInvoice(null)
@@ -603,6 +609,17 @@ export default function EcashSendPage() {
 }
 
 const styles = StyleSheet.create({
+  fiatAmount: {
+    marginLeft: 4,
+    marginTop: 4
+  },
+  input: {
+    backgroundColor: '#242424',
+    borderRadius: 3,
+    color: 'white',
+    fontSize: 16,
+    padding: 12
+  },
   invoiceInput: {
     fontFamily: 'monospace',
     fontSize: 12,
@@ -610,22 +627,11 @@ const styles = StyleSheet.create({
     padding: 10
   },
   tokenInput: {
-    minHeight: 100,
-    textAlignVertical: 'top',
     fontFamily: 'monospace',
     fontSize: 12,
     height: 'auto',
-    padding: 10
-  },
-  fiatAmount: {
-    marginTop: 4,
-    marginLeft: 4
-  },
-  input: {
-    backgroundColor: '#242424',
-    borderRadius: 3,
-    padding: 12,
-    color: 'white',
-    fontSize: 16
+    minHeight: 100,
+    padding: 10,
+    textAlignVertical: 'top'
   }
 })

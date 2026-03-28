@@ -63,9 +63,9 @@ function SSSeparator({
 
 const styles = StyleSheet.create({
   containerBase: {
-    width: 'auto',
+    flexDirection: 'row',
     height: 1.5,
-    flexDirection: 'row'
+    width: 'auto'
   },
   segment: {
     height: '100%'

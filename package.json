@@ -1,22 +1,25 @@
 {
   "name": "satsigner",
   "version": "0.2.0",
+  "private": true,
   "description": "Privacy-first Bitcoin signer with complete UTXO control",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/satsigner/satsigner"
-  },
+  "keywords": [
+    "Bitcoin"
+  ],
   "homepage": "https://satsigner.com",
   "bugs": {
     "url": "https://github.com/satsigner/satsigner/issues"
   },
+  "license": "MIT",
   "author": {
     "name": "Satsigner Team",
-    "url": "https://satsigner.com",
-    "email": "satsigner@pm.me"
+    "email": "satsigner@pm.me",
+    "url": "https://satsigner.com"
   },
-  "license": "MIT",
-  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/satsigner/satsigner"
+  },
   "workspaces": {
     "packages": [
       "apps/*",
@@ -27,25 +30,20 @@
       "**/rn-nodeify"
     ]
   },
-  "packageManager": "yarn@1.22.21",
-  "engines": {
-    "node": ">=22.4.0"
-  },
-  "keywords": [
-    "Bitcoin"
-  ],
   "scripts": {
-    "format": "prettier --config .prettierrc . --check",
-    "format:fix": "prettier --config .prettierrc . --write --list-different",
-    "lint": "turbo run lint",
-    "lint:fix": "turbo run lint:fix --"
+    "check": "ultracite check",
+    "fix": "ultracite fix"
   },
   "dependencies": {},
   "devDependencies": {
     "cross-env": "^7.0.3",
-    "prettier": "^3.2.5",
-    "prettier-plugin-pkg": "^0.18.1",
-    "prettier-plugin-sort-json": "^4.1.1",
-    "turbo": "^2.0.1"
-  }
+    "oxfmt": "^0.42.0",
+    "oxlint": "^1.57.0",
+    "turbo": "^2.0.1",
+    "ultracite": "7.3.2"
+  },
+  "engines": {
+    "node": ">=22.4.0"
+  },
+  "packageManager": "yarn@1.22.21"
 }

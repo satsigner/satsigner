@@ -54,7 +54,9 @@ export default function SelectUtxoList() {
     )
 
   useEffect(() => {
-    if (id) setAccountId(id)
+    if (id) {
+      setAccountId(id)
+    }
   }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -109,7 +111,7 @@ export default function SelectUtxoList() {
   }
 
   function sortUtxos(utxos: Utxo[]) {
-    return utxos.sort((utxo1, utxo2) =>
+    return utxos.toSorted((utxo1, utxo2) =>
       sortDirection === 'asc'
         ? sortField === 'date'
           ? compareTimestamp(utxo1.timestamp, utxo2.timestamp)
@@ -128,8 +130,11 @@ export default function SelectUtxoList() {
   function handleOnToggleSelected(utxo: Utxo) {
     const includesInput = hasInput(utxo)
 
-    if (includesInput) removeInput(utxo)
-    else addInput(utxo)
+    if (includesInput) {
+      removeInput(utxo)
+    } else {
+      addInput(utxo)
+    }
   }
 
   return (
@@ -208,7 +213,7 @@ export default function SelectUtxoList() {
           </SSVStack>
         </SSVStack>
       </SSMainLayout>
-      <SSSeparator color="grayDark" style={{ width: '100%', marginTop: 12 }} />
+      <SSSeparator color="grayDark" style={{ marginTop: 12, width: '100%' }} />
       <SSHStack
         justifyBetween
         style={{
@@ -233,8 +238,8 @@ export default function SelectUtxoList() {
             textStyle={{
               color: Colors.gray[75],
               textAlign: 'left',
-              textTransform: 'none',
-              textDecorationLine: 'underline'
+              textDecorationLine: 'underline',
+              textTransform: 'none'
             }}
             onPress={() =>
               selectedAllUtxos
@@ -264,9 +269,9 @@ export default function SelectUtxoList() {
         <View style={styles.scrollBackgroundBase} />
         <View
           style={{
+            height,
             marginTop: 2,
-            paddingBottom: Platform.OS === 'android' ? 386 : 306, // TODO: Fix. This is not ideal
-            height
+            paddingBottom: Platform.OS === 'android' ? 386 : 306 // TODO: Fix. This is not ideal
           }}
         >
           <FlashList
@@ -278,7 +283,7 @@ export default function SelectUtxoList() {
               )
               const addressEntry = idx >= 0 ? account.addresses[idx] : null
               const addressIndex =
-                addressEntry !== null ? addressEntry.index ?? idx : undefined
+                addressEntry !== null ? (addressEntry.index ?? idx) : undefined
               return (
                 <SSUtxoItem
                   utxo={item}
@@ -299,7 +304,7 @@ export default function SelectUtxoList() {
           variant="secondary"
           disabled={!hasSelectedUtxos}
           style={[
-            { width: '92%', opacity: 100 },
+            { opacity: 100, width: '92%' },
             !hasSelectedUtxos && {
               backgroundColor: Colors.gray[700]
             }
@@ -317,21 +322,21 @@ export default function SelectUtxoList() {
 }
 
 const styles = StyleSheet.create({
-  scrollBackgroundBase: {
-    position: 'absolute',
-    width: '100%',
-    backgroundColor: Colors.gray[950],
-    top: 2,
-    height: 1000
-  },
   absoluteSubmitContainer: {
-    position: 'absolute',
+    backgroundColor: Colors.transparent,
     bottom: 20,
-    width: '100%',
     flexDirection: 'row',
     justifyContent: 'center',
-    backgroundColor: Colors.transparent,
     paddingHorizontal: 0,
-    paddingTop: 0
+    paddingTop: 0,
+    position: 'absolute',
+    width: '100%'
+  },
+  scrollBackgroundBase: {
+    backgroundColor: Colors.gray[950],
+    height: 1000,
+    position: 'absolute',
+    top: 2,
+    width: '100%'
   }
 })

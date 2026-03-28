@@ -9,7 +9,7 @@ export default function SSIconBlackIndicator({ width, height }: IconProps) {
   return (
     <Image
       source={require('@/assets/black-indicator.png')}
-      style={{ width, height }}
+      style={{ height, width }}
     />
   )
 }

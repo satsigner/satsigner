@@ -1,7 +1,7 @@
 import { formatDate, formatRelativeTime } from '../../../utils/date'
 
 // Mock the translation function
-jest.mock('@/locales', () => ({
+jest.mock<typeof import('@/locales')>('@/locales', () => ({
   t: jest.fn((key, params) => {
     if (params) {
       return `${params.value} ${key}`

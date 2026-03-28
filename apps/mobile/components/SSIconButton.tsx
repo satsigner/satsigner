@@ -11,14 +11,16 @@ function SSIconButton({
   children,
   ...props
 }: SSIconButtonProps) {
-  const buttonStyle = useMemo(() => {
-    return StyleSheet.compose(
-      {
-        ...(rounded ? styles.rounded : {})
-      },
-      style
-    )
-  }, [rounded, style])
+  const buttonStyle = useMemo(
+    () =>
+      StyleSheet.compose(
+        {
+          ...(rounded ? styles.rounded : {})
+        },
+        style
+      ),
+    [rounded, style]
+  )
 
   return (
     <TouchableOpacity activeOpacity={0.65} style={buttonStyle} {...props}>
@@ -29,11 +31,11 @@ function SSIconButton({
 
 const styles = StyleSheet.create({
   rounded: {
-    borderColor: 'gray',
     backgroundColor: 'gray',
+    borderColor: 'gray',
+    borderRadius: 20,
     borderStyle: 'solid',
     borderWidth: 1,
-    borderRadius: 20,
     padding: 5
   }
 })

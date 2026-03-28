@@ -14,11 +14,13 @@ type SSLinkProps = {
 }
 
 function SSLink({ url, text, size = 'sm' }: SSLinkProps) {
-  const textStyle = useMemo(() => {
-    return StyleSheet.compose(styles.textBase, {
-      ...{ fontSize: Sizes.text.fontSize[size] }
-    })
-  }, [size])
+  const textStyle = useMemo(
+    () =>
+      StyleSheet.compose(styles.textBase, {
+        ...{ fontSize: Sizes.text.fontSize[size] }
+      }),
+    [size]
+  )
 
   return (
     <TouchableOpacity
@@ -33,9 +35,9 @@ function SSLink({ url, text, size = 'sm' }: SSLinkProps) {
 const styles = StyleSheet.create({
   textBase: {
     color: Colors.gray[300],
-    textDecorationLine: 'underline',
+    marginBottom: Platform.OS === 'android' ? -8 : -2.5,
     marginHorizontal: 4,
-    marginBottom: Platform.OS === 'android' ? -8 : -2.5 // TODO: changeme
+    textDecorationLine: 'underline' // TODO: changeme
   }
 })
 

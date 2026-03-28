@@ -49,8 +49,8 @@ export default function NetworkSettings() {
     Record<Network, Server>
   >({
     bitcoin: configs.bitcoin.server,
-    testnet: configs.testnet.server,
-    signet: configs.signet.server
+    signet: configs.signet.server,
+    testnet: configs.testnet.server
   })
 
   const [testingServer, setTestingServer] = useState<string | null>(null)
@@ -153,11 +153,11 @@ export default function NetworkSettings() {
   }
 
   return (
-    <SSMainLayout style={{ paddingTop: 0, flex: 1 }}>
+    <SSMainLayout style={{ flex: 1, paddingTop: 0 }}>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>,
-          headerRight: undefined
+          headerRight: undefined,
+          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>
         }}
       />
       <SSVStack style={{ flex: 1, minHeight: 0 }}>
@@ -200,9 +200,9 @@ export default function NetworkSettings() {
                           <SSHStack
                             gap="sm"
                             style={{
+                              alignItems: 'flex-start',
                               flex: 1,
-                              minWidth: 0,
-                              alignItems: 'flex-start'
+                              minWidth: 0
                             }}
                           >
                             <SSCheckbox
@@ -279,8 +279,8 @@ export default function NetworkSettings() {
                                       shouldShowConnected && (
                                         <SSText
                                           style={{
-                                            lineHeight: 14,
                                             color: Colors.mainGreen,
+                                            lineHeight: 14,
                                             opacity: 0.6
                                           }}
                                         >
@@ -304,11 +304,11 @@ export default function NetworkSettings() {
                           {customServers.includes(server) && (
                             <SSIconButton
                               style={{
-                                padding: 6,
-                                marginLeft: 8,
-                                borderWidth: 1,
+                                borderColor: Colors.gray[600],
                                 borderRadius: 400,
-                                borderColor: Colors.gray[600]
+                                borderWidth: 1,
+                                marginLeft: 8,
+                                padding: 6
                               }}
                               onPress={() => handleRemove(server)}
                             >
@@ -322,7 +322,7 @@ export default function NetworkSettings() {
                         </SSHStack>
                       ))}
                   </SSVStack>
-                  <SSHStack gap="sm" style={{ marginTop: 12, marginBottom: 8 }}>
+                  <SSHStack gap="sm" style={{ marginBottom: 8, marginTop: 12 }}>
                     <SSButton
                       label={tn('custom.add').toUpperCase()}
                       onPress={() => router.push(`./${network}`)}

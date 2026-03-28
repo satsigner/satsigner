@@ -46,7 +46,7 @@ interface LinkPoints {
 interface SSSankeyLinksProps {
   links: Link[]
   nodes: Node[]
-  sankeyGenerator: any
+  sankeyGenerator: { nodeWidth: () => number }
   BLOCK_WIDTH: number
   selectedOutputNode?: string
   dimUnselected?: boolean
@@ -70,9 +70,8 @@ function SSSankeyLinks({
         const relevantLinks = links.filter((link) => {
           if (type === 'source') {
             return link.source === node.id
-          } else {
-            return link.target === node.id
           }
+          return link.target === node.id
         })
 
         for (const link of relevantLinks) {
@@ -129,11 +128,10 @@ function SSSankeyLinks({
         .filter((link) => {
           if (isSource) {
             return link.source === node.id
-          } else {
-            return link.target === node.id
           }
+          return link.target === node.id
         })
-        .sort((a, b) => {
+        .toSorted((a, b) => {
           const aNode = isSource
             ? nodes.find((n) => n.id === a.target)
             : nodes.find((n) => n.id === a.source)
@@ -142,8 +140,8 @@ function SSSankeyLinks({
             : nodes.find((n) => n.id === b.source)
 
           // Sort by y0 for incoming links, y1 for outgoing links
-          const aY = isSource ? aNode?.y0 ?? 0 : aNode?.y1 ?? 0
-          const bY = isSource ? bNode?.y0 ?? 0 : bNode?.y1 ?? 0
+          const aY = isSource ? (aNode?.y0 ?? 0) : (aNode?.y1 ?? 0)
+          const bY = isSource ? (bNode?.y0 ?? 0) : (bNode?.y1 ?? 0)
 
           return aY - bY // Sort from top to bottom
         })
@@ -156,7 +154,7 @@ function SSSankeyLinks({
       )
 
       // Only accumulate heights for links that come before the current link
-      for (let i = 0; i < currentLinkIndex; i++) {
+      for (let i = 0; i < currentLinkIndex; i += 1) {
         const link = relevantLinks[i]
         const sourceNode = nodes.find((n) => n.id === link.source) as Node
         const targetNode = nodes.find((n) => n.id === link.target) as Node
@@ -168,12 +166,14 @@ function SSSankeyLinks({
         cumulativeHeight += width
       }
 
-      const baseY = isSource ? node.y1 ?? 0 : node.y0 ?? 0
+      const baseY = isSource ? (node.y1 ?? 0) : (node.y0 ?? 0)
       return baseY + cumulativeHeight
     },
     [links, nodes, getLinkWidth]
   )
-  if (links.length === 0) return null
+  if (links.length === 0) {
+    return null
+  }
 
   return (
     <>
@@ -203,12 +203,12 @@ function SSSankeyLinks({
         const y1 =
           sourceNode.type === 'block'
             ? getStackedYPosition(sourceNode, true, link)!
-            : sourceNode.y1 ?? 0
+            : (sourceNode.y1 ?? 0)
 
         const y2 =
           targetNode.type === 'block'
             ? getStackedYPosition(targetNode, false, link)!
-            : targetNode.y0 ?? 0
+            : (targetNode.y0 ?? 0)
 
         const points: LinkPoints = {
           sourceWidth: getLinkWidth(sourceNode, targetNode, 'source'),
@@ -217,13 +217,13 @@ function SSSankeyLinks({
             sourceNode.type === 'block'
               ? (sourceNode.x1 ?? 0) -
                 (sankeyGenerator.nodeWidth() - BLOCK_WIDTH) / 2
-              : sourceNode.x1 ?? 0,
-          y1,
+              : (sourceNode.x1 ?? 0),
           x2:
             targetNode.type === 'block'
               ? (targetNode.x0 ?? 0) +
                 (sankeyGenerator.nodeWidth() - BLOCK_WIDTH) / 2
-              : targetNode.x0 ?? 0,
+              : (targetNode.x0 ?? 0),
+          y1,
           y2
         }
         const path1 = generateCustomLink(points)
@@ -339,17 +339,22 @@ const generateCustomLink = (points: LinkPoints) => {
 
   // Control points for the curve from B to D (bottom curve)
   // First control point extends horizontally from B, second from D
-  const bottomCurveCP1X = B[0] + controlPointOffset
-  const bottomCurveCP1Y = B[1]
-  const bottomCurveCP2X = D[0] - controlPointOffset
-  const bottomCurveCP2Y = D[1]
+  const [bX, bY] = B
+  const [dX, dY] = D
+  const [cX, cY] = C
+  const [aX, aY] = A
+
+  const bottomCurveCP1X = bX + controlPointOffset
+  const bottomCurveCP1Y = bY
+  const bottomCurveCP2X = dX - controlPointOffset
+  const bottomCurveCP2Y = dY
 
   // Control points for the curve from C to A (top curve)
   // First control point extends horizontally from C, second from A
-  const topCurveCP1X = C[0] - controlPointOffset
-  const topCurveCP1Y = C[1]
-  const topCurveCP2X = A[0] + controlPointOffset
-  const topCurveCP2Y = A[1]
+  const topCurveCP1X = cX - controlPointOffset
+  const topCurveCP1Y = cY
+  const topCurveCP2X = aX + controlPointOffset
+  const topCurveCP2Y = aY
 
   // Build the path
   const moveToA = `M ${A[0]} ${A[1]}`

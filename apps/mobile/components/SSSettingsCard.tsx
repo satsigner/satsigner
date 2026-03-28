@@ -44,8 +44,8 @@ function SSSettingsCards({
 
 const styles = StyleSheet.create({
   containerBase: {
-    borderTopWidth: 1,
     borderTopColor: Colors.gray[850],
+    borderTopWidth: 1,
     padding: 24
   }
 })

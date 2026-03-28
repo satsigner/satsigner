@@ -89,7 +89,9 @@ export default function AuthenticatedLayout() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadWallets() {
-    if (!(justUnlocked || skipPin)) return
+    if (!(justUnlocked || skipPin)) {
+      return
+    }
 
     try {
       for (const account of accounts) {
@@ -97,7 +99,9 @@ export default function AuthenticatedLayout() {
         const existsWallet = !isImportAddress
           ? !!wallets[account.id]
           : !!addresses[account.id]
-        if (existsWallet) continue
+        if (existsWallet) {
+          continue
+        }
 
         const secrets = await decryptAllAccountKeySecrets(account)
         const tmpAccount: Account = {
@@ -111,15 +115,18 @@ export default function AuthenticatedLayout() {
         const walletData = !isImportAddress
           ? await getWalletData(tmpAccount, account.network as Network)
           : undefined
-        if (walletData) addAccountWallet(account.id, walletData.wallet)
+        if (walletData) {
+          addAccountWallet(account.id, walletData.wallet)
+        }
 
-        if (isImportAddress && typeof tmpAccount.keys[0].secret === 'object')
+        if (isImportAddress && typeof tmpAccount.keys[0].secret === 'object') {
           addAccountAddress(
             account.id,
             parseAddressDescriptorToAddress(
               tmpAccount.keys[0].secret.externalDescriptor!
             )
           )
+        }
 
         const updatedAccount = !isImportAddress
           ? await syncAccountWithWallet(account, walletData!.wallet)
@@ -140,10 +147,15 @@ export default function AuthenticatedLayout() {
       if (ju && pending) {
         const { success } = await performRecoverOverwrite(pending)
         setPendingRecoverData(null)
-        if (success) toast.success(t('settings.developer.backupSuccess'))
-        else toast.error(t('settings.developer.recoverOverwriteError'))
+        if (success) {
+          toast.success(t('settings.developer.backupSuccess'))
+        } else {
+          toast.error(t('settings.developer.recoverOverwriteError'))
+        }
       }
-      if (connectionMode === 'auto') await loadWallets()
+      if (connectionMode === 'auto') {
+        await loadWallets()
+      }
     }
     run()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -154,16 +166,19 @@ export default function AuthenticatedLayout() {
       const { ...filteredRouteParams } = routeParams
 
       markPageVisited({
-        path: routeName,
-        params: filteredRouteParams
+        params: filteredRouteParams,
+        path: routeName
       } as PageRoute)
     }
   }, [routeName, routeParams, markPageVisited])
 
-  if (firstTime) return <Redirect href="/setPin" />
+  if (firstTime) {
+    return <Redirect href="/setPin" />
+  }
 
-  if (requiresAuth && lockTriggered && !skipPin)
+  if (requiresAuth && lockTriggered && !skipPin) {
     return <Redirect href="/unlock" />
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -171,9 +186,9 @@ export default function AuthenticatedLayout() {
         drawerContent={(props) => <SSNavMenu {...props} />}
         screenOptions={{
           drawerPosition: 'left',
-          headerShown: false,
+          drawerStyle: { width: 300 },
           drawerType: 'slide',
-          drawerStyle: { width: 300 }
+          headerShown: false
         }}
       >
         <Drawer.Screen name="(tabs)" />

@@ -37,31 +37,43 @@ export function SSTransactionVoutList({
   const [labelsDict, setLabelsDict] = useState<Record<number, string>>({})
 
   useEffect(() => {
-    if (!account) return
+    if (!account) {
+      return
+    }
 
     const utxos: Record<string, boolean> = {}
-    account.utxos.forEach((utxo) => (utxos[getUtxoOutpoint(utxo)] = true))
-    account.addresses.forEach((addr) => (addressDict[addr.address] = true))
+    for (const utxo of account.utxos) {
+      utxos[getUtxoOutpoint(utxo)] = true
+    }
+    for (const addr of account.addresses) {
+      addressDict[addr.address] = true
+    }
     setUtxoDict(utxos)
 
-    if (!txid || !vout) return
+    if (!txid || !vout) {
+      return
+    }
 
     const labels: Record<number, string> = {}
-    vout.forEach((output, index) => {
+    for (const [index, output] of vout.entries()) {
       const utxoOutpoint = `${txid}:${index}`
       const outputAddress = output.address
       const labelFromUtxo = account.labels[utxoOutpoint]
       const labelFromAddress = account.labels[outputAddress]
       const label = labelFromUtxo || labelFromAddress
-      if (!label) return
+      if (!label) {
+        continue
+      }
       labels[index] = label.label
       utxos[utxoOutpoint] = true
-    })
+    }
     setLabelsDict(labels)
     setUtxoDict(utxos)
   }, [account, txid, vout]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!txid || !vout) return null
+  if (!txid || !vout) {
+    return null
+  }
 
   return (
     <SSVStack>

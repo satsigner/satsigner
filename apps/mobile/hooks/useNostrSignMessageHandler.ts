@@ -10,13 +10,13 @@ import {
 } from './useNostrNotifyUtils'
 
 const signMessageHandler: MessageHandler = {
-  canHandle: (context) => {
-    return context.data?.data_type === 'SignMessageRequest'
-  },
+  canHandle: (context) => context.data?.data_type === 'SignMessageRequest',
 
-  handle: async (context) => {
+  handle: (context) => {
     const { unwrappedEvent, data, account } = context
-    if (!data) return
+    if (!data) {
+      return
+    }
 
     const dataStr = String(data.data ?? '')
     const author = getAuthorDisplayName(unwrappedEvent.pubkey)

@@ -72,9 +72,12 @@ function SSDatePicker({
     const end = endYear || new Date().getFullYear()
     const start = !startYear || startYear > end ? end - 100 : startYear
 
-    const days = [...Array(31)].map((_, index) => index + 1)
-    const months = [...Array(12)].map((_, index) => index + 1)
-    const years = [...Array(end - start + 1)].map((_, index) => start + index)
+    const days = Array.from({ length: 31 }, (_, index) => index + 1)
+    const months = Array.from({ length: 12 }, (_, index) => index + 1)
+    const years = Array.from(
+      { length: end - start + 1 },
+      (_, index) => start + index
+    )
 
     setDays(days)
     setMonths(months)
@@ -102,6 +105,8 @@ function SSDatePicker({
         setSelectedYear(digit)
         newDate.setFullYear(digit)
         break
+      default:
+        break
     }
 
     const now = new Date()
@@ -112,9 +117,8 @@ function SSDatePicker({
     }
   }
 
-  const getDaysInMonth = (month: number, year: number) => {
-    return new Date(year, month, 0).getDate()
-  }
+  const getDaysInMonth = (month: number, year: number) =>
+    new Date(year, month, 0).getDate()
 
   const getOrder = () => {
     const now = new Date()
@@ -133,15 +137,15 @@ function SSDatePicker({
     return (format || 'dd-mm-yyyy').split('-').map((type, index) => {
       switch (type) {
         case 'dd':
-          return { name: 'day', digits: filteredDays, value: date.getDate() }
+          return { digits: filteredDays, name: 'day', value: date.getDate() }
         case 'mm':
-          return { name: 'month', digits: filteredMonths, value: selectedMonth }
+          return { digits: filteredMonths, name: 'month', value: selectedMonth }
         case 'yyyy':
-          return { name: 'year', digits: years, value: selectedYear }
+          return { digits: years, name: 'year', value: selectedYear }
         default:
           return {
-            name: ['day', 'month', 'year'][index],
             digits: [filteredDays, filteredMonths, years][index],
+            name: ['day', 'month', 'year'][index],
             value: [date.getDate(), selectedMonth, selectedYear][index]
           }
       }
@@ -155,24 +159,22 @@ function SSDatePicker({
         { height: pickerHeight, width: pickerWidth as DimensionValue }
       ]}
     >
-      {getOrder().map((el, index) => {
-        return (
-          <DateBlock
-            digits={el.digits}
-            value={el.value}
-            onChange={changeHandle}
-            height={pickerHeight}
-            fontSize={fontSize}
-            textColor={textColor}
-            markColor={markColor}
-            markHeight={markHeight}
-            markWidth={markWidth}
-            fadeColor={fadeColor}
-            type={el.name}
-            key={index}
-          />
-        )
-      })}
+      {getOrder().map((el, index) => (
+        <DateBlock
+          digits={el.digits}
+          value={el.value}
+          onChange={changeHandle}
+          height={pickerHeight}
+          fontSize={fontSize}
+          textColor={textColor}
+          markColor={markColor}
+          markHeight={markHeight}
+          markWidth={markWidth}
+          fadeColor={fadeColor}
+          type={el.name}
+          key={index}
+        />
+      ))}
     </View>
   )
 }
@@ -200,10 +202,10 @@ function DateBlock({
   const fadeFilled: string = hex2rgba(fadeColor || '#ffffff', 1)
   const fadeTransparent: string = hex2rgba('#000000', 0.7)
 
-  const scrollRef = useRef<any>(null)
+  const scrollRef = useRef<ScrollView>(null)
 
   const snapScrollToIndex = (index: number) => {
-    scrollRef?.current?.scrollTo({ y: dHeight * index, animated: true })
+    scrollRef?.current?.scrollTo({ animated: true, y: dHeight * index })
   }
 
   useEffect(() => {
@@ -212,7 +214,11 @@ function DateBlock({
     }, 0)
   }, [scrollRef.current]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleMomentumScrollEnd = ({ nativeEvent }: any) => {
+  const handleMomentumScrollEnd = ({
+    nativeEvent
+  }: {
+    nativeEvent: { contentOffset: { y: number } }
+  }) => {
     const digit = Math.round(nativeEvent.contentOffset.y / dHeight + digits[0])
     onChange(type, digit)
   }
@@ -223,9 +229,9 @@ function DateBlock({
         style={[
           styles.mark,
           {
-            top: (height - mHeight) / 2,
             backgroundColor: markColor || 'rgba(0, 0, 0, 0.05)',
             height: mHeight,
+            top: (height - mHeight) / 2,
             width: mWidth as DimensionValue
           }
         ]}
@@ -239,36 +245,32 @@ function DateBlock({
         nestedScrollEnabled
         onMomentumScrollEnd={handleMomentumScrollEnd}
       >
-        {digits.map((value: number, index: number) => {
-          return (
-            <TouchableOpacity
-              key={index}
-              onPress={() => {
-                onChange(type, digits[index])
-                snapScrollToIndex(index)
-              }}
+        {digits.map((value: number, index: number) => (
+          <TouchableOpacity
+            key={index}
+            onPress={() => {
+              onChange(type, digits[index])
+              snapScrollToIndex(index)
+            }}
+          >
+            <Text
+              style={[
+                styles.digit,
+                {
+                  color: textColor || '#000000',
+                  fontSize: fontSize || 22,
+                  height: dHeight,
+                  lineHeight: dHeight,
+                  marginBottom:
+                    index === digits.length - 1 ? height / 2 - dHeight / 2 : 0,
+                  marginTop: index === 0 ? height / 2 - dHeight / 2 : 0
+                }
+              ]}
             >
-              <Text
-                style={[
-                  styles.digit,
-                  {
-                    fontSize: fontSize || 22,
-                    color: textColor || '#000000',
-                    marginBottom:
-                      index === digits.length - 1
-                        ? height / 2 - dHeight / 2
-                        : 0,
-                    marginTop: index === 0 ? height / 2 - dHeight / 2 : 0,
-                    lineHeight: dHeight,
-                    height: dHeight
-                  }
-                ]}
-              >
-                {value}
-              </Text>
-            </TouchableOpacity>
-          )
-        })}
+              {value}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
       <LinearGradient
         style={[styles.gradient, { bottom: 0, height: height / 3 }]}
@@ -276,7 +278,7 @@ function DateBlock({
         pointerEvents="none"
       />
       <LinearGradient
-        style={[styles.gradient, { top: 0, height: height / 3 }]}
+        style={[styles.gradient, { height: height / 3, top: 0 }]}
         colors={[fadeFilled, fadeTransparent]}
         pointerEvents="none"
       />
@@ -300,33 +302,33 @@ const hex2rgba = (hex: string, alpha: number): string => {
     16
   )
 
-  return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + alpha + ')'
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
 const styles = StyleSheet.create({
-  picker: {
-    flexDirection: 'row',
-    width: '100%'
-  },
   block: {
-    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%'
-  },
-  scroll: {
-    width: '100%'
+    flex: 1,
+    height: '100%',
+    justifyContent: 'center'
   },
   digit: {
     fontSize: 20,
     textAlign: 'center'
   },
-  mark: {
-    position: 'absolute',
-    borderRadius: 10
-  },
   gradient: {
     position: 'absolute',
+    width: '100%'
+  },
+  mark: {
+    borderRadius: 10,
+    position: 'absolute'
+  },
+  picker: {
+    flexDirection: 'row',
+    width: '100%'
+  },
+  scroll: {
     width: '100%'
   }
 })

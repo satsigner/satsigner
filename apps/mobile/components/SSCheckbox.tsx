@@ -36,18 +36,19 @@ function SSCheckbox({
   disabled,
   ...props
 }: SSCheckboxProps) {
-  const innerIconStyle = useMemo(() => {
-    return StyleSheet.compose(styles.innerIconStyleBase, {
-      borderColor: selected ? Colors.white : Colors.transparent
-    })
-  }, [selected])
+  const innerIconStyle = useMemo(
+    () =>
+      StyleSheet.compose(styles.innerIconStyleBase, {
+        borderColor: selected ? Colors.white : Colors.transparent
+      }),
+    [selected]
+  )
 
-  const containerBase = useMemo(() => {
-    return StyleSheet.compose(
-      styles.containerBase,
-      disabled ? styles.disabled : {}
-    )
-  }, [disabled])
+  const containerBase = useMemo(
+    () =>
+      StyleSheet.compose(styles.containerBase, disabled ? styles.disabled : {}),
+    [disabled]
+  )
 
   return (
     <TouchableOpacity
@@ -82,19 +83,19 @@ function SSCheckbox({
 
 const styles = StyleSheet.create({
   containerBase: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
     gap: Sizes.checkbox.height / 2
+  },
+  disabled: {
+    opacity: 0.3
   },
   iconStyleBase: {
     borderRadius: Sizes.checkbox.borderRadius
   },
   innerIconStyleBase: {
-    borderWidth: Sizes.checkbox.borderWidth,
-    borderRadius: Sizes.checkbox.borderRadius
-  },
-  disabled: {
-    opacity: 0.3
+    borderRadius: Sizes.checkbox.borderRadius,
+    borderWidth: Sizes.checkbox.borderWidth
   }
 })
 

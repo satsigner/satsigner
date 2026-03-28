@@ -1,6 +1,7 @@
+import { Buffer } from 'buffer'
+
 import type { NDKKind, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
-import { Buffer } from 'buffer'
 import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
 
 import {
@@ -32,7 +33,9 @@ function getProfileFromKind0Content(
             : undefined
     const picture =
       typeof content.picture === 'string' ? content.picture : undefined
-    if (!displayName && !picture) return null
+    if (!displayName && !picture) {
+      return null
+    }
     return { displayName, picture }
   } catch {
     return null
@@ -59,9 +62,9 @@ function unwrapNip59EventOrNull(
 
 export class NostrAPI {
   private ndk: NDK | null = null
-  private activeSubscriptions: Set<NDKSubscription> = new Set()
-  private processedMessageIds: Set<string> = new Set()
-  private processedRawEventIds: Set<string> = new Set()
+  private activeSubscriptions = new Set<NDKSubscription>()
+  private processedMessageIds = new Set<string>()
+  private processedRawEventIds = new Set<string>()
   private eventQueue: NostrMessage[] = []
   private isProcessingQueue = false
   private readonly BATCH_SIZE = 10
@@ -115,11 +118,11 @@ export class NostrAPI {
 
     const relayStatus = await Promise.all(
       connectedRelays.map(async (url) => {
-        for (let attempt = 0; attempt < 3; attempt++) {
+        for (let attempt = 0; attempt < 3; attempt += 1) {
           try {
             const relay = this.ndk?.pool.relays.get(url)
             if (!relay) {
-              return { url, status: 'not_found' }
+              return { status: 'not_found', url }
             }
 
             const testEvent = await this.ndk?.fetchEvent(
@@ -128,17 +131,17 @@ export class NostrAPI {
               { relayUrl: url }
             )
 
-            return { url, status: 'connected', testEvent: testEvent !== null }
-          } catch (_error) {
+            return { status: 'connected', testEvent: testEvent !== null, url }
+          } catch {
             if (attempt === 2) {
-              return { url, status: 'error' }
+              return { status: 'error', url }
             }
-            await new Promise((resolve) =>
+            await new Promise((resolve) => {
               setTimeout(resolve, 1000 * (attempt + 1))
-            )
+            })
           }
         }
-        return { url, status: 'error' }
+        return { status: 'error', url }
       })
     )
 
@@ -162,13 +165,13 @@ export class NostrAPI {
       this.ndk = new NDK({ explicitRelayUrls: this.relays })
     }
 
-    const timeout = new Promise<never>((_, reject) =>
+    const timeout = new Promise<never>((_, reject) => {
       setTimeout(
         () =>
           reject(new Error(`connectForPublish timed out after ${timeoutMs}ms`)),
         timeoutMs
       )
-    )
+    })
 
     await Promise.race([this.ndk.connect(), timeout])
 
@@ -193,14 +196,18 @@ export class NostrAPI {
    */
   async fetchKind0(npub: string): Promise<NostrKind0Profile | null> {
     const hexPubkey = getPubKeyHexFromNpub(npub)
-    if (!hexPubkey) return null
+    if (!hexPubkey) {
+      return null
+    }
 
     await this.connect()
-    if (!this.ndk) return null
+    if (!this.ndk) {
+      return null
+    }
 
     const filter = {
-      kinds: [0 as NDKKind],
       authors: [hexPubkey],
+      kinds: [0 as NDKKind],
       limit: 10
     }
     const FETCH_KIND0_TIMEOUT_MS = 15000
@@ -214,11 +221,13 @@ export class NostrAPI {
     const event =
       events.size === 0
         ? null
-        : Array.from(events).sort(
+        : Array.from(events).toSorted(
             (a, b) => (b.created_at ?? 0) - (a.created_at ?? 0)
           )[0]
 
-    if (!event?.content) return null
+    if (!event?.content) {
+      return null
+    }
 
     return getProfileFromKind0Content(event.content)
   }
@@ -231,22 +240,26 @@ export class NostrAPI {
     const signer = new NDKPrivateKeySigner(randomBytesArray)
     const user = await signer.user()
     const nsec = nip19.nsecEncode(randomBytesArray)
-    const npub = user.npub
+    const { npub } = user
 
     return {
-      nsec,
       npub,
+      nsec,
       secretNostrKey: randomBytesArray
     }
   }
 
   private async processQueue() {
-    if (this.isProcessingQueue || this.eventQueue.length === 0) return
+    if (this.isProcessingQueue || this.eventQueue.length === 0) {
+      return
+    }
 
     this.isProcessingQueue = true
     const batch = this.eventQueue.splice(0, this.BATCH_SIZE)
     const toProcess = batch.filter((m) => !this.processedMessageIds.has(m.id))
-    toProcess.forEach((m) => this.processedMessageIds.add(m.id))
+    for (const m of toProcess) {
+      this.processedMessageIds.add(m.id)
+    }
 
     if (toProcess.length > 0 && this._callback) {
       try {
@@ -276,11 +289,15 @@ export class NostrAPI {
     onEOSE?: (nsec: string) => void
   ): Promise<void> {
     await this.connect()
-    if (!this.ndk) throw new Error('Failed to connect to relays')
+    if (!this.ndk) {
+      throw new Error('Failed to connect to relays')
+    }
 
     const recipientSecretNostrKey = getSecretFromNsec(recipientNsec)
     const recipientPubKeyHex = getPubKeyHexFromNpub(recipientNpub)
-    if (!recipientSecretNostrKey || !recipientPubKeyHex) return
+    if (!recipientSecretNostrKey || !recipientPubKeyHex) {
+      return
+    }
 
     this.setLoading(true)
     this._callback = _callback
@@ -289,8 +306,8 @@ export class NostrAPI {
     const sinceTimestamp = since && since > 0 ? since - TWO_DAYS : undefined
 
     const subscriptionQuery = {
-      kinds: [1059 as NDKKind],
       '#p': [recipientPubKeyHex],
+      kinds: [1059 as NDKKind],
       ...(limit && { limit }),
       ...(sinceTimestamp !== undefined && { since: sinceTimestamp })
     }
@@ -313,20 +330,24 @@ export class NostrAPI {
         const rawEvent = await event.toNostrEvent()
         const rawId = (rawEvent as { id?: string }).id
 
-        if (rawId && this.processedRawEventIds.has(rawId)) return
+        if (rawId && this.processedRawEventIds.has(rawId)) {
+          return
+        }
 
         const unwrappedEvent = unwrapNip59EventOrNull(
           rawEvent as unknown as Event,
           recipientSecretNostrKey
         )
-        if (!unwrappedEvent) return
+        if (!unwrappedEvent) {
+          return
+        }
 
         if (rawId) {
           if (this.processedRawEventIds.size >= MAX_PROCESSED_RAW_IDS) {
             const entries = Array.from(this.processedRawEventIds)
-            entries
-              .slice(0, Math.floor(entries.length / 2))
-              .forEach((id) => this.processedRawEventIds.delete(id))
+            for (const id of entries.slice(0, Math.floor(entries.length / 2))) {
+              this.processedRawEventIds.delete(id)
+            }
           }
           this.processedRawEventIds.add(rawId)
         }
@@ -336,9 +357,9 @@ export class NostrAPI {
             this.eventQueue.shift()
           }
           const message = {
-            id: unwrappedEvent.id,
             content: unwrappedEvent,
             created_at: unwrappedEvent.created_at ?? 0,
+            id: unwrappedEvent.id,
             pubkey: event.pubkey
           }
           this.eventQueue.push(message)
@@ -363,11 +384,13 @@ export class NostrAPI {
     while (this.eventQueue.length > 0 && this._callback) {
       await this.processQueue()
       // Small delay between batches to avoid blocking the JS thread
-      await new Promise((r) => setTimeout(r, FLUSH_QUEUE_DELAY_MS))
+      await new Promise((r) => {
+        setTimeout(r, FLUSH_QUEUE_DELAY_MS)
+      })
     }
   }
 
-  async closeAllSubscriptions() {
+  closeAllSubscriptions() {
     for (const subscription of this.activeSubscriptions) {
       subscription.stop()
     }
@@ -391,11 +414,11 @@ export class NostrAPI {
     }
   }
 
-  async createKind1059(
+  createKind1059(
     nsec: string,
     recipientNpub: string,
     content: string
-  ): Promise<NDKEvent> {
+  ): NDKEvent {
     const secretNostrKey = getSecretFromNsec(nsec)
     const recipientPubKeyHex = getPubKeyHexFromNpub(recipientNpub)
     if (!secretNostrKey || !recipientPubKeyHex) {
@@ -425,20 +448,26 @@ export class NostrAPI {
     const hexIds = eventIds.filter(
       (id) => typeof id === 'string' && /^[a-f0-9]{64}$/i.test(id)
     )
-    if (hexIds.length === 0) return
+    if (hexIds.length === 0) {
+      return
+    }
 
     const secretKey = getSecretFromNsec(deviceNsec)
-    if (!secretKey) throw new Error('Invalid nsec')
+    if (!secretKey) {
+      throw new Error('Invalid nsec')
+    }
     const signer = new NDKPrivateKeySigner(secretKey)
 
     await this.connect()
-    if (!this.ndk) throw new Error('Failed to connect to relays')
+    if (!this.ndk) {
+      throw new Error('Failed to connect to relays')
+    }
 
     const tempNdk = new NDK({ explicitRelayUrls: this.relays })
     tempNdk.signer = signer
     const event = new NDKEvent(tempNdk, {
-      kind: 5,
       content: '',
+      kind: 5,
       tags: hexIds.map((id) => ['e', id])
     })
     await event.sign(signer)
@@ -465,7 +494,7 @@ export class NostrAPI {
       event.ndk = this.ndk
     }
     if (!event.sig) {
-      const signer = this.ndk.signer
+      const { signer } = this.ndk
       if (!signer) {
         throw new Error('No signer available for event')
       }
@@ -475,12 +504,12 @@ export class NostrAPI {
     const publishPromises = connectedRelays.map(async (url) => {
       const relay = this.ndk?.pool.relays.get(url)
       if (!relay) {
-        return { url, success: false as const, error: 'Relay not found' }
+        return { error: 'Relay not found', success: false as const, url }
       }
 
       try {
         // Add timeout to prevent indefinite hanging
-        const timeoutPromise = new Promise<never>((_, reject) =>
+        const timeoutPromise = new Promise<never>((_, reject) => {
           setTimeout(
             () =>
               reject(
@@ -490,12 +519,12 @@ export class NostrAPI {
               ),
             NostrAPI.PUBLISH_TIMEOUT_MS
           )
-        )
+        })
         await Promise.race([relay.publish(event), timeoutPromise])
-        return { url, success: true as const }
+        return { success: true as const, url }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error)
-        return { url, success: false as const, error: errorMsg }
+        return { error: errorMsg, success: false as const, url }
       }
     })
 

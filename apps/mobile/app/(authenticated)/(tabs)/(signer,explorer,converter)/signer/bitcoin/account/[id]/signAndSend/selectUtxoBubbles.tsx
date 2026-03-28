@@ -74,8 +74,11 @@ function SelectUtxoBubbles() {
     (utxo: Utxo) => {
       const includesInput = hasInput(utxo)
 
-      if (includesInput) removeInput(utxo)
-      else addInput(utxo)
+      if (includesInput) {
+        removeInput(utxo)
+      } else {
+        addInput(utxo)
+      }
     },
     [hasInput, removeInput, addInput]
   )
@@ -171,7 +174,7 @@ function SelectUtxoBubbles() {
       </LinearGradient>
       <SSBubbleChart
         utxos={account.utxos}
-        canvasSize={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
+        canvasSize={{ height: GRAPH_HEIGHT, width: GRAPH_WIDTH }}
         inputs={getInputs()}
         onPress={handleOnToggleSelected}
         style={{ position: 'absolute', top: 40 }}
@@ -186,7 +189,7 @@ function SelectUtxoBubbles() {
             <SSButton
               label={t('transaction.build.select.customAmount')}
               variant="ghost"
-              style={{ width: 'auto', height: 'auto' }}
+              style={{ height: 'auto', width: 'auto' }}
               onPress={() => setCustomAmountModalVisible(true)}
             />
             <SSButton
@@ -196,7 +199,7 @@ function SelectUtxoBubbles() {
                   : t('common.selectAll')
               }
               variant="ghost"
-              style={{ width: 'auto', height: 'auto' }}
+              style={{ height: 'auto', width: 'auto' }}
               onPress={() =>
                 selectedAllUtxos
                   ? handleDeselectAllUtxos()
@@ -238,23 +241,23 @@ function SelectUtxoBubbles() {
 }
 
 const styles = StyleSheet.create({
-  absoluteTopContainer: {
-    width: '100%',
-    position: 'absolute',
-    paddingHorizontal: Layout.mainContainer.paddingHorizontal,
-    paddingTop: Layout.mainContainer.paddingTop,
-    zIndex: 20
-  },
   absoluteSubmitContainer: {
-    position: 'absolute',
+    backgroundColor: Colors.transparent,
     bottom: 0,
-    width: '100%',
     flexDirection: 'row',
     justifyContent: 'center',
-    backgroundColor: Colors.transparent,
+    paddingBottom: 20,
     paddingHorizontal: 0,
     paddingTop: 0,
-    paddingBottom: 20
+    position: 'absolute',
+    width: '100%'
+  },
+  absoluteTopContainer: {
+    paddingHorizontal: Layout.mainContainer.paddingHorizontal,
+    paddingTop: Layout.mainContainer.paddingTop,
+    position: 'absolute',
+    width: '100%',
+    zIndex: 20
   }
 })
 

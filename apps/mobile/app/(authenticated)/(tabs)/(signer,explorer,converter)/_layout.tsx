@@ -1,5 +1,4 @@
 import '@/shim'
-
 import {
   type DrawerNavigationProp,
   useDrawerStatus
@@ -56,7 +55,7 @@ function HeaderRight() {
   )
 }
 
-export default function StackLayout(params: any) {
+export default function StackLayout(params: { segment?: string }) {
   const currentPath = usePathname()
   const segments = useSegments()
   const [isShowNav, setShowNav] = useState(false)
@@ -66,7 +65,7 @@ export default function StackLayout(params: any) {
   }, [currentPath, segments])
 
   const router = useRouter()
-  const nav = useNavigation<DrawerNavigationProp<any>>()
+  const nav = useNavigation<DrawerNavigationProp<Record<string, undefined>>>()
 
   const isDrawerOpen = useDrawerStatus() === 'open'
 
@@ -77,8 +76,8 @@ export default function StackLayout(params: any) {
           <Stack.Screen
             name="index"
             initialParams={{
-              tab: t('navigation.label.signer'),
-              segment: params?.segment
+              segment: params?.segment,
+              tab: t('navigation.label.signer')
             }}
             options={{ title: 'Signer' }}
           />
@@ -88,8 +87,8 @@ export default function StackLayout(params: any) {
           <Stack.Screen
             name="index"
             initialParams={{
-              tab: t('navigation.label.explorer'),
-              segment: params?.segment
+              segment: params?.segment,
+              tab: t('navigation.label.explorer')
             }}
             options={{ title: 'Explore' }}
           />
@@ -99,8 +98,8 @@ export default function StackLayout(params: any) {
           <Stack.Screen
             name="index"
             initialParams={{
-              tab: t('navigation.label.converter'),
-              segment: params?.segment
+              segment: params?.segment,
+              tab: t('navigation.label.converter')
             }}
             options={{ title: 'Converter' }}
           />
@@ -110,8 +109,8 @@ export default function StackLayout(params: any) {
           <Stack.Screen
             name="index"
             initialParams={{
-              tab: t('navigation.label.signer'),
-              segment: params?.segment
+              segment: params?.segment,
+              tab: t('navigation.label.signer')
             }}
             options={{ title: 'Signer' }}
           />
@@ -126,20 +125,17 @@ export default function StackLayout(params: any) {
           contentStyle: {
             backgroundColor: Colors.gray[950]
           },
+          headerBackTitleVisible: false,
+          headerBackVisible: false,
           headerBackground: () => (
             <View
               style={{
-                height: '100%',
-                justifyContent: 'center',
                 alignItems: 'center',
-                backgroundColor: Colors.gray[950]
+                backgroundColor: Colors.gray[950],
+                height: '100%',
+                justifyContent: 'center'
               }}
             />
-          ),
-          headerTitle: () => (
-            <SSText uppercase style={{ letterSpacing: 1 }}>
-              {t('app.name')}
-            </SSText>
           ),
           headerLeft: isShowNav
             ? () => (
@@ -157,10 +153,10 @@ export default function StackLayout(params: any) {
             : () => (
                 <SSIconButton
                   style={{
-                    paddingTop: 8,
+                    height: 30,
                     paddingHorizontal: 8,
-                    width: 30,
-                    height: 30
+                    paddingTop: 8,
+                    width: 30
                   }}
                   onPress={() => router.back()}
                 >
@@ -168,10 +164,13 @@ export default function StackLayout(params: any) {
                 </SSIconButton>
               ),
           headerRight: () => <HeaderRight />,
-          headerTitleAlign: 'center',
           headerTintColor: Colors.gray[200],
-          headerBackTitleVisible: false,
-          headerBackVisible: false
+          headerTitle: () => (
+            <SSText uppercase style={{ letterSpacing: 1 }}>
+              {t('app.name')}
+            </SSText>
+          ),
+          headerTitleAlign: 'center'
         }}
       >
         {homeScreen}
@@ -183,7 +182,7 @@ export default function StackLayout(params: any) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: Colors.gray[950]
+    backgroundColor: Colors.gray[950],
+    flex: 1
   }
 })

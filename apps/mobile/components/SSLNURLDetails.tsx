@@ -34,7 +34,7 @@ function extractServiceName(metadata: string): string {
   try {
     const parsed = JSON.parse(metadata)
     if (Array.isArray(parsed) && parsed.length > 0) {
-      const firstEntry = parsed[0]
+      const [firstEntry] = parsed
       if (Array.isArray(firstEntry) && firstEntry.length > 1) {
         return firstEntry[1] // Service name is usually the second element
       }
@@ -144,43 +144,43 @@ function SSLNURLDetails({
 }
 
 const styles = StyleSheet.create({
-  lnurlDetails: {
-    marginTop: 16,
-    marginBottom: 16
+  detailLabel: {
+    fontSize: 14,
+    minWidth: 100
   },
   detailRow: {
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap'
-  },
-  detailLabel: {
-    minWidth: 100,
-    fontSize: 14
+    flexWrap: 'wrap',
+    justifyContent: 'space-between'
   },
   detailValue: {
     flex: 1,
     textAlign: 'right'
-  },
-  loadingRow: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16
   },
   errorRow: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 16
   },
+  fiatAmount: {
+    marginLeft: 4,
+    marginTop: 4
+  },
   input: {
     backgroundColor: '#242424',
     borderRadius: 3,
-    padding: 12,
     color: 'white',
-    fontSize: 16
+    fontSize: 16,
+    padding: 12
   },
-  fiatAmount: {
-    marginTop: 4,
-    marginLeft: 4
+  lnurlDetails: {
+    marginBottom: 16,
+    marginTop: 16
+  },
+  loadingRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16
   }
 })
 

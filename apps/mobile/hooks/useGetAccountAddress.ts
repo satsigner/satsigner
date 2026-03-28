@@ -20,14 +20,18 @@ const useGetAccountAddress = (id: Account['id']) => {
   const network = useBlockchainStore((state) => state.selectedNetwork)
 
   async function addAddress() {
-    if (!account || account.keys.length === 0) return
+    if (!account || account.keys.length === 0) {
+      return
+    }
 
     try {
       const temporaryAccount = await getAccountWithDecryptedKeys(account)
 
       if (account.keys[0].creationType === 'importAddress') {
-        const secret = temporaryAccount.keys[0].secret
-        if (!secret.externalDescriptor) return
+        const [{ secret }] = temporaryAccount.keys
+        if (!secret.externalDescriptor) {
+          return
+        }
 
         // Try to extract address from descriptor
         // It could be in format addr(address) or just a plain address
@@ -49,7 +53,7 @@ const useGetAccountAddress = (id: Account['id']) => {
       // For all other account types, use BDK to generate wallet and get first address
       const walletData = await getWalletData(
         temporaryAccount,
-        network as any // Cast to BDK Network type
+        network as unknown as Parameters<typeof getWalletData>[1] // Cast to BDK Network type
       )
 
       if (!walletData) {
@@ -63,12 +67,16 @@ const useGetAccountAddress = (id: Account['id']) => {
       addAccountAddress(account.id, firstAddress)
     } catch (err) {
       const reason = err instanceof Error ? err.message : 'unknown reason'
-      throw new Error(`Failed to get account address: ${reason}`)
+      throw new Error(`Failed to get account address: ${reason}`, {
+        cause: err
+      })
     }
   }
 
   useEffect(() => {
-    if (!address) addAddress()
+    if (!address) {
+      addAddress()
+    }
   }, [address, id, account]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return address

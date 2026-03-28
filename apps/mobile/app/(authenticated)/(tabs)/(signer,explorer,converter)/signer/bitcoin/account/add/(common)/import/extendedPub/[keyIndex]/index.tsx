@@ -98,10 +98,10 @@ export default function ImportExtendedPub() {
     scanned: Set<number>
     chunks: Map<number, string>
   }>({
-    type: null,
-    total: 0,
+    chunks: new Map(),
     scanned: new Set(),
-    chunks: new Map()
+    total: 0,
+    type: null
   })
 
   const pulseAnim = useRef(new Animated.Value(0)).current
@@ -112,13 +112,13 @@ export default function ImportExtendedPub() {
       const pulseAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
-            toValue: 1,
             duration: 500,
+            toValue: 1,
             useNativeDriver: false
           }),
           Animated.timing(pulseAnim, {
-            toValue: 0,
             duration: 500,
+            toValue: 0,
             useNativeDriver: false
           })
         ])
@@ -127,13 +127,13 @@ export default function ImportExtendedPub() {
       const scaleAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(scaleAnim, {
-            toValue: 0.98,
             duration: 500,
+            toValue: 0.98,
             useNativeDriver: false
           }),
           Animated.timing(scaleAnim, {
-            toValue: 1,
             duration: 500,
+            toValue: 1,
             useNativeDriver: false
           })
         ])
@@ -145,10 +145,9 @@ export default function ImportExtendedPub() {
         pulseAnimation.stop()
         scaleAnimation.stop()
       }
-    } else {
-      pulseAnim.setValue(0)
-      scaleAnim.setValue(1)
     }
+    pulseAnim.setValue(0)
+    scaleAnim.setValue(1)
   }, [isReading, pulseAnim, scaleAnim])
 
   function updateMasterFingerprint(fingerprint: string) {
@@ -195,7 +194,9 @@ export default function ImportExtendedPub() {
 
   function convertVpubToTpub(vpub: string): string {
     // If it's not a vpub, return as is
-    if (!vpub.startsWith('vpub')) return vpub
+    if (!vpub.startsWith('vpub')) {
+      return vpub
+    }
 
     // Use the network-aware conversion utility
     return convertKeyFormat(vpub, 'tpub', network)
@@ -208,10 +209,10 @@ export default function ImportExtendedPub() {
       const match = data.match(/^p(\d+)of(\d+)\s/)
       if (match) {
         return {
-          type: 'raw' as const,
+          content: data.substring(match[0].length),
           current: parseInt(match[1], 10) - 1, // Convert to 0-based index
           total: parseInt(match[2], 10),
-          content: data.substring(match[0].length)
+          type: 'raw' as const
         }
       }
     }
@@ -221,10 +222,10 @@ export default function ImportExtendedPub() {
       const total = parseInt(data.slice(4, 6), 36)
       const current = parseInt(data.slice(6, 8), 36)
       return {
-        type: 'bbqr' as const,
+        content: data,
         current,
         total,
-        content: data
+        type: 'bbqr' as const
       }
     }
 
@@ -241,47 +242,46 @@ export default function ImportExtendedPub() {
           const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
           const total = parseInt(totalStr, 10)
           return {
-            type: 'ur' as const,
+            content: data,
             current,
             total,
-            content: data
+            type: 'ur' as const
           }
-        } else {
-          // Single-part UR
-          return {
-            type: 'ur' as const,
-            current: 0,
-            total: 1,
-            content: data
-          }
+        }
+        // Single-part UR
+        return {
+          content: data,
+          current: 0,
+          total: 1,
+          type: 'ur' as const
         }
       }
     }
 
     // Single QR code (no multi-part format detected)
     return {
-      type: 'single' as const,
+      content: data,
       current: 0,
       total: 1,
-      content: data
+      type: 'single' as const
     }
   }
 
   function resetScanProgress() {
     setScanProgress({
-      type: null,
-      total: 0,
+      chunks: new Map(),
       scanned: new Set(),
-      chunks: new Map()
+      total: 0,
+      type: null
     })
     urDecoderRef.current = new URDecoder()
   }
 
-  function decodeURCryptoAccount(urData: Uint8Array): any {
+  function decodeURCryptoAccount(urData: Uint8Array): { xpub?: string } | null {
     try {
       const decoded = CBOR.decode(new Uint8Array(urData.buffer))
-      return decoded
-    } catch (_error) {
+      return decoded as { xpub?: string }
+    } catch {
       return null
     }
   }
@@ -294,13 +294,13 @@ export default function ImportExtendedPub() {
       if (type === 'raw') {
         // For RAW format, just concatenate the chunks in order
         const sortedChunks = Array.from(chunks.entries())
-          .sort(([a], [b]) => a - b)
+          .toSorted(([a], [b]) => a - b)
           .map(([, content]) => content)
         return sortedChunks.join('')
       } else if (type === 'bbqr') {
         // For BBQR, decode the assembled chunks
         const sortedChunks = Array.from(chunks.entries())
-          .sort(([a], [b]) => a - b)
+          .toSorted(([a], [b]) => a - b)
           .map(([, content]) => content)
         const decoded = decodeBBQRChunks(sortedChunks)
         if (decoded) {
@@ -317,7 +317,7 @@ export default function ImportExtendedPub() {
         }
       }
       return null
-    } catch (_error) {
+    } catch {
       return null
     }
   }
@@ -334,8 +334,8 @@ export default function ImportExtendedPub() {
       if (xpub !== convertedXpub) {
         toast.info(
           t('watchonly.info.vpubConverted', {
-            vpub: xpub.slice(0, 8) + '...',
-            tpub: convertedXpub.slice(0, 8) + '...'
+            tpub: `${convertedXpub.slice(0, 8)}...`,
+            vpub: `${xpub.slice(0, 8)}...`
           })
         )
       }
@@ -403,7 +403,7 @@ export default function ImportExtendedPub() {
       const finalContent = clipboardContent.trim()
       updateXpub(finalContent)
       toast.success(t('watchonly.success.clipboardPasted'))
-    } catch (_error) {
+    } catch {
       toast.error(t('watchonly.error.clipboardPaste'))
     }
   }
@@ -419,7 +419,7 @@ export default function ImportExtendedPub() {
       const finalContent = clipboardContent.trim()
       updateMasterFingerprint(finalContent)
       toast.success(t('watchonly.success.clipboardPasted'))
-    } catch (_error) {
+    } catch {
       toast.error(t('watchonly.error.clipboardPaste'))
     }
   }
@@ -447,13 +447,14 @@ export default function ImportExtendedPub() {
         .trim()
         .replace(/[^\S\n]+/g, '') // Remove all whitespace except newlines
         .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
+        // eslint-disable-next-line no-control-regex
         .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
         .normalize('NFKC') // Normalize unicode characters
         .replace(/^en/, '')
 
       updateXpub(text)
       toast.success(t('watchonly.success.nfcRead'))
-    } catch (_error) {
+    } catch {
       toast.error(t('watchonly.error.nfcRead'))
     }
   }
@@ -497,7 +498,7 @@ export default function ImportExtendedPub() {
             try {
               const stringResult = Buffer.from(decoded).toString('utf8')
               finalContent = stringResult
-            } catch (_error) {
+            } catch {
               // Fallback to hex if string conversion fails
               const hexResult = Buffer.from(decoded).toString('hex')
               finalContent = hexResult
@@ -526,7 +527,7 @@ export default function ImportExtendedPub() {
                   new Uint8Array(result.cbor)
                 )
 
-                if (decodedAccount.xpub) {
+                if (decodedAccount && decodedAccount.xpub) {
                   // Extract the fingerprint and xpub separately
                   const xpubWithPrefix = decodedAccount.xpub
 
@@ -539,7 +540,7 @@ export default function ImportExtendedPub() {
                     /^\[([0-9a-fA-F]{8})\//
                   )
                   if (fingerprintMatch1) {
-                    extractedFingerprint = fingerprintMatch1[1]
+                    ;[, extractedFingerprint] = fingerprintMatch1
                   }
 
                   // Pattern 2: [fingerprintderivation]xpub (no slash separator - legacy)
@@ -547,7 +548,7 @@ export default function ImportExtendedPub() {
                     const fingerprintMatch2 =
                       xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})/)
                     if (fingerprintMatch2) {
-                      extractedFingerprint = fingerprintMatch2[1]
+                      ;[, extractedFingerprint] = fingerprintMatch2
                     }
                   }
 
@@ -556,7 +557,7 @@ export default function ImportExtendedPub() {
                     const fingerprintMatch3 =
                       xpubWithPrefix.match(/^\[([0-9a-fA-F]+)/)
                     if (fingerprintMatch3) {
-                      extractedFingerprint = fingerprintMatch3[1]
+                      ;[, extractedFingerprint] = fingerprintMatch3
                     }
                   }
 
@@ -569,7 +570,7 @@ export default function ImportExtendedPub() {
                     /\]([txyzuv]pub[a-zA-Z0-9]{107})$/
                   )
                   if (xpubMatch) {
-                    const extractedXpub = xpubMatch[1]
+                    const [, extractedXpub] = xpubMatch
                     updateXpub(extractedXpub)
                   } else {
                     // Fallback: use the full string if parsing fails
@@ -579,10 +580,9 @@ export default function ImportExtendedPub() {
                   toast.success('Crypto account imported successfully')
                   setCameraModalVisible(false)
                   return
-                } else {
-                  toast.error('No extended public key found in crypto account')
-                  return
                 }
+                toast.error('No extended public key found in crypto account')
+                return
               }
             }
           } catch {
@@ -595,7 +595,7 @@ export default function ImportExtendedPub() {
         updateXpub(finalContent)
         setCameraModalVisible(false)
         toast.success(t('watchonly.success.qrScanned'))
-      } catch (_error) {
+      } catch {
         toast.error(t('watchonly.read.qrError'))
       }
     } else {
@@ -608,10 +608,10 @@ export default function ImportExtendedPub() {
       newChunks.set(current, content)
 
       setScanProgress({
-        type,
-        total,
+        chunks: newChunks,
         scanned: newScanned,
-        chunks: newChunks
+        total,
+        type
       })
 
       // For UR fountain encoding, we can assemble as we go
@@ -627,7 +627,7 @@ export default function ImportExtendedPub() {
                 new Uint8Array(result.cbor)
               )
 
-              if (decodedAccount.xpub) {
+              if (decodedAccount && decodedAccount.xpub) {
                 // Extract the fingerprint and xpub separately
                 const xpubWithPrefix = decodedAccount.xpub
 
@@ -637,14 +637,14 @@ export default function ImportExtendedPub() {
                   /^\[([0-9a-fA-F]{8})\//
                 )
                 if (fingerprintMatch1) {
-                  extractedFingerprint = fingerprintMatch1[1]
+                  ;[, extractedFingerprint] = fingerprintMatch1
                 }
 
                 if (!extractedFingerprint) {
                   const fingerprintMatch2 =
                     xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})/)
                   if (fingerprintMatch2) {
-                    extractedFingerprint = fingerprintMatch2[1]
+                    ;[, extractedFingerprint] = fingerprintMatch2
                   }
                 }
 
@@ -652,7 +652,7 @@ export default function ImportExtendedPub() {
                   const fingerprintMatch3 =
                     xpubWithPrefix.match(/^\[([0-9a-fA-F]+)/)
                   if (fingerprintMatch3) {
-                    extractedFingerprint = fingerprintMatch3[1]
+                    ;[, extractedFingerprint] = fingerprintMatch3
                   }
                 }
 
@@ -681,23 +681,21 @@ export default function ImportExtendedPub() {
         } catch {
           toast.error('Failed to decode UR crypto account')
         }
-      } else {
+      } else if (newScanned.size === total) {
         // For RAW and BBQR, wait for all chunks
-        if (newScanned.size === total) {
-          // All chunks collected, assemble the final result
-          const assembledData = assembleMultiPartQR(type, newChunks)
+        // All chunks collected, assemble the final result
+        const assembledData = assembleMultiPartQR(type, newChunks)
 
-          if (assembledData) {
-            setCameraModalVisible(false)
-            resetScanProgress()
+        if (assembledData) {
+          setCameraModalVisible(false)
+          resetScanProgress()
 
-            // Process the assembled data
-            updateXpub(assembledData)
-            toast.success(t('watchonly.success.qrScanned'))
-          } else {
-            toast.error('Failed to assemble multi-part QR code')
-            resetScanProgress()
-          }
+          // Process the assembled data
+          updateXpub(assembledData)
+          toast.success(t('watchonly.success.qrScanned'))
+        } else {
+          toast.error('Failed to assemble multi-part QR code')
+          resetScanProgress()
         }
       }
     }
@@ -730,8 +728,8 @@ export default function ImportExtendedPub() {
                       style={{
                         color: Colors.error,
                         fontSize: 12,
-                        textAlign: 'center',
-                        marginTop: 4
+                        marginTop: 4,
+                        textAlign: 'center'
                       }}
                     >
                       {xpubError}
@@ -762,8 +760,8 @@ export default function ImportExtendedPub() {
                         inputRange: [0, 1],
                         outputRange: [1, 0.7]
                       }),
-                      transform: [{ scale: scaleAnim }],
-                      overflow: 'hidden'
+                      overflow: 'hidden',
+                      transform: [{ scale: scaleAnim }]
                     }}
                   >
                     <SSButton
@@ -790,26 +788,26 @@ export default function ImportExtendedPub() {
                   </SSText>
                   <View
                     style={{
-                      width: '100%',
-                      height: 4,
                       backgroundColor: Colors.gray[700],
-                      borderRadius: 2
+                      borderRadius: 2,
+                      height: 4,
+                      width: '100%'
                     }}
                   >
                     <View
                       style={{
+                        backgroundColor: Colors.white,
+                        borderRadius: 2,
+                        height: 4,
                         width: `${
                           (scanProgress.scanned.size / scanProgress.total) * 100
-                        }%`,
-                        height: 4,
-                        backgroundColor: Colors.white,
-                        borderRadius: 2
+                        }%`
                       }}
                     />
                   </View>
                   <SSText color="muted" size="sm" center>
                     {`Scanned parts: ${Array.from(scanProgress.scanned)
-                      .sort((a, b) => a - b)
+                      .toSorted((a, b) => a - b)
                       .map((n) => n + 1)
                       .join(', ')}`}
                   </SSText>
@@ -886,7 +884,7 @@ export default function ImportExtendedPub() {
               handleQRCodeScanned(res.raw)
             }}
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            style={{ width: 340, height: 340 }}
+            style={{ height: 340, width: 340 }}
           />
 
           {/* Show progress if scanning multi-part QR */}
@@ -914,21 +912,21 @@ export default function ImportExtendedPub() {
                         </SSText>
                         <View
                           style={{
-                            width: 300,
-                            height: 4,
                             backgroundColor: Colors.gray[700],
-                            borderRadius: 2
+                            borderRadius: 2,
+                            height: 4,
+                            width: 300
                           }}
                         >
                           <View
                             style={{
-                              width:
-                                (scanProgress.scanned.size / displayTarget) *
-                                300,
+                              backgroundColor: Colors.white,
+                              borderRadius: 2,
                               height: 4,
                               maxWidth: 300,
-                              backgroundColor: Colors.white,
-                              borderRadius: 2
+                              width:
+                                (scanProgress.scanned.size / displayTarget) *
+                                300
                             }}
                           />
                         </View>
@@ -944,27 +942,26 @@ export default function ImportExtendedPub() {
                   </SSText>
                   <View
                     style={{
-                      width: 300,
-                      height: 4,
                       backgroundColor: Colors.gray[700],
-                      borderRadius: 2
+                      borderRadius: 2,
+                      height: 4,
+                      width: 300
                     }}
                   >
                     <View
                       style={{
-                        width:
-                          (scanProgress.scanned.size / scanProgress.total) *
-                          300,
+                        backgroundColor: Colors.white,
+                        borderRadius: 2,
                         height: 4,
                         maxWidth: scanProgress.total * 300,
-                        backgroundColor: Colors.white,
-                        borderRadius: 2
+                        width:
+                          (scanProgress.scanned.size / scanProgress.total) * 300
                       }}
                     />
                   </View>
                   <SSText color="muted" size="sm" center>
                     {`Scanned parts: ${Array.from(scanProgress.scanned)
-                      .sort((a, b) => a - b)
+                      .toSorted((a, b) => a - b)
                       .map((n) => n + 1)
                       .join(', ')}`}
                   </SSText>

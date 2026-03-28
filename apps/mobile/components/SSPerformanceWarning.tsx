@@ -16,9 +16,9 @@ function SSPerformanceWarning({ text, onDismiss }: SSPerformanceWarningProps) {
   return (
     <View
       style={{
+        alignContent: 'center',
         flex: 1,
-        justifyContent: 'center',
-        alignContent: 'center'
+        justifyContent: 'center'
       }}
     >
       <SSVStack itemsCenter style={{ paddingHorizontal: 32 }}>

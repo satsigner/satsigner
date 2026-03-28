@@ -25,14 +25,14 @@ export default function Converter() {
     'sats' | 'bitcoin' | 'USD' | 'EUR' | 'GBP' | 'CAD' | 'CHF' | 'JPY'
   >('sats')
   const [currencyValues, setCurrencyValues] = useState({
-    sats: 0,
-    bitcoin: 0,
-    USD: 0,
-    EUR: 0,
-    GBP: 0,
     CAD: 0,
     CHF: 0,
-    JPY: 0
+    EUR: 0,
+    GBP: 0,
+    JPY: 0,
+    USD: 0,
+    bitcoin: 0,
+    sats: 0
   })
 
   const [prices, fetchFullPriceAt] = usePriceStore(
@@ -58,14 +58,14 @@ export default function Converter() {
       }
 
       const updatedValues = {
-        sats: Math.round(bitcoinValue * SATS_PER_BITCOIN),
-        bitcoin: bitcoinValue,
-        USD: (prices.USD || 0) * bitcoinValue,
-        EUR: (prices.EUR || 0) * bitcoinValue,
-        GBP: (prices.GBP || 0) * bitcoinValue,
         CAD: (prices.CAD || 0) * bitcoinValue,
         CHF: (prices.CHF || 0) * bitcoinValue,
+        EUR: (prices.EUR || 0) * bitcoinValue,
+        GBP: (prices.GBP || 0) * bitcoinValue,
         JPY: (prices.JPY || 0) * bitcoinValue,
+        USD: (prices.USD || 0) * bitcoinValue,
+        bitcoin: bitcoinValue,
+        sats: Math.round(bitcoinValue * SATS_PER_BITCOIN),
         [key]: value
       }
 
@@ -264,46 +264,46 @@ export default function Converter() {
 }
 
 const styles = StyleSheet.create({
-  headerTitle: {
-    letterSpacing: 1
-  },
-  inputContainer: {
-    borderTopWidth: 1,
-    borderColor: Colors.gray[875],
-    paddingTop: 20,
-    paddingBottom: 6,
-    gap: -2
-  },
-  currencyInput: {
-    backgroundColor: transparent
-  },
-  currencySection: {
-    borderTopWidth: 1,
-    borderColor: Colors.gray[875]
-  },
-  rowSeparator: {
-    borderBottomWidth: 1,
-    borderColor: Colors.gray[875]
-  },
   currencyBlock: {
-    flex: 1,
-    padding: 12,
+    borderColor: Colors.gray[875],
     borderRightWidth: 1,
-    borderColor: Colors.gray[875]
+    flex: 1,
+    padding: 12
   },
   currencyBlockNoBorder: {
     flex: 1,
     padding: 12
   },
+  currencyInput: {
+    backgroundColor: transparent
+  },
+  currencySection: {
+    borderColor: Colors.gray[875],
+    borderTopWidth: 1
+  },
   dateContainer: {
+    alignItems: 'center',
+    backgroundColor: 'black',
     flexGrow: 1,
     justifyContent: 'flex-end',
-    padding: 20,
-    alignItems: 'center',
-    backgroundColor: 'black'
+    padding: 20
   },
   gradient: {
     position: 'absolute',
     width: '100%'
+  },
+  headerTitle: {
+    letterSpacing: 1
+  },
+  inputContainer: {
+    borderColor: Colors.gray[875],
+    borderTopWidth: 1,
+    gap: -2,
+    paddingBottom: 6,
+    paddingTop: 20
+  },
+  rowSeparator: {
+    borderBottomWidth: 1,
+    borderColor: Colors.gray[875]
   }
 })

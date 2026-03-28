@@ -61,7 +61,7 @@ function SSLoader({ size = 80, color = Colors.white }: SSLoaderProps) {
   })
 
   return (
-    <View style={{ width: size, height: size }}>
+    <View style={{ height: size, width: size }}>
       <Svg
         width={size}
         height={size}

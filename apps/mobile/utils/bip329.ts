@@ -32,45 +32,45 @@ export type Bip329FileType = 'JSONL' | 'JSON' | 'CSV'
 export const bip329FileTypes: Bip329FileType[] = ['JSONL', 'JSON', 'CSV']
 
 export const bip329parser = {
+  CSV: CSVtoLabels,
   JSON: JSONtoLabels,
-  JSONL: JSONLtoLabels,
-  CSV: CSVtoLabels
+  JSONL: JSONLtoLabels
 } as Record<Bip329FileType, (text: string) => Label[]>
 
 export const bip329export = {
+  CSV: labelsToCSV,
   JSON: labelsToJSON,
-  JSONL: labelsToJSONL,
-  CSV: labelsToCSV
+  JSONL: labelsToJSONL
 } as Record<Bip329FileType, (labels: Label[]) => string>
 
 export const bip329mimes = {
+  CSV: 'text/csv',
   JSON: 'application/json',
-  JSONL: 'text/plain',
-  CSV: 'text/csv'
+  JSONL: 'text/plain'
 } as Record<Bip329FileType, PickFileProps['type']>
 
 // These aliases is to handle importing from wallets which do not respect the
 // standard names defined in BIP329 but define their own nonsense
 const bip329Aliases: Partial<Record<keyof Label, string[]>> = {
-  type: ['type'],
-  ref: ['ref', 'txid', 'address', 'Payment Address'],
-  label: ['label', 'memo'],
-  spendable: ['spendable'],
-
   fee: ['fee', 'Fee sat/vbyte'],
   fmv: ['fmv'],
   height: ['height', 'Block height', 'Blockheight'],
   heights: ['heights', 'Block heights'],
+
   keypath: ['keypath', 'index'],
+  label: ['label', 'memo'],
   origin: ['origin', 'derivation'],
   rate: ['rate', 'Prices', 'Value (USD)'],
+  ref: ['ref', 'txid', 'address', 'Payment Address'],
+  spendable: ['spendable'],
   time: ['date', 'Date (UTC)', 'time', 'timestamp'],
+  type: ['type'],
   value: ['value', 'sats', 'satoshis', 'amount']
 }
 
 const bip329Alias: Record<string, keyof Label> = {}
-for (const key in bip329Aliases) {
-  for (const value of bip329Aliases[key as keyof Label] as string[]) {
+for (const [key, aliases] of Object.entries(bip329Aliases)) {
+  for (const value of aliases as string[]) {
     bip329Alias[value.toLowerCase()] = key as keyof Label
   }
 }
@@ -78,40 +78,34 @@ for (const key in bip329Aliases) {
 function formatAddressLabels(addresses: Address[]): Label[] {
   return addresses
     .filter((address) => address.label)
-    .map((address) => {
-      return {
-        label: address.label,
-        type: 'addr',
-        ref: address.address,
-        spendable: true
-      } as Label
-    })
+    .map((address) => ({
+      label: address.label,
+      ref: address.address,
+      spendable: true,
+      type: 'addr'
+    }))
 }
 
 function formatTransactionLabels(transactions: Transaction[]): Label[] {
   return transactions
-    .filter((tx) => tx.label)
-    .map((tx) => {
-      return {
-        label: tx.label,
-        type: 'tx',
-        ref: tx.id,
-        spendable: true
-      } as Label
-    })
+    .filter((tx): tx is Transaction & { label: string } => Boolean(tx.label))
+    .map((tx) => ({
+      label: tx.label,
+      ref: tx.id,
+      spendable: true,
+      type: 'tx' as const
+    }))
 }
 
 function formatUtxoLabels(utxos: Utxo[]): Label[] {
   return utxos
     .filter((utxo) => utxo.label)
-    .map((utxo) => {
-      return {
-        label: utxo.label!,
-        type: 'output',
-        ref: getUtxoOutpoint(utxo),
-        spendable: true // TODO: allow the user to mark utxo as not spendable
-      }
-    })
+    .map((utxo) => ({
+      label: utxo.label!,
+      ref: getUtxoOutpoint(utxo),
+      spendable: true,
+      type: 'output' // TODO: allow the user to mark utxo as not spendable
+    }))
 }
 
 export function formatAccountLabels(account: Account): Label[] {
@@ -120,8 +114,7 @@ export function formatAccountLabels(account: Account): Label[] {
 
   // Add all labels from the account.labels dictionary
   if (account.labels) {
-    for (const ref in account.labels) {
-      const label = account.labels[ref]
+    for (const [ref, label] of Object.entries(account.labels)) {
       if (label && label.label) {
         labelsByRef.set(ref, label)
       }
@@ -171,9 +164,13 @@ function removeQuotes(str: string) {
 // TODO: refactor this !
 export function CSVtoLabels(CsvText: string): Label[] {
   const lines = CsvText.split('\n')
-  if (lines.length < 0) throw new Error('Empty CSV text')
-  const header = lines[0]
-  if (!header.match(/^([a-zA-Z()]+,?)+/)) throw new Error('Invalid CSV header')
+  if (lines.length < 0) {
+    throw new Error('Empty CSV text')
+  }
+  const [header] = lines
+  if (!header.match(/^([a-zA-Z()]+,?)+/)) {
+    throw new Error('Invalid CSV header')
+  }
   const rows = lines.slice(1)
   const labels: Label[] = []
   const columns = header.split(',')
@@ -181,14 +178,18 @@ export function CSVtoLabels(CsvText: string): Label[] {
     // INFO: SPARROW WALLET uses non-standard CSV files, with empty lines and
     // comment lines. The if statement below ignores those lines in order to
     // correctly parse their non-standard weird CSV export.
-    if (row === '' || row.startsWith('#')) continue
+    if (row === '' || row.startsWith('#')) {
+      continue
+    }
 
-    if (!row.match(/^([^,]*,?)+$/)) throw new Error('Invalid CSV line')
+    if (!row.match(/^([^,]*,?)+$/)) {
+      throw new Error('Invalid CSV line')
+    }
 
     const rowItems = row.split(',')
     const label = {} as Label
-    for (const index in columns) {
-      const column = columns[index].toLowerCase()
+    for (const [index, col] of columns.entries()) {
+      const column = col.toLowerCase()
       const value = removeQuotes(rowItems[index]) as never
 
       // INFO: the following is meant to parse CSV from nunchuk.
@@ -218,7 +219,9 @@ export function CSVtoLabels(CsvText: string): Label[] {
         continue
       }
 
-      if (bip329Alias[column] === undefined) continue
+      if (bip329Alias[column] === undefined) {
+        continue
+      }
 
       const field = bip329Alias[column]
       label[field] = value
@@ -244,10 +247,14 @@ export function JSONLtoLabels(JSONLines: string): Label[] {
   const lines = JSONLines.split('\n')
   const labels: Label[] = []
   for (const line of lines) {
-    if (line === '') continue
-    if (!line.match(/^{.+}$/)) throw new Error('Invalid line (JSONL)')
+    if (line === '') {
+      continue
+    }
+    if (!line.match(/^{.+}$/)) {
+      throw new Error('Invalid line (JSONL)')
+    }
     const obj = JSON.parse(line)
-    for (const key in obj) {
+    for (const key of Object.keys(obj)) {
       const aliasKey = key.toLowerCase()
       if (bip329Alias[aliasKey] !== undefined) {
         const field = bip329Alias[aliasKey]

@@ -30,31 +30,31 @@ export class MempoolOracle implements BlockchainOracle {
     this.baseUrl = baseUrl
   }
 
-  async get(endpoint: string) {
-    return fetch(this.baseUrl + endpoint).then((response: any) => {
-      return response.json() as any
-    })
+  get(endpoint: string) {
+    return fetch(this.baseUrl + endpoint).then(
+      (response: Response) => response.json() as Promise<unknown>
+    )
   }
 
-  async getText(endpoint: string): Promise<string> {
-    return fetch(this.baseUrl + endpoint).then((response: any) => {
-      return response.text() as string
-    })
+  getText(endpoint: string): Promise<string> {
+    return fetch(this.baseUrl + endpoint).then(
+      (response: Response) => response.text() as Promise<string>
+    )
   }
 
-  async getBinary(endpoint: string): Promise<ArrayBuffer> {
-    return fetch(this.baseUrl + endpoint).then((response: any) => {
-      return response.arrayBuffer() as ArrayBuffer
-    })
+  getBinary(endpoint: string): Promise<ArrayBuffer> {
+    return fetch(this.baseUrl + endpoint).then(
+      (response: Response) => response.arrayBuffer() as Promise<ArrayBuffer>
+    )
   }
 
   async getAddressUtxos(address: string): Promise<UTXO[]> {
-    const data: UTXO[] = await this.get(`/address/${address}/utxo`)
+    const data: UTXO[] = (await this.get(`/address/${address}/utxo`)) as UTXO[]
     return data
   }
 
   async getBlock(blkid: string): Promise<Block> {
-    const data: Block = await this.get(`/block/${blkid}`)
+    const data: Block = (await this.get(`/block/${blkid}`)) as Block
     return data
   }
 
@@ -69,24 +69,30 @@ export class MempoolOracle implements BlockchainOracle {
   }
 
   async getBlockAt(timestamp: number): Promise<Block> {
-    const data: any = await this.get(`/v1/mining/blocks/timestamp/${timestamp}`)
+    const data = (await this.get(
+      `/v1/mining/blocks/timestamp/${timestamp}`
+    )) as { hash: string }
     const blockId = data.hash
     const block = await this.getBlock(blockId)
     return block
   }
 
   async getBlockStatus(blkid: string): Promise<BlockStatus> {
-    const data: BlockStatus = await this.get(`/block/${blkid}/status`)
+    const data: BlockStatus = (await this.get(
+      `/block/${blkid}/status`
+    )) as BlockStatus
     return data
   }
 
   async getBlockTransactions(blkid: string): Promise<Tx[]> {
-    const data: Tx[] = await this.get(`/block/${blkid}/txs`)
+    const data: Tx[] = (await this.get(`/block/${blkid}/txs`)) as Tx[]
     return data
   }
 
   async getBlockTransactionIds(blkid: string): Promise<Tx['txid'][]> {
-    const data: Tx['txid'][] = await this.get(`/block/${blkid}/txids`)
+    const data: Tx['txid'][] = (await this.get(
+      `/block/${blkid}/txids`
+    )) as Tx['txid'][]
     return data
   }
 
@@ -95,7 +101,7 @@ export class MempoolOracle implements BlockchainOracle {
     return Number(height)
   }
 
-  async getCurrentBlockHash(): Promise<string> {
+  getCurrentBlockHash(): Promise<string> {
     return this.getText(`/blocks/tip/hash`)
   }
 
@@ -105,57 +111,72 @@ export class MempoolOracle implements BlockchainOracle {
   }
 
   async getBlockFeeRates(period: string): Promise<BlockFeeRates> {
-    const data: BlockFeeRates = await this.get(
+    const data: BlockFeeRates = (await this.get(
       `/v1/mining/blocks/fee-rates/${period}`
-    )
+    )) as BlockFeeRates
     return data
   }
 
   async getMempoolStatistics(period: string): Promise<MempoolStatistics[]> {
-    const data: MempoolStatistics[] = await this.get(`/v1/statistics/${period}`)
+    const data: MempoolStatistics[] = (await this.get(
+      `/v1/statistics/${period}`
+    )) as MempoolStatistics[]
     return data
   }
 
   async getCurrentDifficulty(): Promise<number> {
-    const data: any = await this.get(`/v1/mining/hashrate/1d`)
+    const data = (await this.get(`/v1/mining/hashrate/1d`)) as {
+      currentDifficulty: number
+    }
     return data.currentDifficulty as number
   }
 
   async getCurrentHashRate(): Promise<number> {
-    const data: any = await this.get(`/v1/mining/hashrate/1d`)
+    const data = (await this.get(`/v1/mining/hashrate/1d`)) as {
+      currentHashrate: number
+    }
     return data.currentHashrate as number
   }
 
   async getDifficultyAdjustment(): Promise<DifficultyAdjustment> {
-    const data: DifficultyAdjustment = await this.get(
+    const data: DifficultyAdjustment = (await this.get(
       `/v1/difficulty-adjustment`
-    )
+    )) as DifficultyAdjustment
     return data
   }
 
   async getMemPool(): Promise<MemPool> {
-    const data: MemPool = await this.get(`/mempool`)
+    const data: MemPool = (await this.get(`/mempool`)) as MemPool
     return data
   }
 
   async getMemPoolFees(): Promise<MemPoolFees> {
-    const data = await this.get(`/v1/fees/recommended`)
+    const data = (await this.get(`/v1/fees/recommended`)) as {
+      fastestFee: number
+      economyFee: number
+      hourFee: number
+      minimumFee: number
+    }
     const fees: MemPoolFees = {
-      none: data.minimumFee,
+      high: data.fastestFee,
       low: data.economyFee,
       medium: data.hourFee,
-      high: data.fastestFee
+      none: data.minimumFee
     }
     return fees
   }
 
   async getMemPoolBlocks(): Promise<MemPoolBlock[]> {
-    const data: MemPoolBlock[] = await this.get(`/v1/fees/mempool-blocks`)
+    const data: MemPoolBlock[] = (await this.get(
+      `/v1/fees/mempool-blocks`
+    )) as MemPoolBlock[]
     return data
   }
 
   async getPrices(): Promise<NonPartial<Prices>> {
-    const data: NonPartial<Prices> = await this.get(`/v1/prices`)
+    const data: NonPartial<Prices> = (await this.get(
+      `/v1/prices`
+    )) as NonPartial<Prices>
     return data
   }
 
@@ -165,10 +186,10 @@ export class MempoolOracle implements BlockchainOracle {
   }
 
   async getPriceAt(currency: string, timestamp: number): Promise<number> {
-    const data: any = await this.get(
+    const data = (await this.get(
       `/v1/historical-price?currency=${currency}&timestamp=${timestamp}`
-    )
-    const prices = data.prices
+    )) as { prices: Record<string, number>[] }
+    const { prices } = data
     return prices[0][currency] as number
   }
 
@@ -176,9 +197,12 @@ export class MempoolOracle implements BlockchainOracle {
     currency: string,
     timestamp: number
   ): Promise<Record<string, number>> {
-    const { prices, exchangeRates }: any = await this.get(
+    const { prices, exchangeRates } = (await this.get(
       `/v1/historical-price?currency=${currency}&timestamp=${timestamp}`
-    )
+    )) as {
+      prices: Record<string, number>[]
+      exchangeRates: Record<string, number>
+    }
 
     const btcPrice = prices[0][currency]
 
@@ -211,11 +235,11 @@ export class MempoolOracle implements BlockchainOracle {
     const timestamps = utxos.map((o: UTXO) => o.status.block_time)
     const fiatPrices = await this.getPricesAt(currency, timestamps)
     const priceValues: PriceValue[] = []
-    for (let i = 0; i < fiatPrices.length; i++) {
+    for (let i = 0; i < fiatPrices.length; i += 1) {
       const fiatPrice = fiatPrices[i]
-      const value = utxos[i].value
+      const { value } = utxos[i]
       const fiatValue = satoshiToFiat(fiatPrice, value)
-      priceValues.push({ currency, value, fiatValue, fiatPrice })
+      priceValues.push({ currency, fiatPrice, fiatValue, value })
     }
     return priceValues
   }
@@ -229,9 +253,9 @@ export class MempoolOracle implements BlockchainOracle {
     const fiatPrice = await this.getPriceAt(currency, timestamp)
     const priceValues: PriceValue[] = []
     for (const vin of tx.vin) {
-      const value = vin.prevout.value
+      const { value } = vin.prevout
       const fiatValue = satoshiToFiat(fiatPrice, value)
-      priceValues.push({ currency, fiatPrice, value, fiatValue })
+      priceValues.push({ currency, fiatPrice, fiatValue, value })
     }
     return priceValues
   }
@@ -245,15 +269,15 @@ export class MempoolOracle implements BlockchainOracle {
     const fiatPrice = await this.getPriceAt(currency, timestamp)
     const priceValues: PriceValue[] = []
     for (const vOut of tx.vout) {
-      const value = vOut.value
+      const { value } = vOut
       const fiatValue = satoshiToFiat(fiatPrice, value)
-      priceValues.push({ currency, fiatPrice, value, fiatValue })
+      priceValues.push({ currency, fiatPrice, fiatValue, value })
     }
     return priceValues
   }
 
   async getTransaction(txid: string): Promise<Tx> {
-    const data: Tx = await this.get(`/tx/${txid}`)
+    const data: Tx = (await this.get(`/tx/${txid}`)) as Tx
     return data
   }
 
@@ -263,12 +287,14 @@ export class MempoolOracle implements BlockchainOracle {
   }
 
   async getTransactionOutspends(txid: string): Promise<TxOutspend[]> {
-    const data: TxOutspend[] = await this.get(`/tx/${txid}/outspends`)
+    const data: TxOutspend[] = (await this.get(
+      `/tx/${txid}/outspends`
+    )) as TxOutspend[]
     return data
   }
 
   async getTransactionStatus(txid: string): Promise<TxStatus> {
-    const data: TxStatus = await this.get(`/tx/${txid}/status`)
+    const data: TxStatus = (await this.get(`/tx/${txid}/status`)) as TxStatus
     return data
   }
 }

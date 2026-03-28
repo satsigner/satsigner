@@ -21,8 +21,8 @@ function SSNavMenuItem({ group, item, focused = false }: SSNavMenuItemProps) {
   const handlePress = useCallback(() => {
     if (item.isSoon) {
       router.navigate({
-        pathname: `(${group.toLowerCase()})/upcoming/`,
-        params: { title: item.title }
+        params: { title: item.title },
+        pathname: `(${group.toLowerCase()})/upcoming/`
       })
     } else {
       router.navigate(`(${group.toLowerCase()})${item.url}`)
@@ -71,34 +71,34 @@ function SSNavMenuItem({ group, item, focused = false }: SSNavMenuItemProps) {
 }
 
 const styles = StyleSheet.create({
-  touchable: {
-    width: '100%',
-    height: 46
-  },
   container: {
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingHorizontal: 12,
     paddingVertical: 10
   },
+  gradient: {
+    borderColor: '#262626',
+    borderRadius: 3,
+    borderWidth: 1,
+    height: '100%',
+    width: '100%'
+  },
   iconWrapper: {
-    width: 30,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    width: 30
+  },
+  shadow: {
+    height: 46,
+    width: '100%'
   },
   text: {
     letterSpacing: 3
   },
-  shadow: {
-    width: '100%',
-    height: 46
-  },
-  gradient: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 3,
-    borderWidth: 1,
-    borderColor: '#262626'
+  touchable: {
+    height: 46,
+    width: '100%'
   }
 })
 

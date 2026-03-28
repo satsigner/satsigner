@@ -58,8 +58,8 @@ function useGetFirstUnusedAddress(wallet: Wallet, account: Account) {
 
   return {
     address: firstUnusedAddress,
-    addressInfo: firstUnusedAddressInfo,
-    addressIndex
+    addressIndex,
+    addressInfo: firstUnusedAddressInfo
   }
 }
 

@@ -14,11 +14,11 @@ import {
 
 import { accountIds, nostrKeys } from '../utils/nostr_samples'
 
-jest.mock('sonner-native', () => ({
+jest.mock<typeof import('sonner-native')>('sonner-native', () => ({
   toast: {
-    success: jest.fn(),
     error: jest.fn(),
-    info: jest.fn()
+    info: jest.fn(),
+    success: jest.fn()
   }
 }))
 
@@ -28,7 +28,7 @@ const mockUpdateAccountNostr = jest.fn()
 const mockAddMember = jest.fn()
 
 // Mock stores with persistent mock functions
-jest.mock('@/store/accounts', () => ({
+jest.mock<typeof import('@/store/accounts')>('@/store/accounts', () => ({
   useAccountsStore: {
     getState: () => ({
       accounts: [],
@@ -38,7 +38,7 @@ jest.mock('@/store/accounts', () => ({
   }
 }))
 
-jest.mock('@/store/nostr', () => ({
+jest.mock<typeof import('@/store/nostr')>('@/store/nostr', () => ({
   useNostrStore: {
     getState: () => ({
       addMember: mockAddMember
@@ -47,14 +47,14 @@ jest.mock('@/store/nostr', () => ({
 }))
 
 // Mock nostr-tools
-jest.mock('nostr-tools', () => ({
+jest.mock<typeof import('nostr-tools')>('nostr-tools', () => ({
   nip19: {
     npubEncode: jest.fn((pubkey: string) => `npub1${pubkey.slice(0, 8)}...`)
   }
 }))
 
 // Mock bip329
-jest.mock('@/utils/bip329', () => ({
+jest.mock<typeof import('@/utils/bip329')>('@/utils/bip329', () => ({
   JSONLtoLabels: jest.fn((jsonl: string) => {
     const lines = jsonl.split('\n').filter((l: string) => l.trim())
     return lines.map((line: string) => JSON.parse(line))
@@ -73,26 +73,15 @@ describe('message handlers', () => {
     overrides: Partial<MessageHandlerContext> = {}
   ): MessageHandlerContext => ({
     account: {
+      addresses: [],
+      createdAt: new Date(),
       id: accountIds.primary,
+      keyCount: 1,
+      keys: [],
+      keysRequired: 1,
+      labels: {},
       name: 'Test Account',
       network: 'testnet',
-      policyType: 'singlesig',
-      keys: [],
-      keyCount: 1,
-      keysRequired: 1,
-      summary: {
-        balance: 0,
-        numberOfAddresses: 0,
-        numberOfTransactions: 0,
-        numberOfUtxos: 0,
-        satsInMempool: 0
-      },
-      transactions: [],
-      utxos: [],
-      addresses: [],
-      labels: {},
-      createdAt: new Date(),
-      syncStatus: 'synced',
       nostr: {
         autoSync: true,
         commonNpub: nostrKeys.alice.npub,
@@ -104,17 +93,28 @@ describe('message handlers', () => {
         relays: ['wss://relay.damus.io'],
         syncStart: new Date(),
         trustedMemberDevices: []
-      }
-    },
-    unwrappedEvent: {
-      id: 'event-123',
-      pubkey: nostrKeys.bob.privateKeyHex,
-      content: '{}'
+      },
+      policyType: 'singlesig',
+      summary: {
+        balance: 0,
+        numberOfAddresses: 0,
+        numberOfTransactions: 0,
+        numberOfUtxos: 0,
+        satsInMempool: 0
+      },
+      syncStatus: 'synced',
+      transactions: [],
+      utxos: []
     },
     eventContent: {},
     lastDataExchangeEOSE: 0,
-    syncStartSec: 0,
     onPendingDM: jest.fn(),
+    syncStartSec: 0,
+    unwrappedEvent: {
+      content: '{}',
+      id: 'event-123',
+      pubkey: nostrKeys.bob.privateKeyHex
+    },
     ...overrides
   })
 
@@ -122,8 +122,8 @@ describe('message handlers', () => {
     it('canHandle returns true for LabelsBip329 data_type', () => {
       const context = createMockContext({
         data: {
-          data_type: 'LabelsBip329',
-          data: '{"type":"tx","ref":"abc","label":"test"}'
+          data: '{"type":"tx","ref":"abc","label":"test"}',
+          data_type: 'LabelsBip329'
         }
       })
       expect(labelsHandler.canHandle(context)).toBe(true)
@@ -131,7 +131,7 @@ describe('message handlers', () => {
 
     it('canHandle returns false for other data_types', () => {
       const context = createMockContext({
-        data: { data_type: 'PSBT', data: 'somedata' }
+        data: { data: 'somedata', data_type: 'PSBT' }
       })
       expect(labelsHandler.canHandle(context)).toBe(false)
     })
@@ -146,8 +146,8 @@ describe('message handlers', () => {
 
       const context = createMockContext({
         data: {
-          data_type: 'LabelsBip329',
-          data: '{"type":"tx","ref":"abc","label":"test"}'
+          data: '{"type":"tx","ref":"abc","label":"test"}',
+          data_type: 'LabelsBip329'
         }
       })
 
@@ -165,8 +165,8 @@ describe('message handlers', () => {
 
       const context = createMockContext({
         data: {
-          data_type: 'LabelsBip329',
-          data: ''
+          data: '',
+          data_type: 'LabelsBip329'
         }
       })
 
@@ -187,21 +187,21 @@ describe('message handlers', () => {
   describe('txHandler', () => {
     it('canHandle returns true for Tx data_type', () => {
       const context = createMockContext({
-        data: { data_type: 'Tx', data: 'txhash123' }
+        data: { data: 'txhash123', data_type: 'Tx' }
       })
       expect(txHandler.canHandle(context)).toBe(true)
     })
 
     it('canHandle returns false for other data_types', () => {
       const context = createMockContext({
-        data: { data_type: 'PSBT', data: 'somedata' }
+        data: { data: 'somedata', data_type: 'PSBT' }
       })
       expect(txHandler.canHandle(context)).toBe(false)
     })
 
     it('handle shows info toast with transaction info', async () => {
       const context = createMockContext({
-        data: { data_type: 'Tx', data: 'abcdef123456' }
+        data: { data: 'abcdef123456', data_type: 'Tx' }
       })
 
       await txHandler.handle(context)
@@ -218,21 +218,21 @@ describe('message handlers', () => {
   describe('signMessageHandler', () => {
     it('canHandle returns true for SignMessageRequest data_type', () => {
       const context = createMockContext({
-        data: { data_type: 'SignMessageRequest', data: 'message to sign' }
+        data: { data: 'message to sign', data_type: 'SignMessageRequest' }
       })
       expect(signMessageHandler.canHandle(context)).toBe(true)
     })
 
     it('canHandle returns false for other data_types', () => {
       const context = createMockContext({
-        data: { data_type: 'Tx', data: 'somedata' }
+        data: { data: 'somedata', data_type: 'Tx' }
       })
       expect(signMessageHandler.canHandle(context)).toBe(false)
     })
 
     it('handle shows info toast with sign request info', async () => {
       const context = createMockContext({
-        data: { data_type: 'SignMessageRequest', data: 'Please sign this' }
+        data: { data: 'Please sign this', data_type: 'SignMessageRequest' }
       })
 
       await signMessageHandler.handle(context)
@@ -282,14 +282,14 @@ describe('message handlers', () => {
   describe('psbtHandler', () => {
     it('canHandle returns true for PSBT data_type', () => {
       const context = createMockContext({
-        data: { data_type: 'PSBT', data: 'cHNidP8...' }
+        data: { data: 'cHNidP8...', data_type: 'PSBT' }
       })
       expect(psbtHandler.canHandle(context)).toBe(true)
     })
 
     it('canHandle returns false for other data_types', () => {
       const context = createMockContext({
-        data: { data_type: 'Tx', data: 'somedata' }
+        data: { data: 'somedata', data_type: 'Tx' }
       })
       expect(psbtHandler.canHandle(context)).toBe(false)
     })
@@ -297,8 +297,8 @@ describe('message handlers', () => {
     it('handle shows toast and calls onPendingDM via context', async () => {
       const onPendingDM = jest.fn()
       const context = createMockContext({
+        data: { data: 'cHNidP8base64data', data_type: 'PSBT' },
         eventContent: { created_at: 1704067200 },
-        data: { data_type: 'PSBT', data: 'cHNidP8base64data' },
         onPendingDM
       })
 
@@ -311,20 +311,20 @@ describe('message handlers', () => {
         })
       )
       expect(onPendingDM).toHaveBeenCalledWith({
-        unwrappedEvent: context.unwrappedEvent,
         eventContent: {
           created_at: 1704067200,
           description: 'cHNidP8base64data'
         },
-        skipToast: true
+        skipToast: true,
+        unwrappedEvent: context.unwrappedEvent
       })
     })
 
     it('handle uses current time when created_at is missing', async () => {
       const onPendingDM = jest.fn()
       const context = createMockContext({
+        data: { data: 'cHNidP8...', data_type: 'PSBT' },
         eventContent: {},
-        data: { data_type: 'PSBT', data: 'cHNidP8...' },
         onPendingDM
       })
 
@@ -342,32 +342,32 @@ describe('message handlers', () => {
   describe('dmHandler', () => {
     it('canHandle returns true for messages with description and no data', () => {
       const context = createMockContext({
-        eventContent: { description: 'Hello world' },
-        data: undefined
+        data: undefined,
+        eventContent: { description: 'Hello world' }
       })
       expect(dmHandler.canHandle(context)).toBe(true)
     })
 
     it('canHandle returns false for empty description', () => {
       const context = createMockContext({
-        eventContent: { description: '' },
-        data: undefined
+        data: undefined,
+        eventContent: { description: '' }
       })
       expect(dmHandler.canHandle(context)).toBe(false)
     })
 
     it('canHandle returns false for null description', () => {
       const context = createMockContext({
-        eventContent: { description: null },
-        data: undefined
+        data: undefined,
+        eventContent: { description: null }
       })
       expect(dmHandler.canHandle(context)).toBe(false)
     })
 
     it('canHandle returns false when data is present', () => {
       const context = createMockContext({
-        eventContent: { description: 'Hello' },
-        data: { data_type: 'LabelsBip329', data: '{}' }
+        data: { data: '{}', data_type: 'LabelsBip329' },
+        eventContent: { description: 'Hello' }
       })
       expect(dmHandler.canHandle(context)).toBe(false)
     })
@@ -375,15 +375,15 @@ describe('message handlers', () => {
     it('handle calls onPendingDM via context with event and content', async () => {
       const onPendingDM = jest.fn()
       const context = createMockContext({
-        eventContent: { description: 'Hello world', created_at: 1704067200 },
+        eventContent: { created_at: 1704067200, description: 'Hello world' },
         onPendingDM
       })
 
       await dmHandler.handle(context)
 
       expect(onPendingDM).toHaveBeenCalledWith({
-        unwrappedEvent: context.unwrappedEvent,
-        eventContent: context.eventContent
+        eventContent: context.eventContent,
+        unwrappedEvent: context.unwrappedEvent
       })
     })
   })

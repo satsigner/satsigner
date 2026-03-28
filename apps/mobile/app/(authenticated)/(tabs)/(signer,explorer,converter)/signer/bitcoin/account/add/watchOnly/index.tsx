@@ -171,10 +171,10 @@ export default function WatchOnly() {
     scanned: Set<number>
     chunks: Map<number, string>
   }>({
-    type: null,
-    total: 0,
+    chunks: new Map(),
     scanned: new Set(),
-    chunks: new Map()
+    total: 0,
+    type: null
   })
 
   const pulseAnim = useRef(new Animated.Value(0)).current
@@ -186,13 +186,13 @@ export default function WatchOnly() {
       const pulseAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
-            toValue: 1,
             duration: 500,
+            toValue: 1,
             useNativeDriver: false
           }),
           Animated.timing(pulseAnim, {
-            toValue: 0,
             duration: 500,
+            toValue: 0,
             useNativeDriver: false
           })
         ])
@@ -201,13 +201,13 @@ export default function WatchOnly() {
       const scaleAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(scaleAnim, {
-            toValue: 0.98,
             duration: 500,
+            toValue: 0.98,
             useNativeDriver: false
           }),
           Animated.timing(scaleAnim, {
-            toValue: 1,
             duration: 500,
+            toValue: 1,
             useNativeDriver: false
           })
         ])
@@ -220,10 +220,9 @@ export default function WatchOnly() {
         pulseAnimation.stop()
         scaleAnimation.stop()
       }
-    } else {
-      pulseAnim.setValue(0)
-      scaleAnim.setValue(1)
     }
+    pulseAnim.setValue(0)
+    scaleAnim.setValue(1)
   }, [isReading, pulseAnim, scaleAnim])
 
   const updateDescriptorValidationState = useCallback(() => {
@@ -420,8 +419,8 @@ export default function WatchOnly() {
           errorMessage.includes('network')
         ) {
           networkValidation = {
-            isValid: false,
-            error: 'networkIncompatible'
+            error: 'networkIncompatible',
+            isValid: false
           }
         } else {
           // For other BDK errors, still consider it valid for now
@@ -451,10 +450,14 @@ export default function WatchOnly() {
     }
   }
 
-  async function extractAndSetFingerprint(descriptor: string) {
-    if (localFingerprint) return
+  function extractAndSetFingerprint(descriptor: string) {
+    if (localFingerprint) {
+      return
+    }
     const extractedFingerprint = DescriptorUtils.extractFingerprint(descriptor)
-    if (!extractedFingerprint) return
+    if (!extractedFingerprint) {
+      return
+    }
     setLocalFingerprint(extractedFingerprint)
     setFingerprint(extractedFingerprint)
   }
@@ -465,10 +468,10 @@ export default function WatchOnly() {
       const match = data.match(/^p(\d+)of(\d+)\s/)
       if (match) {
         return {
-          type: 'raw' as const,
+          content: data.substring(match[0].length),
           current: parseInt(match[1], 10) - 1, // Convert to 0-based index
           total: parseInt(match[2], 10),
-          content: data.substring(match[0].length)
+          type: 'raw' as const
         }
       }
     }
@@ -478,10 +481,10 @@ export default function WatchOnly() {
       const total = parseInt(data.slice(4, 6), 36)
       const current = parseInt(data.slice(6, 8), 36)
       return {
-        type: 'bbqr' as const,
+        content: data,
         current,
         total,
-        content: data
+        type: 'bbqr' as const
       }
     }
 
@@ -498,37 +501,36 @@ export default function WatchOnly() {
           const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
           const total = parseInt(totalStr, 10)
           return {
-            type: 'ur' as const,
+            content: data,
             current,
             total,
-            content: data
+            type: 'ur' as const
           }
-        } else {
-          // Single-part UR
-          return {
-            type: 'ur' as const,
-            current: 0,
-            total: 1,
-            content: data
-          }
+        }
+        // Single-part UR
+        return {
+          content: data,
+          current: 0,
+          total: 1,
+          type: 'ur' as const
         }
       }
     }
 
     return {
-      type: 'single' as const,
+      content: data,
       current: 0,
       total: 1,
-      content: data
+      type: 'single' as const
     }
   }
 
   function resetScanProgress() {
     setScanProgress({
-      type: null,
-      total: 0,
+      chunks: new Map(),
       scanned: new Set(),
-      chunks: new Map()
+      total: 0,
+      type: null
     })
     urDecoderRef.current = new URDecoder()
   }
@@ -590,7 +592,9 @@ export default function WatchOnly() {
 
   async function pasteFromClipboard() {
     const text = await Clipboard.getStringAsync()
-    if (!text) return
+    if (!text) {
+      return
+    }
 
     if (selectedOption === 'importExtendedPub') {
       updateXpub(text)
@@ -664,7 +668,9 @@ export default function WatchOnly() {
     } else {
       // For JSON descriptors, use the original descriptor for validation
       await updateExternalDescriptor(original)
-      if (internal) await updateInternalDescriptor(internal)
+      if (internal) {
+        await updateInternalDescriptor(internal)
+      }
       extractAndSetFingerprint(external)
     }
   }
@@ -681,7 +687,9 @@ export default function WatchOnly() {
     }
 
     await updateExternalDescriptor(external)
-    if (internal) await updateInternalDescriptor(internal)
+    if (internal) {
+      await updateInternalDescriptor(internal)
+    }
 
     extractAndSetFingerprint(external)
   }
@@ -768,6 +776,7 @@ export default function WatchOnly() {
         .trim()
         .replace(/[^\S\n]+/g, '') // Remove all whitespace except newlines
         .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
+        // eslint-disable-next-line no-control-regex
         .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
         .normalize('NFKC') // Normalize unicode characters
         .replace(/^en/, '')
@@ -776,9 +785,7 @@ export default function WatchOnly() {
         let externalDescriptor = text
         let internalDescriptor = ''
         if (text.includes('\n')) {
-          const lines = text.split('\n')
-          externalDescriptor = lines[0]
-          internalDescriptor = lines[1]
+          ;[externalDescriptor, internalDescriptor] = text.split('\n')
         }
 
         // Check if the descriptor is combined (contains <0;1> or <0,1>)
@@ -827,8 +834,12 @@ export default function WatchOnly() {
           }
         } else {
           // Handle non-combined descriptors with existing logic
-          if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
-          if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+          if (externalDescriptor) {
+            updateExternalDescriptor(externalDescriptor)
+          }
+          if (internalDescriptor) {
+            updateInternalDescriptor(internalDescriptor)
+          }
           extractAndSetFingerprint(externalDescriptor)
         }
       }
@@ -921,7 +932,9 @@ export default function WatchOnly() {
                   )
                 : await syncAccountWithAddress(data.accountWithEncryptedSecret)
             updateAccount(updatedAccount)
-          } catch {}
+          } catch {
+            /* silently ignored */
+          }
         }
       } catch {
         toast.error(t('watchonly.error.creationFailed'))
@@ -979,31 +992,29 @@ export default function WatchOnly() {
                   )}
                   {selectedOption === 'importAddress' && (
                     <>
-                      {addresses.map((address, index) => {
-                        return (
-                          <SSVStack
-                            key={address}
-                            gap="xs"
-                            style={{ marginVertical: 16 }}
-                          >
-                            <SSHStack justifyBetween>
-                              <SSText uppercase weight="bold">
-                                {`${t('bitcoin.address')} #${index + 1}`}
-                              </SSText>
-                              <TouchableOpacity
-                                onPress={() => deleteAddress(address)}
-                              >
-                                <SSIconTrash height={12} width={12} />
-                              </TouchableOpacity>
-                            </SSHStack>
-                            <SSAddressDisplay
-                              address={address}
-                              variant="bare"
-                              size="xs"
-                            />
-                          </SSVStack>
-                        )
-                      })}
+                      {addresses.map((address, index) => (
+                        <SSVStack
+                          key={address}
+                          gap="xs"
+                          style={{ marginVertical: 16 }}
+                        >
+                          <SSHStack justifyBetween>
+                            <SSText uppercase weight="bold">
+                              {`${t('bitcoin.address')} #${index + 1}`}
+                            </SSText>
+                            <TouchableOpacity
+                              onPress={() => deleteAddress(address)}
+                            >
+                              <SSIconTrash height={12} width={12} />
+                            </TouchableOpacity>
+                          </SSHStack>
+                          <SSAddressDisplay
+                            address={address}
+                            variant="bare"
+                            size="xs"
+                          />
+                        </SSVStack>
+                      ))}
                       <SSTextInput
                         value={addressInput}
                         style={isValidAddress ? styles.valid : styles.invalid}
@@ -1042,8 +1053,8 @@ export default function WatchOnly() {
                         inputRange: [0, 1],
                         outputRange: [1, 0.7]
                       }),
-                      transform: [{ scale: scaleAnim }],
-                      overflow: 'hidden'
+                      overflow: 'hidden',
+                      transform: [{ scale: scaleAnim }]
                     }}
                   >
                     <SSButton
@@ -1272,7 +1283,7 @@ export default function WatchOnly() {
                   </View>
                   <SSText color="muted" size="sm" center>
                     {`Scanned parts: ${Array.from(scanProgress.scanned)
-                      .sort((a, b) => a - b)
+                      .toSorted((a, b) => a - b)
                       .map((n) => n + 1)
                       .join(', ')}`}
                   </SSText>
@@ -1306,17 +1317,13 @@ export default function WatchOnly() {
 }
 
 const styles = StyleSheet.create({
-  progressBarOuter: {
-    width: 300,
-    height: 4,
-    backgroundColor: Colors.gray[700],
-    borderRadius: 2
+  cameraView: {
+    height: 340,
+    width: 340
   },
-  progressBarInner: {
-    height: 4,
-    maxWidth: 300,
-    backgroundColor: Colors.white,
-    borderRadius: 2
+  innerScrollContainer: {
+    flex: 1,
+    paddingBottom: 20
   },
   invalid: {
     borderColor: Colors.error,
@@ -1324,23 +1331,27 @@ const styles = StyleSheet.create({
     height: 'auto',
     paddingVertical: 10
   },
-  valid: {
-    height: 'auto',
-    paddingVertical: 10
-  },
   mainContainer: {
-    paddingTop: 0,
-    paddingBottom: 10
+    paddingBottom: 10,
+    paddingTop: 0
+  },
+  progressBarInner: {
+    backgroundColor: Colors.white,
+    borderRadius: 2,
+    height: 4,
+    maxWidth: 300
+  },
+  progressBarOuter: {
+    backgroundColor: Colors.gray[700],
+    borderRadius: 2,
+    height: 4,
+    width: 300
   },
   scrollContainer: {
     minHeight: '100%'
   },
-  innerScrollContainer: {
-    paddingBottom: 20,
-    flex: 1
-  },
-  cameraView: {
-    width: 340,
-    height: 340
+  valid: {
+    height: 'auto',
+    paddingVertical: 10
   }
 })

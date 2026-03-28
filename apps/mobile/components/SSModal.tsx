@@ -44,12 +44,12 @@ function SSModal({
           theme="dark"
           position="top-center"
           style={{
-            borderRadius: 8,
             backgroundColor: Colors.gray[950],
-            borderWidth: 1,
             borderColor: Colors.gray[800],
-            zIndex: 10001,
-            width: '105%'
+            borderRadius: 8,
+            borderWidth: 1,
+            width: '105%',
+            zIndex: 10001
           }}
         />
       </SSMainLayout>

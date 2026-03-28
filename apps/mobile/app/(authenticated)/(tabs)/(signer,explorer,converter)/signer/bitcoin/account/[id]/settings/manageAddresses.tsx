@@ -45,13 +45,13 @@ export default function ManageAccountAddressesPage() {
     ])
   )
 
-  const isMultiAddressWatchOnly = useMemo(() => {
-    return (
+  const isMultiAddressWatchOnly = useMemo(
+    () =>
       account &&
       account.keys.length > 1 &&
-      account.keys[0].creationType === 'importAddress'
-    )
-  }, [account])
+      account.keys[0].creationType === 'importAddress',
+    [account]
+  )
 
   function handleUpdateAccount(newAccount: Account) {
     const addressesNotChanged = newAccount.addresses.every(
@@ -71,7 +71,9 @@ export default function ManageAccountAddressesPage() {
     router.navigate(`/signer/bitcoin/account/${account!.id}/address/${address}`)
   }
 
-  if (!account || !isMultiAddressWatchOnly) return <Redirect href="/" />
+  if (!account || !isMultiAddressWatchOnly) {
+    return <Redirect href="/" />
+  }
 
   return (
     <ManageAccountAddresses
@@ -127,16 +129,16 @@ export function ManageAccountAddresses({
     const newAddress: WatchedAddress = {
       address,
       label: '',
-      transactions: [],
-      utxos: [],
+      new: true,
       scriptVersion: getScriptVersionType(address) || undefined,
       summary: {
-        utxos: 0,
-        transactions: 0,
+        balance: 0,
         satsInMempool: 0,
-        balance: 0
+        transactions: 0,
+        utxos: 0
       },
-      new: true
+      transactions: [],
+      utxos: []
     }
     setAddresses([...addresses, newAddress])
   }
@@ -179,16 +181,16 @@ export function ManageAccountAddresses({
     setAddressToDelete(address)
   }
 
-  async function handleSaveChanges() {
+  function handleSaveChanges() {
     const keys = addresses.map((addr, index) => {
       const secret: Secret = {
         externalDescriptor: `addr(${addr.address})`
       }
       const key: Key = {
-        index,
-        secret,
         creationType: 'importAddress',
-        iv: randomIv()
+        index,
+        iv: randomIv(),
+        secret
       }
       return key
     })
@@ -196,19 +198,19 @@ export function ManageAccountAddresses({
 
     const updatedAccount: Account = {
       ...account,
-      transactions: [],
-      utxos: [],
       addresses,
+      keyCount,
+      keys,
       summary: {
-        satsInMempool: 0,
-        numberOfUtxos: 0,
-        numberOfTransactions: 0,
+        balance: 0,
         numberOfAddresses: addresses.length,
-        balance: 0
+        numberOfTransactions: 0,
+        numberOfUtxos: 0,
+        satsInMempool: 0
       },
       syncStatus: 'unsynced',
-      keyCount,
-      keys
+      transactions: [],
+      utxos: []
     }
 
     onUpdateAccount(updatedAccount)
@@ -317,23 +319,23 @@ const styles = StyleSheet.create({
     marginVertical: 10
   },
   addressItemActive: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    backgroundColor: '#333',
     borderRadius: 16,
-    backgroundColor: '#333'
-  },
-  modalContainer: {
-    justifyContent: 'center',
-    height: '100%',
-    width: '100%'
+    paddingHorizontal: 16,
+    paddingVertical: 12
   },
   container: {
     flex: 1,
     overflow: 'visible'
   },
   mainContainer: {
-    paddingTop: 0,
+    marginBottom: 20,
     marginTop: 0,
-    marginBottom: 20
+    paddingTop: 0
+  },
+  modalContainer: {
+    height: '100%',
+    justifyContent: 'center',
+    width: '100%'
   }
 })

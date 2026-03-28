@@ -45,7 +45,9 @@ function SSAmountInput({
 
   function handleFiatChange(text: string) {
     const fiat = Number(text)
-    if (isNaN(fiat) || !btcPrice || btcPrice <= 0) return
+    if (isNaN(fiat) || !btcPrice || btcPrice <= 0) {
+      return
+    }
     const sats = Math.max(
       min,
       Math.min(max, Math.round((fiat / btcPrice) * 1e8))
@@ -132,7 +134,7 @@ function SSAmountInput({
         maximumValue={max}
         value={localValue}
         onValueChange={(value) => {
-          const sats = value[0]
+          const [sats] = value
           setLocalValue(sats)
           setLocalFiatValue(satsToFiat(sats))
         }}
@@ -149,17 +151,17 @@ function SSAmountInput({
 }
 
 const styles = StyleSheet.create({
-  track: {
-    height: 12,
-    borderRadius: 6
-  },
-  thumb: {
-    width: 22,
-    height: 22,
-    borderRadius: 11
-  },
   switchable: {
     textDecorationLine: 'underline'
+  },
+  thumb: {
+    borderRadius: 11,
+    height: 22,
+    width: 22
+  },
+  track: {
+    borderRadius: 6,
+    height: 12
   }
 })
 

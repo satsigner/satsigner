@@ -6,7 +6,9 @@ import { type PageParams } from '@/types/navigation/page'
 import { bytes as _bytes } from '@/utils/bytes'
 
 function formatAddress(address: string, character: number = 8) {
-  if (address.length <= 16) return address
+  if (address.length <= 16) {
+    return address
+  }
 
   const beginning = address.substring(0, character)
   const end = address.substring(address.length - character, address.length)
@@ -22,14 +24,14 @@ function formatNumber(
   const formatted = padding
     ? (n / 10 ** 8).toFixed(8)
     : n.toLocaleString(undefined, {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals
+        maximumFractionDigits: decimals,
+        minimumFractionDigits: decimals
       })
 
   const [integerPart, decimalPart] = formatted.split('.')
   const formattedInteger = integerPart.replace(
     /(\d)(?=(\d{3})+(?!\d))/g,
-    '$1' + separator
+    `$1${separator}`
   )
 
   return decimalPart !== undefined
@@ -52,8 +54,8 @@ function formatDate(date: Date | string | number) {
     typeof date === 'string' || typeof date === 'number' ? new Date(date) : date
 
   return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
     day: 'numeric',
+    month: 'short',
     year: 'numeric'
   }).format(dateObj)
 }
@@ -63,11 +65,11 @@ function formatTimestamp(date: Date) {
 }
 
 function formatPageUrl(path: string, params: PageParams) {
-  let url = '/' + (path || '')
+  let url = `/${path || ''}`
 
-  for (const key in params) {
-    const value = '' + params[key]
-    url = url.replace(new RegExp('\\[' + key + '\\]'), value)
+  for (const [key, paramValue] of Object.entries(params)) {
+    const value = String(paramValue)
+    url = url.replace(new RegExp(`\\[${key}\\]`), value)
   }
 
   url = url.replace(/index$/, '')
@@ -76,9 +78,10 @@ function formatPageUrl(path: string, params: PageParams) {
 }
 
 function formatPercentualChange(value: number, base: number) {
-  if (value > base)
-    return '+' + formatNumber(((value - base) * 100) / base, 1) + '%'
-  else return '-' + formatNumber(((base - value) * 100) / base, 1) + '%'
+  if (value > base) {
+    return `+${formatNumber(((value - base) * 100) / base, 1)}%`
+  }
+  return `-${formatNumber(((base - value) * 100) / base, 1)}%`
 }
 
 function formatFiatPrice(sats: number, btcPrice: number) {
@@ -157,23 +160,29 @@ function formatTxOutputToUtxo(
   vout: number,
   keychain: 'internal' | 'external' = 'external'
 ): Utxo | undefined {
-  if (!tx || !tx.vout[vout]) return undefined
+  if (!tx || !tx.vout[vout]) {
+    return undefined
+  }
   const output = tx.vout[vout]
   return {
-    txid: tx.id,
-    vout,
-    value: output.value,
-    label: output.label,
     addressTo: output.address,
+    keychain,
+    label: output.label,
     script: output.script,
     timestamp: tx.timestamp,
-    keychain
+    txid: tx.id,
+    value: output.value,
+    vout
   }
 }
 
 function formatBytes(bytes: number) {
-  if (bytes >= 1_000_000) return `${_bytes.toMega(bytes).toFixed(2)} MB`
-  if (bytes >= 1_000) return `${_bytes.toKilo(bytes).toFixed(1)} KB`
+  if (bytes >= 1_000_000) {
+    return `${_bytes.toMega(bytes).toFixed(2)} MB`
+  }
+  if (bytes >= 1_000) {
+    return `${_bytes.toKilo(bytes).toFixed(1)} KB`
+  }
   return `${bytes} B`
 }
 
@@ -183,8 +192,8 @@ function trimOnionAddress(url: string): string {
     return url
   }
 
-  const fullOnion = onionMatch[1]
-  const port = onionMatch[2] || ''
+  const [, fullOnion, matchedPort] = onionMatch
+  const port = matchedPort || ''
 
   const onionPart = fullOnion.replace('.onion', '')
   const first5 = onionPart.substring(0, 5)

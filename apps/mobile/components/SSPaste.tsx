@@ -44,18 +44,17 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
   }, [visible])
 
   useEffect(() => {
-    if (!visible) return
+    if (!visible) {
+      return
+    }
 
-    const subscription = AppState.addEventListener(
-      'change',
-      async (nextAppState) => {
-        if (nextAppState === 'active') {
-          setTimeout(async () => {
-            await loadClipboardContent()
-          }, 1)
-        }
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        setTimeout(async () => {
+          await loadClipboardContent()
+        }, 1)
       }
-    )
+    })
 
     return () => {
       subscription.remove()
@@ -117,7 +116,9 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
     try {
       setIsProcessing(true)
 
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => {
+        setTimeout(resolve, 100)
+      })
 
       const processedContent =
         context === 'bitcoin' ? stripBitcoinPrefix(content) : content
@@ -184,9 +185,8 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
       const contentTypeKey = `paste.validation.${detectedContentType}`
       const fallbackKey = 'paste.validation.valid'
       return t(contentTypeKey) || t(fallbackKey)
-    } else {
-      return t('paste.validation.invalid')
     }
+    return t('paste.validation.invalid')
   }
 
   function getButtonLabel() {
@@ -284,19 +284,19 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
 
 const styles = StyleSheet.create({
   textInput: {
-    minHeight: 200,
-    maxHeight: 400,
-    height: 'auto',
-    width: '100%',
-    maxWidth: 320,
-    textAlign: 'left',
-    fontSize: 14,
-    letterSpacing: 0.5,
-    fontFamily: 'monospace',
-    borderWidth: 1,
-    padding: 10,
+    backgroundColor: Colors.gray[900],
     borderRadius: 5,
-    backgroundColor: Colors.gray[900]
+    borderWidth: 1,
+    fontFamily: 'monospace',
+    fontSize: 14,
+    height: 'auto',
+    letterSpacing: 0.5,
+    maxHeight: 400,
+    maxWidth: 320,
+    minHeight: 200,
+    padding: 10,
+    textAlign: 'left',
+    width: '100%'
   }
 })
 

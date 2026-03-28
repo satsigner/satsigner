@@ -1,4 +1,6 @@
 import { Buffer } from 'buffer'
+
+import { type TxBuilderResult } from 'bdk-rn/lib/classes/Bindings'
 import { setStringAsync } from 'expo-clipboard'
 import { useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
@@ -30,7 +32,7 @@ type SSSignatureDropdownProps = {
   totalKeys: number
   keyDetails: Key
   transactionId: string
-  txBuilderResult: any
+  txBuilderResult: TxBuilderResult
   serializedPsbt: string
   signedPsbt: string
   setSignedPsbt: (psbt: string) => void
@@ -92,14 +94,14 @@ function SSSignatureDropdown({
 
   const { hasLocalSeed, isSignatureCompleted } = useSignatureDropdownValidation(
     {
+      decryptedKey,
       keyDetails,
       seedDropped,
-      decryptedKey,
       signedPsbt
     }
   )
 
-  const handleSendTransactionToGroup = useCallback(async () => {
+  const handleSendTransactionToGroup = useCallback(() => {
     if (!account?.nostr?.autoSync) {
       toast.error(t('account.nostrSync.autoSyncMustBeEnabled'))
       return
@@ -152,16 +154,16 @@ function SSSignatureDropdown({
   ])
 
   const { sourceLabel } = useKeySourceLabel({
+    decryptedKey,
     keyDetails,
-    scriptVersion,
     network,
-    seedDropped,
-    decryptedKey
+    scriptVersion,
+    seedDropped
   })
 
   // Extract public key from descriptor when key details change
   useEffect(() => {
-    async function extractPublicKey() {
+    function extractPublicKey() {
       if (!keyDetails) {
         setExtractedPublicKey('')
         return
@@ -169,7 +171,7 @@ function SSSignatureDropdown({
 
       if (typeof keyDetails.secret === 'string') {
         if (decryptedKey && typeof decryptedKey.secret === 'object') {
-          const secret = decryptedKey.secret
+          const { secret } = decryptedKey
           if (secret.extendedPublicKey) {
             setExtractedPublicKey(secret.extendedPublicKey)
             return
@@ -190,7 +192,7 @@ function SSSignatureDropdown({
       }
 
       if (typeof keyDetails.secret === 'object') {
-        const secret = keyDetails.secret
+        const { secret } = keyDetails
 
         if (secret.extendedPublicKey) {
           setExtractedPublicKey(secret.extendedPublicKey)
@@ -347,7 +349,7 @@ function SSSignatureDropdown({
       </TouchableOpacity>
 
       {isExpanded && (
-        <SSVStack style={{ paddingHorizontal: 8, paddingBottom: 8 }} gap="sm">
+        <SSVStack style={{ paddingBottom: 8, paddingHorizontal: 8 }} gap="sm">
           {hasLocalSeed ? (
             <SSButton
               label={t('transaction.preview.signWithLocalKey')}
@@ -522,12 +524,9 @@ export default SSSignatureDropdown
 
 const styles = {
   container: {
-    paddingVertical: 16,
+    borderColor: Colors.gray[700],
     borderTopWidth: 1,
-    borderColor: Colors.gray[700]
-  },
-  lastItem: {
-    borderBottomWidth: 1
+    paddingVertical: 16
   },
   header: {
     paddingVertical: 8
@@ -535,24 +534,27 @@ const styles = {
   headerDisabled: {
     opacity: 0.5
   },
-  signatureIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: Colors.gray[800]
+  lastItem: {
+    borderBottomWidth: 1
   },
   psbtDisplay: {
-    minHeight: 200,
-    maxHeight: 600,
-    padding: 12,
     backgroundColor: Colors.gray[900],
     borderRadius: 8,
-    borderWidth: 1
+    borderWidth: 1,
+    maxHeight: 600,
+    minHeight: 200,
+    padding: 12
   },
   psbtText: {
+    color: Colors.white,
     fontFamily: Typography.sfProMono,
     fontSize: 12,
-    color: Colors.white,
     lineHeight: 18
+  },
+  signatureIcon: {
+    backgroundColor: Colors.gray[800],
+    borderRadius: 12,
+    height: 24,
+    width: 24
   }
 }

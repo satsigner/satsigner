@@ -17,9 +17,12 @@ type SSWarningModalProps = {
 
 function SSWarningModal({ visible, onClose, children }: SSWarningModalProps) {
   useEffect(() => {
-    if (Platform.OS !== 'android') return
-    if (!visible)
+    if (Platform.OS !== 'android') {
+      return
+    }
+    if (!visible) {
       return StatusBar.setStatusBarBackgroundColor('transparent', false)
+    }
 
     StatusBar.setStatusBarStyle('light')
     StatusBar.setStatusBarBackgroundColor('black', false)
@@ -27,7 +30,7 @@ function SSWarningModal({ visible, onClose, children }: SSWarningModalProps) {
 
   return (
     <Modal visible={visible} transparent={false}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.black }}>
+      <SafeAreaView style={{ backgroundColor: Colors.black, flex: 1 }}>
         <SSMainLayout black>
           <ScrollView>
             {children}

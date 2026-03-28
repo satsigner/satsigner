@@ -68,18 +68,18 @@ function SSButtonActionsGroup({
 const styles = StyleSheet.create({
   actionButton: {
     backgroundColor: Colors.gray[925],
-    borderWidth: 1,
-    borderTopColor: Colors.gray[800],
-    borderLeftColor: Colors.gray[950],
-    borderRightColor: Colors.gray[950],
     borderBottomColor: Colors.gray[950],
-    borderRadius: 4
-  },
-  actionButtonWide: {
-    width: '25.25%'
+    borderLeftColor: Colors.gray[950],
+    borderRadius: 4,
+    borderRightColor: Colors.gray[950],
+    borderTopColor: Colors.gray[800],
+    borderWidth: 1
   },
   actionButtonNarrow: {
     width: '16.5%'
+  },
+  actionButtonWide: {
+    width: '25.25%'
   }
 })
 

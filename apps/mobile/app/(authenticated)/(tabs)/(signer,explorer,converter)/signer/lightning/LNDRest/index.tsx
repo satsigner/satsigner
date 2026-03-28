@@ -42,11 +42,11 @@ export default function LNDRestPage() {
       throw new Error('Invalid config format: missing configurations array')
     }
 
-    const config = jsonConfig.configurations[0]
+    const [config] = jsonConfig.configurations
 
     const lndConfig: LNDConfig = {
-      macaroon: config.macaroon,
       cert: config.cert,
+      macaroon: config.macaroon,
       url: config.uri
     }
 
@@ -61,7 +61,9 @@ export default function LNDRestPage() {
     return lndConfig
   }
   const handleConnect = async () => {
-    if (!connectionString.trim()) return
+    if (!connectionString.trim()) {
+      return
+    }
 
     setIsConnecting(true)
     try {
@@ -186,49 +188,49 @@ export default function LNDRestPage() {
 }
 
 const styles = StyleSheet.create({
-  mainLayout: {
-    paddingTop: 32,
-    paddingHorizontal: '5%'
+  buttonContainer: {
+    gap: 16,
+    width: '100%'
+  },
+  buttonRow: {
+    gap: 12,
+    width: '100%'
+  },
+  buttonRowItem: {
+    flex: 1
   },
   content: {
-    flex: 1,
-    alignItems: 'center'
+    alignItems: 'center',
+    flex: 1
   },
   headerText: {
     marginBottom: 8
+  },
+  inputContainer: {
+    gap: 12,
+    marginBottom: 24,
+    width: '100%'
+  },
+  mainLayout: {
+    paddingHorizontal: '5%',
+    paddingTop: 32
+  },
+  pasteButton: {
+    width: '100%'
   },
   subtitle: {
     marginBottom: 32,
     textAlign: 'center'
   },
-  buttonContainer: {
-    width: '100%',
-    gap: 16
-  },
-  inputContainer: {
-    width: '100%',
-    marginBottom: 24,
-    gap: 12
-  },
   textArea: {
-    width: '100%',
-    height: 100,
-    borderWidth: 1,
+    backgroundColor: '#1a1a1a',
     borderColor: '#333',
     borderRadius: 8,
-    padding: 12,
+    borderWidth: 1,
     color: '#fff',
-    backgroundColor: '#1a1a1a',
-    textAlignVertical: 'top'
-  },
-  pasteButton: {
+    height: 100,
+    padding: 12,
+    textAlignVertical: 'top',
     width: '100%'
-  },
-  buttonRow: {
-    width: '100%',
-    gap: 12
-  },
-  buttonRowItem: {
-    flex: 1
   }
 })

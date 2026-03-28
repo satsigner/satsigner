@@ -42,10 +42,10 @@ function detectQRType(data: string) {
     const match = data.match(/^p(\d+)of(\d+)\s/)
     if (match) {
       return {
-        type: 'raw' as const,
+        content: data.substring(match[0].length),
         current: parseInt(match[1], 10) - 1,
         total: parseInt(match[2], 10),
-        content: data.substring(match[0].length)
+        type: 'raw' as const
       }
     }
   }
@@ -54,10 +54,10 @@ function detectQRType(data: string) {
     const total = parseInt(data.slice(4, 6), 36)
     const current = parseInt(data.slice(6, 8), 36)
     return {
-      type: 'bbqr' as const,
+      content: data,
       current,
       total,
-      content: data
+      type: 'bbqr' as const
     }
   }
 
@@ -70,27 +70,26 @@ function detectQRType(data: string) {
         const current = parseInt(currentStr, 10) - 1
         const total = parseInt(totalStr, 10)
         return {
-          type: 'ur' as const,
+          content: data,
           current,
           total,
-          content: data
+          type: 'ur' as const
         }
-      } else {
-        return {
-          type: 'ur' as const,
-          current: 0,
-          total: 1,
-          content: data
-        }
+      }
+      return {
+        content: data,
+        current: 0,
+        total: 1,
+        type: 'ur' as const
       }
     }
   }
 
   return {
-    type: 'single' as const,
+    content: data,
     current: 0,
     total: 1,
-    content: data
+    type: 'single' as const
   }
 }
 
@@ -102,7 +101,7 @@ async function assembleMultiPartQR(
     switch (type) {
       case 'raw': {
         const sortedChunks = Array.from(chunks.entries())
-          .sort(([a], [b]) => a - b)
+          .toSorted(([a], [b]) => a - b)
           .map(([, content]) => content)
         const assembled = sortedChunks.join('')
 
@@ -116,7 +115,7 @@ async function assembleMultiPartQR(
 
       case 'bbqr': {
         const sortedChunks = Array.from(chunks.entries())
-          .sort(([a], [b]) => a - b)
+          .toSorted(([a], [b]) => a - b)
           .map(([, content]) => content)
 
         const decoded = decodeBBQRChunks(sortedChunks)
@@ -131,7 +130,7 @@ async function assembleMultiPartQR(
 
       case 'ur': {
         const sortedChunks = Array.from(chunks.entries())
-          .sort(([a], [b]) => a - b)
+          .toSorted(([a], [b]) => a - b)
           .map(([, content]) => content)
 
         let result: string
@@ -178,18 +177,18 @@ function SSCameraModal({
 }: SSCameraModalProps) {
   const [permission, requestPermission] = useCameraPermissions()
   const [scanProgress, setScanProgress] = useState<ScanProgress>({
-    type: null,
-    total: 0,
+    chunks: new Map(),
     scanned: new Set(),
-    chunks: new Map()
+    total: 0,
+    type: null
   })
 
   const resetScanProgress = useCallback(() => {
     setScanProgress({
-      type: null,
-      total: 0,
+      chunks: new Map(),
       scanned: new Set(),
-      chunks: new Map()
+      total: 0,
+      type: null
     })
   }, [])
 
@@ -242,11 +241,11 @@ function SSCameraModal({
             const decodedMnemonic = detectAndDecodeSeedQR(qrInfo.content)
             if (decodedMnemonic) {
               onContentScanned({
-                type: 'seed_qr',
-                raw: data,
                 cleaned: qrInfo.content,
+                isValid: true,
                 metadata: { mnemonic: decodedMnemonic },
-                isValid: true
+                raw: data,
+                type: 'seed_qr'
               })
               onClose()
               resetScanProgress()
@@ -288,10 +287,10 @@ function SSCameraModal({
         const newChunks = new Map([[current, content]])
 
         setScanProgress({
-          type,
-          total,
+          chunks: newChunks,
           scanned: newScanned,
-          chunks: newChunks
+          total,
+          type
         })
 
         return
@@ -305,10 +304,10 @@ function SSCameraModal({
       const newChunks = new Map(scanProgress.chunks).set(current, content)
 
       setScanProgress({
-        type,
-        total,
+        chunks: newChunks,
         scanned: newScanned,
-        chunks: newChunks
+        total,
+        type
       })
 
       if (type === 'ur') {
@@ -358,44 +357,42 @@ function SSCameraModal({
             }
           }
         }
-      } else {
-        if (newScanned.size === total) {
-          const assembledData = await assembleMultiPartQR(type, newChunks)
+      } else if (newScanned.size === total) {
+        const assembledData = await assembleMultiPartQR(type, newChunks)
 
-          if (assembledData) {
-            const detectedContent = await detectContentByContext(
-              assembledData,
-              context
-            )
+        if (assembledData) {
+          const detectedContent = await detectContentByContext(
+            assembledData,
+            context
+          )
 
-            onClose()
-            resetScanProgress()
+          onClose()
+          resetScanProgress()
 
-            if (!detectedContent.isValid) {
-              setTimeout(() => {
-                toast.error(t('camera.error.invalidContent'))
-              }, 100)
-              return
-            }
-
-            onContentScanned(detectedContent)
-
-            if (
-              assembledData.toLowerCase().startsWith('70736274ff') ||
-              assembledData.startsWith('cHNidP')
-            ) {
-              toast.success(
-                `PSBT assembled successfully (${total} parts). Note: PSBT may need additional signatures to finalize.`
-              )
-            } else {
-              toast.success(
-                `Successfully assembled final transaction from ${total} parts`
-              )
-            }
-          } else {
-            toast.error(t('camera.error.assembleFailed'))
-            resetScanProgress()
+          if (!detectedContent.isValid) {
+            setTimeout(() => {
+              toast.error(t('camera.error.invalidContent'))
+            }, 100)
+            return
           }
+
+          onContentScanned(detectedContent)
+
+          if (
+            assembledData.toLowerCase().startsWith('70736274ff') ||
+            assembledData.startsWith('cHNidP')
+          ) {
+            toast.success(
+              `PSBT assembled successfully (${total} parts). Note: PSBT may need additional signatures to finalize.`
+            )
+          } else {
+            toast.success(
+              `Successfully assembled final transaction from ${total} parts`
+            )
+          }
+        } else {
+          toast.error(t('camera.error.assembleFailed'))
+          resetScanProgress()
         }
       }
     },
@@ -425,7 +422,7 @@ function SSCameraModal({
             }
           }}
           barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-          style={{ width: 340, height: 340 }}
+          style={{ height: 340, width: 340 }}
         />
         {scanProgress.type && scanProgress.total > 1 && (
           <SSVStack itemsCenter gap="xs" style={{ marginBottom: 10 }}>
@@ -450,20 +447,20 @@ function SSCameraModal({
                       </SSText>
                       <View
                         style={{
-                          width: 300,
-                          height: 4,
                           backgroundColor: Colors.gray[700],
-                          borderRadius: 2
+                          borderRadius: 2,
+                          height: 4,
+                          width: 300
                         }}
                       >
                         <View
                           style={{
-                            width:
-                              (scanProgress.scanned.size / displayTarget) * 300,
+                            backgroundColor: Colors.white,
+                            borderRadius: 2,
                             height: 4,
                             maxWidth: 300,
-                            backgroundColor: Colors.white,
-                            borderRadius: 2
+                            width:
+                              (scanProgress.scanned.size / displayTarget) * 300
                           }}
                         />
                       </View>
@@ -480,26 +477,26 @@ function SSCameraModal({
                 </SSText>
                 <View
                   style={{
-                    width: 300,
-                    height: 4,
                     backgroundColor: Colors.gray[700],
-                    borderRadius: 2
+                    borderRadius: 2,
+                    height: 4,
+                    width: 300
                   }}
                 >
                   <View
                     style={{
-                      width:
-                        (scanProgress.scanned.size / scanProgress.total) * 300,
+                      backgroundColor: Colors.white,
+                      borderRadius: 2,
                       height: 4,
                       maxWidth: scanProgress.total * 300,
-                      backgroundColor: Colors.white,
-                      borderRadius: 2
+                      width:
+                        (scanProgress.scanned.size / scanProgress.total) * 300
                     }}
                   />
                 </View>
                 <SSText color="muted" size="sm" center>
                   {`Scanned parts: ${Array.from(scanProgress.scanned)
-                    .sort((a, b) => a - b)
+                    .toSorted((a, b) => a - b)
                     .map((n) => n + 1)
                     .join(', ')}`}
                 </SSText>

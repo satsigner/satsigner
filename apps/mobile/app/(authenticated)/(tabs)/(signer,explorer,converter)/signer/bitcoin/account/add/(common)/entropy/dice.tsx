@@ -57,15 +57,15 @@ export default function DiceEntropy() {
     SSIconDiceSix
   ]
 
-  async function handleDicePress(value: number) {
+  function handleDicePress(value: number) {
     if (bits.length < length) {
       const updatedRolls = [...rolls, value]
       setRolls(updatedRolls)
 
       let base10 = BigInt(0)
-      updatedRolls.forEach((digit) => {
+      for (const digit of updatedRolls) {
         base10 = base10 * BigInt(6) + BigInt(digit)
-      })
+      }
 
       let newBits = base10.toString(2)
       const padded = Math.ceil(newBits.length / 8) * 8
@@ -106,12 +106,12 @@ export default function DiceEntropy() {
       >
         <View
           style={{
+            backgroundColor: Colors.gray[950],
+            borderRadius: 8,
             minHeight: 180,
             minWidth: '100%',
-            borderRadius: 8,
-            paddingVertical: 16,
             paddingHorizontal: 8,
-            backgroundColor: Colors.gray[950]
+            paddingVertical: 16
           }}
         >
           <SSBinaryDisplay binary={bits} />
@@ -156,10 +156,10 @@ const styles = StyleSheet.create({
     paddingBottom: 12
   },
   grid: {
-    flexWrap: 'wrap',
-    justifyContent: 'center',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 12,
+    justifyContent: 'center',
     marginTop: 24
   }
 })

@@ -28,11 +28,11 @@ export default function LightningPage() {
   const handleConfigPress = () => {
     if (config) {
       router.navigate({
-        pathname: '/signer/lightning/node',
         params: {
           alias: nodeInfo?.alias || 'Unknown Node',
           pubkey: nodeInfo?.identity_pubkey || 'Not connected'
-        }
+        },
+        pathname: '/signer/lightning/node'
       })
     }
   }
@@ -160,56 +160,56 @@ export default function LightningPage() {
 }
 
 const styles = StyleSheet.create({
-  mainLayout: {
-    paddingTop: 32,
-    paddingHorizontal: '5%'
-  },
-  content: {
-    flex: 1,
-    alignItems: 'center'
-  },
-  headerText: {
-    marginBottom: 8
-  },
-  subtitle: {
-    marginBottom: 32,
-    textAlign: 'center'
-  },
-  buttonContainer: {
-    width: '100%',
-    gap: 16,
-    marginTop: 24
-  },
   button: {
     width: '100%'
   },
+  buttonContainer: {
+    gap: 16,
+    marginTop: 24,
+    width: '100%'
+  },
   card: {
-    width: '100%',
     backgroundColor: '#1a1a1a',
     borderRadius: 12,
     marginTop: 24,
-    overflow: 'hidden'
+    overflow: 'hidden',
+    width: '100%'
   },
   cardContent: {
-    padding: 16,
-    gap: 12
+    gap: 12,
+    padding: 16
   },
   cardDetails: {
     gap: 8
   },
-  detailRow: {
+  cardHeader: {
+    alignItems: 'center',
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
+    justifyContent: 'space-between'
+  },
+  content: {
+    alignItems: 'center',
+    flex: 1
+  },
+  detailRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between'
+  },
+  headerText: {
+    marginBottom: 8
+  },
+  mainLayout: {
+    paddingHorizontal: '5%',
+    paddingTop: 32
   },
   pubkey: {
-    maxWidth: '70%',
-    fontFamily: 'monospace'
+    fontFamily: 'monospace',
+    maxWidth: '70%'
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
+  subtitle: {
+    marginBottom: 32,
+    textAlign: 'center'
   },
   tapHint: {
     alignSelf: 'center',
