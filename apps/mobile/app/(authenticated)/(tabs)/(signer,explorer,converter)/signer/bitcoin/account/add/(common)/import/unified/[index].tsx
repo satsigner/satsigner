@@ -237,7 +237,7 @@ export default function UnifiedImport() {
     }
   }
 
-  async function confirmKeyImport() {
+  function confirmKeyImport() {
     if (disabled) {
       return
     }

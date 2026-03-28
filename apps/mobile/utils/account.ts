@@ -298,12 +298,9 @@ export function getAccountFingerprint(
   return ''
 }
 
-export async function getAccountFingerprintWithDecryption(
+export function getAccountFingerprintWithDecryption(
   account: Account
 ): Promise<string> {
-  if (account.keys.length < 0) {
-    return ''
-  }
   return getKeyFingerprint(account.keys[0])
 }
 

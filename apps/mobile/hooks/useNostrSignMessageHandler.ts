@@ -12,7 +12,7 @@ import {
 const signMessageHandler: MessageHandler = {
   canHandle: (context) => context.data?.data_type === 'SignMessageRequest',
 
-  handle: async (context) => {
+  handle: (context) => {
     const { unwrappedEvent, data, account } = context
     if (!data) {
       return

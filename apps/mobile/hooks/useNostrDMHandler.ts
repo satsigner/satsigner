@@ -12,7 +12,7 @@ const dmHandler: MessageHandler = {
     )
   },
 
-  handle: async (context) => {
+  handle: (context) => {
     const { unwrappedEvent, eventContent, onPendingDM } = context
 
     // Plain DMs: include all. Both protocol and data-exchange subscriptions

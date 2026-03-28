@@ -298,7 +298,7 @@ export async function receiveEcash(
   }
 }
 
-export async function getMintBalance(
+export function getMintBalance(
   _mintUrl: string,
   proofs: EcashProof[]
 ): Promise<number> {

@@ -155,7 +155,7 @@ export function useEcash() {
   )
 
   const checkMintQuoteHandler = useCallback(
-    async (mintUrl: string, quoteId: string): Promise<MintQuoteState> =>
+    (mintUrl: string, quoteId: string): Promise<MintQuoteState> =>
       checkMintQuote(mintUrl, quoteId),
     []
   )
@@ -456,7 +456,7 @@ export function useEcash() {
   }, [addCheckingTransaction, removeCheckingTransaction, updateTransaction]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const resumePollingForTransaction = useCallback(
-    async (
+    (
       transactionId: string,
       startPolling: (pollFunction: () => Promise<boolean>) => void
     ) => {

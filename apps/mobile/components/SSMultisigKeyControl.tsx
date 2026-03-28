@@ -128,7 +128,7 @@ function SSMultisigKeyControl({
 
   // Extract public key from descriptor when key details change
   useEffect(() => {
-    async function extractPublicKey() {
+    function extractPublicKey() {
       if (!keyDetails || typeof keyDetails.secret !== 'object') {
         setExtractedPublicKey('')
         return
@@ -198,7 +198,7 @@ function SSMultisigKeyControl({
     router.navigate(`/signer/bitcoin/account/add/import/mnemonic/${index}`)
   }
 
-  async function handleAction(type: NonNullable<Key['creationType']>) {
+  function handleAction(type: NonNullable<Key['creationType']>) {
     if (!localKeyName.trim()) {
       return
     }
@@ -246,7 +246,7 @@ function SSMultisigKeyControl({
     }
   }
 
-  async function handleDropSeed() {
+  function handleDropSeed() {
     if (!keyDetails) {
       return
     }
@@ -263,7 +263,7 @@ function SSMultisigKeyControl({
     }
   }
 
-  async function handleResetKey() {
+  function handleResetKey() {
     if (!keyDetails) {
       return
     }

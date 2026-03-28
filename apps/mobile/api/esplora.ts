@@ -62,7 +62,7 @@ export default class Esplora {
     return result as string
   }
 
-  async getTxInputValues(txid: string) {
+  getTxInputValues(txid: string) {
     return this.getTxInfo(txid).then((data) =>
       data.vin.map((input) => ({
         previousOutput: {

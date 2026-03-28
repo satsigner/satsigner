@@ -37,7 +37,7 @@ export default function ExportLabels() {
     setExportContent(bip329export[exportType](labels))
   }, [exportType]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function exportLabels() {
+  function exportLabels() {
     if (!account) {
       return
     }

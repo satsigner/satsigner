@@ -103,46 +103,46 @@ describe('generateColorFromNpub', () => {
     jest.clearAllMocks()
   })
 
-  it('throws for invalid npub', async () => {
+  it('throws for invalid npub', () => {
     const { nip19 } = require('nostr-tools')
     nip19.decode.mockImplementation(() => {
       throw new Error('Invalid bech32')
     })
-    await expect(generateColorFromNpub(nostrKeys.invalid.npub)).rejects.toThrow(
+    expect(() => generateColorFromNpub(nostrKeys.invalid.npub)).toThrow(
       expect.any(Error)
     )
-    await expect(
-      generateColorFromNpub(nostrKeys.invalid.notBech32)
-    ).rejects.toThrow(expect.any(Error))
+    expect(() => generateColorFromNpub(nostrKeys.invalid.notBech32)).toThrow(
+      expect.any(Error)
+    )
   })
 
-  it('returns valid hex color for valid npub', async () => {
+  it('returns valid hex color for valid npub', () => {
     const { nip19 } = require('nostr-tools')
     nip19.decode.mockReturnValue({ data: 'validpubkey', type: 'npub' })
-    const color = await generateColorFromNpub(nostrKeys.alice.npub)
+    const color = generateColorFromNpub(nostrKeys.alice.npub)
     expect(color).toMatch(/^#[0-9a-fA-F]{6}$/)
   })
 
-  it('returns deterministic color for same npub', async () => {
+  it('returns deterministic color for same npub', () => {
     const { nip19 } = require('nostr-tools')
     nip19.decode.mockReturnValue({ data: 'validpubkey', type: 'npub' })
-    const color1 = await generateColorFromNpub(nostrKeys.alice.npub)
-    const color2 = await generateColorFromNpub(nostrKeys.alice.npub)
+    const color1 = generateColorFromNpub(nostrKeys.alice.npub)
+    const color2 = generateColorFromNpub(nostrKeys.alice.npub)
     expect(color1).toBe(color2)
   })
 
-  it('returns different colors for different npubs', async () => {
+  it('returns different colors for different npubs', () => {
     const { nip19 } = require('nostr-tools')
     nip19.decode.mockReturnValue({ data: 'validpubkey', type: 'npub' })
-    const colorAlice = await generateColorFromNpub(nostrKeys.alice.npub)
-    const colorBob = await generateColorFromNpub(nostrKeys.bob.npub)
+    const colorAlice = generateColorFromNpub(nostrKeys.alice.npub)
+    const colorBob = generateColorFromNpub(nostrKeys.bob.npub)
     expect(colorAlice).not.toBe(colorBob)
   })
 
-  it('returns default color for wrong type', async () => {
+  it('returns default color for wrong type', () => {
     const { nip19 } = require('nostr-tools')
     nip19.decode.mockReturnValue({ data: 'secretkey', type: 'nsec' })
-    const color = await generateColorFromNpub(nostrKeys.alice.nsec)
+    const color = generateColorFromNpub(nostrKeys.alice.nsec)
     expect(color).toBe(NOSTR_FALLBACK_NPUB_COLOR)
   })
 })

@@ -132,7 +132,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
   persist(
     (set, get) => ({
       activeSubscriptions: new Set<NostrAPI>(),
-      addMember: async (accountId, npub) => {
+      addMember: (accountId, npub) => {
         try {
           // Check if member already exists BEFORE generating color (expensive)
           const existingMembers = get().members[accountId] || []
@@ -143,7 +143,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
             return // Skip color generation for existing members
           }
 
-          const color = await generateColorFromNpub(npub)
+          const color = generateColorFromNpub(npub)
 
           set((state) => {
             const currentMembers = state.members[accountId] || []

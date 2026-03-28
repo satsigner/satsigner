@@ -12,7 +12,7 @@ import {
 const psbtHandler: MessageHandler = {
   canHandle: (context) => context.data?.data_type === 'PSBT',
 
-  handle: async (context) => {
+  handle: (context) => {
     const { unwrappedEvent, eventContent, data, onPendingDM, account } = context
     if (!data) {
       return

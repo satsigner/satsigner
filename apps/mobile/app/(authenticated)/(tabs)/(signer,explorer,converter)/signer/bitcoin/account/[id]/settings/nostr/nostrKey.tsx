@@ -85,7 +85,7 @@ function NostrKeys() {
 
   useEffect(() => {
     if (derivedNpub) {
-      generateColorFromNpub(derivedNpub).then(setDeviceColor)
+      setDeviceColor(generateColorFromNpub(derivedNpub))
     } else {
       setDeviceColor(NOSTR_FALLBACK_NPUB_COLOR)
     }

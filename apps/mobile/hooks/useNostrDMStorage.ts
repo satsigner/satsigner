@@ -90,7 +90,7 @@ function useNostrDMStorage() {
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const store = useCallback(
-    async (
+    (
       account: Account,
       unwrappedEvent: UnwrappedNostrEvent,
       eventContent: Record<string, unknown>
@@ -272,7 +272,7 @@ function useNostrDMStorage() {
 
   // Debounced storeBatch - accumulates DMs and writes to storage after delay
   const storeBatch = useCallback(
-    async (account: Account, pendingDms: PendingDM[]) => {
+    (account: Account, pendingDms: PendingDM[]) => {
       if (pendingDms.length === 0) {
         return
       }
@@ -298,14 +298,14 @@ function useNostrDMStorage() {
     [flushPendingDms]
   )
 
-  const load = useCallback(async (account?: Account) => {
+  const load = useCallback((account?: Account) => {
     if (!account) {
       return []
     }
     return account.nostr?.dms || []
   }, [])
 
-  const clear = useCallback(async (account?: Account) => {
+  const clear = useCallback((account?: Account) => {
     if (!account?.nostr) {
       return
     }

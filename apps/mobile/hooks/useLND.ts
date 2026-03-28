@@ -84,7 +84,7 @@ export const useLND = () => {
   )
 
   const getBalance = useCallback(
-    async () => makeRequest('/v1/balance/blockchain'),
+    () => makeRequest('/v1/balance/blockchain'),
     [makeRequest]
   )
 
@@ -102,7 +102,7 @@ export const useLND = () => {
   }, [makeRequest, setChannels])
 
   const createInvoice = useCallback(
-    async (amount: number, description: string) =>
+    (amount: number, description: string) =>
       makeRequest('/v1/invoices', {
         body: {
           memo: description,

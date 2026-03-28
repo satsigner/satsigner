@@ -42,7 +42,7 @@ export function intToBase36(n: number) {
   return n.toString(36).toUpperCase().padStart(2, '0')
 }
 
-export async function fileToBytes(file: File) {
+export function fileToBytes(file: File) {
   // read a File's contents and return as a Uint8Array
 
   const reader = new FileReader()

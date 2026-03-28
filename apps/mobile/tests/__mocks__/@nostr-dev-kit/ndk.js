@@ -3,7 +3,7 @@ class NDKPrivateKeySigner {
     this.privateKey = privateKey
   }
 
-  async user() {
+  user() {
     const pubkeyHex = Buffer.from(this.privateKey).toString('hex').slice(0, 64)
     return { npub: `npub1${pubkeyHex.slice(0, 59)}` }
   }
@@ -21,7 +21,7 @@ class NDKEvent {
     this.sig = event.sig || null
   }
 
-  async toNostrEvent() {
+  toNostrEvent() {
     return {
       content: this.content,
       created_at: this.created_at,
@@ -33,7 +33,7 @@ class NDKEvent {
     }
   }
 
-  async sign() {
+  sign() {
     this.sig = 'mock-signature'
   }
 }
@@ -48,7 +48,7 @@ class NDK {
     this.signer = null
   }
 
-  async connect() {
+  connect() {
     for (const url of this.explicitRelayUrls) {
       this.pool.relays.set(url, {
         publish: jest.fn().mockResolvedValue(undefined)
@@ -57,7 +57,7 @@ class NDK {
     return true
   }
 
-  async fetchEvent() {
+  fetchEvent() {
     return null
   }
 

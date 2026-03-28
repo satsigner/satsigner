@@ -64,7 +64,7 @@ export default function ExportPubkeys() {
 
         // For each key in the account, get its public key from the wallet data
         const pubkeys = await Promise.all(
-          tmpAccount.keys.map(async (key) => {
+          tmpAccount.keys.map((key) => {
             if (isImportAddress) {
               // For watch-only accounts, we can get the extended public key from the secret
               return key.secret.extendedPublicKey || 'N/A'
@@ -92,7 +92,7 @@ export default function ExportPubkeys() {
     getPubkeys()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function exportPubkeys() {
+  function exportPubkeys() {
     if (!account) {
       return
     }

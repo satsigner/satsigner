@@ -390,7 +390,7 @@ export class NostrAPI {
     }
   }
 
-  async closeAllSubscriptions() {
+  closeAllSubscriptions() {
     for (const subscription of this.activeSubscriptions) {
       subscription.stop()
     }
@@ -414,11 +414,11 @@ export class NostrAPI {
     }
   }
 
-  async createKind1059(
+  createKind1059(
     nsec: string,
     recipientNpub: string,
     content: string
-  ): Promise<NDKEvent> {
+  ): NDKEvent {
     const secretNostrKey = getSecretFromNsec(nsec)
     const recipientPubKeyHex = getPubKeyHexFromNpub(recipientNpub)
     if (!secretNostrKey || !recipientPubKeyHex) {

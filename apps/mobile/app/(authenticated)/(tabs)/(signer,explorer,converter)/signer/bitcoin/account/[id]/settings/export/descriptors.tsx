@@ -532,7 +532,7 @@ export default function ExportDescriptors() {
     getDescriptors()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function exportDescriptors() {
+  function exportDescriptors() {
     if (!account) {
       return
     }
@@ -549,7 +549,7 @@ export default function ExportDescriptors() {
     })
   }
 
-  async function exportDescriptorsPDF() {
+  function exportDescriptorsPDF() {
     if (!account || !exportContent) {
       return
     }

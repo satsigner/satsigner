@@ -197,28 +197,28 @@ describe('bip39 utils', () => {
 
 describe('electrum seed utils', () => {
   describe('detectElectrumSeed', () => {
-    it('detects a known Electrum segwit seed', async () => {
-      const result = await detectElectrumSeed(electrumSegwitMnemonic)
+    it('detects a known Electrum segwit seed', () => {
+      const result = detectElectrumSeed(electrumSegwitMnemonic)
       expect(result).toBe('segwit')
     })
 
-    it('returns null for a BIP39 mnemonic', async () => {
-      const result = await detectElectrumSeed(englishMnemonic)
+    it('returns null for a BIP39 mnemonic', () => {
+      const result = detectElectrumSeed(englishMnemonic)
       expect(result).toBeNull()
     })
 
-    it('returns null for garbage input', async () => {
-      const result = await detectElectrumSeed(
+    it('returns null for garbage input', () => {
+      const result = detectElectrumSeed(
         'this is not a valid seed phrase at all'
       )
       expect(result).toBeNull()
     })
 
-    it('is case and whitespace insensitive', async () => {
+    it('is case and whitespace insensitive', () => {
       const upper = electrumSegwitMnemonic.toUpperCase()
       const extraSpaces = electrumSegwitMnemonic.replace(/ /g, '  ')
-      await expect(detectElectrumSeed(upper)).resolves.toBe('segwit')
-      await expect(detectElectrumSeed(extraSpaces)).resolves.toBe('segwit')
+      expect(detectElectrumSeed(upper)).toBe('segwit')
+      expect(detectElectrumSeed(extraSpaces)).toBe('segwit')
     })
   })
 

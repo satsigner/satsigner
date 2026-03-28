@@ -30,19 +30,19 @@ export class MempoolOracle implements BlockchainOracle {
     this.baseUrl = baseUrl
   }
 
-  async get(endpoint: string) {
+  get(endpoint: string) {
     return fetch(this.baseUrl + endpoint).then(
       (response: Response) => response.json() as Promise<unknown>
     )
   }
 
-  async getText(endpoint: string): Promise<string> {
+  getText(endpoint: string): Promise<string> {
     return fetch(this.baseUrl + endpoint).then(
       (response: Response) => response.text() as Promise<string>
     )
   }
 
-  async getBinary(endpoint: string): Promise<ArrayBuffer> {
+  getBinary(endpoint: string): Promise<ArrayBuffer> {
     return fetch(this.baseUrl + endpoint).then(
       (response: Response) => response.arrayBuffer() as Promise<ArrayBuffer>
     )
@@ -101,7 +101,7 @@ export class MempoolOracle implements BlockchainOracle {
     return Number(height)
   }
 
-  async getCurrentBlockHash(): Promise<string> {
+  getCurrentBlockHash(): Promise<string> {
     return this.getText(`/blocks/tip/hash`)
   }
 

@@ -130,7 +130,7 @@ function ExplorerDifficulty() {
     }
   }
 
-  async function fetchLatestEpoch() {
+  function fetchLatestEpoch() {
     // INFO: this is how we would get the latest epoch:
     // const oracle = new MempoolOracle(url)
     // const blockHeight = await oracle.getCurrentBlockHeight()
@@ -156,7 +156,7 @@ function ExplorerDifficulty() {
     setSelectedBlock(block)
   }
 
-  async function fetchEpoch() {
+  function fetchEpoch() {
     fetchData(Number(epoch))
   }
 

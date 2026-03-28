@@ -59,11 +59,11 @@ async function validateDescriptorChecksum(descriptor: string) {
   return false
 }
 
-export async function validateDescriptor(descriptor: string) {
+export function validateDescriptor(descriptor: string) {
   return validateDescriptorInternal(descriptor, true)
 }
 
-export async function validateDescriptorFormat(descriptor: string) {
+export function validateDescriptorFormat(descriptor: string) {
   return validateDescriptorInternal(descriptor, false)
 }
 

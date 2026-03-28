@@ -267,7 +267,7 @@ export default function PublicKeyPage() {
     }
   }, [selectedFormat, rawPublicKey, convertPublicKeyFormat])
 
-  async function exportPublicKey() {
+  function exportPublicKey() {
     if (!account) {
       return
     }

@@ -153,7 +153,7 @@ export default function DescriptorPage() {
     getDescriptor()
   }, [keyIndex]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function exportDescriptor() {
+  function exportDescriptor() {
     if (!descriptor) {
       toast.error('No descriptor available')
       return

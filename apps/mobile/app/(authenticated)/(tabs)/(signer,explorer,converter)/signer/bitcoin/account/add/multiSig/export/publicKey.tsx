@@ -268,7 +268,7 @@ export default function PublicKeyPage() {
     }
   }, [selectedFormat, rawPublicKey, convertPublicKeyFormat])
 
-  async function exportPublicKey() {
+  function exportPublicKey() {
     const accountData = getAccountData()
     const date = new Date().toISOString().slice(0, -5)
     const ext = 'txt'

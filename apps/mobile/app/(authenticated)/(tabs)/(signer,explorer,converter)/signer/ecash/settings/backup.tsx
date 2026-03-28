@@ -32,7 +32,7 @@ export default function EcashBackupPage() {
     useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
 
-  const generateBackupData = useCallback(async () => {
+  const generateBackupData = useCallback(() => {
     setIsGenerating(true)
     try {
       const data: Record<string, unknown> = {

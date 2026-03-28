@@ -101,7 +101,7 @@ function SSSignatureDropdown({
     }
   )
 
-  const handleSendTransactionToGroup = useCallback(async () => {
+  const handleSendTransactionToGroup = useCallback(() => {
     if (!account?.nostr?.autoSync) {
       toast.error(t('account.nostrSync.autoSyncMustBeEnabled'))
       return
@@ -163,7 +163,7 @@ function SSSignatureDropdown({
 
   // Extract public key from descriptor when key details change
   useEffect(() => {
-    async function extractPublicKey() {
+    function extractPublicKey() {
       if (!keyDetails) {
         setExtractedPublicKey('')
         return

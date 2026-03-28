@@ -131,9 +131,9 @@ function useNostrLabelSync() {
 
       // Send each chunk to every trusted device in parallel.
       const allPromises = trustedDevices.flatMap((trustedDeviceNpub) =>
-        chunks.map(async (jsonl) => {
+        chunks.map((jsonl) => {
           const messageContent = buildMessage(jsonl)
-          const eventKind1059 = await nostrApi.createKind1059(
+          const eventKind1059 = nostrApi.createKind1059(
             deviceNsec,
             trustedDeviceNpub,
             messageContent

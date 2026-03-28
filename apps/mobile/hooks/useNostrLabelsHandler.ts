@@ -7,7 +7,7 @@ import { JSONLtoLabels } from '@/utils/bip329'
 const labelsHandler: MessageHandler = {
   canHandle: (context) => context.data?.data_type === 'LabelsBip329',
 
-  handle: async (context) => {
+  handle: (context) => {
     const { account, data } = context
     if (!data) {
       return

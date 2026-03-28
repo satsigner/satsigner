@@ -1397,7 +1397,7 @@ export default function AccountView() {
     setRefreshing(false)
   }
 
-  async function handleOnExpand(state: boolean) {
+  function handleOnExpand(state: boolean) {
     setExpand(state)
     animateTransition(state)
   }

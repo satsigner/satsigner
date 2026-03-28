@@ -58,7 +58,7 @@ export default function MultiSigKeySettings() {
 
   const [loading, setLoading] = useState(false)
 
-  async function handleOnPress(type: NonNullable<Key['creationType']>) {
+  function handleOnPress(type: NonNullable<Key['creationType']>) {
     setCreationType(type)
     setEntropy(localEntropyType)
     setMnemonicWordCount(localMnemonicWordCount)

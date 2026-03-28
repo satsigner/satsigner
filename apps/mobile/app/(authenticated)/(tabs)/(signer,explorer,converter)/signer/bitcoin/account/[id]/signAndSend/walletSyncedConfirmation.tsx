@@ -28,7 +28,7 @@ export default function WalletSyncedConfirmation() {
 
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
 
-  const goToNextStep = async () => {
+  const goToNextStep = () => {
     // TODO: add internal change address as an output
 
     // finally, go to the next page

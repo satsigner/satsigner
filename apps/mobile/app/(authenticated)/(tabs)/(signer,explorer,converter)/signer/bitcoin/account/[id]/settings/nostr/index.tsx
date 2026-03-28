@@ -243,7 +243,7 @@ export default function NostrSync() {
       }
       setDeviceNsec(account.nostr.deviceNsec)
       setDeviceNpub(account.nostr.deviceNpub)
-      generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
+      setDeviceColor(generateColorFromNpub(account.nostr.deviceNpub))
     }, [account?.nostr?.deviceNpub, account?.nostr?.deviceNsec, deviceNpub])
   )
 
@@ -718,7 +718,7 @@ export default function NostrSync() {
       })
       setDeviceNsec(keys.nsec)
       setDeviceNpub(keys.npub)
-      generateColorFromNpub(keys.npub).then(setDeviceColor)
+      setDeviceColor(generateColorFromNpub(keys.npub))
     } catch {
       toast.error('Failed to generate device keys')
     } finally {
@@ -814,13 +814,13 @@ export default function NostrSync() {
     if (account.nostr.deviceNsec && account.nostr.deviceNpub && !deviceNpub) {
       setDeviceNsec(account.nostr.deviceNsec)
       setDeviceNpub(account.nostr.deviceNpub)
-      generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
+      setDeviceColor(generateColorFromNpub(account.nostr.deviceNpub))
     }
   }, [account, accountId, deviceNpub, updateAccountNostrCallback])
 
   useEffect(() => {
     if (displayDeviceNpub) {
-      generateColorFromNpub(displayDeviceNpub).then(setDeviceColor)
+      setDeviceColor(generateColorFromNpub(displayDeviceNpub))
     } else {
       setDeviceColor(NOSTR_FALLBACK_NPUB_COLOR)
     }
