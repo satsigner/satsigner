@@ -42,7 +42,7 @@ type BlockchainAction = {
   addCustomServer: (server: Server) => void
   removeCustomServer: (server: Server) => void
   updateCustomServer: (oldServer: Server, newServer: Server) => void
-  getBlockchainConfig: (network?: Network) => BlockchainConfig
+  getBlockchain: (network?: Network) => BlockchainConfig
   setLastKnownBlockHeight: (height: number) => void
 }
 
