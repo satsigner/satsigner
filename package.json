@@ -36,9 +36,6 @@
     "check": "ultracite check",
     "fix": "ultracite fix"
   },
-  "resolutions": {
-    "expo-localization": "16.0.1"
-  },
   "dependencies": {},
   "devDependencies": {
     "cross-env": "^7.0.3",
@@ -46,6 +43,9 @@
     "oxlint": "^1.57.0",
     "turbo": "^2.0.1",
     "ultracite": "7.3.2"
+  },
+  "resolutions": {
+    "expo-localization": "16.0.1"
   },
   "engines": {
     "node": ">=22.4.0"
