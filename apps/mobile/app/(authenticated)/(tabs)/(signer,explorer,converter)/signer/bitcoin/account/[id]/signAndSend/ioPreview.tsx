@@ -113,7 +113,7 @@ export default function IOPreview() {
     if (!account || !wallet) {
       return
     }
-    ;(async () => {
+    ;(() => {
       const outputAddresses: Record<string, boolean> = {}
       for (const tx of account.transactions) {
         for (const output of tx.vout) {

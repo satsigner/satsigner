@@ -434,7 +434,7 @@ async function getWalletDataFromMnemonic(
   }
 }
 
-async function getDescriptorString(
+function getDescriptorString(
   mnemonic: NonNullable<Secret['mnemonic']>,
   scriptVersion: NonNullable<Key['scriptVersion']>,
   kind: KeychainKind,
@@ -856,7 +856,7 @@ function getLastUnusedAddressFromWallet(wallet: BdkWallet): AddressInfo {
   return wallet.nextUnusedAddress(KeychainKind.External)
 }
 
-async function buildTransaction(
+function buildTransaction(
   wallet: BdkWallet,
   data: {
     inputs: Utxo[]
@@ -893,7 +893,7 @@ function signTransaction(psbt: PsbtLike, wallet: BdkWallet): boolean {
   return signed
 }
 
-async function broadcastTransaction(
+function broadcastTransaction(
   wallet: BdkWallet,
   psbt: PsbtLike,
   backend: Backend,

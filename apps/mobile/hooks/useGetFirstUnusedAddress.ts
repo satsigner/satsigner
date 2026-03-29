@@ -13,7 +13,7 @@ function useGetFirstUnusedAddress(wallet: BdkWallet, account: Account) {
     useState<AddressInfo | null>(null)
   const [addressIndex, setAddressIndex] = useState(0)
 
-  async function updateFirstAddress() {
+  function updateFirstAddress() {
     const seenAddresses: Record<string, boolean> = {}
 
     if (!account) {

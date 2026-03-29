@@ -994,7 +994,7 @@ function PreviewTransaction() {
     let isMounted = true
     let psbtBuffer: Buffer | null = null
 
-    const updateQrChunks = async () => {
+    const updateQrChunks = () => {
       try {
         const psbtHex = getPsbtString()
         if (!psbtHex || !isMounted) {

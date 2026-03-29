@@ -307,7 +307,7 @@ export default function ImportExtendedPub() {
     }
   }
 
-  async function handleConfirm() {
+  function handleConfirm() {
     if (!validXpub || !validMasterFingerprint) {
       toast.error(t('watchonly.error.invalidInput'))
       return

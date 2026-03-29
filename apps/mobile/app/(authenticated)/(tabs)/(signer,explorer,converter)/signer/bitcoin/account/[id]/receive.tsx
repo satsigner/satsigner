@@ -175,7 +175,7 @@ export default function Receive() {
     loadAddress()
   }, [addressInfo, wallet, account?.keys, account?.addresses, isManualAddress])
 
-  async function generateAnotherAddress() {
+  function generateAnotherAddress() {
     if (!wallet || !account) {
       return
     }

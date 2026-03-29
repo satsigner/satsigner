@@ -105,7 +105,7 @@ export default function SignTransaction() {
     } as never as Transaction
   }, [inputs, outputs, psbt])
 
-  async function handleBroadcastSingleSig() {
+  function handleBroadcastSingleSig() {
     if (!psbt || !wallet) {
       throw new Error('Empty PSBT or wallet')
     }
@@ -215,7 +215,7 @@ export default function SignTransaction() {
   }
 
   useEffect(() => {
-    async function signTransactionData() {
+    function signTransactionData() {
       // For multisig wallets, if we already have a finalized transaction, use it directly
       if (signedTx) {
         setSigned(true)

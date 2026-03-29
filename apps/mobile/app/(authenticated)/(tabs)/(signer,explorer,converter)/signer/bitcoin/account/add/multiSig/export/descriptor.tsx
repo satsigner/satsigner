@@ -43,7 +43,7 @@ export default function DescriptorPage() {
     useState<ScriptVersionType>('P2WPKH')
 
   useEffect(() => {
-    async function getDescriptor() {
+    function getDescriptor() {
       if (!keyIndex) {
         return
       }
