@@ -7,51 +7,51 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		09BBE96CC1E245B5B6A41DD9 /* TerminessNerdFontMono-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 09D5AB716AC34E85B096464C /* TerminessNerdFontMono-BoldItalic.ttf */; };
 		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
-		1EE3C2FE7544436F85BECCDB /* SF-Pro-Text-Ultralight.otf in Resources */ = {isa = PBXBuildFile; fileRef = 8D9D641AB93142DA9A8533F9 /* SF-Pro-Text-Ultralight.otf */; };
-		3287CB60CE374E18BBDCD00C /* SF-Pro-Text-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 59C9D363776743079D185AFD /* SF-Pro-Text-Bold.otf */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		4A1C481B90EF4E78B9644441 /* SF-Pro-Text-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = E8DF4726DB25414E9DBD29E6 /* SF-Pro-Text-Medium.otf */; };
-		58116C5C05B141E5A0D2DFA2 /* TerminessNerdFontMono-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F38F74582DE24838ABEDEE3B /* TerminessNerdFontMono-Bold.ttf */; };
-		8767DE58AE9F48F19165763D /* TerminessNerdFontMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E2227F02E77047C288DC475B /* TerminessNerdFontMono-Regular.ttf */; };
+		4A18342704634B689DB51277 /* TerminessNerdFontMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BDCD6EA3B6CA43D2B74D3FA8 /* TerminessNerdFontMono-Regular.ttf */; };
+		50AA3EDE0B9A8C6666112887 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 8BC443970889E9F90ABA6072 /* PrivacyInfo.xcprivacy */; };
+		53C79E9C0A4D426D8D0B468A /* SF-Pro-Text-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = F678D9999E51408F8E24C37A /* SF-Pro-Text-Bold.otf */; };
+		840C1EF5BEF540768540E174 /* noop-file.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8BBE769CD3C4D30A0364977 /* noop-file.swift */; };
+		8612928163704833907E1D10 /* SF-Pro-Text-Light.otf in Resources */ = {isa = PBXBuildFile; fileRef = 808DAE5E61894257BE9DD580 /* SF-Pro-Text-Light.otf */; };
 		96905EF65AED1B983A6B3ABC /* libPods-satsigner.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 58EEBF8E8E6FB1BC6CAF49B5 /* libPods-satsigner.a */; };
-		A0A89277A0424EA6B1ADE9AA /* SF-Pro-Text-Light.otf in Resources */ = {isa = PBXBuildFile; fileRef = FA57B479E3ED4F74A6A50EB8 /* SF-Pro-Text-Light.otf */; };
-		A19D5E6F85FE4C829122D839 /* SF-Pro-Text-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 7F9E62BA36F9426BB3A193EE /* SF-Pro-Text-Regular.otf */; };
-		A806F209AD0271CD20DF90B7 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = DA38E68D6258D1548C480730 /* PrivacyInfo.xcprivacy */; };
+		A13EE20ACE904746A14A6FB3 /* SF-Pro-Text-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = D5899D36825549D5BFFBC43A /* SF-Pro-Text-Regular.otf */; };
+		A66FF4229F3E4E9C9109FCCE /* TerminessNerdFontMono-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 51471D0A484B402DB48F8640 /* TerminessNerdFontMono-Bold.ttf */; };
 		B18059E884C0ABDD17F3DC3D /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */; };
+		B5FF66F4701C4BBDAE50C8DC /* SF-Pro-Text-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 1810C84E03F243888423CA71 /* SF-Pro-Text-Medium.otf */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		BE220C0B73884F5ABFE25654 /* noop-file.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72E79BB301024D3FB20BCD8E /* noop-file.swift */; };
-		DAD416CF7EED45F6B1796191 /* TerminessNerdFontMono-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B3424114C00B48EA993A6AA6 /* TerminessNerdFontMono-BoldItalic.ttf */; };
-		E44F63DD51FD4825A7E24C15 /* TerminessNerdFontMono-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F906F9A9311B4424BCC6EC36 /* TerminessNerdFontMono-Italic.ttf */; };
+		DA5BAA4CED96454FA74C6D0F /* SF-Pro-Text-Ultralight.otf in Resources */ = {isa = PBXBuildFile; fileRef = 9167E39DDEE24491930EE0F5 /* SF-Pro-Text-Ultralight.otf */; };
+		FE5F010FFBA446A9A79E39F4 /* TerminessNerdFontMono-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = D1B3CC19696B45C19F3CD6CC /* TerminessNerdFontMono-Italic.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		09D5AB716AC34E85B096464C /* TerminessNerdFontMono-BoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "TerminessNerdFontMono-BoldItalic.ttf"; path = "../assets/fonts/TerminessNerdFontMono-BoldItalic.ttf"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* satsigner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = satsigner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FAF1A68108700A75B9A /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = satsigner/AppDelegate.h; sourceTree = "<group>"; };
 		13B07FB01A68108700A75B9A /* AppDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = AppDelegate.mm; path = satsigner/AppDelegate.mm; sourceTree = "<group>"; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = satsigner/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = satsigner/Info.plist; sourceTree = "<group>"; };
 		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = satsigner/main.m; sourceTree = "<group>"; };
+		1810C84E03F243888423CA71 /* SF-Pro-Text-Medium.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Medium.otf"; path = "../assets/fonts/SF-Pro-Text-Medium.otf"; sourceTree = "<group>"; };
+		51471D0A484B402DB48F8640 /* TerminessNerdFontMono-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "TerminessNerdFontMono-Bold.ttf"; path = "../assets/fonts/TerminessNerdFontMono-Bold.ttf"; sourceTree = "<group>"; };
 		58EEBF8E8E6FB1BC6CAF49B5 /* libPods-satsigner.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-satsigner.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		59C9D363776743079D185AFD /* SF-Pro-Text-Bold.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Bold.otf"; path = "../assets/fonts/SF-Pro-Text-Bold.otf"; sourceTree = "<group>"; };
+		5CE76AFB5186436E94867659 /* satsigner-Bridging-Header.h */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.c.h; name = "satsigner-Bridging-Header.h"; path = "satsigner/satsigner-Bridging-Header.h"; sourceTree = "<group>"; };
 		6C2E3173556A471DD304B334 /* Pods-satsigner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-satsigner.debug.xcconfig"; path = "Target Support Files/Pods-satsigner/Pods-satsigner.debug.xcconfig"; sourceTree = "<group>"; };
-		72E79BB301024D3FB20BCD8E /* noop-file.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = "noop-file.swift"; path = "satsigner/noop-file.swift"; sourceTree = "<group>"; };
 		7A4D352CD337FB3A3BF06240 /* Pods-satsigner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-satsigner.release.xcconfig"; path = "Target Support Files/Pods-satsigner/Pods-satsigner.release.xcconfig"; sourceTree = "<group>"; };
-		7F9E62BA36F9426BB3A193EE /* SF-Pro-Text-Regular.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Regular.otf"; path = "../assets/fonts/SF-Pro-Text-Regular.otf"; sourceTree = "<group>"; };
-		8D9D641AB93142DA9A8533F9 /* SF-Pro-Text-Ultralight.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Ultralight.otf"; path = "../assets/fonts/SF-Pro-Text-Ultralight.otf"; sourceTree = "<group>"; };
+		808DAE5E61894257BE9DD580 /* SF-Pro-Text-Light.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Light.otf"; path = "../assets/fonts/SF-Pro-Text-Light.otf"; sourceTree = "<group>"; };
+		8BC443970889E9F90ABA6072 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = satsigner/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		9167E39DDEE24491930EE0F5 /* SF-Pro-Text-Ultralight.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Ultralight.otf"; path = "../assets/fonts/SF-Pro-Text-Ultralight.otf"; sourceTree = "<group>"; };
+		A8BBE769CD3C4D30A0364977 /* noop-file.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = "noop-file.swift"; path = "satsigner/noop-file.swift"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = satsigner/SplashScreen.storyboard; sourceTree = "<group>"; };
-		B3424114C00B48EA993A6AA6 /* TerminessNerdFontMono-BoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "TerminessNerdFontMono-BoldItalic.ttf"; path = "../assets/fonts/TerminessNerdFontMono-BoldItalic.ttf"; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		C9F6F00DEDC4410492711928 /* satsigner-Bridging-Header.h */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.c.h; name = "satsigner-Bridging-Header.h"; path = "satsigner/satsigner-Bridging-Header.h"; sourceTree = "<group>"; };
-		DA38E68D6258D1548C480730 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = satsigner/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		E2227F02E77047C288DC475B /* TerminessNerdFontMono-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "TerminessNerdFontMono-Regular.ttf"; path = "../assets/fonts/TerminessNerdFontMono-Regular.ttf"; sourceTree = "<group>"; };
-		E8DF4726DB25414E9DBD29E6 /* SF-Pro-Text-Medium.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Medium.otf"; path = "../assets/fonts/SF-Pro-Text-Medium.otf"; sourceTree = "<group>"; };
+		BDCD6EA3B6CA43D2B74D3FA8 /* TerminessNerdFontMono-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "TerminessNerdFontMono-Regular.ttf"; path = "../assets/fonts/TerminessNerdFontMono-Regular.ttf"; sourceTree = "<group>"; };
+		D1B3CC19696B45C19F3CD6CC /* TerminessNerdFontMono-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "TerminessNerdFontMono-Italic.ttf"; path = "../assets/fonts/TerminessNerdFontMono-Italic.ttf"; sourceTree = "<group>"; };
+		D5899D36825549D5BFFBC43A /* SF-Pro-Text-Regular.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Regular.otf"; path = "../assets/fonts/SF-Pro-Text-Regular.otf"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		F38F74582DE24838ABEDEE3B /* TerminessNerdFontMono-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "TerminessNerdFontMono-Bold.ttf"; path = "../assets/fonts/TerminessNerdFontMono-Bold.ttf"; sourceTree = "<group>"; };
-		F906F9A9311B4424BCC6EC36 /* TerminessNerdFontMono-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "TerminessNerdFontMono-Italic.ttf"; path = "../assets/fonts/TerminessNerdFontMono-Italic.ttf"; sourceTree = "<group>"; };
-		FA57B479E3ED4F74A6A50EB8 /* SF-Pro-Text-Light.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Light.otf"; path = "../assets/fonts/SF-Pro-Text-Light.otf"; sourceTree = "<group>"; };
+		F678D9999E51408F8E24C37A /* SF-Pro-Text-Bold.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Bold.otf"; path = "../assets/fonts/SF-Pro-Text-Bold.otf"; sourceTree = "<group>"; };
 		FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-satsigner/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -77,9 +77,9 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				13B07FB71A68108700A75B9A /* main.m */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				72E79BB301024D3FB20BCD8E /* noop-file.swift */,
-				C9F6F00DEDC4410492711928 /* satsigner-Bridging-Header.h */,
-				DA38E68D6258D1548C480730 /* PrivacyInfo.xcprivacy */,
+				A8BBE769CD3C4D30A0364977 /* noop-file.swift */,
+				5CE76AFB5186436E94867659 /* satsigner-Bridging-Header.h */,
+				8BC443970889E9F90ABA6072 /* PrivacyInfo.xcprivacy */,
 			);
 			name = satsigner;
 			sourceTree = "<group>";
@@ -109,7 +109,7 @@
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				D65327D7A22EEC0BE12398D9 /* Pods */,
 				D7E4C46ADA2E9064B798F356 /* ExpoModulesProviders */,
-				93297A90DE2C49A9AF6248BF /* Resources */,
+				9B3DC3E76A18467F8B450E3B /* Resources */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -132,18 +132,18 @@
 			name = satsigner;
 			sourceTree = "<group>";
 		};
-		93297A90DE2C49A9AF6248BF /* Resources */ = {
+		9B3DC3E76A18467F8B450E3B /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				8D9D641AB93142DA9A8533F9 /* SF-Pro-Text-Ultralight.otf */,
-				FA57B479E3ED4F74A6A50EB8 /* SF-Pro-Text-Light.otf */,
-				7F9E62BA36F9426BB3A193EE /* SF-Pro-Text-Regular.otf */,
-				E8DF4726DB25414E9DBD29E6 /* SF-Pro-Text-Medium.otf */,
-				59C9D363776743079D185AFD /* SF-Pro-Text-Bold.otf */,
-				E2227F02E77047C288DC475B /* TerminessNerdFontMono-Regular.ttf */,
-				F38F74582DE24838ABEDEE3B /* TerminessNerdFontMono-Bold.ttf */,
-				B3424114C00B48EA993A6AA6 /* TerminessNerdFontMono-BoldItalic.ttf */,
-				F906F9A9311B4424BCC6EC36 /* TerminessNerdFontMono-Italic.ttf */,
+				9167E39DDEE24491930EE0F5 /* SF-Pro-Text-Ultralight.otf */,
+				808DAE5E61894257BE9DD580 /* SF-Pro-Text-Light.otf */,
+				D5899D36825549D5BFFBC43A /* SF-Pro-Text-Regular.otf */,
+				1810C84E03F243888423CA71 /* SF-Pro-Text-Medium.otf */,
+				F678D9999E51408F8E24C37A /* SF-Pro-Text-Bold.otf */,
+				BDCD6EA3B6CA43D2B74D3FA8 /* TerminessNerdFontMono-Regular.ttf */,
+				51471D0A484B402DB48F8640 /* TerminessNerdFontMono-Bold.ttf */,
+				09D5AB716AC34E85B096464C /* TerminessNerdFontMono-BoldItalic.ttf */,
+				D1B3CC19696B45C19F3CD6CC /* TerminessNerdFontMono-Italic.ttf */,
 			);
 			name = Resources;
 			path = "";
@@ -183,13 +183,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "satsigner" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				100BF8E2E10420984C2E9F21 /* [Expo] Configure project */,
+				B6A1D78D39909B13AEB0C532 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				D52950050DCD5FD9D8FFEC27 /* [CP] Embed Pods Frameworks */,
+				2447D261092F759A1EA75640 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -239,16 +239,16 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				1EE3C2FE7544436F85BECCDB /* SF-Pro-Text-Ultralight.otf in Resources */,
-				A0A89277A0424EA6B1ADE9AA /* SF-Pro-Text-Light.otf in Resources */,
-				A19D5E6F85FE4C829122D839 /* SF-Pro-Text-Regular.otf in Resources */,
-				4A1C481B90EF4E78B9644441 /* SF-Pro-Text-Medium.otf in Resources */,
-				3287CB60CE374E18BBDCD00C /* SF-Pro-Text-Bold.otf in Resources */,
-				8767DE58AE9F48F19165763D /* TerminessNerdFontMono-Regular.ttf in Resources */,
-				58116C5C05B141E5A0D2DFA2 /* TerminessNerdFontMono-Bold.ttf in Resources */,
-				DAD416CF7EED45F6B1796191 /* TerminessNerdFontMono-BoldItalic.ttf in Resources */,
-				E44F63DD51FD4825A7E24C15 /* TerminessNerdFontMono-Italic.ttf in Resources */,
-				A806F209AD0271CD20DF90B7 /* PrivacyInfo.xcprivacy in Resources */,
+				DA5BAA4CED96454FA74C6D0F /* SF-Pro-Text-Ultralight.otf in Resources */,
+				8612928163704833907E1D10 /* SF-Pro-Text-Light.otf in Resources */,
+				A13EE20ACE904746A14A6FB3 /* SF-Pro-Text-Regular.otf in Resources */,
+				B5FF66F4701C4BBDAE50C8DC /* SF-Pro-Text-Medium.otf in Resources */,
+				53C79E9C0A4D426D8D0B468A /* SF-Pro-Text-Bold.otf in Resources */,
+				4A18342704634B689DB51277 /* TerminessNerdFontMono-Regular.ttf in Resources */,
+				A66FF4229F3E4E9C9109FCCE /* TerminessNerdFontMono-Bold.ttf in Resources */,
+				09BBE96CC1E245B5B6A41DD9 /* TerminessNerdFontMono-BoldItalic.ttf in Resources */,
+				FE5F010FFBA446A9A79E39F4 /* TerminessNerdFontMono-Italic.ttf in Resources */,
+				50AA3EDE0B9A8C6666112887 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -268,7 +268,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [[ -f \"$PODS_ROOT/../.xcode.env\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env\"\nfi\nif [[ -f \"$PODS_ROOT/../.xcode.env.local\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env.local\"\nfi\n\n# The project root by default is one level up from the ios directory\nexport PROJECT_ROOT=\"$PROJECT_DIR\"/..\n\nif [[ \"$CONFIGURATION\" = *Debug* ]]; then\n  export SKIP_BUNDLING=1\nfi\nif [[ -z \"$ENTRY_FILE\" ]]; then\n  # Set the entry JS file using the bundler's entry resolution.\n  export ENTRY_FILE=\"$(\"$NODE_BINARY\" -e \"require('expo/scripts/resolveAppEntry')\" \"$PROJECT_ROOT\" ios relative | tail -n 1)\"\nfi\n\nif [[ -z \"$CLI_PATH\" ]]; then\n  # Use Expo CLI\n  export CLI_PATH=\"$(\"$NODE_BINARY\" --print \"require.resolve('@expo/cli', { paths: [require.resolve('expo/package.json')] })\")\"\nfi\nif [[ -z \"$BUNDLE_COMMAND\" ]]; then\n  # Default Expo CLI command for bundling\n  export BUNDLE_COMMAND=\"export:embed\"\nfi\n\n# Source .xcode.env.updates if it exists to allow\n# SKIP_BUNDLING to be unset if needed\nif [[ -f \"$PODS_ROOT/../.xcode.env.updates\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env.updates\"\nfi\n# Source local changes to allow overrides\n# if needed\nif [[ -f \"$PODS_ROOT/../.xcode.env.local\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env.local\"\nfi\n\n`\"$NODE_BINARY\" --print \"require('path').dirname(require.resolve('react-native/package.json')) + '/scripts/react-native-xcode.sh'\"`\n\n";
+			shellScript = "if [[ -f \"$PODS_ROOT/../.xcode.env\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env\"\nfi\nif [[ -f \"$PODS_ROOT/../.xcode.env.local\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env.local\"\nfi\n\n# The project root by default is one level up from the ios directory\nexport PROJECT_ROOT=\"$PROJECT_DIR\"/..\n\nif [[ \"$CONFIGURATION\" = *Debug* ]]; then\n  export SKIP_BUNDLING=1\nfi\nif [[ -z \"$ENTRY_FILE\" ]]; then\n  # Set the entry JS file using the bundler's entry resolution.\n  export ENTRY_FILE=\"$(\"$NODE_BINARY\" -e \"require('expo/scripts/resolveAppEntry')\" \"$PROJECT_ROOT\" ios absolute | tail -n 1)\"\nfi\n\nif [[ -z \"$CLI_PATH\" ]]; then\n  # Use Expo CLI\n  export CLI_PATH=\"$(\"$NODE_BINARY\" --print \"require.resolve('@expo/cli', { paths: [require.resolve('expo/package.json')] })\")\"\nfi\nif [[ -z \"$BUNDLE_COMMAND\" ]]; then\n  # Default Expo CLI command for bundling\n  export BUNDLE_COMMAND=\"export:embed\"\nfi\n\n# Source .xcode.env.updates if it exists to allow\n# SKIP_BUNDLING to be unset if needed\nif [[ -f \"$PODS_ROOT/../.xcode.env.updates\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env.updates\"\nfi\n# Source local changes to allow overrides\n# if needed\nif [[ -f \"$PODS_ROOT/../.xcode.env.local\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env.local\"\nfi\n\n`\"$NODE_BINARY\" --print \"require('path').dirname(require.resolve('react-native/package.json')) + '/scripts/react-native-xcode.sh'\"`\n\n";
 		};
 		08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -292,74 +292,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		100BF8E2E10420984C2E9F21 /* [Expo] Configure project */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "[Expo] Configure project";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-satsigner/expo-configure-project.sh\"\n";
-		};
-		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-satsigner/Pods-satsigner-resources.sh",
-				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/EXConstants.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/ExpoConstants_privacy.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoFileSystem/ExpoFileSystem_privacy.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoLocalization/ExpoLocalization_privacy.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoSystemUI/ExpoSystemUI_privacy.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/MMKV/MMKV_Privacy.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/RCT-Folly/RCT-Folly_privacy.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/RNCAsyncStorage/RNCAsyncStorage_resources.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/RNDeviceInfo/RNDeviceInfoPrivacyInfo.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/React-Core/React-Core_privacy.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/React-cxxreact/React-cxxreact_privacy.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/SDWebImage/SDWebImage.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/boost/boost_privacy.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/expo-dev-launcher/EXDevLauncher.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/expo-dev-menu/EXDevMenu.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/glog/glog_privacy.bundle",
-			);
-			name = "[CP] Copy Pods Resources";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXConstants.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoConstants_privacy.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoFileSystem_privacy.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoLocalization_privacy.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoSystemUI_privacy.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/MMKV_Privacy.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RCT-Folly_privacy.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RNCAsyncStorage_resources.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RNDeviceInfoPrivacyInfo.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-Core_privacy.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-cxxreact_privacy.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/SDWebImage.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/boost_privacy.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXDevLauncher.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXDevMenu.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/glog_privacy.bundle",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-satsigner/Pods-satsigner-resources.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		D52950050DCD5FD9D8FFEC27 /* [CP] Embed Pods Frameworks */ = {
+		2447D261092F759A1EA75640 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -379,6 +312,71 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-satsigner/Pods-satsigner-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
+		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-satsigner/Pods-satsigner-resources.sh",
+				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/EXConstants.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/ExpoConstants_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoFileSystem/ExpoFileSystem_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoLocalization/ExpoLocalization_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoSystemUI/ExpoSystemUI_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/RCT-Folly/RCT-Folly_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/RNCAsyncStorage/RNCAsyncStorage_resources.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/RNDeviceInfo/RNDeviceInfoPrivacyInfo.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/React-Core/React-Core_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/React-cxxreact/React-cxxreact_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/SDWebImage/SDWebImage.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/boost/boost_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/expo-dev-launcher/EXDevLauncher.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/expo-dev-menu/EXDevMenu.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/glog/glog_privacy.bundle",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXConstants.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoConstants_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoFileSystem_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoLocalization_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoSystemUI_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RCT-Folly_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RNCAsyncStorage_resources.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RNDeviceInfoPrivacyInfo.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-Core_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-cxxreact_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/SDWebImage.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/boost_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXDevLauncher.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXDevMenu.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/glog_privacy.bundle",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-satsigner/Pods-satsigner-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		B6A1D78D39909B13AEB0C532 /* [Expo] Configure project */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "[Expo] Configure project";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-satsigner/expo-configure-project.sh\"\n";
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -389,7 +387,7 @@
 				13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */,
 				13B07FC11A68108700A75B9A /* main.m in Sources */,
 				B18059E884C0ABDD17F3DC3D /* ExpoModulesProvider.swift in Sources */,
-				BE220C0B73884F5ABFE25654 /* noop-file.swift in Sources */,
+				840C1EF5BEF540768540E174 /* noop-file.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -410,7 +408,7 @@
 					"FB_SONARKIT_ENABLED=1",
 				);
 				INFOPLIST_FILE = satsigner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
@@ -438,7 +436,7 @@
 				CODE_SIGN_ENTITLEMENTS = satsigner/satsigner.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = satsigner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
@@ -488,7 +486,6 @@
 				COPY_PHASE_STRIP = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = i386;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -504,13 +501,11 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = "/usr/lib/swift $(inherited)";
 				LIBRARY_SEARCH_PATHS = "$(SDKROOT)/usr/lib/swift\"$(inherited)\"";
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_CFLAGS = "$(inherited)";
-				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					" ",
@@ -554,7 +549,6 @@
 				COPY_PHASE_STRIP = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = i386;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -563,12 +557,10 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = "/usr/lib/swift $(inherited)";
 				LIBRARY_SEARCH_PATHS = "$(SDKROOT)/usr/lib/swift\"$(inherited)\"";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				OTHER_CFLAGS = "$(inherited)";
-				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					" ",

@@ -15,12 +15,23 @@ prepare_react_native_project!
 
 target 'satsigner' do
   use_expo_modules!
-  config = use_native_modules!
 
-  # uniffi-bindgen-react-native is required by react-native-bdk-sdk but its
-  # react-native.config.js only declares Android — no iOS entry for autolinking.
-  # Remove once upstream adds ios platform config.
-  pod 'uniffi-bindgen-react-native', :path => File.join(__dir__, '..', '..', '..', 'node_modules', 'uniffi-bindgen-react-native')
+  if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'
+    config_command = ['node', '-e', "process.argv=['', '', 'config'];require('@react-native-community/cli').run()"];
+  else
+    config_command = [
+      'node',
+      '--no-warnings',
+      '--eval',
+      'require(require.resolve(\'expo-modules-autolinking\', { paths: [require.resolve(\'expo/package.json\')] }))(process.argv.slice(1))',
+      'react-native-config',
+      '--json',
+      '--platform',
+      'ios'
+    ]
+  end
+
+  config = use_native_modules!(config_command)
 
   use_frameworks! :linkage => podfile_properties['ios.useFrameworks'].to_sym if podfile_properties['ios.useFrameworks']
   use_frameworks! :linkage => ENV['USE_FRAMEWORKS'].to_sym if ENV['USE_FRAMEWORKS']
@@ -28,16 +39,21 @@ target 'satsigner' do
   use_react_native!(
     :path => config[:reactNativePath],
     :hermes_enabled => podfile_properties['expo.jsEngine'] == nil || podfile_properties['expo.jsEngine'] == 'hermes',
-    :app_path => "#{Pod::Config.instance.installation_root}/.."
+    # An absolute path to your application root.
+    :app_path => "#{Pod::Config.instance.installation_root}/..",
+    :privacy_file_aggregation_enabled => podfile_properties['apple.privacyManifestAggregationEnabled'] != 'false',
   )
 
   post_install do |installer|
     react_native_post_install(
       installer,
       config[:reactNativePath],
-      :mac_catalyst_enabled => false
+      :mac_catalyst_enabled => false,
+      :ccache_enabled => podfile_properties['apple.ccacheEnabled'] == 'true',
     )
 
+    # This is necessary for Xcode 14, because it signs resource bundles by default
+    # when building for devices.
     installer.target_installation_results.pod_target_installation_results
       .each do |pod_name, target_installation_result|
       target_installation_result.resource_bundle_targets.each do |resource_bundle_target|
@@ -45,14 +61,6 @@ target 'satsigner' do
           config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
         end
       end
-    end
-  end
-
-  post_integrate do |installer|
-    begin
-      expo_patch_react_imports!(installer)
-    rescue => e
-      Pod::UI.warn e
     end
   end
 end

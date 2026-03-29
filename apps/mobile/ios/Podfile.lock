@@ -266,7 +266,7 @@ PODS:
     - ExpoModulesCore
   - ExpoLinking (7.0.5):
     - ExpoModulesCore
-  - ExpoLocalization (16.0.1):
+  - ExpoLocalization (16.1.6):
     - ExpoModulesCore
   - ExpoModulesCore (2.2.3):
     - DoubleConversion
@@ -315,9 +315,6 @@ PODS:
     - libavif/core
     - libdav1d (>= 0.6.0)
   - libdav1d (1.2.0)
-  - MMKV (2.4.0):
-    - MMKVCore (~> 2.4.0)
-  - MMKVCore (2.4.0)
   - OpenSSL-Universal (3.3.3001)
   - RCT-Folly (2024.10.14.00):
     - boost
@@ -1599,11 +1596,10 @@ PODS:
     - Yoga
   - react-native-get-random-values (1.11.0):
     - React-Core
-  - react-native-mmkv (2.12.2):
+  - react-native-mmkv (3.3.3):
     - DoubleConversion
     - glog
     - hermes-engine
-    - MMKV (>= 1.3.3)
     - RCT-Folly (= 2024.10.14.00)
     - RCTRequired
     - RCTTypeSafety
@@ -2530,7 +2526,6 @@ DEPENDENCIES:
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../../../node_modules/react-native-screens`)
   - RNSVG (from `../../../node_modules/react-native-svg`)
-  - uniffi-bindgen-react-native (from `/Users/2ndpsy/Documents/psycarlo/satsigner/apps/mobile/ios/../../../node_modules/uniffi-bindgen-react-native`)
   - Yoga (from `../../../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -2538,13 +2533,12 @@ SPEC REPOS:
     - CocoaAsyncSocket
     - libavif
     - libdav1d
-    - MMKV
-    - MMKVCore
     - OpenSSL-Universal
     - SDWebImage
     - SDWebImageAVIFCoder
     - SDWebImageSVGCoder
     - SocketRocket
+    - uniffi-bindgen-react-native
     - ZXingObjC
 
 EXTERNAL SOURCES:
@@ -2769,8 +2763,6 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/react-native-screens"
   RNSVG:
     :path: "../../../node_modules/react-native-svg"
-  uniffi-bindgen-react-native:
-    :path: "/Users/2ndpsy/Documents/psycarlo/satsigner/apps/mobile/ios/../../../node_modules/uniffi-bindgen-react-native"
   Yoga:
     :path: "../../../node_modules/react-native/ReactCommon/yoga"
 
@@ -2798,7 +2790,7 @@ SPEC CHECKSUMS:
   ExpoKeepAwake: b0171a73665bfcefcfcc311742a72a956e6aa680
   ExpoLinearGradient: 35ebd83b16f80b3add053a2fd68cc328ed927f60
   ExpoLinking: 8d12bee174ba0cdf31239706578e29e74a417402
-  ExpoLocalization: 7776ea3bdb112125390745bbaf919b734b2ad1c7
+  ExpoLocalization: 999a1ff61a7f5917d65c2bd9234883009019ca9f
   ExpoModulesCore: c25d77625038b1968ea1afefc719862c0d8dd993
   ExpoPrint: 13208d67f48c190ccfeb9b97aa3394ff31ec606b
   ExpoSecureStore: 9a3665d7161dd1031be386e278bffd623658f316
@@ -2813,8 +2805,6 @@ SPEC CHECKSUMS:
   hermes-engine: 9e868dc7be781364296d6ee2f56d0c1a9ef0bb11
   libavif: 5f8e715bea24debec477006f21ef9e95432e254d
   libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
-  MMKV: 86859fdfa2b0b21db1fd6e48788474a6416a2c77
-  MMKVCore: 3d16ce9f7d411e135020915fde98a056859a1efa
   OpenSSL-Universal: 6082b0bf950e5636fe0d78def171184e2b3899c2
   RCT-Folly: ea9d9256ba7f9322ef911169a9f696e5857b9e17
   RCTDeprecation: ebe712bb05077934b16c6bf25228bdec34b64f83
@@ -2846,7 +2836,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: 33546a3ebefbccb8770c33a1f8a5554fa96a54de
   React-microtasksnativemodule: d80ff86c8902872d397d9622f1a97aadcc12cead
   react-native-get-random-values: d16467cf726c618e9c7a8c3c39c31faa2244bbba
-  react-native-mmkv: 19bc20b3797f49c50ab4167eac443314502e6eec
+  react-native-mmkv: 338b4e22548511d7da8a0a32c192e36d650a9d63
   react-native-netinfo: cec9c4e86083cb5b6aba0e0711f563e2fbbff187
   react-native-nfc-manager: 08cd58e80a60e89f40017a084ee84e1171d9b318
   react-native-pager-view: 9517b214fb7321493339fbcf53a30abd54fea07b
@@ -2895,10 +2885,10 @@ SPEC CHECKSUMS:
   SDWebImageAVIFCoder: afe194a084e851f70228e4be35ef651df0fc5c57
   SDWebImageSVGCoder: 15a300a97ec1c8ac958f009c02220ac0402e936c
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
-  uniffi-bindgen-react-native: 81a71f9a97596026ec1cf605d828488f16e93bdb
+  uniffi-bindgen-react-native: 205a15613d97a49fe17d5bda57f7fa46a7bbafd0
   Yoga: feb4910aba9742cfedc059e2b2902e22ffe9954a
   ZXingObjC: 8898711ab495761b2dbbdec76d90164a6d7e14c5
 
-PODFILE CHECKSUM: 950529dd3b9caaa7e827b32f1299b7f08f2eede4
+PODFILE CHECKSUM: 658d9c692fb53a6ea72839097d7d89c25cfebfcf
 
 COCOAPODS: 1.16.2

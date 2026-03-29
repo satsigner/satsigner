@@ -37,15 +37,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     supportsTablet: true
   },
   name: 'satsigner',
+  newArchEnabled: true,
   orientation: 'portrait',
   plugins: [
-    [
-      'expo-build-properties',
-      {
-        android: { newArchEnabled: true },
-        ios: { newArchEnabled: true }
-      }
-    ],
     [
       'expo-router',
       {
