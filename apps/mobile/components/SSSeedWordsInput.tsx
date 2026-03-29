@@ -184,7 +184,7 @@ export default function SSSeedWordsInput({
           setFingerprint(fingerprintResult)
           onMnemonicValid?.(mnemonic, fingerprintResult)
         } else {
-          const electrumType = await detectElectrumSeed(mnemonic)
+          const electrumType = detectElectrumSeed(mnemonic)
           setElectrumSeedType(electrumType)
           if (electrumType) {
             const seed = await mnemonicToSeedElectrum(mnemonic, passphrase)
@@ -271,7 +271,7 @@ export default function SSSeedWordsInput({
         setFingerprint(fingerprintResult)
         onMnemonicValid?.(mnemonic, fingerprintResult)
       } else {
-        const electrumType = await detectElectrumSeed(mnemonic)
+        const electrumType = detectElectrumSeed(mnemonic)
         setElectrumSeedType(electrumType)
         if (electrumType) {
           const seedBytes = await mnemonicToSeedElectrum(mnemonic, passphrase)
@@ -407,7 +407,7 @@ export default function SSSeedWordsInput({
         setFingerprint(fingerprintResult)
         onMnemonicValid?.(mnemonic, fingerprintResult)
       } else {
-        const electrumType = await detectElectrumSeed(mnemonic)
+        const electrumType = detectElectrumSeed(mnemonic)
         setElectrumSeedType(electrumType)
         if (electrumType) {
           const seed = await mnemonicToSeedElectrum(mnemonic, passphrase)

@@ -105,7 +105,6 @@
     "no-param-reassign": "allow",
     "class-methods-use-this": "allow",
     "max-classes-per-file": "allow",
-    "require-await": "allow",
     "no-nested-ternary": "allow",
     "complexity": "allow"
   },

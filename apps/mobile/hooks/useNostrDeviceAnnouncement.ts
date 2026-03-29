@@ -34,7 +34,7 @@ function useNostrDeviceAnnouncement() {
       await nostrApi.connect()
 
       try {
-        const eventKind1059 = await nostrApi.createKind1059(
+        const eventKind1059 = nostrApi.createKind1059(
           commonNsec,
           commonNpub,
           compressedMessage

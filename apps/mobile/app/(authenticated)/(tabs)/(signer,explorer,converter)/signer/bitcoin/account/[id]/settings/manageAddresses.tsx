@@ -181,7 +181,7 @@ export function ManageAccountAddresses({
     setAddressToDelete(address)
   }
 
-  async function handleSaveChanges() {
+  function handleSaveChanges() {
     const keys = addresses.map((addr, index) => {
       const secret: Secret = {
         externalDescriptor: `addr(${addr.address})`

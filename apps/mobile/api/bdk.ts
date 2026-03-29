@@ -139,7 +139,7 @@ async function getWalletData(
 
       // Extract key data with proper derivation paths and fingerprints
       const keyData = await Promise.all(
-        account.keys.map(async (key, keyIndex) => {
+        account.keys.map((key, keyIndex) => {
           let extendedPublicKey = ''
           let fingerprint = ''
 
@@ -440,8 +440,9 @@ async function getDescriptorString(
   kind: KeychainKind,
   passphrase: Secret['passphrase'],
   network: Network
-): Promise<string> {
-  const electrumType = await detectElectrumSeed(mnemonic)
+) {
+  // Check for Electrum seed — uses different seed derivation and path
+  const electrumType = detectElectrumSeed(mnemonic)
   if (electrumType) {
     return getPrivateDescriptorFromElectrumMnemonic(
       mnemonic,

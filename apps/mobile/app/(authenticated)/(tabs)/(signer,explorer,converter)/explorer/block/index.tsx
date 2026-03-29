@@ -110,7 +110,7 @@ function ExplorerBlock() {
     await fetchBlock(tipHeight)
   }
 
-  async function fetchBlockFromInput() {
+  function fetchBlockFromInput() {
     const height = Number(inputHeight)
     if (height === block?.height || height > maxBlockHeight || height < 0) {
       toast.error('Invalid block height')

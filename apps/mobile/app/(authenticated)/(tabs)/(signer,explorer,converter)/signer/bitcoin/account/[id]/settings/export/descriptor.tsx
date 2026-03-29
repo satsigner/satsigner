@@ -364,7 +364,7 @@ export default function DescriptorPage() {
     getDescriptor()
   }, [account, keyIndex]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function exportDescriptor() {
+  function exportDescriptor() {
     if (!account) {
       return
     }

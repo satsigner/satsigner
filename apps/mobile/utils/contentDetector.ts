@@ -253,9 +253,7 @@ function detectEcashContent(data: string): DetectedContent | null {
   return null
 }
 
-async function detectImportContent(
-  data: string
-): Promise<DetectedContent | null> {
+function detectImportContent(data: string): DetectedContent | null {
   const trimmed = data.trim()
 
   if (isBBQRFragment(trimmed)) {
@@ -341,7 +339,7 @@ export async function detectContentByContext(
   }
 
   if (!detected) {
-    detected = await detectImportContent(data)
+    detected = detectImportContent(data)
   }
 
   if (!detected) {

@@ -174,9 +174,7 @@ async function cleanupSubscription(accountId: string): Promise<void> {
       handle.protocolApi.flushQueue().catch(() => {
         /* intentionally swallowed */
       }),
-      handle.protocolApi.closeAllSubscriptions().catch(() => {
-        /* intentionally swallowed */
-      })
+      Promise.resolve(handle.protocolApi.closeAllSubscriptions())
     )
   }
 
@@ -185,9 +183,7 @@ async function cleanupSubscription(accountId: string): Promise<void> {
       handle.dataExchangeApi.flushQueue().catch(() => {
         /* intentionally swallowed */
       }),
-      handle.dataExchangeApi.closeAllSubscriptions().catch(() => {
-        /* intentionally swallowed */
-      })
+      Promise.resolve(handle.dataExchangeApi.closeAllSubscriptions())
     )
   }
 

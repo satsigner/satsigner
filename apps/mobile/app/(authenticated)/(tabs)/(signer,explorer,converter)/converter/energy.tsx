@@ -186,7 +186,7 @@ export default function Energy() {
   }, [blockchainInfo?.chain])
 
   const fetchRpc = useCallback(
-    async (requestBody: RpcRequestBody) => {
+    (requestBody: RpcRequestBody) => {
       const adjustedUrl = getAdjustedRpcUrl(rpcUrl)
       const credentials = `${rpcUsername}:${rpcPassword}`
       const credentialsBase64 = Buffer.from(credentials).toString('base64')

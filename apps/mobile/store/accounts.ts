@@ -206,7 +206,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
         return labelsAdded
       },
-      loadTx: async (accountId, tx) => {
+      loadTx: (accountId, tx) => {
         const txid = tx.id
         const { accounts } = get()
         const accountIndex = accounts.findIndex(
@@ -247,7 +247,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           })
         )
       },
-      resetKey: async (accountId, keyIndex) => {
+      resetKey: (accountId, keyIndex) => {
         set(
           produce((state) => {
             const accountIndex = state.accounts.findIndex(

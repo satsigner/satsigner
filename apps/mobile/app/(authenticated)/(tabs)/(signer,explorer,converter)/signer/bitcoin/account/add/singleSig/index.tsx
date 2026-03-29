@@ -74,7 +74,7 @@ export default function SingleSig() {
 
   const [loading, setLoading] = useState(false)
 
-  async function handleOnPress(type: NonNullable<Key['creationType']>) {
+  function handleOnPress(type: NonNullable<Key['creationType']>) {
     setCreationType(type)
     setScriptVersion(localScriptVersion)
     setEntropy(localEntropyType)

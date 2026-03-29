@@ -231,7 +231,7 @@ function TransactionStaggerItem({
 type TotalTransactionsProps = {
   account: Account
   handleOnRefresh: () => Promise<void>
-  handleOnExpand: (state: boolean) => Promise<void>
+  handleOnExpand: (state: boolean) => void
   expand: boolean
   setSortDirection: Dispatch<React.SetStateAction<Direction>>
   refreshing: boolean
@@ -421,7 +421,7 @@ type DerivedAddressesProps = {
   account: Account
   setSortDirection: Function
   sortDirection: Direction
-  handleOnExpand: (state: boolean) => Promise<void>
+  handleOnExpand: (state: boolean) => void
   expand: boolean
   setChange: Function
   change: boolean
@@ -878,7 +878,7 @@ function DerivedAddresses({
 type SpendableOutputsProps = {
   account: Account
   handleOnRefresh: () => Promise<void>
-  handleOnExpand: (state: boolean) => Promise<void>
+  handleOnExpand: (state: boolean) => void
   expand: boolean
   setSortDirection: Dispatch<React.SetStateAction<Direction>>
   refreshing: boolean
@@ -1391,7 +1391,7 @@ export default function AccountView() {
     setRefreshing(false)
   }
 
-  async function handleOnExpand(state: boolean) {
+  function handleOnExpand(state: boolean) {
     setExpand(state)
     animateTransition(state)
   }

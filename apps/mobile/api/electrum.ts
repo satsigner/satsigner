@@ -339,7 +339,7 @@ class ElectrumClient extends BaseElectrumClient {
     return blockHeader
   }
 
-  async subscribeToBlockHeaders(): Promise<{ height: number } | null> {
+  subscribeToBlockHeaders(): Promise<{ height: number } | null> {
     const rawClient = this.client as unknown as {
       blockchainHeaders_subscribe: () => Promise<{ height: number } | null>
     }

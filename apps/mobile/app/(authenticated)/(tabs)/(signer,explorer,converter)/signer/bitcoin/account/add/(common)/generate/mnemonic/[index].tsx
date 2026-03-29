@@ -77,7 +77,7 @@ export default function GenerateMnemonic() {
   const [checksumValid, setChecksumValid] = useState(true)
 
   // TODO: Debounce this
-  async function handleUpdatePassphrase(passphrase: string) {
+  function handleUpdatePassphrase(passphrase: string) {
     setPassphrase(passphrase)
 
     const validMnemonic = validateMnemonic(mnemonic, mnemonicWordList)

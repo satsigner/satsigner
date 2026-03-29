@@ -1527,13 +1527,13 @@ function PreviewTransaction() {
   }
 
   // Handle seed QR scanning for dropped seeds
-  const handleSeedQRScanned = async (index: number) => {
+  const handleSeedQRScanned = (index: number) => {
     setCameraModalVisible(true)
     setCurrentCosignerIndex(index)
   }
 
   // Handle seed words modal for dropped seeds
-  const handleSeedWordsScanned = async (index: number) => {
+  const handleSeedWordsScanned = (index: number) => {
     setCurrentCosignerIndex(index)
     setWordCountModalVisible(true)
   }
@@ -1612,7 +1612,7 @@ function PreviewTransaction() {
     return hasEnough
   }
 
-  const combineAndFinalizeMultisigPSBTs = async () => {
+  const combineAndFinalizeMultisigPSBTs = () => {
     try {
       const originalPsbtBase64 = txBuilderResult?.toBase64()
       if (!originalPsbtBase64) {

@@ -3,7 +3,7 @@ import Esplora from '@/api/esplora'
 describe('esplora tests', () => {
   let esplora: Esplora
 
-  beforeAll(async () => {
+  beforeAll(() => {
     esplora = new Esplora('https://mempool.space/api')
   })
 

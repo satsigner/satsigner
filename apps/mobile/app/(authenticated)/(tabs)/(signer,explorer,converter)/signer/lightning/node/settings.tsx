@@ -58,7 +58,7 @@ export default function NodeSettingsPage() {
           text: 'Cancel'
         },
         {
-          onPress: async () => {
+          onPress: () => {
             setIsDeleting(false)
             clearConfig()
             router.navigate('/signer/lightning')

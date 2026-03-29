@@ -97,7 +97,7 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
       },
       configsMempool: MempoolServers,
       customServers: [],
-      getBlockchainConfig: (network = get().selectedNetwork) => {
+      getBlockchain: (network = get().selectedNetwork) => {
         const { server, config } = get().configs[network]
 
         return getBlockchainConfig(server.backend, server.url, {

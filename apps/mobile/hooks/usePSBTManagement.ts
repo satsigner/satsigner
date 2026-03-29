@@ -123,7 +123,7 @@ export function usePSBTManagement({
   }, [])
 
   const handleSignWithLocalKey = useCallback(
-    async (index: number) => {
+    (index: number) => {
       const cosignerKey = decryptedKeys[index]
       if (!cosignerKey?.secret) {
         toast.error('No decrypted key found for this cosigner')
@@ -170,7 +170,7 @@ export function usePSBTManagement({
   )
 
   const handleSignWithSeedQR = useCallback(
-    async (index: number, mnemonic: string) => {
+    (index: number, mnemonic: string) => {
       // Get the cosigner's key details
       const cosignerKey = account?.keys?.[index]
       if (!cosignerKey) {

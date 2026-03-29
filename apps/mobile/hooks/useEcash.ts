@@ -155,7 +155,7 @@ export function useEcash() {
   )
 
   const checkMintQuoteHandler = useCallback(
-    async (mintUrl: string, quoteId: string): Promise<MintQuoteState> =>
+    (mintUrl: string, quoteId: string): Promise<MintQuoteState> =>
       checkMintQuote(mintUrl, quoteId),
     []
   )
@@ -171,7 +171,7 @@ export function useEcash() {
       removeMintQuote(quoteId)
       updateMintBalance(
         mintUrl,
-        await getMintBalance(mintUrl, [...proofs, ...result.proofs])
+        getMintBalance(mintUrl, [...proofs, ...result.proofs])
       )
 
       // Update existing transaction status to completed
@@ -219,7 +219,7 @@ export function useEcash() {
 
       updateMintBalance(
         mintUrl,
-        await getMintBalance(
+        getMintBalance(
           mintUrl,
           proofs.filter((p) => !proofIds.includes(p.id))
         )
@@ -268,7 +268,7 @@ export function useEcash() {
         const proofIds = result.send.map((proof) => proof.id)
         removeProofs(proofIds)
         addProofs(result.keep)
-        updateMintBalance(mintUrl, await getMintBalance(mintUrl, result.keep))
+        updateMintBalance(mintUrl, getMintBalance(mintUrl, result.keep))
 
         // Mark received tokens as spent
         markReceivedTokensAsSpent()
@@ -320,7 +320,7 @@ export function useEcash() {
         addProofs(result.proofs)
         updateMintBalance(
           mintUrl,
-          await getMintBalance(mintUrl, [...proofs, ...result.proofs])
+          getMintBalance(mintUrl, [...proofs, ...result.proofs])
         )
 
         // Add transaction record
@@ -456,7 +456,7 @@ export function useEcash() {
   }, [addCheckingTransaction, removeCheckingTransaction, updateTransaction]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const resumePollingForTransaction = useCallback(
-    async (
+    (
       transactionId: string,
       startPolling: (pollFunction: () => Promise<boolean>) => void
     ) => {

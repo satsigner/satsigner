@@ -102,7 +102,7 @@ export default function SetPin() {
     }
   }
 
-  async function handleConfirmPin() {
+  function handleConfirmPin() {
     setStage('re-enter')
   }
 
@@ -150,7 +150,7 @@ export default function SetPin() {
     setRequiresAuth(true)
   }
 
-  async function handleGoBack() {
+  function handleGoBack() {
     clearPin()
     clearConfirmationPin()
     setStage('set')

@@ -338,7 +338,7 @@ export default function ImportDescriptor() {
     urDecoderRef.current = new URDecoder()
   }
 
-  async function handleConfirm() {
+  function handleConfirm() {
     try {
       // Extract fingerprint from the descriptor if possible
       const fingerprint = extractFingerprintFromDescriptor(externalDescriptor)

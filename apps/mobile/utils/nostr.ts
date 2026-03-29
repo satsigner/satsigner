@@ -13,7 +13,7 @@ import { type TransactionData } from '@/utils/psbt'
 // Initialize ECC library
 bitcoinjs.initEccLib(ecc)
 
-export async function generateColorFromNpub(npub: string): Promise<string> {
+export function generateColorFromNpub(npub: string): string {
   const decoded = nip19.decode(npub)
   if (!decoded || decoded.type !== 'npub') {
     return NOSTR_FALLBACK_NPUB_COLOR

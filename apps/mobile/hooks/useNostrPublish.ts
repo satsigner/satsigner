@@ -45,7 +45,7 @@ function useNostrPublish() {
     nostrApi = new NostrAPI(relays)
     await nostrApi.connect()
 
-    let eventKind1059 = await nostrApi.createKind1059(
+    let eventKind1059 = nostrApi.createKind1059(
       deviceNsec,
       deviceNpub,
       compressedMessage
@@ -58,7 +58,7 @@ function useNostrPublish() {
       if (!deviceNsec) {
         continue
       }
-      eventKind1059 = await nostrApi!.createKind1059(
+      eventKind1059 = nostrApi!.createKind1059(
         deviceNsec,
         trustedDeviceNpub,
         compressedMessage
@@ -91,7 +91,7 @@ function useNostrPublish() {
     nostrApi = new NostrAPI(relays)
     await nostrApi.connect()
 
-    const selfEvent = await nostrApi.createKind1059(
+    const selfEvent = nostrApi.createKind1059(
       deviceNsec,
       deviceNpub,
       compressedMessage
@@ -107,7 +107,7 @@ function useNostrPublish() {
       if (!deviceNsec) {
         continue
       }
-      const eventKind1059 = await nostrApi.createKind1059(
+      const eventKind1059 = nostrApi.createKind1059(
         deviceNsec,
         trustedDeviceNpub,
         compressedMessage

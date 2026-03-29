@@ -137,7 +137,7 @@ export default function ImportMnemonic() {
     }
   }
 
-  async function handleOnPressImportSeedMultisig() {
+  function handleOnPressImportSeedMultisig() {
     setLoadingAccount(true)
     setMnemonic(currentMnemonic)
     setFingerprint(currentFingerprint)
@@ -159,7 +159,7 @@ export default function ImportMnemonic() {
     router.back()
   }
 
-  async function handleOnCloseAccountAddedModal() {
+  function handleOnCloseAccountAddedModal() {
     setAccountAddedModalVisible(false)
 
     const targetId = syncedAccount?.id ?? createdAccountId

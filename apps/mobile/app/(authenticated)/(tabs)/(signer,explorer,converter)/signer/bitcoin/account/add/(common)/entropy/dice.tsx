@@ -57,7 +57,7 @@ export default function DiceEntropy() {
     SSIconDiceSix
   ]
 
-  async function handleDicePress(value: number) {
+  function handleDicePress(value: number) {
     if (bits.length < length) {
       const updatedRolls = [...rolls, value]
       setRolls(updatedRolls)

@@ -43,7 +43,7 @@ export default function CoinEntropy() {
   const [step, setStep] = useState(0)
   const [bits, setBits] = useState('')
 
-  async function handleFlip(bit: '0' | '1') {
+  function handleFlip(bit: '0' | '1') {
     if (step < length) {
       const newBits = bits + bit
       setBits(newBits)

@@ -70,9 +70,7 @@ const ELECTRUM_SEED_VERSIONS: Record<string, string> = {
 
 const enc = new TextEncoder()
 
-export async function detectElectrumSeed(
-  mnemonic: string
-): Promise<string | null> {
+export function detectElectrumSeed(mnemonic: string): string | null {
   const normalized = mnemonic
     .normalize('NFKD')
     .toLowerCase()
@@ -98,7 +96,7 @@ export async function detectElectrumSeed(
 }
 
 // Electrum seed derivation: PBKDF2(HMAC-SHA512, pass=NFKD(mnemonic), salt="electrum"+NFKD(passphrase), rounds=2048)
-export async function mnemonicToSeedElectrum(
+export function mnemonicToSeedElectrum(
   mnemonic: string,
   passphrase: string = ''
 ): Promise<Uint8Array> {

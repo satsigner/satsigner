@@ -137,7 +137,7 @@ export default function AccountSettings() {
     }
   }
 
-  async function saveChanges() {
+  function saveChanges() {
     updateAccountName(currentAccountId!, accountName)
     router.replace(`/signer/bitcoin/account/${currentAccountId}/`)
   }

@@ -81,7 +81,7 @@ export default function Confirm() {
     await handleFinishWordsConfirmation()
   }
 
-  async function handleNavigateNextWord() {
+  function handleNavigateNextWord() {
     if (!selectedCheckbox) {
       return
     }

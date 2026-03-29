@@ -454,7 +454,7 @@ export default function WatchOnly() {
     }
   }
 
-  async function extractAndSetFingerprint(descriptor: string) {
+  function extractAndSetFingerprint(descriptor: string) {
     if (localFingerprint) {
       return
     }

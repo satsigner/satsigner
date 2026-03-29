@@ -264,7 +264,7 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
       ? lastKnownBlockHeight - tx.blockHeight + 1
       : 0
 
-  const updateInfo = async () => {
+  const updateInfo = () => {
     if (!tx) {
       return
     }

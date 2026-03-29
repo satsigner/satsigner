@@ -48,16 +48,13 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
       return
     }
 
-    const subscription = AppState.addEventListener(
-      'change',
-      async (nextAppState) => {
-        if (nextAppState === 'active') {
-          setTimeout(async () => {
-            await loadClipboardContent()
-          }, 1)
-        }
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        setTimeout(async () => {
+          await loadClipboardContent()
+        }, 1)
       }
-    )
+    })
 
     return () => {
       subscription.remove()
