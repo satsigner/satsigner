@@ -36,6 +36,9 @@
     "check": "ultracite check",
     "fix": "ultracite fix"
   },
+  "resolutions": {
+    "expo-localization": "16.0.1"
+  },
   "dependencies": {},
   "devDependencies": {
     "cross-env": "^7.0.3",
