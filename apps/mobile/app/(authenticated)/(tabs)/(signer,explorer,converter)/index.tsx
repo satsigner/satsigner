@@ -32,7 +32,7 @@ export default function Home() {
   )
 
   return (
-    <SafeAreaView edges={['top']} style={{ paddingTop: 30 }}>
+    <>
       <ScrollView showsVerticalScrollIndicator={false}>
         <SSMainLayout style={styles.mainLayout}>
           <SSHStack>
@@ -72,7 +72,7 @@ export default function Home() {
           </SSVStack>
         </SSMainLayout>
       </ScrollView>
-    </SafeAreaView>
+    </>
   )
 }
 

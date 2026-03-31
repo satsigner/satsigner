@@ -19,14 +19,14 @@ export default function Features() {
   const insets = useSafeAreaInsets()
 
   return (
-    <SafeAreaView style={{ paddingTop: insets.top }}>
+    <>
       <Stack.Screen
         options={{
           headerRight: undefined,
           headerTitle: () => <SSText uppercase>{tn('title')}</SSText>
         }}
       />
-      <ScrollView style={{ paddingTop: insets.top }}>
+      <ScrollView>
           <SSVStack gap="lg">
             <SSVStack>
               <SSSettingsCards
@@ -56,6 +56,6 @@ export default function Features() {
             </SSVStack>
           </SSVStack>
       </ScrollView>
-    </SafeAreaView>
+    </>
   )
 }

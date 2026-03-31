@@ -20,7 +20,7 @@ export default function Settings() {
   const insets = useSafeAreaInsets()
 
   return (
-    <SafeAreaView style={{ paddingTop: insets.top + 10 }}>
+    <>
       <Stack.Screen
         options={{
           headerRight: undefined,
@@ -67,6 +67,6 @@ export default function Settings() {
           />
         </SSVStack>
       </ScrollView>
-    </SafeAreaView>
+    </>
   )
 }

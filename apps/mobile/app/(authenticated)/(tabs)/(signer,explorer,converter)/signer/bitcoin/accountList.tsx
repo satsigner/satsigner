@@ -759,7 +759,7 @@ export default function AccountList() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, paddingTop: 50 }} edges={['top']}>
+    <>
       <Stack.Screen
         options={{
           headerTitle: () => (
@@ -905,6 +905,6 @@ export default function AccountList() {
           renderTabBar={renderTab}
         />
       </SSMainLayout>
-    </SafeAreaView>
+    </>
   )
 }
