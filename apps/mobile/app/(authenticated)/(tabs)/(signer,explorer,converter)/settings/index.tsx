@@ -1,6 +1,5 @@
 import { Stack, useRouter } from 'expo-router'
 import { ScrollView, View } from 'react-native'
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import {
   SSIconAbout,
@@ -17,7 +16,6 @@ import { t } from '@/locales'
 
 export default function Settings() {
   const router = useRouter()
-  const insets = useSafeAreaInsets()
 
   return (
     <>
