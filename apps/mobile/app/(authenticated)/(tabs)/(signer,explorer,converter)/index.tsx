@@ -10,6 +10,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { Colors } from '@/styles'
 import { type NavMenuItem } from '@/types/navigation/navMenu'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function Home() {
   const { tab, segment } = useLocalSearchParams()
@@ -31,7 +32,7 @@ export default function Home() {
   )
 
   return (
-    <>
+    <SafeAreaView edges={['top']} style={{ paddingTop: 30 }}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <SSMainLayout style={styles.mainLayout}>
           <SSHStack>
@@ -71,7 +72,7 @@ export default function Home() {
           </SSVStack>
         </SSMainLayout>
       </ScrollView>
-    </>
+    </SafeAreaView>
   )
 }
 

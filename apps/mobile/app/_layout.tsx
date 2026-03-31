@@ -113,8 +113,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <GestureHandlerRootView style={styles.container}>
-          <Slot />
+        <GestureHandlerRootView >
           {privacyScreenVisible && <View style={styles.privacyScreen} />}
           <Toaster
             theme="dark"
@@ -127,6 +126,9 @@ export default function RootLayout() {
               zIndex: 999999
             }}
           />
+          <View style={styles.container}>
+            <Slot />
+          </View>
         </GestureHandlerRootView>
       </QueryClientProvider>
     </SafeAreaProvider>
@@ -136,7 +138,7 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.gray[950],
-    flex: 1
+    flex: 1,
   },
   privacyScreen: {
     ...StyleSheet.absoluteFillObject,

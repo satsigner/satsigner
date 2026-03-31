@@ -12,6 +12,7 @@ import { TouchableOpacity } from 'react-native-gesture-handler'
 import { TabView } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 import {
   SSIconBlackIndicator,
@@ -758,7 +759,7 @@ export default function AccountList() {
   }
 
   return (
-    <>
+    <SafeAreaView style={{ flex: 1, paddingTop: 50 }} edges={['top']}>
       <Stack.Screen
         options={{
           headerTitle: () => (
@@ -904,6 +905,6 @@ export default function AccountList() {
           renderTabBar={renderTab}
         />
       </SSMainLayout>
-    </>
+    </SafeAreaView>
   )
 }

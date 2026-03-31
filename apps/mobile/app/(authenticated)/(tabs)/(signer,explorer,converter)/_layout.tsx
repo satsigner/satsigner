@@ -120,7 +120,7 @@ export default function StackLayout(params: { segment?: string }) {
   }, [params])
 
   return (
-    <SafeAreaView style={styles.container}>
+    <>
       <Stack
         screenOptions={{
           contentStyle: {
@@ -166,9 +166,9 @@ export default function StackLayout(params: { segment?: string }) {
           headerRight: () => <HeaderRight />,
           headerTintColor: Colors.gray[200],
           headerTitle: () => (
-            <SSText uppercase style={{ letterSpacing: 1 }}>
-              {t('app.name')}
-            </SSText>
+          <SSText uppercase style={{ letterSpacing: 1 }}>
+            {t('app.name')}
+          </SSText>
           ),
           headerTitleAlign: 'center'
         }}
@@ -176,7 +176,7 @@ export default function StackLayout(params: { segment?: string }) {
         {homeScreen}
       </Stack>
       <StatusBar style="light" />
-    </SafeAreaView>
+    </>
   )
 }
 

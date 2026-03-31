@@ -26,7 +26,7 @@ export default function SSMainLayout({
     [black, style]
   )
 
-  return <SafeAreaView style={containerStyle}>{children}</SafeAreaView>
+  return <SafeAreaView style={containerStyle} edges={['bottom']}>{children}</SafeAreaView>
 }
 
 const styles = StyleSheet.create({
