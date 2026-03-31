@@ -1,5 +1,5 @@
 import { Stack, useRouter } from 'expo-router'
-import { ScrollView, View } from 'react-native'
+import { ScrollView } from 'react-native'
 
 import {
   SSIconAbout,

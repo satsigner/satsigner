@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, View, Share, StyleSheet, TextInput } from 'react-native'
+import { ScrollView, Share, StyleSheet, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
