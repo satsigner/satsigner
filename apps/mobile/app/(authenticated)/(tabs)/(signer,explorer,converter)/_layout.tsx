@@ -120,7 +120,7 @@ export default function StackLayout(params: { segment?: string }) {
   }, [params])
 
   return (
-    <SafeAreaView style={styles.container }>
+    <SafeAreaView style={styles.container}>
       <Stack
         screenOptions={{
           contentStyle: {

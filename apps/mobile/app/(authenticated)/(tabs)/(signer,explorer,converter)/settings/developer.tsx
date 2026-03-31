@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, Share, StyleSheet, TextInput } from 'react-native'
+import { ScrollView, View, Share, StyleSheet, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -41,6 +41,7 @@ import {
 } from '@/utils/crypto'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function Developer() {
   const accounts = useAccountsStore((state) => state.accounts)
@@ -307,6 +308,7 @@ export default function Developer() {
       toast.error(`${t('settings.developer.storageClearFailed')}: ${message}`)
     }
   }
+  const insets = useSafeAreaInsets()
 
   return (
     <>
@@ -318,9 +320,10 @@ export default function Developer() {
           )
         }}
       />
-      <SSMainLayout>
-        <SSVStack gap="lg">
-          <SSVStack>
+      <SafeAreaView>
+        <SSMainLayout>
+          <SSVStack gap="lg">
+            <SSVStack>
             <SSButton
               label={t('settings.developer.backupData')}
               onPress={handleBackupData}
@@ -336,10 +339,10 @@ export default function Developer() {
                 setRecoverModalVisible(true)
               }}
               variant="secondary"
-            />
-          </SSVStack>
+              />
+            </SSVStack>
           <SSSeparator color="gradient" />
-          <SSVStack>
+            <SSVStack>
             <SSButton
               label={t('settings.developer.deleteAccounts')}
               onPress={() => setDeleteAccountsModalVisible(true)}
@@ -348,17 +351,17 @@ export default function Developer() {
               label={t('settings.developer.clearStorage')}
               onPress={() => setClearStorageModalVisible(true)}
             />
-          </SSVStack>
+            </SSVStack>
           <SSSeparator color="gradient" />
-          <SSVStack>
+            <SSVStack>
             <SSCheckbox
               label={t('settings.developer.skipPin')}
               selected={skipPin}
               onPress={() => setSkipPin(!skipPin)}
             />
-          </SSVStack>
-        </SSVStack>
-      </SSMainLayout>
+            </SSVStack>
+            </SSVStack>
+            </SSMainLayout>
       <SSModal
         visible={deleteAccountsModalVisible}
         onClose={() => setDeleteAccountsModalVisible(false)}
@@ -578,6 +581,7 @@ export default function Developer() {
           )}
         </SSVStack>
       </SSModal>
+      </SafeAreaView>
     </>
   )
 }

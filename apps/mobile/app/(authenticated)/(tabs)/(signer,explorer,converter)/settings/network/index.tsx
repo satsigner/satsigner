@@ -9,23 +9,24 @@ import {
 import SSSettingsCards from '@/components/SSSettingsCard'
 import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { tn as _tn } from '@/locales'
 
 const tn = _tn('settings.network')
 
 export default function Features() {
   const router = useRouter()
+  const insets = useSafeAreaInsets()
 
   return (
-    <>
+    <SafeAreaView style={{ paddingTop: insets.top }}>
       <Stack.Screen
         options={{
           headerRight: undefined,
           headerTitle: () => <SSText uppercase>{tn('title')}</SSText>
         }}
       />
-      <SSVStack justifyBetween>
-        <ScrollView>
+      <ScrollView style={{ paddingTop: insets.top }}>
           <SSVStack gap="lg">
             <SSVStack>
               <SSSettingsCards
@@ -54,8 +55,7 @@ export default function Features() {
               />
             </SSVStack>
           </SSVStack>
-        </ScrollView>
-      </SSVStack>
-    </>
+      </ScrollView>
+    </SafeAreaView>
   )
 }
