@@ -308,7 +308,6 @@ export default function Developer() {
       toast.error(`${t('settings.developer.storageClearFailed')}: ${message}`)
     }
   }
-  const insets = useSafeAreaInsets()
 
   return (
     <>
@@ -320,270 +319,266 @@ export default function Developer() {
           )
         }}
       />
-      <SafeAreaView>
-        <SSMainLayout>
-          <SSVStack gap="lg">
-            <SSVStack>
-              <SSButton
-                label={t('settings.developer.backupData')}
-                onPress={handleBackupData}
-                variant="secondary"
-              />
-              <SSButton
-                label={t('settings.developer.recoverData')}
-                onPress={() => {
-                  setRecoverEncryptedInput('')
-                  setRecoverPassphrase('')
-                  setRecoverDecrypted(null)
-                  setRecoverConfirmOverwrite(false)
-                  setRecoverModalVisible(true)
-                }}
-                variant="secondary"
-              />
-            </SSVStack>
-            <SSSeparator color="gradient" />
-            <SSVStack>
-              <SSButton
-                label={t('settings.developer.deleteAccounts')}
-                onPress={() => setDeleteAccountsModalVisible(true)}
-              />
-              <SSButton
-                label={t('settings.developer.clearStorage')}
-                onPress={() => setClearStorageModalVisible(true)}
-              />
-            </SSVStack>
-            <SSSeparator color="gradient" />
-            <SSVStack>
-              <SSCheckbox
-                label={t('settings.developer.skipPin')}
-                selected={skipPin}
-                onPress={() => setSkipPin(!skipPin)}
-              />
-            </SSVStack>
+      <SSMainLayout>
+        <SSVStack gap="lg">
+          <SSVStack>
+            <SSButton
+              label={t('settings.developer.backupData')}
+              onPress={handleBackupData}
+              variant="secondary"
+            />
+            <SSButton
+              label={t('settings.developer.recoverData')}
+              onPress={() => {
+                setRecoverEncryptedInput('')
+                setRecoverPassphrase('')
+                setRecoverDecrypted(null)
+                setRecoverConfirmOverwrite(false)
+                setRecoverModalVisible(true)
+              }}
+              variant="secondary"
+            />
           </SSVStack>
-        </SSMainLayout>
-        <SSModal
-          visible={deleteAccountsModalVisible}
-          onClose={() => setDeleteAccountsModalVisible(false)}
-          label={t('common.cancel')}
-          closeButtonVariant="ghost"
-          fullOpacity
-        >
-          <SSVStack gap="lg" style={{ paddingVertical: 8 }}>
-            <SSVStack gap="xs" style={{ alignItems: 'center' }}>
-              <SSIconWarning
-                height={20}
-                width={20}
-                fill="transparent"
-                stroke={Colors.gray[400]}
-              />
-              <SSText center color="muted">
-                {t('settings.developer.deleteAccountsWarning')}
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="sm">
-              <SSButton
-                label={t('settings.developer.backupData')}
-                onPress={handleBackupData}
-                variant="secondary"
-              />
-              <SSButton
-                label={t('settings.developer.deleteAccountsConfirm')}
-                onPress={handleDeleteAccounts}
-                variant="danger"
-              />
-            </SSVStack>
+          <SSSeparator color="gradient" />
+          <SSVStack>
+            <SSButton
+              label={t('settings.developer.deleteAccounts')}
+              onPress={() => setDeleteAccountsModalVisible(true)}
+            />
+            <SSButton
+              label={t('settings.developer.clearStorage')}
+              onPress={() => setClearStorageModalVisible(true)}
+            />
           </SSVStack>
-        </SSModal>
-        <SSModal
-          visible={clearStorageModalVisible}
-          onClose={() => setClearStorageModalVisible(false)}
-          label={t('common.cancel')}
-          closeButtonVariant="ghost"
-          fullOpacity
-        >
-          <SSVStack gap="lg" style={{ paddingVertical: 8 }}>
-            <SSVStack gap="xs" style={{ alignItems: 'center' }}>
-              <SSIconWarning
-                height={20}
-                width={20}
-                fill="transparent"
-                stroke={Colors.gray[400]}
-              />
-              <SSText center color="muted">
-                {t('settings.developer.clearStorageWarning')}
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="sm">
-              <SSButton
-                label={t('settings.developer.backupData')}
-                onPress={handleBackupData}
-                variant="secondary"
-              />
-              <SSButton
-                label={t('settings.developer.clearStorageConfirm')}
-                onPress={handleClearStorage}
-                variant="danger"
-              />
-            </SSVStack>
+          <SSSeparator color="gradient" />
+          <SSVStack>
+            <SSCheckbox
+              label={t('settings.developer.skipPin')}
+              selected={skipPin}
+              onPress={() => setSkipPin(!skipPin)}
+            />
           </SSVStack>
-        </SSModal>
-        <SSModal
-          visible={backupPreviewVisible}
-          onClose={() => {
-            setBackupPreviewVisible(false)
-            setBackupPreviewPayload(null)
-            setBackupPassphrase('')
-          }}
-          label={t('common.cancel')}
-          closeButtonVariant="ghost"
-          fullOpacity
-        >
-          <SSVStack gap="lg" style={styles.backupPreviewModal}>
-            <SSText center size="lg" uppercase>
-              {t('settings.developer.backupModalTitle')}
+        </SSVStack>
+      </SSMainLayout>
+      <SSModal
+        visible={deleteAccountsModalVisible}
+        onClose={() => setDeleteAccountsModalVisible(false)}
+        label={t('common.cancel')}
+        closeButtonVariant="ghost"
+        fullOpacity
+      >
+        <SSVStack gap="lg" style={{ paddingVertical: 8 }}>
+          <SSVStack gap="xs" style={{ alignItems: 'center' }}>
+            <SSIconWarning
+              height={20}
+              width={20}
+              fill="transparent"
+              stroke={Colors.gray[400]}
+            />
+            <SSText center color="muted">
+              {t('settings.developer.deleteAccountsWarning')}
             </SSText>
-            <SSText center color="muted" size="sm">
-              {t('settings.developer.backupPreviewWarning')}
+          </SSVStack>
+          <SSVStack gap="sm">
+            <SSButton
+              label={t('settings.developer.backupData')}
+              onPress={handleBackupData}
+              variant="secondary"
+            />
+            <SSButton
+              label={t('settings.developer.deleteAccountsConfirm')}
+              onPress={handleDeleteAccounts}
+              variant="danger"
+            />
+          </SSVStack>
+        </SSVStack>
+      </SSModal>
+      <SSModal
+        visible={clearStorageModalVisible}
+        onClose={() => setClearStorageModalVisible(false)}
+        label={t('common.cancel')}
+        closeButtonVariant="ghost"
+        fullOpacity
+      >
+        <SSVStack gap="lg" style={{ paddingVertical: 8 }}>
+          <SSVStack gap="xs" style={{ alignItems: 'center' }}>
+            <SSIconWarning
+              height={20}
+              width={20}
+              fill="transparent"
+              stroke={Colors.gray[400]}
+            />
+            <SSText center color="muted">
+              {t('settings.developer.clearStorageWarning')}
             </SSText>
-            <ScrollView
-              style={styles.modalTextAreaScroll}
-              contentContainerStyle={styles.modalTextAreaScrollContent}
-            >
-              <TextInput
-                editable={false}
-                multiline
-                style={styles.backupPreviewText}
-                value={backupPreviewPayload ?? ''}
-              />
-            </ScrollView>
-            <SSVStack gap="xs">
-              <SSText color="muted" size="sm">
-                {t('settings.developer.backupPassphraseLabel')}
-              </SSText>
-              <TextInput
-                placeholder={t(
-                  'settings.developer.backupPassphrasePlaceholder'
-                )}
-                secureTextEntry
-                style={styles.passphraseInput}
-                value={backupPassphrase}
-                onChangeText={setBackupPassphrase}
-              />
-              <SSText color="muted" size="xs">
-                {t('settings.developer.backupPassphraseAllowed')}
-              </SSText>
-            </SSVStack>
+          </SSVStack>
+          <SSVStack gap="sm">
+            <SSButton
+              label={t('settings.developer.backupData')}
+              onPress={handleBackupData}
+              variant="secondary"
+            />
+            <SSButton
+              label={t('settings.developer.clearStorageConfirm')}
+              onPress={handleClearStorage}
+              variant="danger"
+            />
+          </SSVStack>
+        </SSVStack>
+      </SSModal>
+      <SSModal
+        visible={backupPreviewVisible}
+        onClose={() => {
+          setBackupPreviewVisible(false)
+          setBackupPreviewPayload(null)
+          setBackupPassphrase('')
+        }}
+        label={t('common.cancel')}
+        closeButtonVariant="ghost"
+        fullOpacity
+      >
+        <SSVStack gap="lg" style={styles.backupPreviewModal}>
+          <SSText center size="lg" uppercase>
+            {t('settings.developer.backupModalTitle')}
+          </SSText>
+          <SSText center color="muted" size="sm">
+            {t('settings.developer.backupPreviewWarning')}
+          </SSText>
+          <ScrollView
+            style={styles.modalTextAreaScroll}
+            contentContainerStyle={styles.modalTextAreaScrollContent}
+          >
+            <TextInput
+              editable={false}
+              multiline
+              style={styles.backupPreviewText}
+              value={backupPreviewPayload ?? ''}
+            />
+          </ScrollView>
+          <SSVStack gap="xs">
+            <SSText color="muted" size="sm">
+              {t('settings.developer.backupPassphraseLabel')}
+            </SSText>
+            <TextInput
+              placeholder={t('settings.developer.backupPassphrasePlaceholder')}
+              secureTextEntry
+              style={styles.passphraseInput}
+              value={backupPassphrase}
+              onChangeText={setBackupPassphrase}
+            />
             <SSText color="muted" size="xs">
-              {t('settings.developer.backupEncryptionNote')}
+              {t('settings.developer.backupPassphraseAllowed')}
             </SSText>
-            <SSVStack gap="sm">
-              <SSButton
-                label={t('settings.developer.backupEncryptShare')}
-                onPress={handleEncryptAndShare}
-                variant="default"
-              />
-            </SSVStack>
           </SSVStack>
-        </SSModal>
-        <SSModal
-          visible={recoverModalVisible}
-          onClose={() => {
-            setRecoverModalVisible(false)
-            setRecoverEncryptedInput('')
-            setRecoverPassphrase('')
-            setRecoverDecrypted(null)
-            setRecoverConfirmOverwrite(false)
-          }}
-          label={t('common.cancel')}
-          closeButtonVariant="ghost"
-          fullOpacity
-        >
-          <SSVStack gap="lg" style={styles.recoverModal}>
-            <SSText center size="lg" uppercase>
-              {t('settings.developer.recoverTitle')}
-            </SSText>
-            {recoverDecrypted === null ? (
-              <>
-                <SSVStack gap="xs">
-                  <SSText color="muted" size="sm">
-                    {t('settings.developer.recoverEncryptedLabel')}
-                  </SSText>
-                  <ScrollView
-                    style={styles.modalTextAreaScroll}
-                    contentContainerStyle={styles.modalTextAreaScrollContent}
-                  >
-                    <TextInput
-                      placeholder={t(
-                        'settings.developer.recoverEncryptedPlaceholder'
-                      )}
-                      style={styles.backupPreviewText}
-                      multiline
-                      value={recoverEncryptedInput}
-                      onChangeText={setRecoverEncryptedInput}
-                    />
-                  </ScrollView>
-                  <SSButton
-                    label={t('common.paste')}
-                    onPress={handleRecoverPaste}
-                    variant="secondary"
-                  />
-                </SSVStack>
-                <SSVStack gap="xs">
-                  <SSText color="muted" size="sm">
-                    {t('settings.developer.backupPassphraseLabel')}
-                  </SSText>
+          <SSText color="muted" size="xs">
+            {t('settings.developer.backupEncryptionNote')}
+          </SSText>
+          <SSVStack gap="sm">
+            <SSButton
+              label={t('settings.developer.backupEncryptShare')}
+              onPress={handleEncryptAndShare}
+              variant="default"
+            />
+          </SSVStack>
+        </SSVStack>
+      </SSModal>
+      <SSModal
+        visible={recoverModalVisible}
+        onClose={() => {
+          setRecoverModalVisible(false)
+          setRecoverEncryptedInput('')
+          setRecoverPassphrase('')
+          setRecoverDecrypted(null)
+          setRecoverConfirmOverwrite(false)
+        }}
+        label={t('common.cancel')}
+        closeButtonVariant="ghost"
+        fullOpacity
+      >
+        <SSVStack gap="lg" style={styles.recoverModal}>
+          <SSText center size="lg" uppercase>
+            {t('settings.developer.recoverTitle')}
+          </SSText>
+          {recoverDecrypted === null ? (
+            <>
+              <SSVStack gap="xs">
+                <SSText color="muted" size="sm">
+                  {t('settings.developer.recoverEncryptedLabel')}
+                </SSText>
+                <ScrollView
+                  style={styles.modalTextAreaScroll}
+                  contentContainerStyle={styles.modalTextAreaScrollContent}
+                >
                   <TextInput
                     placeholder={t(
-                      'settings.developer.recoverPassphrasePlaceholder'
+                      'settings.developer.recoverEncryptedPlaceholder'
                     )}
-                    secureTextEntry
-                    style={styles.passphraseInput}
-                    value={recoverPassphrase}
-                    onChangeText={setRecoverPassphrase}
+                    style={styles.backupPreviewText}
+                    multiline
+                    value={recoverEncryptedInput}
+                    onChangeText={setRecoverEncryptedInput}
                   />
-                </SSVStack>
+                </ScrollView>
                 <SSButton
-                  label={t('settings.developer.recoverDecrypt')}
-                  onPress={handleRecoverDecrypt}
+                  label={t('common.paste')}
+                  onPress={handleRecoverPaste}
                   variant="secondary"
                 />
-              </>
-            ) : (
-              <>
-                <SSVStack gap="xs">
-                  <SSText color="muted" size="sm">
-                    {t('settings.developer.recoverDecryptedLabel')}
-                  </SSText>
-                  <ScrollView
-                    style={styles.modalTextAreaScroll}
-                    contentContainerStyle={styles.modalTextAreaScrollContent}
-                  >
-                    <TextInput
-                      editable={false}
-                      multiline
-                      style={styles.backupPreviewText}
-                      value={recoverDecrypted}
-                    />
-                  </ScrollView>
-                </SSVStack>
-                <SSButton
-                  label={t('settings.developer.recoverOverwrite')}
-                  onPress={() => setRecoverConfirmOverwrite(true)}
-                  variant="secondary"
+              </SSVStack>
+              <SSVStack gap="xs">
+                <SSText color="muted" size="sm">
+                  {t('settings.developer.backupPassphraseLabel')}
+                </SSText>
+                <TextInput
+                  placeholder={t(
+                    'settings.developer.recoverPassphrasePlaceholder'
+                  )}
+                  secureTextEntry
+                  style={styles.passphraseInput}
+                  value={recoverPassphrase}
+                  onChangeText={setRecoverPassphrase}
                 />
-                {recoverConfirmOverwrite && (
-                  <SSButton
-                    label={t('settings.developer.recoverImSure')}
-                    onPress={handleRecoverImSure}
-                    variant="danger"
+              </SSVStack>
+              <SSButton
+                label={t('settings.developer.recoverDecrypt')}
+                onPress={handleRecoverDecrypt}
+                variant="secondary"
+              />
+            </>
+          ) : (
+            <>
+              <SSVStack gap="xs">
+                <SSText color="muted" size="sm">
+                  {t('settings.developer.recoverDecryptedLabel')}
+                </SSText>
+                <ScrollView
+                  style={styles.modalTextAreaScroll}
+                  contentContainerStyle={styles.modalTextAreaScrollContent}
+                >
+                  <TextInput
+                    editable={false}
+                    multiline
+                    style={styles.backupPreviewText}
+                    value={recoverDecrypted}
                   />
-                )}
-              </>
-            )}
-          </SSVStack>
-        </SSModal>
-      </SafeAreaView>
+                </ScrollView>
+              </SSVStack>
+              <SSButton
+                label={t('settings.developer.recoverOverwrite')}
+                onPress={() => setRecoverConfirmOverwrite(true)}
+                variant="secondary"
+              />
+              {recoverConfirmOverwrite && (
+                <SSButton
+                  label={t('settings.developer.recoverImSure')}
+                  onPress={handleRecoverImSure}
+                  variant="danger"
+                />
+              )}
+            </>
+          )}
+        </SSVStack>
+      </SSModal>
     </>
   )
 }
