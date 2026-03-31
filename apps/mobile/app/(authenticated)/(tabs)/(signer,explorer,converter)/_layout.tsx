@@ -12,7 +12,7 @@ import {
 } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useMemo, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -179,10 +179,3 @@ export default function StackLayout(params: { segment?: string }) {
     </>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: Colors.gray[950],
-    flex: 1
-  }
-})

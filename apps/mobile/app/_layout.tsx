@@ -14,7 +14,7 @@ import {
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import NfcManager from 'react-native-nfc-manager'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
-import { toast, Toaster } from 'sonner-native'
+import { Toaster } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
