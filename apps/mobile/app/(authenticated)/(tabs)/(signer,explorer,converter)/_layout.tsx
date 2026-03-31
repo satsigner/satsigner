@@ -119,11 +119,12 @@ export default function StackLayout(params: { segment?: string }) {
   }, [params])
 
   return (
-    <View style={styles.container}>
+    <>
       <Stack
         screenOptions={{
           contentStyle: {
-            backgroundColor: Colors.gray[950]
+            backgroundColor: Colors.gray[950],
+            paddingTop: 100
           },
           headerBackVisible: false,
           headerBackground: () => (
@@ -175,7 +176,7 @@ export default function StackLayout(params: { segment?: string }) {
         {homeScreen}
       </Stack>
       <StatusBar style="light" />
-    </View>
+    </>
   )
 }
 

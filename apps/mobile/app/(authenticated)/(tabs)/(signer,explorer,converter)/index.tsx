@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
