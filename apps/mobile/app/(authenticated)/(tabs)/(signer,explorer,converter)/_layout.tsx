@@ -1,42 +1,42 @@
-import "@/shim";
+import '@/shim'
 import {
   type DrawerNavigationProp,
-  useDrawerStatus,
-} from "@react-navigation/drawer";
+  useDrawerStatus
+} from '@react-navigation/drawer'
 import {
   Stack,
   useNavigation,
   usePathname,
   useRouter,
-  useSegments,
-} from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { useEffect, useMemo, useState } from "react";
-import { StyleSheet, View } from "react-native";
-import { useShallow } from "zustand/react/shallow";
+  useSegments
+} from 'expo-router'
+import { StatusBar } from 'expo-status-bar'
+import { useEffect, useMemo, useState } from 'react'
+import { StyleSheet, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import { useShallow } from 'zustand/react/shallow'
 
 import {
   SSIconCloseThin,
   SSIconEyeOff,
   SSIconEyeOn,
   SSIconHamburger,
-  SSIconSettings,
-} from "@/components/icons";
-import SSIconBackArrow from "@/components/icons/SSIconBackArrow";
-import SSIconButton from "@/components/SSIconButton";
-import SSText from "@/components/SSText";
-import SSHStack from "@/layouts/SSHStack";
-import { t } from "@/locales";
-import { useSettingsStore } from "@/store/settings";
-import { Colors } from "@/styles";
-import { showNavigation } from "@/utils/navigation";
-import { SafeAreaView } from "react-native-safe-area-context";
+  SSIconSettings
+} from '@/components/icons'
+import SSIconBackArrow from '@/components/icons/SSIconBackArrow'
+import SSIconButton from '@/components/SSIconButton'
+import SSText from '@/components/SSText'
+import SSHStack from '@/layouts/SSHStack'
+import { t } from '@/locales'
+import { useSettingsStore } from '@/store/settings'
+import { Colors } from '@/styles'
+import { showNavigation } from '@/utils/navigation'
 
 function HeaderRight() {
-  const router = useRouter();
+  const router = useRouter()
   const [privacyMode, togglePrivacyMode] = useSettingsStore(
-    useShallow((state) => [state.privacyMode, state.togglePrivacyMode]),
-  );
+    useShallow((state) => [state.privacyMode, state.togglePrivacyMode])
+  )
   return (
     <SSHStack gap="sm">
       <SSIconButton onPress={togglePrivacyMode}>
@@ -48,76 +48,76 @@ function HeaderRight() {
       </SSIconButton>
       <SSIconButton
         style={{ marginRight: 8 }}
-        onPress={() => router.navigate("/settings/")}
+        onPress={() => router.navigate('/settings/')}
       >
         <SSIconSettings height={18} width={18} />
       </SSIconButton>
     </SSHStack>
-  );
+  )
 }
 
 export default function StackLayout(params: { segment?: string }) {
-  const currentPath = usePathname();
-  const segments = useSegments();
-  const [isShowNav, setShowNav] = useState(false);
+  const currentPath = usePathname()
+  const segments = useSegments()
+  const [isShowNav, setShowNav] = useState(false)
 
   useEffect(() => {
-    setShowNav(showNavigation(currentPath, segments.length));
-  }, [currentPath, segments]);
+    setShowNav(showNavigation(currentPath, segments.length))
+  }, [currentPath, segments])
 
-  const router = useRouter();
-  const nav = useNavigation<DrawerNavigationProp<Record<string, undefined>>>();
+  const router = useRouter()
+  const nav = useNavigation<DrawerNavigationProp<Record<string, undefined>>>()
 
-  const isDrawerOpen = useDrawerStatus() === "open";
+  const isDrawerOpen = useDrawerStatus() === 'open'
 
   const homeScreen = useMemo(() => {
     switch (params?.segment) {
-      case "(signer)":
+      case '(signer)':
         return (
           <Stack.Screen
             name="index"
             initialParams={{
               segment: params?.segment,
-              tab: t("navigation.label.signer"),
+              tab: t('navigation.label.signer')
             }}
-            options={{ title: "Signer" }}
+            options={{ title: 'Signer' }}
           />
-        );
-      case "(explorer)":
+        )
+      case '(explorer)':
         return (
           <Stack.Screen
             name="index"
             initialParams={{
               segment: params?.segment,
-              tab: t("navigation.label.explorer"),
+              tab: t('navigation.label.explorer')
             }}
-            options={{ title: "Explore" }}
+            options={{ title: 'Explore' }}
           />
-        );
-      case "(converter)":
+        )
+      case '(converter)':
         return (
           <Stack.Screen
             name="index"
             initialParams={{
               segment: params?.segment,
-              tab: t("navigation.label.converter"),
+              tab: t('navigation.label.converter')
             }}
-            options={{ title: "Converter" }}
+            options={{ title: 'Converter' }}
           />
-        );
+        )
       default:
         return (
           <Stack.Screen
             name="index"
             initialParams={{
               segment: params?.segment,
-              tab: t("navigation.label.signer"),
+              tab: t('navigation.label.signer')
             }}
-            options={{ title: "Signer" }}
+            options={{ title: 'Signer' }}
           />
-        );
+        )
     }
-  }, [params]);
+  }, [params])
 
   return (
     <>
@@ -125,16 +125,16 @@ export default function StackLayout(params: { segment?: string }) {
         screenOptions={{
           contentStyle: {
             backgroundColor: Colors.gray[950],
-            paddingTop: 100,
+            paddingTop: 100
           },
           headerBackVisible: false,
           headerBackground: () => (
             <View
               style={{
-                alignItems: "center",
+                alignItems: 'center',
                 backgroundColor: Colors.gray[950],
-                height: "100%",
-                justifyContent: "center",
+                height: '100%',
+                justifyContent: 'center'
               }}
             />
           ),
@@ -157,7 +157,7 @@ export default function StackLayout(params: { segment?: string }) {
                     height: 30,
                     paddingHorizontal: 8,
                     paddingTop: 8,
-                    width: 30,
+                    width: 30
                   }}
                   onPress={() => router.back()}
                 >
@@ -168,22 +168,22 @@ export default function StackLayout(params: { segment?: string }) {
           headerTintColor: Colors.gray[200],
           headerTitle: () => (
             <SSText uppercase style={{ letterSpacing: 1 }}>
-              {t("app.name")}
+              {t('app.name')}
             </SSText>
           ),
-          headerTitleAlign: "center",
+          headerTitleAlign: 'center'
         }}
       >
         {homeScreen}
       </Stack>
       <StatusBar style="light" />
     </>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.gray[950],
-    flex: 1,
-  },
-});
+    flex: 1
+  }
+})

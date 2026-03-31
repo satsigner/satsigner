@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -10,7 +11,6 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { Colors } from '@/styles'
 import { type NavMenuItem } from '@/types/navigation/navMenu'
-import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function Home() {
   const { tab, segment } = useLocalSearchParams()

@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { Colors, Layout } from '@/styles'
-import { SafeAreaView } from 'react-native-safe-area-context'
 
 type SSMainLayoutProps = {
   black?: boolean
@@ -21,12 +21,16 @@ export default function SSMainLayout({
           ...styles.containerBase,
           ...{ backgroundColor: black ? Colors.black : Colors.gray[950] }
         },
-        [style],
+        [style]
       ),
     [black, style]
   )
 
-  return <SafeAreaView style={containerStyle} edges={['bottom']}>{children}</SafeAreaView>
+  return (
+    <SafeAreaView style={containerStyle} edges={['bottom']}>
+      {children}
+    </SafeAreaView>
+  )
 }
 
 const styles = StyleSheet.create({

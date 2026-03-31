@@ -13,6 +13,7 @@ import {
 } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import NfcManager from 'react-native-nfc-manager'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { toast, Toaster } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -22,7 +23,6 @@ import {
 } from '@/storage/mmkv'
 import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
-import { SafeAreaProvider } from 'react-native-safe-area-context'
 
 if (Platform.OS === 'android') {
   SystemUI.setBackgroundColorAsync(Colors.gray[950])
@@ -73,7 +73,6 @@ export default function RootLayout() {
     // Initialize NFC manager
     NfcManager.start().catch(() => {
       // Show a toast notification only in development
-
       // turn this off for now, too annoying!!
       // if (__DEV__) {
       //   toast.error('NFC initialization failed', {
@@ -113,7 +112,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <GestureHandlerRootView >
+        <GestureHandlerRootView>
           {privacyScreenVisible && <View style={styles.privacyScreen} />}
           <Toaster
             theme="dark"
@@ -138,7 +137,7 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.gray[950],
-    flex: 1,
+    flex: 1
   },
   privacyScreen: {
     ...StyleSheet.absoluteFillObject,
