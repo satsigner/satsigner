@@ -30,6 +30,7 @@ import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { showNavigation } from '@/utils/navigation'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 function HeaderRight() {
   const router = useRouter()
@@ -119,7 +120,7 @@ export default function StackLayout(params: { segment?: string }) {
   }, [params])
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container }>
       <Stack
         screenOptions={{
           contentStyle: {
@@ -175,7 +176,7 @@ export default function StackLayout(params: { segment?: string }) {
         {homeScreen}
       </Stack>
       <StatusBar style="light" />
-    </View>
+    </SafeAreaView>
   )
 }
 

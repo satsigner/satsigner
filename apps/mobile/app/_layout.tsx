@@ -22,6 +22,7 @@ import {
 } from '@/storage/mmkv'
 import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 
 if (Platform.OS === 'android') {
   SystemUI.setBackgroundColorAsync(Colors.gray[950])
@@ -72,12 +73,14 @@ export default function RootLayout() {
     // Initialize NFC manager
     NfcManager.start().catch(() => {
       // Show a toast notification only in development
-      if (__DEV__) {
-        toast.error('NFC initialization failed', {
-          description:
-            'This is expected in emulators and devices without NFC support'
-        })
-      }
+
+      // turn this off for now, too annoying!!
+      // if (__DEV__) {
+      //   toast.error('NFC initialization failed', {
+      //     description:
+      //       'This is expected in emulators and devices without NFC support'
+      //   })
+      // }
     })
   }, [])
 
@@ -108,23 +111,25 @@ export default function RootLayout() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView style={styles.container}>
-        <Slot />
-        {privacyScreenVisible && <View style={styles.privacyScreen} />}
-        <Toaster
-          theme="dark"
-          position="top-center"
-          style={{
-            backgroundColor: Colors.gray[950],
-            borderColor: Colors.gray[800],
-            borderRadius: 8,
-            borderWidth: 1,
-            zIndex: 999999
-          }}
-        />
-      </GestureHandlerRootView>
-    </QueryClientProvider>
+    <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <GestureHandlerRootView style={styles.container}>
+          <Slot />
+          {privacyScreenVisible && <View style={styles.privacyScreen} />}
+          <Toaster
+            theme="dark"
+            position="top-center"
+            style={{
+              backgroundColor: Colors.gray[950],
+              borderColor: Colors.gray[800],
+              borderRadius: 8,
+              borderWidth: 1,
+              zIndex: 999999
+            }}
+          />
+        </GestureHandlerRootView>
+      </QueryClientProvider>
+    </SafeAreaProvider>
   )
 }
 
