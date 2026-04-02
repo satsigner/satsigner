@@ -5,7 +5,14 @@
     "./node_modules/ultracite/config/oxlint/react/.oxlintrc.json",
     "./node_modules/ultracite/config/oxlint/next/.oxlintrc.json"
   ],
-  "ignorePatterns": [".agents", ".claude", ".cursor", "**/android", "**/ios"],
+  "ignorePatterns": [
+    ".agents",
+    ".claude",
+    ".cursor",
+    "**/android",
+    "**/ios",
+    "**/utils/polyfills.ts"
+  ],
   "rules": {
     "no-use-before-define": "allow",
     "oxc/approx-constant": "allow",
