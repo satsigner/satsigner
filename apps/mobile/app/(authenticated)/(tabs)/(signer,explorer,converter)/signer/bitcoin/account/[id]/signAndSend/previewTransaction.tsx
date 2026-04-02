@@ -2726,7 +2726,6 @@ function PreviewTransaction() {
                 actionButtonVariant="secondary"
                 onActionButtonPress={handleSeedWordsSubmit}
                 actionButtonDisabled={false}
-                actionButtonLoading={false}
                 showCancelButton={false}
                 autoCheckClipboard
                 onWordSelectorStateChange={setWordSelectorState}

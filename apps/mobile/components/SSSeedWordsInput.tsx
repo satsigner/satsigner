@@ -54,9 +54,8 @@ type SSSeedWordsInputProps = {
     | 'subtle'
     | 'gradient'
     | 'danger'
-  onActionButtonPress?: () => void
+  onActionButtonPress?: () => void | Promise<void>
   actionButtonDisabled?: boolean
-  actionButtonLoading?: boolean
   cancelButtonLabel?: string
   onCancelButtonPress?: () => void
   showCancelButton?: boolean
@@ -92,7 +91,6 @@ export default function SSSeedWordsInput({
   actionButtonVariant = 'secondary',
   onActionButtonPress,
   actionButtonDisabled = false,
-  actionButtonLoading = false,
   cancelButtonLabel = 'Cancel',
   onCancelButtonPress,
   showCancelButton = true,
@@ -110,6 +108,7 @@ export default function SSSeedWordsInput({
   const [fingerprint, setFingerprint] = useState('')
   const [passphrase, setPassphrase] = useState('')
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
+  const [actionButtonLoading, setActionButtonLoading] = useState(false)
 
   const wordList = getWordList(wordListName)
   const passphraseRef = useRef<TextInput>(null)
@@ -532,7 +531,14 @@ export default function SSSeedWordsInput({
               actionButtonDisabled || (!checksumValid && !electrumSeedType)
             }
             loading={actionButtonLoading}
-            onPress={onActionButtonPress}
+            onPress={async () => {
+              setActionButtonLoading(true)
+              try {
+                await onActionButtonPress?.()
+              } finally {
+                setActionButtonLoading(false)
+              }
+            }}
           />
         )}
         {showCancelButton && (

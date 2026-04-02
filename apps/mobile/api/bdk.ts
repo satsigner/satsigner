@@ -1,9 +1,8 @@
 import * as FileSystem from 'expo-file-system'
 import {
   addressFromScript,
-  bdkCreateWallet,
+  BdkWallet,
   BdkTxBuilder,
-  type BdkWallet,
   createPublicDescriptor,
   DescriptorTemplate,
   KeychainKind,
@@ -71,6 +70,12 @@ async function ensureWalletsDir() {
   }
 }
 
+// expo-file-system returns file:// URIs on Android, but Rust's SQLite
+// expects a plain filesystem path. Strip the scheme if present.
+function uriToPath(uri: string): string {
+  return uri.startsWith('file://') ? uri.slice('file://'.length) : uri
+}
+
 async function getWalletDbPath(
   externalDescriptor: string,
   internalDescriptor: string | undefined,
@@ -82,7 +87,7 @@ async function getWalletDbPath(
     internalDescriptor,
     network
   )
-  return `${WALLETS_DIR}${name}.sqlite`
+  return uriToPath(`${WALLETS_DIR}${name}.sqlite`)
 }
 
 type WalletData = {
@@ -409,7 +414,6 @@ async function getWalletDataFromMnemonic(
     passphrase,
     network
   )
-
   const internalDescriptor = await getDescriptorString(
     mnemonic,
     scriptVersion,
@@ -441,7 +445,6 @@ function getDescriptorString(
   passphrase: Secret['passphrase'],
   network: Network
 ) {
-  // Check for Electrum seed — uses different seed derivation and path
   const electrumType = detectElectrumSeed(mnemonic)
   if (electrumType) {
     return getPrivateDescriptorFromElectrumMnemonic(
@@ -496,12 +499,7 @@ async function getWalletFromDescriptor(
     internalDescriptor,
     network
   )
-  return bdkCreateWallet(
-    externalDescriptor,
-    internalDescriptor,
-    network,
-    dbPath
-  )
+  return new BdkWallet(externalDescriptor, internalDescriptor, network, dbPath)
 }
 
 async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
