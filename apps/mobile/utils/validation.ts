@@ -44,18 +44,34 @@ export function validateFingerprint(fingerprint: string) {
 
 // Function to validate descriptor checksum using BDK
 function validateDescriptorChecksum(descriptor: string) {
-  return (
+  // Try the descriptor as-is first (works for h-notation with valid checksum)
+  if (
     bdkValidateDescriptor(descriptor, Network.Bitcoin) ||
     bdkValidateDescriptor(descriptor, Network.Testnet)
+  ) {
+    return true
+  }
+  // Fall back: normalize ' → h and strip checksum (for '-notation descriptors)
+  const normalized = descriptor.replace(/#\w+$/, '').replace(/'/g, 'h')
+  return (
+    bdkValidateDescriptor(normalized, Network.Bitcoin) ||
+    bdkValidateDescriptor(normalized, Network.Testnet)
   )
 }
 
-export function validateDescriptor(descriptor: string) {
-  return validateDescriptorInternal(descriptor, true)
+// Cache of descriptor validation results for reactive UI feedback
+export const descriptorValidityCache = new Map<string, boolean>()
+
+export async function validateDescriptor(descriptor: string) {
+  const result = await validateDescriptorInternal(descriptor, true)
+  descriptorValidityCache.set(descriptor, result)
+  return result
 }
 
-export function validateDescriptorFormat(descriptor: string) {
-  return validateDescriptorInternal(descriptor, false)
+export async function validateDescriptorFormat(descriptor: string) {
+  const result = await validateDescriptorInternal(descriptor, false)
+  descriptorValidityCache.set(descriptor, result)
+  return result
 }
 
 async function validateDescriptorInternal(
@@ -80,7 +96,7 @@ async function validateDescriptorInternal(
 
   // auxiliary regex to extract nested items
   // Use a more lenient regex to handle truncated checksums
-  const checksumRegex = new RegExp(`#[a-z0-9]{1,8}$`)
+  const checksumRegex = new RegExp(`#[a-zA-Z0-9]{1,8}$`)
   const nestedKindRegex = new RegExp(`^${nestedKind}\\(`)
 
   // main regex to parse the descriptor

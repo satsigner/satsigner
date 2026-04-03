@@ -66,13 +66,13 @@ export const DescriptorUtils = {
   },
 
   getScriptVersionFromDerivation(derivationPath: string): ScriptVersionType {
-    if (derivationPath.includes("84'")) {
+    if (derivationPath.includes("84'") || derivationPath.includes('84h')) {
       return 'P2WPKH'
     }
-    if (derivationPath.includes("49'")) {
+    if (derivationPath.includes("49'") || derivationPath.includes('49h')) {
       return 'P2SH-P2WPKH'
     }
-    if (derivationPath.includes("44'")) {
+    if (derivationPath.includes("44'") || derivationPath.includes('44h')) {
       return 'P2PKH'
     }
     return 'P2WPKH' // Default fallback

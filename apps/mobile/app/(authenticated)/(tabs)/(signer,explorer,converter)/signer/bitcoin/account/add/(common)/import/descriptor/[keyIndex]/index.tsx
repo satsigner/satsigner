@@ -3,7 +3,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Animated, ScrollView, StyleSheet, View } from 'react-native'
+import { Animated, ScrollView, View } from 'react-native'
 import { type Network as _Network } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -174,7 +174,6 @@ export default function ImportDescriptor() {
         scriptVersion
       )
     }
-
     const validExternalDescriptor =
       basicValidation && networkValidation.isValid && scriptVersionValidation
 
@@ -690,15 +689,6 @@ export default function ImportDescriptor() {
     }
   }
 
-  const _styles = StyleSheet.create({
-    invalid: {
-      borderColor: Colors.error,
-      borderWidth: 1,
-      height: 'auto',
-      paddingVertical: 10
-    },
-    valid: { height: 'auto', paddingVertical: 10 }
-  })
 
   function getDefaultDerivationPath(): string {
     // Check if we're in multisig mode to use the correct derivation path function
@@ -730,8 +720,13 @@ export default function ImportDescriptor() {
                 <SSText center>{t('watchonly.importDescriptor.label')}</SSText>
                 <SSTextInput
                   value={externalDescriptor}
-                  style={
-                    validExternalDescriptor ? _styles.valid : _styles.invalid
+                  style={{ height: 'auto', paddingVertical: 10 }}
+                  status={
+                    !externalDescriptor
+                      ? undefined
+                      : validExternalDescriptor
+                        ? 'valid'
+                        : 'invalid'
                   }
                   onChangeText={updateExternalDescriptor}
                   multiline
@@ -755,8 +750,13 @@ export default function ImportDescriptor() {
                 </SSText>
                 <SSTextInput
                   value={internalDescriptor}
-                  style={
-                    validInternalDescriptor ? _styles.valid : _styles.invalid
+                  style={{ height: 'auto', paddingVertical: 10 }}
+                  status={
+                    !internalDescriptor
+                      ? undefined
+                      : validInternalDescriptor
+                        ? 'valid'
+                        : 'invalid'
                   }
                   multiline
                   onChangeText={updateInternalDescriptor}

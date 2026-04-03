@@ -494,12 +494,10 @@ async function getWalletFromDescriptor(
   internalDescriptor: string | undefined,
   network: Network
 ): Promise<BdkWallet> {
-  const dbPath = await getWalletDbPath(
-    externalDescriptor,
-    internalDescriptor,
-    network
-  )
-  return new BdkWallet(externalDescriptor, internalDescriptor, network, dbPath)
+  const ext = externalDescriptor.replace(/#\w+$/, '').replace(/'/g, 'h')
+  const int = internalDescriptor?.replace(/#\w+$/, '').replace(/'/g, 'h')
+  const dbPath = await getWalletDbPath(ext, int, network)
+  return new BdkWallet(ext, int, network, dbPath)
 }
 
 async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {

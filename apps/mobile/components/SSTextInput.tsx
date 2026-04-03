@@ -2,12 +2,14 @@ import { type ForwardedRef, forwardRef, useMemo } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
+import { descriptorValidityCache } from '@/utils/validation'
 
 type SSTextInputProps = {
   variant?: 'default' | 'outline'
   size?: 'default' | 'small'
   align?: 'center' | 'left'
   actionRight?: React.ReactNode
+  status?: 'valid' | 'invalid'
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
 function SSTextInput(
@@ -16,7 +18,9 @@ function SSTextInput(
     size = 'default',
     align = 'center',
     actionRight,
+    status,
     style,
+    value,
     ...props
   }: SSTextInputProps,
   ref: ForwardedRef<TextInput>
@@ -32,23 +36,47 @@ function SSTextInput(
 
     const actionRightPadding = actionRight ? { paddingRight: 48 } : {}
 
+    // If no explicit status, derive from cache (populated by validateDescriptor calls)
+    const cachedValidity =
+      status === undefined && value
+        ? descriptorValidityCache.get(value)
+        : undefined
+    const resolvedStatus =
+      status ??
+      (cachedValidity === true
+        ? 'valid'
+        : cachedValidity === false
+          ? 'invalid'
+          : undefined)
+
+    const statusStyle =
+      resolvedStatus === 'valid'
+        ? styles.statusValid
+        : resolvedStatus === 'invalid'
+          ? styles.statusInvalid
+          : {}
+
     return StyleSheet.compose(
       {
         ...styles.textInputBase,
         ...variantStyle,
         ...sizeStyle,
         ...alignStyle,
-        ...actionRightPadding
+        ...actionRightPadding,
+        ...statusStyle
       },
       style
     )
-  }, [variant, size, align, actionRight, style])
+  }, [variant, size, align, actionRight, status, style, value])
 
   return (
     <View style={styles.containerBase}>
       <TextInput
         ref={ref}
         placeholderTextColor={Colors.gray[400]}
+        autoCorrect={false}
+        spellCheck={false}
+        value={value}
         style={textInputStyle}
         {...props}
       />
@@ -95,6 +123,14 @@ const styles = StyleSheet.create({
   },
   variantOutline: {
     borderColor: Colors.gray[400],
+    borderWidth: 1
+  },
+  statusValid: {
+    borderColor: Colors.mainGreen,
+    borderWidth: 1
+  },
+  statusInvalid: {
+    borderColor: Colors.error,
     borderWidth: 1
   }
 })
