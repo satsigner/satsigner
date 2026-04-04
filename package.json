@@ -45,7 +45,7 @@
     "ultracite": "7.3.2"
   },
   "resolutions": {
-    "expo-localization": "16.0.1"
+    "expo-localization": "16.1.0"
   },
   "engines": {
     "node": ">=22.4.0"

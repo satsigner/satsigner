@@ -6709,10 +6709,10 @@ expo-linking@~7.0.5:
     expo-constants "~17.0.5"
     invariant "^2.2.4"
 
-expo-localization@16.0.1, expo-localization@~16.0.1:
-  version "16.0.1"
-  resolved "https://registry.yarnpkg.com/expo-localization/-/expo-localization-16.0.1.tgz#a6016288f0e4a5acef143d2a39ac3e5b4ac8963e"
-  integrity sha512-kUrXiV/Pq9r7cG+TMt+Qa49IUQ9Y/czVwen4hmiboTclTopcWdIeCzYZv6JGtufoPpjEO9vVx1QJrXYl9V2u0Q==
+expo-localization@16.1.0, expo-localization@~16.0.1:
+  version "16.1.0"
+  resolved "https://registry.yarnpkg.com/expo-localization/-/expo-localization-16.1.0.tgz#236aab2d1b40c9a16b5a80de4e654358c860c1f6"
+  integrity sha512-eNZOsHf/dXMUFYUGL7+kPS9Oq8A2+lu3JHhr1Fq8a4elZxw20iD4S+vkKwJFAjKUc8VlwlmBzNQ4sfB5LAAH7Q==
   dependencies:
     rtl-detect "^1.0.2"
 
