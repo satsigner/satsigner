@@ -689,7 +689,6 @@ export default function ImportDescriptor() {
     }
   }
 
-
   function getDefaultDerivationPath(): string {
     // Check if we're in multisig mode to use the correct derivation path function
     const rawDerivationPath =

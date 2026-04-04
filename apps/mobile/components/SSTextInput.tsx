@@ -112,6 +112,14 @@ const styles = StyleSheet.create({
     fontSize: Sizes.textInput.fontSize.small,
     height: Sizes.textInput.height.small
   },
+  statusInvalid: {
+    borderColor: Colors.error,
+    borderWidth: 1
+  },
+  statusValid: {
+    borderColor: Colors.mainGreen,
+    borderWidth: 1
+  },
   textInputBase: {
     borderRadius: Sizes.textInput.borderRadius,
     color: Colors.white,
@@ -123,14 +131,6 @@ const styles = StyleSheet.create({
   },
   variantOutline: {
     borderColor: Colors.gray[400],
-    borderWidth: 1
-  },
-  statusValid: {
-    borderColor: Colors.mainGreen,
-    borderWidth: 1
-  },
-  statusInvalid: {
-    borderColor: Colors.error,
     borderWidth: 1
   }
 })
