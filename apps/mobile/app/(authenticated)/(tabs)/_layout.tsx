@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0
   },
   tabBarBackground: {
-    backgroundColor: Colors.gray[900],
+    backgroundColor: Colors.gray[925],
     borderTopColor: Colors.gray[850],
     borderTopWidth: 1,
     bottom: 0,
