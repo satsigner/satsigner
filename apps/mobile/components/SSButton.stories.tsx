@@ -25,6 +25,7 @@ const meta = {
         'ghost',
         'subtle',
         'gradient',
+        'elevated',
         'danger'
       ]
     },
@@ -85,6 +86,12 @@ export const Gradient: Story = {
   },
   args: {
     variant: 'gradient'
+  }
+}
+
+export const Elevated: Story = {
+  args: {
+    variant: 'elevated'
   }
 }
 

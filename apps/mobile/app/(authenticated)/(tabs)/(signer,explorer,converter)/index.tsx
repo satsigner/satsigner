@@ -52,15 +52,15 @@ export default function Home() {
                 <View style={styles.buttonContainer}>
                   <SSButton
                     label={page.title}
-                    style={styles.button}
                     textStyle={[
                       styles.buttonText,
                       page.isSoon && styles.buttonTextSoon
                     ]}
                     onPress={() => handlePress(page)}
-                    variant="gradient"
-                    gradientType="special"
+                    variant="elevated"
                     uppercase
+                    verticalIndex={index}
+                    totalButtonsVertical={pages.length}
                   />
                 </View>
               </SSHStack>
@@ -73,13 +73,6 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  button: {
-    borderBottomColor: '#222222',
-    borderBottomWidth: 1,
-    borderRadius: 0,
-    borderTopColor: '#303030',
-    borderTopWidth: 1
-  },
   buttonContainer: {
     flex: 1
   },

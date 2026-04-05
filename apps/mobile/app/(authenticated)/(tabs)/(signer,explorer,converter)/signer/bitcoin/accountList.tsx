@@ -807,17 +807,9 @@ export default function AccountList() {
         </SSVStack>
         <SSButton
           label={t('account.add')}
-          style={{
-            borderBottomColor: Colors.gray[875],
-            borderBottomWidth: 1,
-            borderRadius: 0,
-            borderTopColor: Colors.gray[700],
-            borderTopWidth: 1,
-            marginBottom: 24
-          }}
+          style={{ marginBottom: 24 }}
           onPress={handleOnNavigateToAddAccount}
-          variant="gradient"
-          gradientType="special"
+          variant="elevated"
         />
         {renderTab()}
         <ScrollView
