@@ -41,13 +41,19 @@ export default function TabLayout() {
     }
   }
 
-  const renderTabButton = (props: BottomTabBarButtonProps, segment: string) => (
-    <View style={props.style}>
-      <Pressable onPress={(e) => handleTabItemPress(props, segment, e)}>
-        {props.children}
-      </Pressable>
-    </View>
-  )
+  const renderTabButton = (props: BottomTabBarButtonProps, segment: string) => {
+    const isSelected = segments.includes(segment)
+    return (
+      <View style={[props.style, styles.tabBarButtonOuter]}>
+        <Pressable
+          onPress={(e) => handleTabItemPress(props, segment, e)}
+          style={[styles.tabBarItem, isSelected && styles.tabBarItemActive]}
+        >
+          {props.children}
+        </Pressable>
+      </View>
+    )
+  }
 
   useEffect(() => {
     setShowTab(showNavigation(currentPath, segments.length))
@@ -58,9 +64,8 @@ export default function TabLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveBackgroundColor: 'black',
           tabBarActiveTintColor: 'white',
-          tabBarItemStyle: styles.tabBarItem,
+          tabBarBackground: () => <View style={styles.tabBarBackground} />,
           tabBarLabelStyle: styles.tabBarLabel,
           tabBarStyle: [styles.tabBar, { display: isShowTab ? 'flex' : 'none' }]
         }}
@@ -116,25 +121,46 @@ const styles = StyleSheet.create({
   iconContainer: {
     alignItems: 'center',
     height: 24,
-    justifyContent: 'flex-start',
-    marginTop: 2,
-    width: 24
+    justifyContent: 'center',
+    width: 14
   },
   tabBar: {
     alignItems: 'center',
-    backgroundColor: '#1F1F1F',
-    borderTopColor: '#323232',
+    backgroundColor: 'transparent',
+    borderTopWidth: 0,
     elevation: 0,
-    height: 74,
-    paddingBottom: 16,
-    paddingTop: 10,
+    height: 82,
+    paddingBottom: 20,
+    paddingTop: 18,
+    shadowColor: 'transparent',
     shadowOpacity: 0
   },
+  tabBarBackground: {
+    backgroundColor: Colors.gray[900],
+    borderTopColor: Colors.gray[850],
+    borderTopWidth: 1,
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0
+  },
+  tabBarButtonOuter: {
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
   tabBarItem: {
+    alignItems: 'center',
     borderRadius: 4,
-    marginHorizontal: 16,
-    maxWidth: 90,
-    padding: 4
+    height: 54,
+    justifyContent: 'center',
+    paddingBottom: 2,
+    width: 104
+  },
+  tabBarItemActive: {
+    backgroundColor: 'black',
+    borderColor: Colors.gray[850],
+    borderWidth: 1
   },
   tabBarLabel: {
     fontSize: text.fontSize.xxs,
