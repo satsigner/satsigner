@@ -2,7 +2,7 @@ import { type DimensionValue } from 'react-native'
 
 export const mainContainer = {
   paddingBottom: 32,
-  paddingHorizontal: '6%' as DimensionValue,
+  paddingHorizontal: '5%' as DimensionValue,
   paddingTop: 12
 }
 

@@ -48,10 +48,7 @@ export default function Home() {
           </SSHStack>
           <SSVStack>
             {pages?.map((page, index) => (
-              <SSHStack
-                style={styles.buttonRow}
-                key={`${index}-${tab}/${page.title}`}
-              >
+              <SSHStack key={`${index}-${tab}/${page.title}`}>
                 <View style={styles.buttonContainer}>
                   <SSButton
                     label={page.title}
@@ -86,9 +83,6 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flex: 1
   },
-  buttonRow: {
-    paddingHorizontal: '5%'
-  },
   buttonText: {
     color: Colors.white
   },
@@ -108,7 +102,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     gap: 60,
     marginBottom: 50,
-    paddingHorizontal: 2,
     paddingTop: 50
   }
 })

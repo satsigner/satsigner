@@ -1,15 +1,8 @@
 import { FlashList } from '@shopify/flash-list'
 import { Stack, useRouter } from 'expo-router'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  Animated,
-  Easing,
-  ScrollView,
-  useWindowDimensions,
-  View
-} from 'react-native'
+import { useEffect, useRef, useState } from 'react'
+import { Animated, Easing, ScrollView, View } from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
-import { TabView } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -116,7 +109,6 @@ function AccountCardStaggerItem({
 
 export default function AccountList() {
   const router = useRouter()
-  const { width } = useWindowDimensions()
 
   const [
     network,
@@ -234,10 +226,8 @@ export default function AccountList() {
     return index > 0 ? index : 0
   })
 
-  const filteredAccounts = useMemo(
-    () => accounts.filter((acc) => acc.network === tabs[tabIndex].key),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [accounts, tabIndex]
+  const filteredAccounts = accounts.filter(
+    (acc) => acc.network === tabs[tabIndex].key
   )
 
   const ACCOUNT_CARD_HEIGHT = 160
@@ -768,141 +758,127 @@ export default function AccountList() {
           )
         }}
       />
-      <SSVStack gap="none" style={{ alignItems: 'center', marginBottom: 24 }}>
-        <TouchableOpacity
-          onPress={() => router.navigate('/settings/network/server')}
-        >
-          <SSHStack style={{ gap: 0, justifyContent: 'center' }}>
-            {connectionState ? (
-              isPrivateConnection ? (
-                <SSIconYellowIndicator height={24} width={24} />
+      <SSMainLayout>
+        <SSVStack gap="none" style={{ alignItems: 'center', marginBottom: 24 }}>
+          <TouchableOpacity
+            onPress={() => router.navigate('/settings/network/server')}
+          >
+            <SSHStack style={{ gap: 0, justifyContent: 'center' }}>
+              {connectionState ? (
+                isPrivateConnection ? (
+                  <SSIconYellowIndicator height={24} width={24} />
+                ) : (
+                  <SSIconGreenIndicator height={24} width={24} />
+                )
               ) : (
-                <SSIconGreenIndicator height={24} width={24} />
-              )
-            ) : (
-              <SSIconBlackIndicator height={24} width={24} />
-            )}
-            <SSText
-              size="xxs"
-              uppercase
-              style={{
-                color: connectionState ? Colors.gray['200'] : Colors.gray['450']
-              }}
-            >
-              {`${connectionParts.network} - ${connectionParts.name}`}
-            </SSText>
-            <SSText
-              size="xxs"
-              uppercase
-              style={{
-                color: Colors.gray['500'],
-                marginLeft: 4
-              }}
-            >
-              {connectionParts.url}
-            </SSText>
-          </SSHStack>
-        </TouchableOpacity>
+                <SSIconBlackIndicator height={24} width={24} />
+              )}
+              <SSText
+                size="xxs"
+                uppercase
+                style={{
+                  color: connectionState
+                    ? Colors.gray['200']
+                    : Colors.gray['450']
+                }}
+              >
+                {`${connectionParts.network} - ${connectionParts.name}`}
+              </SSText>
+              <SSText
+                size="xxs"
+                uppercase
+                style={{
+                  color: Colors.gray['500'],
+                  marginLeft: 4
+                }}
+              >
+                {connectionParts.url}
+              </SSText>
+            </SSHStack>
+          </TouchableOpacity>
 
-        <SSBlockFeePriceRow
-          blockHeight={blockHeight}
-          btcPrice={btcPrice}
-          fiatCurrency={fiatCurrency}
-          nextBlockFee={nextBlockFee}
-          blockHeightSource={blockHeightSource}
-        />
-      </SSVStack>
-      <SSHStack style={{ paddingHorizontal: '5%' }}>
-        <View style={{ flex: 1 }}>
-          <SSButton
-            label={t('account.add')}
-            style={{
-              borderBottomColor: Colors.gray[875],
-              borderBottomWidth: 1,
-              borderRadius: 0,
-              borderTopColor: Colors.gray[700],
-              borderTopWidth: 1
-            }}
-            onPress={handleOnNavigateToAddAccount}
-            variant="gradient"
-            gradientType="special"
+          <SSBlockFeePriceRow
+            blockHeight={blockHeight}
+            btcPrice={btcPrice}
+            fiatCurrency={fiatCurrency}
+            nextBlockFee={nextBlockFee}
+            blockHeightSource={blockHeightSource}
           />
-        </View>
-      </SSHStack>
-      <SSMainLayout style={{ paddingHorizontal: '5%', paddingTop: 32 }}>
-        <TabView
-          swipeEnabled={false}
-          navigationState={{ index: tabIndex, routes: tabs }}
-          renderScene={() => (
-            <ScrollView
-              style={{ marginTop: 16 }}
-              showsVerticalScrollIndicator={false}
-            >
-              {!hasHydrated ? (
-                <SSVStack
-                  gap="none"
-                  style={{ minHeight: listContainerMinHeight }}
-                >
-                  {Array.from({ length: ACCOUNT_SKELETON_COUNT }).map(
-                    (_, i) => (
-                      <SSVStack key={i}>
-                        <SSAccountCardSkeleton />
-                        {i < ACCOUNT_SKELETON_COUNT - 1 && (
-                          <SSSeparator
-                            style={{ marginVertical: 16 }}
-                            color="gradient"
-                          />
-                        )}
-                      </SSVStack>
-                    )
+        </SSVStack>
+        <SSButton
+          label={t('account.add')}
+          style={{
+            borderBottomColor: Colors.gray[875],
+            borderBottomWidth: 1,
+            borderRadius: 0,
+            borderTopColor: Colors.gray[700],
+            borderTopWidth: 1,
+            marginBottom: 24
+          }}
+          onPress={handleOnNavigateToAddAccount}
+          variant="gradient"
+          gradientType="special"
+        />
+        {renderTab()}
+        <ScrollView
+          contentContainerStyle={{ paddingTop: 16 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {!hasHydrated ? (
+            <SSVStack gap="none" style={{ minHeight: listContainerMinHeight }}>
+              {Array.from({ length: ACCOUNT_SKELETON_COUNT }).map((_, i) => (
+                <SSVStack key={i}>
+                  <SSAccountCardSkeleton />
+                  {i < ACCOUNT_SKELETON_COUNT - 1 && (
+                    <SSSeparator
+                      style={{ marginVertical: 16 }}
+                      color="gradient"
+                    />
                   )}
                 </SSVStack>
-              ) : (
-                <Animated.View
-                  style={{
-                    minHeight: listContainerMinHeight
-                  }}
-                >
-                  <FlashList
-                    data={filteredAccounts}
-                    renderItem={({ item, index }) => (
-                      <AccountCardStaggerItem index={index}>
-                        <SSVStack>
-                          <SSAccountCard
-                            account={item}
-                            onPress={() => handleGoToAccount(item.id)}
-                          />
-                        </SSVStack>
-                      </AccountCardStaggerItem>
-                    )}
-                    estimatedItemSize={20}
-                    ItemSeparatorComponent={() => (
-                      <SSSeparator
-                        style={{ marginVertical: 16 }}
-                        color="gradient"
+              ))}
+            </SSVStack>
+          ) : (
+            <Animated.View
+              style={{
+                minHeight: listContainerMinHeight
+              }}
+            >
+              <FlashList
+                data={filteredAccounts}
+                renderItem={({ item, index }) => (
+                  <AccountCardStaggerItem index={index}>
+                    <SSVStack>
+                      <SSAccountCard
+                        account={item}
+                        onPress={() => handleGoToAccount(item.id)}
                       />
-                    )}
-                    ListEmptyComponent={
-                      <SSVStack
-                        itemsCenter
-                        style={{ paddingBottom: 32, paddingTop: 32 }}
-                      >
-                        <SSText uppercase>{t('accounts.empty')}</SSText>
-                      </SSVStack>
-                    }
-                    showsVerticalScrollIndicator={false}
+                    </SSVStack>
+                  </AccountCardStaggerItem>
+                )}
+                estimatedItemSize={20}
+                ItemSeparatorComponent={() => (
+                  <SSSeparator
+                    style={{ marginVertical: 16 }}
+                    color="gradient"
                   />
-                  <Animated.View style={{ opacity: sampleAccountsOpacity }}>
-                    {renderSamplewallets()}
-                  </Animated.View>
-                </Animated.View>
-              )}
-            </ScrollView>
+                )}
+                ListEmptyComponent={
+                  <SSVStack
+                    itemsCenter
+                    style={{ paddingBottom: 32, paddingTop: 32 }}
+                  >
+                    <SSText uppercase>{t('accounts.empty')}</SSText>
+                  </SSVStack>
+                }
+                showsVerticalScrollIndicator={false}
+              />
+              <Animated.View style={{ opacity: sampleAccountsOpacity }}>
+                {renderSamplewallets()}
+              </Animated.View>
+            </Animated.View>
           )}
-          onIndexChange={setTabIndex}
-          initialLayout={{ width }}
-          renderTabBar={renderTab}
-        />
+        </ScrollView>
       </SSMainLayout>
     </>
   )

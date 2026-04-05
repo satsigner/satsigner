@@ -900,9 +900,9 @@ function SpendableOutputs({
   const [view, setView] = useState('list')
 
   const halfHeight = height / 2
-  const horizontalPadding = 48
+  const horizontalPaddingPx = width * 0.05
   const GRAPH_HEIGHT = halfHeight
-  const GRAPH_WIDTH = width - horizontalPadding
+  const GRAPH_WIDTH = width
 
   const totalBalance = useMemo(
     () => account.utxos.reduce((sum, u) => sum + u.value, 0),
@@ -978,7 +978,7 @@ function SpendableOutputs({
           </SSVStack>
         </ScrollView>
       )}
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, marginHorizontal: -horizontalPaddingPx }}>
         {view === 'bubbles' && (
           <SSBubbleChart
             utxos={[...account.utxos]}

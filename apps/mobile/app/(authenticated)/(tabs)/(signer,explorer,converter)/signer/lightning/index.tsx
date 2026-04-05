@@ -200,7 +200,6 @@ const styles = StyleSheet.create({
     marginBottom: 8
   },
   mainLayout: {
-    paddingHorizontal: '5%',
     paddingTop: 32
   },
   pubkey: {
