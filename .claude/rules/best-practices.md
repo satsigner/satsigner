@@ -16,3 +16,4 @@ paths:
 9. Code must be readable. No nested conditional logic, nested try/catch, or too much complexity in one function;
 10. Use `i18n` strings. Add them in `locales` folder if not already present in `*.json` files;
 11. Try to write tests when you code a new feature.
+12. Components should be responsible for receiving data through props and rendering it. Business logic should be kept separate and not placed within components.
