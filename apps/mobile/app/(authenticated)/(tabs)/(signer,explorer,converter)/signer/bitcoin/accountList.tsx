@@ -231,15 +231,23 @@ export default function AccountList() {
     (acc) => acc.network === tabs[tabIndex].key
   )
 
-  const totalBalance = useMemo(() => filteredAccounts.reduce(
-      (value, account) => value + account.summary.balance,
-      0
-    ), [filteredAccounts])
+  const totalBalance = useMemo(
+    () =>
+      filteredAccounts.reduce(
+        (value, account) => value + account.summary.balance,
+        0
+      ),
+    [filteredAccounts]
+  )
 
-  const totalSatsInMempoll = useMemo(() => filteredAccounts.reduce(
-      (value, account) => value + account.summary.satsInMempool,
-      0
-    ), [filteredAccounts])
+  const totalSatsInMempoll = useMemo(
+    () =>
+      filteredAccounts.reduce(
+        (value, account) => value + account.summary.satsInMempool,
+        0
+      ),
+    [filteredAccounts]
+  )
 
   const ACCOUNT_CARD_HEIGHT = 160
   const SEPARATOR_VERTICAL = 32

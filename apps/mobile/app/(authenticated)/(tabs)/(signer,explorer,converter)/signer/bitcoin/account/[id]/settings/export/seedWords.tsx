@@ -67,11 +67,7 @@ export default function SeedWordsPage() {
     } else {
       setIsLoading(false)
     }
-  }, [
-	account,
-	key,
-	decryptMnemonic
-])
+  }, [account, key, decryptMnemonic])
 
   if (isLoading) {
     return (
