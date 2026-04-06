@@ -18,7 +18,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
-import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
 import { aesDecrypt } from '@/utils/crypto'
 import { emptyPin } from '@/utils/pin'
@@ -29,7 +28,6 @@ export default function SeedWordsPage() {
   const [getAccountData] = useAccountBuilderStore(
     useShallow((state) => [state.getAccountData])
   )
-  const skipPin = useAuthStore((state) => state.skipPin)
 
   const [mnemonic, setMnemonic] = useState('')
   const [isLoading, setIsLoading] = useState(true)
@@ -107,17 +105,13 @@ export default function SeedWordsPage() {
         // In creation mode, no PIN needed - directly show mnemonic
         setMnemonic(key.secret.mnemonic)
         setShowPinEntry(false)
-      } else if (skipPin) {
-        // Automatically decrypt when skip PIN is enabled (settings mode)
-        decryptMnemonic()
       } else {
-        // Show PIN entry when skip PIN is disabled (settings mode)
         setShowPinEntry(true)
       }
     } else {
       setIsLoading(false)
     }
-  }, [accountData, key, skipPin, decryptMnemonic])
+  }, [accountData, key, decryptMnemonic])
 
   if (isLoading) {
     return (
