@@ -12,7 +12,6 @@
   "scripts": {
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "postinstall": "rn-nodeify --install assert,buffer,events,process --hack",
     "sb:android": "cross-env EXPO_PUBLIC_STORYBOOK_ENABLED=true expo run:android",
     "sb:ios": "cross-env EXPO_PUBLIC_STORYBOOK_ENABLED=true expo run:ios",
     "start": "expo start",
@@ -127,7 +126,7 @@
     "jest": "^29.7.0",
     "jest-expo": "~55.0.13",
     "react-dom": "19.2.0",
-    "rn-nodeify": "^10.3.0",
+
     "typescript": "~5.9.2"
   },
   "engines": {
