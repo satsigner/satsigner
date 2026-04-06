@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { StyleSheet, TouchableOpacity, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -36,16 +35,6 @@ function SSUtxoItem({
   const [currencyUnit, useZeroPadding] = useSettingsStore(
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
-  const selectIconStyle = useMemo(
-    () =>
-      StyleSheet.compose(styles.selectIconBase, {
-        ...(selected
-          ? { backgroundColor: Colors.error }
-          : { backgroundColor: Colors.gray[500] })
-      }),
-    [selected]
-  )
-
   const label = normalizeUtxoLabelForDisplay(utxo.label || '')
 
   return (
@@ -59,7 +48,12 @@ function SSUtxoItem({
           justifyBetween
         >
           <SSHStack>
-            <View style={selectIconStyle}>
+            <View
+              style={[
+                styles.selectIconBase,
+                { backgroundColor: selected ? Colors.error : Colors.gray[500] }
+              ]}
+            >
               {selected ? (
                 <SSIconX height={8} width={8} />
               ) : (

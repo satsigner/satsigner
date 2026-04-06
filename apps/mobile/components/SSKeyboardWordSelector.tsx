@@ -1,5 +1,5 @@
-import { FlashList } from '@shopify/flash-list'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { FlashList, FlashListRef } from '@shopify/flash-list'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Animated,
   Keyboard,
@@ -71,7 +71,7 @@ function SSKeyboardWordSelector({
   const wordList = getWordList(wordListName)
   const { width, height } = useWindowDimensions()
   const [keyboardOpen, setKeyboardOpen] = useState(false)
-  const flashList = useRef<FlashList<WordInfo>>(null)
+  const flashList = useRef<FlashListRef<WordInfo> | null>(null)
 
   const previousWordStart = usePrevious(wordStart)
   const keyboardHeight = useKeyboardHeight()
@@ -122,32 +122,26 @@ function SSKeyboardWordSelector({
     return () => hideSubscription?.remove()
   }, [handleKeyboardHidden])
 
-  const containerStyle = useMemo(() => {
-    let topValue = height
-    // Position directly above keyboard for both iOS and Android
-    if (keyboardHeight > 0) {
-      topValue = height - keyboardHeight - 50
-    }
-
-    return StyleSheet.compose(
-      {
-        ...styles.containerBase,
-        bottom: undefined, // Remove bottom positioning
-        opacity: opacityAnimated,
-        top: topValue - 55, // Subtract the height of the word selector container
-        width, // Use actual screen width
-        zIndex: opacityAnimated.interpolate({
-          inputRange: [0, 0.0001],
-          outputRange: [0, 1000]
-        }) as unknown as number
-      },
-      style
-    )
-  }, [width, height, opacityAnimated, keyboardHeight, style])
+  let topValue = height
+  if (keyboardHeight > 0) {
+    topValue = height - keyboardHeight - 50
+  }
 
   return (
     <Animated.View
-      style={containerStyle}
+      style={[
+        styles.containerBase,
+        {
+          opacity: opacityAnimated,
+          top: topValue - 55,
+          width,
+          zIndex: opacityAnimated.interpolate({
+            inputRange: [0, 0.0001],
+            outputRange: [0, 1000]
+          }) as unknown as number
+        },
+        style
+      ]}
       pointerEvents={visible ? 'auto' : 'none'}
     >
       {data.length > 0 ? (
@@ -167,7 +161,6 @@ function SSKeyboardWordSelector({
               </View>
             </TouchableOpacity>
           )}
-          estimatedItemSize={150}
           removeClippedSubviews
         />
       ) : (

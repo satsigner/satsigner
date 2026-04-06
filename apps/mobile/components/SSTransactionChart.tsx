@@ -280,35 +280,34 @@ function SSTransactionChart({
 
   return (
     <View style={{ flex: 1, height: GRAPH_HEIGHT / 2, overflow: 'hidden' }}>
-      <Canvas
-        style={{ height: GRAPH_HEIGHT / 2, width: GRAPH_WIDTH }}
-        onLayout={onCanvasLayout}
-      >
-        <Group origin={{ x: w / 2, y: h / 2 }}>
-          <SSSankeyLinks
-            links={transformedLinks}
-            nodes={nodes as Node[]}
-            sankeyGenerator={sankeyGenerator}
-            BLOCK_WIDTH={BLOCK_WIDTH}
-            selectedOutputNode={
-              selectedOutputIndex !== undefined
-                ? `output-${selectedOutputIndex}`
-                : undefined
-            }
-            dimUnselected={dimUnselected}
-          />
-          <SSSankeyNodes
-            nodes={nodes as Node[]}
-            sankeyGenerator={sankeyGenerator}
-            selectedOutputNode={
-              selectedOutputIndex !== undefined
-                ? `output-${selectedOutputIndex}`
-                : undefined
-            }
-            dimUnselected={dimUnselected}
-          />
-        </Group>
-      </Canvas>
+      <View onLayout={onCanvasLayout}>
+        <Canvas style={{ height: GRAPH_HEIGHT / 2, width: GRAPH_WIDTH }}>
+          <Group origin={{ x: w / 2, y: h / 2 }}>
+            <SSSankeyLinks
+              links={transformedLinks}
+              nodes={nodes as Node[]}
+              sankeyGenerator={sankeyGenerator}
+              BLOCK_WIDTH={BLOCK_WIDTH}
+              selectedOutputNode={
+                selectedOutputIndex !== undefined
+                  ? `output-${selectedOutputIndex}`
+                  : undefined
+              }
+              dimUnselected={dimUnselected}
+            />
+            <SSSankeyNodes
+              nodes={nodes as Node[]}
+              sankeyGenerator={sankeyGenerator}
+              selectedOutputNode={
+                selectedOutputIndex !== undefined
+                  ? `output-${selectedOutputIndex}`
+                  : undefined
+              }
+              dimUnselected={dimUnselected}
+            />
+          </Group>
+        </Canvas>
+      </View>
     </View>
   )
 }

@@ -145,41 +145,44 @@ function SSBubbleChart({
 
   return (
     <View style={style}>
-      <Canvas style={canvasSize} onLayout={onCanvasLayout}>
-        <Group transform={transform} origin={{ x: centerX, y: centerY }}>
-          {utxoPack.map((packedUtxo, index) => {
-            const utxo: Utxo = {
-              addressTo: packedUtxo.data.addressTo,
-              keychain: packedUtxo.data.keychain!,
-              label: packedUtxo.data.label || '',
-              timestamp: packedUtxo.data.timestamp,
-              txid: packedUtxo.data.txid!,
-              value: packedUtxo.data.value!,
-              vout: packedUtxo.data.vout!
-            }
+      <View onLayout={onCanvasLayout}>
+        <Canvas style={canvasSize}>
+          <Group transform={transform} origin={{ x: centerX, y: centerY }}>
+            {utxoPack.map((packedUtxo, index) => {
+              const utxo: Utxo = {
+                addressTo: packedUtxo.data.addressTo,
+                keychain: packedUtxo.data.keychain!,
+                label: packedUtxo.data.label || '',
+                timestamp: packedUtxo.data.timestamp,
+                txid: packedUtxo.data.txid!,
+                value: packedUtxo.data.value!,
+                vout: packedUtxo.data.vout!
+              }
 
-            const isSelected = inputs.some(
-              (input: Utxo) => getUtxoOutpoint(input) === getUtxoOutpoint(utxo)
-            )
+              const isSelected = inputs.some(
+                (input: Utxo) =>
+                  getUtxoOutpoint(input) === getUtxoOutpoint(utxo)
+              )
 
-            return (
-              <SSBubble
-                key={packedUtxo.data.id}
-                utxo={utxo}
-                x={packedUtxo.x}
-                y={packedUtxo.y}
-                radius={packedUtxo.r}
-                selected={isSelected}
-                isZoomedIn={isZoomedIn}
-                customFontManager={customFontManager}
-                scale={scale}
-                animationDelay={index * 50}
-                dimmed={dimUnselected && !isSelected}
-              />
-            )
-          })}
-        </Group>
-      </Canvas>
+              return (
+                <SSBubble
+                  key={packedUtxo.data.id}
+                  utxo={utxo}
+                  x={packedUtxo.x}
+                  y={packedUtxo.y}
+                  radius={packedUtxo.r}
+                  selected={isSelected}
+                  isZoomedIn={isZoomedIn}
+                  customFontManager={customFontManager}
+                  scale={scale}
+                  animationDelay={index * 50}
+                  dimmed={dimUnselected && !isSelected}
+                />
+              )
+            })}
+          </Group>
+        </Canvas>
+      </View>
       <GestureDetector gesture={gestures}>
         <View
           style={{

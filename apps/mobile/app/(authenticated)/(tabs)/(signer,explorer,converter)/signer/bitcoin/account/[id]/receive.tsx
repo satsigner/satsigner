@@ -75,7 +75,7 @@ export default function Receive() {
     ])
   )
 
-  const saveLabelTimeoutRef = useRef<NodeJS.Timeout>()
+  const saveLabelTimeoutRef = useRef<NodeJS.Timeout>(undefined)
 
   function formatAddressInGroups(address: string): string {
     return (address.match(/(.{1,4})/g) || []).join(' ')

@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { LayoutAnimation, StyleSheet, TouchableOpacity } from 'react-native'
 
 import SSVStack from '@/layouts/SSVStack'
@@ -20,26 +20,16 @@ function SSCollapsible({ children }: SSCollapsibleProps) {
     setOpen(!open)
   }
 
-  const containerStyle = useMemo(
-    () => (open ? styles.containerOpen : styles.containerClose),
-    [open]
-  )
-
-  const linearGradientStyle = useMemo(
-    () =>
-      StyleSheet.compose(styles.linearGradientBase, {
-        ...(open ? styles.linearGradientOpen : {})
-      }),
-    [open]
-  )
-
   return (
     <TouchableOpacity activeOpacity={1} onPress={() => handleSetOpen()}>
       <SSVStack>
-        <SSVStack style={containerStyle}>
+        <SSVStack style={open ? styles.containerOpen : styles.containerClose}>
           {children}
           <LinearGradient
-            style={linearGradientStyle}
+            style={[
+              styles.linearGradientBase,
+              open && styles.linearGradientOpen
+            ]}
             colors={[Colors.transparent, 'rgba(0,0,0,1)']}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1.0 }}

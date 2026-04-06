@@ -153,10 +153,10 @@ UTXO consumption
 ### Prerequisites
 
 - Node.js (minimum version 22.4.0)
-- [Yarn](https://yarnpkg.com/getting-started/install)
+- [pnpm](https://pnpm.io/installation)
 
 ```bash
-npm install --global yarn
+npm install --global pnpm
 ```
 
 ### Install dependencies
@@ -164,7 +164,7 @@ npm install --global yarn
 Install the dependencies at the root of the repository
 
 ```bash
-yarn install
+pnpm install
 ```
 
 ### Set up Android environment
@@ -292,7 +292,7 @@ cd apps/mobile
 Run for android or iOS
 
 ```bash
-yarn android
+pnpm android
 
-yarn ios
+pnpm ios
 ```

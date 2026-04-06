@@ -368,46 +368,47 @@ function SSCurrentTransactionChart({
 
   return (
     <View style={{ flex: 1, height: GRAPH_HEIGHT }}>
-      <Canvas
-        style={{ height: GRAPH_HEIGHT, width: GRAPH_WIDTH }}
-        onLayout={onCanvasLayout}
-        pointerEvents="box-none"
-      >
-        <Group origin={{ x: w / 2, y: h / 2 }} transform={transform}>
-          <SSSankeyLinks
-            links={transformedLinks}
-            nodes={nodes as Node[]}
-            sankeyGenerator={sankeyGenerator}
-            BLOCK_WIDTH={BLOCK_WIDTH}
-          />
-          <SSSankeyNodes
-            nodes={nodes as Node[]}
-            sankeyGenerator={sankeyGenerator}
-            selectedOutputNode={currentOutputLocalId}
-          />
-          {nodes.map((node, index) => {
-            const typedNode = node as Node
-            const style = nodeStyles[index] // Get corresponding style for width/height
-            const width = style.width + 20
-            if (typedNode.depthH === maxDepthH) {
-              const cy = style.y + 6.5 // 5px top padding + 1.5px circle center offset
+      <View onLayout={onCanvasLayout}>
+        <Canvas
+          style={{ height: GRAPH_HEIGHT, width: GRAPH_WIDTH }}
+          pointerEvents="box-none"
+        >
+          <Group origin={{ x: w / 2, y: h / 2 }} transform={transform}>
+            <SSSankeyLinks
+              links={transformedLinks}
+              nodes={nodes as Node[]}
+              sankeyGenerator={sankeyGenerator}
+              BLOCK_WIDTH={BLOCK_WIDTH}
+            />
+            <SSSankeyNodes
+              nodes={nodes as Node[]}
+              sankeyGenerator={sankeyGenerator}
+              selectedOutputNode={currentOutputLocalId}
+            />
+            {nodes.map((node, index) => {
+              const typedNode = node as Node
+              const style = nodeStyles[index] // Get corresponding style for width/height
+              const width = style.width + 20
+              if (typedNode.depthH === maxDepthH) {
+                const cy = style.y + 6.5 // 5px top padding + 1.5px circle center offset
 
-              const circle1Cx = style.x + width - 31 // style.x + style.width - 16 (right padding + icon width) + 1.48926 (circle cx in icon)
-              const circle2Cx = style.x + width - 35 // style.x + style.width - 16 + 5.48926
-              const circle3Cx = style.x + width - 39 // style.x + style.width - 16 + 9.48926
+                const circle1Cx = style.x + width - 31 // style.x + style.width - 16 (right padding + icon width) + 1.48926 (circle cx in icon)
+                const circle2Cx = style.x + width - 35 // style.x + style.width - 16 + 5.48926
+                const circle3Cx = style.x + width - 39 // style.x + style.width - 16 + 9.48926
 
-              return (
-                <Group key={`ellipsis-${typedNode.id}`}>
-                  <Circle cx={circle1Cx} cy={cy} r={1} color="#D9D9D9" />
-                  <Circle cx={circle2Cx} cy={cy} r={1} color="#D9D9D9" />
-                  <Circle cx={circle3Cx} cy={cy} r={1} color="#D9D9D9" />
-                </Group>
-              )
-            }
-            return null
-          })}
-        </Group>
-      </Canvas>
+                return (
+                  <Group key={`ellipsis-${typedNode.id}`}>
+                    <Circle cx={circle1Cx} cy={cy} r={1} color="#D9D9D9" />
+                    <Circle cx={circle2Cx} cy={cy} r={1} color="#D9D9D9" />
+                    <Circle cx={circle3Cx} cy={cy} r={1} color="#D9D9D9" />
+                  </Group>
+                )
+              }
+              return null
+            })}
+          </Group>
+        </Canvas>
+      </View>
       <GestureDetector gesture={gestures}>
         <View style={styles.gestureContainer}>
           <Animated.View

@@ -272,7 +272,7 @@ export default function UnifiedImport() {
       if (errorMessage) {
         toast.error(errorMessage)
       } else {
-        toast.error(t('account.import.error'))
+        toast.error(t('account.import.error.generic'))
       }
     } finally {
       setLoadingWallet(false)

@@ -598,10 +598,11 @@ export default function Energy() {
         'hex'
       )
       const hashBytes = Buffer.from(hash, 'hex')
-      const hashLE = Buffer.from(hashBytes).reverse()
+      const hashLE = hashBytes.slice().reverse()
 
       // For regtest, we just need to check if the hash is less than the target
-      const isValid = hashLE.compare(regtestTarget) <= 0
+      const isValid =
+        hashLE.compare(regtestTarget as unknown as Uint8Array) <= 0
 
       return isValid
     }
@@ -615,17 +616,17 @@ export default function Energy() {
     mantissaBuf.writeUInt32BE(mantissa, 0)
     if (exponent <= 3) {
       mantissaBuf = mantissaBuf.slice(4 - exponent)
-      mantissaBuf.copy(target, 32 - mantissaBuf.length)
+      mantissaBuf.copy(target as unknown as Uint8Array, 32 - mantissaBuf.length)
     } else {
-      mantissaBuf.copy(target, 32 - exponent)
+      mantissaBuf.copy(target as unknown as Uint8Array, 32 - exponent)
     }
 
     // Convert hash to little-endian for comparison
     const hashBytes = Buffer.from(hash, 'hex')
-    const hashLE = Buffer.from(hashBytes).reverse()
+    const hashLE = hashBytes.slice().reverse()
 
     // Compare hash with target
-    const isValid = hashLE.compare(target) <= 0
+    const isValid = hashLE.compare(target as unknown as Uint8Array) <= 0
 
     return isValid
   }
@@ -765,7 +766,10 @@ export default function Energy() {
             const left = hashes[i]
             const right = i + 1 < hashes.length ? hashes[i + 1] : left
             // Concatenate hashes and double SHA256
-            const concat = Buffer.concat([left, right])
+            const concat = Buffer.concat([
+              left as unknown as Uint8Array,
+              right as unknown as Uint8Array
+            ])
             const hash = bitcoin.crypto.sha256(bitcoin.crypto.sha256(concat))
             newHashes.push(hash)
           }
@@ -804,11 +808,11 @@ export default function Energy() {
 
       // Previous block hash (32 bytes) - little endian
       const prevHash = Buffer.from(template.previousblockhash, 'hex').reverse()
-      prevHash.copy(header, 4)
+      prevHash.copy(header as unknown as Uint8Array, 4)
 
       // Merkle root (32 bytes) - little endian
       const merkle = Buffer.from(merkleRoot, 'hex')
-      merkle.copy(header, 36)
+      merkle.copy(header as unknown as Uint8Array, 36)
 
       // Timestamp (4 bytes) - little endian - use template's curtime
       header.writeUInt32LE(blockTime, 68)
@@ -921,9 +925,11 @@ export default function Energy() {
 
         // Create block data with header and all transactions
         const blockData = Buffer.concat([
-          freshHeader,
-          txCount,
-          ...rawTransactions.map((tx) => Buffer.from(tx, 'hex'))
+          freshHeader as unknown as Uint8Array,
+          txCount as unknown as Uint8Array,
+          ...rawTransactions.map(
+            (tx) => Buffer.from(tx, 'hex') as unknown as Uint8Array
+          )
         ])
 
         const response = await fetchRpc({
@@ -1202,7 +1208,7 @@ export default function Energy() {
               // Double SHA256 of header (result is in big-endian)
               const hash = bitcoin.crypto.sha256(bitcoin.crypto.sha256(header))
               // Convert to little-endian for comparison
-              const hashReversed = Buffer.from(hash).reverse()
+              const hashReversed = hash.slice().reverse()
               const hashHex = hashReversed.toString('hex')
 
               hashes += 1

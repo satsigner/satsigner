@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
@@ -21,28 +20,22 @@ function SSRadioButton({
   style,
   ...props
 }: SSRadioButtonProps) {
-  const radioButtonStyle = useMemo(() => {
-    const radioButtonVariantStyles = selected
-      ? variant === 'default'
-        ? styles.selectedDefault
-        : styles.selectedOutline
-      : variant === 'default'
-        ? styles.unselectedDefault
-        : styles.unselectedOutline
-
-    return StyleSheet.compose(
-      {
-        ...styles.buttonBase,
-        ...radioButtonVariantStyles,
-        ...(disabled ? styles.disabled : {})
-      },
-      style
-    )
-  }, [variant, selected, disabled, style])
+  const radioButtonVariantStyles = selected
+    ? variant === 'default'
+      ? styles.selectedDefault
+      : styles.selectedOutline
+    : variant === 'default'
+      ? styles.unselectedDefault
+      : styles.unselectedOutline
 
   return (
     <TouchableOpacity
-      style={radioButtonStyle}
+      style={[
+        styles.buttonBase,
+        radioButtonVariantStyles,
+        disabled && styles.disabled,
+        style
+      ]}
       activeOpacity={variant === 'default' ? 0.6 : 1}
       {...props}
     >

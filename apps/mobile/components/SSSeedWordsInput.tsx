@@ -115,7 +115,8 @@ export default function SSSeedWordsInput({
   const clipboardCheckedRef = useRef(false)
   const wordInputRefs = useRef<(TextInput | null)[]>([])
   const autoAdvanceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const handleWordSelectedRef = useRef<(word?: string) => Promise<void>>()
+  const handleWordSelectedRef =
+    useRef<(word?: string) => Promise<void>>(undefined)
 
   // Initialize seed words info
   useEffect(() => {
@@ -187,7 +188,9 @@ export default function SSSeedWordsInput({
           setElectrumSeedType(electrumType)
           if (electrumType) {
             const seed = await mnemonicToSeedElectrum(mnemonic, passphrase)
-            const fingerprintResult = getFingerprintFromSeed(Buffer.from(seed))
+            const fingerprintResult = getFingerprintFromSeed(
+              new Uint8Array(seed)
+            )
             setFingerprint(fingerprintResult)
             onMnemonicValid?.(mnemonic, fingerprintResult)
           } else {
@@ -275,7 +278,7 @@ export default function SSSeedWordsInput({
         if (electrumType) {
           const seedBytes = await mnemonicToSeedElectrum(mnemonic, passphrase)
           const fingerprintResult = getFingerprintFromSeed(
-            Buffer.from(seedBytes)
+            new Uint8Array(seedBytes)
           )
           setFingerprint(fingerprintResult)
           onMnemonicValid?.(mnemonic, fingerprintResult)
@@ -410,7 +413,7 @@ export default function SSSeedWordsInput({
         setElectrumSeedType(electrumType)
         if (electrumType) {
           const seed = await mnemonicToSeedElectrum(mnemonic, passphrase)
-          const fingerprintResult = getFingerprintFromSeed(Buffer.from(seed))
+          const fingerprintResult = getFingerprintFromSeed(new Uint8Array(seed))
           setFingerprint(fingerprintResult)
           onMnemonicValid?.(mnemonic, fingerprintResult)
         } else {
@@ -438,7 +441,7 @@ export default function SSSeedWordsInput({
         onMnemonicValid?.(mnemonic, fingerprintResult)
       } else if (electrumSeedType) {
         const seed = await mnemonicToSeedElectrum(mnemonic, text)
-        const fingerprintResult = getFingerprintFromSeed(Buffer.from(seed))
+        const fingerprintResult = getFingerprintFromSeed(new Uint8Array(seed))
         setFingerprint(fingerprintResult)
         onMnemonicValid?.(mnemonic, fingerprintResult)
       }

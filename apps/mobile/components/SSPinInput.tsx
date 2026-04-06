@@ -125,7 +125,11 @@ function SSPinInput({
       {Array.from({ length: PIN_SIZE }).map((_, index) => (
         <TextInput
           key={index}
-          ref={(input) => inputRefs.current.push(input as TextInput)}
+          ref={(input) => {
+            if (input) {
+              inputRefs.current.push(input)
+            }
+          }}
           style={styles.pinInputBase}
           autoFocus={autoFocus && index === 0}
           value={pin[index]}

@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { StyleSheet, TouchableHighlight } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
@@ -8,22 +7,11 @@ type SSActionButtonProps = React.ComponentPropsWithoutRef<
 >
 
 function SSActionButton({ style, children, ...props }: SSActionButtonProps) {
-  const buttonStyle = useMemo(
-    () =>
-      StyleSheet.compose(
-        {
-          ...styles.buttonBase
-        },
-        style
-      ),
-    [style]
-  )
-
   return (
     <TouchableHighlight
       activeOpacity={0.65}
       underlayColor={Colors.transparent}
-      style={buttonStyle}
+      style={[styles.buttonBase, style]}
       {...props}
     >
       {children}

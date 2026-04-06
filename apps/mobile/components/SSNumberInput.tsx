@@ -1,10 +1,4 @@
-import {
-  type ForwardedRef,
-  forwardRef,
-  useEffect,
-  useMemo,
-  useState
-} from 'react'
+import { type ForwardedRef, forwardRef, useEffect, useState } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { t } from '@/locales'
@@ -48,25 +42,18 @@ function SSNumberInput(
 
   const [invalid, setInvalid] = useState(false)
 
-  const textInputStyle = useMemo(() => {
-    const variantStyle =
-      variant === 'default' ? styles.variantDefault : styles.variantOutline
-    const sizeStyle = size === 'default' ? styles.sizeDefault : styles.sizeSmall
-    const alignStyle =
-      align === 'center' ? styles.alignCenter : styles.alignLeft
-    const borderStyle = invalid ? styles.borderInvalid : {}
-    const newStyle = StyleSheet.compose(
-      {
-        ...styles.textInputBase,
-        ...variantStyle,
-        ...sizeStyle,
-        ...borderStyle,
-        ...alignStyle
-      },
-      style
-    )
-    return newStyle
-  }, [variant, size, align, style, invalid])
+  const variantStyle =
+    variant === 'default' ? styles.variantDefault : styles.variantOutline
+  const sizeStyle = size === 'default' ? styles.sizeDefault : styles.sizeSmall
+  const alignStyle = align === 'center' ? styles.alignCenter : styles.alignLeft
+  const textInputStyle = [
+    styles.textInputBase,
+    variantStyle,
+    sizeStyle,
+    invalid && styles.borderInvalid,
+    alignStyle,
+    style
+  ]
 
   const [localValue, setLocalValue] = useState(value || '')
 

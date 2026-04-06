@@ -290,32 +290,33 @@ function SSSpiralBlocks({
 
   return (
     <View style={styles.container}>
-      <Canvas
-        style={[styles.canvas, { height: canvasHeight, width: canvasWidth }]}
-        onLayout={onCanvasLayout}
-      >
-        <Group
-          transform={transform}
-          origin={{ x: canvasWidth / 2, y: canvasHeight / 2 }}
+      <View onLayout={onCanvasLayout}>
+        <Canvas
+          style={[styles.canvas, { height: canvasHeight, width: canvasWidth }]}
         >
-          {/* Render paths in batches to reduce render operations */}
-          {paths.map((path, index) => (
-            <Path
-              key={spiralBlocks[index]?.height ?? index}
-              path={path}
-              color={spiralBlocks[index].color}
-            />
-          ))}
+          <Group
+            transform={transform}
+            origin={{ x: canvasWidth / 2, y: canvasHeight / 2 }}
+          >
+            {/* Render paths in batches to reduce render operations */}
+            {paths.map((path, index) => (
+              <Path
+                key={spiralBlocks[index]?.height ?? index}
+                path={path}
+                color={spiralBlocks[index].color}
+              />
+            ))}
 
-          {/* Pre-calculate week ring circles */}
-          {weekCircles}
+            {/* Pre-calculate week ring circles */}
+            {weekCircles}
 
-          <Paragraph paragraph={pWeek1} x={0} y={135} width={canvasWidth} />
-          <Paragraph paragraph={pWeek2} x={0} y={65} width={canvasWidth} />
-          <Paragraph paragraph={pWeek3} x={0} y={-10} width={canvasWidth} />
-          <Paragraph paragraph={pWeek4} x={0} y={-50} width={canvasWidth} />
-        </Group>
-      </Canvas>
+            <Paragraph paragraph={pWeek1} x={0} y={135} width={canvasWidth} />
+            <Paragraph paragraph={pWeek2} x={0} y={65} width={canvasWidth} />
+            <Paragraph paragraph={pWeek3} x={0} y={-10} width={canvasWidth} />
+            <Paragraph paragraph={pWeek4} x={0} y={-50} width={canvasWidth} />
+          </Group>
+        </Canvas>
+      </View>
 
       <GestureDetector gesture={gestures}>
         <View

@@ -96,16 +96,14 @@ function SSButton({
   totalButtonsVertical,
   ...props
 }: SSButtonProps) {
-  const buttonStyle = StyleSheet.compose(
-    [
-      styles.buttonBase,
-      disabled ? styles.disabled : null,
-      getButtonVariantStyle(variant, withSelect)
-    ],
+  const buttonStyle = [
+    styles.buttonBase,
+    disabled ? styles.disabled : null,
+    getButtonVariantStyle(variant, withSelect),
     style
-  )
+  ]
 
-  const textStyles = StyleSheet.compose(getTextVariantStyle(variant), textStyle)
+  const textStyles = [getTextVariantStyle(variant), textStyle]
 
   const activityIndicatorColor =
     variant === 'secondary'

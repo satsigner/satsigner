@@ -1,4 +1,4 @@
-import { type ForwardedRef, forwardRef, useMemo } from 'react'
+import { type ForwardedRef, forwardRef } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
@@ -25,49 +25,41 @@ function SSTextInput(
   }: SSTextInputProps,
   ref: ForwardedRef<TextInput>
 ) {
-  const textInputStyle = useMemo(() => {
-    const variantStyle =
-      variant === 'default' ? styles.variantDefault : styles.variantOutline
+  const variantStyle =
+    variant === 'default' ? styles.variantDefault : styles.variantOutline
+  const sizeStyle = size === 'default' ? styles.sizeDefault : styles.sizeSmall
+  const alignStyle = align === 'center' ? styles.alignCenter : styles.alignLeft
+  const actionRightPadding = actionRight ? { paddingRight: 48 } : {}
 
-    const sizeStyle = size === 'default' ? styles.sizeDefault : styles.sizeSmall
+  // If no explicit status, derive from cache (populated by validateDescriptor calls)
+  const cachedValidity =
+    status === undefined && value
+      ? descriptorValidityCache.get(value)
+      : undefined
+  const resolvedStatus =
+    status ??
+    (cachedValidity === true
+      ? 'valid'
+      : cachedValidity === false
+        ? 'invalid'
+        : undefined)
 
-    const alignStyle =
-      align === 'center' ? styles.alignCenter : styles.alignLeft
+  const statusStyle =
+    resolvedStatus === 'valid'
+      ? styles.statusValid
+      : resolvedStatus === 'invalid'
+        ? styles.statusInvalid
+        : {}
 
-    const actionRightPadding = actionRight ? { paddingRight: 48 } : {}
-
-    // If no explicit status, derive from cache (populated by validateDescriptor calls)
-    const cachedValidity =
-      status === undefined && value
-        ? descriptorValidityCache.get(value)
-        : undefined
-    const resolvedStatus =
-      status ??
-      (cachedValidity === true
-        ? 'valid'
-        : cachedValidity === false
-          ? 'invalid'
-          : undefined)
-
-    const statusStyle =
-      resolvedStatus === 'valid'
-        ? styles.statusValid
-        : resolvedStatus === 'invalid'
-          ? styles.statusInvalid
-          : {}
-
-    return StyleSheet.compose(
-      {
-        ...styles.textInputBase,
-        ...variantStyle,
-        ...sizeStyle,
-        ...alignStyle,
-        ...actionRightPadding,
-        ...statusStyle
-      },
-      style
-    )
-  }, [variant, size, align, actionRight, status, style, value])
+  const textInputStyle = [
+    styles.textInputBase,
+    variantStyle,
+    sizeStyle,
+    alignStyle,
+    actionRightPadding,
+    statusStyle,
+    style
+  ]
 
   return (
     <View style={styles.containerBase}>

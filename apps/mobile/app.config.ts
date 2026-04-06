@@ -16,6 +16,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   assetBundlePatterns: ['**/*'],
   description: 'Privacy-first Bitcoin signer with complete UTXO control',
   experiments: {
+    reactCompiler: true,
     typedRoutes: true
   },
   extra: {
@@ -37,7 +38,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     supportsTablet: true
   },
   name: 'satsigner',
-  newArchEnabled: true,
   orientation: 'portrait',
   plugins: [
     [
@@ -71,7 +71,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         cameraPermission: 'Allow $(PRODUCT_NAME) to access your camera'
       }
     ],
-    'expo-localization'
+    'expo-localization',
+    'expo-build-properties',
+    'expo-image',
+    'expo-sharing',
+    'expo-web-browser'
   ],
   scheme: 'satsigner',
   slug: 'satsigner',

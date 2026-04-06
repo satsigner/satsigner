@@ -1,4 +1,4 @@
-import { type ForwardedRef, forwardRef, useMemo } from 'react'
+import { type ForwardedRef, forwardRef } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
@@ -25,22 +25,14 @@ function SSWordInput(
   }: SSWordInputProps,
   ref: ForwardedRef<TextInput>
 ) {
-  const textInputStyle = useMemo(
-    () =>
-      StyleSheet.compose(
-        {
-          ...styles.textInputBase,
-          ...(invalid ? styles.textInputInvalid : {})
-        },
-        style
-      ),
-    [invalid, style]
-  )
-
   return (
     <View style={styles.containerBase}>
       <TextInput
-        style={textInputStyle}
+        style={[
+          styles.textInputBase,
+          invalid && styles.textInputInvalid,
+          style
+        ]}
         value={value}
         autoFocus={index === 0}
         ref={ref}
