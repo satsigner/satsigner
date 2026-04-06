@@ -12,7 +12,7 @@ import { Colors, Sizes } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { formatNumber } from '@/utils/format'
 
-import { SSIconChevronRight, SSIconEyeOn } from './icons'
+import { SSIconChevronRight, SSIconCircle, SSIconEyeOn } from './icons'
 import SSIconSync from './icons/SSIconSync'
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
@@ -169,12 +169,23 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
       <SSHStack justifyBetween style={{ position: 'relative' }}>
         <SSVStack gap={platform === 'android' ? 'none' : 'xxs'}>
           {account.keys[0].creationType === 'importAddress' ? null : (
-            <SSText
-              size="xs"
-              style={{ color: Colors.gray[500], lineHeight: 10 }}
-            >
-              {fingerprint || '-'}
-            </SSText>
+            <SSHStack gap="xs" style={{ alignItems: 'flex-start' }}>
+              {fingerprint && (
+                <SSIconCircle
+                  size={9}
+                  fill={`#${fingerprint.slice(0, 6)}`}
+                />
+              )}
+              <SSText
+                size="xs"
+                style={{
+                  color: Colors.gray[500],
+                  lineHeight: 10
+                }}
+              >
+                {fingerprint || '-'}
+              </SSText>
+            </SSHStack>
           )}
           <SSHStack gap="sm">
             <SSText size="lg" color="muted">
