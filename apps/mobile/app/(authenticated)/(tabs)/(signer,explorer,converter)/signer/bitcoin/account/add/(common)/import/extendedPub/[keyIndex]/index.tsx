@@ -369,7 +369,7 @@ export default function ImportExtendedPub() {
       toast.success(t('account.import.success'))
       router.dismiss(1)
     } catch {
-      toast.error(t('import.error'))
+      toast.error(t('account.import.error.generic'))
     }
   }
 

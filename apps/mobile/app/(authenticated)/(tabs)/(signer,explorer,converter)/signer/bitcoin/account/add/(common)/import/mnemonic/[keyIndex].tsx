@@ -98,14 +98,14 @@ export default function ImportMnemonic() {
       const data = await accountBuilderFinish(account)
 
       if (!data || !data.wallet) {
-        toast.error(t('account.import.error'))
+        toast.error(t('account.import.error.generic'))
         return
       }
 
       setCreatedAccountId(data.accountWithEncryptedSecret.id)
       setAccountAddedModalVisible(true)
     } catch (error) {
-      toast.error((error as Error).message || t('account.import.error'))
+      toast.error((error as Error).message || t('account.import.error.generic'))
     }
   }
 

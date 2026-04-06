@@ -28,22 +28,28 @@ function randomNum() {
 function sha256(text: string): Promise<string> {
   const hash = QuickCrypto.createHash('sha256')
   hash.update(text)
-  return Promise.resolve(
-    Buffer.from(hash.digest() as ArrayBuffer).toString('hex')
-  )
+  return Promise.resolve(hash.digest().toString('hex'))
+}
+
+function toHex(data: ArrayBuffer | Buffer | string): string {
+  if (data instanceof ArrayBuffer) {
+    return Buffer.from(data).toString('hex')
+  }
+  if (typeof data === 'string') {
+    return data
+  }
+  return data.toString('hex')
 }
 
 function aesEncrypt(text: string, key: string, iv: string): Promise<string> {
   const cipher = QuickCrypto.createCipheriv(
     'aes-256-cbc',
-    Buffer.from(key, 'hex'),
-    Buffer.from(iv, 'hex')
+    new Uint8Array(Buffer.from(key, 'hex')),
+    new Uint8Array(Buffer.from(iv, 'hex'))
   )
-  let encrypted = Buffer.from(
-    cipher.update(Buffer.from(text, 'utf8')) as ArrayBuffer
-  ).toString('hex')
-  encrypted += Buffer.from(cipher.final() as ArrayBuffer).toString('hex')
-  return Promise.resolve(encrypted)
+  const updated = cipher.update(new Uint8Array(Buffer.from(text, 'utf8')))
+  const finalized = cipher.final('hex')
+  return Promise.resolve(toHex(updated) + finalized)
 }
 
 function aesDecrypt(
@@ -53,20 +59,22 @@ function aesDecrypt(
 ): Promise<string> {
   const decipher = QuickCrypto.createDecipheriv(
     'aes-256-cbc',
-    Buffer.from(key, 'hex'),
-    Buffer.from(iv, 'hex')
+    new Uint8Array(Buffer.from(key, 'hex')),
+    new Uint8Array(Buffer.from(iv, 'hex'))
   )
-  let decrypted = Buffer.from(
-    decipher.update(Buffer.from(ciphertext, 'hex')) as ArrayBuffer
-  ).toString('utf8')
-  decrypted += Buffer.from(decipher.final() as ArrayBuffer).toString('utf8')
-  return Promise.resolve(decrypted)
+  const updated = decipher.update(
+    new Uint8Array(Buffer.from(ciphertext, 'hex'))
+  )
+  const finalized = decipher.final('hex')
+  return Promise.resolve(
+    Buffer.from(toHex(updated) + finalized, 'hex').toString('utf8')
+  )
 }
 
 /** Password-based key derivation */
 function pbkdf2Encrypt(pin: string, salt: string): Promise<string> {
   const derived = QuickCrypto.pbkdf2Sync(pin, salt, 10_000, 256 / 8, 'sha256')
-  return Promise.resolve(Buffer.from(derived as ArrayBuffer).toString('hex'))
+  return Promise.resolve(derived.toString('hex'))
 }
 
 function generateSalt(): Promise<string> {

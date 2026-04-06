@@ -369,7 +369,7 @@ export default function ImportDescriptor() {
       clearKeyState()
       router.dismiss(1)
     } catch {
-      toast.error(t('account.import.error'))
+      toast.error(t('account.import.error.generic'))
     }
   }
 
@@ -458,7 +458,7 @@ export default function ImportDescriptor() {
         setInternalDescriptorError(errorMessage)
       }
     } catch {
-      toast.error(t('account.import.error'))
+      toast.error(t('account.import.error.generic'))
     }
   }
 

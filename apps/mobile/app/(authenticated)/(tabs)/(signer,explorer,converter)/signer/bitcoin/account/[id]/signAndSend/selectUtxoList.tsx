@@ -294,7 +294,6 @@ export default function SelectUtxoList() {
                 />
               )
             }}
-            estimatedItemSize={110}
           />
         </View>
       </View>

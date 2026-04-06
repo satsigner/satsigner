@@ -9,7 +9,6 @@ import {
   type AppStateStatus,
   Platform,
   StyleSheet,
-  UIManager,
   View
 } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
@@ -28,9 +27,6 @@ import { Colors } from '@/styles'
 if (Platform.OS === 'android') {
   SystemUI.setBackgroundColorAsync(Colors.gray[950])
 
-  if (UIManager.setLayoutAnimationEnabledExperimental) {
-    UIManager.setLayoutAnimationEnabledExperimental(true)
-  }
 }
 
 const queryClient = new QueryClient()

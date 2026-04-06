@@ -8,7 +8,7 @@ paths:
 To test the mobile app, run:
 
 ```bash
-yarn run test
+pnpm run test
 ```
 
 Note: Make sure you are in the `mobile` folder.
@@ -16,11 +16,11 @@ Note: Make sure you are in the `mobile` folder.
 Run only the unit tests:
 
 ```bash
-yarn run test:unit
+pnpm run test:unit
 ```
 
 And only the integration tests:
 
 ```bash
-yarn run test:int
+pnpm run test:int
 ```

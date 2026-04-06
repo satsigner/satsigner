@@ -1,10 +1,4 @@
-import {
-  type ForwardedRef,
-  forwardRef,
-  useEffect,
-  useMemo,
-  useState
-} from 'react'
+import { type ForwardedRef, forwardRef, useEffect, useState } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes, Typography } from '@/styles'
@@ -90,28 +84,22 @@ function SSCurrencyInput(
     }
   }
 
-  const textInputStyle = useMemo(() => {
-    const variantStyle =
-      variant === 'default' ? styles.variantDefault : styles.variantOutline
-    const sizeStyle =
-      size === 'default'
-        ? styles.sizeDefault
-        : size === 'small'
-          ? styles.sizeSmall
-          : styles.sizeLarge
-    const alignStyle =
-      align === 'center' ? styles.alignCenter : styles.alignLeft
-    const newStyle = StyleSheet.compose(
-      {
-        ...styles.textInputBase,
-        ...variantStyle,
-        ...sizeStyle,
-        ...alignStyle
-      },
-      style
-    )
-    return newStyle
-  }, [variant, size, align, style])
+  const variantStyle =
+    variant === 'default' ? styles.variantDefault : styles.variantOutline
+  const sizeStyle =
+    size === 'default'
+      ? styles.sizeDefault
+      : size === 'small'
+        ? styles.sizeSmall
+        : styles.sizeLarge
+  const alignStyle = align === 'center' ? styles.alignCenter : styles.alignLeft
+  const textInputStyle = [
+    styles.textInputBase,
+    variantStyle,
+    sizeStyle,
+    alignStyle,
+    style
+  ]
 
   useEffect(() => {
     if (value !== localValue && value !== undefined) {

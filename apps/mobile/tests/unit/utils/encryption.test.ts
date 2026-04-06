@@ -23,8 +23,8 @@ describe('encryption utils', () => {
 
       expect(QuickCrypto.createCipheriv).toHaveBeenCalledWith(
         'aes-256-cbc',
-        expect.any(Buffer),
-        expect.any(Buffer)
+        expect.any(Uint8Array),
+        expect.any(Uint8Array)
       )
       expect(typeof result).toBe('string')
     })
@@ -38,8 +38,8 @@ describe('encryption utils', () => {
 
       expect(QuickCrypto.createDecipheriv).toHaveBeenCalledWith(
         'aes-256-cbc',
-        expect.any(Buffer),
-        expect.any(Buffer)
+        expect.any(Uint8Array),
+        expect.any(Uint8Array)
       )
       expect(typeof result).toBe('string')
     })

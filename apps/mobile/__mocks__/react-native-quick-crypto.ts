@@ -14,10 +14,9 @@ const QuickCrypto = {
     let data = ''
     return {
       digest: jest.fn().mockImplementation(() => {
-        const buf = new ArrayBuffer(32)
-        const view = new Uint8Array(buf)
+        const buf = Buffer.alloc(32)
         for (let i = 0; i < 32; i += 1) {
-          view[i] = data.charCodeAt(i % data.length) ^ (i * 31)
+          buf[i] = data.charCodeAt(i % data.length) ^ (i * 31)
         }
         return buf
       }),

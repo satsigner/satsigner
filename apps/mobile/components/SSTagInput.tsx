@@ -29,7 +29,7 @@ function SSTagInput({
 }: SSTagInputProps) {
   const [text, setText] = useState('')
   const [inputFocused, setInputFocused] = useState(false)
-  const inputRef = useRef<TextInput>()
+  const inputRef = useRef<TextInput>(null)
 
   function addTag(tag: string) {
     if (tag.length < 2 || selectedTags.includes(tag)) {
@@ -77,7 +77,9 @@ function SSTagInput({
             placeholder={t('common.addTag')}
             align="left"
             size="small"
-            ref={(ref: TextInput) => (inputRef.current = ref)}
+            ref={(ref: TextInput | null) => {
+              inputRef.current = ref
+            }}
           />
         </View>
       </SSHStack>

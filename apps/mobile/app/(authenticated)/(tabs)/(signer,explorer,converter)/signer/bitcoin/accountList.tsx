@@ -877,7 +877,6 @@ export default function AccountList() {
                     </SSVStack>
                   </AccountCardStaggerItem>
                 )}
-                estimatedItemSize={20}
                 ItemSeparatorComponent={() => (
                   <SSSeparator
                     style={{ marginVertical: 16 }}

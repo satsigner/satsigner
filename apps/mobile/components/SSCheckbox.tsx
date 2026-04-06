@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import {
   type StyleProp,
   StyleSheet,
@@ -36,25 +35,17 @@ function SSCheckbox({
   disabled,
   ...props
 }: SSCheckboxProps) {
-  const innerIconStyle = useMemo(
-    () =>
-      StyleSheet.compose(styles.innerIconStyleBase, {
-        borderColor: selected ? Colors.white : Colors.transparent
-      }),
-    [selected]
-  )
-
-  const containerBase = useMemo(
-    () =>
-      StyleSheet.compose(styles.containerBase, disabled ? styles.disabled : {}),
-    [disabled]
-  )
-
   return (
     <TouchableOpacity
       onPress={() => (onPress && !disabled ? onPress(selected) : null)}
     >
-      <View style={[containerBase, containerStyle]}>
+      <View
+        style={[
+          styles.containerBase,
+          disabled && styles.disabled,
+          containerStyle
+        ]}
+      >
         <BouncyCheckbox
           isChecked={selected}
           useBuiltInState={false}
@@ -63,7 +54,10 @@ function SSCheckbox({
           size={Sizes.checkbox.height}
           iconStyle={styles.iconStyleBase}
           style={{ width: Sizes.checkbox.height }}
-          innerIconStyle={innerIconStyle}
+          innerIconStyle={[
+            styles.innerIconStyleBase,
+            { borderColor: selected ? Colors.white : Colors.transparent }
+          ]}
           onPress={onPress}
           disabled={disabled}
           {...props}

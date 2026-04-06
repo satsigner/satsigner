@@ -22,25 +22,31 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: clear yarn cache
-        run: yarn cache clean
+      - name: set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: get pnpm store directory
+        id: pnpm-cache
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: cache pnpm store
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: install dependencies
-        uses: borales/actions-yarn@v4.2.0
-        with:
-          cmd: install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: type check
-        uses: borales/actions-yarn@v4.2.0
-        with:
-          cmd: type-check
-          dir: apps/mobile
+        run: pnpm --filter @satsigner/mobile type-check
 
       - name: lint & format
-        run: yarn run check
+        run: pnpm run check
 
       - name: test
-        uses: borales/actions-yarn@v4.2.0
-        with:
-          cmd: test
-          dir: apps/mobile
+        run: pnpm --filter @satsigner/mobile test

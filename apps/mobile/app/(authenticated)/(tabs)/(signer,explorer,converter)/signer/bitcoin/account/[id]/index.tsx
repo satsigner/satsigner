@@ -387,7 +387,6 @@ function TotalTransactions({
                   </SSVStack>
                 </TransactionStaggerItem>
               )}
-              estimatedItemSize={120}
               ListEmptyComponent={
                 <SSVStack style={{ alignItems: 'center', paddingTop: 50 }}>
                   <SSText color="muted">No transactions</SSText>
@@ -495,7 +494,6 @@ function SSAddressTable({
         <FlashList
           data={addresses}
           renderItem={renderItem}
-          estimatedItemSize={150}
           keyExtractor={(item) =>
             `${item.index || ''}:${item.address}:${item.keychain || ''}`
           }
@@ -1027,7 +1025,6 @@ function SatsInMempool({
       <FlashList
         data={mempoolTransactions}
         keyExtractor={(item) => item.id}
-        estimatedItemSize={160}
         renderItem={({ item }) => (
           <SSVStack gap="sm" style={{ paddingBottom: 16 }}>
             <SSTransactionCard

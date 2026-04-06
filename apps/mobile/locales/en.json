@@ -61,7 +61,7 @@
     "generate.warning": "Keep this information secret and backed up.",
     "gotoWallet": "Go to Wallet",
     "import.descriptor": "Import Descriptor",
-    "import.error": "Failed to import key",
+    "import.error.generic": "Failed to import key",
     "import.error.checksumFormat": "Invalid checksum format",
     "import.error.checksumInvalid": "Invalid checksum",
     "import.error.derivationPathBracket": "Unclosed derivation path bracket",

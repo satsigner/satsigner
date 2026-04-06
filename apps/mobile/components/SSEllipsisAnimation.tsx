@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect } from 'react'
 import { StyleSheet, View } from 'react-native'
 import Animated, {
   useAnimatedStyle,
@@ -38,29 +38,23 @@ function SSEllipsisAnimation({ size = 3 }: SSEllipsisAnimationProps) {
     )
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const containerStyle = useMemo(
-    () =>
-      StyleSheet.compose(styles.containerBase, {
-        gap: Math.round(size * 2)
-      }),
-    [size]
-  )
-
-  const dotStyle = useMemo(
-    () =>
-      StyleSheet.compose(styles.circleBase, {
-        borderRadius: Math.round(size / 2),
-        height: size,
-        width: size
-      }),
-    [size]
-  )
+  const dotSizeStyle = {
+    borderRadius: Math.round(size / 2),
+    height: size,
+    width: size
+  }
 
   return (
-    <View style={containerStyle}>
-      <Animated.View style={[dotStyle, animatedStyles1]} />
-      <Animated.View style={[dotStyle, animatedStyles2]} />
-      <Animated.View style={[dotStyle, animatedStyles3]} />
+    <View style={[styles.containerBase, { gap: Math.round(size * 2) }]}>
+      <Animated.View
+        style={[styles.circleBase, dotSizeStyle, animatedStyles1]}
+      />
+      <Animated.View
+        style={[styles.circleBase, dotSizeStyle, animatedStyles2]}
+      />
+      <Animated.View
+        style={[styles.circleBase, dotSizeStyle, animatedStyles3]}
+      />
     </View>
   )
 }
