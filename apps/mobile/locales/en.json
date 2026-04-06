@@ -354,6 +354,7 @@
     "satsInMempool": "Sats in\nMempool",
     "spendableOutputs": "Spendable\nOutputs",
     "totalTransactions": "Total\nTransactions",
+    "totalBalance": "Total Balance",
     "txs": "Txs",
     "unspentSats": "Sats",
     "utxos": "UTXOs",
