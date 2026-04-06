@@ -18,7 +18,9 @@ const TRANSFORM_PACKAGES = [
   'react-native-svg',
   'uint8array-tools',
   '@scure/.*',
-  '@cashu/.*'
+  '@cashu/.*',
+  '@noble/.*',
+  'bip32'
 ].join('|')
 
 const config = {
