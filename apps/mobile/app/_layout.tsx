@@ -26,7 +26,6 @@ import { Colors } from '@/styles'
 
 if (Platform.OS === 'android') {
   SystemUI.setBackgroundColorAsync(Colors.gray[950])
-
 }
 
 const queryClient = new QueryClient()

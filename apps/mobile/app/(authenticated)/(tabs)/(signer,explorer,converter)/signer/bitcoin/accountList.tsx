@@ -17,6 +17,7 @@ import SSActionButton from '@/components/SSActionButton'
 import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
 import SSButton from '@/components/SSButton'
 import SSSeparator from '@/components/SSSeparator'
+import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import { DEFAULT_PIN, PIN_KEY, SALT_KEY } from '@/config/auth'
 import {
@@ -40,7 +41,6 @@ import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
-import SSStyledSatText from '@/components/SSStyledSatText'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { getItem, setItem } from '@/storage/encrypted'
@@ -231,13 +231,15 @@ export default function AccountList() {
     (acc) => acc.network === tabs[tabIndex].key
   )
 
-  const totalBalance = useMemo(() => {
-    return filteredAccounts.reduce((value, account) => value + account.summary.balance, 0)
-  }, [filteredAccounts])
+  const totalBalance = useMemo(() => filteredAccounts.reduce(
+      (value, account) => value + account.summary.balance,
+      0
+    ), [filteredAccounts])
 
-  const totalSatsInMempoll = useMemo(() => {
-    return filteredAccounts.reduce((value, account) => value + account.summary.satsInMempool, 0)
-  }, [filteredAccounts])
+  const totalSatsInMempoll = useMemo(() => filteredAccounts.reduce(
+      (value, account) => value + account.summary.satsInMempool,
+      0
+    ), [filteredAccounts])
 
   const ACCOUNT_CARD_HEIGHT = 160
   const SEPARATOR_VERTICAL = 32
@@ -818,19 +820,13 @@ export default function AccountList() {
               <SSText size="2xxs" color="muted">
                 {t('accounts.totalBalance')}
               </SSText>
-              <SSStyledSatText
-                amount={totalBalance}
-                textSize="xxs"
-              />
+              <SSStyledSatText amount={totalBalance} textSize="xxs" />
             </SSHStack>
             <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
               <SSText size="2xxs" color="muted">
                 {t('accounts.satsInMempool').replace('\n', ' ')}
               </SSText>
-              <SSStyledSatText
-                amount={totalSatsInMempoll}
-                textSize="xxs"
-              />
+              <SSStyledSatText amount={totalSatsInMempoll} textSize="xxs" />
             </SSHStack>
           </SSHStack>
         </SSVStack>

@@ -1,9 +1,11 @@
 const store: Record<string, string> = {}
 
-export const getItemAsync = jest.fn(async (key: string) => store[key] ?? null)
-export const setItemAsync = jest.fn(async (key: string, value: string) => {
+export const getItemAsync = jest.fn((key: string) => Promise.resolve(store[key] ?? null))
+export const setItemAsync = jest.fn((key: string, value: string) => {
   store[key] = value
+  return Promise.resolve()
 })
-export const deleteItemAsync = jest.fn(async (key: string) => {
+export const deleteItemAsync = jest.fn((key: string) => {
   delete store[key]
+  return Promise.resolve()
 })
