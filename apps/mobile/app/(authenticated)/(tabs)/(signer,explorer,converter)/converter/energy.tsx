@@ -749,7 +749,7 @@ export default function Energy() {
 
       try {
         // Convert txids to little-endian for merkle root calculation
-        let hashes = transactions.map((tx) => {
+        let hashes: Buffer<ArrayBufferLike>[] = transactions.map((tx) => {
           if (!tx) {
             throw new Error('Invalid transaction')
           }
