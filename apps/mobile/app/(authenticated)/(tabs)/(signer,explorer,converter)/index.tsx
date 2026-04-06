@@ -12,7 +12,7 @@ import { Colors } from '@/styles'
 import { type NavMenuItem } from '@/types/navigation/navMenu'
 
 export default function Home() {
-  const { tab, segment } = useLocalSearchParams()
+  const { tab } = useLocalSearchParams()
   const router = useRouter()
   const pages = navMenuGroups.filter((group) => group.title === tab)[0]?.items
 
@@ -21,13 +21,13 @@ export default function Home() {
       if (page.isSoon) {
         router.navigate({
           params: { title: page.title },
-          pathname: `${segment}/upcoming/`
+          pathname: '/upcoming'
         })
-      } else {
-        router.navigate(`${segment}${page.url}`)
+      } else if (page.url) {
+        router.navigate(page.url)
       }
     },
-    [router, segment]
+    [router]
   )
 
   return (

@@ -210,7 +210,8 @@ export default function SignTransaction() {
       transactionData: { combinedPsbt: txString }
     })
     router.push({
-      pathname: `/signer/bitcoin/account/${id}/settings/nostr/devicesGroupChat`
+      params: { id },
+      pathname: '/signer/bitcoin/account/[id]/settings/nostr/devicesGroupChat'
     })
   }
 

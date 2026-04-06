@@ -1,4 +1,4 @@
-import { router } from 'expo-router'
+import { router, type Href } from 'expo-router'
 import { type DimensionValue, TouchableOpacity, View } from 'react-native'
 
 import SSText, { type SSTextProps } from '@/components/SSText'
@@ -18,7 +18,7 @@ type SSDetailsListItemProps = {
   width?: DimensionValue
   uppercase?: boolean
   copyToClipboard?: boolean
-  navigateToLink?: string
+  navigateToLink?: Href
 }
 
 type commonOptions = Pick<

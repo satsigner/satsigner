@@ -1593,7 +1593,8 @@ function PreviewTransaction() {
       transactionData: { combinedPsbt: base64 }
     })
     router.push({
-      pathname: `/signer/bitcoin/account/${id}/settings/nostr/devicesGroupChat`
+      params: { id },
+      pathname: '/signer/bitcoin/account/[id]/settings/nostr/devicesGroupChat'
     })
   }
 

@@ -535,17 +535,21 @@ function SSAddressList({
   return (
     <ScrollView>
       <SSVStack style={{ paddingVertical: 10 }}>
-        {addresses.map((address, index) => {
-          const link = `/signer/bitcoin/account/${accountId}/address/${address.address}`
-          return (
-            <SSVStack key={address.address} gap="xs">
-              {index > 0 && <SSSeparator color="gradient" />}
-              <TouchableOpacity onPress={() => router.navigate(link)}>
-                <AddressCard address={{ index, ...address }} />
-              </TouchableOpacity>
-            </SSVStack>
-          )
-        })}
+        {addresses.map((address, index) => (
+          <SSVStack key={address.address} gap="xs">
+            {index > 0 && <SSSeparator color="gradient" />}
+            <TouchableOpacity
+              onPress={() =>
+                router.navigate({
+                  params: { addr: address.address, id: accountId },
+                  pathname: '/signer/bitcoin/account/[id]/address/[addr]'
+                })
+              }
+            >
+              <AddressCard address={{ index, ...address }} />
+            </TouchableOpacity>
+          </SSVStack>
+        ))}
         {!isMultiAddressWatchOnly && (
           <SSButton
             variant="outline"

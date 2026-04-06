@@ -1,3 +1,5 @@
+import { type Href } from 'expo-router'
+
 export enum PLATFORM {
   ANDROID = 'android',
   IOS = 'ios',
@@ -7,7 +9,7 @@ export enum PLATFORM {
 export type NavMenuItem = {
   title: string
   icon: React.ComponentType
-  url: string
+  url: Href | ''
   isSoon: boolean
   platform: PLATFORM
 }

@@ -667,7 +667,8 @@ export default function NostrSync() {
       return
     }
     router.push({
-      pathname: `/signer/bitcoin/account/${accountId}/settings/nostr/selectRelays`
+      params: { id: accountId },
+      pathname: '/signer/bitcoin/account/[id]/settings/nostr/selectRelays'
     })
   }
 
@@ -676,7 +677,8 @@ export default function NostrSync() {
       return
     }
     router.push({
-      pathname: `/signer/bitcoin/account/${accountId}/settings/nostr/nostrKey`
+      params: { id: accountId },
+      pathname: '/signer/bitcoin/account/[id]/settings/nostr/nostrKey'
     })
   }
 
@@ -685,7 +687,8 @@ export default function NostrSync() {
       return
     }
     router.push({
-      pathname: `/signer/bitcoin/account/${accountId}/settings/nostr/devicesGroupChat`
+      params: { id: accountId },
+      pathname: '/signer/bitcoin/account/[id]/settings/nostr/devicesGroupChat'
     })
   }
 
@@ -1034,8 +1037,12 @@ export default function NostrSync() {
                                 disabled={isSyncing}
                                 onPress={() => {
                                   router.push({
-                                    params: { npub: member.npub },
-                                    pathname: `/signer/bitcoin/account/${accountId}/settings/nostr/device/[npub]`
+                                    params: {
+                                      id: accountId,
+                                      npub: member.npub
+                                    },
+                                    pathname:
+                                      '/signer/bitcoin/account/[id]/settings/nostr/device/[npub]'
                                   })
                                 }}
                                 style={{ opacity: isSyncing ? 0.5 : 1 }}

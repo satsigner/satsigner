@@ -1,6 +1,7 @@
 import { Buffer } from 'buffer'
 
 import * as bitcoinjs from 'bitcoinjs-lib'
+import { type Href } from 'expo-router'
 import { type PsbtLike } from 'react-native-bdk-sdk'
 
 import { SATS_PER_BITCOIN } from '@/constants/btc'
@@ -22,14 +23,7 @@ import {
 import { selectEfficientUtxos } from '@/utils/utxo'
 
 type ProcessorActions = {
-  navigate: (
-    path:
-      | string
-      | {
-          pathname: string
-          params?: Record<string, string | number | undefined>
-        }
-  ) => void
+  navigate: (path: Href) => void
   clearTransaction?: () => void
   addOutput?: (output: { amount: number; label: string; to: string }) => void
   addInput?: (input: Utxo) => void
@@ -99,10 +93,10 @@ async function processBitcoinContent(
         psbtBase64 = Buffer.from(content.cleaned, 'hex').toString('base64')
       }
 
-      const psbtParam = encodeURIComponent(psbtBase64)
-      navigate(
-        `/signer/bitcoin/account/${accountId}/signAndSend/previewTransaction?psbt=${psbtParam}`
-      )
+      navigate({
+        params: { id: accountId, psbt: psbtBase64 },
+        pathname: '/signer/bitcoin/account/[id]/signAndSend/previewTransaction'
+      })
 
       if (account) {
         const accountMatch = await findMatchingAccount(psbtBase64, [account])
@@ -235,17 +229,17 @@ async function processBitcoinContent(
     }
 
     case 'bitcoin_descriptor':
-      actions.navigate(
-        `/signer/bitcoin/account/add/watchOnly?descriptor=${content.cleaned}`
-      )
+      actions.navigate({
+        params: { descriptor: content.cleaned },
+        pathname: '/signer/bitcoin/account/add/watchOnly'
+      })
       break
 
     case 'extended_public_key':
-      actions.navigate(
-        `/signer/bitcoin/account/add/watchOnly?extendedPublicKey=${encodeURIComponent(
-          content.cleaned
-        )}`
-      )
+      actions.navigate({
+        params: { extendedPublicKey: content.cleaned },
+        pathname: '/signer/bitcoin/account/add/watchOnly'
+      })
       break
 
     case 'bitcoin_transaction':

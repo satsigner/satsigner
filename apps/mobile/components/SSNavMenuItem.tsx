@@ -9,24 +9,23 @@ import { type NavMenuItem } from '@/types/navigation/navMenu'
 import SSText from './SSText'
 
 type SSNavMenuItemProps = {
-  group: string
   item: NavMenuItem
   focused?: boolean
 }
 
-function SSNavMenuItem({ group, item, focused = false }: SSNavMenuItemProps) {
+function SSNavMenuItem({ item, focused = false }: SSNavMenuItemProps) {
   const router = useRouter()
 
   const handlePress = useCallback(() => {
     if (item.isSoon) {
       router.navigate({
         params: { title: item.title },
-        pathname: `(${group.toLowerCase()})/upcoming/`
+        pathname: '/upcoming'
       })
-    } else {
-      router.navigate(`(${group.toLowerCase()})${item.url}`)
+    } else if (item.url) {
+      router.navigate(item.url)
     }
-  }, [item, router, group])
+  }, [item, router])
 
   const opacity = focused || !item.isSoon ? 1 : 0.5
 

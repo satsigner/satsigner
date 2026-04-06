@@ -1,4 +1,4 @@
-import { router } from 'expo-router'
+import { router, type Href } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { Pressable, StyleSheet } from 'react-native'
 
@@ -14,7 +14,7 @@ import SSText from './SSText'
 
 type SSLabelDetailsProps = {
   label: string
-  link: string
+  link: Href
   header: string
   privacyMode?: boolean
 }

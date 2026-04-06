@@ -9,9 +9,7 @@ import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account } from '@/types/models/Account'
 import { type DetectedContent } from '@/utils/contentDetector'
 
-type NavigatePath =
-  | string
-  | { pathname: string; params?: Record<string, string | number | undefined> }
+type NavigatePath = Parameters<ReturnType<typeof useRouter>['navigate']>[0]
 
 type UseBitcoinContentHandlerProps = {
   accountId: string

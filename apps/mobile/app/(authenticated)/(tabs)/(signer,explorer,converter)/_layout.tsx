@@ -47,7 +47,7 @@ function HeaderRight() {
       </SSIconButton>
       <SSIconButton
         style={{ marginRight: 8 }}
-        onPress={() => router.navigate('/settings/')}
+        onPress={() => router.navigate('/settings')}
       >
         <SSIconSettings height={18} width={18} />
       </SSIconButton>

@@ -49,8 +49,8 @@ function SSNostrMessage({
       return
     }
     router.push({
-      params: { npub: authorNpub },
-      pathname: `/signer/bitcoin/account/${account.id}/settings/nostr/device/[npub]`
+      params: { id: account.id, npub: authorNpub },
+      pathname: '/signer/bitcoin/account/[id]/settings/nostr/device/[npub]'
     })
   }
 

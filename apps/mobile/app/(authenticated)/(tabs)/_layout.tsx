@@ -26,9 +26,11 @@ export default function TabLayout() {
   const segments = useSegments() as string[]
   const [isShowTab, setShowTab] = useState(false)
 
+  type TabSegment = '(signer)' | '(explorer)' | '(converter)'
+
   function handleTabItemPress(
     props: BottomTabBarButtonProps,
-    segment: string,
+    segment: TabSegment,
     e: GestureResponderEvent
   ) {
     if (
@@ -41,7 +43,10 @@ export default function TabLayout() {
     }
   }
 
-  const renderTabButton = (props: BottomTabBarButtonProps, segment: string) => {
+  const renderTabButton = (
+    props: BottomTabBarButtonProps,
+    segment: TabSegment
+  ) => {
     const isSelected = segments.includes(segment)
     return (
       <View style={[props.style, styles.tabBarButtonOuter]}>

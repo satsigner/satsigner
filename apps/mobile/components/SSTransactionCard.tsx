@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router'
+import { useRouter, type Href } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
   type StyleProp,
@@ -34,7 +34,7 @@ type SSTransactionCardProps = {
   fiatCurrency: Currency
   btcPrice: number
   walletBalance?: number
-  link: string
+  link: Href
   expand: boolean
   style?: StyleProp<ViewStyle>
 }
