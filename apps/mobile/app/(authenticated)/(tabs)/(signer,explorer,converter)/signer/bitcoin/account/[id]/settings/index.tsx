@@ -22,7 +22,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
-import { useAuthStore } from '@/store/auth'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
@@ -50,8 +49,6 @@ export default function AccountSettings() {
   const removeAccountWallet = useWalletsStore(
     (state) => state.removeAccountWallet
   )
-
-  const skipPin = useAuthStore((state) => state.skipPin)
 
   const [scriptVersion, setScriptVersion] = useState<Key['scriptVersion']>(
     account?.keys[0]?.scriptVersion || 'P2WPKH'
@@ -109,12 +106,8 @@ export default function AccountSettings() {
   }
 
   function handleOnViewMnemonic() {
-    if (skipPin) {
-      setMnemonicModalVisible(true)
-    } else {
-      setPin(emptyPin())
-      setShowPinEntry(true)
-    }
+    setPin(emptyPin())
+    setShowPinEntry(true)
 
     // This will auto-focus the pin input after a little delay.
     // The delay is needed because the modal has to have become visible first.
