@@ -35,8 +35,8 @@ function SSWarningModal({ visible, onClose, children }: SSWarningModalProps) {
         style={[
           styles.safeArea,
           {
-            paddingTop: insets.top,
-            paddingBottom: insets.bottom
+            paddingBottom: insets.bottom,
+            paddingTop: insets.top
           }
         ]}
       >
