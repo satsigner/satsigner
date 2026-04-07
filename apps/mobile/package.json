@@ -3,7 +3,7 @@
   "version": "0.2.1",
   "private": true,
   "description": "Privacy-first Bitcoin signer with complete UTXO control",
-  "main": "expo-router/entry",
+  "main": "./index.js",
   "react-native": {
     "net": "react-native-tcp-socket",
     "tls": "react-native-tcp-socket",
