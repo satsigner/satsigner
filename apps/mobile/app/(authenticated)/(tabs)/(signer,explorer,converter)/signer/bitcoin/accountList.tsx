@@ -17,7 +17,6 @@ import SSActionButton from '@/components/SSActionButton'
 import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
 import SSButton from '@/components/SSButton'
 import SSSeparator from '@/components/SSSeparator'
-import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import { DEFAULT_PIN, PIN_KEY, SALT_KEY } from '@/config/auth'
 import {
@@ -823,18 +822,30 @@ export default function AccountList() {
             nextBlockFee={nextBlockFee}
             blockHeightSource={blockHeightSource}
           />
-          <SSHStack>
-            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-              <SSText size="2xxs" color="muted">
+          <SSHStack
+            gap="xxs"
+            style={{ alignItems: 'baseline', justifyContent: 'center' }}
+          >
+            <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
+              <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
                 {t('accounts.totalBalance')}
               </SSText>
-              <SSStyledSatText amount={totalBalance} textSize="xxs" />
+              <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
+                {totalBalance.toLocaleString(undefined, {
+                  maximumFractionDigits: 0
+                })}
+              </SSText>
             </SSHStack>
-            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-              <SSText size="2xxs" color="muted">
+            <View style={{ width: 12 }} />
+            <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
+              <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
                 {t('accounts.satsInMempool').replace('\n', ' ')}
               </SSText>
-              <SSStyledSatText amount={totalSatsInMempoll} textSize="xxs" />
+              <SSText size="xxs" style={{ color: Colors.gray['200'] }}>
+                {totalSatsInMempoll.toLocaleString(undefined, {
+                  maximumFractionDigits: 0
+                })}
+              </SSText>
             </SSHStack>
           </SSHStack>
         </SSVStack>
