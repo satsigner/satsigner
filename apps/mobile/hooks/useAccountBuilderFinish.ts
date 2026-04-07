@@ -84,10 +84,10 @@ function useAccountBuilderFinish() {
       const data = getAccountData()
       const accountWithEncryptedSecret = {
         ...data,
-        policyType,
         keys: data.keys.map((key, i) =>
           i === 0 ? { ...key, creationType } : key
-        )
+        ),
+        policyType
       }
 
       addAccount(accountWithEncryptedSecret)

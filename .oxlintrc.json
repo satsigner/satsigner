@@ -30,6 +30,7 @@
     "no-inline-comments": "allow", // Remove it later
     "no-warning-comments": "allow", // Remove it later
     "no-shadow": "allow", // Remove it later
+    "prefer-object-spread": "allow",
 
     // Rules with remaining errors - fix over time
     "react-perf/jsx-no-new-function-as-prop": "allow",
