@@ -1,11 +1,10 @@
 import * as StatusBar from 'expo-status-bar'
 import { useEffect } from 'react'
-import { Modal, Platform, ScrollView } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { Modal, Platform, ScrollView, StyleSheet, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import SSMainLayout from '@/layouts/SSMainLayout'
 import { t } from '@/locales'
-import { Colors } from '@/styles'
+import { Colors, Layout } from '@/styles'
 
 import SSButton from './SSButton'
 
@@ -16,6 +15,8 @@ type SSWarningModalProps = {
 }
 
 function SSWarningModal({ visible, onClose, children }: SSWarningModalProps) {
+  const insets = useSafeAreaInsets()
+
   useEffect(() => {
     if (Platform.OS !== 'android') {
       return
@@ -30,8 +31,16 @@ function SSWarningModal({ visible, onClose, children }: SSWarningModalProps) {
 
   return (
     <Modal visible={visible} transparent={false}>
-      <SafeAreaView style={{ backgroundColor: Colors.black, flex: 1 }}>
-        <SSMainLayout black>
+      <View
+        style={[
+          styles.safeArea,
+          {
+            paddingTop: insets.top,
+            paddingBottom: insets.bottom
+          }
+        ]}
+      >
+        <View style={styles.container}>
           <ScrollView>
             {children}
             <SSButton
@@ -40,10 +49,22 @@ function SSWarningModal({ visible, onClose, children }: SSWarningModalProps) {
               onPress={onClose}
             />
           </ScrollView>
-        </SSMainLayout>
-      </SafeAreaView>
+        </View>
+      </View>
     </Modal>
   )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingHorizontal: Layout.mainContainer.paddingHorizontal,
+    paddingTop: Layout.mainContainer.paddingTop
+  },
+  safeArea: {
+    backgroundColor: Colors.black,
+    flex: 1
+  }
+})
 
 export default SSWarningModal
