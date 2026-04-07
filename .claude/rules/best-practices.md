@@ -17,3 +17,4 @@ paths:
 10. Use `i18n` strings. Add them in `locales` folder if not already present in `*.json` files;
 11. Try to write tests when you code a new feature.
 12. Components should be responsible for receiving data through props and rendering it. Business logic should be kept separate and not placed within components.
+13. We are using react-compiler, so only use `useMemo`, `memo`, and `useCallback` when strictly necessary.
