@@ -33,7 +33,7 @@ function SSModal({
         style={[
           styles.safeArea,
           fullOpacity ? styles.containerFullOpacity : styles.containerBase,
-          { paddingTop: insets.top, paddingBottom: insets.bottom }
+          { paddingBottom: insets.bottom, paddingTop: insets.top }
         ]}
       >
         <View style={styles.container}>

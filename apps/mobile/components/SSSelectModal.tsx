@@ -49,8 +49,8 @@ function SSSelectModal({
         style={{
           backgroundColor: Colors.black,
           flex: 1,
-          paddingTop: insets.top,
-          paddingBottom: insets.bottom
+          paddingBottom: insets.bottom,
+          paddingTop: insets.top
         }}
       >
         <SSMainLayout black style={{ paddingBottom: 20 }}>
