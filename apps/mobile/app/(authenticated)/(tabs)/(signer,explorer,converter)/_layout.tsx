@@ -123,8 +123,7 @@ export default function StackLayout(params: { segment?: string }) {
       <Stack
         screenOptions={{
           contentStyle: {
-            backgroundColor: Colors.gray[950],
-            paddingTop: 100
+            backgroundColor: Colors.gray[950]
           },
           headerBackVisible: false,
           headerBackground: () => (
