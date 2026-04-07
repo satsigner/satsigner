@@ -353,6 +353,7 @@
     "samples": "Sample accounts",
     "satsInMempool": "Sats in\nMempool",
     "spendableOutputs": "Spendable\nOutputs",
+    "totalBalance": "Total Balance",
     "totalTransactions": "Total\nTransactions",
     "txs": "Txs",
     "unspentSats": "Sats",
