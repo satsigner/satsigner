@@ -1,7 +1,7 @@
 import * as StatusBar from 'expo-status-bar'
 import { useEffect } from 'react'
-import { Modal, Platform, ScrollView } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { Modal, Platform, ScrollView, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -30,6 +30,8 @@ function SSSelectModal({
   onCancel,
   children
 }: SSSelectModalProps) {
+  const insets = useSafeAreaInsets()
+
   useEffect(() => {
     if (Platform.OS !== 'android') {
       return
@@ -43,15 +45,23 @@ function SSSelectModal({
 
   return (
     <Modal visible={visible} transparent={false}>
-      <SafeAreaView style={{ backgroundColor: Colors.black, flex: 1 }}>
+      <View
+        style={{
+          backgroundColor: Colors.black,
+          flex: 1,
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom
+        }}
+      >
         <SSMainLayout black style={{ paddingBottom: 20 }}>
           <ScrollView>
             <SSVStack gap="lg">
               <SSVStack>
                 <SSText
+                  center
                   color="muted"
                   size="sm"
-                  style={{ alignSelf: 'center', minHeight: 40 }}
+                  style={{ minHeight: 40 }}
                   uppercase
                 >
                   {title}
@@ -82,7 +92,7 @@ function SSSelectModal({
             />
           </SSVStack>
         </SSMainLayout>
-      </SafeAreaView>
+      </View>
     </Modal>
   )
 }
