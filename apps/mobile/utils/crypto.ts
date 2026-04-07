@@ -31,16 +31,6 @@ function sha256(text: string): Promise<string> {
   return Promise.resolve(hash.digest().toString('hex'))
 }
 
-function toHex(data: ArrayBuffer | Buffer | string): string {
-  if (data instanceof ArrayBuffer) {
-    return Buffer.from(data).toString('hex')
-  }
-  if (typeof data === 'string') {
-    return data
-  }
-  return data.toString('hex')
-}
-
 function aesEncrypt(text: string, key: string, iv: string): Promise<string> {
   const cipher = QuickCrypto.createCipheriv(
     'aes-256-cbc',
@@ -48,8 +38,12 @@ function aesEncrypt(text: string, key: string, iv: string): Promise<string> {
     new Uint8Array(Buffer.from(iv, 'hex'))
   )
   const updated = cipher.update(new Uint8Array(Buffer.from(text, 'utf8')))
-  const finalized = cipher.final('hex')
-  return Promise.resolve(toHex(updated) + finalized)
+  const finalized = cipher.final()
+  const result = Buffer.concat([
+    new Uint8Array(updated as ArrayBuffer),
+    new Uint8Array(finalized as ArrayBuffer)
+  ])
+  return Promise.resolve(result.toString('base64'))
 }
 
 function aesDecrypt(
@@ -63,12 +57,14 @@ function aesDecrypt(
     new Uint8Array(Buffer.from(iv, 'hex'))
   )
   const updated = decipher.update(
-    new Uint8Array(Buffer.from(ciphertext, 'hex'))
+    new Uint8Array(Buffer.from(ciphertext, 'base64'))
   )
-  const finalized = decipher.final('hex')
-  return Promise.resolve(
-    Buffer.from(toHex(updated) + finalized, 'hex').toString('utf8')
-  )
+  const finalized = decipher.final()
+  const result = Buffer.concat([
+    new Uint8Array(updated as ArrayBuffer),
+    new Uint8Array(finalized as ArrayBuffer)
+  ])
+  return Promise.resolve(result.toString('utf8'))
 }
 
 /** Password-based key derivation */
@@ -86,7 +82,6 @@ async function doubleShaEncrypt(text: string): Promise<string> {
   return sha256(first)
 }
 
-// FIX: me
 async function getPinForDecryption(skipPin = false): Promise<string | null> {
   if (skipPin) {
     return DEFAULT_PIN
