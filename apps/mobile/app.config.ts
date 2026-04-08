@@ -75,8 +75,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-build-properties',
       {
-        buildReactNativeFromSource: true,
-        useHermesV1: true
+        android: {
+          useHermesV1: false
+        },
+        ios: {
+          buildReactNativeFromSource: true,
+          useHermesV1: true
+        }
       }
     ],
     'expo-image',
