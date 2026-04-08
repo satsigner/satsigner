@@ -423,6 +423,7 @@ async function getWalletDataFromMnemonic(
   )
 
   const { fingerprint, derivationPath } = parseDescriptor(externalDescriptor)
+
   const wallet = await getWalletFromDescriptor(
     externalDescriptor,
     internalDescriptor,
@@ -523,13 +524,23 @@ async function syncWallet(
   wallet: BdkWallet,
   backend: Backend,
   url: string,
-  stopGap: number
+  stopGap: number,
+  isFullScan: boolean
 ) {
-  if (backend === 'electrum') {
-    await wallet.syncWithElectrum(url, stopGap)
+  if (isFullScan) {
+    if (backend === 'electrum') {
+      await wallet.fullScanWithElectrum(url, stopGap)
+    } else {
+      await wallet.fullScanWithEsplora(url, stopGap)
+    }
   } else {
-    await wallet.syncWithEsplora(url, stopGap)
+    if (backend === 'electrum') {
+      await wallet.syncWithElectrum(url, stopGap)
+    } else {
+      await wallet.syncWithEsplora(url, stopGap)
+    }
   }
+
   wallet.persist()
 }
 
@@ -644,8 +655,8 @@ function getWalletOverview(
   }
 
   const balance = wallet.getBalance()
-  const txDetailsList = wallet.transactions()
   const localOutputs = wallet.listUnspent()
+  const txDetailsList = wallet.transactions()
 
   const transactions: Transaction[] = txDetailsList.map((txDetails) =>
     parseTxDetailsToTransaction(txDetails, localOutputs, network)

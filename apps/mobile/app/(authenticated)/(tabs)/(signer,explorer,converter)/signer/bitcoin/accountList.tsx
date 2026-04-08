@@ -595,12 +595,13 @@ export default function AccountList() {
       return
     }
     if (connectionMode === 'auto') {
-      const updatedAccount = [
+      const isWalletType = [
         'segwit',
         'legacy',
         'watchonlyXpub',
         'multisig'
       ].includes(type)
+      const updatedAccount = isWalletType
         ? await syncAccountWithWallet(
             data.accountWithEncryptedSecret,
             data.wallet!
