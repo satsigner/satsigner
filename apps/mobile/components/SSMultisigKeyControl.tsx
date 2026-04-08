@@ -1,6 +1,11 @@
 import { useRouter } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
-import { Animated, TouchableOpacity, View } from 'react-native'
+import { useEffect, useState } from 'react'
+import { TouchableOpacity, View } from 'react-native'
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming
+} from 'react-native-reanimated'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -87,44 +92,28 @@ function SSMultisigKeyControl({
   const [localMnemonicWordCount, setLocalMnemonicWordCount] = useState(24)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
-  // Animation values
-  const animatedHeight = useRef(new Animated.Value(0)).current
-  const animatedOpacity = useRef(new Animated.Value(0)).current
+  const animatedHeight = useSharedValue(0)
+  const animatedOpacity = useSharedValue(0)
   const [contentHeight, setContentHeight] = useState(0)
 
-  // Animation logic for expansion/contraction
   useEffect(() => {
     if (isExpanded) {
-      // Expand animation - use measured height or fallback to a reasonable default
       const targetHeight = contentHeight > 0 ? contentHeight : 300
-      Animated.parallel([
-        Animated.timing(animatedHeight, {
-          duration: 100,
-          toValue: targetHeight + 50 - 16,
-          useNativeDriver: false
-        }),
-        Animated.timing(animatedOpacity, {
-          duration: 100,
-          toValue: 1,
-          useNativeDriver: false
-        })
-      ]).start()
+      animatedHeight.value = withTiming(targetHeight + 50 - 16, {
+        duration: 100
+      })
+      animatedOpacity.value = withTiming(1, { duration: 100 })
     } else {
-      // Collapse animation
-      Animated.parallel([
-        Animated.timing(animatedHeight, {
-          duration: 100,
-          toValue: 0,
-          useNativeDriver: false
-        }),
-        Animated.timing(animatedOpacity, {
-          duration: 100,
-          toValue: 0,
-          useNativeDriver: false
-        })
-      ]).start()
+      animatedHeight.value = withTiming(0, { duration: 100 })
+      animatedOpacity.value = withTiming(0, { duration: 100 })
     }
   }, [isExpanded, contentHeight, animatedHeight, animatedOpacity])
+
+  const expandStyle = useAnimatedStyle(() => ({
+    height: animatedHeight.value,
+    opacity: animatedOpacity.value,
+    overflow: 'hidden' as const
+  }))
 
   // Extract public key from descriptor when key details change
   useEffect(() => {
@@ -449,13 +438,7 @@ function SSMultisigKeyControl({
         </SSHStack>
       </TouchableOpacity>
 
-      <Animated.View
-        style={{
-          height: animatedHeight,
-          opacity: animatedOpacity,
-          overflow: 'hidden'
-        }}
-      >
+      <Animated.View style={expandStyle}>
         {/* Hidden content for measurement - always rendered but invisible */}
         <View
           style={{

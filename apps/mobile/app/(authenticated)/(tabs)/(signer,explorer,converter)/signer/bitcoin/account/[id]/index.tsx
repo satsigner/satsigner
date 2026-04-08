@@ -16,8 +16,6 @@ import {
   useState
 } from 'react'
 import {
-  Animated,
-  Easing,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -25,6 +23,13 @@ import {
   useWindowDimensions,
   View
 } from 'react-native'
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming
+} from 'react-native-reanimated'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -192,40 +197,33 @@ function TransactionStaggerItem({
   index: number
   children: React.ReactNode
 }) {
-  const opacity = useRef(new Animated.Value(0)).current
-  const translateY = useRef(new Animated.Value(12)).current
+  const opacity = useSharedValue(0)
+  const translateY = useSharedValue(12)
 
   useEffect(() => {
     const delay = index * TX_STAGGER_DELAY_MS
-    const timer = setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(opacity, {
-          duration: TX_STAGGER_DURATION_MS,
-          easing: Easing.out(Easing.ease),
-          toValue: 1,
-          useNativeDriver: true
-        }),
-        Animated.timing(translateY, {
-          duration: TX_STAGGER_DURATION_MS,
-          easing: Easing.out(Easing.ease),
-          toValue: 0,
-          useNativeDriver: true
-        })
-      ]).start()
-    }, delay)
-    return () => clearTimeout(timer)
+    opacity.value = withDelay(
+      delay,
+      withTiming(1, {
+        duration: TX_STAGGER_DURATION_MS,
+        easing: Easing.out(Easing.ease)
+      })
+    )
+    translateY.value = withDelay(
+      delay,
+      withTiming(0, {
+        duration: TX_STAGGER_DURATION_MS,
+        easing: Easing.out(Easing.ease)
+      })
+    )
   }, [index, opacity, translateY])
 
-  return (
-    <Animated.View
-      style={{
-        opacity,
-        transform: [{ translateY }]
-      }}
-    >
-      {children}
-    </Animated.View>
-  )
+  const staggerStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }]
+  }))
+
+  return <Animated.View style={staggerStyle}>{children}</Animated.View>
 }
 
 type TotalTransactionsProps = {
@@ -1142,7 +1140,7 @@ export default function AccountView() {
     { key: 'satsInMempool' }
   ]
   const [tabIndex, setTabIndex] = useState(0)
-  const animationValue = useRef(new Animated.Value(0)).current
+  const animationValue = useSharedValue(0)
 
   const [connectionState, , isPrivateConnection, connectionParts] =
     useVerifyConnection()
@@ -1333,12 +1331,10 @@ export default function AccountView() {
   }
 
   function animateTransition(expandState: boolean) {
-    Animated.timing(animationValue, {
+    animationValue.value = withTiming(expandState ? 1 : 0, {
       duration: 300,
-      easing: Easing.inOut(Easing.ease),
-      toValue: expandState ? 1 : 0,
-      useNativeDriver: false
-    }).start()
+      easing: Easing.inOut(Easing.ease)
+    })
   }
 
   function sortUtxos(utxos: Utxo[]) {

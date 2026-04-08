@@ -1,7 +1,6 @@
 import { FlashList, FlashListRef } from '@shopify/flash-list'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  Animated,
   Keyboard,
   type StyleProp,
   StyleSheet,
@@ -11,6 +10,12 @@ import {
   View,
   type ViewStyle
 } from 'react-native'
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming
+} from 'react-native-reanimated'
 
 import useKeyboardHeight from '@/hooks/useKeyboardHeight'
 import usePrevious from '@/hooks/usePrevious'
@@ -76,7 +81,7 @@ function SSKeyboardWordSelector({
   const previousWordStart = usePrevious(wordStart)
   const keyboardHeight = useKeyboardHeight()
 
-  const opacityAnimated = useRef(new Animated.Value(0)).current
+  const opacityAnimated = useSharedValue(0)
 
   const data = getMatchingWords(wordStart, wordList)
 
@@ -85,18 +90,15 @@ function SSKeyboardWordSelector({
   }
 
   if (keyboardOpen && visible && data.length > 0) {
-    Animated.timing(opacityAnimated, {
-      duration: 200,
-      toValue: 1,
-      useNativeDriver: true
-    }).start()
+    opacityAnimated.value = withTiming(1, { duration: 200 })
   } else if (!keyboardOpen || !visible) {
-    Animated.timing(opacityAnimated, {
-      duration: 200,
-      toValue: 0,
-      useNativeDriver: true
-    }).start()
+    opacityAnimated.value = withTiming(0, { duration: 200 })
   }
+
+  const animatedContainerStyle = useAnimatedStyle(() => ({
+    opacity: opacityAnimated.value,
+    zIndex: interpolate(opacityAnimated.value, [0, 0.0001], [0, 1000])
+  }))
 
   const handleKeyboardShown = useCallback(() => {
     setKeyboardOpen(true)
@@ -132,14 +134,10 @@ function SSKeyboardWordSelector({
       style={[
         styles.containerBase,
         {
-          opacity: opacityAnimated,
           top: topValue - 55,
-          width,
-          zIndex: opacityAnimated.interpolate({
-            inputRange: [0, 0.0001],
-            outputRange: [0, 1000]
-          }) as unknown as number
+          width
         },
+        animatedContainerStyle,
         style
       ]}
       pointerEvents={visible ? 'auto' : 'none'}

@@ -3,8 +3,17 @@ import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Animated, ScrollView, View } from 'react-native'
+import { ScrollView, View } from 'react-native'
 import { type Network as _Network } from 'react-native-bdk-sdk'
+import Animated, {
+  cancelAnimation,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming
+} from 'react-native-reanimated'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -70,33 +79,29 @@ export default function ImportDescriptor() {
     type: null
   })
 
-  const pulseAnim = useRef(new Animated.Value(0)).current
-  const scaleAnim = useRef(new Animated.Value(1)).current
+  const pulseAnim = useSharedValue(0)
+  const scaleAnim = useSharedValue(1)
 
   useEffect(() => {
     if (isReading) {
-      const pulseAnimation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            duration: 500,
-            toValue: 1,
-            useNativeDriver: false
-          }),
-          Animated.timing(pulseAnim, {
-            duration: 500,
-            toValue: 0,
-            useNativeDriver: false
-          })
-        ])
+      pulseAnim.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 500 }),
+          withTiming(0, { duration: 500 })
+        ),
+        -1
       )
-
-      pulseAnimation.start()
-
       return () => {
-        pulseAnimation.stop()
+        cancelAnimation(pulseAnim)
       }
     }
   }, [isReading, pulseAnim])
+
+  const nfcButtonStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(pulseAnim.value, [0, 1], [1, 0.7]),
+    overflow: 'hidden' as const,
+    transform: [{ scale: scaleAnim.value }]
+  }))
 
   const [
     setExtendedPublicKey,
@@ -783,16 +788,7 @@ export default function ImportDescriptor() {
                 label={t('watchonly.read.qrcode')}
                 onPress={() => setCameraModalVisible(true)}
               />
-              <Animated.View
-                style={{
-                  opacity: pulseAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [1, 0.7]
-                  }),
-                  overflow: 'hidden',
-                  transform: [{ scale: scaleAnim }]
-                }}
-              >
+              <Animated.View style={nfcButtonStyle}>
                 <SSButton
                   label={
                     isReading

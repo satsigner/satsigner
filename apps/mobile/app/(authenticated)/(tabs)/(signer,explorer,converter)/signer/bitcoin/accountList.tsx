@@ -1,8 +1,15 @@
 import { FlashList } from '@shopify/flash-list'
 import { Stack, useRouter } from 'expo-router'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Animated, Easing, ScrollView, View } from 'react-native'
+import { useEffect, useMemo, useState } from 'react'
+import { ScrollView, View } from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming
+} from 'react-native-reanimated'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -71,40 +78,33 @@ function AccountCardStaggerItem({
   index: number
   children: React.ReactNode
 }) {
-  const opacity = useRef(new Animated.Value(0)).current
-  const translateY = useRef(new Animated.Value(12)).current
+  const opacity = useSharedValue(0)
+  const translateY = useSharedValue(12)
 
   useEffect(() => {
     const delay = index * STAGGER_DELAY_MS
-    const timer = setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(opacity, {
-          duration: STAGGER_DURATION_MS,
-          easing: Easing.out(Easing.ease),
-          toValue: 1,
-          useNativeDriver: true
-        }),
-        Animated.timing(translateY, {
-          duration: STAGGER_DURATION_MS,
-          easing: Easing.out(Easing.ease),
-          toValue: 0,
-          useNativeDriver: true
-        })
-      ]).start()
-    }, delay)
-    return () => clearTimeout(timer)
+    opacity.value = withDelay(
+      delay,
+      withTiming(1, {
+        duration: STAGGER_DURATION_MS,
+        easing: Easing.out(Easing.ease)
+      })
+    )
+    translateY.value = withDelay(
+      delay,
+      withTiming(0, {
+        duration: STAGGER_DURATION_MS,
+        easing: Easing.out(Easing.ease)
+      })
+    )
   }, [index, opacity, translateY])
 
-  return (
-    <Animated.View
-      style={{
-        opacity,
-        transform: [{ translateY }]
-      }}
-    >
-      {children}
-    </Animated.View>
-  )
+  const staggerStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }]
+  }))
+
+  return <Animated.View style={staggerStyle}>{children}</Animated.View>
 }
 
 export default function AccountList() {
@@ -191,7 +191,7 @@ export default function AccountList() {
   const [hasHydrated, setHasHydrated] = useState(() =>
     useAccountsStore.persist.hasHydrated()
   )
-  const sampleAccountsOpacity = useRef(new Animated.Value(0)).current
+  const sampleAccountsOpacity = useSharedValue(0)
 
   useEffect(() => {
     if (useAccountsStore.persist.hasHydrated()) {
@@ -208,17 +208,19 @@ export default function AccountList() {
     if (!hasHydrated) {
       return
     }
-    sampleAccountsOpacity.setValue(0)
-    const timer = setTimeout(() => {
-      Animated.timing(sampleAccountsOpacity, {
+    sampleAccountsOpacity.value = 0
+    sampleAccountsOpacity.value = withDelay(
+      400,
+      withTiming(1, {
         duration: 320,
-        easing: Easing.out(Easing.ease),
-        toValue: 1,
-        useNativeDriver: true
-      }).start()
-    }, 400)
-    return () => clearTimeout(timer)
+        easing: Easing.out(Easing.ease)
+      })
+    )
   }, [hasHydrated]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const sampleAccountsStyle = useAnimatedStyle(() => ({
+    opacity: sampleAccountsOpacity.value
+  }))
 
   const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
   const [tabIndex, setTabIndex] = useState(() => {
@@ -909,7 +911,7 @@ export default function AccountList() {
                 }
                 showsVerticalScrollIndicator={false}
               />
-              <Animated.View style={{ opacity: sampleAccountsOpacity }}>
+              <Animated.View style={sampleAccountsStyle}>
                 {renderSamplewallets()}
               </Animated.View>
             </Animated.View>
