@@ -217,9 +217,7 @@ function SelectUtxoBubbles() {
                 backgroundColor: Colors.gray[700]
               }
             ]}
-            textStyle={
-              !hasSelectedUtxos ? { color: Colors.gray[400] } : undefined
-            }
+            textStyle={!hasSelectedUtxos && { color: Colors.gray[400] }}
             onPress={() =>
               router.navigate(
                 `/signer/bitcoin/account/${id}/signAndSend/ioPreview`
