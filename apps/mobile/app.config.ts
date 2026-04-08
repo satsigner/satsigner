@@ -72,7 +72,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       }
     ],
     'expo-localization',
-    'expo-build-properties',
+    [
+      'expo-build-properties',
+      {
+        buildReactNativeFromSource: true,
+        useHermesV1: true
+      }
+    ],
     'expo-image',
     'expo-sharing',
     'expo-web-browser'

@@ -41,6 +41,9 @@
       "esbuild",
       "react-native-bdk-sdk",
       "sharp"
-    ]
+    ],
+    "overrides": {
+      "hermes-compiler": "250829098.0.4"
+    }
   }
 }
