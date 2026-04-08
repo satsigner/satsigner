@@ -40,7 +40,13 @@ function useSyncAccountWithWallet() {
       const checkpoint = wallet.latestCheckpoint()
       const isFullScan = !checkpoint || checkpoint.height === 0
 
-      await syncWallet(wallet, server.backend, server.url, config.stopGap, isFullScan)
+      await syncWallet(
+        wallet,
+        server.backend,
+        server.url,
+        config.stopGap,
+        isFullScan
+      )
 
       // Update block height from wallet's latest checkpoint
       const latestCheckpoint = wallet.latestCheckpoint()
