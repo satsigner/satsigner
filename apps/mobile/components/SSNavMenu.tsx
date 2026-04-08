@@ -1,6 +1,7 @@
 import {
   type DrawerContentComponentProps,
-  DrawerContentScrollView
+  DrawerContentScrollView,
+  useDrawerStatus
 } from '@react-navigation/drawer'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Platform, StyleSheet, View } from 'react-native'
@@ -17,6 +18,7 @@ import SSText from './SSText'
 type SSNavMenuProps = DrawerContentComponentProps
 
 function SSNavMenu(props: SSNavMenuProps) {
+  const drawerStatus = useDrawerStatus()
   const currentPlatform: PLATFORM = Platform.OS as PLATFORM
   const filteredNavMenuGroups = navMenuGroups.reduce(
     (acc, group) => {
@@ -36,7 +38,12 @@ function SSNavMenu(props: SSNavMenuProps) {
   )
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        drawerStatus === 'open' && styles.containerDrawerOpen
+      ]}
+    >
       <LinearGradient
         colors={['rgba(19, 19, 19, 0)', Colors.black]}
         start={{ x: 0.8, y: 0 }}
@@ -72,6 +79,10 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.black,
     flex: 1
+  },
+  containerDrawerOpen: {
+    borderRightColor: Colors.gray[925],
+    borderRightWidth: 1
   },
   contentContainer: {
     flexGrow: 1
