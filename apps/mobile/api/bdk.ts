@@ -533,12 +533,10 @@ async function syncWallet(
     } else {
       await wallet.fullScanWithEsplora(url, stopGap)
     }
+  } else if (backend === 'electrum') {
+    await wallet.syncWithElectrum(url, stopGap)
   } else {
-    if (backend === 'electrum') {
-      await wallet.syncWithElectrum(url, stopGap)
-    } else {
-      await wallet.syncWithEsplora(url, stopGap)
-    }
+    await wallet.syncWithEsplora(url, stopGap)
   }
 
   wallet.persist()
