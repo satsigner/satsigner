@@ -1,5 +1,5 @@
 import { Stack, useFocusEffect } from 'expo-router'
-import { useCallback, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -43,55 +43,48 @@ export default function Converter() {
     (state) => state.configsMempool['bitcoin']
   )
 
-  const handleValueChange = useCallback(
-    (key: keyof typeof currencyValues, value: number) => {
-      setLastChangedKey(key)
+  function handleValueChange(key: keyof typeof currencyValues, value: number) {
+    setLastChangedKey(key)
 
-      let bitcoinValue = 0
+    let bitcoinValue = 0
 
-      if (key === 'sats') {
-        bitcoinValue = value / SATS_PER_BITCOIN
-      } else if (key === 'bitcoin') {
-        bitcoinValue = value
-      } else {
-        const price = prices[key]
-        bitcoinValue = price ? value / price : 0
-      }
+    if (key === 'sats') {
+      bitcoinValue = value / SATS_PER_BITCOIN
+    } else if (key === 'bitcoin') {
+      bitcoinValue = value
+    } else {
+      const price = prices[key]
+      bitcoinValue = price ? value / price : 0
+    }
 
-      const updatedValues = {
-        CAD: (prices.CAD || 0) * bitcoinValue,
-        CHF: (prices.CHF || 0) * bitcoinValue,
-        EUR: (prices.EUR || 0) * bitcoinValue,
-        GBP: (prices.GBP || 0) * bitcoinValue,
-        JPY: (prices.JPY || 0) * bitcoinValue,
-        USD: (prices.USD || 0) * bitcoinValue,
-        bitcoin: bitcoinValue,
-        sats: Math.round(bitcoinValue * SATS_PER_BITCOIN),
-        [key]: value
-      }
+    const updatedValues = {
+      CAD: (prices.CAD || 0) * bitcoinValue,
+      CHF: (prices.CHF || 0) * bitcoinValue,
+      EUR: (prices.EUR || 0) * bitcoinValue,
+      GBP: (prices.GBP || 0) * bitcoinValue,
+      JPY: (prices.JPY || 0) * bitcoinValue,
+      USD: (prices.USD || 0) * bitcoinValue,
+      bitcoin: bitcoinValue,
+      sats: Math.round(bitcoinValue * SATS_PER_BITCOIN),
+      [key]: value
+    }
 
-      setCurrencyValues(updatedValues)
-    },
-    [prices]
-  )
+    setCurrencyValues(updatedValues)
+  }
 
-  useFocusEffect(
-    useCallback(() => {
-      const timestamp = Math.floor(date.setHours(0, 0, 0, 0) / 1000)
-      fetchFullPriceAt(mempoolUrl, timestamp)
-    }, [fetchFullPriceAt, date, mempoolUrl])
-  )
+  useFocusEffect(() => {
+    const timestamp = Math.floor(date.setHours(0, 0, 0, 0) / 1000)
+    fetchFullPriceAt(mempoolUrl, timestamp)
+  })
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!hasInitializedRef.current) {
-        hasInitializedRef.current = true
-        handleValueChange('bitcoin', 1)
-      } else {
-        handleValueChange(lastChangeKey, currencyValues[lastChangeKey])
-      }
-    }, [prices]) // eslint-disable-line react-hooks/exhaustive-deps
-  )
+  useFocusEffect(() => {
+    if (!hasInitializedRef.current) {
+      hasInitializedRef.current = true
+      handleValueChange('bitcoin', 1)
+    } else {
+      handleValueChange(lastChangeKey, currencyValues[lastChangeKey])
+    }
+  })
 
   return (
     <>

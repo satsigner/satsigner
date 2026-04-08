@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Animated, Easing, Platform, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -70,7 +70,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
     outputRange: ['0deg', '360deg']
   })
 
-  const nowSeconds = useRef(Math.floor(Date.now() / 1000))
+  const [nowSeconds] = useState(() => Math.floor(Date.now() / 1000))
 
   function renderSyncStatus(
     status: Account['syncStatus'],
@@ -90,7 +90,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
         text = t('account.sync.status.synced')
 
         if (date !== undefined) {
-          const diff = nowSeconds.current - date.getTime() / 1000
+          const diff = nowSeconds - date.getTime() / 1000
 
           const hours = Math.floor(diff / 3600)
           const days = Math.floor(hours / 24)

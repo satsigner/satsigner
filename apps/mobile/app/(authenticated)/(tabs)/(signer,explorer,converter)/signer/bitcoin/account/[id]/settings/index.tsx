@@ -1,5 +1,5 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -69,28 +69,21 @@ export default function AccountSettings() {
   const [showPinEntry, setShowPinEntry] = useState(false)
   const [pinEntryFocus, setPinEntryFocus] = useState(false)
 
-  const labelCounts = useMemo(() => {
-    const labels = account?.labels ? Object.values(account.labels) : []
-    return {
-      addresses: {
-        labeled: labels.filter((l) => l.type === 'addr').length,
-        total: account?.addresses?.length || 0
-      },
-      transactions: {
-        labeled: labels.filter((l) => l.type === 'tx').length,
-        total: account?.transactions?.length || 0
-      },
-      utxos: {
-        labeled: labels.filter((l) => l.type === 'output').length,
-        total: account?.utxos?.length || 0
-      }
+  const labels = account?.labels ? Object.values(account.labels) : []
+  const labelCounts = {
+    addresses: {
+      labeled: labels.filter((l) => l.type === 'addr').length,
+      total: account?.addresses?.length || 0
+    },
+    transactions: {
+      labeled: labels.filter((l) => l.type === 'tx').length,
+      total: account?.transactions?.length || 0
+    },
+    utxos: {
+      labeled: labels.filter((l) => l.type === 'output').length,
+      total: account?.utxos?.length || 0
     }
-  }, [
-    account?.labels,
-    account?.transactions,
-    account?.utxos,
-    account?.addresses
-  ])
+  }
 
   function getPolicyTypeButtonLabel() {
     switch (account?.policyType) {
