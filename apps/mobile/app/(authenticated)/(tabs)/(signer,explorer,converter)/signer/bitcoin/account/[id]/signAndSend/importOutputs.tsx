@@ -17,7 +17,9 @@ const tn = _tn('transaction.build.options.importOutputs')
 
 function ImportOuputs() {
   const router = useRouter()
-  const [importedOutputs, setImportedOutputs] = useState(tn('emptyContent'))
+  const [importedOutputs, setImportedOutputs] = useState(() =>
+    tn('emptyContent')
+  )
   const [validInput, setValidInput] = useState(false)
 
   const addOutput = useTransactionBuilderStore((state) => state.addOutput)

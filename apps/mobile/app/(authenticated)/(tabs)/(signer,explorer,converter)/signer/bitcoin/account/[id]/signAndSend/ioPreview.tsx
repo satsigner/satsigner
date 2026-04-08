@@ -207,10 +207,7 @@ export default function IOPreview() {
     () => outputs.reduce((sum, output) => sum + output.amount, 0),
     [outputs]
   )
-  const hasChange = useMemo(
-    () => utxosSelectedValue > totalOutputValue + baseMinerFee,
-    [utxosSelectedValue, totalOutputValue, baseMinerFee]
-  )
+  const hasChange = utxosSelectedValue > totalOutputValue + baseMinerFee
 
   const [currentOutputLocalId, setCurrentOutputLocalId] = useState<string>()
   const [currentOutputNumber, setCurrentOutputNumber] = useState(1)

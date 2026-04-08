@@ -14,6 +14,12 @@ import { Colors, Sizes } from '@/styles'
 
 import SSText, { type SSTextProps } from './SSText'
 
+const DEFAULT_CONTAINER_STYLE: StyleProp<ViewStyle> = {}
+const DEFAULT_LABEL_PROPS: SSTextProps = {
+  color: 'white',
+  size: 'lg'
+}
+
 type SSCheckboxProps = {
   containerStyle?: StyleProp<ViewStyle>
   label?: string
@@ -27,11 +33,8 @@ function SSCheckbox({
   description,
   selected,
   onPress,
-  containerStyle = {},
-  labelProps = {
-    color: 'white',
-    size: 'lg'
-  },
+  containerStyle = DEFAULT_CONTAINER_STYLE,
+  labelProps = DEFAULT_LABEL_PROPS,
   disabled,
   ...props
 }: SSCheckboxProps) {

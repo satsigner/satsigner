@@ -17,7 +17,7 @@ type SSFormLabelProps = {
 }
 
 function FormLabel({ label, center = true }: SSFormLabelProps) {
-  return <SSText style={[center && styles.textFormLabelCenter]}>{label}</SSText>
+  return <SSText style={center && styles.textFormLabelCenter}>{label}</SSText>
 }
 
 type SSFormLayoutProps = {
