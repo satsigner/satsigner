@@ -70,6 +70,8 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
     outputRange: ['0deg', '360deg']
   })
 
+  const nowSeconds = useRef(Math.floor(Date.now() / 1000))
+
   function renderSyncStatus(
     status: Account['syncStatus'],
     date: Account['lastSyncedAt']
@@ -88,8 +90,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
         text = t('account.sync.status.synced')
 
         if (date !== undefined) {
-          const now = Math.floor(Date.now() / 1000)
-          const diff = now - date.getTime() / 1000
+          const diff = nowSeconds.current - date.getTime() / 1000
 
           const hours = Math.floor(diff / 3600)
           const days = Math.floor(hours / 24)

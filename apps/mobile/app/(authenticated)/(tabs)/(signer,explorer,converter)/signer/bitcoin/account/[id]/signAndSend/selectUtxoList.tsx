@@ -308,7 +308,9 @@ export default function SelectUtxoList() {
               backgroundColor: Colors.gray[700]
             }
           ]}
-          textStyle={[!hasSelectedUtxos && { color: Colors.gray[400] }]}
+          textStyle={
+            !hasSelectedUtxos ? { color: Colors.gray[400] } : undefined
+          }
           onPress={() =>
             router.navigate(
               `/signer/bitcoin/account/${id}/signAndSend/ioPreview`

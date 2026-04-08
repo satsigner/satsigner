@@ -162,7 +162,7 @@ export default function SSSeedWordsInput({
 
         // Auto-advance to next word if current word is valid
         if (currentWordIndex < wordCount - 1) {
-          setCurrentWordIndex(currentWordIndex + 1)
+          setCurrentWordIndex((prev) => prev + 1)
           wordInputRefs.current[currentWordIndex + 1]?.focus()
         }
       } else {

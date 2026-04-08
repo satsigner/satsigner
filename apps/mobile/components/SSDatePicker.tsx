@@ -61,11 +61,11 @@ function SSDatePicker({
   const [days, setDays] = useState<number[]>([])
   const [months, setMonths] = useState<number[]>([])
   const [years, setYears] = useState<number[]>([])
-  const [selectedYear, setSelectedYear] = useState<number>(
+  const [selectedYear, setSelectedYear] = useState<number>(() =>
     new Date().getFullYear()
   )
   const [selectedMonth, setSelectedMonth] = useState<number>(
-    new Date().getMonth() + 1
+    () => new Date().getMonth() + 1
   )
 
   useEffect(() => {

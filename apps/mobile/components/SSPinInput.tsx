@@ -50,7 +50,7 @@ function SSPinInput({
     setPin(newPin)
 
     if (text !== '') {
-      setCurrentIndex(index + 1)
+      setCurrentIndex(() => index + 1)
     }
 
     if (text === '') {
@@ -79,7 +79,7 @@ function SSPinInput({
       newPin[previousPinIndex] = ''
       setPin(newPin)
       inputRefs.current[previousPinIndex]?.focus()
-      setCurrentIndex(currentIndex - 1)
+      setCurrentIndex((prev) => prev - 1)
     }
   }
 

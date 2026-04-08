@@ -172,7 +172,7 @@ function ExplorerDifficulty() {
       <SSHStack gap="none" justifyBetween style={styles.headerContainer}>
         <SSVStack gap="none">
           <SSText weight="bold">{averageBlockTime}</SSText>
-          <SSText color="muted" size="xs" style={[styles.headerCaption]}>
+          <SSText color="muted" size="xs" style={styles.headerCaption}>
             {tn('avgBlock')}
           </SSText>
         </SSVStack>

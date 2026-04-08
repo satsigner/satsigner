@@ -139,7 +139,7 @@ export default function DevicesGroupChat() {
 
   const prevMessageCountRef = useRef(messages.length)
 
-  const memoizedMessages = useMemo(() => messages, [messages])
+  const memoizedMessages = messages
 
   const membersList = useMemo(
     () =>

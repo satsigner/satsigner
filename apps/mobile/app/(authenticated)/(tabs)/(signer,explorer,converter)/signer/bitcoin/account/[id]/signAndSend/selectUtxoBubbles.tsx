@@ -181,7 +181,7 @@ function SelectUtxoBubbles() {
       />
       <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}
-        style={[styles.absoluteSubmitContainer]}
+        style={styles.absoluteSubmitContainer}
         colors={['#13131300', '#1313130F', '#1313132A', '#131313']}
       >
         <SSVStack style={{ width: '92%' }}>
@@ -217,7 +217,9 @@ function SelectUtxoBubbles() {
                 backgroundColor: Colors.gray[700]
               }
             ]}
-            textStyle={[!hasSelectedUtxos && { color: Colors.gray[400] }]}
+            textStyle={
+              !hasSelectedUtxos ? { color: Colors.gray[400] } : undefined
+            }
             onPress={() =>
               router.navigate(
                 `/signer/bitcoin/account/${id}/signAndSend/ioPreview`

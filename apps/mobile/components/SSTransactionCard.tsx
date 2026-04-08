@@ -39,6 +39,8 @@ type SSTransactionCardProps = {
   style?: StyleProp<ViewStyle>
 }
 
+const DEFAULT_STYLE: StyleProp<ViewStyle> = {}
+
 function SSTransactionCard({
   transaction,
   blockHeight,
@@ -47,7 +49,7 @@ function SSTransactionCard({
   walletBalance,
   link,
   expand,
-  style = {}
+  style = DEFAULT_STYLE
 }: SSTransactionCardProps) {
   const hasConfirmation = transaction.blockHeight && transaction.blockHeight > 0
 
