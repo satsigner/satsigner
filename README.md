@@ -7,9 +7,11 @@
 </div>
 
 <div align="center">
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://github.com/satsigner/satsigner/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/satsigner/satsigner/actions/workflows/ci.yml)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/satsigner/satsigner/pulls)
+
 </div>
 
 <br />
