@@ -644,18 +644,11 @@ function SSMultisigKeyControl({
           style={{
             backgroundColor: Colors.white,
             borderRadius: 8,
-            elevation: 5,
+            boxShadow: '0 2px 3.84px rgba(0, 0, 0, 0.25)',
             marginHorizontal: 40,
             maxWidth: 300,
             paddingHorizontal: 16,
-            paddingVertical: 20,
-            shadowColor: '#000',
-            shadowOffset: {
-              height: 2,
-              width: 0
-            },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84
+            paddingVertical: 20
           }}
         >
           {/* Title */}
@@ -718,18 +711,11 @@ function SSMultisigKeyControl({
           style={{
             backgroundColor: Colors.white,
             borderRadius: 8,
-            elevation: 5,
+            boxShadow: '0 2px 3.84px rgba(0, 0, 0, 0.25)',
             marginHorizontal: 40,
             maxWidth: 300,
             paddingHorizontal: 16,
-            paddingVertical: 20,
-            shadowColor: '#000',
-            shadowOffset: {
-              height: 2,
-              width: 0
-            },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84
+            paddingVertical: 20
           }}
         >
           {/* Title */}

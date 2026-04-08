@@ -88,15 +88,11 @@ const styles = StyleSheet.create({
     flexGrow: 1
   },
   gradientOverlay: {
-    elevation: 5,
+    boxShadow: '2px 0 3px rgba(0, 0, 0, 0.25)',
     height: '100%',
     left: 0,
     position: 'absolute',
     right: 0,
-    shadowColor: Colors.black,
-    shadowOffset: { height: 0, width: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
     top: 0,
     width: '100%',
     zIndex: 99999

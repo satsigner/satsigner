@@ -699,11 +699,11 @@ function DerivedAddresses({
 
   useEffect(() => {
     updateDerivationPath()
-  }, [change]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [change]) // eslint_disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     updateAddresses()
-  }, [account.id, account.keys[0]?.derivationPath]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [account.id, account.keys[0]?.derivationPath]) // eslint_disable-line react-hooks/exhaustive-deps
 
   const renderItem = useCallback(
     ({ item }: { item: Address }) => (
@@ -764,7 +764,7 @@ function DerivedAddresses({
         </SSHStack>
       </TouchableOpacity>
     ),
-    [] // eslint-disable-line react-hooks/exhaustive-deps
+    [] // eslint_disable-line react-hooks/exhaustive-deps
   )
 
   return (
@@ -1193,7 +1193,7 @@ export default function AccountView() {
     }
 
     handleOnRefresh()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, []) // eslint_disable-line react-hooks/exhaustive-deps
 
   const hasNostrReady = Boolean(
     account?.nostr?.autoSync &&
@@ -1265,7 +1265,7 @@ export default function AccountView() {
       privacyMode,
       router,
       togglePrivacyMode
-    ] // eslint-disable-line react-hooks/exhaustive-deps
+    ] // eslint_disable-line react-hooks/exhaustive-deps
   )
 
   if (!account) {
@@ -1724,11 +1724,9 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     backgroundColor: 'transparent',
-    elevation: 0,
+    boxShadow: 'none',
     justifyContent: 'flex-start',
-    paddingTop: 16,
-    shadowOpacity: 0,
-    shadowRadius: 0
+    paddingTop: 16
   }
 })
 

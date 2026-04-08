@@ -175,19 +175,12 @@ function SSKeyboardWordSelector({
 const styles = StyleSheet.create({
   containerBase: {
     backgroundColor: Colors.white,
+    boxShadow: '0 -20px 3.84px rgba(0, 0, 0, 0.25)',
     color: Colors.black,
-    elevation: 1000, // For Android
     height: 50,
     left: 0,
     position: 'absolute',
     right: 0,
-    shadowColor: '#000', // For iOS
-    shadowOffset: {
-      height: -20,
-      width: 0
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
     top: undefined,
     zIndex: 1000
   },

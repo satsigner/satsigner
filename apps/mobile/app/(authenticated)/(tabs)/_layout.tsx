@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'transparent',
     borderTopWidth: 0,
-    elevation: 0,
+    boxShadow: 'none',
     height: 82,
     paddingBottom: 20,
     paddingTop: 18,
