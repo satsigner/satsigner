@@ -342,20 +342,18 @@ export default function AccountSettings() {
             </SSVStack>
           </>
         )}
-        {account.keys[0]?.creationType !== 'importAddress' && (
-          <SSVStack>
-            <SSButton
-              style={styles.button}
-              label={t('account.nostrSync.sync')}
-              variant="outline"
-              onPress={() =>
-                router.navigate(
-                  `/signer/bitcoin/account/${currentAccountId}/settings/nostr`
-                )
-              }
-            />
-          </SSVStack>
-        )}
+        <SSVStack>
+          <SSButton
+            style={styles.button}
+            label={t('account.nostrSync.sync')}
+            variant="outline"
+            onPress={() =>
+              router.navigate(
+                `/signer/bitcoin/account/${currentAccountId}/settings/nostr`
+              )
+            }
+          />
+        </SSVStack>
         <SSVStack>
           <SSHStack>
             <SSButton
