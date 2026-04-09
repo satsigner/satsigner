@@ -12,3 +12,5 @@
 - Participate in Bitcoin history
 
 If you're serious about contributing, reach out via Twitter [@satsigner](https://twitter.com/satsigner) to get looped in.
+
+We are on [Matrix](https://matrix.to/#/%23satsigner-contributors%3Amatrix.org)!
