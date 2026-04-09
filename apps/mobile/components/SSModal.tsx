@@ -21,7 +21,7 @@ function SSModal({
   visible,
   fullOpacity = false,
   closeButtonVariant = 'ghost',
-  label = t('common.cancel'),
+  label,
   onClose,
   children
 }: SSModalProps) {
