@@ -28,6 +28,7 @@
     "cross-env": "^7.0.3",
     "oxfmt": "^0.42.0",
     "oxlint": "~1.57.0",
+    "oxlint-tsgolint": "^0.20.0",
     "turbo": "^2.0.1",
     "ultracite": "7.3.2"
   },
