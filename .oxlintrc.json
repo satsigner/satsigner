@@ -32,6 +32,7 @@
     "no-shadow": "allow", // Remove it later
     "prefer-object-spread": "allow",
     "unicorn/filename-case": "allow",
+    "promise/avoid-new": "allow",
 
     // Rules with remaining errors - fix over time
     "react-perf/jsx-no-new-function-as-prop": "allow",
@@ -52,8 +53,6 @@
     "unicorn/prefer-ternary": "allow",
     "typescript/no-inferrable-types": "allow",
     "unicorn/consistent-function-scoping": "allow",
-    "promise/prefer-await-to-then": "allow",
-    "promise/avoid-new": "allow",
     "unicorn/no-useless-undefined": "allow",
     "typescript/consistent-type-imports": "allow",
     "typescript/consistent-indexed-object-style": "allow",
@@ -67,7 +66,6 @@
     "unicorn/no-immediate-mutation": "allow",
     "react/jsx-no-useless-fragment": "allow",
     "unicorn/prefer-code-point": "allow",
-    "promise/prefer-await-to-callbacks": "allow",
     "unicorn/no-hex-escape": "allow",
     "unicorn/consistent-existence-index-check": "allow",
     "import/no-named-as-default-member": "allow",

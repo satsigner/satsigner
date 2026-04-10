@@ -94,17 +94,17 @@ class ModifiedClient extends BlueWalletElectrumClient {
       clearTimeout(this.timeout)
     }
     const now = time.now()
-    this.timeout = setTimeout(() => {
+    this.timeout = setTimeout(async () => {
       if (this.timeLastCall !== 0 && now > this.timeLastCall + 500_000) {
         const pingTimer = setTimeout(() => {
           this.onError(new Error('keepalive ping timeout'))
         }, 900_000)
 
-        this.server_ping()
-          .catch(() => {
-            clearTimeout(pingTimer)
-          })
-          .then(() => clearTimeout(pingTimer))
+        try {
+          await this.server_ping()
+        } finally {
+          clearTimeout(pingTimer)
+        }
       }
     }, 50_000)
   }

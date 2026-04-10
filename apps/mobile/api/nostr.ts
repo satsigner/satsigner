@@ -87,8 +87,8 @@ export class NostrAPI {
     return this.relays
   }
 
-  setLoadingCallback(callback: (isLoading: boolean) => void) {
-    this.onLoadingChange = callback
+  setLoadingCallback(handler: (isLoading: boolean) => void) {
+    this.onLoadingChange = handler
   }
 
   private setLoading(loading: boolean) {

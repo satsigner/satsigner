@@ -771,8 +771,9 @@ export default function NostrSync() {
       return
     }
 
-    generateCommonNostrKeys(account)
-      .then((keys) => {
+    ;(async () => {
+      try {
+        const keys = await generateCommonNostrKeys(account)
         if (keys && 'commonNsec' in keys && 'commonNpub' in keys) {
           setCommonNsec(keys.commonNsec as string)
           updateAccountNostrCallback(accountId, {
@@ -780,10 +781,10 @@ export default function NostrSync() {
             commonNsec: keys.commonNsec
           })
         }
-      })
-      .catch(() => {
+      } catch {
         toast.error(t('account.nostrSync.errorLoadingCommonKeys'))
-      })
+      }
+    })()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run when common keys or account id change; omit full account to avoid re-run on ref change
   }, [
     accountId,

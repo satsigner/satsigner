@@ -52,7 +52,7 @@ export default function BlockTransactions() {
 
   async function fetchBlockTransactions() {
     await runRequest({
-      callback: async () => {
+      action: async () => {
         const blockTxids = await esploraClient.getBlockTransactionIds(
           blockHash!
         )
@@ -69,7 +69,7 @@ export default function BlockTransactions() {
 
   async function loadTxData(txid: Tx['txid']) {
     await runRequest({
-      callback: async () => {
+      action: async () => {
         const txInfo = await esploraClient.getTxInfo(txid)
         setBlockTxs((txs) =>
           produce(txs, (draft) => {

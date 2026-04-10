@@ -187,7 +187,7 @@ export default function Energy() {
   }, [blockchainInfo?.chain])
 
   const fetchRpc = useCallback(
-    (requestBody: RpcRequestBody) => {
+    async (requestBody: RpcRequestBody) => {
       const adjustedUrl = getAdjustedRpcUrl(rpcUrl)
       const credentials = `${rpcUsername}:${rpcPassword}`
       const credentialsBase64 = Buffer.from(credentials).toString('base64')
@@ -203,50 +203,54 @@ export default function Energy() {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 10000)
 
-      return fetch(adjustedUrl, {
-        body,
-        headers,
-        method,
-        signal: controller.signal
-      })
-        .then((response) => {
-          clearTimeout(timeoutId)
-          return response
+      try {
+        const response = await fetch(adjustedUrl, {
+          body,
+          headers,
+          method,
+          signal: controller.signal
         })
-        .catch((error) => {
-          clearTimeout(timeoutId)
-          if (error.name === 'AbortError') {
-            const platformSpecificAdvice =
-              Platform.OS === 'android'
-                ? '\n\nFor Android Emulator:\n' +
-                  '1. Make sure your Bitcoin node is running on the host machine\n' +
-                  '2. Use 10.0.2.2 instead of localhost or Docker IP\n' +
-                  '3. Check if the port is exposed in your Docker configuration\n' +
-                  '4. Verify Bitcoin node is configured to accept external connections'
-                : ''
+        clearTimeout(timeoutId)
+        return response
+      } catch (error) {
+        clearTimeout(timeoutId)
+        if (error instanceof Error && error.name === 'AbortError') {
+          const platformSpecificAdvice =
+            Platform.OS === 'android'
+              ? '\n\nFor Android Emulator:\n' +
+                '1. Make sure your Bitcoin node is running on the host machine\n' +
+                '2. Use 10.0.2.2 instead of localhost or Docker IP\n' +
+                '3. Check if the port is exposed in your Docker configuration\n' +
+                '4. Verify Bitcoin node is configured to accept external connections'
+              : ''
 
-            throw new Error(
-              `Request timed out after 10 seconds.${platformSpecificAdvice}`
-            )
-          } else if (error.message === 'Network request failed') {
-            const platformSpecificAdvice =
-              Platform.OS === 'android'
-                ? '\n\nFor Android Emulator:\n' +
-                  '1. Use 10.0.2.2 instead of localhost or Docker IP\n' +
-                  '2. Make sure port is exposed in Docker: "ports: [\'18443:18443\']"\n' +
-                  '3. Check Bitcoin node is configured to accept external connections'
-                : ''
+          throw new Error(
+            `Request timed out after 10 seconds.${platformSpecificAdvice}`,
+            { cause: error }
+          )
+        } else if (
+          error instanceof Error &&
+          error.message === 'Network request failed'
+        ) {
+          const platformSpecificAdvice =
+            Platform.OS === 'android'
+              ? '\n\nFor Android Emulator:\n' +
+                '1. Use 10.0.2.2 instead of localhost or Docker IP\n' +
+                '2. Make sure port is exposed in Docker: "ports: [\'18443:18443\']"\n' +
+                '3. Check Bitcoin node is configured to accept external connections'
+              : ''
 
-            throw new Error(`Network request failed. Please check if:
-                        1. The Bitcoin node is running
-                        2. The RPC port is correct (${
-                          new URL(adjustedUrl).port
-                        })
-                        3. The node is accessible from your device
-                        4. There are no firewall rules blocking the connection${platformSpecificAdvice}`)
-          }
-          throw error
-        })
+          throw new Error(
+            `Network request failed. Please check if:
+                      1. The Bitcoin node is running
+                      2. The RPC port is correct (${new URL(adjustedUrl).port})
+                      3. The node is accessible from your device
+                      4. There are no firewall rules blocking the connection${platformSpecificAdvice}`,
+            { cause: error }
+          )
+        }
+        throw error
+      }
     },
     [rpcUsername, rpcPassword, rpcUrl]
   )

@@ -171,18 +171,14 @@ async function cleanupSubscription(accountId: string): Promise<void> {
 
   if (handle.protocolApi) {
     cleanupPromises.push(
-      handle.protocolApi.flushQueue().catch(() => {
-        /* intentionally swallowed */
-      }),
+      handle.protocolApi.flushQueue(),
       Promise.resolve(handle.protocolApi.closeAllSubscriptions())
     )
   }
 
   if (handle.dataExchangeApi) {
     cleanupPromises.push(
-      handle.dataExchangeApi.flushQueue().catch(() => {
-        /* intentionally swallowed */
-      }),
+      handle.dataExchangeApi.flushQueue(),
       Promise.resolve(handle.dataExchangeApi.closeAllSubscriptions())
     )
   }
@@ -358,31 +354,35 @@ function setMessageProcessor(
   messageProcessors.set(accountId, processor)
 }
 
-function startSync(
+async function startSync(
   account: Account,
   onLoadingChange?: (loading: boolean) => void
-): void {
-  doStartSync(account, onLoadingChange).catch((error) => {
+): Promise<void> {
+  try {
+    await doStartSync(account, onLoadingChange)
+  } catch (error) {
     emitStatus(
       account.id,
       'error',
       error instanceof Error ? error.message : String(error)
     )
     scheduleRetry(account, onLoadingChange)
-  })
+  }
 }
 
-function fetchOnce(
+async function fetchOnce(
   account: Account,
   onLoadingChange?: (loading: boolean) => void
-): void {
-  doFetchOnce(account, onLoadingChange).catch((error) => {
+): Promise<void> {
+  try {
+    await doFetchOnce(account, onLoadingChange)
+  } catch (error) {
     emitStatus(
       account.id,
       'error',
       error instanceof Error ? error.message : String(error)
     )
-  })
+  }
 }
 
 function stopSync(accountId: string): void {
@@ -391,19 +391,19 @@ function stopSync(accountId: string): void {
   emitStatus(accountId, 'idle')
 }
 
-function restartSync(
+async function restartSync(
   account: Account,
   onLoadingChange?: (loading: boolean) => void
-): void {
-  cleanupSubscription(account.id)
-    .catch(() => {
-      /* intentionally swallowed */
-    })
-    .finally(() => {
-      cancelRetry(account.id)
-      emitStatus(account.id, 'idle')
-      startSync(account, onLoadingChange)
-    })
+): Promise<void> {
+  try {
+    await cleanupSubscription(account.id)
+  } catch {
+    /* intentionally swallowed */
+  } finally {
+    cancelRetry(account.id)
+    emitStatus(account.id, 'idle')
+    startSync(account, onLoadingChange)
+  }
 }
 
 function stopAll(): void {
