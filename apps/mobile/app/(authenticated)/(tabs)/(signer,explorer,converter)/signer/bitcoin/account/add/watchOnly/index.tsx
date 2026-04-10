@@ -4,7 +4,6 @@ import * as Clipboard from 'expo-clipboard'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  Animated,
   Keyboard,
   ScrollView,
   StyleSheet,
@@ -12,6 +11,15 @@ import {
   View
 } from 'react-native'
 import { walletNameFromDescriptor } from 'react-native-bdk-sdk'
+import Animated, {
+  cancelAnimation,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming
+} from 'react-native-reanimated'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -177,53 +185,41 @@ export default function WatchOnly() {
     type: null
   })
 
-  const pulseAnim = useRef(new Animated.Value(0)).current
-  const scaleAnim = useRef(new Animated.Value(1)).current
+  const pulseAnim = useSharedValue(0)
+  const scaleAnim = useSharedValue(1)
 
-  // Handle NFC reading animations
   useEffect(() => {
     if (isReading) {
-      const pulseAnimation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            duration: 500,
-            toValue: 1,
-            useNativeDriver: false
-          }),
-          Animated.timing(pulseAnim, {
-            duration: 500,
-            toValue: 0,
-            useNativeDriver: false
-          })
-        ])
+      pulseAnim.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 500 }),
+          withTiming(0, { duration: 500 })
+        ),
+        -1
       )
-
-      const scaleAnimation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(scaleAnim, {
-            duration: 500,
-            toValue: 0.98,
-            useNativeDriver: false
-          }),
-          Animated.timing(scaleAnim, {
-            duration: 500,
-            toValue: 1,
-            useNativeDriver: false
-          })
-        ])
+      scaleAnim.value = withRepeat(
+        withSequence(
+          withTiming(0.98, { duration: 500 }),
+          withTiming(1, { duration: 500 })
+        ),
+        -1
       )
-
-      pulseAnimation.start()
-      scaleAnimation.start()
-
       return () => {
-        pulseAnimation.stop()
-        scaleAnimation.stop()
+        cancelAnimation(pulseAnim)
+        cancelAnimation(scaleAnim)
       }
     }
-    pulseAnim.setValue(0)
-    scaleAnim.setValue(1)
+    cancelAnimation(pulseAnim)
+    cancelAnimation(scaleAnim)
+    pulseAnim.value = 0
+    scaleAnim.value = 1
   }, [isReading, pulseAnim, scaleAnim])
+
+  const nfcButtonStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(pulseAnim.value, [0, 1], [1, 0.7]),
+    overflow: 'hidden',
+    transform: [{ scale: scaleAnim.value }]
+  }))
 
   const updateDescriptorValidationState = useCallback(() => {
     const hasValidExternal = externalDescriptor && isValidExternalDescriptor
@@ -1051,16 +1047,7 @@ export default function WatchOnly() {
                       style={{ flex: 1 }}
                     />
                   </SSHStack>
-                  <Animated.View
-                    style={{
-                      opacity: pulseAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [1, 0.7]
-                      }),
-                      overflow: 'hidden',
-                      transform: [{ scale: scaleAnim }]
-                    }}
-                  >
+                  <Animated.View style={nfcButtonStyle}>
                     <SSButton
                       label={
                         isReading
