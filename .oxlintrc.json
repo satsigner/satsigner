@@ -68,8 +68,6 @@
     "unicorn/no-hex-escape": "allow",
     "unicorn/consistent-existence-index-check": "allow",
     "import/no-named-as-default-member": "allow",
-    "unicorn/no-useless-collection-argument": "allow",
-    "unicorn/text-encoding-identifier-case": "allow",
     "typescript/no-unsafe-function-type": "allow",
     "unicorn/prefer-date-now": "allow",
     "unicorn/no-anonymous-default-export": "allow",

@@ -57,7 +57,7 @@ export default function SignTransaction() {
     useShallow((state) => state.accounts.find((account) => account.id === id))
   )
   const ownAddresses = useMemo(
-    () => new Set(account?.addresses?.map((a) => a.address) ?? []),
+    () => new Set(account?.addresses?.map((a) => a.address)),
     [account]
   )
   const setTransactionToShare = useNostrStore(

@@ -58,7 +58,7 @@ function SSTransactionDetails({
   const signedPsbts = extractIndividualSignedPsbts(combinedPsbt, originalPsbt)
   const matchedAccount = accountMatch?.account || account
   const ownAddresses = useMemo(
-    () => new Set(matchedAccount?.addresses?.map((a) => a.address) ?? []),
+    () => new Set(matchedAccount?.addresses?.map((a) => a.address)),
     [matchedAccount]
   )
 

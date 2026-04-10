@@ -246,7 +246,7 @@ function UtxoDetailsPage() {
 
   const allAccountUtxos = account?.utxos || []
   const ownAddresses = useMemo(
-    () => new Set(account?.addresses?.map((a) => a.address) ?? []),
+    () => new Set(account?.addresses?.map((a) => a.address)),
     [account]
   )
   const addInput = useTransactionBuilderStore((state) => state.addInput)

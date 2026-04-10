@@ -189,8 +189,8 @@ export function decodeURGeneric(ur: string) {
 
   if (result.type === 'bytes') {
     const decodedString = isCBORByteStringLike(cborBytes)
-      ? Buffer.from(parseCBORByteString(cborBytes)).toString('utf-8')
-      : Buffer.from(cborBytes).toString('utf-8')
+      ? Buffer.from(parseCBORByteString(cborBytes)).toString('utf8')
+      : Buffer.from(cborBytes).toString('utf8')
 
     return normalizeCashuTokenString(decodedString)
   }
@@ -299,7 +299,7 @@ export async function decodeMultiPartURToPSBT(
 
 function processURGenericBytes(cborData: Uint8Array) {
   const parsedBytes = parseCBORByteString(cborData)
-  const decodedString = Buffer.from(parsedBytes).toString('utf-8')
+  const decodedString = Buffer.from(parsedBytes).toString('utf8')
 
   if (decodedString.includes('cashuA') || decodedString.includes('cashuB')) {
     return decodedString.replace(/[^\x20-\x7E]/g, '').trim()
