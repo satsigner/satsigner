@@ -1,0 +1,4 @@
+{
+  "title": "Code Quality",
+  "pages": ["index", "guidelines", "tests", "lint", "format"]
+}

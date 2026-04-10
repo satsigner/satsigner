@@ -1,0 +1,10 @@
+{
+  "pages": [
+    "index",
+    "getting-started",
+    "flows",
+    "develop",
+    "code-quality",
+    "design"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "title": "Develop",
+  "pages": [
+    "index",
+    "navigation",
+    "layouts",
+    "components",
+    "ui",
+    "store",
+    "storage",
+    "localization",
+    "resources",
+    "snippets"
+  ]
+}

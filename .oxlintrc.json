@@ -83,7 +83,10 @@
     "class-methods-use-this": "allow",
     "max-classes-per-file": "allow",
     "no-nested-ternary": "allow",
-    "complexity": "allow"
+    "complexity": "allow",
+
+    // Next.js rules that don't apply to non-Next.js frameworks (e.g. TanStack Router)
+    "nextjs/no-head-element": "allow"
   },
   "overrides": [
     {

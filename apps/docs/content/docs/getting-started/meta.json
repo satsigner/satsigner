@@ -1,0 +1,12 @@
+{
+  "title": "Getting Started",
+  "pages": [
+    "requirements",
+    "dependencies",
+    "setup",
+    "run",
+    "build",
+    "versioning",
+    "known-issues"
+  ]
+}

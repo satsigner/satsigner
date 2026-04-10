@@ -1,5 +1,0 @@
-{
-  "unit": "Unit testing",
-  "integration": "Integration testing",
-  "e2e": "End-to-end testing"
-}
