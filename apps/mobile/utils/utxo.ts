@@ -250,7 +250,7 @@ function branchAndBoundUtxoSelection(
     }
 
     return {
-      change: change > 0 ? change : 0,
+      change: Math.max(change, 0),
       fee,
       inputs: bestSelection
     }

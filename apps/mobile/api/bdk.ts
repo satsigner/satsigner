@@ -713,12 +713,8 @@ function parseTxDetailsToTransaction(
   utxos: LocalOutputN[],
   network: Network
 ): Transaction {
-  const transactionUtxos = utxos.filter(
-    (utxo) => utxo?.outpoint?.txid === txDetails.txid
-  )
-
   let address = ''
-  const utxo = transactionUtxos?.[0]
+  const utxo = utxos.find((utxo) => utxo?.outpoint?.txid === txDetails.txid)
   if (utxo) {
     try {
       address = addressFromScript(utxo.txout.scriptPubkeyHex, network)

@@ -425,7 +425,8 @@ export function toHex(u8: Uint8Array | undefined): string {
 export function fingerprintToHex(fpNum: number): string {
   const buf = new Uint8Array(4)
   const dv = new DataView(buf.buffer)
-  dv.setUint32(0, fpNum >>> 0) // ensure unsigned
+  // eslint-disable-next-line unicorn/prefer-math-trunc -- >>> 0 coerces to Uint32, Math.trunc does not
+  dv.setUint32(0, fpNum >>> 0)
   return toHex(buf)
 }
 

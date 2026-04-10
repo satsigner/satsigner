@@ -14,7 +14,7 @@ import { type NavMenuItem } from '@/types/navigation/navMenu'
 export default function Home() {
   const { tab } = useLocalSearchParams()
   const router = useRouter()
-  const pages = navMenuGroups.filter((group) => group.title === tab)[0]?.items
+  const pages = navMenuGroups.find((group) => group.title === tab)?.items
 
   const handlePress = useCallback(
     (page: NavMenuItem) => {

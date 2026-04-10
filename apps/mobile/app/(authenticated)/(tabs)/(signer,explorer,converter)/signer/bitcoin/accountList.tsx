@@ -225,7 +225,7 @@ export default function AccountList() {
   const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
   const [tabIndex, setTabIndex] = useState(() => {
     const index = tabs.findIndex((tab) => tab.key === network)
-    return index > 0 ? index : 0
+    return Math.max(index, 0)
   })
 
   const filteredAccounts = accounts.filter(
