@@ -159,8 +159,8 @@ function NostrKeys() {
       } else {
         toast.info(t('account.nostrSync.fetchKind0NotFound'))
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
       const isNoRelay =
         message.includes('No relay') ||
         message.includes('relays could be connected') ||

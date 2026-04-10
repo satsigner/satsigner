@@ -342,12 +342,12 @@ async function doFetchOnce(
     ])
 
     emitStatus(account.id, 'idle')
-  } catch (err) {
+  } catch (error) {
     await Promise.allSettled([
       protocolApi.closeAllSubscriptions(),
       dataExchangeApi?.closeAllSubscriptions()
     ])
-    throw err
+    throw error
   }
 }
 
@@ -362,11 +362,11 @@ function startSync(
   account: Account,
   onLoadingChange?: (loading: boolean) => void
 ): void {
-  doStartSync(account, onLoadingChange).catch((err) => {
+  doStartSync(account, onLoadingChange).catch((error) => {
     emitStatus(
       account.id,
       'error',
-      err instanceof Error ? err.message : String(err)
+      error instanceof Error ? error.message : String(error)
     )
     scheduleRetry(account, onLoadingChange)
   })
@@ -376,11 +376,11 @@ function fetchOnce(
   account: Account,
   onLoadingChange?: (loading: boolean) => void
 ): void {
-  doFetchOnce(account, onLoadingChange).catch((err) => {
+  doFetchOnce(account, onLoadingChange).catch((error) => {
     emitStatus(
       account.id,
       'error',
-      err instanceof Error ? err.message : String(err)
+      error instanceof Error ? error.message : String(error)
     )
   })
 }

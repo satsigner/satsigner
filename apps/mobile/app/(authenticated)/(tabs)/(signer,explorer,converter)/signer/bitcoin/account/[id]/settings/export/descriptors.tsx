@@ -524,8 +524,8 @@ export default function ExportDescriptors() {
         // Compose export content - ensure it's always a string
         const exportString = descriptorString || 'No descriptor available'
         setExportContent(exportString)
-      } catch (err) {
-        const reason = err instanceof Error ? err.message : 'unknown reason'
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : 'unknown reason'
         setExportContent(`Error generating descriptors: ${reason}`)
       } finally {
         setIsLoading(false)

@@ -69,10 +69,10 @@ const useGetAccountAddress = (id: Account['id']) => {
       )
       const firstAddress = addressInfo?.address ?? ''
       addAccountAddress(account.id, firstAddress)
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : 'unknown reason'
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'unknown reason'
       throw new Error(`Failed to get account address: ${reason}`, {
-        cause: err
+        cause: error
       })
     }
   }

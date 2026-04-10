@@ -48,8 +48,8 @@ export default function SeedWordsPage() {
       const secret = await decryptKeySecret(key)
       setMnemonic(secret.mnemonic || '')
       setNoMnemonicAvailable(!secret.mnemonic)
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : 'unknown reason'
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'unknown reason'
       toast.error(`${t('account.seed.unableToDecrypt')}: ${reason}`)
     } finally {
       setShowPinEntry(false)

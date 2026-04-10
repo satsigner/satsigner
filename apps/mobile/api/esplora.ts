@@ -32,8 +32,8 @@ export default class Esplora {
       }
       // text/plain, text/html, missing content-type, etc. — return as text
       return await response.text()
-    } catch (e) {
-      throw new Error(getVerboseErrorMessage(e), { cause: e })
+    } catch (error) {
+      throw new Error(getVerboseErrorMessage(error), { cause: error })
     }
   }
 
@@ -180,8 +180,8 @@ export default class Esplora {
         return true
       }
       return false
-    } catch (e) {
-      throw new Error(getVerboseErrorMessage(e), { cause: e })
+    } catch (error) {
+      throw new Error(getVerboseErrorMessage(error), { cause: error })
     }
   }
 }

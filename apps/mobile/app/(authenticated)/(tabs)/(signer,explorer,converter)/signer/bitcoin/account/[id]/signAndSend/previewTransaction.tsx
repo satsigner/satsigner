@@ -908,8 +908,8 @@ function PreviewTransaction() {
 
         setTransactionId(transaction.txid())
         setPsbt(transaction)
-      } catch (err) {
-        const errorMessage = String(err)
+      } catch (error) {
+        const errorMessage = String(error)
         if (errorMessage.includes('UTXO not found') && !psbt) {
           toast.error(
             'UTXO not found in wallet database. Please sync your wallet or check your inputs.'

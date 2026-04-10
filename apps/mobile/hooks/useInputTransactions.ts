@@ -478,8 +478,8 @@ export function useInputTransactions(
       }
 
       setLoading(false)
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)))
+    } catch (error) {
+      setError(error instanceof Error ? error : new Error(String(error)))
       setLoading(false)
     } finally {
       // Ensure client is closed if it was initialized

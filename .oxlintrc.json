@@ -58,7 +58,6 @@
     "typescript/consistent-type-imports": "allow",
     "typescript/consistent-indexed-object-style": "allow",
     "unicorn/prefer-regexp-test": "allow",
-    "unicorn/catch-error-name": "allow",
     "react/jsx-handler-names": "allow",
     "import/no-named-as-default": "allow",
     "unicorn/no-useless-fallback-in-spread": "allow",

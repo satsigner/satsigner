@@ -81,8 +81,8 @@ export default function ExportPubkeys() {
 
         setRawPubkeys(pubkeys)
         setExportContent(pubkeys.join('\n'))
-      } catch (err) {
-        const reason = err instanceof Error ? err.message : 'unknown reason'
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : 'unknown reason'
         toast.error(`Failed to get account public keys: ${reason}`)
       } finally {
         setIsLoading(false)
