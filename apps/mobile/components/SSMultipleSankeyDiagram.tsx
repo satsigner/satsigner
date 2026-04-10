@@ -121,9 +121,9 @@ function SSMultipleSankeyDiagram({
     }
 
     // Find the x position of nodes in the last 3 depthH levels
-    const lastThreeLevels = new Set([maxDepthH, maxDepthH - 1, maxDepthH - 2].filter(
-      (level) => level >= 0
-    ))
+    const lastThreeLevels = new Set(
+      [maxDepthH, maxDepthH - 1, maxDepthH - 2].filter((level) => level >= 0)
+    )
 
     // Find the minimum and maximum x positions among nodes in the last three levels
     let minX = Infinity
