@@ -43,7 +43,7 @@ function SSSeparator({
       {color === 'gradient' && (
         <LinearGradient
           style={[styles.containerBase, style]}
-          colors={colors ? colors : [Colors.gray[700], Colors.gray[850]]}
+          colors={colors || [Colors.gray[700], Colors.gray[850]]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
         />

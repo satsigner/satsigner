@@ -208,9 +208,7 @@ function SSButton({
         <SSBackgroundGradient style={styles.buttonGradient} />
       )}
       {!loading ? (
-        icon ? (
-          icon
-        ) : (
+        icon || (
           <SSText
             uppercase={uppercase}
             center

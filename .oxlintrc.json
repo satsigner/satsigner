@@ -79,7 +79,6 @@
     "unicorn/no-abusive-eslint-disable": "allow",
     "typescript/prefer-ts-expect-error": "allow",
     "unicorn/prefer-native-coercion-functions": "allow",
-    "unicorn/prefer-logical-operator-over-ternary": "allow",
     "unicorn/prefer-event-target": "allow",
     "unicorn/prefer-blob-reading-methods": "allow",
     "unicorn/prefer-add-event-listener": "allow",
