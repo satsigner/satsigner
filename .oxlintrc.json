@@ -80,7 +80,6 @@
     "unicorn/no-unreadable-array-destructuring": "allow",
     "unicorn/text-encoding-identifier-case": "allow",
     "unicorn/prefer-set-has": "allow",
-    "typescript/prefer-for-of": "allow",
     "typescript/no-unsafe-function-type": "allow",
     "unicorn/prefer-type-error": "allow",
     "unicorn/prefer-math-min-max": "allow",

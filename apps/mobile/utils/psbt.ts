@@ -1061,12 +1061,7 @@ export function findDerivedPublicKey(
   psbt: bitcoinjs.Psbt,
   fingerprint: string
 ) {
-  for (
-    let inputIndex = 0;
-    inputIndex < psbt.data.inputs.length;
-    inputIndex += 1
-  ) {
-    const input = psbt.data.inputs[inputIndex]
+  for (const input of psbt.data.inputs) {
     const publicKey = findPublicKeyInInput(input, fingerprint)
     if (publicKey) {
       return publicKey
@@ -1084,12 +1079,7 @@ function findPublicKeyInInput(
     return ''
   }
 
-  for (
-    let derivIndex = 0;
-    derivIndex < input.bip32Derivation.length;
-    derivIndex += 1
-  ) {
-    const derivation = input.bip32Derivation[derivIndex]
+  for (const derivation of input.bip32Derivation) {
     const derivationFingerprint = derivation.masterFingerprint.toString('hex')
 
     if (derivationFingerprint === fingerprint) {
