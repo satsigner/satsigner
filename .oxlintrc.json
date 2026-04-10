@@ -31,13 +31,13 @@
     "no-warning-comments": "allow", // Remove it later
     "no-shadow": "allow", // Remove it later
     "prefer-object-spread": "allow",
+    "unicorn/filename-case": "allow",
 
     // Rules with remaining errors - fix over time
     "react-perf/jsx-no-new-function-as-prop": "allow",
     "import/consistent-type-specifier-style": "allow",
     "unicorn/switch-case-braces": "allow",
     "typescript/no-import-type-side-effects": "allow",
-    "unicorn/filename-case": "allow",
     "unicorn/numeric-separators-style": "allow",
     "unicorn/prefer-number-properties": "allow",
     "typescript/no-non-null-assertion": "allow",
