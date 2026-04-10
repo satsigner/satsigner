@@ -42,24 +42,9 @@ export function intToBase36(n: number) {
   return n.toString(36).toUpperCase().padStart(2, '0')
 }
 
-export function fileToBytes(file: File) {
-  // read a File's contents and return as a Uint8Array
-
-  const reader = new FileReader()
-
-  return new Promise<Uint8Array>((resolve, reject) => {
-    reader.onload = (e) => {
-      const result = e.target?.result
-
-      if (result instanceof ArrayBuffer) {
-        resolve(new Uint8Array(result))
-      } else {
-        reject(new Error('FileReader result is not an ArrayBuffer'))
-      }
-    }
-
-    reader.readAsArrayBuffer(file)
-  })
+export async function fileToBytes(file: File) {
+  const buffer = await file.arrayBuffer()
+  return new Uint8Array(buffer)
 }
 
 function joinByteParts(parts: Uint8Array[]) {

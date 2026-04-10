@@ -1,4 +1,4 @@
-const noNavScreens: string[] = new Set(['settings'])
+const noNavScreens = new Set(['settings'])
 
 export function showNavigation(path: string = '/', depth: number = 0): boolean {
   if (depth > 4) {

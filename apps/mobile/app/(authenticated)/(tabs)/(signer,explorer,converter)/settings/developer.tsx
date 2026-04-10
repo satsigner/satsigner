@@ -223,7 +223,7 @@ export default function Developer() {
         typeof payload.iv !== 'string' ||
         typeof payload.salt !== 'string'
       ) {
-        throw new Error('Invalid payload shape')
+        throw new TypeError('Invalid payload shape')
       }
       const key = await pbkdf2Encrypt(recoverPassphrase, payload.salt)
       const plain = await aesDecrypt(payload.cipher, key, payload.iv)

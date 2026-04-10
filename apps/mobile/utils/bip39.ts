@@ -242,7 +242,7 @@ function parsePath(path: string): number[] {
     const hardened = /('|h|H)$/.test(p)
     const index = parseInt(p.replace(/['hH]/, ''), 10)
     if (Number.isNaN(index)) {
-      throw new Error(`Invalid path segment: ${p}`)
+      throw new TypeError(`Invalid path segment: ${p}`)
     }
     return hardened ? index + HARDENED_OFFSET : index
   })

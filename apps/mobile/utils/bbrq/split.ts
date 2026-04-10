@@ -162,7 +162,7 @@ export async function detectFileType(
   } else if (typeof data === 'string') {
     decoded = data
   } else {
-    throw new Error('Invalid input - must be a File, Uint8Array or string')
+    throw new TypeError('Invalid input - must be a File, Uint8Array or string')
   }
 
   const trimmed = decoded.trim()
