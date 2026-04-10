@@ -685,7 +685,6 @@ export default function ImportDescriptor() {
           const bbqrResult = decodeBBQRChunks([combinedData])
           return bbqrResult ? String(bbqrResult) : combinedData
         }
-        case 'raw':
         default:
           return combinedData
       }

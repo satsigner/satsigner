@@ -93,7 +93,6 @@
     "unicorn/prefer-event-target": "allow",
     "unicorn/prefer-blob-reading-methods": "allow",
     "unicorn/prefer-add-event-listener": "allow",
-    "unicorn/no-useless-switch-case": "allow",
     "unicorn/no-new-buffer": "allow",
     "no-bitwise": "allow",
     "class-methods-use-this": "allow",
