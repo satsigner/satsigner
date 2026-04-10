@@ -179,7 +179,7 @@ export default function ImportDescriptor() {
         throw new Error('Invalid multisig descriptor format')
       }
 
-      const [, , requiredStr, keysStr] = multiMatch
+      const [requiredStr, keysStr] = multiMatch.slice(2)
       const keysRequired = parseInt(requiredStr, 10)
       const keys = keysStr.split(',').map((key) => key.trim())
 

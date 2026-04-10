@@ -569,7 +569,7 @@ export default function AccountList() {
         }
       }
       // Validate that third key has extended public key
-      const [, , key3] = account.keys
+      const key3 = account.keys[2]
       if (
         !key3.secret ||
         typeof key3.secret !== 'object' ||

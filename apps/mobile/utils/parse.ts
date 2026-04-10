@@ -196,7 +196,7 @@ function parseMultisigDescriptor(descriptor: string) {
     throw new Error('Invalid multisig key path format')
   }
 
-  const [, , purpose, coinType, accountIndex, keyType] = firstMatch
+  const [purpose, coinType, accountIndex, keyType] = firstMatch.slice(2)
   const hardenedPath = `m/${purpose.replace("'", 'h')}/${coinType.replace(
     "'",
     'h'
@@ -214,7 +214,7 @@ function parseSinglesigDescriptor(descriptor: string) {
     throw new Error('Invalid singlesig descriptor format')
   }
 
-  const [, , purpose, coinType, accountIndex] = match
+  const [purpose, coinType, accountIndex] = match.slice(2)
   const hardenedPath = `m/${purpose.replace("'", 'h')}/${coinType.replace(
     "'",
     'h'
