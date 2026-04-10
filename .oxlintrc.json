@@ -83,7 +83,6 @@
     "unicorn/no-anonymous-default-export": "allow",
     "unicorn/no-abusive-eslint-disable": "allow",
     "typescript/prefer-ts-expect-error": "allow",
-    "typescript/parameter-properties": "allow",
     "unicorn/prefer-native-coercion-functions": "allow",
     "unicorn/prefer-logical-operator-over-ternary": "allow",
     "unicorn/prefer-event-target": "allow",

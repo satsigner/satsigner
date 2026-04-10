@@ -69,8 +69,10 @@ export class NostrAPI {
   private isProcessingQueue = false
   private readonly BATCH_SIZE = 10
   private onLoadingChange?: (isLoading: boolean) => void
+  private relays: string[]
 
-  constructor(private relays: string[]) {
+  constructor(relays: string[]) {
+    this.relays = relays
     if (!relays || relays.length === 0) {
       this.relays = [
         'wss://relay.damus.io',
