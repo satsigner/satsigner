@@ -265,7 +265,7 @@ function SSHistoryChart({
     if (endDate.getTime() <= currentDate.current.getTime()) {
       validData.push({
         amount: 0,
-        balance: validData[validData.length - 1]?.balance ?? 0,
+        balance: validData.at(-1)?.balance ?? 0,
         date: endDate,
         id: '',
         memo: '',
@@ -274,7 +274,7 @@ function SSHistoryChart({
     } else {
       validData.push({
         amount: 0,
-        balance: validData[validData.length - 1]?.balance ?? 0,
+        balance: validData.at(-1)?.balance ?? 0,
         date: currentDate.current,
         id: '',
         memo: '',

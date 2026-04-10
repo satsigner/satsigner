@@ -5,7 +5,7 @@ import { Colors, Sizes, Typography } from '@/styles'
 
 const formatNumberWithCommas = (numStr: string, decimal: number) => {
   let rawText = ''
-  if (numStr.indexOf('e') !== -1) {
+  if (numStr.includes('e')) {
     const [baseStr, exponentStr] = numStr.split('e')
     const exponent = parseInt(exponentStr, 10)
 

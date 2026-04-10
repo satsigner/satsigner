@@ -97,7 +97,7 @@ const encodeScriptNum = (num: number): Buffer => {
     result.push(absvalue & 0xff)
     absvalue >>= 8
   }
-  if (result[result.length - 1] & 0x80) {
+  if ((result.at(-1) ?? 0) & 0x80) {
     result.push(negative ? 0x80 : 0x00)
   } else if (negative) {
     result[result.length - 1] |= 0x80
@@ -432,8 +432,7 @@ export default function Energy() {
       }
       const data = await response.json()
       // Get the latest hash rate from the hashrates array
-      const latestHashRate =
-        data.hashrates[data.hashrates.length - 1].avgHashrate
+      const latestHashRate = data.hashrates.at(-1)!.avgHashrate
       // Convert to exahashes per second (1 EH/s = 10^18 hashes per second)
       const hashRateInEH = (latestHashRate / 1e18).toFixed(2)
       setNetworkHashRate(hashRateInEH)
@@ -598,7 +597,7 @@ export default function Energy() {
         'hex'
       )
       const hashBytes = Buffer.from(hash, 'hex')
-      const hashLE = hashBytes.slice().reverse()
+      const hashLE = Buffer.from(hashBytes.toReversed())
 
       // For regtest, we just need to check if the hash is less than the target
       const isValid =
@@ -623,7 +622,7 @@ export default function Energy() {
 
     // Convert hash to little-endian for comparison
     const hashBytes = Buffer.from(hash, 'hex')
-    const hashLE = hashBytes.slice().reverse()
+    const hashLE = Buffer.from(hashBytes.toReversed())
 
     // Compare hash with target
     const isValid = hashLE.compare(target as unknown as Uint8Array) <= 0
@@ -755,7 +754,7 @@ export default function Energy() {
           }
           if (tx.txid) {
             // Convert txid to little-endian for merkle root
-            return Buffer.from(tx.txid, 'hex').reverse()
+            return Buffer.from(Buffer.from(tx.txid, 'hex').toReversed())
           }
           throw new Error('Invalid transaction format')
         })
@@ -807,7 +806,9 @@ export default function Energy() {
       header.writeUInt32LE(template.version, 0)
 
       // Previous block hash (32 bytes) - little endian
-      const prevHash = Buffer.from(template.previousblockhash, 'hex').reverse()
+      const prevHash = Buffer.from(
+        Buffer.from(template.previousblockhash, 'hex').toReversed()
+      )
       prevHash.copy(header as unknown as Uint8Array, 4)
 
       // Merkle root (32 bytes) - little endian
@@ -1208,7 +1209,7 @@ export default function Energy() {
               // Double SHA256 of header (result is in big-endian)
               const hash = bitcoin.crypto.sha256(bitcoin.crypto.sha256(header))
               // Convert to little-endian for comparison
-              const hashReversed = hash.slice().reverse()
+              const hashReversed = Buffer.from(hash.toReversed())
               const hashHex = hashReversed.toString('hex')
 
               hashes += 1

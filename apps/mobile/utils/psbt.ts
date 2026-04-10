@@ -398,7 +398,7 @@ export function extractTransactionIdFromPSBT(
     if (unsignedTx) {
       const txBuffer = unsignedTx.toBuffer()
       const hash = bitcoinjs.crypto.hash256(txBuffer)
-      return hash.reverse().toString('hex')
+      return Buffer.from(hash.toReversed()).toString('hex')
     }
   }
   return null
@@ -418,7 +418,7 @@ export function extractTransactionDataFromPSBTEnhanced(
   const inputs = psbt.data.inputs.map((input, index) => {
     const psbtInput = input as PsbtInput
     const txInput = psbt.txInputs[index]
-    const txid = txInput.hash.reverse().toString('hex')
+    const txid = Buffer.from(txInput.hash.toReversed()).toString('hex')
     const vout = txInput.index
 
     let value = 0
@@ -584,7 +584,7 @@ export function getMultisigInfoFromPsbt(psbtBase64: string) {
   }
 
   const [mOp] = decompiled
-  const nOp = decompiled[decompiled.length - 2]
+  const nOp = decompiled.at(-2)!
 
   const m = bitcoinjs.script.number.decode(
     Buffer.isBuffer(mOp) ? mOp : Buffer.from([mOp - 80])
@@ -700,7 +700,7 @@ export function validatePsbt(
   }
 
   for (const [index, txInput] of psbt.txInputs.entries()) {
-    const txid = txInput.hash.reverse().toString('hex')
+    const txid = Buffer.from(txInput.hash.toReversed()).toString('hex')
     const vout = txInput.index
     const utxoKey = `${txid}:${vout}`
 

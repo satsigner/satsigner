@@ -34,7 +34,7 @@ export default function TabLayout() {
     e: GestureResponderEvent
   ) {
     if (
-      segments.indexOf(segment) >= 0 &&
+      segments.includes(segment) &&
       segments.indexOf(segment) < segments.length - 1
     ) {
       router.navigate(`/(authenticated)/(tabs)/${segment}`)

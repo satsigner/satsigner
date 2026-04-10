@@ -37,7 +37,7 @@ function formatBlockHash(hash?: string) {
   if (!hash) {
     return ''
   }
-  return hash.startsWith('0000') ? hash : hash.split('').reverse().join('')
+  return hash.startsWith('0000') ? hash : hash.split('').toReversed().join('')
 }
 
 function SSExploreBlock({ block }: SSExploreBlockProps) {

@@ -247,7 +247,7 @@ class BaseElectrumClient {
     const { network } = this
     const script = bitcoinjs.address.toOutputScript(address, network)
     const hash = bitcoinjs.crypto.sha256(script)
-    const reversedHash = new Buffer(hash.reverse())
+    const reversedHash = new Buffer(hash.toReversed())
     const scriptHash = reversedHash.toString('hex')
     return scriptHash
   }

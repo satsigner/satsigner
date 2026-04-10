@@ -170,7 +170,7 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
           x: timestamp
         }
       })
-      .reverse()
+      .toReversed()
 
     maxYDomainRef.current = maxYDomain
 
@@ -181,7 +181,7 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
     if (data.length === 0) {
       return []
     }
-    const last = data[data.length - 1]
+    const last = data.at(-1)!
     const total = Y_KEYS.reduce((sum, key) => sum + (last[key] ?? 0), 0)
     if (total <= 0) {
       return []
@@ -238,7 +238,7 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
                       ) {
                         return null
                       }
-                      const last = pts[pts.length - 1] as {
+                      const last = pts.at(-1) as {
                         x: number
                         y: number
                       }

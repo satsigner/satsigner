@@ -115,7 +115,7 @@ function ExplorerDifficulty() {
       )
 
       const [firstBlock] = data
-      const lastBlock = data[data.length - 1]
+      const lastBlock = data.at(-1)!
 
       setHeightStart(firstBlock.height.toString())
       setHeightEnd(lastBlock.height.toString())

@@ -277,7 +277,7 @@ export function useInputTransactions(
                   }
                   // Collect previous transaction IDs needed for input values
                   const prevTxOutputs = parsedTx.ins.map((input) => ({
-                    txid: input.hash.slice().reverse().toString('hex'),
+                    txid: Buffer.from(input.hash.toReversed()).toString('hex'),
                     vout: input.index
                   }))
                   const uniquePrevTxids = [

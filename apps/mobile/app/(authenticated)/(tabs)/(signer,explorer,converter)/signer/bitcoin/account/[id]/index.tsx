@@ -286,7 +286,7 @@ function TotalTransactions({
       return balance
     })
 
-    return balances.reverse()
+    return balances.toReversed()
   }, [sortedTransactions])
 
   const maxBalance = useMemo(() => {
@@ -359,7 +359,7 @@ function TotalTransactions({
         >
           <View style={styles.listWithLoader}>
             <FlashList
-              data={sortedTransactions.slice().reverse()}
+              data={sortedTransactions.toReversed()}
               ListHeaderComponent={
                 hasDraft ? (
                   <DraftTransactionCard accountId={account.id} />

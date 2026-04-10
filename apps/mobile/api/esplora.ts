@@ -130,7 +130,7 @@ export default class Esplora {
         break
       }
 
-      const lastTxId = transactions[transactions.length - 1].txid
+      const lastTxId = transactions.at(-1)!.txid
       const nextPage = (await this._call(
         `/address/${address}/txs?after_txid=${lastTxId}`
       )) as EsploraTx[]

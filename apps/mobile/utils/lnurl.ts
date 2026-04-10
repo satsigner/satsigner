@@ -98,7 +98,7 @@ export async function fetchLNURLPayDetails(
   if (response.status === 404) {
     const apiUrl = new URL(url)
     const pathParts = apiUrl.pathname.split('/')
-    const lastPart = pathParts[pathParts.length - 1]
+    const lastPart = pathParts.at(-1)!
 
     const apiPatterns = [
       `/api/v1/lnurl/pay/${lastPart}`,
