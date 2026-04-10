@@ -293,7 +293,8 @@ export default function SSSeedWordsInput({
 
   const readSeedFromClipboard = useCallback(async () => {
     try {
-      const text = (await Clipboard.getStringAsync()).trim()
+      const clipboardText = await Clipboard.getStringAsync()
+      const text = clipboardText.trim()
       const seed = checkClipboardForSeed(text)
       if (seed.length > 0) {
         await fillOutSeedWords(seed)

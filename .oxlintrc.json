@@ -96,7 +96,6 @@
     "unicorn/no-useless-switch-case": "allow",
     "unicorn/no-new-buffer": "allow",
     "unicorn/no-invalid-fetch-options": "allow",
-    "unicorn/no-await-expression-member": "allow",
     "no-bitwise": "allow",
     "class-methods-use-this": "allow",
     "max-classes-per-file": "allow",
