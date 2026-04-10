@@ -1,20 +1,34 @@
-import { Stack, useRouter } from 'expo-router'
+import { Stack, usePathname, useRouter, useSegments } from 'expo-router'
 import { StyleSheet, TouchableOpacity, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
+import SSIconBackArrow from '@/components/icons/SSIconBackArrow'
+import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
 import { useLND } from '@/hooks/useLND'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
 import { useLightningStore } from '@/store/lightning'
+import { showNavigation } from '@/utils/navigation'
 
 export default function LightningPage() {
   const router = useRouter()
+  const pathname = usePathname()
+  const segments = useSegments()
+  const showDrawerNav = showNavigation(pathname, segments.length)
   const { config } = useLightningStore()
   const { nodeInfo, isConnected } = useLND()
 
   const handleRCPPress = () => {
     // TODO: Implement RCP functionality
+  }
+
+  function goToSignerLanding() {
+    router.replace({
+      params: { tab: t('navigation.label.signer') },
+      pathname: '/(authenticated)/(tabs)/(signer)'
+    })
   }
 
   const handleLNDRestPress = () => {
@@ -110,6 +124,23 @@ export default function LightningPage() {
     <>
       <Stack.Screen
         options={{
+          ...(showDrawerNav
+            ? {}
+            : {
+                headerLeft: () => (
+                  <SSIconButton
+                    style={{
+                      height: 30,
+                      paddingHorizontal: 8,
+                      paddingTop: 8,
+                      width: 30
+                    }}
+                    onPress={goToSignerLanding}
+                  >
+                    <SSIconBackArrow height={16} width={7} />
+                  </SSIconButton>
+                )
+              }),
           headerTitle: () => (
             <SSText uppercase style={{ letterSpacing: 1 }}>
               Lightning
