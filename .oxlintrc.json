@@ -83,7 +83,6 @@
     "unicorn/prefer-set-has": "allow",
     "typescript/prefer-for-of": "allow",
     "typescript/no-unsafe-function-type": "allow",
-    "typescript/ban-types": "allow",
     "unicorn/prefer-type-error": "allow",
     "unicorn/prefer-math-min-max": "allow",
     "unicorn/prefer-date-now": "allow",

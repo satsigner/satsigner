@@ -416,11 +416,11 @@ function TotalTransactions({
 
 type DerivedAddressesProps = {
   account: Account
-  setSortDirection: Function
+  setSortDirection: Dispatch<React.SetStateAction<Direction>>
   sortDirection: Direction
   handleOnExpand: (state: boolean) => void
   expand: boolean
-  setChange: Function
+  setChange: Dispatch<React.SetStateAction<boolean>>
   change: boolean
   perPage?: number
 }
@@ -803,7 +803,7 @@ function DerivedAddresses({
         )}
         <SSHStack gap="sm" style={{ justifyContent: 'flex-end', width: 40 }}>
           <SSSortDirectionToggle
-            onDirectionChanged={() => setSortDirection()}
+            onDirectionChanged={(direction) => setSortDirection(direction)}
           />
         </SSHStack>
       </SSHStack>
