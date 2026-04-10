@@ -1040,16 +1040,15 @@ export default function Energy() {
           )
           return
         }
-      } else if (nodeNetwork === 'test' || nodeNetwork === 'signet') {
-        if (
-          !miningAddress.startsWith('tb1') &&
-          !miningAddress.startsWith('tb')
-        ) {
-          toast.error(
-            `Address ${miningAddress} has the wrong prefix for ${nodeNetwork} network. Use an address starting with tb1 or tb`
-          )
-          return
-        }
+      } else if (
+        (nodeNetwork === 'test' || nodeNetwork === 'signet') &&
+        !miningAddress.startsWith('tb1') &&
+        !miningAddress.startsWith('tb')
+      ) {
+        toast.error(
+          `Address ${miningAddress} has the wrong prefix for ${nodeNetwork} network. Use an address starting with tb1 or tb`
+        )
+        return
       }
 
       // Validate template once at start

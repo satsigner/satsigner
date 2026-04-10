@@ -523,13 +523,12 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               )
               if (
                 refTxIndex !== -1 &&
-                state.accounts[index].transactions[refTxIndex].vout[vout]
+                state.accounts[index].transactions[refTxIndex].vout[vout] &&
+                !outputHasLabel
               ) {
-                if (!outputHasLabel) {
-                  state.accounts[index].transactions[refTxIndex].vout[
-                    vout
-                  ].label = label
-                }
+                state.accounts[index].transactions[refTxIndex].vout[
+                  vout
+                ].label = label
               }
 
               // Cascade to the address of the input's previous output

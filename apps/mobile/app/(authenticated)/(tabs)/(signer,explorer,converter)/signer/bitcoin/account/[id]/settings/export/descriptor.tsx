@@ -233,77 +233,38 @@ export default function DescriptorPage() {
               // Keep the descriptor without checksum if BDK fails
             }
           }
-        } else if (key.creationType === 'importExtendedPub') {
+        } else if (
+          key.creationType === 'importExtendedPub' &&
+          decryptedSecret.extendedPublicKey
+        ) {
           // For extended public key-based keys, create a proper descriptor
-          if (decryptedSecret.extendedPublicKey) {
-            // Get fingerprint from secret
-            const fingerprint = decryptedSecret.fingerprint || ''
+          // Get fingerprint from secret
+          const fingerprint = decryptedSecret.fingerprint || ''
 
-            if (fingerprint) {
-              // Use the getDescriptorsFromKeyData function for better consistency
-              try {
-                const descriptors = getDescriptorsFromKey(
-                  decryptedSecret.extendedPublicKey,
-                  fingerprint,
-                  key.scriptVersion || 'P2WPKH',
-                  appNetworkToBdkNetwork(network)
-                )
-                descriptorString = descriptors.externalDescriptor
-              } catch {
-                // Fallback: try to construct descriptor manually
-                const derivationPath = getDerivationPathFromScriptVersion(
-                  key.scriptVersion || 'P2WPKH',
-                  network
-                )
+          if (fingerprint) {
+            // Use the getDescriptorsFromKeyData function for better consistency
+            try {
+              const descriptors = getDescriptorsFromKey(
+                decryptedSecret.extendedPublicKey,
+                fingerprint,
+                key.scriptVersion || 'P2WPKH',
+                appNetworkToBdkNetwork(network)
+              )
+              descriptorString = descriptors.externalDescriptor
+            } catch {
+              // Fallback: try to construct descriptor manually
+              const derivationPath = getDerivationPathFromScriptVersion(
+                key.scriptVersion || 'P2WPKH',
+                network
+              )
 
-                // Create proper descriptor with script function and checksum
-                let keyPart = ''
-                if (fingerprint && derivationPath) {
-                  keyPart = `[${fingerprint}/${derivationPath}]${decryptedSecret.extendedPublicKey}/0/*`
-                } else {
-                  keyPart = `${decryptedSecret.extendedPublicKey}/0/*`
-                }
-
-                // Add script function based on script version
-                switch (key.scriptVersion) {
-                  case 'P2PKH':
-                    descriptorString = `pkh(${keyPart})`
-                    break
-                  case 'P2SH-P2WPKH':
-                    descriptorString = `sh(wpkh(${keyPart}))`
-                    break
-                  case 'P2WPKH':
-                    descriptorString = `wpkh(${keyPart})`
-                    break
-                  case 'P2TR':
-                    descriptorString = `tr(${keyPart})`
-                    break
-                  case 'P2WSH':
-                    descriptorString = `wsh(${keyPart})`
-                    break
-                  case 'P2SH-P2WSH':
-                    descriptorString = `sh(wsh(${keyPart}))`
-                    break
-                  case 'P2SH':
-                    descriptorString = `sh(${keyPart})`
-                    break
-                  default:
-                    descriptorString = `wpkh(${keyPart})`
-                }
-
-                // Validate descriptor with BDK
-                try {
-                  walletNameFromDescriptor(
-                    descriptorString,
-                    undefined,
-                    appNetworkToBdkNetwork(network)
-                  )
-                } catch {
-                  // Keep the descriptor without checksum if BDK fails
-                }
+              // Create proper descriptor with script function and checksum
+              let keyPart = ''
+              if (fingerprint && derivationPath) {
+                keyPart = `[${fingerprint}/${derivationPath}]${decryptedSecret.extendedPublicKey}/0/*`
+              } else {
+                keyPart = `${decryptedSecret.extendedPublicKey}/0/*`
               }
-            } else {
-              const keyPart = `${decryptedSecret.extendedPublicKey}/0/*`
 
               // Add script function based on script version
               switch (key.scriptVersion) {
@@ -342,6 +303,46 @@ export default function DescriptorPage() {
               } catch {
                 // Keep the descriptor without checksum if BDK fails
               }
+            }
+          } else {
+            const keyPart = `${decryptedSecret.extendedPublicKey}/0/*`
+
+            // Add script function based on script version
+            switch (key.scriptVersion) {
+              case 'P2PKH':
+                descriptorString = `pkh(${keyPart})`
+                break
+              case 'P2SH-P2WPKH':
+                descriptorString = `sh(wpkh(${keyPart}))`
+                break
+              case 'P2WPKH':
+                descriptorString = `wpkh(${keyPart})`
+                break
+              case 'P2TR':
+                descriptorString = `tr(${keyPart})`
+                break
+              case 'P2WSH':
+                descriptorString = `wsh(${keyPart})`
+                break
+              case 'P2SH-P2WSH':
+                descriptorString = `sh(wsh(${keyPart}))`
+                break
+              case 'P2SH':
+                descriptorString = `sh(${keyPart})`
+                break
+              default:
+                descriptorString = `wpkh(${keyPart})`
+            }
+
+            // Validate descriptor with BDK
+            try {
+              walletNameFromDescriptor(
+                descriptorString,
+                undefined,
+                appNetworkToBdkNetwork(network)
+              )
+            } catch {
+              // Keep the descriptor without checksum if BDK fails
             }
           }
         }

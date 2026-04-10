@@ -72,7 +72,6 @@
     "promise/prefer-await-to-callbacks": "allow",
     "unicorn/prefer-array-some": "allow",
     "unicorn/prefer-array-index-of": "allow",
-    "unicorn/no-lonely-if": "allow",
     "unicorn/no-hex-escape": "allow",
     "unicorn/consistent-existence-index-check": "allow",
     "import/no-named-as-default-member": "allow",

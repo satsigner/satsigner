@@ -269,13 +269,15 @@ export default function ExportDescriptors() {
                   }
 
                   // If we still don't have an extended public key, try to get it from the key's secret
-                  if (!extendedPublicKey && typeof secret === 'object') {
+                  if (
+                    !extendedPublicKey &&
+                    typeof secret === 'object' &&
+                    secret.externalDescriptor
+                  ) {
                     // Try to extract from externalDescriptor if available
-                    if (secret.externalDescriptor) {
-                      extendedPublicKey = getExtendedKeyFromDescriptor(
-                        secret.externalDescriptor
-                      )
-                    }
+                    extendedPublicKey = getExtendedKeyFromDescriptor(
+                      secret.externalDescriptor
+                    )
                   }
 
                   return { extendedPublicKey, fingerprint, index }

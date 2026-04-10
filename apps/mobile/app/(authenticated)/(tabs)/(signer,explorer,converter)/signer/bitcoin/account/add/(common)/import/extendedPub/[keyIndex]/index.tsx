@@ -289,13 +289,11 @@ export default function ImportExtendedPub() {
           return Buffer.from(decoded).toString('hex')
         }
         return null
-      } else if (type === 'ur') {
+      } else if (type === 'ur' && urDecoderRef.current.isComplete()) {
         // For UR, the decoder should have assembled everything
-        if (urDecoderRef.current.isComplete()) {
-          const result = urDecoderRef.current.resultUR()
-          if (result && result.cbor) {
-            return result.cbor.toString('hex')
-          }
+        const result = urDecoderRef.current.resultUR()
+        if (result && result.cbor) {
+          return result.cbor.toString('hex')
         }
       }
       return null
