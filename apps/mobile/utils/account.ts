@@ -153,15 +153,15 @@ export async function decryptKeySecretUsingPin(key: Key, pin: string) {
   }
 
   // serialized object validation
-  const expectedObjKeys = [
+  const expectedObjKeys = new Set([
     'mnemonic',
     'passphrase',
     'externalDescriptor',
     'internalDescriptor',
     'extendedPublicKey',
     'fingerprint'
-  ]
-  if (Object.keys(secretObject).some((k) => !expectedObjKeys.includes(k))) {
+  ])
+  if (Object.keys(secretObject).some((k) => !expectedObjKeys.has(k))) {
     throw new Error('Invalid serialized secret')
   }
 
