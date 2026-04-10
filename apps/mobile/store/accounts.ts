@@ -132,7 +132,8 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             success: true
           }
         } catch (error) {
-          const reason = error instanceof Error ? error.message : 'unknown reason'
+          const reason =
+            error instanceof Error ? error.message : 'unknown reason'
           return {
             message: `Failed to drop seed: ${reason}`,
             success: false

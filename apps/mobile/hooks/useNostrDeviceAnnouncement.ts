@@ -43,7 +43,9 @@ function useNostrDeviceAnnouncement() {
         return true
       } catch (error) {
         const message =
-          error instanceof Error ? error.message : 'Failed to publish announcement'
+          error instanceof Error
+            ? error.message
+            : 'Failed to publish announcement'
         toast.error('Failed to publish announcement', { description: message })
         return false
       } finally {

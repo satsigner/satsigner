@@ -173,7 +173,9 @@ export default function AccountSettings() {
       decryptCurrentAccountKeys()
     } catch (error: unknown) {
       toast.error(
-        error instanceof Error ? error.message : 'Failed to decrypt account keys'
+        error instanceof Error
+          ? error.message
+          : 'Failed to decrypt account keys'
       )
     }
   }, [account])
