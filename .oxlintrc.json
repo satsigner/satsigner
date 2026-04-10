@@ -51,7 +51,6 @@
     "react/no-array-index-key": "allow",
     "unicorn/prefer-string-slice": "allow",
     "unicorn/prefer-ternary": "allow",
-    "typescript/no-inferrable-types": "allow",
     "unicorn/consistent-function-scoping": "allow",
     "unicorn/no-useless-undefined": "allow",
     "typescript/consistent-type-imports": "allow",

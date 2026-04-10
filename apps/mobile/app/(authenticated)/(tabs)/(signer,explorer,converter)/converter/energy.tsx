@@ -658,8 +658,8 @@ export default function Energy() {
   const createCoinbaseTransaction = useCallback(
     (
       template: BlockTemplate,
-      extraNonce: number = 0,
-      useExtraNonce: boolean = false
+      extraNonce = 0,
+      useExtraNonce = false
     ): BlockTemplateTransaction | null => {
       if (!template || !miningAddress) {
         return null

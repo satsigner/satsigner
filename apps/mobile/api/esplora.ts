@@ -91,7 +91,7 @@ export default class Esplora {
     return await this._call(`/block/${blockHash}/status`)
   }
 
-  async getBlockTransactions(blockHash: string, startIndex: number = 0) {
+  async getBlockTransactions(blockHash: string, startIndex = 0) {
     return await this._call(`/block/${blockHash}/txs/${startIndex}`)
   }
 

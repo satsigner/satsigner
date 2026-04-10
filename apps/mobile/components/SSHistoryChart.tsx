@@ -1248,7 +1248,7 @@ function hexToRgba(hex: string, opacity: number): string {
 function formatAmountWithLeadingZeros(
   amountString: string,
   font: ReturnType<typeof matchFont>,
-  baseColor: string = '#666666'
+  baseColor = '#666666'
 ): { text: string; color: string; x: number }[] {
   if (!amountString) {
     return []

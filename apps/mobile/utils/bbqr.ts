@@ -65,7 +65,7 @@ export function isBBQRFragment(part: string): boolean {
 export function createBBQRChunks(
   data: Uint8Array,
   fileType: BBQRFileType = BBQRFileTypes.PSBT,
-  maxChunkSize: number = 400
+  maxChunkSize = 400
 ): string[] {
   // Convert our FileType to the official library's string format
   const officialFileType = fileType as OfficialFileType

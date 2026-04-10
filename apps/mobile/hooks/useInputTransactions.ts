@@ -29,10 +29,7 @@ export type ExtendedTransaction = Omit<Transaction, 'vin' | 'vout'> & {
   vout: ExtendedVout[] // Use ExtendedVout
 }
 
-export function useInputTransactions(
-  inputs: Map<string, Utxo>,
-  levelDeep: number = 2
-) {
+export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
   const [selectedNetwork, configs] = useBlockchainStore(
     useShallow((state) => [state.selectedNetwork, state.configs])
   )

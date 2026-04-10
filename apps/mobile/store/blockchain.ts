@@ -49,8 +49,8 @@ type BlockchainAction = {
 const createDefaultNetworkConfig = (
   network: Network,
   backend: Backend,
-  url: string = '',
-  name: string = `Default ${network}`
+  url = '',
+  name = `Default ${network}`
 ): NetworkConfig => ({
   config: {
     connectionMode: 'auto',
