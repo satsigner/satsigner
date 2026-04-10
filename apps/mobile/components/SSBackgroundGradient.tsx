@@ -15,9 +15,9 @@ function SSBackgroundGradient({
   children
 }: SSBackgroundGradientProps) {
   const start =
-    orientation === 'diagonal' ? { x: 0.94, y: 1.0 } : { x: 0.86, y: 1.0 }
+    orientation === 'diagonal' ? { x: 0.94, y: 1 } : { x: 0.86, y: 1 }
   const end =
-    orientation === 'diagonal' ? { x: 0.86, y: -0.64 } : { x: 0.14, y: 1.0 }
+    orientation === 'diagonal' ? { x: 0.86, y: -0.64 } : { x: 0.14, y: 1 }
 
   return (
     <LinearGradient

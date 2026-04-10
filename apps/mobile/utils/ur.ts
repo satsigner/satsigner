@@ -256,7 +256,7 @@ export async function decodeMultiPartURToPSBT(
   const shouldTryDecoding =
     isDecoderComplete === true ||
     (isDecoderComplete === undefined && progress > 0.9) ||
-    progress >= 1.0
+    progress >= 1
 
   if (shouldTryDecoding) {
     const result = decoder.resultUR()
@@ -354,7 +354,7 @@ export function decodeMultiPartURGeneric(urFragments: string[]): string {
   const shouldTryDecoding =
     isDecoderComplete === true ||
     (isDecoderComplete === undefined && progress > 0.9) ||
-    progress >= 1.0
+    progress >= 1
 
   if (shouldTryDecoding) {
     const result = decoder.resultUR()

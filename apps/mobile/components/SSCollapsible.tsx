@@ -32,7 +32,7 @@ function SSCollapsible({ children }: SSCollapsibleProps) {
             ]}
             colors={[Colors.transparent, 'rgba(0,0,0,1)']}
             start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1.0 }}
+            end={{ x: 0.5, y: 1 }}
           />
         </SSVStack>
         <SSText uppercase style={{ color: Colors.gray[100] }}>

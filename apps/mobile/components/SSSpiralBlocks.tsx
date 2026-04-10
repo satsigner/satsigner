@@ -356,7 +356,7 @@ function SSSpiralBlocks({
 function newtonRaphson(
   L: number,
   k: number,
-  initialGuess: number = 1.0,
+  initialGuess: number = 1,
   tolerance: number = 1e-6,
   maxIterations: number = 1000
 ): number {

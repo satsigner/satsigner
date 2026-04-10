@@ -68,7 +68,6 @@
     "unicorn/no-immediate-mutation": "allow",
     "react/jsx-no-useless-fragment": "allow",
     "unicorn/prefer-code-point": "allow",
-    "unicorn/no-zero-fractions": "allow",
     "promise/prefer-await-to-callbacks": "allow",
     "unicorn/no-hex-escape": "allow",
     "unicorn/consistent-existence-index-check": "allow",
