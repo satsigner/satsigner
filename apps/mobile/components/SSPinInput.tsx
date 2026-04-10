@@ -100,7 +100,7 @@ function SSPinInput({
   }
 
   function handleOnFocus() {
-    const lastFilledIndex = pin.findIndex((text) => text === '')
+    const lastFilledIndex = pin.indexOf('')
 
     if (lastFilledIndex === 0) {
       inputRefs.current[0]?.focus()

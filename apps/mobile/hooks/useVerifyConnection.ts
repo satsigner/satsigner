@@ -37,7 +37,7 @@ function useVerifyConnection() {
   }, [server.network, server.name, server.url, config.connectionMode])
 
   const isPrivateConnection = useMemo(() => {
-    if (servers.findIndex((val) => val.url === server.url) === -1) {
+    if (!servers.some((val) => val.url === server.url)) {
       return false
     }
     return true

@@ -57,11 +57,9 @@ export default function SetPin() {
     useState<string[]>(emptyPin)
   const [currentPinWrong, setCurrentPinWrong] = useState(false)
 
-  const currentPinFilled =
-    currentPinArray.findIndex((text) => text === '') === -1
-  const pinFilled = pinArray.findIndex((text) => text === '') === -1
-  const confirmationPinFilled =
-    confirmationPinArray.findIndex((text) => text === '') === -1
+  const currentPinFilled = !currentPinArray.includes('')
+  const pinFilled = !pinArray.includes('')
+  const confirmationPinFilled = !confirmationPinArray.includes('')
   const pinsMatch = pinArray.join('') === confirmationPinArray.join('')
 
   function handleCurrentPinChange(newPin: React.SetStateAction<string[]>) {
