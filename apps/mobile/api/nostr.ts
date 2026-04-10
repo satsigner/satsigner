@@ -127,7 +127,7 @@ export class NostrAPI {
 
             const testEvent = await this.ndk?.fetchEvent(
               { kinds: [1], limit: 1 },
-              // @ts-ignore - relayUrl is used by NDK but not in types
+              // @ts-expect-error - relayUrl is used by NDK but not in types
               { relayUrl: url }
             )
 

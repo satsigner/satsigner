@@ -91,7 +91,6 @@
     "typescript/prefer-ts-expect-error": "allow",
     "typescript/parameter-properties": "allow",
     "typescript/no-invalid-void-type": "allow",
-    "typescript/ban-ts-comment": "allow",
     "unicorn/prefer-native-coercion-functions": "allow",
     "unicorn/prefer-logical-operator-over-ternary": "allow",
     "unicorn/prefer-event-target": "allow",
