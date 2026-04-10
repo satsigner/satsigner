@@ -77,7 +77,6 @@
     "import/no-named-as-default-member": "allow",
     "unicorn/no-useless-spread": "allow",
     "unicorn/no-useless-collection-argument": "allow",
-    "promise/param-names": "allow",
     "unicorn/no-unreadable-array-destructuring": "allow",
     "unicorn/text-encoding-identifier-case": "allow",
     "unicorn/prefer-set-has": "allow",

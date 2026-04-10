@@ -165,7 +165,7 @@ export class NostrAPI {
       this.ndk = new NDK({ explicitRelayUrls: this.relays })
     }
 
-    const timeout = new Promise<never>((_, reject) => {
+    const timeout = new Promise<never>((_resolve, reject) => {
       setTimeout(
         () =>
           reject(new Error(`connectForPublish timed out after ${timeoutMs}ms`)),
@@ -384,8 +384,8 @@ export class NostrAPI {
     while (this.eventQueue.length > 0 && this._callback) {
       await this.processQueue()
       // Small delay between batches to avoid blocking the JS thread
-      await new Promise((r) => {
-        setTimeout(r, FLUSH_QUEUE_DELAY_MS)
+      await new Promise((resolve) => {
+        setTimeout(resolve, FLUSH_QUEUE_DELAY_MS)
       })
     }
   }
@@ -509,7 +509,7 @@ export class NostrAPI {
 
       try {
         // Add timeout to prevent indefinite hanging
-        const timeoutPromise = new Promise<never>((_, reject) => {
+        const timeoutPromise = new Promise<never>((_resolve, reject) => {
           setTimeout(
             () =>
               reject(

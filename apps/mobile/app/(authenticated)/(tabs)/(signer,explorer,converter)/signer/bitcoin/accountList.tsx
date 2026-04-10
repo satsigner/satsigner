@@ -580,7 +580,7 @@ export default function AccountList() {
     }
 
     // Add timeout to prevent hanging
-    const timeoutPromise = new Promise<never>((_, reject) => {
+    const timeoutPromise = new Promise<never>((_resolve, reject) => {
       setTimeout(
         () => reject(new Error('Wallet creation timed out after 30 seconds')),
         30000
