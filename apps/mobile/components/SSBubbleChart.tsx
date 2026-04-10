@@ -1,4 +1,4 @@
-import { Canvas, Group, useFonts } from '@shopify/react-native-skia'
+import { Canvas, Group } from '@shopify/react-native-skia'
 import { hierarchy, type HierarchyCircularNode, pack } from 'd3'
 import { useEffect, useMemo, useState } from 'react'
 import {
@@ -14,6 +14,7 @@ import Animated from 'react-native-reanimated'
 
 import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
+import { useSFProFonts } from '@/hooks/useSFProFonts'
 import { type Utxo } from '@/types/models/Utxo'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -55,13 +56,7 @@ function SSBubbleChart({
   const { height, width } = canvasSize
   const centerX = width / 2
   const centerY = height / 2
-  const customFontManager = useFonts({
-    'SF Pro Text': [
-      require('@/assets/fonts/SF-Pro-Text-Light.otf'),
-      require('@/assets/fonts/SF-Pro-Text-Regular.otf'),
-      require('@/assets/fonts/SF-Pro-Text-Medium.otf')
-    ]
-  })
+  const customFontManager = useSFProFonts()
   const [utxoList, setUtxoList] = useState<UtxoListItem[]>([])
 
   useEffect(() => {

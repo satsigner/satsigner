@@ -14,7 +14,6 @@ import {
   Text,
   TextAlign,
   TileMode,
-  useFonts,
   vec
 } from '@shopify/react-native-skia'
 import * as d3 from 'd3'
@@ -24,6 +23,7 @@ import { type LayoutChangeEvent, StyleSheet, View } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
+import { useSFProFonts } from '@/hooks/useSFProFonts'
 import { useChartSettingStore } from '@/store/chartSettings'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
@@ -874,13 +874,7 @@ function SSHistoryChart({
     transactionsMap
   ])
 
-  const customFontManager = useFonts({
-    'SF Pro Text': [
-      require('@/assets/fonts/SF-Pro-Text-Light.otf'),
-      require('@/assets/fonts/SF-Pro-Text-Regular.otf'),
-      require('@/assets/fonts/SF-Pro-Text-Medium.otf')
-    ]
-  })
+  const customFontManager = useSFProFonts()
   const fontStyle = {
     fontFamily: 'SF Pro Text',
     fontSize: 10
@@ -1169,7 +1163,7 @@ function SSHistoryChart({
 }
 
 type YScaleRendererProps = {
-  customFontManager: ReturnType<typeof useFonts>
+  customFontManager: ReturnType<typeof useSFProFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   yScale: d3.ScaleLinear<number, number>
   chartHeight: number
@@ -1224,7 +1218,7 @@ function YScaleRenderer({
 const MemoizedYScaleRenderer = memo(YScaleRenderer)
 
 type XScaleRendererProps = {
-  customFontManager: ReturnType<typeof useFonts>
+  customFontManager: ReturnType<typeof useSFProFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   showTransactionInfo: boolean
   txXAxisLabels: {
@@ -1488,7 +1482,7 @@ function XScaleRenderer({
 const MemoizedXScaleRenderer = memo(XScaleRenderer)
 
 type XAxisRendererProps = {
-  customFontManager: ReturnType<typeof useFonts>
+  customFontManager: ReturnType<typeof useSFProFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   xScale: d3.ScaleTime<number, number>
   chartHeight: number
@@ -1647,7 +1641,7 @@ function UtxoRectRenderer({
 const MemoizedUtxoRectRenderer = memo(UtxoRectRenderer)
 
 type UtxoLabelRendererProps = {
-  customFontManager: ReturnType<typeof useFonts>
+  customFontManager: ReturnType<typeof useSFProFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   utxoLabels: {
     x1: number
@@ -1693,7 +1687,7 @@ function UtxoLabelRenderer({
 const MemoizedUtxoLabelRenderer = memo(UtxoLabelRenderer)
 
 type TransactionInfoRendererProps = {
-  customFontManager: ReturnType<typeof useFonts>
+  customFontManager: ReturnType<typeof useSFProFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   txInfoLabels: {
     x: number
@@ -1796,7 +1790,7 @@ function TransactionInfoRenderer({
 const MemoizedTransactionInfoRenderer = memo(TransactionInfoRenderer)
 
 type CursorRendererProps = {
-  customFontManager: ReturnType<typeof useFonts>
+  customFontManager: ReturnType<typeof useSFProFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   cursorX: Date | undefined
   cursorY: number | undefined
