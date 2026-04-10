@@ -11,7 +11,7 @@ export default class Esplora {
   async _call(params: string, method: 'GET' | 'POST' = 'GET', body?: string) {
     try {
       const response = await fetch(this.esploraUrl + params, {
-        body,
+        ...(method !== 'GET' && body !== undefined ? { body } : {}),
         cache: 'no-cache',
         headers: {
           'Content-Type': 'text/plain'

@@ -95,7 +95,6 @@
     "unicorn/prefer-add-event-listener": "allow",
     "unicorn/no-useless-switch-case": "allow",
     "unicorn/no-new-buffer": "allow",
-    "unicorn/no-invalid-fetch-options": "allow",
     "no-bitwise": "allow",
     "class-methods-use-this": "allow",
     "max-classes-per-file": "allow",
