@@ -139,40 +139,41 @@ export function versionToChars(v: Version) {
   return QR_DATA_CAPACITY[v][ecc][encoding]
 }
 
-export function encodeData(raw: Uint8Array, encoding?: Encoding) {
+export function encodeData(raw: Uint8Array, encoding: Encoding = 'Z') {
   // return new encoding (if we upgraded) and the
   // characters after encoding (a string)
   // - default is Zlib or if compression doesn't help, base32
   // - returned data can be split, but must be done modX where X provided
 
-  encoding = encoding ?? 'Z'
+  let currentEncoding = encoding
+  let currentRaw = raw
 
-  if (encoding === 'H') {
+  if (currentEncoding === 'H') {
     return {
-      encoded: raw
+      encoded: currentRaw
         .reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), '')
         .toUpperCase(),
-      encoding
+      encoding: currentEncoding
     }
   }
 
-  if (encoding === 'Z') {
+  if (currentEncoding === 'Z') {
     // trial compression, but skip if it embiggens the data
 
-    const compressed = pako.deflate(raw, { windowBits: -10 })
+    const compressed = pako.deflate(currentRaw, { windowBits: -10 })
 
-    if (compressed.length >= raw.length) {
-      encoding = '2'
+    if (compressed.length >= currentRaw.length) {
+      currentEncoding = '2'
     } else {
-      encoding = 'Z'
-      raw = compressed
+      currentEncoding = 'Z'
+      currentRaw = compressed
     }
   }
 
   return {
     // base32 without padding
-    encoded: base32.encode(raw).replace(/=*$/, ''),
-    encoding
+    encoded: base32.encode(currentRaw).replace(/=*$/, ''),
+    encoding: currentEncoding
   }
 }
 
