@@ -26,6 +26,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { compareAmount, compareTimestamp } from '@/utils/sort'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 type SortField = 'date' | 'amount'
 
@@ -287,7 +288,7 @@ export default function SelectUtxoList() {
               return (
                 <SSUtxoItem
                   utxo={item}
-                  selected={hasInput(item)}
+                  selected={inputs.has(getUtxoOutpoint(item))}
                   onToggleSelected={handleOnToggleSelected}
                   largestValue={largestValue}
                   addressIndex={addressIndex}
