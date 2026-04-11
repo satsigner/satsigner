@@ -24,7 +24,7 @@ export function generateColorFromNpub(npub: string): string {
 
   // Generate color from hash - match Python's hashlib.sha256() output
   const hash = bitcoinjs.crypto.sha256(Buffer.from(pubkey)).toString('hex')
-  const seed = BigInt('0x' + hash)
+  const seed = BigInt(`0x${hash}`)
   const hue = Number(seed % 360n) // Map to a hue value between 0-359
 
   const saturation = 255 // High saturation for vividness
@@ -39,7 +39,7 @@ export function generateColorFromNpub(npub: string): string {
   const x = c * (1 - Math.abs((h % 2) - 1))
   const m = l - c / 2
 
-  let r, g, b
+  let b, g, r
   if (h < 1) {
     ;[r, g, b] = [c, x, 0]
   } else if (h < 2) {
@@ -56,7 +56,7 @@ export function generateColorFromNpub(npub: string): string {
 
   const toHex = (n: number) => {
     const hex = Math.round((n + m) * 255).toString(16)
-    return hex.length === 1 ? '0' + hex : hex
+    return hex.length === 1 ? `0${hex}` : hex
   }
 
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`

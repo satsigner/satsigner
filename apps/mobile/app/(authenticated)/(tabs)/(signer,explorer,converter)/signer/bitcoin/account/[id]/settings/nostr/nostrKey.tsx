@@ -209,7 +209,7 @@ function NostrKeys() {
     try {
       const keys = await Promise.race([
         generateCommonNostrKeys(acc),
-        new Promise<undefined>((_, reject) => {
+        new Promise<undefined>((_resolve, reject) => {
           setTimeout(() => {
             reject(new Error(t('account.nostrSync.commonKeysTimeout')))
           }, COMMON_KEYS_LOAD_TIMEOUT_MS)
@@ -485,9 +485,9 @@ function NostrKeys() {
                     <SSButton
                       variant="default"
                       label={t('account.nostrSync.retryLoadCommonKeys')}
-                      onPress={() => {
+                      onPress={async () => {
                         commonKeysLoadRef.current = false
-                        void loadCommonNostrKeys()
+                        await loadCommonNostrKeys()
                       }}
                     />
                   </SSVStack>
