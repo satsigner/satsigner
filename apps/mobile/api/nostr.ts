@@ -485,9 +485,7 @@ export class NostrAPI {
       throw new Error('Failed to initialize NDK')
     }
 
-    const connectedRelayUrls = this.ndk.pool
-      .connectedRelays()
-      .map((r) => r.url)
+    const connectedRelayUrls = this.ndk.pool.connectedRelays().map((r) => r.url)
 
     if (connectedRelayUrls.length === 0) {
       throw new Error('No relays connected')

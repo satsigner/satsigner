@@ -234,11 +234,7 @@ function NostrKeys() {
       commonKeysLoadRef.current = false
       setLoadingCommonKeys(false)
     }
-  }, [
-	accountId,
-	generateCommonNostrKeys,
-	updateAccountNostr
-])
+  }, [accountId, generateCommonNostrKeys, updateAccountNostr])
 
   useEffect(() => {
     if (!accountId || !account || account.nostr) {

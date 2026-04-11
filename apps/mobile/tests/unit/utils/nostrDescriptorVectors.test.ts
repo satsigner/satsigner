@@ -19,11 +19,13 @@ function deriveNostrSyncSecretHexFromDescriptor(
     throw new Error(t('account.nostrSync.commonKeysDescriptorParseError'))
   }
   const totalString = `${hardenedPath}${xpubs.join('')}`
-  const firstHash = createHash('sha256').update(totalString, 'utf8').digest('hex')
+  const firstHash = createHash('sha256')
+    .update(totalString, 'utf8')
+    .digest('hex')
   return createHash('sha256').update(firstHash, 'utf8').digest('hex')
 }
 
-describe('Nostr sync key from descriptor (crypto vectors)', () => {
+describe('nostr sync key from descriptor (crypto vectors)', () => {
   it('derives a stable 32-byte secret for testnet wpkh + tpub', () => {
     const descriptor =
       "wpkh([60c6c741/84'/1'/0']tpubDDSsu3cncmRPe7hd3TYa419HMeHkdhGKNmUA17dDfyUogBE5pRKDPV14reDahCasFuJK9Zrnb9NXchBXCjhzgxRJgd5XHrVumiiqaTSwedx/0/*)#113CZT8y"

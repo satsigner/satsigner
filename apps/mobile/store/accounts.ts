@@ -9,8 +9,8 @@ import {
   type SyncStatus
 } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
-import { type Transaction } from '@/types/models/Transaction'
 import { type NostrAccount } from '@/types/models/Nostr'
+import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { dropSeedFromKey } from '@/utils/account'
 import { type Label } from '@/utils/bip329'

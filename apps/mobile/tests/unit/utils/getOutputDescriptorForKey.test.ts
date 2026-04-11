@@ -35,7 +35,10 @@ describe('getOutputDescriptorStringForKey', () => {
 
 describe('resolveDescriptorForNostrCommonKeys', () => {
   it('prefers export-style descriptor over BDK wallet string for singlesig', () => {
-    const account = { network: 'testnet' as const, policyType: 'singlesig' as const }
+    const account = {
+      network: 'testnet' as const,
+      policyType: 'singlesig' as const
+    }
 
     const key = baseKey({
       creationType: 'importMnemonic',
@@ -55,7 +58,10 @@ describe('resolveDescriptorForNostrCommonKeys', () => {
   })
 
   it('uses wallet policy descriptor for multisig', () => {
-    const account = { network: 'testnet' as const, policyType: 'multisig' as const }
+    const account = {
+      network: 'testnet' as const,
+      policyType: 'multisig' as const
+    }
 
     const key = baseKey()
     const secret: Secret = { externalDescriptor: DESCRIPTOR }
@@ -71,7 +77,10 @@ describe('resolveDescriptorForNostrCommonKeys', () => {
   })
 
   it('falls back to secret external descriptor for multisig when wallet missing', () => {
-    const account = { network: 'testnet' as const, policyType: 'multisig' as const }
+    const account = {
+      network: 'testnet' as const,
+      policyType: 'multisig' as const
+    }
 
     const key = baseKey()
     const secret: Secret = { externalDescriptor: DESCRIPTOR }
