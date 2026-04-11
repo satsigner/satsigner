@@ -149,15 +149,9 @@ function SSTransactionCard({
             </SSText>
           </SSHStack>
         </SSHStack>
-
         {transaction.timestamp && (
-          <SSTimeAgoText
-            date={new Date(transaction.timestamp)}
-            size="xs"
-            style={{ marginTop: -5 }}
-          />
+          <SSTimeAgoText date={new Date(transaction.timestamp)} size="xs" />
         )}
-
         <SSVStack gap="none" style={{ marginTop: 5 }}>
           <SSHStack
             style={{
@@ -252,7 +246,6 @@ function SSTransactionCard({
               </SSHStack>
             )}
           </SSHStack>
-
           {priceDisplay !== '' && (
             <SSHStack justifyBetween>
               <SSHStack
