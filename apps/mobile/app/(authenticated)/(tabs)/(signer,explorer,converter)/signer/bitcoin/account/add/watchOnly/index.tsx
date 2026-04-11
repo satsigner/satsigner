@@ -414,18 +414,14 @@ export default function WatchOnly() {
         const errorMessage =
           error instanceof Error ? error.message : String(error)
 
-        if (
+        networkValidation =
           errorMessage.includes('Invalid network') ||
           errorMessage.includes('network')
-        ) {
-          networkValidation = {
-            error: 'networkIncompatible',
-            isValid: false
-          }
-        } else {
-          // For other BDK errors, still consider it valid for now
-          networkValidation = { isValid: true }
-        }
+            ? {
+                error: 'networkIncompatible' as const,
+                isValid: false
+              }
+            : { isValid: true }
       }
     }
 
@@ -550,11 +546,9 @@ export default function WatchOnly() {
 
     const qrInfo = detectQRType(data)
 
-    if (qrInfo.type === 'single' || qrInfo.total === 1) {
-      await handleSingleQRCode(qrInfo.content)
-    } else {
-      await handleMultiPartQRCode(qrInfo)
-    }
+    await (qrInfo.type === 'single' || qrInfo.total === 1
+      ? handleSingleQRCode(qrInfo.content)
+      : handleMultiPartQRCode(qrInfo))
   }
 
   async function handleSingleQRCode(data: string) {

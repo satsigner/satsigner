@@ -188,11 +188,9 @@ export default function ExportDescriptors() {
                 // Add checksum
                 const checksum =
                   calculateDescriptorChecksum(singleSigDescriptor)
-                if (checksum) {
-                  descriptorString = `${singleSigDescriptor}#${checksum}`
-                } else {
-                  descriptorString = singleSigDescriptor
-                }
+                descriptorString = checksum
+                  ? `${singleSigDescriptor}#${checksum}`
+                  : singleSigDescriptor
               } else {
                 descriptorString =
                   'No descriptor available - missing fingerprint or extended public key'
@@ -392,11 +390,9 @@ export default function ExportDescriptors() {
                 } else {
                   // Always calculate checksum manually for multisig descriptors
                   const checksum = calculateDescriptorChecksum(finalDescriptor)
-                  if (checksum) {
-                    descriptorString = `${finalDescriptor}#${checksum}`
-                  } else {
-                    descriptorString = finalDescriptor
-                  }
+                  descriptorString = checksum
+                    ? `${finalDescriptor}#${checksum}`
+                    : finalDescriptor
                 }
               }
             }
@@ -418,11 +414,9 @@ export default function ExportDescriptors() {
                 // Add checksum if not present
                 if (!descriptor.includes('#')) {
                   const checksum = calculateDescriptorChecksum(descriptor)
-                  if (checksum) {
-                    descriptorString = `${descriptor}#${checksum}`
-                  } else {
-                    descriptorString = descriptor
-                  }
+                  descriptorString = checksum
+                    ? `${descriptor}#${checksum}`
+                    : descriptor
                 } else {
                   descriptorString = descriptor
                 }
@@ -462,11 +456,9 @@ export default function ExportDescriptors() {
 
                 // Add checksum
                 const checksum = calculateDescriptorChecksum(descriptor)
-                if (checksum) {
-                  descriptorString = `${descriptor}#${checksum}`
-                } else {
-                  descriptorString = descriptor
-                }
+                descriptorString = checksum
+                  ? `${descriptor}#${checksum}`
+                  : descriptor
               } else if (
                 key.creationType === 'importAddress' &&
                 secret.externalDescriptor
@@ -477,11 +469,9 @@ export default function ExportDescriptors() {
                 // Add checksum if not present
                 if (!descriptor.includes('#')) {
                   const checksum = calculateDescriptorChecksum(descriptor)
-                  if (checksum) {
-                    descriptorString = `${descriptor}#${checksum}`
-                  } else {
-                    descriptorString = descriptor
-                  }
+                  descriptorString = checksum
+                    ? `${descriptor}#${checksum}`
+                    : descriptor
                 } else {
                   descriptorString = descriptor
                 }
@@ -506,11 +496,9 @@ export default function ExportDescriptors() {
               // Add checksum if not present
               if (!descriptor.includes('#')) {
                 const checksum = calculateDescriptorChecksum(descriptor)
-                if (checksum) {
-                  descriptorString = `${descriptor}#${checksum}`
-                } else {
-                  descriptorString = descriptor
-                }
+                descriptorString = checksum
+                  ? `${descriptor}#${checksum}`
+                  : descriptor
               } else {
                 descriptorString = descriptor
               }

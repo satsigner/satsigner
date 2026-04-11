@@ -352,11 +352,7 @@ function SSHistoryChart({
               }
             }
             if (utxo.txid === transactions.at(index)?.id) {
-              if (gradientType === 1) {
-                gradientType = 2
-              } else {
-                gradientType = -1
-              }
+              gradientType = gradientType === 1 ? 2 : -1
             }
             return {
               gradientType,

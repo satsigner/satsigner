@@ -50,7 +50,6 @@
     "unicorn/prefer-string-replace-all": "allow",
     "react/no-array-index-key": "allow",
     "unicorn/prefer-string-slice": "allow",
-    "unicorn/prefer-ternary": "allow",
     "unicorn/consistent-function-scoping": "allow",
     "unicorn/no-useless-undefined": "allow",
     "typescript/consistent-type-imports": "allow",

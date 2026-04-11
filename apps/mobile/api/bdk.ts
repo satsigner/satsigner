@@ -528,11 +528,9 @@ async function syncWallet(
   isFullScan: boolean
 ) {
   if (isFullScan) {
-    if (backend === 'electrum') {
-      await wallet.fullScanWithElectrum(url, stopGap)
-    } else {
-      await wallet.fullScanWithEsplora(url, stopGap)
-    }
+    await (backend === 'electrum'
+      ? wallet.fullScanWithElectrum(url, stopGap)
+      : wallet.fullScanWithEsplora(url, stopGap))
   } else if (backend === 'electrum') {
     await wallet.syncWithElectrum(url, stopGap)
   } else {

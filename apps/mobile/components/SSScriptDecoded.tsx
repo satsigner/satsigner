@@ -18,11 +18,10 @@ function SSScriptDecoded({ script }: SSScriptDecodedProps) {
   let decodedScript: string | undefined
 
   try {
-    if (typeof script === 'string') {
-      decodedScript = script
-    } else {
-      decodedScript = bitcoinjs.script.toASM(Buffer.from(script))
-    }
+    decodedScript =
+      typeof script === 'string'
+        ? script
+        : bitcoinjs.script.toASM(Buffer.from(script))
   } catch {
     return <SSText>{t('transaction.decoded.error')}</SSText>
   }

@@ -155,18 +155,14 @@ export default function UnifiedImport() {
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : String(error)
-        if (
+        networkValidation =
           errorMessage.includes('Invalid network') ||
           errorMessage.includes('network')
-        ) {
-          networkValidation = {
-            error: 'networkIncompatible',
-            isValid: false
-          }
-        } else {
-          // For other BDK errors, still consider it valid for now
-          networkValidation = { isValid: true }
-        }
+            ? {
+                error: 'networkIncompatible' as const,
+                isValid: false
+              }
+            : { isValid: true }
       }
     }
 
@@ -208,18 +204,14 @@ export default function UnifiedImport() {
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : String(error)
-        if (
+        networkValidation =
           errorMessage.includes('Invalid network') ||
           errorMessage.includes('network')
-        ) {
-          networkValidation = {
-            error: 'networkIncompatible',
-            isValid: false
-          }
-        } else {
-          // For other BDK errors, still consider it valid for now
-          networkValidation = { isValid: true }
-        }
+            ? {
+                error: 'networkIncompatible' as const,
+                isValid: false
+              }
+            : { isValid: true }
       }
     }
 

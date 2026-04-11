@@ -188,12 +188,10 @@ export default function DescriptorPage() {
               network
             )
 
-            let keyPart = ''
-            if (fingerprint && derivationPath) {
-              keyPart = `[${fingerprint}/${derivationPath}]${decryptedSecret.extendedPublicKey}/0/*`
-            } else {
-              keyPart = `${decryptedSecret.extendedPublicKey}/0/*`
-            }
+            const keyPart =
+              fingerprint && derivationPath
+                ? `[${fingerprint}/${derivationPath}]${decryptedSecret.extendedPublicKey}/0/*`
+                : `${decryptedSecret.extendedPublicKey}/0/*`
 
             // Add script function based on script version
             switch (key.scriptVersion) {
@@ -259,12 +257,10 @@ export default function DescriptorPage() {
               )
 
               // Create proper descriptor with script function and checksum
-              let keyPart = ''
-              if (fingerprint && derivationPath) {
-                keyPart = `[${fingerprint}/${derivationPath}]${decryptedSecret.extendedPublicKey}/0/*`
-              } else {
-                keyPart = `${decryptedSecret.extendedPublicKey}/0/*`
-              }
+              const keyPart =
+                fingerprint && derivationPath
+                  ? `[${fingerprint}/${derivationPath}]${decryptedSecret.extendedPublicKey}/0/*`
+                  : `${decryptedSecret.extendedPublicKey}/0/*`
 
               // Add script function based on script version
               switch (key.scriptVersion) {

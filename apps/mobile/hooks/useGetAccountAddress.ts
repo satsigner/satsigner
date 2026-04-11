@@ -37,17 +37,11 @@ const useGetAccountAddress = (id: Account['id']) => {
 
         // Try to extract address from descriptor
         // It could be in format addr(address) or just a plain address
-        let address: string
-        if (
+        const address =
           secret.externalDescriptor.startsWith('addr(') &&
           secret.externalDescriptor.endsWith(')')
-        ) {
-          // Extract address from addr(address) format
-          address = secret.externalDescriptor.slice(5, -1)
-        } else {
-          // Assume it's a plain address
-          address = secret.externalDescriptor
-        }
+            ? secret.externalDescriptor.slice(5, -1)
+            : secret.externalDescriptor
         addAccountAddress(account.id, address)
         return
       }

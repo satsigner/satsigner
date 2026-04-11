@@ -617,12 +617,9 @@ export default function ImportDescriptor() {
       }
 
       // Handle combined descriptors with smart validation
-      if (isCombinedDescriptor(finalContent)) {
-        await handleCombinedDescriptorImport(finalContent)
-      } else {
-        // Handle non-combined descriptors with existing logic
-        await updateExternalDescriptor(finalContent)
-      }
+      await (isCombinedDescriptor(finalContent)
+        ? handleCombinedDescriptorImport(finalContent)
+        : updateExternalDescriptor(finalContent))
 
       setCameraModalVisible(false)
       toast.success(t('watchonly.success.qrScanned'))
@@ -650,12 +647,9 @@ export default function ImportDescriptor() {
         const assembledData = assembleMultiPartQR(qrInfo.type, newChunks)
         if (assembledData) {
           // Handle combined descriptors with smart validation
-          if (isCombinedDescriptor(assembledData)) {
-            await handleCombinedDescriptorImport(assembledData)
-          } else {
-            // Handle non-combined descriptors with existing logic
-            await updateExternalDescriptor(assembledData)
-          }
+          await (isCombinedDescriptor(assembledData)
+            ? handleCombinedDescriptorImport(assembledData)
+            : updateExternalDescriptor(assembledData))
 
           setCameraModalVisible(false)
           toast.success(t('watchonly.success.qrScanned'))
