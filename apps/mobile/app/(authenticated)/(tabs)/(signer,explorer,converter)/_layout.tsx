@@ -11,7 +11,7 @@ import {
 } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useMemo, useState } from 'react'
-import { View } from 'react-native'
+import { Platform, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -111,10 +111,12 @@ function HeaderRight() {
   const iconSize = HEADER_CHROME_ICON_SIZE
   return (
     <SSIconButton
-      style={[
-        HEADER_CHROME_HIT_BOX,
-        { marginRight: -HEADER_CHROME_EDGE_NUDGE }
-      ]}
+      style={
+        Platform.OS === 'android' && [
+          HEADER_CHROME_HIT_BOX,
+          { marginRight: -HEADER_CHROME_EDGE_NUDGE }
+        ]
+      }
       onPress={() => router.navigate('/settings')}
     >
       <SSIconSettings
