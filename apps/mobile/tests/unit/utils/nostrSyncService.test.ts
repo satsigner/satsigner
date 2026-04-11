@@ -35,7 +35,7 @@ jest.mock<typeof import('@/storage/mmkv')>('@/storage/mmkv', () => {
 })
 
 jest.mock<typeof import('@/utils/nostr')>('@/utils/nostr', () => ({
-  generateColorFromNpub: jest.fn().mockResolvedValue('#ff5500')
+  generateColorFromNpub: jest.fn().mockReturnValue('#ff5500')
 }))
 
 const mockAccount: Account = {

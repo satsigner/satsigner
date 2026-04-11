@@ -10,10 +10,30 @@ import {
 } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type Transaction } from '@/types/models/Transaction'
+import { type NostrAccount } from '@/types/models/Nostr'
 import { type Utxo } from '@/types/models/Utxo'
 import { dropSeedFromKey } from '@/utils/account'
 import { type Label } from '@/utils/bip329'
 import { getUtxoOutpoint } from '@/utils/utxo'
+
+/**
+ * Wallet sync and address refresh call updateAccount with { ...account, ... } from
+ * React state; that snapshot can omit Nostr keys saved a moment earlier. Prefer
+ * non-empty Nostr secrets/ids from the store when the incoming payload has blanks.
+ */
+function mergeNostrForFullAccountReplace(
+  existing: NostrAccount,
+  incoming: NostrAccount
+): NostrAccount {
+  return {
+    ...existing,
+    ...incoming,
+    commonNpub: incoming.commonNpub || existing.commonNpub || '',
+    commonNsec: incoming.commonNsec || existing.commonNsec || '',
+    deviceNpub: incoming.deviceNpub || existing.deviceNpub || '',
+    deviceNsec: incoming.deviceNsec || existing.deviceNsec || ''
+  }
+}
 
 type AccountsState = {
   accounts: Account[]
@@ -671,9 +691,15 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               const incomingLabels = account.labels || {}
               const mergedLabels = { ...incomingLabels, ...currentLabels }
 
+              const mergedNostr = mergeNostrForFullAccountReplace(
+                state.accounts[index].nostr,
+                account.nostr
+              )
+
               state.accounts[index] = {
                 ...account,
-                labels: mergedLabels
+                labels: mergedLabels,
+                nostr: mergedNostr
               }
 
               // Re-apply merged labels to transactions, utxos, and addresses
@@ -729,8 +755,19 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             if (index === -1) {
               return
             }
+            const prev = state.accounts[index].nostr
+            const base: NostrAccount = prev ?? {
+              autoSync: false,
+              commonNpub: '',
+              commonNsec: '',
+              dms: [],
+              lastUpdated: new Date(),
+              relays: [],
+              syncStart: new Date(),
+              trustedMemberDevices: []
+            }
             state.accounts[index].nostr = {
-              ...state.accounts[index].nostr,
+              ...base,
               ...nostr
             }
           })

@@ -700,6 +700,7 @@ export default function NostrSync() {
     try {
       const keys = await NostrAPI.generateNostrKeys()
       if (!keys) {
+        toast.error(t('account.nostrSync.errorGenerateDeviceKeys'))
         return
       }
       const current = useAccountsStore
@@ -709,8 +710,12 @@ export default function NostrSync() {
         autoSync: false,
         commonNpub: '',
         commonNsec: '',
+        deviceNpub: '',
+        deviceNsec: '',
         dms: [],
+        lastUpdated: new Date(),
         relays: [],
+        syncStart: new Date(),
         trustedMemberDevices: []
       }
       updateAccountNostrCallback(accountId, {
@@ -781,8 +786,12 @@ export default function NostrSync() {
             commonNsec: keys.commonNsec
           })
         }
-      } catch {
-        toast.error(t('account.nostrSync.errorLoadingCommonKeys'))
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : t('account.nostrSync.errorLoadingCommonKeys')
+        )
       }
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run when common keys or account id change; omit full account to avoid re-run on ref change

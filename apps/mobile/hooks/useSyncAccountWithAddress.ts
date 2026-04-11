@@ -692,8 +692,12 @@ function useSyncAccountWithAddress() {
   }
 
   async function syncAccountWithAddress(account: Account): Promise<Account> {
-    const addressDescriptors = await decryptAccountAddressDescriptors(account)
-    let updatedAccount: Account = { ...account }
+    const latest =
+      useAccountsStore.getState().accounts.find((a) => a.id === account.id) ??
+      account
+
+    const addressDescriptors = await decryptAccountAddressDescriptors(latest)
+    let updatedAccount: Account = { ...latest }
 
     // reset account sync progress
     updatedAccount.syncProgress = {

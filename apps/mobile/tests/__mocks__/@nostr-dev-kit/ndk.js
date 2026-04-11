@@ -41,20 +41,27 @@ class NDKEvent {
 class NDK {
   constructor(options = {}) {
     this.explicitRelayUrls = options.explicitRelayUrls || []
+    const ndk = this
     this.pool = {
       connect: jest.fn().mockResolvedValue(undefined),
+      connectedRelays() {
+        return Array.from(ndk.pool.relays.keys()).map((url) => ({
+          publish: jest.fn().mockResolvedValue(undefined),
+          url
+        }))
+      },
       relays: new Map()
     }
     this.signer = null
   }
 
-  connect() {
+  connect(_timeoutMs) {
     for (const url of this.explicitRelayUrls) {
       this.pool.relays.set(url, {
         publish: jest.fn().mockResolvedValue(undefined)
       })
     }
-    return true
+    return Promise.resolve()
   }
 
   fetchEvent() {

@@ -29,9 +29,13 @@ function useSyncAccountWithWallet() {
   const [loading, setLoading] = useState(false)
 
   async function syncAccountWithWallet(account: Account, wallet: BdkWallet) {
+    const latest =
+      useAccountsStore.getState().accounts.find((a) => a.id === account.id) ??
+      account
+
     try {
       setLoading(true)
-      setSyncStatus(account.id, 'syncing')
+      setSyncStatus(latest.id, 'syncing')
 
       // Use the wallet's own checkpoint to decide: if BDK already scanned
       // this wallet (checkpoint exists beyond genesis), use incremental sync.
@@ -62,13 +66,13 @@ function useSyncAccountWithWallet() {
 
       // Capture cached prices before overwriting transactions with fresh BDK data
       const cachedPrices: Record<string, number | undefined> = {}
-      for (const tx of account.transactions) {
+      for (const tx of latest.transactions) {
         if (tx.prices?.USD !== undefined) {
           cachedPrices[tx.id] = tx.prices.USD
         }
       }
 
-      let updatedAccount: Account = { ...account }
+      let updatedAccount: Account = { ...latest }
 
       updatedAccount.transactions = walletSummary.transactions
       updatedAccount.utxos = walletSummary.utxos
@@ -112,8 +116,8 @@ function useSyncAccountWithWallet() {
 
       return updatedAccount
     } catch {
-      setSyncStatus(account.id, 'error')
-      return account
+      setSyncStatus(latest.id, 'error')
+      return latest
     } finally {
       setLoading(false)
     }

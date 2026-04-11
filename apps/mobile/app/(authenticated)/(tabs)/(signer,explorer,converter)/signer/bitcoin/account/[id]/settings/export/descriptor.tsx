@@ -1,7 +1,7 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
-import { KeychainKind, walletNameFromDescriptor } from 'react-native-bdk-sdk'
+import { walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -17,14 +17,10 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { getDescriptorsFromKey } from '@/utils/bip32'
-import { getPublicDescriptorFromMnemonic } from '@/utils/bip39'
-import {
-  appNetworkToBdkNetwork,
-  getDerivationPathFromScriptVersion
-} from '@/utils/bitcoin'
+import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
+import { getOutputDescriptorStringForKey } from '@/utils/getOutputDescriptorForKey'
 
 export default function DescriptorPage() {
   const { id: accountId, keyIndex } = useLocalSearchParams<
@@ -131,215 +127,21 @@ export default function DescriptorPage() {
           decryptedSecret = key.secret as Secret
         }
 
-        // Generate descriptor based on creation type
-        let descriptorString = ''
+        const descriptorString = getOutputDescriptorStringForKey(
+          key,
+          decryptedSecret,
+          network
+        )
 
-        if (
-          key.creationType === 'generateMnemonic' ||
-          key.creationType === 'importMnemonic'
-        ) {
-          // First check if we have a stored descriptor
-          if (decryptedSecret.externalDescriptor) {
-            descriptorString = decryptedSecret.externalDescriptor
-
-            // Validate descriptor with BDK (checksum is part of the string)
-            if (descriptorString && !descriptorString.includes('#')) {
-              try {
-                walletNameFromDescriptor(
-                  descriptorString,
-                  undefined,
-                  appNetworkToBdkNetwork(network)
-                )
-              } catch {
-                // Keep the original descriptor if BDK fails
-              }
-            }
-          } else if (decryptedSecret.mnemonic && key.scriptVersion) {
-            descriptorString = getPublicDescriptorFromMnemonic(
-              decryptedSecret.mnemonic,
-              key.scriptVersion,
-              KeychainKind.External,
-              decryptedSecret.passphrase,
+        if (descriptorString && !descriptorString.includes('#')) {
+          try {
+            walletNameFromDescriptor(
+              descriptorString,
+              undefined,
               appNetworkToBdkNetwork(network)
             )
-          }
-        } else if (key.creationType === 'importDescriptor') {
-          // For descriptor-based keys, use the stored descriptor and ensure it has checksum
-          descriptorString = decryptedSecret.externalDescriptor || ''
-
-          // Validate descriptor with BDK
-          if (descriptorString && !descriptorString.includes('#')) {
-            try {
-              walletNameFromDescriptor(
-                descriptorString,
-                undefined,
-                appNetworkToBdkNetwork(network)
-              )
-            } catch {
-              // Keep the original descriptor if BDK fails
-            }
-          }
-
-          // If no stored descriptor, try to reconstruct from public key and script version
-          if (!descriptorString && decryptedSecret.extendedPublicKey) {
-            const fingerprint = decryptedSecret.fingerprint || ''
-            const derivationPath = getDerivationPathFromScriptVersion(
-              key.scriptVersion || 'P2WPKH',
-              network
-            )
-
-            const keyPart =
-              fingerprint && derivationPath
-                ? `[${fingerprint}/${derivationPath}]${decryptedSecret.extendedPublicKey}/0/*`
-                : `${decryptedSecret.extendedPublicKey}/0/*`
-
-            // Add script function based on script version
-            switch (key.scriptVersion) {
-              case 'P2PKH':
-                descriptorString = `pkh(${keyPart})`
-                break
-              case 'P2SH-P2WPKH':
-                descriptorString = `sh(wpkh(${keyPart}))`
-                break
-              case 'P2WPKH':
-                descriptorString = `wpkh(${keyPart})`
-                break
-              case 'P2TR':
-                descriptorString = `tr(${keyPart})`
-                break
-              case 'P2WSH':
-                descriptorString = `wsh(${keyPart})`
-                break
-              case 'P2SH-P2WSH':
-                descriptorString = `sh(wsh(${keyPart}))`
-                break
-              case 'P2SH':
-                descriptorString = `sh(${keyPart})`
-                break
-              default:
-                descriptorString = `wpkh(${keyPart})`
-            }
-
-            // Validate descriptor with BDK
-            try {
-              walletNameFromDescriptor(
-                descriptorString,
-                undefined,
-                appNetworkToBdkNetwork(network)
-              )
-            } catch {
-              // Keep the descriptor without checksum if BDK fails
-            }
-          }
-        } else if (
-          key.creationType === 'importExtendedPub' &&
-          decryptedSecret.extendedPublicKey
-        ) {
-          // For extended public key-based keys, create a proper descriptor
-          // Get fingerprint from secret
-          const fingerprint = decryptedSecret.fingerprint || ''
-
-          if (fingerprint) {
-            // Use the getDescriptorsFromKeyData function for better consistency
-            try {
-              const descriptors = getDescriptorsFromKey(
-                decryptedSecret.extendedPublicKey,
-                fingerprint,
-                key.scriptVersion || 'P2WPKH',
-                appNetworkToBdkNetwork(network)
-              )
-              descriptorString = descriptors.externalDescriptor
-            } catch {
-              // Fallback: try to construct descriptor manually
-              const derivationPath = getDerivationPathFromScriptVersion(
-                key.scriptVersion || 'P2WPKH',
-                network
-              )
-
-              // Create proper descriptor with script function and checksum
-              const keyPart =
-                fingerprint && derivationPath
-                  ? `[${fingerprint}/${derivationPath}]${decryptedSecret.extendedPublicKey}/0/*`
-                  : `${decryptedSecret.extendedPublicKey}/0/*`
-
-              // Add script function based on script version
-              switch (key.scriptVersion) {
-                case 'P2PKH':
-                  descriptorString = `pkh(${keyPart})`
-                  break
-                case 'P2SH-P2WPKH':
-                  descriptorString = `sh(wpkh(${keyPart}))`
-                  break
-                case 'P2WPKH':
-                  descriptorString = `wpkh(${keyPart})`
-                  break
-                case 'P2TR':
-                  descriptorString = `tr(${keyPart})`
-                  break
-                case 'P2WSH':
-                  descriptorString = `wsh(${keyPart})`
-                  break
-                case 'P2SH-P2WSH':
-                  descriptorString = `sh(wsh(${keyPart}))`
-                  break
-                case 'P2SH':
-                  descriptorString = `sh(${keyPart})`
-                  break
-                default:
-                  descriptorString = `wpkh(${keyPart})`
-              }
-
-              // Validate descriptor with BDK
-              try {
-                walletNameFromDescriptor(
-                  descriptorString,
-                  undefined,
-                  appNetworkToBdkNetwork(network)
-                )
-              } catch {
-                // Keep the descriptor without checksum if BDK fails
-              }
-            }
-          } else {
-            const keyPart = `${decryptedSecret.extendedPublicKey}/0/*`
-
-            // Add script function based on script version
-            switch (key.scriptVersion) {
-              case 'P2PKH':
-                descriptorString = `pkh(${keyPart})`
-                break
-              case 'P2SH-P2WPKH':
-                descriptorString = `sh(wpkh(${keyPart}))`
-                break
-              case 'P2WPKH':
-                descriptorString = `wpkh(${keyPart})`
-                break
-              case 'P2TR':
-                descriptorString = `tr(${keyPart})`
-                break
-              case 'P2WSH':
-                descriptorString = `wsh(${keyPart})`
-                break
-              case 'P2SH-P2WSH':
-                descriptorString = `sh(wsh(${keyPart}))`
-                break
-              case 'P2SH':
-                descriptorString = `sh(${keyPart})`
-                break
-              default:
-                descriptorString = `wpkh(${keyPart})`
-            }
-
-            // Validate descriptor with BDK
-            try {
-              walletNameFromDescriptor(
-                descriptorString,
-                undefined,
-                appNetworkToBdkNetwork(network)
-              )
-            } catch {
-              // Keep the descriptor without checksum if BDK fails
-            }
+          } catch {
+            // Keep the original descriptor if BDK fails
           }
         }
 

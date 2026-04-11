@@ -4,7 +4,8 @@ import { NostrAPI } from '@/api/nostr'
 import {
   DEFAULT_RETRY_CONFIG,
   EOSE_TIMEOUT_MS,
-  PROTOCOL_SUBSCRIPTION_LIMIT
+  PROTOCOL_SUBSCRIPTION_LIMIT,
+  PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN
 } from '@/constants/nostr'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
@@ -102,6 +103,11 @@ async function createProtocolSubscription(
   const lastProtocolEOSE =
     useNostrStore.getState().getLastProtocolEOSE(account.id) || 0
 
+  const protocolLimit =
+    lastProtocolEOSE > 0
+      ? PROTOCOL_SUBSCRIPTION_LIMIT
+      : PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN
+
   const nostrApi = new NostrAPI(relays)
   if (onLoadingChange) {
     nostrApi.setLoadingCallback(onLoadingChange)
@@ -112,7 +118,7 @@ async function createProtocolSubscription(
     commonNsec,
     commonNpub,
     processor,
-    undefined,
+    protocolLimit,
     lastProtocolEOSE,
     () => {
       const timestamp = Math.floor(Date.now() / 1000)
@@ -274,6 +280,11 @@ async function doFetchOnce(
     const lastDataExchangeEOSE =
       useNostrStore.getState().getLastDataExchangeEOSE(account.id) || 0
 
+    const fetchOnceProtocolLimit =
+      lastProtocolEOSE > 0
+        ? PROTOCOL_SUBSCRIPTION_LIMIT
+        : PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN
+
     let resolveProtocolEose!: () => void
     const protocolEosePromise = new Promise<void>((resolve) => {
       resolveProtocolEose = resolve
@@ -292,7 +303,7 @@ async function doFetchOnce(
           commonNsec,
           commonNpub,
           processor,
-          PROTOCOL_SUBSCRIPTION_LIMIT,
+          fetchOnceProtocolLimit,
           lastProtocolEOSE,
           () => {
             const timestamp = Math.floor(Date.now() / 1000)

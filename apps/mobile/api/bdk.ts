@@ -132,7 +132,27 @@ async function getWalletData(
 
         return walletData
       } else if (key.creationType === 'importDescriptor') {
-        // TODO
+        if (typeof key.secret === 'string' || !key.secret.externalDescriptor) {
+          throw new Error('Invalid secret')
+        }
+
+        const { externalDescriptor } = key.secret
+        const { internalDescriptor } = key.secret
+
+        const parsedDescriptor = parseDescriptor(externalDescriptor)
+        const wallet = await getWalletFromDescriptor(
+          externalDescriptor,
+          internalDescriptor,
+          network
+        )
+
+        return {
+          derivationPath: parsedDescriptor.derivationPath,
+          externalDescriptor,
+          fingerprint: parsedDescriptor.fingerprint,
+          internalDescriptor: internalDescriptor || '',
+          wallet
+        }
       }
       break
     }
