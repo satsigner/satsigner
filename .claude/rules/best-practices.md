@@ -20,4 +20,5 @@ paths:
 13. We are using react-compiler, so only use `useMemo`, `memo`, and `useCallback` when strictly necessary;
 14. Prefix all reusable components with `SS` — you already follow this convention (`SSButton`, `SSText`, etc.);
 15. Name hooks with `use` + domain + action (e.g., `useAccountSync`, `useTransactionBroadcast`);
-16. Use `FlashList` over `FlatList`.
+16. Use `FlashList` over `FlatList`;
+17. Avoid using `let`. Prefer `const`.
