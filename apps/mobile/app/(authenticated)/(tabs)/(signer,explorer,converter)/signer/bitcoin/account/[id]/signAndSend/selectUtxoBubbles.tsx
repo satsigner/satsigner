@@ -1,7 +1,7 @@
 import { useHeaderHeight } from '@react-navigation/elements'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { memo, useCallback, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -22,6 +22,7 @@ import { Colors, Layout } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 function SelectUtxoBubbles() {
   const router = useRouter()
@@ -59,29 +60,22 @@ function SelectUtxoBubbles() {
   const hasSelectedUtxos = inputs.size > 0
   const selectedAllUtxos = inputs.size === account.utxos.length
 
-  const utxosValue = useCallback(
-    (utxos: Utxo[]): number => utxos.reduce((acc, utxo) => acc + utxo.value, 0),
-    []
-  )
+  function utxosValue(utxos: Utxo[]): number {
+    return utxos.reduce((acc, utxo) => acc + utxo.value, 0)
+  }
 
-  const utxosTotalValue = useMemo(
-    () => utxosValue(account.utxos),
-    [account.utxos, utxosValue]
-  )
+  const utxosTotalValue = utxosValue(account.utxos)
   const utxosSelectedValue = utxosValue(getInputs())
 
-  const handleOnToggleSelected = useCallback(
-    (utxo: Utxo) => {
-      const includesInput = hasInput(utxo)
+  function handleOnToggleSelected(utxo: Utxo) {
+    const includesInput = inputs.has(getUtxoOutpoint(utxo))
 
-      if (includesInput) {
-        removeInput(utxo)
-      } else {
-        addInput(utxo)
-      }
-    },
-    [hasInput, removeInput, addInput]
-  )
+    if (includesInput) {
+      removeInput(utxo)
+    } else {
+      addInput(utxo)
+    }
+  }
 
   function handleSelectAllUtxos() {
     for (const utxo of account.utxos) {
@@ -261,4 +255,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export default memo(SelectUtxoBubbles)
+export default SelectUtxoBubbles
