@@ -27,8 +27,8 @@ export default function SSIconWarning({
       height={height}
       viewBox="0 0 24 24"
       fill={fill}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+
+
     >
       <Path
         stroke={strokeTriangle || stroke}

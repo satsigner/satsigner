@@ -14,7 +14,7 @@ export default function SSIconOutgoing({ width, height }: IconProps) {
           transform="translate(0.5 11)"
           fill="none"
           stroke="#ff7171"
-          strokeLinejoin="round"
+
           strokeWidth="1"
         />
         <Path
@@ -23,8 +23,8 @@ export default function SSIconOutgoing({ width, height }: IconProps) {
           d="M7.5,8.5V.5m0,0L5,3M7.5.5,10,3"
           fill="none"
           stroke="#ff7171"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+
+
           strokeWidth="1"
         />
       </G>

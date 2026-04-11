@@ -41,7 +41,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M4.954,20.207v4.26"
           fill="none"
           stroke="#fff"
-          strokeLinecap="round"
+
           strokeWidth="1"
         />
         <Path
@@ -50,7 +50,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M2.824,22.338h4.26"
           fill="none"
           stroke="#fff"
-          strokeLinecap="round"
+
           strokeWidth="1"
         />
         <Path
@@ -59,7 +59,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M6.46,20.832,3.448,23.844"
           fill="none"
           stroke="#fff"
-          strokeLinecap="round"
+
           strokeWidth="1"
         />
         <Path
@@ -68,7 +68,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M3.448,20.832l3.012,3.012"
           fill="none"
           stroke="#fff"
-          strokeLinecap="round"
+
           strokeWidth="1"
         />
         <Path
@@ -77,7 +77,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M11.333,20.207v4.26"
           fill="none"
           stroke="#fff"
-          strokeLinecap="round"
+
           strokeWidth="1"
         />
         <Path
@@ -86,7 +86,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M9.2,22.338h4.26"
           fill="none"
           stroke="#fff"
-          strokeLinecap="round"
+
           strokeWidth="1"
         />
         <Path
@@ -95,7 +95,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M12.839,20.832,9.827,23.844"
           fill="none"
           stroke="#fff"
-          strokeLinecap="round"
+
           strokeWidth="1"
         />
         <Path
@@ -104,7 +104,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M9.827,20.832l3.012,3.012"
           fill="none"
           stroke="#fff"
-          strokeLinecap="round"
+
           strokeWidth="1"
         />
         <Path
@@ -113,7 +113,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M17.712,20.207v4.26"
           fill="none"
           stroke="#fff"
-          strokeLinecap="round"
+
           strokeWidth="1"
         />
         <Path
@@ -122,7 +122,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M15.582,22.338h4.26"
           fill="none"
           stroke="#fff"
-          strokeLinecap="round"
+
           strokeWidth="1"
         />
         <Path
@@ -131,7 +131,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M19.218,20.832l-3.012,3.012"
           fill="none"
           stroke="#fff"
-          strokeLinecap="round"
+
           strokeWidth="1"
         />
         <Path
@@ -140,7 +140,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M16.206,20.832l3.012,3.012"
           fill="none"
           stroke="#fff"
-          strokeLinecap="round"
+
           strokeWidth="1"
         />
       </G>

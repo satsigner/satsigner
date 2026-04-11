@@ -19,14 +19,11 @@ export default function SSIconSuccess({
         fill={variant === 'filled' ? fill : undefined}
         stroke={variant === 'outline' ? 'white' : undefined}
         strokeWidth={variant === 'outline' ? 8 : undefined}
-        strokeLinecap={variant === 'outline' ? 'round' : undefined}
       />
       <Path
         d="M46.6267 76.8234L69.9627 104.048L110.084 57.2402"
         stroke="#A8A8A8"
-        stroke-width="4"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+        strokeWidth="4"
       />
     </Svg>
   )

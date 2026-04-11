@@ -1,15 +1,38 @@
-import Svg, { G, Path, type SvgProps } from 'react-native-svg'
+import Svg, { Path, type SvgProps } from 'react-native-svg'
 
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 
+const VIEW = 24
+
 export default function SSIconHamburger({ width, height }: IconProps) {
   return (
-    <Svg width={width} height={height} viewBox="0 0 14 10" fill="none">
-      <G id="hamburger" transform="translate(-2.596 -2.25)">
-        <Path d="M0 1H14" stroke="#FFFFFF" opacity="0.6" />
-        <Path d="M0 6H14" stroke="#FFFFFF" opacity="0.6" />
-        <Path d="M0 11H14" stroke="#FFFFFF" opacity="0.6" />
-      </G>
+    <Svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${VIEW} ${VIEW}`}
+      fill="none"
+    >
+      <Path
+        d="M5 6H19"
+        stroke="#FFFFFF"
+
+        strokeOpacity={0.6}
+        strokeWidth={1}
+      />
+      <Path
+        d="M5 12H19"
+        stroke="#FFFFFF"
+
+        strokeOpacity={0.6}
+        strokeWidth={1}
+      />
+      <Path
+        d="M5 18H19"
+        stroke="#FFFFFF"
+
+        strokeOpacity={0.6}
+        strokeWidth={1}
+      />
     </Svg>
   )
 }
