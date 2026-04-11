@@ -42,7 +42,6 @@ import {
   SSIconChatBubble,
   SSIconCollapse,
   SSIconExpand,
-  SSIconEyeOff,
   SSIconEyeOn,
   SSIconGreenIndicator,
   SSIconHistoryChart,
@@ -1221,7 +1220,7 @@ export default function AccountView() {
   // reference on every DM update, which would interrupt in-progress tap gestures.
   const headerRight = useCallback(
     () => (
-      <SSHStack gap="sm">
+      <SSHStack gap="md">
         {account?.nostr?.autoSync && (
           <SSIconButton
             onPress={() =>
@@ -1241,31 +1240,17 @@ export default function AccountView() {
             </View>
           </SSIconButton>
         )}
-        <SSIconButton onPress={togglePrivacyMode}>
-          {privacyMode ? (
-            <SSIconEyeOff height={18} width={18} />
-          ) : (
-            <SSIconEyeOn height={18} width={18} />
-          )}
-        </SSIconButton>
         <SSIconButton
           style={{ marginRight: 8 }}
           onPress={() =>
             router.navigate(`/signer/bitcoin/account/${id}/settings`)
           }
         >
-          <SSIconKeys height={18} width={18} />
+          <SSIconKeys height={20} width={20} />
         </SSIconButton>
       </SSHStack>
     ),
-    [
-      account?.nostr?.autoSync,
-      hasUnreadMessages,
-      id,
-      privacyMode,
-      router,
-      togglePrivacyMode
-    ] // eslint-disable-line react-hooks/exhaustive-deps
+    [account?.nostr?.autoSync, hasUnreadMessages, id, router] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   if (!account) {

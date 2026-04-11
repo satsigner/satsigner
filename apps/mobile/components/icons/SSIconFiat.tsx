@@ -22,7 +22,7 @@ export default function SSIconFiat({ width = 24, height = 16 }: IconProps) {
         y2="12"
         stroke="#828282"
         strokeWidth="1"
-        strokeLinecap="round"
+
       />
       <Line
         x1="21"
@@ -31,7 +31,7 @@ export default function SSIconFiat({ width = 24, height = 16 }: IconProps) {
         y2="12"
         stroke="#828282"
         strokeWidth="1"
-        strokeLinecap="round"
+
       />
     </Svg>
   )

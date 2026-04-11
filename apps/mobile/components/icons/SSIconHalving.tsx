@@ -18,8 +18,8 @@ export default function SSIconHalving({
       <Path
         d="M17.0001 9.10718H9.71441"
         stroke={color}
-        strokeLinecap="round"
-        strokeLinejoin="round"
+
+
       />
     </Svg>
   )

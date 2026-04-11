@@ -21,14 +21,14 @@ export default function SSIconTime({
       <Path
         d="M8.04834 3.53813L8.04834 9.35352"
         stroke={color}
-        strokeLinecap="round"
-        strokeLinejoin="round"
+
+
       />
       <Path
         d="M11.0483 6.35352L8.04834 9.35352"
         stroke={color}
-        strokeLinecap="round"
-        strokeLinejoin="round"
+
+
       />
     </Svg>
   )
