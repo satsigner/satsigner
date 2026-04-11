@@ -14,7 +14,6 @@ export default function SSIconOutgoingLightning({ width, height }: IconProps) {
           transform="translate(0.5 11)"
           fill="none"
           stroke="#ff7171"
-
           strokeWidth="1"
         />
         <Path
@@ -23,8 +22,6 @@ export default function SSIconOutgoingLightning({ width, height }: IconProps) {
           d="M7.5,8.5V.5m0,0L5,3M7.5.5,10,3"
           fill="none"
           stroke="#ff7171"
-
-
           strokeWidth="1"
         />
         <Path
@@ -32,8 +29,6 @@ export default function SSIconOutgoingLightning({ width, height }: IconProps) {
           d="M18,2L13.5,9L18,9L13.5,16"
           fill="none"
           stroke="#ffeb3b"
-
-
           strokeWidth="1.5"
         />
       </G>

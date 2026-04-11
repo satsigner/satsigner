@@ -15,12 +15,7 @@ export default function SSIconHalving({
       <G filter="url(#filter1_i_1_116)">
         <Circle cx={7.8928} cy={8.5} r={3.75} stroke="#DCDCDC" />
       </G>
-      <Path
-        d="M17.0001 9.10718H9.71441"
-        stroke={color}
-
-
-      />
+      <Path d="M17.0001 9.10718H9.71441" stroke={color} />
     </Svg>
   )
 }

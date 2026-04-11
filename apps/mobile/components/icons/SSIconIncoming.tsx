@@ -12,8 +12,6 @@ export default function SSIconIncoming({ width, height }: IconProps) {
           d="M8.5.5V11m0,0L11,8.5M8.5,11,6,8.5"
           fill="none"
           stroke="#a7ffaf"
-
-
           strokeWidth="1"
         />
         <Path

@@ -21,11 +21,7 @@ export default function SSIconEyeOff({
         stroke={stroke}
         strokeWidth={1}
       />
-      <Path
-        d="M6 6L18 18"
-        stroke={stroke}
-        strokeWidth={1}
-      />
+      <Path d="M6 6L18 18" stroke={stroke} strokeWidth={1} />
     </Svg>
   )
 }

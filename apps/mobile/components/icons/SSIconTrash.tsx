@@ -11,8 +11,6 @@ export default function SSIconTrash({ width, height }: IconProps) {
       fill="none"
       stroke="gray"
       strokeWidth={2}
-
-
     >
       <Path d="M10 11v6" />
       <Path d="M14 11v6" />

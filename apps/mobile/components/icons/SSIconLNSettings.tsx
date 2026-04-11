@@ -10,8 +10,6 @@ export default function SSIconLNSettings({ width, height }: IconProps) {
         fill="none"
         stroke="#828282"
         strokeWidth="2"
-
-
       />
     </Svg>
   )

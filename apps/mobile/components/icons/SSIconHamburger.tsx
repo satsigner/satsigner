@@ -12,27 +12,9 @@ export default function SSIconHamburger({ width, height }: IconProps) {
       viewBox={`0 0 ${VIEW} ${VIEW}`}
       fill="none"
     >
-      <Path
-        d="M5 6H19"
-        stroke="#FFFFFF"
-
-        strokeOpacity={0.6}
-        strokeWidth={1}
-      />
-      <Path
-        d="M5 12H19"
-        stroke="#FFFFFF"
-
-        strokeOpacity={0.6}
-        strokeWidth={1}
-      />
-      <Path
-        d="M5 18H19"
-        stroke="#FFFFFF"
-
-        strokeOpacity={0.6}
-        strokeWidth={1}
-      />
+      <Path d="M5 6H19" stroke="#FFFFFF" strokeOpacity={0.6} strokeWidth={1} />
+      <Path d="M5 12H19" stroke="#FFFFFF" strokeOpacity={0.6} strokeWidth={1} />
+      <Path d="M5 18H19" stroke="#FFFFFF" strokeOpacity={0.6} strokeWidth={1} />
     </Svg>
   )
 }

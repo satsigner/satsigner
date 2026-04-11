@@ -16,11 +16,7 @@ export default function SSIconBackArrow({
       viewBox={`0 0 ${VIEW} ${VIEW}`}
       fill="none"
     >
-      <Path
-        d="M14 19.5L8.5 12L14 4.5"
-        stroke={stroke}
-        strokeWidth={1}
-      />
+      <Path d="M14 19.5L8.5 12L14 4.5" stroke={stroke} strokeWidth={1} />
     </Svg>
   )
 }

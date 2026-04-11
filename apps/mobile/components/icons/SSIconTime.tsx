@@ -18,18 +18,8 @@ export default function SSIconTime({
           stroke="#DCDCDC"
         />
       </G>
-      <Path
-        d="M8.04834 3.53813L8.04834 9.35352"
-        stroke={color}
-
-
-      />
-      <Path
-        d="M11.0483 6.35352L8.04834 9.35352"
-        stroke={color}
-
-
-      />
+      <Path d="M8.04834 3.53813L8.04834 9.35352" stroke={color} />
+      <Path d="M11.0483 6.35352L8.04834 9.35352" stroke={color} />
     </Svg>
   )
 }

@@ -21,12 +21,7 @@ export default function SSIconEditPencil({ width, height }: IconProps) {
         d="M11.765 15.3985L11.765 17.2949H0.6521L0.6521 4.15887L6.04017 2.4751L9.51281 3.40804"
         stroke="#6C6C6C"
       />
-      <Circle
-        cx="6.13257"
-        cy="6.56177"
-        r="1.30542"
-        stroke="#6C6C6C"
-      />
+      <Circle cx="6.13257" cy="6.56177" r="1.30542" stroke="#6C6C6C" />
     </Svg>
   )
 }

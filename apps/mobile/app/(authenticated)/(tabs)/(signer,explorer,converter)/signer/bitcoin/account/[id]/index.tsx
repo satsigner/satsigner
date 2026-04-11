@@ -1090,15 +1090,13 @@ export default function AccountView() {
     [account]
   )
 
-  const [currencyUnit, useZeroPadding, privacyMode, togglePrivacyMode] =
-    useSettingsStore(
-      useShallow((state) => [
-        state.currencyUnit,
-        state.useZeroPadding,
-        state.privacyMode,
-        state.togglePrivacyMode
-      ])
-    )
+  const [currencyUnit, useZeroPadding, privacyMode] = useSettingsStore(
+    useShallow((state) => [
+      state.currencyUnit,
+      state.useZeroPadding,
+      state.privacyMode
+    ])
+  )
 
   const [fiatCurrency, satsToFiat, fetchPrices, btcPrice] = usePriceStore(
     useShallow((state) => [

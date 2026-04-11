@@ -24,19 +24,19 @@ import {
 import SSIconBackArrow from '@/components/icons/SSIconBackArrow'
 import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
-import SSHStack from '@/layouts/SSHStack'
 import {
   HEADER_CHROME_EDGE_NUDGE,
   HEADER_CHROME_EYE_TUCK,
   HEADER_CHROME_HIT_BOX,
   HEADER_CHROME_ICON_SIZE
 } from '@/constants/headerChrome'
+import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { showNavigation } from '@/utils/navigation'
 
-const HEADER_ICON_STROKE = Colors.gray[200]
+const HEADER_ICON_STROKE = '#828282'
 const HEADER_CLOSE_COLOR = 'rgba(255,255,255,0.6)'
 
 function HeaderLeft({ isShowNav }: { isShowNav: boolean }) {

@@ -16,18 +16,8 @@ export default function SSIconCloseThin({
       viewBox={`0 0 ${VIEW} ${VIEW}`}
       fill="none"
     >
-      <Path
-        d="M5 19L19 5"
-        stroke={color}
-
-        strokeWidth={1}
-      />
-      <Path
-        d="M19 19L5 5"
-        stroke={color}
-
-        strokeWidth={1}
-      />
+      <Path d="M5 19L19 5" stroke={color} strokeWidth={1} />
+      <Path d="M19 19L5 5" stroke={color} strokeWidth={1} />
     </Svg>
   )
 }
