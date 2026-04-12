@@ -24,6 +24,7 @@ import { SSIconChevronRight, SSIconEyeOn } from './icons'
 import SSIconSync from './icons/SSIconSync'
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
+import SSFingerprint from './SSFingerprint'
 
 type SSAccountCardProps = {
   account: Account
@@ -174,12 +175,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
       <SSHStack justifyBetween style={{ position: 'relative' }}>
         <SSVStack gap={platform === 'android' ? 'none' : 'xxs'}>
           {account.keys[0].creationType === 'importAddress' ? null : (
-            <SSText
-              size="xs"
-              style={{ color: Colors.gray[500], lineHeight: 10 }}
-            >
-              {fingerprint || '-'}
-            </SSText>
+            <SSFingerprint fingerprint={fingerprint} />
           )}
           <SSHStack gap="sm">
             <SSText size="lg" color="muted">

@@ -21,6 +21,7 @@ import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams
 import { getExtendedPublicKeyFromMnemonic } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
+import SSFingerprint from '@/components/SSFingerprint'
 
 export default function ImportMnemonic() {
   const { keyIndex } = useLocalSearchParams<ImportMnemonicSearchParams>()
@@ -218,9 +219,7 @@ export default function ImportMnemonic() {
               <SSText style={{ color: Colors.gray[500] }}>
                 {t('account.fingerprint')}
               </SSText>
-              <SSText size="md" color="muted">
-                {fingerprint}
-              </SSText>
+              <SSFingerprint fingerprint={fingerprint} />
             </SSVStack>
           </SSHStack>
           <SSSeparator />

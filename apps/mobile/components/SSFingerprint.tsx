@@ -1,22 +1,48 @@
+import { SSIconCircle } from '@/components/icons'
 import SSHStack from '@/layouts/SSHStack'
+import { Sizes, Colors, type TextFontSize } from '@/styles'
 import { t } from '@/locales'
-import { Colors } from '@/styles'
-
-import SSText from './SSText'
+import SSText from '@/components/SSText'
 
 type SSFingerprintProps = {
-  value: string
+  fingerprint: string
+  size?: TextFontSize
+  withLabel?: boolean
+  withColor?: boolean
 }
 
-function SSFingerprint({ value }: SSFingerprintProps) {
+export default function SSFingerprint({
+  fingerprint,
+  size = 'xs',
+  withLabel = false,
+  withColor = true,
+}: SSFingerprintProps) {
+  const sizeValue = Sizes['text']['fontSize'][size]
   return (
-    <SSHStack gap="xs">
-      <SSText style={{ color: Colors.gray[500] }}>
-        {t('bitcoin.fingerprint')}
-      </SSText>
-      <SSText color="muted">{value}</SSText>
+    <SSHStack gap="sm" style={{ alignItems: 'center' }}>
+      {withLabel && (
+        <SSText
+          size={size}
+          style={{ color: Colors.gray[500]}}
+        >
+          {t('bitcoin.fingerprint')}
+        </SSText>
+      )}
+      <SSHStack gap="xxs" style={{ alignItems: 'flex-start' }}>
+        {withColor && fingerprint && (
+          <SSIconCircle
+            size={sizeValue + 1}
+            fill={`#${fingerprint.slice(0, 6)}`}
+          />
+        )}
+        <SSText
+          color="muted"
+          size={size}
+          style={{ lineHeight: sizeValue }}
+        >
+          {fingerprint || '-'}
+        </SSText>
+      </SSHStack>
     </SSHStack>
   )
 }
-
-export default SSFingerprint
