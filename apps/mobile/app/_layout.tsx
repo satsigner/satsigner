@@ -1,5 +1,5 @@
 import '@/utils/polyfills'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { Slot } from 'expo-router'
 import { setStatusBarStyle } from 'expo-status-bar'
 import * as SystemUI from 'expo-system-ui'
@@ -17,6 +17,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { Toaster } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { queryClient } from '@/lib/queryClient'
 import {
   getLastBackgroundTimestamp,
   setLastBackgroundTimestamp
@@ -27,8 +28,6 @@ import { Colors } from '@/styles'
 if (Platform.OS === 'android') {
   SystemUI.setBackgroundColorAsync(Colors.gray[950])
 }
-
-const queryClient = new QueryClient()
 
 export default function RootLayout() {
   const [firstTime, setLockTriggered, requiresAuth, lockDeltaTime] =
