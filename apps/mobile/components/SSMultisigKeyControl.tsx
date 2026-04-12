@@ -99,13 +99,11 @@ function SSMultisigKeyControl({
   useEffect(() => {
     if (isExpanded) {
       const targetHeight = contentHeight > 0 ? contentHeight : 300
-      animatedHeight.value = withTiming(targetHeight + 50 - 16, {
-        duration: 100
-      })
-      animatedOpacity.value = withTiming(1, { duration: 100 })
+      animatedHeight.set(withTiming(targetHeight + 50 - 16, { duration: 100 }))
+      animatedOpacity.set(withTiming(1, { duration: 100 }))
     } else {
-      animatedHeight.value = withTiming(0, { duration: 100 })
-      animatedOpacity.value = withTiming(0, { duration: 100 })
+      animatedHeight.set(withTiming(0, { duration: 100 }))
+      animatedOpacity.set(withTiming(0, { duration: 100 }))
     }
   }, [isExpanded, contentHeight, animatedHeight, animatedOpacity])
 

@@ -103,27 +103,31 @@ export default function ImportExtendedPub() {
 
   useEffect(() => {
     if (isReading) {
-      pulseAnim.value = withRepeat(
-        withSequence(
-          withTiming(1, { duration: 500 }),
-          withTiming(0, { duration: 500 })
-        ),
-        -1
+      pulseAnim.set(
+        withRepeat(
+          withSequence(
+            withTiming(1, { duration: 500 }),
+            withTiming(0, { duration: 500 })
+          ),
+          -1
+        )
       )
-      scaleAnim.value = withRepeat(
-        withSequence(
-          withTiming(0.98, { duration: 500 }),
-          withTiming(1, { duration: 500 })
-        ),
-        -1
+      scaleAnim.set(
+        withRepeat(
+          withSequence(
+            withTiming(0.98, { duration: 500 }),
+            withTiming(1, { duration: 500 })
+          ),
+          -1
+        )
       )
       return () => {
         cancelAnimation(pulseAnim)
         cancelAnimation(scaleAnim)
       }
     }
-    pulseAnim.value = 0
-    scaleAnim.value = 1
+    pulseAnim.set(0)
+    scaleAnim.set(1)
   }, [isReading, pulseAnim, scaleAnim])
 
   const nfcButtonStyle = useAnimatedStyle(() => ({

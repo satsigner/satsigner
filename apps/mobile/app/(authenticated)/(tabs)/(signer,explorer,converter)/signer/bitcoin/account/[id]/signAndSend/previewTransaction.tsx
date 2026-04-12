@@ -1705,17 +1705,19 @@ function PreviewTransaction() {
   // NFC pulsating animation effect
   useEffect(() => {
     if (nfcModalVisible || nfcScanModalVisible) {
-      nfcPulseAnim.value = withRepeat(
-        withSequence(
-          withTiming(1, { duration: 1000 }),
-          withTiming(0, { duration: 1000 })
-        ),
-        -1
+      nfcPulseAnim.set(
+        withRepeat(
+          withSequence(
+            withTiming(1, { duration: 1000 }),
+            withTiming(0, { duration: 1000 })
+          ),
+          -1
+        )
       )
 
       return () => {
         cancelAnimation(nfcPulseAnim)
-        nfcPulseAnim.value = 0
+        nfcPulseAnim.set(0)
       }
     }
   }, [nfcModalVisible, nfcScanModalVisible, nfcPulseAnim])

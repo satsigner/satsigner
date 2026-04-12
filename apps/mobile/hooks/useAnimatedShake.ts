@@ -19,12 +19,14 @@ export const useAnimatedShake = () => {
       easing: Easing.bezier(0.35, 0.7, 0.5, 0.7)
     }
 
-    shakeTranslateX.value = withSequence(
-      withTiming(translationAmount, timingConfig),
-      withRepeat(withTiming(-translationAmount, timingConfig), 3, true),
-      withSpring(0, {
-        mass: 0.75
-      })
+    shakeTranslateX.set(
+      withSequence(
+        withTiming(translationAmount, timingConfig),
+        withRepeat(withTiming(-translationAmount, timingConfig), 3, true),
+        withSpring(0, {
+          mass: 0.75
+        })
+      )
     )
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

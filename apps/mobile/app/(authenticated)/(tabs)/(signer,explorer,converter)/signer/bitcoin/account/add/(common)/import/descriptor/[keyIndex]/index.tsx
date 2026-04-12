@@ -84,12 +84,14 @@ export default function ImportDescriptor() {
 
   useEffect(() => {
     if (isReading) {
-      pulseAnim.value = withRepeat(
-        withSequence(
-          withTiming(1, { duration: 500 }),
-          withTiming(0, { duration: 500 })
-        ),
-        -1
+      pulseAnim.set(
+        withRepeat(
+          withSequence(
+            withTiming(1, { duration: 500 }),
+            withTiming(0, { duration: 500 })
+          ),
+          -1
+        )
       )
       return () => {
         cancelAnimation(pulseAnim)

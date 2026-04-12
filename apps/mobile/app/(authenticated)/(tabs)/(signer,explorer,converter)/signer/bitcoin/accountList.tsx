@@ -212,13 +212,15 @@ export default function AccountList() {
     if (!hasHydrated) {
       return
     }
-    sampleAccountsOpacity.value = 0
-    sampleAccountsOpacity.value = withDelay(
-      400,
-      withTiming(1, {
-        duration: 320,
-        easing: Easing.out(Easing.ease)
-      })
+    sampleAccountsOpacity.set(0)
+    sampleAccountsOpacity.set(
+      withDelay(
+        400,
+        withTiming(1, {
+          duration: 320,
+          easing: Easing.out(Easing.ease)
+        })
+      )
     )
   }, [hasHydrated]) // eslint-disable-line react-hooks/exhaustive-deps
 
