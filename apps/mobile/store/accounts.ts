@@ -9,11 +9,31 @@ import {
   type SyncStatus
 } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
+import { type NostrAccount } from '@/types/models/Nostr'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { dropSeedFromKey } from '@/utils/account'
 import { type Label } from '@/utils/bip329'
 import { getUtxoOutpoint } from '@/utils/utxo'
+
+/**
+ * Wallet sync and address refresh call updateAccount with { ...account, ... } from
+ * React state; that snapshot can omit Nostr keys saved a moment earlier. Prefer
+ * non-empty Nostr secrets/ids from the store when the incoming payload has blanks.
+ */
+function mergeNostrForFullAccountReplace(
+  existing: NostrAccount,
+  incoming: NostrAccount
+): NostrAccount {
+  return {
+    ...existing,
+    ...incoming,
+    commonNpub: incoming.commonNpub || existing.commonNpub || '',
+    commonNsec: incoming.commonNsec || existing.commonNsec || '',
+    deviceNpub: incoming.deviceNpub || existing.deviceNpub || '',
+    deviceNsec: incoming.deviceNsec || existing.deviceNsec || ''
+  }
+}
 
 type AccountsState = {
   accounts: Account[]
@@ -121,7 +141,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               const accountIndex = state.accounts.findIndex(
                 (acc: Account) => acc.id === accountId
               )
-              if (accountIndex !== -1) {
+              if (accountIndex === -1) {
                 throw new Error('Account not found')
               }
               state.accounts[accountIndex].keys[keyIndex] = newKey
@@ -131,8 +151,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             message: 'Seed dropped successfully',
             success: true
           }
-        } catch (err) {
-          const reason = err instanceof Error ? err.message : 'unknown reason'
+        } catch (error) {
+          const reason =
+            error instanceof Error ? error.message : 'unknown reason'
           return {
             message: `Failed to drop seed: ${reason}`,
             success: false
@@ -180,7 +201,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 transactionMap[labelObj.ref] !== undefined
               ) {
                 const txIndex = transactionMap[labelObj.ref]
-                state.accounts[index].transactions[txIndex].label = label
+                state.accounts[index].transactions[txIndex] = {
+                  ...state.accounts[index].transactions[txIndex],
+                  label
+                }
                 labelsAdded += 1
               }
 
@@ -189,7 +213,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 utxoMap[labelObj.ref] !== undefined
               ) {
                 const utxoIndex = utxoMap[labelObj.ref]
-                state.accounts[index].utxos[utxoIndex].label = label
+                state.accounts[index].utxos[utxoIndex] = {
+                  ...state.accounts[index].utxos[utxoIndex],
+                  label
+                }
                 labelsAdded += 1
               }
 
@@ -198,7 +225,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 addressMap[labelObj.ref] !== undefined
               ) {
                 const addrIndex = addressMap[labelObj.ref]
-                state.accounts[index].addresses[addrIndex].label = label
+                state.accounts[index].addresses[addrIndex] = {
+                  ...state.accounts[index].addresses[addrIndex],
+                  label
+                }
                 labelsAdded += 1
               }
             }
@@ -523,13 +553,12 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               )
               if (
                 refTxIndex !== -1 &&
-                state.accounts[index].transactions[refTxIndex].vout[vout]
+                state.accounts[index].transactions[refTxIndex].vout[vout] &&
+                !outputHasLabel
               ) {
-                if (!outputHasLabel) {
-                  state.accounts[index].transactions[refTxIndex].vout[
-                    vout
-                  ].label = label
-                }
+                state.accounts[index].transactions[refTxIndex].vout[
+                  vout
+                ].label = label
               }
 
               // Cascade to the address of the input's previous output
@@ -671,36 +700,50 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               const incomingLabels = account.labels || {}
               const mergedLabels = { ...incomingLabels, ...currentLabels }
 
+              const mergedNostr = mergeNostrForFullAccountReplace(
+                state.accounts[index].nostr,
+                account.nostr
+              )
+
               state.accounts[index] = {
                 ...account,
-                labels: mergedLabels
+                labels: mergedLabels,
+                nostr: mergedNostr
               }
 
-              // Re-apply merged labels to transactions, utxos, and addresses
+              // Re-apply merged labels to transactions, utxos, and addresses.
+              // Use spread instead of direct mutation because the incoming
+              // account may contain objects frozen by React Compiler.
               for (const [ref, labelObj] of Object.entries(mergedLabels)) {
                 if (labelObj.type === 'tx') {
                   const txIndex = state.accounts[index].transactions.findIndex(
                     (tx: Transaction) => tx.id === ref
                   )
                   if (txIndex !== -1) {
-                    state.accounts[index].transactions[txIndex].label =
-                      labelObj.label
+                    state.accounts[index].transactions[txIndex] = {
+                      ...state.accounts[index].transactions[txIndex],
+                      label: labelObj.label
+                    }
                   }
                 } else if (labelObj.type === 'output') {
                   const utxoIndex = state.accounts[index].utxos.findIndex(
                     (utxo: Utxo) => getUtxoOutpoint(utxo) === ref
                   )
                   if (utxoIndex !== -1) {
-                    state.accounts[index].utxos[utxoIndex].label =
-                      labelObj.label
+                    state.accounts[index].utxos[utxoIndex] = {
+                      ...state.accounts[index].utxos[utxoIndex],
+                      label: labelObj.label
+                    }
                   }
                 } else if (labelObj.type === 'addr') {
                   const addrIndex = state.accounts[index].addresses.findIndex(
                     (addr: Address) => addr.address === ref
                   )
                   if (addrIndex !== -1) {
-                    state.accounts[index].addresses[addrIndex].label =
-                      labelObj.label
+                    state.accounts[index].addresses[addrIndex] = {
+                      ...state.accounts[index].addresses[addrIndex],
+                      label: labelObj.label
+                    }
                   }
                 }
               }
@@ -729,8 +772,19 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             if (index === -1) {
               return
             }
+            const prev = state.accounts[index].nostr
+            const base: NostrAccount = prev ?? {
+              autoSync: false,
+              commonNpub: '',
+              commonNsec: '',
+              dms: [],
+              lastUpdated: new Date(),
+              relays: [],
+              syncStart: new Date(),
+              trustedMemberDevices: []
+            }
             state.accounts[index].nostr = {
-              ...state.accounts[index].nostr,
+              ...base,
               ...nostr
             }
           })

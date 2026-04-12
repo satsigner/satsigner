@@ -667,7 +667,8 @@ export default function NostrSync() {
       return
     }
     router.push({
-      pathname: `/signer/bitcoin/account/${accountId}/settings/nostr/selectRelays`
+      params: { id: accountId },
+      pathname: '/signer/bitcoin/account/[id]/settings/nostr/selectRelays'
     })
   }
 
@@ -676,7 +677,8 @@ export default function NostrSync() {
       return
     }
     router.push({
-      pathname: `/signer/bitcoin/account/${accountId}/settings/nostr/nostrKey`
+      params: { id: accountId },
+      pathname: '/signer/bitcoin/account/[id]/settings/nostr/nostrKey'
     })
   }
 
@@ -685,7 +687,8 @@ export default function NostrSync() {
       return
     }
     router.push({
-      pathname: `/signer/bitcoin/account/${accountId}/settings/nostr/devicesGroupChat`
+      params: { id: accountId },
+      pathname: '/signer/bitcoin/account/[id]/settings/nostr/devicesGroupChat'
     })
   }
 
@@ -697,6 +700,7 @@ export default function NostrSync() {
     try {
       const keys = await NostrAPI.generateNostrKeys()
       if (!keys) {
+        toast.error(t('account.nostrSync.errorGenerateDeviceKeys'))
         return
       }
       const current = useAccountsStore
@@ -706,8 +710,12 @@ export default function NostrSync() {
         autoSync: false,
         commonNpub: '',
         commonNsec: '',
+        deviceNpub: '',
+        deviceNsec: '',
         dms: [],
+        lastUpdated: new Date(),
         relays: [],
+        syncStart: new Date(),
         trustedMemberDevices: []
       }
       updateAccountNostrCallback(accountId, {
@@ -768,8 +776,9 @@ export default function NostrSync() {
       return
     }
 
-    generateCommonNostrKeys(account)
-      .then((keys) => {
+    async function loadCommonKeys() {
+      try {
+        const keys = await generateCommonNostrKeys(account)
         if (keys && 'commonNsec' in keys && 'commonNpub' in keys) {
           setCommonNsec(keys.commonNsec as string)
           updateAccountNostrCallback(accountId, {
@@ -777,10 +786,15 @@ export default function NostrSync() {
             commonNsec: keys.commonNsec
           })
         }
-      })
-      .catch(() => {
-        toast.error(t('account.nostrSync.errorLoadingCommonKeys'))
-      })
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : t('account.nostrSync.errorLoadingCommonKeys')
+        )
+      }
+    }
+    loadCommonKeys()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run when common keys or account id change; omit full account to avoid re-run on ref change
   }, [
     accountId,
@@ -1034,8 +1048,12 @@ export default function NostrSync() {
                                 disabled={isSyncing}
                                 onPress={() => {
                                   router.push({
-                                    params: { npub: member.npub },
-                                    pathname: `/signer/bitcoin/account/${accountId}/settings/nostr/device/[npub]`
+                                    params: {
+                                      id: accountId,
+                                      npub: member.npub
+                                    },
+                                    pathname:
+                                      '/signer/bitcoin/account/[id]/settings/nostr/device/[npub]'
                                   })
                                 }}
                                 style={{ opacity: isSyncing ? 0.5 : 1 }}

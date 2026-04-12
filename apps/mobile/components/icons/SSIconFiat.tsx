@@ -15,24 +15,8 @@ export default function SSIconFiat({ width = 24, height = 16 }: IconProps) {
         strokeWidth="1"
       />
       <Circle cx="12" cy="8" r="3.5" stroke="#fff" strokeWidth="1" />
-      <Line
-        x1="3"
-        y1="4"
-        x2="3"
-        y2="12"
-        stroke="#828282"
-        strokeWidth="1"
-        strokeLinecap="round"
-      />
-      <Line
-        x1="21"
-        y1="4"
-        x2="21"
-        y2="12"
-        stroke="#828282"
-        strokeWidth="1"
-        strokeLinecap="round"
-      />
+      <Line x1="3" y1="4" x2="3" y2="12" stroke="#828282" strokeWidth="1" />
+      <Line x1="21" y1="4" x2="21" y2="12" stroke="#828282" strokeWidth="1" />
     </Svg>
   )
 }

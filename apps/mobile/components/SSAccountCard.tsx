@@ -1,5 +1,13 @@
-import { useEffect, useRef } from 'react'
-import { Animated, Easing, Platform, TouchableOpacity } from 'react-native'
+import { useEffect, useState } from 'react'
+import { Platform, TouchableOpacity } from 'react-native'
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming
+} from 'react-native-reanimated'
 import { useShallow } from 'zustand/react/shallow'
 
 import useAccountFingerprint from '@/hooks/useAccountFingerprint'
@@ -40,35 +48,33 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
   )
   const fingerprint = useAccountFingerprint(account)
 
-  const rotateAnim = useRef(new Animated.Value(0)).current
-  const animationRef = useRef<Animated.CompositeAnimation | null>(null)
+  const rotation = useSharedValue(0)
 
   useEffect(() => {
     if (account.syncStatus === 'syncing') {
-      animationRef.current = Animated.loop(
-        Animated.timing(rotateAnim, {
-          duration: 1500,
-          easing: Easing.linear,
-          toValue: 1,
-          useNativeDriver: true
-        })
+      rotation.set(
+        withRepeat(
+          withTiming(360, { duration: 1500, easing: Easing.linear }),
+          -1,
+          false
+        )
       )
-      animationRef.current.start()
     } else {
-      animationRef.current?.stop()
-      rotateAnim.setValue(0)
+      cancelAnimation(rotation)
+      rotation.set(0)
     }
 
     return () => {
-      animationRef.current?.stop()
-      rotateAnim.setValue(0)
+      cancelAnimation(rotation)
+      rotation.set(0)
     }
-  }, [account.syncStatus, rotateAnim])
+  }, [account.syncStatus, rotation])
 
-  const rotate = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg']
-  })
+  const rotateStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }]
+  }))
+
+  const [nowSeconds] = useState(() => Math.floor(Date.now() / 1000))
 
   function renderSyncStatus(
     status: Account['syncStatus'],
@@ -88,8 +94,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
         text = t('account.sync.status.synced')
 
         if (date !== undefined) {
-          const now = Math.floor(Date.now() / 1000)
-          const diff = now - date.getTime() / 1000
+          const diff = nowSeconds - date.getTime() / 1000
 
           const hours = Math.floor(diff / 3600)
           const days = Math.floor(hours / 24)
@@ -128,7 +133,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
         color = Colors.white
         text = t('account.sync.status.syncing')
         icon = (
-          <Animated.View style={{ transform: [{ rotate }] }}>
+          <Animated.View style={rotateStyle}>
             <SSIconSync width={10} height={9} />
           </Animated.View>
         )

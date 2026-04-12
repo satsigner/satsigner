@@ -43,18 +43,24 @@ class NDK {
     this.explicitRelayUrls = options.explicitRelayUrls || []
     this.pool = {
       connect: jest.fn().mockResolvedValue(undefined),
+      connectedRelays() {
+        return Array.from(this.relays.keys()).map((url) => ({
+          publish: jest.fn().mockResolvedValue(undefined),
+          url
+        }))
+      },
       relays: new Map()
     }
     this.signer = null
   }
 
-  connect() {
+  connect(_timeoutMs) {
     for (const url of this.explicitRelayUrls) {
       this.pool.relays.set(url, {
         publish: jest.fn().mockResolvedValue(undefined)
       })
     }
-    return true
+    return Promise.resolve()
   }
 
   fetchEvent() {

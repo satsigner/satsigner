@@ -5,9 +5,11 @@ import { getPublicKey, nip19 } from 'nostr-tools'
 import pako from 'pako'
 
 import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
+import { t } from '@/locales'
 import { base85Decode, base85Encode } from '@/utils/base58'
+import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { sha256 } from '@/utils/crypto'
-import { parseDescriptor } from '@/utils/parse'
+import { normalizeDescriptorForParsing, parseDescriptor } from '@/utils/parse'
 import { type TransactionData } from '@/utils/psbt'
 
 // Initialize ECC library
@@ -23,7 +25,7 @@ export function generateColorFromNpub(npub: string): string {
   // Generate color from hash - match Python's hashlib.sha256() output
   const hash = bitcoinjs.crypto.sha256(Buffer.from(pubkey)).toString('hex')
   const seed = BigInt(`0x${hash}`)
-  const hue = Number(seed % BigInt(360)) // Map to a hue value between 0-359
+  const hue = Number(seed % 360n) // Map to a hue value between 0-359
 
   const saturation = 255 // High saturation for vividness
   const lightness = 180 // Dark mode value (180/255 * 100 ≈ 70%)
@@ -98,7 +100,7 @@ export function getPubKeyHexFromNpub(npub: string): string | null {
 
 export function getSecretFromNsec(nsec: string): Uint8Array | null {
   try {
-    const decoded = nip19.decode(nsec)
+    const decoded = nip19.decode(nsec.trim())
     if (!decoded || decoded.type !== 'nsec' || !decoded.data) {
       return null
     }
@@ -149,7 +151,18 @@ export async function deriveNostrKeysFromDescriptor(
   commonNpub: string
   privateKeyBytes: Uint8Array
 }> {
-  const { hardenedPath, xpubs } = parseDescriptor(externalDescriptor)
+  const normalized = normalizeDescriptorForParsing(externalDescriptor)
+  const { hardenedPath, xpubs: parsedXpubs } = parseDescriptor(normalized)
+  let xpubs = parsedXpubs
+  if (xpubs.length === 0) {
+    const single = getExtendedKeyFromDescriptor(normalized)
+    if (single) {
+      xpubs = [single]
+    }
+  }
+  if (xpubs.length === 0) {
+    throw new Error(t('account.nostrSync.commonKeysDescriptorParseError'))
+  }
   const totalString = `${hardenedPath}${xpubs.join('')}`
   const firstHash = await sha256(totalString)
   const doubleHash = await sha256(firstHash)

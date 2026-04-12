@@ -11,8 +11,6 @@ export default function SSIconInfo({ width, height }: IconProps) {
       fill="none"
       stroke="white"
       strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
     >
       <Circle cx="12" cy="12" r="10" />
       <Path d="M12 16v-4" />

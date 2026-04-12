@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import {
   type StyleProp,
   StyleSheet,
@@ -15,6 +14,12 @@ import { Colors, Sizes } from '@/styles'
 
 import SSText, { type SSTextProps } from './SSText'
 
+const DEFAULT_CONTAINER_STYLE: StyleProp<ViewStyle> = {}
+const DEFAULT_LABEL_PROPS: SSTextProps = {
+  color: 'white',
+  size: 'lg'
+}
+
 type SSCheckboxProps = {
   containerStyle?: StyleProp<ViewStyle>
   label?: string
@@ -28,33 +33,22 @@ function SSCheckbox({
   description,
   selected,
   onPress,
-  containerStyle = {},
-  labelProps = {
-    color: 'white',
-    size: 'lg'
-  },
+  containerStyle = DEFAULT_CONTAINER_STYLE,
+  labelProps = DEFAULT_LABEL_PROPS,
   disabled,
   ...props
 }: SSCheckboxProps) {
-  const innerIconStyle = useMemo(
-    () =>
-      StyleSheet.compose(styles.innerIconStyleBase, {
-        borderColor: selected ? Colors.white : Colors.transparent
-      }),
-    [selected]
-  )
-
-  const containerBase = useMemo(
-    () =>
-      StyleSheet.compose(styles.containerBase, disabled ? styles.disabled : {}),
-    [disabled]
-  )
-
   return (
     <TouchableOpacity
       onPress={() => (onPress && !disabled ? onPress(selected) : null)}
     >
-      <View style={[containerBase, containerStyle]}>
+      <View
+        style={[
+          styles.containerBase,
+          disabled && styles.disabled,
+          containerStyle
+        ]}
+      >
         <BouncyCheckbox
           isChecked={selected}
           useBuiltInState={false}
@@ -63,7 +57,10 @@ function SSCheckbox({
           size={Sizes.checkbox.height}
           iconStyle={styles.iconStyleBase}
           style={{ width: Sizes.checkbox.height }}
-          innerIconStyle={innerIconStyle}
+          innerIconStyle={[
+            styles.innerIconStyleBase,
+            { borderColor: selected ? Colors.white : Colors.transparent }
+          ]}
           onPress={onPress}
           disabled={disabled}
           {...props}

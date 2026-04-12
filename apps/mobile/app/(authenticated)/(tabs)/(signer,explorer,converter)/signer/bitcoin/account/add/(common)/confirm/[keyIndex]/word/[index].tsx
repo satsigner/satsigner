@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -55,10 +55,9 @@ export default function Confirm() {
   )
   const { accountBuilderFinish } = useAccountBuilderFinish()
 
-  const candidateWords = useMemo(
-    () => getConfirmWordCandidates(mnemonic[Number(index)], mnemonic.join(' ')),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [index]
+  const candidateWords = getConfirmWordCandidates(
+    mnemonic[Number(index)],
+    mnemonic.join(' ')
   )
 
   const [selectedCheckbox, setSelectedCheckbox] = useState<1 | 2 | 3>()

@@ -6,9 +6,7 @@ import { processContentByContext } from '@/hooks/useContentProcessor'
 import { t } from '@/locales'
 import { type DetectedContent } from '@/utils/contentDetector'
 
-type NavigatePath =
-  | string
-  | { pathname: string; params?: Record<string, unknown> }
+type NavigatePath = Parameters<ReturnType<typeof useRouter>['navigate']>[0]
 
 export function useEcashContentHandler() {
   const router = useRouter()

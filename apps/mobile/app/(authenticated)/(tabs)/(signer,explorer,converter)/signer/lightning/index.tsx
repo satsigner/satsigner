@@ -1,20 +1,40 @@
-import { Stack, useRouter } from 'expo-router'
+import { Stack, usePathname, useRouter, useSegments } from 'expo-router'
 import { StyleSheet, TouchableOpacity, View } from 'react-native'
 
+import SSIconBackArrow from '@/components/icons/SSIconBackArrow'
 import SSButton from '@/components/SSButton'
+import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
+import {
+  HEADER_CHROME_EDGE_NUDGE,
+  HEADER_CHROME_HIT_BOX,
+  HEADER_CHROME_ICON_SIZE
+} from '@/constants/headerChrome'
 import { useLND } from '@/hooks/useLND'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
 import { useLightningStore } from '@/store/lightning'
+import { Colors } from '@/styles'
+import { showNavigation } from '@/utils/navigation'
 
 export default function LightningPage() {
   const router = useRouter()
+  const pathname = usePathname()
+  const segments = useSegments()
+  const showDrawerNav = showNavigation(pathname, segments.length)
   const { config } = useLightningStore()
   const { nodeInfo, isConnected } = useLND()
 
   const handleRCPPress = () => {
     // TODO: Implement RCP functionality
+  }
+
+  function goToSignerLanding() {
+    router.replace({
+      params: { tab: t('navigation.label.signer') },
+      pathname: '/(authenticated)/(tabs)/(signer)'
+    })
   }
 
   const handleLNDRestPress = () => {
@@ -110,6 +130,25 @@ export default function LightningPage() {
     <>
       <Stack.Screen
         options={{
+          ...(showDrawerNav
+            ? {}
+            : {
+                headerLeft: () => (
+                  <SSIconButton
+                    style={[
+                      HEADER_CHROME_HIT_BOX,
+                      { marginLeft: -HEADER_CHROME_EDGE_NUDGE }
+                    ]}
+                    onPress={goToSignerLanding}
+                  >
+                    <SSIconBackArrow
+                      height={HEADER_CHROME_ICON_SIZE}
+                      stroke={Colors.gray[200]}
+                      width={HEADER_CHROME_ICON_SIZE}
+                    />
+                  </SSIconButton>
+                )
+              }),
           headerTitle: () => (
             <SSText uppercase style={{ letterSpacing: 1 }}>
               Lightning
@@ -200,7 +239,6 @@ const styles = StyleSheet.create({
     marginBottom: 8
   },
   mainLayout: {
-    paddingHorizontal: '5%',
     paddingTop: 32
   },
   pubkey: {

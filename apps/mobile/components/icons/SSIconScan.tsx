@@ -16,8 +16,6 @@ export default function SSIconScan({
       viewBox="0 0 24 24"
       stroke={stroke}
       strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
     >
       <Path d="M3 7V5a2 2 0 0 1 2-2h2" />
       <Path d="M17 3h2a2 2 0 0 1 2 2v2" />

@@ -37,10 +37,8 @@ function SSMultisigCountSelector({
     setContainersize({ height, width })
   }
 
-  const sizeBetweenPoints = useMemo(
-    () => (containerSize.width - RADIUS_OUTER_RECT * 2) / (maxCount - 1),
-    [containerSize.width, maxCount]
-  )
+  const sizeBetweenPoints =
+    (containerSize.width - RADIUS_OUTER_RECT * 2) / (maxCount - 1)
 
   const centerPoints = useMemo(
     () =>

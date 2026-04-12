@@ -33,7 +33,9 @@ export function SSTransactionVoutList({
   )
 
   const [utxoDict, setUtxoDict] = useState<Record<string, boolean>>({})
-  const addressDict: Record<string, boolean> = {}
+  const addressDict: Record<string, boolean> = account
+    ? Object.fromEntries(account.addresses.map((addr) => [addr.address, true]))
+    : {}
   const [labelsDict, setLabelsDict] = useState<Record<number, string>>({})
 
   useEffect(() => {
@@ -44,9 +46,6 @@ export function SSTransactionVoutList({
     const utxos: Record<string, boolean> = {}
     for (const utxo of account.utxos) {
       utxos[getUtxoOutpoint(utxo)] = true
-    }
-    for (const addr of account.addresses) {
-      addressDict[addr.address] = true
     }
     setUtxoDict(utxos)
 

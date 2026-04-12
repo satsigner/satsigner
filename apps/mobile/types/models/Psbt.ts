@@ -1,15 +1,8 @@
 export type MockPsbt = {
-  base64: string
-  serialize: () => Promise<string>
-  txid: () => Promise<string>
-}
-
-export type MockTxBuilderResult = {
-  psbt: MockPsbt
-  txDetails: {
-    txid: string
-    fee: number
-  }
+  toBase64: () => string
+  txid: () => string
+  feeAmount: () => number | undefined
+  extractTxHex: () => string
 }
 
 export type PsbtInputWithSignatures = {

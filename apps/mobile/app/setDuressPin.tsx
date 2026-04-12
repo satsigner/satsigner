@@ -35,9 +35,8 @@ export default function SetPin() {
   const [confirmationPinArray, setConfirmationPinArray] =
     useState<string[]>(emptyPin)
 
-  const pinFilled = pinArray.findIndex((text) => text === '') === -1
-  const confirmationPinFilled =
-    confirmationPinArray.findIndex((text) => text === '') === -1
+  const pinFilled = !pinArray.includes('')
+  const confirmationPinFilled = !confirmationPinArray.includes('')
   const pinsMatch = pinArray.join('') === confirmationPinArray.join('')
 
   async function setPin(pin: string) {

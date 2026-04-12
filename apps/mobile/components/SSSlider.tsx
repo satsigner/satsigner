@@ -1,5 +1,4 @@
 import { Slider } from '@miblanchard/react-native-slider'
-import { useEffect, useState } from 'react'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -24,13 +23,6 @@ function SSSlider({
   suffix,
   onValueChange
 }: SSSliderProps) {
-  const [localValue, setLocalValue] = useState(value)
-
-  // Update local value when prop value changes
-  useEffect(() => {
-    setLocalValue(value)
-  }, [value])
-
   return (
     <SSVStack gap="sm">
       <SSHStack justifyBetween>
@@ -39,7 +31,7 @@ function SSSlider({
           {suffix && <SSText color="muted">{suffix}</SSText>}
         </SSHStack>
         <SSHStack style={{ justifyContent: 'center' }} gap="xs">
-          <SSText>{localValue}</SSText>
+          <SSText>{value}</SSText>
           {suffix && <SSText color="muted">{suffix}</SSText>}
         </SSHStack>
         <SSHStack style={{ justifyContent: 'center' }} gap="xs">
@@ -50,15 +42,14 @@ function SSSlider({
       <Slider
         minimumValue={min}
         maximumValue={max}
-        value={localValue}
+        value={value}
         step={step}
         containerStyle={{ flex: 1, width: '100%' }}
         minimumTrackTintColor={Colors.white}
         maximumTrackTintColor={Colors.gray[800]}
         thumbTintColor={Colors.white}
-        onValueChange={(value) => {
-          const [newValue] = value
-          setLocalValue(newValue)
+        onValueChange={(v) => {
+          const [newValue] = v
           onValueChange(newValue)
         }}
         trackStyle={{ borderRadius: 6, height: 12 }}

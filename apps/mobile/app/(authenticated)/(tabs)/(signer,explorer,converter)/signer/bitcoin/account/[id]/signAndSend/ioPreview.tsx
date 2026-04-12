@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native'
+import { KeychainKind } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -112,7 +113,7 @@ export default function IOPreview() {
     if (!account || !wallet) {
       return
     }
-    ;(async () => {
+    ;(() => {
       const outputAddresses: Record<string, boolean> = {}
       for (const tx of account.transactions) {
         for (const output of tx.vout) {
@@ -122,10 +123,8 @@ export default function IOPreview() {
 
       let i = 0
       while (true) {
-        const addressObj = await wallet.getInternalAddress(i)
-        const address = addressObj?.address
-          ? await addressObj.address.asString()
-          : ''
+        const addressObj = wallet.peekAddress(KeychainKind.Internal, i)
+        const address = addressObj?.address ?? ''
         if (outputAddresses[address] !== true) {
           setChangeAddress(address)
           return
@@ -208,10 +207,7 @@ export default function IOPreview() {
     () => outputs.reduce((sum, output) => sum + output.amount, 0),
     [outputs]
   )
-  const hasChange = useMemo(
-    () => utxosSelectedValue > totalOutputValue + baseMinerFee,
-    [utxosSelectedValue, totalOutputValue, baseMinerFee]
-  )
+  const hasChange = utxosSelectedValue > totalOutputValue + baseMinerFee
 
   const [currentOutputLocalId, setCurrentOutputLocalId] = useState<string>()
   const [currentOutputNumber, setCurrentOutputNumber] = useState(1)

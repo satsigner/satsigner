@@ -1,6 +1,6 @@
 {
   "name": "satsigner",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Privacy-first Bitcoin signer with complete UTXO control",
   "keywords": [
@@ -20,30 +20,33 @@
     "type": "git",
     "url": "https://github.com/satsigner/satsigner"
   },
-  "workspaces": {
-    "packages": [
-      "apps/*",
-      "packages/*"
-    ],
-    "nohoist": [
-      "**/rn-nodeify/**",
-      "**/rn-nodeify"
-    ]
-  },
   "scripts": {
     "check": "ultracite check",
     "fix": "ultracite fix"
   },
-  "dependencies": {},
   "devDependencies": {
     "cross-env": "^7.0.3",
     "oxfmt": "^0.42.0",
-    "oxlint": "^1.57.0",
+    "oxlint": "~1.57.0",
+    "oxlint-tsgolint": "^0.20.0",
     "turbo": "^2.0.1",
     "ultracite": "7.3.2"
   },
   "engines": {
     "node": ">=22.4.0"
   },
-  "packageManager": "yarn@1.22.21"
+  "packageManager": "pnpm@10.33.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@shopify/react-native-skia",
+      "esbuild",
+      "react-native-bdk-sdk",
+      "sharp"
+    ],
+    "overrides": {
+      "hermes-compiler": "250829098.0.4",
+      "react": "^19.2.0",
+      "react-dom": "^19.2.0"
+    }
+  }
 }

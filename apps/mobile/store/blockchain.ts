@@ -1,10 +1,9 @@
-import { type Blockchain } from 'bdk-rn'
 import { produce } from 'immer'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import { getBlockchain } from '@/api/bdk'
 import {
+  type BlockchainConfig,
   DEFAULT_RETRIES,
   DEFAULT_STOP_GAP,
   DEFAULT_TIME_OUT,
@@ -43,15 +42,15 @@ type BlockchainAction = {
   addCustomServer: (server: Server) => void
   removeCustomServer: (server: Server) => void
   updateCustomServer: (oldServer: Server, newServer: Server) => void
-  getBlockchain: (network?: Network) => Promise<Blockchain>
-  getBlockchainHeight: (network?: Network) => Promise<number>
+  getBlockchain: (network?: Network) => BlockchainConfig
+  setLastKnownBlockHeight: (height: number) => void
 }
 
 const createDefaultNetworkConfig = (
   network: Network,
   backend: Backend,
-  url: string = '',
-  name: string = `Default ${network}`
+  url = '',
+  name = `Default ${network}`
 ): NetworkConfig => ({
   config: {
     connectionMode: 'auto',
@@ -101,22 +100,10 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
       getBlockchain: (network = get().selectedNetwork) => {
         const { server, config } = get().configs[network]
 
-        const blockchainConfig = getBlockchainConfig(
-          server.backend,
-          server.url,
-          {
-            ...config,
-            proxy: server.proxy
-          }
-        )
-
-        return getBlockchain(server.backend, blockchainConfig)
-      },
-      getBlockchainHeight: async (network = get().selectedNetwork) => {
-        const blockchain = await get().getBlockchain(network)
-        const height = await blockchain.getHeight()
-        set({ lastKnownBlockHeight: height })
-        return height
+        return getBlockchainConfig(server.backend, server.url, {
+          ...config,
+          proxy: server.proxy
+        })
       },
       lastKnownBlockHeight: 0,
       removeCustomServer: (server) => {
@@ -126,6 +113,9 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
         })
       },
       selectedNetwork: 'signet',
+      setLastKnownBlockHeight: (height: number) => {
+        set({ lastKnownBlockHeight: height })
+      },
       setSelectedNetwork: (selectedNetwork) => set({ selectedNetwork }),
       updateConfig: (network, config) => {
         set(

@@ -1,3 +1,4 @@
+import '@/utils/polyfills'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Slot } from 'expo-router'
 import { setStatusBarStyle } from 'expo-status-bar'
@@ -8,12 +9,12 @@ import {
   type AppStateStatus,
   Platform,
   StyleSheet,
-  UIManager,
   View
 } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import NfcManager from 'react-native-nfc-manager'
-import { toast, Toaster } from 'sonner-native'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { Toaster } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -25,10 +26,6 @@ import { Colors } from '@/styles'
 
 if (Platform.OS === 'android') {
   SystemUI.setBackgroundColorAsync(Colors.gray[950])
-
-  if (UIManager.setLayoutAnimationEnabledExperimental) {
-    UIManager.setLayoutAnimationEnabledExperimental(true)
-  }
 }
 
 const queryClient = new QueryClient()
@@ -69,16 +66,21 @@ export default function RootLayout() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    // Initialize NFC manager
-    NfcManager.start().catch(() => {
-      // Show a toast notification only in development
-      if (__DEV__) {
-        toast.error('NFC initialization failed', {
-          description:
-            'This is expected in emulators and devices without NFC support'
-        })
+    async function initNfc() {
+      try {
+        await NfcManager.start()
+      } catch {
+        // Show a toast notification only in development
+        // turn this off for now, too annoying!!
+        // if (__DEV__) {
+        //   toast.error('NFC initialization failed', {
+        //     description:
+        //       'This is expected in emulators and devices without NFC support'
+        //   })
+        // }
       }
-    })
+    }
+    initNfc()
   }, [])
 
   function handleAppStateChanged(nextAppState: AppStateStatus) {
@@ -108,23 +110,27 @@ export default function RootLayout() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView style={styles.container}>
-        <Slot />
-        {privacyScreenVisible && <View style={styles.privacyScreen} />}
-        <Toaster
-          theme="dark"
-          position="top-center"
-          style={{
-            backgroundColor: Colors.gray[950],
-            borderColor: Colors.gray[800],
-            borderRadius: 8,
-            borderWidth: 1,
-            zIndex: 999999
-          }}
-        />
-      </GestureHandlerRootView>
-    </QueryClientProvider>
+    <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <GestureHandlerRootView>
+          {privacyScreenVisible && <View style={styles.privacyScreen} />}
+          <Toaster
+            theme="dark"
+            position="top-center"
+            style={{
+              backgroundColor: Colors.gray[950],
+              borderColor: Colors.gray[800],
+              borderRadius: 8,
+              borderWidth: 1,
+              zIndex: 999999
+            }}
+          />
+          <View style={styles.container}>
+            <Slot />
+          </View>
+        </GestureHandlerRootView>
+      </QueryClientProvider>
+    </SafeAreaProvider>
   )
 }
 

@@ -61,11 +61,11 @@ function SSDatePicker({
   const [days, setDays] = useState<number[]>([])
   const [months, setMonths] = useState<number[]>([])
   const [years, setYears] = useState<number[]>([])
-  const [selectedYear, setSelectedYear] = useState<number>(
+  const [selectedYear, setSelectedYear] = useState<number>(() =>
     new Date().getFullYear()
   )
   const [selectedMonth, setSelectedMonth] = useState<number>(
-    new Date().getMonth() + 1
+    () => new Date().getMonth() + 1
   )
 
   useEffect(() => {
@@ -287,18 +287,24 @@ function DateBlock({
 }
 
 const hex2rgba = (hex: string, alpha: number): string => {
-  hex = hex.replace('#', '')
+  const cleanHex = hex.replace('#', '')
 
   const r: number = parseInt(
-    hex.length === 3 ? hex.slice(0, 1).repeat(2) : hex.slice(0, 2),
+    cleanHex.length === 3
+      ? cleanHex.slice(0, 1).repeat(2)
+      : cleanHex.slice(0, 2),
     16
   )
   const g: number = parseInt(
-    hex.length === 3 ? hex.slice(1, 2).repeat(2) : hex.slice(2, 4),
+    cleanHex.length === 3
+      ? cleanHex.slice(1, 2).repeat(2)
+      : cleanHex.slice(2, 4),
     16
   )
   const b: number = parseInt(
-    hex.length === 3 ? hex.slice(2, 3).repeat(2) : hex.slice(4, 6),
+    cleanHex.length === 3
+      ? cleanHex.slice(2, 3).repeat(2)
+      : cleanHex.slice(4, 6),
     16
   )
 

@@ -9,7 +9,7 @@
  * - Add server import/export functionality to share configurations via QR codes
  */
 
-import { CameraView, useCameraPermissions } from 'expo-camera/next'
+import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'

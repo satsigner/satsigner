@@ -230,7 +230,7 @@ function UtxoDetailsPage() {
 
   const utxo = useGetAccountTransactionOutput(accountId!, txid!, Number(vout!))
 
-  const addressIndex = useMemo(() => {
+  const addressIndex = (() => {
     if (!account || !utxo?.addressTo) {
       return undefined
     }
@@ -242,11 +242,11 @@ function UtxoDetailsPage() {
     }
     const addressEntry = account.addresses[idx]
     return addressEntry?.index ?? idx
-  }, [account, utxo?.addressTo])
+  })()
 
   const allAccountUtxos = account?.utxos || []
   const ownAddresses = useMemo(
-    () => new Set(account?.addresses?.map((a) => a.address) ?? []),
+    () => new Set(account?.addresses?.map((a) => a.address)),
     [account]
   )
   const addInput = useTransactionBuilderStore((state) => state.addInput)

@@ -63,7 +63,7 @@ export function createRetryManager(
 
   function scheduleRetry(
     key: string,
-    callback: () => void
+    onSchedule: () => void
   ): { scheduled: boolean; delay: number } {
     const attempt = attempts.get(key) || 0
 
@@ -77,7 +77,7 @@ export function createRetryManager(
     const timer = setTimeout(() => {
       attempts.set(key, attempt + 1)
       timers.delete(key)
-      callback()
+      onSchedule()
     }, delay)
 
     timers.set(key, timer)

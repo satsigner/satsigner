@@ -1,6 +1,5 @@
 import { useFocusEffect } from '@react-navigation/native'
 import { FlashList } from '@shopify/flash-list'
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import {
   Redirect,
   router,
@@ -17,8 +16,6 @@ import {
   useState
 } from 'react'
 import {
-  Animated,
-  Easing,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -26,6 +23,13 @@ import {
   useWindowDimensions,
   View
 } from 'react-native'
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming
+} from 'react-native-reanimated'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -38,7 +42,6 @@ import {
   SSIconChatBubble,
   SSIconCollapse,
   SSIconExpand,
-  SSIconEyeOff,
   SSIconEyeOn,
   SSIconGreenIndicator,
   SSIconHistoryChart,
@@ -94,6 +97,7 @@ import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import { compareTimestamp, sortTransactions } from '@/utils/sort'
@@ -192,40 +196,37 @@ function TransactionStaggerItem({
   index: number
   children: React.ReactNode
 }) {
-  const opacity = useRef(new Animated.Value(0)).current
-  const translateY = useRef(new Animated.Value(12)).current
+  const opacity = useSharedValue(0)
+  const translateY = useSharedValue(12)
 
   useEffect(() => {
     const delay = index * TX_STAGGER_DELAY_MS
-    const timer = setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(opacity, {
+    opacity.set(
+      withDelay(
+        delay,
+        withTiming(1, {
           duration: TX_STAGGER_DURATION_MS,
-          easing: Easing.out(Easing.ease),
-          toValue: 1,
-          useNativeDriver: true
-        }),
-        Animated.timing(translateY, {
-          duration: TX_STAGGER_DURATION_MS,
-          easing: Easing.out(Easing.ease),
-          toValue: 0,
-          useNativeDriver: true
+          easing: Easing.out(Easing.ease)
         })
-      ]).start()
-    }, delay)
-    return () => clearTimeout(timer)
+      )
+    )
+    translateY.set(
+      withDelay(
+        delay,
+        withTiming(0, {
+          duration: TX_STAGGER_DURATION_MS,
+          easing: Easing.out(Easing.ease)
+        })
+      )
+    )
   }, [index, opacity, translateY])
 
-  return (
-    <Animated.View
-      style={{
-        opacity,
-        transform: [{ translateY }]
-      }}
-    >
-      {children}
-    </Animated.View>
-  )
+  const staggerStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }]
+  }))
+
+  return <Animated.View style={staggerStyle}>{children}</Animated.View>
 }
 
 type TotalTransactionsProps = {
@@ -288,7 +289,7 @@ function TotalTransactions({
       return balance
     })
 
-    return balances.reverse()
+    return balances.toReversed()
   }, [sortedTransactions])
 
   const maxBalance = useMemo(() => {
@@ -361,7 +362,7 @@ function TotalTransactions({
         >
           <View style={styles.listWithLoader}>
             <FlashList
-              data={sortedTransactions.slice().reverse()}
+              data={sortedTransactions.toReversed()}
               ListHeaderComponent={
                 hasDraft ? (
                   <DraftTransactionCard accountId={account.id} />
@@ -387,7 +388,6 @@ function TotalTransactions({
                   </SSVStack>
                 </TransactionStaggerItem>
               )}
-              estimatedItemSize={120}
               ListEmptyComponent={
                 <SSVStack style={{ alignItems: 'center', paddingTop: 50 }}>
                   <SSText color="muted">No transactions</SSText>
@@ -419,11 +419,11 @@ function TotalTransactions({
 
 type DerivedAddressesProps = {
   account: Account
-  setSortDirection: Function
+  setSortDirection: Dispatch<React.SetStateAction<Direction>>
   sortDirection: Direction
   handleOnExpand: (state: boolean) => void
   expand: boolean
-  setChange: Function
+  setChange: Dispatch<React.SetStateAction<boolean>>
   change: boolean
   perPage?: number
 }
@@ -495,7 +495,6 @@ function SSAddressTable({
         <FlashList
           data={addresses}
           renderItem={renderItem}
-          estimatedItemSize={150}
           keyExtractor={(item) =>
             `${item.index || ''}:${item.address}:${item.keychain || ''}`
           }
@@ -537,17 +536,21 @@ function SSAddressList({
   return (
     <ScrollView>
       <SSVStack style={{ paddingVertical: 10 }}>
-        {addresses.map((address, index) => {
-          const link = `/signer/bitcoin/account/${accountId}/address/${address.address}`
-          return (
-            <SSVStack key={address.address} gap="xs">
-              {index > 0 && <SSSeparator color="gradient" />}
-              <TouchableOpacity onPress={() => router.navigate(link)}>
-                <AddressCard address={{ index, ...address }} />
-              </TouchableOpacity>
-            </SSVStack>
-          )
-        })}
+        {addresses.map((address, index) => (
+          <SSVStack key={address.address} gap="xs">
+            {index > 0 && <SSSeparator color="gradient" />}
+            <TouchableOpacity
+              onPress={() =>
+                router.navigate({
+                  params: { addr: address.address, id: accountId },
+                  pathname: '/signer/bitcoin/account/[id]/address/[addr]'
+                })
+              }
+            >
+              <AddressCard address={{ index, ...address }} />
+            </TouchableOpacity>
+          </SSVStack>
+        ))}
         {!isMultiAddressWatchOnly && (
           <SSButton
             variant="outline"
@@ -573,9 +576,9 @@ function DerivedAddresses({
   perPage = 10
 }: DerivedAddressesProps) {
   const wallet = useGetAccountWallet(account.id!)
-  const network = useBlockchainStore(
-    (state) => state.selectedNetwork
-  ) as Network
+  const network = appNetworkToBdkNetwork(
+    useBlockchainStore((state) => state.selectedNetwork)
+  )
   const updateAccount = useAccountsStore((state) => state.updateAccount)
 
   const _windowDimensions = useWindowDimensions()
@@ -803,7 +806,7 @@ function DerivedAddresses({
         )}
         <SSHStack gap="sm" style={{ justifyContent: 'flex-end', width: 40 }}>
           <SSSortDirectionToggle
-            onDirectionChanged={() => setSortDirection()}
+            onDirectionChanged={(direction) => setSortDirection(direction)}
           />
         </SSHStack>
       </SSHStack>
@@ -900,9 +903,9 @@ function SpendableOutputs({
   const [view, setView] = useState('list')
 
   const halfHeight = height / 2
-  const horizontalPadding = 48
+  const horizontalPaddingPx = width * 0.05
   const GRAPH_HEIGHT = halfHeight
-  const GRAPH_WIDTH = width - horizontalPadding
+  const GRAPH_WIDTH = width
 
   const totalBalance = useMemo(
     () => account.utxos.reduce((sum, u) => sum + u.value, 0),
@@ -978,7 +981,7 @@ function SpendableOutputs({
           </SSVStack>
         </ScrollView>
       )}
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, marginHorizontal: -horizontalPaddingPx }}>
         {view === 'bubbles' && (
           <SSBubbleChart
             utxos={[...account.utxos]}
@@ -1027,7 +1030,6 @@ function SatsInMempool({
       <FlashList
         data={mempoolTransactions}
         keyExtractor={(item) => item.id}
-        estimatedItemSize={160}
         renderItem={({ item }) => (
           <SSVStack gap="sm" style={{ paddingBottom: 16 }}>
             <SSTransactionCard
@@ -1092,15 +1094,13 @@ export default function AccountView() {
     [account]
   )
 
-  const [currencyUnit, useZeroPadding, privacyMode, togglePrivacyMode] =
-    useSettingsStore(
-      useShallow((state) => [
-        state.currencyUnit,
-        state.useZeroPadding,
-        state.privacyMode,
-        state.togglePrivacyMode
-      ])
-    )
+  const [currencyUnit, useZeroPadding, privacyMode] = useSettingsStore(
+    useShallow((state) => [
+      state.currencyUnit,
+      state.useZeroPadding,
+      state.privacyMode
+    ])
+  )
 
   const [fiatCurrency, satsToFiat, fetchPrices, btcPrice] = usePriceStore(
     useShallow((state) => [
@@ -1110,10 +1110,10 @@ export default function AccountView() {
       state.btcPrice
     ])
   )
-  const [getBlockchainHeight, mempoolUrl, connectionMode, autoConnectDelay] =
+  const [lastKnownBlockHeight, mempoolUrl, connectionMode, autoConnectDelay] =
     useBlockchainStore(
       useShallow((state) => [
-        state.getBlockchainHeight,
+        state.lastKnownBlockHeight,
         state.configsMempool['bitcoin'],
         state.configs[state.selectedNetwork].config.connectionMode,
         state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
@@ -1132,7 +1132,7 @@ export default function AccountView() {
     useState<Direction>('desc')
   const [sortDirectionDerivedAddresses, setSortDirectionDerivedAddresses] =
     useState<Direction>('desc')
-  const [blockchainHeight, setBlockchainHeight] = useState<number>(0)
+  const blockchainHeight = lastKnownBlockHeight
 
   const tabs = [
     { key: 'totalTransactions' },
@@ -1141,7 +1141,7 @@ export default function AccountView() {
     { key: 'satsInMempool' }
   ]
   const [tabIndex, setTabIndex] = useState(0)
-  const animationValue = useRef(new Animated.Value(0)).current
+  const animationValue = useSharedValue(0)
 
   const [connectionState, , isPrivateConnection, connectionParts] =
     useVerifyConnection()
@@ -1222,7 +1222,7 @@ export default function AccountView() {
   // reference on every DM update, which would interrupt in-progress tap gestures.
   const headerRight = useCallback(
     () => (
-      <SSHStack gap="sm">
+      <SSHStack gap="md">
         {account?.nostr?.autoSync && (
           <SSIconButton
             onPress={() =>
@@ -1242,31 +1242,17 @@ export default function AccountView() {
             </View>
           </SSIconButton>
         )}
-        <SSIconButton onPress={togglePrivacyMode}>
-          {privacyMode ? (
-            <SSIconEyeOff height={18} width={18} />
-          ) : (
-            <SSIconEyeOn height={18} width={18} />
-          )}
-        </SSIconButton>
         <SSIconButton
           style={{ marginRight: 8 }}
           onPress={() =>
             router.navigate(`/signer/bitcoin/account/${id}/settings`)
           }
         >
-          <SSIconKeys height={18} width={18} />
+          <SSIconKeys height={20} width={20} />
         </SSIconButton>
       </SSHStack>
     ),
-    [
-      account?.nostr?.autoSync,
-      hasUnreadMessages,
-      id,
-      privacyMode,
-      router,
-      togglePrivacyMode
-    ] // eslint-disable-line react-hooks/exhaustive-deps
+    [account?.nostr?.autoSync, hasUnreadMessages, id, router] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   if (!account) {
@@ -1332,12 +1318,12 @@ export default function AccountView() {
   }
 
   function animateTransition(expandState: boolean) {
-    Animated.timing(animationValue, {
-      duration: 300,
-      easing: Easing.inOut(Easing.ease),
-      toValue: expandState ? 1 : 0,
-      useNativeDriver: false
-    }).start()
+    animationValue.set(
+      withTiming(expandState ? 1 : 0, {
+        duration: 300,
+        easing: Easing.inOut(Easing.ease)
+      })
+    )
   }
 
   function sortUtxos(utxos: Utxo[]) {
@@ -1346,11 +1332,6 @@ export default function AccountView() {
         ? compareTimestamp(utxo1.timestamp, utxo2.timestamp)
         : compareTimestamp(utxo2.timestamp, utxo1.timestamp)
     )
-  }
-
-  async function refreshBlockchainHeight() {
-    const height = await getBlockchainHeight()
-    setBlockchainHeight(height)
   }
 
   async function refreshAccount() {
@@ -1390,7 +1371,6 @@ export default function AccountView() {
   async function handleOnRefresh() {
     setRefreshing(true)
     await fetchPrices(mempoolUrl)
-    await refreshBlockchainHeight()
     await refreshAccount()
     // Fire-and-forget - don't block refresh completion for Nostr sync
     refreshAccountLabels()
@@ -1733,11 +1713,9 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     backgroundColor: 'transparent',
-    elevation: 0,
+    boxShadow: 'none',
     justifyContent: 'flex-start',
-    paddingTop: 16,
-    shadowOpacity: 0,
-    shadowRadius: 0
+    paddingTop: 16
   }
 })
 

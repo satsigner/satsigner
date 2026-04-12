@@ -25,20 +25,18 @@ function getDifficultyFromBits(bits: number): number {
   let target = BigInt(mantissa)
   const shift = 8 * (exponent - 3)
   if (shift >= 0) {
-    target *= BigInt(1) << BigInt(shift)
+    target *= 1n << BigInt(shift)
   } else {
-    target /= BigInt(1) << BigInt(-shift)
+    target /= 1n << BigInt(-shift)
   }
-  const maxTarget = BigInt(
-    '0x00000000ffff0000000000000000000000000000000000000000000000000000'
-  )
+  const maxTarget =
+    0x00000000ffff0000000000000000000000000000000000000000000000000000n
   return Number(maxTarget) / Number(target)
 }
 
 function ExplorerBlock() {
-  const [getBlockchainHeight, backendUrl, backend] = useBlockchainStore(
+  const [backendUrl, backend] = useBlockchainStore(
     useShallow((state) => [
-      state.getBlockchainHeight,
       state.configs['bitcoin'].server.url,
       state.configs['bitcoin'].server.backend
     ])
@@ -98,7 +96,16 @@ function ExplorerBlock() {
   }
 
   async function fetchLatestBlock() {
-    const tipHeight = await getBlockchainHeight('bitcoin')
+    let tipHeight: number
+    if (backend === 'esplora') {
+      const esplora = new Esplora(backendUrl)
+      tipHeight = await esplora.getLatestBlockHeight()
+    } else {
+      const electrum = await ElectrumClient.initClientFromUrl(backendUrl)
+      const header = await electrum.subscribeToBlockHeaders()
+      tipHeight = header?.height ?? 0
+      electrum.close()
+    }
     setMaxBlockHeight(tipHeight)
     await fetchBlock(tipHeight)
   }

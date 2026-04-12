@@ -1,4 +1,4 @@
-import { CameraView, useCameraPermissions } from 'expo-camera/next'
+import { CameraView, useCameraPermissions } from 'expo-camera'
 import { useCallback, useEffect, useState } from 'react'
 import { View } from 'react-native'
 import { toast } from 'sonner-native'
@@ -64,7 +64,7 @@ function detectQRType(data: string) {
   if (data.toLowerCase().startsWith('ur:')) {
     const urMatch = data.match(/^ur:([^/]+)\/(?:(\d+)-(\d+)\/)?(.+)$/i)
     if (urMatch) {
-      const [, , currentStr, totalStr] = urMatch
+      const [currentStr, totalStr] = urMatch.slice(2)
 
       if (currentStr && totalStr) {
         const current = parseInt(currentStr, 10) - 1

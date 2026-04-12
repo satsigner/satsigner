@@ -1,4 +1,3 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
@@ -20,7 +19,7 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { getAccountWithDecryptedKeys } from '@/utils/account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { isElectrumDerivationPath } from '@/utils/bip39'
-import { convertKeyFormat } from '@/utils/bitcoin'
+import { appNetworkToBdkNetwork, convertKeyFormat } from '@/utils/bitcoin'
 import { shareFile } from '@/utils/filesystem'
 
 export default function ExportPubkeys() {
@@ -59,7 +58,7 @@ export default function ExportPubkeys() {
         const isImportAddress = account.keys[0].creationType === 'importAddress'
         const tmpAccount = await getAccountWithDecryptedKeys(account)
         const walletData = !isImportAddress
-          ? await getWalletData(tmpAccount, network as Network)
+          ? await getWalletData(tmpAccount, appNetworkToBdkNetwork(network))
           : undefined
 
         // For each key in the account, get its public key from the wallet data
@@ -82,8 +81,8 @@ export default function ExportPubkeys() {
 
         setRawPubkeys(pubkeys)
         setExportContent(pubkeys.join('\n'))
-      } catch (err) {
-        const reason = err instanceof Error ? err.message : 'unknown reason'
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : 'unknown reason'
         toast.error(`Failed to get account public keys: ${reason}`)
       } finally {
         setIsLoading(false)

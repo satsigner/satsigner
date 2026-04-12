@@ -1,12 +1,12 @@
-const noNavScreens: string[] = ['settings']
+const noNavScreens = new Set(['settings'])
 
-export function showNavigation(path: string = '/', depth: number = 0): boolean {
+export function showNavigation(path = '/', depth = 0): boolean {
   if (depth > 4) {
     return false
   }
 
   const [screen] = path.replace(/^\/+/, '').split('/')
-  if (noNavScreens.includes(screen)) {
+  if (noNavScreens.has(screen)) {
     return false
   }
 

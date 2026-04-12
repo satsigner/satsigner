@@ -18,6 +18,17 @@ import type {
 import { randomKey } from '@/utils/crypto'
 import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
 
+/** NDK waits for this long then continues connecting in the background */
+const NDK_CONNECT_TIMEOUT_MS = 20000
+
+function createMobileNdk(explicitRelayUrls: string[]): NDK {
+  return new NDK({
+    autoConnectUserRelays: false,
+    enableOutboxModel: false,
+    explicitRelayUrls
+  })
+}
+
 function getProfileFromKind0Content(
   contentJson: string
 ): NostrKind0Profile | null {
@@ -69,8 +80,10 @@ export class NostrAPI {
   private isProcessingQueue = false
   private readonly BATCH_SIZE = 10
   private onLoadingChange?: (isLoading: boolean) => void
+  private relays: string[]
 
-  constructor(private relays: string[]) {
+  constructor(relays: string[]) {
+    this.relays = relays
     if (!relays || relays.length === 0) {
       this.relays = [
         'wss://relay.damus.io',
@@ -85,8 +98,8 @@ export class NostrAPI {
     return this.relays
   }
 
-  setLoadingCallback(callback: (isLoading: boolean) => void) {
-    this.onLoadingChange = callback
+  setLoadingCallback(handler: (isLoading: boolean) => void) {
+    this.onLoadingChange = handler
   }
 
   private setLoading(loading: boolean) {
@@ -95,29 +108,26 @@ export class NostrAPI {
 
   async connect() {
     if (!this.ndk) {
-      this.ndk = new NDK({
-        explicitRelayUrls: this.relays
-      })
+      this.ndk = createMobileNdk(this.relays)
     }
 
-    await this.ndk.connect()
+    await this.ndk.connect(NDK_CONNECT_TIMEOUT_MS)
 
     if (!this.ndk.pool) {
       throw new Error('NDK pool not initialized')
     }
 
-    await this.ndk.pool.connect()
+    const connected = this.ndk.pool.connectedRelays()
+    const connectedUrls = connected.map((r) => r.url)
 
-    const connectedRelays = Array.from(this.ndk.pool.relays.keys())
-
-    if (connectedRelays.length === 0) {
+    if (connectedUrls.length === 0) {
       throw new Error(
         'No relays could be connected. Please check your relay URLs and internet connection.'
       )
     }
 
     const relayStatus = await Promise.all(
-      connectedRelays.map(async (url) => {
+      connectedUrls.map(async (url) => {
         for (let attempt = 0; attempt < 3; attempt += 1) {
           try {
             const relay = this.ndk?.pool.relays.get(url)
@@ -127,8 +137,7 @@ export class NostrAPI {
 
             const testEvent = await this.ndk?.fetchEvent(
               { kinds: [1], limit: 1 },
-              // @ts-ignore - relayUrl is used by NDK but not in types
-              { relayUrl: url }
+              { closeOnEose: true, relayUrls: [url] }
             )
 
             return { status: 'connected', testEvent: testEvent !== null, url }
@@ -162,27 +171,16 @@ export class NostrAPI {
    */
   async connectForPublish(timeoutMs = 10000): Promise<void> {
     if (!this.ndk) {
-      this.ndk = new NDK({ explicitRelayUrls: this.relays })
+      this.ndk = createMobileNdk(this.relays)
     }
 
-    const timeout = new Promise<never>((_, reject) => {
-      setTimeout(
-        () =>
-          reject(new Error(`connectForPublish timed out after ${timeoutMs}ms`)),
-        timeoutMs
-      )
-    })
-
-    await Promise.race([this.ndk.connect(), timeout])
+    await this.ndk.connect(timeoutMs)
 
     if (!this.ndk.pool) {
       throw new Error('NDK pool not initialized')
     }
 
-    await Promise.race([this.ndk.pool.connect(), timeout])
-
-    const connectedRelays = Array.from(this.ndk.pool.relays.keys())
-    if (connectedRelays.length === 0) {
+    if (this.ndk.pool.connectedRelays().length === 0) {
       throw new Error(
         'No relays could be connected. Please check your relay URLs and internet connection.'
       )
@@ -384,8 +382,8 @@ export class NostrAPI {
     while (this.eventQueue.length > 0 && this._callback) {
       await this.processQueue()
       // Small delay between batches to avoid blocking the JS thread
-      await new Promise((r) => {
-        setTimeout(r, FLUSH_QUEUE_DELAY_MS)
+      await new Promise((resolve) => {
+        setTimeout(resolve, FLUSH_QUEUE_DELAY_MS)
       })
     }
   }
@@ -431,7 +429,10 @@ export class NostrAPI {
       { publicKey: recipientPubKeyHex },
       encodedContent
     )
-    const tempNdk = new NDK()
+    const tempNdk = new NDK({
+      autoConnectUserRelays: false,
+      enableOutboxModel: false
+    })
     const event = new NDKEvent(tempNdk, wrap)
     return event
   }
@@ -463,7 +464,7 @@ export class NostrAPI {
       throw new Error('Failed to connect to relays')
     }
 
-    const tempNdk = new NDK({ explicitRelayUrls: this.relays })
+    const tempNdk = createMobileNdk(this.relays)
     tempNdk.signer = signer
     const event = new NDKEvent(tempNdk, {
       content: '',
@@ -484,9 +485,9 @@ export class NostrAPI {
       throw new Error('Failed to initialize NDK')
     }
 
-    const connectedRelays = Array.from(this.ndk.pool.relays.keys())
+    const connectedRelayUrls = this.ndk.pool.connectedRelays().map((r) => r.url)
 
-    if (connectedRelays.length === 0) {
+    if (connectedRelayUrls.length === 0) {
       throw new Error('No relays connected')
     }
 
@@ -501,7 +502,7 @@ export class NostrAPI {
       await event.sign(signer)
     }
 
-    const publishPromises = connectedRelays.map(async (url) => {
+    const publishPromises = connectedRelayUrls.map(async (url) => {
       const relay = this.ndk?.pool.relays.get(url)
       if (!relay) {
         return { error: 'Relay not found', success: false as const, url }
@@ -509,7 +510,7 @@ export class NostrAPI {
 
       try {
         // Add timeout to prevent indefinite hanging
-        const timeoutPromise = new Promise<never>((_, reject) => {
+        const timeoutPromise = new Promise<never>((_resolve, reject) => {
           setTimeout(
             () =>
               reject(

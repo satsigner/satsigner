@@ -1,12 +1,19 @@
 import { URDecoder } from '@ngraveio/bc-ur'
-import { Descriptor } from 'bdk-rn'
-import { Network } from 'bdk-rn/lib/lib/enums'
 import * as CBOR from 'cbor-js'
-import { CameraView, useCameraPermissions } from 'expo-camera/next'
+import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { Animated, Keyboard, ScrollView, StyleSheet, View } from 'react-native'
+import { Keyboard, ScrollView, StyleSheet, View } from 'react-native'
+import Animated, {
+  cancelAnimation,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming
+} from 'react-native-reanimated'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -33,19 +40,6 @@ import { validateExtendedKey, validateFingerprint } from '@/utils/validation'
 
 type ImportExtendedPubSearchParams = {
   keyIndex: string
-}
-
-function mapNetworkToBdkNetwork(network: 'bitcoin' | 'testnet' | 'signet') {
-  switch (network) {
-    case 'bitcoin':
-      return Network.Bitcoin
-    case 'testnet':
-      return Network.Testnet
-    case 'signet':
-      return Network.Signet
-    default:
-      return Network.Bitcoin
-  }
 }
 
 export default function ImportExtendedPub() {
@@ -104,51 +98,43 @@ export default function ImportExtendedPub() {
     type: null
   })
 
-  const pulseAnim = useRef(new Animated.Value(0)).current
-  const scaleAnim = useRef(new Animated.Value(1)).current
+  const pulseAnim = useSharedValue(0)
+  const scaleAnim = useSharedValue(1)
 
   useEffect(() => {
     if (isReading) {
-      const pulseAnimation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            duration: 500,
-            toValue: 1,
-            useNativeDriver: false
-          }),
-          Animated.timing(pulseAnim, {
-            duration: 500,
-            toValue: 0,
-            useNativeDriver: false
-          })
-        ])
+      pulseAnim.set(
+        withRepeat(
+          withSequence(
+            withTiming(1, { duration: 500 }),
+            withTiming(0, { duration: 500 })
+          ),
+          -1
+        )
       )
-
-      const scaleAnimation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(scaleAnim, {
-            duration: 500,
-            toValue: 0.98,
-            useNativeDriver: false
-          }),
-          Animated.timing(scaleAnim, {
-            duration: 500,
-            toValue: 1,
-            useNativeDriver: false
-          })
-        ])
+      scaleAnim.set(
+        withRepeat(
+          withSequence(
+            withTiming(0.98, { duration: 500 }),
+            withTiming(1, { duration: 500 })
+          ),
+          -1
+        )
       )
-
-      pulseAnimation.start()
-      scaleAnimation.start()
       return () => {
-        pulseAnimation.stop()
-        scaleAnimation.stop()
+        cancelAnimation(pulseAnim)
+        cancelAnimation(scaleAnim)
       }
     }
-    pulseAnim.setValue(0)
-    scaleAnim.setValue(1)
+    pulseAnim.set(0)
+    scaleAnim.set(1)
   }, [isReading, pulseAnim, scaleAnim])
+
+  const nfcButtonStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(pulseAnim.value, [0, 1], [1, 0.7]),
+    overflow: 'hidden' as const,
+    transform: [{ scale: scaleAnim.value }]
+  }))
 
   function updateMasterFingerprint(fingerprint: string) {
     const validFingerprint = validateFingerprint(fingerprint)
@@ -307,13 +293,11 @@ export default function ImportExtendedPub() {
           return Buffer.from(decoded).toString('hex')
         }
         return null
-      } else if (type === 'ur') {
+      } else if (type === 'ur' && urDecoderRef.current.isComplete()) {
         // For UR, the decoder should have assembled everything
-        if (urDecoderRef.current.isComplete()) {
-          const result = urDecoderRef.current.resultUR()
-          if (result && result.cbor) {
-            return result.cbor.toString('hex')
-          }
+        const result = urDecoderRef.current.resultUR()
+        if (result && result.cbor) {
+          return result.cbor.toString('hex')
         }
       }
       return null
@@ -322,7 +306,7 @@ export default function ImportExtendedPub() {
     }
   }
 
-  async function handleConfirm() {
+  function handleConfirm() {
     if (!validXpub || !validMasterFingerprint) {
       toast.error(t('watchonly.error.invalidInput'))
       return
@@ -355,11 +339,7 @@ export default function ImportExtendedPub() {
         try {
           // Create a descriptor from the extended public key to extract derivation path
           const descriptorString = `pkh(${convertedXpub})`
-          const descriptor = await new Descriptor().create(
-            descriptorString,
-            mapNetworkToBdkNetwork(network)
-          )
-          const parsedDescriptor = await parseDescriptor(descriptor)
+          const parsedDescriptor = parseDescriptor(descriptorString)
           derivationPath = parsedDescriptor.derivationPath
         } catch {
           // Use default derivation path if extraction fails
@@ -388,7 +368,7 @@ export default function ImportExtendedPub() {
       toast.success(t('account.import.success'))
       router.dismiss(1)
     } catch {
-      toast.error(t('import.error'))
+      toast.error(t('account.import.error.generic'))
     }
   }
 
@@ -754,16 +734,7 @@ export default function ImportExtendedPub() {
                       variant="subtle"
                     />
                   </SSHStack>
-                  <Animated.View
-                    style={{
-                      opacity: pulseAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [1, 0.7]
-                      }),
-                      overflow: 'hidden',
-                      transform: [{ scale: scaleAnim }]
-                    }}
-                  >
+                  <Animated.View style={nfcButtonStyle}>
                     <SSButton
                       label={
                         isReading

@@ -70,7 +70,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
         const pages = get().pageHistory
         const { path, params } = page
         const actualPage = formatPageUrl(path, params)
-        const lastPage = () => pages[pages.length - 1]
+        const lastPage = () => pages.at(-1)!
 
         // pop-out page if not a sub-page
         if (pages.length > 0 && !actualPage.startsWith(lastPage())) {

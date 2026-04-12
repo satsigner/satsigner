@@ -2,6 +2,7 @@ import * as Clipboard from 'expo-clipboard'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, TextInput } from 'react-native'
+import { KeychainKind } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -74,7 +75,7 @@ export default function Receive() {
     ])
   )
 
-  const saveLabelTimeoutRef = useRef<NodeJS.Timeout>()
+  const saveLabelTimeoutRef = useRef<NodeJS.Timeout>(undefined)
 
   function formatAddressInGroups(address: string): string {
     return (address.match(/(.{1,4})/g) || []).join(' ')
@@ -144,15 +145,13 @@ export default function Receive() {
       return
     }
 
-    async function loadAddress() {
+    function loadAddress() {
       if (!addressInfo?.address) {
         return
       }
 
-      const [address, qrUri] = await Promise.all([
-        addressInfo.address.asString(),
-        addressInfo.address.toQrUri()
-      ])
+      const { address } = addressInfo
+      const qrUri = `bitcoin:${address}`
 
       setAddressData({
         localAddress: address,
@@ -176,7 +175,7 @@ export default function Receive() {
     loadAddress()
   }, [addressInfo, wallet, account?.keys, account?.addresses, isManualAddress])
 
-  async function generateAnotherAddress() {
+  function generateAnotherAddress() {
     if (!wallet || !account) {
       return
     }
@@ -184,11 +183,12 @@ export default function Receive() {
     setIsGenerating(true)
     try {
       const nextIndex = (localAddressNumber || 0) + 1
-      const newAddressInfo = await wallet.getAddress(nextIndex)
-      const [address, qrUri] = await Promise.all([
-        newAddressInfo?.address ? newAddressInfo.address.asString() : '',
-        newAddressInfo?.address ? newAddressInfo.address.toQrUri() : ''
-      ])
+      const newAddressInfo = wallet.peekAddress(
+        KeychainKind.External,
+        nextIndex
+      )
+      const address = newAddressInfo?.address ?? ''
+      const qrUri = address ? `bitcoin:${address}` : ''
 
       setAddressData({
         localAddress: address,

@@ -11,7 +11,7 @@ export default class Esplora {
   async _call(params: string, method: 'GET' | 'POST' = 'GET', body?: string) {
     try {
       const response = await fetch(this.esploraUrl + params, {
-        body,
+        ...(method !== 'GET' && body !== undefined ? { body } : {}),
         cache: 'no-cache',
         headers: {
           'Content-Type': 'text/plain'
@@ -32,8 +32,8 @@ export default class Esplora {
       }
       // text/plain, text/html, missing content-type, etc. — return as text
       return await response.text()
-    } catch (e) {
-      throw new Error(getVerboseErrorMessage(e), { cause: e })
+    } catch (error) {
+      throw new Error(getVerboseErrorMessage(error), { cause: error })
     }
   }
 
@@ -91,7 +91,7 @@ export default class Esplora {
     return await this._call(`/block/${blockHash}/status`)
   }
 
-  async getBlockTransactions(blockHash: string, startIndex: number = 0) {
+  async getBlockTransactions(blockHash: string, startIndex = 0) {
     return await this._call(`/block/${blockHash}/txs/${startIndex}`)
   }
 
@@ -130,7 +130,7 @@ export default class Esplora {
         break
       }
 
-      const lastTxId = transactions[transactions.length - 1].txid
+      const lastTxId = transactions.at(-1)!.txid
       const nextPage = (await this._call(
         `/address/${address}/txs?after_txid=${lastTxId}`
       )) as EsploraTx[]
@@ -180,8 +180,8 @@ export default class Esplora {
         return true
       }
       return false
-    } catch (e) {
-      throw new Error(getVerboseErrorMessage(e), { cause: e })
+    } catch (error) {
+      throw new Error(getVerboseErrorMessage(error), { cause: error })
     }
   }
 }

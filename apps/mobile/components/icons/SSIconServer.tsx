@@ -10,9 +10,7 @@ export default function SSIconServer({ width, height }: SSIconServerProps) {
       viewBox="0 0 24 24"
       fill="#000"
       stroke="#fff"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
+      strokeWidth={2}
     >
       <Rect width="20" height="8" x="2" y="2" rx="2" ry="2" />
       <Rect width="20" height="8" x="2" y="14" rx="2" ry="2" />

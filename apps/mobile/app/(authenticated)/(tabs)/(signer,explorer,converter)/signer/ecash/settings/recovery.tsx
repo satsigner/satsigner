@@ -29,15 +29,15 @@ export default function EcashRecoveryPage() {
       }
 
       if (!Array.isArray(parsed.mints)) {
-        throw new Error('Invalid mints data')
+        throw new TypeError('Invalid mints data')
       }
 
       if (!Array.isArray(parsed.proofs)) {
-        throw new Error('Invalid proofs data')
+        throw new TypeError('Invalid proofs data')
       }
 
       if (!Array.isArray(parsed.transactions)) {
-        throw new Error('Invalid transactions data')
+        throw new TypeError('Invalid transactions data')
       }
 
       // Validate mint structure

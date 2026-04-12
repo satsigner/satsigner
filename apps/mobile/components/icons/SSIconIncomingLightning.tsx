@@ -12,8 +12,6 @@ export default function SSIconIncomingLightning({ width, height }: IconProps) {
           d="M8.5.5V11m0,0L11,8.5M8.5,11,6,8.5"
           fill="none"
           stroke="#a7ffaf"
-          strokeLinecap="round"
-          strokeLinejoin="round"
           strokeWidth="1"
         />
         <Path
@@ -29,8 +27,6 @@ export default function SSIconIncomingLightning({ width, height }: IconProps) {
           d="M18,2L13.5,9L18,9L13.5,16"
           fill="none"
           stroke="#ffeb3b"
-          strokeLinecap="round"
-          strokeLinejoin="round"
           strokeWidth="1.5"
         />
       </G>

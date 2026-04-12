@@ -26,13 +26,15 @@ export default function TabLayout() {
   const segments = useSegments() as string[]
   const [isShowTab, setShowTab] = useState(false)
 
+  type TabSegment = '(signer)' | '(explorer)' | '(converter)'
+
   function handleTabItemPress(
     props: BottomTabBarButtonProps,
-    segment: string,
+    segment: TabSegment,
     e: GestureResponderEvent
   ) {
     if (
-      segments.indexOf(segment) >= 0 &&
+      segments.includes(segment) &&
       segments.indexOf(segment) < segments.length - 1
     ) {
       router.navigate(`/(authenticated)/(tabs)/${segment}`)
@@ -41,13 +43,22 @@ export default function TabLayout() {
     }
   }
 
-  const renderTabButton = (props: BottomTabBarButtonProps, segment: string) => (
-    <View style={props.style}>
-      <Pressable onPress={(e) => handleTabItemPress(props, segment, e)}>
-        {props.children}
-      </Pressable>
-    </View>
-  )
+  const renderTabButton = (
+    props: BottomTabBarButtonProps,
+    segment: TabSegment
+  ) => {
+    const isSelected = segments.includes(segment)
+    return (
+      <View style={[props.style, styles.tabBarButtonOuter]}>
+        <Pressable
+          onPress={(e) => handleTabItemPress(props, segment, e)}
+          style={[styles.tabBarItem, isSelected && styles.tabBarItemActive]}
+        >
+          {props.children}
+        </Pressable>
+      </View>
+    )
+  }
 
   useEffect(() => {
     setShowTab(showNavigation(currentPath, segments.length))
@@ -58,9 +69,8 @@ export default function TabLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveBackgroundColor: 'black',
           tabBarActiveTintColor: 'white',
-          tabBarItemStyle: styles.tabBarItem,
+          tabBarBackground: () => <View style={styles.tabBarBackground} />,
           tabBarLabelStyle: styles.tabBarLabel,
           tabBarStyle: [styles.tabBar, { display: isShowTab ? 'flex' : 'none' }]
         }}
@@ -116,25 +126,44 @@ const styles = StyleSheet.create({
   iconContainer: {
     alignItems: 'center',
     height: 24,
-    justifyContent: 'flex-start',
-    marginTop: 2,
-    width: 24
+    justifyContent: 'center',
+    width: 14
   },
   tabBar: {
     alignItems: 'center',
-    backgroundColor: '#1F1F1F',
-    borderTopColor: '#323232',
-    elevation: 0,
-    height: 74,
-    paddingBottom: 16,
-    paddingTop: 10,
-    shadowOpacity: 0
+    backgroundColor: 'transparent',
+    borderTopWidth: 0,
+    boxShadow: 'none',
+    height: 82,
+    paddingBottom: 20,
+    paddingTop: 18
+  },
+  tabBarBackground: {
+    backgroundColor: Colors.gray[925],
+    borderTopColor: Colors.gray[850],
+    borderTopWidth: 1,
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0
+  },
+  tabBarButtonOuter: {
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   tabBarItem: {
+    alignItems: 'center',
     borderRadius: 4,
-    marginHorizontal: 16,
-    maxWidth: 90,
-    padding: 4
+    height: 54,
+    justifyContent: 'center',
+    paddingBottom: 2,
+    width: 104
+  },
+  tabBarItemActive: {
+    backgroundColor: 'black',
+    borderColor: Colors.gray[850],
+    borderWidth: 1
   },
   tabBarLabel: {
     fontSize: text.fontSize.xxs,

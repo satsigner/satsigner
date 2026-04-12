@@ -248,64 +248,64 @@ export const useGestures = ({
       // When shouldResetOnInteractionEnd is false, apply decay regardless of scale
       if (!shouldResetOnInteractionEnd || scale.value > 1) {
         // For X translation
-        if (shouldResetOnInteractionEnd && scale.value > 1) {
-          // With boundaries when scale > 1
-          translate.x.value = withDecay(
-            {
-              clamp: [leftLimit - focal.x.value, rightLimit - focal.x.value],
-              rubberBandEffect: true,
-              rubberBandFactor: 0.9,
-              velocity: event.velocityX * 0.6
-            },
-            () => {
-              if (event.velocityX >= event.velocityY) {
-                runOnJS(onPanEnded)(event, success)
-              }
-            }
-          )
-        } else {
-          // Without boundaries
-          translate.x.value = withDecay(
-            {
-              velocity: event.velocityX * 0.6
-            },
-            () => {
-              if (event.velocityX >= event.velocityY) {
-                runOnJS(onPanEnded)(event, success)
-              }
-            }
-          )
-        }
+        translate.x.value =
+          shouldResetOnInteractionEnd && scale.value > 1
+            ? withDecay(
+                {
+                  clamp: [
+                    leftLimit - focal.x.value,
+                    rightLimit - focal.x.value
+                  ],
+                  rubberBandEffect: true,
+                  rubberBandFactor: 0.9,
+                  velocity: event.velocityX * 0.6
+                },
+                () => {
+                  if (event.velocityX >= event.velocityY) {
+                    runOnJS(onPanEnded)(event, success)
+                  }
+                }
+              )
+            : withDecay(
+                {
+                  velocity: event.velocityX * 0.6
+                },
+                () => {
+                  if (event.velocityX >= event.velocityY) {
+                    runOnJS(onPanEnded)(event, success)
+                  }
+                }
+              )
 
         // For Y translation
-        if (shouldResetOnInteractionEnd && scale.value > 1) {
-          // With boundaries when scale > 1
-          translate.y.value = withDecay(
-            {
-              clamp: [topLimit - focal.y.value, bottomLimit - focal.y.value],
-              rubberBandEffect: true,
-              rubberBandFactor: 0.9,
-              velocity: event.velocityY * 0.6
-            },
-            () => {
-              if (event.velocityY > event.velocityX) {
-                runOnJS(onPanEnded)(event, success)
-              }
-            }
-          )
-        } else {
-          // Without boundaries
-          translate.y.value = withDecay(
-            {
-              velocity: event.velocityY * 0.6
-            },
-            () => {
-              if (event.velocityY > event.velocityX) {
-                runOnJS(onPanEnded)(event, success)
-              }
-            }
-          )
-        }
+        translate.y.value =
+          shouldResetOnInteractionEnd && scale.value > 1
+            ? withDecay(
+                {
+                  clamp: [
+                    topLimit - focal.y.value,
+                    bottomLimit - focal.y.value
+                  ],
+                  rubberBandEffect: true,
+                  rubberBandFactor: 0.9,
+                  velocity: event.velocityY * 0.6
+                },
+                () => {
+                  if (event.velocityY > event.velocityX) {
+                    runOnJS(onPanEnded)(event, success)
+                  }
+                }
+              )
+            : withDecay(
+                {
+                  velocity: event.velocityY * 0.6
+                },
+                () => {
+                  if (event.velocityY > event.velocityX) {
+                    runOnJS(onPanEnded)(event, success)
+                  }
+                }
+              )
       } else {
         // End the pan gesture immediately if the scale is not greater than 1 and shouldResetOnInteractionEnd is true
         runOnJS(onPanEnded)(event, success)

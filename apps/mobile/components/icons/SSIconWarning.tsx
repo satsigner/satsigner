@@ -22,14 +22,7 @@ export default function SSIconWarning({
   strokeWidthExclamation = 2
 }: IconProps) {
   return (
-    <Svg
-      width={width}
-      height={height}
-      viewBox="0 0 24 24"
-      fill={fill}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <Svg width={width} height={height} viewBox="0 0 24 24" fill={fill}>
       <Path
         stroke={strokeTriangle || stroke}
         strokeWidth={strokeWidthTriangle || strokeWidth}

@@ -5,7 +5,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type PageParams } from '@/types/navigation/page'
 import { bytes as _bytes } from '@/utils/bytes'
 
-function formatAddress(address: string, character: number = 8) {
+function formatAddress(address: string, character = 8) {
   if (address.length <= 16) {
     return address
   }
@@ -149,7 +149,7 @@ function formatTimeFromNow(milliseconds: number): TimeFromNow {
   return [seconds, 'second']
 }
 
-function formatTxId(txid: string, character: number = 6) {
+function formatTxId(txid: string, character = 6) {
   const beginning = txid.substring(0, character)
   const end = txid.substring(txid.length - character, txid.length)
   return `${beginning}...${end}`

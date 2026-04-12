@@ -1,7 +1,6 @@
-import { FlashList } from '@shopify/flash-list'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { FlashList, FlashListRef } from '@shopify/flash-list'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  Animated,
   Keyboard,
   type StyleProp,
   StyleSheet,
@@ -11,6 +10,12 @@ import {
   View,
   type ViewStyle
 } from 'react-native'
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming
+} from 'react-native-reanimated'
 
 import useKeyboardHeight from '@/hooks/useKeyboardHeight'
 import usePrevious from '@/hooks/usePrevious'
@@ -71,12 +76,12 @@ function SSKeyboardWordSelector({
   const wordList = getWordList(wordListName)
   const { width, height } = useWindowDimensions()
   const [keyboardOpen, setKeyboardOpen] = useState(false)
-  const flashList = useRef<FlashList<WordInfo>>(null)
+  const flashList = useRef<FlashListRef<WordInfo> | null>(null)
 
   const previousWordStart = usePrevious(wordStart)
   const keyboardHeight = useKeyboardHeight()
 
-  const opacityAnimated = useRef(new Animated.Value(0)).current
+  const opacityAnimated = useSharedValue(0)
 
   const data = getMatchingWords(wordStart, wordList)
 
@@ -85,18 +90,15 @@ function SSKeyboardWordSelector({
   }
 
   if (keyboardOpen && visible && data.length > 0) {
-    Animated.timing(opacityAnimated, {
-      duration: 200,
-      toValue: 1,
-      useNativeDriver: true
-    }).start()
+    opacityAnimated.set(withTiming(1, { duration: 200 }))
   } else if (!keyboardOpen || !visible) {
-    Animated.timing(opacityAnimated, {
-      duration: 200,
-      toValue: 0,
-      useNativeDriver: true
-    }).start()
+    opacityAnimated.set(withTiming(0, { duration: 200 }))
   }
+
+  const animatedContainerStyle = useAnimatedStyle(() => ({
+    opacity: opacityAnimated.value,
+    zIndex: interpolate(opacityAnimated.value, [0, 0.0001], [0, 1000])
+  }))
 
   const handleKeyboardShown = useCallback(() => {
     setKeyboardOpen(true)
@@ -122,32 +124,22 @@ function SSKeyboardWordSelector({
     return () => hideSubscription?.remove()
   }, [handleKeyboardHidden])
 
-  const containerStyle = useMemo(() => {
-    let topValue = height
-    // Position directly above keyboard for both iOS and Android
-    if (keyboardHeight > 0) {
-      topValue = height - keyboardHeight - 50
-    }
-
-    return StyleSheet.compose(
-      {
-        ...styles.containerBase,
-        bottom: undefined, // Remove bottom positioning
-        opacity: opacityAnimated,
-        top: topValue - 55, // Subtract the height of the word selector container
-        width, // Use actual screen width
-        zIndex: opacityAnimated.interpolate({
-          inputRange: [0, 0.0001],
-          outputRange: [0, 1000]
-        }) as unknown as number
-      },
-      style
-    )
-  }, [width, height, opacityAnimated, keyboardHeight, style])
+  let topValue = height
+  if (keyboardHeight > 0) {
+    topValue = height - keyboardHeight - 50
+  }
 
   return (
     <Animated.View
-      style={containerStyle}
+      style={[
+        styles.containerBase,
+        {
+          top: topValue - 55,
+          width
+        },
+        animatedContainerStyle,
+        style
+      ]}
       pointerEvents={visible ? 'auto' : 'none'}
     >
       {data.length > 0 ? (
@@ -167,7 +159,6 @@ function SSKeyboardWordSelector({
               </View>
             </TouchableOpacity>
           )}
-          estimatedItemSize={150}
           removeClippedSubviews
         />
       ) : (
@@ -184,19 +175,12 @@ function SSKeyboardWordSelector({
 const styles = StyleSheet.create({
   containerBase: {
     backgroundColor: Colors.white,
+    boxShadow: '0 -20px 3.84px rgba(0, 0, 0, 0.25)',
     color: Colors.black,
-    elevation: 1000, // For Android
     height: 50,
     left: 0,
     position: 'absolute',
     right: 0,
-    shadowColor: '#000', // For iOS
-    shadowOffset: {
-      height: -20,
-      width: 0
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
     top: undefined,
     zIndex: 1000
   },

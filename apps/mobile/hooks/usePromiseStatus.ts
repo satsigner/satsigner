@@ -8,7 +8,7 @@ import {
 } from '@/utils/promises'
 
 type runPromiseProps = {
-  callback: () => Promise<void>
+  action: () => Promise<void>
   onSuccess?: () => Promise<void>
   onError?: () => Promise<void>
   name: string
@@ -21,7 +21,7 @@ export function usePromiseStatuses(promiseNames: string[] = []) {
   )
 
   const runPromise = async ({
-    callback,
+    action,
     onSuccess,
     onError,
     name,
@@ -29,7 +29,7 @@ export function usePromiseStatuses(promiseNames: string[] = []) {
   }: runPromiseProps) => {
     setStatuses((statuses) => setPromisePending(statuses, name))
     try {
-      await callback()
+      await action()
       setStatuses((value) => ({
         ...value,
         [name]: {

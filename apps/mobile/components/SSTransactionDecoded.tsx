@@ -133,11 +133,11 @@ function SSTransactionDecodedBytes({
         </TouchableOpacity>
         <TouchableOpacity
           onPress={handleZoomIn}
-          disabled={textSize === TEXT_SIZES[TEXT_SIZES.length - 1]}
+          disabled={textSize === TEXT_SIZES.at(-1)}
           style={[
             styles.zoomButton,
             {
-              opacity: textSize === TEXT_SIZES[TEXT_SIZES.length - 1] ? 0.5 : 1
+              opacity: textSize === TEXT_SIZES.at(-1) ? 0.5 : 1
             }
           ]}
         >

@@ -2,7 +2,6 @@ import {
   getFocusedRouteNameFromRoute,
   useRoute
 } from '@react-navigation/native'
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, useGlobalSearchParams } from 'expo-router'
 import Drawer from 'expo-router/drawer'
 import { useEffect } from 'react'
@@ -22,6 +21,7 @@ import { useWalletsStore } from '@/store/wallets'
 import type { Account, Key } from '@/types/models/Account'
 import { type PageRoute } from '@/types/navigation/page'
 import { decryptAllAccountKeySecrets } from '@/utils/account'
+import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
 
@@ -113,7 +113,10 @@ export default function AuthenticatedLayout() {
         }
 
         const walletData = !isImportAddress
-          ? await getWalletData(tmpAccount, account.network as Network)
+          ? await getWalletData(
+              tmpAccount,
+              appNetworkToBdkNetwork(account.network)
+            )
           : undefined
         if (walletData) {
           addAccountWallet(account.id, walletData.wallet)

@@ -8,7 +8,10 @@ const BASE85_DECODE = Object.fromEntries(
 export function base85Encode(buf: Buffer): string {
   const pad = (4 - (buf.length % 4)) % 4
   const data = pad
-    ? Buffer.concat([buf, Buffer.alloc(pad)], buf.length + pad)
+    ? Buffer.concat(
+        [new Uint8Array(buf), new Uint8Array(pad)],
+        buf.length + pad
+      )
     : buf
 
   let out = ''

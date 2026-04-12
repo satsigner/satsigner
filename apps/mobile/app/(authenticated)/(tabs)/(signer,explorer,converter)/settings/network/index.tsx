@@ -24,38 +24,36 @@ export default function Features() {
           headerTitle: () => <SSText uppercase>{tn('title')}</SSText>
         }}
       />
-      <SSVStack justifyBetween>
-        <ScrollView>
-          <SSVStack gap="lg">
-            <SSVStack>
-              <SSSettingsCards
-                title={tn('server.title')}
-                description={tn('server.descriptionLabel')}
-                icon={<SSIconServer width={24} height={24} />}
-                onPress={() => {
-                  router.navigate('/settings/network/server')
-                }}
-              />
-              <SSSettingsCards
-                title={tn('explorer.title')}
-                description={tn('explorer.description')}
-                icon={<SSIconMempool width={24} height={24} />}
-                onPress={() => {
-                  router.navigate('/settings/network/explorer')
-                }}
-              />
-              <SSSettingsCards
-                title={tn('config.title')}
-                description={tn('config.description')}
-                icon={<SSIconServerOptions width={24} height={24} />}
-                onPress={() => {
-                  router.navigate('/settings/network/params')
-                }}
-              />
-            </SSVStack>
+      <ScrollView>
+        <SSVStack gap="lg">
+          <SSVStack>
+            <SSSettingsCards
+              title={tn('server.title')}
+              description={tn('server.descriptionLabel')}
+              icon={<SSIconServer width={24} height={24} />}
+              onPress={() => {
+                router.navigate('/settings/network/server')
+              }}
+            />
+            <SSSettingsCards
+              title={tn('explorer.title')}
+              description={tn('explorer.description')}
+              icon={<SSIconMempool width={24} height={24} />}
+              onPress={() => {
+                router.navigate('/settings/network/explorer')
+              }}
+            />
+            <SSSettingsCards
+              title={tn('config.title')}
+              description={tn('config.description')}
+              icon={<SSIconServerOptions width={24} height={24} />}
+              onPress={() => {
+                router.navigate('/settings/network/params')
+              }}
+            />
           </SSVStack>
-        </ScrollView>
-      </SSVStack>
+        </SSVStack>
+      </ScrollView>
     </>
   )
 }

@@ -1,13 +1,15 @@
-import { type ForwardedRef, forwardRef, useMemo } from 'react'
+import { type ForwardedRef, forwardRef } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
+import { descriptorValidityCache } from '@/utils/validation'
 
 type SSTextInputProps = {
   variant?: 'default' | 'outline'
   size?: 'default' | 'small'
   align?: 'center' | 'left'
   actionRight?: React.ReactNode
+  status?: 'valid' | 'invalid'
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
 function SSTextInput(
@@ -16,39 +18,57 @@ function SSTextInput(
     size = 'default',
     align = 'center',
     actionRight,
+    status,
     style,
+    value,
     ...props
   }: SSTextInputProps,
   ref: ForwardedRef<TextInput>
 ) {
-  const textInputStyle = useMemo(() => {
-    const variantStyle =
-      variant === 'default' ? styles.variantDefault : styles.variantOutline
+  const variantStyle =
+    variant === 'default' ? styles.variantDefault : styles.variantOutline
+  const sizeStyle = size === 'default' ? styles.sizeDefault : styles.sizeSmall
+  const alignStyle = align === 'center' ? styles.alignCenter : styles.alignLeft
+  const actionRightPadding = actionRight ? { paddingRight: 48 } : {}
 
-    const sizeStyle = size === 'default' ? styles.sizeDefault : styles.sizeSmall
+  // If no explicit status, derive from cache (populated by validateDescriptor calls)
+  const cachedValidity =
+    status === undefined && value
+      ? descriptorValidityCache.get(value)
+      : undefined
+  const resolvedStatus =
+    status ??
+    (cachedValidity === true
+      ? 'valid'
+      : cachedValidity === false
+        ? 'invalid'
+        : undefined)
 
-    const alignStyle =
-      align === 'center' ? styles.alignCenter : styles.alignLeft
+  const statusStyle =
+    resolvedStatus === 'valid'
+      ? styles.statusValid
+      : resolvedStatus === 'invalid'
+        ? styles.statusInvalid
+        : {}
 
-    const actionRightPadding = actionRight ? { paddingRight: 48 } : {}
-
-    return StyleSheet.compose(
-      {
-        ...styles.textInputBase,
-        ...variantStyle,
-        ...sizeStyle,
-        ...alignStyle,
-        ...actionRightPadding
-      },
-      style
-    )
-  }, [variant, size, align, actionRight, style])
+  const textInputStyle = [
+    styles.textInputBase,
+    variantStyle,
+    sizeStyle,
+    alignStyle,
+    actionRightPadding,
+    statusStyle,
+    style
+  ]
 
   return (
     <View style={styles.containerBase}>
       <TextInput
         ref={ref}
         placeholderTextColor={Colors.gray[400]}
+        autoCorrect={false}
+        spellCheck={false}
+        value={value}
         style={textInputStyle}
         {...props}
       />
@@ -83,6 +103,14 @@ const styles = StyleSheet.create({
   sizeSmall: {
     fontSize: Sizes.textInput.fontSize.small,
     height: Sizes.textInput.height.small
+  },
+  statusInvalid: {
+    borderColor: Colors.error,
+    borderWidth: 1
+  },
+  statusValid: {
+    borderColor: Colors.mainGreen,
+    borderWidth: 1
   },
   textInputBase: {
     borderRadius: Sizes.textInput.borderRadius,

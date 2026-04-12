@@ -65,7 +65,7 @@ export function isBBQRFragment(part: string): boolean {
 export function createBBQRChunks(
   data: Uint8Array,
   fileType: BBQRFileType = BBQRFileTypes.PSBT,
-  maxChunkSize: number = 400
+  maxChunkSize = 400
 ): string[] {
   // Convert our FileType to the official library's string format
   const officialFileType = fileType as OfficialFileType
@@ -88,14 +88,10 @@ export function createBBQRChunks(
 
     // For very small chunk sizes (which should create many simple QR codes),
     // we need to be more realistic about what the BBQR library can handle
-    if (maxChunkSize <= 75 && targetChunks > 12) {
-      // For very small chunks, aim for a reasonable number that the library can handle
-      // but still more than larger chunk sizes would create
-      targetChunks = Math.max(8, Math.min(targetChunks, 15))
-    } else {
-      // Limit maximum chunks to prevent impossible scenarios
-      targetChunks = Math.min(targetChunks, 50)
-    }
+    targetChunks =
+      maxChunkSize <= 75 && targetChunks > 12
+        ? Math.max(8, Math.min(targetChunks, 15))
+        : Math.min(targetChunks, 50)
 
     // Be more strict about honoring the user's QR density choice
     // Only give minimal flexibility to handle QR version constraints

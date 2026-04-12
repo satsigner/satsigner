@@ -15,8 +15,6 @@ export default function SSIconChevronLeft({
         transform="translate(-0.25 -0.46)"
         fill="none"
         stroke={stroke}
-        strokeLinecap="round"
-        strokeLinejoin="round"
         strokeWidth="1.5"
       />
     </Svg>

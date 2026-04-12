@@ -398,7 +398,7 @@ export function extractTransactionIdFromPSBT(
     if (unsignedTx) {
       const txBuffer = unsignedTx.toBuffer()
       const hash = bitcoinjs.crypto.hash256(txBuffer)
-      return hash.reverse().toString('hex')
+      return Buffer.from(hash.toReversed()).toString('hex')
     }
   }
   return null
@@ -418,7 +418,7 @@ export function extractTransactionDataFromPSBTEnhanced(
   const inputs = psbt.data.inputs.map((input, index) => {
     const psbtInput = input as PsbtInput
     const txInput = psbt.txInputs[index]
-    const txid = txInput.hash.reverse().toString('hex')
+    const txid = Buffer.from(txInput.hash.toReversed()).toString('hex')
     const vout = txInput.index
 
     let value = 0
@@ -584,7 +584,7 @@ export function getMultisigInfoFromPsbt(psbtBase64: string) {
   }
 
   const [mOp] = decompiled
-  const nOp = decompiled[decompiled.length - 2]
+  const nOp = decompiled.at(-2)!
 
   const m = bitcoinjs.script.number.decode(
     Buffer.isBuffer(mOp) ? mOp : Buffer.from([mOp - 80])
@@ -700,7 +700,7 @@ export function validatePsbt(
   }
 
   for (const [index, txInput] of psbt.txInputs.entries()) {
-    const txid = txInput.hash.reverse().toString('hex')
+    const txid = Buffer.from(txInput.hash.toReversed()).toString('hex')
     const vout = txInput.index
     const utxoKey = `${txid}:${vout}`
 
@@ -749,6 +749,48 @@ export function validatePsbt(
   }
 
   return { errors, warnings }
+}
+
+export function validateNormalizedPsbt(
+  signedPsbt: string,
+  account: Account,
+  cosignerIndex: number,
+  decryptedKey?: Key
+): boolean | null {
+  if (!signedPsbt || signedPsbt.trim().length === 0) {
+    return null
+  }
+  try {
+    const psbtToValidate = normalizePsbtToBase64(signedPsbt)
+    return account.policyType === 'multisig'
+      ? validateSignedPSBTForCosigner(
+          psbtToValidate,
+          account,
+          cosignerIndex,
+          decryptedKey
+        )
+      : validateSignedPSBT(psbtToValidate, account)
+  } catch {
+    return false
+  }
+}
+
+export function normalizePsbtToBase64(psbt: string): string {
+  if (psbt.toLowerCase().startsWith('70736274ff')) {
+    return Buffer.from(psbt, 'hex').toString('base64')
+  }
+  if (
+    !psbt.startsWith('cHNidP') &&
+    /^[a-fA-F0-9]+$/.test(psbt) &&
+    psbt.length > 100
+  ) {
+    try {
+      return Buffer.from(psbt, 'hex').toString('base64')
+    } catch {
+      return psbt
+    }
+  }
+  return psbt
 }
 
 export function validateSignedPSBT(
@@ -1061,12 +1103,7 @@ export function findDerivedPublicKey(
   psbt: bitcoinjs.Psbt,
   fingerprint: string
 ) {
-  for (
-    let inputIndex = 0;
-    inputIndex < psbt.data.inputs.length;
-    inputIndex += 1
-  ) {
-    const input = psbt.data.inputs[inputIndex]
+  for (const input of psbt.data.inputs) {
     const publicKey = findPublicKeyInInput(input, fingerprint)
     if (publicKey) {
       return publicKey
@@ -1084,12 +1121,7 @@ function findPublicKeyInInput(
     return ''
   }
 
-  for (
-    let derivIndex = 0;
-    derivIndex < input.bip32Derivation.length;
-    derivIndex += 1
-  ) {
-    const derivation = input.bip32Derivation[derivIndex]
+  for (const derivation of input.bip32Derivation) {
     const derivationFingerprint = derivation.masterFingerprint.toString('hex')
 
     if (derivationFingerprint === fingerprint) {

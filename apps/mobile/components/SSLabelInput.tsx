@@ -25,7 +25,7 @@ function SSLabelInput({
   ])
 
   const [selectedTags, setSelectedTags] = useState([] as string[])
-  const [tags, setLocalTags] = useState(getTags())
+  const [tags, setLocalTags] = useState(() => getTags())
   const [label, setLabel] = useState('')
 
   function saveLabel() {

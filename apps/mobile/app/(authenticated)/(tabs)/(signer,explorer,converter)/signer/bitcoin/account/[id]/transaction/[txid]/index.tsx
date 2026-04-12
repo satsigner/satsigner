@@ -48,7 +48,7 @@ export default function TxDetails() {
     })
   )
   const ownAddresses = useMemo(
-    () => new Set(account?.addresses?.map((a) => a.address) ?? []),
+    () => new Set(account?.addresses?.map((a) => a.address)),
     [account]
   )
 
@@ -245,11 +245,8 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
     state.btcPrice
   ])
 
-  const [lastKnownBlockHeight, getBlockchainHeight] = useBlockchainStore(
-    useShallow((state) => [
-      state.lastKnownBlockHeight,
-      state.getBlockchainHeight
-    ])
+  const lastKnownBlockHeight = useBlockchainStore(
+    (state) => state.lastKnownBlockHeight
   )
 
   const [currencyUnit, useZeroPadding] = useSettingsStore(
@@ -286,10 +283,6 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
 
     if (tx.vin) {
       setInputsCount(tx.vin.length)
-    }
-
-    if (tx.blockHeight && lastKnownBlockHeight === 0) {
-      getBlockchainHeight()
     }
   }
 

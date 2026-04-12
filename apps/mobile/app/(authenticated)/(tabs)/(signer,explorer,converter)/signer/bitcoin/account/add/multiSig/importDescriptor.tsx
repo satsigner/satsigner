@@ -1,4 +1,4 @@
-import { CameraView, useCameraPermissions } from 'expo-camera/next'
+import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
@@ -115,19 +115,18 @@ export default function ImportDescriptor() {
     validateDescriptorInput(text)
   }
 
-  function handlePaste() {
-    Clipboard.getStringAsync()
-      .then((text) => {
-        if (text) {
-          handleDescriptorChange(text)
-          toast.success(t('watchonly.success.clipboardPasted'))
-        } else {
-          toast.error(t('watchonly.error.emptyClipboard'))
-        }
-      })
-      .catch(() => {
-        toast.error(t('watchonly.error.clipboardPaste'))
-      })
+  async function handlePaste() {
+    try {
+      const text = await Clipboard.getStringAsync()
+      if (text) {
+        handleDescriptorChange(text)
+        toast.success(t('watchonly.success.clipboardPasted'))
+      } else {
+        toast.error(t('watchonly.error.emptyClipboard'))
+      }
+    } catch {
+      toast.error(t('watchonly.error.clipboardPaste'))
+    }
   }
 
   function handleScanQR() {
@@ -138,23 +137,22 @@ export default function ImportDescriptor() {
     setCameraModalVisible(true)
   }
 
-  function handleScanNFC() {
+  async function handleScanNFC() {
     if (!isAvailable) {
       toast.error(t('watchonly.read.nfcNotAvailable'))
       return
     }
-    readNFCTag()
-      .then((data) => {
-        if (data && typeof data === 'string') {
-          handleDescriptorChange(data)
-          toast.success(t('watchonly.success.nfcRead'))
-        } else {
-          toast.error(t('watchonly.read.nfcErrorNoData'))
-        }
-      })
-      .catch(() => {
+    try {
+      const data = await readNFCTag()
+      if (data && typeof data === 'string') {
+        handleDescriptorChange(data)
+        toast.success(t('watchonly.success.nfcRead'))
+      } else {
         toast.error(t('watchonly.read.nfcErrorNoData'))
-      })
+      }
+    } catch {
+      toast.error(t('watchonly.read.nfcErrorNoData'))
+    }
   }
 
   function parseMultisigDescriptor(descriptorText: string) {
@@ -181,7 +179,7 @@ export default function ImportDescriptor() {
         throw new Error('Invalid multisig descriptor format')
       }
 
-      const [, , requiredStr, keysStr] = multiMatch
+      const [requiredStr, keysStr] = multiMatch.slice(2)
       const keysRequired = parseInt(requiredStr, 10)
       const keys = keysStr.split(',').map((key) => key.trim())
 

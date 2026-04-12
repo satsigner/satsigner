@@ -1,12 +1,14 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useMemo, useRef } from 'react'
-import {
-  Animated,
-  Image,
-  StyleSheet,
-  useWindowDimensions,
-  View
-} from 'react-native'
+import { useEffect, useMemo } from 'react'
+import { Image, StyleSheet, useWindowDimensions, View } from 'react-native'
+import Animated, {
+  interpolate,
+  interpolateColor,
+  type SharedValue,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue
+} from 'react-native-reanimated'
 
 import SSText from '@/components/SSText'
 import { slides } from '@/constants/slides'
@@ -16,10 +18,90 @@ import { white } from '@/styles/colors'
 
 const SPACING = 30
 
+function CarouselCard({
+  item,
+  index,
+  scrollX,
+  cardWidth,
+  snapInterval
+}: {
+  item: { title: string; description: string; image: number }
+  index: number
+  scrollX: SharedValue<number>
+  cardWidth: number
+  snapInterval: number
+}) {
+  const animatedStyle = useAnimatedStyle(() => {
+    const inputRange = [
+      (index - 1) * snapInterval,
+      index * snapInterval,
+      (index + 1) * snapInterval
+    ]
+    return {
+      opacity: interpolate(scrollX.value, inputRange, [0.2, 1, 0.2], 'clamp'),
+      transform: [
+        {
+          scale: interpolate(
+            scrollX.value,
+            inputRange,
+            [0.95, 1, 0.95],
+            'clamp'
+          )
+        }
+      ]
+    }
+  })
+
+  return (
+    <Animated.View
+      style={[styles.cardContainer, { width: cardWidth }, animatedStyle]}
+    >
+      <SSVStack justifyBetween style={styles.cardContent}>
+        <SSVStack itemsCenter style={styles.textContainer}>
+          <SSText size="lg" style={styles.titleText}>
+            {item.title}
+          </SSText>
+          <SSText size="lg" color="muted" center style={styles.descriptionText}>
+            {item.description}
+          </SSText>
+        </SSVStack>
+
+        <View style={[styles.card, { width: cardWidth }]}>
+          <Image source={item.image} style={styles.image} />
+        </View>
+      </SSVStack>
+    </Animated.View>
+  )
+}
+
+function DotIndicator({
+  index,
+  scrollX,
+  snapInterval
+}: {
+  index: number
+  scrollX: SharedValue<number>
+  snapInterval: number
+}) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      scrollX.value,
+      [
+        (index - 1) * snapInterval,
+        index * snapInterval,
+        (index + 1) * snapInterval
+      ],
+      ['gray', 'white', 'gray']
+    )
+  }))
+
+  return <Animated.View style={[styles.dot, animatedStyle]} />
+}
+
 export default function UpComing() {
   const router = useRouter()
   const params = useLocalSearchParams()
-  const scrollX = useRef(new Animated.Value(0)).current
+  const scrollX = useSharedValue(0)
   const { width } = useWindowDimensions()
   const CARD_WIDTH = width * 0.6
   const SNAP_INTERVAL = CARD_WIDTH + SPACING
@@ -34,6 +116,12 @@ export default function UpComing() {
       router.navigate('/')
     }
   }, [data, router])
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollX.set(event.contentOffset.x)
+    }
+  })
 
   return (
     <>
@@ -60,80 +148,29 @@ export default function UpComing() {
             contentContainerStyle={{
               paddingHorizontal: (width - CARD_WIDTH - SPACING) / 2
             }}
-            onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-              { useNativeDriver: false }
+            onScroll={scrollHandler}
+            scrollEventThrottle={16}
+            renderItem={({ item, index }) => (
+              <CarouselCard
+                item={item}
+                index={index}
+                scrollX={scrollX}
+                cardWidth={CARD_WIDTH}
+                snapInterval={SNAP_INTERVAL}
+              />
             )}
-            renderItem={({ item, index }) => {
-              const inputRange = [
-                (index - 1) * SNAP_INTERVAL,
-                index * SNAP_INTERVAL,
-                (index + 1) * SNAP_INTERVAL
-              ]
-
-              const scale = scrollX.interpolate({
-                extrapolate: 'clamp',
-                inputRange,
-                outputRange: [0.95, 1, 0.95]
-              })
-
-              const opacity = scrollX.interpolate({
-                extrapolate: 'clamp',
-                inputRange,
-                outputRange: [0.2, 1, 0.2]
-              })
-
-              return (
-                <Animated.View
-                  style={[
-                    styles.cardContainer,
-                    { opacity, transform: [{ scale }], width: CARD_WIDTH }
-                  ]}
-                >
-                  <SSVStack justifyBetween style={styles.cardContent}>
-                    <SSVStack itemsCenter style={styles.textContainer}>
-                      <SSText size="lg" style={styles.titleText}>
-                        {item.title}
-                      </SSText>
-                      <SSText
-                        size="lg"
-                        color="muted"
-                        center
-                        style={styles.descriptionText}
-                      >
-                        {item.description}
-                      </SSText>
-                    </SSVStack>
-
-                    <View style={[styles.card, { width: CARD_WIDTH }]}>
-                      <Image source={item.image} style={styles.image} />
-                    </View>
-                  </SSVStack>
-                </Animated.View>
-              )
-            }}
           />
         </View>
 
         <View style={styles.dotContainer}>
-          {data.map((_, index) => {
-            const dotColor = scrollX.interpolate({
-              extrapolate: 'clamp',
-              inputRange: [
-                (index - 1) * SNAP_INTERVAL,
-                index * SNAP_INTERVAL,
-                (index + 1) * SNAP_INTERVAL
-              ],
-              outputRange: ['gray', 'white', 'gray']
-            })
-
-            return (
-              <Animated.View
-                key={index}
-                style={[styles.dot, { backgroundColor: dotColor }]}
-              />
-            )
-          })}
+          {data.map((_, index) => (
+            <DotIndicator
+              key={index}
+              index={index}
+              scrollX={scrollX}
+              snapInterval={SNAP_INTERVAL}
+            />
+          ))}
         </View>
       </SSVStack>
     </>

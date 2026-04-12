@@ -108,8 +108,6 @@ export default function SSIconScriptsP2pkh({ width, height }: IconProps) {
         d="M15,23.94v8H84v-8"
         fill="none"
         stroke="rgba(191,191,191,0.24)"
-        strokeLinecap="round"
-        strokeLinejoin="round"
         strokeWidth="1"
       />
       <Path
@@ -118,8 +116,6 @@ export default function SSIconScriptsP2pkh({ width, height }: IconProps) {
         d="M87,23.94v8H259v-8"
         fill="none"
         stroke="rgba(191,191,191,0.24)"
-        strokeLinecap="round"
-        strokeLinejoin="round"
         strokeWidth="1"
       />
     </Svg>

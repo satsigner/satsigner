@@ -29,10 +29,7 @@ export type ExtendedTransaction = Omit<Transaction, 'vin' | 'vout'> & {
   vout: ExtendedVout[] // Use ExtendedVout
 }
 
-export function useInputTransactions(
-  inputs: Map<string, Utxo>,
-  levelDeep: number = 2
-) {
+export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
   const [selectedNetwork, configs] = useBlockchainStore(
     useShallow((state) => [state.selectedNetwork, state.configs])
   )
@@ -277,7 +274,7 @@ export function useInputTransactions(
                   }
                   // Collect previous transaction IDs needed for input values
                   const prevTxOutputs = parsedTx.ins.map((input) => ({
-                    txid: input.hash.slice().reverse().toString('hex'),
+                    txid: Buffer.from(input.hash.toReversed()).toString('hex'),
                     vout: input.index
                   }))
                   const uniquePrevTxids = [
@@ -478,8 +475,8 @@ export function useInputTransactions(
       }
 
       setLoading(false)
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)))
+    } catch (error) {
+      setError(error instanceof Error ? error : new Error(String(error)))
       setLoading(false)
     } finally {
       // Ensure client is closed if it was initialized

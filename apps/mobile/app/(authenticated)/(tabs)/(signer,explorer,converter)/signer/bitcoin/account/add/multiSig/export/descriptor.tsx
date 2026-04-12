@@ -1,8 +1,7 @@
-import { Descriptor } from 'bdk-rn'
-import { KeychainKind, type Network as BDKNetwork } from 'bdk-rn/lib/lib/enums'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
+import { KeychainKind, walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -22,7 +21,10 @@ import type {
 } from '@/types/models/Account'
 import { getDescriptorsFromKey } from '@/utils/bip32'
 import { getPublicDescriptorFromMnemonic } from '@/utils/bip39'
-import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
+import {
+  appNetworkToBdkNetwork,
+  getDerivationPathFromScriptVersion
+} from '@/utils/bitcoin'
 import { shareFile } from '@/utils/filesystem'
 
 export default function DescriptorPage() {
@@ -41,7 +43,7 @@ export default function DescriptorPage() {
     useState<ScriptVersionType>('P2WPKH')
 
   useEffect(() => {
-    async function getDescriptor() {
+    function getDescriptor() {
       if (!keyIndex) {
         return
       }
@@ -76,7 +78,7 @@ export default function DescriptorPage() {
             scriptVersion,
             KeychainKind.External,
             secret.passphrase,
-            network as BDKNetwork
+            appNetworkToBdkNetwork(network)
           )
         } else if (secret.extendedPublicKey && secret.fingerprint) {
           // Generate descriptor from available data (fingerprint, script version, and public key)
@@ -85,7 +87,7 @@ export default function DescriptorPage() {
               secret.extendedPublicKey,
               secret.fingerprint,
               key.scriptVersion || 'P2WPKH',
-              network as BDKNetwork
+              appNetworkToBdkNetwork(network)
             )
             foundDescriptor = descriptors.externalDescriptor
             setDescriptor(descriptors.externalDescriptor)
@@ -125,13 +127,14 @@ export default function DescriptorPage() {
                 externalDescriptor = `wpkh(${keyPart})`
             }
 
-            // Add checksum using BDK
+            // Validate descriptor with BDK
             try {
-              const descriptor = await new Descriptor().create(
+              walletNameFromDescriptor(
                 externalDescriptor,
-                network as BDKNetwork
+                undefined,
+                appNetworkToBdkNetwork(network)
               )
-              foundDescriptor = descriptor ? await descriptor.asString() : ''
+              foundDescriptor = externalDescriptor
               setDescriptor(foundDescriptor)
             } catch {
               foundDescriptor = externalDescriptor

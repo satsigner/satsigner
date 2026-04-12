@@ -62,30 +62,19 @@ function AddressDetails() {
 
   const addressUtxoInputs = useMemo(() => addressUtxos || [], [addressUtxos])
 
-  const getBlockchainHeight = useBlockchainStore(
-    (state) => state.getBlockchainHeight
+  const blockchainHeight = useBlockchainStore(
+    (state) => state.lastKnownBlockHeight
   )
 
   const [btcPrice, fiatCurrency] = usePriceStore(
     useShallow((state) => [state.btcPrice, state.fiatCurrency])
   )
 
-  const [blockchainHeight, setBlockchainHeight] = useState<number>(0)
-
   const { width, height } = useWindowDimensions()
 
   const mainLayoutHorizontalPadding = 12
   const GRAPH_HEIGHT = height * 0.44
   const GRAPH_WIDTH = width * ((100 - mainLayoutHorizontalPadding) / 100)
-
-  async function refreshBlockchainHeight() {
-    const height = await getBlockchainHeight()
-    setBlockchainHeight(height)
-  }
-
-  useEffect(() => {
-    refreshBlockchainHeight()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!address) {

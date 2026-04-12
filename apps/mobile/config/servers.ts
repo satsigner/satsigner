@@ -1,8 +1,3 @@
-import {
-  type BlockchainElectrumConfig,
-  type BlockchainEsploraConfig
-} from 'bdk-rn/lib/lib/enums'
-
 import { type Backend, type ProxyConfig } from '@/types/settings/blockchain'
 
 const MEMPOOL_MAINNET_URL = 'https://mempool.space/api'
@@ -19,35 +14,21 @@ type CustomBlockchainConfig = {
   proxy?: ProxyConfig
 }
 
+type BlockchainConfig = {
+  url: string
+  backend: Backend
+  stopGap: number
+}
+
 function getBlockchainConfig(
   backend: Backend,
   url: string,
   options: CustomBlockchainConfig = {}
-): BlockchainElectrumConfig | BlockchainEsploraConfig {
-  const proxyString = options.proxy?.enabled
-    ? `${options.proxy.host}:${options.proxy.port}`
-    : null
-
-  switch (backend) {
-    case 'electrum':
-      return {
-        retry: options.retries || 5,
-        sock5: proxyString,
-        stopGap: options.stopGap || 20,
-        timeout: options.timeout || 5,
-        url,
-        validateDomain: false
-      }
-    case 'esplora':
-      return {
-        baseUrl: url,
-        concurrency: 4,
-        proxy: proxyString,
-        stopGap: options.stopGap || 20,
-        timeout: options.timeout || 5
-      }
-    default:
-      throw new Error('unreachable')
+): BlockchainConfig {
+  return {
+    backend,
+    stopGap: options.stopGap || DEFAULT_STOP_GAP,
+    url
   }
 }
 
@@ -60,3 +41,5 @@ export {
   MEMPOOL_SIGNET_URL,
   MEMPOOL_TESTNET_URL
 }
+
+export type { BlockchainConfig }

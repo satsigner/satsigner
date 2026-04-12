@@ -170,7 +170,7 @@ export function useConnectionTest() {
     }
 
     function timeoutPromise(): Promise<never> {
-      return new Promise((_, reject) => {
+      return new Promise((_resolve, reject) => {
         setTimeout(
           () => reject(new Error('Connection test timeout')),
           connectionTimeout

@@ -1,16 +1,19 @@
-import { type AddressInfo } from 'bdk-rn/lib/classes/Bindings'
-import { type Wallet } from 'bdk-rn/lib/classes/Wallet'
 import { useEffect, useState } from 'react'
+import {
+  type AddressInfo,
+  KeychainKind,
+  type BdkWallet
+} from 'react-native-bdk-sdk'
 
 import { type Account } from '@/types/models/Account'
 
-function useGetFirstUnusedAddress(wallet: Wallet, account: Account) {
+function useGetFirstUnusedAddress(wallet: BdkWallet, account: Account) {
   const [firstUnusedAddress, setUnusedFirstAddress] = useState('')
   const [firstUnusedAddressInfo, setUnusedFirstAddressInfo] =
     useState<AddressInfo | null>(null)
   const [addressIndex, setAddressIndex] = useState(0)
 
-  async function updateFirstAddress() {
+  function updateFirstAddress() {
     const seenAddresses: Record<string, boolean> = {}
 
     if (!account) {
@@ -36,8 +39,8 @@ function useGetFirstUnusedAddress(wallet: Wallet, account: Account) {
       index += 1
 
       try {
-        addrInfo = await wallet.getAddress(index)
-        newAddress = await addrInfo.address.asString()
+        addrInfo = wallet.peekAddress(KeychainKind.External, index)
+        newAddress = addrInfo.address
 
         if (seenAddresses[newAddress] !== undefined) {
           // Address already used, continue searching

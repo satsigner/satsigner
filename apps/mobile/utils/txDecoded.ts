@@ -137,12 +137,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
   getInputScript(index: number): TxDecodedField {
     const { script } = this.ins[index]
     const hex = script.toString('hex')
-    let value
-    if (hex === '') {
-      value = ''
-    } else {
-      value = bitcoinjs.script.toASM(script)
-    }
+    const value = hex === '' ? '' : bitcoinjs.script.toASM(script)
     const field = TxField.TxInScript
     const placeholders = { input: index }
     return { field, hex, placeholders, value }

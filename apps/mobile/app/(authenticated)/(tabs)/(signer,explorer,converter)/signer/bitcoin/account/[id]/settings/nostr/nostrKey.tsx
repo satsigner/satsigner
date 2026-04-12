@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Image,
@@ -33,6 +33,8 @@ import type { NostrKind0Profile } from '@/types/models/Nostr'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { deriveNpubFromNsec, generateColorFromNpub } from '@/utils/nostr'
 
+const COMMON_KEYS_LOAD_TIMEOUT_MS = 45_000
+
 type QrModalContent = {
   type: 'npub' | 'nsec'
   value: string
@@ -55,10 +57,14 @@ function NostrKeys() {
   )
   const [nsecRevealed, setNsecRevealed] = useState(false)
   const [commonNsecRevealed, setCommonNsecRevealed] = useState(false)
-  const [loadingCommonKeys, setLoadingCommonKeys] = useState(false)
+  const [loadingCommonKeys, setLoadingCommonKeys] = useState(
+    () => !(account?.nostr?.commonNsec && account?.nostr?.commonNpub)
+  )
+  const [commonKeysError, setCommonKeysError] = useState<string | null>(null)
+  const commonKeysLoadRef = useRef(false)
 
   const derivedNpub = useMemo(
-    () => deriveNpubFromNsec(deviceNsec),
+    () => deriveNpubFromNsec(deviceNsec.trim()),
     [deviceNsec]
   )
 
@@ -90,6 +96,11 @@ function NostrKeys() {
       setDeviceColor(NOSTR_FALLBACK_NPUB_COLOR)
     }
   }, [derivedNpub])
+
+  const storedDeviceNsec = account?.nostr?.deviceNsec ?? ''
+  useEffect(() => {
+    setNsec(storedDeviceNsec)
+  }, [accountId, storedDeviceNsec])
 
   useEffect(() => {
     if (account?.nostr?.deviceDisplayName || account?.nostr?.devicePicture) {
@@ -159,8 +170,8 @@ function NostrKeys() {
       } else {
         toast.info(t('account.nostrSync.fetchKind0NotFound'))
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
       const isNoRelay =
         message.includes('No relay') ||
         message.includes('relays could be connected') ||
@@ -175,47 +186,104 @@ function NostrKeys() {
     }
   }
 
-  async function loadCommonNostrKeys() {
-    if (loadingCommonKeys || !account || !accountId) {
+  const loadCommonNostrKeys = useCallback(async () => {
+    if (commonKeysLoadRef.current || !accountId) {
       return
     }
 
+    const acc = useAccountsStore
+      .getState()
+      .accounts.find((a) => a.id === accountId)
+    if (!acc?.nostr) {
+      setLoadingCommonKeys(false)
+      return
+    }
+    if (acc.nostr.commonNsec || acc.nostr.commonNpub) {
+      setLoadingCommonKeys(false)
+      return
+    }
+
+    commonKeysLoadRef.current = true
+    setCommonKeysError(null)
     setLoadingCommonKeys(true)
     try {
-      const keys = await generateCommonNostrKeys(account)
+      const keys = await Promise.race([
+        generateCommonNostrKeys(acc),
+        new Promise<undefined>((_resolve, reject) => {
+          setTimeout(() => {
+            reject(new Error(t('account.nostrSync.commonKeysTimeout')))
+          }, COMMON_KEYS_LOAD_TIMEOUT_MS)
+        })
+      ])
       if (keys && 'commonNsec' in keys && 'commonNpub' in keys) {
-        updateAccountNostr(account.id, {
+        updateAccountNostr(acc.id, {
           commonNpub: keys.commonNpub,
           commonNsec: keys.commonNsec,
           lastUpdated: new Date()
         })
-      } else if (keys && 'externalDescriptor' in keys) {
-        toast.error('Common keys are not available for watch-only accounts')
+      } else {
+        setCommonKeysError(t('account.nostrSync.commonKeysLoadError'))
       }
-    } catch {
-      toast.error('Failed to generate common keys')
+    } catch (error) {
+      setCommonKeysError(
+        error instanceof Error
+          ? error.message
+          : t('account.nostrSync.commonKeysLoadError')
+      )
     } finally {
+      commonKeysLoadRef.current = false
       setLoadingCommonKeys(false)
     }
-  }
+  }, [accountId, generateCommonNostrKeys, updateAccountNostr])
+
+  useEffect(() => {
+    if (!accountId || !account || account.nostr) {
+      return
+    }
+    updateAccountNostr(accountId, {
+      autoSync: false,
+      commonNpub: '',
+      commonNsec: '',
+      deviceNpub: '',
+      deviceNsec: '',
+      dms: [],
+      lastUpdated: new Date(),
+      relays: [],
+      syncStart: new Date(),
+      trustedMemberDevices: []
+    })
+  }, [account, accountId, updateAccountNostr])
 
   useEffect(() => {
     if (
-      account &&
-      accountId &&
-      account.nostr &&
-      !account.nostr.commonNsec &&
-      !account.nostr.commonNpub
+      !accountId ||
+      !account?.nostr ||
+      account.nostr.commonNsec ||
+      account.nostr.commonNpub
     ) {
-      loadCommonNostrKeys()
+      return
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- run only when accountId changes to avoid re-running on account ref change
-  }, [accountId])
+    loadCommonNostrKeys()
+  }, [
+    account?.nostr?.commonNpub,
+    account?.nostr?.commonNsec,
+    account?.nostr,
+    accountId,
+    loadCommonNostrKeys
+  ])
+
+  useEffect(() => {
+    if (account?.nostr?.commonNsec && account?.nostr?.commonNpub) {
+      setLoadingCommonKeys(false)
+      setCommonKeysError(null)
+    }
+  }, [account?.nostr?.commonNpub, account?.nostr?.commonNsec])
 
   async function generateNewNsec() {
     try {
       const keys = await NostrAPI.generateNostrKeys()
       if (!keys) {
+        toast.error(t('account.nostrSync.errorGenerateDeviceKeys'))
         return
       }
       setNsec(keys.nsec)
@@ -239,26 +307,42 @@ function NostrKeys() {
   }
 
   function saveChanges() {
-    if (!accountId || !account?.nostr || !derivedNpub) {
+    if (!accountId) {
       return
     }
-    const nsecChanged = account.nostr.deviceNsec !== deviceNsec
+
+    const latest = useAccountsStore
+      .getState()
+      .accounts.find((a) => a.id === accountId)
+    if (!latest?.nostr) {
+      return
+    }
+
+    const trimmed = deviceNsec.trim()
+    const npub = deriveNpubFromNsec(trimmed)
+    if (!trimmed || !npub) {
+      toast.error(t('account.nostrSync.invalidDeviceNsec'))
+      return
+    }
+
+    const base = latest.nostr
+    const prevNsec = (base.deviceNsec ?? '').trim()
+    const nsecChanged = prevNsec !== trimmed
+
     const updates: Parameters<typeof updateAccountNostr>[1] = {
-      ...account.nostr,
-      deviceNpub: derivedNpub,
-      deviceNsec,
+      ...base,
+      deviceNpub: npub,
+      deviceNsec: trimmed,
       lastUpdated: new Date()
     }
     if (nsecChanged) {
       updates.deviceDisplayName = undefined
       updates.devicePicture = undefined
-      const profiles = { ...(account.nostr.npubProfiles || {}) }
-      if (account.nostr.deviceNpub) {
-        delete profiles[account.nostr.deviceNpub]
+      const profiles = { ...(base.npubProfiles || {}) }
+      if (base.deviceNpub) {
+        delete profiles[base.deviceNpub]
       }
-      if (derivedNpub) {
-        delete profiles[derivedNpub]
-      }
+      delete profiles[npub]
       updates.npubProfiles =
         Object.keys(profiles).length > 0 ? profiles : undefined
     } else if (kind0Profile) {
@@ -266,6 +350,7 @@ function NostrKeys() {
       updates.devicePicture = kind0Profile.picture
     }
     updateAccountNostr(accountId, updates)
+    toast.success(t('account.nostrSync.keysSaved'))
     router.back()
   }
 
@@ -384,13 +469,28 @@ function NostrKeys() {
                       </SSTextClipboard>
                     </SSVStack>
                   </>
-                ) : (
+                ) : loadingCommonKeys ? (
                   <SSHStack style={styles.keyContainerLoading} gap="sm">
                     <ActivityIndicator color={Colors.white} />
                     <SSText uppercase color="white">
                       {t('account.nostrSync.loadingKeys')}
                     </SSText>
                   </SSHStack>
+                ) : (
+                  <SSVStack gap="sm" style={styles.keyContainerLoading}>
+                    <SSText center color="muted">
+                      {commonKeysError ??
+                        t('account.nostrSync.commonKeysLoadError')}
+                    </SSText>
+                    <SSButton
+                      variant="default"
+                      label={t('account.nostrSync.retryLoadCommonKeys')}
+                      onPress={async () => {
+                        commonKeysLoadRef.current = false
+                        await loadCommonNostrKeys()
+                      }}
+                    />
+                  </SSVStack>
                 )}
               </SSVStack>
             </SSVStack>
@@ -505,7 +605,10 @@ function NostrKeys() {
                         variant="default"
                         label={t('common.showQR')}
                         onPress={() =>
-                          setQrModal({ type: 'nsec', value: deviceNsec })
+                          setQrModal({
+                            type: 'nsec',
+                            value: deviceNsec.trim()
+                          })
                         }
                         style={styles.showQrButton}
                       />
@@ -559,7 +662,7 @@ function NostrKeys() {
             <SSButton
               label={t('account.nostrSync.save')}
               onPress={saveChanges}
-              disabled={!deviceNsec || !derivedNpub}
+              disabled={!derivedNpub}
             />
             <SSButton
               variant="ghost"

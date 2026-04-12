@@ -1,10 +1,11 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, View } from 'react-native'
+import { Psbt } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { broadcastTransaction, getBlockchain, signTransaction } from '@/api/bdk'
+import { broadcastTransaction, signTransaction } from '@/api/bdk'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import { SSIconSuccess } from '@/components/icons'
@@ -13,7 +14,6 @@ import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
-import { getBlockchainConfig } from '@/config/servers'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -26,7 +26,6 @@ import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { bytesToHex } from '@/utils/scripts'
 import { legacyEstimateTransactionSize } from '@/utils/transaction'
 
 const tn = _tn('transaction.build.sign')
@@ -36,7 +35,6 @@ export default function SignTransaction() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
   const [
-    txBuilderResult,
     psbt,
     setPsbt,
     signedTx,
@@ -46,7 +44,6 @@ export default function SignTransaction() {
     setBroadcasted
   ] = useTransactionBuilderStore(
     useShallow((state) => [
-      state.txBuilderResult,
       state.psbt,
       state.setPsbt,
       state.signedTx,
@@ -60,7 +57,7 @@ export default function SignTransaction() {
     useShallow((state) => state.accounts.find((account) => account.id === id))
   )
   const ownAddresses = useMemo(
-    () => new Set(account?.addresses?.map((a) => a.address) ?? []),
+    () => new Set(account?.addresses?.map((a) => a.address)),
     [account]
   )
   const setTransactionToShare = useNostrStore(
@@ -72,23 +69,13 @@ export default function SignTransaction() {
   )
 
   const currentConfig = configs[selectedNetwork]
-  const opts = {
-    retries: currentConfig.config.retries,
-    stopGap: currentConfig.config.stopGap,
-    timeout: currentConfig.config.timeout
-  }
-  const blockchainConfig = getBlockchainConfig(
-    currentConfig.server.backend,
-    currentConfig.server.url,
-    opts
-  )
 
   const [signed, setSigned] = useState(false)
   const [broadcasting, setBroadcasting] = useState(false)
   const [rawTx, setRawTx] = useState('')
 
   const transaction = useMemo(() => {
-    if (!txBuilderResult) {
+    if (!psbt) {
       return null
     }
 
@@ -110,23 +97,24 @@ export default function SignTransaction() {
     }))
 
     return {
-      id: txBuilderResult.txDetails.txid,
+      id: psbt.txid(),
       size,
       vin,
       vout,
       vsize
     } as never as Transaction
-  }, [inputs, outputs, txBuilderResult])
+  }, [inputs, outputs, psbt])
 
-  async function handleBroadcastSingleSig() {
-    if (!psbt) {
-      throw new Error('Empty PSBT')
+  function handleBroadcastSingleSig() {
+    if (!psbt || !wallet) {
+      throw new Error('Empty PSBT or wallet')
     }
-    const blockchain = await getBlockchain(
+    return broadcastTransaction(
+      wallet,
+      psbt,
       currentConfig.server.backend,
-      blockchainConfig
+      currentConfig.server.url
     )
-    return broadcastTransaction(psbt, blockchain)
   }
 
   async function handleBroadcastMultiSig() {
@@ -212,7 +200,7 @@ export default function SignTransaction() {
       toast.error(t('account.nostrSync.autoSyncMustBeEnabled'))
       return
     }
-    const txString = psbt?.base64 ?? signedTx ?? ''
+    const txString = psbt?.toBase64() ?? signedTx ?? ''
     if (!txString) {
       toast.error(t('account.nostrSync.transactionDataNotAvailable'))
       return
@@ -222,12 +210,13 @@ export default function SignTransaction() {
       transactionData: { combinedPsbt: txString }
     })
     router.push({
-      pathname: `/signer/bitcoin/account/${id}/settings/nostr/devicesGroupChat`
+      params: { id },
+      pathname: '/signer/bitcoin/account/[id]/settings/nostr/devicesGroupChat'
     })
   }
 
   useEffect(() => {
-    async function signTransactionData() {
+    function signTransactionData() {
       // For multisig wallets, if we already have a finalized transaction, use it directly
       if (signedTx) {
         setSigned(true)
@@ -236,27 +225,24 @@ export default function SignTransaction() {
       }
 
       // For singlesig wallets, sign the transaction
-      if (!wallet || !txBuilderResult) {
+      if (!wallet || !psbt) {
         return
       }
 
-      const partiallySignedTransaction = await signTransaction(
-        txBuilderResult,
-        wallet
-      )
+      signTransaction(psbt, wallet)
 
+      // Create fresh reference so Zustand detects the change
+      const signedPsbt = new Psbt(psbt.toBase64())
       setSigned(true)
-      setPsbt(partiallySignedTransaction)
-      const tx = await partiallySignedTransaction.extractTx()
-      const bytes = await tx.serialize()
-      const hex = bytesToHex(bytes)
+      setPsbt(signedPsbt)
+      const hex = psbt.extractTxHex()
       setRawTx(hex)
     }
 
     signTransactionData()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!account || !txBuilderResult) {
+  if (!account || !psbt) {
     return <Redirect href="/" />
   }
 
@@ -288,7 +274,7 @@ export default function SignTransaction() {
                 <SSText color="muted" size="sm" uppercase>
                   {t('transaction.id')}
                 </SSText>
-                <SSText size="lg">{txBuilderResult.txDetails.txid}</SSText>
+                <SSText size="lg">{psbt.txid()}</SSText>
               </SSVStack>
 
               <SSVStack gap="xxs">
@@ -373,7 +359,7 @@ export default function SignTransaction() {
             />
             {signed &&
               account?.nostr?.autoSync &&
-              (psbt?.base64 ?? signedTx) && (
+              (psbt?.toBase64() ?? signedTx) && (
                 <SSButton
                   variant="ghost"
                   label={t('account.nostrSync.shareWithGroup')}

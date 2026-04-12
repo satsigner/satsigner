@@ -12,22 +12,22 @@ import { Colors } from '@/styles'
 import { type NavMenuItem } from '@/types/navigation/navMenu'
 
 export default function Home() {
-  const { tab, segment } = useLocalSearchParams()
+  const { tab } = useLocalSearchParams()
   const router = useRouter()
-  const pages = navMenuGroups.filter((group) => group.title === tab)[0]?.items
+  const pages = navMenuGroups.find((group) => group.title === tab)?.items
 
   const handlePress = useCallback(
     (page: NavMenuItem) => {
       if (page.isSoon) {
         router.navigate({
           params: { title: page.title },
-          pathname: `${segment}/upcoming/`
+          pathname: '/upcoming'
         })
-      } else {
-        router.navigate(`${segment}${page.url}`)
+      } else if (page.url) {
+        router.navigate(page.url)
       }
     },
-    [router, segment]
+    [router]
   )
 
   return (
@@ -48,22 +48,19 @@ export default function Home() {
           </SSHStack>
           <SSVStack>
             {pages?.map((page, index) => (
-              <SSHStack
-                style={styles.buttonRow}
-                key={`${index}-${tab}/${page.title}`}
-              >
+              <SSHStack key={`${index}-${tab}/${page.title}`}>
                 <View style={styles.buttonContainer}>
                   <SSButton
                     label={page.title}
-                    style={styles.button}
                     textStyle={[
                       styles.buttonText,
                       page.isSoon && styles.buttonTextSoon
                     ]}
                     onPress={() => handlePress(page)}
-                    variant="gradient"
-                    gradientType="special"
+                    variant="elevated"
                     uppercase
+                    verticalIndex={index}
+                    totalButtonsVertical={pages.length}
                   />
                 </View>
               </SSHStack>
@@ -76,18 +73,8 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  button: {
-    borderBottomColor: '#222222',
-    borderBottomWidth: 1,
-    borderRadius: 0,
-    borderTopColor: '#303030',
-    borderTopWidth: 1
-  },
   buttonContainer: {
     flex: 1
-  },
-  buttonRow: {
-    paddingHorizontal: '5%'
   },
   buttonText: {
     color: Colors.white
@@ -108,7 +95,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     gap: 60,
     marginBottom: 50,
-    paddingHorizontal: 2,
     paddingTop: 50
   }
 })

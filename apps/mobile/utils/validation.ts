@@ -1,7 +1,9 @@
 import ecc from '@bitcoinerlab/secp256k1'
-import { Descriptor } from 'bdk-rn'
-import { Network } from 'bdk-rn/lib/lib/enums'
 import * as bitcoinjs from 'bitcoinjs-lib'
+import {
+  Network,
+  validateDescriptor as bdkValidateDescriptor
+} from 'react-native-bdk-sdk'
 
 import { type ScriptVersionType } from '@/types/models/Account'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
@@ -41,30 +43,35 @@ export function validateFingerprint(fingerprint: string) {
 }
 
 // Function to validate descriptor checksum using BDK
-async function validateDescriptorChecksum(descriptor: string) {
-  try {
-    await new Descriptor().create(descriptor, Network.Bitcoin)
+function validateDescriptorChecksum(descriptor: string) {
+  // Try the descriptor as-is first (works for h-notation with valid checksum)
+  if (
+    bdkValidateDescriptor(descriptor, Network.Bitcoin) ||
+    bdkValidateDescriptor(descriptor, Network.Testnet)
+  ) {
     return true
-  } catch {
-    /* silently ignored */
   }
-
-  try {
-    await new Descriptor().create(descriptor, Network.Testnet)
-    return true
-  } catch {
-    /* silently ignored */
-  }
-
-  return false
+  // Fall back: normalize ' → h and strip checksum (for '-notation descriptors)
+  const normalized = descriptor.replace(/#\w+$/, '').replace(/'/g, 'h')
+  return (
+    bdkValidateDescriptor(normalized, Network.Bitcoin) ||
+    bdkValidateDescriptor(normalized, Network.Testnet)
+  )
 }
 
-export function validateDescriptor(descriptor: string) {
-  return validateDescriptorInternal(descriptor, true)
+// Cache of descriptor validation results for reactive UI feedback
+export const descriptorValidityCache = new Map<string, boolean>()
+
+export async function validateDescriptor(descriptor: string) {
+  const result = await validateDescriptorInternal(descriptor, true)
+  descriptorValidityCache.set(descriptor, result)
+  return result
 }
 
-export function validateDescriptorFormat(descriptor: string) {
-  return validateDescriptorInternal(descriptor, false)
+export async function validateDescriptorFormat(descriptor: string) {
+  const result = await validateDescriptorInternal(descriptor, false)
+  descriptorValidityCache.set(descriptor, result)
+  return result
 }
 
 async function validateDescriptorInternal(
@@ -89,7 +96,7 @@ async function validateDescriptorInternal(
 
   // auxiliary regex to extract nested items
   // Use a more lenient regex to handle truncated checksums
-  const checksumRegex = new RegExp(`#[a-z0-9]{1,8}$`)
+  const checksumRegex = new RegExp(`#[a-zA-Z0-9]{1,8}$`)
   const nestedKindRegex = new RegExp(`^${nestedKind}\\(`)
 
   // main regex to parse the descriptor
@@ -135,10 +142,12 @@ async function validateDescriptorInternal(
     const [derivationPath] = derivationPathMatch
     // Validate fingerprint if present
     const fingerprintMatch = derivationPath.match(/\[([a-fA-F0-9]{8})/)
-    if (fingerprintMatch && fingerprintMatch[1]) {
-      if (!/^[a-fA-F0-9]{8}$/.test(fingerprintMatch[1])) {
-        return false
-      }
+    if (
+      fingerprintMatch &&
+      fingerprintMatch[1] &&
+      !/^[a-fA-F0-9]{8}$/.test(fingerprintMatch[1])
+    ) {
+      return false
     }
 
     // Validate derivation path components
@@ -354,11 +363,8 @@ export async function validateCombinedDescriptor(
     if (networkType === 'signet') {
       bdkNetwork = Network.Signet
     }
-    try {
-      await new Descriptor().create(combinedDescriptor, bdkNetwork)
+    if (bdkValidateDescriptor(combinedDescriptor, bdkNetwork)) {
       networkValidation = { isValid: true }
-    } catch {
-      /* silently ignored */
     }
   }
 

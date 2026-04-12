@@ -59,7 +59,7 @@ export default function MultiSigManager() {
       return true
     })
 
-    const allValid = keyValidation.every((valid) => valid)
+    const allValid = keyValidation.every(Boolean)
     return allValid
   }, [keys, keyCount])
 

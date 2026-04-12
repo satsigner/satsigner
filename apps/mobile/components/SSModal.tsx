@@ -1,10 +1,10 @@
-import { Modal, StyleSheet } from 'react-native'
+import { Modal, StyleSheet, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Toaster } from 'sonner-native'
 
-import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Colors } from '@/styles'
+import { Colors, Layout } from '@/styles'
 
 import SSButton, { type SSButtonProps } from './SSButton'
 
@@ -25,39 +25,52 @@ function SSModal({
   onClose,
   children
 }: SSModalProps) {
+  const insets = useSafeAreaInsets()
+
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <SSMainLayout
-        style={fullOpacity ? styles.containerFullOpacity : styles.containerBase}
+      <View
+        style={[
+          styles.safeArea,
+          fullOpacity ? styles.containerFullOpacity : styles.containerBase,
+          { paddingBottom: insets.bottom, paddingTop: insets.top }
+        ]}
       >
-        <SSVStack justifyBetween itemsCenter style={styles.innerContainer}>
-          {children}
-          {label && (
-            <SSButton
-              label={label}
-              variant={closeButtonVariant}
-              onPress={onClose}
-            />
-          )}
-        </SSVStack>
-        <Toaster
-          theme="dark"
-          position="top-center"
-          style={{
-            backgroundColor: Colors.gray[950],
-            borderColor: Colors.gray[800],
-            borderRadius: 8,
-            borderWidth: 1,
-            width: '105%',
-            zIndex: 10001
-          }}
-        />
-      </SSMainLayout>
+        <View style={styles.container}>
+          <SSVStack justifyBetween itemsCenter style={styles.innerContainer}>
+            {children}
+            {label && (
+              <SSButton
+                label={label}
+                variant={closeButtonVariant}
+                onPress={onClose}
+              />
+            )}
+          </SSVStack>
+          <Toaster
+            theme="dark"
+            position="top-center"
+            style={{
+              backgroundColor: Colors.gray[950],
+              borderColor: Colors.gray[800],
+              borderRadius: 8,
+              borderWidth: 1,
+              width: '105%',
+              zIndex: 10001
+            }}
+          />
+        </View>
+      </View>
     </Modal>
   )
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingHorizontal: Layout.mainContainer.paddingHorizontal,
+    paddingTop: Layout.mainContainer.paddingTop
+  },
   containerBase: {
     backgroundColor: 'rgba(0, 0, 0, 0.85)',
     zIndex: 1000
@@ -68,6 +81,9 @@ const styles = StyleSheet.create({
   },
   innerContainer: {
     paddingVertical: 16
+  },
+  safeArea: {
+    flex: 1
   }
 })
 

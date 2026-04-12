@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import { Layout } from '@/styles'
@@ -18,21 +17,19 @@ export default function SSHStack({
   children,
   style
 }: SSHStackProps) {
-  const containerStyle = useMemo(
-    () =>
-      StyleSheet.compose(
-        {
-          ...styles.containerBase,
-          ...{ gap: Layout.hStack.gap[gap] },
-          ...(justifyBetween ? styles.justifyBetween : {}),
-          ...(justifyEvenly ? styles.justifyEvenly : {})
-        },
+  return (
+    <View
+      style={[
+        styles.containerBase,
+        { gap: Layout.hStack.gap[gap] },
+        justifyBetween && styles.justifyBetween,
+        justifyEvenly && styles.justifyEvenly,
         style
-      ),
-    [gap, justifyBetween, justifyEvenly, style]
+      ]}
+    >
+      {children}
+    </View>
   )
-
-  return <View style={containerStyle}>{children}</View>
 }
 
 const styles = StyleSheet.create({

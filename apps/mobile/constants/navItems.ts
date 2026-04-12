@@ -10,6 +10,7 @@ import {
   SSIconLightning,
   SSIconLiquid,
   SSIconMempool,
+  SSIconNostr,
   SSIconTime
 } from '@/components/icons'
 import { t } from '@/locales'
@@ -47,7 +48,7 @@ export const navMenuGroups: NavMenuGroup[] = [
         url: '/signer/ecash'
       },
       {
-        icon: SSIconLightning,
+        icon: SSIconNostr,
         isSoon: true,
         platform: PLATFORM.HYBRID,
         title: t('navigation.item.nostr'),

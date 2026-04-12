@@ -1,62 +1,78 @@
-import { type Wallet } from 'bdk-rn'
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { useState } from 'react'
+import { type BdkWallet } from 'react-native-bdk-sdk'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletOverview, syncWallet } from '@/api/bdk'
 import { MempoolOracle } from '@/api/blockchain'
-import { getBlockchainConfig } from '@/config/servers'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
 import { updateAccountObjectLabels } from '@/utils/account'
+import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatTimestamp } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 
 function useSyncAccountWithWallet() {
   const setSyncStatus = useAccountsStore((state) => state.setSyncStatus)
 
-  const [selectedNetwork, configs, configsMempol] = useBlockchainStore(
-    useShallow((state) => [
-      state.selectedNetwork,
-      state.configs,
-      state.configsMempool
-    ])
-  )
+  const [selectedNetwork, configs, configsMempol, setLastKnownBlockHeight] =
+    useBlockchainStore(
+      useShallow((state) => [
+        state.selectedNetwork,
+        state.configs,
+        state.configsMempool,
+        state.setLastKnownBlockHeight
+      ])
+    )
   const { server, config } = configs[selectedNetwork]
 
   const [loading, setLoading] = useState(false)
 
-  async function syncAccountWithWallet(account: Account, wallet: Wallet) {
+  async function syncAccountWithWallet(account: Account, wallet: BdkWallet) {
+    const latest =
+      useAccountsStore.getState().accounts.find((a) => a.id === account.id) ??
+      account
+
     try {
       setLoading(true)
-      setSyncStatus(account.id, 'syncing')
+      setSyncStatus(latest.id, 'syncing')
+
+      // Use the wallet's own checkpoint to decide: if BDK already scanned
+      // this wallet (checkpoint exists beyond genesis), use incremental sync.
+      // This is more reliable than account.transactions.length because the
+      // wallet DB and account store can be out of sync after crashes.
+      const checkpoint = wallet.latestCheckpoint()
+      const isFullScan = !checkpoint || checkpoint.height === 0
 
       await syncWallet(
         wallet,
         server.backend,
-        getBlockchainConfig(server.backend, server.url, {
-          retries: config.retries,
-          stopGap: config.stopGap,
-          timeout: config.timeout * 1000
-        })
+        server.url,
+        config.stopGap,
+        isFullScan
       )
 
-      const walletSummary = await getWalletOverview(
+      // Update block height from wallet's latest checkpoint
+      const latestCheckpoint = wallet.latestCheckpoint()
+      if (latestCheckpoint) {
+        setLastKnownBlockHeight(latestCheckpoint.height)
+      }
+
+      const walletSummary = getWalletOverview(
         wallet,
-        server.network as Network,
+        appNetworkToBdkNetwork(server.network),
         config.stopGap
       )
 
       // Capture cached prices before overwriting transactions with fresh BDK data
       const cachedPrices: Record<string, number | undefined> = {}
-      for (const tx of account.transactions) {
+      for (const tx of latest.transactions) {
         if (tx.prices?.USD !== undefined) {
           cachedPrices[tx.id] = tx.prices.USD
         }
       }
 
-      let updatedAccount: Account = { ...account }
+      let updatedAccount: Account = { ...latest }
 
       updatedAccount.transactions = walletSummary.transactions
       updatedAccount.utxos = walletSummary.utxos
@@ -100,8 +116,8 @@ function useSyncAccountWithWallet() {
 
       return updatedAccount
     } catch {
-      setSyncStatus(account.id, 'error')
-      return account
+      setSyncStatus(latest.id, 'error')
+      return latest
     } finally {
       setLoading(false)
     }

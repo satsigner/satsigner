@@ -181,6 +181,30 @@ function parseTXOutputs(input: string): Omit<Output, 'localId'>[] {
   })
 }
 
+/** Same tail as `getExtendedKeyFromDescriptor` in bip32.ts — base58 can omit 0/O/I/l but BDK may emit other encodings. */
+const EXTENDED_PUBKEY_BODY = '[A-Za-z0-9]+'
+
+export function normalizeDescriptorForParsing(descriptor: string): string {
+  return descriptor
+    .normalize('NFC')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .trim()
+}
+
+function isSortedMultiDescriptor(descriptor: string): boolean {
+  return (
+    /\bwsh\s*\(\s*sortedmulti\b/i.test(descriptor) ||
+    /\btr\s*\(\s*sortedmulti\b/i.test(descriptor)
+  )
+}
+
+/** BIP32 / slip132-style extended public keys (case-insensitive prefix). */
+function extractSortedDescriptorXpubs(descriptor: string): string[] {
+  const re = new RegExp(`([xyztuv]pub)${EXTENDED_PUBKEY_BODY}`, 'gi')
+  const found = [...descriptor.matchAll(re)].map((m) => m[0])
+  return [...new Set(found)].toSorted()
+}
+
 function parseMultisigDescriptor(descriptor: string) {
   const keyPathMatches = descriptor.match(
     /\[([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\]/g
@@ -196,14 +220,13 @@ function parseMultisigDescriptor(descriptor: string) {
     throw new Error('Invalid multisig key path format')
   }
 
-  const [, , purpose, coinType, accountIndex, keyType] = firstMatch
+  const [purpose, coinType, accountIndex, keyType] = firstMatch.slice(2)
   const hardenedPath = `m/${purpose.replace("'", 'h')}/${coinType.replace(
     "'",
     'h'
   )}/${accountIndex.replace("'", 'h')}/${keyType.replace("'", 'h')}`
 
-  const xpubRegex = /(tpub|vpub|upub|zpub)[a-zA-Z0-9]+/g
-  const xpubs = (descriptor.match(xpubRegex) || []).toSorted()
+  const xpubs = extractSortedDescriptorXpubs(descriptor)
 
   return { hardenedPath, xpubs }
 }
@@ -214,23 +237,23 @@ function parseSinglesigDescriptor(descriptor: string) {
     throw new Error('Invalid singlesig descriptor format')
   }
 
-  const [, , purpose, coinType, accountIndex] = match
+  const [purpose, coinType, accountIndex] = match.slice(2)
   const hardenedPath = `m/${purpose.replace("'", 'h')}/${coinType.replace(
     "'",
     'h'
   )}/${accountIndex.replace("'", 'h')}`
 
-  const xpubRegex = /(tpub|vpub|upub|zpub)[a-zA-Z0-9]+/g
-  const xpubs = (descriptor.match(xpubRegex) || []).toSorted()
+  const xpubs = extractSortedDescriptorXpubs(descriptor)
 
   return { hardenedPath, xpubs }
 }
 
 export function parseDescriptor(descriptor: string) {
-  if (descriptor.includes('wsh(sortedmulti')) {
-    return parseMultisigDescriptor(descriptor)
+  const d = normalizeDescriptorForParsing(descriptor)
+  if (isSortedMultiDescriptor(d)) {
+    return parseMultisigDescriptor(d)
   }
-  return parseSinglesigDescriptor(descriptor)
+  return parseSinglesigDescriptor(d)
 }
 
 function stripBitcoinPrefix(text: string): string {

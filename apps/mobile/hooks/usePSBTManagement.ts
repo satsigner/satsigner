@@ -1,6 +1,6 @@
-import { type TxBuilderResult } from 'bdk-rn/lib/classes/Bindings'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { useCallback, useState } from 'react'
+import { type PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
 import { type Key, type Secret } from '@/types/models/Account'
@@ -8,7 +8,7 @@ import { getMultisigScriptTypeFromScriptVersion } from '@/utils/bitcoin'
 import { signPSBTWithSeed } from '@/utils/psbt'
 
 type UsePSBTManagementParams = {
-  txBuilderResult: TxBuilderResult | null | undefined
+  psbt: PsbtLike | null | undefined
   account?: {
     keys?: Key[]
   }
@@ -16,7 +16,7 @@ type UsePSBTManagementParams = {
 }
 
 export function usePSBTManagement({
-  txBuilderResult,
+  psbt: txBuilderPsbt,
   account,
   decryptedKeys
 }: UsePSBTManagementParams) {
@@ -26,7 +26,7 @@ export function usePSBTManagement({
   const convertPsbtToFinalTransaction = useCallback(
     (psbtHex: string): string => {
       // First, try to combine with original PSBT if available
-      const originalPsbtBase64 = txBuilderResult?.psbt?.base64
+      const originalPsbtBase64 = txBuilderPsbt?.toBase64()
       let combinedPsbt: bitcoinjs.Psbt | undefined
       let psbt: bitcoinjs.Psbt | undefined
 
@@ -105,7 +105,7 @@ export function usePSBTManagement({
         return psbtHex
       }
     },
-    [txBuilderResult]
+    [txBuilderPsbt]
   )
 
   const updateSignedPsbt = useCallback((index: number, psbt: string) => {
@@ -138,7 +138,7 @@ export function usePSBTManagement({
       }
 
       // Get the original PSBT from transaction builder result
-      const originalPsbtBase64 = txBuilderResult?.psbt?.base64
+      const originalPsbtBase64 = txBuilderPsbt?.toBase64()
       if (!originalPsbtBase64) {
         toast.error('No original PSBT found')
         return
@@ -166,7 +166,7 @@ export function usePSBTManagement({
         toast.error(`Failed to sign PSBT: ${signingResult.error}`)
       }
     },
-    [decryptedKeys, txBuilderResult, updateSignedPsbt]
+    [decryptedKeys, txBuilderPsbt, updateSignedPsbt]
   )
 
   const handleSignWithSeedQR = useCallback(
@@ -179,7 +179,7 @@ export function usePSBTManagement({
       }
 
       // Get the original PSBT from transaction builder result
-      const originalPsbtBase64 = txBuilderResult?.psbt?.base64
+      const originalPsbtBase64 = txBuilderPsbt?.toBase64()
       if (!originalPsbtBase64) {
         toast.error('No original PSBT found')
         return
@@ -209,7 +209,7 @@ export function usePSBTManagement({
         toast.error(`Failed to sign PSBT: ${signingResult.error}`)
       }
     },
-    [account, txBuilderResult, updateSignedPsbt]
+    [account, txBuilderPsbt, updateSignedPsbt]
   )
 
   return {

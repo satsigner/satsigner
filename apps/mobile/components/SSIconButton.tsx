@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { StyleSheet, TouchableOpacity } from 'react-native'
 
 type SSIconButtonProps = {
@@ -11,19 +10,12 @@ function SSIconButton({
   children,
   ...props
 }: SSIconButtonProps) {
-  const buttonStyle = useMemo(
-    () =>
-      StyleSheet.compose(
-        {
-          ...(rounded ? styles.rounded : {})
-        },
-        style
-      ),
-    [rounded, style]
-  )
-
   return (
-    <TouchableOpacity activeOpacity={0.65} style={buttonStyle} {...props}>
+    <TouchableOpacity
+      activeOpacity={0.65}
+      style={[rounded && styles.rounded, style]}
+      {...props}
+    >
       {children}
     </TouchableOpacity>
   )

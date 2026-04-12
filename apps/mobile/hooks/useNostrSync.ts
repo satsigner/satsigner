@@ -1,4 +1,3 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { useCallback, useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -7,6 +6,8 @@ import { useNostrStore } from '@/store/nostr'
 import type { Account } from '@/types/models/Account'
 import { getAccountWithDecryptedKeys } from '@/utils/account'
 import { type Label } from '@/utils/bip329'
+import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
+import { resolveDescriptorForNostrCommonKeys } from '@/utils/getOutputDescriptorForKey'
 import { deriveNostrKeysFromDescriptor } from '@/utils/nostr'
 import { nostrSyncService } from '@/utils/nostrSyncService'
 
@@ -106,25 +107,34 @@ function useNostrSync() {
       return
     }
 
-    const isImportAddress = account.keys[0].creationType === 'importAddress'
     const tmpAccount = await getAccountWithDecryptedKeys(account)
-    if (isImportAddress) {
-      const [{ secret }] = tmpAccount.keys
-      return {
-        externalDescriptor: secret.externalDescriptor,
-        internalDescriptor: undefined
-      }
-    }
+    const [firstKey] = tmpAccount.keys
+    const { secret } = firstKey
 
     const walletData = await getWalletData(
       tmpAccount,
-      tmpAccount.network as Network
+      appNetworkToBdkNetwork(tmpAccount.network)
     )
-    if (!walletData?.externalDescriptor) {
+
+    const externalDescriptor = resolveDescriptorForNostrCommonKeys(
+      tmpAccount,
+      firstKey,
+      secret,
+      walletData
+    )
+
+    if (!externalDescriptor) {
       throw new Error('Failed to get wallet data')
     }
 
-    return deriveNostrKeysFromDescriptor(walletData.externalDescriptor)
+    const trimmed = externalDescriptor
+    if (/^addr\(/i.test(trimmed)) {
+      throw new Error(
+        'Label sync needs a wallet descriptor; single imported addresses are not supported'
+      )
+    }
+
+    return deriveNostrKeysFromDescriptor(trimmed)
   }, [])
 
   // Legacy API mappings for backward compatibility with consumers

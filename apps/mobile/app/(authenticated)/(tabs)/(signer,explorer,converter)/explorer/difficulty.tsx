@@ -115,7 +115,7 @@ function ExplorerDifficulty() {
       )
 
       const [firstBlock] = data
-      const lastBlock = data[data.length - 1]
+      const lastBlock = data.at(-1)!
 
       setHeightStart(firstBlock.height.toString())
       setHeightEnd(lastBlock.height.toString())
@@ -172,7 +172,7 @@ function ExplorerDifficulty() {
       <SSHStack gap="none" justifyBetween style={styles.headerContainer}>
         <SSVStack gap="none">
           <SSText weight="bold">{averageBlockTime}</SSText>
-          <SSText color="muted" size="xs" style={[styles.headerCaption]}>
+          <SSText color="muted" size="xs" style={styles.headerCaption}>
             {tn('avgBlock')}
           </SSText>
         </SSVStack>

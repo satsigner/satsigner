@@ -1,7 +1,7 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as Clipboard from 'expo-clipboard'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { StyleProp, TextInput, ViewStyle } from 'react-native'
+import { type Network } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -54,9 +54,8 @@ type SSSeedWordsInputProps = {
     | 'subtle'
     | 'gradient'
     | 'danger'
-  onActionButtonPress?: () => void
+  onActionButtonPress?: () => void | Promise<void>
   actionButtonDisabled?: boolean
-  actionButtonLoading?: boolean
   cancelButtonLabel?: string
   onCancelButtonPress?: () => void
   showCancelButton?: boolean
@@ -92,7 +91,6 @@ export default function SSSeedWordsInput({
   actionButtonVariant = 'secondary',
   onActionButtonPress,
   actionButtonDisabled = false,
-  actionButtonLoading = false,
   cancelButtonLabel = 'Cancel',
   onCancelButtonPress,
   showCancelButton = true,
@@ -110,13 +108,15 @@ export default function SSSeedWordsInput({
   const [fingerprint, setFingerprint] = useState('')
   const [passphrase, setPassphrase] = useState('')
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
+  const [actionButtonLoading, setActionButtonLoading] = useState(false)
 
   const wordList = getWordList(wordListName)
   const passphraseRef = useRef<TextInput>(null)
   const clipboardCheckedRef = useRef(false)
   const wordInputRefs = useRef<(TextInput | null)[]>([])
   const autoAdvanceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const handleWordSelectedRef = useRef<(word?: string) => Promise<void>>()
+  const handleWordSelectedRef =
+    useRef<(word?: string) => Promise<void>>(undefined)
 
   // Initialize seed words info
   useEffect(() => {
@@ -162,7 +162,7 @@ export default function SSSeedWordsInput({
 
         // Auto-advance to next word if current word is valid
         if (currentWordIndex < wordCount - 1) {
-          setCurrentWordIndex(currentWordIndex + 1)
+          setCurrentWordIndex((prev) => prev + 1)
           wordInputRefs.current[currentWordIndex + 1]?.focus()
         }
       } else {
@@ -188,7 +188,9 @@ export default function SSSeedWordsInput({
           setElectrumSeedType(electrumType)
           if (electrumType) {
             const seed = await mnemonicToSeedElectrum(mnemonic, passphrase)
-            const fingerprintResult = getFingerprintFromSeed(Buffer.from(seed))
+            const fingerprintResult = getFingerprintFromSeed(
+              new Uint8Array(seed)
+            )
             setFingerprint(fingerprintResult)
             onMnemonicValid?.(mnemonic, fingerprintResult)
           } else {
@@ -276,7 +278,7 @@ export default function SSSeedWordsInput({
         if (electrumType) {
           const seedBytes = await mnemonicToSeedElectrum(mnemonic, passphrase)
           const fingerprintResult = getFingerprintFromSeed(
-            Buffer.from(seedBytes)
+            new Uint8Array(seedBytes)
           )
           setFingerprint(fingerprintResult)
           onMnemonicValid?.(mnemonic, fingerprintResult)
@@ -291,7 +293,8 @@ export default function SSSeedWordsInput({
 
   const readSeedFromClipboard = useCallback(async () => {
     try {
-      const text = (await Clipboard.getStringAsync()).trim()
+      const clipboardText = await Clipboard.getStringAsync()
+      const text = clipboardText.trim()
       const seed = checkClipboardForSeed(text)
       if (seed.length > 0) {
         await fillOutSeedWords(seed)
@@ -411,7 +414,7 @@ export default function SSSeedWordsInput({
         setElectrumSeedType(electrumType)
         if (electrumType) {
           const seed = await mnemonicToSeedElectrum(mnemonic, passphrase)
-          const fingerprintResult = getFingerprintFromSeed(Buffer.from(seed))
+          const fingerprintResult = getFingerprintFromSeed(new Uint8Array(seed))
           setFingerprint(fingerprintResult)
           onMnemonicValid?.(mnemonic, fingerprintResult)
         } else {
@@ -439,7 +442,7 @@ export default function SSSeedWordsInput({
         onMnemonicValid?.(mnemonic, fingerprintResult)
       } else if (electrumSeedType) {
         const seed = await mnemonicToSeedElectrum(mnemonic, text)
-        const fingerprintResult = getFingerprintFromSeed(Buffer.from(seed))
+        const fingerprintResult = getFingerprintFromSeed(new Uint8Array(seed))
         setFingerprint(fingerprintResult)
         onMnemonicValid?.(mnemonic, fingerprintResult)
       }
@@ -532,7 +535,14 @@ export default function SSSeedWordsInput({
               actionButtonDisabled || (!checksumValid && !electrumSeedType)
             }
             loading={actionButtonLoading}
-            onPress={onActionButtonPress}
+            onPress={async () => {
+              setActionButtonLoading(true)
+              try {
+                await onActionButtonPress?.()
+              } finally {
+                setActionButtonLoading(false)
+              }
+            }}
           />
         )}
         {showCancelButton && (

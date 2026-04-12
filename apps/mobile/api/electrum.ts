@@ -94,17 +94,17 @@ class ModifiedClient extends BlueWalletElectrumClient {
       clearTimeout(this.timeout)
     }
     const now = time.now()
-    this.timeout = setTimeout(() => {
+    this.timeout = setTimeout(async () => {
       if (this.timeLastCall !== 0 && now > this.timeLastCall + 500_000) {
         const pingTimer = setTimeout(() => {
           this.onError(new Error('keepalive ping timeout'))
         }, 900_000)
 
-        this.server_ping()
-          .catch(() => {
-            clearTimeout(pingTimer)
-          })
-          .then(() => clearTimeout(pingTimer))
+        try {
+          await this.server_ping()
+        } finally {
+          clearTimeout(pingTimer)
+        }
       }
     }, 50_000)
   }
@@ -247,7 +247,7 @@ class BaseElectrumClient {
     const { network } = this
     const script = bitcoinjs.address.toOutputScript(address, network)
     const hash = bitcoinjs.crypto.sha256(script)
-    const reversedHash = new Buffer(hash.reverse())
+    const reversedHash = new Buffer(hash.toReversed())
     const scriptHash = reversedHash.toString('hex')
     return scriptHash
   }

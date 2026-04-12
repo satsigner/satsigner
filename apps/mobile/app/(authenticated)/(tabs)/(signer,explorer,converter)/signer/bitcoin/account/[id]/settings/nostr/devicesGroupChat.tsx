@@ -139,7 +139,7 @@ export default function DevicesGroupChat() {
 
   const prevMessageCountRef = useRef(messages.length)
 
-  const memoizedMessages = useMemo(() => messages, [messages])
+  const memoizedMessages = messages
 
   const membersList = useMemo(
     () =>
@@ -361,7 +361,7 @@ export default function DevicesGroupChat() {
     const { relays } = account.nostr
     const fetchedRef = new Set<string>()
 
-    ;(async () => {
+    async function fetchMissingProfiles() {
       for (const msg of memoizedMessages) {
         if (!msg.author) {
           continue
@@ -395,7 +395,8 @@ export default function DevicesGroupChat() {
           // ignore fetch errors — truncated npub remains as fallback
         }
       }
-    })()
+    }
+    fetchMissingProfiles()
   }, [memoizedMessages, profiles, account?.nostr?.relays, setProfile])
 
   useEffect(() => {

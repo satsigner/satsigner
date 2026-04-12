@@ -1,7 +1,7 @@
 import { FlashList } from '@shopify/flash-list'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
-import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconBubbles } from '@/components/icons'
@@ -13,25 +13,24 @@ import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSUtxoItem from '@/components/SSUtxoItem'
 import SSHStack from '@/layouts/SSHStack'
-import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { Colors } from '@/styles'
+import { Colors, Layout } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { compareAmount, compareTimestamp } from '@/utils/sort'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 type SortField = 'date' | 'amount'
 
 export default function SelectUtxoList() {
   const router = useRouter()
-  const { height } = useWindowDimensions()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
   const account = useAccountsStore(
@@ -138,8 +137,8 @@ export default function SelectUtxoList() {
   }
 
   return (
-    <>
-      <SSMainLayout style={{ flex: 0 }}>
+    <View style={{ flex: 1 }}>
+      <View style={styles.headerContainer}>
         <SSVStack>
           <SSHStack justifyBetween>
             <SSText color="muted">{t('utxo.group')}</SSText>
@@ -212,7 +211,7 @@ export default function SelectUtxoList() {
             </SSVStack>
           </SSVStack>
         </SSVStack>
-      </SSMainLayout>
+      </View>
       <SSSeparator color="grayDark" style={{ marginTop: 12, width: '100%' }} />
       <SSHStack
         justifyBetween
@@ -265,40 +264,30 @@ export default function SelectUtxoList() {
           />
         </SSHStack>
       </SSHStack>
-      <View>
-        <View style={styles.scrollBackgroundBase} />
-        <View
-          style={{
-            height,
-            marginTop: 2,
-            paddingBottom: Platform.OS === 'android' ? 386 : 306 // TODO: Fix. This is not ideal
+      <View style={{ flex: 1 }}>
+        <FlashList
+          data={sortUtxos([...account.utxos])}
+          renderItem={({ item }) => {
+            const idx = account.addresses.findIndex(
+              (a) => (a.address || '').trim() === (item.addressTo || '').trim()
+            )
+            const addressEntry = idx >= 0 ? account.addresses[idx] : null
+            const addressIndex =
+              addressEntry !== null ? (addressEntry.index ?? idx) : undefined
+            return (
+              <SSUtxoItem
+                utxo={item}
+                selected={inputs.has(getUtxoOutpoint(item))}
+                onToggleSelected={handleOnToggleSelected}
+                largestValue={largestValue}
+                addressIndex={addressIndex}
+              />
+            )
           }}
-        >
-          <FlashList
-            data={sortUtxos([...account.utxos])}
-            renderItem={({ item }) => {
-              const idx = account.addresses.findIndex(
-                (a) =>
-                  (a.address || '').trim() === (item.addressTo || '').trim()
-              )
-              const addressEntry = idx >= 0 ? account.addresses[idx] : null
-              const addressIndex =
-                addressEntry !== null ? (addressEntry.index ?? idx) : undefined
-              return (
-                <SSUtxoItem
-                  utxo={item}
-                  selected={hasInput(item)}
-                  onToggleSelected={handleOnToggleSelected}
-                  largestValue={largestValue}
-                  addressIndex={addressIndex}
-                />
-              )
-            }}
-            estimatedItemSize={110}
-          />
-        </View>
+          contentContainerStyle={{ paddingBottom: 80 }}
+        />
       </View>
-      <SSMainLayout style={styles.absoluteSubmitContainer}>
+      <View style={styles.absoluteSubmitContainer}>
         <SSButton
           label={buttonLabel}
           variant="secondary"
@@ -309,34 +298,27 @@ export default function SelectUtxoList() {
               backgroundColor: Colors.gray[700]
             }
           ]}
-          textStyle={[!hasSelectedUtxos && { color: Colors.gray[400] }]}
+          textStyle={!hasSelectedUtxos && { color: Colors.gray[400] }}
           onPress={() =>
             router.navigate(
               `/signer/bitcoin/account/${id}/signAndSend/ioPreview`
             )
           }
         />
-      </SSMainLayout>
-    </>
+      </View>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
   absoluteSubmitContainer: {
-    backgroundColor: Colors.transparent,
+    alignItems: 'center',
     bottom: 20,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingHorizontal: 0,
-    paddingTop: 0,
     position: 'absolute',
     width: '100%'
   },
-  scrollBackgroundBase: {
-    backgroundColor: Colors.gray[950],
-    height: 1000,
-    position: 'absolute',
-    top: 2,
-    width: '100%'
+  headerContainer: {
+    paddingHorizontal: Layout.mainContainer.paddingHorizontal,
+    paddingTop: Layout.mainContainer.paddingTop
   }
 })

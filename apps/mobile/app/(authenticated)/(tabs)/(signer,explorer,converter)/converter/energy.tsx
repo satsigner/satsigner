@@ -11,6 +11,7 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
+import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
 import { useEnergyStore } from '@/store/energy'
@@ -96,7 +97,7 @@ const encodeScriptNum = (num: number): Buffer => {
     result.push(absvalue & 0xff)
     absvalue >>= 8
   }
-  if (result[result.length - 1] & 0x80) {
+  if ((result.at(-1) ?? 0) & 0x80) {
     result.push(negative ? 0x80 : 0x00)
   } else if (negative) {
     result[result.length - 1] |= 0x80
@@ -186,7 +187,7 @@ export default function Energy() {
   }, [blockchainInfo?.chain])
 
   const fetchRpc = useCallback(
-    (requestBody: RpcRequestBody) => {
+    async (requestBody: RpcRequestBody) => {
       const adjustedUrl = getAdjustedRpcUrl(rpcUrl)
       const credentials = `${rpcUsername}:${rpcPassword}`
       const credentialsBase64 = Buffer.from(credentials).toString('base64')
@@ -202,50 +203,54 @@ export default function Energy() {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 10000)
 
-      return fetch(adjustedUrl, {
-        body,
-        headers,
-        method,
-        signal: controller.signal
-      })
-        .then((response) => {
-          clearTimeout(timeoutId)
-          return response
+      try {
+        const response = await fetch(adjustedUrl, {
+          body,
+          headers,
+          method,
+          signal: controller.signal
         })
-        .catch((error) => {
-          clearTimeout(timeoutId)
-          if (error.name === 'AbortError') {
-            const platformSpecificAdvice =
-              Platform.OS === 'android'
-                ? '\n\nFor Android Emulator:\n' +
-                  '1. Make sure your Bitcoin node is running on the host machine\n' +
-                  '2. Use 10.0.2.2 instead of localhost or Docker IP\n' +
-                  '3. Check if the port is exposed in your Docker configuration\n' +
-                  '4. Verify Bitcoin node is configured to accept external connections'
-                : ''
+        clearTimeout(timeoutId)
+        return response
+      } catch (error) {
+        clearTimeout(timeoutId)
+        if (error instanceof Error && error.name === 'AbortError') {
+          const platformSpecificAdvice =
+            Platform.OS === 'android'
+              ? '\n\nFor Android Emulator:\n' +
+                '1. Make sure your Bitcoin node is running on the host machine\n' +
+                '2. Use 10.0.2.2 instead of localhost or Docker IP\n' +
+                '3. Check if the port is exposed in your Docker configuration\n' +
+                '4. Verify Bitcoin node is configured to accept external connections'
+              : ''
 
-            throw new Error(
-              `Request timed out after 10 seconds.${platformSpecificAdvice}`
-            )
-          } else if (error.message === 'Network request failed') {
-            const platformSpecificAdvice =
-              Platform.OS === 'android'
-                ? '\n\nFor Android Emulator:\n' +
-                  '1. Use 10.0.2.2 instead of localhost or Docker IP\n' +
-                  '2. Make sure port is exposed in Docker: "ports: [\'18443:18443\']"\n' +
-                  '3. Check Bitcoin node is configured to accept external connections'
-                : ''
+          throw new Error(
+            `Request timed out after 10 seconds.${platformSpecificAdvice}`,
+            { cause: error }
+          )
+        } else if (
+          error instanceof Error &&
+          error.message === 'Network request failed'
+        ) {
+          const platformSpecificAdvice =
+            Platform.OS === 'android'
+              ? '\n\nFor Android Emulator:\n' +
+                '1. Use 10.0.2.2 instead of localhost or Docker IP\n' +
+                '2. Make sure port is exposed in Docker: "ports: [\'18443:18443\']"\n' +
+                '3. Check Bitcoin node is configured to accept external connections'
+              : ''
 
-            throw new Error(`Network request failed. Please check if:
-                        1. The Bitcoin node is running
-                        2. The RPC port is correct (${
-                          new URL(adjustedUrl).port
-                        })
-                        3. The node is accessible from your device
-                        4. There are no firewall rules blocking the connection${platformSpecificAdvice}`)
-          }
-          throw error
-        })
+          throw new Error(
+            `Network request failed. Please check if:
+                      1. The Bitcoin node is running
+                      2. The RPC port is correct (${new URL(adjustedUrl).port})
+                      3. The node is accessible from your device
+                      4. There are no firewall rules blocking the connection${platformSpecificAdvice}`,
+            { cause: error }
+          )
+        }
+        throw error
+      }
     },
     [rpcUsername, rpcPassword, rpcUrl]
   )
@@ -431,8 +436,7 @@ export default function Energy() {
       }
       const data = await response.json()
       // Get the latest hash rate from the hashrates array
-      const latestHashRate =
-        data.hashrates[data.hashrates.length - 1].avgHashrate
+      const latestHashRate = data.hashrates.at(-1)!.avgHashrate
       // Convert to exahashes per second (1 EH/s = 10^18 hashes per second)
       const hashRateInEH = (latestHashRate / 1e18).toFixed(2)
       setNetworkHashRate(hashRateInEH)
@@ -597,10 +601,11 @@ export default function Energy() {
         'hex'
       )
       const hashBytes = Buffer.from(hash, 'hex')
-      const hashLE = Buffer.from(hashBytes).reverse()
+      const hashLE = Buffer.from(hashBytes.toReversed())
 
       // For regtest, we just need to check if the hash is less than the target
-      const isValid = hashLE.compare(regtestTarget) <= 0
+      const isValid =
+        hashLE.compare(regtestTarget as unknown as Uint8Array) <= 0
 
       return isValid
     }
@@ -614,17 +619,17 @@ export default function Energy() {
     mantissaBuf.writeUInt32BE(mantissa, 0)
     if (exponent <= 3) {
       mantissaBuf = mantissaBuf.slice(4 - exponent)
-      mantissaBuf.copy(target, 32 - mantissaBuf.length)
+      mantissaBuf.copy(target as unknown as Uint8Array, 32 - mantissaBuf.length)
     } else {
-      mantissaBuf.copy(target, 32 - exponent)
+      mantissaBuf.copy(target as unknown as Uint8Array, 32 - exponent)
     }
 
     // Convert hash to little-endian for comparison
     const hashBytes = Buffer.from(hash, 'hex')
-    const hashLE = Buffer.from(hashBytes).reverse()
+    const hashLE = Buffer.from(hashBytes.toReversed())
 
     // Compare hash with target
-    const isValid = hashLE.compare(target) <= 0
+    const isValid = hashLE.compare(target as unknown as Uint8Array) <= 0
 
     return isValid
   }
@@ -653,8 +658,8 @@ export default function Energy() {
   const createCoinbaseTransaction = useCallback(
     (
       template: BlockTemplate,
-      extraNonce: number = 0,
-      useExtraNonce: boolean = false
+      extraNonce = 0,
+      useExtraNonce = false
     ): BlockTemplateTransaction | null => {
       if (!template || !miningAddress) {
         return null
@@ -747,13 +752,13 @@ export default function Energy() {
 
       try {
         // Convert txids to little-endian for merkle root calculation
-        let hashes = transactions.map((tx) => {
+        let hashes: Buffer<ArrayBufferLike>[] = transactions.map((tx) => {
           if (!tx) {
             throw new Error('Invalid transaction')
           }
           if (tx.txid) {
             // Convert txid to little-endian for merkle root
-            return Buffer.from(tx.txid, 'hex').reverse()
+            return Buffer.from(Buffer.from(tx.txid, 'hex').toReversed())
           }
           throw new Error('Invalid transaction format')
         })
@@ -764,7 +769,10 @@ export default function Energy() {
             const left = hashes[i]
             const right = i + 1 < hashes.length ? hashes[i + 1] : left
             // Concatenate hashes and double SHA256
-            const concat = Buffer.concat([left, right])
+            const concat = Buffer.concat([
+              left as unknown as Uint8Array,
+              right as unknown as Uint8Array
+            ])
             const hash = bitcoin.crypto.sha256(bitcoin.crypto.sha256(concat))
             newHashes.push(hash)
           }
@@ -802,12 +810,14 @@ export default function Energy() {
       header.writeUInt32LE(template.version, 0)
 
       // Previous block hash (32 bytes) - little endian
-      const prevHash = Buffer.from(template.previousblockhash, 'hex').reverse()
-      prevHash.copy(header, 4)
+      const prevHash = Buffer.from(
+        Buffer.from(template.previousblockhash, 'hex').toReversed()
+      )
+      prevHash.copy(header as unknown as Uint8Array, 4)
 
       // Merkle root (32 bytes) - little endian
       const merkle = Buffer.from(merkleRoot, 'hex')
-      merkle.copy(header, 36)
+      merkle.copy(header as unknown as Uint8Array, 36)
 
       // Timestamp (4 bytes) - little endian - use template's curtime
       header.writeUInt32LE(blockTime, 68)
@@ -920,9 +930,11 @@ export default function Energy() {
 
         // Create block data with header and all transactions
         const blockData = Buffer.concat([
-          freshHeader,
-          txCount,
-          ...rawTransactions.map((tx) => Buffer.from(tx, 'hex'))
+          freshHeader as unknown as Uint8Array,
+          txCount as unknown as Uint8Array,
+          ...rawTransactions.map(
+            (tx) => Buffer.from(tx, 'hex') as unknown as Uint8Array
+          )
         ])
 
         const response = await fetchRpc({
@@ -1032,16 +1044,15 @@ export default function Energy() {
           )
           return
         }
-      } else if (nodeNetwork === 'test' || nodeNetwork === 'signet') {
-        if (
-          !miningAddress.startsWith('tb1') &&
-          !miningAddress.startsWith('tb')
-        ) {
-          toast.error(
-            `Address ${miningAddress} has the wrong prefix for ${nodeNetwork} network. Use an address starting with tb1 or tb`
-          )
-          return
-        }
+      } else if (
+        (nodeNetwork === 'test' || nodeNetwork === 'signet') &&
+        !miningAddress.startsWith('tb1') &&
+        !miningAddress.startsWith('tb')
+      ) {
+        toast.error(
+          `Address ${miningAddress} has the wrong prefix for ${nodeNetwork} network. Use an address starting with tb1 or tb`
+        )
+        return
       }
 
       // Validate template once at start
@@ -1201,7 +1212,7 @@ export default function Energy() {
               // Double SHA256 of header (result is in big-endian)
               const hash = bitcoin.crypto.sha256(bitcoin.crypto.sha256(header))
               // Convert to little-endian for comparison
-              const hashReversed = Buffer.from(hash).reverse()
+              const hashReversed = Buffer.from(hash.toReversed())
               const hashHex = hashReversed.toString('hex')
 
               hashes += 1
@@ -1365,502 +1376,513 @@ export default function Energy() {
           headerTitle: () => <SSText uppercase>{tn('title')}</SSText>
         }}
       />
-      <ScrollView
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-      >
-        <SSVStack
-          gap="lg"
-          style={[styles.mainContent, { alignItems: 'center' }]}
+      <SSMainLayout>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
         >
-          <SSVStack gap="sm" style={{ alignItems: 'center' }}>
-            <SSText size="sm" color="muted">
-              {tn('blocksFound', { blocks: blocksFound })}
-            </SSText>
-            <SSText size="lg" color="muted">
-              {tn(isMining ? 'mining' : 'notMining')}
-            </SSText>
-          </SSVStack>
+          <SSVStack
+            gap="lg"
+            style={[styles.mainContent, { alignItems: 'center' }]}
+          >
+            <SSVStack gap="sm" style={{ alignItems: 'center' }}>
+              <SSText size="sm" color="muted">
+                {tn('blocksFound', { blocks: blocksFound })}
+              </SSText>
+              <SSText size="lg" color="muted">
+                {tn(isMining ? 'mining' : 'notMining')}
+              </SSText>
+            </SSVStack>
 
-          <SSHStack gap="xl">
-            <SSVStack style={{ alignItems: 'center', width: '20%' }} gap="xxs">
+            <SSHStack gap="xl">
+              <SSVStack
+                style={{ alignItems: 'center', width: '20%' }}
+                gap="xxs"
+              >
+                <SSText size="3xl" style={styles.bigNumber}>
+                  {miningStats.hashesPerSecond.toLocaleString()}
+                </SSText>
+                <SSText size="sm" color="muted">
+                  {tn('hashesPerSecond')}
+                </SSText>
+              </SSVStack>
+              <SSVStack
+                style={{ alignItems: 'center', width: '20%' }}
+                gap="xxs"
+              >
+                <SSText size="3xl" style={styles.bigNumber}>
+                  ~{energyRate}
+                </SSText>
+                <SSText size="sm" color="muted">
+                  {tn('energyRate')}
+                </SSText>
+              </SSVStack>
+            </SSHStack>
+
+            <SSVStack style={{ alignItems: 'center' }} gap="xxs">
               <SSText size="3xl" style={styles.bigNumber}>
-                {miningStats.hashesPerSecond.toLocaleString()}
+                {Number(totalSats).toLocaleString()}
               </SSText>
               <SSText size="sm" color="muted">
-                {tn('hashesPerSecond')}
+                {tn('satsEarned')}
               </SSText>
             </SSVStack>
-            <SSVStack style={{ alignItems: 'center', width: '20%' }} gap="xxs">
-              <SSText size="3xl" style={styles.bigNumber}>
-                ~{energyRate}
-              </SSText>
-              <SSText size="sm" color="muted">
-                {tn('energyRate')}
-              </SSText>
-            </SSVStack>
-          </SSHStack>
-
-          <SSVStack style={{ alignItems: 'center' }} gap="xxs">
-            <SSText size="3xl" style={styles.bigNumber}>
-              {Number(totalSats).toLocaleString()}
-            </SSText>
-            <SSText size="sm" color="muted">
-              {tn('satsEarned')}
-            </SSText>
-          </SSVStack>
-          <SSVStack gap="md" style={styles.buttonContainer}>
-            <SSVStack gap="sm" style={{ width: '100%' }}>
-              <SSHStack justifyBetween>
-                <SSText size="sm" color="muted">
-                  {tn('miningIntensity')}
-                </SSText>
-                <SSText size="sm" color="muted">
-                  {tn('miningIntensityRate', { intensity: miningIntensity })}
-                </SSText>
-              </SSHStack>
-              <Slider
-                style={styles.slider}
-                minimumValue={0}
-                maximumValue={2000}
-                step={miningIntensity > 200 ? 100 : 10}
-                value={miningIntensity}
-                onValueChange={setMiningIntensity}
-                disabled={isMining}
-                minimumTrackTintColor={
-                  miningIntensity > 500
-                    ? Colors.error
-                    : miningIntensity > 300
-                      ? Colors.warning
-                      : miningIntensity > 200
-                        ? Colors.success
-                        : Colors.white
-                }
-                maximumTrackTintColor={Colors.gray[500]}
-                thumbTintColor={
-                  miningIntensity > 500
-                    ? Colors.error
-                    : miningIntensity > 300
-                      ? Colors.warning
-                      : miningIntensity > 200
-                        ? Colors.success
-                        : Colors.white
-                }
-              />
-            </SSVStack>
-            <SSVStack gap="sm" style={{ width: '100%' }}>
-              <SSHStack justifyBetween>
-                <SSText size="sm" color="muted">
-                  {tn('miningInterval')}
-                </SSText>
-                <SSText size="sm" color="muted">
-                  {miningIntervalTime}ms
-                </SSText>
-              </SSHStack>
-              <Slider
-                style={styles.slider}
-                minimumValue={1}
-                maximumValue={10000}
-                step={1}
-                value={miningIntervalTime}
-                onValueChange={setMiningIntervalTime}
-                disabled={isMining}
-                minimumTrackTintColor={Colors.white}
-                maximumTrackTintColor={Colors.gray[500]}
-                thumbTintColor={Colors.white}
-              />
-            </SSVStack>
-            <SSButton
-              label={tn(
-                isMining
-                  ? isStopping
-                    ? 'stoppingMining'
-                    : 'stopMining'
-                  : 'startMining'
-              ).toUpperCase()}
-              onPress={() => (isMining ? stopMining() : startMining())}
-              variant={isMining ? 'danger' : 'secondary'}
-              disabled={
-                !isConnected || !miningAddress || !isValidAddress || isStopping
-              }
-              loading={isStopping}
-            />
-            <SSButton
-              label={tn('joinPool').toUpperCase()}
-              onPress={() => {
-                /* TODO */
-              }}
-              variant="outline"
-              disabled
-            />
-          </SSVStack>
-          <SSVStack gap="md" style={styles.statsContainer}>
-            <SSVStack gap="sm">
-              <SSText color="muted">{tn('blockHeaderCandidate')}</SSText>
-              <ScrollView style={styles.headerScroll}>
-                <SSText size="sm" type="mono">
-                  {blockHeader || '-'}
-                </SSText>
-              </ScrollView>
-            </SSVStack>
-            <SSVStack gap="sm">
-              <SSText color="muted">{tn('latestHash')}</SSText>
-              <ScrollView style={styles.hashScroll}>
-                <SSText size="sm" type="mono">
-                  {miningStats.lastHash || '-'}
-                </SSText>
-              </ScrollView>
-            </SSVStack>
-            <SSVStack gap="sm">
-              <SSText color="muted">{tn('bestHash')}</SSText>
-              <ScrollView style={styles.hashScroll}>
-                <SSText size="sm" type="mono">
-                  {blockchainInfo?.bestblockhash || '-'}
-                </SSText>
-              </ScrollView>
-            </SSVStack>
-            <SSVStack gap="xs">
-              <SSText color="muted">{tn('adjustmentProgress')}</SSText>
-              <View style={styles.difficultyBar}>
-                <View
-                  style={[
-                    styles.difficultyProgress,
-                    { width: `${difficultyProgress * 100}%` }
-                  ]}
-                />
-              </View>
-              <SSHStack justifyBetween>
-                <SSText size="xs" color="muted">
-                  {blockchainInfo ? (
-                    <>Block {blockchainInfo.blocks % 2016} of 2016</>
-                  ) : (
-                    '-'
-                  )}
-                </SSText>
-                <SSText size="xs" color="muted">
-                  {blockchainInfo ? (
-                    <>
-                      {2016 - (blockchainInfo.blocks % 2016)} until next
-                      adjustment
-                    </>
-                  ) : (
-                    '-'
-                  )}
-                </SSText>
-              </SSHStack>
-            </SSVStack>
-          </SSVStack>
-          <SSVStack gap="lg" style={styles.statsGrid}>
-            <SSHStack justifyBetween>
-              <SSVStack gap="xxs">
-                <SSText size="xl">{blockchainInfo?.blocks || '0'}</SSText>
-                <SSText size="xs" color="muted">
-                  {tn('blockCandidate')}
-                </SSText>
-              </SSVStack>
-              <SSVStack style={{ alignItems: 'center' }} gap="xxs">
-                <SSText size="xl">
-                  {blockTemplate?.coinbasevalue
-                    ? (blockTemplate.coinbasevalue / 100000000).toFixed(4)
-                    : '0.0000'}{' '}
-                  {BTC_UNIT}
-                </SSText>
-                <SSText size="xs" color="muted">
-                  {tn('reward')}
-                </SSText>
-              </SSVStack>
-              <SSVStack style={{ alignItems: 'flex-end' }} gap="xxs">
-                <SSText size="xl">
-                  {blockTemplate?.transactions?.length || '0'}
-                </SSText>
-                <SSText size="xs" color="muted">
-                  {tn('template.transactions')}
-                </SSText>
-              </SSVStack>
-            </SSHStack>
-            <SSHStack justifyBetween>
-              <SSVStack gap="xxs">
-                <SSText size="xl">
-                  {blockTemplate?.transactions?.length || '0'}
-                </SSText>
-                <SSText size="xs" color="muted">
-                  {tn('template.transactions')}
-                </SSText>
-              </SSVStack>
-              <SSVStack style={{ alignItems: 'center' }} gap="xxs">
-                <SSText size="xl">
-                  {blockTemplate?.sizelimit
-                    ? (blockTemplate.sizelimit / (1024 * 1024)).toFixed(2)
-                    : '0.00'}{' '}
-                  {BLOCK_SIZE_UNIT}
-                </SSText>
-                <SSText size="xs" color="muted">
-                  {tn('blockSize')}
-                </SSText>
-              </SSVStack>
-              <SSVStack style={{ alignItems: 'flex-end' }} gap="xxs">
-                <SSText size="xl">
-                  {blockTemplate?.curtime
-                    ? Math.floor(
-                        (Date.now() / 1000 - blockTemplate.curtime) / 60
-                      )
-                    : '0'}
-                </SSText>
-                <SSText size="xs" color="muted">
-                  {tn('blockMinedMinutesAgo')}
-                </SSText>
-              </SSVStack>
-            </SSHStack>
-            <SSHStack justifyBetween>
-              <SSVStack gap="xxs">
-                <SSText size="xl">n/a</SSText>
-                <SSText size="xs" color="muted">
-                  {tn('template.template')}
-                </SSText>
-              </SSVStack>
-              <SSVStack style={{ alignItems: 'flex-end' }} gap="xxs">
-                <SSText size="xl">
-                  {networkHashRate === 'no data'
-                    ? 'n/a'
-                    : tn('networkHashRate', { rate: networkHashRate })}
-                </SSText>
-                <SSText size="xs" color="muted">
-                  {tn('hashRate')}
-                </SSText>
-              </SSVStack>
-            </SSHStack>
-          </SSVStack>
-        </SSVStack>
-        <SSVStack gap="md" style={styles.formContainer}>
-          <SSFormLayout>
-            <SSText
-              style={styles.sectionTitle}
-              size="sm"
-              color="muted"
-              uppercase
-            >
-              {tn('params.title')}
-            </SSText>
-            <SSFormLayout.Item>
-              <SSFormLayout.Label label={tn('params.rpcUrl')} />
-              <SSTextInput
-                placeholder="http://127.0.0.1:8332"
-                value={rpcUrl}
-                onChangeText={setRpcUrl}
-                variant="outline"
-                align="center"
-              />
-            </SSFormLayout.Item>
-            <SSFormLayout.Item>
-              <SSFormLayout.Label label={tn('params.rpcUser')} />
-              <SSTextInput
-                placeholder={tn('params.rpcUserPlaceholder')}
-                value={rpcUsername}
-                onChangeText={setRpcUsername}
-                variant="outline"
-                align="center"
-              />
-            </SSFormLayout.Item>
-            <SSFormLayout.Item>
-              <SSFormLayout.Label label={tn('params.rpcPassword')} />
-              <SSTextInput
-                placeholder={tn('params.rpcPasswordPlaceholder')}
-                value={rpcPassword}
-                onChangeText={setRpcPassword}
-                variant="outline"
-                align="center"
-                secureTextEntry
-              />
-            </SSFormLayout.Item>
-            <SSFormLayout.Item>
-              <SSFormLayout.Label label={tn('params.address')} />
-              <SSTextInput
-                placeholder={tn('params.addressPlaceholder')}
-                value={miningAddress}
-                onChangeText={handleMiningAddressChange}
-                variant="outline"
-                align="center"
-                style={
-                  miningAddress
-                    ? {
-                        borderColor: isValidAddress
+            <SSVStack gap="md" style={styles.buttonContainer}>
+              <SSVStack gap="sm" style={{ width: '100%' }}>
+                <SSHStack justifyBetween>
+                  <SSText size="sm" color="muted">
+                    {tn('miningIntensity')}
+                  </SSText>
+                  <SSText size="sm" color="muted">
+                    {tn('miningIntensityRate', { intensity: miningIntensity })}
+                  </SSText>
+                </SSHStack>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={0}
+                  maximumValue={2000}
+                  step={miningIntensity > 200 ? 100 : 10}
+                  value={miningIntensity}
+                  onValueChange={setMiningIntensity}
+                  disabled={isMining}
+                  minimumTrackTintColor={
+                    miningIntensity > 500
+                      ? Colors.error
+                      : miningIntensity > 300
+                        ? Colors.warning
+                        : miningIntensity > 200
                           ? Colors.success
-                          : Colors.error
-                      }
-                    : undefined
+                          : Colors.white
+                  }
+                  maximumTrackTintColor={Colors.gray[500]}
+                  thumbTintColor={
+                    miningIntensity > 500
+                      ? Colors.error
+                      : miningIntensity > 300
+                        ? Colors.warning
+                        : miningIntensity > 200
+                          ? Colors.success
+                          : Colors.white
+                  }
+                />
+              </SSVStack>
+              <SSVStack gap="sm" style={{ width: '100%' }}>
+                <SSHStack justifyBetween>
+                  <SSText size="sm" color="muted">
+                    {tn('miningInterval')}
+                  </SSText>
+                  <SSText size="sm" color="muted">
+                    {miningIntervalTime}ms
+                  </SSText>
+                </SSHStack>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={1}
+                  maximumValue={10000}
+                  step={1}
+                  value={miningIntervalTime}
+                  onValueChange={setMiningIntervalTime}
+                  disabled={isMining}
+                  minimumTrackTintColor={Colors.white}
+                  maximumTrackTintColor={Colors.gray[500]}
+                  thumbTintColor={Colors.white}
+                />
+              </SSVStack>
+              <SSButton
+                label={tn(
+                  isMining
+                    ? isStopping
+                      ? 'stoppingMining'
+                      : 'stopMining'
+                    : 'startMining'
+                ).toUpperCase()}
+                onPress={() => (isMining ? stopMining() : startMining())}
+                variant={isMining ? 'danger' : 'secondary'}
+                disabled={
+                  !isConnected ||
+                  !miningAddress ||
+                  !isValidAddress ||
+                  isStopping
                 }
+                loading={isStopping}
               />
-              {miningAddress && !isValidAddress && (
-                <SSText size="sm" color="muted" style={styles.errorText}>
-                  {tn('params.addressInvalid')}
-                </SSText>
-              )}
-            </SSFormLayout.Item>
-            <SSFormLayout.Item>
-              <SSFormLayout.Label label={tn('params.opReturn')} />
-              <SSTextInput
-                placeholder={tn('params.opReturnPlaceholder')}
-                value={opReturnContent}
-                onChangeText={setOpReturnContent}
+              <SSButton
+                label={tn('joinPool').toUpperCase()}
+                onPress={() => {
+                  /* TODO */
+                }}
                 variant="outline"
-                align="center"
+                disabled
               />
-            </SSFormLayout.Item>
-            {connectionError ? (
-              <SSText size="sm" color="muted" style={styles.errorText}>
-                {connectionError}
+            </SSVStack>
+            <SSVStack gap="md" style={styles.statsContainer}>
+              <SSVStack gap="sm">
+                <SSText color="muted">{tn('blockHeaderCandidate')}</SSText>
+                <ScrollView style={styles.headerScroll}>
+                  <SSText size="sm" type="mono">
+                    {blockHeader || '-'}
+                  </SSText>
+                </ScrollView>
+              </SSVStack>
+              <SSVStack gap="sm">
+                <SSText color="muted">{tn('latestHash')}</SSText>
+                <ScrollView style={styles.hashScroll}>
+                  <SSText size="sm" type="mono">
+                    {miningStats.lastHash || '-'}
+                  </SSText>
+                </ScrollView>
+              </SSVStack>
+              <SSVStack gap="sm">
+                <SSText color="muted">{tn('bestHash')}</SSText>
+                <ScrollView style={styles.hashScroll}>
+                  <SSText size="sm" type="mono">
+                    {blockchainInfo?.bestblockhash || '-'}
+                  </SSText>
+                </ScrollView>
+              </SSVStack>
+              <SSVStack gap="xs">
+                <SSText color="muted">{tn('adjustmentProgress')}</SSText>
+                <View style={styles.difficultyBar}>
+                  <View
+                    style={[
+                      styles.difficultyProgress,
+                      { width: `${difficultyProgress * 100}%` }
+                    ]}
+                  />
+                </View>
+                <SSHStack justifyBetween>
+                  <SSText size="xs" color="muted">
+                    {blockchainInfo ? (
+                      <>Block {blockchainInfo.blocks % 2016} of 2016</>
+                    ) : (
+                      '-'
+                    )}
+                  </SSText>
+                  <SSText size="xs" color="muted">
+                    {blockchainInfo ? (
+                      <>
+                        {2016 - (blockchainInfo.blocks % 2016)} until next
+                        adjustment
+                      </>
+                    ) : (
+                      '-'
+                    )}
+                  </SSText>
+                </SSHStack>
+              </SSVStack>
+            </SSVStack>
+            <SSVStack gap="lg" style={styles.statsGrid}>
+              <SSHStack justifyBetween>
+                <SSVStack gap="xxs">
+                  <SSText size="xl">{blockchainInfo?.blocks || '0'}</SSText>
+                  <SSText size="xs" color="muted">
+                    {tn('blockCandidate')}
+                  </SSText>
+                </SSVStack>
+                <SSVStack style={{ alignItems: 'center' }} gap="xxs">
+                  <SSText size="xl">
+                    {blockTemplate?.coinbasevalue
+                      ? (blockTemplate.coinbasevalue / 100000000).toFixed(4)
+                      : '0.0000'}{' '}
+                    {BTC_UNIT}
+                  </SSText>
+                  <SSText size="xs" color="muted">
+                    {tn('reward')}
+                  </SSText>
+                </SSVStack>
+                <SSVStack style={{ alignItems: 'flex-end' }} gap="xxs">
+                  <SSText size="xl">
+                    {blockTemplate?.transactions?.length || '0'}
+                  </SSText>
+                  <SSText size="xs" color="muted">
+                    {tn('template.transactions')}
+                  </SSText>
+                </SSVStack>
+              </SSHStack>
+              <SSHStack justifyBetween>
+                <SSVStack gap="xxs">
+                  <SSText size="xl">
+                    {blockTemplate?.transactions?.length || '0'}
+                  </SSText>
+                  <SSText size="xs" color="muted">
+                    {tn('template.transactions')}
+                  </SSText>
+                </SSVStack>
+                <SSVStack style={{ alignItems: 'center' }} gap="xxs">
+                  <SSText size="xl">
+                    {blockTemplate?.sizelimit
+                      ? (blockTemplate.sizelimit / (1024 * 1024)).toFixed(2)
+                      : '0.00'}{' '}
+                    {BLOCK_SIZE_UNIT}
+                  </SSText>
+                  <SSText size="xs" color="muted">
+                    {tn('blockSize')}
+                  </SSText>
+                </SSVStack>
+                <SSVStack style={{ alignItems: 'flex-end' }} gap="xxs">
+                  <SSText size="xl">
+                    {blockTemplate?.curtime
+                      ? Math.floor(
+                          (Date.now() / 1000 - blockTemplate.curtime) / 60
+                        )
+                      : '0'}
+                  </SSText>
+                  <SSText size="xs" color="muted">
+                    {tn('blockMinedMinutesAgo')}
+                  </SSText>
+                </SSVStack>
+              </SSHStack>
+              <SSHStack justifyBetween>
+                <SSVStack gap="xxs">
+                  <SSText size="xl">n/a</SSText>
+                  <SSText size="xs" color="muted">
+                    {tn('template.template')}
+                  </SSText>
+                </SSVStack>
+                <SSVStack style={{ alignItems: 'flex-end' }} gap="xxs">
+                  <SSText size="xl">
+                    {networkHashRate === 'no data'
+                      ? 'n/a'
+                      : tn('networkHashRate', { rate: networkHashRate })}
+                  </SSText>
+                  <SSText size="xs" color="muted">
+                    {tn('hashRate')}
+                  </SSText>
+                </SSVStack>
+              </SSHStack>
+            </SSVStack>
+          </SSVStack>
+          <SSVStack gap="md" style={styles.formContainer}>
+            <SSFormLayout>
+              <SSText
+                style={styles.sectionTitle}
+                size="sm"
+                color="muted"
+                uppercase
+              >
+                {tn('params.title')}
               </SSText>
-            ) : null}
-            <SSButton
-              label={tn('params.test')}
-              onPress={connectToNode}
-              variant="outline"
-              disabled={isConnecting}
-            />
-          </SSFormLayout>
+              <SSFormLayout.Item>
+                <SSFormLayout.Label label={tn('params.rpcUrl')} />
+                <SSTextInput
+                  placeholder="http://127.0.0.1:8332"
+                  value={rpcUrl}
+                  onChangeText={setRpcUrl}
+                  variant="outline"
+                  align="center"
+                />
+              </SSFormLayout.Item>
+              <SSFormLayout.Item>
+                <SSFormLayout.Label label={tn('params.rpcUser')} />
+                <SSTextInput
+                  placeholder={tn('params.rpcUserPlaceholder')}
+                  value={rpcUsername}
+                  onChangeText={setRpcUsername}
+                  variant="outline"
+                  align="center"
+                />
+              </SSFormLayout.Item>
+              <SSFormLayout.Item>
+                <SSFormLayout.Label label={tn('params.rpcPassword')} />
+                <SSTextInput
+                  placeholder={tn('params.rpcPasswordPlaceholder')}
+                  value={rpcPassword}
+                  onChangeText={setRpcPassword}
+                  variant="outline"
+                  align="center"
+                  secureTextEntry
+                />
+              </SSFormLayout.Item>
+              <SSFormLayout.Item>
+                <SSFormLayout.Label label={tn('params.address')} />
+                <SSTextInput
+                  placeholder={tn('params.addressPlaceholder')}
+                  value={miningAddress}
+                  onChangeText={handleMiningAddressChange}
+                  variant="outline"
+                  align="center"
+                  style={
+                    miningAddress
+                      ? {
+                          borderColor: isValidAddress
+                            ? Colors.success
+                            : Colors.error
+                        }
+                      : undefined
+                  }
+                />
+                {miningAddress && !isValidAddress && (
+                  <SSText size="sm" color="muted" style={styles.errorText}>
+                    {tn('params.addressInvalid')}
+                  </SSText>
+                )}
+              </SSFormLayout.Item>
+              <SSFormLayout.Item>
+                <SSFormLayout.Label label={tn('params.opReturn')} />
+                <SSTextInput
+                  placeholder={tn('params.opReturnPlaceholder')}
+                  value={opReturnContent}
+                  onChangeText={setOpReturnContent}
+                  variant="outline"
+                  align="center"
+                />
+              </SSFormLayout.Item>
+              {connectionError ? (
+                <SSText size="sm" color="muted" style={styles.errorText}>
+                  {connectionError}
+                </SSText>
+              ) : null}
+              <SSButton
+                label={tn('params.test')}
+                onPress={connectToNode}
+                variant="outline"
+                disabled={isConnecting}
+              />
+            </SSFormLayout>
 
-          {isConnected && blockchainInfo && (
-            <SSVStack gap="xs" style={styles.chainInfoContainer}>
+            {isConnected && blockchainInfo && (
+              <SSVStack gap="xs" style={styles.chainInfoContainer}>
+                <SSText
+                  size="sm"
+                  color="muted"
+                  uppercase
+                  style={styles.sectionTitle}
+                >
+                  {tn('node.title')}
+                </SSText>
+                <SSHStack justifyBetween>
+                  <SSText color="muted">{tn('node.chain')}</SSText>
+                  <SSText>{blockchainInfo.chain}</SSText>
+                </SSHStack>
+                <SSHStack justifyBetween>
+                  <SSText color="muted">{tn('node.blocks')}</SSText>
+                  <SSText>{blockchainInfo.blocks}</SSText>
+                </SSHStack>
+                <SSHStack justifyBetween>
+                  <SSText color="muted">{tn('node.headers')}</SSText>
+                  <SSText>{blockchainInfo.headers}</SSText>
+                </SSHStack>
+                <SSVStack justifyBetween gap="xxs">
+                  <SSText color="muted">{tn('bestHash')}</SSText>
+                  <SSText size="xs" type="mono">
+                    {blockchainInfo.bestblockhash}
+                  </SSText>
+                </SSVStack>
+                <SSHStack justifyBetween>
+                  <SSText color="muted">{tn('node.difficulty')}</SSText>
+                  <SSText>{blockchainInfo.difficulty}</SSText>
+                </SSHStack>
+                <SSHStack justifyBetween>
+                  <SSText color="muted">{tn('node.progress')}</SSText>
+                  <SSText>
+                    {(blockchainInfo.verificationprogress * 100).toFixed(2)}%
+                  </SSText>
+                </SSHStack>
+                <SSButton
+                  label={tn('node.refresh').toUpperCase()}
+                  onPress={fetchBlockchainInfo}
+                  variant="outline"
+                  disabled={isLoadingInfo}
+                />
+              </SSVStack>
+            )}
+          </SSVStack>
+          {isConnected && (
+            <SSVStack gap="xs" style={styles.templateContainer}>
               <SSText
                 size="sm"
                 color="muted"
                 uppercase
                 style={styles.sectionTitle}
               >
-                {tn('node.title')}
+                {tn('template.title')}
               </SSText>
-              <SSHStack justifyBetween>
-                <SSText color="muted">{tn('node.chain')}</SSText>
-                <SSText>{blockchainInfo.chain}</SSText>
-              </SSHStack>
-              <SSHStack justifyBetween>
-                <SSText color="muted">{tn('node.blocks')}</SSText>
-                <SSText>{blockchainInfo.blocks}</SSText>
-              </SSHStack>
-              <SSHStack justifyBetween>
-                <SSText color="muted">{tn('node.headers')}</SSText>
-                <SSText>{blockchainInfo.headers}</SSText>
-              </SSHStack>
-              <SSVStack justifyBetween gap="xxs">
-                <SSText color="muted">{tn('bestHash')}</SSText>
-                <SSText size="xs" type="mono">
-                  {blockchainInfo.bestblockhash}
-                </SSText>
+              {isLoadingTemplate ? (
+                <SSVStack style={styles.loadingContainer}>
+                  <SSText color="muted">{tn('template.loading')}</SSText>
+                </SSVStack>
+              ) : templateData ? (
+                <ScrollView style={styles.templateScroll}>
+                  <SSText size="xs" type="mono" style={styles.templateText}>
+                    {templateData}
+                  </SSText>
+                </ScrollView>
+              ) : null}
+              <SSVStack gap="sm">
+                <SSButton
+                  label={tn('template.refresh').toUpperCase()}
+                  onPress={fetchBlockTemplate}
+                  variant="outline"
+                  disabled={isLoadingTemplate}
+                />
+                <SSVStack gap="sm">
+                  <SSText
+                    size="sm"
+                    color="muted"
+                    uppercase
+                    style={[styles.sectionTitle, { marginTop: 40 }]}
+                  >
+                    {tn('template.addTransaction')}
+                  </SSText>
+                  <SSTextInput
+                    placeholder={tn('template.addTransactionPlaceholder')}
+                    value={txId}
+                    onChangeText={setTxId}
+                    variant="outline"
+                    align="center"
+                  />
+                  {txError && (
+                    <SSText size="sm" color="muted" style={styles.errorText}>
+                      {txError}
+                    </SSText>
+                  )}
+                  <SSButton
+                    label={tn('template.addTransactionBtn')}
+                    onPress={fetchTransaction}
+                    variant="outline"
+                    disabled={!txId || isLoadingTx || !isConnected}
+                    loading={isLoadingTx}
+                  />
+                </SSVStack>
+                <SSVStack gap="sm">
+                  <SSText
+                    size="sm"
+                    color="muted"
+                    uppercase
+                    style={[styles.sectionTitle, { marginTop: 40 }]}
+                  >
+                    {tn('template.select')}
+                  </SSText>
+                  <SSButton
+                    label={tn('template.selectA')}
+                    onPress={() => {
+                      /* TODO */
+                    }}
+                    variant="outline"
+                    disabled
+                  />
+                  <SSButton
+                    label={tn('template.selectB')}
+                    onPress={() => {
+                      /* TODO */
+                    }}
+                    variant="outline"
+                    disabled
+                  />
+                  <SSButton
+                    label={tn('template.selectC')}
+                    onPress={() => {
+                      /* TODO */
+                    }}
+                    variant="outline"
+                    disabled
+                  />
+                </SSVStack>
               </SSVStack>
-              <SSHStack justifyBetween>
-                <SSText color="muted">{tn('node.difficulty')}</SSText>
-                <SSText>{blockchainInfo.difficulty}</SSText>
-              </SSHStack>
-              <SSHStack justifyBetween>
-                <SSText color="muted">{tn('node.progress')}</SSText>
-                <SSText>
-                  {(blockchainInfo.verificationprogress * 100).toFixed(2)}%
-                </SSText>
-              </SSHStack>
-              <SSButton
-                label={tn('node.refresh').toUpperCase()}
-                onPress={fetchBlockchainInfo}
-                variant="outline"
-                disabled={isLoadingInfo}
-              />
             </SSVStack>
           )}
-        </SSVStack>
-        {isConnected && (
-          <SSVStack gap="xs" style={styles.templateContainer}>
-            <SSText
-              size="sm"
-              color="muted"
-              uppercase
-              style={styles.sectionTitle}
-            >
-              {tn('template.title')}
-            </SSText>
-            {isLoadingTemplate ? (
-              <SSVStack style={styles.loadingContainer}>
-                <SSText color="muted">{tn('template.loading')}</SSText>
-              </SSVStack>
-            ) : templateData ? (
-              <ScrollView style={styles.templateScroll}>
-                <SSText size="xs" type="mono" style={styles.templateText}>
-                  {templateData}
-                </SSText>
-              </ScrollView>
-            ) : null}
-            <SSVStack gap="sm">
-              <SSButton
-                label={tn('template.refresh').toUpperCase()}
-                onPress={fetchBlockTemplate}
-                variant="outline"
-                disabled={isLoadingTemplate}
-              />
-              <SSVStack gap="sm">
-                <SSText
-                  size="sm"
-                  color="muted"
-                  uppercase
-                  style={[styles.sectionTitle, { marginTop: 40 }]}
-                >
-                  {tn('template.addTransaction')}
-                </SSText>
-                <SSTextInput
-                  placeholder={tn('template.addTransactionPlaceholder')}
-                  value={txId}
-                  onChangeText={setTxId}
-                  variant="outline"
-                  align="center"
-                />
-                {txError && (
-                  <SSText size="sm" color="muted" style={styles.errorText}>
-                    {txError}
-                  </SSText>
-                )}
-                <SSButton
-                  label={tn('template.addTransactionBtn')}
-                  onPress={fetchTransaction}
-                  variant="outline"
-                  disabled={!txId || isLoadingTx || !isConnected}
-                  loading={isLoadingTx}
-                />
-              </SSVStack>
-              <SSVStack gap="sm">
-                <SSText
-                  size="sm"
-                  color="muted"
-                  uppercase
-                  style={[styles.sectionTitle, { marginTop: 40 }]}
-                >
-                  {tn('template.select')}
-                </SSText>
-                <SSButton
-                  label={tn('template.selectA')}
-                  onPress={() => {
-                    /* TODO */
-                  }}
-                  variant="outline"
-                  disabled
-                />
-                <SSButton
-                  label={tn('template.selectB')}
-                  onPress={() => {
-                    /* TODO */
-                  }}
-                  variant="outline"
-                  disabled
-                />
-                <SSButton
-                  label={tn('template.selectC')}
-                  onPress={() => {
-                    /* TODO */
-                  }}
-                  variant="outline"
-                  disabled
-                />
-              </SSVStack>
-            </SSVStack>
-          </SSVStack>
-        )}
-      </ScrollView>
+        </ScrollView>
+      </SSMainLayout>
     </>
   )
 }
@@ -1908,7 +1930,6 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   formContainer: {
-    paddingHorizontal: 20,
     paddingTop: 20
   },
   hashScroll: {
@@ -1935,7 +1956,7 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     flex: 1,
-    padding: 20
+    paddingVertical: 20
   },
   sectionTitle: {
     marginBottom: 16,

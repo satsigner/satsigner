@@ -1,7 +1,7 @@
 import { useHeaderHeight } from '@react-navigation/elements'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { memo, useCallback, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -22,6 +22,7 @@ import { Colors, Layout } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 function SelectUtxoBubbles() {
   const router = useRouter()
@@ -34,16 +35,14 @@ function SelectUtxoBubbles() {
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
-  const [inputs, getInputs, hasInput, addInput, removeInput] =
-    useTransactionBuilderStore(
-      useShallow((state) => [
-        state.inputs,
-        state.getInputs,
-        state.hasInput,
-        state.addInput,
-        state.removeInput
-      ])
-    )
+  const [inputs, getInputs, addInput, removeInput] = useTransactionBuilderStore(
+    useShallow((state) => [
+      state.inputs,
+      state.getInputs,
+      state.addInput,
+      state.removeInput
+    ])
+  )
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
@@ -59,29 +58,22 @@ function SelectUtxoBubbles() {
   const hasSelectedUtxos = inputs.size > 0
   const selectedAllUtxos = inputs.size === account.utxos.length
 
-  const utxosValue = useCallback(
-    (utxos: Utxo[]): number => utxos.reduce((acc, utxo) => acc + utxo.value, 0),
-    []
-  )
+  function utxosValue(utxos: Utxo[]): number {
+    return utxos.reduce((acc, utxo) => acc + utxo.value, 0)
+  }
 
-  const utxosTotalValue = useMemo(
-    () => utxosValue(account.utxos),
-    [account.utxos, utxosValue]
-  )
+  const utxosTotalValue = utxosValue(account.utxos)
   const utxosSelectedValue = utxosValue(getInputs())
 
-  const handleOnToggleSelected = useCallback(
-    (utxo: Utxo) => {
-      const includesInput = hasInput(utxo)
+  function handleOnToggleSelected(utxo: Utxo) {
+    const includesInput = inputs.has(getUtxoOutpoint(utxo))
 
-      if (includesInput) {
-        removeInput(utxo)
-      } else {
-        addInput(utxo)
-      }
-    },
-    [hasInput, removeInput, addInput]
-  )
+    if (includesInput) {
+      removeInput(utxo)
+    } else {
+      addInput(utxo)
+    }
+  }
 
   function handleSelectAllUtxos() {
     for (const utxo of account.utxos) {
@@ -181,7 +173,7 @@ function SelectUtxoBubbles() {
       />
       <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}
-        style={[styles.absoluteSubmitContainer]}
+        style={styles.absoluteSubmitContainer}
         colors={['#13131300', '#1313130F', '#1313132A', '#131313']}
       >
         <SSVStack style={{ width: '92%' }}>
@@ -217,7 +209,7 @@ function SelectUtxoBubbles() {
                 backgroundColor: Colors.gray[700]
               }
             ]}
-            textStyle={[!hasSelectedUtxos && { color: Colors.gray[400] }]}
+            textStyle={!hasSelectedUtxos && { color: Colors.gray[400] }}
             onPress={() =>
               router.navigate(
                 `/signer/bitcoin/account/${id}/signAndSend/ioPreview`
@@ -261,4 +253,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export default memo(SelectUtxoBubbles)
+export default SelectUtxoBubbles

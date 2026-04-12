@@ -136,16 +136,15 @@ export async function detectFileType(
   let raw: Uint8Array | undefined = undefined
   let decoded: string | undefined = undefined
 
-  if (input instanceof File) {
-    // convert a File to Uint8Array so we have access to the raw bytes
-    input = await fileToBytes(input)
-  }
+  // convert a File to Uint8Array so we have access to the raw bytes
+  const data: Uint8Array | string =
+    input instanceof File ? await fileToBytes(input) : input
 
-  if (input instanceof Uint8Array) {
+  if (data instanceof Uint8Array) {
     // we got binary, see if we recognize it
-    raw = input
+    raw = data
 
-    if (looksLikePsbt(input)) {
+    if (looksLikePsbt(data)) {
       return { fileType: 'P', raw }
     }
 
@@ -160,10 +159,10 @@ export async function detectFileType(
       // not text, so fall back to generic binary
       return { fileType: 'B', raw }
     }
-  } else if (typeof input === 'string') {
-    decoded = input
+  } else if (typeof data === 'string') {
+    decoded = data
   } else {
-    throw new Error('Invalid input - must be a File, Uint8Array or string')
+    throw new TypeError('Invalid input - must be a File, Uint8Array or string')
   }
 
   const trimmed = decoded.trim()

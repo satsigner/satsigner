@@ -42,24 +42,9 @@ export function intToBase36(n: number) {
   return n.toString(36).toUpperCase().padStart(2, '0')
 }
 
-export function fileToBytes(file: File) {
-  // read a File's contents and return as a Uint8Array
-
-  const reader = new FileReader()
-
-  return new Promise<Uint8Array>((resolve, reject) => {
-    reader.onload = (e) => {
-      const result = e.target?.result
-
-      if (result instanceof ArrayBuffer) {
-        resolve(new Uint8Array(result))
-      } else {
-        reject(new Error('FileReader result is not an ArrayBuffer'))
-      }
-    }
-
-    reader.readAsArrayBuffer(file)
-  })
+export async function fileToBytes(file: File) {
+  const buffer = await file.arrayBuffer()
+  return new Uint8Array(buffer)
 }
 
 function joinByteParts(parts: Uint8Array[]) {
@@ -139,40 +124,41 @@ export function versionToChars(v: Version) {
   return QR_DATA_CAPACITY[v][ecc][encoding]
 }
 
-export function encodeData(raw: Uint8Array, encoding?: Encoding) {
+export function encodeData(raw: Uint8Array, encoding: Encoding = 'Z') {
   // return new encoding (if we upgraded) and the
   // characters after encoding (a string)
   // - default is Zlib or if compression doesn't help, base32
   // - returned data can be split, but must be done modX where X provided
 
-  encoding = encoding ?? 'Z'
+  let currentEncoding = encoding
+  let currentRaw = raw
 
-  if (encoding === 'H') {
+  if (currentEncoding === 'H') {
     return {
-      encoded: raw
+      encoded: currentRaw
         .reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), '')
         .toUpperCase(),
-      encoding
+      encoding: currentEncoding
     }
   }
 
-  if (encoding === 'Z') {
+  if (currentEncoding === 'Z') {
     // trial compression, but skip if it embiggens the data
 
-    const compressed = pako.deflate(raw, { windowBits: -10 })
+    const compressed = pako.deflate(currentRaw, { windowBits: -10 })
 
-    if (compressed.length >= raw.length) {
-      encoding = '2'
+    if (compressed.length >= currentRaw.length) {
+      currentEncoding = '2'
     } else {
-      encoding = 'Z'
-      raw = compressed
+      currentEncoding = 'Z'
+      currentRaw = compressed
     }
   }
 
   return {
     // base32 without padding
-    encoded: base32.encode(raw).replace(/=*$/, ''),
-    encoding
+    encoded: base32.encode(currentRaw).replace(/=*$/, ''),
+    encoding: currentEncoding
   }
 }
 

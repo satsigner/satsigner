@@ -1,5 +1,4 @@
-import { useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useRouter, type Href } from 'expo-router'
 import {
   type StyleProp,
   StyleSheet,
@@ -34,10 +33,12 @@ type SSTransactionCardProps = {
   fiatCurrency: Currency
   btcPrice: number
   walletBalance?: number
-  link: string
+  link: Href
   expand: boolean
   style?: StyleProp<ViewStyle>
 }
+
+const DEFAULT_STYLE: StyleProp<ViewStyle> = {}
 
 function SSTransactionCard({
   transaction,
@@ -47,7 +48,7 @@ function SSTransactionCard({
   walletBalance,
   link,
   expand,
-  style = {}
+  style = DEFAULT_STYLE
 }: SSTransactionCardProps) {
   const hasConfirmation = transaction.blockHeight && transaction.blockHeight > 0
 
@@ -62,9 +63,6 @@ function SSTransactionCard({
         ? styles.confirmedFew
         : styles.confirmedEnough
 
-  const [priceDisplay, setPriceDisplay] = useState('')
-  const [percentChange, setPercentChange] = useState('')
-
   const { type, received, sent } = transaction
   const amount = type === 'receive' ? received : sent - received
 
@@ -76,39 +74,30 @@ function SSTransactionCard({
     ])
   )
 
-  useEffect(() => {
-    const { prices } = transaction
-    const itemsToDisplay: string[] = []
+  const { prices } = transaction
+  const oldPrice = prices ? prices[fiatCurrency] : null
+  const priceItemsToDisplay: string[] = []
 
-    const oldPrice = prices ? prices[fiatCurrency] : null
+  if (btcPrice && btcPrice > 0) {
+    priceItemsToDisplay.push(formatFiatPrice(Math.abs(amount), btcPrice))
+  }
 
-    // Only show current fiat price if btcPrice is valid (> 0)
-    if (btcPrice && btcPrice > 0) {
-      itemsToDisplay.push(formatFiatPrice(Math.abs(amount), btcPrice))
-    }
+  const historicalPrice = prices?.[fiatCurrency]
+  if (historicalPrice && historicalPrice > 0) {
+    priceItemsToDisplay.push(
+      `(${formatFiatPrice(Math.abs(amount), historicalPrice)})`
+    )
+  }
 
-    // Only show historical price if available and valid
-    const historicalPrice = prices?.[fiatCurrency]
-    if (historicalPrice && historicalPrice > 0) {
-      itemsToDisplay.push(
-        `(${formatFiatPrice(Math.abs(amount), historicalPrice)})`
-      )
-    }
+  if (priceItemsToDisplay.length > 0) {
+    priceItemsToDisplay.push(fiatCurrency)
+  }
 
-    if (itemsToDisplay.length > 0) {
-      itemsToDisplay.push(fiatCurrency)
-    }
-
-    // Only show percent change if both prices are valid; only clear when there
-    // is no valid current fiat price so we don't hide the priceDisplay block
-    if (btcPrice && btcPrice > 0 && oldPrice && oldPrice > 0) {
-      setPercentChange(formatPercentualChange(btcPrice, oldPrice))
-    } else if (!(btcPrice && btcPrice > 0)) {
-      setPercentChange('')
-    }
-
-    setPriceDisplay(itemsToDisplay.join(' '))
-  }, [btcPrice, fiatCurrency, amount, transaction])
+  const priceDisplay = priceItemsToDisplay.join(' ')
+  const percentChange =
+    btcPrice && btcPrice > 0 && oldPrice && oldPrice > 0
+      ? formatPercentualChange(btcPrice, oldPrice)
+      : ''
 
   const router = useRouter()
 
@@ -147,15 +136,9 @@ function SSTransactionCard({
             </SSText>
           </SSHStack>
         </SSHStack>
-
         {transaction.timestamp && (
-          <SSTimeAgoText
-            date={new Date(transaction.timestamp)}
-            size="xs"
-            style={{ marginTop: -5 }}
-          />
+          <SSTimeAgoText date={new Date(transaction.timestamp)} size="xs" />
         )}
-
         <SSVStack gap="none" style={{ marginTop: 5 }}>
           <SSHStack
             style={{
@@ -250,7 +233,6 @@ function SSTransactionCard({
               </SSHStack>
             )}
           </SSHStack>
-
           {priceDisplay !== '' && (
             <SSHStack justifyBetween>
               <SSHStack

@@ -1,10 +1,19 @@
 import { URDecoder } from '@ngraveio/bc-ur'
-import { type Network as _Network } from 'bdk-rn/lib/lib/enums'
-import { CameraView, useCameraPermissions } from 'expo-camera/next'
+import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Animated, ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, View } from 'react-native'
+import { type Network as _Network } from 'react-native-bdk-sdk'
+import Animated, {
+  cancelAnimation,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming
+} from 'react-native-reanimated'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -70,33 +79,31 @@ export default function ImportDescriptor() {
     type: null
   })
 
-  const pulseAnim = useRef(new Animated.Value(0)).current
-  const scaleAnim = useRef(new Animated.Value(1)).current
+  const pulseAnim = useSharedValue(0)
+  const scaleAnim = useSharedValue(1)
 
   useEffect(() => {
     if (isReading) {
-      const pulseAnimation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            duration: 500,
-            toValue: 1,
-            useNativeDriver: false
-          }),
-          Animated.timing(pulseAnim, {
-            duration: 500,
-            toValue: 0,
-            useNativeDriver: false
-          })
-        ])
+      pulseAnim.set(
+        withRepeat(
+          withSequence(
+            withTiming(1, { duration: 500 }),
+            withTiming(0, { duration: 500 })
+          ),
+          -1
+        )
       )
-
-      pulseAnimation.start()
-
       return () => {
-        pulseAnimation.stop()
+        cancelAnimation(pulseAnim)
       }
     }
   }, [isReading, pulseAnim])
+
+  const nfcButtonStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(pulseAnim.value, [0, 1], [1, 0.7]),
+    overflow: 'hidden' as const,
+    transform: [{ scale: scaleAnim.value }]
+  }))
 
   const [
     setExtendedPublicKey,
@@ -174,7 +181,6 @@ export default function ImportDescriptor() {
         scriptVersion
       )
     }
-
     const validExternalDescriptor =
       basicValidation && networkValidation.isValid && scriptVersionValidation
 
@@ -370,7 +376,7 @@ export default function ImportDescriptor() {
       clearKeyState()
       router.dismiss(1)
     } catch {
-      toast.error(t('account.import.error'))
+      toast.error(t('account.import.error.generic'))
     }
   }
 
@@ -459,7 +465,7 @@ export default function ImportDescriptor() {
         setInternalDescriptorError(errorMessage)
       }
     } catch {
-      toast.error(t('account.import.error'))
+      toast.error(t('account.import.error.generic'))
     }
   }
 
@@ -613,12 +619,9 @@ export default function ImportDescriptor() {
       }
 
       // Handle combined descriptors with smart validation
-      if (isCombinedDescriptor(finalContent)) {
-        await handleCombinedDescriptorImport(finalContent)
-      } else {
-        // Handle non-combined descriptors with existing logic
-        await updateExternalDescriptor(finalContent)
-      }
+      await (isCombinedDescriptor(finalContent)
+        ? handleCombinedDescriptorImport(finalContent)
+        : updateExternalDescriptor(finalContent))
 
       setCameraModalVisible(false)
       toast.success(t('watchonly.success.qrScanned'))
@@ -646,12 +649,9 @@ export default function ImportDescriptor() {
         const assembledData = assembleMultiPartQR(qrInfo.type, newChunks)
         if (assembledData) {
           // Handle combined descriptors with smart validation
-          if (isCombinedDescriptor(assembledData)) {
-            await handleCombinedDescriptorImport(assembledData)
-          } else {
-            // Handle non-combined descriptors with existing logic
-            await updateExternalDescriptor(assembledData)
-          }
+          await (isCombinedDescriptor(assembledData)
+            ? handleCombinedDescriptorImport(assembledData)
+            : updateExternalDescriptor(assembledData))
 
           setCameraModalVisible(false)
           toast.success(t('watchonly.success.qrScanned'))
@@ -681,7 +681,6 @@ export default function ImportDescriptor() {
           const bbqrResult = decodeBBQRChunks([combinedData])
           return bbqrResult ? String(bbqrResult) : combinedData
         }
-        case 'raw':
         default:
           return combinedData
       }
@@ -689,16 +688,6 @@ export default function ImportDescriptor() {
       return null
     }
   }
-
-  const _styles = StyleSheet.create({
-    invalid: {
-      borderColor: Colors.error,
-      borderWidth: 1,
-      height: 'auto',
-      paddingVertical: 10
-    },
-    valid: { height: 'auto', paddingVertical: 10 }
-  })
 
   function getDefaultDerivationPath(): string {
     // Check if we're in multisig mode to use the correct derivation path function
@@ -730,8 +719,13 @@ export default function ImportDescriptor() {
                 <SSText center>{t('watchonly.importDescriptor.label')}</SSText>
                 <SSTextInput
                   value={externalDescriptor}
-                  style={
-                    validExternalDescriptor ? _styles.valid : _styles.invalid
+                  style={{ height: 'auto', paddingVertical: 10 }}
+                  status={
+                    !externalDescriptor
+                      ? undefined
+                      : validExternalDescriptor
+                        ? 'valid'
+                        : 'invalid'
                   }
                   onChangeText={updateExternalDescriptor}
                   multiline
@@ -755,8 +749,13 @@ export default function ImportDescriptor() {
                 </SSText>
                 <SSTextInput
                   value={internalDescriptor}
-                  style={
-                    validInternalDescriptor ? _styles.valid : _styles.invalid
+                  style={{ height: 'auto', paddingVertical: 10 }}
+                  status={
+                    !internalDescriptor
+                      ? undefined
+                      : validInternalDescriptor
+                        ? 'valid'
+                        : 'invalid'
                   }
                   multiline
                   onChangeText={updateInternalDescriptor}
@@ -784,16 +783,7 @@ export default function ImportDescriptor() {
                 label={t('watchonly.read.qrcode')}
                 onPress={() => setCameraModalVisible(true)}
               />
-              <Animated.View
-                style={{
-                  opacity: pulseAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [1, 0.7]
-                  }),
-                  overflow: 'hidden',
-                  transform: [{ scale: scaleAnim }]
-                }}
-              >
+              <Animated.View style={nfcButtonStyle}>
                 <SSButton
                   label={
                     isReading

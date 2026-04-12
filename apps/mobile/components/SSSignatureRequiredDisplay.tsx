@@ -14,10 +14,12 @@ type SSSignatureRequiredDisplayProps = {
   validationResults?: Map<number, boolean>
 }
 
+const DEFAULT_COLLECTED_SIGNATURES: number[] = []
+
 function SSSignatureRequiredDisplay({
   requiredNumber,
   totalNumber,
-  collectedSignatures = [],
+  collectedSignatures = DEFAULT_COLLECTED_SIGNATURES,
   validationResults
 }: SSSignatureRequiredDisplayProps) {
   const [containerSize, setContainersize] = useState({ height: 0, width: 0 })

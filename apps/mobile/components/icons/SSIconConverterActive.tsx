@@ -19,18 +19,8 @@ export default function SSIconConverterActive({
         strokeWidth="3"
       />
       <Circle cx="10" cy="11" r="7" stroke={strokeColor} />
-      <Path
-        d="M8 15L11 18L8 21"
-        stroke={strokeColor}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M11 7L8 4L11 1"
-        stroke={strokeColor}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <Path d="M8 15L11 18L8 21" stroke={strokeColor} />
+      <Path d="M11 7L8 4L11 1" stroke={strokeColor} />
     </Svg>
   )
 }

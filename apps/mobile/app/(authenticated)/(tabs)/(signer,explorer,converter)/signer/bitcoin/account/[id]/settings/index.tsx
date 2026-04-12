@@ -1,5 +1,5 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -22,7 +22,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
-import { useAuthStore } from '@/store/auth'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
@@ -51,8 +50,6 @@ export default function AccountSettings() {
     (state) => state.removeAccountWallet
   )
 
-  const skipPin = useAuthStore((state) => state.skipPin)
-
   const [scriptVersion, setScriptVersion] = useState<Key['scriptVersion']>(
     account?.keys[0]?.scriptVersion || 'P2WPKH'
   )
@@ -72,28 +69,21 @@ export default function AccountSettings() {
   const [showPinEntry, setShowPinEntry] = useState(false)
   const [pinEntryFocus, setPinEntryFocus] = useState(false)
 
-  const labelCounts = useMemo(() => {
-    const labels = account?.labels ? Object.values(account.labels) : []
-    return {
-      addresses: {
-        labeled: labels.filter((l) => l.type === 'addr').length,
-        total: account?.addresses?.length || 0
-      },
-      transactions: {
-        labeled: labels.filter((l) => l.type === 'tx').length,
-        total: account?.transactions?.length || 0
-      },
-      utxos: {
-        labeled: labels.filter((l) => l.type === 'output').length,
-        total: account?.utxos?.length || 0
-      }
+  const labels = account?.labels ? Object.values(account.labels) : []
+  const labelCounts = {
+    addresses: {
+      labeled: labels.filter((l) => l.type === 'addr').length,
+      total: account?.addresses?.length || 0
+    },
+    transactions: {
+      labeled: labels.filter((l) => l.type === 'tx').length,
+      total: account?.transactions?.length || 0
+    },
+    utxos: {
+      labeled: labels.filter((l) => l.type === 'output').length,
+      total: account?.utxos?.length || 0
     }
-  }, [
-    account?.labels,
-    account?.transactions,
-    account?.utxos,
-    account?.addresses
-  ])
+  }
 
   function getPolicyTypeButtonLabel() {
     switch (account?.policyType) {
@@ -109,12 +99,8 @@ export default function AccountSettings() {
   }
 
   function handleOnViewMnemonic() {
-    if (skipPin) {
-      setMnemonicModalVisible(true)
-    } else {
-      setPin(emptyPin())
-      setShowPinEntry(true)
-    }
+    setPin(emptyPin())
+    setShowPinEntry(true)
 
     // This will auto-focus the pin input after a little delay.
     // The delay is needed because the modal has to have become visible first.
@@ -185,9 +171,11 @@ export default function AccountSettings() {
 
     try {
       decryptCurrentAccountKeys()
-    } catch (e: unknown) {
+    } catch (error: unknown) {
       toast.error(
-        e instanceof Error ? e.message : 'Failed to decrypt account keys'
+        error instanceof Error
+          ? error.message
+          : 'Failed to decrypt account keys'
       )
     }
   }, [account])

@@ -1,18 +1,25 @@
 import { URDecoder } from '@ngraveio/bc-ur'
-import { Descriptor } from 'bdk-rn'
-import { type Network } from 'bdk-rn/lib/lib/enums'
-import { CameraView, useCameraPermissions } from 'expo-camera/next'
+import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  Animated,
   Keyboard,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   View
 } from 'react-native'
+import { walletNameFromDescriptor } from 'react-native-bdk-sdk'
+import Animated, {
+  cancelAnimation,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming
+} from 'react-native-reanimated'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -46,6 +53,7 @@ import {
 import { type WatchOnlySearchParams } from '@/types/navigation/searchParams'
 import { isBBQRFragment } from '@/utils/bbqr'
 import {
+  appNetworkToBdkNetwork,
   bitcoinjsNetwork,
   getDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
@@ -177,53 +185,45 @@ export default function WatchOnly() {
     type: null
   })
 
-  const pulseAnim = useRef(new Animated.Value(0)).current
-  const scaleAnim = useRef(new Animated.Value(1)).current
+  const pulseAnim = useSharedValue(0)
+  const scaleAnim = useSharedValue(1)
 
-  // Handle NFC reading animations
   useEffect(() => {
     if (isReading) {
-      const pulseAnimation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            duration: 500,
-            toValue: 1,
-            useNativeDriver: false
-          }),
-          Animated.timing(pulseAnim, {
-            duration: 500,
-            toValue: 0,
-            useNativeDriver: false
-          })
-        ])
+      pulseAnim.set(
+        withRepeat(
+          withSequence(
+            withTiming(1, { duration: 500 }),
+            withTiming(0, { duration: 500 })
+          ),
+          -1
+        )
       )
-
-      const scaleAnimation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(scaleAnim, {
-            duration: 500,
-            toValue: 0.98,
-            useNativeDriver: false
-          }),
-          Animated.timing(scaleAnim, {
-            duration: 500,
-            toValue: 1,
-            useNativeDriver: false
-          })
-        ])
+      scaleAnim.set(
+        withRepeat(
+          withSequence(
+            withTiming(0.98, { duration: 500 }),
+            withTiming(1, { duration: 500 })
+          ),
+          -1
+        )
       )
-
-      pulseAnimation.start()
-      scaleAnimation.start()
-
       return () => {
-        pulseAnimation.stop()
-        scaleAnimation.stop()
+        cancelAnimation(pulseAnim)
+        cancelAnimation(scaleAnim)
       }
     }
-    pulseAnim.setValue(0)
-    scaleAnim.setValue(1)
+    cancelAnimation(pulseAnim)
+    cancelAnimation(scaleAnim)
+    pulseAnim.set(0)
+    scaleAnim.set(1)
   }, [isReading, pulseAnim, scaleAnim])
+
+  const nfcButtonStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(pulseAnim.value, [0, 1], [1, 0.7]),
+    overflow: 'hidden',
+    transform: [{ scale: scaleAnim.value }]
+  }))
 
   const updateDescriptorValidationState = useCallback(() => {
     const hasValidExternal = externalDescriptor && isValidExternalDescriptor
@@ -407,25 +407,25 @@ export default function WatchOnly() {
 
     if (basicValidation && descriptor) {
       try {
-        // Try to create descriptor with BDK to check network compatibility
-        await new Descriptor().create(descriptor, network as Network)
+        // Try to validate descriptor with BDK to check network compatibility
+        walletNameFromDescriptor(
+          descriptor,
+          undefined,
+          appNetworkToBdkNetwork(network)
+        )
         networkValidation = { isValid: true }
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : String(error)
 
-        if (
+        networkValidation =
           errorMessage.includes('Invalid network') ||
           errorMessage.includes('network')
-        ) {
-          networkValidation = {
-            error: 'networkIncompatible',
-            isValid: false
-          }
-        } else {
-          // For other BDK errors, still consider it valid for now
-          networkValidation = { isValid: true }
-        }
+            ? {
+                error: 'networkIncompatible' as const,
+                isValid: false
+              }
+            : { isValid: true }
       }
     }
 
@@ -550,11 +550,9 @@ export default function WatchOnly() {
 
     const qrInfo = detectQRType(data)
 
-    if (qrInfo.type === 'single' || qrInfo.total === 1) {
-      await handleSingleQRCode(qrInfo.content)
-    } else {
-      await handleMultiPartQRCode(qrInfo)
-    }
+    await (qrInfo.type === 'single' || qrInfo.total === 1
+      ? handleSingleQRCode(qrInfo.content)
+      : handleMultiPartQRCode(qrInfo))
   }
 
   async function handleSingleQRCode(data: string) {
@@ -1047,16 +1045,7 @@ export default function WatchOnly() {
                       style={{ flex: 1 }}
                     />
                   </SSHStack>
-                  <Animated.View
-                    style={{
-                      opacity: pulseAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [1, 0.7]
-                      }),
-                      overflow: 'hidden',
-                      transform: [{ scale: scaleAnim }]
-                    }}
-                  >
+                  <Animated.View style={nfcButtonStyle}>
                     <SSButton
                       label={
                         isReading

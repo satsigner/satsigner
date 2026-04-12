@@ -16,6 +16,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   assetBundlePatterns: ['**/*'],
   description: 'Privacy-first Bitcoin signer with complete UTXO control',
   experiments: {
+    reactCompiler: true,
     typedRoutes: true
   },
   extra: {
@@ -32,6 +33,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     infoPlist: {
       NFCReaderUsageDescription:
         'This app uses NFC to read and write data from NFC tags',
+      UIDesignRequiresCompatibility: true,
       'com.apple.developer.nfc.readersession.formats': ['NDEF', 'TAG']
     },
     supportsTablet: true
@@ -70,7 +72,22 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         cameraPermission: 'Allow $(PRODUCT_NAME) to access your camera'
       }
     ],
-    'expo-localization'
+    'expo-localization',
+    [
+      'expo-build-properties',
+      {
+        android: {
+          useHermesV1: false
+        },
+        ios: {
+          buildReactNativeFromSource: true,
+          useHermesV1: true
+        }
+      }
+    ],
+    'expo-image',
+    'expo-sharing',
+    'expo-web-browser'
   ],
   scheme: 'satsigner',
   slug: 'satsigner',

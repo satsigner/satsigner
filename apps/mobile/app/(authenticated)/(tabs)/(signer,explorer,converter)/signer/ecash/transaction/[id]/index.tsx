@@ -135,11 +135,7 @@ export default function EcashTransactionDetailPage() {
       let tokenStatus: EcashTransaction['tokenStatus']
 
       if (result.isValid) {
-        if (result.isSpent) {
-          tokenStatus = 'spent'
-        } else {
-          tokenStatus = 'unspent'
-        }
+        tokenStatus = result.isSpent ? 'spent' : 'unspent'
       } else {
         tokenStatus = 'invalid'
       }

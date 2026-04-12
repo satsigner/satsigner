@@ -1,6 +1,5 @@
-import { type PartiallySignedTransaction } from 'bdk-rn'
-import { type TxBuilderResult } from 'bdk-rn/lib/classes/Bindings'
 import { enableMapSet, produce } from 'immer'
+import { type PsbtLike } from 'react-native-bdk-sdk'
 import { create } from 'zustand'
 
 import { type Output } from '@/types/models/Output'
@@ -19,8 +18,7 @@ type TransactionBuilderState = {
   timeLock: number
   rbf: boolean
   cpfp: boolean
-  txBuilderResult?: TxBuilderResult
-  psbt?: PartiallySignedTransaction
+  psbt?: PsbtLike
   signedTx?: string
   signedPsbts: Map<number, string>
   broadcasted: boolean
@@ -42,10 +40,7 @@ type TransactionBuilderAction = {
   setFeeRate: (feeRate: TransactionBuilderState['feeRate']) => void
   setFee: (fee: TransactionBuilderState['fee']) => void
   setRbf: (rbf: TransactionBuilderState['rbf']) => void
-  setTxBuilderResult: (
-    txBuilderResult: NonNullable<TransactionBuilderState['txBuilderResult']>
-  ) => void
-  setPsbt: (pbst: NonNullable<TransactionBuilderState['psbt']>) => void
+  setPsbt: (psbt: NonNullable<TransactionBuilderState['psbt']>) => void
   setSignedTx: (
     signedTx: NonNullable<TransactionBuilderState['signedTx']>
   ) => void
@@ -80,8 +75,7 @@ const useTransactionBuilderStore = create<
       outputs: [],
       psbt: undefined,
       signedPsbts: new Map<number, string>(),
-      signedTx: undefined,
-      txBuilderResult: undefined
+      signedTx: undefined
     })
   },
   cpfp: true,
@@ -134,9 +128,6 @@ const useTransactionBuilderStore = create<
   },
   setSignedTx: (signedTx) => {
     set({ signedTx })
-  },
-  setTxBuilderResult: (txBuilderResult) => {
-    set({ txBuilderResult })
   },
   signedPsbts: new Map<number, string>(),
   timeLock: 0,

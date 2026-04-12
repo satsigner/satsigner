@@ -11,7 +11,6 @@ export default function SSIconScanNFC({ width, height }: IconProps) {
           fill="none"
           stroke="rgba(255,255,255,0.73)"
           strokeWidth="1"
-          strokeLinecap="round"
         />
       </G>
     </Svg>

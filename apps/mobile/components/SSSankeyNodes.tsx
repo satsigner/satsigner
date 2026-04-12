@@ -10,13 +10,13 @@ import {
   type SkTypefaceFontProvider,
   TextAlign,
   TextBaseline,
-  useFonts,
   useSVG,
   vec
 } from '@shopify/react-native-skia'
 import { memo, useMemo } from 'react'
 
 import type { TxNode } from '@/hooks/useNodesAndLinks'
+import { useSFProFonts } from '@/hooks/useSFProFonts'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { gray, mainGreen, mainRed, white } from '@/styles/colors'
@@ -45,13 +45,7 @@ function SSSankeyNodes({
   selectedOutputNode,
   dimUnselected = false
 }: ISSankeyNodes) {
-  const customFontManager = useFonts({
-    'SF Pro Text': [
-      require('@/assets/fonts/SF-Pro-Text-Light.otf'),
-      require('@/assets/fonts/SF-Pro-Text-Regular.otf'),
-      require('@/assets/fonts/SF-Pro-Text-Medium.otf')
-    ]
-  })
+  const customFontManager = useSFProFonts()
 
   // Find the maximum depth in nodes
   const maxDepth = useMemo(

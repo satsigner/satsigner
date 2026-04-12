@@ -15,7 +15,6 @@ import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { decryptKeySecret } from '@/utils/account'
@@ -29,7 +28,6 @@ export default function SeedWordsPage() {
   const account = useAccountsStore((state) =>
     state.accounts.find((_account) => _account.id === accountId)
   )
-  const skipPin = useAuthStore((state) => state.skipPin)
 
   const [mnemonic, setMnemonic] = useState('')
   const [isLoading, setIsLoading] = useState(true)
@@ -50,8 +48,8 @@ export default function SeedWordsPage() {
       const secret = await decryptKeySecret(key)
       setMnemonic(secret.mnemonic || '')
       setNoMnemonicAvailable(!secret.mnemonic)
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : 'unknown reason'
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'unknown reason'
       toast.error(`${t('account.seed.unableToDecrypt')}: ${reason}`)
     } finally {
       setShowPinEntry(false)
@@ -65,16 +63,11 @@ export default function SeedWordsPage() {
   useEffect(() => {
     if (account && key) {
       setIsLoading(false)
-      if (skipPin) {
-        decryptMnemonic()
-      } else {
-        // Show PIN entry when skip PIN is disabled
-        setShowPinEntry(true)
-      }
+      setShowPinEntry(true)
     } else {
       setIsLoading(false)
     }
-  }, [account, key, skipPin, decryptMnemonic])
+  }, [account, key, decryptMnemonic])
 
   if (isLoading) {
     return (

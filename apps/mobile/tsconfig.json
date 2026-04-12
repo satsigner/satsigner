@@ -3,8 +3,8 @@
     "strict": true,
     "baseUrl": ".",
     "jsx": "react-jsx",
-    "module": "esnext",
-    "moduleResolution": "node",
+    "module": "preserve",
+    "moduleResolution": "bundler",
     "paths": {
       "@/*": ["./*"]
     }
@@ -12,6 +12,7 @@
   "extends": "expo/tsconfig.base",
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
   "exclude": [
+    "__mocks__/**/*",
     "tests/**/*",
     "**/*.test.ts",
     "**/*.test.tsx",

@@ -1,4 +1,5 @@
 import {
+  parseDescriptor,
   parseLabel,
   parseLabelTags,
   parseUriParameters,
@@ -110,6 +111,45 @@ describe('parse utils', () => {
     it('should return only tags', () => {
       const result = parseLabelTags('', ['endthefed', 'nokyc'])
       expect(result).toBe('#endthefed #nokyc')
+    })
+  })
+
+  describe('parseDescriptor', () => {
+    it('extracts mainnet xpub from wpkh descriptor', () => {
+      const d =
+        "wpkh([d34db33f/84'/0'/0']xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWZiD6gkqamhVgBkt3Y5MpcMbTexKCNc5shV4zrtJzeYp5G5ayUCsKcxV4kVFCYiyCMJNWv4sh2XycHBG/0/*)#jfve3kwe"
+      const { xpubs } = parseDescriptor(d)
+      expect(xpubs).toStrictEqual([
+        'xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWZiD6gkqamhVgBkt3Y5MpcMbTexKCNc5shV4zrtJzeYp5G5ayUCsKcxV4kVFCYiyCMJNWv4sh2XycHBG'
+      ])
+    })
+
+    it('extracts tpub when the prefix uses uppercase letters', () => {
+      const lower =
+        "wpkh([60c6c741/84'/1'/0']tpubDDSsu3cncmRPe7hd3TYa419HMeHkdhGKNmUA17dDfyUogBE5pRKDPV14reDahCasFuJK9Zrnb9NXchBXCjhzgxRJgd5XHrVumiiqaTSwedx/0/*)#113CZT8y"
+      const upper = lower.replace('tpub', 'TPUB')
+      expect(parseDescriptor(upper).xpubs[0].toLowerCase()).toBe(
+        parseDescriptor(lower).xpubs[0].toLowerCase()
+      )
+    })
+
+    it('treats external multipath and /0/* as same xpub material', () => {
+      const multipath =
+        "wpkh([60c6c741/84'/1'/0']tpubDDSsu3cncmRPe7hd3TYa419HMeHkdhGKNmUA17dDfyUogBE5pRKDPV14reDahCasFuJK9Zrnb9NXchBXCjhzgxRJgd5XHrVumiiqaTSwedx/<0;1>/*)#3qsy06cj"
+      const external =
+        "wpkh([60c6c741/84'/1'/0']tpubDDSsu3cncmRPe7hd3TYa419HMeHkdhGKNmUA17dDfyUogBE5pRKDPV14reDahCasFuJK9Zrnb9NXchBXCjhzgxRJgd5XHrVumiiqaTSwedx/0/*)#113CZT8y"
+      expect(parseDescriptor(multipath)).toStrictEqual(
+        parseDescriptor(external)
+      )
+    })
+
+    it('detects sortedmulti multisig case-insensitively (wsh)', () => {
+      const lower =
+        "wsh(sortedmulti(2,[73c5da0a/48'/1'/0'/2']tpubDFH9dgzveyD8zTbPUFuLrGmCydNvxehyNdUXKJAQN8x4aZ4j6UZqGfnqFrD4NqyaTVGKbvEW54tsvPTK2UoSbCC1PJY8iCNiwTL3RWZEheQ/0/*,[f57a6b99/48'/1'/0'/2']tpubDE8wPPUAhLGBvb4M3RjkhcPpGqQDcsnpQto4Wv5J8PUnLwiYijav8fqPCvumR4YPLF8QYWN4cJhPGa5emobn3bgLZ2LnQ3LBhDJKBhibTv6/0/*))#cflzs9pc"
+      const upper = lower.replace('wsh(sortedmulti', 'Wsh(SortedMulti')
+      expect(parseDescriptor(upper).xpubs.toSorted()).toStrictEqual(
+        parseDescriptor(lower).xpubs.toSorted()
+      )
     })
   })
 })

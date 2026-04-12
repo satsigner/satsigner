@@ -204,8 +204,8 @@ const useAccountBuilderStore = create<
         message: 'Seed dropped successfully',
         success: true
       }
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : 'unknown reason'
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'unknown reason'
       return {
         message: `Failed to drop seed: ${reason}`,
         success: false

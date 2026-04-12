@@ -1,8 +1,8 @@
 import ecc from '@bitcoinerlab/secp256k1'
 import { HDKey } from '@scure/bip32' // TODO: remove @scure
 import * as bip39 from '@scure/bip39' // TODO: remove @scure
-import { KeychainKind, Network as BDKNetwork } from 'bdk-rn/lib/lib/enums'
 import { BIP32Factory, type BIP32Interface } from 'bip32'
+import { KeychainKind, Network as BDKNetwork } from 'react-native-bdk-sdk'
 
 import type { ScriptVersionType } from '@/types/models/Account'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
@@ -51,12 +51,23 @@ const BIP32Networks: Record<BDKNetwork, BIP32Interface['network']> = {
   [BDKNetwork.Testnet]: BIP32NetworkTestnet
 }
 
+function bdkNetworkToAppNetwork(network: BDKNetwork): AppNetwork {
+  switch (network) {
+    case BDKNetwork.Bitcoin:
+      return 'bitcoin'
+    case BDKNetwork.Signet:
+      return 'signet'
+    default:
+      return 'testnet'
+  }
+}
+
 function getStandardPath(
   scriptVersion: ScriptVersionType,
   network: BDKNetwork,
   isMultiSig = false
 ) {
-  const appNetwork = network as AppNetwork
+  const appNetwork = bdkNetworkToAppNetwork(network)
   return isMultiSig
     ? getMultisigDerivationPathFromScriptVersion(scriptVersion, appNetwork)
     : getDerivationPathFromScriptVersion(scriptVersion, appNetwork)
@@ -91,14 +102,16 @@ export function getPrivateDescriptorFromSeed(
 ): string {
   const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
   const path = getStandardPath(scriptVersion, network)
-  const privateKey = masterKey.toBase58()
-  const descriptor = getDescriptorFromPrivateKey(
-    privateKey,
+  const accountKey = masterKey.derivePath(`m/${path}`)
+  const accountXprv = accountKey.toBase58()
+  const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
+  return getDescriptorFromPrivateKey(
+    accountXprv,
     scriptVersion,
+    fingerprint,
     path,
     kind
   )
-  return descriptor
 }
 
 export function getPrivateDescriptorFromSeedWithPath(
@@ -109,8 +122,16 @@ export function getPrivateDescriptorFromSeedWithPath(
   path: string
 ): string {
   const masterKey = bip32.fromSeed(seed, BIP32Networks[network])
-  const privateKey = masterKey.toBase58()
-  return getDescriptorFromPrivateKey(privateKey, scriptVersion, path, kind)
+  const accountKey = masterKey.derivePath(`m/${path}`)
+  const accountXprv = accountKey.toBase58()
+  const fingerprint = Buffer.from(masterKey.fingerprint).toString('hex')
+  return getDescriptorFromPrivateKey(
+    accountXprv,
+    scriptVersion,
+    fingerprint,
+    path,
+    kind
+  )
 }
 
 export function getDescriptorFromPubkey(
@@ -144,13 +165,14 @@ export function getDescriptorFromPubkey(
 
 // TODO: inspect if the P2SH and P2WSH are correct
 function getDescriptorFromPrivateKey(
-  pubkey: string,
+  accountXprv: string,
   scriptVersion: ScriptVersionType,
+  fingerprint: string,
   path: string,
   kind: KeychainKind
 ) {
   const change = kind === KeychainKind.External ? 0 : 1
-  const innerPart = `${pubkey}/${path}/${change}/*`
+  const innerPart = `[${fingerprint}/${path}]${accountXprv}/${change}/*`
   switch (scriptVersion) {
     case 'P2PKH':
       return `pkh(${innerPart})`
@@ -220,7 +242,7 @@ export function getExtendedPublicKeyFromSeed(
 
 // TODO: use @bitcoinerlab/descriptors and place it on utils/descriptors
 export function getExtendedKeyFromDescriptor(descriptor: string) {
-  const match = descriptor.match(/([xyztuv]pub)[A-Za-z0-9]+/)
+  const match = descriptor.match(/([xyztuv]pub)[A-Za-z0-9]+/i)
   return match ? match[0] : ''
 }
 
@@ -403,7 +425,8 @@ export function toHex(u8: Uint8Array | undefined): string {
 export function fingerprintToHex(fpNum: number): string {
   const buf = new Uint8Array(4)
   const dv = new DataView(buf.buffer)
-  dv.setUint32(0, fpNum >>> 0) // ensure unsigned
+  // eslint-disable-next-line unicorn/prefer-math-trunc -- >>> 0 coerces to Uint32, Math.trunc does not
+  dv.setUint32(0, fpNum >>> 0)
   return toHex(buf)
 }
 

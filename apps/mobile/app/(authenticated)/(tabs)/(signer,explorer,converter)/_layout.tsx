@@ -1,4 +1,3 @@
-import '@/shim'
 import {
   type DrawerNavigationProp,
   useDrawerStatus
@@ -12,7 +11,7 @@ import {
 } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useMemo, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { Platform, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -25,33 +24,107 @@ import {
 import SSIconBackArrow from '@/components/icons/SSIconBackArrow'
 import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
+import {
+  HEADER_CHROME_EDGE_NUDGE,
+  HEADER_CHROME_EYE_TUCK,
+  HEADER_CHROME_HIT_BOX,
+  HEADER_CHROME_ICON_SIZE
+} from '@/constants/headerChrome'
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { showNavigation } from '@/utils/navigation'
 
-function HeaderRight() {
+const HEADER_ICON_STROKE = '#828282'
+const HEADER_CLOSE_COLOR = 'rgba(255,255,255,0.6)'
+
+function HeaderLeft({ isShowNav }: { isShowNav: boolean }) {
   const router = useRouter()
+  const nav = useNavigation<DrawerNavigationProp<Record<string, undefined>>>()
+  const isDrawerOpen = useDrawerStatus() === 'open'
   const [privacyMode, togglePrivacyMode] = useSettingsStore(
     useShallow((state) => [state.privacyMode, state.togglePrivacyMode])
   )
+
+  const iconSize = HEADER_CHROME_ICON_SIZE
+
   return (
-    <SSHStack gap="sm">
-      <SSIconButton onPress={togglePrivacyMode}>
+    <SSHStack
+      gap="none"
+      style={{
+        alignItems: 'center',
+        marginLeft: -HEADER_CHROME_EDGE_NUDGE
+      }}
+    >
+      {isShowNav ? (
+        <SSIconButton
+          style={HEADER_CHROME_HIT_BOX}
+          onPress={() => nav.openDrawer()}
+        >
+          {isDrawerOpen ? (
+            <SSIconCloseThin
+              color={HEADER_CLOSE_COLOR}
+              height={iconSize}
+              width={iconSize}
+            />
+          ) : (
+            <SSIconHamburger height={iconSize} width={iconSize} />
+          )}
+        </SSIconButton>
+      ) : (
+        <SSIconButton
+          style={HEADER_CHROME_HIT_BOX}
+          onPress={() => router.back()}
+        >
+          <SSIconBackArrow
+            height={iconSize}
+            stroke={HEADER_ICON_STROKE}
+            width={iconSize}
+          />
+        </SSIconButton>
+      )}
+      <SSIconButton
+        style={[HEADER_CHROME_HIT_BOX, { marginLeft: -HEADER_CHROME_EYE_TUCK }]}
+        onPress={togglePrivacyMode}
+      >
         {privacyMode ? (
-          <SSIconEyeOff height={18} width={18} />
+          <SSIconEyeOff
+            height={iconSize}
+            stroke={HEADER_ICON_STROKE}
+            width={iconSize}
+          />
         ) : (
-          <SSIconEyeOn height={18} width={18} />
+          <SSIconEyeOn
+            height={iconSize}
+            stroke={HEADER_ICON_STROKE}
+            width={iconSize}
+          />
         )}
       </SSIconButton>
-      <SSIconButton
-        style={{ marginRight: 8 }}
-        onPress={() => router.navigate('/settings/')}
-      >
-        <SSIconSettings height={18} width={18} />
-      </SSIconButton>
     </SSHStack>
+  )
+}
+
+function HeaderRight() {
+  const router = useRouter()
+  const iconSize = HEADER_CHROME_ICON_SIZE
+  return (
+    <SSIconButton
+      style={
+        Platform.OS === 'android' && [
+          HEADER_CHROME_HIT_BOX,
+          { marginRight: -HEADER_CHROME_EDGE_NUDGE }
+        ]
+      }
+      onPress={() => router.navigate('/settings')}
+    >
+      <SSIconSettings
+        height={iconSize}
+        stroke={HEADER_ICON_STROKE}
+        width={iconSize}
+      />
+    </SSIconButton>
   )
 }
 
@@ -63,11 +136,6 @@ export default function StackLayout(params: { segment?: string }) {
   useEffect(() => {
     setShowNav(showNavigation(currentPath, segments.length))
   }, [currentPath, segments])
-
-  const router = useRouter()
-  const nav = useNavigation<DrawerNavigationProp<Record<string, undefined>>>()
-
-  const isDrawerOpen = useDrawerStatus() === 'open'
 
   const homeScreen = useMemo(() => {
     switch (params?.segment) {
@@ -119,13 +187,12 @@ export default function StackLayout(params: { segment?: string }) {
   }, [params])
 
   return (
-    <View style={styles.container}>
+    <>
       <Stack
         screenOptions={{
           contentStyle: {
             backgroundColor: Colors.gray[950]
           },
-          headerBackTitleVisible: false,
           headerBackVisible: false,
           headerBackground: () => (
             <View
@@ -137,32 +204,7 @@ export default function StackLayout(params: { segment?: string }) {
               }}
             />
           ),
-          headerLeft: isShowNav
-            ? () => (
-                <SSIconButton
-                  style={{ marginLeft: 8 }}
-                  onPress={() => nav.openDrawer()}
-                >
-                  {isDrawerOpen ? (
-                    <SSIconCloseThin height={20} width={20} />
-                  ) : (
-                    <SSIconHamburger height={18} width={18} />
-                  )}
-                </SSIconButton>
-              )
-            : () => (
-                <SSIconButton
-                  style={{
-                    height: 30,
-                    paddingHorizontal: 8,
-                    paddingTop: 8,
-                    width: 30
-                  }}
-                  onPress={() => router.back()}
-                >
-                  <SSIconBackArrow height={16} width={7} />
-                </SSIconButton>
-              ),
+          headerLeft: () => <HeaderLeft isShowNav={isShowNav} />,
           headerRight: () => <HeaderRight />,
           headerTintColor: Colors.gray[200],
           headerTitle: () => (
@@ -176,13 +218,6 @@ export default function StackLayout(params: { segment?: string }) {
         {homeScreen}
       </Stack>
       <StatusBar style="light" />
-    </View>
+    </>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: Colors.gray[950],
-    flex: 1
-  }
-})

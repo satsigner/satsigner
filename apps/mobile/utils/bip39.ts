@@ -2,9 +2,8 @@ import { hmac } from '@noble/hashes/hmac'
 import { pbkdf2Async } from '@noble/hashes/pbkdf2'
 import { sha512 } from '@noble/hashes/sha512'
 import { HDKey } from '@scure/bip32'
-import type { KeychainKind } from 'bdk-rn/lib/lib/enums'
-import { Network } from 'bdk-rn/lib/lib/enums'
 import * as bip39 from 'bip39'
+import { type KeychainKind, Network } from 'react-native-bdk-sdk'
 
 import type {
   MnemonicEntropyBits,
@@ -53,10 +52,7 @@ export function getWordList(name: WordListName = DEFAULT_WORD_LIST) {
   return bip39.wordlists[name]
 }
 
-export function validateMnemonic(
-  mnemonic: string,
-  wordListName: string = 'english'
-) {
+export function validateMnemonic(mnemonic: string, wordListName = 'english') {
   const wordlist = bip39.wordlists[wordListName]
   return bip39.validateMnemonic(mnemonic, wordlist)
 }
@@ -99,7 +95,7 @@ export function detectElectrumSeed(mnemonic: string): string | null {
 // Electrum seed derivation: PBKDF2(HMAC-SHA512, pass=NFKD(mnemonic), salt="electrum"+NFKD(passphrase), rounds=2048)
 export function mnemonicToSeedElectrum(
   mnemonic: string,
-  passphrase: string = ''
+  passphrase = ''
 ): Promise<Uint8Array> {
   const normalizedMnemonic = mnemonic
     .normalize('NFKD')
@@ -162,7 +158,7 @@ export function generateMnemonic(
 
 export function generateMnemonicFromEntropy(
   entropy: string,
-  wordListName: string = 'english'
+  wordListName = 'english'
 ) {
   if (entropy.length < 128 || entropy.length > 256) {
     throw new Error('Invalid Entropy: it must be range of [128, 256]')
@@ -243,7 +239,7 @@ function parsePath(path: string): number[] {
     const hardened = /('|h|H)$/.test(p)
     const index = parseInt(p.replace(/['hH]/, ''), 10)
     if (Number.isNaN(index)) {
-      throw new Error(`Invalid path segment: ${p}`)
+      throw new TypeError(`Invalid path segment: ${p}`)
     }
     return hardened ? index + HARDENED_OFFSET : index
   })
@@ -331,7 +327,7 @@ function getExtendedPublicKeyFromMnemonicCustom(
   network: Network,
   scriptVersion?: ScriptVersionType,
   path?: string,
-  isMultisig: boolean = false
+  isMultisig = false
 ) {
   // Convert BDK Network to string for deriveXpubFromMnemonic
   const networkString = network === Network.Bitcoin ? 'mainnet' : 'testnet'

@@ -94,7 +94,7 @@ function selectEfficientUtxos(
 
   // Fallback to coin selection with accumulative strategy
   // Start with largest UTXOs (reverse the sorted list) for fewer inputs
-  const reversedUtxos = [...sortedUtxos].reverse()
+  const reversedUtxos = sortedUtxos.toReversed()
 
   for (const utxo of reversedUtxos) {
     selectedUtxos.push(utxo)
@@ -250,7 +250,7 @@ function branchAndBoundUtxoSelection(
     }
 
     return {
-      change: change > 0 ? change : 0,
+      change: Math.max(change, 0),
       fee,
       inputs: bestSelection
     }

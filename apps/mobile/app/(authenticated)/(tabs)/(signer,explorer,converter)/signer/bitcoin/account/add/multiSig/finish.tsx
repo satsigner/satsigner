@@ -8,23 +8,15 @@ import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
-import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
-import { useAccountsStore } from '@/store/accounts'
-import { useBlockchainStore } from '@/store/blockchain'
 
 export default function ConfirmScreen() {
   const router = useRouter()
   const getAccountData = useAccountBuilderStore((state) => state.getAccountData)
-  const updateAccount = useAccountsStore((state) => state.updateAccount)
-  const connectionMode = useBlockchainStore(
-    (state) => state.configs[state.selectedNetwork].config.connectionMode
-  )
-  const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { accountBuilderFinish } = useAccountBuilderFinish()
 
   const [rotation, setRotation] = useState(0)
@@ -43,21 +35,8 @@ export default function ConfirmScreen() {
         return
       }
 
-      // Use the account ID from the created account, not the builder data
       setAccountId(data.accountWithEncryptedSecret.id)
       setCompleted(true)
-
-      try {
-        if (connectionMode === 'auto') {
-          const updatedAccount = await syncAccountWithWallet(
-            data.accountWithEncryptedSecret,
-            data.wallet!
-          )
-          updateAccount(updatedAccount)
-        }
-      } catch (error) {
-        toast.error((error as Error).message)
-      }
     } catch {
       toast.error(t('multisig.createError'))
     }

@@ -1,9 +1,0 @@
-{
-  "requirements": "Requirements",
-  "dependencies": "Dependencies",
-  "setup": "Setup",
-  "run": "Run",
-  "build": "Build",
-  "versioning": "Versioning",
-  "knownIssues": "Known Issues"
-}

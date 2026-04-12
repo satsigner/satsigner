@@ -31,11 +31,7 @@ export function getOpcodeWord(word: string): OP_CODE_WORD {
 export function getOpcodeDetails(word: string): OP_CODE {
   const opcodeWord = getOpcodeWord(word)
   const opcodeDetails = OP_CODES[opcodeWord]
-  if (opcodeWord === OP_CODE_WORD.OP_N) {
-    opcodeDetails.word = word
-  } else {
-    opcodeDetails.word = opcodeWord
-  }
+  opcodeDetails.word = opcodeWord === OP_CODE_WORD.OP_N ? word : opcodeWord
   return opcodeDetails
 }
 

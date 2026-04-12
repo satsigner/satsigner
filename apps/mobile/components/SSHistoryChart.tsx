@@ -14,7 +14,6 @@ import {
   Text,
   TextAlign,
   TileMode,
-  useFonts,
   vec
 } from '@shopify/react-native-skia'
 import * as d3 from 'd3'
@@ -24,6 +23,7 @@ import { type LayoutChangeEvent, StyleSheet, View } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
+import { useSFProFonts } from '@/hooks/useSFProFonts'
 import { useChartSettingStore } from '@/store/chartSettings'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
@@ -265,7 +265,7 @@ function SSHistoryChart({
     if (endDate.getTime() <= currentDate.current.getTime()) {
       validData.push({
         amount: 0,
-        balance: validData[validData.length - 1]?.balance ?? 0,
+        balance: validData.at(-1)?.balance ?? 0,
         date: endDate,
         id: '',
         memo: '',
@@ -274,7 +274,7 @@ function SSHistoryChart({
     } else {
       validData.push({
         amount: 0,
-        balance: validData[validData.length - 1]?.balance ?? 0,
+        balance: validData.at(-1)?.balance ?? 0,
         date: currentDate.current,
         id: '',
         memo: '',
@@ -352,11 +352,7 @@ function SSHistoryChart({
               }
             }
             if (utxo.txid === transactions.at(index)?.id) {
-              if (gradientType === 1) {
-                gradientType = 2
-              } else {
-                gradientType = -1
-              }
+              gradientType = gradientType === 1 ? 2 : -1
             }
             return {
               gradientType,
@@ -874,13 +870,7 @@ function SSHistoryChart({
     transactionsMap
   ])
 
-  const customFontManager = useFonts({
-    'SF Pro Text': [
-      require('@/assets/fonts/SF-Pro-Text-Light.otf'),
-      require('@/assets/fonts/SF-Pro-Text-Regular.otf'),
-      require('@/assets/fonts/SF-Pro-Text-Medium.otf')
-    ]
-  })
+  const customFontManager = useSFProFonts()
   const fontStyle = {
     fontFamily: 'SF Pro Text',
     fontSize: 10
@@ -1169,7 +1159,7 @@ function SSHistoryChart({
 }
 
 type YScaleRendererProps = {
-  customFontManager: ReturnType<typeof useFonts>
+  customFontManager: ReturnType<typeof useSFProFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   yScale: d3.ScaleLinear<number, number>
   chartHeight: number
@@ -1224,7 +1214,7 @@ function YScaleRenderer({
 const MemoizedYScaleRenderer = memo(YScaleRenderer)
 
 type XScaleRendererProps = {
-  customFontManager: ReturnType<typeof useFonts>
+  customFontManager: ReturnType<typeof useSFProFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   showTransactionInfo: boolean
   txXAxisLabels: {
@@ -1254,7 +1244,7 @@ function hexToRgba(hex: string, opacity: number): string {
 function formatAmountWithLeadingZeros(
   amountString: string,
   font: ReturnType<typeof matchFont>,
-  baseColor: string = '#666666'
+  baseColor = '#666666'
 ): { text: string; color: string; x: number }[] {
   if (!amountString) {
     return []
@@ -1488,7 +1478,7 @@ function XScaleRenderer({
 const MemoizedXScaleRenderer = memo(XScaleRenderer)
 
 type XAxisRendererProps = {
-  customFontManager: ReturnType<typeof useFonts>
+  customFontManager: ReturnType<typeof useSFProFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   xScale: d3.ScaleTime<number, number>
   chartHeight: number
@@ -1506,28 +1496,29 @@ function XAxisRenderer({
     return null
   }
   const font = matchFont(fontStyle, customFontManager)
-  let previousDate = ''
+  const ticks = xScale.ticks(3)
+  const tickData = ticks.map((tick, index) => {
+    const currentDate = d3.timeFormat('%b %d')(tick)
+    const previousDate =
+      index > 0 ? d3.timeFormat('%b %d')(ticks[index - 1]) : ''
+    const displayTime = previousDate === currentDate
+    return { currentDate, displayTime, tick, x: xScale(tick) }
+  })
   return (
     <>
-      {xScale.ticks(3).map((tick) => {
-        const currentDate = d3.timeFormat('%b %d')(tick)
-        const displayTime = previousDate === currentDate
-        previousDate = currentDate
-        const x = xScale(tick)
-        return (
-          <Group key={tick.getTime().toString()}>
-            <Text
-              x={x}
-              y={chartHeight + (showTransactionInfo ? 60 : 20)}
-              text={
-                displayTime ? d3.timeFormat('%b %d %H:%M')(tick) : currentDate
-              }
-              font={font}
-              color="#777777"
-            />
-          </Group>
-        )
-      })}
+      {tickData.map(({ tick, currentDate, displayTime, x }) => (
+        <Group key={tick.getTime().toString()}>
+          <Text
+            x={x}
+            y={chartHeight + (showTransactionInfo ? 60 : 20)}
+            text={
+              displayTime ? d3.timeFormat('%b %d %H:%M')(tick) : currentDate
+            }
+            font={font}
+            color="#777777"
+          />
+        </Group>
+      ))}
     </>
   )
 }
@@ -1647,7 +1638,7 @@ function UtxoRectRenderer({
 const MemoizedUtxoRectRenderer = memo(UtxoRectRenderer)
 
 type UtxoLabelRendererProps = {
-  customFontManager: ReturnType<typeof useFonts>
+  customFontManager: ReturnType<typeof useSFProFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   utxoLabels: {
     x1: number
@@ -1693,7 +1684,7 @@ function UtxoLabelRenderer({
 const MemoizedUtxoLabelRenderer = memo(UtxoLabelRenderer)
 
 type TransactionInfoRendererProps = {
-  customFontManager: ReturnType<typeof useFonts>
+  customFontManager: ReturnType<typeof useSFProFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   txInfoLabels: {
     x: number
@@ -1796,7 +1787,7 @@ function TransactionInfoRenderer({
 const MemoizedTransactionInfoRenderer = memo(TransactionInfoRenderer)
 
 type CursorRendererProps = {
-  customFontManager: ReturnType<typeof useFonts>
+  customFontManager: ReturnType<typeof useSFProFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   cursorX: Date | undefined
   cursorY: number | undefined
