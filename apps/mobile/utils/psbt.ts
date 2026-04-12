@@ -751,6 +751,48 @@ export function validatePsbt(
   return { errors, warnings }
 }
 
+export function validateNormalizedPsbt(
+  signedPsbt: string,
+  account: Account,
+  cosignerIndex: number,
+  decryptedKey?: Key
+): boolean | null {
+  if (!signedPsbt || signedPsbt.trim().length === 0) {
+    return null
+  }
+  try {
+    const psbtToValidate = normalizePsbtToBase64(signedPsbt)
+    return account.policyType === 'multisig'
+      ? validateSignedPSBTForCosigner(
+          psbtToValidate,
+          account,
+          cosignerIndex,
+          decryptedKey
+        )
+      : validateSignedPSBT(psbtToValidate, account)
+  } catch {
+    return false
+  }
+}
+
+export function normalizePsbtToBase64(psbt: string): string {
+  if (psbt.toLowerCase().startsWith('70736274ff')) {
+    return Buffer.from(psbt, 'hex').toString('base64')
+  }
+  if (
+    !psbt.startsWith('cHNidP') &&
+    /^[a-fA-F0-9]+$/.test(psbt) &&
+    psbt.length > 100
+  ) {
+    try {
+      return Buffer.from(psbt, 'hex').toString('base64')
+    } catch {
+      return psbt
+    }
+  }
+  return psbt
+}
+
 export function validateSignedPSBT(
   psbtBase64: string,
   account: Account
