@@ -1,5 +1,4 @@
 import { router, type Href } from 'expo-router'
-import { useEffect, useState } from 'react'
 import { Pressable, StyleSheet } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -25,14 +24,7 @@ function SSLabelDetails({
   header,
   privacyMode = false
 }: SSLabelDetailsProps) {
-  const [label, setLabel] = useState('')
-  const [tags, setTags] = useState<string[]>([])
-
-  useEffect(() => {
-    const { label, tags } = parseLabel(originalLabel)
-    setLabel(label)
-    setTags(tags)
-  }, [originalLabel])
+  const { label, tags } = parseLabel(originalLabel)
 
   return (
     <SSHStack justifyBetween style={{ alignItems: 'flex-start' }}>
