@@ -33,6 +33,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     infoPlist: {
       NFCReaderUsageDescription:
         'This app uses NFC to read and write data from NFC tags',
+      UIDesignRequiresCompatibility: true,
       'com.apple.developer.nfc.readersession.formats': ['NDEF', 'TAG']
     },
     supportsTablet: true
