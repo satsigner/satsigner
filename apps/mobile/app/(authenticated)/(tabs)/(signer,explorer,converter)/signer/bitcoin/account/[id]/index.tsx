@@ -250,6 +250,9 @@ function TotalTransactions({
   blockchainHeight,
   sortDirection
 }: TotalTransactionsProps) {
+  const { width } = useWindowDimensions()
+  const horizontalPaddingPx = width * 0.06
+
   const [draftAccountId, draftInputs, draftOutputs, draftBroadcasted] =
     useTransactionBuilderStore(
       useShallow((state) => [
@@ -302,7 +305,7 @@ function TotalTransactions({
   const [showHistoryChart, setShowHistoryChart] = useState<boolean>(false)
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, paddingHorizontal: '6%' }}>
       <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
         <SSHStack>
           <SSIconButton onPress={() => handleOnRefresh()}>
@@ -338,7 +341,13 @@ function TotalTransactions({
         </SSHStack>
       </SSHStack>
       {showHistoryChart && sortedTransactions.length > 0 ? (
-        <View style={{ flex: 1, zIndex: -1 }}>
+        <View
+          style={{
+            flex: 1,
+            marginHorizontal: -horizontalPaddingPx,
+            zIndex: -1
+          }}
+        >
           <SSHistoryChart
             transactions={chartTransactions}
             utxos={account.utxos}
@@ -908,7 +917,7 @@ function SpendableOutputs({
   )
 
   return (
-    <View style={{ flex: 1, paddingTop: 0 }}>
+    <View style={{ flex: 1, paddingHorizontal: '6%', paddingTop: 0 }}>
       <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
         <SSHStack>
           <SSIconButton
@@ -1012,7 +1021,7 @@ function SatsInMempool({
 
   if (mempoolTransactions.length === 0) {
     return (
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, paddingHorizontal: '6%' }}>
         <SSVStack style={{ alignItems: 'center', flex: 1, paddingTop: 50 }}>
           <SSText color="muted">{t('accounts.noSatsOnMempool')}</SSText>
         </SSVStack>
@@ -1021,7 +1030,7 @@ function SatsInMempool({
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, paddingHorizontal: '6%' }}>
       <FlashList
         data={mempoolTransactions}
         keyExtractor={(item) => item.id}
@@ -1390,7 +1399,10 @@ export default function AccountView() {
     return (
       <>
         {!expand && (
-          <SSHStack gap="none" style={{ paddingVertical: 8 }}>
+          <SSHStack
+            gap="none"
+            style={{ paddingHorizontal: '6%', paddingVertical: 8 }}
+          >
             <SSActionButton
               style={{ width: tabWidth }}
               onPress={() => setTabIndex(0)}
@@ -1526,8 +1538,11 @@ export default function AccountView() {
           )
         }}
       />
-      <SSMainLayout style={{ paddingTop: 0 }}>
-        <SSVStack gap="none" style={{ alignItems: 'center' }}>
+      <SSMainLayout style={{ paddingHorizontal: 0, paddingTop: 0 }}>
+        <SSVStack
+          gap="none"
+          style={{ alignItems: 'center', paddingHorizontal: '6%' }}
+        >
           <TouchableOpacity
             onPress={() => router.navigate('/settings/network/server')}
           >
@@ -1575,7 +1590,7 @@ export default function AccountView() {
           />
         </SSVStack>
         {!expand && (
-          <Animated.View style={{ paddingTop: 20 }}>
+          <Animated.View style={{ paddingHorizontal: '6%', paddingTop: 20 }}>
             <SSVStack itemsCenter gap="none">
               <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
                 <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
@@ -1746,6 +1761,7 @@ const addressListStyles = StyleSheet.create({
   },
   container: {
     paddingBottom: 10,
+    paddingHorizontal: '6%',
     paddingTop: 10
   },
   header: {
