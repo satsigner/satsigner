@@ -4,6 +4,7 @@ import { ScrollView } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSFingerprint from '@/components/SSFingerprint'
 import SSGradientModal from '@/components/SSGradientModal'
 import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
 import SSSeedWordsInput from '@/components/SSSeedWordsInput'
@@ -218,9 +219,7 @@ export default function ImportMnemonic() {
               <SSText style={{ color: Colors.gray[500] }}>
                 {t('account.fingerprint')}
               </SSText>
-              <SSText size="md" color="muted">
-                {fingerprint}
-              </SSText>
+              <SSFingerprint fingerprint={fingerprint} />
             </SSVStack>
           </SSHStack>
           <SSSeparator />
