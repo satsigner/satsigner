@@ -21,4 +21,5 @@ paths:
 14. Prefix all reusable components with `SS` — you already follow this convention (`SSButton`, `SSText`, etc.);
 15. Name hooks with `use` + domain + action (e.g., `useAccountSync`, `useTransactionBroadcast`);
 16. Use `FlashList` over `FlatList`;
-17. Avoid using `let`. Prefer `const`.
+17. Avoid using `let`. Prefer `const`;
+18. Avoid using IIFEs.
