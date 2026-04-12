@@ -38,11 +38,11 @@ const KEY_SECRET_PREFIX = 'key_secret'
 const KEY_IV_PREFIX = 'key_iv'
 
 function keySecretKey(accountId: string, keyIndex: number) {
-  return `${KEY_SECRET_PREFIX}:${accountId}:${keyIndex}`
+  return `${KEY_SECRET_PREFIX}.${accountId}.${keyIndex}`
 }
 
 function keyIvKey(accountId: string, keyIndex: number) {
-  return `${KEY_IV_PREFIX}:${accountId}:${keyIndex}`
+  return `${KEY_IV_PREFIX}.${accountId}.${keyIndex}`
 }
 
 async function storeKeySecret(
