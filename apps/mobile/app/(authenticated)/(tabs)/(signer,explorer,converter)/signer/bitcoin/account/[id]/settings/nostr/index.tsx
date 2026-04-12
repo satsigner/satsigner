@@ -193,6 +193,9 @@ export default function NostrSync() {
   const [syncingMessageIndex, setSyncingMessageIndex] = useState(0)
   const syncingMessage = SYNCING_MESSAGE_KEYS[syncingMessageIndex]
 
+  const [trustMemberModalVisible, setTrustMemberModalVisible] = useState(false)
+  const [trustMember, setTrustMember] = useState('')
+
   useEffect(() => {
     if (!isSyncing) {
       setSyncingMessageIndex(0)
@@ -591,6 +594,21 @@ export default function NostrSync() {
     updateAccountNostrCallback,
     setSyncing
   ])
+
+  function showTrustMemberModal(npub: string) {
+    setTrustMember(npub)
+    setTrustMemberModalVisible(true)
+  }
+
+  function confirmTrustMember() {
+    toggleMember(trustMember)
+    setTrustMemberModalVisible(false)
+  }
+
+  const handleToggleMember = useCallback((npub: string) => {
+    if (!selectedMembers.has(npub)) showTrustMemberModal(npub)
+    else toggleMember(npub)
+  }, [toggleMember, selectedMembers])
 
   const toggleMember = useCallback(
     (npub: string) => {
@@ -1123,7 +1141,9 @@ export default function NostrSync() {
                                   ? 'Distrust'
                                   : 'Trust'
                               }
-                              onPress={() => toggleMember(member.npub)}
+                              onPress={() => {
+                                handleToggleMember(member.npub)
+                              }}
                               disabled={isSyncing}
                             />
                           </SSHStack>
@@ -1278,6 +1298,33 @@ export default function NostrSync() {
             onPress={handleClearCaches}
             variant="danger"
             disabled={isLoading}
+          />
+        </SSVStack>
+      </SSModal>
+      <SSModal
+        visible={trustMemberModalVisible}
+        onClose={() => setTrustMemberModalVisible(false)}
+        showLabel={false}
+        fullOpacity
+      >
+        <SSVStack
+          style={{
+            flex: 1,
+            height: '100%',
+            justifyContent: 'center'
+          }}
+        >
+          <SSText center size="md">
+            {t('account.nostrSync.memberConfirmNew')}
+          </SSText>
+          <SSButton
+            onPress={confirmTrustMember}
+            label={t('common.yes')}
+          />
+          <SSButton
+            onPress={() => setTrustMemberModalVisible(false)}
+            label={t('common.cancel')}
+            variant='secondary'
           />
         </SSVStack>
       </SSModal>
