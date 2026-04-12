@@ -605,14 +605,6 @@ export default function NostrSync() {
     setTrustMemberModalVisible(false)
   }
 
-  const handleToggleMember = useCallback(
-    (npub: string) => {
-      if (!selectedMembers.has(npub)) {showTrustMemberModal(npub)}
-      else {toggleMember(npub)}
-    },
-    [toggleMember, selectedMembers]
-  )
-
   const toggleMember = useCallback(
     (npub: string) => {
       if (!accountId || !account?.nostr) {
@@ -680,6 +672,17 @@ export default function NostrSync() {
       setSyncing,
       updateAccountNostrCallback
     ]
+  )
+
+  const handleToggleMember = useCallback(
+    (npub: string) => {
+      if (!selectedMembers.has(npub)) {
+        showTrustMemberModal(npub)
+      } else {
+        toggleMember(npub)
+      }
+    },
+    [toggleMember, selectedMembers]
   )
 
   // Navigation functions
