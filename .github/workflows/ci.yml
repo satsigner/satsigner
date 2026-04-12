@@ -43,7 +43,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: type check
-        run: pnpm --filter @satsigner/mobile type-check
+        run: pnpm --filter @satsigner/mobile typecheck
 
       - name: lint & format
         run: pnpm run check

@@ -19,7 +19,7 @@
     "test": "pnpm test:unit && pnpm test:int",
     "test:int": "jest ./tests/int",
     "test:unit": "jest ./tests/unit",
-    "type-check": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "types": "expo customize tsconfig.json"
   },
   "dependencies": {
