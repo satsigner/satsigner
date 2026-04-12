@@ -82,6 +82,7 @@ function useAccountBuilderFinish() {
       const data = getAccountData()
       const accountWithEncryptedSecret = {
         ...data,
+        id: account.id,
         keys: data.keys.map((key, i) =>
           i === 0 ? { ...key, creationType } : key
         ),
