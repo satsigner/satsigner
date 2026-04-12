@@ -141,7 +141,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               const accountIndex = state.accounts.findIndex(
                 (acc: Account) => acc.id === accountId
               )
-              if (accountIndex !== -1) {
+              if (accountIndex === -1) {
                 throw new Error('Account not found')
               }
               state.accounts[accountIndex].keys[keyIndex] = newKey
