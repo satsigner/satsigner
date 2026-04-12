@@ -22,4 +22,9 @@ paths:
 15. Name hooks with `use` + domain + action (e.g., `useAccountSync`, `useTransactionBroadcast`);
 16. Use `FlashList` over `FlatList`;
 17. Avoid using `let`. Prefer `const`;
-18. Avoid using IIFEs.
+18. Avoid using IIFEs;
+19. Never leave `console.log` or `console.warn` in production code;
+20. No magic numbers or magic strings. Extract to named constants in `/constants` folder or on the same file if it makes sense;
+21. Use `expo-secure-store` or encrypted storage from `@/storage/encrypted` to store sensitive data;
+22. Prefer early returns over nested `if/else`. Guard clauses at top of function, happy path at bottom;
+23. For asynchronous state management and server state, prefer using `TanStack Query`.
