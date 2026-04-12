@@ -24,17 +24,14 @@ function SSEllipsisAnimation({ size = 3 }: SSEllipsisAnimationProps) {
   const animatedStyles3 = useAnimatedStyle(() => ({ opacity: opacity3.value }))
 
   useEffect(() => {
-    opacity1.value = withRepeat(
-      withDelay(0, withTiming(1, { duration: 2250 })),
-      -1
+    opacity1.set(
+      withRepeat(withDelay(0, withTiming(1, { duration: 2250 })), -1)
     )
-    opacity2.value = withRepeat(
-      withDelay(750, withTiming(1, { duration: 1500 })),
-      -1
+    opacity2.set(
+      withRepeat(withDelay(750, withTiming(1, { duration: 1500 })), -1)
     )
-    opacity3.value = withRepeat(
-      withDelay(1500, withTiming(1, { duration: 750 })),
-      -1
+    opacity3.set(
+      withRepeat(withDelay(1500, withTiming(1, { duration: 750 })), -1)
     )
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
