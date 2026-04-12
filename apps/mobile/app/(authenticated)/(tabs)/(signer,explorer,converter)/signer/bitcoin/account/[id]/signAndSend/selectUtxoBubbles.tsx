@@ -167,7 +167,7 @@ function SelectUtxoBubbles() {
       <SSBubbleChart
         utxos={account.utxos}
         canvasSize={{ height: GRAPH_HEIGHT, width: GRAPH_WIDTH }}
-        inputs={getInputs()}
+        inputs={Array.from(inputs.values())}
         onPress={handleOnToggleSelected}
         style={{ position: 'absolute', top: 40 }}
       />
