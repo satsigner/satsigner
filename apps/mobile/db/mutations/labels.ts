@@ -1,11 +1,11 @@
-import { type Transaction as SqlTransaction } from 'react-native-nitro-sqlite'
+import { type NitroSQLiteConnection } from 'react-native-nitro-sqlite'
 
 import { type Label } from '@/utils/bip329'
 
 import { runTransaction } from '../connection'
 import { dateToIso, optionalToJson } from '../mappers'
 
-type TransactionContext = SqlTransaction
+type TransactionContext = NitroSQLiteConnection
 
 function upsertLabels(
   tx: TransactionContext,

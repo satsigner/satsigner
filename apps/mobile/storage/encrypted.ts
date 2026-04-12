@@ -33,7 +33,6 @@ function deleteItem(key: string): Promise<void> {
   return SecureStore.deleteItemAsync(vKey)
 }
 
-
 const KEY_SECRET_PREFIX = 'key_secret'
 const KEY_IV_PREFIX = 'key_iv'
 

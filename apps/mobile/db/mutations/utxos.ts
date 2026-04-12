@@ -1,10 +1,10 @@
-import { type Transaction as SqlTransaction } from 'react-native-nitro-sqlite'
+import { type NitroSQLiteConnection } from 'react-native-nitro-sqlite'
 
 import { type Utxo } from '@/types/models/Utxo'
 
 import { dateToIso, optionalToJson } from '../mappers'
 
-type TransactionContext = SqlTransaction
+type TransactionContext = NitroSQLiteConnection
 
 function upsertUtxos(tx: TransactionContext, accountId: string, utxos: Utxo[]) {
   for (const utxo of utxos) {

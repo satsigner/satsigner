@@ -1,8 +1,8 @@
-import { type Transaction as SqlTransaction } from 'react-native-nitro-sqlite'
+import { type NitroSQLiteConnection } from 'react-native-nitro-sqlite'
 
 import { type Address } from '@/types/models/Address'
 
-type TransactionContext = SqlTransaction
+type TransactionContext = NitroSQLiteConnection
 
 function upsertAddresses(
   tx: TransactionContext,

@@ -1,6 +1,6 @@
 import {
-  type SQLiteValue,
-  type Transaction as SqlTransaction
+  type NitroSQLiteConnection,
+  type SQLiteValue
 } from 'react-native-nitro-sqlite'
 
 import { type NostrAccount, type NostrDM } from '@/types/models/Nostr'
@@ -8,7 +8,7 @@ import { type NostrAccount, type NostrDM } from '@/types/models/Nostr'
 import { getDb } from '../connection'
 import { boolToInt, dateToIso, optionalToJson } from '../mappers'
 
-type TransactionContext = SqlTransaction
+type TransactionContext = NitroSQLiteConnection
 
 function upsertNostrData(
   tx: TransactionContext,
