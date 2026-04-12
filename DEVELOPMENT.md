@@ -6,6 +6,9 @@
 
 - Node.js (minimum version 22.4.0)
 - [pnpm](https://pnpm.io/installation)
+- [just](https://github.com/casey/just#installation)
+
+Note: You can install `just` with the following command: `npm install -g rust-just`
 
 ### Install dependencies
 

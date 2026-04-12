@@ -255,6 +255,5 @@ This prevents the nesting function from trying to make a key both a string and a
 
 [Before commiting]
 Remove console.logs
-Run the linter: yarn lint:fix
-Run the formatter: yarn format:fix
-Run type-checking: yarn type-check
+Run the linter and formatter: pnpm run fix
+Run type checking: cd apps/mobile && pnpm typecheck

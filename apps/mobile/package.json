@@ -1,6 +1,6 @@
 {
   "name": "@satsigner/mobile",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "private": true,
   "description": "Privacy-first Bitcoin signer with complete UTXO control",
   "main": "./index.js",
@@ -19,7 +19,7 @@
     "test": "pnpm test:unit && pnpm test:int",
     "test:int": "jest ./tests/int",
     "test:unit": "jest ./tests/unit",
-    "type-check": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "types": "expo customize tsconfig.json"
   },
   "dependencies": {
@@ -76,7 +76,7 @@
     "process": "^0.11.0",
     "react": "19.2.0",
     "react-native": "0.83.4",
-    "react-native-bdk-sdk": "0.1.8",
+    "react-native-bdk-sdk": "0.1.9",
     "react-native-bouncy-checkbox": "^4.1.2",
     "react-native-device-info": "^11.1.0",
     "react-native-draggable-flatlist": "^4.0.3",

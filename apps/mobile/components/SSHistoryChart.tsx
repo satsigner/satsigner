@@ -1496,28 +1496,29 @@ function XAxisRenderer({
     return null
   }
   const font = matchFont(fontStyle, customFontManager)
-  let previousDate = ''
+  const ticks = xScale.ticks(3)
+  const tickData = ticks.map((tick, index) => {
+    const currentDate = d3.timeFormat('%b %d')(tick)
+    const previousDate =
+      index > 0 ? d3.timeFormat('%b %d')(ticks[index - 1]) : ''
+    const displayTime = previousDate === currentDate
+    return { currentDate, displayTime, tick, x: xScale(tick) }
+  })
   return (
     <>
-      {xScale.ticks(3).map((tick) => {
-        const currentDate = d3.timeFormat('%b %d')(tick)
-        const displayTime = previousDate === currentDate
-        previousDate = currentDate
-        const x = xScale(tick)
-        return (
-          <Group key={tick.getTime().toString()}>
-            <Text
-              x={x}
-              y={chartHeight + (showTransactionInfo ? 60 : 20)}
-              text={
-                displayTime ? d3.timeFormat('%b %d %H:%M')(tick) : currentDate
-              }
-              font={font}
-              color="#777777"
-            />
-          </Group>
-        )
-      })}
+      {tickData.map(({ tick, currentDate, displayTime, x }) => (
+        <Group key={tick.getTime().toString()}>
+          <Text
+            x={x}
+            y={chartHeight + (showTransactionInfo ? 60 : 20)}
+            text={
+              displayTime ? d3.timeFormat('%b %d %H:%M')(tick) : currentDate
+            }
+            font={font}
+            color="#777777"
+          />
+        </Group>
+      ))}
     </>
   )
 }

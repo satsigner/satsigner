@@ -5,12 +5,12 @@ export const useInteractionId = () => {
   const interactionId = useSharedValue('')
 
   const getInteractionId = useCallback(
-    () => interactionId.value,
+    () => interactionId.get(),
     [interactionId]
   )
 
   const updateInteractionId = useCallback(() => {
-    interactionId.value = `${new Date().valueOf()}`
+    interactionId.set(`${new Date().valueOf()}`)
   }, [interactionId])
 
   return { getInteractionId, updateInteractionId }

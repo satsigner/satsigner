@@ -1,8 +1,6 @@
-import { Buffer } from 'buffer'
-
 import { setStringAsync } from 'expo-clipboard'
 import { useRouter } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { ScrollView, TouchableOpacity, View } from 'react-native'
 import { type PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
@@ -19,12 +17,11 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { useNostrStore } from '@/store/nostr'
 import { Colors, Typography } from '@/styles'
 import { type Account, type Key } from '@/types/models/Account'
-import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
+import { extractPublicKeyFromKey, isSeedDropped } from '@/utils/key'
 import {
   combinePsbts,
   type TransactionData,
-  validateSignedPSBT,
-  validateSignedPSBTForCosigner
+  validateNormalizedPsbt
 } from '@/utils/psbt'
 
 type SSSignatureDropdownProps = {
@@ -80,9 +77,6 @@ function SSSignatureDropdown({
   validationResult
 }: SSSignatureDropdownProps) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const [isPsbtValid, setIsPsbtValid] = useState<boolean | null>(null)
-  const [extractedPublicKey, setExtractedPublicKey] = useState('')
-  const [seedDropped, setSeedDropped] = useState(false)
 
   const router = useRouter()
   const setTransactionToShare = useNostrStore(
@@ -91,6 +85,8 @@ function SSSignatureDropdown({
 
   const network = useBlockchainStore((state) => state.selectedNetwork)
   const scriptVersion = keyDetails?.scriptVersion || 'P2WSH'
+
+  const seedDropped = isSeedDropped(keyDetails, decryptedKey)
 
   const { hasLocalSeed, isSignatureCompleted } = useSignatureDropdownValidation(
     {
@@ -162,81 +158,7 @@ function SSSignatureDropdown({
     seedDropped
   })
 
-  // Extract public key from descriptor when key details change
-  useEffect(() => {
-    function extractPublicKey() {
-      if (!keyDetails) {
-        setExtractedPublicKey('')
-        return
-      }
-
-      if (typeof keyDetails.secret === 'string') {
-        if (decryptedKey && typeof decryptedKey.secret === 'object') {
-          const { secret } = decryptedKey
-          if (secret.extendedPublicKey) {
-            setExtractedPublicKey(secret.extendedPublicKey)
-            return
-          }
-          if (secret.externalDescriptor) {
-            try {
-              const publicKey = getExtendedKeyFromDescriptor(
-                secret.externalDescriptor
-              )
-              setExtractedPublicKey(publicKey)
-            } catch {
-              setExtractedPublicKey('')
-            }
-          }
-        }
-        setExtractedPublicKey('')
-        return
-      }
-
-      if (typeof keyDetails.secret === 'object') {
-        const { secret } = keyDetails
-
-        if (secret.extendedPublicKey) {
-          setExtractedPublicKey(secret.extendedPublicKey)
-          return
-        }
-
-        if (secret.externalDescriptor) {
-          try {
-            const publicKey = getExtendedKeyFromDescriptor(
-              secret.externalDescriptor
-            )
-            setExtractedPublicKey(publicKey)
-          } catch {
-            setExtractedPublicKey('')
-          }
-        } else {
-          setExtractedPublicKey('')
-        }
-      }
-    }
-
-    extractPublicKey()
-  }, [keyDetails, decryptedKey])
-
-  useEffect(() => {
-    if (keyDetails) {
-      if (decryptedKey && typeof decryptedKey.secret === 'object') {
-        if (decryptedKey.secret.mnemonic) {
-          setSeedDropped(false)
-        } else {
-          setSeedDropped(true)
-        }
-      } else if (typeof keyDetails.secret === 'object') {
-        if (keyDetails.secret.mnemonic) {
-          setSeedDropped(false)
-        } else {
-          setSeedDropped(true)
-        }
-      } else {
-        setSeedDropped(false)
-      }
-    }
-  }, [keyDetails, decryptedKey])
+  const extractedPublicKey = extractPublicKeyFromKey(keyDetails, decryptedKey)
 
   function getInnerFingerprint(): string | undefined {
     if (decryptedKey && typeof decryptedKey.secret === 'object') {
@@ -265,41 +187,12 @@ function SSSignatureDropdown({
     )}...${extendedPublicKey.slice(-4)}`
   }
 
-  useEffect(() => {
-    if (signedPsbt && signedPsbt.trim().length > 0) {
-      try {
-        let psbtToValidate = signedPsbt
-        if (signedPsbt.toLowerCase().startsWith('70736274ff')) {
-          psbtToValidate = Buffer.from(signedPsbt, 'hex').toString('base64')
-        } else if (signedPsbt.startsWith('cHNidP')) {
-          psbtToValidate = signedPsbt
-        } else {
-          if (/^[a-fA-F0-9]+$/.test(signedPsbt) && signedPsbt.length > 100) {
-            try {
-              psbtToValidate = Buffer.from(signedPsbt, 'hex').toString('base64')
-            } catch {
-              psbtToValidate = signedPsbt
-            }
-          }
-        }
-
-        const isValid =
-          account.policyType === 'multisig'
-            ? validateSignedPSBTForCosigner(
-                psbtToValidate,
-                account,
-                index,
-                decryptedKey
-              )
-            : validateSignedPSBT(psbtToValidate, account)
-        setIsPsbtValid(isValid)
-      } catch {
-        setIsPsbtValid(false)
-      }
-    } else {
-      setIsPsbtValid(null)
-    }
-  }, [signedPsbt, account, index, decryptedKey])
+  const isPsbtValid = validateNormalizedPsbt(
+    signedPsbt,
+    account,
+    index,
+    decryptedKey
+  )
 
   return (
     <View

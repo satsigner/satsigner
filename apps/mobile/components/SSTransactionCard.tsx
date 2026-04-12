@@ -1,5 +1,4 @@
 import { useRouter, type Href } from 'expo-router'
-import { useEffect, useState } from 'react'
 import {
   type StyleProp,
   StyleSheet,
@@ -64,9 +63,6 @@ function SSTransactionCard({
         ? styles.confirmedFew
         : styles.confirmedEnough
 
-  const [priceDisplay, setPriceDisplay] = useState('')
-  const [percentChange, setPercentChange] = useState('')
-
   const { type, received, sent } = transaction
   const amount = type === 'receive' ? received : sent - received
 
@@ -78,39 +74,30 @@ function SSTransactionCard({
     ])
   )
 
-  useEffect(() => {
-    const { prices } = transaction
-    const itemsToDisplay: string[] = []
+  const { prices } = transaction
+  const oldPrice = prices ? prices[fiatCurrency] : null
+  const priceItemsToDisplay: string[] = []
 
-    const oldPrice = prices ? prices[fiatCurrency] : null
+  if (btcPrice && btcPrice > 0) {
+    priceItemsToDisplay.push(formatFiatPrice(Math.abs(amount), btcPrice))
+  }
 
-    // Only show current fiat price if btcPrice is valid (> 0)
-    if (btcPrice && btcPrice > 0) {
-      itemsToDisplay.push(formatFiatPrice(Math.abs(amount), btcPrice))
-    }
+  const historicalPrice = prices?.[fiatCurrency]
+  if (historicalPrice && historicalPrice > 0) {
+    priceItemsToDisplay.push(
+      `(${formatFiatPrice(Math.abs(amount), historicalPrice)})`
+    )
+  }
 
-    // Only show historical price if available and valid
-    const historicalPrice = prices?.[fiatCurrency]
-    if (historicalPrice && historicalPrice > 0) {
-      itemsToDisplay.push(
-        `(${formatFiatPrice(Math.abs(amount), historicalPrice)})`
-      )
-    }
+  if (priceItemsToDisplay.length > 0) {
+    priceItemsToDisplay.push(fiatCurrency)
+  }
 
-    if (itemsToDisplay.length > 0) {
-      itemsToDisplay.push(fiatCurrency)
-    }
-
-    // Only show percent change if both prices are valid; only clear when there
-    // is no valid current fiat price so we don't hide the priceDisplay block
-    if (btcPrice && btcPrice > 0 && oldPrice && oldPrice > 0) {
-      setPercentChange(formatPercentualChange(btcPrice, oldPrice))
-    } else if (!(btcPrice && btcPrice > 0)) {
-      setPercentChange('')
-    }
-
-    setPriceDisplay(itemsToDisplay.join(' '))
-  }, [btcPrice, fiatCurrency, amount, transaction])
+  const priceDisplay = priceItemsToDisplay.join(' ')
+  const percentChange =
+    btcPrice && btcPrice > 0 && oldPrice && oldPrice > 0
+      ? formatPercentualChange(btcPrice, oldPrice)
+      : ''
 
   const router = useRouter()
 

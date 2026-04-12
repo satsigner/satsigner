@@ -141,7 +141,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               const accountIndex = state.accounts.findIndex(
                 (acc: Account) => acc.id === accountId
               )
-              if (accountIndex !== -1) {
+              if (accountIndex === -1) {
                 throw new Error('Account not found')
               }
               state.accounts[accountIndex].keys[keyIndex] = newKey
@@ -201,7 +201,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 transactionMap[labelObj.ref] !== undefined
               ) {
                 const txIndex = transactionMap[labelObj.ref]
-                state.accounts[index].transactions[txIndex].label = label
+                state.accounts[index].transactions[txIndex] = {
+                  ...state.accounts[index].transactions[txIndex],
+                  label
+                }
                 labelsAdded += 1
               }
 
@@ -210,7 +213,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 utxoMap[labelObj.ref] !== undefined
               ) {
                 const utxoIndex = utxoMap[labelObj.ref]
-                state.accounts[index].utxos[utxoIndex].label = label
+                state.accounts[index].utxos[utxoIndex] = {
+                  ...state.accounts[index].utxos[utxoIndex],
+                  label
+                }
                 labelsAdded += 1
               }
 
@@ -219,7 +225,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 addressMap[labelObj.ref] !== undefined
               ) {
                 const addrIndex = addressMap[labelObj.ref]
-                state.accounts[index].addresses[addrIndex].label = label
+                state.accounts[index].addresses[addrIndex] = {
+                  ...state.accounts[index].addresses[addrIndex],
+                  label
+                }
                 labelsAdded += 1
               }
             }
@@ -702,31 +711,39 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 nostr: mergedNostr
               }
 
-              // Re-apply merged labels to transactions, utxos, and addresses
+              // Re-apply merged labels to transactions, utxos, and addresses.
+              // Use spread instead of direct mutation because the incoming
+              // account may contain objects frozen by React Compiler.
               for (const [ref, labelObj] of Object.entries(mergedLabels)) {
                 if (labelObj.type === 'tx') {
                   const txIndex = state.accounts[index].transactions.findIndex(
                     (tx: Transaction) => tx.id === ref
                   )
                   if (txIndex !== -1) {
-                    state.accounts[index].transactions[txIndex].label =
-                      labelObj.label
+                    state.accounts[index].transactions[txIndex] = {
+                      ...state.accounts[index].transactions[txIndex],
+                      label: labelObj.label
+                    }
                   }
                 } else if (labelObj.type === 'output') {
                   const utxoIndex = state.accounts[index].utxos.findIndex(
                     (utxo: Utxo) => getUtxoOutpoint(utxo) === ref
                   )
                   if (utxoIndex !== -1) {
-                    state.accounts[index].utxos[utxoIndex].label =
-                      labelObj.label
+                    state.accounts[index].utxos[utxoIndex] = {
+                      ...state.accounts[index].utxos[utxoIndex],
+                      label: labelObj.label
+                    }
                   }
                 } else if (labelObj.type === 'addr') {
                   const addrIndex = state.accounts[index].addresses.findIndex(
                     (addr: Address) => addr.address === ref
                   )
                   if (addrIndex !== -1) {
-                    state.accounts[index].addresses[addrIndex].label =
-                      labelObj.label
+                    state.accounts[index].addresses[addrIndex] = {
+                      ...state.accounts[index].addresses[addrIndex],
+                      label: labelObj.label
+                    }
                   }
                 }
               }

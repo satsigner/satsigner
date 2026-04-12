@@ -66,8 +66,7 @@ export default function RootLayout() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    // Initialize NFC manager
-    ;(async () => {
+    async function initNfc() {
       try {
         await NfcManager.start()
       } catch {
@@ -80,7 +79,8 @@ export default function RootLayout() {
         //   })
         // }
       }
-    })()
+    }
+    initNfc()
   }, [])
 
   function handleAppStateChanged(nextAppState: AppStateStatus) {

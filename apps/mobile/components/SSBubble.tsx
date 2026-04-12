@@ -52,17 +52,19 @@ function SSBubble({
   const dimmedOpacity = useSharedValue(dimmed ? 0.3 : 1)
 
   useEffect(() => {
-    opacity.value = withDelay(
-      animationDelay,
-      withSequence(
-        withTiming(0, { duration: 0 }),
-        withTiming(1, { duration: 250 })
+    opacity.set(
+      withDelay(
+        animationDelay,
+        withSequence(
+          withTiming(0, { duration: 0 }),
+          withTiming(1, { duration: 250 })
+        )
       )
     )
   }, [animationDelay, opacity])
 
   useEffect(() => {
-    dimmedOpacity.value = withTiming(dimmed ? 0.3 : 1, { duration: 250 })
+    dimmedOpacity.set(withTiming(dimmed ? 0.3 : 1, { duration: 250 }))
   }, [dimmed, dimmedOpacity])
 
   const backgroundColor = useDerivedValue(() => {

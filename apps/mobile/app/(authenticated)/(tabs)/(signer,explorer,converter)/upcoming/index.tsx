@@ -119,7 +119,7 @@ export default function UpComing() {
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
-      scrollX.value = event.contentOffset.x
+      scrollX.set(event.contentOffset.x)
     }
   })
 
