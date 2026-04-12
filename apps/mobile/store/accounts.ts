@@ -39,6 +39,7 @@ import {
 import { upsertSingleTransaction } from '@/db/mutations/transactions'
 import { getAccountById, getAccounts } from '@/db/queries/accounts'
 import { queryClient } from '@/lib/queryClient'
+import { deleteAllKeySecrets, deleteKeySecret } from '@/storage/encrypted'
 import {
   type Account,
   type Key,
@@ -175,10 +176,14 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       invalidateAllAccounts()
     },
     deleteAccount: (id) => {
+      const account = get().accounts.find((a) => a.id === id)
+      if (account) {
+        deleteAllKeySecrets(account.id, account.keys.length)
+      }
       deleteAccountDb(id)
       set(
         produce((state: AccountsState) => {
-          const index = state.accounts.findIndex((account) => account.id === id)
+          const index = state.accounts.findIndex((a) => a.id === id)
           if (index !== -1) {
             state.accounts.splice(index, 1)
           }
@@ -187,6 +192,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       invalidateAllAccounts()
     },
     deleteAccounts: () => {
+      const { accounts } = get()
+      for (const account of accounts) {
+        deleteAllKeySecrets(account.id, account.keys.length)
+      }
       deleteAllAccountsDb()
       set(() => ({ accounts: [] }))
       invalidateAllAccounts()
@@ -208,7 +217,11 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       }
 
       try {
-        const newKey = await dropSeedFromKey(account.keys[keyIndex])
+        const newKey = await dropSeedFromKey(
+          accountId,
+          account.keys[keyIndex],
+          keyIndex
+        )
         const updatedKeys = [...account.keys]
         updatedKeys[keyIndex] = newKey
         updateAccountKeysDb(accountId, updatedKeys)
@@ -289,11 +302,11 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         creationType: undefined as unknown as Key['creationType'],
         fingerprint: undefined,
         index: keyIndex,
-        iv: undefined as unknown as string,
+        iv: '',
         mnemonicWordCount: undefined,
         name: '',
         scriptVersion: undefined,
-        secret: undefined as unknown as Key['secret']
+        secret: ''
       }
 
       const account = get().accounts.find((a) => a.id === accountId)
@@ -301,6 +314,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         return
       }
 
+      deleteKeySecret(accountId, keyIndex)
       const updatedKeys = [...account.keys]
       updatedKeys[keyIndex] = resetKeyData
       updateAccountKeysDb(accountId, updatedKeys)

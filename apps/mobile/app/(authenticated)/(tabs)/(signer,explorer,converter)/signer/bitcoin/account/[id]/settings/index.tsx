@@ -20,7 +20,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem } from '@/storage/encrypted'
+import { getItem, getKeySecret } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
@@ -141,11 +141,16 @@ export default function AccountSettings() {
         return
       }
 
-      const [firstKey] = account.keys
-      const { iv } = firstKey
-      const encryptedSecret = firstKey.secret as string
+      const stored = await getKeySecret(account.id, 0)
+      if (!stored) {
+        return
+      }
 
-      const accountSecretString = await aesDecrypt(encryptedSecret, pin, iv)
+      const accountSecretString = await aesDecrypt(
+        stored.secret,
+        pin,
+        stored.iv
+      )
       const accountSecret = JSON.parse(accountSecretString) as Secret
 
       setLocalMnemonic(accountSecret.mnemonic || '')

@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
 import { PIN_KEY } from '@/config/auth'
-import { getItem } from '@/storage/encrypted'
+import { getItem, storeKeySecret } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -58,11 +58,9 @@ function useAccountBuilderFinish() {
 
       for (const key of account.keys) {
         const stringifiedSecret = JSON.stringify(key.secret)
-        const encryptedSecret = await aesEncrypt(
-          stringifiedSecret,
-          pin,
-          account.keys[key.index].iv
-        )
+        const { iv } = account.keys[key.index]
+        const encryptedSecret = await aesEncrypt(stringifiedSecret, pin, iv)
+        await storeKeySecret(account.id, key.index, encryptedSecret, iv)
 
         if (walletData) {
           if (account.policyType === 'multisig' && walletData.keyFingerprints) {

@@ -1,6 +1,7 @@
 import {
   type Account,
   type Key,
+  type KeyMeta,
   type SyncProgress
 } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
@@ -200,7 +201,9 @@ function rowToAccount(
     createdAt: new Date(row.created_at),
     id: row.id,
     keyCount: row.key_count,
-    keys: parseJson<Key[]>(row.keys, []),
+    keys: parseJson<KeyMeta[]>(row.keys, []).map(
+      (meta): Key => ({ ...meta, iv: '', secret: '' })
+    ),
     keysRequired: row.keys_required,
     labels,
     lastSyncedAt: row.last_synced_at ? new Date(row.last_synced_at) : undefined,

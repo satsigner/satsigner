@@ -50,20 +50,24 @@ export type Secret = {
   fingerprint?: string
 }
 
-export type Key = {
+/** Key metadata safe for SQLite — no secret material */
+export type KeyMeta = {
   /** Key position for multisig. Set to 0 if singlesig */
   index: number
   name?: string
   creationType: CreationType
   mnemonicWordCount?: MnemonicWordCount
   mnemonicWordList?: WordListName
+  fingerprint?: string
+  scriptVersion?: ScriptVersionType
+  derivationPath?: string
+}
+
+export type Key = KeyMeta & {
   /** Sensitive information that can be encrypted with PIN */
   secret: Secret | string
   /** Initialization vector for AES encryption */
   iv: string
-  fingerprint?: string
-  scriptVersion?: ScriptVersionType
-  derivationPath?: string
 }
 
 export type DecryptedKey = Omit<Key, 'secret'> & {

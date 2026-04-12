@@ -37,7 +37,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
-import { getItem } from '@/storage/encrypted'
+import { getItem, getKeySecret } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useNostrStore } from '@/store/nostr'
@@ -1752,23 +1752,23 @@ function PreviewTransaction() {
 
       try {
         const decryptedKeysData = await Promise.all(
-          account.keys.map(async (key) => {
-            if (typeof key.secret === 'string') {
-              const decryptedSecretString = await aesDecrypt(
-                key.secret,
-                pin,
-                key.iv
-              )
-              const decryptedSecret = JSON.parse(
-                decryptedSecretString
-              ) as Secret
-
-              return {
-                ...key,
-                secret: decryptedSecret
-              }
+          account.keys.map(async (key, index) => {
+            const stored = await getKeySecret(account.id, index)
+            if (!stored) {
+              return key
             }
-            return key
+
+            const decryptedSecretString = await aesDecrypt(
+              stored.secret,
+              pin,
+              stored.iv
+            )
+            const decryptedSecret = JSON.parse(decryptedSecretString) as Secret
+
+            return {
+              ...key,
+              secret: decryptedSecret
+            }
           })
         )
 

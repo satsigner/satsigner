@@ -1,4 +1,4 @@
-import { type Account } from '@/types/models/Account'
+import { type Account, type Key } from '@/types/models/Account'
 
 import { getDb, runTransaction } from '../connection'
 import { boolToInt, dateToIso, optionalToJson } from '../mappers'
@@ -7,6 +7,10 @@ import { upsertLabels } from './labels'
 import { upsertNostrData } from './nostr'
 import { upsertTransactions } from './transactions'
 import { upsertUtxos } from './utxos'
+
+function keysToJson(keys: Key[]): string {
+  return JSON.stringify(keys.map(({ secret: _s, iv: _iv, ...meta }) => meta))
+}
 
 function insertAccount(account: Account) {
   runTransaction((tx) => {
@@ -25,7 +29,7 @@ function insertAccount(account: Account) {
         account.name,
         account.network,
         account.policyType,
-        JSON.stringify(account.keys),
+        keysToJson(account.keys),
         account.keyCount,
         account.keysRequired,
         account.summary.balance,
@@ -81,7 +85,7 @@ function updateAccountRow(account: Account) {
       account.name,
       account.network,
       account.policyType,
-      JSON.stringify(account.keys),
+      keysToJson(account.keys),
       account.keyCount,
       account.keysRequired,
       account.summary.balance,
@@ -131,7 +135,7 @@ function updateFullAccount(account: Account) {
         account.name,
         account.network,
         account.policyType,
-        JSON.stringify(account.keys),
+        keysToJson(account.keys),
         account.keyCount,
         account.keysRequired,
         account.summary.balance,
@@ -190,7 +194,7 @@ function updateAccountName(id: string, name: string) {
 function updateAccountKeys(id: string, keys: Account['keys']) {
   const db = getDb()
   db.execute('UPDATE accounts SET keys = ? WHERE id = ?', [
-    JSON.stringify(keys),
+    keysToJson(keys),
     id
   ])
 }
