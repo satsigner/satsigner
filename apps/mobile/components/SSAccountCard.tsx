@@ -52,19 +52,21 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
 
   useEffect(() => {
     if (account.syncStatus === 'syncing') {
-      rotation.value = withRepeat(
-        withTiming(360, { duration: 1500, easing: Easing.linear }),
-        -1,
-        false
+      rotation.set(
+        withRepeat(
+          withTiming(360, { duration: 1500, easing: Easing.linear }),
+          -1,
+          false
+        )
       )
     } else {
       cancelAnimation(rotation)
-      rotation.value = 0
+      rotation.set(0)
     }
 
     return () => {
       cancelAnimation(rotation)
-      rotation.value = 0
+      rotation.set(0)
     }
   }, [account.syncStatus, rotation])
 

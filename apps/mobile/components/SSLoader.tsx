@@ -30,13 +30,15 @@ function SSLoader({ size = 80, color = Colors.white }: SSLoaderProps) {
   const progress = useSharedValue(0)
 
   useEffect(() => {
-    progress.value = withRepeat(
-      withTiming(2 * Math.PI, {
-        duration: 1500,
-        easing: Easing.linear
-      }),
-      -1,
-      false
+    progress.set(
+      withRepeat(
+        withTiming(2 * Math.PI, {
+          duration: 1500,
+          easing: Easing.linear
+        }),
+        -1,
+        false
+      )
     )
   }, [progress])
 

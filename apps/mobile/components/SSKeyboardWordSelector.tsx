@@ -90,9 +90,9 @@ function SSKeyboardWordSelector({
   }
 
   if (keyboardOpen && visible && data.length > 0) {
-    opacityAnimated.value = withTiming(1, { duration: 200 })
+    opacityAnimated.set(withTiming(1, { duration: 200 }))
   } else if (!keyboardOpen || !visible) {
-    opacityAnimated.value = withTiming(0, { duration: 200 })
+    opacityAnimated.set(withTiming(0, { duration: 200 }))
   }
 
   const animatedContainerStyle = useAnimatedStyle(() => ({

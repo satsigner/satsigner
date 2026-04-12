@@ -201,19 +201,23 @@ function TransactionStaggerItem({
 
   useEffect(() => {
     const delay = index * TX_STAGGER_DELAY_MS
-    opacity.value = withDelay(
-      delay,
-      withTiming(1, {
-        duration: TX_STAGGER_DURATION_MS,
-        easing: Easing.out(Easing.ease)
-      })
+    opacity.set(
+      withDelay(
+        delay,
+        withTiming(1, {
+          duration: TX_STAGGER_DURATION_MS,
+          easing: Easing.out(Easing.ease)
+        })
+      )
     )
-    translateY.value = withDelay(
-      delay,
-      withTiming(0, {
-        duration: TX_STAGGER_DURATION_MS,
-        easing: Easing.out(Easing.ease)
-      })
+    translateY.set(
+      withDelay(
+        delay,
+        withTiming(0, {
+          duration: TX_STAGGER_DURATION_MS,
+          easing: Easing.out(Easing.ease)
+        })
+      )
     )
   }, [index, opacity, translateY])
 
@@ -1314,10 +1318,12 @@ export default function AccountView() {
   }
 
   function animateTransition(expandState: boolean) {
-    animationValue.value = withTiming(expandState ? 1 : 0, {
-      duration: 300,
-      easing: Easing.inOut(Easing.ease)
-    })
+    animationValue.set(
+      withTiming(expandState ? 1 : 0, {
+        duration: 300,
+        easing: Easing.inOut(Easing.ease)
+      })
+    )
   }
 
   function sortUtxos(utxos: Utxo[]) {

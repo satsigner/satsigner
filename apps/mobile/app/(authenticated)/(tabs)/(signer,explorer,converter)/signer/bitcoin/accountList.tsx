@@ -83,19 +83,23 @@ function AccountCardStaggerItem({
 
   useEffect(() => {
     const delay = index * STAGGER_DELAY_MS
-    opacity.value = withDelay(
-      delay,
-      withTiming(1, {
-        duration: STAGGER_DURATION_MS,
-        easing: Easing.out(Easing.ease)
-      })
+    opacity.set(
+      withDelay(
+        delay,
+        withTiming(1, {
+          duration: STAGGER_DURATION_MS,
+          easing: Easing.out(Easing.ease)
+        })
+      )
     )
-    translateY.value = withDelay(
-      delay,
-      withTiming(0, {
-        duration: STAGGER_DURATION_MS,
-        easing: Easing.out(Easing.ease)
-      })
+    translateY.set(
+      withDelay(
+        delay,
+        withTiming(0, {
+          duration: STAGGER_DURATION_MS,
+          easing: Easing.out(Easing.ease)
+        })
+      )
     )
   }, [index, opacity, translateY])
 
