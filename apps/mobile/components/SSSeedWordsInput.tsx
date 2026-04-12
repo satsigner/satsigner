@@ -499,12 +499,11 @@ export default function SSSeedWordsInput({
                   }
                 />
               )}
-              {(showFingerprint && (checksumValid || electrumSeedType) && fingerprint) && (
-                <SSFingerprint
-                  fingerprint={fingerprint}
-                  withLabel
-                />
-              )}
+              {showFingerprint &&
+                (checksumValid || electrumSeedType) &&
+                fingerprint && (
+                  <SSFingerprint fingerprint={fingerprint} withLabel />
+                )}
             </SSHStack>
           </SSFormLayout.Item>
         )}

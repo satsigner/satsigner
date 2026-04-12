@@ -22,9 +22,9 @@ import { formatNumber } from '@/utils/format'
 
 import { SSIconChevronRight, SSIconEyeOn } from './icons'
 import SSIconSync from './icons/SSIconSync'
+import SSFingerprint from './SSFingerprint'
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
-import SSFingerprint from './SSFingerprint'
 
 type SSAccountCardProps = {
   account: Account

@@ -4,6 +4,7 @@ import { ScrollView } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSFingerprint from '@/components/SSFingerprint'
 import SSGradientModal from '@/components/SSGradientModal'
 import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
 import SSSeedWordsInput from '@/components/SSSeedWordsInput'
@@ -21,7 +22,6 @@ import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams
 import { getExtendedPublicKeyFromMnemonic } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
-import SSFingerprint from '@/components/SSFingerprint'
 
 export default function ImportMnemonic() {
   const { keyIndex } = useLocalSearchParams<ImportMnemonicSearchParams>()

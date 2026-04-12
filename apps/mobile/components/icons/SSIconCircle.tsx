@@ -16,7 +16,7 @@ export default function SSIconCircle({ size, fill, stroke }: IconProps) {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <Circle cx="12" cy="12" r="10"/>
+      <Circle cx="12" cy="12" r="10" />
     </Svg>
   )
 }
