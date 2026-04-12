@@ -776,7 +776,7 @@ export default function NostrSync() {
       return
     }
 
-    ;(async () => {
+    async function loadCommonKeys() {
       try {
         const keys = await generateCommonNostrKeys(account)
         if (keys && 'commonNsec' in keys && 'commonNpub' in keys) {
@@ -793,7 +793,8 @@ export default function NostrSync() {
             : t('account.nostrSync.errorLoadingCommonKeys')
         )
       }
-    })()
+    }
+    loadCommonKeys()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run when common keys or account id change; omit full account to avoid re-run on ref change
   }, [
     accountId,
