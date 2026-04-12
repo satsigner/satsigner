@@ -605,10 +605,13 @@ export default function NostrSync() {
     setTrustMemberModalVisible(false)
   }
 
-  const handleToggleMember = useCallback((npub: string) => {
-    if (!selectedMembers.has(npub)) showTrustMemberModal(npub)
-    else toggleMember(npub)
-  }, [toggleMember, selectedMembers])
+  const handleToggleMember = useCallback(
+    (npub: string) => {
+      if (!selectedMembers.has(npub)) {showTrustMemberModal(npub)}
+      else {toggleMember(npub)}
+    },
+    [toggleMember, selectedMembers]
+  )
 
   const toggleMember = useCallback(
     (npub: string) => {
@@ -1318,14 +1321,11 @@ export default function NostrSync() {
           <SSText center size="md">
             {t('account.nostrSync.memberConfirmNew')}
           </SSText>
-          <SSButton
-            onPress={confirmTrustMember}
-            label={t('common.yes')}
-          />
+          <SSButton onPress={confirmTrustMember} label={t('common.yes')} />
           <SSButton
             onPress={() => setTrustMemberModalVisible(false)}
             label={t('common.cancel')}
-            variant='secondary'
+            variant="secondary"
           />
         </SSVStack>
       </SSModal>
