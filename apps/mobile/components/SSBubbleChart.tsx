@@ -1,6 +1,6 @@
 import { Canvas, Group } from '@shopify/react-native-skia'
 import { hierarchy, type HierarchyCircularNode, pack } from 'd3'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import {
   type GestureResponderEvent,
   Platform,
@@ -57,23 +57,17 @@ function SSBubbleChart({
   const centerX = width / 2
   const centerY = height / 2
   const customFontManager = useSFProFonts()
-  const [utxoList, setUtxoList] = useState<UtxoListItem[]>([])
-
-  useEffect(() => {
-    setUtxoList(
-      utxos.map((utxo) => ({
-        addressTo: utxo.addressTo || '',
-        children: [],
-        id: `${utxo.txid}:${utxo.vout}`,
-        keychain: utxo.keychain,
-        label: utxo.label || '',
-        timestamp: utxo.timestamp,
-        txid: utxo.txid,
-        value: utxo.value,
-        vout: utxo.vout
-      }))
-    )
-  }, [utxos])
+  const utxoList: UtxoListItem[] = utxos.map((utxo) => ({
+    addressTo: utxo.addressTo || '',
+    children: [],
+    id: `${utxo.txid}:${utxo.vout}`,
+    keychain: utxo.keychain,
+    label: utxo.label || '',
+    timestamp: utxo.timestamp,
+    txid: utxo.txid,
+    value: utxo.value,
+    vout: utxo.vout
+  }))
 
   const utxoPack = useMemo(() => {
     const utxoHierarchy = () =>
