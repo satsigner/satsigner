@@ -88,8 +88,8 @@ export const useGestures = ({
   const { getInteractionId, updateInteractionId } = useInteractionId()
   const { onAnimationEnd } = useAnimationEnd()
 
+  // JS-only (see onInteractionEnded); not a worklet so reset stays in closure.
   const moveIntoView = () => {
-    'worklet'
     if (scale.value > 1) {
       // Only apply boundary constraints if shouldResetOnInteractionEnd is true
       if (shouldResetOnInteractionEnd) {
