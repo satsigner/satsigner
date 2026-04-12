@@ -2,10 +2,11 @@ import { SSIconCircle } from '@/components/icons'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
-import { Sizes, Colors, type TextFontSize } from '@/styles'
+import { Sizes, Colors } from '@/styles'
+import type { TextFontSize } from '@/styles/sizes'
 
 type SSFingerprintProps = {
-  fingerprint: string
+  fingerprint?: string
   size?: TextFontSize
   withLabel?: boolean
   withColor?: boolean
