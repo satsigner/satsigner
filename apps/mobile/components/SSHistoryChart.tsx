@@ -1502,7 +1502,7 @@ function XAxisRenderer({
     const previousDate =
       index > 0 ? d3.timeFormat('%b %d')(ticks[index - 1]) : ''
     const displayTime = previousDate === currentDate
-    return { tick, currentDate, displayTime, x: xScale(tick) }
+    return { currentDate, displayTime, tick, x: xScale(tick) }
   })
   return (
     <>
