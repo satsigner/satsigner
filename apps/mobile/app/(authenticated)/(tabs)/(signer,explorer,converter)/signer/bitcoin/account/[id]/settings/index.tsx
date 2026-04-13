@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconEyeOn } from '@/components/icons'
+import { SSIconCircle, SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
@@ -234,9 +234,17 @@ export default function AccountSettings() {
           {account.policyType !== 'multisig' && (
             <SSHStack justifyBetween>
               <SSText color="muted">{t('account.fingerprint')}</SSText>
-              <SSText>
-                {getAccountFingerprint(account, decryptedKeys) || '-'}
-              </SSText>
+              <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+                {getAccountFingerprint(account, decryptedKeys) && (
+                  <SSIconCircle
+                    size={10}
+                    fill={`#${getAccountFingerprint(account, decryptedKeys)?.slice(0, 6)}`}
+                  />
+                )}
+                <SSText>
+                  {getAccountFingerprint(account, decryptedKeys) || '-'}
+                </SSText>
+              </SSHStack>
             </SSHStack>
           )}
           <SSHStack justifyBetween>
