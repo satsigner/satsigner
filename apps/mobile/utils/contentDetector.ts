@@ -159,9 +159,15 @@ async function detectBitcoinContent(
 
 function stripSchemePrefix(data: string): string {
   const lower = data.toLowerCase()
-  if (lower.startsWith('web+cashu:')) return data.slice(10)
-  if (lower.startsWith('lightning:')) return data.slice(10)
-  if (lower.startsWith('cashu:')) return data.slice(6)
+  if (lower.startsWith('web+cashu:')) {
+    return data.slice(10)
+  }
+  if (lower.startsWith('lightning:')) {
+    return data.slice(10)
+  }
+  if (lower.startsWith('cashu:')) {
+    return data.slice(6)
+  }
   return data
 }
 
