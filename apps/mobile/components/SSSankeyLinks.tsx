@@ -1,9 +1,4 @@
-import {
-  Group,
-  Path,
-  Skia,
-  vec
-} from '@shopify/react-native-skia'
+import { Group, Path, Skia, vec } from '@shopify/react-native-skia'
 import { useCallback } from 'react'
 
 import type { TxNode } from '@/hooks/useNodesAndLinks'
@@ -68,7 +63,9 @@ function buildLinearGradientPaint(
   alpha = 1
 ) {
   const paint = Skia.Paint()
-  if (alpha < 1) paint.setAlphaf(alpha)
+  if (alpha < 1) {
+    paint.setAlphaf(alpha)
+  }
   paint.setShader(
     Skia.Shader.MakeLinearGradient(
       vec(startX, startY),
@@ -263,12 +260,14 @@ function SSSankeyLinks({
         }
 
         const midY = (points.y1 + points.y2) / 2
-        const gradStartX =
-          targetNode.type === 'block' ? points.x1 : points.x2
+        const gradStartX = targetNode.type === 'block' ? points.x1 : points.x2
         const gradEndX = targetNode.type === 'block' ? points.x2 : points.x1
 
         return (
-          <Group key={`${link.source}-${link.target}-${index}`} opacity={shouldDim ? 0.2 : 1}>
+          <Group
+            key={`${link.source}-${link.target}-${index}`}
+            opacity={shouldDim ? 0.2 : 1}
+          >
             <Path
               path={path1}
               style="fill"
