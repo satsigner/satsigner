@@ -693,7 +693,7 @@ export default function IOPreview() {
           }}
           onLayout={handleTopLayout}
           locations={[0.19, 0.566, 0.77, 1]}
-          colors={['#131313FF', '#13131385', '#13131368', '#13131300']}
+          colors={['#0A0A0AFF', '#0A0A0A85', '#0A0A0A68', '#0A0A0A00']}
         >
           <SSVStack
             itemsCenter
@@ -783,7 +783,7 @@ export default function IOPreview() {
             width: '100%'
           }}
           locations={[0, 0.56, 0.77, 1]}
-          colors={['#131313FF', '#13131385', '#13131368', '#13131300']}
+          colors={['#0A0A0AFF', '#0A0A0A85', '#0A0A0A68', '#0A0A0A00']}
         />
       </View>
       <LinearGradient
@@ -798,11 +798,11 @@ export default function IOPreview() {
           width: '100%'
         }}
         colors={[
-          '#13131300',
-          '#1313131A',
-          '#1313134B',
-          '#131313A6',
-          '#131313F5'
+          '#0A0A0A00',
+          '#0A0A0A1A',
+          '#0A0A0A4B',
+          '#0A0A0AA6',
+          '#0A0A0AF5'
         ]}
       >
         <SSVStack
