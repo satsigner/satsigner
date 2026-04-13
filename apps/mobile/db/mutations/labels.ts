@@ -109,9 +109,6 @@ function importLabels(accountId: string, labels: Label[]): number {
   return labelsAdded
 }
 
-// --- Label cascade functions ---
-// These replace the ~400 lines of manual JS cascade in store/accounts.ts
-
 function cascadeAddrLabel(accountId: string, addr: string, label: string) {
   runTransaction((tx) => {
     // 1. Set/update the address label
