@@ -1,6 +1,13 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
-  "ignorePatterns": [".agents", ".claude", ".cursor", "**/android", "**/ios"],
+  "ignorePatterns": [
+    ".agents",
+    ".claude",
+    ".cursor",
+    "**/android",
+    "**/ios",
+    "**/routeTree.gen.ts"
+  ],
   "arrowParens": "always",
   "bracketSameLine": false,
   "bracketSpacing": true,

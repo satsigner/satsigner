@@ -326,6 +326,7 @@
     "settings.manageAddresses.title": "Manage addresses",
     "settings.title": "Account Settings and Tools",
     "signatureRequired": "Signatures Required",
+    "sync.historicalPricesFailed": "Could not load fiat prices. Check your internet connection.",
     "sync.status.error": "Can't sync",
     "sync.status.old.day": "~%{value}d ago",
     "sync.status.old.hour": "~%{value}h ago",

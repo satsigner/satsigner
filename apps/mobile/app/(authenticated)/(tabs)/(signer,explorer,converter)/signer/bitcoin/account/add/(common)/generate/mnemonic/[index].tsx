@@ -200,7 +200,9 @@ export default function GenerateMnemonic() {
             <SSFormLayout.Item>
               <SSHStack justifyBetween>
                 <SSChecksumStatus valid={checksumValid} />
-                {fingerprint && <SSFingerprint value={fingerprint} />}
+                {fingerprint && (
+                  <SSFingerprint withLabel fingerprint={fingerprint} />
+                )}
               </SSHStack>
             </SSFormLayout.Item>
           </SSFormLayout>

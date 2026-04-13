@@ -421,10 +421,11 @@ function SSMultisigKeyControl({
             </SSVStack>
           </SSHStack>
           <SSVStack gap="none" style={{ alignItems: 'flex-end' }}>
-            <SSText color={fingerprint ? 'white' : 'muted'}>
+            <SSText type="mono" color={fingerprint ? 'white' : 'muted'}>
               {fingerprint || t('account.fingerprint')}
             </SSText>
             <SSText
+              type="mono"
               color={extendedPublicKey ? 'white' : 'muted'}
               selectable
               numberOfLines={1}

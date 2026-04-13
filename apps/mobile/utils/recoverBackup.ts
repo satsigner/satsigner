@@ -1,3 +1,4 @@
+import { storeKeySecret } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { useNostrStore } from '@/store/nostr'
@@ -74,6 +75,7 @@ export async function performRecoverOverwrite(
         }
         const iv = randomIv()
         const secret = await aesEncrypt(JSON.stringify(secretObj), pin, iv)
+        await storeKeySecret(acc.id, k.index, secret, iv)
         keys.push({
           creationType: k.creationType,
           derivationPath: k.derivationPath,

@@ -92,7 +92,7 @@ function SelectUtxoBubbles() {
       <LinearGradient
         style={styles.absoluteTopContainer}
         locations={[0.185, 0.5554, 0.7713, 1]}
-        colors={['#131313F5', '#131313A6', '#1313134B', '#13131300']}
+        colors={['#0A0A0AF5', '#0A0A0AA6', '#0A0A0A4B', '#0A0A0A00']}
       >
         <SSVStack>
           <SSHStack justifyBetween>
@@ -167,14 +167,14 @@ function SelectUtxoBubbles() {
       <SSBubbleChart
         utxos={account.utxos}
         canvasSize={{ height: GRAPH_HEIGHT, width: GRAPH_WIDTH }}
-        inputs={getInputs()}
+        inputs={Array.from(inputs.values())}
         onPress={handleOnToggleSelected}
         style={{ position: 'absolute', top: 40 }}
       />
       <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}
         style={styles.absoluteSubmitContainer}
-        colors={['#13131300', '#1313130F', '#1313132A', '#131313']}
+        colors={['#0A0A0A00', '#0A0A0A0F', '#0A0A0A2A', '#0A0A0A']}
       >
         <SSVStack style={{ width: '92%' }}>
           <SSHStack justifyBetween>

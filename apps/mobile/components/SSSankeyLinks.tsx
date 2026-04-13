@@ -1,11 +1,5 @@
-import {
-  Group,
-  LinearGradient,
-  Paint,
-  Path,
-  vec
-} from '@shopify/react-native-skia'
-import { memo, useCallback } from 'react'
+import { Group, Path, Skia, vec } from '@shopify/react-native-skia'
+import { useCallback } from 'react'
 
 import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { gray } from '@/styles/colors'
@@ -50,6 +44,39 @@ interface SSSankeyLinksProps {
   BLOCK_WIDTH: number
   selectedOutputNode?: string
   dimUnselected?: boolean
+}
+
+function buildSolidPaint(hexColor: string, alpha: number) {
+  const paint = Skia.Paint()
+  paint.setColor(Skia.Color(hexColor))
+  paint.setAlphaf(alpha)
+  return paint
+}
+
+function buildLinearGradientPaint(
+  startX: number,
+  startY: number,
+  endX: number,
+  endY: number,
+  colors: string[],
+  positions: number[],
+  alpha = 1
+) {
+  const paint = Skia.Paint()
+  if (alpha < 1) {
+    paint.setAlphaf(alpha)
+  }
+  paint.setShader(
+    Skia.Shader.MakeLinearGradient(
+      vec(startX, startY),
+      vec(endX, endY),
+      colors.map((c) => Skia.Color(c)),
+      positions,
+      0,
+      Skia.Matrix()
+    )
+  )
+  return paint
 }
 
 function SSSankeyLinks({
@@ -232,87 +259,78 @@ function SSSankeyLinks({
           return null
         }
 
+        const midY = (points.y1 + points.y2) / 2
+        const gradStartX = targetNode.type === 'block' ? points.x1 : points.x2
+        const gradEndX = targetNode.type === 'block' ? points.x2 : points.x1
+
         return (
-          <Group key={`${link.source}-${link.target}-${index}`}>
+          <Group
+            key={`${link.source}-${link.target}-${index}`}
+            opacity={shouldDim ? 0.2 : 1}
+          >
             <Path
               path={path1}
               style="fill"
               color={isCurrentTx || isUnspent ? 'white' : gray[700]}
-              opacity={shouldDim ? 0.2 : isCurrentTx || isUnspent ? 1 : 0.5}
-            >
-              {(isCurrentTx || isCurrentTxMinerFee) &&
-              !isRemainingBalance &&
-              !isUnspent ? (
-                <>
-                  <Paint opacity={0.6}>
-                    <LinearGradient
-                      start={vec(points.x1, points.y1)}
-                      end={vec(points.x2, points.y2)}
-                      colors={['#363636', '#363636']}
-                      positions={[0, 1]}
-                    />
-                  </Paint>
-
-                  <Paint opacity={1}>
-                    <LinearGradient
-                      start={vec(
-                        targetNode.type === 'block' ? points.x1 : points.x2,
-                        (points.y1 + points.y2) / 2
-                      )}
-                      end={vec(
-                        targetNode.type === 'block' ? points.x2 : points.x1,
-                        (points.y1 + points.y2) / 2
-                      )}
-                      colors={[gray[900], isCurrentInput ? gray[500] : 'white']}
-                      positions={[0, 0.7]}
-                    />
-                  </Paint>
-                </>
-              ) : isUnspent && !isRemainingBalance ? (
-                <>
-                  <Paint opacity={1}>
-                    <LinearGradient
-                      start={vec(
-                        targetNode.type === 'block' ? points.x1 : points.x2,
-                        (points.y1 + points.y2) / 2
-                      )}
-                      end={vec(
-                        targetNode.type === 'block' ? points.x2 : points.x1,
-                        (points.y1 + points.y2) / 2
-                      )}
-                      colors={['#2C2C2C', '#FFFFFF']}
-                      positions={[0, 0.2]}
-                    />
-                  </Paint>
-                </>
-              ) : !isUnspent && !isRemainingBalance ? (
-                <>
-                  <Paint opacity={0.2}>
-                    <LinearGradient
-                      start={vec(points.x1, points.y1)}
-                      end={vec(points.x2, points.y2)}
-                      colors={['#363636', '#363636']}
-                      positions={[0, 1]}
-                    />
-                  </Paint>
-
-                  <Paint opacity={0.2}>
-                    <LinearGradient
-                      start={vec(
-                        targetNode.type === 'block' ? points.x1 : points.x2,
-                        (points.y1 + points.y2) / 2
-                      )}
-                      end={vec(
-                        targetNode.type === 'block' ? points.x2 : points.x1,
-                        (points.y1 + points.y2) / 2
-                      )}
-                      colors={['#FFFFFF', '#2C2C2C']}
-                      positions={[0, 1]}
-                    />
-                  </Paint>
-                </>
-              ) : null}
-            </Path>
+              opacity={isCurrentTx || isUnspent ? 1 : 0.5}
+            />
+            {(isCurrentTx || isCurrentTxMinerFee) &&
+            !isRemainingBalance &&
+            !isUnspent ? (
+              <>
+                <Path
+                  path={path1}
+                  style="fill"
+                  paint={buildSolidPaint('#363636', 0.6)}
+                />
+                <Path
+                  path={path1}
+                  style="fill"
+                  paint={buildLinearGradientPaint(
+                    gradStartX,
+                    midY,
+                    gradEndX,
+                    midY,
+                    [gray[900], isCurrentInput ? gray[500] : '#FFFFFF'],
+                    [0, 0.7]
+                  )}
+                />
+              </>
+            ) : isUnspent && !isRemainingBalance ? (
+              <Path
+                path={path1}
+                style="fill"
+                paint={buildLinearGradientPaint(
+                  gradStartX,
+                  midY,
+                  gradEndX,
+                  midY,
+                  ['#2C2C2C', '#FFFFFF'],
+                  [0, 0.2]
+                )}
+              />
+            ) : !isUnspent && !isRemainingBalance ? (
+              <>
+                <Path
+                  path={path1}
+                  style="fill"
+                  paint={buildSolidPaint('#363636', 0.2)}
+                />
+                <Path
+                  path={path1}
+                  style="fill"
+                  paint={buildLinearGradientPaint(
+                    gradStartX,
+                    midY,
+                    gradEndX,
+                    midY,
+                    ['#FFFFFF', '#2C2C2C'],
+                    [0, 1],
+                    0.2
+                  )}
+                />
+              </>
+            ) : null}
           </Group>
         )
       })}
@@ -371,4 +389,4 @@ const generateCustomLink = (points: LinkPoints) => {
   return [moveToA, lineToB, curveToD, lineToC, curveToA, 'Z'].join(' ')
 }
 
-export default memo(SSSankeyLinks)
+export default SSSankeyLinks

@@ -1,6 +1,6 @@
 import { FlashList } from '@shopify/flash-list'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -40,23 +40,17 @@ export default function SelectUtxoList() {
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
-  const [inputs, getInputs, hasInput, addInput, removeInput, setAccountId] =
+  const [inputs, getInputs, hasInput, addInput, removeInput] =
     useTransactionBuilderStore(
       useShallow((state) => [
         state.inputs,
         state.getInputs,
         state.hasInput,
         state.addInput,
-        state.removeInput,
-        state.setAccountId
+        state.removeInput
       ])
     )
 
-  useEffect(() => {
-    if (id) {
-      setAccountId(id)
-    }
-  }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )

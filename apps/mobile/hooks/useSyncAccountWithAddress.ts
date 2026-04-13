@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
@@ -613,11 +614,15 @@ function useSyncAccountWithAddress() {
       let prices: number[] = []
 
       if (uniqueTimestamps.length > 0) {
-        const historicalPrices = await oracle.getPricesAt(
-          'USD',
-          uniqueTimestamps
-        )
-        prices = [...prices, ...historicalPrices]
+        try {
+          const historicalPrices = await oracle.getPricesAt(
+            'USD',
+            uniqueTimestamps
+          )
+          prices = [...prices, ...historicalPrices]
+        } catch {
+          toast.error(t('account.sync.historicalPricesFailed'))
+        }
       }
 
       // Create price mapping
@@ -678,7 +683,11 @@ function useSyncAccountWithAddress() {
     } catch {
       setSyncStatus(account.id, 'error')
       setLoading(false)
-      throw new Error('Sync failed')
+      toast.error(t('account.syncFailed'))
+      return {
+        ...updatedAccount,
+        syncStatus: 'error'
+      }
     }
   }
 
@@ -729,6 +738,10 @@ function useSyncAccountWithAddress() {
         summary: newSummary,
         transactions: updatedData.transactions // Explicitly preserve the transactions with prices
       })
+
+      if (updatedData.syncStatus === 'error') {
+        break
+      }
     }
 
     // make sure the final summary is right

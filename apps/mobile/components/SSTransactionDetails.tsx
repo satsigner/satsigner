@@ -125,7 +125,7 @@ function SSTransactionDetails({
         </SSText>
         <SSText
           size={onToggleVisibility ? 'xs' : textSize}
-          type={onToggleVisibility ? 'mono' : 'sans-serif'}
+          type="mono"
           color="muted"
         >
           {`${txid.slice(0, 6)}...${txid.slice(-6)}`}

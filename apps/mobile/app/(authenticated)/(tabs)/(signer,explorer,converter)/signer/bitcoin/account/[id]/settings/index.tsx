@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconEyeOn } from '@/components/icons'
+import { SSIconCircle, SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
@@ -20,7 +20,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem } from '@/storage/encrypted'
+import { getItem, getKeySecret } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
@@ -141,11 +141,16 @@ export default function AccountSettings() {
         return
       }
 
-      const [firstKey] = account.keys
-      const { iv } = firstKey
-      const encryptedSecret = firstKey.secret as string
+      const stored = await getKeySecret(account.id, 0)
+      if (!stored) {
+        return
+      }
 
-      const accountSecretString = await aesDecrypt(encryptedSecret, pin, iv)
+      const accountSecretString = await aesDecrypt(
+        stored.secret,
+        pin,
+        stored.iv
+      )
       const accountSecret = JSON.parse(accountSecretString) as Secret
 
       setLocalMnemonic(accountSecret.mnemonic || '')
@@ -229,9 +234,17 @@ export default function AccountSettings() {
           {account.policyType !== 'multisig' && (
             <SSHStack justifyBetween>
               <SSText color="muted">{t('account.fingerprint')}</SSText>
-              <SSText>
-                {getAccountFingerprint(account, decryptedKeys) || '-'}
-              </SSText>
+              <SSHStack gap="xs" style={{ alignItems: 'center' }}>
+                {getAccountFingerprint(account, decryptedKeys) && (
+                  <SSIconCircle
+                    size={10}
+                    fill={`#${getAccountFingerprint(account, decryptedKeys)?.slice(0, 6)}`}
+                  />
+                )}
+                <SSText>
+                  {getAccountFingerprint(account, decryptedKeys) || '-'}
+                </SSText>
+              </SSHStack>
             </SSHStack>
           )}
           <SSHStack justifyBetween>

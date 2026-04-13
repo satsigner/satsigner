@@ -109,15 +109,14 @@ const TX_STAGGER_DURATION_MS = 320
 
 function DraftTransactionCard({ accountId }: { accountId: string }) {
   const router = useRouter()
-  const [inputs, outputs, fee, clearTransaction] = useTransactionBuilderStore(
-    useShallow((state) => [
-      state.inputs,
-      state.outputs,
-      state.fee,
-      state.clearTransaction
-    ])
+  const [drafts, clearTransaction] = useTransactionBuilderStore(
+    useShallow((state) => [state.drafts, state.clearTransaction])
   )
 
+  const draft = drafts[accountId]
+  const inputCount = Object.keys(draft?.inputs ?? {}).length
+  const outputs = draft?.outputs ?? []
+  const fee = draft?.fee ?? 0
   const totalOut = outputs.reduce((sum, o) => sum + o.amount, 0)
 
   return (
@@ -166,7 +165,7 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
         </SSHStack>
         <SSHStack justifyBetween style={{ marginTop: 2 }}>
           <SSText size="xs" color="muted">
-            {inputs.size} {t('transaction.inputs')}
+            {inputCount} {t('transaction.inputs')}
             {outputs.length > 0
               ? `, ${outputs.length} ${t('transaction.outputs')}`
               : ''}
@@ -250,20 +249,15 @@ function TotalTransactions({
   blockchainHeight,
   sortDirection
 }: TotalTransactionsProps) {
-  const [draftAccountId, draftInputs, draftOutputs, draftBroadcasted] =
-    useTransactionBuilderStore(
-      useShallow((state) => [
-        state.accountId,
-        state.inputs,
-        state.outputs,
-        state.broadcasted
-      ])
-    )
+  const { width } = useWindowDimensions()
+  const horizontalPaddingPx = width * 0.06
 
+  const drafts = useTransactionBuilderStore((state) => state.drafts)
+
+  const savedDraft = drafts[account.id]
   const hasDraft =
-    draftAccountId === account.id &&
-    !draftBroadcasted &&
-    (draftInputs.size > 0 || draftOutputs.length > 0)
+    savedDraft !== undefined &&
+    (Object.keys(savedDraft.inputs).length > 0 || savedDraft.outputs.length > 0)
   const router = useRouter()
 
   const [btcPrice, fiatCurrency] = usePriceStore(
@@ -302,11 +296,8 @@ function TotalTransactions({
   const [showHistoryChart, setShowHistoryChart] = useState<boolean>(false)
 
   return (
-    <SSMainLayout style={{ paddingHorizontal: 0, paddingTop: 0 }}>
-      <SSHStack
-        justifyBetween
-        style={{ paddingHorizontal: 16, paddingVertical: 16 }}
-      >
+    <View style={{ flex: 1, paddingHorizontal: '6%' }}>
+      <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
         <SSHStack>
           <SSIconButton onPress={() => handleOnRefresh()}>
             <SSIconRefresh height={18} width={22} />
@@ -341,7 +332,13 @@ function TotalTransactions({
         </SSHStack>
       </SSHStack>
       {showHistoryChart && sortedTransactions.length > 0 ? (
-        <View style={{ flex: 1, zIndex: -1 }}>
+        <View
+          style={{
+            flex: 1,
+            marginHorizontal: -horizontalPaddingPx,
+            zIndex: -1
+          }}
+        >
           <SSHistoryChart
             transactions={chartTransactions}
             utxos={account.utxos}
@@ -353,10 +350,7 @@ function TotalTransactions({
           style={{
             flex: 1,
             height: 400,
-            marginLeft: 16,
-            marginRight: 2,
-            minHeight: 200,
-            paddingRight: 14
+            minHeight: 200
           }}
           gap={expand ? 'sm' : 'md'}
         >
@@ -413,7 +407,7 @@ function TotalTransactions({
           </View>
         </SSVStack>
       )}
-    </SSMainLayout>
+    </View>
   )
 }
 
@@ -771,7 +765,7 @@ function DerivedAddresses({
   )
 
   return (
-    <SSMainLayout style={addressListStyles.container}>
+    <View style={addressListStyles.container}>
       <SSHStack justifyBetween style={addressListStyles.header}>
         <SSHStack>
           <SSIconButton onPress={refreshAddresses}>
@@ -874,7 +868,7 @@ function DerivedAddresses({
           }
         />
       )}
-    </SSMainLayout>
+    </View>
   )
 }
 
@@ -903,7 +897,8 @@ function SpendableOutputs({
   const [view, setView] = useState('list')
 
   const halfHeight = height / 2
-  const horizontalPaddingPx = width * 0.05
+  // Matches styles/layout.ts mainContainer.paddingHorizontal ('6%')
+  const horizontalPaddingPx = width * 0.06
   const GRAPH_HEIGHT = halfHeight
   const GRAPH_WIDTH = width
 
@@ -913,7 +908,7 @@ function SpendableOutputs({
   )
 
   return (
-    <SSMainLayout style={{ paddingTop: 0 }}>
+    <View style={{ flex: 1, paddingHorizontal: '6%', paddingTop: 0 }}>
       <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
         <SSHStack>
           <SSIconButton
@@ -995,7 +990,7 @@ function SpendableOutputs({
           />
         )}
       </View>
-    </SSMainLayout>
+    </View>
   )
 }
 
@@ -1017,16 +1012,16 @@ function SatsInMempool({
 
   if (mempoolTransactions.length === 0) {
     return (
-      <SSMainLayout>
+      <View style={{ flex: 1, paddingHorizontal: '6%' }}>
         <SSVStack style={{ alignItems: 'center', flex: 1, paddingTop: 50 }}>
           <SSText color="muted">{t('accounts.noSatsOnMempool')}</SSText>
         </SSVStack>
-      </SSMainLayout>
+      </View>
     )
   }
 
   return (
-    <SSMainLayout>
+    <View style={{ flex: 1, paddingHorizontal: '6%' }}>
       <FlashList
         data={mempoolTransactions}
         keyExtractor={(item) => item.id}
@@ -1058,7 +1053,7 @@ function SatsInMempool({
           </SSVStack>
         )}
       />
-    </SSMainLayout>
+    </View>
   )
 }
 
@@ -1397,7 +1392,7 @@ export default function AccountView() {
         {!expand && (
           <SSHStack
             gap="none"
-            style={{ paddingHorizontal: '5%', paddingVertical: 8 }}
+            style={{ paddingHorizontal: '6%', paddingVertical: 8 }}
           >
             <SSActionButton
               style={{ width: tabWidth }}
@@ -1534,154 +1529,162 @@ export default function AccountView() {
           )
         }}
       />
-      <SSVStack gap="none" style={{ alignItems: 'center' }}>
-        <TouchableOpacity
-          onPress={() => router.navigate('/settings/network/server')}
+      <SSMainLayout style={{ paddingHorizontal: 0, paddingTop: 0 }}>
+        <SSVStack
+          gap="none"
+          style={{ alignItems: 'center', paddingHorizontal: '6%' }}
         >
-          <SSHStack style={{ gap: 0, justifyContent: 'center' }}>
-            {connectionState ? (
-              isPrivateConnection ? (
-                <SSIconYellowIndicator height={24} width={24} />
+          <TouchableOpacity
+            onPress={() => router.navigate('/settings/network/server')}
+          >
+            <SSHStack style={{ gap: 0, justifyContent: 'center' }}>
+              {connectionState ? (
+                isPrivateConnection ? (
+                  <SSIconYellowIndicator height={24} width={24} />
+                ) : (
+                  <SSIconGreenIndicator height={24} width={24} />
+                )
               ) : (
-                <SSIconGreenIndicator height={24} width={24} />
-              )
-            ) : (
-              <SSIconBlackIndicator height={24} width={24} />
-            )}
-            <SSHStack gap="xs" style={{ alignItems: 'center' }}>
-              <SSText
-                size="xxs"
-                uppercase
-                style={{
-                  color: connectionState
-                    ? Colors.gray['200']
-                    : Colors.gray['450']
-                }}
-              >
-                {`${connectionParts.network} - ${connectionParts.name}`}
-              </SSText>
-              <SSText
-                size="xxs"
-                uppercase
-                style={{
-                  color: Colors.gray['500']
-                }}
-              >
-                {connectionParts.url}
-                {connectionParts.mode ? ` [${connectionParts.mode}]` : ''}
-              </SSText>
-            </SSHStack>
-          </SSHStack>
-        </TouchableOpacity>
-        <SSBlockFeePriceRow
-          blockHeight={networkBlockHeight}
-          btcPrice={btcPrice}
-          fiatCurrency={fiatCurrency}
-          nextBlockFee={nextBlockFee}
-          blockHeightSource={blockHeightSource}
-        />
-      </SSVStack>
-      {!expand && (
-        <Animated.View style={{ paddingTop: 20 }}>
-          <SSVStack itemsCenter gap="none">
-            <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
-              <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                <SSIconBlackIndicator height={24} width={24} />
+              )}
+              <SSHStack gap="xs" style={{ alignItems: 'center' }}>
                 <SSText
-                  size={balanceTextSize}
-                  color="white"
-                  weight="ultralight"
+                  size="xxs"
+                  uppercase
                   style={{
-                    lineHeight: Sizes.text.fontSize[balanceTextSize]
+                    color: connectionState
+                      ? Colors.gray['200']
+                      : Colors.gray['450']
                   }}
                 >
-                  {privacyMode ? (
-                    '••••'
-                  ) : (
-                    <SSStyledSatText
-                      amount={account?.summary.balance || 0}
-                      decimals={0}
-                      useZeroPadding={useZeroPadding}
-                      currency={currencyUnit}
-                      textSize={balanceTextSize}
-                      weight="ultralight"
-                      letterSpacing={-1}
-                    />
-                  )}
+                  {`${connectionParts.network} - ${connectionParts.name}`}
                 </SSText>
-                <SSText size="xl" color="muted">
-                  {currencyUnit === 'btc'
-                    ? t('bitcoin.btc')
-                    : t('bitcoin.sats')}
+                <SSText
+                  size="xxs"
+                  uppercase
+                  style={{
+                    color: Colors.gray['500']
+                  }}
+                >
+                  {connectionParts.url}
+                  {connectionParts.mode ? ` [${connectionParts.mode}]` : ''}
                 </SSText>
               </SSHStack>
-              <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSText color="muted">
-                  {!btcPrice || btcPrice <= 0
-                    ? '--'
-                    : privacyMode
-                      ? '••••'
-                      : formatNumber(
-                          satsToFiat(account.summary.balance || 0),
-                          2
-                        )}
-                </SSText>
-                <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                  {fiatCurrency}
-                </SSText>
-              </SSHStack>
-            </SSVStack>
-            <SSVStack gap="none" style={{ paddingHorizontal: 16 }}>
-              {account.keys[0].creationType !== 'importAddress' && (
-                <SSButtonActionsGroup
-                  context="bitcoin"
-                  nfcAvailable={contentHandler.nfcAvailable}
-                  onSend={contentHandler.handleSend}
-                  onPaste={contentHandler.handlePaste}
-                  onCamera={contentHandler.handleCamera}
-                  onNFC={contentHandler.handleNFC}
-                  onReceive={contentHandler.handleReceive}
-                />
-              )}
-              {account.keys[0].creationType === 'importAddress' &&
-                account.keys.length === 1 && (
-                  <SSVStack gap="xs">
-                    <SSText center color="muted" size="xs">
-                      {t('receive.address').toUpperCase()}
-                    </SSText>
-                    <SSAddressDisplay
-                      variant="outline"
-                      type="sans-serif"
-                      style={{ lineHeight: 14 }}
-                      address={watchOnlyWalletAddress || ''}
-                    />
-                  </SSVStack>
-                )}
-            </SSVStack>
-          </SSVStack>
-        </Animated.View>
-      )}
-      {account.keys[0].creationType === 'importAddress' &&
-        syncStatus === 'syncing' &&
-        tasksDone !== undefined &&
-        totalTasks !== undefined &&
-        totalTasks > 0 && (
-          <View style={{ marginBottom: -10, marginTop: 10 }}>
-            <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
-              <SSLoader size={24} />
-              <SSText center>
-                {t('account.syncProgress', { tasksDone, totalTasks })}
-              </SSText>
             </SSHStack>
-          </View>
+          </TouchableOpacity>
+          <SSBlockFeePriceRow
+            blockHeight={networkBlockHeight}
+            btcPrice={btcPrice}
+            fiatCurrency={fiatCurrency}
+            nextBlockFee={nextBlockFee}
+            blockHeightSource={blockHeightSource}
+          />
+        </SSVStack>
+        {!expand && (
+          <Animated.View style={{ paddingHorizontal: '6%', paddingTop: 20 }}>
+            <SSVStack itemsCenter gap="none">
+              <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
+                <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                  <SSText
+                    size={balanceTextSize}
+                    color="white"
+                    weight="ultralight"
+                    style={{
+                      lineHeight: Sizes.text.fontSize[balanceTextSize]
+                    }}
+                  >
+                    {privacyMode ? (
+                      '••••'
+                    ) : (
+                      <SSStyledSatText
+                        amount={account?.summary.balance || 0}
+                        decimals={0}
+                        useZeroPadding={useZeroPadding}
+                        currency={currencyUnit}
+                        textSize={balanceTextSize}
+                        weight="ultralight"
+                        letterSpacing={-1}
+                      />
+                    )}
+                  </SSText>
+                  <SSText size="xl" color="muted">
+                    {currencyUnit === 'btc'
+                      ? t('bitcoin.btc')
+                      : t('bitcoin.sats')}
+                  </SSText>
+                </SSHStack>
+                <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                  <SSText color="muted">
+                    {!btcPrice || btcPrice <= 0
+                      ? '--'
+                      : privacyMode
+                        ? '••••'
+                        : formatNumber(
+                            satsToFiat(account.summary.balance || 0),
+                            2
+                          )}
+                  </SSText>
+                  <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                    {fiatCurrency}
+                  </SSText>
+                </SSHStack>
+              </SSVStack>
+              <SSVStack gap="none">
+                {account.keys[0].creationType !== 'importAddress' && (
+                  <SSButtonActionsGroup
+                    context="bitcoin"
+                    nfcAvailable={contentHandler.nfcAvailable}
+                    onSend={contentHandler.handleSend}
+                    onPaste={contentHandler.handlePaste}
+                    onCamera={contentHandler.handleCamera}
+                    onNFC={contentHandler.handleNFC}
+                    onReceive={contentHandler.handleReceive}
+                  />
+                )}
+                {account.keys[0].creationType === 'importAddress' &&
+                  account.keys.length === 1 && (
+                    <SSVStack gap="xs">
+                      <SSText center color="muted" size="xs">
+                        {t('receive.address').toUpperCase()}
+                      </SSText>
+                      <SSAddressDisplay
+                        variant="outline"
+                        type="sans-serif"
+                        style={{ lineHeight: 14 }}
+                        address={watchOnlyWalletAddress || ''}
+                      />
+                    </SSVStack>
+                  )}
+              </SSVStack>
+            </SSVStack>
+          </Animated.View>
         )}
-      <TabView
-        swipeEnabled={false}
-        navigationState={{ index: tabIndex, routes: tabs }}
-        renderScene={renderScene}
-        renderTabBar={renderTab}
-        onIndexChange={setTabIndex}
-        initialLayout={{ width }}
-      />
+        {account.keys[0].creationType === 'importAddress' &&
+          syncStatus === 'syncing' &&
+          tasksDone !== undefined &&
+          totalTasks !== undefined &&
+          totalTasks > 0 && (
+            <View style={{ marginBottom: -10, marginTop: 10 }}>
+              <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
+                <SSLoader size={24} />
+                <SSText center>
+                  {t('account.syncProgress', { tasksDone, totalTasks })}
+                </SSText>
+              </SSHStack>
+            </View>
+          )}
+        <View style={{ flex: 1 }}>
+          <TabView
+            swipeEnabled={false}
+            navigationState={{ index: tabIndex, routes: tabs }}
+            renderScene={renderScene}
+            renderTabBar={renderTab}
+            onIndexChange={setTabIndex}
+            initialLayout={{ width }}
+            style={{ flex: 1 }}
+          />
+        </View>
+      </SSMainLayout>
       <SSCameraModal
         visible={contentHandler.cameraModalVisible}
         onClose={contentHandler.closeCameraModal}
@@ -1749,6 +1752,7 @@ const addressListStyles = StyleSheet.create({
   },
   container: {
     paddingBottom: 10,
+    paddingHorizontal: '6%',
     paddingTop: 10
   },
   header: {
