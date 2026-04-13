@@ -109,15 +109,14 @@ const TX_STAGGER_DURATION_MS = 320
 
 function DraftTransactionCard({ accountId }: { accountId: string }) {
   const router = useRouter()
-  const [inputs, outputs, fee, clearTransaction] = useTransactionBuilderStore(
-    useShallow((state) => [
-      state.inputs,
-      state.outputs,
-      state.fee,
-      state.clearTransaction
-    ])
+  const [drafts, clearTransaction] = useTransactionBuilderStore(
+    useShallow((state) => [state.drafts, state.clearTransaction])
   )
 
+  const draft = drafts[accountId]
+  const inputCount = Object.keys(draft?.inputs ?? {}).length
+  const outputs = draft?.outputs ?? []
+  const fee = draft?.fee ?? 0
   const totalOut = outputs.reduce((sum, o) => sum + o.amount, 0)
 
   return (
@@ -166,7 +165,7 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
         </SSHStack>
         <SSHStack justifyBetween style={{ marginTop: 2 }}>
           <SSText size="xs" color="muted">
-            {inputs.size} {t('transaction.inputs')}
+            {inputCount} {t('transaction.inputs')}
             {outputs.length > 0
               ? `, ${outputs.length} ${t('transaction.outputs')}`
               : ''}
@@ -253,20 +252,12 @@ function TotalTransactions({
   const { width } = useWindowDimensions()
   const horizontalPaddingPx = width * 0.06
 
-  const [draftAccountId, draftInputs, draftOutputs, draftBroadcasted] =
-    useTransactionBuilderStore(
-      useShallow((state) => [
-        state.accountId,
-        state.inputs,
-        state.outputs,
-        state.broadcasted
-      ])
-    )
+  const drafts = useTransactionBuilderStore((state) => state.drafts)
 
+  const savedDraft = drafts[account.id]
   const hasDraft =
-    draftAccountId === account.id &&
-    !draftBroadcasted &&
-    (draftInputs.size > 0 || draftOutputs.length > 0)
+    savedDraft !== undefined &&
+    (Object.keys(savedDraft.inputs).length > 0 || savedDraft.outputs.length > 0)
   const router = useRouter()
 
   const [btcPrice, fiatCurrency] = usePriceStore(

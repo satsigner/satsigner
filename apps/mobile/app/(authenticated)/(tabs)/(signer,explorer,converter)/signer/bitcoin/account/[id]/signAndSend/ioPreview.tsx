@@ -87,7 +87,8 @@ export default function IOPreview() {
     updateOutput,
     removeOutput,
     setFeeRate,
-    setFee
+    setFee,
+    clearTransaction
   ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.inputs,
@@ -100,7 +101,8 @@ export default function IOPreview() {
       state.updateOutput,
       state.removeOutput,
       state.setFeeRate,
-      state.setFee
+      state.setFee,
+      state.clearTransaction
     ])
   )
 
@@ -881,6 +883,14 @@ export default function IOPreview() {
             onPress={
               outputs.length === 0 ? handleOnPressAddOutput : handleGoToPreview
             }
+          />
+          <SSButton
+            variant="ghost"
+            label={t('transaction.discard')}
+            onPress={() => {
+              clearTransaction()
+              router.navigate(`/signer/bitcoin/account/${id}`)
+            }}
           />
         </SSVStack>
       </LinearGradient>
