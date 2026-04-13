@@ -1,8 +1,8 @@
+import { LinearGradient } from 'expo-linear-gradient'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
-import { LinearGradient } from 'expo-linear-gradient'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
@@ -62,7 +62,6 @@ function UtxoDetails({
   const privacyMode = useSettingsStore((state) => state.privacyMode)
 
   const { width, height } = useWindowDimensions()
-  const outerContainerPadding = 20
   const CHART_VERTICAL_PADDING = 40
   const GRAPH_HEIGHT = height * 0.44 + CHART_VERTICAL_PADDING * 2
   const GRAPH_WIDTH = width
@@ -135,12 +134,7 @@ function UtxoDetails({
               <LinearGradient
                 style={{ height: 60, width: '100%' }}
                 locations={[0, 0.4, 0.7, 1]}
-                colors={[
-                  '#0A0A0AFF',
-                  '#0A0A0AE0',
-                  '#0A0A0A80',
-                  '#0A0A0A00'
-                ]}
+                colors={['#0A0A0AFF', '#0A0A0AE0', '#0A0A0A80', '#0A0A0A00']}
               />
             </View>
           </View>
