@@ -198,7 +198,7 @@ export default function TxDetails() {
                 [
                   t('transaction.hash'),
                   txid,
-                  { copyToClipboard: true, width: '100%' }
+                  { copyToClipboard: true, variant: 'mono', width: '100%' }
                 ],
                 [t('transaction.size'), size],
                 [t('transaction.weight'), weight],

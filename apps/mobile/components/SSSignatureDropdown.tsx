@@ -227,10 +227,14 @@ function SSSignatureDropdown({
             </SSVStack>
           </SSHStack>
           <SSVStack gap="none" style={{ alignItems: 'flex-end' }}>
-            <SSText color={getInnerFingerprint() ? 'white' : 'muted'}>
+            <SSText
+              type="mono"
+              color={getInnerFingerprint() ? 'white' : 'muted'}
+            >
               {getInnerFingerprint() || t('account.fingerprint')}
             </SSText>
             <SSText
+              type="mono"
               color={extendedPublicKey ? 'white' : 'muted'}
               selectable
               numberOfLines={1}
