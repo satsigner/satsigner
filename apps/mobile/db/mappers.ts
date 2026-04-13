@@ -10,8 +10,6 @@ import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Label } from '@/utils/bip329'
 
-// --- Row types (what SQLite returns) ---
-
 type AccountRow = {
   id: string
   name: string
@@ -142,8 +140,6 @@ type NostrDmRow = {
   pending: number
   read: number | null
 }
-
-// --- Row -> Domain mappers ---
 
 function parseJson<T>(json: string | null, fallback: T): T {
   if (!json) {
@@ -341,8 +337,6 @@ function rowToNostrDm(row: NostrDmRow): NostrDM {
     read: row.read === null ? undefined : row.read === 1
   }
 }
-
-// --- Domain -> SQL param helpers ---
 
 function dateToIso(date: Date | undefined | null): string | null {
   if (!date) {
