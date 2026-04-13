@@ -422,7 +422,7 @@ function SSCameraModal({
             }
           }}
           barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-          style={{ height: 340, width: 340 }}
+          style={{ height: 400, width: 400 }}
         />
         {scanProgress.type && scanProgress.total > 1 && (
           <SSVStack itemsCenter gap="xs" style={{ marginBottom: 10 }}>

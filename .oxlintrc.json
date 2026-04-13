@@ -11,7 +11,8 @@
     ".cursor",
     "**/android",
     "**/ios",
-    "**/utils/polyfills.ts"
+    "**/utils/polyfills.ts",
+    "**/routeTree.gen.ts"
   ],
   "rules": {
     "no-use-before-define": "allow",

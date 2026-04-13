@@ -26,10 +26,10 @@ export default function SSFingerprint({
           {t('bitcoin.fingerprint')}
         </SSText>
       )}
-      <SSHStack gap="xxs" style={{ alignItems: 'flex-start' }}>
+      <SSHStack gap="xs" style={{ alignItems: 'center' }}>
         {withColor && fingerprint && (
           <SSIconCircle
-            size={sizeValue + 1}
+            size={sizeValue - 2}
             fill={`#${fingerprint.slice(0, 6)}`}
           />
         )}

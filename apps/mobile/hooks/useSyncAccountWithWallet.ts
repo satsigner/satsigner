@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { type BdkWallet } from 'react-native-bdk-sdk'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletOverview, syncWallet } from '@/api/bdk'
 import { MempoolOracle } from '@/api/blockchain'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
@@ -96,18 +98,25 @@ function useSyncAccountWithWallet() {
         const uniqueTimestamps = [...new Set(unpricedTimestamps)]
         const mempoolUrl = configsMempol['bitcoin']
         const oracle = new MempoolOracle(mempoolUrl)
-        const fetchedPrices = await oracle.getPricesAt('USD', uniqueTimestamps)
-        const priceMap: Record<number, number> = {}
-        for (const [i, ts] of uniqueTimestamps.entries()) {
-          priceMap[ts] = fetchedPrices[i]
-        }
-        for (const tx of updatedAccount.transactions) {
-          if (!tx.prices?.USD && tx.timestamp) {
-            const price = priceMap[formatTimestamp(tx.timestamp)]
-            if (price !== undefined) {
-              tx.prices = { USD: price }
+        try {
+          const fetchedPrices = await oracle.getPricesAt(
+            'USD',
+            uniqueTimestamps
+          )
+          const priceMap: Record<number, number> = {}
+          for (const [i, ts] of uniqueTimestamps.entries()) {
+            priceMap[ts] = fetchedPrices[i]
+          }
+          for (const tx of updatedAccount.transactions) {
+            if (!tx.prices?.USD && tx.timestamp) {
+              const price = priceMap[formatTimestamp(tx.timestamp)]
+              if (price !== undefined) {
+                tx.prices = { USD: price }
+              }
             }
           }
+        } catch {
+          toast.error(t('account.sync.historicalPricesFailed'))
         }
       }
 
@@ -117,6 +126,7 @@ function useSyncAccountWithWallet() {
       return updatedAccount
     } catch {
       setSyncStatus(latest.id, 'error')
+      toast.error(t('account.syncFailed'))
       return latest
     } finally {
       setLoading(false)

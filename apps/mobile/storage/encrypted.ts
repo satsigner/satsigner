@@ -33,4 +33,56 @@ function deleteItem(key: string): Promise<void> {
   return SecureStore.deleteItemAsync(vKey)
 }
 
-export { deleteItem, getItem, setItem }
+const KEY_SECRET_PREFIX = 'key_secret'
+const KEY_IV_PREFIX = 'key_iv'
+
+function keySecretKey(accountId: string, keyIndex: number) {
+  return `${KEY_SECRET_PREFIX}.${accountId}.${keyIndex}`
+}
+
+function keyIvKey(accountId: string, keyIndex: number) {
+  return `${KEY_IV_PREFIX}.${accountId}.${keyIndex}`
+}
+
+async function storeKeySecret(
+  accountId: string,
+  keyIndex: number,
+  secret: string,
+  iv: string
+) {
+  await setItem(keySecretKey(accountId, keyIndex), secret)
+  await setItem(keyIvKey(accountId, keyIndex), iv)
+}
+
+async function getKeySecret(
+  accountId: string,
+  keyIndex: number
+): Promise<{ secret: string; iv: string } | null> {
+  const secret = await getItem(keySecretKey(accountId, keyIndex))
+  const iv = await getItem(keyIvKey(accountId, keyIndex))
+  if (!secret || !iv) {
+    return null
+  }
+  return { iv, secret }
+}
+
+async function deleteKeySecret(accountId: string, keyIndex: number) {
+  await deleteItem(keySecretKey(accountId, keyIndex))
+  await deleteItem(keyIvKey(accountId, keyIndex))
+}
+
+async function deleteAllKeySecrets(accountId: string, keyCount: number) {
+  for (let i = 0; i < keyCount; i += 1) {
+    await deleteKeySecret(accountId, i)
+  }
+}
+
+export {
+  deleteAllKeySecrets,
+  deleteItem,
+  deleteKeySecret,
+  getItem,
+  getKeySecret,
+  setItem,
+  storeKeySecret
+}

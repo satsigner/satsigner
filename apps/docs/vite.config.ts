@@ -42,13 +42,10 @@ export default defineConfig({
     react(),
     // please see https://tanstack.com/start/latest/docs/framework/react/guide/hosting#nitro for guides on hosting
     nitro({
-      preset: process.env.NITRO_PRESET ?? 'static'
+      preset: process.env.NITRO_PRESET ?? 'node-server'
     })
   ],
   resolve: {
-    alias: {
-      tslib: 'tslib/tslib.es6.js'
-    },
     tsconfigPaths: true
   },
   server: {

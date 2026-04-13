@@ -4,7 +4,7 @@ import { create } from 'zustand'
 import { type EntropyType } from '@/types/logic/entropy'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
-import { dropSeedFromKey } from '@/utils/account'
+import { dropSeedFromKeyInMemory } from '@/utils/account'
 import { randomIv, randomUuid } from '@/utils/crypto'
 
 type AccountBuilderState = {
@@ -89,10 +89,10 @@ type AccountBuilderAction = {
   clearKeyState: () => void
   clearAccount: () => void
   clearAllKeys: () => void
-  // TODO: remove async code from this, and not deal with error handling
-  dropSeedFromKey: (
-    index: Key['index']
-  ) => Promise<{ success: boolean; message: string }>
+  dropSeedFromKey: (index: Key['index']) => {
+    success: boolean
+    message: string
+  }
   resetKey: (index: Key['index']) => void
 }
 
@@ -181,7 +181,7 @@ const useAccountBuilderStore = create<
       scriptVersion
     })
   },
-  dropSeedFromKey: async (index) => {
+  dropSeedFromKey: (index) => {
     // TODO: store should not be the one responsible for validation & error
     // handling, it should only care about updating current state. Also, ideally
     // this should be synchronous code and not async.
@@ -194,7 +194,7 @@ const useAccountBuilderStore = create<
     }
 
     try {
-      const newKey = await dropSeedFromKey(state.keys[index])
+      const newKey = dropSeedFromKeyInMemory(state.keys[index])
       set(
         produce((state: AccountBuilderState) => {
           state.keys[index] = newKey

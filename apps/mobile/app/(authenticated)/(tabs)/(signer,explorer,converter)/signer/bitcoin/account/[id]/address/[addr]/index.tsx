@@ -235,12 +235,14 @@ function AddressDetails() {
                 items={[
                   [
                     t('address.details.derivation.path'),
-                    address.derivationPath
+                    address.derivationPath,
+                    { variant: 'mono' }
                   ],
                   [t('address.details.derivation.index'), address.index],
                   [
                     t('address.details.derivation.fingerprint'),
-                    getAccountFingerprint(account)
+                    getAccountFingerprint(account),
+                    { variant: 'mono' }
                   ],
                   [t('address.details.derivation.keychain'), address.keychain]
                 ]}

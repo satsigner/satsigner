@@ -192,21 +192,9 @@ export default function AccountList() {
     | 'watchonlyTether'
     | 'multisig'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
-  const [hasHydrated, setHasHydrated] = useState(() =>
-    useAccountsStore.persist.hasHydrated()
-  )
+  // SQLite store initializes synchronously via JSI — always hydrated
+  const hasHydrated = true
   const sampleAccountsOpacity = useSharedValue(0)
-
-  useEffect(() => {
-    if (useAccountsStore.persist.hasHydrated()) {
-      setHasHydrated(true)
-      return
-    }
-    const unsub = useAccountsStore.persist.onFinishHydration(() =>
-      setHasHydrated(true)
-    )
-    return unsub
-  }, [])
 
   useEffect(() => {
     if (!hasHydrated) {

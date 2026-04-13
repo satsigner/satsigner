@@ -21,7 +21,7 @@ import {
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { deleteItem } from '@/storage/encrypted'
+import { deleteItem, getKeySecret } from '@/storage/encrypted'
 import { clearAllStorage } from '@/storage/mmkv'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
@@ -82,7 +82,7 @@ export default function Developer() {
 
   async function buildBackupWithSeeds(): Promise<string> {
     const pin = await getPinForDecryption(skipPin)
-    const keysWithSeeds = async (keys: Key[]) => {
+    const keysWithSeeds = async (accountId: string, keys: Key[]) => {
       const result = []
       for (const key of keys) {
         const base = {
@@ -97,15 +97,18 @@ export default function Developer() {
         }
         let seedWords: string | undefined
         let passphrase: string | undefined
-        if (typeof key.secret === 'string' && key.iv && pin) {
+        if (pin) {
           try {
-            const decrypted = await aesDecrypt(key.secret, pin, key.iv)
-            const secret = JSON.parse(decrypted) as {
-              mnemonic?: string
-              passphrase?: string
+            const stored = await getKeySecret(accountId, key.index)
+            if (stored) {
+              const decrypted = await aesDecrypt(stored.secret, pin, stored.iv)
+              const secret = JSON.parse(decrypted) as {
+                mnemonic?: string
+                passphrase?: string
+              }
+              seedWords = secret.mnemonic
+              passphrase = secret.passphrase
             }
-            seedWords = secret.mnemonic
-            passphrase = secret.passphrase
           } catch {
             // leave seedWords/passphrase undefined
           }
@@ -122,7 +125,7 @@ export default function Developer() {
     const accountsWithSeeds = await Promise.all(
       accounts.map(async (account) => ({
         id: account.id,
-        keys: await keysWithSeeds(account.keys),
+        keys: await keysWithSeeds(account.id, account.keys),
         name: account.name,
         network: account.network,
         nostr: account.nostr,

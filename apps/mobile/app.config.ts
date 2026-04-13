@@ -58,6 +58,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           './assets/fonts/SF-Pro-Text-Regular.otf',
           './assets/fonts/SF-Pro-Text-Medium.otf',
           './assets/fonts/SF-Pro-Text-Bold.otf',
+          './assets/fonts/SF-NS-Mono.ttf',
           './assets/fonts/TerminessNerdFontMono-Regular.ttf',
           './assets/fonts/TerminessNerdFontMono-Bold.ttf',
           './assets/fonts/TerminessNerdFontMono-BoldItalic.ttf',

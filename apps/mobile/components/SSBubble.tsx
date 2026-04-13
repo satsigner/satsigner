@@ -7,7 +7,7 @@ import {
   type SkTypefaceFontProvider,
   TextAlign
 } from '@shopify/react-native-skia'
-import { memo, useEffect, useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import {
   type SharedValue,
   useDerivedValue,
@@ -50,6 +50,8 @@ function SSBubble({
 }: SSBubbleProps) {
   const opacity = useSharedValue(0)
   const dimmedOpacity = useSharedValue(dimmed ? 0.3 : 1)
+  const isSelectedSharedValue = useSharedValue(selected)
+  isSelectedSharedValue.value = selected
 
   useEffect(() => {
     opacity.set(
@@ -68,20 +70,14 @@ function SSBubble({
   }, [dimmed, dimmedOpacity])
 
   const backgroundColor = useDerivedValue(() => {
-    if (selected) {
-      return withTiming(Colors.white, {
-        duration: 0
-      })
+    if (isSelectedSharedValue.value) {
+      return Colors.white
     }
     if (isZoomedIn?.value) {
-      return withTiming(Colors.gray[300], {
-        duration: 0
-      })
+      return Colors.gray[300]
     }
-    return withTiming(Colors.gray[400], {
-      duration: 0
-    })
-  }, [isZoomedIn, selected])
+    return Colors.gray[400]
+  }, [isZoomedIn, isSelectedSharedValue])
 
   const descriptionOpacity = useDerivedValue(() => {
     const zoomedRadius = scale.value * radius
@@ -340,4 +336,4 @@ function SSBubble({
   )
 }
 
-export default memo(SSBubble)
+export default SSBubble

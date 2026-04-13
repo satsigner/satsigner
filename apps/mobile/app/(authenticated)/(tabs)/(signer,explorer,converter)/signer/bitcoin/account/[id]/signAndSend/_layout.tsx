@@ -1,9 +1,11 @@
+import { useFocusEffect } from '@react-navigation/native'
 import { Slot, Stack, useLocalSearchParams } from 'expo-router'
 
 import { SSIconEyeOn } from '@/components/icons'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import { useAccountsStore } from '@/store/accounts'
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
 export default function SignAndSendLayout() {
@@ -12,6 +14,14 @@ export default function SignAndSendLayout() {
   const account = useAccountsStore(
     (state) => state.accounts.find((account) => account.id === id)!
   )
+
+  const setAccountId = useTransactionBuilderStore((state) => state.setAccountId)
+
+  useFocusEffect(() => {
+    if (id) {
+      setAccountId(id)
+    }
+  })
 
   return (
     <>

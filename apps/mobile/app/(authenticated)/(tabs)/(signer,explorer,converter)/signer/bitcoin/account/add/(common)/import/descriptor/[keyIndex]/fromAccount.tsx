@@ -13,7 +13,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem } from '@/storage/encrypted'
+import { getItem, getKeySecret } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -68,10 +68,12 @@ function ImportDescriptorFromAccount() {
     }
 
     const [firstKey] = chosenAccount.keys
-    const { iv } = firstKey
-    const encryptedSecret = firstKey.secret as string
+    const stored = await getKeySecret(chosenAccount.id, 0)
+    if (!stored) {
+      return
+    }
 
-    const accountSecretString = await aesDecrypt(encryptedSecret, pin, iv)
+    const accountSecretString = await aesDecrypt(stored.secret, pin, stored.iv)
     const accountSecret = JSON.parse(accountSecretString) as Secret
 
     const { creationType } = firstKey
