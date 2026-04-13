@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { LinearGradient } from 'expo-linear-gradient'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
@@ -62,8 +63,9 @@ function UtxoDetails({
 
   const { width, height } = useWindowDimensions()
   const outerContainerPadding = 20
-  const GRAPH_HEIGHT = height * 0.44
-  const GRAPH_WIDTH = width - outerContainerPadding * 2
+  const CHART_VERTICAL_PADDING = 40
+  const GRAPH_HEIGHT = height * 0.44 + CHART_VERTICAL_PADDING * 2
+  const GRAPH_WIDTH = width
 
   const currentUtxoInputs = useMemo(() => {
     if (!utxo) {
@@ -105,30 +107,47 @@ function UtxoDetails({
 
   return (
     <ScrollView>
-      <SSVStack gap="lg" style={styles.innerContainer}>
-        {utxo && allAccountUtxos.length > 0 && (
-          <>
-            <SSVStack>
-              <SSText uppercase weight="bold" size="md">
-                {t('bitcoin.utxo')}
-              </SSText>
-              <GestureHandlerRootView style={{ flex: 1 }}>
-                <SSBubbleChart
-                  utxos={allAccountUtxos}
-                  canvasSize={{ height: GRAPH_HEIGHT, width: GRAPH_WIDTH }}
-                  inputs={currentUtxoInputs}
-                  dimUnselected
-                  onPress={({ txid, vout }: Utxo) =>
-                    router.navigate(
-                      `/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${vout}`
-                    )
-                  }
-                />
-              </GestureHandlerRootView>
-            </SSVStack>
-            <SSSeparator color="gradient" />
-          </>
-        )}
+      {utxo && allAccountUtxos.length > 0 && (
+        <>
+          <View>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              <SSBubbleChart
+                utxos={allAccountUtxos}
+                canvasSize={{ height: GRAPH_HEIGHT, width: GRAPH_WIDTH }}
+                inputs={currentUtxoInputs}
+                dimUnselected
+                onPress={({ txid, vout }: Utxo) =>
+                  router.navigate(
+                    `/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${vout}`
+                  )
+                }
+              />
+            </GestureHandlerRootView>
+            <View
+              style={{
+                height: 60,
+                pointerEvents: 'none',
+                position: 'absolute',
+                top: 0,
+                width: '100%'
+              }}
+            >
+              <LinearGradient
+                style={{ height: 60, width: '100%' }}
+                locations={[0, 0.4, 0.7, 1]}
+                colors={[
+                  '#0A0A0AFF',
+                  '#0A0A0AE0',
+                  '#0A0A0A80',
+                  '#0A0A0A00'
+                ]}
+              />
+            </View>
+          </View>
+          <SSSeparator color="gradient" />
+        </>
+      )}
+      <SSVStack gap="lg" style={[styles.innerContainer, styles.outerContainer]}>
         <SSLabelDetails
           label={utxo?.label || ''}
           link={`/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${vout}/label`}
@@ -284,7 +303,7 @@ function UtxoDetailsPage() {
           headerTitle: () => <SSText>{t('utxo.details.title')}</SSText>
         }}
       />
-      <View style={styles.outerContainer}>
+      <View style={{ flex: 1 }}>
         <UtxoDetails
           accountId={accountId || ''}
           onPressAddress={navigateToAddress}
