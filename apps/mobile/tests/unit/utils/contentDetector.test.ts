@@ -242,6 +242,44 @@ describe('contentDetector', () => {
       })
     })
 
+    describe('lightning: URI prefix handling', () => {
+      it('should detect BOLT11 with lightning: prefix', async () => {
+        const result = await detectContentByContext(
+          `lightning:${lightningInvoices.mainnet.basic}`,
+          'lightning'
+        )
+        expect(result.type).toBe('lightning_invoice')
+        expect(result.isValid).toBe(true)
+      })
+
+      it('should detect BOLT11 with LIGHTNING: uppercase prefix', async () => {
+        const result = await detectContentByContext(
+          `LIGHTNING:${lightningInvoices.mainnet.basic}`,
+          'lightning'
+        )
+        expect(result.type).toBe('lightning_invoice')
+        expect(result.isValid).toBe(true)
+      })
+
+      it('should detect BOLT12 with lightning: prefix', async () => {
+        const result = await detectContentByContext(
+          `lightning:${bolt12Offers.valid.basic}`,
+          'lightning'
+        )
+        expect(result.type).toBe('lightning_invoice')
+        expect(result.metadata?.isBolt12).toBe(true)
+      })
+
+      it('should detect LNURL with lightning: prefix', async () => {
+        const result = await detectContentByContext(
+          `lightning:${lnurls.valid.pay}`,
+          'lightning'
+        )
+        expect(result.type).toBe('lnurl')
+        expect(result.isValid).toBe(true)
+      })
+    })
+
     describe('incompatible content in Lightning context', () => {
       it('should mark Bitcoin address as incompatible', async () => {
         const result = await detectContentByContext(
@@ -297,6 +335,46 @@ describe('contentDetector', () => {
       it('should allow LNURL in ecash context', async () => {
         const result = await detectContentByContext(lnurls.valid.pay, 'ecash')
         expect(result.type).toBe('lnurl')
+        expect(result.isValid).toBe(true)
+      })
+    })
+
+    describe('cashu: URI prefix handling', () => {
+      it('should detect v3 token with cashu: prefix', async () => {
+        const result = await detectContentByContext(
+          `cashu:${cashuTokens.valid.v3}`,
+          'ecash'
+        )
+        expect(result.type).toBe('ecash_token')
+        expect(result.isValid).toBe(true)
+        expect(result.metadata?.version).toBe('v3')
+      })
+
+      it('should detect v4 token with cashu: prefix', async () => {
+        const result = await detectContentByContext(
+          `cashu:${cashuTokens.valid.v4}`,
+          'ecash'
+        )
+        expect(result.type).toBe('ecash_token')
+        expect(result.isValid).toBe(true)
+        expect(result.metadata?.version).toBe('v4')
+      })
+
+      it('should detect token with web+cashu: prefix', async () => {
+        const result = await detectContentByContext(
+          `web+cashu:${cashuTokens.valid.v3}`,
+          'ecash'
+        )
+        expect(result.type).toBe('ecash_token')
+        expect(result.isValid).toBe(true)
+      })
+
+      it('should detect lightning invoice with lightning: prefix in ecash context', async () => {
+        const result = await detectContentByContext(
+          `lightning:${lightningInvoices.mainnet.basic}`,
+          'ecash'
+        )
+        expect(result.type).toBe('lightning_invoice')
         expect(result.isValid).toBe(true)
       })
     })

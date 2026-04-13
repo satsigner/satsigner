@@ -157,8 +157,16 @@ async function detectBitcoinContent(
   return null
 }
 
+function stripSchemePrefix(data: string): string {
+  const lower = data.toLowerCase()
+  if (lower.startsWith('web+cashu:')) return data.slice(10)
+  if (lower.startsWith('lightning:')) return data.slice(10)
+  if (lower.startsWith('cashu:')) return data.slice(6)
+  return data
+}
+
 function detectLightningContent(data: string): DetectedContent | null {
-  const trimmed = data.trim()
+  const trimmed = stripSchemePrefix(data.trim())
   const lowerTrimmed = trimmed.toLowerCase()
 
   // Check for BOLT11 invoices using bip-321 validation
@@ -219,7 +227,7 @@ function detectLightningContent(data: string): DetectedContent | null {
 }
 
 function detectEcashContent(data: string): DetectedContent | null {
-  const trimmed = data.trim()
+  const trimmed = stripSchemePrefix(data.trim())
 
   if (trimmed.startsWith('cashuA') || trimmed.startsWith('cashuB')) {
     try {

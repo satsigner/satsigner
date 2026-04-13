@@ -188,7 +188,17 @@ export const amountConversions = {
 export const formattingEdgeCases = {
   // URIs with whitespace
   // Lightning with prefix variations
+  cashuPrefixes: {
+    withCashuScheme:
+      'cashu:cashuAeyJ0b2tlbiI6W3sibWludCI6Imh0dHBzOi8vbWludC5leGFtcGxlIn1dfQ==',
+    withUppercaseCashuScheme:
+      'CASHU:cashuAeyJ0b2tlbiI6W3sibWludCI6Imh0dHBzOi8vbWludC5leGFtcGxlIn1dfQ==',
+    withWebCashuScheme:
+      'web+cashu:cashuAeyJ0b2tlbiI6W3sibWludCI6Imh0dHBzOi8vbWludC5leGFtcGxlIn1dfQ=='
+  },
   lightningPrefixes: {
+    bolt12WithPrefix:
+      'lightning:lno1qgsqvgnwgcg35z6ee2h3yczraddm72xrfua9uve2rlrm9deu7xyfzrcgqgn3qzs2grp23j3f35hewwzwcqpyfx2',
     uppercaseLightning:
       'LIGHTNING:lnbc10u1pnq9jt3pp5qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsdqqcqzzg',
     withLightningScheme:
