@@ -35,6 +35,7 @@ export const Route = createFileRoute('/docs/$')({
         window.location.href = slug
           ? `${basePath}/docs/${slug}`
           : `${basePath}/docs`
+        // eslint-disable-next-line no-empty-function -- intentionally never resolves while page reloads
         return new Promise(() => {})
       }
       throw error
