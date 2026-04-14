@@ -2,11 +2,26 @@ import { hmac } from '@noble/hashes/hmac'
 import { pbkdf2Async } from '@noble/hashes/pbkdf2'
 import { sha512 } from '@noble/hashes/sha512'
 import { HDKey } from '@scure/bip32'
-import * as bip39 from 'bip39'
-import { type KeychainKind, Network } from 'react-native-bdk-sdk'
+// Wordlists are static data imported directly from bip39 JSON files.
+import chineseSimplified from 'bip39/src/wordlists/chinese_simplified.json'
+import chineseTraditional from 'bip39/src/wordlists/chinese_traditional.json'
+import czech from 'bip39/src/wordlists/czech.json'
+import english from 'bip39/src/wordlists/english.json'
+import french from 'bip39/src/wordlists/french.json'
+import italian from 'bip39/src/wordlists/italian.json'
+import japanese from 'bip39/src/wordlists/japanese.json'
+import korean from 'bip39/src/wordlists/korean.json'
+import portuguese from 'bip39/src/wordlists/portuguese.json'
+import spanish from 'bip39/src/wordlists/spanish.json'
+import {
+  type KeychainKind,
+  Language,
+  Mnemonic,
+  Network,
+  WordCount
+} from 'react-native-bdk-sdk'
 
 import type {
-  MnemonicEntropyBits,
   MnemonicWordCount,
   ScriptVersionType,
   Secret
@@ -38,23 +53,65 @@ export const WORDLIST_LIST = [
 
 export type WordListName = (typeof WORDLIST_LIST)[number]
 
-export const DEFAULT_WORD_LIST = bip39.getDefaultWordlist() as WordListName
+export const DEFAULT_WORD_LIST: WordListName = 'english'
 
-const wordCountToEntropyBits: Record<MnemonicWordCount, MnemonicEntropyBits> = {
-  12: 128,
-  15: 160,
-  18: 192,
-  21: 224,
-  24: 256
+const WORDLISTS: Record<WordListName, string[]> = {
+  chinese_simplified: chineseSimplified,
+  chinese_traditional: chineseTraditional,
+  czech,
+  english,
+  french,
+  italian,
+  japanese,
+  korean,
+  portuguese,
+  spanish
+}
+
+const LANGUAGE_MAP: Record<WordListName, Language> = {
+  chinese_simplified: Language.SimplifiedChinese,
+  chinese_traditional: Language.TraditionalChinese,
+  czech: Language.Czech,
+  english: Language.English,
+  french: Language.French,
+  italian: Language.Italian,
+  japanese: Language.Japanese,
+  korean: Language.Korean,
+  portuguese: Language.Portuguese,
+  spanish: Language.Spanish
+}
+
+const WORD_COUNT_MAP: Record<MnemonicWordCount, WordCount> = {
+  12: WordCount.Words12,
+  15: WordCount.Words15,
+  18: WordCount.Words18,
+  21: WordCount.Words21,
+  24: WordCount.Words24
+}
+
+const WORD_COUNT_TO_ENTROPY_BYTES: Record<MnemonicWordCount, number> = {
+  12: 16,
+  15: 20,
+  18: 24,
+  21: 28,
+  24: 32
 }
 
 export function getWordList(name: WordListName = DEFAULT_WORD_LIST) {
-  return bip39.wordlists[name]
+  return WORDLISTS[name]
 }
 
 export function validateMnemonic(mnemonic: string, wordListName = 'english') {
-  const wordlist = bip39.wordlists[wordListName]
-  return bip39.validateMnemonic(mnemonic, wordlist)
+  const language = LANGUAGE_MAP[wordListName as WordListName]
+  if (!language && language !== 0) {
+    return false
+  }
+  try {
+    Mnemonic.fromStringIn(mnemonic, language)
+    return true
+  } catch {
+    return false
+  }
 }
 
 // From ElectrumMnemonicCode.java: prefixLength = parseInt(hex[0]) + 2
@@ -150,10 +207,22 @@ export function generateMnemonic(
   wordCount: MnemonicWordCount = 12,
   wordListName = 'english'
 ) {
-  const entropyBits = wordCountToEntropyBits[wordCount]
-  const wordlist = bip39.wordlists[wordListName]
-  const mnemonic = bip39.generateMnemonic(entropyBits, undefined, wordlist)
-  return mnemonic
+  if (wordListName === 'english') {
+    return new Mnemonic(WORD_COUNT_MAP[wordCount]).toString()
+  }
+  const language = LANGUAGE_MAP[wordListName as WordListName]
+  const entropySize = WORD_COUNT_TO_ENTROPY_BYTES[wordCount]
+  const entropy = new Uint8Array(entropySize)
+  crypto.getRandomValues(entropy)
+  return Mnemonic.fromEntropyIn(Array.from(entropy), language).toString()
+}
+
+function binaryStringToBytes(binary: string): number[] {
+  const bytes: number[] = []
+  for (let i = 0; i < binary.length; i += 8) {
+    bytes.push(parseInt(binary.slice(i, i + 8), 2))
+  }
+  return bytes
 }
 
 export function generateMnemonicFromEntropy(
@@ -166,21 +235,16 @@ export function generateMnemonicFromEntropy(
   if (entropy.length % 32 !== 0) {
     throw new Error('Invalid Entropy: it must be divisible by 32')
   }
-  const wordlist = bip39.wordlists[wordListName]
-  return bip39.entropyToMnemonic(entropy, wordlist)
+  const language =
+    LANGUAGE_MAP[wordListName as WordListName] ?? Language.English
+  const bytes = binaryStringToBytes(entropy)
+  return Mnemonic.fromEntropyIn(bytes, language).toString()
 }
 
-export function getEntropyFromMnemonic(
-  mnemonic: string,
-  wordListName: WordListName = 'english'
-) {
-  const entropyHexString = bip39.mnemonicToEntropy(
-    mnemonic,
-    bip39.wordlists[wordListName]
-  )
-  const entropyHexBytes = entropyHexString.match(/../g) as string[]
-  const entropyNumbers = entropyHexBytes.map((hex) => parseInt(hex, 16))
-  return entropyNumbers
+export function mnemonicToSeed(mnemonic: string, passphrase = ''): Uint8Array {
+  const m = Mnemonic.fromString(mnemonic)
+  const seedHex = m.toSeedHex(passphrase)
+  return new Uint8Array(Buffer.from(seedHex, 'hex'))
 }
 
 export function getPublicDescriptorFromMnemonic(
@@ -190,7 +254,7 @@ export function getPublicDescriptorFromMnemonic(
   passphrase: string | undefined,
   network: Network
 ): string {
-  const seed = new Uint8Array(bip39.mnemonicToSeedSync(mnemonic, passphrase))
+  const seed = mnemonicToSeed(mnemonic, passphrase ?? '')
   return getPublicDescriptorFromSeed(seed, scriptVersion, kind, network)
 }
 
@@ -201,7 +265,7 @@ export function getPrivateDescriptorFromMnemonic(
   passphrase: string | undefined,
   network: Network
 ): string {
-  const seed = new Uint8Array(bip39.mnemonicToSeedSync(mnemonic, passphrase))
+  const seed = mnemonicToSeed(mnemonic, passphrase ?? '')
   return getPrivateDescriptorFromSeed(seed, scriptVersion, kind, network)
 }
 
@@ -209,7 +273,7 @@ export function getFingerprintFromMnemonic(
   mnemonic: string,
   passphrase: Secret['passphrase'] = undefined
 ) {
-  const seed = new Uint8Array(bip39.mnemonicToSeedSync(mnemonic, passphrase))
+  const seed = mnemonicToSeed(mnemonic, passphrase ?? '')
   return getFingerprintFromSeed(seed)
 }
 
@@ -219,7 +283,7 @@ export function getExtendedPublicKeyFromMnemonic(
   network: Network,
   scriptVersion: ScriptVersionType
 ) {
-  const seed = new Uint8Array(bip39.mnemonicToSeedSync(mnemonic, passphrase))
+  const seed = mnemonicToSeed(mnemonic, passphrase)
   return getExtendedPublicKeyFromSeed(seed, network, scriptVersion)
 }
 /** Parse BIP32 path like "m/48'/0'/0'/2'" -> array of indexes (with hardened offset) */
@@ -272,10 +336,7 @@ function deriveXpubFromMnemonic(
   const defaultPath = `m/48'/${coinType}'/0'/2'`
   const path = opts.path || defaultPath
 
-  // Use the utils function for P2WSH xpub (default path)
-
-  // For the detailed derivation steps, we still need to do manual derivation
-  const seed = new Uint8Array(bip39.mnemonicToSeedSync(mnemonic, passphrase))
+  const seed = mnemonicToSeed(mnemonic, passphrase)
 
   // 2) master HDKey
   const versions = getVersionsForNetwork(network)

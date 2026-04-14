@@ -1,11 +1,11 @@
 import * as ecc from '@bitcoinerlab/secp256k1'
 import BIP32Factory from 'bip32'
-import * as bip39 from 'bip39'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { getKeyFingerprint } from '@/utils/account'
+import { mnemonicToSeed, validateMnemonic } from '@/utils/bip39'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 
 const bip32 = BIP32Factory(ecc)
@@ -186,13 +186,13 @@ export function signPSBTWithSeed(
   const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
 
   const mnemonic = seedWords.trim()
-  if (!bip39.validateMnemonic(mnemonic)) {
+  if (!validateMnemonic(mnemonic)) {
     throw new Error('Invalid mnemonic')
   }
 
   // Derive seed and root key
-  const seed = bip39.mnemonicToSeedSync(mnemonic)
-  const root = bip32.fromSeed(new Uint8Array(seed))
+  const seed = mnemonicToSeed(mnemonic)
+  const root = bip32.fromSeed(seed)
 
   const seedFingerprint = Buffer.from(
     root.fingerprint || Buffer.alloc(4)

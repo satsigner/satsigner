@@ -5,13 +5,17 @@ import { getFingerprintFromSeed } from '@/utils/bip32'
 import {
   detectElectrumSeed,
   generateMnemonic,
+  generateMnemonicFromEntropy,
   getElectrumDerivationPath,
   getExtendedPublicKeyFromMnemonic,
   getFingerprintFromMnemonic,
   getPublicDescriptorFromMnemonic,
+  getWordList,
   isElectrumDerivationPath,
+  mnemonicToSeed,
   mnemonicToSeedElectrum,
-  validateMnemonic
+  validateMnemonic,
+  WORDLIST_LIST
 } from '@/utils/bip39'
 
 const englishMnemonic =
@@ -192,6 +196,152 @@ describe('bip39 utils', () => {
       )
       expect(result).toBe(actualDescriptor)
     }
+  })
+})
+
+describe('mnemonicToSeed', () => {
+  it('produces a 64-byte seed', () => {
+    const seed = mnemonicToSeed(englishMnemonic)
+    expect(seed).toBeInstanceOf(Uint8Array)
+    expect(seed).toHaveLength(64)
+  })
+
+  it('is deterministic', () => {
+    const seed1 = mnemonicToSeed(englishMnemonic)
+    const seed2 = mnemonicToSeed(englishMnemonic)
+    expect(Buffer.from(seed1).toString('hex')).toBe(
+      Buffer.from(seed2).toString('hex')
+    )
+  })
+
+  it('produces different seeds for different mnemonics', () => {
+    const seed1 = mnemonicToSeed(englishMnemonic)
+    const seed2 = mnemonicToSeed(spanishMnemonic)
+    expect(Buffer.from(seed1).toString('hex')).not.toBe(
+      Buffer.from(seed2).toString('hex')
+    )
+  })
+
+  it('produces different seed with passphrase', () => {
+    const seedNoPass = mnemonicToSeed(englishMnemonic)
+    const seedWithPass = mnemonicToSeed(englishMnemonic, 'mypassphrase')
+    expect(Buffer.from(seedNoPass).toString('hex')).not.toBe(
+      Buffer.from(seedWithPass).toString('hex')
+    )
+  })
+
+  it('produces correct fingerprint for known mnemonics', () => {
+    const seed = mnemonicToSeed(englishMnemonic)
+    const fingerprint = getFingerprintFromSeed(seed)
+    expect(fingerprint).toBe(englishMnemonicFingerprint)
+  })
+
+  it('works with non-English mnemonics', () => {
+    const seed = mnemonicToSeed(spanishMnemonic)
+    const fingerprint = getFingerprintFromSeed(seed)
+    expect(fingerprint).toBe(spanishMnemonicFingerprint)
+  })
+})
+
+describe('generateMnemonicFromEntropy', () => {
+  it('generates valid mnemonic from 128-bit binary string', () => {
+    const entropy = '0'.repeat(128)
+    const mnemonic = generateMnemonicFromEntropy(entropy)
+    expect(validateMnemonic(mnemonic)).toBe(true)
+    expect(mnemonic.split(' ')).toHaveLength(12)
+  })
+
+  it('generates valid mnemonic from 256-bit binary string', () => {
+    const entropy = '1'.repeat(256)
+    const mnemonic = generateMnemonicFromEntropy(entropy)
+    expect(validateMnemonic(mnemonic)).toBe(true)
+    expect(mnemonic.split(' ')).toHaveLength(24)
+  })
+
+  it('is deterministic for same entropy', () => {
+    const entropy = '10110101'.repeat(16)
+    const m1 = generateMnemonicFromEntropy(entropy)
+    const m2 = generateMnemonicFromEntropy(entropy)
+    expect(m1).toBe(m2)
+  })
+
+  it('produces different mnemonics for different entropy', () => {
+    const entropy1 = '0'.repeat(128)
+    const entropy2 = '1'.repeat(128)
+    const m1 = generateMnemonicFromEntropy(entropy1)
+    const m2 = generateMnemonicFromEntropy(entropy2)
+    expect(m1).not.toBe(m2)
+  })
+
+  it('rejects entropy shorter than 128 bits', () => {
+    expect(() => generateMnemonicFromEntropy('0'.repeat(96))).toThrow(
+      'Invalid Entropy'
+    )
+  })
+
+  it('rejects entropy longer than 256 bits', () => {
+    expect(() => generateMnemonicFromEntropy('0'.repeat(288))).toThrow(
+      'Invalid Entropy'
+    )
+  })
+
+  it('rejects entropy not divisible by 32', () => {
+    expect(() => generateMnemonicFromEntropy('0'.repeat(129))).toThrow(
+      'Invalid Entropy'
+    )
+  })
+
+  it('generates valid mnemonic in non-English language', () => {
+    const entropy = '0'.repeat(128)
+    const mnemonic = generateMnemonicFromEntropy(entropy, 'spanish')
+    expect(validateMnemonic(mnemonic, 'spanish')).toBe(true)
+  })
+})
+
+describe('getWordList', () => {
+  it('returns 2048 words for english', () => {
+    const list = getWordList('english')
+    expect(list).toHaveLength(2048)
+    expect(list[0]).toBe('abandon')
+    expect(list[2047]).toBe('zoo')
+  })
+
+  it('returns 2048 words for all supported languages', () => {
+    for (const lang of WORDLIST_LIST) {
+      const list = getWordList(lang)
+      expect(list).toHaveLength(2048)
+    }
+  })
+
+  it('defaults to english', () => {
+    const defaultList = getWordList()
+    const englishList = getWordList('english')
+    expect(defaultList).toBe(englishList)
+  })
+})
+
+describe('validateMnemonic edge cases', () => {
+  it('rejects empty string', () => {
+    expect(validateMnemonic('')).toBe(false)
+  })
+
+  it('rejects random words', () => {
+    expect(
+      validateMnemonic(
+        'hello world foo bar baz qux one two three ten eleven twelve'
+      )
+    ).toBe(false)
+  })
+
+  it('rejects mnemonic with wrong checksum', () => {
+    // Same as englishMnemonic but last word changed
+    const badChecksum =
+      'visa toddler sentence rival twin believe report person library security stadium abandon'
+    expect(validateMnemonic(badChecksum)).toBe(false)
+  })
+
+  it('rejects valid mnemonic checked against wrong language', () => {
+    expect(validateMnemonic(englishMnemonic, 'japanese')).toBe(false)
   })
 })
 
