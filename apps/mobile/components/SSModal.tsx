@@ -13,6 +13,7 @@ type SSModalProps = {
   fullOpacity?: boolean
   closeButtonVariant?: SSButtonProps['variant']
   label?: string
+  showLabel?: boolean
   onClose(): void
   children: React.ReactNode
 }
@@ -22,6 +23,7 @@ function SSModal({
   fullOpacity = false,
   closeButtonVariant = 'ghost',
   label = t('common.cancel'),
+  showLabel = true,
   onClose,
   children
 }: SSModalProps) {
@@ -39,7 +41,7 @@ function SSModal({
         <View style={styles.container}>
           <SSVStack justifyBetween itemsCenter style={styles.innerContainer}>
             {children}
-            {label && (
+            {showLabel && label && (
               <SSButton
                 label={label}
                 variant={closeButtonVariant}

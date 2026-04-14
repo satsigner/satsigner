@@ -206,6 +206,7 @@
     "nostrSync.loadingKeys": "Loading keys...",
     "nostrSync.lookForMoreMembers": "Look for more members",
     "nostrSync.manageRelays": "Manage relays (%{count})",
+    "nostrSync.memberConfirmNew": "Trusting this device means all labels of this wallet will be shared with the device.\n\nDo you want to proceed?",
     "nostrSync.members": "Found Members",
     "nostrSync.messageReceivedReadySign": "Transaction received! Ready to sign.",
     "nostrSync.mnemonicPassphrase": "Mnemonic Passphrase (optional)",
