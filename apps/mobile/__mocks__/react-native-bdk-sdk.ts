@@ -1,5 +1,7 @@
 /* eslint-disable */
 // Jest mock for react-native-bdk-sdk (native TurboModule can't load in Jest)
+// Uses the bip39 JS package to produce real crypto output for test verification.
+import * as bip39Js from 'bip39'
 
 export enum Network {
   Bitcoin = 0,
@@ -47,7 +49,37 @@ export enum TxOrdering {
 }
 
 export enum Language {
-  English = 0
+  English = 0,
+  SimplifiedChinese = 1,
+  TraditionalChinese = 2,
+  Czech = 3,
+  French = 4,
+  Italian = 5,
+  Japanese = 6,
+  Korean = 7,
+  Portuguese = 8,
+  Spanish = 9
+}
+
+const LANGUAGE_TO_WORDLIST_NAME: Record<Language, string> = {
+  [Language.English]: 'english',
+  [Language.SimplifiedChinese]: 'chinese_simplified',
+  [Language.TraditionalChinese]: 'chinese_traditional',
+  [Language.Czech]: 'czech',
+  [Language.French]: 'french',
+  [Language.Italian]: 'italian',
+  [Language.Japanese]: 'japanese',
+  [Language.Korean]: 'korean',
+  [Language.Portuguese]: 'portuguese',
+  [Language.Spanish]: 'spanish'
+}
+
+const WORD_COUNT_TO_ENTROPY_BITS: Record<WordCount, number> = {
+  [WordCount.Words12]: 128,
+  [WordCount.Words15]: 160,
+  [WordCount.Words18]: 192,
+  [WordCount.Words21]: 224,
+  [WordCount.Words24]: 256
 }
 
 // Free functions
@@ -73,14 +105,86 @@ export const isValidAddress = jest.fn(() => true)
 export const version = jest.fn(() => '0.0.0')
 
 export class Mnemonic {
-  static fromString = jest.fn(() => new Mnemonic(WordCount.Words12))
-  static fromEntropy = jest.fn(() => new Mnemonic(WordCount.Words12))
-  constructor(_wordCount: WordCount) {}
-  toString = jest.fn(() => 'mock mnemonic words')
-  words = jest.fn(() => [])
-  wordCount = jest.fn(() => 12)
-  toSeedHex = jest.fn(() => '00'.repeat(64))
-  language = jest.fn(() => Language.English)
+  private _mnemonic: string
+  private _language: Language
+
+  constructor(wordCount: WordCount) {
+    const bits = WORD_COUNT_TO_ENTROPY_BITS[wordCount]
+    this._mnemonic = bip39Js.generateMnemonic(bits)
+    this._language = Language.English
+  }
+
+  static fromString(mnemonic: string): Mnemonic {
+    // Try English first, then all languages
+    if (bip39Js.validateMnemonic(mnemonic)) {
+      const m = Object.create(Mnemonic.prototype) as Mnemonic
+      m._mnemonic = mnemonic
+      m._language = Language.English
+      return m
+    }
+    for (const [lang, name] of Object.entries(LANGUAGE_TO_WORDLIST_NAME)) {
+      const wordlist = bip39Js.wordlists[name]
+      if (wordlist && bip39Js.validateMnemonic(mnemonic, wordlist)) {
+        const m = Object.create(Mnemonic.prototype) as Mnemonic
+        m._mnemonic = mnemonic
+        m._language = Number(lang) as Language
+        return m
+      }
+    }
+    throw new Error('InvalidMnemonic')
+  }
+
+  static fromStringIn(mnemonic: string, language: Language): Mnemonic {
+    const name = LANGUAGE_TO_WORDLIST_NAME[language]
+    const wordlist = bip39Js.wordlists[name]
+    if (!wordlist || !bip39Js.validateMnemonic(mnemonic, wordlist)) {
+      throw new Error('InvalidMnemonic')
+    }
+    const m = Object.create(Mnemonic.prototype) as Mnemonic
+    m._mnemonic = mnemonic
+    m._language = language
+    return m
+  }
+
+  static fromEntropy(entropy: Array<number>): Mnemonic {
+    const hex = Buffer.from(entropy).toString('hex')
+    const m = Object.create(Mnemonic.prototype) as Mnemonic
+    m._mnemonic = bip39Js.entropyToMnemonic(hex)
+    m._language = Language.English
+    return m
+  }
+
+  static fromEntropyIn(entropy: Array<number>, language: Language): Mnemonic {
+    const hex = Buffer.from(entropy).toString('hex')
+    const name = LANGUAGE_TO_WORDLIST_NAME[language]
+    const wordlist = bip39Js.wordlists[name]
+    const m = Object.create(Mnemonic.prototype) as Mnemonic
+    m._mnemonic = bip39Js.entropyToMnemonic(hex, wordlist)
+    m._language = language
+    return m
+  }
+
+  toString(): string {
+    return this._mnemonic
+  }
+
+  words(): Array<string> {
+    return this._mnemonic.split(' ')
+  }
+
+  wordCount(): number {
+    return this._mnemonic.split(' ').length
+  }
+
+  toSeedHex(passphrase: string): string {
+    return bip39Js
+      .mnemonicToSeedSync(this._mnemonic, passphrase)
+      .toString('hex')
+  }
+
+  language(): Language {
+    return this._language
+  }
 }
 
 export class Psbt {

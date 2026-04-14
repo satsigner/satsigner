@@ -1,8 +1,11 @@
 import ecc from '@bitcoinerlab/secp256k1'
 import { HDKey } from '@scure/bip32' // TODO: remove @scure
-import * as bip39 from '@scure/bip39' // TODO: remove @scure
 import { BIP32Factory, type BIP32Interface } from 'bip32'
-import { KeychainKind, Network as BDKNetwork } from 'react-native-bdk-sdk'
+import {
+  KeychainKind,
+  Mnemonic,
+  Network as BDKNetwork
+} from 'react-native-bdk-sdk'
 
 import type { ScriptVersionType } from '@/types/models/Account'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
@@ -464,7 +467,9 @@ export function getXpubForScriptVersion(
     )
   }
 
-  const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
+  const seed = new Uint8Array(
+    Buffer.from(Mnemonic.fromString(mnemonic).toSeedHex(passphrase), 'hex')
+  )
 
   // Map script versions to their corresponding xpub functions
   const xpubFunctions: Record<
@@ -488,7 +493,9 @@ export function getAllXpubs(
   passphrase: string,
   network: 'mainnet' | 'testnet'
 ) {
-  const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
+  const seed = new Uint8Array(
+    Buffer.from(Mnemonic.fromString(mnemonic).toSeedHex(passphrase), 'hex')
+  )
 
   return {
     p2sh: getP2SHXpub(seed, network),
