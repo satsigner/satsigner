@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
   methodRow: {
     backgroundColor: Colors.gray[925],
     borderColor: Colors.gray[800],
-    borderRadius: 8,
+    borderRadius: 3,
     borderWidth: 1,
     paddingHorizontal: 16,
     paddingVertical: 14

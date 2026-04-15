@@ -26,8 +26,8 @@ function SSNostrAccountCard({
       onPress={onPress}
       style={[styles.container, isActive && styles.activeContainer]}
     >
-      <SSHStack justifyBetween>
-        <SSHStack gap="md" style={styles.contentRow}>
+      <SSHStack justifyBetween style={styles.headerRow}>
+        <SSHStack gap="sm" style={styles.contentRow}>
           <View style={styles.avatarContainer}>
             {identity.picture ? (
               <Image
@@ -36,7 +36,7 @@ function SSNostrAccountCard({
               />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <SSText size="lg" weight="bold">
+                <SSText size="md" weight="bold">
                   {(identity.displayName ?? identity.npub)?.[0]?.toUpperCase() ??
                     'N'}
                 </SSText>
@@ -44,30 +44,40 @@ function SSNostrAccountCard({
             )}
           </View>
           <SSVStack gap="xxs" style={styles.infoContainer}>
-            <SSText size="md" weight="medium">
+            <SSText size="md" weight="medium" numberOfLines={1}>
               {identity.displayName || 'Unnamed'}
             </SSText>
-            <SSText size="xs" type="mono" color="muted">
+            <SSText size="xs" type="mono" color="muted" numberOfLines={1}>
               {truncateNpub(identity.npub)}
             </SSText>
-            {identity.nip05 && (
-              <SSText size="xs" color="muted">
-                {identity.nip05}
-              </SSText>
-            )}
-            {identity.lud16 && (
-              <SSText size="xs" style={{ color: Colors.mainGreen }}>
-                {identity.lud16}
-              </SSText>
-            )}
-            {identity.isWatchOnly && (
-              <SSText size="xs" color="muted" uppercase>
-                watch only
-              </SSText>
-            )}
+            <View style={styles.reservedMetaRow}>
+              {identity.nip05 ? (
+                <SSText size="xs" color="muted" numberOfLines={1}>
+                  {identity.nip05}
+                </SSText>
+              ) : null}
+            </View>
+            <View style={styles.reservedMetaRow}>
+              {identity.lud16 ? (
+                <SSText size="xs" numberOfLines={1} style={styles.lud16Text}>
+                  {identity.lud16}
+                </SSText>
+              ) : null}
+            </View>
+            <View style={styles.reservedMetaRow}>
+              {identity.isWatchOnly ? (
+                <SSText size="xs" color="muted" uppercase>
+                  watch only
+                </SSText>
+              ) : null}
+            </View>
           </SSVStack>
         </SSHStack>
-        <SSIconChevronRight height={11.6} width={6} />
+        <View style={styles.chevronWrap}>
+          <View style={styles.chevronOptical}>
+            <SSIconChevronRight height={11.6} width={6} />
+          </View>
+        </View>
       </SSHStack>
     </TouchableOpacity>
   )
@@ -78,10 +88,19 @@ const styles = StyleSheet.create({
     borderColor: Colors.mainGreen,
     borderWidth: 1
   },
+  chevronOptical: {
+    transform: [{ translateY: -5 }]
+  },
+  chevronWrap: {
+    justifyContent: 'center'
+  },
+  headerRow: {
+    alignItems: 'stretch'
+  },
   avatar: {
-    borderRadius: 20,
-    height: 40,
-    width: 40
+    borderRadius: 18,
+    height: 36,
+    width: 36
   },
   avatarContainer: {
     alignItems: 'center',
@@ -97,14 +116,23 @@ const styles = StyleSheet.create({
     borderColor: Colors.gray[800],
     borderRadius: Sizes.button.borderRadius,
     borderTopWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 12
+    paddingBottom: 0,
+    paddingHorizontal: 10,
+    paddingTop: 12
   },
   contentRow: {
+    alignItems: 'flex-start',
     flex: 1
   },
   infoContainer: {
     flex: 1
+  },
+  lud16Text: {
+    color: Colors.mainGreen
+  },
+  reservedMetaRow: {
+    justifyContent: 'center',
+    minHeight: 14
   }
 })
 

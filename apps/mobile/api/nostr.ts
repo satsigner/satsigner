@@ -293,6 +293,51 @@ export class NostrAPI {
     return ordered
   }
 
+  async fetchNotes(
+    npub: string,
+    limit = 20,
+    until?: number
+  ): Promise<
+    {
+      id: string
+      content: string
+      pubkey: string
+      kind: number
+      tags: string[][]
+      created_at: number
+    }[]
+  > {
+    const hexPubkey = getPubKeyHexFromNpub(npub)
+    if (!hexPubkey) return []
+
+    await this.connectForPublish()
+    if (!this.ndk) return []
+
+    const filter: Record<string, unknown> = {
+      authors: [hexPubkey],
+      kinds: [1 as NDKKind],
+      limit
+    }
+    if (until) {
+      filter.until = until
+    }
+
+    const FETCH_NOTES_TIMEOUT_MS = 15000
+    const events = await Promise.race([
+      this.ndk.fetchEvents(filter as never, { closeOnEose: true }),
+      new Promise<Set<NDKEvent>>((resolve) => {
+        setTimeout(() => resolve(new Set()), FETCH_NOTES_TIMEOUT_MS)
+      })
+    ])
+
+    return Array.from(events)
+      .toSorted((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0))
+      .map((e) => ({
+        id: e.id,
+        ...NostrAPI.formatNdkEvent(e)
+      }))
+  }
+
   private static formatNdkEvent(event: NDKEvent) {
     return {
       content: event.content,
@@ -636,6 +681,34 @@ export class NostrAPI {
     await event.sign(signer)
     event.ndk = this.ndk
     await this.publishEvent(event)
+  }
+
+  async publishNote(
+    nsec: string,
+    content: string,
+    tags?: string[][]
+  ): Promise<string> {
+    const secretKey = getSecretFromNsec(nsec)
+    if (!secretKey) {
+      throw new Error('Invalid nsec')
+    }
+
+    const signer = new NDKPrivateKeySigner(secretKey)
+    await this.connectForPublish()
+    if (!this.ndk) {
+      throw new Error('Failed to connect to relays')
+    }
+
+    this.ndk.signer = signer
+    const event = new NDKEvent(this.ndk, {
+      content,
+      kind: 1,
+      tags: tags ?? []
+    })
+
+    await event.sign(signer)
+    await this.publishEvent(event)
+    return event.id
   }
 
   async publishEvent(event: NDKEvent): Promise<void> {

@@ -1,5 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useEffect, useRef } from 'react'
+import { nip19 } from 'nostr-tools'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 
 import { NostrAPI } from '@/api/nostr'
@@ -8,6 +9,7 @@ import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSIconButton from '@/components/SSIconButton'
 import SSNFCModal from '@/components/SSNFCModal'
+import SSNostrFeedTabs from '@/components/SSNostrFeedTabs'
 import SSNostrHeroCard from '@/components/SSNostrHeroCard'
 import SSPaste from '@/components/SSPaste'
 import SSText from '@/components/SSText'
@@ -80,11 +82,38 @@ export default function NostrAccountLanding() {
     })
   }, [npub, router])
 
+  const effectiveRelays = useMemo(
+    () => [
+      ...(identity?.relays ?? relays),
+      'wss://relay.nostr.band',
+      'wss://relay.primal.net'
+    ],
+    [identity?.relays, relays]
+  )
+
+  const handleNotePress = useCallback(
+    (noteId: string) => {
+      const nevent = nip19.neventEncode({ id: noteId })
+      router.navigate({
+        pathname: '/signer/nostr/account/[npub]/note',
+        params: { npub, nostrUri: nevent }
+      })
+    },
+    [npub, router]
+  )
+
+  const handleReceive = useCallback(() => {
+    router.navigate({
+      pathname: '/signer/nostr/account/[npub]/compose',
+      params: { npub }
+    })
+  }, [npub, router])
+
   const contentHandler = useContentHandler({
     context: 'nostr',
     onContentScanned: handleContentScanned,
     onSend: handleSend,
-    onReceive: () => {}
+    onReceive: handleReceive
   })
 
   if (!identity) {
@@ -133,6 +162,12 @@ export default function NostrAccountLanding() {
             onCamera={contentHandler.handleCamera}
             onNFC={contentHandler.handleNFC}
             onReceive={contentHandler.handleReceive}
+          />
+
+          <SSNostrFeedTabs
+            npub={npub}
+            relays={effectiveRelays}
+            onNotePress={handleNotePress}
           />
         </SSVStack>
       </ScrollView>

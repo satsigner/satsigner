@@ -1,6 +1,8 @@
+import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { toast } from 'sonner-native'
 
 import SSIconEyeOff from '@/components/icons/SSIconEyeOff'
 import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
@@ -18,6 +20,14 @@ import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
 import { generateColorFromNpub } from '@/utils/nostr'
 import { truncateNpub } from '@/utils/nostrIdentity'
+
+function chunkSeedWords(words: string[], size: number): string[][] {
+  const rows: string[][] = []
+  for (let i = 0; i < words.length; i += size) {
+    rows.push(words.slice(i, i + size))
+  }
+  return rows
+}
 
 type KeysParams = {
   npub: string
@@ -39,6 +49,19 @@ export default function NostrIdentityKeys() {
   const [nsecRevealed, setNsecRevealed] = useState(false)
   const [seedWordsRevealed, setSeedWordsRevealed] = useState(false)
   const [qrModal, setQrModal] = useState<QrModalContent | null>(null)
+
+  function handleCopyNpub() {
+    const value = Array.isArray(npub) ? npub[0] : npub
+    if (!value) return
+    Clipboard.setStringAsync(value)
+    toast.success(t('common.copiedToClipboard'))
+  }
+
+  function handleCopyNsec() {
+    if (!identity?.nsec) return
+    Clipboard.setStringAsync(identity.nsec)
+    toast.success(t('common.copiedToClipboard'))
+  }
 
   const npubColor = npub
     ? generateColorFromNpub(npub)
@@ -91,24 +114,30 @@ export default function NostrIdentityKeys() {
                       { backgroundColor: npubColor }
                     ]}
                   />
-                  <SSClipboardCopy text={npub} fullWidth={false}>
-                    <SSText
-                      center
-                      size="xl"
-                      type="mono"
-                      style={styles.keyText}
-                      selectable
-                    >
-                      {truncateNpub(npub, 12)}
-                    </SSText>
-                  </SSClipboardCopy>
+                  <SSText
+                    center
+                    size="xl"
+                    type="mono"
+                    style={[styles.keyText, styles.npubText]}
+                    selectable
+                  >
+                    {truncateNpub(npub, 12)}
+                  </SSText>
                 </SSHStack>
-                <SSButton
-                  variant="default"
-                  label={t('common.showQR')}
-                  onPress={() => setQrModal({ type: 'npub', value: npub })}
-                  style={styles.showQrButton}
-                />
+                <SSHStack gap="sm" style={styles.keyActionsRow}>
+                  <SSButton
+                    label={t('common.copy')}
+                    onPress={handleCopyNpub}
+                    style={styles.keyActionButtonFlex}
+                    variant="outline"
+                  />
+                  <SSButton
+                    label={t('common.showQR')}
+                    onPress={() => setQrModal({ type: 'npub', value: npub })}
+                    style={styles.keyActionButtonFlex}
+                    variant="outline"
+                  />
+                </SSHStack>
               </SSVStack>
             </SSVStack>
 
@@ -118,39 +147,40 @@ export default function NostrIdentityKeys() {
                 <SSVStack gap="xxs" style={styles.keysContainer}>
                   {nsecRevealed ? (
                     <>
-                      <SSClipboardCopy text={identity.nsec}>
-                        <SSText
-                          center
-                          size="xl"
-                          type="mono"
-                          style={styles.keyText}
-                          selectable
-                        >
-                          {truncateNpub(identity.nsec, 12)}
-                        </SSText>
-                      </SSClipboardCopy>
-                      <SSButton
-                        variant="default"
-                        label={t('common.showQR')}
-                        onPress={() =>
-                          setQrModal({
-                            type: 'nsec',
-                            value: identity.nsec!
-                          })
-                        }
-                        style={styles.showQrButton}
-                      />
-                      <Pressable
-                        onPress={() => setNsecRevealed(false)}
-                        style={styles.revealRow}
+                      <SSText
+                        center
+                        size="xl"
+                        type="mono"
+                        style={styles.keyText}
+                        selectable
                       >
-                        <SSIconEyeOn
-                          stroke={Colors.white}
-                          height={18}
-                          width={18}
+                        {truncateNpub(identity.nsec, 12)}
+                      </SSText>
+                      <SSHStack gap="sm" style={styles.keyActionsRow}>
+                        <SSButton
+                          label={t('common.copy')}
+                          onPress={handleCopyNsec}
+                          style={styles.keyActionButtonFlex}
+                          variant="outline"
                         />
-                        <SSText color="muted">{t('common.hide')}</SSText>
-                      </Pressable>
+                        <SSButton
+                          label={t('common.showQR')}
+                          onPress={() =>
+                            setQrModal({
+                              type: 'nsec',
+                              value: identity.nsec!
+                            })
+                          }
+                          style={styles.keyActionButtonFlex}
+                          variant="outline"
+                        />
+                        <SSButton
+                          label={t('common.hide')}
+                          onPress={() => setNsecRevealed(false)}
+                          style={styles.keyActionButtonFlex}
+                          variant="outline"
+                        />
+                      </SSHStack>
                     </>
                   ) : (
                     <Pressable
@@ -179,20 +209,33 @@ export default function NostrIdentityKeys() {
                   {seedWordsRevealed ? (
                     <>
                       <View style={styles.wordsGrid}>
-                        {identity.mnemonic.split(' ').map((word, index) => (
-                          <View key={index} style={styles.wordCell}>
-                            <SSText
-                              size="xs"
-                              color="muted"
-                              style={styles.wordIndex}
+                        {chunkSeedWords(identity.mnemonic.split(' '), 3).map(
+                          (row, rowIndex) => (
+                            <SSHStack
+                              key={rowIndex}
+                              gap="sm"
+                              style={styles.wordRow}
                             >
-                              {index + 1}
-                            </SSText>
-                            <SSText size="sm" type="mono">
-                              {word}
-                            </SSText>
-                          </View>
-                        ))}
+                              {row.map((word, colIndex) => {
+                                const index = rowIndex * 3 + colIndex
+                                return (
+                                  <View key={index} style={styles.wordCell}>
+                                    <SSText
+                                      size="xs"
+                                      color="muted"
+                                      style={styles.wordIndex}
+                                    >
+                                      {index + 1}
+                                    </SSText>
+                                    <SSText size="sm" type="mono">
+                                      {word}
+                                    </SSText>
+                                  </View>
+                                )
+                              })}
+                            </SSHStack>
+                          )
+                        )}
                       </View>
                       <SSClipboardCopy text={identity.mnemonic}>
                         <SSText size="xs" color="muted" center>
@@ -300,6 +343,18 @@ const styles = StyleSheet.create({
   emptyContainer: {
     paddingVertical: 60
   },
+  keyActionButtonFlex: {
+    flex: 1,
+    minWidth: 0,
+    paddingHorizontal: 6,
+    paddingVertical: 10
+  },
+  keyActionsRow: {
+    alignItems: 'stretch',
+    alignSelf: 'stretch',
+    marginTop: 12,
+    width: '100%'
+  },
   keyText: {
     letterSpacing: 1
   },
@@ -317,7 +372,12 @@ const styles = StyleSheet.create({
   },
   npubRow: {
     alignItems: 'center',
-    alignSelf: 'center'
+    alignSelf: 'stretch',
+    width: '100%'
+  },
+  npubText: {
+    flex: 1,
+    flexShrink: 1
   },
   pageContainer: {
     flex: 1
@@ -355,29 +415,28 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1
   },
-  showQrButton: {
-    marginTop: 20
-  },
   wordCell: {
     alignItems: 'center',
     backgroundColor: Colors.gray[925],
     borderColor: Colors.gray[800],
     borderRadius: 6,
     borderWidth: 1,
+    flex: 1,
     flexDirection: 'row',
     gap: 6,
+    minWidth: 0,
     paddingHorizontal: 10,
-    paddingVertical: 8,
-    width: '48%'
+    paddingVertical: 8
   },
   wordIndex: {
     minWidth: 16
   },
+  wordRow: {
+    alignItems: 'stretch',
+    alignSelf: 'stretch'
+  },
   wordsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
-    justifyContent: 'space-between',
     marginVertical: 8
   }
 })

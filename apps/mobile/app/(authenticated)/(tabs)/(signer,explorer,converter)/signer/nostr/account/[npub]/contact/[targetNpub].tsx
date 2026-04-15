@@ -1,35 +1,31 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { nip19 } from 'nostr-tools'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  View
-} from 'react-native'
+import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
 
 import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
+import SSNostrFeedTabs from '@/components/SSNostrFeedTabs'
 import SSNostrHeroCard from '@/components/SSNostrHeroCard'
 import SSPaymentMethodPicker, {
   type PaymentMethod
 } from '@/components/SSPaymentMethodPicker'
 import SSText from '@/components/SSText'
 import { useEcash } from '@/hooks/useEcash'
-import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
+import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
 import { type NostrIdentity } from '@/types/models/NostrIdentity'
+import { initiateZap } from '@/utils/zap'
 
 type ContactParams = {
   npub: string
   targetNpub: string
 }
-
-const ZAP_PRESETS = [21, 100, 500]
 
 export default function NostrContactProfile() {
   const router = useRouter()
@@ -45,11 +41,17 @@ export default function NostrContactProfile() {
     null
   )
   const [loading, setLoading] = useState(true)
+  const [zapLoading, setZapLoading] = useState(false)
   const [paymentPickerVisible, setPaymentPickerVisible] = useState(false)
   const [payAmount, setPayAmount] = useState(0)
 
   const lightningConfig = useLightningStore((state) => state.config)
   const { mints } = useEcash()
+
+  const pendingInvoice = useState<{
+    invoice: string
+    zapRequestJson: string
+  } | null>(null)
 
   const availablePaymentMethods = useMemo(() => {
     const methods: PaymentMethod[] = []
@@ -74,6 +76,16 @@ export default function NostrContactProfile() {
     return methods
   }, [lightningConfig, mints])
 
+  const profileRelays = useMemo(
+    () => [
+      ...effectiveRelays,
+      'wss://relay.nostr.band',
+      'wss://relay.primal.net',
+      'wss://purplepag.es'
+    ],
+    [effectiveRelays]
+  )
+
   const loadProfile = useCallback(async () => {
     if (!targetNpub || effectiveRelays.length === 0) {
       setLoading(false)
@@ -82,7 +94,7 @@ export default function NostrContactProfile() {
 
     setLoading(true)
     try {
-      const api = new NostrAPI(effectiveRelays)
+      const api = new NostrAPI(profileRelays)
       const profile = await api.fetchKind0(targetNpub)
       setTargetIdentity({
         createdAt: Date.now(),
@@ -102,29 +114,88 @@ export default function NostrContactProfile() {
     } finally {
       setLoading(false)
     }
-  }, [effectiveRelays, targetNpub])
+  }, [profileRelays, targetNpub, effectiveRelays.length])
 
   useEffect(() => {
     void loadProfile()
   }, [loadProfile])
 
-  function handleZap(amountSats: number) {
+  async function handleZap() {
     if (availablePaymentMethods.length === 0) return
-    if (availablePaymentMethods.length === 1) {
-      navigateToPayment(availablePaymentMethods[0])
-      return
+    if (!targetIdentity?.lud16) return
+    if (!owner?.nsec) return
+
+    const amountSats = 21
+    setZapLoading(true)
+
+    try {
+      const hexPubkey = nip19.decode(targetNpub).data as string
+      const { invoice, zapRequestJson } = await initiateZap({
+        recipientLud16: targetIdentity.lud16,
+        recipientPubkeyHex: hexPubkey,
+        senderNsec: owner.nsec,
+        amountSats,
+        relays: effectiveRelays
+      })
+
+      setZapLoading(false)
+      pendingInvoice[1]({ invoice, zapRequestJson })
+
+      if (availablePaymentMethods.length === 1) {
+        navigateToPayment(availablePaymentMethods[0], invoice, zapRequestJson, amountSats)
+        return
+      }
+
+      setPayAmount(amountSats)
+      setPaymentPickerVisible(true)
+    } catch {
+      setZapLoading(false)
     }
-    setPayAmount(amountSats)
-    setPaymentPickerVisible(true)
   }
 
-  function navigateToPayment(method: PaymentMethod) {
+  function navigateToPayment(
+    method: PaymentMethod,
+    invoice?: string,
+    zapRequestJson?: string,
+    amountSats?: number
+  ) {
     setPaymentPickerVisible(false)
-    if (method.type === 'lightning') {
-      router.navigate('/signer/lightning')
-    } else if (method.type === 'ecash') {
-      router.navigate('/signer/ecash')
+
+    const bolt11 = invoice || pendingInvoice[0]?.invoice
+    const reqJson = zapRequestJson || pendingInvoice[0]?.zapRequestJson || ''
+    const sats = amountSats ?? payAmount
+    pendingInvoice[1](null)
+
+    if (bolt11 && npub) {
+      useZapFlowStore.getState().setPendingZap({
+        noteNpub: npub,
+        nostrUri: targetNpub,
+        invoice: bolt11,
+        amountSats: sats,
+        zapRequestJson: reqJson,
+        paymentMethod: method
+      })
     }
+
+    if (method.type === 'lightning') {
+      router.navigate({
+        pathname: '/signer/lightning/pay',
+        params: bolt11 ? { invoice: bolt11 } : undefined
+      })
+    } else if (method.type === 'ecash') {
+      router.navigate({
+        pathname: '/signer/ecash/send',
+        params: bolt11 ? { invoice: bolt11 } : undefined
+      })
+    }
+  }
+
+  function handleNotePress(noteId: string) {
+    const nevent = nip19.neventEncode({ id: noteId })
+    router.navigate({
+      pathname: '/signer/nostr/account/[npub]/note',
+      params: { npub, nostrUri: nevent }
+    })
   }
 
   if (!owner) {
@@ -153,35 +224,43 @@ export default function NostrContactProfile() {
         </SSVStack>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false}>
-          <SSVStack gap="lg" style={styles.content}>
+          <SSVStack gap="md" style={styles.content}>
             <SSNostrHeroCard identity={targetIdentity} />
 
-            <SSText size="sm" color="muted" center>
-              {t('nostrIdentity.contact.zapHint')}
-            </SSText>
+            {targetIdentity.lud16 &&
+              availablePaymentMethods.length > 0 &&
+              owner?.nsec && (
+                <SSButton
+                  label={
+                    zapLoading
+                      ? t('nostrIdentity.note.zapSending')
+                      : `${t('nostrIdentity.note.zap')} 21 sats`
+                  }
+                  variant="gradient"
+                  gradientType="special"
+                  disabled={zapLoading}
+                  onPress={handleZap}
+                />
+              )}
 
-            {availablePaymentMethods.length > 0 ? (
-              <SSVStack gap="sm">
-                {ZAP_PRESETS.map((amount) => (
-                  <SSHStack key={amount} gap="sm" style={styles.zapRow}>
-                    <SSText size="lg" weight="medium" style={styles.zapAmount}>
-                      {amount} sats
-                    </SSText>
-                    <SSButton
-                      label={t('nostrIdentity.note.zap')}
-                      onPress={() => handleZap(amount)}
-                      style={styles.zapButton}
-                      variant="gradient"
-                      gradientType="special"
-                    />
-                  </SSHStack>
-                ))}
-              </SSVStack>
-            ) : (
+            {!targetIdentity.lud16 &&
+              availablePaymentMethods.length > 0 && (
+                <SSText size="xs" color="muted" center>
+                  {t('nostrIdentity.note.zapEndpointNotFound')}
+                </SSText>
+              )}
+
+            {availablePaymentMethods.length === 0 && (
               <SSText color="muted" center size="sm">
                 {t('nostrIdentity.contact.noWallets')}
               </SSText>
             )}
+
+            <SSNostrFeedTabs
+              npub={targetNpub}
+              relays={profileRelays}
+              onNotePress={handleNotePress}
+            />
           </SSVStack>
         </ScrollView>
       )}
@@ -205,20 +284,5 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: 40
-  },
-  zapAmount: {
-    flex: 1
-  },
-  zapButton: {
-    minWidth: 100
-  },
-  zapRow: {
-    alignItems: 'center',
-    backgroundColor: Colors.gray[925],
-    borderColor: Colors.gray[800],
-    borderRadius: 8,
-    borderWidth: 1,
-    padding: 14
   }
 })
-

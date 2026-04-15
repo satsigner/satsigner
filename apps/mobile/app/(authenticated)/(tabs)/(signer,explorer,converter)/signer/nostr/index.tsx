@@ -58,12 +58,8 @@ export default function NostrLanding() {
     }
   }, [identities, relays, updateIdentity])
 
-  function handleCreateIdentity() {
-    router.navigate('/signer/nostr/create')
-  }
-
-  function handleImportIdentity() {
-    router.navigate('/signer/nostr/import')
+  function handleAddIdentity() {
+    router.navigate('/signer/nostr/add')
   }
 
   function handleSelectIdentity(npub: string) {
@@ -94,16 +90,10 @@ export default function NostrLanding() {
             </SSText>
           </SSVStack>
           <SSButton
-            label={t('nostrIdentity.createNew')}
-            onPress={handleCreateIdentity}
+            label={t('nostrIdentity.addIdentity')}
+            onPress={handleAddIdentity}
             variant="gradient"
             gradientType="special"
-            style={styles.actionButton}
-          />
-          <SSButton
-            label={t('nostrIdentity.importExisting')}
-            onPress={handleImportIdentity}
-            variant="secondary"
             style={styles.actionButton}
           />
         </SSVStack>
@@ -126,14 +116,10 @@ export default function NostrLanding() {
           </ScrollView>
           <SSVStack gap="sm" style={styles.buttonRow}>
             <SSButton
-              label={t('nostrIdentity.createNew')}
-              onPress={handleCreateIdentity}
-              variant="secondary"
-            />
-            <SSButton
-              label={t('nostrIdentity.importExisting')}
-              onPress={handleImportIdentity}
-              variant="outline"
+              label={t('nostrIdentity.addIdentity')}
+              onPress={handleAddIdentity}
+              variant="gradient"
+              gradientType="special"
             />
           </SSVStack>
         </SSVStack>

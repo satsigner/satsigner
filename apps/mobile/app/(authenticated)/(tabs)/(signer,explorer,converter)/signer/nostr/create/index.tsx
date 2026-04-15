@@ -1,13 +1,12 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Modal, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
-import SSClipboardCopy from '@/components/SSClipboardCopy'
-import SSIconButton from '@/components/SSIconButton'
 import SSQRCode from '@/components/SSQRCode'
+import SSSeedQR from '@/components/SSSeedQR'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -17,10 +16,19 @@ import { Colors } from '@/styles'
 import { generateMnemonic } from '@/utils/bip39'
 import { deriveNostrKeysFromMnemonic } from '@/utils/nostrIdentity'
 
+function chunkSeedWords(words: string[], size: number): string[][] {
+  const rows: string[][] = []
+  for (let i = 0; i < words.length; i += size) {
+    rows.push(words.slice(i, i + size))
+  }
+  return rows
+}
+
 export default function CreateNostrIdentity() {
   const router = useRouter()
   const [showNsec, setShowNsec] = useState(false)
   const [qrModalValue, setQrModalValue] = useState<string | null>(null)
+  const [seedQrVisible, setSeedQrVisible] = useState(false)
 
   const mnemonic = useMemo(() => generateMnemonic(12), [])
   const words = useMemo(() => mnemonic.split(' '), [mnemonic])
@@ -31,6 +39,16 @@ export default function CreateNostrIdentity() {
 
   function handleCopyMnemonic() {
     Clipboard.setStringAsync(mnemonic)
+    toast.success(t('common.copiedToClipboard'))
+  }
+
+  function handleCopyNsec() {
+    Clipboard.setStringAsync(keys.nsec)
+    toast.success(t('common.copiedToClipboard'))
+  }
+
+  function handleCopyNpub() {
+    Clipboard.setStringAsync(keys.npub)
     toast.success(t('common.copiedToClipboard'))
   }
 
@@ -58,34 +76,49 @@ export default function CreateNostrIdentity() {
         <SSVStack gap="lg" style={styles.content}>
           {/* Seed Words */}
           <SSVStack gap="sm">
-            <SSHStack justifyBetween>
-              <SSText size="sm" color="muted" uppercase>
-                {t('nostrIdentity.create.seedWords')}
-              </SSText>
-              <SSButton
-                label={t('common.copy')}
-                variant="ghost"
-                onPress={handleCopyMnemonic}
-                style={styles.copyButton}
-              />
-            </SSHStack>
-            <View style={styles.wordsGrid}>
-              {words.map((word, index) => (
-                <View key={index} style={styles.wordCell}>
-                  <SSText size="xs" color="muted" style={styles.wordIndex}>
-                    {index + 1}
-                  </SSText>
-                  <SSText size="sm" type="mono">
-                    {word}
-                  </SSText>
-                </View>
-              ))}
+            <SSText center size="sm" color="muted" uppercase>
+              {t('nostrIdentity.create.seedWords')}
+            </SSText>
+            <View style={styles.keyContainer}>
+              <View style={styles.wordsGrid}>
+                {chunkSeedWords(words, 3).map((row, rowIndex) => (
+                  <SSHStack key={rowIndex} gap="sm" style={styles.wordRow}>
+                    {row.map((word, colIndex) => {
+                      const index = rowIndex * 3 + colIndex
+                      return (
+                        <View key={index} style={styles.wordCell}>
+                          <SSText size="xs" color="muted" style={styles.wordIndex}>
+                            {index + 1}
+                          </SSText>
+                          <SSText size="sm" type="mono">
+                            {word}
+                          </SSText>
+                        </View>
+                      )
+                    })}
+                  </SSHStack>
+                ))}
+              </View>
+              <SSHStack gap="sm" style={styles.keyActionsRow}>
+                <SSButton
+                  label={t('common.copy')}
+                  variant="outline"
+                  onPress={handleCopyMnemonic}
+                  style={styles.keyActionButtonFlex}
+                />
+                <SSButton
+                  label={t('account.seed.seedqr.title')}
+                  variant="outline"
+                  onPress={() => setSeedQrVisible(true)}
+                  style={styles.keyActionButtonFlex}
+                />
+              </SSHStack>
             </View>
           </SSVStack>
 
           {/* nsec */}
           <SSVStack gap="sm">
-            <SSText size="sm" color="muted" uppercase>
+            <SSText center size="sm" color="muted" uppercase>
               {t('nostrIdentity.create.nsec')}
             </SSText>
             <View style={styles.keyContainer}>
@@ -93,34 +126,36 @@ export default function CreateNostrIdentity() {
                 size="xs"
                 type="mono"
                 style={styles.keyText}
-                numberOfLines={2}
+                numberOfLines={showNsec ? 4 : 2}
               >
                 {showNsec ? keys.nsec : '••••••••••••••••••••••••••••••••'}
               </SSText>
-              <SSHStack gap="sm" style={styles.keyActions}>
+              <SSHStack gap="sm" style={styles.keyActionsRow}>
                 <SSButton
                   label={showNsec ? t('common.hide') : t('common.show')}
-                  variant="ghost"
+                  variant="outline"
                   onPress={() => setShowNsec(!showNsec)}
-                  style={styles.keyActionButton}
+                  style={styles.keyActionButtonFlex}
                 />
-                <SSClipboardCopy text={keys.nsec}>
-                  <SSText size="xs" color="muted">
-                    {t('common.copy')}
-                  </SSText>
-                </SSClipboardCopy>
-                <SSIconButton onPress={() => setQrModalValue(keys.nsec)}>
-                  <SSText size="xs" color="muted">
-                    QR
-                  </SSText>
-                </SSIconButton>
+                <SSButton
+                  label={t('common.copy')}
+                  variant="outline"
+                  onPress={handleCopyNsec}
+                  style={styles.keyActionButtonFlex}
+                />
+                <SSButton
+                  label={t('common.showQR')}
+                  variant="outline"
+                  onPress={() => setQrModalValue(keys.nsec)}
+                  style={styles.keyActionButtonFlex}
+                />
               </SSHStack>
             </View>
           </SSVStack>
 
           {/* npub */}
           <SSVStack gap="sm">
-            <SSText size="sm" color="muted" uppercase>
+            <SSText center size="sm" color="muted" uppercase>
               {t('nostrIdentity.create.npub')}
             </SSText>
             <View style={styles.keyContainer}>
@@ -128,21 +163,23 @@ export default function CreateNostrIdentity() {
                 size="xs"
                 type="mono"
                 style={styles.keyText}
-                numberOfLines={2}
+                numberOfLines={4}
               >
                 {keys.npub}
               </SSText>
-              <SSHStack gap="sm" style={styles.keyActions}>
-                <SSClipboardCopy text={keys.npub}>
-                  <SSText size="xs" color="muted">
-                    {t('common.copy')}
-                  </SSText>
-                </SSClipboardCopy>
-                <SSIconButton onPress={() => setQrModalValue(keys.npub)}>
-                  <SSText size="xs" color="muted">
-                    QR
-                  </SSText>
-                </SSIconButton>
+              <SSHStack gap="sm" style={styles.keyActionsRow}>
+                <SSButton
+                  label={t('common.copy')}
+                  variant="outline"
+                  onPress={handleCopyNpub}
+                  style={styles.keyActionButtonFlex}
+                />
+                <SSButton
+                  label={t('common.showQR')}
+                  variant="outline"
+                  onPress={() => setQrModalValue(keys.npub)}
+                  style={styles.keyActionButtonFlex}
+                />
               </SSHStack>
             </View>
           </SSVStack>
@@ -154,6 +191,12 @@ export default function CreateNostrIdentity() {
           />
         </SSVStack>
       </ScrollView>
+
+      <SSSeedQR
+        mnemonic={mnemonic}
+        visible={seedQrVisible}
+        onClose={() => setSeedQrVisible(false)}
+      />
 
       {/* QR Code Modal */}
       <Modal
@@ -186,16 +229,17 @@ const styles = StyleSheet.create({
   content: {
     paddingBottom: 40
   },
-  copyButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4
+  keyActionButtonFlex: {
+    flex: 1,
+    minWidth: 0,
+    paddingHorizontal: 6,
+    paddingVertical: 10
   },
-  keyActionButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4
-  },
-  keyActions: {
-    paddingTop: 8
+  keyActionsRow: {
+    alignItems: 'stretch',
+    alignSelf: 'stretch',
+    marginTop: 12,
+    width: '100%'
   },
   keyContainer: {
     backgroundColor: Colors.gray[925],
@@ -205,7 +249,8 @@ const styles = StyleSheet.create({
     padding: 12
   },
   keyText: {
-    lineHeight: 18
+    lineHeight: 18,
+    marginBottom: 4
   },
   qrOverlay: {
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
@@ -224,19 +269,21 @@ const styles = StyleSheet.create({
     borderColor: Colors.gray[800],
     borderRadius: 6,
     borderWidth: 1,
+    flex: 1,
     flexDirection: 'row',
     gap: 6,
+    minWidth: 0,
     paddingHorizontal: 10,
-    paddingVertical: 8,
-    width: '48%'
+    paddingVertical: 8
   },
   wordIndex: {
     minWidth: 16
   },
+  wordRow: {
+    alignItems: 'stretch',
+    alignSelf: 'stretch'
+  },
   wordsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    justifyContent: 'space-between'
+    gap: 8
   }
 })

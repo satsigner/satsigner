@@ -43,6 +43,7 @@ export type FetchedNoteData = {
   created_at: number
   authorName?: string
   authorPicture?: string
+  authorLud16?: string
 }
 
 export type DecodedNostrContent = {
@@ -154,24 +155,89 @@ export type PubpayTag = {
   relay?: string
 }
 
-export function extractPubpayTags(
-  tags: string[][]
-): PubpayTag[] {
-  return tags
-    .filter((tag) => tag[0] === 'amount' || tag[0] === 'zap')
-    .map((tag) => {
-      if (tag[0] === 'amount') {
-        const msats = parseInt(tag[1], 10)
-        if (isNaN(msats)) return null
-        return {
+export function extractPubpayTags(tags: string[][]): PubpayTag[] {
+  const results: PubpayTag[] = []
+  for (const tag of tags) {
+    if (tag[0] === 'amount') {
+      const msats = parseInt(tag[1], 10)
+      if (!isNaN(msats)) {
+        results.push({
           amount: Math.floor(msats / 1000),
           currency: 'sats',
           relay: tag[2]
-        }
+        })
       }
-      return null
-    })
-    .filter((t): t is PubpayTag => t !== null)
+    }
+  }
+  return results
+}
+
+export type EnhancedZapTags = {
+  zapMin?: number
+  zapMax?: number
+  zapGoal?: number
+  zapUses?: number
+  zapPayer?: string
+  zapLnurl?: string
+}
+
+function parseMsatsTag(tags: string[][], name: string): number | undefined {
+  const tag = tags.find((t) => t[0] === name)
+  if (!tag || !tag[1]) return undefined
+  const val = parseInt(tag[1], 10)
+  return isNaN(val) || val <= 0 ? undefined : Math.floor(val / 1000)
+}
+
+export function extractEnhancedZapTags(tags: string[][]): EnhancedZapTags {
+  const zapGoalRaw = tags.find((t) => t[0] === 'zap-goal')
+  const zapUsesRaw = tags.find((t) => t[0] === 'zap-uses')
+  const zapPayerRaw = tags.find((t) => t[0] === 'zap-payer')
+  const zapLnurlRaw = tags.find((t) => t[0] === 'zap-lnurl')
+
+  const result: EnhancedZapTags = {
+    zapMin: parseMsatsTag(tags, 'zap-min'),
+    zapMax: parseMsatsTag(tags, 'zap-max')
+  }
+
+  if (zapGoalRaw?.[1]) {
+    const val = parseInt(zapGoalRaw[1], 10)
+    if (!isNaN(val) && val > 0) result.zapGoal = Math.floor(val / 1000)
+  }
+  if (zapUsesRaw?.[1]) {
+    const val = parseInt(zapUsesRaw[1], 10)
+    if (!isNaN(val) && val > 0) result.zapUses = val
+  }
+  if (zapPayerRaw?.[1] && /^[a-f0-9]{64}$/i.test(zapPayerRaw[1])) {
+    result.zapPayer = zapPayerRaw[1]
+  }
+  if (zapLnurlRaw?.[1] && zapLnurlRaw[1].includes('@')) {
+    result.zapLnurl = zapLnurlRaw[1]
+  }
+
+  return result
+}
+
+export function buildEnhancedZapTags(config: EnhancedZapTags): string[][] {
+  const tags: string[][] = []
+  if (config.zapMin !== undefined && config.zapMin > 0) {
+    tags.push(['zap-min', String(config.zapMin * 1000)])
+  }
+  if (config.zapMax !== undefined && config.zapMax > 0) {
+    tags.push(['zap-max', String(config.zapMax * 1000)])
+  }
+  if (config.zapGoal !== undefined && config.zapGoal > 0) {
+    tags.push(['zap-goal', String(config.zapGoal * 1000)])
+  }
+  if (config.zapUses !== undefined && config.zapUses > 0) {
+    tags.push(['zap-uses', String(config.zapUses)])
+  }
+  if (config.zapPayer) {
+    tags.push(['zap-payer', config.zapPayer])
+  }
+  if (config.zapLnurl) {
+    tags.push(['zap-lnurl', config.zapLnurl])
+  }
+  return tags
 }
 
 export function npubFromNsec(nsec: string): string | null {
