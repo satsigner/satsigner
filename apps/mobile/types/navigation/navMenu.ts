@@ -6,9 +6,13 @@ export enum PLATFORM {
   HYBRID = 'hybrid'
 }
 
+export type NavMenuItemIconProps = {
+  focused?: boolean
+}
+
 export type NavMenuItem = {
   title: string
-  icon: React.ComponentType
+  icon: React.ComponentType<NavMenuItemIconProps>
   url: Href | ''
   isSoon: boolean
   platform: PLATFORM

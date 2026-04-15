@@ -26,7 +26,7 @@ type SSCameraModalProps = {
   visible: boolean
   onClose: () => void
   onContentScanned: (content: DetectedContent) => void
-  context: 'bitcoin' | 'lightning' | 'ecash'
+  context: 'bitcoin' | 'lightning' | 'ecash' | 'nostr'
   title?: string
 }
 

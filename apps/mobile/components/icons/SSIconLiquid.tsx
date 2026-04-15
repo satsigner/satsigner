@@ -5,8 +5,9 @@ type IconProps = Pick<SvgProps, 'width' | 'height' | 'color'>
 export default function SSIconLiquid({
   width = 10,
   height = 18,
-  color = '#fff'
-}: IconProps) {
+  color = '#fff',
+  focused: _focused
+}: IconProps & { focused?: boolean }) {
   return (
     <Svg width={width} height={height} viewBox="0 0 10 18" fill="none">
       <Mask id="a" fill={color}>

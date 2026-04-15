@@ -5,8 +5,9 @@ type IconProps = Pick<SvgProps, 'width' | 'height' | 'color'>
 export default function SSIconHalving({
   width = 18,
   height = 17,
-  color = '#909090'
-}: IconProps) {
+  color = '#909090',
+  focused: _focused
+}: IconProps & { focused?: boolean }) {
   return (
     <Svg width={width} height={height} viewBox="0 0 18 17" fill="none">
       <G filter="url(#filter0_i_1_116)">

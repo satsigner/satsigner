@@ -14,8 +14,9 @@ const DEFAULT_SIZE = 22
 export default function SSIconNostr({
   width = DEFAULT_SIZE,
   height = DEFAULT_SIZE,
-  color = 'white'
-}: IconProps) {
+  color = 'white',
+  focused: _focused
+}: IconProps & { focused?: boolean }) {
   const renderMin =
     typeof width === 'number' &&
     typeof height === 'number' &&

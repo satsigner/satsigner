@@ -7,7 +7,7 @@ import {
 } from '@/utils/contentDetector'
 
 type UseContentHandlerProps = {
-  context: 'bitcoin' | 'lightning' | 'ecash'
+  context: 'bitcoin' | 'lightning' | 'ecash' | 'nostr'
   onContentScanned: (content: DetectedContent) => void
   onSend: () => void
   onReceive: () => void

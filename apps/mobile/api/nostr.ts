@@ -44,10 +44,14 @@ function getProfileFromKind0Content(
             : undefined
     const picture =
       typeof content.picture === 'string' ? content.picture : undefined
-    if (!displayName && !picture) {
+    const nip05 =
+      typeof content.nip05 === 'string' ? content.nip05 : undefined
+    const lud16 =
+      typeof content.lud16 === 'string' ? content.lud16 : undefined
+    if (!displayName && !picture && !nip05 && !lud16) {
       return null
     }
-    return { displayName, picture }
+    return { displayName, lud16, nip05, picture }
   } catch {
     return null
   }
@@ -228,6 +232,47 @@ export class NostrAPI {
     }
 
     return getProfileFromKind0Content(event.content)
+  }
+
+  async fetchEvent(
+    eventIdHex: string,
+    relayHints?: string[]
+  ): Promise<{
+    content: string
+    pubkey: string
+    kind: number
+    tags: string[][]
+    created_at: number
+  } | null> {
+    await this.connect()
+    if (!this.ndk) return null
+
+    const FETCH_EVENT_TIMEOUT_MS = 15000
+    const filter = {
+      ids: [eventIdHex],
+      limit: 1
+    }
+
+    const fetchOptions = relayHints?.length
+      ? { closeOnEose: true, relayUrls: relayHints }
+      : { closeOnEose: true }
+
+    const event = await Promise.race([
+      this.ndk.fetchEvent(filter, fetchOptions),
+      new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), FETCH_EVENT_TIMEOUT_MS)
+      })
+    ])
+
+    if (!event) return null
+
+    return {
+      content: event.content,
+      created_at: event.created_at ?? 0,
+      kind: event.kind ?? 1,
+      pubkey: event.pubkey,
+      tags: event.tags.map((t) => t.filter((v): v is string => typeof v === 'string'))
+    }
   }
 
   static async generateNostrKeys(): Promise<NostrKeys> {

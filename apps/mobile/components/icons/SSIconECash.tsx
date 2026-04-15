@@ -5,8 +5,9 @@ type IconProps = Pick<SvgProps, 'width' | 'height' | 'color'>
 export default function SSIconECash({
   width = 16,
   height = 18,
-  color = 'white'
-}: IconProps) {
+  color = 'white',
+  focused: _focused
+}: IconProps & { focused?: boolean }) {
   return (
     <Svg width={width} height={height} viewBox="0 0 16 18" fill="none">
       <G id="ecash">

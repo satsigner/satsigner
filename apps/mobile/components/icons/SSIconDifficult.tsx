@@ -5,8 +5,9 @@ type IconProps = Pick<SvgProps, 'width' | 'height' | 'color'>
 export default function SSIconDifficult({
   width = 17,
   height = 17,
-  color = '#DCDCDC'
-}: IconProps) {
+  color = '#DCDCDC',
+  focused: _focused
+}: IconProps & { focused?: boolean }) {
   return (
     <Svg width={width} height={height} viewBox="0 0 17 17" fill="none">
       <G filter="url(#filter0_i_1_108)">

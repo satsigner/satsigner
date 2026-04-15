@@ -40,6 +40,11 @@ export type ContentType =
   | 'ur'
   | 'bitcoin_descriptor'
   | 'extended_public_key'
+  | 'nostr_npub'
+  | 'nostr_nsec'
+  | 'nostr_note'
+  | 'nostr_nevent'
+  | 'nostr_json'
   | 'incompatible'
   | 'unknown'
 
@@ -267,6 +272,68 @@ function detectEcashContent(data: string): DetectedContent | null {
   return null
 }
 
+function detectNostrContent(data: string): DetectedContent | null {
+  const trimmed = data.trim()
+  const lower = trimmed.toLowerCase()
+
+  if (lower.startsWith('npub1') && trimmed.length >= 60) {
+    return {
+      cleaned: trimmed,
+      isValid: true,
+      raw: data,
+      type: 'nostr_npub'
+    }
+  }
+
+  if (lower.startsWith('nsec1') && trimmed.length >= 60) {
+    return {
+      cleaned: trimmed,
+      isValid: true,
+      raw: data,
+      type: 'nostr_nsec'
+    }
+  }
+
+  if (lower.startsWith('note1') && trimmed.length >= 60) {
+    return {
+      cleaned: trimmed,
+      isValid: true,
+      raw: data,
+      type: 'nostr_note'
+    }
+  }
+
+  if (lower.startsWith('nevent1') && trimmed.length >= 60) {
+    return {
+      cleaned: trimmed,
+      isValid: true,
+      raw: data,
+      type: 'nostr_nevent'
+    }
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as Record<string, unknown>
+    if (
+      typeof parsed.kind === 'number' &&
+      typeof parsed.content === 'string' &&
+      Array.isArray(parsed.tags)
+    ) {
+      return {
+        cleaned: trimmed,
+        isValid: true,
+        metadata: parsed,
+        raw: data,
+        type: 'nostr_json'
+      }
+    }
+  } catch {
+    /* not JSON */
+  }
+
+  return null
+}
+
 function detectImportContent(data: string): DetectedContent | null {
   const trimmed = data.trim()
 
@@ -306,7 +373,7 @@ function detectImportContent(data: string): DetectedContent | null {
 
 export async function detectContentByContext(
   data: string,
-  context: 'bitcoin' | 'lightning' | 'ecash'
+  context: 'bitcoin' | 'lightning' | 'ecash' | 'nostr'
 ): Promise<DetectedContent> {
   if (!data || data.trim().length === 0) {
     return {
@@ -348,6 +415,13 @@ export async function detectContentByContext(
         }
       }
       break
+    case 'nostr':
+      detected = detectNostrContent(data)
+      if (!detected) {
+        detected =
+          detectLightningContent(data) || detectEcashContent(data)
+      }
+      break
     default:
       break
   }
@@ -370,7 +444,7 @@ export async function detectContentByContext(
 
 export function isContentTypeSupportedInContext(
   contentType: ContentType,
-  context: 'bitcoin' | 'lightning' | 'ecash'
+  context: 'bitcoin' | 'lightning' | 'ecash' | 'nostr'
 ): boolean {
   switch (context) {
     case 'bitcoin':
@@ -385,6 +459,14 @@ export function isContentTypeSupportedInContext(
       return ['lightning_invoice', 'lnurl'].includes(contentType)
     case 'ecash':
       return ['ecash_token', 'lightning_invoice', 'lnurl'].includes(contentType)
+    case 'nostr':
+      return [
+        'nostr_npub',
+        'nostr_nsec',
+        'nostr_note',
+        'nostr_nevent',
+        'nostr_json'
+      ].includes(contentType)
     default:
       return false
   }
@@ -416,6 +498,16 @@ export function getContentTypeDescription(contentType: ContentType): string {
       return 'Seed Phrase QR Code'
     case 'ur':
       return 'Universal Resource'
+    case 'nostr_npub':
+      return 'Nostr Public Key'
+    case 'nostr_nsec':
+      return 'Nostr Private Key'
+    case 'nostr_note':
+      return 'Nostr Note'
+    case 'nostr_nevent':
+      return 'Nostr Event'
+    case 'nostr_json':
+      return 'Nostr JSON Note'
     case 'unknown':
       return 'Unknown Content'
     default:

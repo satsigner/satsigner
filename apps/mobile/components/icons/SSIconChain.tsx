@@ -5,8 +5,9 @@ type IconProps = Pick<SvgProps, 'width' | 'height' | 'color'>
 export default function SSIconChain({
   width = 21,
   height = 25,
-  color = '#909090'
-}: IconProps) {
+  color = '#909090',
+  focused: _focused
+}: IconProps & { focused?: boolean }) {
   return (
     <Svg width={width} height={height} viewBox="0 0 21 25" fill="none">
       <G filter="url(#filter0_i_1_129)">

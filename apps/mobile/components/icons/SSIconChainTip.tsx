@@ -5,8 +5,9 @@ type IconProps = Pick<SvgProps, 'width' | 'height' | 'color'>
 export default function SSIconChainTip({
   width = 30,
   height = 13,
-  color = '#909090'
-}: IconProps) {
+  color = '#909090',
+  focused: _focused
+}: IconProps & { focused?: boolean }) {
   return (
     <Svg width={width} height={height} viewBox="0 0 30 13" fill="none">
       <G opacity={0.24}>
