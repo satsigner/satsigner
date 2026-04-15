@@ -150,8 +150,9 @@ const styles = StyleSheet.create({
     flex: 1
   },
   privacyScreen: {
-    ...StyleSheet.absoluteFillObject,
     backgroundColor: Colors.gray[950],
+    inset: 0,
+    position: 'absolute',
     zIndex: 999
   }
 })
