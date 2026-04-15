@@ -1,6 +1,4 @@
-import * as StatusBar from 'expo-status-bar'
-import { useEffect } from 'react'
-import { Modal, Platform, ScrollView, StyleSheet, View } from 'react-native'
+import { Modal, ScrollView, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { t } from '@/locales'
@@ -16,18 +14,6 @@ type SSWarningModalProps = {
 
 function SSWarningModal({ visible, onClose, children }: SSWarningModalProps) {
   const insets = useSafeAreaInsets()
-
-  useEffect(() => {
-    if (Platform.OS !== 'android') {
-      return
-    }
-    if (!visible) {
-      return StatusBar.setStatusBarBackgroundColor('transparent', false)
-    }
-
-    StatusBar.setStatusBarStyle('light')
-    StatusBar.setStatusBarBackgroundColor('black', false)
-  }, [visible])
 
   return (
     <Modal visible={visible} transparent={false}>

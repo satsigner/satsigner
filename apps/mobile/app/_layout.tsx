@@ -2,7 +2,6 @@ import '@/utils/polyfills'
 import { DarkTheme, ThemeProvider } from '@react-navigation/native'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Slot } from 'expo-router'
-import { setStatusBarStyle } from 'expo-status-bar'
 import * as SystemUI from 'expo-system-ui'
 import { useEffect, useRef, useState } from 'react'
 import {
@@ -51,12 +50,6 @@ export default function RootLayout() {
 
   const appState = useRef(AppState.currentState)
   const [privacyScreenVisible, setPrivacyScreenVisible] = useState(false)
-
-  useEffect(() => {
-    setTimeout(() => {
-      setStatusBarStyle('light')
-    }, 1)
-  }, []) // Workaround for now to set the statusBarStyle
 
   useEffect(() => {
     if (!firstTime) {
