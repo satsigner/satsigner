@@ -2702,47 +2702,49 @@ function PreviewTransaction() {
             setCurrentCosignerIndex(null)
           }}
         >
-          <ScrollView style={{ maxHeight: 600, maxWidth: 400, width: '100%' }}>
-            <View style={{ paddingHorizontal: 16 }}>
-              <SSVStack gap="lg">
-                <SSText center uppercase>
-                  Enter Seed Words
-                </SSText>
-                <SSText center color="muted" size="sm">
-                  Enter your {selectedWordCount}-word mnemonic seed phrase
-                </SSText>
-              </SSVStack>
+          <View style={styles.seedWordsModalBody}>
+            <ScrollView style={{ maxHeight: 600, maxWidth: 400, width: '100%' }}>
+              <View style={{ paddingHorizontal: 16 }}>
+                <SSVStack gap="lg">
+                  <SSText center uppercase>
+                    Enter Seed Words
+                  </SSText>
+                  <SSText center color="muted" size="sm">
+                    Enter your {selectedWordCount}-word mnemonic seed phrase
+                  </SSText>
+                </SSVStack>
 
-              <SSSeedWordsInput
-                wordCount={selectedWordCount}
-                wordListName="english"
-                network={appNetworkToBdkNetwork(network)}
-                onMnemonicValid={handleMnemonicValid}
-                onMnemonicInvalid={handleMnemonicInvalid}
-                showPassphrase
-                showChecksum
-                showFingerprint
-                showPasteButton
-                showScanSeedQRButton
-                showActionButton
-                actionButtonLabel="Sign with Seed Words"
-                actionButtonVariant="secondary"
-                onActionButtonPress={handleSeedWordsSubmit}
-                actionButtonDisabled={false}
-                showCancelButton={false}
-                autoCheckClipboard
-                onWordSelectorStateChange={setWordSelectorState}
-              />
-            </View>
-          </ScrollView>
+                <SSSeedWordsInput
+                  wordCount={selectedWordCount}
+                  wordListName="english"
+                  network={appNetworkToBdkNetwork(network)}
+                  onMnemonicValid={handleMnemonicValid}
+                  onMnemonicInvalid={handleMnemonicInvalid}
+                  showPassphrase
+                  showChecksum
+                  showFingerprint
+                  showPasteButton
+                  showScanSeedQRButton
+                  showActionButton
+                  actionButtonLabel="Sign with Seed Words"
+                  actionButtonVariant="secondary"
+                  onActionButtonPress={handleSeedWordsSubmit}
+                  actionButtonDisabled={false}
+                  showCancelButton={false}
+                  autoCheckClipboard
+                  onWordSelectorStateChange={setWordSelectorState}
+                />
+              </View>
+            </ScrollView>
+            <SSKeyboardWordSelector
+              visible={wordSelectorState.visible}
+              wordStart={wordSelectorState.wordStart}
+              wordListName="english"
+              onWordSelected={wordSelectorState.onWordSelected}
+              style={{ height: 60 }}
+            />
+          </View>
         </SSModal>
-        <SSKeyboardWordSelector
-          visible={wordSelectorState.visible}
-          wordStart={wordSelectorState.wordStart}
-          wordListName="english"
-          onWordSelected={wordSelectorState.onWordSelected}
-          style={{ height: 60 }}
-        />
       </SSMainLayout>
     </>
   )
@@ -2750,7 +2752,13 @@ function PreviewTransaction() {
 
 const styles = StyleSheet.create({
   mainLayout: { paddingBottom: 20, paddingTop: 0 },
-  modalStack: { marginVertical: 32, paddingHorizontal: 32, width: '100%' }
+  modalStack: { marginVertical: 32, paddingHorizontal: 32, width: '100%' },
+  seedWordsModalBody: {
+    flex: 1,
+    maxWidth: 400,
+    position: 'relative',
+    width: '100%'
+  }
 })
 
 export default PreviewTransaction
