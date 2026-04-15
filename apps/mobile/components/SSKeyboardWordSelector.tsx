@@ -8,13 +8,13 @@ import {
   View,
   type ViewStyle
 } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated, {
   interpolate,
   useAnimatedStyle,
   useSharedValue,
   withTiming
 } from 'react-native-reanimated'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import useKeyboardHeight from '@/hooks/useKeyboardHeight'
 import usePrevious from '@/hooks/usePrevious'

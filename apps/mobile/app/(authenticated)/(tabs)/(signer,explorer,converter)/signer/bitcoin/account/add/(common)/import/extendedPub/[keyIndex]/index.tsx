@@ -1,10 +1,10 @@
-import { URDecoder } from "@ngraveio/bc-ur";
-import * as CBOR from "cbor-js";
-import { CameraView, useCameraPermissions } from "expo-camera";
-import * as Clipboard from "expo-clipboard";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
-import { Keyboard, ScrollView, StyleSheet, View } from "react-native";
+import { URDecoder } from '@ngraveio/bc-ur'
+import * as CBOR from 'cbor-js'
+import { CameraView, useCameraPermissions } from 'expo-camera'
+import * as Clipboard from 'expo-clipboard'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useEffect, useRef, useState } from 'react'
+import { Keyboard, ScrollView, StyleSheet, View } from 'react-native'
 import Animated, {
   cancelAnimation,
   interpolate,
@@ -12,40 +12,40 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withSequence,
-  withTiming,
-} from "react-native-reanimated";
-import { toast } from "sonner-native";
-import { useShallow } from "zustand/react/shallow";
+  withTiming
+} from 'react-native-reanimated'
+import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
-import { parseDescriptor } from "@/api/bdk";
-import SSButton from "@/components/SSButton";
-import SSModal from "@/components/SSModal";
-import SSText from "@/components/SSText";
-import SSTextInput from "@/components/SSTextInput";
-import { useNFCReader } from "@/hooks/useNFCReader";
-import SSHStack from "@/layouts/SSHStack";
-import SSMainLayout from "@/layouts/SSMainLayout";
-import SSVStack from "@/layouts/SSVStack";
-import { t } from "@/locales";
-import { useAccountBuilderStore } from "@/store/accountBuilder";
-import { useBlockchainStore } from "@/store/blockchain";
-import { Colors } from "@/styles";
-import { decodeBBQRChunks, isBBQRFragment } from "@/utils/bbqr";
+import { parseDescriptor } from '@/api/bdk'
+import SSButton from '@/components/SSButton'
+import SSModal from '@/components/SSModal'
+import SSText from '@/components/SSText'
+import SSTextInput from '@/components/SSTextInput'
+import { useNFCReader } from '@/hooks/useNFCReader'
+import SSHStack from '@/layouts/SSHStack'
+import SSMainLayout from '@/layouts/SSMainLayout'
+import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
+import { useAccountBuilderStore } from '@/store/accountBuilder'
+import { useBlockchainStore } from '@/store/blockchain'
+import { Colors } from '@/styles'
+import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import {
   convertKeyFormat,
   getDerivationPathFromScriptVersion,
-  getMultisigDerivationPathFromScriptVersion,
-} from "@/utils/bitcoin";
-import { validateExtendedKey, validateFingerprint } from "@/utils/validation";
+  getMultisigDerivationPathFromScriptVersion
+} from '@/utils/bitcoin'
+import { validateExtendedKey, validateFingerprint } from '@/utils/validation'
 
 type ImportExtendedPubSearchParams = {
-  keyIndex: string;
-};
+  keyIndex: string
+}
 
 export default function ImportExtendedPub() {
-  const { keyIndex } = useLocalSearchParams<ImportExtendedPubSearchParams>();
-  const router = useRouter();
-  const network = useBlockchainStore((state) => state.selectedNetwork);
+  const { keyIndex } = useLocalSearchParams<ImportExtendedPubSearchParams>()
+  const router = useRouter()
+  const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const [
     setExtendedPublicKey,
@@ -55,7 +55,7 @@ export default function ImportExtendedPub() {
     setKeyDerivationPath,
     policyType,
     scriptVersion,
-    builderNetwork,
+    builderNetwork
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.setExtendedPublicKey,
@@ -65,44 +65,42 @@ export default function ImportExtendedPub() {
       state.setKeyDerivationPath,
       state.policyType,
       state.scriptVersion,
-      state.network,
+      state.network
     ])
-  );
+  )
 
   const { isHardwareSupported, isReading, readNFCTag, cancelNFCScan } =
-    useNFCReader();
-  const [cameraModalVisible, setCameraModalVisible] = useState(false);
-  const [permission, requestPermission] = useCameraPermissions();
-  const [scanningFor, setScanningFor] = useState<"main" | "fingerprint">(
-    "main"
-  );
+    useNFCReader()
+  const [cameraModalVisible, setCameraModalVisible] = useState(false)
+  const [permission, requestPermission] = useCameraPermissions()
+  const [scanningFor, setScanningFor] = useState<'main' | 'fingerprint'>('main')
 
   // State for import data
-  const [xpub, setXpub] = useState("");
-  const [localFingerprint, setLocalFingerprint] = useState("");
+  const [xpub, setXpub] = useState('')
+  const [localFingerprint, setLocalFingerprint] = useState('')
 
   // Validation state
-  const [disabled, setDisabled] = useState(true);
-  const [validXpub, setValidXpub] = useState(true);
-  const [validMasterFingerprint, setValidMasterFingerprint] = useState(true);
-  const [xpubError, setXpubError] = useState("");
+  const [disabled, setDisabled] = useState(true)
+  const [validXpub, setValidXpub] = useState(true)
+  const [validMasterFingerprint, setValidMasterFingerprint] = useState(true)
+  const [xpubError, setXpubError] = useState('')
 
   // Multipart QR scanning state
-  const urDecoderRef = useRef<URDecoder>(new URDecoder());
+  const urDecoderRef = useRef<URDecoder>(new URDecoder())
   const [scanProgress, setScanProgress] = useState<{
-    type: "raw" | "ur" | "bbqr" | null;
-    total: number;
-    scanned: Set<number>;
-    chunks: Map<number, string>;
+    type: 'raw' | 'ur' | 'bbqr' | null
+    total: number
+    scanned: Set<number>
+    chunks: Map<number, string>
   }>({
     chunks: new Map(),
     scanned: new Set(),
     total: 0,
-    type: null,
-  });
+    type: null
+  })
 
-  const pulseAnim = useSharedValue(0);
-  const scaleAnim = useSharedValue(1);
+  const pulseAnim = useSharedValue(0)
+  const scaleAnim = useSharedValue(1)
 
   useEffect(() => {
     if (isReading) {
@@ -114,7 +112,7 @@ export default function ImportExtendedPub() {
           ),
           -1
         )
-      );
+      )
       scaleAnim.set(
         withRepeat(
           withSequence(
@@ -123,37 +121,37 @@ export default function ImportExtendedPub() {
           ),
           -1
         )
-      );
+      )
       return () => {
-        cancelAnimation(pulseAnim);
-        cancelAnimation(scaleAnim);
-      };
+        cancelAnimation(pulseAnim)
+        cancelAnimation(scaleAnim)
+      }
     }
-    pulseAnim.set(0);
-    scaleAnim.set(1);
-  }, [isReading, pulseAnim, scaleAnim]);
+    pulseAnim.set(0)
+    scaleAnim.set(1)
+  }, [isReading, pulseAnim, scaleAnim])
 
   const nfcButtonStyle = useAnimatedStyle(() => ({
     opacity: interpolate(pulseAnim.value, [0, 1], [1, 0.7]),
-    overflow: "hidden" as const,
-    transform: [{ scale: scaleAnim.value }],
-  }));
+    overflow: 'hidden' as const,
+    transform: [{ scale: scaleAnim.value }]
+  }))
 
   function updateMasterFingerprint(fingerprint: string) {
-    const validFingerprint = validateFingerprint(fingerprint);
-    setValidMasterFingerprint(!fingerprint || validFingerprint);
-    setDisabled(!validXpub || !validFingerprint);
-    setLocalFingerprint(fingerprint);
+    const validFingerprint = validateFingerprint(fingerprint)
+    setValidMasterFingerprint(!fingerprint || validFingerprint)
+    setDisabled(!validXpub || !validFingerprint)
+    setLocalFingerprint(fingerprint)
     if (validFingerprint) {
-      setFingerprint(fingerprint);
-      Keyboard.dismiss();
+      setFingerprint(fingerprint)
+      Keyboard.dismiss()
     }
   }
 
   function updateXpub(xpub: string) {
-    const validXpub = validateExtendedKey(xpub, network);
-    setValidXpub(!xpub || validXpub);
-    setXpub(xpub);
+    const validXpub = validateExtendedKey(xpub, network)
+    setValidXpub(!xpub || validXpub)
+    setXpub(xpub)
 
     // For multisig accounts, use the script version from the store instead of auto-detecting
     // The script type should be determined by the multisig configuration, not the xpub prefix
@@ -162,88 +160,88 @@ export default function ImportExtendedPub() {
       const derivationPath = getDerivationPathFromScriptVersion(
         scriptVersion,
         network
-      );
-      const formattedXpub = `[${localFingerprint}/${derivationPath}]${xpub}/0/*`;
-      setExtendedPublicKey(formattedXpub);
+      )
+      const formattedXpub = `[${localFingerprint}/${derivationPath}]${xpub}/0/*`
+      setExtendedPublicKey(formattedXpub)
       // Don't change the script version - keep the one from the store
     }
 
-    setDisabled(!validXpub || !localFingerprint);
+    setDisabled(!validXpub || !localFingerprint)
 
     // Clear previous error first
-    setXpubError("");
+    setXpubError('')
 
     // Show error message if validation fails
     if (xpub && !validXpub) {
-      const errorMessage = t("account.import.error.descriptorFormat");
-      setXpubError(errorMessage);
-      toast.error(errorMessage);
+      const errorMessage = t('account.import.error.descriptorFormat')
+      setXpubError(errorMessage)
+      toast.error(errorMessage)
     }
   }
 
   function convertVpubToTpub(vpub: string): string {
     // If it's not a vpub, return as is
-    if (!vpub.startsWith("vpub")) {
-      return vpub;
+    if (!vpub.startsWith('vpub')) {
+      return vpub
     }
 
     // Use the network-aware conversion utility
-    return convertKeyFormat(vpub, "tpub", network);
+    return convertKeyFormat(vpub, 'tpub', network)
   }
 
   // Helper functions for QR code detection and parsing
   const detectQRType = (data: string) => {
     // Check for RAW format (pXofY header)
     if (/^p\d+of\d+\s/.test(data)) {
-      const match = data.match(/^p(\d+)of(\d+)\s/);
+      const match = data.match(/^p(\d+)of(\d+)\s/)
       if (match) {
         return {
           content: data.substring(match[0].length),
           current: parseInt(match[1], 10) - 1, // Convert to 0-based index
           total: parseInt(match[2], 10),
-          type: "raw" as const,
-        };
+          type: 'raw' as const
+        }
       }
     }
 
     // Check for BBQR format
     if (isBBQRFragment(data)) {
-      const total = parseInt(data.slice(4, 6), 36);
-      const current = parseInt(data.slice(6, 8), 36);
+      const total = parseInt(data.slice(4, 6), 36)
+      const current = parseInt(data.slice(6, 8), 36)
       return {
         content: data,
         current,
         total,
-        type: "bbqr" as const,
-      };
+        type: 'bbqr' as const
+      }
     }
 
     // Check for UR format (crypto-account, crypto-psbt, etc.)
-    if (data.toLowerCase().startsWith("ur:crypto-")) {
+    if (data.toLowerCase().startsWith('ur:crypto-')) {
       // UR format: ur:crypto-*/[sequence]/[data] for multi-part
       // or ur:crypto-*/[data] for single part
-      const urMatch = data.match(/^ur:crypto-[^/]+\/(?:(\d+)-(\d+)\/)?(.+)$/i);
+      const urMatch = data.match(/^ur:crypto-[^/]+\/(?:(\d+)-(\d+)\/)?(.+)$/i)
       if (urMatch) {
-        const [, currentStr, totalStr] = urMatch;
+        const [, currentStr, totalStr] = urMatch
 
         if (currentStr && totalStr) {
           // Multi-part UR
-          const current = parseInt(currentStr, 10) - 1; // Convert to 0-based index
-          const total = parseInt(totalStr, 10);
+          const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
+          const total = parseInt(totalStr, 10)
           return {
             content: data,
             current,
             total,
-            type: "ur" as const,
-          };
+            type: 'ur' as const
+          }
         }
         // Single-part UR
         return {
           content: data,
           current: 0,
           total: 1,
-          type: "ur" as const,
-        };
+          type: 'ur' as const
+        }
       }
     }
 
@@ -252,433 +250,433 @@ export default function ImportExtendedPub() {
       content: data,
       current: 0,
       total: 1,
-      type: "single" as const,
-    };
-  };
+      type: 'single' as const
+    }
+  }
 
   function resetScanProgress() {
     setScanProgress({
       chunks: new Map(),
       scanned: new Set(),
       total: 0,
-      type: null,
-    });
-    urDecoderRef.current = new URDecoder();
+      type: null
+    })
+    urDecoderRef.current = new URDecoder()
   }
 
   function decodeURCryptoAccount(urData: Uint8Array): { xpub?: string } | null {
     try {
-      const decoded = CBOR.decode(new Uint8Array(urData.buffer));
-      return decoded as { xpub?: string };
+      const decoded = CBOR.decode(new Uint8Array(urData.buffer))
+      return decoded as { xpub?: string }
     } catch {
-      return null;
+      return null
     }
   }
 
   const assembleMultiPartQR = (
-    type: "raw" | "ur" | "bbqr",
+    type: 'raw' | 'ur' | 'bbqr',
     chunks: Map<number, string>
   ): string | null => {
     try {
-      if (type === "raw") {
+      if (type === 'raw') {
         // For RAW format, just concatenate the chunks in order
         const sortedChunks = Array.from(chunks.entries())
           .toSorted(([a], [b]) => a - b)
-          .map(([, content]) => content);
-        return sortedChunks.join("");
-      } else if (type === "bbqr") {
+          .map(([, content]) => content)
+        return sortedChunks.join('')
+      } else if (type === 'bbqr') {
         // For BBQR, decode the assembled chunks
         const sortedChunks = Array.from(chunks.entries())
           .toSorted(([a], [b]) => a - b)
-          .map(([, content]) => content);
-        const decoded = decodeBBQRChunks(sortedChunks);
+          .map(([, content]) => content)
+        const decoded = decodeBBQRChunks(sortedChunks)
         if (decoded) {
-          return Buffer.from(decoded).toString("hex");
+          return Buffer.from(decoded).toString('hex')
         }
-        return null;
-      } else if (type === "ur" && urDecoderRef.current.isComplete()) {
+        return null
+      } else if (type === 'ur' && urDecoderRef.current.isComplete()) {
         // For UR, the decoder should have assembled everything
-        const result = urDecoderRef.current.resultUR();
+        const result = urDecoderRef.current.resultUR()
         if (result && result.cbor) {
-          return result.cbor.toString("hex");
+          return result.cbor.toString('hex')
         }
       }
-      return null;
+      return null
     } catch {
-      return null;
+      return null
     }
-  };
+  }
 
   function handleConfirm() {
     if (!validXpub || !validMasterFingerprint) {
-      toast.error(t("watchonly.error.invalidInput"));
-      return;
+      toast.error(t('watchonly.error.invalidInput'))
+      return
     }
 
     try {
       // Convert vpub to tpub if needed
-      const convertedXpub = convertVpubToTpub(xpub);
+      const convertedXpub = convertVpubToTpub(xpub)
       if (xpub !== convertedXpub) {
         toast.info(
-          t("watchonly.info.vpubConverted", {
+          t('watchonly.info.vpubConverted', {
             tpub: `${convertedXpub.slice(0, 8)}...`,
-            vpub: `${xpub.slice(0, 8)}...`,
+            vpub: `${xpub.slice(0, 8)}...`
           })
-        );
+        )
       }
 
       // Extract derivation path from extended public key
-      let derivationPath = "";
+      let derivationPath = ''
 
-      if (policyType === "multisig") {
+      if (policyType === 'multisig') {
         // For multisig accounts, always use our multisig derivation path logic
         const rawDerivationPath = getMultisigDerivationPathFromScriptVersion(
           scriptVersion,
           builderNetwork
-        );
-        derivationPath = `m/${rawDerivationPath}`;
+        )
+        derivationPath = `m/${rawDerivationPath}`
       } else {
         // For single-sig accounts, try to extract from descriptor first
         try {
           // Create a descriptor from the extended public key to extract derivation path
-          const descriptorString = `pkh(${convertedXpub})`;
-          const parsedDescriptor = parseDescriptor(descriptorString);
-          derivationPath = parsedDescriptor.derivationPath;
+          const descriptorString = `pkh(${convertedXpub})`
+          const parsedDescriptor = parseDescriptor(descriptorString)
+          derivationPath = parsedDescriptor.derivationPath
         } catch {
           // Use default derivation path if extraction fails
           const rawDerivationPath = getDerivationPathFromScriptVersion(
             scriptVersion,
             builderNetwork
-          );
-          derivationPath = `m/${rawDerivationPath}`;
+          )
+          derivationPath = `m/${rawDerivationPath}`
         }
       }
 
       // Set the data in the store
-      setExtendedPublicKey(convertedXpub);
+      setExtendedPublicKey(convertedXpub)
       if (localFingerprint) {
-        setFingerprint(localFingerprint);
+        setFingerprint(localFingerprint)
       }
 
       // Create the key
-      setKey(Number(keyIndex));
+      setKey(Number(keyIndex))
 
       // Set the derivation path for this key
-      setKeyDerivationPath(Number(keyIndex), derivationPath);
+      setKeyDerivationPath(Number(keyIndex), derivationPath)
 
-      clearKeyState();
+      clearKeyState()
 
-      toast.success(t("account.import.success"));
-      router.dismiss(1);
+      toast.success(t('account.import.success'))
+      router.dismiss(1)
     } catch {
-      toast.error(t("account.import.error.generic"));
+      toast.error(t('account.import.error.generic'))
     }
   }
 
   async function pasteFromClipboard() {
     try {
-      const clipboardContent = await Clipboard.getStringAsync();
+      const clipboardContent = await Clipboard.getStringAsync()
       if (!clipboardContent) {
-        toast.error(t("watchonly.error.emptyClipboard"));
-        return;
+        toast.error(t('watchonly.error.emptyClipboard'))
+        return
       }
 
-      const finalContent = clipboardContent.trim();
-      updateXpub(finalContent);
-      toast.success(t("watchonly.success.clipboardPasted"));
+      const finalContent = clipboardContent.trim()
+      updateXpub(finalContent)
+      toast.success(t('watchonly.success.clipboardPasted'))
     } catch {
-      toast.error(t("watchonly.error.clipboardPaste"));
+      toast.error(t('watchonly.error.clipboardPaste'))
     }
   }
 
   async function pasteFingerprintFromClipboard() {
     try {
-      const clipboardContent = await Clipboard.getStringAsync();
+      const clipboardContent = await Clipboard.getStringAsync()
       if (!clipboardContent) {
-        toast.error(t("watchonly.error.emptyClipboard"));
-        return;
+        toast.error(t('watchonly.error.emptyClipboard'))
+        return
       }
 
-      const finalContent = clipboardContent.trim();
-      updateMasterFingerprint(finalContent);
-      toast.success(t("watchonly.success.clipboardPasted"));
+      const finalContent = clipboardContent.trim()
+      updateMasterFingerprint(finalContent)
+      toast.success(t('watchonly.success.clipboardPasted'))
     } catch {
-      toast.error(t("watchonly.error.clipboardPaste"));
+      toast.error(t('watchonly.error.clipboardPaste'))
     }
   }
 
   async function handleNFCRead() {
     if (isReading) {
-      await cancelNFCScan();
-      return;
+      await cancelNFCScan()
+      return
     }
 
     try {
-      const nfcData = await readNFCTag();
+      const nfcData = await readNFCTag()
 
       if (!nfcData) {
-        toast.error(t("watchonly.read.nfcErrorNoData"));
-        return;
+        toast.error(t('watchonly.read.nfcErrorNoData'))
+        return
       }
 
       if (!nfcData.text) {
-        toast.error(t("watchonly.read.nfcErrorNoData"));
-        return;
+        toast.error(t('watchonly.read.nfcErrorNoData'))
+        return
       }
 
       const text = nfcData.text
         .trim()
-        .replace(/[^\S\n]+/g, "") // Remove all whitespace except newlines
-        .replace(/[\u200B-\u200D\uFEFF]/g, "") // Remove zero-width spaces and other invisible characters
+        .replace(/[^\S\n]+/g, '') // Remove all whitespace except newlines
+        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
         // eslint-disable-next-line no-control-regex
-        .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, "") // Remove control characters except \n
-        .normalize("NFKC") // Normalize unicode characters
-        .replace(/^en/, "");
+        .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
+        .normalize('NFKC') // Normalize unicode characters
+        .replace(/^en/, '')
 
-      updateXpub(text);
-      toast.success(t("watchonly.success.nfcRead"));
+      updateXpub(text)
+      toast.success(t('watchonly.success.nfcRead'))
     } catch {
-      toast.error(t("watchonly.error.nfcRead"));
+      toast.error(t('watchonly.error.nfcRead'))
     }
   }
 
   function handleQRCodeScanned(data: string | undefined) {
     if (!data) {
-      toast.error(t("watchonly.read.qrError"));
-      return;
+      toast.error(t('watchonly.read.qrError'))
+      return
     }
 
     // Handle fingerprint scanning
-    if (scanningFor === "fingerprint") {
-      updateMasterFingerprint(data);
-      setCameraModalVisible(false);
-      toast.success(t("watchonly.success.qrScanned"));
-      return;
+    if (scanningFor === 'fingerprint') {
+      updateMasterFingerprint(data)
+      setCameraModalVisible(false)
+      toast.success(t('watchonly.success.qrScanned'))
+      return
     }
 
     // Detect QR code type and format
-    const qrInfo = detectQRType(data);
+    const qrInfo = detectQRType(data)
 
     // Handle single QR codes (complete data in one scan)
-    if (qrInfo.type === "single" || qrInfo.total === 1) {
-      let finalContent = qrInfo.content;
+    if (qrInfo.type === 'single' || qrInfo.total === 1) {
+      let finalContent = qrInfo.content
 
       // Check if the scanned data is a valid fingerprint (8 bytes hex)
-      const fingerprintRegex = /^[0-9a-fA-F]{8}$/;
+      const fingerprintRegex = /^[0-9a-fA-F]{8}$/
       if (fingerprintRegex.test(qrInfo.content)) {
-        updateMasterFingerprint(qrInfo.content);
-        setCameraModalVisible(false);
-        return;
+        updateMasterFingerprint(qrInfo.content)
+        setCameraModalVisible(false)
+        return
       }
 
       try {
         // Check if it's a single BBQR QR code
         if (isBBQRFragment(qrInfo.content)) {
-          const decoded = decodeBBQRChunks([qrInfo.content]);
+          const decoded = decodeBBQRChunks([qrInfo.content])
 
           if (decoded) {
             // Try to convert binary data to string first (for descriptors)
             try {
-              const stringResult = Buffer.from(decoded).toString("utf8");
-              finalContent = stringResult;
+              const stringResult = Buffer.from(decoded).toString('utf8')
+              finalContent = stringResult
             } catch {
               // Fallback to hex if string conversion fails
-              const hexResult = Buffer.from(decoded).toString("hex");
-              finalContent = hexResult;
+              const hexResult = Buffer.from(decoded).toString('hex')
+              finalContent = hexResult
             }
           } else {
-            toast.error("Failed to decode BBQR QR code");
-            return;
+            toast.error('Failed to decode BBQR QR code')
+            return
           }
         }
         // Check if it looks like base64 PSBT (starts with cHNidP)
-        else if (qrInfo.content.startsWith("cHNidP")) {
-          const hexResult = Buffer.from(qrInfo.content, "base64").toString(
-            "hex"
-          );
-          finalContent = hexResult;
+        else if (qrInfo.content.startsWith('cHNidP')) {
+          const hexResult = Buffer.from(qrInfo.content, 'base64').toString(
+            'hex'
+          )
+          finalContent = hexResult
         }
         // Check if it's a single UR QR code
-        else if (qrInfo.content.toLowerCase().startsWith("ur:crypto-")) {
+        else if (qrInfo.content.toLowerCase().startsWith('ur:crypto-')) {
           try {
-            const success = urDecoderRef.current.receivePart(qrInfo.content);
+            const success = urDecoderRef.current.receivePart(qrInfo.content)
             if (success && urDecoderRef.current.isComplete()) {
-              const result = urDecoderRef.current.resultUR();
+              const result = urDecoderRef.current.resultUR()
 
               if (result && result.cbor) {
                 const decodedAccount = decodeURCryptoAccount(
                   new Uint8Array(result.cbor)
-                );
+                )
 
                 if (decodedAccount && decodedAccount.xpub) {
                   // Extract the fingerprint and xpub separately
-                  const xpubWithPrefix = decodedAccount.xpub;
+                  const xpubWithPrefix = decodedAccount.xpub
 
                   // Extract fingerprint from the prefix [fingerprint/derivation]xpub
                   // Try multiple patterns to extract fingerprint
-                  let extractedFingerprint = null;
+                  let extractedFingerprint = null
 
                   // Pattern 1: [fingerprint/derivation]xpub (with slash separator)
                   const fingerprintMatch1 = xpubWithPrefix.match(
                     /^\[([0-9a-fA-F]{8})\//
-                  );
+                  )
                   if (fingerprintMatch1) {
-                    [, extractedFingerprint] = fingerprintMatch1;
+                    ;[, extractedFingerprint] = fingerprintMatch1
                   }
 
                   // Pattern 2: [fingerprintderivation]xpub (no slash separator - legacy)
                   if (!extractedFingerprint) {
                     const fingerprintMatch2 =
-                      xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})/);
+                      xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})/)
                     if (fingerprintMatch2) {
-                      [, extractedFingerprint] = fingerprintMatch2;
+                      ;[, extractedFingerprint] = fingerprintMatch2
                     }
                   }
 
                   // Pattern 3: [fingerprint...]xpub (any length hex - fallback)
                   if (!extractedFingerprint) {
                     const fingerprintMatch3 =
-                      xpubWithPrefix.match(/^\[([0-9a-fA-F]+)/);
+                      xpubWithPrefix.match(/^\[([0-9a-fA-F]+)/)
                     if (fingerprintMatch3) {
-                      [, extractedFingerprint] = fingerprintMatch3;
+                      ;[, extractedFingerprint] = fingerprintMatch3
                     }
                   }
 
                   if (extractedFingerprint) {
-                    updateMasterFingerprint(extractedFingerprint);
+                    updateMasterFingerprint(extractedFingerprint)
                   }
 
                   // Extract just the xpub part (remove the [fingerprint/derivation] prefix)
                   const xpubMatch = xpubWithPrefix.match(
                     /\]([txyzuv]pub[a-zA-Z0-9]{107})$/
-                  );
+                  )
                   if (xpubMatch) {
-                    const [, extractedXpub] = xpubMatch;
-                    updateXpub(extractedXpub);
+                    const [, extractedXpub] = xpubMatch
+                    updateXpub(extractedXpub)
                   } else {
                     // Fallback: use the full string if parsing fails
-                    updateXpub(xpubWithPrefix);
+                    updateXpub(xpubWithPrefix)
                   }
 
-                  toast.success("Crypto account imported successfully");
-                  setCameraModalVisible(false);
-                  return;
+                  toast.success('Crypto account imported successfully')
+                  setCameraModalVisible(false)
+                  return
                 }
-                toast.error("No extended public key found in crypto account");
-                return;
+                toast.error('No extended public key found in crypto account')
+                return
               }
             }
           } catch {
-            toast.error("Failed to decode UR crypto account");
-            return;
+            toast.error('Failed to decode UR crypto account')
+            return
           }
         }
 
         // Process the final content
-        updateXpub(finalContent);
-        setCameraModalVisible(false);
-        toast.success(t("watchonly.success.qrScanned"));
+        updateXpub(finalContent)
+        setCameraModalVisible(false)
+        toast.success(t('watchonly.success.qrScanned'))
       } catch {
-        toast.error(t("watchonly.read.qrError"));
+        toast.error(t('watchonly.read.qrError'))
       }
     } else {
       // Handle multi-part QR codes
-      const { type, current, total, content } = qrInfo;
-      const newScanned = new Set(scanProgress.scanned);
-      const newChunks = new Map(scanProgress.chunks);
+      const { type, current, total, content } = qrInfo
+      const newScanned = new Set(scanProgress.scanned)
+      const newChunks = new Map(scanProgress.chunks)
 
-      newScanned.add(current);
-      newChunks.set(current, content);
+      newScanned.add(current)
+      newChunks.set(current, content)
 
       setScanProgress({
         chunks: newChunks,
         scanned: newScanned,
         total,
-        type,
-      });
+        type
+      })
 
       // For UR fountain encoding, we can assemble as we go
-      if (type === "ur") {
+      if (type === 'ur') {
         try {
-          const success = urDecoderRef.current.receivePart(content);
+          const success = urDecoderRef.current.receivePart(content)
           if (success && urDecoderRef.current.isComplete()) {
             // All parts received, process the result
-            const result = urDecoderRef.current.resultUR();
+            const result = urDecoderRef.current.resultUR()
 
             if (result && result.cbor) {
               const decodedAccount = decodeURCryptoAccount(
                 new Uint8Array(result.cbor)
-              );
+              )
 
               if (decodedAccount && decodedAccount.xpub) {
                 // Extract the fingerprint and xpub separately
-                const xpubWithPrefix = decodedAccount.xpub;
+                const xpubWithPrefix = decodedAccount.xpub
 
                 // Extract fingerprint from the prefix [fingerprint/derivation]xpub
-                let extractedFingerprint = null;
+                let extractedFingerprint = null
                 const fingerprintMatch1 = xpubWithPrefix.match(
                   /^\[([0-9a-fA-F]{8})\//
-                );
+                )
                 if (fingerprintMatch1) {
-                  [, extractedFingerprint] = fingerprintMatch1;
+                  ;[, extractedFingerprint] = fingerprintMatch1
                 }
 
                 if (!extractedFingerprint) {
                   const fingerprintMatch2 =
-                    xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})/);
+                    xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})/)
                   if (fingerprintMatch2) {
-                    [, extractedFingerprint] = fingerprintMatch2;
+                    ;[, extractedFingerprint] = fingerprintMatch2
                   }
                 }
 
                 if (!extractedFingerprint) {
                   const fingerprintMatch3 =
-                    xpubWithPrefix.match(/^\[([0-9a-fA-F]+)/);
+                    xpubWithPrefix.match(/^\[([0-9a-fA-F]+)/)
                   if (fingerprintMatch3) {
-                    [, extractedFingerprint] = fingerprintMatch3;
+                    ;[, extractedFingerprint] = fingerprintMatch3
                   }
                 }
 
                 if (extractedFingerprint) {
-                  updateMasterFingerprint(extractedFingerprint);
+                  updateMasterFingerprint(extractedFingerprint)
                 }
 
                 // Extract just the xpub part
                 const xpubMatch = xpubWithPrefix.match(
                   /\]([txyzuv]pub[a-zA-Z0-9]{107})$/
-                );
+                )
                 if (xpubMatch) {
-                  updateXpub(xpubMatch[1]);
+                  updateXpub(xpubMatch[1])
                 } else {
-                  updateXpub(xpubWithPrefix);
+                  updateXpub(xpubWithPrefix)
                 }
 
-                toast.success("Crypto account imported successfully");
-                setCameraModalVisible(false);
-                resetScanProgress();
+                toast.success('Crypto account imported successfully')
+                setCameraModalVisible(false)
+                resetScanProgress()
               } else {
-                toast.error("No extended public key found in crypto account");
+                toast.error('No extended public key found in crypto account')
               }
             }
           }
         } catch {
-          toast.error("Failed to decode UR crypto account");
+          toast.error('Failed to decode UR crypto account')
         }
       } else if (newScanned.size === total) {
         // For RAW and BBQR, wait for all chunks
         // All chunks collected, assemble the final result
-        const assembledData = assembleMultiPartQR(type, newChunks);
+        const assembledData = assembleMultiPartQR(type, newChunks)
 
         if (assembledData) {
-          setCameraModalVisible(false);
-          resetScanProgress();
+          setCameraModalVisible(false)
+          resetScanProgress()
 
           // Process the assembled data
-          updateXpub(assembledData);
-          toast.success(t("watchonly.success.qrScanned"));
+          updateXpub(assembledData)
+          toast.success(t('watchonly.success.qrScanned'))
         } else {
-          toast.error("Failed to assemble multi-part QR code");
-          resetScanProgress();
+          toast.error('Failed to assemble multi-part QR code')
+          resetScanProgress()
         }
       }
     }
@@ -689,8 +687,8 @@ export default function ImportExtendedPub() {
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>{t("account.import.extendedPub")}</SSText>
-          ),
+            <SSText uppercase>{t('account.import.extendedPub')}</SSText>
+          )
         }}
       />
       <ScrollView>
@@ -699,7 +697,7 @@ export default function ImportExtendedPub() {
             <SSVStack gap="lg">
               <SSVStack gap="sm">
                 <SSVStack gap="xxs">
-                  <SSText center>{t("common.extendedPublicKey")}</SSText>
+                  <SSText center>{t('common.extendedPublicKey')}</SSText>
                   <SSTextInput
                     value={xpub}
                     style={validXpub ? styles.valid : styles.invalid}
@@ -712,7 +710,7 @@ export default function ImportExtendedPub() {
                         color: Colors.error,
                         fontSize: 12,
                         marginTop: 4,
-                        textAlign: "center",
+                        textAlign: 'center'
                       }}
                     >
                       {xpubError}
@@ -730,8 +728,8 @@ export default function ImportExtendedPub() {
                     <SSButton
                       label="Scan QR"
                       onPress={() => {
-                        setScanningFor("main");
-                        setCameraModalVisible(true);
+                        setScanningFor('main')
+                        setCameraModalVisible(true)
                       }}
                       style={{ flex: 1 }}
                       variant="subtle"
@@ -741,8 +739,8 @@ export default function ImportExtendedPub() {
                     <SSButton
                       label={
                         isReading
-                          ? t("watchonly.read.scanning")
-                          : t("watchonly.read.nfc")
+                          ? t('watchonly.read.scanning')
+                          : t('watchonly.read.nfc')
                       }
                       variant="subtle"
                       onPress={handleNFCRead}
@@ -765,7 +763,7 @@ export default function ImportExtendedPub() {
                       backgroundColor: Colors.gray[700],
                       borderRadius: 2,
                       height: 4,
-                      width: "100%",
+                      width: '100%'
                     }}
                   >
                     <View
@@ -775,7 +773,7 @@ export default function ImportExtendedPub() {
                         height: 4,
                         width: `${
                           (scanProgress.scanned.size / scanProgress.total) * 100
-                        }%`,
+                        }%`
                       }}
                     />
                   </View>
@@ -783,7 +781,7 @@ export default function ImportExtendedPub() {
                     {`Scanned parts: ${Array.from(scanProgress.scanned)
                       .toSorted((a, b) => a - b)
                       .map((n) => n + 1)
-                      .join(", ")}`}
+                      .join(', ')}`}
                   </SSText>
                   <SSButton
                     label="Reset Scan"
@@ -795,7 +793,7 @@ export default function ImportExtendedPub() {
             </SSVStack>
             <SSVStack gap="lg">
               <SSVStack gap="sm">
-                <SSText center>{t("common.fingerprint")}</SSText>
+                <SSText center>{t('common.fingerprint')}</SSText>
                 <SSTextInput
                   value={localFingerprint}
                   onChangeText={updateMasterFingerprint}
@@ -814,20 +812,20 @@ export default function ImportExtendedPub() {
                     label="Scan QR"
                     variant="subtle"
                     onPress={() => {
-                      setScanningFor("fingerprint");
-                      setCameraModalVisible(true);
+                      setScanningFor('fingerprint')
+                      setCameraModalVisible(true)
                     }}
                   />
                 </SSHStack>
               </SSVStack>
               <SSButton
-                label={t("common.confirm")}
+                label={t('common.confirm')}
                 variant="secondary"
                 disabled={disabled}
                 onPress={handleConfirm}
               />
               <SSButton
-                label={t("common.cancel")}
+                label={t('common.cancel')}
                 variant="ghost"
                 onPress={() => router.dismiss(1)}
               />
@@ -839,45 +837,45 @@ export default function ImportExtendedPub() {
         visible={cameraModalVisible}
         fullOpacity
         onClose={() => {
-          setCameraModalVisible(false);
-          setScanningFor("main");
-          resetScanProgress();
+          setCameraModalVisible(false)
+          setScanningFor('main')
+          resetScanProgress()
         }}
       >
         <SSVStack itemsCenter gap="md">
           <SSText color="muted" uppercase>
-            {scanningFor === "fingerprint"
-              ? t("watchonly.fingerprint.scanQR")
+            {scanningFor === 'fingerprint'
+              ? t('watchonly.fingerprint.scanQR')
               : scanProgress.type
-              ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
-              : t("transaction.build.options.importOutputs.qrcode")}
+                ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
+                : t('transaction.build.options.importOutputs.qrcode')}
           </SSText>
 
           <CameraView
             onBarcodeScanned={(res) => {
-              handleQRCodeScanned(res.raw);
+              handleQRCodeScanned(res.raw)
             }}
-            barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
+            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
             style={{ height: 340, width: 340 }}
           />
 
           {/* Show progress if scanning multi-part QR */}
           {scanProgress.type && scanProgress.total > 1 && (
             <SSVStack itemsCenter gap="xs" style={{ marginBottom: 10 }}>
-              {scanProgress.type === "ur" ? (
+              {scanProgress.type === 'ur' ? (
                 // For UR fountain encoding, show the actual target
                 <>
                   {(() => {
-                    const maxFragment = Math.max(...scanProgress.scanned);
-                    const actualTotal = maxFragment + 1;
-                    const conservativeTarget = Math.ceil(actualTotal * 1.1);
+                    const maxFragment = Math.max(...scanProgress.scanned)
+                    const actualTotal = maxFragment + 1
+                    const conservativeTarget = Math.ceil(actualTotal * 1.1)
                     const theoreticalTarget = Math.ceil(
                       scanProgress.total * 1.5
-                    );
+                    )
                     const displayTarget = Math.min(
                       conservativeTarget,
                       theoreticalTarget
-                    );
+                    )
 
                     return (
                       <>
@@ -889,7 +887,7 @@ export default function ImportExtendedPub() {
                             backgroundColor: Colors.gray[700],
                             borderRadius: 2,
                             height: 4,
-                            width: 300,
+                            width: 300
                           }}
                         >
                           <View
@@ -900,12 +898,12 @@ export default function ImportExtendedPub() {
                               maxWidth: 300,
                               width:
                                 (scanProgress.scanned.size / displayTarget) *
-                                300,
+                                300
                             }}
                           />
                         </View>
                       </>
-                    );
+                    )
                   })()}
                 </>
               ) : (
@@ -919,7 +917,7 @@ export default function ImportExtendedPub() {
                       backgroundColor: Colors.gray[700],
                       borderRadius: 2,
                       height: 4,
-                      width: 300,
+                      width: 300
                     }}
                   >
                     <View
@@ -929,8 +927,7 @@ export default function ImportExtendedPub() {
                         height: 4,
                         maxWidth: scanProgress.total * 300,
                         width:
-                          (scanProgress.scanned.size / scanProgress.total) *
-                          300,
+                          (scanProgress.scanned.size / scanProgress.total) * 300
                       }}
                     />
                   </View>
@@ -938,7 +935,7 @@ export default function ImportExtendedPub() {
                     {`Scanned parts: ${Array.from(scanProgress.scanned)
                       .toSorted((a, b) => a - b)
                       .map((n) => n + 1)
-                      .join(", ")}`}
+                      .join(', ')}`}
                   </SSText>
                 </>
               )}
@@ -948,7 +945,7 @@ export default function ImportExtendedPub() {
           <SSHStack>
             {!permission?.granted && (
               <SSButton
-                label={t("camera.enableCameraAccess")}
+                label={t('camera.enableCameraAccess')}
                 onPress={requestPermission}
               />
             )}
@@ -968,15 +965,15 @@ export default function ImportExtendedPub() {
         </SSVStack>
       </SSModal>
     </SSMainLayout>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   invalid: {
     borderColor: Colors.error,
     borderWidth: 1,
-    height: "auto",
-    paddingVertical: 10,
+    height: 'auto',
+    paddingVertical: 10
   },
-  valid: { height: "auto", paddingVertical: 10 },
-});
+  valid: { height: 'auto', paddingVertical: 10 }
+})

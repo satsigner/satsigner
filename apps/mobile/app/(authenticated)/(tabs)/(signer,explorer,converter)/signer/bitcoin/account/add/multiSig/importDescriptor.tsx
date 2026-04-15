@@ -1,29 +1,29 @@
-import { CameraView, useCameraPermissions } from "expo-camera";
-import * as Clipboard from "expo-clipboard";
-import { Stack, useRouter } from "expo-router";
-import { useState } from "react";
-import { ScrollView, StyleSheet } from "react-native";
-import { toast } from "sonner-native";
-import { useShallow } from "zustand/react/shallow";
+import { CameraView, useCameraPermissions } from 'expo-camera'
+import * as Clipboard from 'expo-clipboard'
+import { Stack, useRouter } from 'expo-router'
+import { useState } from 'react'
+import { ScrollView, StyleSheet } from 'react-native'
+import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
-import SSButton from "@/components/SSButton";
-import SSModal from "@/components/SSModal";
-import SSText from "@/components/SSText";
-import SSTextInput from "@/components/SSTextInput";
-import { useNFCReader } from "@/hooks/useNFCReader";
-import SSHStack from "@/layouts/SSHStack";
-import SSMainLayout from "@/layouts/SSMainLayout";
-import SSVStack from "@/layouts/SSVStack";
-import { t } from "@/locales";
-import { useAccountBuilderStore } from "@/store/accountBuilder";
-import { Colors } from "@/styles";
+import SSButton from '@/components/SSButton'
+import SSModal from '@/components/SSModal'
+import SSText from '@/components/SSText'
+import SSTextInput from '@/components/SSTextInput'
+import { useNFCReader } from '@/hooks/useNFCReader'
+import SSHStack from '@/layouts/SSHStack'
+import SSMainLayout from '@/layouts/SSMainLayout'
+import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
+import { useAccountBuilderStore } from '@/store/accountBuilder'
+import { Colors } from '@/styles'
 import {
   validateDescriptor,
-  validateDescriptorScriptVersion,
-} from "@/utils/validation";
+  validateDescriptorScriptVersion
+} from '@/utils/validation'
 
 export default function ImportDescriptor() {
-  const router = useRouter();
+  const router = useRouter()
   const [
     scriptVersion,
     policyType,
@@ -36,7 +36,7 @@ export default function ImportDescriptor() {
     setKeyName,
     setCreationType,
     setFingerprint,
-    setExtendedPublicKey,
+    setExtendedPublicKey
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.scriptVersion,
@@ -50,243 +50,243 @@ export default function ImportDescriptor() {
       state.setKeyName,
       state.setCreationType,
       state.setFingerprint,
-      state.setExtendedPublicKey,
+      state.setExtendedPublicKey
     ])
-  );
-  const { isHardwareSupported, readNFCTag } = useNFCReader();
-  const [cameraModalVisible, setCameraModalVisible] = useState(false);
-  const [permission, requestPermission] = useCameraPermissions();
+  )
+  const { isHardwareSupported, readNFCTag } = useNFCReader()
+  const [cameraModalVisible, setCameraModalVisible] = useState(false)
+  const [permission, requestPermission] = useCameraPermissions()
 
   // State for descriptor input
-  const [descriptor, setDescriptor] = useState("");
-  const [isValidDescriptor, setIsValidDescriptor] = useState(true);
-  const [descriptorError, setDescriptorError] = useState("");
-  const [isValidating, setIsValidating] = useState(false);
+  const [descriptor, setDescriptor] = useState('')
+  const [isValidDescriptor, setIsValidDescriptor] = useState(true)
+  const [descriptorError, setDescriptorError] = useState('')
+  const [isValidating, setIsValidating] = useState(false)
 
   async function validateDescriptorInput(descriptorText: string) {
     if (!descriptorText.trim()) {
-      setIsValidDescriptor(true);
-      setDescriptorError("");
-      return;
+      setIsValidDescriptor(true)
+      setDescriptorError('')
+      return
     }
 
-    setIsValidating(true);
-    setDescriptorError("");
+    setIsValidating(true)
+    setDescriptorError('')
 
     // Basic descriptor validation
-    const descriptorValidation = await validateDescriptor(descriptorText);
+    const descriptorValidation = await validateDescriptor(descriptorText)
 
     if (!descriptorValidation) {
-      setIsValidDescriptor(false);
-      setDescriptorError("Invalid descriptor");
-      return;
+      setIsValidDescriptor(false)
+      setDescriptorError('Invalid descriptor')
+      return
     }
 
     // Script version validation for multisig
     if (scriptVersion) {
       // For multisig descriptors, we need to be more flexible with script version validation
       // because the default script version might not be set correctly yet
-      let effectiveScriptVersion = scriptVersion;
+      let effectiveScriptVersion = scriptVersion
 
       // If we're in a multisig context and the descriptor uses wsh, use P2WSH
-      if (policyType === "multisig" && descriptorText.includes("wsh(")) {
-        effectiveScriptVersion = "P2WSH";
+      if (policyType === 'multisig' && descriptorText.includes('wsh(')) {
+        effectiveScriptVersion = 'P2WSH'
       }
 
       const scriptVersionValidation = validateDescriptorScriptVersion(
         descriptorText,
         effectiveScriptVersion
-      );
+      )
 
       if (!scriptVersionValidation) {
-        setIsValidDescriptor(false);
-        setDescriptorError("Invalid script version");
-        return;
+        setIsValidDescriptor(false)
+        setDescriptorError('Invalid script version')
+        return
       }
     }
 
-    setIsValidDescriptor(true);
-    setDescriptorError("");
-    setIsValidating(false);
+    setIsValidDescriptor(true)
+    setDescriptorError('')
+    setIsValidating(false)
   }
 
   function handleDescriptorChange(text: string) {
-    setDescriptor(text);
-    validateDescriptorInput(text);
+    setDescriptor(text)
+    validateDescriptorInput(text)
   }
 
   async function handlePaste() {
     try {
-      const text = await Clipboard.getStringAsync();
+      const text = await Clipboard.getStringAsync()
       if (text) {
-        handleDescriptorChange(text);
-        toast.success(t("watchonly.success.clipboardPasted"));
+        handleDescriptorChange(text)
+        toast.success(t('watchonly.success.clipboardPasted'))
       } else {
-        toast.error(t("watchonly.error.emptyClipboard"));
+        toast.error(t('watchonly.error.emptyClipboard'))
       }
     } catch {
-      toast.error(t("watchonly.error.clipboardPaste"));
+      toast.error(t('watchonly.error.clipboardPaste'))
     }
   }
 
   function handleScanQR() {
     if (!permission?.granted) {
-      requestPermission();
-      return;
+      requestPermission()
+      return
     }
-    setCameraModalVisible(true);
+    setCameraModalVisible(true)
   }
 
   async function handleScanNFC() {
     if (!isHardwareSupported) {
-      toast.error(t("watchonly.read.nfcNotAvailable"));
-      return;
+      toast.error(t('watchonly.read.nfcNotAvailable'))
+      return
     }
     try {
-      const data = await readNFCTag();
-      if (data && typeof data === "string") {
-        handleDescriptorChange(data);
-        toast.success(t("watchonly.success.nfcRead"));
+      const data = await readNFCTag()
+      if (data && typeof data === 'string') {
+        handleDescriptorChange(data)
+        toast.success(t('watchonly.success.nfcRead'))
       } else {
-        toast.error(t("watchonly.read.nfcErrorNoData"));
+        toast.error(t('watchonly.read.nfcErrorNoData'))
       }
     } catch {
-      toast.error(t("watchonly.read.nfcErrorNoData"));
+      toast.error(t('watchonly.read.nfcErrorNoData'))
     }
   }
 
   function parseMultisigDescriptor(descriptorText: string) {
     try {
       // Remove checksum if present
-      const cleanDescriptor = descriptorText.replace(/#[a-z0-9]{8}$/, "");
+      const cleanDescriptor = descriptorText.replace(/#[a-z0-9]{8}$/, '')
 
       // Extract the inner multisig descriptor (remove outer wsh/sh wrapper)
-      let innerDescriptor = cleanDescriptor;
-      if (cleanDescriptor.startsWith("wsh(") && cleanDescriptor.endsWith(")")) {
-        innerDescriptor = cleanDescriptor.slice(4, -1);
+      let innerDescriptor = cleanDescriptor
+      if (cleanDescriptor.startsWith('wsh(') && cleanDescriptor.endsWith(')')) {
+        innerDescriptor = cleanDescriptor.slice(4, -1)
       } else if (
-        cleanDescriptor.startsWith("sh(") &&
-        cleanDescriptor.endsWith(")")
+        cleanDescriptor.startsWith('sh(') &&
+        cleanDescriptor.endsWith(')')
       ) {
-        innerDescriptor = cleanDescriptor.slice(3, -1);
+        innerDescriptor = cleanDescriptor.slice(3, -1)
       }
 
       // Parse multisig parameters: sortedmulti(2,key1,key2,key3)
       const multiMatch = innerDescriptor.match(
         /^(multi|sortedmulti)\((\d+),(.+)\)$/
-      );
+      )
       if (!multiMatch) {
-        throw new Error("Invalid multisig descriptor format");
+        throw new Error('Invalid multisig descriptor format')
       }
 
-      const [requiredStr, keysStr] = multiMatch.slice(2);
-      const keysRequired = parseInt(requiredStr, 10);
-      const keys = keysStr.split(",").map((key) => key.trim());
+      const [requiredStr, keysStr] = multiMatch.slice(2)
+      const keysRequired = parseInt(requiredStr, 10)
+      const keys = keysStr.split(',').map((key) => key.trim())
 
       // Extract key information from each key
       const keyData = keys.map((key, index) => {
         // Extract fingerprint and derivation path: [7af70d19/48h/1h/0h/2h]tpub...
         // Use a more flexible approach to handle longer extended public keys
-        const bracketMatch = key.match(/^\[([^\]]+)\](.+)$/);
+        const bracketMatch = key.match(/^\[([^\]]+)\](.+)$/)
         if (!bracketMatch) {
-          throw new Error(`Invalid key format at index ${index}`);
+          throw new Error(`Invalid key format at index ${index}`)
         }
 
-        const [, bracketContent, afterBracket] = bracketMatch;
-        const [fingerprint, ...restParts] = bracketContent.split("/");
-        const derivationPath = restParts.join("/");
+        const [, bracketContent, afterBracket] = bracketMatch
+        const [fingerprint, ...restParts] = bracketContent.split('/')
+        const derivationPath = restParts.join('/')
 
         // Extract extended public key and address path
-        const xpubMatch = afterBracket.match(/^([a-zA-Z0-9]+)(.*)$/);
+        const xpubMatch = afterBracket.match(/^([a-zA-Z0-9]+)(.*)$/)
         if (!xpubMatch) {
           throw new Error(
             `Invalid extended public key format at index ${index}`
-          );
+          )
         }
 
-        const [, extendedPublicKey, addressPath] = xpubMatch;
+        const [, extendedPublicKey, addressPath] = xpubMatch
         return {
-          addressPath: addressPath || "/<0;1>/*",
+          addressPath: addressPath || '/<0;1>/*',
           derivationPath,
           extendedPublicKey,
-          fingerprint,
-        };
-      });
+          fingerprint
+        }
+      })
 
       return {
         keyCount: keys.length,
         keyData,
         keysRequired,
-        scriptVersion: (cleanDescriptor.startsWith("wsh(")
-          ? "P2WSH"
-          : cleanDescriptor.startsWith("sh(")
-          ? "P2SH"
-          : "P2WSH") as "P2WSH" | "P2SH",
-      };
+        scriptVersion: (cleanDescriptor.startsWith('wsh(')
+          ? 'P2WSH'
+          : cleanDescriptor.startsWith('sh(')
+            ? 'P2SH'
+            : 'P2WSH') as 'P2WSH' | 'P2SH'
+      }
     } catch (error) {
       throw new Error(
         `Failed to parse multisig descriptor: ${(error as Error).message}`,
         { cause: error }
-      );
+      )
     }
   }
 
   function handleImport() {
     if (!descriptor.trim()) {
-      toast.error(t("watchonly.error.missingFields"));
-      return;
+      toast.error(t('watchonly.error.missingFields'))
+      return
     }
     if (!isValidDescriptor) {
-      toast.error(t("account.import.error.descriptorFormat"));
-      return;
+      toast.error(t('account.import.error.descriptorFormat'))
+      return
     }
 
     try {
       // Parse the multisig descriptor
-      const parsedData = parseMultisigDescriptor(descriptor);
+      const parsedData = parseMultisigDescriptor(descriptor)
 
       // Update account builder store with parsed data
-      setScriptVersion(parsedData.scriptVersion);
-      setKeyCount(parsedData.keyCount);
-      setKeysRequired(parsedData.keysRequired);
+      setScriptVersion(parsedData.scriptVersion)
+      setKeyCount(parsedData.keyCount)
+      setKeysRequired(parsedData.keysRequired)
 
       // Set the descriptors
-      setExternalDescriptor(descriptor);
+      setExternalDescriptor(descriptor)
 
       // Create internal descriptor by replacing /0/* with /1/*
-      const internalDescriptor = descriptor.replace(/\/0\/\*/g, "/1/*");
-      setInternalDescriptor(internalDescriptor);
+      const internalDescriptor = descriptor.replace(/\/0\/\*/g, '/1/*')
+      setInternalDescriptor(internalDescriptor)
 
       // Set up each key in the account builder store
       for (let i = 0; i < parsedData.keyData.length; i += 1) {
-        const keyData = parsedData.keyData[i];
+        const keyData = parsedData.keyData[i]
 
         // Set key properties
-        setKeyName(`Key ${i + 1}`);
-        setCreationType("importDescriptor");
-        setFingerprint(keyData.fingerprint);
-        setExtendedPublicKey(keyData.extendedPublicKey);
+        setKeyName(`Key ${i + 1}`)
+        setCreationType('importDescriptor')
+        setFingerprint(keyData.fingerprint)
+        setExtendedPublicKey(keyData.extendedPublicKey)
 
         // Set the individual key
-        setKey(i);
+        setKey(i)
       }
 
-      toast.success(t("account.import.success"));
+      toast.success(t('account.import.success'))
       // Navigate to finish page to complete account creation
-      router.navigate("/signer/bitcoin/account/add/multiSig/finish");
+      router.navigate('/signer/bitcoin/account/add/multiSig/finish')
     } catch (error) {
-      toast.error(`Import failed: ${(error as Error).message}`);
+      toast.error(`Import failed: ${(error as Error).message}`)
     }
   }
 
   function handleCancel() {
-    router.back();
+    router.back()
   }
 
   function handleQRCodeScanned({ data }: { data: string }) {
-    handleDescriptorChange(data);
-    setCameraModalVisible(false);
-    toast.success(t("watchonly.success.qrScanned"));
+    handleDescriptorChange(data)
+    setCameraModalVisible(false)
+    toast.success(t('watchonly.success.qrScanned'))
   }
 
   return (
@@ -294,39 +294,39 @@ export default function ImportDescriptor() {
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>{t("account.import.descriptor")}</SSText>
-          ),
+            <SSText uppercase>{t('account.import.descriptor')}</SSText>
+          )
         }}
       />
       <ScrollView>
         <SSVStack justifyBetween gap="lg" style={{ paddingBottom: 20 }}>
           <SSVStack gap="xs">
             <SSVStack gap="md">
-              <SSText center>{t("watchonly.importDescriptor.label")}</SSText>
+              <SSText center>{t('watchonly.importDescriptor.label')}</SSText>
               <SSTextInput
                 value={descriptor}
                 onChangeText={handleDescriptorChange}
-                placeholder={t("watchonly.importDescriptor.external")}
+                placeholder={t('watchonly.importDescriptor.external')}
                 multiline
                 numberOfLines={3}
                 style={[
-                  { height: "auto", padding: 5 },
+                  { height: 'auto', padding: 5 },
                   styles.textArea,
                   !isValidDescriptor && descriptor.trim()
                     ? styles.invalid
-                    : styles.valid,
+                    : styles.valid
                 ]}
               />
             </SSVStack>
             <SSHStack gap="sm">
               <SSButton
-                label={t("common.paste")}
+                label={t('common.paste')}
                 variant="subtle"
                 onPress={handlePaste}
                 style={{ flex: 1 }}
               />
               <SSButton
-                label={t("common.QR")}
+                label={t('common.QR')}
                 variant="subtle"
                 onPress={handleScanQR}
                 style={{ flex: 1 }}
@@ -347,7 +347,7 @@ export default function ImportDescriptor() {
                   color: Colors.error,
                   fontSize: 12,
                   marginTop: 4,
-                  textAlign: "center",
+                  textAlign: 'center'
                 }}
               >
                 {descriptorError}
@@ -359,14 +359,14 @@ export default function ImportDescriptor() {
                   color: Colors.gray[500],
                   fontSize: 12,
                   marginTop: 4,
-                  textAlign: "center",
+                  textAlign: 'center'
                 }}
               >
-                {t("common.loading")}...
+                {t('common.loading')}...
               </SSText>
             )}
             <SSButton
-              label={t("account.import.descriptor")}
+              label={t('account.import.descriptor')}
               variant="secondary"
               onPress={handleImport}
               disabled={
@@ -374,7 +374,7 @@ export default function ImportDescriptor() {
               }
             />
             <SSButton
-              label={t("common.cancel")}
+              label={t('common.cancel')}
               variant="ghost"
               onPress={handleCancel}
             />
@@ -387,51 +387,51 @@ export default function ImportDescriptor() {
       >
         <SSVStack gap="lg" style={{ flex: 1 }}>
           <SSText center size="lg" weight="bold">
-            {t("transaction.build.options.importOutputs.qrcode")}
+            {t('transaction.build.options.importOutputs.qrcode')}
           </SSText>
           <SSText center color="muted">
-            {t("camera.scanText")}
+            {t('camera.scanText')}
           </SSText>
           {permission?.granted ? (
             <CameraView
               style={{ flex: 1 }}
               onBarcodeScanned={handleQRCodeScanned}
               barcodeScannerSettings={{
-                barcodeTypes: ["qr"],
+                barcodeTypes: ['qr']
               }}
             />
           ) : (
-            <SSVStack gap="md" style={{ flex: 1, justifyContent: "center" }}>
+            <SSVStack gap="md" style={{ flex: 1, justifyContent: 'center' }}>
               <SSText center color="muted">
-                {t("camera.permissions")}
+                {t('camera.permissions')}
               </SSText>
               <SSButton
-                label={t("camera.enableCameraAccess")}
+                label={t('camera.enableCameraAccess')}
                 onPress={requestPermission}
               />
             </SSVStack>
           )}
           <SSButton
-            label={t("common.cancel")}
+            label={t('common.cancel')}
             variant="ghost"
             onPress={() => setCameraModalVisible(false)}
           />
         </SSVStack>
       </SSModal>
     </SSMainLayout>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   invalid: {
-    borderColor: Colors.error,
+    borderColor: Colors.error
   },
   textArea: {
     marginBottom: 8,
     minHeight: 120,
-    textAlignVertical: "top",
+    textAlignVertical: 'top'
   },
   valid: {
-    borderColor: Colors.success,
-  },
-});
+    borderColor: Colors.success
+  }
+})

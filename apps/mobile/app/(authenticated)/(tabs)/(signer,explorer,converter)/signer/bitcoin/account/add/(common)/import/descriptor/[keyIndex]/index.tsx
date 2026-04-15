@@ -1,10 +1,10 @@
-import { URDecoder } from "@ngraveio/bc-ur";
-import { CameraView, useCameraPermissions } from "expo-camera";
-import * as Clipboard from "expo-clipboard";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ScrollView, View } from "react-native";
-import { type Network as _Network } from "react-native-bdk-sdk";
+import { URDecoder } from '@ngraveio/bc-ur'
+import { CameraView, useCameraPermissions } from 'expo-camera'
+import * as Clipboard from 'expo-clipboard'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ScrollView, View } from 'react-native'
+import { type Network as _Network } from 'react-native-bdk-sdk'
 import Animated, {
   cancelAnimation,
   interpolate,
@@ -12,76 +12,76 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withSequence,
-  withTiming,
-} from "react-native-reanimated";
-import { toast } from "sonner-native";
-import { useShallow } from "zustand/react/shallow";
+  withTiming
+} from 'react-native-reanimated'
+import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
-import SSButton from "@/components/SSButton";
-import SSModal from "@/components/SSModal";
-import SSText from "@/components/SSText";
-import SSTextInput from "@/components/SSTextInput";
-import { useNFCReader } from "@/hooks/useNFCReader";
-import SSHStack from "@/layouts/SSHStack";
-import SSMainLayout from "@/layouts/SSMainLayout";
-import SSVStack from "@/layouts/SSVStack";
-import { t } from "@/locales";
-import { useAccountBuilderStore } from "@/store/accountBuilder";
-import { useBlockchainStore } from "@/store/blockchain";
-import { Colors } from "@/styles";
-import { type ScriptVersionType } from "@/types/models/Account";
-import { type ImportDescriptorSearchParams } from "@/types/navigation/searchParams";
-import { decodeBBQRChunks, isBBQRFragment } from "@/utils/bbqr";
+import SSButton from '@/components/SSButton'
+import SSModal from '@/components/SSModal'
+import SSText from '@/components/SSText'
+import SSTextInput from '@/components/SSTextInput'
+import { useNFCReader } from '@/hooks/useNFCReader'
+import SSHStack from '@/layouts/SSHStack'
+import SSMainLayout from '@/layouts/SSMainLayout'
+import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
+import { useAccountBuilderStore } from '@/store/accountBuilder'
+import { useBlockchainStore } from '@/store/blockchain'
+import { Colors } from '@/styles'
+import { type ScriptVersionType } from '@/types/models/Account'
+import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
+import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import {
   getDerivationPathFromScriptVersion,
-  getMultisigDerivationPathFromScriptVersion,
-} from "@/utils/bitcoin";
-import { decodeURToPSBT } from "@/utils/ur";
+  getMultisigDerivationPathFromScriptVersion
+} from '@/utils/bitcoin'
+import { decodeURToPSBT } from '@/utils/ur'
 import {
   isCombinedDescriptor,
   validateCombinedDescriptor,
   validateDescriptor,
   validateDescriptorFormat,
-  validateDescriptorScriptVersion,
-} from "@/utils/validation";
+  validateDescriptorScriptVersion
+} from '@/utils/validation'
 
 export default function ImportDescriptor() {
-  const { keyIndex } = useLocalSearchParams<ImportDescriptorSearchParams>();
-  const router = useRouter();
-  const network = useBlockchainStore((state) => state.selectedNetwork);
+  const { keyIndex } = useLocalSearchParams<ImportDescriptorSearchParams>()
+  const router = useRouter()
+  const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const { isHardwareSupported, isReading, readNFCTag, cancelNFCScan } =
-    useNFCReader();
-  const [cameraModalVisible, setCameraModalVisible] = useState(false);
-  const [permission, requestPermission] = useCameraPermissions();
+    useNFCReader()
+  const [cameraModalVisible, setCameraModalVisible] = useState(false)
+  const [permission, requestPermission] = useCameraPermissions()
 
   // State for import data
-  const [externalDescriptor, setExternalDescriptor] = useState("");
-  const [internalDescriptor, setInternalDescriptor] = useState("");
+  const [externalDescriptor, setExternalDescriptor] = useState('')
+  const [internalDescriptor, setInternalDescriptor] = useState('')
 
   // Validation state
-  const [disabled, setDisabled] = useState(true);
-  const [validExternalDescriptor, setValidExternalDescriptor] = useState(true);
-  const [validInternalDescriptor, setValidInternalDescriptor] = useState(true);
-  const [externalDescriptorError, setExternalDescriptorError] = useState("");
-  const [internalDescriptorError, setInternalDescriptorError] = useState("");
+  const [disabled, setDisabled] = useState(true)
+  const [validExternalDescriptor, setValidExternalDescriptor] = useState(true)
+  const [validInternalDescriptor, setValidInternalDescriptor] = useState(true)
+  const [externalDescriptorError, setExternalDescriptorError] = useState('')
+  const [internalDescriptorError, setInternalDescriptorError] = useState('')
 
   // Multipart QR scanning state
-  const urDecoderRef = useRef<URDecoder>(new URDecoder());
+  const urDecoderRef = useRef<URDecoder>(new URDecoder())
   const [scanProgress, setScanProgress] = useState<{
-    type: "raw" | "ur" | "bbqr" | null;
-    total: number;
-    scanned: Set<number>;
-    chunks: Map<number, string>;
+    type: 'raw' | 'ur' | 'bbqr' | null
+    total: number
+    scanned: Set<number>
+    chunks: Map<number, string>
   }>({
     chunks: new Map(),
     scanned: new Set(),
     total: 0,
-    type: null,
-  });
+    type: null
+  })
 
-  const pulseAnim = useSharedValue(0);
-  const scaleAnim = useSharedValue(1);
+  const pulseAnim = useSharedValue(0)
+  const scaleAnim = useSharedValue(1)
 
   useEffect(() => {
     if (isReading) {
@@ -93,18 +93,18 @@ export default function ImportDescriptor() {
           ),
           -1
         )
-      );
+      )
       return () => {
-        cancelAnimation(pulseAnim);
-      };
+        cancelAnimation(pulseAnim)
+      }
     }
-  }, [isReading, pulseAnim]);
+  }, [isReading, pulseAnim])
 
   const nfcButtonStyle = useAnimatedStyle(() => ({
     opacity: interpolate(pulseAnim.value, [0, 1], [1, 0.7]),
-    overflow: "hidden" as const,
-    transform: [{ scale: scaleAnim.value }],
-  }));
+    overflow: 'hidden' as const,
+    transform: [{ scale: scaleAnim.value }]
+  }))
 
   const [
     setExtendedPublicKey,
@@ -116,7 +116,7 @@ export default function ImportDescriptor() {
     setKeyDerivationPath,
     policyType,
     scriptVersion,
-    builderNetwork,
+    builderNetwork
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.setExtendedPublicKey,
@@ -128,34 +128,34 @@ export default function ImportDescriptor() {
       state.setKeyDerivationPath,
       state.policyType,
       state.scriptVersion,
-      state.network,
+      state.network
     ])
-  );
+  )
 
   const updateDescriptorValidationState = useCallback(() => {
     // Allow import if either external or internal descriptor is valid
     // At least one descriptor must be provided and valid
-    const hasValidExternal = externalDescriptor && validExternalDescriptor;
-    const hasValidInternal = internalDescriptor && validInternalDescriptor;
-    const hasAnyValidDescriptor = hasValidExternal || hasValidInternal;
-    setDisabled(!hasAnyValidDescriptor);
+    const hasValidExternal = externalDescriptor && validExternalDescriptor
+    const hasValidInternal = internalDescriptor && validInternalDescriptor
+    const hasAnyValidDescriptor = hasValidExternal || hasValidInternal
+    setDisabled(!hasAnyValidDescriptor)
   }, [
     externalDescriptor,
     internalDescriptor,
     validExternalDescriptor,
-    validInternalDescriptor,
-  ]);
+    validInternalDescriptor
+  ])
 
   // Initialize validation state when descriptors change
   useEffect(() => {
-    updateDescriptorValidationState();
+    updateDescriptorValidationState()
   }, [
     externalDescriptor,
     internalDescriptor,
     validExternalDescriptor,
     validInternalDescriptor,
-    updateDescriptorValidationState,
-  ]);
+    updateDescriptorValidationState
+  ])
 
   async function updateExternalDescriptor(
     descriptor: string,
@@ -164,52 +164,52 @@ export default function ImportDescriptor() {
     // Basic descriptor validation
     const descriptorValidation = skipChecksumValidation
       ? await validateDescriptorFormat(descriptor)
-      : await validateDescriptor(descriptor);
+      : await validateDescriptor(descriptor)
     const basicValidation =
-      descriptorValidation && !descriptor.match(/[txyz]priv/);
+      descriptorValidation && !descriptor.match(/[txyz]priv/)
 
     // Network validation - check if descriptor is compatible with selected network
     // Skip network validation during confirm stage since it was already validated during input
     const networkValidation: { isValid: boolean; error?: string } = {
-      isValid: true,
-    };
+      isValid: true
+    }
 
     // Script version validation for multisig
-    let scriptVersionValidation = true;
+    let scriptVersionValidation = true
     if (basicValidation && scriptVersion) {
       scriptVersionValidation = validateDescriptorScriptVersion(
         descriptor,
         scriptVersion
-      );
+      )
     }
     const validExternalDescriptor =
-      basicValidation && networkValidation.isValid && scriptVersionValidation;
+      basicValidation && networkValidation.isValid && scriptVersionValidation
 
-    setValidExternalDescriptor(!descriptor || validExternalDescriptor);
-    setExternalDescriptor(descriptor);
+    setValidExternalDescriptor(!descriptor || validExternalDescriptor)
+    setExternalDescriptor(descriptor)
 
     // Clear previous error first
-    setExternalDescriptorError("");
+    setExternalDescriptorError('')
 
     // Show error message if validation fails
     if (descriptor) {
       if (!basicValidation) {
-        const errorMessage = t("account.import.error.descriptorFormat");
-        setExternalDescriptorError(errorMessage);
+        const errorMessage = t('account.import.error.descriptorFormat')
+        setExternalDescriptorError(errorMessage)
       } else if (basicValidation && !networkValidation.isValid) {
         // Show error for network validation failures
         const errorMessage = networkValidation.error
           ? t(`account.import.error.${networkValidation.error}`)
-          : t("account.import.error.networkIncompatible");
-        setExternalDescriptorError(errorMessage);
+          : t('account.import.error.networkIncompatible')
+        setExternalDescriptorError(errorMessage)
       } else if (basicValidation && !scriptVersionValidation) {
-        const errorMessage = t("account.import.error.descriptorIncompatible");
-        setExternalDescriptorError(errorMessage);
+        const errorMessage = t('account.import.error.descriptorIncompatible')
+        setExternalDescriptorError(errorMessage)
       }
     }
 
     if (validExternalDescriptor) {
-      setStoreExternalDescriptor(descriptor);
+      setStoreExternalDescriptor(descriptor)
     }
   }
 
@@ -220,109 +220,109 @@ export default function ImportDescriptor() {
     // Basic descriptor validation
     const descriptorValidation = skipChecksumValidation
       ? await validateDescriptorFormat(descriptor)
-      : await validateDescriptor(descriptor);
-    const basicValidation = descriptorValidation;
+      : await validateDescriptor(descriptor)
+    const basicValidation = descriptorValidation
 
     // Network validation - check if descriptor is compatible with selected network
     // Skip network validation during confirm stage since it was already validated during input
     const networkValidation: { isValid: boolean; error?: string } = {
-      isValid: true,
-    };
+      isValid: true
+    }
 
     // Script version validation for multisig
-    let scriptVersionValidation = true;
+    let scriptVersionValidation = true
     if (basicValidation && scriptVersion) {
       scriptVersionValidation = validateDescriptorScriptVersion(
         descriptor,
         scriptVersion
-      );
+      )
     }
 
     const validInternalDescriptor =
-      basicValidation && networkValidation.isValid && scriptVersionValidation;
+      basicValidation && networkValidation.isValid && scriptVersionValidation
 
-    setValidInternalDescriptor(!descriptor || validInternalDescriptor);
-    setInternalDescriptor(descriptor);
+    setValidInternalDescriptor(!descriptor || validInternalDescriptor)
+    setInternalDescriptor(descriptor)
 
     // Clear previous error first
-    setInternalDescriptorError("");
+    setInternalDescriptorError('')
 
     // Show error message if validation fails
     if (descriptor) {
       if (!basicValidation) {
         // Show error for basic validation failures
-        const errorMessage = t("account.import.error.descriptorFormat");
-        setInternalDescriptorError(errorMessage);
+        const errorMessage = t('account.import.error.descriptorFormat')
+        setInternalDescriptorError(errorMessage)
       } else if (basicValidation && !networkValidation.isValid) {
         // Show error for network validation failures
         const errorMessage = networkValidation.error
           ? t(`account.import.error.${networkValidation.error}`)
-          : t("account.import.error.networkIncompatible");
-        setInternalDescriptorError(errorMessage);
+          : t('account.import.error.networkIncompatible')
+        setInternalDescriptorError(errorMessage)
       } else if (basicValidation && !scriptVersionValidation) {
         // Show error for script version validation failures
-        const errorMessage = t("account.import.error.descriptorIncompatible");
-        setInternalDescriptorError(errorMessage);
+        const errorMessage = t('account.import.error.descriptorIncompatible')
+        setInternalDescriptorError(errorMessage)
       }
     }
 
     if (validInternalDescriptor) {
-      setStoreInternalDescriptor(descriptor);
+      setStoreInternalDescriptor(descriptor)
     }
   }
 
   const detectQRType = (data: string) => {
     // Check for RAW format (pXofY header)
     if (/^p\d+of\d+\s/.test(data)) {
-      const match = data.match(/^p(\d+)of(\d+)\s/);
+      const match = data.match(/^p(\d+)of(\d+)\s/)
       if (match) {
         return {
           content: data.substring(match[0].length),
           current: parseInt(match[1], 10) - 1, // Convert to 0-based index
           total: parseInt(match[2], 10),
-          type: "raw" as const,
-        };
+          type: 'raw' as const
+        }
       }
     }
 
     // Check for BBQR format
     if (isBBQRFragment(data)) {
-      const total = parseInt(data.slice(4, 6), 36);
-      const current = parseInt(data.slice(6, 8), 36);
+      const total = parseInt(data.slice(4, 6), 36)
+      const current = parseInt(data.slice(6, 8), 36)
       return {
         content: data,
         current,
         total,
-        type: "bbqr" as const,
-      };
+        type: 'bbqr' as const
+      }
     }
 
     // Check for UR format (crypto-account, crypto-psbt, etc.)
-    if (data.toLowerCase().startsWith("ur:crypto-")) {
+    if (data.toLowerCase().startsWith('ur:crypto-')) {
       // UR format: ur:crypto-*/[sequence]/[data] for multi-part
       // or ur:crypto-*/[data] for single part
-      const urMatch = data.match(/^ur:crypto-[^/]+\/(?:(\d+)-(\d+)\/)?(.+)$/i);
+      const urMatch = data.match(/^ur:crypto-[^/]+\/(?:(\d+)-(\d+)\/)?(.+)$/i)
       if (urMatch) {
-        const [, currentStr, totalStr] = urMatch;
+        const [, currentStr, totalStr] = urMatch
 
         if (currentStr && totalStr) {
           // Multi-part UR
-          const current = parseInt(currentStr, 10) - 1; // Convert to 0-based index
-          const total = parseInt(totalStr, 10);
+          const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
+          const total = parseInt(totalStr, 10)
           return {
             content: data,
             current,
             total,
-            type: "ur" as const,
-          };
+            type: 'ur' as const
+          }
         }
         // Single-part UR
         return {
           content: data,
           current: 0,
           total: 1,
-          type: "ur" as const,
-        };
+          type: 'ur' as const
+        }
       }
     }
 
@@ -331,74 +331,72 @@ export default function ImportDescriptor() {
       content: data,
       current: 0,
       total: 1,
-      type: "raw" as const,
-    };
-  };
+      type: 'raw' as const
+    }
+  }
 
   function resetScanProgress() {
     setScanProgress({
       chunks: new Map(),
       scanned: new Set(),
       total: 0,
-      type: null,
-    });
-    urDecoderRef.current = new URDecoder();
+      type: null
+    })
+    urDecoderRef.current = new URDecoder()
   }
 
   function handleConfirm() {
     try {
       // Extract fingerprint from the descriptor if possible
-      const fingerprint = extractFingerprintFromDescriptor(externalDescriptor);
+      const fingerprint = extractFingerprintFromDescriptor(externalDescriptor)
 
       // Extract extended public key and derivation path
       const { extendedPublicKey, derivationPath } =
-        extractDescriptorInfo(externalDescriptor);
+        extractDescriptorInfo(externalDescriptor)
 
       if (!extendedPublicKey) {
-        toast.error(t("account.import.error.descriptorFormat"));
-        return;
+        toast.error(t('account.import.error.descriptorFormat'))
+        return
       }
 
       // Set the descriptors in the store
-      setStoreExternalDescriptor(externalDescriptor);
+      setStoreExternalDescriptor(externalDescriptor)
       if (internalDescriptor.trim()) {
-        setStoreInternalDescriptor(internalDescriptor);
+        setStoreInternalDescriptor(internalDescriptor)
       }
 
       // Set the extracted information in the store
-      setExtendedPublicKey(extendedPublicKey);
+      setExtendedPublicKey(extendedPublicKey)
       if (fingerprint) {
-        setFingerprint(fingerprint);
+        setFingerprint(fingerprint)
       }
 
       // Set the key data
-      setKey(Number(keyIndex));
-      setKeyDerivationPath(Number(keyIndex), derivationPath);
-      clearKeyState();
-      router.dismiss(1);
+      setKey(Number(keyIndex))
+      setKeyDerivationPath(Number(keyIndex), derivationPath)
+      clearKeyState()
+      router.dismiss(1)
     } catch {
-      toast.error(t("account.import.error.generic"));
+      toast.error(t('account.import.error.generic'))
     }
   }
 
   function extractFingerprintFromDescriptor(descriptor: string) {
     // Use the same regex pattern as BDK API's parseDescriptor function
     // This handles both h notation (84h) and ' notation (84') in derivation paths
-    const fingerprintMatch = descriptor.match(
-      /\[([0-9a-fA-F]{8})([0-9'/h]+)\]/
-    );
-    return fingerprintMatch ? fingerprintMatch[1] : "";
+    const fingerprintMatch = descriptor.match(/\[([0-9a-fA-F]{8})([0-9'/h]+)\]/)
+    return fingerprintMatch ? fingerprintMatch[1] : ''
   }
 
   function extractDescriptorInfo(descriptor: string) {
     // Extract extended public key using regex
-    const xpubMatch = descriptor.match(/(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/);
-    const extendedPublicKey = xpubMatch ? xpubMatch[0] : "";
+    const xpubMatch = descriptor.match(/(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/)
+    const extendedPublicKey = xpubMatch ? xpubMatch[0] : ''
 
     // Extract derivation path with improved logic
-    const derivationPath = extractDerivationPathFromDescriptor(descriptor);
+    const derivationPath = extractDerivationPathFromDescriptor(descriptor)
 
-    return { derivationPath, extendedPublicKey };
+    return { derivationPath, extendedPublicKey }
   }
 
   function extractDerivationPathFromDescriptor(descriptor: string) {
@@ -406,31 +404,31 @@ export default function ImportDescriptor() {
     // Look for the pattern: [fingerprint/derivation] where derivation contains slashes
     const bracketMatch = descriptor.match(
       /\[([0-9a-fA-F]{8})\/([0-9]+[h']?\/)*[0-9]+[h']?\]/
-    );
+    )
 
     if (bracketMatch) {
       // Extract the full derivation path by removing fingerprint and brackets
-      const [fullBracket] = bracketMatch;
+      const [fullBracket] = bracketMatch
       const derivationPath = fullBracket
-        .replace(/^\[[0-9a-fA-F]{8}\//, "") // Remove [fingerprint/
-        .replace(/\]$/, ""); // Remove closing ]
+        .replace(/^\[[0-9a-fA-F]{8}\//, '') // Remove [fingerprint/
+        .replace(/\]$/, '') // Remove closing ]
 
       // Add 'm/' prefix if not present
-      if (!derivationPath.startsWith("m/")) {
-        return `m/${derivationPath}`;
+      if (!derivationPath.startsWith('m/')) {
+        return `m/${derivationPath}`
       }
 
-      return derivationPath;
+      return derivationPath
     }
 
     // Secondary method: Extract from /derivation/* pattern
-    const pathMatch = descriptor.match(/\/([0-9]+[h']?\/)*[0-9]+[h']?\/\*/);
+    const pathMatch = descriptor.match(/\/([0-9]+[h']?\/)*[0-9]+[h']?\/\*/)
     if (pathMatch) {
-      return `m/${pathMatch[0].replace(/\/\*$/, "")}`;
+      return `m/${pathMatch[0].replace(/\/\*$/, '')}`
     }
 
     // Fallback: Use default derivation path
-    return getDefaultDerivationPath();
+    return getDefaultDerivationPath()
   }
 
   async function handleCombinedDescriptorImport(combinedDescriptor: string) {
@@ -440,7 +438,7 @@ export default function ImportDescriptor() {
         combinedDescriptor,
         scriptVersion as ScriptVersionType,
         network as string
-      );
+      )
 
       if (combinedValidation.isValid) {
         // For combined descriptors, use format-only validation for the separated descriptors
@@ -448,161 +446,161 @@ export default function ImportDescriptor() {
         await updateExternalDescriptor(
           combinedValidation.externalDescriptor,
           true
-        );
+        )
         await updateInternalDescriptor(
           combinedValidation.internalDescriptor,
           true
-        );
+        )
       } else {
         // Set the separated descriptors but mark them as invalid
-        setExternalDescriptor(combinedValidation.externalDescriptor);
-        setInternalDescriptor(combinedValidation.internalDescriptor);
-        setValidExternalDescriptor(false);
-        setValidInternalDescriptor(false);
+        setExternalDescriptor(combinedValidation.externalDescriptor)
+        setInternalDescriptor(combinedValidation.internalDescriptor)
+        setValidExternalDescriptor(false)
+        setValidInternalDescriptor(false)
 
         // Show the error message for both fields
         const errorMessage = combinedValidation.error
           ? t(`account.import.error.${combinedValidation.error}`)
-          : t("account.import.error.descriptorFormat");
-        setExternalDescriptorError(errorMessage);
-        setInternalDescriptorError(errorMessage);
+          : t('account.import.error.descriptorFormat')
+        setExternalDescriptorError(errorMessage)
+        setInternalDescriptorError(errorMessage)
       }
     } catch {
-      toast.error(t("account.import.error.generic"));
+      toast.error(t('account.import.error.generic'))
     }
   }
 
   async function pasteFromClipboard() {
-    const text = await Clipboard.getStringAsync();
+    const text = await Clipboard.getStringAsync()
 
     if (!text) {
-      return;
+      return
     }
 
-    let externalDescriptor = text;
-    let internalDescriptor = "";
+    let externalDescriptor = text
+    let internalDescriptor = ''
 
     // Try to parse as JSON first
-    let originalDescriptor = "";
+    let originalDescriptor = ''
     try {
-      const jsonData = JSON.parse(text);
+      const jsonData = JSON.parse(text)
 
       if (jsonData.descriptor) {
-        originalDescriptor = jsonData.descriptor;
-        externalDescriptor = originalDescriptor;
+        originalDescriptor = jsonData.descriptor
+        externalDescriptor = originalDescriptor
 
         // Derive internal descriptor from external descriptor
         // Replace /0/* with /1/* for internal chain
         const descriptorWithoutChecksum = originalDescriptor.replace(
           /#[a-z0-9]+$/,
-          ""
-        );
+          ''
+        )
         internalDescriptor = descriptorWithoutChecksum.replace(
           /\/0\/\*/g,
-          "/1/*"
-        );
+          '/1/*'
+        )
         // Add back the checksum to internal descriptor
-        const checksum = originalDescriptor.match(/#[a-z0-9]+$/);
+        const checksum = originalDescriptor.match(/#[a-z0-9]+$/)
         if (checksum) {
-          internalDescriptor += checksum[0];
+          internalDescriptor += checksum[0]
         }
       }
     } catch {
       // Handle legacy formats
-      if (text.includes("\n")) {
-        [externalDescriptor, internalDescriptor] = text.split("\n");
+      if (text.includes('\n')) {
+        ;[externalDescriptor, internalDescriptor] = text.split('\n')
       }
     }
 
     // Handle combined descriptors with smart validation
     if (isCombinedDescriptor(text)) {
-      await handleCombinedDescriptorImport(text);
+      await handleCombinedDescriptorImport(text)
     } else {
       // Handle non-combined descriptors with existing logic
       if (externalDescriptor) {
         // For JSON descriptors, use the original descriptor for validation
-        const descriptorToValidate = originalDescriptor || externalDescriptor;
-        await updateExternalDescriptor(descriptorToValidate);
+        const descriptorToValidate = originalDescriptor || externalDescriptor
+        await updateExternalDescriptor(descriptorToValidate)
       }
       if (internalDescriptor) {
-        await updateInternalDescriptor(internalDescriptor);
+        await updateInternalDescriptor(internalDescriptor)
       }
     }
   }
 
   async function handleNFCRead() {
     if (isReading) {
-      await cancelNFCScan();
-      return;
+      await cancelNFCScan()
+      return
     }
 
     try {
-      const nfcData = await readNFCTag();
+      const nfcData = await readNFCTag()
 
       if (!nfcData) {
-        toast.error(t("watchonly.read.nfcErrorNoData"));
-        return;
+        toast.error(t('watchonly.read.nfcErrorNoData'))
+        return
       }
 
       if (!nfcData.text) {
-        toast.error(t("watchonly.read.nfcErrorNoData"));
-        return;
+        toast.error(t('watchonly.read.nfcErrorNoData'))
+        return
       }
 
       const text = nfcData.text
         .trim()
-        .replace(/[^\S\n]+/g, "") // Remove all whitespace except newlines
-        .replace(/[\u200B-\u200D\uFEFF]/g, "") // Remove zero-width spaces and other invisible characters
+        .replace(/[^\S\n]+/g, '') // Remove all whitespace except newlines
+        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
         // eslint-disable-next-line no-control-regex
-        .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, "") // Remove control characters except \n
-        .normalize("NFKC") // Normalize unicode characters
-        .replace(/^en/, "");
+        .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
+        .normalize('NFKC') // Normalize unicode characters
+        .replace(/^en/, '')
 
-      let externalDescriptor = text;
-      let internalDescriptor = "";
-      if (text.includes("\n")) {
-        [externalDescriptor, internalDescriptor] = text.split("\n");
+      let externalDescriptor = text
+      let internalDescriptor = ''
+      if (text.includes('\n')) {
+        ;[externalDescriptor, internalDescriptor] = text.split('\n')
       }
 
       // Handle combined descriptors with smart validation
       if (isCombinedDescriptor(text)) {
-        await handleCombinedDescriptorImport(text);
+        await handleCombinedDescriptorImport(text)
       } else {
         // Handle non-combined descriptors with existing logic
         if (externalDescriptor) {
-          await updateExternalDescriptor(externalDescriptor);
+          await updateExternalDescriptor(externalDescriptor)
         }
         if (internalDescriptor) {
-          await updateInternalDescriptor(internalDescriptor);
+          await updateInternalDescriptor(internalDescriptor)
         }
       }
 
-      toast.success(t("watchonly.success.nfcRead"));
+      toast.success(t('watchonly.success.nfcRead'))
     } catch {
-      toast.error(t("watchonly.error.nfcRead"));
+      toast.error(t('watchonly.error.nfcRead'))
     }
   }
 
   async function handleQRCodeScanned(scanningResult: unknown) {
-    const data = (scanningResult as { data?: string })?.data;
+    const data = (scanningResult as { data?: string })?.data
     if (!data) {
-      toast.error(t("watchonly.read.qrError"));
-      return;
+      toast.error(t('watchonly.read.qrError'))
+      return
     }
 
     // Detect QR code type and format
-    const qrInfo = detectQRType(data);
+    const qrInfo = detectQRType(data)
 
     // Handle single QR codes (complete data in one scan)
     if (qrInfo.total === 1) {
-      let finalContent = qrInfo.content;
+      let finalContent = qrInfo.content
 
       // Try to parse as UR format
-      if (qrInfo.type === "ur") {
+      if (qrInfo.type === 'ur') {
         try {
-          const urData = decodeURToPSBT(qrInfo.content);
+          const urData = decodeURToPSBT(qrInfo.content)
           if (urData) {
-            finalContent = String(urData);
+            finalContent = String(urData)
           }
         } catch {
           // If UR parsing fails, use raw content
@@ -610,11 +608,11 @@ export default function ImportDescriptor() {
       }
 
       // Try to parse as BBQR format
-      if (qrInfo.type === "bbqr") {
+      if (qrInfo.type === 'bbqr') {
         try {
-          const bbqrData = decodeBBQRChunks([qrInfo.content]);
+          const bbqrData = decodeBBQRChunks([qrInfo.content])
           if (bbqrData) {
-            finalContent = String(bbqrData);
+            finalContent = String(bbqrData)
           }
         } catch {
           // If BBQR parsing fails, use raw content
@@ -624,85 +622,85 @@ export default function ImportDescriptor() {
       // Handle combined descriptors with smart validation
       await (isCombinedDescriptor(finalContent)
         ? handleCombinedDescriptorImport(finalContent)
-        : updateExternalDescriptor(finalContent));
+        : updateExternalDescriptor(finalContent))
 
-      setCameraModalVisible(false);
-      toast.success(t("watchonly.success.qrScanned"));
-      return;
+      setCameraModalVisible(false)
+      toast.success(t('watchonly.success.qrScanned'))
+      return
     }
 
     // Handle multi-part QR codes
     if (qrInfo.total > 1) {
-      const { current, total, content } = qrInfo;
-      const newChunks = new Map(scanProgress.chunks);
-      newChunks.set(current, content);
+      const { current, total, content } = qrInfo
+      const newChunks = new Map(scanProgress.chunks)
+      newChunks.set(current, content)
 
-      const newScanned = new Set(scanProgress.scanned);
-      newScanned.add(current);
+      const newScanned = new Set(scanProgress.scanned)
+      newScanned.add(current)
 
       setScanProgress({
         chunks: newChunks,
         scanned: newScanned,
         total,
-        type: qrInfo.type,
-      });
+        type: qrInfo.type
+      })
 
       // Check if we have all chunks
       if (newScanned.size === total) {
-        const assembledData = assembleMultiPartQR(qrInfo.type, newChunks);
+        const assembledData = assembleMultiPartQR(qrInfo.type, newChunks)
         if (assembledData) {
           // Handle combined descriptors with smart validation
           await (isCombinedDescriptor(assembledData)
             ? handleCombinedDescriptorImport(assembledData)
-            : updateExternalDescriptor(assembledData));
+            : updateExternalDescriptor(assembledData))
 
-          setCameraModalVisible(false);
-          toast.success(t("watchonly.success.qrScanned"));
+          setCameraModalVisible(false)
+          toast.success(t('watchonly.success.qrScanned'))
         }
-        resetScanProgress();
+        resetScanProgress()
       }
     }
   }
 
   const assembleMultiPartQR = (
-    type: "raw" | "ur" | "bbqr",
+    type: 'raw' | 'ur' | 'bbqr',
     chunks: Map<number, string>
   ): string | null => {
     try {
       const sortedChunks = Array.from(chunks.entries())
         .toSorted(([a], [b]) => a - b)
-        .map(([, content]) => content);
+        .map(([, content]) => content)
 
-      const combinedData = sortedChunks.join("");
+      const combinedData = sortedChunks.join('')
 
       switch (type) {
-        case "ur": {
-          const urResult = decodeURToPSBT(combinedData);
-          return urResult ? String(urResult) : combinedData;
+        case 'ur': {
+          const urResult = decodeURToPSBT(combinedData)
+          return urResult ? String(urResult) : combinedData
         }
-        case "bbqr": {
-          const bbqrResult = decodeBBQRChunks([combinedData]);
-          return bbqrResult ? String(bbqrResult) : combinedData;
+        case 'bbqr': {
+          const bbqrResult = decodeBBQRChunks([combinedData])
+          return bbqrResult ? String(bbqrResult) : combinedData
         }
         default:
-          return combinedData;
+          return combinedData
       }
     } catch {
-      return null;
+      return null
     }
-  };
+  }
 
   function getDefaultDerivationPath(): string {
     // Check if we're in multisig mode to use the correct derivation path function
     const rawDerivationPath =
-      policyType === "multisig"
+      policyType === 'multisig'
         ? getMultisigDerivationPathFromScriptVersion(
             scriptVersion,
             builderNetwork
           )
-        : getDerivationPathFromScriptVersion(scriptVersion, builderNetwork);
+        : getDerivationPathFromScriptVersion(scriptVersion, builderNetwork)
 
-    return `m/${rawDerivationPath}`;
+    return `m/${rawDerivationPath}`
   }
 
   return (
@@ -710,8 +708,8 @@ export default function ImportDescriptor() {
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>{t("account.import.descriptor")}</SSText>
-          ),
+            <SSText uppercase>{t('account.import.descriptor')}</SSText>
+          )
         }}
       />
       <ScrollView>
@@ -719,16 +717,16 @@ export default function ImportDescriptor() {
           <SSVStack gap="lg">
             <SSVStack gap="sm">
               <SSVStack gap="xxs">
-                <SSText center>{t("watchonly.importDescriptor.label")}</SSText>
+                <SSText center>{t('watchonly.importDescriptor.label')}</SSText>
                 <SSTextInput
                   value={externalDescriptor}
-                  style={{ height: "auto", paddingVertical: 10 }}
+                  style={{ height: 'auto', paddingVertical: 10 }}
                   status={
                     !externalDescriptor
                       ? undefined
                       : validExternalDescriptor
-                      ? "valid"
-                      : "invalid"
+                        ? 'valid'
+                        : 'invalid'
                   }
                   onChangeText={updateExternalDescriptor}
                   multiline
@@ -739,7 +737,7 @@ export default function ImportDescriptor() {
                       color: Colors.error,
                       fontSize: 12,
                       marginTop: 4,
-                      textAlign: "center",
+                      textAlign: 'center'
                     }}
                   >
                     {externalDescriptorError}
@@ -748,17 +746,17 @@ export default function ImportDescriptor() {
               </SSVStack>
               <SSVStack gap="xxs">
                 <SSText center>
-                  {t("watchonly.importDescriptor.internal")}
+                  {t('watchonly.importDescriptor.internal')}
                 </SSText>
                 <SSTextInput
                   value={internalDescriptor}
-                  style={{ height: "auto", paddingVertical: 10 }}
+                  style={{ height: 'auto', paddingVertical: 10 }}
                   status={
                     !internalDescriptor
                       ? undefined
                       : validInternalDescriptor
-                      ? "valid"
-                      : "invalid"
+                        ? 'valid'
+                        : 'invalid'
                   }
                   multiline
                   onChangeText={updateInternalDescriptor}
@@ -769,7 +767,7 @@ export default function ImportDescriptor() {
                       color: Colors.error,
                       fontSize: 12,
                       marginTop: 4,
-                      textAlign: "center",
+                      textAlign: 'center'
                     }}
                   >
                     {internalDescriptorError}
@@ -779,19 +777,19 @@ export default function ImportDescriptor() {
             </SSVStack>
             <SSVStack>
               <SSButton
-                label={t("watchonly.read.clipboard")}
+                label={t('watchonly.read.clipboard')}
                 onPress={pasteFromClipboard}
               />
               <SSButton
-                label={t("watchonly.read.qrcode")}
+                label={t('watchonly.read.qrcode')}
                 onPress={() => setCameraModalVisible(true)}
               />
               <Animated.View style={nfcButtonStyle}>
                 <SSButton
                   label={
                     isReading
-                      ? t("watchonly.read.scanning")
-                      : t("watchonly.read.nfc")
+                      ? t('watchonly.read.scanning')
+                      : t('watchonly.read.nfc')
                   }
                   onPress={handleNFCRead}
                   disabled={!isHardwareSupported}
@@ -818,13 +816,13 @@ export default function ImportDescriptor() {
           </SSVStack>
           <SSVStack gap="sm">
             <SSButton
-              label={t("common.confirm")}
+              label={t('common.confirm')}
               variant="secondary"
               disabled={disabled}
               onPress={handleConfirm}
             />
             <SSButton
-              label={t("common.cancel")}
+              label={t('common.cancel')}
               variant="ghost"
               onPress={() => router.dismiss(1)}
             />
@@ -836,22 +834,22 @@ export default function ImportDescriptor() {
         visible={cameraModalVisible}
         fullOpacity
         onClose={() => {
-          setCameraModalVisible(false);
-          resetScanProgress();
+          setCameraModalVisible(false)
+          resetScanProgress()
         }}
       >
         <SSVStack itemsCenter gap="md">
           <SSText color="muted" uppercase>
             {scanProgress.type
               ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
-              : t("transaction.build.options.importOutputs.qrcode")}
+              : t('transaction.build.options.importOutputs.qrcode')}
           </SSText>
 
           <CameraView
             onBarcodeScanned={(res) => {
-              handleQRCodeScanned(res.raw);
+              handleQRCodeScanned(res.raw)
             }}
-            barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
+            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
             style={{ height: 340, width: 340 }}
           />
 
@@ -860,8 +858,8 @@ export default function ImportDescriptor() {
             <SSVStack gap="sm">
               {(() => {
                 const displayTarget =
-                  scanProgress.type === "ur" ? 10 : scanProgress.total;
-                return scanProgress.type === "ur" ? (
+                  scanProgress.type === 'ur' ? 10 : scanProgress.total
+                return scanProgress.type === 'ur' ? (
                   <>
                     <SSText color="white" center>
                       {`UR fountain encoding: ${scanProgress.scanned.size}/${displayTarget} fragments`}
@@ -871,7 +869,7 @@ export default function ImportDescriptor() {
                         backgroundColor: Colors.gray[700],
                         borderRadius: 2,
                         height: 4,
-                        width: 300,
+                        width: 300
                       }}
                     >
                       <View
@@ -881,7 +879,7 @@ export default function ImportDescriptor() {
                           height: 4,
                           maxWidth: 300,
                           width:
-                            (scanProgress.scanned.size / displayTarget) * 300,
+                            (scanProgress.scanned.size / displayTarget) * 300
                         }}
                       />
                     </View>
@@ -897,7 +895,7 @@ export default function ImportDescriptor() {
                         backgroundColor: Colors.gray[700],
                         borderRadius: 2,
                         height: 4,
-                        width: 300,
+                        width: 300
                       }}
                     >
                       <View
@@ -908,7 +906,7 @@ export default function ImportDescriptor() {
                           maxWidth: 300,
                           width:
                             (scanProgress.scanned.size / scanProgress.total) *
-                            300,
+                            300
                         }}
                       />
                     </View>
@@ -916,10 +914,10 @@ export default function ImportDescriptor() {
                       {`Scanned parts: ${Array.from(scanProgress.scanned)
                         .toSorted((a, b) => a - b)
                         .map((n) => n + 1)
-                        .join(", ")}`}
+                        .join(', ')}`}
                     </SSText>
                   </>
-                );
+                )
               })()}
             </SSVStack>
           )}
@@ -927,7 +925,7 @@ export default function ImportDescriptor() {
           <SSHStack>
             {!permission?.granted && (
               <SSButton
-                label={t("camera.enableCameraAccess")}
+                label={t('camera.enableCameraAccess')}
                 onPress={requestPermission}
               />
             )}
@@ -947,5 +945,5 @@ export default function ImportDescriptor() {
         </SSVStack>
       </SSModal>
     </SSMainLayout>
-  );
+  )
 }

@@ -1,47 +1,47 @@
-import { CameraView, useCameraPermissions } from "expo-camera";
-import * as Clipboard from "expo-clipboard";
-import { Redirect, router, Stack, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet } from "react-native";
-import { walletNameFromDescriptor } from "react-native-bdk-sdk";
-import { toast } from "sonner-native";
-import { useShallow } from "zustand/react/shallow";
+import { CameraView, useCameraPermissions } from 'expo-camera'
+import * as Clipboard from 'expo-clipboard'
+import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
+import { useEffect, useState } from 'react'
+import { ScrollView, StyleSheet } from 'react-native'
+import { walletNameFromDescriptor } from 'react-native-bdk-sdk'
+import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
-import SSButton from "@/components/SSButton";
-import SSModal from "@/components/SSModal";
-import SSText from "@/components/SSText";
-import SSTextInput from "@/components/SSTextInput";
-import { useNFCReader } from "@/hooks/useNFCReader";
-import SSFormLayout from "@/layouts/SSFormLayout";
-import SSHStack from "@/layouts/SSHStack";
-import SSMainLayout from "@/layouts/SSMainLayout";
-import SSVStack from "@/layouts/SSVStack";
-import { t } from "@/locales";
-import { useAccountBuilderStore } from "@/store/accountBuilder";
-import { useBlockchainStore } from "@/store/blockchain";
-import { Colors } from "@/styles";
-import { type CreationType, type PolicyType } from "@/types/models/Account";
+import SSButton from '@/components/SSButton'
+import SSModal from '@/components/SSModal'
+import SSText from '@/components/SSText'
+import SSTextInput from '@/components/SSTextInput'
+import { useNFCReader } from '@/hooks/useNFCReader'
+import SSFormLayout from '@/layouts/SSFormLayout'
+import SSHStack from '@/layouts/SSHStack'
+import SSMainLayout from '@/layouts/SSMainLayout'
+import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
+import { useAccountBuilderStore } from '@/store/accountBuilder'
+import { useBlockchainStore } from '@/store/blockchain'
+import { Colors } from '@/styles'
+import { type CreationType, type PolicyType } from '@/types/models/Account'
 import {
   appNetworkToBdkNetwork,
-  getDerivationPathFromScriptVersion,
-} from "@/utils/bitcoin";
+  getDerivationPathFromScriptVersion
+} from '@/utils/bitcoin'
 import {
   isCombinedDescriptor,
   validateCombinedDescriptor,
   validateDescriptor,
   validateDescriptorFormat,
   validateExtendedKey,
-  validateFingerprint,
-} from "@/utils/validation";
+  validateFingerprint
+} from '@/utils/validation'
 
 type UnifiedImportSearchParams = {
-  index: string;
-  importType: "descriptor" | "extendedPub";
-};
+  index: string
+  importType: 'descriptor' | 'extendedPub'
+}
 
 export default function UnifiedImport() {
   const { index, importType } =
-    useLocalSearchParams<UnifiedImportSearchParams>();
+    useLocalSearchParams<UnifiedImportSearchParams>()
   const [
     name,
     scriptVersion,
@@ -53,7 +53,7 @@ export default function UnifiedImport() {
     setExtendedPublicKey,
     setKey,
     setNetwork,
-    setPolicyType,
+    setPolicyType
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
@@ -66,57 +66,55 @@ export default function UnifiedImport() {
       state.setExtendedPublicKey,
       state.setKey,
       state.setNetwork,
-      state.setPolicyType,
+      state.setPolicyType
     ])
-  );
-  const network = useBlockchainStore((state) => state.selectedNetwork);
+  )
+  const network = useBlockchainStore((state) => state.selectedNetwork)
   const { isHardwareSupported, isReading, readNFCTag, cancelNFCScan } =
-    useNFCReader();
-  const [cameraModalVisible, setCameraModalVisible] = useState(false);
-  const [permission, requestPermission] = useCameraPermissions();
-  const [scanningFor, setScanningFor] = useState<"main" | "fingerprint">(
-    "main"
-  );
+    useNFCReader()
+  const [cameraModalVisible, setCameraModalVisible] = useState(false)
+  const [permission, requestPermission] = useCameraPermissions()
+  const [scanningFor, setScanningFor] = useState<'main' | 'fingerprint'>('main')
 
-  const [xpub, setXpub] = useState("");
-  const [localFingerprint, setLocalFingerprint] = useState(fingerprint);
-  const [externalDescriptor, setLocalExternalDescriptor] = useState("");
-  const [internalDescriptor, setLocalInternalDescriptor] = useState("");
+  const [xpub, setXpub] = useState('')
+  const [localFingerprint, setLocalFingerprint] = useState(fingerprint)
+  const [externalDescriptor, setLocalExternalDescriptor] = useState('')
+  const [internalDescriptor, setLocalInternalDescriptor] = useState('')
 
-  const [disabled, setDisabled] = useState(true);
-  const [validExternalDescriptor, setValidExternalDescriptor] = useState(true);
-  const [validInternalDescriptor, setValidInternalDescriptor] = useState(true);
-  const [validXpub, setValidXpub] = useState(true);
-  const [_validMasterFingerprint, setValidMasterFingerprint] = useState(true);
-  const [externalDescriptorError, setExternalDescriptorError] = useState("");
-  const [internalDescriptorError, setInternalDescriptorError] = useState("");
+  const [disabled, setDisabled] = useState(true)
+  const [validExternalDescriptor, setValidExternalDescriptor] = useState(true)
+  const [validInternalDescriptor, setValidInternalDescriptor] = useState(true)
+  const [validXpub, setValidXpub] = useState(true)
+  const [_validMasterFingerprint, setValidMasterFingerprint] = useState(true)
+  const [externalDescriptorError, setExternalDescriptorError] = useState('')
+  const [internalDescriptorError, setInternalDescriptorError] = useState('')
 
-  const [loadingWallet, setLoadingWallet] = useState(false);
+  const [loadingWallet, setLoadingWallet] = useState(false)
 
   // Set policy type to multisig when component mounts
   useEffect(() => {
-    setPolicyType("multisig" as PolicyType);
-  }, [setPolicyType]);
+    setPolicyType('multisig' as PolicyType)
+  }, [setPolicyType])
 
   function updateMasterFingerprint(fingerprint: string) {
-    const validMasterFingerprint = validateFingerprint(fingerprint);
-    setValidMasterFingerprint(!fingerprint || validMasterFingerprint);
-    if (importType === "extendedPub") {
-      setDisabled(!validXpub || !fingerprint);
+    const validMasterFingerprint = validateFingerprint(fingerprint)
+    setValidMasterFingerprint(!fingerprint || validMasterFingerprint)
+    if (importType === 'extendedPub') {
+      setDisabled(!validXpub || !fingerprint)
     }
-    setLocalFingerprint(fingerprint);
+    setLocalFingerprint(fingerprint)
     if (validMasterFingerprint) {
-      setFingerprint(fingerprint);
+      setFingerprint(fingerprint)
     }
   }
 
   function updateXpub(xpub: string) {
-    const validXpub = validateExtendedKey(xpub, network);
-    setValidXpub(!xpub || validXpub);
-    if (importType === "extendedPub") {
-      setDisabled(!validXpub || !localFingerprint);
+    const validXpub = validateExtendedKey(xpub, network)
+    setValidXpub(!xpub || validXpub)
+    if (importType === 'extendedPub') {
+      setDisabled(!validXpub || !localFingerprint)
     }
-    setXpub(xpub);
+    setXpub(xpub)
 
     // For multisig accounts, use the script version from the store instead of auto-detecting
     // The script type should be determined by the multisig configuration, not the xpub prefix
@@ -125,9 +123,9 @@ export default function UnifiedImport() {
       const derivationPath = getDerivationPathFromScriptVersion(
         scriptVersion,
         network
-      );
-      const formattedXpub = `[${localFingerprint}/${derivationPath}]${xpub}/0/*`;
-      setExtendedPublicKey(formattedXpub);
+      )
+      const formattedXpub = `[${localFingerprint}/${derivationPath}]${xpub}/0/*`
+      setExtendedPublicKey(formattedXpub)
       // Don't change the script version - keep the one from the store
     }
   }
@@ -138,14 +136,14 @@ export default function UnifiedImport() {
   ) {
     const descriptorValidation = skipChecksumValidation
       ? await validateDescriptorFormat(descriptor)
-      : await validateDescriptor(descriptor);
+      : await validateDescriptor(descriptor)
     const basicValidation =
-      descriptorValidation && !descriptor.match(/[txyz]priv/);
+      descriptorValidation && !descriptor.match(/[txyz]priv/)
 
     // Network validation - check if descriptor is compatible with selected network
     let networkValidation: { isValid: boolean; error?: string } = {
-      isValid: true,
-    };
+      isValid: true
+    }
     if (basicValidation && descriptor) {
       try {
         // Try to validate descriptor with BDK to check network compatibility
@@ -153,34 +151,33 @@ export default function UnifiedImport() {
           descriptor,
           undefined,
           appNetworkToBdkNetwork(network)
-        );
-        networkValidation = { isValid: true };
+        )
+        networkValidation = { isValid: true }
       } catch (error) {
         const errorMessage =
-          error instanceof Error ? error.message : String(error);
+          error instanceof Error ? error.message : String(error)
         networkValidation =
-          errorMessage.includes("Invalid network") ||
-          errorMessage.includes("network")
+          errorMessage.includes('Invalid network') ||
+          errorMessage.includes('network')
             ? {
-                error: "networkIncompatible" as const,
-                isValid: false,
+                error: 'networkIncompatible' as const,
+                isValid: false
               }
-            : { isValid: true };
+            : { isValid: true }
       }
     }
 
-    const validExternalDescriptor =
-      basicValidation && networkValidation.isValid;
+    const validExternalDescriptor = basicValidation && networkValidation.isValid
 
-    setValidExternalDescriptor(!descriptor || validExternalDescriptor);
-    setLocalExternalDescriptor(descriptor);
+    setValidExternalDescriptor(!descriptor || validExternalDescriptor)
+    setLocalExternalDescriptor(descriptor)
     if (validExternalDescriptor) {
-      setExternalDescriptor(descriptor);
-      setExternalDescriptorError(""); // Clear error when valid
+      setExternalDescriptor(descriptor)
+      setExternalDescriptorError('') // Clear error when valid
     }
 
     // Update disabled state based on both external and internal descriptors
-    updateDescriptorValidationState();
+    updateDescriptorValidationState()
   }
 
   async function updateInternalDescriptor(
@@ -189,13 +186,13 @@ export default function UnifiedImport() {
   ) {
     const descriptorValidation = skipChecksumValidation
       ? await validateDescriptorFormat(descriptor)
-      : await validateDescriptor(descriptor);
-    const basicValidation = descriptorValidation;
+      : await validateDescriptor(descriptor)
+    const basicValidation = descriptorValidation
 
     // Network validation - check if descriptor is compatible with selected network
     let networkValidation: { isValid: boolean; error?: string } = {
-      isValid: true,
-    };
+      isValid: true
+    }
     if (basicValidation && descriptor) {
       try {
         // Try to validate descriptor with BDK to check network compatibility
@@ -203,113 +200,112 @@ export default function UnifiedImport() {
           descriptor,
           undefined,
           appNetworkToBdkNetwork(network)
-        );
-        networkValidation = { isValid: true };
+        )
+        networkValidation = { isValid: true }
       } catch (error) {
         const errorMessage =
-          error instanceof Error ? error.message : String(error);
+          error instanceof Error ? error.message : String(error)
         networkValidation =
-          errorMessage.includes("Invalid network") ||
-          errorMessage.includes("network")
+          errorMessage.includes('Invalid network') ||
+          errorMessage.includes('network')
             ? {
-                error: "networkIncompatible" as const,
-                isValid: false,
+                error: 'networkIncompatible' as const,
+                isValid: false
               }
-            : { isValid: true };
+            : { isValid: true }
       }
     }
 
-    const validInternalDescriptor =
-      basicValidation && networkValidation.isValid;
-    setValidInternalDescriptor(!descriptor || validInternalDescriptor);
-    setLocalInternalDescriptor(descriptor);
+    const validInternalDescriptor = basicValidation && networkValidation.isValid
+    setValidInternalDescriptor(!descriptor || validInternalDescriptor)
+    setLocalInternalDescriptor(descriptor)
     if (validInternalDescriptor) {
-      setInternalDescriptor(descriptor);
-      setInternalDescriptorError(""); // Clear error when valid
+      setInternalDescriptor(descriptor)
+      setInternalDescriptorError('') // Clear error when valid
     }
 
     // Update disabled state based on both external and internal descriptors
-    updateDescriptorValidationState();
+    updateDescriptorValidationState()
   }
 
   function updateDescriptorValidationState() {
     // Allow import if either external or internal descriptor is valid
     // At least one descriptor must be provided and valid
-    const hasValidExternal = externalDescriptor && validExternalDescriptor;
-    const hasValidInternal = internalDescriptor && validInternalDescriptor;
-    const hasAnyValidDescriptor = hasValidExternal || hasValidInternal;
+    const hasValidExternal = externalDescriptor && validExternalDescriptor
+    const hasValidInternal = internalDescriptor && validInternalDescriptor
+    const hasAnyValidDescriptor = hasValidExternal || hasValidInternal
 
-    if (importType === "descriptor") {
-      setDisabled(!hasAnyValidDescriptor);
+    if (importType === 'descriptor') {
+      setDisabled(!hasAnyValidDescriptor)
     }
   }
 
   function confirmKeyImport() {
     if (disabled) {
-      return;
+      return
     }
 
-    setLoadingWallet(true);
+    setLoadingWallet(true)
 
     try {
       const creationType: CreationType =
-        importType === "descriptor" ? "importDescriptor" : "importExtendedPub";
+        importType === 'descriptor' ? 'importDescriptor' : 'importExtendedPub'
 
-      setCreationType(creationType);
-      setNetwork(network);
+      setCreationType(creationType)
+      setNetwork(network)
 
       // Set the key data
-      const keyIndex = parseInt(index!, 10);
-      setKey(keyIndex);
+      const keyIndex = parseInt(index!, 10)
+      setKey(keyIndex)
 
-      toast.success(t("account.import.success"));
-      router.back();
+      toast.success(t('account.import.success'))
+      router.back()
     } catch (error) {
-      const errorMessage = (error as Error).message;
+      const errorMessage = (error as Error).message
       if (errorMessage) {
-        toast.error(errorMessage);
+        toast.error(errorMessage)
       } else {
-        toast.error(t("account.import.error.generic"));
+        toast.error(t('account.import.error.generic'))
       }
     } finally {
-      setLoadingWallet(false);
+      setLoadingWallet(false)
     }
   }
 
   async function pasteFromClipboard() {
-    const text = await Clipboard.getStringAsync();
+    const text = await Clipboard.getStringAsync()
     if (!text) {
-      return;
+      return
     }
 
-    if (importType === "descriptor") {
-      let externalDescriptor = text;
-      let internalDescriptor = "";
+    if (importType === 'descriptor') {
+      let externalDescriptor = text
+      let internalDescriptor = ''
 
       // Try to parse as JSON first
-      let originalDescriptor = "";
+      let originalDescriptor = ''
       try {
-        const jsonData = JSON.parse(text);
+        const jsonData = JSON.parse(text)
 
         if (jsonData.descriptor) {
-          originalDescriptor = jsonData.descriptor;
-          externalDescriptor = originalDescriptor;
+          originalDescriptor = jsonData.descriptor
+          externalDescriptor = originalDescriptor
 
           // Derive internal descriptor from external descriptor
           // Replace /0/* with /1/* for internal chain and remove checksum
           const descriptorWithoutChecksum = originalDescriptor.replace(
             /#[a-z0-9]+$/,
-            ""
-          );
+            ''
+          )
           internalDescriptor = descriptorWithoutChecksum.replace(
             /\/0\/\*/g,
-            "/1/*"
-          );
+            '/1/*'
+          )
         }
       } catch {
         // Handle legacy formats
-        if (text.includes("\n")) {
-          [externalDescriptor, internalDescriptor] = text.split("\n");
+        if (text.includes('\n')) {
+          ;[externalDescriptor, internalDescriptor] = text.split('\n')
         }
       }
 
@@ -320,109 +316,109 @@ export default function UnifiedImport() {
           text,
           scriptVersion,
           network as string
-        );
+        )
 
         if (combinedValidation.isValid) {
           // Set both descriptors and mark them as valid
-          setLocalExternalDescriptor(combinedValidation.externalDescriptor);
-          setLocalInternalDescriptor(combinedValidation.internalDescriptor);
-          setValidExternalDescriptor(true);
-          setValidInternalDescriptor(true);
+          setLocalExternalDescriptor(combinedValidation.externalDescriptor)
+          setLocalInternalDescriptor(combinedValidation.internalDescriptor)
+          setValidExternalDescriptor(true)
+          setValidInternalDescriptor(true)
 
           // Store the descriptors in the store
-          setExternalDescriptor(combinedValidation.externalDescriptor);
-          setInternalDescriptor(combinedValidation.internalDescriptor);
+          setExternalDescriptor(combinedValidation.externalDescriptor)
+          setInternalDescriptor(combinedValidation.internalDescriptor)
 
           // Clear any error messages
-          setExternalDescriptorError("");
-          setInternalDescriptorError("");
+          setExternalDescriptorError('')
+          setInternalDescriptorError('')
         } else {
           // Set the separated descriptors but mark them as invalid
-          setLocalExternalDescriptor(combinedValidation.externalDescriptor);
-          setLocalInternalDescriptor(combinedValidation.internalDescriptor);
-          setValidExternalDescriptor(false);
-          setValidInternalDescriptor(false);
+          setLocalExternalDescriptor(combinedValidation.externalDescriptor)
+          setLocalInternalDescriptor(combinedValidation.internalDescriptor)
+          setValidExternalDescriptor(false)
+          setValidInternalDescriptor(false)
 
           // Show the error message for both fields
           const errorMessage = combinedValidation.error
             ? t(`account.import.error.${combinedValidation.error}`)
-            : t("account.import.error.descriptorFormat");
-          setExternalDescriptorError(errorMessage);
-          setInternalDescriptorError(errorMessage);
+            : t('account.import.error.descriptorFormat')
+          setExternalDescriptorError(errorMessage)
+          setInternalDescriptorError(errorMessage)
         }
       } else {
         // Handle non-combined descriptors with existing logic
         if (externalDescriptor) {
           // For JSON descriptors, use the original descriptor for validation
-          const descriptorToValidate = originalDescriptor || externalDescriptor;
-          updateExternalDescriptor(descriptorToValidate);
+          const descriptorToValidate = originalDescriptor || externalDescriptor
+          updateExternalDescriptor(descriptorToValidate)
         }
         if (internalDescriptor) {
-          updateInternalDescriptor(internalDescriptor);
+          updateInternalDescriptor(internalDescriptor)
         }
       }
     }
 
-    if (importType === "extendedPub") {
-      updateXpub(text);
+    if (importType === 'extendedPub') {
+      updateXpub(text)
     }
   }
 
   async function pasteFingerprintFromClipboard() {
     try {
-      const clipboardContent = await Clipboard.getStringAsync();
+      const clipboardContent = await Clipboard.getStringAsync()
       if (!clipboardContent) {
-        toast.error(t("watchonly.error.emptyClipboard"));
-        return;
+        toast.error(t('watchonly.error.emptyClipboard'))
+        return
       }
 
-      const finalContent = clipboardContent.trim();
-      updateMasterFingerprint(finalContent);
-      toast.success(t("watchonly.success.clipboardPasted"));
+      const finalContent = clipboardContent.trim()
+      updateMasterFingerprint(finalContent)
+      toast.success(t('watchonly.success.clipboardPasted'))
     } catch {
-      toast.error(t("watchonly.error.clipboardPaste"));
+      toast.error(t('watchonly.error.clipboardPaste'))
     }
   }
 
   async function handleNFCRead() {
     if (!isHardwareSupported) {
-      toast.error(t("watchonly.read.nfcNotAvailable"));
-      return;
+      toast.error(t('watchonly.read.nfcNotAvailable'))
+      return
     }
 
     if (isReading) {
-      await cancelNFCScan();
-      return;
+      await cancelNFCScan()
+      return
     }
 
     try {
-      const nfcData = await readNFCTag();
+      const nfcData = await readNFCTag()
 
       if (!nfcData) {
-        toast.error(t("watchonly.read.nfcErrorNoData"));
-        return;
+        toast.error(t('watchonly.read.nfcErrorNoData'))
+        return
       }
 
       if (!nfcData.text) {
-        toast.error(t("watchonly.read.nfcErrorNoData"));
-        return;
+        toast.error(t('watchonly.read.nfcErrorNoData'))
+        return
       }
 
       const text = nfcData.text
         .trim()
-        .replace(/[^\S\n]+/g, "") // Remove all whitespace except newlines
-        .replace(/[\u200B-\u200D\uFEFF]/g, "") // Remove zero-width spaces and other invisible characters
+        .replace(/[^\S\n]+/g, '') // Remove all whitespace except newlines
+        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
         // eslint-disable-next-line no-control-regex
-        .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, "") // Remove control characters except \n
-        .normalize("NFKC") // Normalize unicode characters
-        .replace(/^en/, "");
+        .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
+        .normalize('NFKC') // Normalize unicode characters
+        .replace(/^en/, '')
 
-      if (importType === "descriptor") {
-        let externalDescriptor = text;
-        let internalDescriptor = "";
-        const originalDescriptor = "";
-        if (text.includes("\n")) {
-          [externalDescriptor, internalDescriptor] = text.split("\n");
+      if (importType === 'descriptor') {
+        let externalDescriptor = text
+        let internalDescriptor = ''
+        const originalDescriptor = ''
+        if (text.includes('\n')) {
+          ;[externalDescriptor, internalDescriptor] = text.split('\n')
         }
 
         // Check if the descriptor is combined (contains <0;1> or <0,1>)
@@ -432,100 +428,100 @@ export default function UnifiedImport() {
             text,
             scriptVersion,
             network as string
-          );
+          )
 
           if (combinedValidation.isValid) {
             // Set both descriptors and mark them as valid
-            setLocalExternalDescriptor(combinedValidation.externalDescriptor);
-            setLocalInternalDescriptor(combinedValidation.internalDescriptor);
-            setValidExternalDescriptor(true);
-            setValidInternalDescriptor(true);
+            setLocalExternalDescriptor(combinedValidation.externalDescriptor)
+            setLocalInternalDescriptor(combinedValidation.internalDescriptor)
+            setValidExternalDescriptor(true)
+            setValidInternalDescriptor(true)
 
             // Store the descriptors in the store
-            setExternalDescriptor(combinedValidation.externalDescriptor);
-            setInternalDescriptor(combinedValidation.internalDescriptor);
+            setExternalDescriptor(combinedValidation.externalDescriptor)
+            setInternalDescriptor(combinedValidation.internalDescriptor)
 
             // Clear any error messages
-            setExternalDescriptorError("");
-            setInternalDescriptorError("");
+            setExternalDescriptorError('')
+            setInternalDescriptorError('')
           } else {
             // Set the separated descriptors but mark them as invalid
-            setLocalExternalDescriptor(combinedValidation.externalDescriptor);
-            setLocalInternalDescriptor(combinedValidation.internalDescriptor);
-            setValidExternalDescriptor(false);
-            setValidInternalDescriptor(false);
+            setLocalExternalDescriptor(combinedValidation.externalDescriptor)
+            setLocalInternalDescriptor(combinedValidation.internalDescriptor)
+            setValidExternalDescriptor(false)
+            setValidInternalDescriptor(false)
 
             // Show the error message for both fields
             const errorMessage = combinedValidation.error
               ? t(`account.import.error.${combinedValidation.error}`)
-              : t("account.import.error.descriptorFormat");
-            setExternalDescriptorError(errorMessage);
-            setInternalDescriptorError(errorMessage);
+              : t('account.import.error.descriptorFormat')
+            setExternalDescriptorError(errorMessage)
+            setInternalDescriptorError(errorMessage)
           }
         } else {
           // Handle non-combined descriptors with existing logic
           if (externalDescriptor) {
             // For JSON descriptors, use the original descriptor for validation
             const descriptorToValidate =
-              originalDescriptor || externalDescriptor;
-            updateExternalDescriptor(descriptorToValidate);
+              originalDescriptor || externalDescriptor
+            updateExternalDescriptor(descriptorToValidate)
           }
           if (internalDescriptor) {
-            updateInternalDescriptor(internalDescriptor);
+            updateInternalDescriptor(internalDescriptor)
           }
         }
       }
 
-      if (importType === "extendedPub") {
-        updateXpub(text);
+      if (importType === 'extendedPub') {
+        updateXpub(text)
       }
     } catch (error) {
-      const errorMessage = (error as Error).message;
+      const errorMessage = (error as Error).message
       if (errorMessage) {
-        toast.error(errorMessage);
+        toast.error(errorMessage)
       }
     }
   }
 
   async function handleQRCodeScanned(scanningResult: { data?: string }) {
-    const data = scanningResult?.data;
+    const data = scanningResult?.data
     if (!data) {
-      return;
+      return
     }
 
     // Handle fingerprint scanning
-    if (scanningFor === "fingerprint") {
-      updateMasterFingerprint(data);
-      setCameraModalVisible(false);
-      toast.success(t("watchonly.success.qrScanned"));
-      return;
+    if (scanningFor === 'fingerprint') {
+      updateMasterFingerprint(data)
+      setCameraModalVisible(false)
+      toast.success(t('watchonly.success.qrScanned'))
+      return
     }
 
     // Handle regular QR codes
-    if (importType === "descriptor") {
-      let externalDescriptor = data;
-      let internalDescriptor = "";
-      let originalDescriptor = "";
+    if (importType === 'descriptor') {
+      let externalDescriptor = data
+      let internalDescriptor = ''
+      let originalDescriptor = ''
 
       // Try to parse as JSON first
       try {
-        const jsonData = JSON.parse(data);
+        const jsonData = JSON.parse(data)
         if (jsonData.descriptor) {
-          originalDescriptor = jsonData.descriptor;
-          externalDescriptor = originalDescriptor;
+          originalDescriptor = jsonData.descriptor
+          externalDescriptor = originalDescriptor
           const descriptorWithoutChecksum = originalDescriptor.replace(
             /#[a-z0-9]+$/,
-            ""
-          );
+            ''
+          )
           internalDescriptor = descriptorWithoutChecksum.replace(
             /\/0\/\*/g,
-            "/1/*"
-          );
+            '/1/*'
+          )
         }
       } catch {
         // Handle legacy formats
-        if (data.includes("\n")) {
-          [externalDescriptor, internalDescriptor] = data.split("\n");
+        if (data.includes('\n')) {
+          ;[externalDescriptor, internalDescriptor] = data.split('\n')
         }
       }
 
@@ -536,91 +532,91 @@ export default function UnifiedImport() {
           data,
           scriptVersion,
           network as string
-        );
+        )
 
         if (combinedValidation.isValid) {
           // Set both descriptors and mark them as valid
-          setLocalExternalDescriptor(combinedValidation.externalDescriptor);
-          setLocalInternalDescriptor(combinedValidation.internalDescriptor);
-          setValidExternalDescriptor(true);
-          setValidInternalDescriptor(true);
+          setLocalExternalDescriptor(combinedValidation.externalDescriptor)
+          setLocalInternalDescriptor(combinedValidation.internalDescriptor)
+          setValidExternalDescriptor(true)
+          setValidInternalDescriptor(true)
 
           // Store the descriptors in the store
-          setExternalDescriptor(combinedValidation.externalDescriptor);
-          setInternalDescriptor(combinedValidation.internalDescriptor);
+          setExternalDescriptor(combinedValidation.externalDescriptor)
+          setInternalDescriptor(combinedValidation.internalDescriptor)
 
           // Clear any error messages
-          setExternalDescriptorError("");
-          setInternalDescriptorError("");
+          setExternalDescriptorError('')
+          setInternalDescriptorError('')
         } else {
           // Set the separated descriptors but mark them as invalid
-          setLocalExternalDescriptor(combinedValidation.externalDescriptor);
-          setLocalInternalDescriptor(combinedValidation.internalDescriptor);
-          setValidExternalDescriptor(false);
-          setValidInternalDescriptor(false);
+          setLocalExternalDescriptor(combinedValidation.externalDescriptor)
+          setLocalInternalDescriptor(combinedValidation.internalDescriptor)
+          setValidExternalDescriptor(false)
+          setValidInternalDescriptor(false)
 
           // Show the error message for both fields
           const errorMessage = combinedValidation.error
             ? t(`account.import.error.${combinedValidation.error}`)
-            : t("account.import.error.descriptorFormat");
-          setExternalDescriptorError(errorMessage);
-          setInternalDescriptorError(errorMessage);
+            : t('account.import.error.descriptorFormat')
+          setExternalDescriptorError(errorMessage)
+          setInternalDescriptorError(errorMessage)
         }
       } else {
         // Handle non-combined descriptors with existing logic
         if (externalDescriptor) {
           // For JSON descriptors, use the original descriptor for validation
-          const descriptorToValidate = originalDescriptor || externalDescriptor;
-          updateExternalDescriptor(descriptorToValidate);
+          const descriptorToValidate = originalDescriptor || externalDescriptor
+          updateExternalDescriptor(descriptorToValidate)
         }
         if (internalDescriptor) {
-          updateInternalDescriptor(internalDescriptor);
+          updateInternalDescriptor(internalDescriptor)
         }
       }
     }
 
-    if (importType === "extendedPub") {
-      updateXpub(data);
+    if (importType === 'extendedPub') {
+      updateXpub(data)
     }
 
-    setCameraModalVisible(false);
+    setCameraModalVisible(false)
   }
 
   function getImportLabel() {
-    if (importType === "descriptor") {
-      return t("watchonly.importDescriptor.title");
+    if (importType === 'descriptor') {
+      return t('watchonly.importDescriptor.title')
     }
     // Return the appropriate label based on script version
     switch (scriptVersion) {
-      case "P2PKH":
-        return t("account.import.xpub");
-      case "P2SH-P2WPKH":
-        return t("account.import.ypub");
-      case "P2WPKH":
-        return t("account.import.zpub");
-      case "P2TR":
-        return t("account.import.vpub");
+      case 'P2PKH':
+        return t('account.import.xpub')
+      case 'P2SH-P2WPKH':
+        return t('account.import.ypub')
+      case 'P2WPKH':
+        return t('account.import.zpub')
+      case 'P2TR':
+        return t('account.import.vpub')
       default:
-        return t("account.import.xpub");
+        return t('account.import.xpub')
     }
   }
 
   function getImportDescription() {
-    if (importType === "descriptor") {
-      return t("watchonly.importDescriptor.text");
+    if (importType === 'descriptor') {
+      return t('watchonly.importDescriptor.text')
     }
-    return t("watchonly.importExtendedPub.text");
+    return t('watchonly.importExtendedPub.text')
   }
 
   if (!name) {
-    return <Redirect href="/" />;
+    return <Redirect href="/" />
   }
 
   return (
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{name}</SSText>,
+          headerTitle: () => <SSText uppercase>{name}</SSText>
         }}
       />
       <ScrollView style={styles.container}>
@@ -634,40 +630,40 @@ export default function UnifiedImport() {
                 </SSText>
               </SSFormLayout.Item>
 
-              {importType === "extendedPub" && (
+              {importType === 'extendedPub' && (
                 <>
                   <SSFormLayout.Item>
                     <SSFormLayout.Label
-                      label={t("watchonly.importExtendedPub.label")}
+                      label={t('watchonly.importExtendedPub.label')}
                     />
                     <SSTextInput
                       value={xpub}
                       onChangeText={updateXpub}
-                      placeholder={t("watchonly.importExtendedPub.label")}
+                      placeholder={t('watchonly.importExtendedPub.label')}
                     />
                   </SSFormLayout.Item>
                   <SSFormLayout.Item>
                     <SSFormLayout.Label
-                      label={t("watchonly.fingerprint.label")}
+                      label={t('watchonly.fingerprint.label')}
                     />
                     <SSTextInput
                       value={localFingerprint}
                       onChangeText={updateMasterFingerprint}
-                      placeholder={t("watchonly.fingerprint.text")}
+                      placeholder={t('watchonly.fingerprint.text')}
                     />
                     <SSHStack gap="sm" style={{ marginTop: 8 }}>
                       <SSButton
-                        label={t("watchonly.read.clipboard")}
+                        label={t('watchonly.read.clipboard')}
                         variant="subtle"
                         onPress={pasteFingerprintFromClipboard}
                         style={{ flex: 1 }}
                       />
                       <SSButton
-                        label={t("watchonly.read.qrcode")}
+                        label={t('watchonly.read.qrcode')}
                         variant="subtle"
                         onPress={() => {
-                          setScanningFor("fingerprint");
-                          setCameraModalVisible(true);
+                          setScanningFor('fingerprint')
+                          setCameraModalVisible(true)
                         }}
                         style={{ flex: 1 }}
                       />
@@ -676,16 +672,16 @@ export default function UnifiedImport() {
                 </>
               )}
 
-              {importType === "descriptor" && (
+              {importType === 'descriptor' && (
                 <>
                   <SSFormLayout.Item>
                     <SSFormLayout.Label
-                      label={t("watchonly.importDescriptor.external")}
+                      label={t('watchonly.importDescriptor.external')}
                     />
                     <SSTextInput
                       value={externalDescriptor}
                       onChangeText={updateExternalDescriptor}
-                      placeholder={t("watchonly.importDescriptor.external")}
+                      placeholder={t('watchonly.importDescriptor.external')}
                       multiline
                       numberOfLines={3}
                     />
@@ -695,7 +691,7 @@ export default function UnifiedImport() {
                           color: Colors.error,
                           fontSize: 12,
                           marginTop: 4,
-                          textAlign: "center",
+                          textAlign: 'center'
                         }}
                       >
                         {externalDescriptorError}
@@ -704,12 +700,12 @@ export default function UnifiedImport() {
                   </SSFormLayout.Item>
                   <SSFormLayout.Item>
                     <SSFormLayout.Label
-                      label={t("watchonly.importDescriptor.internal")}
+                      label={t('watchonly.importDescriptor.internal')}
                     />
                     <SSTextInput
                       value={internalDescriptor}
                       onChangeText={updateInternalDescriptor}
-                      placeholder={t("watchonly.importDescriptor.internal")}
+                      placeholder={t('watchonly.importDescriptor.internal')}
                       multiline
                       numberOfLines={3}
                     />
@@ -719,7 +715,7 @@ export default function UnifiedImport() {
                           color: Colors.error,
                           fontSize: 12,
                           marginTop: 4,
-                          textAlign: "center",
+                          textAlign: 'center'
                         }}
                       >
                         {internalDescriptorError}
@@ -733,35 +729,35 @@ export default function UnifiedImport() {
 
           <SSVStack>
             <SSButton
-              label={t("watchonly.read.clipboard")}
+              label={t('watchonly.read.clipboard')}
               variant="subtle"
               onPress={pasteFromClipboard}
             />
             <SSButton
-              label={t("watchonly.read.computerVision")}
+              label={t('watchonly.read.computerVision')}
               variant="subtle"
               onPress={() => {
-                setScanningFor("main");
-                setCameraModalVisible(true);
+                setScanningFor('main')
+                setCameraModalVisible(true)
               }}
             />
             {isHardwareSupported && (
               <SSButton
-                label={t("watchonly.read.nfc")}
+                label={t('watchonly.read.nfc')}
                 variant="ghost"
                 onPress={handleNFCRead}
                 loading={isReading}
               />
             )}
             <SSButton
-              label={t("common.confirm")}
+              label={t('common.confirm')}
               variant="secondary"
               disabled={disabled}
               loading={loadingWallet}
               onPress={confirmKeyImport}
             />
             <SSButton
-              label={t("common.cancel")}
+              label={t('common.cancel')}
               variant="ghost"
               onPress={() => router.dismiss(1)}
             />
@@ -772,19 +768,19 @@ export default function UnifiedImport() {
       <SSModal
         visible={cameraModalVisible}
         onClose={() => {
-          setCameraModalVisible(false);
-          setScanningFor("main");
+          setCameraModalVisible(false)
+          setScanningFor('main')
         }}
       >
         <SSVStack style={styles.cameraContainer}>
           <SSHStack justifyBetween style={styles.cameraHeader}>
-            <SSText weight="bold">{t("watchonly.read.computerVision")}</SSText>
+            <SSText weight="bold">{t('watchonly.read.computerVision')}</SSText>
             <SSButton
-              label={t("common.close")}
+              label={t('common.close')}
               variant="ghost"
               onPress={() => {
-                setCameraModalVisible(false);
-                setScanningFor("main");
+                setCameraModalVisible(false)
+                setScanningFor('main')
               }}
             />
           </SSHStack>
@@ -795,9 +791,9 @@ export default function UnifiedImport() {
             />
           ) : (
             <SSVStack style={styles.cameraPlaceholder}>
-              <SSText center>{t("watchonly.read.cameraPermission")}</SSText>
+              <SSText center>{t('watchonly.read.cameraPermission')}</SSText>
               <SSButton
-                label={t("common.request")}
+                label={t('common.request')}
                 onPress={requestPermission}
               />
             </SSVStack>
@@ -805,29 +801,29 @@ export default function UnifiedImport() {
         </SSVStack>
       </SSModal>
     </SSMainLayout>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   camera: {
-    flex: 1,
+    flex: 1
   },
   cameraContainer: {
     backgroundColor: Colors.black,
-    flex: 1,
+    flex: 1
   },
   cameraHeader: {
     borderBottomColor: Colors.gray[600],
     borderBottomWidth: 1,
-    padding: 16,
+    padding: 16
   },
   cameraPlaceholder: {
-    alignItems: "center",
+    alignItems: 'center',
     flex: 1,
-    justifyContent: "center",
-    padding: 16,
+    justifyContent: 'center',
+    padding: 16
   },
   container: {
-    flex: 1,
-  },
-});
+    flex: 1
+  }
+})

@@ -1,68 +1,68 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState } from 'react'
 
-import { useNFCReader } from "@/hooks/useNFCReader";
+import { useNFCReader } from '@/hooks/useNFCReader'
 import {
   detectContentByContext,
-  type DetectedContent,
-} from "@/utils/contentDetector";
+  type DetectedContent
+} from '@/utils/contentDetector'
 
 type UseContentHandlerProps = {
-  context: "bitcoin" | "lightning" | "ecash";
-  onContentScanned: (content: DetectedContent) => void;
-  onSend: () => void;
-  onReceive: () => void;
-};
+  context: 'bitcoin' | 'lightning' | 'ecash'
+  onContentScanned: (content: DetectedContent) => void
+  onSend: () => void
+  onReceive: () => void
+}
 
 export function useContentHandler({
   context,
   onContentScanned,
   onSend,
-  onReceive,
+  onReceive
 }: UseContentHandlerProps) {
-  const [cameraModalVisible, setCameraModalVisible] = useState(false);
-  const [nfcModalVisible, setNfcModalVisible] = useState(false);
-  const [pasteModalVisible, setPasteModalVisible] = useState(false);
+  const [cameraModalVisible, setCameraModalVisible] = useState(false)
+  const [nfcModalVisible, setNfcModalVisible] = useState(false)
+  const [pasteModalVisible, setPasteModalVisible] = useState(false)
 
-  const { isHardwareSupported: nfcAvailable } = useNFCReader();
+  const { isHardwareSupported: nfcAvailable } = useNFCReader()
 
   const handleContentPasted = useCallback(
     (content: DetectedContent) => {
-      onContentScanned(content);
+      onContentScanned(content)
     },
     [onContentScanned]
-  );
+  )
 
   const handleNFCContentRead = useCallback(
     async (content: string) => {
-      const detectedContent = await detectContentByContext(content, context);
-      onContentScanned(detectedContent);
+      const detectedContent = await detectContentByContext(content, context)
+      onContentScanned(detectedContent)
     },
     [context, onContentScanned]
-  );
+  )
 
   const handlePaste = useCallback(() => {
-    setPasteModalVisible(true);
-  }, []);
+    setPasteModalVisible(true)
+  }, [])
 
   const handleCamera = useCallback(() => {
-    setCameraModalVisible(true);
-  }, []);
+    setCameraModalVisible(true)
+  }, [])
 
   const handleNFC = useCallback(() => {
-    setNfcModalVisible(true);
-  }, []);
+    setNfcModalVisible(true)
+  }, [])
 
   const closeCameraModal = useCallback(() => {
-    setCameraModalVisible(false);
-  }, []);
+    setCameraModalVisible(false)
+  }, [])
 
   const closeNFCModal = useCallback(() => {
-    setNfcModalVisible(false);
-  }, []);
+    setNfcModalVisible(false)
+  }, [])
 
   const closePasteModal = useCallback(() => {
-    setPasteModalVisible(false);
-  }, []);
+    setPasteModalVisible(false)
+  }, [])
 
   return {
     cameraModalVisible,
@@ -79,6 +79,6 @@ export function useContentHandler({
     handleSend: onSend,
     nfcAvailable,
     nfcModalVisible,
-    pasteModalVisible,
-  };
+    pasteModalVisible
+  }
 }

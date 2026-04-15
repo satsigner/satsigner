@@ -1,16 +1,16 @@
-import { URDecoder } from "@ngraveio/bc-ur";
-import { CameraView, useCameraPermissions } from "expo-camera";
-import * as Clipboard from "expo-clipboard";
-import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { URDecoder } from '@ngraveio/bc-ur'
+import { CameraView, useCameraPermissions } from 'expo-camera'
+import * as Clipboard from 'expo-clipboard'
+import { router, Stack, useLocalSearchParams } from 'expo-router'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Keyboard,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  View,
-} from "react-native";
-import { walletNameFromDescriptor } from "react-native-bdk-sdk";
+  View
+} from 'react-native'
+import { walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import Animated, {
   cancelAnimation,
   interpolate,
@@ -18,66 +18,66 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withSequence,
-  withTiming,
-} from "react-native-reanimated";
-import { toast } from "sonner-native";
-import { useShallow } from "zustand/react/shallow";
+  withTiming
+} from 'react-native-reanimated'
+import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconTrash } from "@/components/icons";
-import SSAddressDisplay from "@/components/SSAddressDisplay";
-import SSButton from "@/components/SSButton";
-import SSCollapsible from "@/components/SSCollapsible";
-import SSModal from "@/components/SSModal";
-import SSRadioButton from "@/components/SSRadioButton";
-import SSScriptVersionModal from "@/components/SSScriptVersionModal";
-import SSSelectModal from "@/components/SSSelectModal";
-import SSText from "@/components/SSText";
-import SSTextInput from "@/components/SSTextInput";
-import useAccountBuilderFinish from "@/hooks/useAccountBuilderFinish";
-import { useNFCReader } from "@/hooks/useNFCReader";
-import useSyncAccountWithAddress from "@/hooks/useSyncAccountWithAddress";
-import useSyncAccountWithWallet from "@/hooks/useSyncAccountWithWallet";
-import SSFormLayout from "@/layouts/SSFormLayout";
-import SSHStack from "@/layouts/SSHStack";
-import SSMainLayout from "@/layouts/SSMainLayout";
-import SSVStack from "@/layouts/SSVStack";
-import { t } from "@/locales";
-import { useAccountBuilderStore } from "@/store/accountBuilder";
-import { useAccountsStore } from "@/store/accounts";
-import { useBlockchainStore } from "@/store/blockchain";
-import { Colors } from "@/styles";
+import { SSIconTrash } from '@/components/icons'
+import SSAddressDisplay from '@/components/SSAddressDisplay'
+import SSButton from '@/components/SSButton'
+import SSCollapsible from '@/components/SSCollapsible'
+import SSModal from '@/components/SSModal'
+import SSRadioButton from '@/components/SSRadioButton'
+import SSScriptVersionModal from '@/components/SSScriptVersionModal'
+import SSSelectModal from '@/components/SSSelectModal'
+import SSText from '@/components/SSText'
+import SSTextInput from '@/components/SSTextInput'
+import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
+import { useNFCReader } from '@/hooks/useNFCReader'
+import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
+import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
+import SSFormLayout from '@/layouts/SSFormLayout'
+import SSHStack from '@/layouts/SSHStack'
+import SSMainLayout from '@/layouts/SSMainLayout'
+import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
+import { useAccountBuilderStore } from '@/store/accountBuilder'
+import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
+import { Colors } from '@/styles'
 import {
   type CreationType,
-  type ScriptVersionType,
-} from "@/types/models/Account";
-import { type WatchOnlySearchParams } from "@/types/navigation/searchParams";
-import { isBBQRFragment } from "@/utils/bbqr";
+  type ScriptVersionType
+} from '@/types/models/Account'
+import { type WatchOnlySearchParams } from '@/types/navigation/searchParams'
+import { isBBQRFragment } from '@/utils/bbqr'
 import {
   appNetworkToBdkNetwork,
   bitcoinjsNetwork,
-  getDerivationPathFromScriptVersion,
-} from "@/utils/bitcoin";
-import { DescriptorUtils } from "@/utils/descriptorUtils";
-import { stripBitcoinPrefix } from "@/utils/parse";
-import { getScriptVersionDisplayName } from "@/utils/scripts";
+  getDerivationPathFromScriptVersion
+} from '@/utils/bitcoin'
+import { DescriptorUtils } from '@/utils/descriptorUtils'
+import { stripBitcoinPrefix } from '@/utils/parse'
+import { getScriptVersionDisplayName } from '@/utils/scripts'
 import {
   isCombinedDescriptor,
   validateAddress,
   validateDescriptor,
   validateDescriptorFormat,
   validateExtendedKey,
-  validateFingerprint,
-} from "@/utils/validation";
+  validateFingerprint
+} from '@/utils/validation'
 
 const WATCH_ONLY_OPTIONS: CreationType[] = [
-  "importExtendedPub",
-  "importDescriptor",
-  "importAddress",
-];
+  'importExtendedPub',
+  'importDescriptor',
+  'importAddress'
+]
 
 export default function WatchOnly() {
-  const params = useLocalSearchParams<WatchOnlySearchParams>();
-  const updateAccount = useAccountsStore((state) => state.updateAccount);
+  const params = useLocalSearchParams<WatchOnlySearchParams>()
+  const updateAccount = useAccountsStore((state) => state.updateAccount)
   const [
     name,
     scriptVersion,
@@ -91,7 +91,7 @@ export default function WatchOnly() {
     setExtendedPublicKey,
     setScriptVersion,
     setKey,
-    setNetwork,
+    setNetwork
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
@@ -106,91 +106,88 @@ export default function WatchOnly() {
       state.setExtendedPublicKey,
       state.setScriptVersion,
       state.setKey,
-      state.setNetwork,
+      state.setNetwork
     ])
-  );
+  )
 
   const [network, connectionMode] = useBlockchainStore((state) => [
     state.selectedNetwork,
-    state.configs[state.selectedNetwork].config.connectionMode,
-  ]);
+    state.configs[state.selectedNetwork].config.connectionMode
+  ])
 
-  const { accountBuilderFinish } = useAccountBuilderFinish();
-  const { syncAccountWithWallet } = useSyncAccountWithWallet();
-  const { syncAccountWithAddress } = useSyncAccountWithAddress();
+  const { accountBuilderFinish } = useAccountBuilderFinish()
+  const { syncAccountWithWallet } = useSyncAccountWithWallet()
+  const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { isHardwareSupported, isReading, readNFCTag, cancelNFCScan } =
-    useNFCReader();
+    useNFCReader()
 
-  const [cameraModalVisible, setCameraModalVisible] = useState(false);
-  const [permission, requestPermission] = useCameraPermissions();
-  const [scanningFor, setScanningFor] = useState<"main" | "fingerprint">(
-    "main"
-  );
+  const [cameraModalVisible, setCameraModalVisible] = useState(false)
+  const [permission, requestPermission] = useCameraPermissions()
+  const [scanningFor, setScanningFor] = useState<'main' | 'fingerprint'>('main')
   const [selectedOption, setSelectedOption] = useState<CreationType>(
     params.descriptor
-      ? "importDescriptor"
+      ? 'importDescriptor'
       : params.extendedPublicKey
-      ? "importExtendedPub"
-      : "importExtendedPub"
-  );
+        ? 'importExtendedPub'
+        : 'importExtendedPub'
+  )
   const [modalOptionsVisible, setModalOptionsVisible] = useState(
     !params.descriptor && !params.extendedPublicKey
-  );
+  )
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
-    useState(false);
+    useState(false)
 
-  const [xpub, setXpub] = useState("");
-  const [localFingerprint, setLocalFingerprint] = useState(fingerprint);
-  const [externalDescriptor, setLocalExternalDescriptor] = useState("");
-  const [internalDescriptor, setLocalInternalDescriptor] = useState("");
-  const [addresses, setAddresses] = useState<string[]>([]);
-  const [addressInput, setAddressInput] = useState("");
+  const [xpub, setXpub] = useState('')
+  const [localFingerprint, setLocalFingerprint] = useState(fingerprint)
+  const [externalDescriptor, setLocalExternalDescriptor] = useState('')
+  const [internalDescriptor, setLocalInternalDescriptor] = useState('')
+  const [addresses, setAddresses] = useState<string[]>([])
+  const [addressInput, setAddressInput] = useState('')
 
-  const [isDisabled, setIsDisabled] = useState(true);
-  const [isValidAddress, setIsValidAddress] = useState(true);
+  const [isDisabled, setIsDisabled] = useState(true)
+  const [isValidAddress, setIsValidAddress] = useState(true)
   const [isValidExternalDescriptor, setIsValidExternalDescriptor] =
-    useState(true);
+    useState(true)
   const [isValidInternalDescriptor, setIsValidInternalDescriptor] =
-    useState(true);
-  const [isValidXpub, setIsValidXpub] = useState(true);
-  const [isValidMasterFingerprint, setIsValidMasterFingerprint] =
-    useState(true);
-  const [isLoadingWallet, setIsLoadingWallet] = useState(false);
+    useState(true)
+  const [isValidXpub, setIsValidXpub] = useState(true)
+  const [isValidMasterFingerprint, setIsValidMasterFingerprint] = useState(true)
+  const [isLoadingWallet, setIsLoadingWallet] = useState(false)
 
   useEffect(() => {
     async function handleScannerParams() {
       if (params.descriptor) {
-        const descriptorFromScanner = params.descriptor as string;
+        const descriptorFromScanner = params.descriptor as string
 
-        setCreationType("importDescriptor");
-        await handleSingleDescriptor(descriptorFromScanner);
+        setCreationType('importDescriptor')
+        await handleSingleDescriptor(descriptorFromScanner)
       } else if (params.extendedPublicKey) {
-        const xpubFromScanner = params.extendedPublicKey as string;
-        setCreationType("importExtendedPub");
-        updateXpub(xpubFromScanner);
+        const xpubFromScanner = params.extendedPublicKey as string
+        setCreationType('importExtendedPub')
+        updateXpub(xpubFromScanner)
       }
     }
 
-    handleScannerParams();
+    handleScannerParams()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.descriptor, params.extendedPublicKey, setCreationType]);
+  }, [params.descriptor, params.extendedPublicKey, setCreationType])
 
   // Multipart QR scanning state
-  const urDecoderRef = useRef<URDecoder>(new URDecoder());
+  const urDecoderRef = useRef<URDecoder>(new URDecoder())
   const [scanProgress, setScanProgress] = useState<{
-    type: "raw" | "ur" | "bbqr" | null;
-    total: number;
-    scanned: Set<number>;
-    chunks: Map<number, string>;
+    type: 'raw' | 'ur' | 'bbqr' | null
+    total: number
+    scanned: Set<number>
+    chunks: Map<number, string>
   }>({
     chunks: new Map(),
     scanned: new Set(),
     total: 0,
-    type: null,
-  });
+    type: null
+  })
 
-  const pulseAnim = useSharedValue(0);
-  const scaleAnim = useSharedValue(1);
+  const pulseAnim = useSharedValue(0)
+  const scaleAnim = useSharedValue(1)
 
   useEffect(() => {
     if (isReading) {
@@ -202,7 +199,7 @@ export default function WatchOnly() {
           ),
           -1
         )
-      );
+      )
       scaleAnim.set(
         withRepeat(
           withSequence(
@@ -211,44 +208,44 @@ export default function WatchOnly() {
           ),
           -1
         )
-      );
+      )
       return () => {
-        cancelAnimation(pulseAnim);
-        cancelAnimation(scaleAnim);
-      };
+        cancelAnimation(pulseAnim)
+        cancelAnimation(scaleAnim)
+      }
     }
-    cancelAnimation(pulseAnim);
-    cancelAnimation(scaleAnim);
-    pulseAnim.set(0);
-    scaleAnim.set(1);
-  }, [isReading, pulseAnim, scaleAnim]);
+    cancelAnimation(pulseAnim)
+    cancelAnimation(scaleAnim)
+    pulseAnim.set(0)
+    scaleAnim.set(1)
+  }, [isReading, pulseAnim, scaleAnim])
 
   const nfcButtonStyle = useAnimatedStyle(() => ({
     opacity: interpolate(pulseAnim.value, [0, 1], [1, 0.7]),
-    overflow: "hidden",
-    transform: [{ scale: scaleAnim.value }],
-  }));
+    overflow: 'hidden',
+    transform: [{ scale: scaleAnim.value }]
+  }))
 
   const updateDescriptorValidationState = useCallback(() => {
-    const hasValidExternal = externalDescriptor && isValidExternalDescriptor;
-    const hasValidInternal = internalDescriptor && isValidInternalDescriptor;
-    const hasAnyValidDescriptor = hasValidExternal || hasValidInternal;
+    const hasValidExternal = externalDescriptor && isValidExternalDescriptor
+    const hasValidInternal = internalDescriptor && isValidInternalDescriptor
+    const hasAnyValidDescriptor = hasValidExternal || hasValidInternal
 
-    if (selectedOption === "importDescriptor") {
-      setIsDisabled(!hasAnyValidDescriptor);
+    if (selectedOption === 'importDescriptor') {
+      setIsDisabled(!hasAnyValidDescriptor)
     }
   }, [
     externalDescriptor,
     internalDescriptor,
     isValidExternalDescriptor,
     isValidInternalDescriptor,
-    selectedOption,
-  ]);
+    selectedOption
+  ])
 
   // Initialize validation state when selected option changes
   useEffect(() => {
-    if (selectedOption === "importDescriptor") {
-      updateDescriptorValidationState();
+    if (selectedOption === 'importDescriptor') {
+      updateDescriptorValidationState()
     }
   }, [
     selectedOption,
@@ -256,70 +253,70 @@ export default function WatchOnly() {
     internalDescriptor,
     isValidExternalDescriptor,
     isValidInternalDescriptor,
-    updateDescriptorValidationState,
-  ]);
+    updateDescriptorValidationState
+  ])
 
   function updateAddress(address: string) {
-    const processedAddress = stripBitcoinPrefix(address);
+    const processedAddress = stripBitcoinPrefix(address)
 
     const isValidAddress =
       validateAddress(processedAddress, bitcoinjsNetwork(network)) &&
-      !addresses.includes(processedAddress);
+      !addresses.includes(processedAddress)
 
-    setIsValidAddress(!address || isValidAddress);
+    setIsValidAddress(!address || isValidAddress)
 
-    if (selectedOption === "importAddress") {
-      setIsDisabled(!isValidAddress);
+    if (selectedOption === 'importAddress') {
+      setIsDisabled(!isValidAddress)
     }
 
     // Keep original address in input field (user can see "bitcoin:" prefix)
-    setAddressInput(address);
+    setAddressInput(address)
   }
 
   function addAddress(address: string) {
-    const processedAddress = stripBitcoinPrefix(address);
-    setAddresses([...addresses, processedAddress]);
-    setAddressInput("");
+    const processedAddress = stripBitcoinPrefix(address)
+    setAddresses([...addresses, processedAddress])
+    setAddressInput('')
   }
 
   function deleteAddress(address: string) {
-    setAddresses(addresses.filter((a) => a !== address));
+    setAddresses(addresses.filter((a) => a !== address))
   }
 
   function updateMasterFingerprint(fingerprint: string) {
-    const validFingerprint = validateFingerprint(fingerprint);
+    const validFingerprint = validateFingerprint(fingerprint)
 
-    setIsValidMasterFingerprint(!fingerprint || validFingerprint);
+    setIsValidMasterFingerprint(!fingerprint || validFingerprint)
 
-    if (selectedOption === "importExtendedPub") {
-      setIsDisabled(!isValidXpub || !validFingerprint);
+    if (selectedOption === 'importExtendedPub') {
+      setIsDisabled(!isValidXpub || !validFingerprint)
     }
 
-    setLocalFingerprint(fingerprint);
+    setLocalFingerprint(fingerprint)
 
     if (validFingerprint) {
-      setFingerprint(fingerprint);
-      Keyboard.dismiss();
+      setFingerprint(fingerprint)
+      Keyboard.dismiss()
     }
   }
 
   function updateXpub(xpub: string) {
-    const validXpub = validateExtendedKey(xpub);
-    const validForNetwork = validateExtendedKey(xpub, network);
+    const validXpub = validateExtendedKey(xpub)
+    const validForNetwork = validateExtendedKey(xpub, network)
 
     if (!validForNetwork && validXpub) {
-      toast.error(t("watchonly.error.networkMismatch"));
+      toast.error(t('watchonly.error.networkMismatch'))
     }
 
-    setIsValidXpub(!xpub || validXpub);
+    setIsValidXpub(!xpub || validXpub)
 
-    extractAndSetFingerprint(xpub);
+    extractAndSetFingerprint(xpub)
 
-    if (selectedOption === "importExtendedPub") {
-      setIsDisabled(!validXpub || !localFingerprint);
+    if (selectedOption === 'importExtendedPub') {
+      setIsDisabled(!validXpub || !localFingerprint)
     }
 
-    setXpub(xpub);
+    setXpub(xpub)
 
     // For multisig accounts, use the script version from the store instead of auto-detecting
     // The script type should be determined by the multisig configuration, not the xpub prefix
@@ -328,9 +325,9 @@ export default function WatchOnly() {
       const derivationPath = getDerivationPathFromScriptVersion(
         scriptVersion,
         network
-      );
-      const formattedXpub = `[${localFingerprint}/${derivationPath}]${xpub}/0/*`;
-      setExtendedPublicKey(formattedXpub);
+      )
+      const formattedXpub = `[${localFingerprint}/${derivationPath}]${xpub}/0/*`
+      setExtendedPublicKey(formattedXpub)
       // Don't change the script version - keep the one from the store
     }
   }
@@ -342,12 +339,12 @@ export default function WatchOnly() {
     // For combined descriptors, we need to validate the full combined descriptor
     // not the separated ones, since checksums are only valid for the full descriptor
     if (skipChecksumValidation) {
-      await handleSeparatedDescriptorValidation(descriptor, "external");
-      return;
+      await handleSeparatedDescriptorValidation(descriptor, 'external')
+      return
     }
 
     // Regular validation for standalone descriptors
-    await handleFullDescriptorValidation(descriptor, "external");
+    await handleFullDescriptorValidation(descriptor, 'external')
   }
 
   async function updateInternalDescriptor(
@@ -357,57 +354,57 @@ export default function WatchOnly() {
     // For combined descriptors, we need to validate the full combined descriptor
     // not the separated ones, since checksums are only valid for the full descriptor
     if (skipChecksumValidation) {
-      await handleSeparatedDescriptorValidation(descriptor, "internal");
-      return;
+      await handleSeparatedDescriptorValidation(descriptor, 'internal')
+      return
     }
 
     // Regular validation for standalone descriptors
-    await handleFullDescriptorValidation(descriptor, "internal");
+    await handleFullDescriptorValidation(descriptor, 'internal')
   }
 
   async function handleSeparatedDescriptorValidation(
     descriptor: string,
-    type: "external" | "internal"
+    type: 'external' | 'internal'
   ) {
     // This is a separated descriptor from a combined descriptor
     // Only do format validation, not checksum validation
-    const descriptorValidation = await validateDescriptorFormat(descriptor);
+    const descriptorValidation = await validateDescriptorFormat(descriptor)
 
     const basicValidation =
-      descriptorValidation && !descriptor.match(/[txyz]priv/);
+      descriptorValidation && !descriptor.match(/[txyz]priv/)
 
-    if (type === "external") {
-      setIsValidExternalDescriptor(!descriptor || basicValidation);
-      setLocalExternalDescriptor(descriptor);
+    if (type === 'external') {
+      setIsValidExternalDescriptor(!descriptor || basicValidation)
+      setLocalExternalDescriptor(descriptor)
 
       if (basicValidation) {
-        setExternalDescriptor(descriptor);
-        await extractAndSetFingerprint(descriptor);
+        setExternalDescriptor(descriptor)
+        await extractAndSetFingerprint(descriptor)
       }
     } else {
-      setIsValidInternalDescriptor(!descriptor || basicValidation);
-      setLocalInternalDescriptor(descriptor);
+      setIsValidInternalDescriptor(!descriptor || basicValidation)
+      setLocalInternalDescriptor(descriptor)
 
       if (basicValidation) {
-        setInternalDescriptor(descriptor);
-        await extractAndSetFingerprint(descriptor);
+        setInternalDescriptor(descriptor)
+        await extractAndSetFingerprint(descriptor)
       }
     }
   }
 
   async function handleFullDescriptorValidation(
     descriptor: string,
-    type: "external" | "internal"
+    type: 'external' | 'internal'
   ) {
-    const descriptorValidation = await validateDescriptor(descriptor);
+    const descriptorValidation = await validateDescriptor(descriptor)
 
     const basicValidation =
-      descriptorValidation && !descriptor.match(/[txyz]priv/);
+      descriptorValidation && !descriptor.match(/[txyz]priv/)
 
     // Network validation - check if descriptor is compatible with selected network
     let networkValidation: { isValid: boolean; error?: string } = {
-      isValid: true,
-    };
+      isValid: true
+    }
 
     if (basicValidation && descriptor) {
       try {
@@ -416,108 +413,108 @@ export default function WatchOnly() {
           descriptor,
           undefined,
           appNetworkToBdkNetwork(network)
-        );
-        networkValidation = { isValid: true };
+        )
+        networkValidation = { isValid: true }
       } catch (error) {
         const errorMessage =
-          error instanceof Error ? error.message : String(error);
+          error instanceof Error ? error.message : String(error)
 
         networkValidation =
-          errorMessage.includes("Invalid network") ||
-          errorMessage.includes("network")
+          errorMessage.includes('Invalid network') ||
+          errorMessage.includes('network')
             ? {
-                error: "networkIncompatible" as const,
-                isValid: false,
+                error: 'networkIncompatible' as const,
+                isValid: false
               }
-            : { isValid: true };
+            : { isValid: true }
       }
     }
 
-    const isValidDescriptor = basicValidation && networkValidation.isValid;
+    const isValidDescriptor = basicValidation && networkValidation.isValid
 
-    if (type === "external") {
-      setIsValidExternalDescriptor(!descriptor || isValidDescriptor);
-      setLocalExternalDescriptor(descriptor);
+    if (type === 'external') {
+      setIsValidExternalDescriptor(!descriptor || isValidDescriptor)
+      setLocalExternalDescriptor(descriptor)
 
       if (isValidDescriptor) {
-        setExternalDescriptor(descriptor);
-        await extractAndSetFingerprint(descriptor);
+        setExternalDescriptor(descriptor)
+        await extractAndSetFingerprint(descriptor)
       }
     } else {
-      setIsValidInternalDescriptor(!descriptor || isValidDescriptor);
-      setLocalInternalDescriptor(descriptor);
+      setIsValidInternalDescriptor(!descriptor || isValidDescriptor)
+      setLocalInternalDescriptor(descriptor)
 
       if (isValidDescriptor) {
-        setInternalDescriptor(descriptor);
-        await extractAndSetFingerprint(descriptor);
+        setInternalDescriptor(descriptor)
+        await extractAndSetFingerprint(descriptor)
       }
     }
   }
 
   function extractAndSetFingerprint(descriptor: string) {
     if (localFingerprint) {
-      return;
+      return
     }
-    const extractedFingerprint = DescriptorUtils.extractFingerprint(descriptor);
+    const extractedFingerprint = DescriptorUtils.extractFingerprint(descriptor)
     if (!extractedFingerprint) {
-      return;
+      return
     }
-    setLocalFingerprint(extractedFingerprint);
-    setFingerprint(extractedFingerprint);
+    setLocalFingerprint(extractedFingerprint)
+    setFingerprint(extractedFingerprint)
   }
 
   function detectQRType(data: string) {
     // Check for RAW format (pXofY header)
     if (/^p\d+of\d+\s/.test(data)) {
-      const match = data.match(/^p(\d+)of(\d+)\s/);
+      const match = data.match(/^p(\d+)of(\d+)\s/)
       if (match) {
         return {
           content: data.substring(match[0].length),
           current: parseInt(match[1], 10) - 1, // Convert to 0-based index
           total: parseInt(match[2], 10),
-          type: "raw" as const,
-        };
+          type: 'raw' as const
+        }
       }
     }
 
     // Check for BBQR format
     if (isBBQRFragment(data)) {
-      const total = parseInt(data.slice(4, 6), 36);
-      const current = parseInt(data.slice(6, 8), 36);
+      const total = parseInt(data.slice(4, 6), 36)
+      const current = parseInt(data.slice(6, 8), 36)
       return {
         content: data,
         current,
         total,
-        type: "bbqr" as const,
-      };
+        type: 'bbqr' as const
+      }
     }
 
     // Check for UR format (crypto-account, crypto-psbt, etc.)
-    if (data.toLowerCase().startsWith("ur:crypto-")) {
+    if (data.toLowerCase().startsWith('ur:crypto-')) {
       // UR format: ur:crypto-*/[sequence]/[data] for multi-part
       // or ur:crypto-*/[data] for single part
-      const urMatch = data.match(/^ur:crypto-[^/]+\/(?:(\d+)-(\d+)\/)?(.+)$/i);
+      const urMatch = data.match(/^ur:crypto-[^/]+\/(?:(\d+)-(\d+)\/)?(.+)$/i)
       if (urMatch) {
-        const [, currentStr, totalStr] = urMatch;
+        const [, currentStr, totalStr] = urMatch
 
         if (currentStr && totalStr) {
           // Multi-part UR
-          const current = parseInt(currentStr, 10) - 1; // Convert to 0-based index
-          const total = parseInt(totalStr, 10);
+          const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
+          const total = parseInt(totalStr, 10)
           return {
             content: data,
             current,
             total,
-            type: "ur" as const,
-          };
+            type: 'ur' as const
+          }
         }
         // Single-part UR
         return {
           content: data,
           current: 0,
           total: 1,
-          type: "ur" as const,
-        };
+          type: 'ur' as const
+        }
       }
     }
 
@@ -525,8 +522,8 @@ export default function WatchOnly() {
       content: data,
       current: 0,
       total: 1,
-      type: "single" as const,
-    };
+      type: 'single' as const
+    }
   }
 
   function resetScanProgress() {
@@ -534,128 +531,128 @@ export default function WatchOnly() {
       chunks: new Map(),
       scanned: new Set(),
       total: 0,
-      type: null,
-    });
-    urDecoderRef.current = new URDecoder();
+      type: null
+    })
+    urDecoderRef.current = new URDecoder()
   }
 
   async function handleQRCodeScanned(data: string | undefined) {
     if (!data) {
-      toast.error(t("watchonly.read.qrError"));
-      return;
+      toast.error(t('watchonly.read.qrError'))
+      return
     }
 
-    if (scanningFor === "fingerprint") {
-      updateMasterFingerprint(data);
-      setCameraModalVisible(false);
-      toast.success(t("watchonly.success.qrScanned"));
-      return;
+    if (scanningFor === 'fingerprint') {
+      updateMasterFingerprint(data)
+      setCameraModalVisible(false)
+      toast.success(t('watchonly.success.qrScanned'))
+      return
     }
 
-    const qrInfo = detectQRType(data);
+    const qrInfo = detectQRType(data)
 
-    await (qrInfo.type === "single" || qrInfo.total === 1
+    await (qrInfo.type === 'single' || qrInfo.total === 1
       ? handleSingleQRCode(qrInfo.content)
-      : handleMultiPartQRCode(qrInfo));
+      : handleMultiPartQRCode(qrInfo))
   }
 
   async function handleSingleQRCode(data: string) {
     if (isCombinedDescriptor(data)) {
-      await handleCombinedDescriptor(data, data);
-      return;
+      await handleCombinedDescriptor(data, data)
+      return
     }
 
-    await updateExternalDescriptor(data);
-    extractAndSetFingerprint(data);
+    await updateExternalDescriptor(data)
+    extractAndSetFingerprint(data)
   }
 
   async function handleMultiPartQRCode(qrInfo: {
-    type: "ur" | "bbqr" | "raw";
-    current: number;
-    total: number;
-    content: string;
+    type: 'ur' | 'bbqr' | 'raw'
+    current: number
+    total: number
+    content: string
   }) {
-    const { current, total, content } = qrInfo;
+    const { current, total, content } = qrInfo
 
     if (current >= total) {
-      toast.error(t("watchonly.read.qrError"));
-      return;
+      toast.error(t('watchonly.read.qrError'))
+      return
     }
 
     // Add the scanned chunk to the set
     setScanProgress((prev) => ({
       ...prev,
-      scanned: new Set([...prev.scanned, current]),
-    }));
+      scanned: new Set([...prev.scanned, current])
+    }))
 
     // For now, handle as single QR code to avoid complex UR decoding issues
-    await handleSingleQRCode(content);
+    await handleSingleQRCode(content)
   }
 
   async function pasteFromClipboard() {
-    const text = await Clipboard.getStringAsync();
+    const text = await Clipboard.getStringAsync()
     if (!text) {
-      return;
+      return
     }
 
-    if (selectedOption === "importExtendedPub") {
-      updateXpub(text);
-      return;
+    if (selectedOption === 'importExtendedPub') {
+      updateXpub(text)
+      return
     }
 
-    if (selectedOption === "importAddress") {
-      if (!text.includes("\n")) {
-        updateAddress(text);
-        return;
+    if (selectedOption === 'importAddress') {
+      if (!text.includes('\n')) {
+        updateAddress(text)
+        return
       }
 
       // handle pasting multiple addresses at once
-      const lines = text.split("\n").filter((line) => line !== "");
+      const lines = text.split('\n').filter((line) => line !== '')
       const hasAddresses = lines.every((line) =>
         validateAddress(stripBitcoinPrefix(line), bitcoinjsNetwork(network))
-      );
+      )
 
       if (hasAddresses) {
-        const processedLines = lines.map(stripBitcoinPrefix);
-        setAddresses([...new Set([...addresses, ...processedLines])]);
+        const processedLines = lines.map(stripBitcoinPrefix)
+        setAddresses([...new Set([...addresses, ...processedLines])])
       }
 
-      return;
+      return
     }
 
-    if (selectedOption === "importDescriptor") {
+    if (selectedOption === 'importDescriptor') {
       // Try to parse as JSON first
-      const jsonResult = DescriptorUtils.parseJsonDescriptor(text);
+      const jsonResult = DescriptorUtils.parseJsonDescriptor(text)
       if (jsonResult) {
-        await handleJsonDescriptor(jsonResult, text);
-        return;
+        await handleJsonDescriptor(jsonResult, text)
+        return
       }
 
       // Try to parse as legacy multi-line format
-      const legacyResult = DescriptorUtils.parseLegacyDescriptor(text);
+      const legacyResult = DescriptorUtils.parseLegacyDescriptor(text)
       if (legacyResult) {
-        await handleLegacyDescriptor(legacyResult);
-        return;
+        await handleLegacyDescriptor(legacyResult)
+        return
       }
 
       // Handle as single descriptor
-      await handleSingleDescriptor(text);
+      await handleSingleDescriptor(text)
     }
   }
 
   async function pasteFingerprintFromClipboard() {
     try {
-      const clipboardContent = await Clipboard.getStringAsync();
+      const clipboardContent = await Clipboard.getStringAsync()
       if (!clipboardContent) {
-        toast.error(t("watchonly.error.emptyClipboard"));
-        return;
+        toast.error(t('watchonly.error.emptyClipboard'))
+        return
       }
 
-      const finalContent = clipboardContent.trim();
-      updateMasterFingerprint(finalContent);
-      toast.success(t("watchonly.success.clipboardPasted"));
+      const finalContent = clipboardContent.trim()
+      updateMasterFingerprint(finalContent)
+      toast.success(t('watchonly.success.clipboardPasted'))
     } catch {
-      toast.error(t("watchonly.error.clipboardPaste"));
+      toast.error(t('watchonly.error.clipboardPaste'))
     }
   }
 
@@ -663,45 +660,45 @@ export default function WatchOnly() {
     result: { external: string; internal: string; original: string },
     originalText: string
   ) {
-    const { external, internal, original } = result;
+    const { external, internal, original } = result
 
     if (isCombinedDescriptor(original)) {
-      await handleCombinedDescriptor(original, originalText);
+      await handleCombinedDescriptor(original, originalText)
     } else {
       // For JSON descriptors, use the original descriptor for validation
-      await updateExternalDescriptor(original);
+      await updateExternalDescriptor(original)
       if (internal) {
-        await updateInternalDescriptor(internal);
+        await updateInternalDescriptor(internal)
       }
-      extractAndSetFingerprint(external);
+      extractAndSetFingerprint(external)
     }
   }
 
   async function handleLegacyDescriptor(result: {
-    external: string;
-    internal: string;
+    external: string
+    internal: string
   }) {
-    const { external, internal } = result;
+    const { external, internal } = result
 
     if (isCombinedDescriptor(external)) {
-      await handleCombinedDescriptor(external, external);
-      return;
+      await handleCombinedDescriptor(external, external)
+      return
     }
 
-    await updateExternalDescriptor(external);
+    await updateExternalDescriptor(external)
     if (internal) {
-      await updateInternalDescriptor(internal);
+      await updateInternalDescriptor(internal)
     }
 
-    extractAndSetFingerprint(external);
+    extractAndSetFingerprint(external)
   }
 
   async function handleSingleDescriptor(descriptor: string) {
     if (isCombinedDescriptor(descriptor)) {
-      await handleCombinedDescriptor(descriptor, descriptor);
+      await handleCombinedDescriptor(descriptor, descriptor)
     } else {
-      await updateExternalDescriptor(descriptor);
-      extractAndSetFingerprint(descriptor);
+      await updateExternalDescriptor(descriptor)
+      extractAndSetFingerprint(descriptor)
     }
   }
 
@@ -712,44 +709,44 @@ export default function WatchOnly() {
     const result = await DescriptorUtils.processCombinedDescriptor(
       descriptor,
       scriptVersion as ScriptVersionType
-    );
+    )
 
     if (result.success) {
       // Set both descriptors and mark them as valid
-      setLocalExternalDescriptor(result.external);
-      setLocalInternalDescriptor(result.internal);
-      setIsValidExternalDescriptor(true);
-      setIsValidInternalDescriptor(true);
+      setLocalExternalDescriptor(result.external)
+      setLocalInternalDescriptor(result.internal)
+      setIsValidExternalDescriptor(true)
+      setIsValidInternalDescriptor(true)
 
       // Store the FULL combined descriptor in the store for validation during account creation
-      setExternalDescriptor(originalText);
-      setInternalDescriptor("");
+      setExternalDescriptor(originalText)
+      setInternalDescriptor('')
 
       // Extract and set fingerprint
       if (!localFingerprint && result.fingerprint) {
-        setLocalFingerprint(result.fingerprint);
-        setFingerprint(result.fingerprint);
+        setLocalFingerprint(result.fingerprint)
+        setFingerprint(result.fingerprint)
       }
 
       // Remove checksums from separated descriptors for format validation
       const externalWithoutChecksum = DescriptorUtils.removeChecksum(
         result.external
-      );
+      )
       const internalWithoutChecksum = DescriptorUtils.removeChecksum(
         result.internal
-      );
+      )
 
-      await updateExternalDescriptor(externalWithoutChecksum, true);
-      await updateInternalDescriptor(internalWithoutChecksum, true);
+      await updateExternalDescriptor(externalWithoutChecksum, true)
+      await updateInternalDescriptor(internalWithoutChecksum, true)
     } else {
       // Set the separated descriptors but mark them as invalid
-      setLocalExternalDescriptor(result.external);
-      setLocalInternalDescriptor(result.internal);
-      setIsValidExternalDescriptor(false);
-      setIsValidInternalDescriptor(false);
+      setLocalExternalDescriptor(result.external)
+      setLocalInternalDescriptor(result.internal)
+      setIsValidExternalDescriptor(false)
+      setIsValidInternalDescriptor(false)
 
       if (result.error) {
-        toast.error(result.error);
+        toast.error(result.error)
       }
     }
   }
@@ -757,37 +754,37 @@ export default function WatchOnly() {
   // TODO: remove this logic, it should not be defined here.
   async function handleNFCRead() {
     if (isReading) {
-      await cancelNFCScan();
-      return;
+      await cancelNFCScan()
+      return
     }
 
     try {
-      const nfcData = await readNFCTag();
+      const nfcData = await readNFCTag()
 
       if (!nfcData) {
-        toast.error(t("watchonly.read.nfcErrorNoData"));
-        return;
+        toast.error(t('watchonly.read.nfcErrorNoData'))
+        return
       }
 
       if (!nfcData.text) {
-        toast.error(t("watchonly.read.nfcErrorNoData"));
-        return;
+        toast.error(t('watchonly.read.nfcErrorNoData'))
+        return
       }
 
       const text = nfcData.text
         .trim()
-        .replace(/[^\S\n]+/g, "") // Remove all whitespace except newlines
-        .replace(/[\u200B-\u200D\uFEFF]/g, "") // Remove zero-width spaces and other invisible characters
+        .replace(/[^\S\n]+/g, '') // Remove all whitespace except newlines
+        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
         // eslint-disable-next-line no-control-regex
-        .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, "") // Remove control characters except \n
-        .normalize("NFKC") // Normalize unicode characters
-        .replace(/^en/, "");
+        .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
+        .normalize('NFKC') // Normalize unicode characters
+        .replace(/^en/, '')
 
-      if (selectedOption === "importDescriptor") {
-        let externalDescriptor = text;
-        let internalDescriptor = "";
-        if (text.includes("\n")) {
-          [externalDescriptor, internalDescriptor] = text.split("\n");
+      if (selectedOption === 'importDescriptor') {
+        let externalDescriptor = text
+        let internalDescriptor = ''
+        if (text.includes('\n')) {
+          ;[externalDescriptor, internalDescriptor] = text.split('\n')
         }
 
         // Check if the descriptor is combined (contains <0;1> or <0,1>)
@@ -797,89 +794,89 @@ export default function WatchOnly() {
             await DescriptorUtils.processCombinedDescriptor(
               text,
               scriptVersion as ScriptVersionType
-            );
+            )
 
           if (combinedValidation.success) {
             // Set both descriptors and mark them as valid
-            setLocalExternalDescriptor(combinedValidation.external);
-            setLocalInternalDescriptor(combinedValidation.internal);
-            setIsValidExternalDescriptor(true);
-            setIsValidInternalDescriptor(true);
+            setLocalExternalDescriptor(combinedValidation.external)
+            setLocalInternalDescriptor(combinedValidation.internal)
+            setIsValidExternalDescriptor(true)
+            setIsValidInternalDescriptor(true)
 
             // IMPORTANT: Store the FULL combined descriptor in the store for validation during account creation
             // The separated descriptors are only for display purposes
-            setExternalDescriptor(text); // Store the original combined descriptor
-            setInternalDescriptor(""); // No internal descriptor for combined descriptors
+            setExternalDescriptor(text) // Store the original combined descriptor
+            setInternalDescriptor('') // No internal descriptor for combined descriptors
 
-            extractAndSetFingerprint(combinedValidation.external);
+            extractAndSetFingerprint(combinedValidation.external)
 
             // IMPORTANT: For combined descriptors, we need to remove the checksum from the separated descriptors
             // because the checksums are only valid for the full combined descriptor
             const externalWithoutChecksum = combinedValidation.external.replace(
               /#[a-z0-9]+$/,
-              ""
-            );
+              ''
+            )
             const internalWithoutChecksum = combinedValidation.internal.replace(
               /#[a-z0-9]+$/,
-              ""
-            );
+              ''
+            )
 
             // Use format-only validation for the separated descriptors (without checksums)
-            await updateExternalDescriptor(externalWithoutChecksum, true);
-            await updateInternalDescriptor(internalWithoutChecksum, true);
+            await updateExternalDescriptor(externalWithoutChecksum, true)
+            await updateInternalDescriptor(internalWithoutChecksum, true)
           } else {
             // Set the separated descriptors but mark them as invalid
-            setLocalExternalDescriptor(combinedValidation.external);
-            setLocalInternalDescriptor(combinedValidation.internal);
-            setIsValidExternalDescriptor(false);
-            setIsValidInternalDescriptor(false);
+            setLocalExternalDescriptor(combinedValidation.external)
+            setLocalInternalDescriptor(combinedValidation.internal)
+            setIsValidExternalDescriptor(false)
+            setIsValidInternalDescriptor(false)
           }
         } else {
           // Handle non-combined descriptors with existing logic
           if (externalDescriptor) {
-            updateExternalDescriptor(externalDescriptor);
+            updateExternalDescriptor(externalDescriptor)
           }
           if (internalDescriptor) {
-            updateInternalDescriptor(internalDescriptor);
+            updateInternalDescriptor(internalDescriptor)
           }
-          extractAndSetFingerprint(externalDescriptor);
+          extractAndSetFingerprint(externalDescriptor)
         }
       }
 
-      if (selectedOption === "importExtendedPub") {
-        updateXpub(text);
+      if (selectedOption === 'importExtendedPub') {
+        updateXpub(text)
       }
 
-      if (selectedOption === "importAddress") {
-        updateAddress(text);
+      if (selectedOption === 'importAddress') {
+        updateAddress(text)
       }
     } catch (error) {
-      const errorMessage = (error as Error).message;
+      const errorMessage = (error as Error).message
       if (errorMessage) {
-        toast.error(errorMessage);
+        toast.error(errorMessage)
       }
     }
   }
 
   const confirmAccountCreation = useCallback(
     async () => {
-      setIsLoadingWallet(true);
+      setIsLoadingWallet(true)
       try {
-        if (selectedOption === "importExtendedPub") {
+        if (selectedOption === 'importExtendedPub') {
           if (!xpub || !localFingerprint || !scriptVersion) {
-            toast.error(t("watchonly.error.missingFields"));
-            return;
+            toast.error(t('watchonly.error.missingFields'))
+            return
           }
-          setExtendedPublicKey(xpub);
-          setFingerprint(localFingerprint);
-          setScriptVersion(scriptVersion);
-        } else if (selectedOption === "importAddress") {
+          setExtendedPublicKey(xpub)
+          setFingerprint(localFingerprint)
+          setScriptVersion(scriptVersion)
+        } else if (selectedOption === 'importAddress') {
           for (let index = 0; index < addresses.length; index += 1) {
-            const address = addresses[index];
-            setExternalDescriptor(`addr(${address})`);
-            setKey(index);
+            const address = addresses[index]
+            setExternalDescriptor(`addr(${address})`)
+            setKey(index)
           }
-        } else if (selectedOption === "importDescriptor") {
+        } else if (selectedOption === 'importDescriptor') {
           // Extract fingerprint from descriptor if not already set
 
           // Check if we have a combined descriptor and validate it
@@ -888,61 +885,61 @@ export default function WatchOnly() {
               await DescriptorUtils.processCombinedDescriptor(
                 externalDescriptor,
                 scriptVersion as ScriptVersionType
-              );
+              )
 
             if (!combinedValidation.success) {
-              toast.error("Invalid combined descriptor");
-              return;
+              toast.error('Invalid combined descriptor')
+              return
             }
           }
 
-          extractAndSetFingerprint(externalDescriptor);
+          extractAndSetFingerprint(externalDescriptor)
 
           // Ensure we have a fingerprint for descriptor import
           if (!localFingerprint) {
-            toast.error(t("watchonly.error.missingFields"));
-            return;
+            toast.error(t('watchonly.error.missingFields'))
+            return
           }
         }
 
-        setNetwork(network);
-        setKey(0);
+        setNetwork(network)
+        setKey(0)
 
-        const account = getAccountData();
+        const account = getAccountData()
 
-        const data = await accountBuilderFinish(account);
+        const data = await accountBuilderFinish(account)
         if (!data) {
-          toast.error(t("watchonly.error.creationFailed"));
-          return;
+          toast.error(t('watchonly.error.creationFailed'))
+          return
         }
 
-        updateAccount(data.accountWithEncryptedSecret);
-        toast.success(t("watchonly.success.accountCreated"));
-        router.dismissAll();
+        updateAccount(data.accountWithEncryptedSecret)
+        toast.success(t('watchonly.success.accountCreated'))
+        router.dismissAll()
         router.navigate(
           `/signer/bitcoin/account/${data.accountWithEncryptedSecret.id}`
-        );
+        )
 
         // Start sync in background if auto mode is enabled
-        if (connectionMode === "auto") {
+        if (connectionMode === 'auto') {
           try {
             const updatedAccount =
-              selectedOption !== "importAddress"
+              selectedOption !== 'importAddress'
                 ? await syncAccountWithWallet(
                     data.accountWithEncryptedSecret,
                     data.wallet!
                   )
-                : await syncAccountWithAddress(data.accountWithEncryptedSecret);
-            updateAccount(updatedAccount);
+                : await syncAccountWithAddress(data.accountWithEncryptedSecret)
+            updateAccount(updatedAccount)
           } catch {
             /* silently ignored */
           }
         }
       } catch {
-        toast.error(t("watchonly.error.creationFailed"));
+        toast.error(t('watchonly.error.creationFailed'))
       } finally {
-        clearAccount();
-        setIsLoadingWallet(false);
+        clearAccount()
+        setIsLoadingWallet(false)
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -954,9 +951,9 @@ export default function WatchOnly() {
       addresses,
       externalDescriptor,
       network,
-      connectionMode,
+      connectionMode
     ]
-  );
+  )
 
   return (
     <SSMainLayout style={styles.mainContainer}>
@@ -972,7 +969,7 @@ export default function WatchOnly() {
                   <SSText size="md" center uppercase>
                     {t(`watchonly.${selectedOption}.label`)}
                   </SSText>
-                  {selectedOption === "importExtendedPub" && (
+                  {selectedOption === 'importExtendedPub' && (
                     <SSTextInput
                       value={xpub}
                       style={isValidXpub ? styles.valid : styles.invalid}
@@ -980,7 +977,7 @@ export default function WatchOnly() {
                       multiline
                     />
                   )}
-                  {selectedOption === "importDescriptor" && (
+                  {selectedOption === 'importDescriptor' && (
                     <SSTextInput
                       value={externalDescriptor}
                       style={
@@ -992,7 +989,7 @@ export default function WatchOnly() {
                       multiline
                     />
                   )}
-                  {selectedOption === "importAddress" && (
+                  {selectedOption === 'importAddress' && (
                     <>
                       {addresses.map((address, index) => (
                         <SSVStack
@@ -1002,7 +999,7 @@ export default function WatchOnly() {
                         >
                           <SSHStack justifyBetween>
                             <SSText uppercase weight="bold">
-                              {`${t("bitcoin.address")} #${index + 1}`}
+                              {`${t('bitcoin.address')} #${index + 1}`}
                             </SSText>
                             <TouchableOpacity
                               onPress={() => deleteAddress(address)}
@@ -1024,7 +1021,7 @@ export default function WatchOnly() {
                         multiline
                       />
                       <SSButton
-                        label={t("common.add")}
+                        label={t('common.add')}
                         disabled={!addressInput || !isValidAddress}
                         onPress={() => addAddress(addressInput)}
                       />
@@ -1034,17 +1031,17 @@ export default function WatchOnly() {
                 <SSVStack gap="sm">
                   <SSHStack gap="sm">
                     <SSButton
-                      label={t("common.paste")}
+                      label={t('common.paste')}
                       variant="gradient"
                       onPress={pasteFromClipboard}
                       style={{ flex: 1 }}
                     />
                     <SSButton
-                      label={t("common.scanQR")}
+                      label={t('common.scanQR')}
                       variant="gradient"
                       onPress={() => {
-                        setScanningFor("main");
-                        setCameraModalVisible(true);
+                        setScanningFor('main')
+                        setCameraModalVisible(true)
                       }}
                       style={{ flex: 1 }}
                     />
@@ -1053,8 +1050,8 @@ export default function WatchOnly() {
                     <SSButton
                       label={
                         isReading
-                          ? t("watchonly.read.scanning")
-                          : t("watchonly.read.nfc")
+                          ? t('watchonly.read.scanning')
+                          : t('watchonly.read.nfc')
                       }
                       onPress={handleNFCRead}
                       disabled={!isHardwareSupported}
@@ -1062,10 +1059,10 @@ export default function WatchOnly() {
                   </Animated.View>
                 </SSVStack>
               </SSVStack>
-              {selectedOption === "importExtendedPub" && (
+              {selectedOption === 'importExtendedPub' && (
                 <SSVStack gap="xxs">
                   <SSFormLayout.Label
-                    label={t("account.script").toUpperCase()}
+                    label={t('account.script').toUpperCase()}
                   />
                   <SSButton
                     label={getScriptVersionDisplayName(scriptVersion)}
@@ -1074,11 +1071,11 @@ export default function WatchOnly() {
                   />
                 </SSVStack>
               )}
-              {selectedOption === "importDescriptor" && (
+              {selectedOption === 'importDescriptor' && (
                 <>
                   <SSVStack gap="xxs">
                     <SSText center>
-                      {t("watchonly.importDescriptor.internal")}
+                      {t('watchonly.importDescriptor.internal')}
                     </SSText>
                     <SSTextInput
                       value={internalDescriptor}
@@ -1098,14 +1095,14 @@ export default function WatchOnly() {
             {scanProgress.type && scanProgress.total > 1 && (
               <SSVStack gap="sm">
                 <SSText center size="sm" color="muted">
-                  {scanProgress.type.toUpperCase()} {t("qrcode.scan.progress")}
+                  {scanProgress.type.toUpperCase()} {t('qrcode.scan.progress')}
                 </SSText>
                 <SSText center size="md">
-                  {scanProgress.scanned.size} / {scanProgress.total}{" "}
-                  {t("common.parts")}
+                  {scanProgress.scanned.size} / {scanProgress.total}{' '}
+                  {t('common.parts')}
                 </SSText>
                 <SSButton
-                  label={t("qrcode.scan.reset")}
+                  label={t('qrcode.scan.reset')}
                   variant="ghost"
                   onPress={resetScanProgress}
                 />
@@ -1113,9 +1110,9 @@ export default function WatchOnly() {
             )}
           </SSVStack>
           <SSVStack gap="lg">
-            {selectedOption === "importExtendedPub" && (
+            {selectedOption === 'importExtendedPub' && (
               <SSVStack gap="sm">
-                <SSText center>{t("watchonly.fingerprint.label")}</SSText>
+                <SSText center>{t('watchonly.fingerprint.label')}</SSText>
                 <SSTextInput
                   value={localFingerprint}
                   onChangeText={updateMasterFingerprint}
@@ -1125,17 +1122,17 @@ export default function WatchOnly() {
                 />
                 <SSHStack gap="sm">
                   <SSButton
-                    label={t("common.paste")}
+                    label={t('common.paste')}
                     variant="gradient"
                     onPress={pasteFingerprintFromClipboard}
                     style={{ flex: 1 }}
                   />
                   <SSButton
-                    label={t("common.scanQR")}
+                    label={t('common.scanQR')}
                     variant="gradient"
                     onPress={() => {
-                      setScanningFor("fingerprint");
-                      setCameraModalVisible(true);
+                      setScanningFor('fingerprint')
+                      setCameraModalVisible(true)
                     }}
                     style={{ flex: 1 }}
                   />
@@ -1144,14 +1141,14 @@ export default function WatchOnly() {
             )}
             <SSVStack gap="sm">
               <SSButton
-                label={t("common.confirm")}
+                label={t('common.confirm')}
                 variant="secondary"
                 loading={isLoadingWallet}
                 disabled={isDisabled}
                 onPress={() => confirmAccountCreation()}
               />
               <SSButton
-                label={t("common.cancel")}
+                label={t('common.cancel')}
                 variant="ghost"
                 onPress={() => setModalOptionsVisible(true)}
               />
@@ -1161,7 +1158,7 @@ export default function WatchOnly() {
       </ScrollView>
       <SSSelectModal
         visible={modalOptionsVisible}
-        title={t("watchonly.titleModal").toUpperCase()}
+        title={t('watchonly.titleModal').toUpperCase()}
         selectedText={t(`watchonly.${selectedOption}.title`)}
         selectedDescription={
           <SSCollapsible>
@@ -1171,8 +1168,8 @@ export default function WatchOnly() {
           </SSCollapsible>
         }
         onSelect={() => {
-          setModalOptionsVisible(false);
-          setCreationType(selectedOption);
+          setModalOptionsVisible(false)
+          setCreationType(selectedOption)
         }}
         onCancel={() => router.back()}
       >
@@ -1190,50 +1187,50 @@ export default function WatchOnly() {
         scriptVersion={scriptVersion}
         onCancel={() => setScriptVersionModalVisible(false)}
         onSelect={(scriptVersion) => {
-          setScriptVersion(scriptVersion);
-          setScriptVersionModalVisible(false);
-          extractAndSetFingerprint(externalDescriptor);
+          setScriptVersion(scriptVersion)
+          setScriptVersionModalVisible(false)
+          extractAndSetFingerprint(externalDescriptor)
         }}
       />
       <SSModal
         visible={cameraModalVisible}
         fullOpacity
         onClose={() => {
-          setCameraModalVisible(false);
-          setScanningFor("main");
-          resetScanProgress();
+          setCameraModalVisible(false)
+          setScanningFor('main')
+          resetScanProgress()
         }}
       >
         <SSVStack itemsCenter gap="md">
           <SSText color="muted" uppercase>
-            {scanningFor === "fingerprint"
-              ? t("watchonly.fingerprint.scanQR")
+            {scanningFor === 'fingerprint'
+              ? t('watchonly.fingerprint.scanQR')
               : scanProgress.type
-              ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
-              : t("transaction.build.options.importOutputs.qrcode")}
+                ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
+                : t('transaction.build.options.importOutputs.qrcode')}
           </SSText>
           <CameraView
             onBarcodeScanned={(res) => handleQRCodeScanned(res.raw)}
-            barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
+            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
             style={styles.cameraView}
           />
           {/* Show progress if scanning multi-part QR */}
           {scanProgress.type && scanProgress.total > 1 && (
             <SSVStack itemsCenter gap="xs" style={{ marginBottom: 10 }}>
-              {scanProgress.type === "ur" ? (
+              {scanProgress.type === 'ur' ? (
                 // For UR fountain encoding, show the actual target
                 <>
                   {(() => {
-                    const maxFragment = Math.max(...scanProgress.scanned);
-                    const actualTotal = maxFragment + 1;
-                    const conservativeTarget = Math.ceil(actualTotal * 1.1);
+                    const maxFragment = Math.max(...scanProgress.scanned)
+                    const actualTotal = maxFragment + 1
+                    const conservativeTarget = Math.ceil(actualTotal * 1.1)
                     const theoreticalTarget = Math.ceil(
                       scanProgress.total * 1.5
-                    );
+                    )
                     const displayTarget = Math.min(
                       conservativeTarget,
                       theoreticalTarget
-                    );
+                    )
 
                     return (
                       <>
@@ -1247,13 +1244,13 @@ export default function WatchOnly() {
                               {
                                 width:
                                   (scanProgress.scanned.size / displayTarget) *
-                                  300,
-                              },
+                                  300
+                              }
                             ]}
                           />
                         </View>
                       </>
-                    );
+                    )
                   })()}
                 </>
               ) : (
@@ -1269,8 +1266,8 @@ export default function WatchOnly() {
                         {
                           width:
                             (scanProgress.scanned.size / scanProgress.total) *
-                            300,
-                        },
+                            300
+                        }
                       ]}
                     />
                   </View>
@@ -1278,7 +1275,7 @@ export default function WatchOnly() {
                     {`Scanned parts: ${Array.from(scanProgress.scanned)
                       .toSorted((a, b) => a - b)
                       .map((n) => n + 1)
-                      .join(", ")}`}
+                      .join(', ')}`}
                   </SSText>
                 </>
               )}
@@ -1287,7 +1284,7 @@ export default function WatchOnly() {
           <SSHStack>
             {!permission?.granted && (
               <SSButton
-                label={t("camera.enableCameraAccess")}
+                label={t('camera.enableCameraAccess')}
                 onPress={requestPermission}
               />
             )}
@@ -1306,45 +1303,45 @@ export default function WatchOnly() {
         </SSVStack>
       </SSModal>
     </SSMainLayout>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   cameraView: {
     height: 340,
-    width: 340,
+    width: 340
   },
   innerScrollContainer: {
     flex: 1,
-    paddingBottom: 20,
+    paddingBottom: 20
   },
   invalid: {
     borderColor: Colors.error,
     borderWidth: 1,
-    height: "auto",
-    paddingVertical: 10,
+    height: 'auto',
+    paddingVertical: 10
   },
   mainContainer: {
     paddingBottom: 10,
-    paddingTop: 0,
+    paddingTop: 0
   },
   progressBarInner: {
     backgroundColor: Colors.white,
     borderRadius: 2,
     height: 4,
-    maxWidth: 300,
+    maxWidth: 300
   },
   progressBarOuter: {
     backgroundColor: Colors.gray[700],
     borderRadius: 2,
     height: 4,
-    width: 300,
+    width: 300
   },
   scrollContainer: {
-    minHeight: "100%",
+    minHeight: '100%'
   },
   valid: {
-    height: "auto",
-    paddingVertical: 10,
-  },
-});
+    height: 'auto',
+    paddingVertical: 10
+  }
+})
