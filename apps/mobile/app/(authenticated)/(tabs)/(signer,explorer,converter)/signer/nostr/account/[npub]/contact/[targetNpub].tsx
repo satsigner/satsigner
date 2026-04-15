@@ -76,16 +76,6 @@ export default function NostrContactProfile() {
     return methods
   }, [lightningConfig, mints])
 
-  const profileRelays = useMemo(
-    () => [
-      ...effectiveRelays,
-      'wss://relay.nostr.band',
-      'wss://relay.primal.net',
-      'wss://purplepag.es'
-    ],
-    [effectiveRelays]
-  )
-
   const loadProfile = useCallback(async () => {
     if (!targetNpub || effectiveRelays.length === 0) {
       setLoading(false)
@@ -94,7 +84,7 @@ export default function NostrContactProfile() {
 
     setLoading(true)
     try {
-      const api = new NostrAPI(profileRelays)
+      const api = new NostrAPI(effectiveRelays)
       const profile = await api.fetchKind0(targetNpub)
       setTargetIdentity({
         createdAt: Date.now(),
@@ -114,7 +104,7 @@ export default function NostrContactProfile() {
     } finally {
       setLoading(false)
     }
-  }, [profileRelays, targetNpub, effectiveRelays.length])
+  }, [effectiveRelays, targetNpub])
 
   useEffect(() => {
     void loadProfile()
@@ -258,7 +248,7 @@ export default function NostrContactProfile() {
 
             <SSNostrFeedTabs
               npub={targetNpub}
-              relays={profileRelays}
+              relays={effectiveRelays}
               onNotePress={handleNotePress}
             />
           </SSVStack>

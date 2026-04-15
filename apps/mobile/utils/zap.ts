@@ -1,7 +1,6 @@
 import NDK, { type NDKEvent } from '@nostr-dev-kit/ndk'
 import { type NostrEvent, finalizeEvent, nip57 } from 'nostr-tools'
 
-import { EVENT_SEARCH_FALLBACK_RELAYS } from '@/constants/nostr'
 import type { LNURLPayResponse } from '@/types/models/LNURL'
 import { fetchLNURLPayDetails } from '@/utils/lnurl'
 import { getSecretFromNsec } from '@/utils/nostr'
@@ -149,11 +148,10 @@ export async function fetchZapReceipts(
   eventIdHex: string,
   relays: string[]
 ): Promise<ZapReceiptInfo[]> {
-  const allRelays = [...new Set([...relays, ...EVENT_SEARCH_FALLBACK_RELAYS])]
   const ndk = new NDK({
     autoConnectUserRelays: false,
     enableOutboxModel: false,
-    explicitRelayUrls: allRelays
+    explicitRelayUrls: relays
   })
 
   try {
@@ -283,11 +281,10 @@ export async function fetchZapsByPubkey(
   limit = 20,
   until?: number
 ): Promise<ZapReceiptInfo[]> {
-  const allRelays = [...new Set([...relays, ...EVENT_SEARCH_FALLBACK_RELAYS])]
   const ndk = new NDK({
     autoConnectUserRelays: false,
     enableOutboxModel: false,
-    explicitRelayUrls: allRelays
+    explicitRelayUrls: relays
   })
 
   try {

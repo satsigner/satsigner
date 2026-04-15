@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import { NOSTR_RELAYS } from '@/constants/nostr'
 import mmkvStorage from '@/storage/mmkv'
 import { type NostrIdentity } from '@/types/models/NostrIdentity'
 
@@ -23,7 +22,7 @@ type NostrIdentityActions = {
   clearAll: () => void
 }
 
-const DEFAULT_RELAYS = NOSTR_RELAYS.slice(0, 4).map((r) => r.url)
+const DEFAULT_RELAYS: string[] = []
 
 const useNostrIdentityStore = create<
   NostrIdentityState & NostrIdentityActions

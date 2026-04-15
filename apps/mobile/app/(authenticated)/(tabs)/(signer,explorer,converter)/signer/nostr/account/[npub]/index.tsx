@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 
 import { NostrAPI } from '@/api/nostr'
@@ -18,6 +18,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
+import { nostrAccountHref, nostrNoteHref } from '@/utils/nostrNavigation'
 
 type AccountParams = {
   npub: string
@@ -31,9 +32,7 @@ export default function NostrAccountLanding() {
     state.identities.find((i) => i.npub === npub)
   )
   const relays = useNostrIdentityStore((state) => state.relays)
-  const updateIdentity = useNostrIdentityStore(
-    (state) => state.updateIdentity
-  )
+  const updateIdentity = useNostrIdentityStore((state) => state.updateIdentity)
   const fetchedRef = useRef(false)
 
   useEffect(() => {
@@ -64,50 +63,27 @@ export default function NostrAccountLanding() {
       })
   }, [npub, identity, relays, updateIdentity])
 
-  const handleContentScanned = useCallback(
-    (detected: { type: string; raw: string; cleaned: string }) => {
-      const nostrUri = detected.cleaned || detected.raw
-      router.navigate({
-        pathname: '/signer/nostr/account/[npub]/note',
-        params: { npub, nostrUri }
-      })
-    },
-    [npub, router]
-  )
+  function handleContentScanned(detected: {
+    type: string
+    raw: string
+    cleaned: string
+  }) {
+    const nostrUri = detected.cleaned || detected.raw
+    router.navigate(nostrNoteHref(npub, nostrUri))
+  }
 
-  const handleSend = useCallback(() => {
-    router.navigate({
-      pathname: '/signer/nostr/account/[npub]/send',
-      params: { npub }
-    })
-  }, [npub, router])
+  function handleSend() {
+    router.navigate(nostrAccountHref(npub, 'send'))
+  }
 
-  const effectiveRelays = useMemo(
-    () => [
-      ...(identity?.relays ?? relays),
-      'wss://relay.nostr.band',
-      'wss://relay.primal.net'
-    ],
-    [identity?.relays, relays]
-  )
+  function handleNotePress(noteId: string) {
+    const nevent = nip19.neventEncode({ id: noteId })
+    router.navigate(nostrNoteHref(npub, nevent))
+  }
 
-  const handleNotePress = useCallback(
-    (noteId: string) => {
-      const nevent = nip19.neventEncode({ id: noteId })
-      router.navigate({
-        pathname: '/signer/nostr/account/[npub]/note',
-        params: { npub, nostrUri: nevent }
-      })
-    },
-    [npub, router]
-  )
-
-  const handleReceive = useCallback(() => {
-    router.navigate({
-      pathname: '/signer/nostr/account/[npub]/compose',
-      params: { npub }
-    })
-  }, [npub, router])
+  function handleReceive() {
+    router.navigate(nostrAccountHref(npub, 'compose'))
+  }
 
   const contentHandler = useContentHandler({
     context: 'nostr',
@@ -133,10 +109,7 @@ export default function NostrAccountLanding() {
           headerRight: () => (
             <SSIconButton
               onPress={() =>
-                router.navigate({
-                  pathname: '/signer/nostr/account/[npub]/settings',
-                  params: { npub }
-                })
+                router.navigate(nostrAccountHref(npub, 'settings'))
               }
               style={{ marginRight: 8 }}
             >
@@ -166,7 +139,7 @@ export default function NostrAccountLanding() {
 
           <SSNostrFeedTabs
             npub={npub}
-            relays={effectiveRelays}
+            relays={identity.relays ?? relays}
             onNotePress={handleNotePress}
           />
         </SSVStack>

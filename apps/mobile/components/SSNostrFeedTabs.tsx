@@ -67,11 +67,7 @@ function SSNostrFeedTabs({
           ? notes[notes.length - 1].created_at
           : undefined
 
-        const api = new NostrAPI([
-          ...relays,
-          'wss://relay.nostr.band',
-          'wss://relay.primal.net'
-        ])
+        const api = new NostrAPI(relays)
         const fetched = await api.fetchNotes(npub, PAGE_SIZE, until)
 
         if (fetched.length < PAGE_SIZE) {

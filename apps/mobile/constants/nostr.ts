@@ -24,18 +24,9 @@ export const RELAY_PROTOCOL_PREFIX = 'wss://'
 /** Fallback color when npub is missing, invalid, or member has no color (e.g. device/member list UI). */
 export const NOSTR_FALLBACK_NPUB_COLOR = '#404040'
 
-/** Broad-reach indexing relays used as fallback when fetching events by ID.
- *  These are tried after the user's configured relays and any relay hints fail. */
-export const EVENT_SEARCH_FALLBACK_RELAYS = [
-  'wss://relay.nostr.band',
-  'wss://relay.primal.net',
-  'wss://relay.damus.io',
-  'wss://nos.lol',
-  'wss://relay.snort.social'
-]
-
 export const NOSTR_RELAYS: NostrRelay[] = [
   { name: 'Angani', url: 'wss://nostr-1.nbo.angani.co' },
+  { name: 'Bitcoiner Social', url: 'wss://nostr.bitcoiner.social' },
   { name: 'Btc Library', url: 'wss://nostr.btc-library.com' },
   { name: 'Coracle', url: 'wss://bucket.coracle.social' },
   { name: 'Damus', url: 'wss://relay.damus.io' },
@@ -44,6 +35,8 @@ export const NOSTR_RELAYS: NostrRelay[] = [
   { name: 'Einundzwanzig Space', url: 'wss://nostr.einundzwanzig.space' },
   { name: 'Mostro', url: 'wss://relay.mostro.network' },
   { name: 'Nos lol (POW 28 bits required)', url: 'wss://nos.lol' },
+  { name: 'Nostr Band', url: 'wss://relay.nostr.band' },
+  { name: 'Nostr BG', url: 'wss://relay.nostr.bg' },
   { name: 'Nostr Mom', url: 'wss://nostr.mom' },
   { name: 'Nostr Wine', url: 'wss://nostr.wine' },
   { name: 'Nostromo', url: 'wss://relay.nostromo.social' },

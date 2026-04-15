@@ -5,7 +5,6 @@ import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
 
 import {
-  EVENT_SEARCH_FALLBACK_RELAYS,
   FLUSH_QUEUE_DELAY_MS,
   MAX_PROCESSED_RAW_IDS,
   MAX_QUEUE_SIZE,
@@ -86,15 +85,7 @@ export class NostrAPI {
   private relays: string[]
 
   constructor(relays: string[]) {
-    this.relays = relays
-    if (!relays || relays.length === 0) {
-      this.relays = [
-        'wss://relay.damus.io',
-        'wss://nostr.bitcoiner.social',
-        'wss://relay.nostr.band',
-        'wss://nostr.mom'
-      ]
-    }
+    this.relays = relays?.length ? relays : []
   }
 
   getRelays(): string[] {
@@ -184,6 +175,9 @@ export class NostrAPI {
     }
 
     if (this.ndk.pool.connectedRelays().length === 0) {
+      if (this.relays.length === 0) {
+        return
+      }
       throw new Error(
         'No relays could be connected. Please check your relay URLs and internet connection.'
       )
@@ -398,40 +392,10 @@ export class NostrAPI {
       }
     }
 
-    // Phase 2: try all pool relays
+    // Phase 2: try all pool relays (identity-selected relays only)
     const poolEvent = await NostrAPI.fetchWithTimeout(this.ndk, filter, 15000)
     if (poolEvent) {
       return NostrAPI.formatNdkEvent(poolEvent)
-    }
-
-    // Phase 3: try broad-reach indexing relays not already in the pool
-    const poolUrls = new Set(this.relays.map((u) => u.toLowerCase()))
-    const fallbackUrls = EVENT_SEARCH_FALLBACK_RELAYS.filter(
-      (url) => !poolUrls.has(url.toLowerCase())
-    )
-    if (fallbackUrls.length === 0) return null
-
-    const fallbackNdk = createMobileNdk(fallbackUrls)
-    try {
-      await fallbackNdk.connect(8000)
-      if (fallbackNdk.pool.connectedRelays().length === 0) return null
-
-      const fallbackEvent = await NostrAPI.fetchWithTimeout(
-        fallbackNdk,
-        filter,
-        15000
-      )
-      if (fallbackEvent) {
-        return NostrAPI.formatNdkEvent(fallbackEvent)
-      }
-    } finally {
-      for (const relay of fallbackNdk.pool.relays.values()) {
-        try {
-          relay.disconnect()
-        } catch {
-          // relay may already be disconnected
-        }
-      }
     }
 
     return null

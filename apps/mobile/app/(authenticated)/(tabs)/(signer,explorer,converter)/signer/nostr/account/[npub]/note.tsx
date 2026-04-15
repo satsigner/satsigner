@@ -169,12 +169,7 @@ export default function NostrNotePage() {
         loadZapReceipts(decoded.data)
 
         const authorNpub = nip19.npubEncode(event.pubkey)
-        const profileApi = new NostrAPI([
-          ...allRelays,
-          'wss://relay.nostr.band',
-          'wss://relay.primal.net',
-          'wss://purplepag.es'
-        ])
+        const profileApi = new NostrAPI(allRelays)
         profileApi
           .fetchKind0(authorNpub)
           .then((profile) => {
