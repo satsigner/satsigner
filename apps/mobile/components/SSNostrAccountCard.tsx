@@ -3,7 +3,7 @@ import { Image, StyleSheet, TouchableOpacity, View } from 'react-native'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { Colors } from '@/styles'
+import { Colors, Sizes } from '@/styles'
 import { type NostrIdentity } from '@/types/models/NostrIdentity'
 import { truncateNpub } from '@/utils/nostrIdentity'
 
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.gray[925],
     borderColor: Colors.gray[800],
-    borderRadius: 8,
+    borderRadius: Sizes.button.borderRadius,
     borderTopWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 12

@@ -108,7 +108,22 @@ export default function NostrLanding() {
           />
         </SSVStack>
       ) : (
-        <SSVStack gap="md">
+        <SSVStack gap="md" style={styles.withIdentitiesColumn}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            style={styles.accountScroll}
+          >
+            <SSVStack gap="sm" style={styles.listContainer}>
+              {identities.map((identity) => (
+                <SSNostrAccountCard
+                  key={identity.npub}
+                  identity={identity}
+                  isActive={identity.npub === activeIdentityNpub}
+                  onPress={() => handleSelectIdentity(identity.npub)}
+                />
+              ))}
+            </SSVStack>
+          </ScrollView>
           <SSVStack gap="sm" style={styles.buttonRow}>
             <SSButton
               label={t('nostrIdentity.createNew')}
@@ -121,18 +136,6 @@ export default function NostrLanding() {
               variant="outline"
             />
           </SSVStack>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <SSVStack gap="sm" style={styles.listContainer}>
-              {identities.map((identity) => (
-                <SSNostrAccountCard
-                  key={identity.npub}
-                  identity={identity}
-                  isActive={identity.npub === activeIdentityNpub}
-                  onPress={() => handleSelectIdentity(identity.npub)}
-                />
-              ))}
-            </SSVStack>
-          </ScrollView>
         </SSVStack>
       )}
     </SSMainLayout>
@@ -140,6 +143,9 @@ export default function NostrLanding() {
 }
 
 const styles = StyleSheet.create({
+  accountScroll: {
+    flex: 1
+  },
   actionButton: {
     maxWidth: 280,
     width: '100%'
@@ -152,6 +158,9 @@ const styles = StyleSheet.create({
     paddingVertical: 60
   },
   listContainer: {
-    paddingBottom: 60
+    paddingBottom: 16
+  },
+  withIdentitiesColumn: {
+    flex: 1
   }
 })

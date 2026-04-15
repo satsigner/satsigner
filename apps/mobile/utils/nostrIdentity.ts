@@ -54,8 +54,12 @@ export type DecodedNostrContent = {
   isLoading?: boolean
 }
 
+function stripNostrUri(data: string): string {
+  return data.toLowerCase().startsWith('nostr:') ? data.slice(6) : data
+}
+
 export function decodeNostrContent(raw: string): DecodedNostrContent {
-  const trimmed = raw.trim()
+  const trimmed = stripNostrUri(raw.trim())
 
   if (trimmed.startsWith('npub1')) {
     try {

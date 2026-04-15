@@ -44,6 +44,7 @@ export type ContentType =
   | 'nostr_nsec'
   | 'nostr_note'
   | 'nostr_nevent'
+  | 'nostr_nprofile'
   | 'nostr_json'
   | 'incompatible'
   | 'unknown'
@@ -272,8 +273,16 @@ function detectEcashContent(data: string): DetectedContent | null {
   return null
 }
 
+function stripNostrPrefix(data: string): string {
+  const lower = data.toLowerCase()
+  if (lower.startsWith('nostr:')) {
+    return data.slice(6)
+  }
+  return data
+}
+
 function detectNostrContent(data: string): DetectedContent | null {
-  const trimmed = data.trim()
+  const trimmed = stripNostrPrefix(data.trim())
   const lower = trimmed.toLowerCase()
 
   if (lower.startsWith('npub1') && trimmed.length >= 60) {
@@ -309,6 +318,15 @@ function detectNostrContent(data: string): DetectedContent | null {
       isValid: true,
       raw: data,
       type: 'nostr_nevent'
+    }
+  }
+
+  if (lower.startsWith('nprofile1') && trimmed.length >= 60) {
+    return {
+      cleaned: trimmed,
+      isValid: true,
+      raw: data,
+      type: 'nostr_nprofile'
     }
   }
 
@@ -465,6 +483,7 @@ export function isContentTypeSupportedInContext(
         'nostr_nsec',
         'nostr_note',
         'nostr_nevent',
+        'nostr_nprofile',
         'nostr_json'
       ].includes(contentType)
     default:
@@ -506,6 +525,8 @@ export function getContentTypeDescription(contentType: ContentType): string {
       return 'Nostr Note'
     case 'nostr_nevent':
       return 'Nostr Event'
+    case 'nostr_nprofile':
+      return 'Nostr Profile'
     case 'nostr_json':
       return 'Nostr JSON Note'
     case 'unknown':

@@ -140,6 +140,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
         'nostr_nsec',
         'nostr_note',
         'nostr_nevent',
+        'nostr_nprofile',
         'nostr_json'
       ]
 
@@ -235,6 +236,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
         case 'nostr_nevent':
           return t('paste.button.loadNote')
         case 'nostr_npub':
+        case 'nostr_nprofile':
           return t('paste.button.loadProfile')
         case 'nostr_nsec':
         case 'nostr_json':

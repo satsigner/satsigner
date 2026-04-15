@@ -5,7 +5,6 @@ import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
-import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { NOSTR_RELAYS, RELAY_PROTOCOL_PREFIX } from '@/constants/nostr'
@@ -64,8 +63,6 @@ export default function NostrIdentitySettings() {
     identity?.relays ?? globalRelays
   )
   const [customRelayUrl, setCustomRelayUrl] = useState('')
-  const [showNsec, setShowNsec] = useState(false)
-  const [showSeedWords, setShowSeedWords] = useState(false)
 
   function handleRelayToggle(relayUrl: string) {
     setSelectedRelays((prev) =>
@@ -187,81 +184,16 @@ export default function NostrIdentitySettings() {
             </SSText>
           </SSVStack>
 
-          {identity.nsec && (
-            <SSVStack gap="sm">
-              <SSHStack justifyBetween>
-                <SSText size="sm" color="muted" uppercase>
-                  {t('nostrIdentity.create.nsec')}
-                </SSText>
-                <SSButton
-                  label={showNsec ? t('common.hide') : t('common.show')}
-                  variant="ghost"
-                  onPress={() => setShowNsec(!showNsec)}
-                  style={styles.toggleButton}
-                />
-              </SSHStack>
-              {showNsec && (
-                <View style={styles.secretContainer}>
-                  <SSText
-                    size="xs"
-                    type="mono"
-                    style={styles.secretText}
-                    numberOfLines={2}
-                  >
-                    {identity.nsec}
-                  </SSText>
-                  <SSClipboardCopy text={identity.nsec}>
-                    <SSText size="xs" color="muted">
-                      {t('common.copy')}
-                    </SSText>
-                  </SSClipboardCopy>
-                </View>
-              )}
-            </SSVStack>
-          )}
-
-          {identity.mnemonic && (
-            <SSVStack gap="sm">
-              <SSHStack justifyBetween>
-                <SSText size="sm" color="muted" uppercase>
-                  {t('nostrIdentity.create.seedWords')}
-                </SSText>
-                <SSButton
-                  label={
-                    showSeedWords ? t('common.hide') : t('common.show')
-                  }
-                  variant="ghost"
-                  onPress={() => setShowSeedWords(!showSeedWords)}
-                  style={styles.toggleButton}
-                />
-              </SSHStack>
-              {showSeedWords && (
-                <SSVStack gap="xs">
-                  <View style={styles.wordsGrid}>
-                    {identity.mnemonic.split(' ').map((word, index) => (
-                      <View key={index} style={styles.wordCell}>
-                        <SSText
-                          size="xs"
-                          color="muted"
-                          style={styles.wordIndex}
-                        >
-                          {index + 1}
-                        </SSText>
-                        <SSText size="sm" type="mono">
-                          {word}
-                        </SSText>
-                      </View>
-                    ))}
-                  </View>
-                  <SSClipboardCopy text={identity.mnemonic}>
-                    <SSText size="xs" color="muted">
-                      {t('common.copy')}
-                    </SSText>
-                  </SSClipboardCopy>
-                </SSVStack>
-              )}
-            </SSVStack>
-          )}
+          <SSButton
+            label={t('nostrIdentity.settings.manageKeys')}
+            variant="outline"
+            onPress={() =>
+              router.navigate({
+                pathname: '/signer/nostr/account/[npub]/keys',
+                params: { npub }
+              })
+            }
+          />
 
           <SSVStack gap="sm">
             <SSText size="sm" color="muted" uppercase>
@@ -364,41 +296,5 @@ const styles = StyleSheet.create({
   },
   relayInputContainer: {
     flexGrow: 1
-  },
-  secretContainer: {
-    backgroundColor: Colors.gray[925],
-    borderColor: Colors.gray[800],
-    borderRadius: 8,
-    borderWidth: 1,
-    padding: 12
-  },
-  secretText: {
-    lineHeight: 18,
-    marginBottom: 8
-  },
-  toggleButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4
-  },
-  wordCell: {
-    alignItems: 'center',
-    backgroundColor: Colors.gray[925],
-    borderColor: Colors.gray[800],
-    borderRadius: 6,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    width: '48%'
-  },
-  wordIndex: {
-    minWidth: 16
-  },
-  wordsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    justifyContent: 'space-between'
   }
 })

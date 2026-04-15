@@ -244,21 +244,42 @@ export class NostrAPI {
     tags: string[][]
     created_at: number
   } | null> {
-    await this.connect()
+    await this.connectForPublish()
     if (!this.ndk) return null
 
-    const FETCH_EVENT_TIMEOUT_MS = 15000
+    const FETCH_EVENT_TIMEOUT_MS = 20000
     const filter = {
       ids: [eventIdHex],
       limit: 1
     }
 
-    const fetchOptions = relayHints?.length
-      ? { closeOnEose: true, relayUrls: relayHints }
-      : { closeOnEose: true }
+    // Try relay hints first if available, then fall back to all pool relays
+    if (relayHints?.length) {
+      const hintEvent = await Promise.race([
+        this.ndk.fetchEvent(filter, {
+          closeOnEose: true,
+          relayUrls: relayHints
+        }),
+        new Promise<null>((resolve) => {
+          setTimeout(() => resolve(null), 8000)
+        })
+      ])
+
+      if (hintEvent) {
+        return {
+          content: hintEvent.content,
+          created_at: hintEvent.created_at ?? 0,
+          kind: hintEvent.kind ?? 1,
+          pubkey: hintEvent.pubkey,
+          tags: hintEvent.tags.map((tag) =>
+            tag.filter((v): v is string => typeof v === 'string')
+          )
+        }
+      }
+    }
 
     const event = await Promise.race([
-      this.ndk.fetchEvent(filter, fetchOptions),
+      this.ndk.fetchEvent(filter, { closeOnEose: true }),
       new Promise<null>((resolve) => {
         setTimeout(() => resolve(null), FETCH_EVENT_TIMEOUT_MS)
       })
@@ -271,7 +292,9 @@ export class NostrAPI {
       created_at: event.created_at ?? 0,
       kind: event.kind ?? 1,
       pubkey: event.pubkey,
-      tags: event.tags.map((t) => t.filter((v): v is string => typeof v === 'string'))
+      tags: event.tags.map((tag) =>
+        tag.filter((v): v is string => typeof v === 'string')
+      )
     }
   }
 

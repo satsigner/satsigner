@@ -1,8 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { nip19 } from 'nostr-tools'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
-import { toast } from 'sonner-native'
 
 import { NostrAPI } from '@/api/nostr'
 import { SSIconNostr } from '@/components/icons'
@@ -11,23 +9,13 @@ import SSCameraModal from '@/components/SSCameraModal'
 import SSIconButton from '@/components/SSIconButton'
 import SSNFCModal from '@/components/SSNFCModal'
 import SSNostrHeroCard from '@/components/SSNostrHeroCard'
-import SSNostrNoteTemplate from '@/components/SSNostrNoteTemplate'
 import SSPaste from '@/components/SSPaste'
-import SSPaymentMethodPicker, {
-  type PaymentMethod
-} from '@/components/SSPaymentMethodPicker'
 import SSText from '@/components/SSText'
 import { useContentHandler } from '@/hooks/useContentHandler'
-import { useEcash } from '@/hooks/useEcash'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
-import {
-  type DecodedNostrContent,
-  decodeNostrContent
-} from '@/utils/nostrIdentity'
 
 type AccountParams = {
   npub: string
@@ -48,129 +36,41 @@ export default function NostrAccountLanding() {
 
   useEffect(() => {
     const effectiveRelays = identity?.relays ?? relays
-    if (!identity || !npub || fetchedRef.current || effectiveRelays.length === 0)
+    if (
+      !identity ||
+      !npub ||
+      fetchedRef.current ||
+      effectiveRelays.length === 0
+    )
       return
     fetchedRef.current = true
 
     const api = new NostrAPI(effectiveRelays)
-    api.fetchKind0(npub).then((profile) => {
-      if (!profile) return
-      updateIdentity(npub, {
-        displayName: profile.displayName || identity.displayName,
-        picture: profile.picture || identity.picture,
-        nip05: profile.nip05 || identity.nip05,
-        lud16: profile.lud16 || identity.lud16
-      })
-    }).catch(() => {
-      fetchedRef.current = false
-    })
-  }, [npub, identity, relays, updateIdentity])
-
-  const [scannedContent, setScannedContent] =
-    useState<DecodedNostrContent | null>(null)
-  const [paymentPickerVisible, setPaymentPickerVisible] = useState(false)
-  const [payAmount, setPayAmount] = useState(0)
-
-  const lightningConfig = useLightningStore((state) => state.config)
-  const { mints } = useEcash()
-
-  const availablePaymentMethods = useMemo(() => {
-    const methods: PaymentMethod[] = []
-    if (lightningConfig) {
-      methods.push({
-        id: 'lightning',
-        label: 'Lightning',
-        type: 'lightning',
-        detail: lightningConfig.url
-      })
-    }
-    if (mints.length > 0) {
-      for (const mint of mints) {
-        methods.push({
-          id: `ecash-${mint.url}`,
-          label: 'ECash',
-          type: 'ecash',
-          detail: mint.name || mint.url
+    api
+      .fetchKind0(npub)
+      .then((profile) => {
+        if (!profile) return
+        updateIdentity(npub, {
+          displayName: profile.displayName || identity.displayName,
+          picture: profile.picture || identity.picture,
+          nip05: profile.nip05 || identity.nip05,
+          lud16: profile.lud16 || identity.lud16
         })
-      }
-    }
-    return methods
-  }, [lightningConfig, mints])
+      })
+      .catch(() => {
+        fetchedRef.current = false
+      })
+  }, [npub, identity, relays, updateIdentity])
 
   const handleContentScanned = useCallback(
     (detected: { type: string; raw: string; cleaned: string }) => {
-      const decoded = decodeNostrContent(detected.cleaned || detected.raw)
-
-      if (decoded.kind === 'note' || decoded.kind === 'nevent') {
-        setScannedContent({ ...decoded, isLoading: true })
-
-        const effectiveRelays = identity?.relays ?? relays
-        const relayHints =
-          decoded.kind === 'nevent' &&
-          Array.isArray(decoded.metadata?.relays)
-            ? (decoded.metadata.relays as string[])
-            : undefined
-        const allRelays = relayHints?.length
-          ? [...new Set([...relayHints, ...effectiveRelays])]
-          : effectiveRelays
-
-        const api = new NostrAPI(allRelays)
-        api
-          .fetchEvent(decoded.data, relayHints)
-          .then((event) => {
-            if (!event) {
-              setScannedContent({ ...decoded, isLoading: false })
-              toast.error(t('nostrIdentity.account.eventNotFound'))
-              return
-            }
-
-            const fetchedData = {
-              content: event.content,
-              created_at: event.created_at,
-              kind: event.kind,
-              pubkey: event.pubkey,
-              tags: event.tags
-            }
-
-            setScannedContent({
-              ...decoded,
-              fetched: fetchedData,
-              isLoading: false,
-              metadata: {
-                ...decoded.metadata,
-                content: event.content,
-                kind: event.kind,
-                tags: event.tags
-              }
-            })
-
-            const authorNpub = nip19.npubEncode(event.pubkey)
-            api
-              .fetchKind0(authorNpub)
-              .then((profile) => {
-                if (!profile) return
-                setScannedContent((prev) => {
-                  if (!prev?.fetched) return prev
-                  return {
-                    ...prev,
-                    fetched: {
-                      ...prev.fetched,
-                      authorName: profile.displayName,
-                      authorPicture: profile.picture
-                    }
-                  }
-                })
-              })
-              .catch(() => {})
-          })
-          .catch(() => {
-            setScannedContent({ ...decoded, isLoading: false })
-          })
-      } else {
-        setScannedContent(decoded)
-      }
+      const nostrUri = detected.cleaned || detected.raw
+      router.navigate({
+        pathname: '/signer/nostr/account/[npub]/note',
+        params: { npub, nostrUri }
+      })
     },
-    [identity, relays]
+    [npub, router]
   )
 
   const contentHandler = useContentHandler({
@@ -179,27 +79,6 @@ export default function NostrAccountLanding() {
     onSend: () => {},
     onReceive: () => {}
   })
-
-  function handlePay(amountSats: number) {
-    if (availablePaymentMethods.length === 0) {
-      return
-    }
-    if (availablePaymentMethods.length === 1) {
-      navigateToPayment(availablePaymentMethods[0], amountSats)
-      return
-    }
-    setPayAmount(amountSats)
-    setPaymentPickerVisible(true)
-  }
-
-  function navigateToPayment(method: PaymentMethod, amountSats: number) {
-    setPaymentPickerVisible(false)
-    if (method.type === 'lightning') {
-      router.navigate('/signer/lightning')
-    } else if (method.type === 'ecash') {
-      router.navigate('/signer/ecash')
-    }
-  }
 
   if (!identity) {
     return (
@@ -248,13 +127,6 @@ export default function NostrAccountLanding() {
             onNFC={contentHandler.handleNFC}
             onReceive={contentHandler.handleReceive}
           />
-
-          {scannedContent && scannedContent.kind !== 'unknown' && (
-            <SSNostrNoteTemplate
-              content={scannedContent}
-              onPay={handlePay}
-            />
-          )}
         </SSVStack>
       </ScrollView>
 
@@ -276,13 +148,6 @@ export default function NostrAccountLanding() {
         onClose={contentHandler.closePasteModal}
         onContentPasted={contentHandler.handleContentPasted}
         context="nostr"
-      />
-      <SSPaymentMethodPicker
-        visible={paymentPickerVisible}
-        onClose={() => setPaymentPickerVisible(false)}
-        onSelect={(method) => navigateToPayment(method, payAmount)}
-        methods={availablePaymentMethods}
-        amountSats={payAmount}
       />
     </SSMainLayout>
   )
