@@ -1,5 +1,5 @@
-import { Stack, useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { Stack, useFocusEffect, useRouter } from 'expo-router'
+import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, TouchableOpacity } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -52,6 +52,17 @@ export default function NetworkSettings() {
     signet: configs.signet.server,
     testnet: configs.testnet.server
   })
+
+  useFocusEffect(
+    useCallback(() => {
+      const { configs: nextConfigs } = useBlockchainStore.getState()
+      setSelectedServers({
+        bitcoin: nextConfigs.bitcoin.server,
+        signet: nextConfigs.signet.server,
+        testnet: nextConfigs.testnet.server
+      })
+    }, [])
+  )
 
   const [testingServer, setTestingServer] = useState<string | null>(null)
   const [currentTestBlockHeight, setCurrentTestBlockHeight] = useState<

@@ -207,11 +207,6 @@ export default function CustomNetwork() {
 
   function handleSave() {
     if (isValid()) {
-      if (!connectionState) {
-        setSelectedNetwork(oldNetwork)
-        updateServer(oldNetwork, oldServer)
-      }
-
       const url = constructUrl()
       const server: Server = {
         backend: formData.backend,
@@ -226,6 +221,9 @@ export default function CustomNetwork() {
       } else {
         addCustomServer(server)
       }
+
+      setSelectedNetwork(networkType)
+      updateServer(networkType, server)
       router.back()
     }
   }
