@@ -336,9 +336,7 @@ export class NostrAPI {
     created_at: number
   } | null> {
     await this.connectForPublish()
-    if (!this.ndk) {
-      return null
-    }
+    if (!this.ndk) return null
 
     const filter = { ids: [eventIdHex], limit: 1 }
 
@@ -366,16 +364,12 @@ export class NostrAPI {
     const fallbackUrls = EVENT_SEARCH_FALLBACK_RELAYS.filter(
       (url) => !poolUrls.has(url.toLowerCase())
     )
-    if (fallbackUrls.length === 0) {
-      return null
-    }
+    if (fallbackUrls.length === 0) return null
 
     const fallbackNdk = createMobileNdk(fallbackUrls)
     try {
       await fallbackNdk.connect(8000)
-      if (fallbackNdk.pool.connectedRelays().length === 0) {
-        return null
-      }
+      if (fallbackNdk.pool.connectedRelays().length === 0) return null
 
       const fallbackEvent = await NostrAPI.fetchWithTimeout(
         fallbackNdk,
