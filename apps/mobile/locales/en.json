@@ -1893,6 +1893,7 @@
     "read.nfc": "Scan NFC",
     "read.nfcErrorNoData": "No data found on NFC tag",
     "read.nfcNotAvailable": "NFC not available on this device",
+    "read.nfcTurnOnInSettings": "Turn on NFC in Settings to use this feature",
     "read.qrError": "Failed to scan QR code",
     "read.qrcode": "Scan qrcode",
     "read.scanning": "Scanning NFC",
