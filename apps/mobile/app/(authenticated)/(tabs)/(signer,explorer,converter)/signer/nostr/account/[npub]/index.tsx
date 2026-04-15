@@ -73,10 +73,17 @@ export default function NostrAccountLanding() {
     [npub, router]
   )
 
+  const handleSend = useCallback(() => {
+    router.navigate({
+      pathname: '/signer/nostr/account/[npub]/send',
+      params: { npub }
+    })
+  }, [npub, router])
+
   const contentHandler = useContentHandler({
     context: 'nostr',
     onContentScanned: handleContentScanned,
-    onSend: () => {},
+    onSend: handleSend,
     onReceive: () => {}
   })
 

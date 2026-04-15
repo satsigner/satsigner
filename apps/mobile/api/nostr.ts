@@ -5,6 +5,7 @@ import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
 
 import {
+  EVENT_SEARCH_FALLBACK_RELAYS,
   FLUSH_QUEUE_DELAY_MS,
   MAX_PROCESSED_RAW_IDS,
   MAX_QUEUE_SIZE,
@@ -44,10 +45,8 @@ function getProfileFromKind0Content(
             : undefined
     const picture =
       typeof content.picture === 'string' ? content.picture : undefined
-    const nip05 =
-      typeof content.nip05 === 'string' ? content.nip05 : undefined
-    const lud16 =
-      typeof content.lud16 === 'string' ? content.lud16 : undefined
+    const nip05 = typeof content.nip05 === 'string' ? content.nip05 : undefined
+    const lud16 = typeof content.lud16 === 'string' ? content.lud16 : undefined
     if (!displayName && !picture && !nip05 && !lud16) {
       return null
     }
@@ -234,6 +233,98 @@ export class NostrAPI {
     return getProfileFromKind0Content(event.content)
   }
 
+  /**
+   * Latest kind 3 (NIP-02 contact list) for this npub; returns followed
+   * pubkeys in tag order (64-char hex, lowercase), excluding duplicates and self.
+   */
+  async fetchKind3FollowingPubkeys(npub: string): Promise<string[]> {
+    const hexPubkey = getPubKeyHexFromNpub(npub)
+    if (!hexPubkey) {
+      return []
+    }
+
+    await this.connect()
+    if (!this.ndk) {
+      return []
+    }
+
+    const filter = {
+      authors: [hexPubkey],
+      kinds: [3 as NDKKind],
+      limit: 40
+    }
+    const FETCH_KIND3_TIMEOUT_MS = 15000
+    const events = await Promise.race([
+      this.ndk.fetchEvents(filter, { groupable: false }),
+      new Promise<Set<NDKEvent>>((resolve) => {
+        setTimeout(() => resolve(new Set()), FETCH_KIND3_TIMEOUT_MS)
+      })
+    ])
+
+    if (events.size === 0) {
+      return []
+    }
+
+    const sorted = Array.from(events).toSorted(
+      (a, b) => (b.created_at ?? 0) - (a.created_at ?? 0)
+    )
+    const [latest] = sorted
+    if (!latest) {
+      return []
+    }
+
+    const ordered: string[] = []
+    const seen = new Set<string>()
+
+    for (const tag of latest.tags) {
+      if (
+        tag[0] === 'p' &&
+        typeof tag[1] === 'string' &&
+        /^[0-9a-fA-F]{64}$/.test(tag[1])
+      ) {
+        const pk = tag[1].toLowerCase()
+        if (!seen.has(pk) && pk !== hexPubkey) {
+          seen.add(pk)
+          ordered.push(pk)
+        }
+      }
+    }
+
+    return ordered
+  }
+
+  private static formatNdkEvent(event: NDKEvent) {
+    return {
+      content: event.content,
+      created_at: event.created_at ?? 0,
+      kind: event.kind ?? 1,
+      pubkey: event.pubkey,
+      tags: event.tags.map((tag) =>
+        tag.filter((v): v is string => typeof v === 'string')
+      )
+    }
+  }
+
+  private static fetchWithTimeout(
+    ndk: NDK,
+    filter: { ids: string[]; limit: number },
+    timeoutMs: number,
+    relayUrls?: string[]
+  ): Promise<NDKEvent | null> {
+    const opts: { closeOnEose: boolean; relayUrls?: string[] } = {
+      closeOnEose: true
+    }
+    if (relayUrls) {
+      opts.relayUrls = relayUrls
+    }
+    return Promise.race([
+      ndk.fetchEvent(filter, opts),
+      new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), timeoutMs)
+      })
+    ])
+  }
+
   async fetchEvent(
     eventIdHex: string,
     relayHints?: string[]
@@ -245,57 +336,66 @@ export class NostrAPI {
     created_at: number
   } | null> {
     await this.connectForPublish()
-    if (!this.ndk) return null
-
-    const FETCH_EVENT_TIMEOUT_MS = 20000
-    const filter = {
-      ids: [eventIdHex],
-      limit: 1
+    if (!this.ndk) {
+      return null
     }
 
-    // Try relay hints first if available, then fall back to all pool relays
-    if (relayHints?.length) {
-      const hintEvent = await Promise.race([
-        this.ndk.fetchEvent(filter, {
-          closeOnEose: true,
-          relayUrls: relayHints
-        }),
-        new Promise<null>((resolve) => {
-          setTimeout(() => resolve(null), 8000)
-        })
-      ])
+    const filter = { ids: [eventIdHex], limit: 1 }
 
+    // Phase 1: try relay hints (short timeout)
+    if (relayHints?.length) {
+      const hintEvent = await NostrAPI.fetchWithTimeout(
+        this.ndk,
+        filter,
+        8000,
+        relayHints
+      )
       if (hintEvent) {
-        return {
-          content: hintEvent.content,
-          created_at: hintEvent.created_at ?? 0,
-          kind: hintEvent.kind ?? 1,
-          pubkey: hintEvent.pubkey,
-          tags: hintEvent.tags.map((tag) =>
-            tag.filter((v): v is string => typeof v === 'string')
-          )
+        return NostrAPI.formatNdkEvent(hintEvent)
+      }
+    }
+
+    // Phase 2: try all pool relays
+    const poolEvent = await NostrAPI.fetchWithTimeout(this.ndk, filter, 15000)
+    if (poolEvent) {
+      return NostrAPI.formatNdkEvent(poolEvent)
+    }
+
+    // Phase 3: try broad-reach indexing relays not already in the pool
+    const poolUrls = new Set(this.relays.map((u) => u.toLowerCase()))
+    const fallbackUrls = EVENT_SEARCH_FALLBACK_RELAYS.filter(
+      (url) => !poolUrls.has(url.toLowerCase())
+    )
+    if (fallbackUrls.length === 0) {
+      return null
+    }
+
+    const fallbackNdk = createMobileNdk(fallbackUrls)
+    try {
+      await fallbackNdk.connect(8000)
+      if (fallbackNdk.pool.connectedRelays().length === 0) {
+        return null
+      }
+
+      const fallbackEvent = await NostrAPI.fetchWithTimeout(
+        fallbackNdk,
+        filter,
+        15000
+      )
+      if (fallbackEvent) {
+        return NostrAPI.formatNdkEvent(fallbackEvent)
+      }
+    } finally {
+      for (const relay of fallbackNdk.pool.relays.values()) {
+        try {
+          relay.disconnect()
+        } catch {
+          // relay may already be disconnected
         }
       }
     }
 
-    const event = await Promise.race([
-      this.ndk.fetchEvent(filter, { closeOnEose: true }),
-      new Promise<null>((resolve) => {
-        setTimeout(() => resolve(null), FETCH_EVENT_TIMEOUT_MS)
-      })
-    ])
-
-    if (!event) return null
-
-    return {
-      content: event.content,
-      created_at: event.created_at ?? 0,
-      kind: event.kind ?? 1,
-      pubkey: event.pubkey,
-      tags: event.tags.map((tag) =>
-        tag.filter((v): v is string => typeof v === 'string')
-      )
-    }
+    return null
   }
 
   static async generateNostrKeys(): Promise<NostrKeys> {
