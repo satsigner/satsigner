@@ -12,7 +12,7 @@
 import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ScrollView, TouchableOpacity } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -58,6 +58,7 @@ export default function CustomNetwork() {
     constructTrimmedUrl
   } = useCustomNetworkForm()
   const [scanModalVisible, setScanModalVisible] = useState(false)
+  const scanHandledRef = useRef(false)
   const [, requestCameraPermission] = useCameraPermissions()
 
   const networkType = network as Network
@@ -130,15 +131,26 @@ export default function CustomNetwork() {
     if (!granted) {
       return
     }
+    scanHandledRef.current = false
     setScanModalVisible(true)
   }
 
   function handleScanResult(data: string) {
+    if (scanHandledRef.current) {
+      return
+    }
+
+    scanHandledRef.current = true
+
     if (applyPastedUrl(data)) {
+      scanHandledRef.current = false
       setScanModalVisible(false)
       toast.success(t('watchonly.success.qrScanned'))
     } else {
       toast.error(t('error.invalid.url'))
+      setTimeout(() => {
+        scanHandledRef.current = false
+      }, 1500)
     }
   }
 
@@ -419,7 +431,10 @@ export default function CustomNetwork() {
       <SSModal
         visible={scanModalVisible}
         fullOpacity
-        onClose={() => setScanModalVisible(false)}
+        onClose={() => {
+          scanHandledRef.current = false
+          setScanModalVisible(false)
+        }}
       >
         <SSVStack itemsCenter gap="md">
           <SSText color="muted" uppercase>

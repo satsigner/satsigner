@@ -29,6 +29,53 @@ type CustomNetworkFormData = {
   proxy: ProxyConfig
 }
 
+type ParsedElectrumUrl = {
+  host: string
+  port: string
+  protocol: 'ssl' | 'tcp'
+}
+
+function parseElectrumUrl(normalized: string): ParsedElectrumUrl | null {
+  const protocolUrlMatch = normalized.match(
+    /^(ssl|tls|tcp|electrum):\/\/([^:/\s]+):(\d+)(?::([st]))?$/i
+  )
+
+  if (protocolUrlMatch) {
+    const [, scheme, host, port, mode] = protocolUrlMatch
+    const protocol =
+      mode === 't' || scheme.toLowerCase() === 'tcp' ? 'tcp' : 'ssl'
+
+    return {
+      host,
+      port,
+      protocol
+    }
+  }
+
+  const hostPortModeMatch = normalized.match(/^([^:/\s]+):(\d+)(?::([st]))?$/i)
+
+  if (hostPortModeMatch) {
+    const [, host, port, mode] = hostPortModeMatch
+
+    return {
+      host,
+      port,
+      protocol: mode === 't' ? 'tcp' : 'ssl'
+    }
+  }
+
+  const onionHostOnlyMatch = normalized.match(/^[a-z2-7]{16,56}\.onion$/i)
+  if (onionHostOnlyMatch) {
+    return {
+      host: onionHostOnlyMatch[0],
+      port: '50002',
+      protocol: 'ssl'
+    }
+  }
+
+  return null
+}
+
 export function useCustomNetworkForm() {
   const [formData, setFormData] = useState<CustomNetworkFormData>({
     backend: 'electrum',
@@ -137,21 +184,25 @@ export function useCustomNetworkForm() {
     if (!raw) {
       return false
     }
-    const electrumMatch = raw.match(/^(ssl|tls|tcp):\/\/([^:/]+):(\d+)$/)
-    if (electrumMatch) {
-      const protocol =
-        electrumMatch[1] === 'ssl' || electrumMatch[1] === 'tls' ? 'ssl' : 'tcp'
+    const candidate = raw.replace(/^['"]+|['"]+$/g, '').trim()
+    if (!candidate) {
+      return false
+    }
+
+    const electrumUrl = parseElectrumUrl(candidate)
+
+    if (electrumUrl) {
       setFormData((prev) => ({
         ...prev,
         backend: 'electrum',
-        host: electrumMatch[2],
-        port: electrumMatch[3],
-        protocol
+        host: electrumUrl.host,
+        port: electrumUrl.port,
+        protocol: electrumUrl.protocol
       }))
       return true
     }
     try {
-      const u = new URL(raw)
+      const u = new URL(candidate)
       if (u.protocol !== 'https:') {
         return false
       }
