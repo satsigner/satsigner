@@ -1,4 +1,5 @@
 import '@/utils/polyfills'
+import { DarkTheme, ThemeProvider } from '@react-navigation/native'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Slot } from 'expo-router'
 import { setStatusBarStyle } from 'expo-status-bar'
@@ -27,6 +28,14 @@ import { Colors } from '@/styles'
 
 if (Platform.OS === 'android') {
   SystemUI.setBackgroundColorAsync(Colors.gray[950])
+}
+
+const appTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: Colors.gray[950]
+  }
 }
 
 export default function RootLayout() {
@@ -124,9 +133,11 @@ export default function RootLayout() {
               zIndex: 999999
             }}
           />
-          <View style={styles.container}>
-            <Slot />
-          </View>
+          <ThemeProvider value={appTheme}>
+            <View style={styles.container}>
+              <Slot />
+            </View>
+          </ThemeProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>
     </SafeAreaProvider>
