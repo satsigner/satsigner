@@ -22,24 +22,9 @@ export const Route = createFileRoute('/docs/$')({
   component: Page,
   loader: async ({ params }) => {
     const slugs = params._splat?.split('/') ?? []
-    try {
-      const data = await serverLoader({ data: slugs })
-      await clientLoader.preload(data.path)
-      return data
-    } catch (error) {
-      // Server functions unavailable (static deployment like GitHub Pages).
-      // Fall back to full page navigation to load prerendered HTML.
-      if (typeof window !== 'undefined') {
-        const basePath = import.meta.env.VITE_BASE_PATH ?? ''
-        const slug = params._splat || ''
-        window.location.href = slug
-          ? `${basePath}/docs/${slug}`
-          : `${basePath}/docs`
-        // eslint-disable-next-line no-empty-function -- intentionally never resolves while page reloads
-        return new Promise(() => {})
-      }
-      throw error
-    }
+    const data = await serverLoader({ data: slugs })
+    await clientLoader.preload(data.path)
+    return data
   }
 })
 
