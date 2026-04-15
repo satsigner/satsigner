@@ -41,7 +41,8 @@
       "@shopify/react-native-skia",
       "esbuild",
       "react-native-bdk-sdk",
-      "sharp"
+      "sharp",
+      "@secondts/bark-react-native"
     ],
     "overrides": {
       "hermes-compiler": "250829098.0.4",

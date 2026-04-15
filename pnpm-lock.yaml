@@ -131,6 +131,9 @@ importers:
       '@scure/base':
         specifier: ^1.2.6
         version: 1.2.6
+      '@secondts/bark-react-native':
+        specifier: ^0.3.3
+        version: 0.3.3(react-native@0.83.4(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@5.9.3))(@react-native/metro-config@0.84.1(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.5))(react@19.2.5)
       '@shopify/flash-list':
         specifier: 2.0.2
         version: 2.0.2(@babel/runtime@7.29.2)(react-native@0.83.4(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@5.9.3))(@react-native/metro-config@0.84.1(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.5))(react@19.2.5)
@@ -2929,6 +2932,12 @@ packages:
 
   '@scure/bip39@2.0.1':
     resolution: {integrity: sha512-PsxdFj/d2AcJcZDX1FXN3dDgitDDTmwf78rKZq1a6c1P1Nan1X/Sxc7667zU3U+AN60g7SxxP0YCVw2H/hBycg==}
+
+  '@secondts/bark-react-native@0.3.3':
+    resolution: {integrity: sha512-kWq/c3VNK23z/AdMI0H0YC+26t6j/lwsK1aX/ADSRPita3XcdqZWAVnO70IaW7Smx6ndS3+okaQFAC8BfCCzqA==}
+    peerDependencies:
+      react: ^19.2.0
+      react-native: '*'
 
   '@shikijs/core@3.23.0':
     resolution: {integrity: sha512-NSWQz0riNb67xthdm5br6lAkvpDJRTgB36fxlo37ZzM2yq0PQFFzbd8psqC2XMPgCzo1fW6cVi18+ArJ44wqgA==}
@@ -8272,6 +8281,10 @@ packages:
     resolution: {integrity: sha512-hpbDzxUY9BFwX+UeBnxv3Sh1q7HFxj48DTmXchNgRa46lO8uj3/1iEn3MiNUYTg1g9ctIqXCCERn8gYZhHC5lQ==}
     engines: {node: '>=4'}
 
+  uniffi-bindgen-react-native@0.30.0-1:
+    resolution: {integrity: sha512-rffyNPTQ2qFx7deaLXYVBhXcy4pDrjtEc28Pc1Rwt532IGEQquT7eNvvLKIgX6G5xODi6Yfni1zFs5u+O2QL1A==}
+    hasBin: true
+
   uniffi-bindgen-react-native@0.31.0-2:
     resolution: {integrity: sha512-kcmW4/ayEEQH3mg4r3wJAgDoBd7Ix7Y/4E2npS51ydUKuHMzLsTU+lgzanZVAwC+yQsDduEK63TFXq54imJWsA==}
     hasBin: true
@@ -11385,7 +11398,9 @@ snapshots:
       metro-runtime: 0.83.5
     transitivePeerDependencies:
       - '@babel/core'
+      - bufferutil
       - supports-color
+      - utf-8-validate
     optional: true
 
   '@react-native/normalize-colors@0.83.4': {}
@@ -11549,6 +11564,12 @@ snapshots:
     dependencies:
       '@noble/hashes': 2.0.1
       '@scure/base': 2.0.0
+
+  '@secondts/bark-react-native@0.3.3(react-native@0.83.4(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@5.9.3))(@react-native/metro-config@0.84.1(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.5))(react@19.2.5)':
+    dependencies:
+      react: 19.2.5
+      react-native: 0.83.4(@babel/core@7.29.0)(@react-native-community/cli@20.1.3(typescript@5.9.3))(@react-native/metro-config@0.84.1(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.5)
+      uniffi-bindgen-react-native: 0.30.0-1
 
   '@shikijs/core@3.23.0':
     dependencies:
@@ -18066,6 +18087,8 @@ snapshots:
   unicode-match-property-value-ecmascript@2.2.1: {}
 
   unicode-property-aliases-ecmascript@2.2.0: {}
+
+  uniffi-bindgen-react-native@0.30.0-1: {}
 
   uniffi-bindgen-react-native@0.31.0-2: {}
 

@@ -34,6 +34,13 @@ export const navMenuGroups: NavMenuGroup[] = [
         url: '/signer/lightning'
       },
       {
+        icon: SSIconLightning,
+        isSoon: false,
+        platform: PLATFORM.HYBRID,
+        title: t('navigation.item.ark'),
+        url: '/signer/ark'
+      },
+      {
         icon: SSIconLiquid,
         isSoon: true,
         platform: PLATFORM.HYBRID,
