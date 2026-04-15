@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
 
 import SSIconEyeOff from '@/components/icons/SSIconEyeOff'
@@ -39,13 +39,10 @@ export default function NostrIdentityKeys() {
   const [nsecRevealed, setNsecRevealed] = useState(false)
   const [seedWordsRevealed, setSeedWordsRevealed] = useState(false)
   const [qrModal, setQrModal] = useState<QrModalContent | null>(null)
-  const [npubColor, setNpubColor] = useState(NOSTR_FALLBACK_NPUB_COLOR)
 
-  useEffect(() => {
-    if (npub) {
-      setNpubColor(generateColorFromNpub(npub))
-    }
-  }, [npub])
+  const npubColor = npub
+    ? generateColorFromNpub(npub)
+    : NOSTR_FALLBACK_NPUB_COLOR
 
   if (!identity) {
     return (
@@ -84,7 +81,6 @@ export default function NostrIdentityKeys() {
           showsVerticalScrollIndicator={false}
         >
           <SSVStack gap="lg">
-            {/* npub */}
             <SSVStack gap="sm">
               <SSText center>{t('nostrIdentity.keys.npub')}</SSText>
               <SSVStack gap="xxs" style={styles.keysContainer}>
@@ -116,7 +112,6 @@ export default function NostrIdentityKeys() {
               </SSVStack>
             </SSVStack>
 
-            {/* nsec */}
             {identity.nsec && (
               <SSVStack gap="sm">
                 <SSText center>{t('nostrIdentity.keys.nsec')}</SSText>
@@ -177,7 +172,6 @@ export default function NostrIdentityKeys() {
               </SSVStack>
             )}
 
-            {/* Seed Words */}
             {identity.mnemonic && (
               <SSVStack gap="sm">
                 <SSText center>{t('nostrIdentity.keys.seedWords')}</SSText>
@@ -237,7 +231,6 @@ export default function NostrIdentityKeys() {
               </SSVStack>
             )}
 
-            {/* Watch-only notice */}
             {isWatchOnly && (
               <SSText center color="muted" size="sm">
                 {t('nostrIdentity.keys.watchOnly')}
@@ -254,7 +247,6 @@ export default function NostrIdentityKeys() {
         </ScrollView>
       </SSVStack>
 
-      {/* QR Code Modal */}
       <SSModal
         visible={qrModal !== null}
         fullOpacity
