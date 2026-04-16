@@ -42,7 +42,8 @@
       "esbuild",
       "react-native-bdk-sdk",
       "sharp",
-      "@secondts/bark-react-native"
+      "@secondts/bark-react-native",
+      "workerd"
     ],
     "overrides": {
       "hermes-compiler": "250829098.0.4",

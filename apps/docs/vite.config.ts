@@ -1,15 +1,11 @@
+import { cloudflare } from '@cloudflare/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import react from '@vitejs/plugin-react'
 import mdx from 'fumadocs-mdx/vite'
-import { nitro } from 'nitro/vite'
 import { defineConfig } from 'vite'
 
-// VITE_BASE_PATH is used when deploying to GitHub Pages (e.g. /satsigner)
-const basePath = process.env.VITE_BASE_PATH ?? '/'
-
 export default defineConfig({
-  base: basePath,
   optimizeDeps: {
     exclude: ['micromark-util-symbol'],
     include: [
@@ -31,6 +27,7 @@ export default defineConfig({
     ]
   },
   plugins: [
+    cloudflare({ viteEnvironment: { name: 'ssr' } }),
     mdx(await import('./source.config')),
     tailwindcss(),
     tanstackStart({
@@ -39,11 +36,7 @@ export default defineConfig({
         enabled: true
       }
     }),
-    react(),
-    // please see https://tanstack.com/start/latest/docs/framework/react/guide/hosting#nitro for guides on hosting
-    nitro({
-      preset: process.env.NITRO_PRESET ?? 'node-server'
-    })
+    react()
   ],
   resolve: {
     tsconfigPaths: true
