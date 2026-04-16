@@ -18,6 +18,13 @@ export type NostrRelayConnectionInfo = {
   relayDetails?: RelayConnectionDetail[]
 }
 
+export type ZapPreferences = {
+  presetAmounts: number[]
+  oneTapAmount: number
+  autoApprove: boolean
+  autoApproveWalletId?: string
+}
+
 export type NostrIdentity = {
   npub: string
   nsec?: string
@@ -29,6 +36,7 @@ export type NostrIdentity = {
   /** When true, the app may query relays for this identity. Omitted or false means disconnected. */
   relayConnected?: boolean
   relays?: string[]
+  zapPreferences?: ZapPreferences
   createdAt: number
   isWatchOnly: boolean
 }

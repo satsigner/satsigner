@@ -1,3 +1,4 @@
+import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -13,6 +14,7 @@ import {
 import { toast } from 'sonner-native'
 
 import { NostrAPI } from '@/api/nostr'
+import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import {
   SSNostrFeedAuthorRow,
@@ -21,12 +23,16 @@ import {
 } from '@/components/SSNostrFeedNoteRow'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
-import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSPaymentMethodPicker, {
   type PaymentMethod
 } from '@/components/SSPaymentMethodPicker'
 import SSText from '@/components/SSText'
+import {
+  DEFAULT_ONE_TAP_AMOUNT,
+  DEFAULT_ZAP_PRESETS,
+  NOSTR_PRIVACY_MASK
+} from '@/constants/nostr'
 import { useEcash } from '@/hooks/useEcash'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -70,8 +76,6 @@ type NoteParams = {
   nostrUri: string
 }
 
-const ZAP_PRESETS = [21, 100, 500, 1000]
-
 export default function NostrNotePage() {
   const router = useRouter()
   const { npub, nostrUri } = useLocalSearchParams<NoteParams>()
@@ -114,6 +118,12 @@ export default function NostrNotePage() {
     useState(false)
   const fetchedRef = useRef(false)
   const pendingInvoiceRef = useRef<{ invoice: string; zapRequestJson: string } | null>(null)
+  const zapSheetRef = useRef<BottomSheetMethods>(null)
+  const [sheetCustomAmount, setSheetCustomAmount] = useState('')
+
+  const zapPrefs = identity?.zapPreferences
+  const zapPresets = zapPrefs?.presetAmounts ?? DEFAULT_ZAP_PRESETS
+  const oneTapAmount = zapPrefs?.oneTapAmount ?? DEFAULT_ONE_TAP_AMOUNT
 
   const lightningConfig = useLightningStore((state) => state.config)
   const { mints } = useEcash()
@@ -635,6 +645,16 @@ export default function NostrNotePage() {
       setZapLoading(false)
       pendingInvoiceRef.current = { invoice, zapRequestJson }
 
+      if (zapPrefs?.autoApprove && zapPrefs.autoApproveWalletId) {
+        const autoWallet = availablePaymentMethods.find(
+          (m) => m.id === zapPrefs.autoApproveWalletId
+        )
+        if (autoWallet) {
+          navigateToPayment(autoWallet, invoice, zapRequestJson, amountSats)
+          return
+        }
+      }
+
       if (availablePaymentMethods.length === 1) {
         navigateToPayment(availablePaymentMethods[0], invoice, zapRequestJson, amountSats)
         return
@@ -698,6 +718,27 @@ export default function NostrNotePage() {
   function handleCustomAmountSubmit() {
     const sats = parseInt(customAmount, 10)
     if (!sats || sats <= 0) return
+    handleZap(sats)
+  }
+
+  function handleOneTapZap() {
+    handleZap(oneTapAmount)
+  }
+
+  function handleOpenZapSheet() {
+    setSheetCustomAmount('')
+    zapSheetRef.current?.snapToIndex(0)
+  }
+
+  function handleSheetAmountSelected(sats: number) {
+    zapSheetRef.current?.close()
+    handleZap(sats)
+  }
+
+  function handleSheetCustomSubmit() {
+    const sats = parseInt(sheetCustomAmount, 10)
+    if (!sats || sats <= 0) return
+    zapSheetRef.current?.close()
     handleZap(sats)
   }
 
@@ -901,6 +942,31 @@ export default function NostrNotePage() {
 
             {fetched && availablePaymentMethods.length > 0 && (
               <SSVStack gap="sm">
+                {!profileLoading &&
+                  effectiveLud16 &&
+                  !isRequestComplete &&
+                  !identity?.isWatchOnly && (
+                    <TouchableOpacity
+                      style={styles.oneTapButton}
+                      activeOpacity={0.7}
+                      disabled={zapLoading}
+                      onPress={handleOneTapZap}
+                      onLongPress={handleOpenZapSheet}
+                      delayLongPress={400}
+                    >
+                      <SSText size="md" weight="bold" center>
+                        {privacyMode
+                          ? `${NOSTR_PRIVACY_MASK} sats`
+                          : t('nostrIdentity.note.zapOneTap', {
+                              amount: oneTapAmount
+                            })}
+                      </SSText>
+                      <SSText size="xxs" color="muted" center>
+                        {t('nostrIdentity.note.zapChooseAmount')}
+                      </SSText>
+                    </TouchableOpacity>
+                  )}
+
                 {profileLoading ? (
                   <SSHStack gap="sm" style={styles.zapLoadingRow}>
                     <ActivityIndicator color={Colors.white} size="small" />
@@ -1103,7 +1169,7 @@ export default function NostrNotePage() {
 
                         {!hasEnhancedZapTags && (
                           <SSHStack gap="sm" style={styles.presetRow}>
-                            {ZAP_PRESETS.map((sats) => (
+                            {zapPresets.map((sats) => (
                               <TouchableOpacity
                                 key={sats}
                                 style={styles.presetButton}
@@ -1381,6 +1447,51 @@ export default function NostrNotePage() {
         methods={availablePaymentMethods}
         amountSats={payAmount}
       />
+
+      <SSBottomSheet
+        ref={zapSheetRef}
+        title={t('nostrIdentity.note.zapChooseAmount')}
+      >
+        <SSVStack gap="sm" style={styles.sheetContent}>
+          <SSHStack gap="sm" style={styles.presetRow}>
+            {zapPresets.map((sats) => (
+              <TouchableOpacity
+                key={sats}
+                style={styles.presetButton}
+                activeOpacity={0.6}
+                onPress={() => handleSheetAmountSelected(sats)}
+              >
+                <SSText size="sm" weight="medium" center>
+                  {privacyMode ? NOSTR_PRIVACY_MASK : sats.toLocaleString()}
+                </SSText>
+              </TouchableOpacity>
+            ))}
+          </SSHStack>
+          <TextInput
+            style={styles.customInput}
+            placeholderTextColor={Colors.gray[500]}
+            placeholder={t('nostrIdentity.note.customAmount')}
+            keyboardType="number-pad"
+            value={sheetCustomAmount}
+            onChangeText={setSheetCustomAmount}
+            returnKeyType="done"
+            onSubmitEditing={handleSheetCustomSubmit}
+          />
+          <SSButton
+            label={
+              sheetCustomAmount && parseInt(sheetCustomAmount, 10) > 0
+                ? `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : sheetCustomAmount} sats`
+                : t('nostrIdentity.note.zap')
+            }
+            variant="gradient"
+            gradientType="special"
+            disabled={
+              !sheetCustomAmount || parseInt(sheetCustomAmount, 10) <= 0
+            }
+            onPress={handleSheetCustomSubmit}
+          />
+        </SSVStack>
+      </SSBottomSheet>
     </SSMainLayout>
   )
 }
@@ -1437,6 +1548,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 16,
     position: 'relative'
+  },
+  oneTapButton: {
+    alignItems: 'center',
+    backgroundColor: Colors.gray[925],
+    borderColor: Colors.gray[700],
+    borderRadius: 5,
+    borderWidth: 1,
+    gap: 2,
+    paddingHorizontal: 16,
+    paddingVertical: 14
   },
   noteReplyTag: {
     backgroundColor: Colors.gray[800],
@@ -1502,6 +1623,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     marginTop: 8,
     paddingTop: 16
+  },
+  sheetContent: {
+    paddingBottom: 24
   },
   receiptAmountCol: {
     alignItems: 'flex-end'

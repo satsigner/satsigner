@@ -25,7 +25,14 @@ export function nostrNoteHref(npub: string, nostrUri: string): Href {
 
 export function nostrAccountHref(
   npub: string,
-  segment: 'chat' | 'compose' | 'keys' | 'relays' | 'send' | 'settings'
+  segment:
+    | 'chat'
+    | 'compose'
+    | 'keys'
+    | 'relays'
+    | 'send'
+    | 'settings'
+    | 'zapSettings'
 ): Href {
   return `/signer/nostr/account/${npub}/${segment}` as Href
 }

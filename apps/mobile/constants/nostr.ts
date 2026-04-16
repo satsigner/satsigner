@@ -58,6 +58,9 @@ export const NOSTR_RELAYS: NostrRelay[] = [
   { name: 'YakiHonne', url: 'wss://nostr-01.yakihonne.com' }
 ]
 
+export const DEFAULT_ZAP_PRESETS = [21, 100, 500, 1000]
+export const DEFAULT_ONE_TAP_AMOUNT = 21
+
 /** Compact signed-event JSON longer than this is not shown as QR (QR version limits). */
 export const NOSTR_SIGNED_EVENT_QR_MAX_CHARS = 2400
 

@@ -224,6 +224,14 @@ export default function NostrIdentitySettings() {
             onPress={() => router.navigate(nostrAccountHref(npub, 'relays'))}
           />
 
+          <SSButton
+            label={t('nostrIdentity.settings.zapSettings')}
+            variant="outline"
+            onPress={() =>
+              router.navigate(nostrAccountHref(npub, 'zapSettings'))
+            }
+          />
+
           <SSVStack gap="sm" style={styles.cacheSection}>
             <SSText size="sm" color="muted" uppercase>
               {t('nostrIdentity.settings.cache.title')}
