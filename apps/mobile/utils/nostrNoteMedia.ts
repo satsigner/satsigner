@@ -1,7 +1,7 @@
 const IMAGE_FILE_EXT_RE =
   /\.(?:jpg|jpeg|png|gif|webp|avif|bmp)(?:\?[^\s]*)?$/i
 
-function isPlausibleImageHttpUrl(url: string): boolean {
+export function isPlausibleImageHttpUrl(url: string): boolean {
   const u = url.trim()
   if (!/^https?:\/\//i.test(u)) return false
   if (IMAGE_FILE_EXT_RE.test(u)) return true

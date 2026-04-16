@@ -19,7 +19,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
-import { type NostrRelayReachability } from '@/types/models/NostrIdentity'
+import { type NostrRelayConnectionInfo } from '@/types/models/NostrIdentity'
 import { Colors } from '@/styles'
 import {
   nostrAccountHref,
@@ -41,8 +41,8 @@ export default function NostrAccountLanding() {
   const relays = useNostrIdentityStore((state) => state.relays)
   const updateIdentity = useNostrIdentityStore((state) => state.updateIdentity)
   const fetchedRef = useRef(false)
-  const [relayReachability, setRelayReachability] =
-    useState<NostrRelayReachability>('checking')
+  const [connectionInfo, setConnectionInfo] =
+    useState<NostrRelayConnectionInfo>({ status: 'checking' })
 
   const effectiveRelays = useMemo(() => {
     if (!identity) {
@@ -56,18 +56,18 @@ export default function NostrAccountLanding() {
       return
     }
     if (!identity.relayConnected) {
-      setRelayReachability('disconnected')
+      setConnectionInfo({ status: 'disconnected', reason: 'user_disabled' })
+      return
+    }
+    if (effectiveRelays.length === 0) {
+      setConnectionInfo({ status: 'disconnected', reason: 'no_relays' })
       return
     }
     let cancelled = false
-    if (effectiveRelays.length === 0) {
-      setRelayReachability('disconnected')
-      return
-    }
-    setRelayReachability('checking')
-    void testNostrRelaysReachable(effectiveRelays).then((ok) => {
+    setConnectionInfo({ status: 'checking' })
+    void testNostrRelaysReachable(effectiveRelays).then((info) => {
       if (cancelled) return
-      setRelayReachability(ok ? 'connected' : 'disconnected')
+      setConnectionInfo(info)
     })
     return () => {
       cancelled = true
@@ -195,7 +195,7 @@ export default function NostrAccountLanding() {
         <SSVStack gap="sm">
           <SSNostrHeroCard
             identity={identity}
-            relayReachability={relayReachability}
+            connectionInfo={connectionInfo}
             style={styles.heroProfile}
           />
 

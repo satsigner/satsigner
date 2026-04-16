@@ -11,7 +11,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
-import { Colors, Sizes } from '@/styles'
+import { Colors, Layout, Sizes } from '@/styles'
 import { type Currency } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
 import {
@@ -136,9 +136,6 @@ function SSTransactionCard({
             </SSText>
           </SSHStack>
         </SSHStack>
-        {transaction.timestamp && (
-          <SSTimeAgoText date={new Date(transaction.timestamp)} size="xs" />
-        )}
         <SSVStack gap="none" style={{ marginTop: 5 }}>
           <SSHStack
             style={{
@@ -264,13 +261,18 @@ function SSTransactionCard({
             </SSHStack>
           )}
         </SSVStack>
-        <SSHStack justifyBetween>
+        <SSHStack
+          justifyBetween
+          style={{
+            alignItems: 'center'
+          }}
+        >
           <SSText
             size={smallView ? 'xxs' : 'xs'}
             style={[
               {
                 flex: 1,
-                marginBottom: transaction.label ? 4 : 0,
+                marginRight: Layout.hStack.gap.sm,
                 textAlign: 'left'
               },
               !transaction.label && { color: Colors.gray[500] }
@@ -283,13 +285,14 @@ function SSTransactionCard({
               ).label
             }
           </SSText>
-          <SSHStack
-            gap="xs"
-            style={{
-              alignSelf: 'flex-end',
-              marginBottom: transaction.label ? 8 : 0
-            }}
-          >
+          {transaction.timestamp ? (
+            <SSTimeAgoText
+              date={new Date(transaction.timestamp)}
+              size="xs"
+              style={{ flexShrink: 0, marginRight: Layout.hStack.gap.sm }}
+            />
+          ) : null}
+          <SSHStack gap="xs" style={{ flexShrink: 0 }}>
             {transaction.label ? (
               parseLabel(transaction.label).tags.map((tag, index) => (
                 <SSText

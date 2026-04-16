@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   Keyboard,
   ScrollView,
@@ -35,7 +35,9 @@ import {
   parseKind1DraftFromJson,
   stripZapTags
 } from '@/utils/nostrComposeImport'
+import { cacheEvents } from '@/db/nostrCache'
 import { buildEnhancedZapTags, extractEnhancedZapTags } from '@/utils/nostrIdentity'
+import { getPubKeyHexFromNpub } from '@/utils/nostr'
 
 type ComposeParams = {
   npub: string
@@ -109,7 +111,7 @@ export default function NostrComposePage() {
 
   const canExportSigned = canPublish && !signingExport
 
-  const buildTags = useCallback((): string[][] => {
+  function buildTags(): string[][] {
     const zapMin =
       amountMode === 'fixed'
         ? parseInt(fixedAmount, 10)
@@ -131,16 +133,7 @@ export default function NostrComposePage() {
           })
 
     return [...baseTags, ...zapTags]
-  }, [
-    amountMode,
-    baseTags,
-    customLnurl,
-    fixedAmount,
-    goalAmount,
-    maxAmount,
-    maxUses,
-    minAmount
-  ])
+  }
 
   function applyKind1Draft(draft: Kind1DraftImport): boolean {
     if (draft.content.length > MAX_NOTE_LENGTH) {
@@ -226,18 +219,15 @@ export default function NostrComposePage() {
     toast.success(t('nostrIdentity.compose.importSuccess'))
   }
 
-  const draftEventJson = useMemo(() => {
-    const tags = buildTags()
-    return JSON.stringify(
-      {
-        content: content.trim(),
-        kind: 1,
-        tags
-      },
-      null,
-      2
-    )
-  }, [buildTags, content])
+  const draftEventJson = JSON.stringify(
+    {
+      content: content.trim(),
+      kind: 1,
+      tags: buildTags()
+    },
+    null,
+    2
+  )
 
   async function handleCopySigned() {
     if (!canExportSigned || !identity?.nsec) return
@@ -314,7 +304,24 @@ export default function NostrComposePage() {
     try {
       const tags = buildTags()
       const api = new NostrAPI(effectiveRelays)
-      await api.publishNote(identity.nsec, content.trim(), tags)
+      const eventId = await api.publishNote(identity.nsec, content.trim(), tags)
+
+      const hexPk = getPubKeyHexFromNpub(npub ?? '')
+      if (hexPk) {
+        cacheEvents(
+          [
+            {
+              id: eventId,
+              content: content.trim(),
+              created_at: Math.floor(Date.now() / 1000),
+              kind: 1,
+              pubkey: hexPk,
+              tags
+            }
+          ],
+          [hexPk]
+        )
+      }
 
       toast.success(t('nostrIdentity.compose.published'))
       router.back()

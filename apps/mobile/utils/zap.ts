@@ -1,6 +1,15 @@
 import NDK, { type NDKEvent } from '@nostr-dev-kit/ndk'
 import { type NostrEvent, finalizeEvent, nip57 } from 'nostr-tools'
 
+import { PROFILE_CACHE_TTL_SECS } from '@/constants/nostr'
+import {
+  cacheEvents,
+  cacheProfile,
+  getCachedProfile,
+  getCachedZapReceipts,
+  getCachedZapsByPubkey,
+  getNewestCachedTimestamp
+} from '@/db/nostrCache'
 import type { LNURLPayResponse } from '@/types/models/LNURL'
 import { fetchLNURLPayDetails } from '@/utils/lnurl'
 import { getSecretFromNsec } from '@/utils/nostr'
@@ -326,12 +335,25 @@ export async function requestZapInvoice(
 
 /**
  * Fetches kind 9735 zap receipt events for a given note from relays.
- * Parses each receipt to extract sender, amount, and comment.
+ * Checks SQLite cache first, then fetches newer receipts from relays.
  */
 export async function fetchZapReceipts(
   eventIdHex: string,
-  relays: string[]
+  relays: string[],
+  ownPubkeys: string[] = []
 ): Promise<ZapReceiptInfo[]> {
+  const cachedEvents = getCachedZapReceipts(eventIdHex)
+  const cachedReceipts: ZapReceiptInfo[] = []
+  for (const ce of cachedEvents) {
+    const parsed = parseZapReceiptFromTags(
+      ce.event_id,
+      ce.created_at,
+      ce.tags,
+      null
+    )
+    if (parsed) cachedReceipts.push(parsed)
+  }
+
   const ndk = new NDK({
     autoConnectUserRelays: false,
     enableOutboxModel: false,
@@ -341,22 +363,46 @@ export async function fetchZapReceipts(
   try {
     await ndk.connect(10000)
 
-    const events = await subscribeAndCollect(
-      ndk,
-      { '#e': [eventIdHex], kinds: [9735 as never], limit: 50 },
-      15000
-    )
+    const filter: Record<string, unknown> = {
+      '#e': [eventIdHex],
+      kinds: [9735 as never],
+      limit: 50
+    }
+    const newestTs = cachedEvents.length > 0
+      ? Math.max(...cachedEvents.map((e) => e.created_at))
+      : null
+    if (newestTs) {
+      filter.since = newestTs + 1
+    }
 
-    const receipts: ZapReceiptInfo[] = []
+    const events = await subscribeAndCollect(ndk, filter, 15000)
+
+    const freshReceipts: ZapReceiptInfo[] = []
+    const freshEvents: { id: string; kind: number; pubkey: string; content: string; tags: string[][]; created_at: number }[] = []
 
     for (const event of events) {
       const parsed = parseZapReceiptFromEvent(event, null)
       if (parsed) {
-        receipts.push(parsed)
+        freshReceipts.push(parsed)
+        const tags = event.tags.map((tag) =>
+          tag.filter((v): v is string => typeof v === 'string')
+        )
+        freshEvents.push({
+          id: event.id,
+          content: event.content,
+          created_at: event.created_at ?? 0,
+          kind: event.kind ?? 9735,
+          pubkey: event.pubkey,
+          tags
+        })
       }
     }
 
-    return receipts.toSorted((a, b) => b.createdAt - a.createdAt)
+    if (freshEvents.length > 0) {
+      cacheEvents(freshEvents, ownPubkeys)
+    }
+
+    return mergeZapReceiptsById([...cachedReceipts, ...freshReceipts])
   } finally {
     for (const relay of ndk.pool.relays.values()) {
       try {
@@ -417,14 +463,27 @@ export async function initiateZap(
 
 /**
  * Fetches kind 9735 zap receipts targeting a specific pubkey (via #p tag).
- * Used to show zaps received by a profile.
+ * Checks SQLite cache first, then fetches newer receipts from relays.
  */
 export async function fetchZapsByPubkey(
   pubkeyHex: string,
   relays: string[],
   limit = 20,
-  until?: number
+  until?: number,
+  ownPubkeys: string[] = []
 ): Promise<ZapReceiptInfo[]> {
+  const cachedEvents = getCachedZapsByPubkey(pubkeyHex, limit, until)
+  const cachedReceipts: ZapReceiptInfo[] = []
+  for (const ce of cachedEvents) {
+    const parsed = parseZapReceiptFromTags(
+      ce.event_id,
+      ce.created_at,
+      ce.tags,
+      pubkeyHex
+    )
+    if (parsed) cachedReceipts.push(parsed)
+  }
+
   const ndk = new NDK({
     autoConnectUserRelays: false,
     enableOutboxModel: false,
@@ -441,11 +500,17 @@ export async function fetchZapsByPubkey(
     }
     if (until) {
       filter.until = until
+    } else {
+      const newestTs = getNewestCachedTimestamp(9735)
+      if (newestTs) {
+        filter.since = newestTs + 1
+      }
     }
 
     const events = await subscribeAndCollect(ndk, filter, 15000)
 
     const receipts: ZapReceiptInfo[] = []
+    const freshEvents: { id: string; kind: number; pubkey: string; content: string; tags: string[][]; created_at: number }[] = []
 
     for (const event of events) {
       const parsed = parseZapReceiptFromEvent(event, pubkeyHex)
@@ -454,10 +519,25 @@ export async function fetchZapsByPubkey(
           ...parsed,
           rawEventJson: zapReceiptEventToRawJson(event)
         })
+        const tags = event.tags.map((tag) =>
+          tag.filter((v): v is string => typeof v === 'string')
+        )
+        freshEvents.push({
+          id: event.id,
+          content: event.content,
+          created_at: event.created_at ?? 0,
+          kind: event.kind ?? 9735,
+          pubkey: event.pubkey,
+          tags
+        })
       }
     }
 
-    return receipts.toSorted((a, b) => b.createdAt - a.createdAt)
+    if (freshEvents.length > 0) {
+      cacheEvents(freshEvents, ownPubkeys)
+    }
+
+    return mergeZapReceiptsById([...cachedReceipts, ...receipts])
   } finally {
     for (const relay of ndk.pool.relays.values()) {
       try {
@@ -525,6 +605,7 @@ export async function fetchZapsSentByPubkey(
 
 /**
  * Resolves sender npubs to display names via kind 0 profiles.
+ * Checks SQLite profile cache first; only fetches from relays for missing/stale pubkeys.
  * Mutates the receipts array in place for efficiency.
  */
 export async function enrichZapReceipts(
@@ -533,76 +614,104 @@ export async function enrichZapReceipts(
 ): Promise<void> {
   if (receipts.length === 0) {return}
 
-  const ndk = new NDK({
-    autoConnectUserRelays: false,
-    enableOutboxModel: false,
-    explicitRelayUrls: relays
-  })
+  const now = Math.floor(Date.now() / 1000)
+  const profileMap = new Map<string, { name?: string; picture?: string }>()
 
-  try {
-    await ndk.connect(8000)
-
-    const uniquePubkeys = [
-      ...new Set(
-        receipts.flatMap((r) =>
-          [r.senderPubkey, r.recipientPubkey].filter(
-            (k): k is string => typeof k === 'string' && k.length > 0
-          )
+  const uniquePubkeys = [
+    ...new Set(
+      receipts.flatMap((r) =>
+        [r.senderPubkey, r.recipientPubkey].filter(
+          (k): k is string => typeof k === 'string' && k.length > 0
         )
       )
-    ].slice(0, 40)
-
-    const events = await subscribeAndCollect(
-      ndk,
-      {
-        authors: uniquePubkeys,
-        kinds: [0 as never],
-        limit: uniquePubkeys.length
-      },
-      10000
     )
+  ].slice(0, 40)
 
-    const profileMap = new Map<string, { name?: string; picture?: string }>()
+  const stalePubkeys: string[] = []
+  for (const pk of uniquePubkeys) {
+    const cached = getCachedProfile(pk)
+    if (cached && now - cached.cached_at < PROFILE_CACHE_TTL_SECS) {
+      if (cached.displayName || cached.picture) {
+        profileMap.set(pk, {
+          name: cached.displayName,
+          picture: cached.picture
+        })
+      }
+    } else {
+      stalePubkeys.push(pk)
+    }
+  }
 
-    for (const event of events) {
-      try {
-        const content = JSON.parse(event.content) as Record<string, unknown>
-        const name =
-          typeof content.name === 'string'
-            ? content.name
-            : typeof content.display_name === 'string'
-              ? content.display_name
-              : undefined
-        const picture =
-          typeof content.picture === 'string' ? content.picture : undefined
-        if (name || picture) {
-          profileMap.set(event.pubkey, { name, picture })
+  if (stalePubkeys.length > 0) {
+    const ndk = new NDK({
+      autoConnectUserRelays: false,
+      enableOutboxModel: false,
+      explicitRelayUrls: relays
+    })
+
+    try {
+      await ndk.connect(8000)
+
+      const events = await subscribeAndCollect(
+        ndk,
+        {
+          authors: stalePubkeys,
+          kinds: [0 as never],
+          limit: stalePubkeys.length
+        },
+        10000
+      )
+
+      for (const event of events) {
+        try {
+          const content = JSON.parse(event.content) as Record<string, unknown>
+          const name =
+            typeof content.name === 'string'
+              ? content.name
+              : typeof content.display_name === 'string'
+                ? content.display_name
+                : undefined
+          const picture =
+            typeof content.picture === 'string' ? content.picture : undefined
+          const nip05 =
+            typeof content.nip05 === 'string' ? content.nip05 : undefined
+          const lud16 =
+            typeof content.lud16 === 'string' ? content.lud16 : undefined
+          if (name || picture) {
+            profileMap.set(event.pubkey, { name, picture })
+          }
+          cacheProfile(
+            event.pubkey,
+            { displayName: name, lud16, nip05, picture },
+            event.id,
+            event.created_at ?? 0
+          )
+        } catch {
+          // malformed kind 0
         }
-      } catch {
-        // malformed kind 0
+      }
+    } finally {
+      for (const relay of ndk.pool.relays.values()) {
+        try {
+          relay.disconnect()
+        } catch {
+          // relay may already be disconnected
+        }
       }
     }
+  }
 
-    for (const receipt of receipts) {
-      const senderProfile = profileMap.get(receipt.senderPubkey)
-      if (senderProfile) {
-        receipt.senderName = senderProfile.name
-        receipt.senderPicture = senderProfile.picture
-      }
-      if (receipt.recipientPubkey) {
-        const recipientProfile = profileMap.get(receipt.recipientPubkey)
-        if (recipientProfile) {
-          receipt.recipientName = recipientProfile.name
-          receipt.recipientPicture = recipientProfile.picture
-        }
-      }
+  for (const receipt of receipts) {
+    const senderProfile = profileMap.get(receipt.senderPubkey)
+    if (senderProfile) {
+      receipt.senderName = senderProfile.name
+      receipt.senderPicture = senderProfile.picture
     }
-  } finally {
-    for (const relay of ndk.pool.relays.values()) {
-      try {
-        relay.disconnect()
-      } catch {
-        // relay may already be disconnected
+    if (receipt.recipientPubkey) {
+      const recipientProfile = profileMap.get(receipt.recipientPubkey)
+      if (recipientProfile) {
+        receipt.recipientName = recipientProfile.name
+        receipt.recipientPicture = recipientProfile.picture
       }
     }
   }

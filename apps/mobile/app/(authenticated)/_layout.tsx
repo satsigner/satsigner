@@ -20,6 +20,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { useWalletsStore } from '@/store/wallets'
 import type { Account, Key } from '@/types/models/Account'
 import { type PageRoute } from '@/types/navigation/page'
+import { pruneCache } from '@/db/nostrCache'
 import { decryptAllAccountKeySecrets } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
@@ -145,6 +146,12 @@ export default function AuthenticatedLayout() {
 
   useEffect(() => {
     async function run() {
+      try {
+        pruneCache()
+      } catch {
+        // non-critical — cache prune failure should not block startup
+      }
+
       const { justUnlocked: ju, pendingRecoverData: pending } =
         useAuthStore.getState()
       if (ju && pending) {

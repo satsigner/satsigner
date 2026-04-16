@@ -1,11 +1,12 @@
 import { NostrAPI } from '@/api/nostr'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
+import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
 import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -17,6 +18,7 @@ import { Colors } from '@/styles'
 import { formatNostrCardDate } from '@/utils/format'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
+import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
 import { nostrNoteHref } from '@/utils/nostrNavigation'
 import {
   enrichZapReceipts,
@@ -111,7 +113,8 @@ export default function NostrZapDetail() {
         const content = ev.content ?? ''
         const tags = ev.tags ?? []
         const imageCount = extractImageUrlsFromNote(content, tags).length
-        if (!content.trim() && imageCount === 0) return
+        const videoCount = extractVideoEmbedsFromNote(content, tags).length
+        if (!content.trim() && imageCount === 0 && videoCount === 0) return
         setReferencedNote({ content, tags })
       })
       .catch(() => {
@@ -154,6 +157,18 @@ export default function NostrZapDetail() {
   const previewImageUrls = privacyMode
     ? []
     : allPreviewImageUrls.slice(0, 6)
+
+  const allPreviewVideoEmbeds = useMemo(() => {
+    if (referencedNote == null) return []
+    return extractVideoEmbedsFromNote(
+      referencedNote.content,
+      referencedNote.tags
+    )
+  }, [referencedNote])
+
+  const previewVideoEmbeds = privacyMode
+    ? []
+    : allPreviewVideoEmbeds.slice(0, 4)
 
   if (!identity) {
     return (
@@ -260,7 +275,9 @@ export default function NostrZapDetail() {
                           ? NOSTR_PRIVACY_MASK
                           : referencedNote.content}
                       </SSText>
-                    ) : privacyMode && allPreviewImageUrls.length > 0 ? (
+                    ) : privacyMode &&
+                      (allPreviewImageUrls.length > 0 ||
+                        allPreviewVideoEmbeds.length > 0) ? (
                       <SSText size="sm" color="muted">
                         {t('nostrIdentity.feed.hiddenInPrivacyMode')}
                       </SSText>
@@ -270,6 +287,17 @@ export default function NostrZapDetail() {
                         uris={previewImageUrls}
                         style={
                           referencedNote.content.trim().length > 0
+                            ? styles.noteImagesBelowText
+                            : styles.noteImagesNoText
+                        }
+                      />
+                    ) : null}
+                    {previewVideoEmbeds.length > 0 ? (
+                      <SSNoteInlineVideos
+                        embeds={previewVideoEmbeds}
+                        style={
+                          referencedNote.content.trim().length > 0 ||
+                          previewImageUrls.length > 0
                             ? styles.noteImagesBelowText
                             : styles.noteImagesNoText
                         }

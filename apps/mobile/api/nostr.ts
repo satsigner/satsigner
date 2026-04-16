@@ -1,5 +1,6 @@
 import { Buffer } from 'buffer'
 
+import NetInfo from '@react-native-community/netinfo'
 import type { NDKKind, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
@@ -9,13 +10,26 @@ import {
   MAX_PROCESSED_RAW_IDS,
   MAX_QUEUE_SIZE,
   NOSTR_RELAY_REACHABILITY_TEST_MS,
-  PROCESSING_INTERVAL_MS
+  PROCESSING_INTERVAL_MS,
+  PROFILE_CACHE_TTL_SECS
 } from '@/constants/nostr'
+import {
+  cacheEvents,
+  cacheProfile,
+  getCachedEvent,
+  getCachedNotes,
+  getCachedProfile,
+  getNewestCachedTimestamp
+} from '@/db/nostrCache'
 import type {
   NostrKeys,
   NostrKind0Profile,
   NostrMessage
 } from '@/types/models/Nostr'
+import {
+  type NostrRelayConnectionInfo,
+  type RelayConnectionDetail
+} from '@/types/models/NostrIdentity'
 import { randomKey } from '@/utils/crypto'
 import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
 
@@ -40,31 +54,82 @@ function createMobileNdk(explicitRelayUrls: string[]): NDK {
   })
 }
 
-export async function testNostrRelaysReachable(
-  relayUrls: string[]
-): Promise<boolean> {
-  if (relayUrls.length === 0) {
-    return false
-  }
-  const ndk = createMobileNdk(relayUrls)
-  try {
-    await ndk.connect(NOSTR_RELAY_REACHABILITY_TEST_MS)
-    const pool = ndk.pool
-    const connectedCount = pool?.connectedRelays().length ?? 0
-    return connectedCount > 0
-  } catch {
-    return false
-  } finally {
-    const pool = ndk.pool
-    if (pool) {
-      for (const relay of pool.relays.values()) {
-        try {
-          relay.disconnect()
-        } catch {
-          // relay may already be disconnected
-        }
+function testSingleRelay(
+  url: string,
+  timeoutMs: number
+): Promise<RelayConnectionDetail> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      try {
+        ws.close()
+      } catch {
+        // already closed
+      }
+      resolve({ url, connected: false, error: 'timeout' })
+    }, timeoutMs)
+
+    const ws = new WebSocket(url)
+
+    ws.onopen = () => {
+      clearTimeout(timer)
+      try {
+        ws.close()
+      } catch {
+        // already closed
+      }
+      resolve({ url, connected: true })
+    }
+
+    ws.onerror = (ev) => {
+      clearTimeout(timer)
+      const message =
+        (ev as unknown as { message?: string }).message || 'connection error'
+      try {
+        ws.close()
+      } catch {
+        // already closed
+      }
+      resolve({ url, connected: false, error: message })
+    }
+
+    ws.onclose = (event: CloseEvent) => {
+      clearTimeout(timer)
+      if (event.code !== 1000 && event.code !== 1005) {
+        const reason =
+          event.reason || `closed with code ${event.code}`
+        resolve({ url, connected: false, error: reason })
       }
     }
+  })
+}
+
+export async function testNostrRelaysReachable(
+  relayUrls: string[]
+): Promise<NostrRelayConnectionInfo> {
+  if (relayUrls.length === 0) {
+    return { status: 'disconnected', reason: 'no_relays' }
+  }
+
+  const netState = await NetInfo.fetch()
+  if (netState.isConnected === false) {
+    return {
+      status: 'disconnected',
+      reason: 'no_internet'
+    }
+  }
+
+  const relayDetails = await Promise.all(
+    relayUrls.map((url) =>
+      testSingleRelay(url, NOSTR_RELAY_REACHABILITY_TEST_MS)
+    )
+  )
+
+  const anyConnected = relayDetails.some((r) => r.connected)
+
+  return {
+    status: anyConnected ? 'connected' : 'disconnected',
+    reason: anyConnected ? undefined : 'all_failed',
+    relayDetails
   }
 }
 
@@ -122,9 +187,11 @@ export class NostrAPI {
   private readonly BATCH_SIZE = 10
   private onLoadingChange?: (isLoading: boolean) => void
   private relays: string[]
+  ownPubkeys: string[] = []
 
-  constructor(relays: string[]) {
+  constructor(relays: string[], ownPubkeys: string[] = []) {
     this.relays = relays?.length ? relays : []
+    this.ownPubkeys = ownPubkeys
   }
 
   getRelays(): string[] {
@@ -174,6 +241,7 @@ export class NostrAPI {
 
   /**
    * Fetches kind 0 (metadata) for a 64-char hex pubkey (lowercase).
+   * Checks SQLite profile cache first; only hits relays when stale or missing.
    */
   async fetchKind0ByPubkeyHex(
     hexPubkey: string
@@ -183,9 +251,27 @@ export class NostrAPI {
       return null
     }
 
+    const cached = getCachedProfile(pk)
+    const now = Math.floor(Date.now() / 1000)
+    if (cached && now - cached.cached_at < PROFILE_CACHE_TTL_SECS) {
+      return {
+        displayName: cached.displayName,
+        lud16: cached.lud16,
+        nip05: cached.nip05,
+        picture: cached.picture
+      }
+    }
+
     await this.connect()
     if (!this.ndk) {
-      return null
+      return cached
+        ? {
+            displayName: cached.displayName,
+            lud16: cached.lud16,
+            nip05: cached.nip05,
+            picture: cached.picture
+          }
+        : null
     }
 
     const filter = {
@@ -208,10 +294,22 @@ export class NostrAPI {
           )[0]
 
     if (!event?.content) {
-      return null
+      return cached
+        ? {
+            displayName: cached.displayName,
+            lud16: cached.lud16,
+            nip05: cached.nip05,
+            picture: cached.picture
+          }
+        : null
     }
 
-    return getProfileFromKind0Content(event.content)
+    const profile = getProfileFromKind0Content(event.content)
+    if (profile) {
+      cacheProfile(pk, profile, event.id, event.created_at ?? 0)
+    }
+
+    return profile
   }
 
   /**
@@ -304,8 +402,22 @@ export class NostrAPI {
     const hexPubkey = getPubKeyHexFromNpub(npub)
     if (!hexPubkey) return []
 
+    const isKind1Only =
+      kinds.length === 0 || (kinds.length === 1 && kinds[0] === 1)
+    let cached: { id: string; content: string; pubkey: string; kind: number; tags: string[][]; created_at: number }[] = []
+    if (isKind1Only) {
+      cached = getCachedNotes(hexPubkey, limit, until).map((e) => ({
+        id: e.event_id,
+        content: e.content,
+        created_at: e.created_at,
+        kind: e.kind,
+        pubkey: e.pubkey,
+        tags: e.tags
+      }))
+    }
+
     await this.connectForPublish()
-    if (!this.ndk) return []
+    if (!this.ndk) return cached
 
     const kindList = kinds.length > 0 ? kinds : [1]
     const filter: Record<string, unknown> = {
@@ -315,6 +427,11 @@ export class NostrAPI {
     }
     if (until) {
       filter.until = until
+    } else if (isKind1Only) {
+      const since = getNewestCachedTimestamp(1, hexPubkey)
+      if (since) {
+        filter.since = since + 1
+      }
     }
 
     const FETCH_NOTES_TIMEOUT_MS = 15000
@@ -324,12 +441,26 @@ export class NostrAPI {
       FETCH_NOTES_TIMEOUT_MS
     )
 
-    return Array.from(events)
+    const fresh = Array.from(events)
       .toSorted((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0))
       .map((e) => ({
         id: e.id,
         ...NostrAPI.formatNdkEvent(e)
       }))
+
+    if (fresh.length > 0) {
+      cacheEvents(fresh, this.ownPubkeys)
+    }
+
+    if (!isKind1Only) return fresh
+
+    const idSet = new Set(fresh.map((n) => n.id))
+    const merged = [
+      ...fresh,
+      ...cached.filter((n) => !idSet.has(n.id))
+    ].toSorted((a, b) => b.created_at - a.created_at)
+
+    return merged.slice(0, limit)
   }
 
   /**
@@ -383,12 +514,18 @@ export class NostrAPI {
       FETCH_FEED_TIMEOUT_MS
     )
 
-    return Array.from(events)
+    const results = Array.from(events)
       .toSorted((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0))
       .map((e) => ({
         id: e.id,
         ...NostrAPI.formatNdkEvent(e)
       }))
+
+    if (results.length > 0) {
+      cacheEvents(results, this.ownPubkeys)
+    }
+
+    return results
   }
 
   private static formatNdkEvent(event: NDKEvent) {
@@ -485,17 +622,36 @@ export class NostrAPI {
     tags: string[][]
     created_at: number
   } | null> {
+    const cached = getCachedEvent(eventIdHex)
+    if (cached) {
+      return {
+        content: cached.content,
+        created_at: cached.created_at,
+        kind: cached.kind,
+        pubkey: cached.pubkey,
+        tags: cached.tags
+      }
+    }
+
     await this.connectForPublish()
     if (!this.ndk) return null
 
     const filter = { ids: [eventIdHex], limit: 1 }
     const poolEvent = await NostrAPI.fetchWithTimeout(this.ndk, filter, 15000)
-    return poolEvent ? NostrAPI.formatNdkEvent(poolEvent) : null
+    if (!poolEvent) return null
+
+    const formatted = NostrAPI.formatNdkEvent(poolEvent)
+    cacheEvents(
+      [{ id: poolEvent.id, ...formatted }],
+      this.ownPubkeys
+    )
+    return formatted
   }
 
   static async fetchEventFromRelays(
     eventIdHex: string,
-    relayUrls: string[]
+    relayUrls: string[],
+    ownPubkeys: string[] = []
   ): Promise<{
     content: string
     pubkey: string
@@ -511,7 +667,11 @@ export class NostrAPI {
 
       const filter = { ids: [eventIdHex], limit: 1 }
       const event = await NostrAPI.fetchWithTimeout(tempNdk, filter, 15000)
-      return event ? NostrAPI.formatNdkEvent(event) : null
+      if (!event) return null
+
+      const formatted = NostrAPI.formatNdkEvent(event)
+      cacheEvents([{ id: event.id, ...formatted }], ownPubkeys)
+      return formatted
     } finally {
       try {
         tempNdk.pool?.removeAllListeners?.()

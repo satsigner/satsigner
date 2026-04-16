@@ -60,3 +60,12 @@ export const NOSTR_RELAYS: NostrRelay[] = [
 
 /** Compact signed-event JSON longer than this is not shown as QR (QR version limits). */
 export const NOSTR_SIGNED_EVENT_QR_MAX_CHARS = 2400
+
+/** Profile cache: re-fetch from relays if cached profile is older than this. */
+export const PROFILE_CACHE_TTL_SECS = 3600
+/** Profile cache: delete stale profiles older than this on prune. */
+export const PROFILE_CACHE_MAX_AGE_SECS = 604800
+/** Event cache: auto-prune non-own events older than this (3 days). */
+export const OTHER_EVENT_CACHE_MAX_AGE_SECS = 259200
+/** Event cache: hard cap on non-own rows; oldest by cached_at are removed first. */
+export const EVENT_CACHE_MAX_ROWS = 5000

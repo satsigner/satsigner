@@ -4,14 +4,22 @@ import {
   useRouter,
   type Href
 } from 'expo-router'
+import { nip19 } from 'nostr-tools'
 import { useState } from 'react'
-import { Image, ScrollView, StyleSheet, View } from 'react-native'
+import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import {
+  type CacheCategory,
+  clearAllCache,
+  clearCacheCategory,
+  getCacheCounts
+} from '@/db/nostrCache'
+import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -21,6 +29,14 @@ import { nostrAccountHref } from '@/utils/nostrNavigation'
 
 type SettingsParams = {
   npub: string
+}
+
+type CacheCounts = {
+  feedNotes: number
+  ownNotes: number
+  ownZaps: number
+  profiles: number
+  zapReceipts: number
 }
 
 export default function NostrIdentitySettings() {
@@ -38,6 +54,44 @@ export default function NostrIdentitySettings() {
   const [nip05, setNip05] = useState(identity?.nip05 ?? '')
   const [lud16, setLud16] = useState(identity?.lud16 ?? '')
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
+  const [clearAllModalVisible, setClearAllModalVisible] = useState(false)
+  const [cacheCounts, setCacheCounts] = useState<CacheCounts>(() => {
+    if (!npub) return { feedNotes: 0, ownNotes: 0, ownZaps: 0, profiles: 0, zapReceipts: 0 }
+    try {
+      const hex = nip19.decode(npub).data as string
+      return getCacheCounts(hex)
+    } catch {
+      return { feedNotes: 0, ownNotes: 0, ownZaps: 0, profiles: 0, zapReceipts: 0 }
+    }
+  })
+
+  function getHexPubkey(): string {
+    if (!npub) return ''
+    try {
+      return nip19.decode(npub).data as string
+    } catch {
+      return ''
+    }
+  }
+
+  function refreshCacheCounts() {
+    const hex = getHexPubkey()
+    if (!hex) return
+    setCacheCounts(getCacheCounts(hex))
+  }
+
+  function handleClearCategory(category: CacheCategory) {
+    clearCacheCategory(category, getHexPubkey())
+    refreshCacheCounts()
+    toast.success(t('nostrIdentity.settings.cache.cleared'))
+  }
+
+  function handleClearAll() {
+    setClearAllModalVisible(false)
+    clearAllCache()
+    refreshCacheCounts()
+    toast.success(t('nostrIdentity.settings.cache.cleared'))
+  }
 
   function handleSave() {
     if (!npub) return
@@ -170,6 +224,44 @@ export default function NostrIdentitySettings() {
             onPress={() => router.navigate(nostrAccountHref(npub, 'relays'))}
           />
 
+          <SSVStack gap="sm" style={styles.cacheSection}>
+            <SSText size="sm" color="muted" uppercase>
+              {t('nostrIdentity.settings.cache.title')}
+            </SSText>
+
+            <CacheRow
+              label={t('nostrIdentity.settings.cache.ownNotes')}
+              count={cacheCounts.ownNotes}
+              onClear={() => handleClearCategory('ownNotes')}
+            />
+            <CacheRow
+              label={t('nostrIdentity.settings.cache.ownZaps')}
+              count={cacheCounts.ownZaps}
+              onClear={() => handleClearCategory('ownZaps')}
+            />
+            <CacheRow
+              label={t('nostrIdentity.settings.cache.feedNotes')}
+              count={cacheCounts.feedNotes}
+              onClear={() => handleClearCategory('feedNotes')}
+            />
+            <CacheRow
+              label={t('nostrIdentity.settings.cache.zapReceipts')}
+              count={cacheCounts.zapReceipts}
+              onClear={() => handleClearCategory('zapReceipts')}
+            />
+            <CacheRow
+              label={t('nostrIdentity.settings.cache.profiles')}
+              count={cacheCounts.profiles}
+              onClear={() => handleClearCategory('profiles')}
+            />
+
+            <SSButton
+              label={t('nostrIdentity.settings.cache.clearAll')}
+              variant="ghost"
+              onPress={() => setClearAllModalVisible(true)}
+            />
+          </SSVStack>
+
           <SSButton
             label={t('nostrIdentity.settings.save')}
             variant="secondary"
@@ -208,9 +300,87 @@ export default function NostrIdentitySettings() {
           </SSVStack>
         </View>
       </SSModal>
+
+      <SSModal
+        visible={clearAllModalVisible}
+        fullOpacity
+        label={t('common.cancel')}
+        onClose={() => setClearAllModalVisible(false)}
+      >
+        <View style={styles.deleteSheet}>
+          <SSVStack gap="md" itemsCenter widthFull>
+            <SSVStack gap="sm" itemsCenter widthFull>
+              <SSText center size="sm" color="muted" uppercase>
+                {t('nostrIdentity.settings.cache.clearAllTitle')}
+              </SSText>
+              <SSText center color="muted" size="sm">
+                {t('nostrIdentity.settings.cache.clearAllConfirm')}
+              </SSText>
+            </SSVStack>
+            <SSButton
+              label={t('nostrIdentity.settings.cache.clearAll')}
+              variant="danger"
+              onPress={handleClearAll}
+            />
+          </SSVStack>
+        </View>
+      </SSModal>
     </SSMainLayout>
   )
 }
+
+type CacheRowProps = {
+  label: string
+  count: number
+  onClear: () => void
+}
+
+function CacheRow({ label, count, onClear }: CacheRowProps) {
+  return (
+    <SSHStack gap="sm" style={cacheRowStyles.row}>
+      <SSText size="sm" style={cacheRowStyles.label}>
+        {label}
+      </SSText>
+      <SSText size="sm" color="muted" style={cacheRowStyles.count}>
+        {count}
+      </SSText>
+      <TouchableOpacity
+        onPress={onClear}
+        disabled={count === 0}
+        style={cacheRowStyles.clearButton}
+        activeOpacity={0.6}
+      >
+        <SSText
+          size="xs"
+          color={count === 0 ? 'muted' : 'white'}
+          uppercase
+        >
+          {t('common.clear')}
+        </SSText>
+      </TouchableOpacity>
+    </SSHStack>
+  )
+}
+
+const cacheRowStyles = StyleSheet.create({
+  clearButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6
+  },
+  count: {
+    minWidth: 32,
+    textAlign: 'right'
+  },
+  label: {
+    flex: 1
+  },
+  row: {
+    alignItems: 'center',
+    borderBottomColor: Colors.gray[800],
+    borderBottomWidth: 1,
+    paddingVertical: 8
+  }
+})
 
 const styles = StyleSheet.create({
   avatar: {
@@ -226,6 +396,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.gray[800],
     justifyContent: 'center'
+  },
+  cacheSection: {
+    borderColor: Colors.gray[800],
+    borderRadius: 3,
+    borderWidth: 1,
+    padding: 12
   },
   content: {
     paddingBottom: 40

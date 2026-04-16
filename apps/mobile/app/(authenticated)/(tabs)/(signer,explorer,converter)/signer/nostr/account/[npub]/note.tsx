@@ -20,6 +20,7 @@ import {
   type NostrFeedNoteLike
 } from '@/components/SSNostrFeedNoteRow'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
+import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSPaymentMethodPicker, {
@@ -44,8 +45,15 @@ import {
   extractPubpayTags,
   truncateNpub
 } from '@/utils/nostrIdentity'
+import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
-import { noteLooksLikeReply } from '@/utils/nostrNoteThread'
+import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
+import {
+  getRelayHintForEventId,
+  getReplyParentEventIdHex,
+  noteLooksLikeReply
+} from '@/utils/nostrNoteThread'
+import { nostrNoteHref } from '@/utils/nostrNavigation'
 import {
   type ZapReceiptInfo,
   enrichZapReceipts,
@@ -81,6 +89,11 @@ export default function NostrNotePage() {
   const [customAmount, setCustomAmount] = useState('')
   const [zapLoading, setZapLoading] = useState(false)
   const [zapReceipts, setZapReceipts] = useState<ZapReceiptInfo[]>([])
+  const [replyParent, setReplyParent] = useState<FetchedNoteData | null>(null)
+  const [replyParentLoading, setReplyParentLoading] = useState(false)
+  const [replyParentMissing, setReplyParentMissing] = useState(false)
+  const [replyParentKind0Pending, setReplyParentKind0Pending] =
+    useState(false)
   const fetchedRef = useRef(false)
   const pendingInvoiceRef = useRef<{ invoice: string; zapRequestJson: string } | null>(null)
 
@@ -121,10 +134,17 @@ export default function NostrNotePage() {
     return methods
   }, [lightningConfig, mints])
 
+  const ownPubkeyHex = getPubKeyHexFromNpub(npub ?? '') ?? ''
+  const ownPubkeys = ownPubkeyHex ? [ownPubkeyHex] : []
+
   const loadZapReceipts = useCallback(
     async (eventIdHex: string) => {
       try {
-        const receipts = await fetchZapReceipts(eventIdHex, effectiveRelays)
+        const receipts = await fetchZapReceipts(
+          eventIdHex,
+          effectiveRelays,
+          ownPubkeys
+        )
         setZapReceipts(receipts)
         await enrichZapReceipts(receipts, effectiveRelays)
         setZapReceipts([...receipts])
@@ -132,7 +152,7 @@ export default function NostrNotePage() {
         // non-critical
       }
     },
-    [effectiveRelays]
+    [effectiveRelays, ownPubkeys]
   )
 
   const relayHints = useMemo(() => {
@@ -170,7 +190,7 @@ export default function NostrNotePage() {
       }
 
       const authorNpub = nip19.npubEncode(event.pubkey)
-      const profileApi = new NostrAPI(effectiveRelays)
+      const profileApi = new NostrAPI(effectiveRelays, ownPubkeys)
       profileApi
         .fetchKind0(authorNpub)
         .then((profile) => {
@@ -194,7 +214,7 @@ export default function NostrNotePage() {
           setProfileLoading(false)
         })
     },
-    [decoded, effectiveRelays, loadZapReceipts]
+    [decoded, effectiveRelays, loadZapReceipts, ownPubkeys]
   )
 
   useEffect(() => {
@@ -207,10 +227,6 @@ export default function NostrNotePage() {
       return
 
     fetchedRef.current = true
-
-    console.log('[NotePage] decoded:', decoded.kind, 'data:', decoded.data, 'metadata:', decoded.metadata)
-    console.log('[NotePage] effectiveRelays:', effectiveRelays)
-    console.log('[NotePage] relayHints:', relayHints)
 
     if (decoded.kind === 'json_note' && decoded.metadata) {
       setFetched({
@@ -233,12 +249,10 @@ export default function NostrNotePage() {
       return
     }
 
-    const api = new NostrAPI(effectiveRelays)
-    console.log('[NotePage] calling fetchEvent with id:', decoded.data)
+    const api = new NostrAPI(effectiveRelays, ownPubkeys)
     api
       .fetchEvent(decoded.data)
       .then((event) => {
-        console.log('[NotePage] fetchEvent returned:', event ? 'FOUND' : 'NOT FOUND')
         if (!event) {
           setIsLoading(false)
           setProfileLoading(false)
@@ -247,13 +261,12 @@ export default function NostrNotePage() {
         }
         handleEventFound(event)
       })
-      .catch((err) => {
-        console.log('[NotePage] fetchEvent ERROR:', err)
+      .catch(() => {
         setIsLoading(false)
         setProfileLoading(false)
         setNotFound(true)
       })
-  }, [decoded, effectiveRelays, handleEventFound])
+  }, [decoded, effectiveRelays, handleEventFound, ownPubkeys])
 
   async function handleTryHintedRelays() {
     if (!decoded?.data || !relayHints?.length) return
@@ -263,7 +276,8 @@ export default function NostrNotePage() {
     try {
       const event = await NostrAPI.fetchEventFromRelays(
         decoded.data,
-        relayHints
+        relayHints,
+        ownPubkeys
       )
       if (event) {
         handleEventFound(event)
@@ -294,7 +308,8 @@ export default function NostrNotePage() {
     try {
       const event = await NostrAPI.fetchEventFromRelays(
         decoded.data,
-        searchRelays
+        searchRelays,
+        ownPubkeys
       )
       if (event) {
         handleEventFound(event)
@@ -363,6 +378,109 @@ export default function NostrNotePage() {
     return extractImageUrlsFromNote(fetched.content, fetched.tags)
   }, [fetched, privacyMode])
 
+  const noteVideoEmbeds = useMemo(() => {
+    if (!fetched || privacyMode) return []
+    return extractVideoEmbedsFromNote(fetched.content, fetched.tags)
+  }, [fetched, privacyMode])
+
+  const replyParentId = useMemo(
+    () => (fetched?.tags ? getReplyParentEventIdHex(fetched.tags) : null),
+    [fetched?.tags]
+  )
+
+  const replyParentRelayHint = useMemo(() => {
+    if (!fetched?.tags || !replyParentId) return undefined
+    return getRelayHintForEventId(fetched.tags, replyParentId)
+  }, [fetched?.tags, replyParentId])
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (!replyParentId) {
+      setReplyParent(null)
+      setReplyParentKind0Pending(false)
+      setReplyParentLoading(false)
+      setReplyParentMissing(false)
+      return
+    }
+
+    setReplyParent(null)
+    setReplyParentKind0Pending(false)
+    setReplyParentMissing(false)
+    setReplyParentLoading(true)
+
+    const api = new NostrAPI(effectiveRelays, ownPubkeys)
+
+    ;(async () => {
+      try {
+        let event = await api.fetchEvent(replyParentId)
+        if (!event && replyParentRelayHint) {
+          event = await NostrAPI.fetchEventFromRelays(
+            replyParentId,
+            [replyParentRelayHint],
+            ownPubkeys
+          )
+        }
+        if (cancelled) {
+          return
+        }
+        if (!event) {
+          setReplyParentMissing(true)
+          setReplyParentLoading(false)
+          return
+        }
+
+        const base: FetchedNoteData = {
+          content: event.content,
+          created_at: event.created_at,
+          kind: event.kind,
+          pubkey: event.pubkey,
+          tags: event.tags
+        }
+        setReplyParent(base)
+        setReplyParentLoading(false)
+
+        const authorNpub = nip19.npubEncode(event.pubkey)
+        const profileApi = new NostrAPI(effectiveRelays, ownPubkeys)
+        setReplyParentKind0Pending(true)
+        profileApi
+          .fetchKind0(authorNpub)
+          .then((profile) => {
+            if (cancelled || !profile) {
+              return
+            }
+            setReplyParent((prev) => {
+              if (!prev || prev.pubkey !== event.pubkey) {
+                return prev
+              }
+              return {
+                ...prev,
+                authorLud16: profile.lud16,
+                authorName: profile.displayName,
+                authorNip05: profile.nip05,
+                authorPicture: profile.picture
+              }
+            })
+          })
+          .catch(() => {})
+          .finally(() => {
+            if (!cancelled) {
+              setReplyParentKind0Pending(false)
+            }
+          })
+      } catch {
+        if (!cancelled) {
+          setReplyParentMissing(true)
+          setReplyParentLoading(false)
+        }
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [effectiveRelays, ownPubkeys, replyParentId, replyParentRelayHint])
+
   const noteItemForFeed = useMemo((): NostrFeedNoteLike | null => {
     if (!fetched || !decoded) return null
     if (decoded.kind !== 'note' && decoded.kind !== 'nevent') return null
@@ -377,14 +495,81 @@ export default function NostrNotePage() {
     }
   }, [fetched, decoded])
 
-  const isOwnNote = useMemo(() => {
-    if (!fetched?.pubkey || !npub) return false
-    try {
-      return nip19.npubEncode(fetched.pubkey) === npub
-    } catch {
-      return false
+  const noteAuthorFeedProps = useMemo(() => {
+    if (!fetched?.pubkey || privacyMode) return null
+    const authorNpubBech = nip19.npubEncode(fetched.pubkey)
+    const isSelf = authorNpubBech === npub
+    const hasIdentityFallback = Boolean(
+      isSelf &&
+        identity &&
+        (identity.displayName?.trim() ||
+          identity.picture?.trim() ||
+          identity.nip05?.trim())
+    )
+    return {
+      authorNpubBech,
+      displayName:
+        fetched.authorName?.trim() ||
+        (isSelf ? identity?.displayName?.trim() ?? '' : ''),
+      loading: profileLoading && !hasIdentityFallback,
+      nip05:
+        fetched.authorNip05?.trim() ||
+        (isSelf ? identity?.nip05?.trim() ?? '' : ''),
+      pictureUri:
+        (fetched.authorPicture?.trim() ||
+          (isSelf ? identity?.picture?.trim() : '') ||
+          '') || undefined
     }
-  }, [fetched, npub])
+  }, [
+    fetched,
+    identity,
+    npub,
+    privacyMode,
+    profileLoading
+  ])
+
+  const replyParentNoteLike = useMemo((): NostrFeedNoteLike | null => {
+    if (!replyParent || !replyParentId) {
+      return null
+    }
+    return {
+      id: replyParentId,
+      content: replyParent.content,
+      created_at: replyParent.created_at,
+      kind: replyParent.kind,
+      pubkey: replyParent.pubkey,
+      tags: replyParent.tags
+    }
+  }, [replyParent, replyParentId])
+
+  const replyParentAuthorFeedProps = useMemo(() => {
+    if (!replyParent?.pubkey || privacyMode) {
+      return null
+    }
+    const authorNpubBech = nip19.npubEncode(replyParent.pubkey)
+    const isSelf = authorNpubBech === npub
+    const hasIdentityFallback = Boolean(
+      isSelf &&
+        identity &&
+        (identity.displayName?.trim() ||
+          identity.picture?.trim() ||
+          identity.nip05?.trim())
+    )
+    return {
+      authorNpubBech,
+      displayName:
+        replyParent.authorName?.trim() ||
+        (isSelf ? identity?.displayName?.trim() ?? '' : ''),
+      loading: replyParentKind0Pending && !hasIdentityFallback,
+      nip05:
+        replyParent.authorNip05?.trim() ||
+        (isSelf ? identity?.nip05?.trim() ?? '' : ''),
+      pictureUri:
+        (replyParent.authorPicture?.trim() ||
+          (isSelf ? identity?.picture?.trim() : '') ||
+          '') || undefined
+    }
+  }, [identity, npub, privacyMode, replyParent, replyParentKind0Pending])
 
   const goalProgress =
     enhancedZap.zapGoal && enhancedZap.zapGoal > 0
@@ -599,21 +784,22 @@ export default function NostrNotePage() {
 
             {noteItemForFeed &&
             fetched &&
-            (fetched.content.length > 0 || noteImageUrls.length > 0) ? (
+            (fetched.content.length > 0 ||
+              noteImageUrls.length > 0 ||
+              noteVideoEmbeds.length > 0) ? (
               <SSNostrFeedNoteRow
                 note={noteItemForFeed}
                 privacyMode={privacyMode}
-                showAuthor={!isOwnNote}
-                showNoteNipIds={isOwnNote}
+                showAuthor={Boolean(fetched.pubkey)}
                 expandContent
                 authorPreview={
-                  !isOwnNote && !privacyMode && fetched.pubkey ? (
+                  noteAuthorFeedProps ? (
                     <SSNostrFeedAuthorRow
-                      loading={profileLoading}
-                      npubBech={nip19.npubEncode(fetched.pubkey)}
-                      displayName={fetched.authorName?.trim() ?? ''}
-                      nip05={fetched.authorNip05?.trim() ?? ''}
-                      pictureUri={fetched.authorPicture?.trim()}
+                      loading={noteAuthorFeedProps.loading}
+                      npubBech={noteAuthorFeedProps.authorNpubBech}
+                      displayName={noteAuthorFeedProps.displayName}
+                      nip05={noteAuthorFeedProps.nip05}
+                      pictureUri={noteAuthorFeedProps.pictureUri}
                     />
                   ) : undefined
                 }
@@ -622,7 +808,9 @@ export default function NostrNotePage() {
 
             {!noteItemForFeed &&
               fetched &&
-              (fetched.content.length > 0 || noteImageUrls.length > 0) ? (
+              (fetched.content.length > 0 ||
+                noteImageUrls.length > 0 ||
+                noteVideoEmbeds.length > 0) ? (
                 <View style={styles.noteCard}>
                   {!privacyMode && noteLooksLikeReply(fetched.tags) ? (
                     <View style={styles.noteReplyTag} pointerEvents="none">
@@ -655,6 +843,16 @@ export default function NostrNotePage() {
                       uris={noteImageUrls}
                       style={
                         fetched.content.length > 0
+                          ? styles.noteImagesBelowText
+                          : styles.noteImagesNoText
+                      }
+                    />
+                  ) : null}
+                  {noteVideoEmbeds.length > 0 ? (
+                    <SSNoteInlineVideos
+                      embeds={noteVideoEmbeds}
+                      style={
+                        fetched.content.length > 0 || noteImageUrls.length > 0
                           ? styles.noteImagesBelowText
                           : styles.noteImagesNoText
                       }
@@ -1007,17 +1205,17 @@ export default function NostrNotePage() {
                         </SSText>
                       ) : null}
                     </SSVStack>
-                    <SSVStack gap="none" style={styles.receiptAmountCol}>
-                      <SSText size="sm" weight="bold" color="white">
-                        {privacyMode
-                          ? `${NOSTR_PRIVACY_MASK} sats`
-                          : `${receipt.amountSats} sats`}
-                      </SSText>
+                    <SSVStack gap="xxs" style={styles.receiptAmountCol}>
                       {receipt.createdAt > 0 && (
                         <SSText size="xxs" color="muted">
                           {formatNostrCardDate(receipt.createdAt)}
                         </SSText>
                       )}
+                      <SSText size="sm" weight="bold" color="white">
+                        {privacyMode
+                          ? `${NOSTR_PRIVACY_MASK} sats`
+                          : `${receipt.amountSats} sats`}
+                      </SSText>
                     </SSVStack>
                   </SSHStack>
                 ))}
@@ -1029,6 +1227,65 @@ export default function NostrNotePage() {
                 {t('nostrIdentity.note.noZapsYet')}
               </SSText>
             )}
+
+            {replyParentId &&
+            fetched &&
+            noteLooksLikeReply(fetched.tags) ? (
+              <SSVStack gap="sm" style={styles.replyParentSection}>
+                <SSText size="xs" color="muted" uppercase>
+                  {t('nostrIdentity.note.replyingTo')}
+                </SSText>
+                {replyParentLoading ? (
+                  <SSHStack gap="sm" style={styles.zapLoadingRow}>
+                    <ActivityIndicator color={Colors.white} size="small" />
+                    <SSText size="xs" color="muted">
+                      {t('nostrIdentity.account.fetchingNote')}
+                    </SSText>
+                  </SSHStack>
+                ) : replyParentMissing ? (
+                  <SSText size="xs" color="muted">
+                    {t('nostrIdentity.note.parentNotOnRelays')}
+                  </SSText>
+                ) : replyParentNoteLike && replyParentAuthorFeedProps ? (
+                  <SSNostrFeedNoteRow
+                    note={replyParentNoteLike}
+                    privacyMode={privacyMode}
+                    showAuthor
+                    expandContent
+                    authorPreview={
+                      <SSNostrFeedAuthorRow
+                        loading={replyParentAuthorFeedProps.loading}
+                        npubBech={replyParentAuthorFeedProps.authorNpubBech}
+                        displayName={replyParentAuthorFeedProps.displayName}
+                        nip05={replyParentAuthorFeedProps.nip05}
+                        pictureUri={replyParentAuthorFeedProps.pictureUri}
+                      />
+                    }
+                    onPress={() => {
+                      if (!npub) {
+                        return
+                      }
+                      const uri = nip19.noteEncode(replyParentId)
+                      router.navigate(nostrNoteHref(npub, uri))
+                    }}
+                  />
+                ) : replyParentNoteLike ? (
+                  <SSNostrFeedNoteRow
+                    note={replyParentNoteLike}
+                    privacyMode={privacyMode}
+                    showAuthor={false}
+                    expandContent
+                    onPress={() => {
+                      if (!npub) {
+                        return
+                      }
+                      const uri = nip19.noteEncode(replyParentId)
+                      router.navigate(nostrNoteHref(npub, uri))
+                    }}
+                  />
+                ) : null}
+              </SSVStack>
+            ) : null}
 
             {notFound && !fetched && (
               <SSVStack itemsCenter gap="md" style={styles.notFoundCard}>
@@ -1198,6 +1455,12 @@ const styles = StyleSheet.create({
     height: 4,
     overflow: 'hidden',
     width: '100%'
+  },
+  replyParentSection: {
+    borderColor: Colors.gray[800],
+    borderTopWidth: 1,
+    marginTop: 8,
+    paddingTop: 16
   },
   receiptAmountCol: {
     alignItems: 'flex-end'

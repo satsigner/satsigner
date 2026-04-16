@@ -18,6 +18,7 @@ import {
 } from 'react-native'
 
 import { NostrAPI } from '@/api/nostr'
+import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import {
@@ -30,6 +31,7 @@ import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type TextFontSize, type TextFontWeight } from '@/styles/sizes'
@@ -218,6 +220,9 @@ function SSNostrFeedTabs({
   onZapPress
 }: SSNostrFeedTabsProps) {
   const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const identity = useNostrIdentityStore((state) =>
+    state.identities.find((i) => i.npub === npub)
+  )
   const [activeTab, setActiveTab] = useState<FeedTab>('zaps')
 
   const [notes, setNotes] = useState<NostrFeedNoteLike[]>([])
@@ -248,17 +253,23 @@ function SSNostrFeedTabs({
   const [zapsHasMore, setZapsHasMore] = useState(true)
   const zapsFetchedRef = useRef(false)
 
+  const hexPubkey = getPubKeyHexFromNpub(npub) ?? ''
+  const ownPubkeyLower = hexPubkey.toLowerCase()
+  const ownPubkeys = hexPubkey ? [hexPubkey] : []
+
   const apiRef = useRef<NostrAPI | null>(null)
   const relaysKey = JSON.stringify(relays)
 
   useEffect(() => {
     apiRef.current?.closeAllSubscriptions()
-    apiRef.current = relays.length ? new NostrAPI(relays) : null
+    apiRef.current = relays.length
+      ? new NostrAPI(relays, ownPubkeys)
+      : null
     return () => {
       apiRef.current?.closeAllSubscriptions()
       apiRef.current = null
     }
-  }, [relaysKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [relaysKey, ownPubkeys]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadNotes = useCallback(
     async (loadMore = false) => {
@@ -356,35 +367,45 @@ function SSNostrFeedTabs({
 
       setZapsLoading(true)
       try {
-        const hexPubkey = nip19.decode(npub).data as string
         const lastZap = zaps.at(-1)
         const until =
-          loadMore && lastZap ? lastZap.createdAt : undefined
+          loadMore && lastZap && lastZap.createdAt > 0
+            ? lastZap.createdAt - 1
+            : undefined
 
         const [incomingBatch, sentBatch] = await Promise.all([
-          fetchZapsByPubkey(hexPubkey, relays, PAGE_SIZE, until),
+          fetchZapsByPubkey(hexPubkey, relays, PAGE_SIZE, until, ownPubkeys),
           fetchZapsSentByPubkey(hexPubkey, relays, PAGE_SIZE, until)
         ])
 
         const fetched = mergeZapReceiptsById([...incomingBatch, ...sentBatch])
         const incomingHasMore = incomingBatch.length >= PAGE_SIZE
         const sentHasMore = sentBatch.length >= PAGE_SIZE
-        setZapsHasMore(incomingHasMore || sentHasMore)
 
-        const allZaps = loadMore
-          ? mergeZapReceiptsById([...zaps, ...fetched])
-          : fetched
-
-        setZaps(allZaps)
-        await enrichZapReceipts(allZaps, relays)
-        setZaps([...allZaps])
+        if (loadMore) {
+          const prevLen = zaps.length
+          const allZaps = mergeZapReceiptsById([...zaps, ...fetched])
+          if (allZaps.length === prevLen) {
+            setZapsHasMore(false)
+          } else {
+            setZapsHasMore(incomingHasMore || sentHasMore)
+          }
+          setZaps(allZaps)
+          await enrichZapReceipts(allZaps, relays)
+          setZaps([...allZaps])
+        } else {
+          setZapsHasMore(incomingHasMore || sentHasMore)
+          setZaps(fetched)
+          await enrichZapReceipts(fetched, relays)
+          setZaps([...fetched])
+        }
       } catch {
         // fetch failed — UI already shows empty state
       } finally {
         setZapsLoading(false)
       }
     },
-    [npub, relays, zaps, zapsLoading]
+    [hexPubkey, ownPubkeys, relays, zaps, zapsLoading]
   )
 
   useEffect(() => {
@@ -477,7 +498,13 @@ function SSNostrFeedTabs({
 
     const api = apiRef.current
     const pks = [
-      ...new Set(feedNotes.map((n) => n.pubkey.toLowerCase()))
+      ...new Set([
+        ...feedNotes.map((n) => n.pubkey.toLowerCase()),
+        ...notes.map((n) => n.pubkey.toLowerCase()),
+        ...(ownPubkeyLower && /^[0-9a-f]{64}$/.test(ownPubkeyLower)
+          ? [ownPubkeyLower]
+          : [])
+      ])
     ].filter((pk) => /^[0-9a-f]{64}$/.test(pk))
 
     for (const pk of pks) {
@@ -504,17 +531,38 @@ function SSNostrFeedTabs({
           }))
         })
     }
-  }, [feedNotes, relayConnected, privacyMode])
+  }, [feedNotes, notes, ownPubkeyLower, relayConnected, privacyMode])
 
   function renderFeedAuthorKind0Row(note: NostrFeedNoteLike) {
     const pk = note.pubkey.toLowerCase()
     const npubBech = nip19.npubEncode(note.pubkey)
     const row = feedAuthorKind0[pk]
-    const loading = !row || row.status === 'loading'
     const p = row?.status === 'ready' ? row.profile : undefined
-    const displayName = p?.displayName?.trim() ?? ''
-    const nip05 = p?.nip05?.trim() ?? ''
-    const pictureUri = p?.picture?.trim()
+
+    const fromIdentity =
+      pk === ownPubkeyLower && identity
+        ? {
+            displayName: identity.displayName?.trim() ?? '',
+            nip05: identity.nip05?.trim() ?? '',
+            pictureUri: identity.picture?.trim()
+          }
+        : null
+    const hasIdentityFallback = Boolean(
+      fromIdentity &&
+        (fromIdentity.displayName.length > 0 ||
+          fromIdentity.nip05.length > 0 ||
+          (fromIdentity.pictureUri?.length ?? 0) > 0)
+    )
+
+    const loading =
+      (!row || row.status === 'loading') && !hasIdentityFallback
+
+    const displayName =
+      p?.displayName?.trim() || fromIdentity?.displayName || ''
+    const nip05 = p?.nip05?.trim() || fromIdentity?.nip05 || ''
+    const pictureUri =
+      (p?.picture?.trim() || fromIdentity?.pictureUri || '').trim() ||
+      undefined
 
     return (
       <SSNostrFeedAuthorRow
@@ -621,8 +669,8 @@ function SSNostrFeedTabs({
                 key={note.id}
                 note={note}
                 privacyMode={privacyMode}
-                showAuthor={false}
-                showNoteNipIds
+                showAuthor
+                authorPreview={renderFeedAuthorKind0Row(note)}
                 onPress={() =>
                   onNotePress?.({
                     id: note.id,
@@ -778,7 +826,10 @@ function SSNostrFeedTabs({
                       </SSText>
                     ) : null}
                   </SSVStack>
-                  <SSVStack gap="none" style={styles.zapAmountCol}>
+                  <SSVStack gap="xxs" style={styles.zapAmountCol}>
+                    <SSText size="xxs" color="muted">
+                      {formatNostrCardDate(receipt.createdAt)}
+                    </SSText>
                     <SSText
                       size="sm"
                       weight="bold"
@@ -791,9 +842,6 @@ function SSNostrFeedTabs({
                       {privacyMode
                         ? `${NOSTR_PRIVACY_MASK} sats`
                         : `${receipt.amountSats} sats`}
-                    </SSText>
-                    <SSText size="xxs" color="muted">
-                      {formatNostrCardDate(receipt.createdAt)}
                     </SSText>
                   </SSVStack>
                 </SSHStack>
@@ -827,8 +875,9 @@ function SSNostrFeedTabs({
               </SSText>
             )}
 
-            {!zapsLoading && zapsHasMore && zaps.length > 0 && (
+            {zapsHasMore && zaps.length > 0 && (
               <SSButton
+                disabled={zapsLoading}
                 label={t('nostrIdentity.feed.loadMore')}
                 variant="ghost"
                 onPress={() => loadZaps(true)}

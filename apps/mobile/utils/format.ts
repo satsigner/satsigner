@@ -50,7 +50,7 @@ function formatTime(date: Date) {
 }
 
 /**
- * Nostr note and zap cards: `Apr 15,26` (MMM DD,YY). `unixSeconds` is event `created_at`.
+ * Nostr note and zap cards: `Apr 15, 26` (MMM DD, YY). `unixSeconds` is event `created_at`.
  */
 function formatNostrCardDate(unixSeconds: number): string {
   if (!unixSeconds) {
@@ -60,7 +60,7 @@ function formatNostrCardDate(unixSeconds: number): string {
   const dd = String(d.getDate()).padStart(2, '0')
   const mmm = new Intl.DateTimeFormat('en-US', { month: 'short' }).format(d)
   const yy = String(d.getFullYear()).slice(-2)
-  return `${mmm} ${dd},${yy}`
+  return `${mmm} ${dd}, ${yy}`
 }
 
 function formatDate(date: Date | string | number) {

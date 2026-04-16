@@ -15,19 +15,51 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import {
   type NostrIdentity,
-  type NostrRelayReachability
+  type NostrRelayConnectionInfo
 } from '@/types/models/NostrIdentity'
 import { truncateNpub } from '@/utils/nostrIdentity'
 
+function disconnectReasonLabel(
+  reason?: NostrRelayConnectionInfo['reason']
+): string {
+  switch (reason) {
+    case 'no_internet':
+      return t('nostrIdentity.account.relayNoInternet')
+    case 'no_relays':
+      return t('nostrIdentity.account.relayNoRelays')
+    case 'all_failed':
+      return t('nostrIdentity.account.relayAllFailed')
+    case 'user_disabled':
+      return t('nostrIdentity.account.relayUserDisabled')
+    default:
+      return t('nostrIdentity.account.relayDisconnected')
+  }
+}
+
+function formatRelayUrl(url: string): string {
+  return url.replace(/^wss?:\/\//, '').replace(/\/$/, '')
+}
+
+function buildDisconnectLabel(info: NostrRelayConnectionInfo): string {
+  const reason = disconnectReasonLabel(info.reason)
+  if (info.reason !== 'all_failed' || !info.relayDetails) return reason
+  const failed = info.relayDetails.filter((r) => !r.connected && r.error)
+  if (failed.length === 0) return reason
+  const details = failed
+    .map((r) => `${formatRelayUrl(r.url)}: ${r.error}`)
+    .join(' · ')
+  return `${reason} — ${details}`
+}
+
 type SSNostrHeroCardProps = {
   identity: NostrIdentity
-  relayReachability?: NostrRelayReachability
+  connectionInfo?: NostrRelayConnectionInfo
   style?: StyleProp<ViewStyle>
 }
 
 function SSNostrHeroCard({
   identity,
-  relayReachability,
+  connectionInfo,
   style
 }: SSNostrHeroCardProps) {
   const privacyMode = useSettingsStore((state) => state.privacyMode)
@@ -89,24 +121,24 @@ function SSNostrHeroCard({
             {t('nostrIdentity.account.lud16NotSet')}
           </SSText>
         )}
-        {relayReachability ? (
+        {connectionInfo ? (
           <SSText
             center
             size="xs"
-            color={relayReachability === 'connected' ? 'white' : 'muted'}
+            color={connectionInfo.status === 'connected' ? 'white' : 'muted'}
             style={
-              relayReachability === 'connected'
+              connectionInfo.status === 'connected'
                 ? styles.relayTagConnected
-                : relayReachability === 'checking'
+                : connectionInfo.status === 'checking'
                   ? styles.relayTagChecking
                   : undefined
             }
           >
-            {relayReachability === 'checking'
+            {connectionInfo.status === 'checking'
               ? t('nostrIdentity.account.relayChecking')
-              : relayReachability === 'connected'
+              : connectionInfo.status === 'connected'
                 ? t('nostrIdentity.account.relayConnected')
-                : t('nostrIdentity.account.relayDisconnected')}
+                : buildDisconnectLabel(connectionInfo)}
           </SSText>
         ) : null}
         {identity.isWatchOnly && (

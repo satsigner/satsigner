@@ -12,7 +12,7 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
 import {
   type NostrIdentity,
-  type NostrRelayReachability
+  type NostrRelayConnectionInfo
 } from '@/types/models/NostrIdentity'
 import { truncateNpub } from '@/utils/nostrIdentity'
 
@@ -23,18 +23,35 @@ const ACTIVE_CARD_GRADIENT_TOP = Colors.gray[875]
 /** Horizontal span (0–1) for unit vertical run so gradient is ~5° from vertical. */
 const ACTIVE_GRADIENT_TAN_5_DEG = Math.tan((5 * Math.PI) / 180)
 
+function disconnectReasonLabel(
+  reason?: NostrRelayConnectionInfo['reason']
+): string {
+  switch (reason) {
+    case 'no_internet':
+      return t('nostrIdentity.account.relayNoInternet')
+    case 'no_relays':
+      return t('nostrIdentity.account.relayNoRelays')
+    case 'all_failed':
+      return t('nostrIdentity.account.relayAllFailed')
+    case 'user_disabled':
+      return t('nostrIdentity.account.relayUserDisabled')
+    default:
+      return t('nostrIdentity.account.relayDisconnected')
+  }
+}
+
 type SSNostrAccountCardProps = {
   identity: NostrIdentity
   onPress: () => void
   isActive?: boolean
-  relayReachability?: NostrRelayReachability
+  connectionInfo?: NostrRelayConnectionInfo
 }
 
 function SSNostrAccountCard({
   identity,
   onPress,
   isActive,
-  relayReachability
+  connectionInfo
 }: SSNostrAccountCardProps) {
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const storeRelays = useNostrIdentityStore((state) => state.relays)
@@ -87,25 +104,25 @@ function SSNostrAccountCard({
       {isActive ? (
         <View pointerEvents="none" style={styles.activeHeaderBadges}>
           <View style={styles.activeHeaderBadgesRow}>
-            {relayReachability ? (
+            {connectionInfo ? (
               <SSText
                 color="muted"
                 numberOfLines={1}
                 size="xxs"
                 style={
-                  relayReachability === 'connected'
+                  connectionInfo.status === 'connected'
                     ? styles.relayBesideActiveConnected
-                    : relayReachability === 'checking'
+                    : connectionInfo.status === 'checking'
                       ? styles.relayBesideActiveChecking
                       : styles.relayBesideActiveDisconnected
                 }
                 weight="medium"
               >
-                {relayReachability === 'checking'
+                {connectionInfo.status === 'checking'
                   ? t('nostrIdentity.account.relayChecking')
-                  : relayReachability === 'connected'
+                  : connectionInfo.status === 'connected'
                     ? t('nostrIdentity.account.relayConnected')
-                    : t('nostrIdentity.account.relayDisconnected')}
+                    : disconnectReasonLabel(connectionInfo.reason)}
               </SSText>
             ) : null}
             <View style={styles.activeBadge}>

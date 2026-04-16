@@ -8,6 +8,7 @@ import {
 } from 'react-native'
 
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
+import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -16,6 +17,7 @@ import { Colors } from '@/styles'
 import { formatNostrCardDate } from '@/utils/format'
 import { truncateNpub } from '@/utils/nostrIdentity'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
+import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
 import { noteLooksLikeReply } from '@/utils/nostrNoteThread'
 
 export type NostrFeedNoteLike = {
@@ -172,6 +174,10 @@ function SSNostrFeedNoteRow({
     ? []
     : extractImageUrlsFromNote(note.content, note.tags).slice(0, 6)
 
+  const videoEmbeds = privacyMode
+    ? []
+    : extractVideoEmbedsFromNote(note.content, note.tags).slice(0, 4)
+
   const eventNip19 = !privacyMode ? encodeNotePrimaryNip19(note) : ''
   const authorNpub = !privacyMode ? nip19.npubEncode(note.pubkey) : ''
   const showReplyTag = !privacyMode && noteLooksLikeReply(note.tags)
@@ -179,22 +185,29 @@ function SSNostrFeedNoteRow({
 
   const inner = (
     <>
-      {showReplyTag ? (
-        <View style={styles.noteReplyTag} pointerEvents="none">
-          <SSText
-            size="xxs"
-            color="white"
-            uppercase
-            style={styles.noteReplyTagText}
-          >
-            {t('nostrIdentity.feed.replyTag')}
-          </SSText>
-        </View>
-      ) : null}
-      <SSVStack
-        gap="xs"
-        style={showReplyTag ? styles.noteRowBodyWithReply : undefined}
-      >
+      <SSHStack gap="xs" pointerEvents="none" style={styles.noteRowTopBar}>
+        {showReplyTag ? (
+          <View style={styles.noteReplyTag}>
+            <SSText
+              size="xxs"
+              color="white"
+              uppercase
+              style={styles.noteReplyTagText}
+            >
+              {t('nostrIdentity.feed.replyTag')}
+            </SSText>
+          </View>
+        ) : null}
+        <SSText
+          size="xxs"
+          color="muted"
+          numberOfLines={1}
+          style={styles.noteRowDateText}
+        >
+          {formatNostrCardDate(note.created_at)}
+        </SSText>
+      </SSHStack>
+      <SSVStack gap="xs" style={styles.noteRowBody}>
         {showNoteNipIds && !privacyMode ? (
           <SSVStack gap="xxs" style={styles.noteMetaAboveContent}>
             <SSText
@@ -238,9 +251,16 @@ function SSNostrFeedNoteRow({
             style={styles.noteInlineImages}
           />
         ) : null}
-        <SSText size="xxs" color="muted">
-          {formatNostrCardDate(note.created_at)}
-        </SSText>
+        {videoEmbeds.length > 0 ? (
+          <SSNoteInlineVideos
+            embeds={videoEmbeds}
+            style={
+              imageUrls.length > 0
+                ? styles.noteVideosBelowImages
+                : styles.noteInlineImages
+            }
+          />
+        ) : null}
       </SSVStack>
     </>
   )
@@ -292,6 +312,9 @@ const styles = StyleSheet.create({
   noteInlineImages: {
     marginTop: 4
   },
+  noteVideosBelowImages: {
+    marginTop: 8
+  },
   noteMetaAboveContent: {
     marginBottom: 4
   },
@@ -301,14 +324,17 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     borderWidth: 1,
     paddingHorizontal: 6,
-    paddingVertical: 2,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    zIndex: 1
+    paddingVertical: 2
   },
   noteReplyTagText: {
     letterSpacing: 0.5
+  },
+  noteRowBody: {
+    paddingTop: 22
+  },
+  noteRowDateText: {
+    flexShrink: 1,
+    textAlign: 'right'
   },
   noteRow: {
     borderBottomColor: Colors.gray[800],
@@ -317,8 +343,14 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     position: 'relative'
   },
-  noteRowBodyWithReply: {
-    paddingRight: 52
+  noteRowTopBar: {
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 2
   },
   skeletonLineLg: {
     alignSelf: 'flex-start',

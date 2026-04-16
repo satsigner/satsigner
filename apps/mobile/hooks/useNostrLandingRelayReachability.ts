@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { testNostrRelaysReachable } from '@/api/nostr'
 import {
   type NostrIdentity,
-  type NostrRelayReachability
+  type NostrRelayConnectionInfo
 } from '@/types/models/NostrIdentity'
 
 type UseNostrLandingRelayReachabilityArgs = {
@@ -17,44 +17,48 @@ export function useNostrLandingRelayReachability({
   identities,
   relays
 }: UseNostrLandingRelayReachabilityArgs) {
-  const [activeRelayReachability, setActiveRelayReachability] =
-    useState<NostrRelayReachability | null>(null)
+  const [activeConnectionInfo, setActiveConnectionInfo] =
+    useState<NostrRelayConnectionInfo | null>(null)
   const effectGenerationRef = useRef(0)
 
   useEffect(() => {
     if (!activeIdentityNpub) {
-      setActiveRelayReachability(null)
+      setActiveConnectionInfo(null)
       return
     }
 
     const identity = identities.find((i) => i.npub === activeIdentityNpub)
     if (!identity) {
-      setActiveRelayReachability(null)
+      setActiveConnectionInfo(null)
       return
     }
 
     if (!identity.relayConnected) {
-      setActiveRelayReachability('disconnected')
+      setActiveConnectionInfo({
+        status: 'disconnected',
+        reason: 'user_disabled'
+      })
       return
     }
 
     const urls = identity.relays?.length ? identity.relays : relays
 
-    setActiveRelayReachability('checking')
     if (urls.length === 0) {
-      setActiveRelayReachability('disconnected')
+      setActiveConnectionInfo({ status: 'disconnected', reason: 'no_relays' })
       return
     }
+
+    setActiveConnectionInfo({ status: 'checking' })
 
     effectGenerationRef.current += 1
     const generation = effectGenerationRef.current
 
     const run = async () => {
-      const ok = await testNostrRelaysReachable(urls)
+      const info = await testNostrRelaysReachable(urls)
       if (generation !== effectGenerationRef.current) {
         return
       }
-      setActiveRelayReachability(ok ? 'connected' : 'disconnected')
+      setActiveConnectionInfo(info)
     }
     run()
 
@@ -63,5 +67,5 @@ export function useNostrLandingRelayReachability({
     }
   }, [activeIdentityNpub, identities, relays])
 
-  return activeRelayReachability
+  return activeConnectionInfo
 }

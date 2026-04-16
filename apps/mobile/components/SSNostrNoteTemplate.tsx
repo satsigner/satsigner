@@ -1,6 +1,8 @@
 import { ActivityIndicator, Image, StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
+import SSNoteInlineImages from '@/components/SSNoteInlineImages'
+import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -12,6 +14,8 @@ import {
   extractPubpayTags,
   truncateNpub
 } from '@/utils/nostrIdentity'
+import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
+import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
 
 type SSNostrNoteTemplateProps = {
   content: DecodedNostrContent
@@ -117,6 +121,14 @@ function SSNostrNoteTemplate({ content, onPay }: SSNostrNoteTemplateProps) {
 
     if (content.fetched) {
       const { fetched } = content
+      const inlineImages = extractImageUrlsFromNote(
+        fetched.content,
+        fetched.tags
+      ).slice(0, 6)
+      const inlineVideos = extractVideoEmbedsFromNote(
+        fetched.content,
+        fetched.tags
+      ).slice(0, 4)
       return (
         <SSVStack gap="sm" style={styles.container}>
           <SSHStack gap="sm">
@@ -142,6 +154,12 @@ function SSNostrNoteTemplate({ content, onPay }: SSNostrNoteTemplateProps) {
               {fetched.content}
             </SSText>
           )}
+          {inlineImages.length > 0 ? (
+            <SSNoteInlineImages uris={inlineImages} />
+          ) : null}
+          {inlineVideos.length > 0 ? (
+            <SSNoteInlineVideos embeds={inlineVideos} />
+          ) : null}
           <SSText type="mono" size="xs" color="muted">
             {truncateNpub(content.raw, 12)}
           </SSText>

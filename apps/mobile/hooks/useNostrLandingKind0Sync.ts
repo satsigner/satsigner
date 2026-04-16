@@ -1,7 +1,10 @@
 import { useEffect, useRef } from 'react'
 
 import { NostrAPI } from '@/api/nostr'
+import { PROFILE_CACHE_TTL_SECS } from '@/constants/nostr'
+import { getCachedProfile } from '@/db/nostrCache'
 import { type NostrIdentity } from '@/types/models/NostrIdentity'
+import { getPubKeyHexFromNpub } from '@/utils/nostr'
 
 type UseNostrLandingKind0SyncArgs = {
   identities: NostrIdentity[]
@@ -36,7 +39,23 @@ export function useNostrLandingKind0Sync({
       fetchedRef.current.add(i.npub)
     }
 
+    const now = Math.floor(Date.now() / 1000)
+
     for (const identity of toFetch) {
+      const hexPk = getPubKeyHexFromNpub(identity.npub)
+      if (hexPk) {
+        const cached = getCachedProfile(hexPk)
+        if (cached && now - cached.cached_at < PROFILE_CACHE_TTL_SECS) {
+          updateIdentity(identity.npub, {
+            displayName: cached.displayName || identity.displayName,
+            lud16: cached.lud16 || identity.lud16,
+            nip05: cached.nip05 || identity.nip05,
+            picture: cached.picture || identity.picture
+          })
+          continue
+        }
+      }
+
       const effectiveRelays = identity.relays ?? relays
       if (effectiveRelays.length === 0) {
         continue

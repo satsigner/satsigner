@@ -1,6 +1,6 @@
 import { type NitroSQLiteConnection } from 'react-native-nitro-sqlite'
 
-const CURRENT_VERSION = 1
+const CURRENT_VERSION = 2
 
 const SCHEMA_V1 = `
 CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL);
@@ -208,6 +208,33 @@ function setSchemaVersion(db: NitroSQLiteConnection, version: number) {
   db.execute('INSERT INTO schema_version (version) VALUES (?)', [version])
 }
 
+const SCHEMA_V2 = `
+CREATE TABLE IF NOT EXISTS nostr_event_cache (
+  event_id   TEXT PRIMARY KEY,
+  kind       INTEGER NOT NULL,
+  pubkey     TEXT NOT NULL,
+  content    TEXT NOT NULL,
+  tags_json  TEXT NOT NULL DEFAULT '[]',
+  created_at INTEGER NOT NULL,
+  cached_at  INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+  is_own     INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_nec_kind_pubkey ON nostr_event_cache(kind, pubkey);
+CREATE INDEX IF NOT EXISTS idx_nec_prune ON nostr_event_cache(is_own, cached_at);
+
+CREATE TABLE IF NOT EXISTS nostr_profile_cache (
+  pubkey       TEXT PRIMARY KEY,
+  display_name TEXT,
+  picture      TEXT,
+  nip05        TEXT,
+  lud16        TEXT,
+  event_id     TEXT,
+  created_at   INTEGER NOT NULL,
+  cached_at    INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+);
+`
+
 function runMigrations(db: NitroSQLiteConnection) {
   const currentVersion = getSchemaVersion(db)
 
@@ -223,6 +250,16 @@ function runMigrations(db: NitroSQLiteConnection) {
       db.execute(statement)
     }
     setSchemaVersion(db, 1)
+  }
+
+  if (currentVersion < 2) {
+    const statements = SCHEMA_V2.split(';')
+      .map((s) => s.trim())
+      .filter(Boolean)
+    for (const statement of statements) {
+      db.execute(statement)
+    }
+    setSchemaVersion(db, 2)
   }
 }
 

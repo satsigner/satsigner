@@ -34,7 +34,7 @@ export default function NostrLanding() {
   )
   const [listRenderEpoch, setListRenderEpoch] = useState(0)
 
-  const activeRelayReachability = useNostrLandingRelayReachability({
+  const activeConnectionInfo = useNostrLandingRelayReachability({
     activeIdentityNpub,
     identities,
     relays
@@ -129,11 +129,11 @@ export default function NostrLanding() {
                   key={`${identity.npub}-${listRenderEpoch}-${activeIdentityNpub ?? 'none'}`}
                   identity={identity}
                   isActive={identity.npub === activeIdentityNpub}
-                  relayReachability={
+                  connectionInfo={
                     identity.npub === activeIdentityNpub
                       ? identity.relayConnected === true
-                        ? (activeRelayReachability ?? 'checking')
-                        : 'disconnected'
+                        ? (activeConnectionInfo ?? { status: 'checking' })
+                        : { status: 'disconnected', reason: 'user_disabled' }
                       : undefined
                   }
                   onPress={() => handleSelectIdentity(identity.npub)}
