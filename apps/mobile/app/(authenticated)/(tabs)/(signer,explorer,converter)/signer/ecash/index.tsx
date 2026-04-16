@@ -27,14 +27,18 @@ import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
+import { Colors, Sizes } from '@/styles'
 import { formatFiatPrice } from '@/utils/format'
 
 export default function EcashLanding() {
   const router = useRouter()
   const { mints, activeMint, proofs, transactions } = useEcash()
-  const [currencyUnit, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [
+      state.currencyUnit,
+      state.privacyMode,
+      state.useZeroPadding
+    ])
   )
   const [fiatCurrency, btcPrice, fetchPrices] = usePriceStore(
     useShallow((state) => [
@@ -109,15 +113,32 @@ export default function EcashLanding() {
                 {t('ecash.mint.balance')}
               </SSText>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSStyledSatText
-                  amount={totalBalance}
-                  decimals={0}
-                  useZeroPadding={useZeroPadding}
-                  currency={currencyUnit}
-                  textSize={totalBalance > 1_000_000_000 ? '4xl' : '6xl'}
-                  weight="ultralight"
-                  letterSpacing={-1}
-                />
+                {privacyMode ? (
+                  <SSText
+                    color="white"
+                    size={totalBalance > 1_000_000_000 ? '4xl' : '6xl'}
+                    weight="ultralight"
+                    style={{
+                      letterSpacing: -1,
+                      lineHeight:
+                        Sizes.text.fontSize[
+                          totalBalance > 1_000_000_000 ? '4xl' : '6xl'
+                        ]
+                    }}
+                  >
+                    ••••
+                  </SSText>
+                ) : (
+                  <SSStyledSatText
+                    amount={totalBalance}
+                    decimals={0}
+                    useZeroPadding={useZeroPadding}
+                    currency={currencyUnit}
+                    textSize={totalBalance > 1_000_000_000 ? '4xl' : '6xl'}
+                    weight="ultralight"
+                    letterSpacing={-1}
+                  />
+                )}
                 <SSText size="xl" color="muted">
                   {currencyUnit === 'btc'
                     ? t('bitcoin.btc')
@@ -127,7 +148,9 @@ export default function EcashLanding() {
               {btcPrice > 0 && (
                 <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
                   <SSText color="muted">
-                    {formatFiatPrice(totalBalance, btcPrice)}
+                    {privacyMode
+                      ? '••••'
+                      : formatFiatPrice(totalBalance, btcPrice)}
                   </SSText>
                   <SSText size="xs" style={{ color: Colors.gray[500] }}>
                     {fiatCurrency}

@@ -2,10 +2,7 @@ const EVENT_ID_HEX = /^[0-9a-fA-F]{64}$/
 
 function listValidETags(tags: string[][]): string[][] {
   return tags.filter(
-    (t) =>
-      t[0] === 'e' &&
-      typeof t[1] === 'string' &&
-      EVENT_ID_HEX.test(t[1])
+    (t) => t[0] === 'e' && typeof t[1] === 'string' && EVENT_ID_HEX.test(t[1])
   )
 }
 
@@ -47,7 +44,7 @@ export function getReplyParentEventIdHex(tags: string[][]): string | null {
     return replyMarked[1]
   }
   if (eTags.length >= 2) {
-    return eTags[eTags.length - 1][1]
+    return eTags.at(-1)![1]
   }
   return eTags[0][1]
 }

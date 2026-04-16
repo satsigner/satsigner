@@ -3,10 +3,7 @@ import { Stack, useRouter } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { Dimensions, ScrollView, StyleSheet, View } from 'react-native'
 import { type Network } from 'react-native-bdk-sdk'
-import {
-  type SceneRendererProps,
-  TabView
-} from 'react-native-tab-view'
+import { type SceneRendererProps, TabView } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
 
 import SSActionButton from '@/components/SSActionButton'
@@ -113,10 +110,10 @@ export default function ImportNostrIdentity() {
     }
 
     addIdentity({
-      npub: derivedNpub,
-      nsec: trimmed,
       createdAt: Date.now(),
-      isWatchOnly: false
+      isWatchOnly: false,
+      npub: derivedNpub,
+      nsec: trimmed
     })
 
     toast.success(t('nostrIdentity.import.success'))
@@ -124,16 +121,16 @@ export default function ImportNostrIdentity() {
   }
 
   function handleImportSeedWords() {
-    if (!validMnemonic) return
+    if (!validMnemonic) {return}
 
     try {
       const keys = deriveNostrKeysFromMnemonic(validMnemonic)
       addIdentity({
-        npub: keys.npub,
-        nsec: keys.nsec,
-        mnemonic: validMnemonic,
         createdAt: Date.now(),
-        isWatchOnly: false
+        isWatchOnly: false,
+        mnemonic: validMnemonic,
+        npub: keys.npub,
+        nsec: keys.nsec
       })
 
       toast.success(t('nostrIdentity.import.success'))
@@ -151,9 +148,9 @@ export default function ImportNostrIdentity() {
     }
 
     addIdentity({
-      npub: trimmed,
       createdAt: Date.now(),
-      isWatchOnly: true
+      isWatchOnly: true,
+      npub: trimmed
     })
 
     toast.success(t('nostrIdentity.import.success'))
@@ -286,13 +283,7 @@ export default function ImportNostrIdentity() {
           return null
       }
     },
-    [
-      nsec,
-      npub,
-      validMnemonic,
-      handleMnemonicValid,
-      handleMnemonicInvalid
-    ]
+    [nsec, npub, validMnemonic, handleMnemonicValid, handleMnemonicInvalid]
   )
 
   const renderTabBar = useCallback(() => {
@@ -360,15 +351,15 @@ const styles = StyleSheet.create({
   tabButton: {
     height: 48
   },
+  tabButtonInner: {
+    flex: 1,
+    justifyContent: 'center',
+    width: '100%'
+  },
   tabButtonWrap: {
     flex: 1,
     height: '100%',
     position: 'relative',
-    width: '100%'
-  },
-  tabButtonInner: {
-    flex: 1,
-    justifyContent: 'center',
     width: '100%'
   },
   tabContent: {

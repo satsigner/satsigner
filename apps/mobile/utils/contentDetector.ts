@@ -445,8 +445,7 @@ export async function detectContentByContext(
     case 'nostr':
       detected = detectNostrContent(data)
       if (!detected) {
-        detected =
-          detectLightningContent(data) || detectEcashContent(data)
+        detected = detectLightningContent(data) || detectEcashContent(data)
       }
       break
     default:

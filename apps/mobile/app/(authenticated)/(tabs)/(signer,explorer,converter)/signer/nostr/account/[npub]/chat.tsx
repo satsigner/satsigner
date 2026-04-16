@@ -43,13 +43,11 @@ export default function NostrIdentityChat() {
     []
   )
 
-  const renderScene = useCallback(() => {
-    return (
+  const renderScene = useCallback(() => (
       <SSVStack gap="md" itemsCenter style={styles.scene}>
         <SSText color="muted">{t('nostrIdentity.chat.comingSoon')}</SSText>
       </SSVStack>
-    )
-  }, [])
+    ), [])
 
   const renderTabBar = useCallback(() => {
     const tabWidth = `${100 / routes.length}%` as const
@@ -133,15 +131,15 @@ const styles = StyleSheet.create({
   tabButton: {
     height: 48
   },
+  tabButtonInner: {
+    flex: 1,
+    justifyContent: 'center',
+    width: '100%'
+  },
   tabButtonWrap: {
     flex: 1,
     height: '100%',
     position: 'relative',
-    width: '100%'
-  },
-  tabButtonInner: {
-    flex: 1,
-    justifyContent: 'center',
     width: '100%'
   },
   tabIndicator: {

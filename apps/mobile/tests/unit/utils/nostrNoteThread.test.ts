@@ -4,12 +4,10 @@ import {
   noteLooksLikeReply
 } from '@/utils/nostrNoteThread'
 
-const ROOT =
-  'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+const ROOT = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 const PARENT =
   'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
-const OTHER =
-  'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'
+const OTHER = 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'
 
 describe('nostrNoteThread', () => {
   describe('getReplyParentEventIdHex', () => {
@@ -34,7 +32,7 @@ describe('nostrNoteThread', () => {
     it('returns null for single root marker', () => {
       const tags: string[][] = [['e', ROOT, 'wss://a.example', 'root']]
       expect(noteLooksLikeReply(tags)).toBe(false)
-      expect(getReplyParentEventIdHex(tags)).toBe(null)
+      expect(getReplyParentEventIdHex(tags)).toBeNull()
     })
 
     it('returns single e id when one non-root reply', () => {

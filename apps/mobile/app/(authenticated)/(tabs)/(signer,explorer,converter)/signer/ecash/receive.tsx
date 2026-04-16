@@ -6,6 +6,7 @@ import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSEcashLightningTabs from '@/components/SSEcashLightningTabs'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSEcashTokenDetails from '@/components/SSEcashTokenDetails'
@@ -18,6 +19,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { error, success, warning, white } from '@/styles/colors'
 import { type EcashToken } from '@/types/models/Ecash'
@@ -78,6 +80,7 @@ export default function EcashReceivePage() {
       state.btcPrice
     ])
   )
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
 
   // Cleanup polling when component unmounts or tab changes
   useEffect(
@@ -440,20 +443,12 @@ export default function EcashReceivePage() {
 
       <ScrollView>
         <SSVStack gap="lg" style={{ paddingBottom: 60 }}>
-          <SSHStack>
-            <SSButton
-              label={t('ecash.receive.ecashTab')}
-              variant={activeTab === 'ecash' ? 'outline' : 'subtle'}
-              style={{ flex: 1 }}
-              onPress={() => setActiveTab('ecash')}
-            />
-            <SSButton
-              label={t('ecash.receive.lightningTab')}
-              variant={activeTab === 'lightning' ? 'outline' : 'subtle'}
-              style={{ flex: 1 }}
-              onPress={() => setActiveTab('lightning')}
-            />
-          </SSHStack>
+          <SSEcashLightningTabs
+            activeTab={activeTab}
+            ecashLabel={t('ecash.receive.ecashTab')}
+            lightningLabel={t('ecash.receive.lightningTab')}
+            onChange={setActiveTab}
+          />
           {activeTab === 'ecash' && (
             <SSVStack gap="sm">
               <SSVStack gap="xs">
@@ -486,10 +481,11 @@ export default function EcashReceivePage() {
               {decodedToken && (
                 <SSEcashTokenDetails
                   decodedToken={decodedToken}
+                  fiatCurrency={fiatCurrency}
+                  privacyMode={privacyMode}
+                  satsToFiat={satsToFiat}
                   showMint
                   showProofs
-                  fiatCurrency={fiatCurrency}
-                  satsToFiat={satsToFiat}
                 />
               )}
               <SSButton
@@ -514,16 +510,17 @@ export default function EcashReceivePage() {
                         {t('ecash.receive.amountRange')}:
                       </SSText>
                       <SSText size="sm">
-                        {formatNumber(
-                          Math.ceil(lnurlWithdrawDetails.minWithdrawable / 1000)
-                        )}{' '}
-                        -{' '}
-                        {formatNumber(
-                          Math.floor(
-                            lnurlWithdrawDetails.maxWithdrawable / 1000
-                          )
-                        )}{' '}
-                        {t('bitcoin.sats')}
+                        {privacyMode
+                          ? `•••• - •••• ${t('bitcoin.sats')}`
+                          : `${formatNumber(
+                              Math.ceil(
+                                lnurlWithdrawDetails.minWithdrawable / 1000
+                              )
+                            )} - ${formatNumber(
+                              Math.floor(
+                                lnurlWithdrawDetails.maxWithdrawable / 1000
+                              )
+                            )} ${t('bitcoin.sats')}`}
                       </SSText>
                     </SSHStack>
                   </SSVStack>
@@ -562,29 +559,35 @@ export default function EcashReceivePage() {
                     color="muted"
                     size="xs"
                     onPress={
-                      btcPrice && btcPrice > 0 ? handleSwitchToFiat : undefined
+                      btcPrice && btcPrice > 0 && !privacyMode
+                        ? handleSwitchToFiat
+                        : undefined
                     }
                     style={
-                      btcPrice && btcPrice > 0
+                      btcPrice && btcPrice > 0 && !privacyMode
                         ? styles.switchableAmount
                         : undefined
                     }
                   >
                     ≈{' '}
-                    {amount
-                      ? `${formatNumber(satsToFiat(parseInt(amount, 10)), 2)} ${fiatCurrency}`
-                      : `0 ${fiatCurrency}`}
+                    {privacyMode
+                      ? `•••• ${fiatCurrency}`
+                      : amount
+                        ? `${formatNumber(satsToFiat(parseInt(amount, 10)), 2)} ${fiatCurrency}`
+                        : `0 ${fiatCurrency}`}
                   </SSText>
                 ) : (
                   <SSText
                     color="muted"
                     size="xs"
-                    onPress={handleSwitchToSats}
-                    style={styles.switchableAmount}
+                    onPress={privacyMode ? undefined : handleSwitchToSats}
+                    style={privacyMode ? undefined : styles.switchableAmount}
                   >
-                    {amount
-                      ? `${formatNumber(parseInt(amount, 10))} ${t('bitcoin.sats')}`
-                      : `0 ${t('bitcoin.sats')}`}
+                    {privacyMode
+                      ? `•••• ${t('bitcoin.sats')}`
+                      : amount
+                        ? `${formatNumber(parseInt(amount, 10))} ${t('bitcoin.sats')}`
+                        : `0 ${t('bitcoin.sats')}`}
                   </SSText>
                 )}
                 {isLNURLWithdrawMode &&
@@ -723,6 +726,10 @@ const styles = StyleSheet.create({
   },
   switchableAmount: {
     textDecorationLine: 'underline'
+  },
+  tabSlot: {
+    flex: 1,
+    minWidth: 0
   },
   tokenInput: {
     fontFamily: 'monospace',

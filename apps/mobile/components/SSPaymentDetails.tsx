@@ -25,18 +25,20 @@ type DecodedInvoice = {
 
 type SSPaymentDetailsProps = {
   decodedInvoice: DecodedInvoice
+  fiatCurrency: string
+  privacyMode?: boolean
+  satsToFiat: (amount: number) => number
   showCreated?: boolean
   showPaymentHash?: boolean
-  fiatCurrency: string
-  satsToFiat: (amount: number) => number
 }
 
 function SSPaymentDetails({
   decodedInvoice,
-  showCreated = true,
-  showPaymentHash = true,
   fiatCurrency,
-  satsToFiat
+  privacyMode = false,
+  satsToFiat,
+  showCreated = true,
+  showPaymentHash = true
 }: SSPaymentDetailsProps) {
   return (
     <SSVStack gap="sm" style={styles.invoiceDetails}>
@@ -50,15 +52,17 @@ function SSPaymentDetails({
             </SSText>
             <SSHStack gap="xs" style={styles.amountContainer}>
               <SSText weight="medium">
-                {decodedInvoice.num_satoshis} sats
+                {privacyMode
+                  ? '•••• sats'
+                  : `${decodedInvoice.num_satoshis} sats`}
               </SSText>
               <SSText color="muted" size="sm">
-                ≈{' '}
-                {formatNumber(
-                  satsToFiat(Number(decodedInvoice.num_satoshis)),
-                  2
-                )}{' '}
-                {fiatCurrency}
+                {privacyMode
+                  ? `≈ •••• ${fiatCurrency}`
+                  : `≈ ${formatNumber(
+                      satsToFiat(Number(decodedInvoice.num_satoshis)),
+                      2
+                    )} ${fiatCurrency}`}
               </SSText>
             </SSHStack>
           </SSHStack>

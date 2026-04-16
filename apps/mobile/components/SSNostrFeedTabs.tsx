@@ -18,7 +18,6 @@ import {
 } from 'react-native'
 
 import { NostrAPI } from '@/api/nostr'
-import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import {
@@ -37,6 +36,7 @@ import { Colors } from '@/styles'
 import { type TextFontSize, type TextFontWeight } from '@/styles/sizes'
 import { type NostrKind0Profile } from '@/types/models/Nostr'
 import { formatNostrCardDate } from '@/utils/format'
+import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { truncateNpub } from '@/utils/nostrIdentity'
 import {
   type ZapReceiptInfo,
@@ -139,7 +139,9 @@ type FeedAuthorKind0State =
   | { status: 'ready'; profile: NostrKind0Profile | null }
 
 function trimDropdownLabel(text: string): string {
-  if (text.length <= DROPDOWN_LABEL_MAX_CHARS) {return text}
+  if (text.length <= DROPDOWN_LABEL_MAX_CHARS) {
+    return text
+  }
   return `${text.slice(0, DROPDOWN_LABEL_MAX_CHARS - 1)}…`
 }
 
@@ -266,9 +268,7 @@ function SSNostrFeedTabs({
 
   useEffect(() => {
     apiRef.current?.closeAllSubscriptions()
-    apiRef.current = relays.length
-      ? new NostrAPI(relays, ownPubkeys)
-      : null
+    apiRef.current = relays.length ? new NostrAPI(relays, ownPubkeys) : null
     return () => {
       apiRef.current?.closeAllSubscriptions()
       apiRef.current = null
@@ -277,13 +277,14 @@ function SSNostrFeedTabs({
 
   const loadNotes = useCallback(
     async (loadMore = false) => {
-      if (notesLoading || !apiRef.current) {return}
+      if (notesLoading || !apiRef.current) {
+        return
+      }
 
       setNotesLoading(true)
       try {
         const lastNote = notes.at(-1)
-        const until =
-          loadMore && lastNote ? lastNote.created_at : undefined
+        const until = loadMore && lastNote ? lastNote.created_at : undefined
 
         const fetched = await apiRef.current.fetchNotes(
           npub,
@@ -316,7 +317,9 @@ function SSNostrFeedTabs({
 
   const loadFeed = useCallback(
     async (loadMore = false) => {
-      if (feedLoading || !apiRef.current) {return}
+      if (feedLoading || !apiRef.current) {
+        return
+      }
 
       setFeedLoading(true)
       try {
@@ -333,8 +336,7 @@ function SSNostrFeedTabs({
         }
 
         const lastFeed = feedNotes.at(-1)
-        const until =
-          loadMore && lastFeed ? lastFeed.created_at : undefined
+        const until = loadMore && lastFeed ? lastFeed.created_at : undefined
 
         const fetched = await apiRef.current.fetchFollowingTimelineNotes(
           npub,
@@ -367,7 +369,9 @@ function SSNostrFeedTabs({
 
   const loadZaps = useCallback(
     async (loadMore = false) => {
-      if (zapsLoading || !relays.length) {return}
+      if (zapsLoading || !relays.length) {
+        return
+      }
 
       setZapsLoading(true)
       try {
@@ -553,20 +557,18 @@ function SSNostrFeedTabs({
         : null
     const hasIdentityFallback = Boolean(
       fromIdentity &&
-        (fromIdentity.displayName.length > 0 ||
-          fromIdentity.nip05.length > 0 ||
-          (fromIdentity.pictureUri?.length ?? 0) > 0)
+      (fromIdentity.displayName.length > 0 ||
+        fromIdentity.nip05.length > 0 ||
+        (fromIdentity.pictureUri?.length ?? 0) > 0)
     )
 
-    const loading =
-      (!row || row.status === 'loading') && !hasIdentityFallback
+    const loading = (!row || row.status === 'loading') && !hasIdentityFallback
 
     const displayName =
       p?.displayName?.trim() || fromIdentity?.displayName || ''
     const nip05 = p?.nip05?.trim() || fromIdentity?.nip05 || ''
     const pictureUri =
-      (p?.picture?.trim() || fromIdentity?.pictureUri || '').trim() ||
-      undefined
+      (p?.picture?.trim() || fromIdentity?.pictureUri || '').trim() || undefined
 
     return (
       <SSNostrFeedAuthorRow

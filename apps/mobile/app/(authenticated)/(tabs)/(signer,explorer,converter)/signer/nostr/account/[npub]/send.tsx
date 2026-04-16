@@ -98,8 +98,8 @@ export default function NostrFollowingSend() {
 
   function handlePressRow(target: NostrIdentity) {
     router.navigate({
-      pathname: '/signer/nostr/account/[npub]/contact/[targetNpub]',
-      params: { npub, targetNpub: target.npub }
+      params: { npub, targetNpub: target.npub },
+      pathname: '/signer/nostr/account/[npub]/contact/[targetNpub]'
     })
   }
 
@@ -118,7 +118,9 @@ export default function NostrFollowingSend() {
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>{t('nostrIdentity.account.followingTitle')}</SSText>
+            <SSText uppercase>
+              {t('nostrIdentity.account.followingTitle')}
+            </SSText>
           )
         }}
       />
@@ -146,7 +148,6 @@ export default function NostrFollowingSend() {
         <View style={styles.list}>
           <FlashList
             data={rows}
-            estimatedItemSize={88}
             keyExtractor={(item) => item.npub}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
             renderItem={({ item }) => (

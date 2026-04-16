@@ -137,10 +137,7 @@ export default function StackLayout(params: { segment?: string }) {
   const insets = useSafeAreaInsets()
 
   const compactHeaderHeight = useMemo(() => {
-    const toolbar =
-      Platform.OS === 'ios'
-        ? insets.top + 44
-        : insets.top + 56
+    const toolbar = Platform.OS === 'ios' ? insets.top + 44 : insets.top + 56
     return toolbar - HEADER_HEIGHT_TRIM_PX
   }, [insets.top])
 

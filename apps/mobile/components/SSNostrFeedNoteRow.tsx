@@ -1,12 +1,7 @@
 import { useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { type ReactNode } from 'react'
-import {
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-  View
-} from 'react-native'
+import { Image, StyleSheet, TouchableOpacity, View } from 'react-native'
 
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
@@ -22,8 +17,8 @@ import {
   nostrContactProfileHref
 } from '@/utils/nostrNavigation'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
-import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
 import { noteLooksLikeReply } from '@/utils/nostrNoteThread'
+import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
 
 export type NostrFeedNoteLike = {
   id: string
@@ -115,10 +110,7 @@ function SSNostrFeedAuthorRow({
         <Image source={{ uri: pictureUri }} style={styles.feedAuthorAvatar} />
       ) : (
         <View
-          style={[
-            styles.feedAuthorAvatar,
-            styles.feedAuthorAvatarPlaceholder
-          ]}
+          style={[styles.feedAuthorAvatar, styles.feedAuthorAvatarPlaceholder]}
         >
           <SSText size="sm" weight="bold">
             {displayName
@@ -145,12 +137,7 @@ function SSNostrFeedAuthorRow({
         >
           {truncateNpub(npubBech, 14)}
         </SSText>
-        <SSText
-          size="xxs"
-          color="muted"
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
+        <SSText size="xxs" color="muted" numberOfLines={1} ellipsizeMode="tail">
           {nip05 || '—'}
         </SSText>
       </SSVStack>
@@ -266,9 +253,7 @@ function SSNostrFeedNoteRow({
         <SSText
           size="sm"
           style={styles.noteContent}
-          {...(expandContent
-            ? {}
-            : { numberOfLines: contentNumberOfLines })}
+          {...(expandContent ? {} : { numberOfLines: contentNumberOfLines })}
         >
           {privacyMode
             ? t('nostrIdentity.feed.hiddenInPrivacyMode')
@@ -335,11 +320,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20
   },
+  noteHeaderLeft: {
+    flex: 1,
+    minWidth: 0
+  },
+  noteHeaderRight: {
+    alignItems: 'flex-start',
+    flexShrink: 0
+  },
+  noteHeaderRow: {
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    width: '100%'
+  },
   noteInlineImages: {
     marginTop: 4
-  },
-  noteVideosBelowImages: {
-    marginTop: 8
   },
   noteMetaAboveContent: {
     marginBottom: 4
@@ -355,18 +350,11 @@ const styles = StyleSheet.create({
   noteReplyTagText: {
     letterSpacing: 0.5
   },
-  noteHeaderLeft: {
-    flex: 1,
-    minWidth: 0
-  },
-  noteHeaderRight: {
-    alignItems: 'flex-start',
-    flexShrink: 0
-  },
-  noteHeaderRow: {
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    width: '100%'
+  noteRow: {
+    borderBottomColor: Colors.gray[800],
+    borderBottomWidth: 1,
+    paddingBottom: 16,
+    paddingTop: 8
   },
   noteRowBody: {
     width: '100%'
@@ -375,14 +363,11 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     textAlign: 'right'
   },
-  noteRow: {
-    borderBottomColor: Colors.gray[800],
-    borderBottomWidth: 1,
-    paddingBottom: 16,
-    paddingTop: 8
-  },
   noteRowInner: {
     width: '100%'
+  },
+  noteVideosBelowImages: {
+    marginTop: 8
   },
   skeletonLineLg: {
     alignSelf: 'flex-start',

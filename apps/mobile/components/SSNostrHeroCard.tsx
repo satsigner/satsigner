@@ -42,9 +42,9 @@ function formatRelayUrl(url: string): string {
 
 function buildDisconnectLabel(info: NostrRelayConnectionInfo): string {
   const reason = disconnectReasonLabel(info.reason)
-  if (info.reason !== 'all_failed' || !info.relayDetails) return reason
+  if (info.reason !== 'all_failed' || !info.relayDetails) {return reason}
   const failed = info.relayDetails.filter((r) => !r.connected && r.error)
-  if (failed.length === 0) return reason
+  if (failed.length === 0) {return reason}
   const details = failed
     .map((r) => `${formatRelayUrl(r.url)}: ${r.error}`)
     .join(' · ')

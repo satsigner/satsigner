@@ -44,8 +44,12 @@ export default function EcashTransactionDetailPage() {
     checkMintQuote,
     mintProofs
   } = useEcash()
-  const [currencyUnit, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [
+      state.currencyUnit,
+      state.privacyMode,
+      state.useZeroPadding
+    ])
   )
   const [fiatCurrency, btcPrice, fetchPrices] = usePriceStore(
     useShallow((state) => [
@@ -323,23 +327,33 @@ export default function EcashTransactionDetailPage() {
                   {getTransactionLabel(transaction.type)}
                 </SSText>
                 <SSHStack gap="sm" style={{ alignItems: 'baseline' }}>
-                  <SSStyledSatText
-                    amount={transaction.amount}
-                    decimals={0}
-                    useZeroPadding={useZeroPadding}
-                    currency={currencyUnit}
-                    type={
-                      transaction.type === 'mint'
-                        ? 'receive'
-                        : transaction.type === 'melt'
-                          ? 'send'
-                          : transaction.type
-                    }
-                    textSize="xl"
-                    noColor={false}
-                    weight="light"
-                    letterSpacing={-0.5}
-                  />
+                  {privacyMode ? (
+                    <SSText
+                      size="xl"
+                      weight="light"
+                      style={{ letterSpacing: -0.5 }}
+                    >
+                      ••••
+                    </SSText>
+                  ) : (
+                    <SSStyledSatText
+                      amount={transaction.amount}
+                      decimals={0}
+                      useZeroPadding={useZeroPadding}
+                      currency={currencyUnit}
+                      type={
+                        transaction.type === 'mint'
+                          ? 'receive'
+                          : transaction.type === 'melt'
+                            ? 'send'
+                            : transaction.type
+                      }
+                      textSize="xl"
+                      noColor={false}
+                      weight="light"
+                      letterSpacing={-0.5}
+                    />
+                  )}
                   <SSText color="muted">
                     {currencyUnit === 'btc'
                       ? t('bitcoin.btc')
@@ -349,7 +363,9 @@ export default function EcashTransactionDetailPage() {
                 {btcPrice > 0 && (
                   <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
                     <SSText color="muted">
-                      {formatFiatPrice(transaction.amount, btcPrice)}
+                      {privacyMode
+                        ? '••••'
+                        : formatFiatPrice(transaction.amount, btcPrice)}
                     </SSText>
                     <SSText size="xs" style={{ color: Colors.gray[500] }}>
                       {fiatCurrency}

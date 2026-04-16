@@ -11,11 +11,11 @@ import SSPaymentMethodPicker, {
   type PaymentMethod
 } from '@/components/SSPaymentMethodPicker'
 import SSText from '@/components/SSText'
+import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import { useEcash } from '@/hooks/useEcash'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
@@ -60,19 +60,19 @@ export default function NostrContactProfile() {
     const methods: PaymentMethod[] = []
     if (lightningConfig) {
       methods.push({
+        detail: lightningConfig.url,
         id: 'lightning',
         label: 'Lightning',
-        type: 'lightning',
-        detail: lightningConfig.url
+        type: 'lightning'
       })
     }
     if (mints.length > 0) {
       for (const mint of mints) {
         methods.push({
+          detail: mint.name || mint.url,
           id: `ecash-${mint.url}`,
           label: 'ECash',
-          type: 'ecash',
-          detail: mint.name || mint.url
+          type: 'ecash'
         })
       }
     }
@@ -124,9 +124,9 @@ export default function NostrContactProfile() {
   }, [loadProfile])
 
   async function handleZap() {
-    if (availablePaymentMethods.length === 0) return
-    if (!targetIdentity?.lud16) return
-    if (!owner?.nsec) return
+    if (availablePaymentMethods.length === 0) {return}
+    if (!targetIdentity?.lud16) {return}
+    if (!owner?.nsec) {return}
 
     const amountSats = 21
     setZapLoading(true)
@@ -134,18 +134,23 @@ export default function NostrContactProfile() {
     try {
       const hexPubkey = nip19.decode(targetNpub).data as string
       const { invoice, zapRequestJson } = await initiateZap({
+        amountSats,
         recipientLud16: targetIdentity.lud16,
         recipientPubkeyHex: hexPubkey,
-        senderNsec: owner.nsec,
-        amountSats,
-        relays: effectiveRelays
+        relays: effectiveRelays,
+        senderNsec: owner.nsec
       })
 
       setZapLoading(false)
       pendingInvoice[1]({ invoice, zapRequestJson })
 
       if (availablePaymentMethods.length === 1) {
-        navigateToPayment(availablePaymentMethods[0], invoice, zapRequestJson, amountSats)
+        navigateToPayment(
+          availablePaymentMethods[0],
+          invoice,
+          zapRequestJson,
+          amountSats
+        )
         return
       }
 
@@ -171,24 +176,24 @@ export default function NostrContactProfile() {
 
     if (bolt11 && npub) {
       useZapFlowStore.getState().setPendingZap({
-        noteNpub: npub,
-        nostrUri: targetNpub,
-        invoice: bolt11,
         amountSats: sats,
-        zapRequestJson: reqJson,
-        paymentMethod: method
+        invoice: bolt11,
+        nostrUri: targetNpub,
+        noteNpub: npub,
+        paymentMethod: method,
+        zapRequestJson: reqJson
       })
     }
 
     if (method.type === 'lightning') {
       router.navigate({
-        pathname: '/signer/lightning/pay',
-        params: bolt11 ? { invoice: bolt11 } : undefined
+        params: bolt11 ? { invoice: bolt11 } : undefined,
+        pathname: '/signer/lightning/pay'
       })
     } else if (method.type === 'ecash') {
       router.navigate({
-        pathname: '/signer/ecash/send',
-        params: bolt11 ? { invoice: bolt11 } : undefined
+        params: bolt11 ? { invoice: bolt11 } : undefined,
+        pathname: '/signer/ecash/send'
       })
     }
   }
@@ -199,13 +204,13 @@ export default function NostrContactProfile() {
     pubkey: string
   }) {
     const nevent = nip19.neventEncode({
-      id: payload.id,
       author: payload.pubkey,
+      id: payload.id,
       kind: payload.kind
     })
     router.navigate({
-      pathname: '/signer/nostr/account/[npub]/note',
-      params: { npub, nostrUri: nevent }
+      params: { npub, nostrUri: nevent },
+      pathname: '/signer/nostr/account/[npub]/note'
     })
   }
 
@@ -254,12 +259,11 @@ export default function NostrContactProfile() {
                 />
               )}
 
-            {!targetIdentity.lud16 &&
-              availablePaymentMethods.length > 0 && (
-                <SSText size="xs" color="muted" center>
-                  {t('nostrIdentity.note.zapEndpointNotFound')}
-                </SSText>
-              )}
+            {!targetIdentity.lud16 && availablePaymentMethods.length > 0 && (
+              <SSText size="xs" color="muted" center>
+                {t('nostrIdentity.note.zapEndpointNotFound')}
+              </SSText>
+            )}
 
             {availablePaymentMethods.length === 0 && (
               <SSText color="muted" center size="sm">

@@ -6,9 +6,7 @@ describe('extractVideoEmbedsFromNote', () => {
     const r = extractVideoEmbedsFromNote(content, [])
     expect(r).toHaveLength(1)
     expect(r[0].provider).toBe('youtube')
-    expect(r[0].watchUrl).toBe(
-      'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
-    )
+    expect(r[0].watchUrl).toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
     expect(r[0].thumbnailUrl).toBe(
       'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg'
     )

@@ -13,15 +13,16 @@ import {
 import { toast } from 'sonner-native'
 
 import { NostrAPI } from '@/api/nostr'
-import SSCameraModal from '@/components/SSCameraModal'
 import SSButton from '@/components/SSButton'
+import SSCameraModal from '@/components/SSCameraModal'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
+import SSText from '@/components/SSText'
 import {
   NOSTR_PRIVACY_MASK,
   NOSTR_SIGNED_EVENT_QR_MAX_CHARS
 } from '@/constants/nostr'
-import SSText from '@/components/SSText'
+import { cacheEvents } from '@/db/nostrCache'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -30,14 +31,16 @@ import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import {
   type Kind1DraftImport,
   parseKind1DraftFromJson,
   stripZapTags
 } from '@/utils/nostrComposeImport'
-import { cacheEvents } from '@/db/nostrCache'
-import { buildEnhancedZapTags, extractEnhancedZapTags } from '@/utils/nostrIdentity'
-import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import {
+  buildEnhancedZapTags,
+  extractEnhancedZapTags
+} from '@/utils/nostrIdentity'
 
 type ComposeParams = {
   npub: string
@@ -80,22 +83,22 @@ export default function NostrComposePage() {
   function validateAmounts(): string | null {
     if (amountMode === 'fixed') {
       const val = parseInt(fixedAmount, 10)
-      if (!val || val <= 0) return t('nostrIdentity.compose.invalidAmount')
+      if (!val || val <= 0) {return t('nostrIdentity.compose.invalidAmount')}
     }
     if (amountMode === 'range') {
       const min = parseInt(minAmount, 10)
       const max = parseInt(maxAmount, 10)
-      if (!min || min <= 0) return t('nostrIdentity.compose.invalidMin')
-      if (!max || max <= 0) return t('nostrIdentity.compose.invalidMax')
-      if (max < min) return t('nostrIdentity.compose.maxBelowMin')
+      if (!min || min <= 0) {return t('nostrIdentity.compose.invalidMin')}
+      if (!max || max <= 0) {return t('nostrIdentity.compose.invalidMax')}
+      if (max < min) {return t('nostrIdentity.compose.maxBelowMin')}
     }
     if (goalAmount) {
       const val = parseInt(goalAmount, 10)
-      if (isNaN(val) || val <= 0) return t('nostrIdentity.compose.invalidGoal')
+      if (isNaN(val) || val <= 0) {return t('nostrIdentity.compose.invalidGoal')}
     }
     if (maxUses) {
       const val = parseInt(maxUses, 10)
-      if (isNaN(val) || val <= 0) return t('nostrIdentity.compose.invalidUses')
+      if (isNaN(val) || val <= 0) {return t('nostrIdentity.compose.invalidUses')}
     }
     if (customLnurl && !customLnurl.includes('@')) {
       return t('nostrIdentity.compose.invalidLnurl')
@@ -125,11 +128,11 @@ export default function NostrComposePage() {
       amountMode === 'none'
         ? []
         : buildEnhancedZapTags({
-            zapMin: zapMin || undefined,
-            zapMax: zapMax || undefined,
             zapGoal: goalAmount ? parseInt(goalAmount, 10) : undefined,
-            zapUses: maxUses ? parseInt(maxUses, 10) : undefined,
-            zapLnurl: customLnurl || undefined
+            zapLnurl: customLnurl || undefined,
+            zapMax: zapMax || undefined,
+            zapMin: zapMin || undefined,
+            zapUses: maxUses ? parseInt(maxUses, 10) : undefined
           })
 
     return [...baseTags, ...zapTags]
@@ -230,7 +233,7 @@ export default function NostrComposePage() {
   )
 
   async function handleCopySigned() {
-    if (!canExportSigned || !identity?.nsec) return
+    if (!canExportSigned || !identity?.nsec) {return}
 
     const validationError = validateAmounts()
     if (validationError) {
@@ -247,10 +250,10 @@ export default function NostrComposePage() {
       )
       await Clipboard.setStringAsync(JSON.stringify(signed, null, 2))
       toast.success(t('common.copiedToClipboard'))
-    } catch (err) {
+    } catch (error) {
       const message =
-        err instanceof Error
-          ? err.message
+        error instanceof Error
+          ? error.message
           : t('nostrIdentity.compose.publishFailed')
       toast.error(message)
     } finally {
@@ -259,7 +262,7 @@ export default function NostrComposePage() {
   }
 
   async function handleQrSigned() {
-    if (!canExportSigned || !identity?.nsec) return
+    if (!canExportSigned || !identity?.nsec) {return}
 
     const validationError = validateAmounts()
     if (validationError) {
@@ -280,10 +283,10 @@ export default function NostrComposePage() {
         return
       }
       setSignedQrPayload(compact)
-    } catch (err) {
+    } catch (error) {
       const message =
-        err instanceof Error
-          ? err.message
+        error instanceof Error
+          ? error.message
           : t('nostrIdentity.compose.publishFailed')
       toast.error(message)
     } finally {
@@ -292,7 +295,7 @@ export default function NostrComposePage() {
   }
 
   async function handlePublish() {
-    if (!canPublish || !identity?.nsec) return
+    if (!canPublish || !identity?.nsec) {return}
 
     const validationError = validateAmounts()
     if (validationError) {
@@ -311,9 +314,9 @@ export default function NostrComposePage() {
         cacheEvents(
           [
             {
-              id: eventId,
               content: content.trim(),
               created_at: Math.floor(Date.now() / 1000),
+              id: eventId,
               kind: 1,
               pubkey: hexPk,
               tags
@@ -325,10 +328,10 @@ export default function NostrComposePage() {
 
       toast.success(t('nostrIdentity.compose.published'))
       router.back()
-    } catch (err) {
+    } catch (error) {
       const message =
-        err instanceof Error
-          ? err.message
+        error instanceof Error
+          ? error.message
           : t('nostrIdentity.compose.publishFailed')
       toast.error(message)
     } finally {
@@ -352,16 +355,12 @@ export default function NostrComposePage() {
         <Stack.Screen
           options={{
             headerTitle: () => (
-              <SSText uppercase>
-                {t('nostrIdentity.compose.title')}
-              </SSText>
+              <SSText uppercase>{t('nostrIdentity.compose.title')}</SSText>
             )
           }}
         />
         <SSVStack itemsCenter gap="lg" style={styles.centered}>
-          <SSText color="muted">
-            {t('nostrIdentity.keys.watchOnly')}
-          </SSText>
+          <SSText color="muted">{t('nostrIdentity.keys.watchOnly')}</SSText>
           <SSButton
             label={t('common.back')}
             variant="ghost"
@@ -377,9 +376,7 @@ export default function NostrComposePage() {
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>
-              {t('nostrIdentity.compose.title')}
-            </SSText>
+            <SSText uppercase>{t('nostrIdentity.compose.title')}</SSText>
           )
         }}
       />
@@ -705,14 +702,16 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     width: '100%'
   },
-  signedQrModal: {
-    alignItems: 'center',
-    paddingVertical: 8
-  },
-  signedQrWrap: {
-    backgroundColor: Colors.gray[950],
-    borderRadius: 8,
-    padding: 12
+  input: {
+    backgroundColor: '#242424',
+    borderRadius: 3,
+    color: Colors.white,
+    fontSize: 16,
+    lineHeight: 22,
+    maxHeight: 200,
+    minHeight: 100,
+    padding: 12,
+    textAlignVertical: 'top'
   },
   jsonPreview: {
     backgroundColor: '#242424',
@@ -722,17 +721,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     maxHeight: 220,
-    padding: 12,
-    textAlignVertical: 'top'
-  },
-  input: {
-    backgroundColor: '#242424',
-    borderRadius: 3,
-    color: Colors.white,
-    fontSize: 16,
-    lineHeight: 22,
-    maxHeight: 200,
-    minHeight: 100,
     padding: 12,
     textAlignVertical: 'top'
   },
@@ -746,6 +734,15 @@ const styles = StyleSheet.create({
   },
   modeButtonActive: {
     borderColor: Colors.white
+  },
+  signedQrModal: {
+    alignItems: 'center',
+    paddingVertical: 8
+  },
+  signedQrWrap: {
+    backgroundColor: Colors.gray[950],
+    borderRadius: 8,
+    padding: 12
   },
   zapTagsSection: {
     backgroundColor: Colors.gray[925],

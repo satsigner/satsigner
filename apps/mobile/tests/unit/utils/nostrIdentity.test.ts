@@ -26,7 +26,7 @@ function bech32Decode(bech: string): { hrp: string; data: number[] } {
     data.push(BECH32_CHARSET.indexOf(c))
   }
   const payload = data.slice(0, -6)
-  return { hrp, data: payload }
+  return { data: payload, hrp }
 }
 
 function convertBits(
@@ -59,7 +59,7 @@ function npubToHex(npub: string): string {
   return Buffer.from(bytes).toString('hex')
 }
 
-describe('NIP-06 derivation from mnemonic', () => {
+describe('nIP-06 derivation from mnemonic', () => {
   it('derives the correct private key hex from test mnemonic via BIP-32 path', () => {
     const mnemonic =
       'antenna shoot slogan swear payment bless walk raven charge often wheat rhythm'
@@ -72,10 +72,10 @@ describe('NIP-06 derivation from mnemonic', () => {
     const root = HDKey.fromMasterSeed(seed)
     const child = root.derive(NIP06_PATH)
     expect(child.privateKey).toBeDefined()
-    expect(child.privateKey!.length).toBe(32)
+    expect(child.privateKey!).toHaveLength(32)
 
     const privateKeyHex = Buffer.from(child.privateKey!).toString('hex')
-    expect(privateKeyHex.length).toBe(64)
+    expect(privateKeyHex).toHaveLength(64)
   })
 
   it('derives npub matching the expected test vector', () => {
@@ -127,9 +127,9 @@ describe('decodeNostrContent', () => {
   it('detects JSON note objects', () => {
     const { decodeNostrContent } = require('@/utils/nostrIdentity')
     const jsonNote = JSON.stringify({
+      content: 'hello world',
       id: 'abc123',
       kind: 1,
-      content: 'hello world',
       tags: []
     })
     const result = decodeNostrContent(jsonNote)

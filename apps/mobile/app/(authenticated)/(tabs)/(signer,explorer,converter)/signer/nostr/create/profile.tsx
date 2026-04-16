@@ -35,15 +35,15 @@ export default function ProfileSetup() {
     }
 
     addIdentity({
+      createdAt: Date.now(),
+      displayName: displayName || undefined,
+      isWatchOnly: false,
+      lud16: lud16 || undefined,
+      mnemonic: params.mnemonic,
+      nip05: nip05 || undefined,
       npub: params.npub,
       nsec: params.nsec,
-      mnemonic: params.mnemonic,
-      displayName: displayName || undefined,
-      picture: pictureUrl || undefined,
-      nip05: nip05 || undefined,
-      lud16: lud16 || undefined,
-      createdAt: Date.now(),
-      isWatchOnly: false
+      picture: pictureUrl || undefined
     })
 
     toast.success(t('nostrIdentity.create.success'))
@@ -68,10 +68,7 @@ export default function ProfileSetup() {
           <SSVStack itemsCenter gap="sm">
             <View style={styles.avatarContainer}>
               {pictureUrl ? (
-                <Image
-                  source={{ uri: pictureUrl }}
-                  style={styles.avatar}
-                />
+                <Image source={{ uri: pictureUrl }} style={styles.avatar} />
               ) : (
                 <View style={[styles.avatar, styles.avatarPlaceholder]}>
                   <SSText size="3xl" weight="bold">

@@ -35,8 +35,8 @@ export function useNostrLandingRelayReachability({
 
     if (!identity.relayConnected) {
       setActiveConnectionInfo({
-        status: 'disconnected',
-        reason: 'user_disabled'
+        reason: 'user_disabled',
+        status: 'disconnected'
       })
       return
     }
@@ -44,7 +44,7 @@ export function useNostrLandingRelayReachability({
     const urls = identity.relays?.length ? identity.relays : relays
 
     if (urls.length === 0) {
-      setActiveConnectionInfo({ status: 'disconnected', reason: 'no_relays' })
+      setActiveConnectionInfo({ reason: 'no_relays', status: 'disconnected' })
       return
     }
 

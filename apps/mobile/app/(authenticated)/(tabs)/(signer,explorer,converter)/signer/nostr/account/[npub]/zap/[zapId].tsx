@@ -1,4 +1,3 @@
-import { NostrAPI } from '@/api/nostr'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { useEffect, useMemo, useState } from 'react'
@@ -10,6 +9,7 @@ import {
   View
 } from 'react-native'
 
+import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
@@ -24,11 +24,11 @@ import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { formatNostrCardDate } from '@/utils/format'
-import { truncateNpub } from '@/utils/nostrIdentity'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import { truncateNpub } from '@/utils/nostrIdentity'
+import { nostrNoteHref } from '@/utils/nostrNavigation'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
 import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
-import { nostrNoteHref } from '@/utils/nostrNavigation'
 import {
   enrichZapReceipts,
   fetchZapReceiptById,
@@ -79,19 +79,19 @@ export default function NostrZapDetail() {
 
     fetchZapReceiptById(zapId, profileHex, effectiveRelays)
       .then(async (r) => {
-        if (!alive.current) return
+        if (!alive.current) {return}
         if (!r) {
           setReceipt(null)
           setLoadState('error')
           return
         }
         await enrichZapReceipts([r], effectiveRelays)
-        if (!alive.current) return
+        if (!alive.current) {return}
         setReceipt(r)
         setLoadState('ready')
       })
       .catch(() => {
-        if (!alive.current) return
+        if (!alive.current) {return}
         setReceipt(null)
         setLoadState('error')
       })
@@ -118,16 +118,16 @@ export default function NostrZapDetail() {
 
     NostrAPI.fetchEventFromRelays(receipt.zappedEventId, effectiveRelays)
       .then((ev) => {
-        if (!alive.current || !ev) return
+        if (!alive.current || !ev) {return}
         const content = ev.content ?? ''
         const tags = ev.tags ?? []
         const imageCount = extractImageUrlsFromNote(content, tags).length
         const videoCount = extractVideoEmbedsFromNote(content, tags).length
-        if (!content.trim() && imageCount === 0 && videoCount === 0) return
+        if (!content.trim() && imageCount === 0 && videoCount === 0) {return}
         setReferencedNote({ content, tags })
       })
       .catch(() => {
-        if (!alive.current) return
+        if (!alive.current) {return}
         setReferencedNote(null)
       })
 
@@ -137,19 +137,19 @@ export default function NostrZapDetail() {
   }, [receipt?.zappedEventId, identity, relays])
 
   async function handleOpenReferencedNote() {
-    if (!receipt?.zappedEventId || !npub || !identity) return
+    if (!receipt?.zappedEventId || !npub || !identity) {return}
     const effectiveRelays = identity.relays?.length ? identity.relays : relays
-    if (effectiveRelays.length === 0) return
+    if (effectiveRelays.length === 0) {return}
 
     const note = await NostrAPI.fetchEventFromRelays(
       receipt.zappedEventId,
       effectiveRelays
     )
-    if (!note) return
+    if (!note) {return}
 
     const nevent = nip19.neventEncode({
-      id: receipt.zappedEventId,
       author: note.pubkey,
+      id: receipt.zappedEventId,
       kind: note.kind
     })
     router.navigate(nostrNoteHref(npub, nevent))
@@ -158,17 +158,12 @@ export default function NostrZapDetail() {
   const allPreviewImageUrls =
     referencedNote == null
       ? []
-      : extractImageUrlsFromNote(
-          referencedNote.content,
-          referencedNote.tags
-        )
+      : extractImageUrlsFromNote(referencedNote.content, referencedNote.tags)
 
-  const previewImageUrls = privacyMode
-    ? []
-    : allPreviewImageUrls.slice(0, 6)
+  const previewImageUrls = privacyMode ? [] : allPreviewImageUrls.slice(0, 6)
 
   const allPreviewVideoEmbeds = useMemo(() => {
-    if (referencedNote == null) return []
+    if (referencedNote == null) {return []}
     return extractVideoEmbedsFromNote(
       referencedNote.content,
       referencedNote.tags
@@ -242,7 +237,9 @@ export default function NostrZapDetail() {
           <ActivityIndicator color={Colors.white} style={styles.loader} />
         ) : null}
         {loadState === 'error' || (loadState === 'ready' && !receipt) ? (
-          <SSText color="muted">{t('nostrIdentity.zapDetail.loadError')}</SSText>
+          <SSText color="muted">
+            {t('nostrIdentity.zapDetail.loadError')}
+          </SSText>
         ) : null}
         {loadState === 'ready' && receipt ? (
           <SSVStack gap="md">
@@ -274,9 +271,11 @@ export default function NostrZapDetail() {
                       ]}
                     >
                       <SSText size="lg" weight="bold">
-                        {(counterpartyProfile.name?.[0] ||
+                        {(
+                          counterpartyProfile.name?.[0] ||
                           counterpartyNpub[5] ||
-                          '?').toUpperCase()}
+                          '?'
+                        ).toUpperCase()}
                       </SSText>
                     </View>
                   )}
@@ -311,7 +310,9 @@ export default function NostrZapDetail() {
                           {NOSTR_PRIVACY_MASK}
                         </SSText>
                       ) : counterpartyProfile.nip05?.trim() ? (
-                        <SSClipboardCopy text={counterpartyProfile.nip05.trim()}>
+                        <SSClipboardCopy
+                          text={counterpartyProfile.nip05.trim()}
+                        >
                           <SSText size="sm" color="muted">
                             {counterpartyProfile.nip05.trim()}
                           </SSText>
@@ -331,7 +332,9 @@ export default function NostrZapDetail() {
                           {NOSTR_PRIVACY_MASK}
                         </SSText>
                       ) : counterpartyProfile.lud16?.trim() ? (
-                        <SSClipboardCopy text={counterpartyProfile.lud16.trim()}>
+                        <SSClipboardCopy
+                          text={counterpartyProfile.lud16.trim()}
+                        >
                           <SSText size="sm" color="white">
                             {counterpartyProfile.lud16.trim()}
                           </SSText>
@@ -483,6 +486,18 @@ const styles = StyleSheet.create({
   amountIncoming: {
     color: Colors.success
   },
+  empty: {
+    paddingVertical: 60
+  },
+  loader: {
+    marginVertical: 24
+  },
+  noteImagesBelowText: {
+    marginTop: 12
+  },
+  noteImagesNoText: {
+    marginTop: 0
+  },
   profileAvatar: {
     borderRadius: 24,
     height: 48,
@@ -507,20 +522,8 @@ const styles = StyleSheet.create({
   profileRow: {
     alignItems: 'flex-start'
   },
-  empty: {
-    paddingVertical: 60
-  },
-  loader: {
-    marginVertical: 24
-  },
   scrollContent: {
     paddingBottom: 24,
     paddingTop: 16
-  },
-  noteImagesBelowText: {
-    marginTop: 12
-  },
-  noteImagesNoText: {
-    marginTop: 0
   }
 })

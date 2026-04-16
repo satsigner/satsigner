@@ -1,12 +1,13 @@
-import {
-  Stack,
-  useLocalSearchParams,
-  useRouter,
-  type Href
-} from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { useState } from 'react'
-import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View
+} from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -56,17 +57,30 @@ export default function NostrIdentitySettings() {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [clearAllModalVisible, setClearAllModalVisible] = useState(false)
   const [cacheCounts, setCacheCounts] = useState<CacheCounts>(() => {
-    if (!npub) return { feedNotes: 0, ownNotes: 0, ownZaps: 0, profiles: 0, zapReceipts: 0 }
+    if (!npub)
+      {return {
+        feedNotes: 0,
+        ownNotes: 0,
+        ownZaps: 0,
+        profiles: 0,
+        zapReceipts: 0
+      }}
     try {
       const hex = nip19.decode(npub).data as string
       return getCacheCounts(hex)
     } catch {
-      return { feedNotes: 0, ownNotes: 0, ownZaps: 0, profiles: 0, zapReceipts: 0 }
+      return {
+        feedNotes: 0,
+        ownNotes: 0,
+        ownZaps: 0,
+        profiles: 0,
+        zapReceipts: 0
+      }
     }
   })
 
   function getHexPubkey(): string {
-    if (!npub) return ''
+    if (!npub) {return ''}
     try {
       return nip19.decode(npub).data as string
     } catch {
@@ -76,7 +90,7 @@ export default function NostrIdentitySettings() {
 
   function refreshCacheCounts() {
     const hex = getHexPubkey()
-    if (!hex) return
+    if (!hex) {return}
     setCacheCounts(getCacheCounts(hex))
   }
 
@@ -94,7 +108,7 @@ export default function NostrIdentitySettings() {
   }
 
   function handleSave() {
-    if (!npub) return
+    if (!npub) {return}
 
     updateIdentity(npub, {
       displayName: displayName || undefined,
@@ -358,11 +372,7 @@ function CacheRow({ label, count, onClear }: CacheRowProps) {
         style={cacheRowStyles.clearButton}
         activeOpacity={0.6}
       >
-        <SSText
-          size="xs"
-          color={count === 0 ? 'muted' : 'white'}
-          uppercase
-        >
+        <SSText size="xs" color={count === 0 ? 'muted' : 'white'} uppercase>
           {t('common.clear')}
         </SSText>
       </TouchableOpacity>

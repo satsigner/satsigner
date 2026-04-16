@@ -32,10 +32,7 @@ export default function CreateNostrIdentity() {
 
   const mnemonic = useMemo(() => generateMnemonic(12), [])
   const words = useMemo(() => mnemonic.split(' '), [mnemonic])
-  const keys = useMemo(
-    () => deriveNostrKeysFromMnemonic(mnemonic),
-    [mnemonic]
-  )
+  const keys = useMemo(() => deriveNostrKeysFromMnemonic(mnemonic), [mnemonic])
 
   function handleCopyMnemonic() {
     Clipboard.setStringAsync(mnemonic)
@@ -54,12 +51,12 @@ export default function CreateNostrIdentity() {
 
   function handleNext() {
     router.navigate({
-      pathname: '/signer/nostr/create/profile',
       params: {
         mnemonic,
         nsec: keys.nsec,
         npub: keys.npub
-      }
+      },
+      pathname: '/signer/nostr/create/profile'
     })
   }
 
@@ -87,7 +84,11 @@ export default function CreateNostrIdentity() {
                       const index = rowIndex * 3 + colIndex
                       return (
                         <View key={index} style={styles.wordCell}>
-                          <SSText size="xs" color="muted" style={styles.wordIndex}>
+                          <SSText
+                            size="xs"
+                            color="muted"
+                            style={styles.wordIndex}
+                          >
                             {index + 1}
                           </SSText>
                           <SSText size="sm" type="mono">

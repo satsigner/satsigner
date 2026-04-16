@@ -16,6 +16,8 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
+import { useZapFlowStore } from '@/store/zapFlow'
 import { Typography } from '@/styles'
 import { type LNDecodedInvoice } from '@/types/models/LND'
 import type { LNURLPayResponse } from '@/types/models/LNURL'
@@ -55,6 +57,7 @@ export default function PayPage() {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [isLNURLMode, setIsLNURLMode] = useState(false)
   const [lnurlDetails, setLNURLDetails] = useState<LNURLPayResponse | null>(
@@ -195,6 +198,10 @@ export default function PayPage() {
 
       await payInvoice(invoice)
       toast.success('Payment sent successfully')
+      const { pendingZap, setZapResult } = useZapFlowStore.getState()
+      if (pendingZap) {
+        setZapResult('success')
+      }
       setTimeout(router.back, 2000)
     } catch (error) {
       let errorMessage = 'Failed to send payment'
@@ -349,6 +356,7 @@ export default function PayPage() {
                     showCreated
                     showPaymentHash
                     fiatCurrency={fiatCurrency}
+                    privacyMode={privacyMode}
                     satsToFiat={satsToFiat}
                   />
                 )}
@@ -363,6 +371,7 @@ export default function PayPage() {
                     onCommentChange={setComment}
                     inputStyles={styles.input}
                     fiatCurrency={fiatCurrency}
+                    privacyMode={privacyMode}
                     satsToFiat={satsToFiat}
                   />
                 )}

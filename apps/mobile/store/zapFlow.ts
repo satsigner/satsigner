@@ -20,9 +20,9 @@ type ZapFlowState = {
 }
 
 export const useZapFlowStore = create<ZapFlowState>()((set) => ({
-  pendingZap: null,
-  zapResult: null,
-  setPendingZap: (zap) => set({ pendingZap: zap, zapResult: null }),
   clearPendingZap: () => set({ pendingZap: null }),
-  setZapResult: (result) => set({ zapResult: result })
+  pendingZap: null,
+  setPendingZap: (zap) => set({ pendingZap: zap, zapResult: null }),
+  setZapResult: (result) => set({ zapResult: result }),
+  zapResult: null
 }))

@@ -6,7 +6,8 @@ import {
   type TextStyle,
   type ViewStyle,
   TouchableOpacity,
-  View
+  View,
+  type ViewProps
 } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
@@ -116,6 +117,8 @@ function SSButton({
   const showDefaultGradient =
     variant === 'gradient' && gradientType === 'default'
 
+  const decorationPointerEvents: ViewProps['pointerEvents'] = 'none'
+
   return (
     <TouchableOpacity
       style={buttonStyle}
@@ -125,6 +128,7 @@ function SSButton({
     >
       {showLinearGradient && (
         <LinearGradient
+          pointerEvents={decorationPointerEvents}
           style={styles.buttonGradient}
           colors={['#212121', '#1C1C1C']}
           end={{ x: 0, y: 1 }}
@@ -134,6 +138,7 @@ function SSButton({
       {variant === 'elevated' && (
         <>
           <LinearGradient
+            pointerEvents={decorationPointerEvents}
             style={[styles.glassBorder, styles.glassBorderTop]}
             colors={[
               'rgba(255,255,255,0.08)',
@@ -157,12 +162,14 @@ function SSButton({
             }}
           />
           <LinearGradient
+            pointerEvents={decorationPointerEvents}
             style={[styles.glassBorder, styles.glassBorderBottom]}
             colors={['rgba(0,0,0,0.0)', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.0)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           />
           <LinearGradient
+            pointerEvents={decorationPointerEvents}
             style={[styles.glassBorder, styles.glassBorderLeft]}
             colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.04)']}
             start={{
@@ -183,6 +190,7 @@ function SSButton({
             }}
           />
           <LinearGradient
+            pointerEvents={decorationPointerEvents}
             style={[styles.glassBorder, styles.glassBorderRight]}
             colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.02)']}
             start={{
@@ -207,6 +215,7 @@ function SSButton({
       {variant === 'outline' && (
         <>
           <LinearGradient
+            pointerEvents={decorationPointerEvents}
             style={[styles.glassBorder, styles.glassBorderTop]}
             colors={[
               'rgba(255,255,255,0.16)',
@@ -218,6 +227,7 @@ function SSButton({
             end={{ x: 1, y: 0 }}
           />
           <LinearGradient
+            pointerEvents={decorationPointerEvents}
             style={[styles.glassBorder, styles.glassBorderBottom]}
             colors={[
               'rgba(255,255,255,0.06)',
@@ -229,12 +239,14 @@ function SSButton({
             end={{ x: 1, y: 0 }}
           />
           <LinearGradient
+            pointerEvents={decorationPointerEvents}
             style={[styles.glassBorder, styles.glassBorderLeft]}
             colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.14)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
           />
           <LinearGradient
+            pointerEvents={decorationPointerEvents}
             style={[styles.glassBorder, styles.glassBorderRight]}
             colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.13)']}
             start={{ x: 0, y: 0 }}
@@ -246,24 +258,29 @@ function SSButton({
         <SSBackgroundGradient style={styles.buttonGradient} />
       )}
       {!loading ? (
-        icon || (
-          <SSText
-            uppercase={uppercase}
-            center
-            style={[textStyles, { width: '100%' }]}
-          >
-            {label}
-          </SSText>
+        icon ? (
+          <View pointerEvents="none" style={styles.labelLayer}>
+            {icon}
+          </View>
+        ) : (
+          <View pointerEvents="none" style={styles.labelLayer}>
+            <SSText uppercase={uppercase} center style={textStyles}>
+              {label}
+            </SSText>
+          </View>
         )
       ) : (
-        <ActivityIndicator color={activityIndicatorColor} />
+        <View pointerEvents="none" style={styles.labelLayer}>
+          <ActivityIndicator color={activityIndicatorColor} />
+        </View>
       )}
       {withSelect && (
         <View
           style={{
             position: 'absolute',
             right: 15,
-            top: 28
+            top: 28,
+            zIndex: 3
           }}
         >
           <SSIconChevronDown height={5} width={11.6} />
@@ -349,6 +366,12 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0
   },
+  labelLayer: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2
+  },
   textDefault: {
     color: Colors.white,
     letterSpacing: 1
@@ -362,7 +385,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1
   },
   textSubtle: {
-    color: Colors.gray[100],
+    color: Colors.gray[75],
     letterSpacing: 1
   }
 })

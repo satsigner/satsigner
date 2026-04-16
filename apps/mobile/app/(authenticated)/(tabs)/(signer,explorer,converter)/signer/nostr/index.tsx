@@ -29,9 +29,7 @@ export default function NostrLanding() {
   const setAllRelayConnected = useNostrIdentityStore(
     (state) => state.setAllRelayConnected
   )
-  const updateIdentity = useNostrIdentityStore(
-    (state) => state.updateIdentity
-  )
+  const updateIdentity = useNostrIdentityStore((state) => state.updateIdentity)
   const [listRenderEpoch, setListRenderEpoch] = useState(0)
 
   const activeConnectionInfo = useNostrLandingRelayReachability({
@@ -70,9 +68,7 @@ export default function NostrLanding() {
           ...identities.filter((i) => i.npub !== activeIdentityNpub)
         ]
 
-  const anyRelayConnected = identities.some(
-    (i) => i.relayConnected === true
-  )
+  const anyRelayConnected = identities.some((i) => i.relayConnected === true)
 
   function handleRelayConnectToggle() {
     if (anyRelayConnected) {
@@ -133,7 +129,7 @@ export default function NostrLanding() {
                     identity.npub === activeIdentityNpub
                       ? identity.relayConnected === true
                         ? (activeConnectionInfo ?? { status: 'checking' })
-                        : { status: 'disconnected', reason: 'user_disabled' }
+                        : { reason: 'user_disabled', status: 'disconnected' }
                       : undefined
                   }
                   onPress={() => handleSelectIdentity(identity.npub)}
@@ -172,15 +168,15 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
     width: '100%'
   },
-  relayToggleButton: {
-    alignSelf: 'stretch',
-    width: '100%'
-  },
   emptyContainer: {
     paddingVertical: 60
   },
   listContainer: {
     paddingBottom: 16
+  },
+  relayToggleButton: {
+    alignSelf: 'stretch',
+    width: '100%'
   },
   withIdentitiesColumn: {
     flex: 1

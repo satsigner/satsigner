@@ -16,6 +16,7 @@ import { toast } from 'sonner-native'
 import { NostrAPI } from '@/api/nostr'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
+import SSClipboardCopy from '@/components/SSClipboardCopy'
 import {
   SSNostrFeedAuthorRow,
   SSNostrFeedNoteRow,
@@ -23,7 +24,6 @@ import {
 } from '@/components/SSNostrFeedNoteRow'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
-import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSPaymentMethodPicker, {
   type PaymentMethod
 } from '@/components/SSPaymentMethodPicker'
@@ -44,6 +44,7 @@ import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
 import { formatNostrCardDate } from '@/utils/format'
+import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import {
   type FetchedNoteData,
   decodeNostrContent,
@@ -51,19 +52,18 @@ import {
   extractPubpayTags,
   truncateNpub
 } from '@/utils/nostrIdentity'
-import { getPubKeyHexFromNpub } from '@/utils/nostr'
-import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
-import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
-import {
-  getRelayHintForEventId,
-  getReplyParentEventIdHex,
-  noteLooksLikeReply
-} from '@/utils/nostrNoteThread'
 import {
   nostrAccountProfileHref,
   nostrContactProfileHref,
   nostrNoteHref
 } from '@/utils/nostrNavigation'
+import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
+import {
+  getRelayHintForEventId,
+  getReplyParentEventIdHex,
+  noteLooksLikeReply
+} from '@/utils/nostrNoteThread'
+import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
 import {
   type ZapReceiptInfo,
   enrichZapReceipts,
@@ -114,10 +114,12 @@ export default function NostrNotePage() {
   const [replyParent, setReplyParent] = useState<FetchedNoteData | null>(null)
   const [replyParentLoading, setReplyParentLoading] = useState(false)
   const [replyParentMissing, setReplyParentMissing] = useState(false)
-  const [replyParentKind0Pending, setReplyParentKind0Pending] =
-    useState(false)
+  const [replyParentKind0Pending, setReplyParentKind0Pending] = useState(false)
   const fetchedRef = useRef(false)
-  const pendingInvoiceRef = useRef<{ invoice: string; zapRequestJson: string } | null>(null)
+  const pendingInvoiceRef = useRef<{
+    invoice: string
+    zapRequestJson: string
+  } | null>(null)
   const zapSheetRef = useRef<BottomSheetMethods>(null)
   const [sheetCustomAmount, setSheetCustomAmount] = useState('')
 
@@ -135,7 +137,7 @@ export default function NostrNotePage() {
   const privacyMode = useSettingsStore((state) => state.privacyMode)
 
   const decoded = useMemo(() => {
-    if (!nostrUri) return null
+    if (!nostrUri) {return null}
     return decodeNostrContent(nostrUri)
   }, [nostrUri])
 
@@ -143,19 +145,19 @@ export default function NostrNotePage() {
     const methods: PaymentMethod[] = []
     if (lightningConfig) {
       methods.push({
+        detail: lightningConfig.url,
         id: 'lightning',
         label: 'Lightning',
-        type: 'lightning',
-        detail: lightningConfig.url
+        type: 'lightning'
       })
     }
     if (mints.length > 0) {
       for (const mint of mints) {
         methods.push({
+          detail: mint.name || mint.url,
           id: `ecash-${mint.url}`,
           label: 'ECash',
-          type: 'ecash',
-          detail: mint.name || mint.url
+          type: 'ecash'
         })
       }
     }
@@ -184,7 +186,7 @@ export default function NostrNotePage() {
   )
 
   const relayHints = useMemo(() => {
-    if (!decoded) return undefined
+    if (!decoded) {return undefined}
     if (
       decoded.kind === 'nevent' &&
       Array.isArray(decoded.metadata?.relays) &&
@@ -227,13 +229,13 @@ export default function NostrNotePage() {
             return
           }
           setFetched((prev) => {
-            if (!prev) return prev
+            if (!prev) {return prev}
             return {
               ...prev,
-              authorName: profile.displayName,
-              authorPicture: profile.picture,
               authorLud16: profile.lud16,
-              authorNip05: profile.nip05
+              authorName: profile.displayName,
+              authorNip05: profile.nip05,
+              authorPicture: profile.picture
             }
           })
           setProfileLoading(false)
@@ -246,13 +248,13 @@ export default function NostrNotePage() {
   )
 
   useEffect(() => {
-    if (!decoded || fetchedRef.current) return
+    if (!decoded || fetchedRef.current) {return}
     if (
       decoded.kind !== 'note' &&
       decoded.kind !== 'nevent' &&
       decoded.kind !== 'json_note'
     )
-      return
+      {return}
 
     fetchedRef.current = true
 
@@ -264,9 +266,7 @@ export default function NostrNotePage() {
             : '',
         created_at: 0,
         kind:
-          typeof decoded.metadata.kind === 'number'
-            ? decoded.metadata.kind
-            : 1,
+          typeof decoded.metadata.kind === 'number' ? decoded.metadata.kind : 1,
         pubkey: '',
         tags: Array.isArray(decoded.metadata.tags)
           ? (decoded.metadata.tags as string[][])
@@ -297,7 +297,7 @@ export default function NostrNotePage() {
   }, [decoded, effectiveRelays, handleEventFound, ownPubkeys])
 
   async function handleTryHintedRelays() {
-    if (!decoded?.data || !relayHints?.length) return
+    if (!decoded?.data || !relayHints?.length) {return}
     setIsLoading(true)
     setNotFound(false)
     setTriedHints(true)
@@ -320,15 +320,12 @@ export default function NostrNotePage() {
   }
 
   async function handleBroadSearch() {
-    if (!decoded?.data) return
-    const alreadyTried = new Set([
-      ...effectiveRelays,
-      ...(relayHints ?? [])
-    ])
+    if (!decoded?.data) {return}
+    const alreadyTried = new Set([...effectiveRelays, ...(relayHints ?? [])])
     const searchRelays = NostrAPI.INDEXING_RELAYS.filter(
       (url) => !alreadyTried.has(url)
     )
-    if (searchRelays.length === 0) return
+    if (searchRelays.length === 0) {return}
 
     setIsLoading(true)
     setNotFound(false)
@@ -402,12 +399,12 @@ export default function NostrNotePage() {
   )
 
   const noteImageUrls = useMemo(() => {
-    if (!fetched || privacyMode) return []
+    if (!fetched || privacyMode) {return []}
     return extractImageUrlsFromNote(fetched.content, fetched.tags)
   }, [fetched, privacyMode])
 
   const noteVideoEmbeds = useMemo(() => {
-    if (!fetched || privacyMode) return []
+    if (!fetched || privacyMode) {return []}
     return extractVideoEmbedsFromNote(fetched.content, fetched.tags)
   }, [fetched, privacyMode])
 
@@ -417,7 +414,7 @@ export default function NostrNotePage() {
   )
 
   const replyParentRelayHint = useMemo(() => {
-    if (!fetched?.tags || !replyParentId) return undefined
+    if (!fetched?.tags || !replyParentId) {return undefined}
     return getRelayHintForEventId(fetched.tags, replyParentId)
   }, [fetched?.tags, replyParentId])
 
@@ -510,60 +507,55 @@ export default function NostrNotePage() {
   }, [effectiveRelays, ownPubkeys, replyParentId, replyParentRelayHint])
 
   const noteItemForFeed = useMemo((): NostrFeedNoteLike | null => {
-    if (!fetched || !decoded) return null
-    if (decoded.kind !== 'note' && decoded.kind !== 'nevent') return null
-    if (typeof decoded.data !== 'string' || !decoded.data) return null
+    if (!fetched || !decoded) {return null}
+    if (decoded.kind !== 'note' && decoded.kind !== 'nevent') {return null}
+    if (typeof decoded.data !== 'string' || !decoded.data) {return null}
     return {
-      id: decoded.data,
       content: fetched.content,
-      pubkey: fetched.pubkey,
+      created_at: fetched.created_at,
+      id: decoded.data,
       kind: fetched.kind,
-      tags: fetched.tags,
-      created_at: fetched.created_at
+      pubkey: fetched.pubkey,
+      tags: fetched.tags
     }
   }, [fetched, decoded])
 
   const noteAuthorFeedProps = useMemo(() => {
-    if (!fetched?.pubkey || privacyMode) return null
+    if (!fetched?.pubkey || privacyMode) {return null}
     const authorNpubBech = nip19.npubEncode(fetched.pubkey)
     const isSelf = authorNpubBech === npub
     const hasIdentityFallback = Boolean(
       isSelf &&
-        identity &&
-        (identity.displayName?.trim() ||
-          identity.picture?.trim() ||
-          identity.nip05?.trim())
+      identity &&
+      (identity.displayName?.trim() ||
+        identity.picture?.trim() ||
+        identity.nip05?.trim())
     )
     return {
       authorNpubBech,
       displayName:
         fetched.authorName?.trim() ||
-        (isSelf ? identity?.displayName?.trim() ?? '' : ''),
+        (isSelf ? (identity?.displayName?.trim() ?? '') : ''),
       loading: profileLoading && !hasIdentityFallback,
       nip05:
         fetched.authorNip05?.trim() ||
-        (isSelf ? identity?.nip05?.trim() ?? '' : ''),
+        (isSelf ? (identity?.nip05?.trim() ?? '') : ''),
       pictureUri:
-        (fetched.authorPicture?.trim() ||
-          (isSelf ? identity?.picture?.trim() : '') ||
-          '') || undefined
+        fetched.authorPicture?.trim() ||
+        (isSelf ? identity?.picture?.trim() : '') ||
+        '' ||
+        undefined
     }
-  }, [
-    fetched,
-    identity,
-    npub,
-    privacyMode,
-    profileLoading
-  ])
+  }, [fetched, identity, npub, privacyMode, profileLoading])
 
   const replyParentNoteLike = useMemo((): NostrFeedNoteLike | null => {
     if (!replyParent || !replyParentId) {
       return null
     }
     return {
-      id: replyParentId,
       content: replyParent.content,
       created_at: replyParent.created_at,
+      id: replyParentId,
       kind: replyParent.kind,
       pubkey: replyParent.pubkey,
       tags: replyParent.tags
@@ -578,24 +570,25 @@ export default function NostrNotePage() {
     const isSelf = authorNpubBech === npub
     const hasIdentityFallback = Boolean(
       isSelf &&
-        identity &&
-        (identity.displayName?.trim() ||
-          identity.picture?.trim() ||
-          identity.nip05?.trim())
+      identity &&
+      (identity.displayName?.trim() ||
+        identity.picture?.trim() ||
+        identity.nip05?.trim())
     )
     return {
       authorNpubBech,
       displayName:
         replyParent.authorName?.trim() ||
-        (isSelf ? identity?.displayName?.trim() ?? '' : ''),
+        (isSelf ? (identity?.displayName?.trim() ?? '') : ''),
       loading: replyParentKind0Pending && !hasIdentityFallback,
       nip05:
         replyParent.authorNip05?.trim() ||
-        (isSelf ? identity?.nip05?.trim() ?? '' : ''),
+        (isSelf ? (identity?.nip05?.trim() ?? '') : ''),
       pictureUri:
-        (replyParent.authorPicture?.trim() ||
-          (isSelf ? identity?.picture?.trim() : '') ||
-          '') || undefined
+        replyParent.authorPicture?.trim() ||
+        (isSelf ? identity?.picture?.trim() : '') ||
+        '' ||
+        undefined
     }
   }, [identity, npub, privacyMode, replyParent, replyParentKind0Pending])
 
@@ -614,8 +607,8 @@ export default function NostrNotePage() {
     (usesRemaining !== undefined && usesRemaining <= 0)
 
   async function handleZap(amountSats: number) {
-    if (!amountSats || amountSats <= 0) return
-    if (availablePaymentMethods.length === 0) return
+    if (!amountSats || amountSats <= 0) {return}
+    if (availablePaymentMethods.length === 0) {return}
 
     if (!effectiveLud16) {
       toast.error(t('nostrIdentity.note.zapEndpointNotFound'))
@@ -627,19 +620,19 @@ export default function NostrNotePage() {
       return
     }
 
-    if (!fetched) return
+    if (!fetched) {return}
 
     setZapLoading(true)
     try {
       const { invoice, zapRequestJson } = await initiateZap({
-        recipientLud16: effectiveLud16,
-        recipientPubkeyHex: fetched.pubkey,
-        senderNsec: identity.nsec,
+        amountSats,
         eventIdHex: decoded?.data,
         eventKind: fetched.kind,
         eventTags: fetched.tags,
-        amountSats,
-        relays: effectiveRelays
+        recipientLud16: effectiveLud16,
+        recipientPubkeyHex: fetched.pubkey,
+        relays: effectiveRelays,
+        senderNsec: identity.nsec
       })
 
       setZapLoading(false)
@@ -656,16 +649,21 @@ export default function NostrNotePage() {
       }
 
       if (availablePaymentMethods.length === 1) {
-        navigateToPayment(availablePaymentMethods[0], invoice, zapRequestJson, amountSats)
+        navigateToPayment(
+          availablePaymentMethods[0],
+          invoice,
+          zapRequestJson,
+          amountSats
+        )
         return
       }
 
       setPayAmount(amountSats)
       setPaymentPickerVisible(true)
-    } catch (err) {
+    } catch (error) {
       setZapLoading(false)
       const message =
-        err instanceof Error ? err.message : t('nostrIdentity.note.zapFailed')
+        error instanceof Error ? error.message : t('nostrIdentity.note.zapFailed')
       toast.error(message)
     }
   }
@@ -686,24 +684,24 @@ export default function NostrNotePage() {
 
     if (bolt11 && npub && nostrUri) {
       useZapFlowStore.getState().setPendingZap({
-        noteNpub: npub,
-        nostrUri,
-        invoice: bolt11,
         amountSats: sats,
-        zapRequestJson: reqJson,
-        paymentMethod: method
+        invoice: bolt11,
+        nostrUri,
+        noteNpub: npub,
+        paymentMethod: method,
+        zapRequestJson: reqJson
       })
     }
 
     if (method.type === 'lightning') {
       router.navigate({
-        pathname: '/signer/lightning/pay',
-        params: bolt11 ? { invoice: bolt11 } : undefined
+        params: bolt11 ? { invoice: bolt11 } : undefined,
+        pathname: '/signer/lightning/pay'
       })
     } else if (method.type === 'ecash') {
       router.navigate({
-        pathname: '/signer/ecash/send',
-        params: bolt11 ? { invoice: bolt11 } : undefined
+        params: bolt11 ? { invoice: bolt11 } : undefined,
+        pathname: '/signer/ecash/send'
       })
     } else if (method.type === 'ark') {
       toast.info(t('nostrIdentity.note.arkComingSoon'))
@@ -717,7 +715,7 @@ export default function NostrNotePage() {
 
   function handleCustomAmountSubmit() {
     const sats = parseInt(customAmount, 10)
-    if (!sats || sats <= 0) return
+    if (!sats || sats <= 0) {return}
     handleZap(sats)
   }
 
@@ -737,7 +735,7 @@ export default function NostrNotePage() {
 
   function handleSheetCustomSubmit() {
     const sats = parseInt(sheetCustomAmount, 10)
-    if (!sats || sats <= 0) return
+    if (!sats || sats <= 0) {return}
     zapSheetRef.current?.close()
     handleZap(sats)
   }
@@ -831,10 +829,7 @@ export default function NostrNotePage() {
                       </SSText>
                     )}
                     <SSText size="xs" color="muted" type="mono">
-                      {truncateNpub(
-                        nip19.npubEncode(fetched.pubkey),
-                        12
-                      )}
+                      {truncateNpub(nip19.npubEncode(fetched.pubkey), 12)}
                     </SSText>
                   </SSVStack>
                 </SSHStack>
@@ -875,59 +870,59 @@ export default function NostrNotePage() {
             ) : null}
 
             {!noteItemForFeed &&
-              fetched &&
-              (fetched.content.length > 0 ||
-                noteImageUrls.length > 0 ||
-                noteVideoEmbeds.length > 0) ? (
-                <View style={styles.noteCard}>
-                  {!privacyMode && noteLooksLikeReply(fetched.tags) ? (
-                    <View style={styles.noteReplyTag} pointerEvents="none">
-                      <SSText
-                        size="xxs"
-                        color="white"
-                        uppercase
-                        style={styles.noteReplyTagText}
-                      >
-                        {t('nostrIdentity.feed.replyTag')}
-                      </SSText>
-                    </View>
-                  ) : null}
-                  {fetched.content.length > 0 ? (
+            fetched &&
+            (fetched.content.length > 0 ||
+              noteImageUrls.length > 0 ||
+              noteVideoEmbeds.length > 0) ? (
+              <View style={styles.noteCard}>
+                {!privacyMode && noteLooksLikeReply(fetched.tags) ? (
+                  <View style={styles.noteReplyTag} pointerEvents="none">
                     <SSText
-                      style={[
-                        styles.noteText,
-                        !privacyMode &&
-                          noteLooksLikeReply(fetched.tags) &&
-                          styles.noteTextWithReplyTag
-                      ]}
+                      size="xxs"
+                      color="white"
+                      uppercase
+                      style={styles.noteReplyTagText}
                     >
-                      {privacyMode
-                        ? t('nostrIdentity.feed.hiddenInPrivacyMode')
-                        : fetched.content}
+                      {t('nostrIdentity.feed.replyTag')}
                     </SSText>
-                  ) : null}
-                  {noteImageUrls.length > 0 ? (
-                    <SSNoteInlineImages
-                      uris={noteImageUrls}
-                      style={
-                        fetched.content.length > 0
-                          ? styles.noteImagesBelowText
-                          : styles.noteImagesNoText
-                      }
-                    />
-                  ) : null}
-                  {noteVideoEmbeds.length > 0 ? (
-                    <SSNoteInlineVideos
-                      embeds={noteVideoEmbeds}
-                      style={
-                        fetched.content.length > 0 || noteImageUrls.length > 0
-                          ? styles.noteImagesBelowText
-                          : styles.noteImagesNoText
-                      }
-                    />
-                  ) : null}
-                </View>
-              ) : null}
+                  </View>
+                ) : null}
+                {fetched.content.length > 0 ? (
+                  <SSText
+                    style={[
+                      styles.noteText,
+                      !privacyMode &&
+                        noteLooksLikeReply(fetched.tags) &&
+                        styles.noteTextWithReplyTag
+                    ]}
+                  >
+                    {privacyMode
+                      ? t('nostrIdentity.feed.hiddenInPrivacyMode')
+                      : fetched.content}
+                  </SSText>
+                ) : null}
+                {noteImageUrls.length > 0 ? (
+                  <SSNoteInlineImages
+                    uris={noteImageUrls}
+                    style={
+                      fetched.content.length > 0
+                        ? styles.noteImagesBelowText
+                        : styles.noteImagesNoText
+                    }
+                  />
+                ) : null}
+                {noteVideoEmbeds.length > 0 ? (
+                  <SSNoteInlineVideos
+                    embeds={noteVideoEmbeds}
+                    style={
+                      fetched.content.length > 0 || noteImageUrls.length > 0
+                        ? styles.noteImagesBelowText
+                        : styles.noteImagesNoText
+                    }
+                  />
+                ) : null}
+              </View>
+            ) : null}
 
             <SSVStack gap="xs">
               <SSText size="xs" color="muted" uppercase>
@@ -986,10 +981,7 @@ export default function NostrNotePage() {
 
                     {enhancedZap.zapGoal !== undefined && (
                       <SSVStack gap="xs">
-                        <SSHStack
-                          gap="sm"
-                          style={styles.goalHeader}
-                        >
+                        <SSHStack gap="sm" style={styles.goalHeader}>
                           <SSText size="xs" color="muted">
                             {t('nostrIdentity.note.goal')}
                           </SSText>
@@ -1057,12 +1049,12 @@ export default function NostrNotePage() {
                         <SSText size="xs" color="muted">
                           {privacyMode
                             ? t('nostrIdentity.note.rangeHint', {
-                                min: NOSTR_PRIVACY_MASK,
-                                max: NOSTR_PRIVACY_MASK
+                                max: NOSTR_PRIVACY_MASK,
+                                min: NOSTR_PRIVACY_MASK
                               })
                             : t('nostrIdentity.note.rangeHint', {
-                                min: enhancedZap.zapMin!.toLocaleString(),
-                                max: enhancedZap.zapMax!.toLocaleString()
+                                max: enhancedZap.zapMax!.toLocaleString(),
+                                min: enhancedZap.zapMin!.toLocaleString()
                               })}
                         </SSText>
                         <SSHStack gap="sm" style={styles.presetRow}>
@@ -1081,7 +1073,9 @@ export default function NostrNotePage() {
                               activeOpacity={0.6}
                             >
                               <SSText size="sm" weight="medium" center>
-                                {privacyMode ? NOSTR_PRIVACY_MASK : sats.toLocaleString()}
+                                {privacyMode
+                                  ? NOSTR_PRIVACY_MASK
+                                  : sats.toLocaleString()}
                               </SSText>
                             </TouchableOpacity>
                           ))}
@@ -1113,8 +1107,10 @@ export default function NostrNotePage() {
                             zapLoading ||
                             !effectiveLud16 ||
                             !customAmount ||
-                            parseInt(customAmount, 10) < (enhancedZap.zapMin ?? 1) ||
-                            parseInt(customAmount, 10) > (enhancedZap.zapMax ?? Infinity)
+                            parseInt(customAmount, 10) <
+                              (enhancedZap.zapMin ?? 1) ||
+                            parseInt(customAmount, 10) >
+                              (enhancedZap.zapMax ?? Infinity)
                           }
                           onPress={handleCustomAmountSubmit}
                         />
@@ -1144,12 +1140,8 @@ export default function NostrNotePage() {
                               label={t('nostrIdentity.note.zap')}
                               variant="gradient"
                               gradientType="special"
-                              disabled={
-                                zapLoading || !effectiveLud16
-                              }
-                              onPress={() =>
-                                handleAmountSelected(tag.amount)
-                              }
+                              disabled={zapLoading || !effectiveLud16}
+                              onPress={() => handleAmountSelected(tag.amount)}
                               style={styles.zapButton}
                             />
                           </SSHStack>
@@ -1173,12 +1165,8 @@ export default function NostrNotePage() {
                               <TouchableOpacity
                                 key={sats}
                                 style={styles.presetButton}
-                                disabled={
-                                  zapLoading || !effectiveLud16
-                                }
-                                onPress={() =>
-                                  handleAmountSelected(sats)
-                                }
+                                disabled={zapLoading || !effectiveLud16}
+                                onPress={() => handleAmountSelected(sats)}
                                 activeOpacity={0.6}
                               >
                                 <SSText size="sm" weight="medium" center>
@@ -1194,9 +1182,7 @@ export default function NostrNotePage() {
                             <TextInput
                               style={styles.customInput}
                               placeholderTextColor={Colors.gray[500]}
-                              placeholder={t(
-                                'nostrIdentity.note.customAmount'
-                              )}
+                              placeholder={t('nostrIdentity.note.customAmount')}
                               keyboardType="number-pad"
                               value={customAmount}
                               onChangeText={setCustomAmount}
@@ -1206,8 +1192,7 @@ export default function NostrNotePage() {
                             />
                             <SSButton
                               label={
-                                customAmount &&
-                                parseInt(customAmount, 10) > 0
+                                customAmount && parseInt(customAmount, 10) > 0
                                   ? `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : customAmount} sats`
                                   : t('nostrIdentity.note.zap')
                               }
@@ -1334,9 +1319,7 @@ export default function NostrNotePage() {
               </SSText>
             )}
 
-            {replyParentId &&
-            fetched &&
-            noteLooksLikeReply(fetched.tags) ? (
+            {replyParentId && fetched && noteLooksLikeReply(fetched.tags) ? (
               <SSVStack gap="sm" style={styles.replyParentSection}>
                 <SSText size="xs" color="muted" uppercase>
                   {t('nostrIdentity.note.replyingTo')}
@@ -1409,7 +1392,13 @@ export default function NostrNotePage() {
                       {t('nostrIdentity.note.hintedRelaysAvailable')}
                     </SSText>
                     {relayHints.map((url) => (
-                      <SSText key={url} size="xxs" type="mono" color="muted" center>
+                      <SSText
+                        key={url}
+                        size="xxs"
+                        type="mono"
+                        color="muted"
+                        center
+                      >
                         {url}
                       </SSText>
                     ))}
@@ -1541,6 +1530,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3
   },
+  notFoundCard: {
+    backgroundColor: Colors.gray[925],
+    borderColor: Colors.gray[800],
+    borderRadius: 5,
+    borderWidth: 1,
+    padding: 24
+  },
   noteCard: {
     backgroundColor: Colors.gray[925],
     borderColor: Colors.gray[800],
@@ -1549,15 +1545,11 @@ const styles = StyleSheet.create({
     padding: 16,
     position: 'relative'
   },
-  oneTapButton: {
-    alignItems: 'center',
-    backgroundColor: Colors.gray[925],
-    borderColor: Colors.gray[700],
-    borderRadius: 5,
-    borderWidth: 1,
-    gap: 2,
-    paddingHorizontal: 16,
-    paddingVertical: 14
+  noteImagesBelowText: {
+    marginTop: 12
+  },
+  noteImagesNoText: {
+    marginTop: 0
   },
   noteReplyTag: {
     backgroundColor: Colors.gray[800],
@@ -1574,12 +1566,6 @@ const styles = StyleSheet.create({
   noteReplyTagText: {
     letterSpacing: 0.5
   },
-  noteImagesBelowText: {
-    marginTop: 12
-  },
-  noteImagesNoText: {
-    marginTop: 0
-  },
   noteText: {
     color: Colors.white,
     fontSize: 15,
@@ -1588,12 +1574,15 @@ const styles = StyleSheet.create({
   noteTextWithReplyTag: {
     paddingRight: 44
   },
-  notFoundCard: {
+  oneTapButton: {
+    alignItems: 'center',
     backgroundColor: Colors.gray[925],
-    borderColor: Colors.gray[800],
+    borderColor: Colors.gray[700],
     borderRadius: 5,
     borderWidth: 1,
-    padding: 24
+    gap: 2,
+    paddingHorizontal: 16,
+    paddingVertical: 14
   },
   presetButton: {
     backgroundColor: Colors.gray[925],
@@ -1618,20 +1607,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     width: '100%'
   },
-  replyParentSection: {
-    borderColor: Colors.gray[800],
-    borderTopWidth: 1,
-    marginTop: 8,
-    paddingTop: 16
-  },
-  sheetContent: {
-    paddingBottom: 24
-  },
   receiptAmountCol: {
     alignItems: 'flex-end'
-  },
-  retrySection: {
-    width: '100%'
   },
   receiptAvatar: {
     borderRadius: 16,
@@ -1661,6 +1638,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     minWidth: 0
+  },
+  replyParentSection: {
+    borderColor: Colors.gray[800],
+    borderTopWidth: 1,
+    marginTop: 8,
+    paddingTop: 16
+  },
+  retrySection: {
+    width: '100%'
+  },
+  sheetContent: {
+    paddingBottom: 24
   },
   zapButton: {
     minWidth: 90

@@ -19,8 +19,8 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
-import { type NostrRelayConnectionInfo } from '@/types/models/NostrIdentity'
 import { Colors } from '@/styles'
+import { type NostrRelayConnectionInfo } from '@/types/models/NostrIdentity'
 import {
   nostrAccountHref,
   nostrNoteHref,
@@ -56,17 +56,17 @@ export default function NostrAccountLanding() {
       return
     }
     if (!identity.relayConnected) {
-      setConnectionInfo({ status: 'disconnected', reason: 'user_disabled' })
+      setConnectionInfo({ reason: 'user_disabled', status: 'disconnected' })
       return
     }
     if (effectiveRelays.length === 0) {
-      setConnectionInfo({ status: 'disconnected', reason: 'no_relays' })
+      setConnectionInfo({ reason: 'no_relays', status: 'disconnected' })
       return
     }
     let cancelled = false
     setConnectionInfo({ status: 'checking' })
     void testNostrRelaysReachable(effectiveRelays).then((info) => {
-      if (cancelled) return
+      if (cancelled) {return}
       setConnectionInfo(info)
     })
     return () => {
@@ -89,19 +89,19 @@ export default function NostrAccountLanding() {
       fetchedRef.current ||
       effectiveRelays.length === 0
     )
-      return
+      {return}
     fetchedRef.current = true
 
     const api = new NostrAPI(effectiveRelays)
     api
       .fetchKind0(npub)
       .then((profile) => {
-        if (!profile) return
+        if (!profile) {return}
         updateIdentity(npub, {
           displayName: profile.displayName || identity.displayName,
-          picture: profile.picture || identity.picture,
+          lud16: profile.lud16 || identity.lud16,
           nip05: profile.nip05 || identity.nip05,
-          lud16: profile.lud16 || identity.lud16
+          picture: profile.picture || identity.picture
         })
       })
       .catch(() => {
@@ -128,8 +128,8 @@ export default function NostrAccountLanding() {
     pubkey: string
   }) {
     const nevent = nip19.neventEncode({
-      id: payload.id,
       author: payload.pubkey,
+      id: payload.id,
       kind: payload.kind
     })
     router.navigate(nostrNoteHref(npub, nevent))
@@ -142,8 +142,8 @@ export default function NostrAccountLanding() {
   const contentHandler = useContentHandler({
     context: 'nostr',
     onContentScanned: handleContentScanned,
-    onSend: handleSend,
-    onReceive: handleReceive
+    onReceive: handleReceive,
+    onSend: handleSend
   })
 
   if (!identity) {
@@ -160,14 +160,11 @@ export default function NostrAccountLanding() {
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerTitle: '',
           headerRight: () => (
             <SSHStack gap="md" style={{ marginRight: 8 }}>
               <SSIconButton
                 accessibilityLabel={t('nostrIdentity.chat.title')}
-                onPress={() =>
-                  router.navigate(nostrAccountHref(npub, 'chat'))
-                }
+                onPress={() => router.navigate(nostrAccountHref(npub, 'chat'))}
               >
                 <SSIconChatBubble
                   color={Colors.gray[200]}
@@ -181,14 +178,11 @@ export default function NostrAccountLanding() {
                   router.navigate(nostrAccountHref(npub, 'settings'))
                 }
               >
-                <SSIconNostr
-                  color={Colors.gray[200]}
-                  height={16}
-                  width={16}
-                />
+                <SSIconNostr color={Colors.gray[200]} height={16} width={16} />
               </SSIconButton>
             </SSHStack>
-          )
+          ),
+          headerTitle: ''
         }}
       />
       <ScrollView showsVerticalScrollIndicator={false}>

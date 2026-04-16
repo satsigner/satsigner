@@ -6,6 +6,7 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSAmountInput from '@/components/SSAmountInput'
+import SSEcashLightningTabs from '@/components/SSEcashLightningTabs'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSLNURLDetails from '@/components/SSLNURLDetails'
@@ -21,6 +22,8 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
+import { useZapFlowStore } from '@/store/zapFlow'
 import { type LNDecodedInvoice } from '@/types/models/LND'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
@@ -93,6 +96,7 @@ export default function EcashSendPage() {
       state.satsToFiat
     ])
   )
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
 
   const handleGenerateToken = useCallback(async () => {
     if (!amount || amount.trim() === '') {
@@ -203,7 +207,13 @@ export default function EcashSendPage() {
       setInvoice('')
       setAmount('')
       toast.success(t('ecash.success.tokensMelted'))
-      router.navigate('/signer/ecash')
+      const { pendingZap, setZapResult } = useZapFlowStore.getState()
+      if (pendingZap) {
+        setZapResult('success')
+        router.back()
+      } else {
+        router.navigate('/signer/ecash')
+      }
     } catch (error) {
       if (error instanceof Error) {
         if (
@@ -431,20 +441,12 @@ export default function EcashSendPage() {
       />
       <ScrollView>
         <SSVStack gap="lg" style={{ paddingBottom: 60 }}>
-          <SSHStack>
-            <SSButton
-              label={t('ecash.send.ecashTab')}
-              variant={activeTab === 'ecash' ? 'outline' : 'subtle'}
-              style={{ flex: 1 }}
-              onPress={() => setActiveTab('ecash')}
-            />
-            <SSButton
-              label={t('ecash.send.lightningTab')}
-              variant={activeTab === 'lightning' ? 'outline' : 'subtle'}
-              style={{ flex: 1 }}
-              onPress={() => setActiveTab('lightning')}
-            />
-          </SSHStack>
+          <SSEcashLightningTabs
+            activeTab={activeTab}
+            ecashLabel={t('ecash.send.ecashTab')}
+            lightningLabel={t('ecash.send.lightningTab')}
+            onChange={setActiveTab}
+          />
           {activeTab === 'ecash' && (
             <SSVStack gap="md">
               <SSVStack gap="xs">
@@ -462,6 +464,7 @@ export default function EcashSendPage() {
                   )}
                   fiatCurrency={fiatCurrency}
                   btcPrice={btcPrice}
+                  privacyMode={privacyMode}
                   satsToFiat={satsToFiat}
                 />
               </SSVStack>
@@ -564,6 +567,7 @@ export default function EcashSendPage() {
                   <SSPaymentDetails
                     decodedInvoice={decodedInvoice}
                     fiatCurrency={fiatCurrency}
+                    privacyMode={privacyMode}
                     satsToFiat={satsToFiat}
                   />
                 )}
@@ -579,6 +583,7 @@ export default function EcashSendPage() {
                     onCommentChange={setComment}
                     inputStyles={styles.input}
                     fiatCurrency={fiatCurrency}
+                    privacyMode={privacyMode}
                     satsToFiat={satsToFiat}
                   />
                 )}
@@ -629,6 +634,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     height: 'auto',
     padding: 10
+  },
+  tabSlot: {
+    flex: 1,
+    minWidth: 0
   },
   tokenInput: {
     fontFamily: 'monospace',

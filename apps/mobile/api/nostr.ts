@@ -1,8 +1,8 @@
 import { Buffer } from 'buffer'
 
-import NetInfo from '@react-native-community/netinfo'
 import type { NDKKind, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
+import NetInfo from '@react-native-community/netinfo'
 import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
 
 import {
@@ -65,7 +65,7 @@ function testSingleRelay(
       } catch {
         // already closed
       }
-      resolve({ url, connected: false, error: 'timeout' })
+      resolve({ connected: false, error: 'timeout', url })
     }, timeoutMs)
 
     const ws = new WebSocket(url)
@@ -77,7 +77,7 @@ function testSingleRelay(
       } catch {
         // already closed
       }
-      resolve({ url, connected: true })
+      resolve({ connected: true, url })
     }
 
     ws.onerror = (ev) => {
@@ -89,15 +89,14 @@ function testSingleRelay(
       } catch {
         // already closed
       }
-      resolve({ url, connected: false, error: message })
+      resolve({ connected: false, error: message, url })
     }
 
     ws.onclose = (event: CloseEvent) => {
       clearTimeout(timer)
       if (event.code !== 1000 && event.code !== 1005) {
-        const reason =
-          event.reason || `closed with code ${event.code}`
-        resolve({ url, connected: false, error: reason })
+        const reason = event.reason || `closed with code ${event.code}`
+        resolve({ connected: false, error: reason, url })
       }
     }
   })
@@ -107,14 +106,14 @@ export async function testNostrRelaysReachable(
   relayUrls: string[]
 ): Promise<NostrRelayConnectionInfo> {
   if (relayUrls.length === 0) {
-    return { status: 'disconnected', reason: 'no_relays' }
+    return { reason: 'no_relays', status: 'disconnected' }
   }
 
   const netState = await NetInfo.fetch()
   if (netState.isConnected === false) {
     return {
-      status: 'disconnected',
-      reason: 'no_internet'
+      reason: 'no_internet',
+      status: 'disconnected'
     }
   }
 
@@ -127,9 +126,9 @@ export async function testNostrRelaysReachable(
   const anyConnected = relayDetails.some((r) => r.connected)
 
   return {
-    status: anyConnected ? 'connected' : 'disconnected',
     reason: anyConnected ? undefined : 'all_failed',
-    relayDetails
+    relayDetails,
+    status: anyConnected ? 'connected' : 'disconnected'
   }
 }
 
@@ -237,7 +236,6 @@ export class NostrAPI {
       throw new Error('NDK pool not initialized')
     }
   }
-
 
   /**
    * Fetches kind 0 (metadata) for a 64-char hex pubkey (lowercase).
@@ -400,16 +398,23 @@ export class NostrAPI {
     }[]
   > {
     const hexPubkey = getPubKeyHexFromNpub(npub)
-    if (!hexPubkey) return []
+    if (!hexPubkey) {return []}
 
     const isKind1Only =
       kinds.length === 0 || (kinds.length === 1 && kinds[0] === 1)
-    let cached: { id: string; content: string; pubkey: string; kind: number; tags: string[][]; created_at: number }[] = []
+    let cached: {
+      id: string
+      content: string
+      pubkey: string
+      kind: number
+      tags: string[][]
+      created_at: number
+    }[] = []
     if (isKind1Only) {
       cached = getCachedNotes(hexPubkey, limit, until).map((e) => ({
-        id: e.event_id,
         content: e.content,
         created_at: e.created_at,
+        id: e.event_id,
         kind: e.kind,
         pubkey: e.pubkey,
         tags: e.tags
@@ -417,7 +422,7 @@ export class NostrAPI {
     }
 
     await this.connectForPublish()
-    if (!this.ndk) return cached
+    if (!this.ndk) {return cached}
 
     const kindList = kinds.length > 0 ? kinds : [1]
     const filter: Record<string, unknown> = {
@@ -452,7 +457,7 @@ export class NostrAPI {
       cacheEvents(fresh, this.ownPubkeys)
     }
 
-    if (!isKind1Only) return fresh
+    if (!isKind1Only) {return fresh}
 
     const idSet = new Set(fresh.map((n) => n.id))
     const merged = [
@@ -555,7 +560,7 @@ export class NostrAPI {
       const sub = ndk.subscribe(filter as never, { closeOnEose: false })
 
       const finish = (result: NDKEvent | null) => {
-        if (settled) return
+        if (settled) {return}
         settled = true
         sub.stop()
         resolve(result)
@@ -586,7 +591,7 @@ export class NostrAPI {
       const sub = ndk.subscribe(filter as never, { closeOnEose: false })
 
       const finish = () => {
-        if (settled) return
+        if (settled) {return}
         settled = true
         sub.stop()
         resolve(collected)
@@ -613,9 +618,7 @@ export class NostrAPI {
     'wss://purplepag.es'
   ]
 
-  async fetchEvent(
-    eventIdHex: string
-  ): Promise<{
+  async fetchEvent(eventIdHex: string): Promise<{
     content: string
     pubkey: string
     kind: number
@@ -634,17 +637,14 @@ export class NostrAPI {
     }
 
     await this.connectForPublish()
-    if (!this.ndk) return null
+    if (!this.ndk) {return null}
 
     const filter = { ids: [eventIdHex], limit: 1 }
     const poolEvent = await NostrAPI.fetchWithTimeout(this.ndk, filter, 15000)
-    if (!poolEvent) return null
+    if (!poolEvent) {return null}
 
     const formatted = NostrAPI.formatNdkEvent(poolEvent)
-    cacheEvents(
-      [{ id: poolEvent.id, ...formatted }],
-      this.ownPubkeys
-    )
+    cacheEvents([{ id: poolEvent.id, ...formatted }], this.ownPubkeys)
     return formatted
   }
 
@@ -659,7 +659,7 @@ export class NostrAPI {
     tags: string[][]
     created_at: number
   } | null> {
-    if (relayUrls.length === 0) return null
+    if (relayUrls.length === 0) {return null}
 
     const tempNdk = createMobileNdk(relayUrls)
     try {
@@ -667,7 +667,7 @@ export class NostrAPI {
 
       const filter = { ids: [eventIdHex], limit: 1 }
       const event = await NostrAPI.fetchWithTimeout(tempNdk, filter, 15000)
-      if (!event) return null
+      if (!event) {return null}
 
       const formatted = NostrAPI.formatNdkEvent(event)
       cacheEvents([{ id: event.id, ...formatted }], ownPubkeys)
@@ -686,15 +686,15 @@ export class NostrAPI {
 
   private static ndkEventToStorableRecord(event: NDKEvent) {
     return {
-      id: event.id,
-      pubkey: event.pubkey,
-      kind: event.kind ?? 0,
       content: event.content,
       created_at: event.created_at ?? 0,
+      id: event.id,
+      kind: event.kind ?? 0,
+      pubkey: event.pubkey,
+      sig: event.sig,
       tags: event.tags.map((tag) =>
         tag.filter((v): v is string => typeof v === 'string')
-      ),
-      sig: event.sig
+      )
     }
   }
 
@@ -703,7 +703,7 @@ export class NostrAPI {
     eventIdHex: string,
     relayUrls: string[]
   ): Promise<string | null> {
-    if (relayUrls.length === 0) return null
+    if (relayUrls.length === 0) {return null}
 
     const tempNdk = createMobileNdk(relayUrls)
     try {
@@ -711,7 +711,7 @@ export class NostrAPI {
 
       const filter = { ids: [eventIdHex], limit: 1 }
       const event = await NostrAPI.fetchWithTimeout(tempNdk, filter, 15000)
-      if (!event) return null
+      if (!event) {return null}
       return JSON.stringify(NostrAPI.ndkEventToStorableRecord(event), null, 2)
     } finally {
       try {

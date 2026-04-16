@@ -52,7 +52,7 @@ export default function NostrRelays() {
   }
 
   function handleAddCustomRelay() {
-    if (!customRelayUrl) return
+    if (!customRelayUrl) {return}
     const relayUrl = RELAY_PROTOCOL_PREFIX + customRelayUrl
     if (!selectedRelays.includes(relayUrl)) {
       setSelectedRelays((prev) => [...prev, relayUrl])
@@ -77,9 +77,7 @@ export default function NostrRelays() {
       <SSMainLayout style={styles.mainLayout}>
         <SSVStack gap="lg">
           <SSVStack gap="sm">
-            <SSText uppercase>
-              {t('nostrIdentity.relays.public')}
-            </SSText>
+            <SSText uppercase>{t('nostrIdentity.relays.public')}</SSText>
             {NOSTR_RELAYS.map((relay) => (
               <RelayRow
                 key={relay.url}
@@ -90,9 +88,7 @@ export default function NostrRelays() {
             ))}
           </SSVStack>
           <SSVStack gap="md">
-            <SSText uppercase>
-              {t('nostrIdentity.relays.custom')}
-            </SSText>
+            <SSText uppercase>{t('nostrIdentity.relays.custom')}</SSText>
             {selectedRelays
               .filter((url) => !NOSTR_RELAYS.some((r) => r.url === url))
               .map((url) => (

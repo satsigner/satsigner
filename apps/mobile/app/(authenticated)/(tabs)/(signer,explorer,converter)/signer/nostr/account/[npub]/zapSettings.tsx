@@ -5,16 +5,11 @@ import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
-import {
-  type PaymentMethod
-} from '@/components/SSPaymentMethodPicker'
+import { type PaymentMethod } from '@/components/SSPaymentMethodPicker'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import {
-  DEFAULT_ONE_TAP_AMOUNT,
-  DEFAULT_ZAP_PRESETS
-} from '@/constants/nostr'
+import { DEFAULT_ONE_TAP_AMOUNT, DEFAULT_ZAP_PRESETS } from '@/constants/nostr'
 import { useEcash } from '@/hooks/useEcash'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -35,18 +30,18 @@ function buildPaymentMethods(
   const methods: PaymentMethod[] = []
   if (lightningConfig) {
     methods.push({
+      detail: lightningConfig.url,
       id: 'lightning',
       label: 'Lightning',
-      type: 'lightning',
-      detail: lightningConfig.url
+      type: 'lightning'
     })
   }
   for (const mint of mints) {
     methods.push({
+      detail: mint.name || mint.url,
       id: `ecash-${mint.url}`,
       label: 'ECash',
-      type: 'ecash',
-      detail: mint.name || mint.url
+      type: 'ecash'
     })
   }
   return methods
@@ -80,12 +75,12 @@ export default function ZapSettingsPage() {
 
   function handleAddPreset() {
     const val = parseInt(newPreset, 10)
-    if (!val || val <= 0) return
+    if (!val || val <= 0) {return}
     if (presets.includes(val)) {
       setNewPreset('')
       return
     }
-    setPresets([...presets, val].sort((a, b) => a - b))
+    setPresets([...presets, val].toSorted((a, b) => a - b))
     setNewPreset('')
   }
 
@@ -94,14 +89,14 @@ export default function ZapSettingsPage() {
   }
 
   function handleSave() {
-    if (!npub) return
+    if (!npub) {return}
     const parsedOneTap = parseInt(oneTapAmount, 10) || DEFAULT_ONE_TAP_AMOUNT
     updateIdentity(npub, {
       zapPreferences: {
-        presetAmounts: presets.length > 0 ? presets : DEFAULT_ZAP_PRESETS,
-        oneTapAmount: parsedOneTap,
         autoApprove,
-        autoApproveWalletId: autoApprove ? autoApproveWalletId : undefined
+        autoApproveWalletId: autoApprove ? autoApproveWalletId : undefined,
+        oneTapAmount: parsedOneTap,
+        presetAmounts: presets.length > 0 ? presets : DEFAULT_ZAP_PRESETS
       }
     })
     toast.success(t('nostrIdentity.zapSettings.saved'))
@@ -123,9 +118,7 @@ export default function ZapSettingsPage() {
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>
-              {t('nostrIdentity.zapSettings.title')}
-            </SSText>
+            <SSText uppercase>{t('nostrIdentity.zapSettings.title')}</SSText>
           )
         }}
       />
@@ -201,7 +194,7 @@ export default function ZapSettingsPage() {
                 description={t('nostrIdentity.zapSettings.autoApproveHint')}
                 selected={autoApprove}
                 onPress={() => setAutoApprove(!autoApprove)}
-                labelProps={{ size: 'md', color: 'white' }}
+                labelProps={{ color: 'white', size: 'md' }}
               />
 
               {autoApprove && (
@@ -231,11 +224,7 @@ export default function ZapSettingsPage() {
                               {w.label}
                             </SSText>
                             {w.detail ? (
-                              <SSText
-                                size="xs"
-                                color="muted"
-                                numberOfLines={1}
-                              >
+                              <SSText size="xs" color="muted" numberOfLines={1}>
                                 {w.detail}
                               </SSText>
                             ) : null}

@@ -30,10 +30,7 @@ const useNostrIdentityStore = create<
 >()(
   persist(
     (set, get) => ({
-      identities: [],
       activeIdentityNpub: null,
-      relays: DEFAULT_RELAYS,
-
       addIdentity: (identity) => {
         set((state) => {
           if (state.identities.some((i) => i.npub === identity.npub)) {
@@ -46,22 +43,41 @@ const useNostrIdentityStore = create<
           return { identities: [...state.identities, next] }
         })
       },
+      addRelay: (url) => {
+        set((state) => {
+          if (state.relays.includes(url)) return state
+          return { relays: [...state.relays, url] }
+        })
+      },
+
+      clearAll: () => {
+        set({
+          identities: [],
+          activeIdentityNpub: null,
+          relays: DEFAULT_RELAYS
+        })
+      },
+
+      getActiveIdentity: () => {
+        const { identities, activeIdentityNpub } = get()
+        return identities.find((i) => i.npub === activeIdentityNpub)
+      },
+
+      identities: [],
+
+      relays: DEFAULT_RELAYS,
 
       removeIdentity: (npub) => {
         set((state) => ({
           identities: state.identities.filter((i) => i.npub !== npub),
           activeIdentityNpub:
-            state.activeIdentityNpub === npub
-              ? null
-              : state.activeIdentityNpub
+            state.activeIdentityNpub === npub ? null : state.activeIdentityNpub
         }))
       },
 
-      updateIdentity: (npub, updates) => {
+      removeRelay: (url) => {
         set((state) => ({
-          identities: state.identities.map((i) =>
-            i.npub === npub ? { ...i, ...updates } : i
-          )
+          relays: state.relays.filter((r) => r !== url)
         }))
       },
 
@@ -78,39 +94,20 @@ const useNostrIdentityStore = create<
         }))
       },
 
-      getActiveIdentity: () => {
-        const { identities, activeIdentityNpub } = get()
-        return identities.find((i) => i.npub === activeIdentityNpub)
-      },
-
       setRelays: (relays) => {
         set({ relays })
       },
 
-      addRelay: (url) => {
-        set((state) => {
-          if (state.relays.includes(url)) return state
-          return { relays: [...state.relays, url] }
-        })
-      },
-
-      removeRelay: (url) => {
+      updateIdentity: (npub, updates) => {
         set((state) => ({
-          relays: state.relays.filter((r) => r !== url)
+          identities: state.identities.map((i) =>
+            i.npub === npub ? { ...i, ...updates } : i
+          )
         }))
-      },
-
-      clearAll: () => {
-        set({
-          identities: [],
-          activeIdentityNpub: null,
-          relays: DEFAULT_RELAYS
-        })
       }
     }),
     {
       name: 'satsigner-nostr-identity',
-      storage: createJSONStorage(() => mmkvStorage),
       partialize: (state) => ({
         identities: state.identities.map((i) => ({
           ...i,
@@ -119,7 +116,8 @@ const useNostrIdentityStore = create<
         })),
         activeIdentityNpub: state.activeIdentityNpub,
         relays: state.relays
-      })
+      }),
+      storage: createJSONStorage(() => mmkvStorage)
     }
   )
 )

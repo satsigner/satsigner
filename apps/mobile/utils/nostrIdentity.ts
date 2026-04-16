@@ -13,7 +13,9 @@ type DerivedNostrKeys = {
   mnemonic: string
 }
 
-export function deriveNostrKeysFromMnemonic(mnemonic: string): DerivedNostrKeys {
+export function deriveNostrKeysFromMnemonic(
+  mnemonic: string
+): DerivedNostrKeys {
   const seed = mnemonicToSeed(mnemonic)
   const root = HDKey.fromMasterSeed(seed)
   const child = root.derive(NIP06_DERIVATION_PATH)
@@ -24,7 +26,7 @@ export function deriveNostrKeysFromMnemonic(mnemonic: string): DerivedNostrKeys 
   const publicKey = getPublicKey(privateKey)
   const nsec = nip19.nsecEncode(privateKey)
   const npub = nip19.npubEncode(publicKey)
-  return { nsec, npub, privateKey, mnemonic }
+  return { mnemonic, npub, nsec, privateKey }
 }
 
 export type NostrContentKind =
@@ -67,7 +69,7 @@ export function decodeNostrContent(raw: string): DecodedNostrContent {
     try {
       const decoded = nip19.decode(trimmed)
       if (decoded.type === 'npub') {
-        return { kind: 'npub', raw: trimmed, data: decoded.data as string }
+        return { data: decoded.data as string, kind: 'npub', raw: trimmed }
       }
     } catch {
       /* invalid bech32 */
@@ -78,7 +80,7 @@ export function decodeNostrContent(raw: string): DecodedNostrContent {
     try {
       const decoded = nip19.decode(trimmed)
       if (decoded.type === 'note') {
-        return { kind: 'note', raw: trimmed, data: decoded.data as string }
+        return { data: decoded.data as string, kind: 'note', raw: trimmed }
       }
     } catch {
       /* invalid bech32 */
@@ -95,13 +97,13 @@ export function decodeNostrContent(raw: string): DecodedNostrContent {
           author?: string
         }
         return {
-          kind: 'nevent',
-          raw: trimmed,
           data: neventData.id,
+          kind: 'nevent',
           metadata: {
             relays: neventData.relays,
             author: neventData.author
-          }
+          },
+          raw: trimmed
         }
       }
     } catch {
@@ -118,10 +120,10 @@ export function decodeNostrContent(raw: string): DecodedNostrContent {
           relays?: string[]
         }
         return {
-          kind: 'nprofile',
-          raw: trimmed,
           data: profileData.pubkey,
-          metadata: { relays: profileData.relays }
+          kind: 'nprofile',
+          metadata: { relays: profileData.relays },
+          raw: trimmed
         }
       }
     } catch {
@@ -137,17 +139,17 @@ export function decodeNostrContent(raw: string): DecodedNostrContent {
       Array.isArray(parsed.tags)
     ) {
       return {
-        kind: 'json_note',
-        raw: trimmed,
         data: (parsed.id as string) ?? '',
-        metadata: parsed
+        kind: 'json_note',
+        metadata: parsed,
+        raw: trimmed
       }
     }
   } catch {
     /* not JSON */
   }
 
-  return { kind: 'unknown', raw: trimmed, data: '' }
+  return { data: '', kind: 'unknown', raw: trimmed }
 }
 
 export type PubpayTag = {
@@ -184,7 +186,7 @@ export type EnhancedZapTags = {
 
 function parseMsatsTag(tags: string[][], name: string): number | undefined {
   const tag = tags.find((t) => t[0] === name)
-  if (!tag || !tag[1]) return undefined
+  if (!tag || !tag[1]) {return undefined}
   const val = parseInt(tag[1], 10)
   return isNaN(val) || val <= 0 ? undefined : Math.floor(val / 1000)
 }
@@ -196,17 +198,17 @@ export function extractEnhancedZapTags(tags: string[][]): EnhancedZapTags {
   const zapLnurlRaw = tags.find((t) => t[0] === 'zap-lnurl')
 
   const result: EnhancedZapTags = {
-    zapMin: parseMsatsTag(tags, 'zap-min'),
-    zapMax: parseMsatsTag(tags, 'zap-max')
+    zapMax: parseMsatsTag(tags, 'zap-max'),
+    zapMin: parseMsatsTag(tags, 'zap-min')
   }
 
   if (zapGoalRaw?.[1]) {
     const val = parseInt(zapGoalRaw[1], 10)
-    if (!isNaN(val) && val > 0) result.zapGoal = Math.floor(val / 1000)
+    if (!isNaN(val) && val > 0) {result.zapGoal = Math.floor(val / 1000)}
   }
   if (zapUsesRaw?.[1]) {
     const val = parseInt(zapUsesRaw[1], 10)
-    if (!isNaN(val) && val > 0) result.zapUses = val
+    if (!isNaN(val) && val > 0) {result.zapUses = val}
   }
   if (zapPayerRaw?.[1] && /^[a-f0-9]{64}$/i.test(zapPayerRaw[1])) {
     result.zapPayer = zapPayerRaw[1]
@@ -246,6 +248,6 @@ export function npubFromNsec(nsec: string): string | null {
 }
 
 export function truncateNpub(npub: string, chars = 8): string {
-  if (npub.length <= chars * 2 + 3) return npub
+  if (npub.length <= chars * 2 + 3) {return npub}
   return `${npub.slice(0, chars)}...${npub.slice(-chars)}`
 }

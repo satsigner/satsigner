@@ -34,8 +34,12 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
     (state) => state.checkingTransactionIds
   )
   const isChecking = checkingTransactionIds.includes(transaction.id)
-  const [currencyUnit, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [
+      state.currencyUnit,
+      state.privacyMode,
+      state.useZeroPadding
+    ])
   )
 
   const [fiatCurrency, btcPrice, fetchPrices] = usePriceStore(
@@ -54,10 +58,12 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
     fetchPrices(mempoolUrl)
   }, [fetchPrices, fiatCurrency, mempoolUrl])
 
-  // Calculate price display during render
-  const priceDisplay = btcPrice
-    ? `${formatFiatPrice(transaction.amount, btcPrice)} ${fiatCurrency}`
-    : ''
+  const priceDisplay =
+    btcPrice && !privacyMode
+      ? `${formatFiatPrice(transaction.amount, btcPrice)} ${fiatCurrency}`
+      : btcPrice && privacyMode
+        ? `•••• ${fiatCurrency}`
+        : ''
 
   function getTransactionIcon(type: EcashTransaction['type']) {
     switch (type) {
@@ -197,23 +203,33 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
                   alignItems: 'flex-end'
                 }}
               >
-                <SSStyledSatText
-                  amount={transaction.amount}
-                  decimals={0}
-                  useZeroPadding={useZeroPadding}
-                  currency={currencyUnit}
-                  type={
-                    transaction.type === 'mint'
-                      ? 'receive'
-                      : transaction.type === 'melt'
-                        ? 'send'
-                        : transaction.type
-                  }
-                  textSize="xl"
-                  noColor={false}
-                  weight="light"
-                  letterSpacing={-0.5}
-                />
+                {privacyMode ? (
+                  <SSText
+                    size="xl"
+                    weight="light"
+                    style={{ letterSpacing: -0.5 }}
+                  >
+                    ••••
+                  </SSText>
+                ) : (
+                  <SSStyledSatText
+                    amount={transaction.amount}
+                    decimals={0}
+                    useZeroPadding={useZeroPadding}
+                    currency={currencyUnit}
+                    type={
+                      transaction.type === 'mint'
+                        ? 'receive'
+                        : transaction.type === 'melt'
+                          ? 'send'
+                          : transaction.type
+                    }
+                    textSize="xl"
+                    noColor={false}
+                    weight="light"
+                    letterSpacing={-0.5}
+                  />
+                )}
                 <SSText color="muted" size="sm" style={{ marginBottom: -2 }}>
                   {currencyUnit === 'btc'
                     ? t('bitcoin.btc')

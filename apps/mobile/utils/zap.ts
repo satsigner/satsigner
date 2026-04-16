@@ -29,7 +29,9 @@ function subscribeAndCollect(
     const sub = ndk.subscribe(filter as never, { closeOnEose: false })
 
     const finish = () => {
-      if (settled) {return}
+      if (settled) {
+        return
+      }
       settled = true
       sub.stop()
       resolve(collected)
@@ -133,7 +135,9 @@ export function parseZapReceiptFromTags(
   profileHex: string | null
 ): ZapReceiptInfo | null {
   const descTag = tags.find((tag) => tag[0] === 'description')
-  if (!descTag?.[1]) {return null}
+  if (!descTag?.[1]) {
+    return null
+  }
 
   const bolt11Tag = tags.find((tag) => tag[0] === 'bolt11')
   let amountSats = 0
@@ -149,7 +153,9 @@ export function parseZapReceiptFromTags(
       tags?: string[][]
     }
 
-    if (!zapRequest.pubkey) {return null}
+    if (!zapRequest.pubkey) {
+      return null
+    }
 
     if (amountSats === 0) {
       const amountTag = zapRequest.tags?.find((tag) => tag[0] === 'amount')
@@ -273,13 +279,13 @@ export function buildZapRequest(params: {
         amount: amountMsats,
         comment: params.comment,
         event: {
-          id: params.eventIdHex,
-          pubkey: params.recipientPubkeyHex,
-          kind: params.eventKind ?? 1,
-          tags: params.eventTags ?? [],
           content: '',
           created_at: 0,
-          sig: ''
+          id: params.eventIdHex,
+          kind: params.eventKind ?? 1,
+          pubkey: params.recipientPubkeyHex,
+          sig: '',
+          tags: params.eventTags ?? []
         } as NostrEvent,
         relays: params.relays
       })
@@ -355,7 +361,7 @@ export async function fetchZapReceipts(
       ce.tags,
       null
     )
-    if (parsed) cachedReceipts.push(parsed)
+    if (parsed) {cachedReceipts.push(parsed)}
   }
 
   const ndk = new NDK({
@@ -372,9 +378,10 @@ export async function fetchZapReceipts(
       kinds: [9735 as never],
       limit: 50
     }
-    const newestTs = cachedEvents.length > 0
-      ? Math.max(...cachedEvents.map((e) => e.created_at))
-      : null
+    const newestTs =
+      cachedEvents.length > 0
+        ? Math.max(...cachedEvents.map((e) => e.created_at))
+        : null
     if (newestTs) {
       filter.since = newestTs + 1
     }
@@ -382,7 +389,14 @@ export async function fetchZapReceipts(
     const events = await subscribeAndCollect(ndk, filter, 15000)
 
     const freshReceipts: ZapReceiptInfo[] = []
-    const freshEvents: { id: string; kind: number; pubkey: string; content: string; tags: string[][]; created_at: number }[] = []
+    const freshEvents: {
+      id: string
+      kind: number
+      pubkey: string
+      content: string
+      tags: string[][]
+      created_at: number
+    }[] = []
 
     for (const event of events) {
       const parsed = parseZapReceiptFromEvent(event, null)
@@ -392,9 +406,9 @@ export async function fetchZapReceipts(
           tag.filter((v): v is string => typeof v === 'string')
         )
         freshEvents.push({
-          id: event.id,
           content: event.content,
           created_at: event.created_at ?? 0,
+          id: event.id,
           kind: event.kind ?? 9735,
           pubkey: event.pubkey,
           tags
@@ -485,7 +499,7 @@ export async function fetchZapsByPubkey(
       ce.tags,
       pubkeyHex
     )
-    if (parsed) cachedReceipts.push(parsed)
+    if (parsed) {cachedReceipts.push(parsed)}
   }
 
   const ndk = new NDK({
@@ -514,7 +528,14 @@ export async function fetchZapsByPubkey(
     const events = await subscribeAndCollect(ndk, filter, 15000)
 
     const receipts: ZapReceiptInfo[] = []
-    const freshEvents: { id: string; kind: number; pubkey: string; content: string; tags: string[][]; created_at: number }[] = []
+    const freshEvents: {
+      id: string
+      kind: number
+      pubkey: string
+      content: string
+      tags: string[][]
+      created_at: number
+    }[] = []
 
     for (const event of events) {
       const parsed = parseZapReceiptFromEvent(event, pubkeyHex)
@@ -527,9 +548,9 @@ export async function fetchZapsByPubkey(
           tag.filter((v): v is string => typeof v === 'string')
         )
         freshEvents.push({
-          id: event.id,
           content: event.content,
           created_at: event.created_at ?? 0,
+          id: event.id,
           kind: event.kind ?? 9735,
           pubkey: event.pubkey,
           tags
@@ -616,7 +637,9 @@ export async function enrichZapReceipts(
   receipts: ZapReceiptInfo[],
   relays: string[]
 ): Promise<void> {
-  if (receipts.length === 0) {return}
+  if (receipts.length === 0) {
+    return
+  }
 
   const now = Math.floor(Date.now() / 1000)
   const profileMap = new Map<
@@ -734,7 +757,9 @@ export async function fetchZapReceiptById(
   profileHex: string | null,
   relays: string[]
 ): Promise<ZapReceiptInfo | null> {
-  if (relays.length === 0) {return null}
+  if (relays.length === 0) {
+    return null
+  }
 
   const ndk = new NDK({
     autoConnectUserRelays: false,
@@ -756,9 +781,13 @@ export async function fetchZapReceiptById(
     )
 
     for (const event of events) {
-      if (event.id !== zapReceiptId) {continue}
+      if (event.id !== zapReceiptId) {
+        continue
+      }
       const parsed = parseZapReceiptFromEvent(event, profileHex)
-      if (!parsed) {return null}
+      if (!parsed) {
+        return null
+      }
       return {
         ...parsed,
         rawEventJson: zapReceiptEventToRawJson(event)

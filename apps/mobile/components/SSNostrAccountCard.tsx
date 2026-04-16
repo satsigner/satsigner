@@ -3,9 +3,9 @@ import { useMemo } from 'react'
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native'
 
 import SSText from '@/components/SSText'
+import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
@@ -158,15 +158,17 @@ function SSNostrAccountCard({
                 ]}
               >
                 <SSText color="white" size="md" weight="bold">
-                  {(identity.displayName ?? identity.npub)?.[0]?.toUpperCase() ??
-                    'N'}
+                  {(identity.displayName ??
+                    identity.npub)?.[0]?.toUpperCase() ?? 'N'}
                 </SSText>
               </View>
             )}
           </View>
           <SSVStack gap="xxs" style={styles.infoContainer}>
             <SSText color="white" size="md" weight="medium" numberOfLines={1}>
-              {privacyMode ? NOSTR_PRIVACY_MASK : identity.displayName || 'Unnamed'}
+              {privacyMode
+                ? NOSTR_PRIVACY_MASK
+                : identity.displayName || 'Unnamed'}
             </SSText>
             <SSText size="xs" type="mono" color="muted" numberOfLines={1}>
               {truncateNpub(identity.npub)}
@@ -174,12 +176,12 @@ function SSNostrAccountCard({
             <View style={styles.reservedMetaRow}>
               <SSText
                 size="xs"
-                color={
-                  privacyMode ? 'muted' : lud16Value ? 'white' : 'muted'
-                }
+                color={privacyMode ? 'muted' : lud16Value ? 'white' : 'muted'}
                 numberOfLines={1}
                 style={
-                  !privacyMode && !lud16Value ? styles.metaPlaceholder : undefined
+                  !privacyMode && !lud16Value
+                    ? styles.metaPlaceholder
+                    : undefined
                 }
               >
                 {privacyMode
@@ -194,7 +196,9 @@ function SSNostrAccountCard({
                   color="muted"
                   numberOfLines={1}
                   style={
-                    !privacyMode && !nip05Value ? styles.metaPlaceholder : undefined
+                    !privacyMode && !nip05Value
+                      ? styles.metaPlaceholder
+                      : undefined
                   }
                 >
                   {privacyMode
@@ -204,9 +208,12 @@ function SSNostrAccountCard({
               </View>
               <View style={styles.relayTotalWrap}>
                 <SSText
-                  accessibilityLabel={t('nostrIdentity.account.relayTotalA11y', {
-                    count: relayCount
-                  })}
+                  accessibilityLabel={t(
+                    'nostrIdentity.account.relayTotalA11y',
+                    {
+                      count: relayCount
+                    }
+                  )}
                   accessibilityRole="text"
                   color="muted"
                   numberOfLines={1}
@@ -248,19 +255,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 3
   },
-  activeHeaderBadges: {
-    left: 14,
-    position: 'absolute',
-    right: 14,
-    top: 10,
-    zIndex: 4
-  },
-  activeHeaderBadgesRow: {
-    alignItems: 'center',
-    columnGap: 8,
-    flexDirection: 'row',
-    justifyContent: 'flex-end'
-  },
   activeGlassInnerStroke: {
     borderColor: 'rgba(255, 255, 255, 0.045)',
     borderRadius: Sizes.button.borderRadius - 1,
@@ -280,25 +274,27 @@ const styles = StyleSheet.create({
   activeGradientFill: {
     borderRadius: Sizes.button.borderRadius
   },
-  avatarActiveRing: {
-    borderColor: 'rgba(255, 255, 255, 0.09)',
-    borderWidth: StyleSheet.hairlineWidth
+  activeHeaderBadges: {
+    left: 14,
+    position: 'absolute',
+    right: 14,
+    top: 10,
+    zIndex: 4
   },
-  chevronOptical: {
-    transform: [{ translateY: -5 }]
-  },
-  chevronWrap: {
-    justifyContent: 'center'
-  },
-  headerRow: {
-    alignItems: 'stretch',
-    position: 'relative',
-    zIndex: 3
+  activeHeaderBadgesRow: {
+    alignItems: 'center',
+    columnGap: 8,
+    flexDirection: 'row',
+    justifyContent: 'flex-end'
   },
   avatar: {
     borderRadius: 18,
     height: 36,
     width: 36
+  },
+  avatarActiveRing: {
+    borderColor: 'rgba(255, 255, 255, 0.09)',
+    borderWidth: StyleSheet.hairlineWidth
   },
   avatarContainer: {
     alignItems: 'center',
@@ -307,6 +303,12 @@ const styles = StyleSheet.create({
   avatarPlaceholder: {
     alignItems: 'center',
     backgroundColor: Colors.gray[800],
+    justifyContent: 'center'
+  },
+  chevronOptical: {
+    transform: [{ translateY: -5 }]
+  },
+  chevronWrap: {
     justifyContent: 'center'
   },
   container: {
@@ -333,19 +335,15 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     flex: 1
   },
+  headerRow: {
+    alignItems: 'stretch',
+    position: 'relative',
+    zIndex: 3
+  },
   infoContainer: {
     flex: 1
   },
   metaPlaceholder: {
-    opacity: 0.55
-  },
-  relayBesideActiveChecking: {
-    opacity: 0.72
-  },
-  relayBesideActiveConnected: {
-    color: Colors.mainGreen
-  },
-  relayBesideActiveDisconnected: {
     opacity: 0.55
   },
   nip05Row: {
@@ -357,14 +355,23 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0
   },
+  relayBesideActiveChecking: {
+    opacity: 0.72
+  },
+  relayBesideActiveConnected: {
+    color: Colors.mainGreen
+  },
+  relayBesideActiveDisconnected: {
+    opacity: 0.55
+  },
   relayTotalInline: {
     opacity: 0.52
   },
-  relayTotalWrap: {
-    flexShrink: 0
-  },
   relayTotalInlineActiveCard: {
     opacity: 0.36
+  },
+  relayTotalWrap: {
+    flexShrink: 0
   },
   reservedMetaRow: {
     justifyContent: 'center',

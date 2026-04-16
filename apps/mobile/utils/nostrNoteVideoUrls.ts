@@ -15,7 +15,7 @@ export type NostrVideoEmbed = {
 
 function pushUrl(raw: string, seen: Set<string>, out: string[]) {
   const u = raw.trim().replace(/\)+$/, '')
-  if (!u || seen.has(u)) return
+  if (!u || seen.has(u)) {return}
   seen.add(u)
   out.push(u)
 }
@@ -25,10 +25,10 @@ function collectHttpUrlsFromNote(content: string, tags: string[][]): string[] {
   const seen = new Set<string>()
 
   for (const tag of tags) {
-    if (tag[0] !== 'imeta') continue
+    if (tag[0] !== 'imeta') {continue}
     for (let i = 1; i < tag.length; i++) {
       const part = tag[i]
-      if (typeof part !== 'string') continue
+      if (typeof part !== 'string') {continue}
       if (part.startsWith('url ')) {
         pushUrl(part.slice(4), seen, urls)
       }
@@ -51,7 +51,7 @@ function parseYouTubeEmbed(url: string): NostrVideoEmbed | null {
   const m = u.match(
     /(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:[^#]*&)?v=|embed\/|shorts\/|v\/))([a-zA-Z0-9_-]{11})\b/i
   )
-  if (!m) return null
+  if (!m) {return null}
   const id = m[1]
   const watchUrl = `https://www.youtube.com/watch?v=${id}`
   return {
@@ -64,7 +64,7 @@ function parseYouTubeEmbed(url: string): NostrVideoEmbed | null {
 function parseVimeoEmbed(url: string): NostrVideoEmbed | null {
   const u = url.trim()
   const m = u.match(/vimeo\.com\/(?:video\/)?(\d{6,})\b/i)
-  if (!m) return null
+  if (!m) {return null}
   const id = m[1]
   return {
     provider: 'vimeo',
@@ -75,7 +75,7 @@ function parseVimeoEmbed(url: string): NostrVideoEmbed | null {
 function parseTwitchVodEmbed(url: string): NostrVideoEmbed | null {
   const u = url.trim()
   const m = u.match(/twitch\.tv\/videos\/(\d+)\b/i)
-  if (!m) return null
+  if (!m) {return null}
   return {
     provider: 'twitch_vod',
     watchUrl: u.split('?')[0]
@@ -92,7 +92,7 @@ function parseTwitchClipEmbed(url: string): NostrVideoEmbed | null {
     }
   }
   const m = u.match(/twitch\.tv\/\w+\/clip\/([a-zA-Z0-9_-]+)\/?/i)
-  if (!m) return null
+  if (!m) {return null}
   return {
     provider: 'twitch_clip',
     watchUrl: `https://clips.twitch.tv/${m[1]}`
@@ -101,8 +101,8 @@ function parseTwitchClipEmbed(url: string): NostrVideoEmbed | null {
 
 function parseDirectVideoEmbed(url: string): NostrVideoEmbed | null {
   const u = url.trim()
-  if (!/^https?:\/\//i.test(u)) return null
-  if (!/\.(?:mp4|webm|mov|m3u8)(?:\?[^\s]*)?$/i.test(u)) return null
+  if (!/^https?:\/\//i.test(u)) {return null}
+  if (!/\.(?:mp4|webm|mov|m3u8)(?:\?[^\s]*)?$/i.test(u)) {return null}
   return {
     provider: 'direct',
     watchUrl: u
@@ -132,10 +132,10 @@ export function extractVideoEmbedsFromNote(
   const seenWatch = new Set<string>()
 
   for (const u of urls) {
-    if (isPlausibleImageHttpUrl(u)) continue
+    if (isPlausibleImageHttpUrl(u)) {continue}
     const embed = parseVideoEmbedFromUrl(u)
-    if (!embed) continue
-    if (seenWatch.has(embed.watchUrl)) continue
+    if (!embed) {continue}
+    if (seenWatch.has(embed.watchUrl)) {continue}
     seenWatch.add(embed.watchUrl)
     out.push(embed)
   }
