@@ -116,10 +116,10 @@ export default function ProfileSetup() {
           {/* NIP-05 */}
           <SSVStack gap="xs">
             <SSText size="sm" color="muted" uppercase>
-              NIP-05
+              {t('nostrIdentity.profile.nip05')}
             </SSText>
             <SSTextInput
-              placeholder="you@example.com"
+              placeholder={t('nostrIdentity.profile.nip05Placeholder')}
               value={nip05}
               onChangeText={setNip05}
               align="left"
@@ -134,7 +134,7 @@ export default function ProfileSetup() {
               {t('nostrIdentity.profile.lud16')}
             </SSText>
             <SSTextInput
-              placeholder="you@walletofsatoshi.com"
+              placeholder={t('nostrIdentity.profile.lud16Placeholder')}
               value={lud16}
               onChangeText={setLud16}
               align="left"

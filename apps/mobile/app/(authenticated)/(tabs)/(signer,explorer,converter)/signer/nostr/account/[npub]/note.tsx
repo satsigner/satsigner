@@ -62,6 +62,9 @@ export default function NostrNotePage() {
   const [fetched, setFetched] = useState<FetchedNoteData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [profileLoading, setProfileLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
+  const [triedHints, setTriedHints] = useState(false)
+  const [triedBroadSearch, setTriedBroadSearch] = useState(false)
   const [paymentPickerVisible, setPaymentPickerVisible] = useState(false)
   const [payAmount, setPayAmount] = useState(0)
   const [customAmount, setCustomAmount] = useState('')
@@ -106,6 +109,81 @@ export default function NostrNotePage() {
     return methods
   }, [lightningConfig, mints])
 
+  const loadZapReceipts = useCallback(
+    async (eventIdHex: string) => {
+      try {
+        const receipts = await fetchZapReceipts(eventIdHex, effectiveRelays)
+        setZapReceipts(receipts)
+        await enrichZapReceipts(receipts, effectiveRelays)
+        setZapReceipts([...receipts])
+      } catch {
+        // non-critical
+      }
+    },
+    [effectiveRelays]
+  )
+
+  const relayHints = useMemo(() => {
+    if (!decoded) return undefined
+    if (
+      decoded.kind === 'nevent' &&
+      Array.isArray(decoded.metadata?.relays) &&
+      (decoded.metadata.relays as string[]).length > 0
+    ) {
+      return decoded.metadata.relays as string[]
+    }
+    return undefined
+  }, [decoded])
+
+  const handleEventFound = useCallback(
+    (event: {
+      content: string
+      pubkey: string
+      kind: number
+      tags: string[][]
+      created_at: number
+    }) => {
+      setFetched({
+        content: event.content,
+        created_at: event.created_at,
+        kind: event.kind,
+        pubkey: event.pubkey,
+        tags: event.tags
+      })
+      setIsLoading(false)
+      setNotFound(false)
+
+      if (decoded?.data) {
+        loadZapReceipts(decoded.data)
+      }
+
+      const authorNpub = nip19.npubEncode(event.pubkey)
+      const profileApi = new NostrAPI(effectiveRelays)
+      profileApi
+        .fetchKind0(authorNpub)
+        .then((profile) => {
+          if (!profile) {
+            setProfileLoading(false)
+            return
+          }
+          setFetched((prev) => {
+            if (!prev) return prev
+            return {
+              ...prev,
+              authorName: profile.displayName,
+              authorPicture: profile.picture,
+              authorLud16: profile.lud16
+            }
+          })
+          setProfileLoading(false)
+        })
+        .catch(() => {
+          setProfileLoading(false)
+        })
+    },
+    [decoded, effectiveRelays, loadZapReceipts]
+  )
+
   useEffect(() => {
     if (!decoded || fetchedRef.current) return
     if (
@@ -138,66 +216,79 @@ export default function NostrNotePage() {
       return
     }
 
-    const relayHints =
-      decoded.kind === 'nevent' && Array.isArray(decoded.metadata?.relays)
-        ? (decoded.metadata.relays as string[])
-        : undefined
-    const allRelays = relayHints?.length
-      ? [...new Set([...relayHints, ...effectiveRelays])]
-      : effectiveRelays
-
-    const api = new NostrAPI(allRelays)
+    const api = new NostrAPI(effectiveRelays)
     api
-      .fetchEvent(decoded.data, relayHints)
+      .fetchEvent(decoded.data)
       .then((event) => {
         if (!event) {
           setIsLoading(false)
           setProfileLoading(false)
-          toast.error(t('nostrIdentity.account.eventNotFound'))
+          setNotFound(true)
           return
         }
-
-        setFetched({
-          content: event.content,
-          created_at: event.created_at,
-          kind: event.kind,
-          pubkey: event.pubkey,
-          tags: event.tags
-        })
-        setIsLoading(false)
-
-        loadZapReceipts(decoded.data)
-
-        const authorNpub = nip19.npubEncode(event.pubkey)
-        const profileApi = new NostrAPI(allRelays)
-        profileApi
-          .fetchKind0(authorNpub)
-          .then((profile) => {
-            if (!profile) {
-              setProfileLoading(false)
-              return
-            }
-            setFetched((prev) => {
-              if (!prev) return prev
-              return {
-                ...prev,
-                authorName: profile.displayName,
-                authorPicture: profile.picture,
-                authorLud16: profile.lud16
-              }
-            })
-            setProfileLoading(false)
-          })
-          .catch(() => {
-            setProfileLoading(false)
-          })
+        handleEventFound(event)
       })
       .catch(() => {
         setIsLoading(false)
         setProfileLoading(false)
-        toast.error(t('nostrIdentity.account.eventNotFound'))
+        setNotFound(true)
       })
-  }, [decoded, effectiveRelays]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [decoded, effectiveRelays, handleEventFound])
+
+  async function handleTryHintedRelays() {
+    if (!decoded?.data || !relayHints?.length) return
+    setIsLoading(true)
+    setNotFound(false)
+    setTriedHints(true)
+    try {
+      const event = await NostrAPI.fetchEventFromRelays(
+        decoded.data,
+        relayHints
+      )
+      if (event) {
+        handleEventFound(event)
+      } else {
+        setIsLoading(false)
+        setNotFound(true)
+      }
+    } catch {
+      setIsLoading(false)
+      setNotFound(true)
+    }
+  }
+
+  async function handleBroadSearch() {
+    if (!decoded?.data) return
+    const alreadyTried = new Set([
+      ...effectiveRelays,
+      ...(relayHints ?? [])
+    ])
+    const searchRelays = NostrAPI.INDEXING_RELAYS.filter(
+      (url) => !alreadyTried.has(url)
+    )
+    if (searchRelays.length === 0) return
+
+    setIsLoading(true)
+    setNotFound(false)
+    setTriedBroadSearch(true)
+    try {
+      const event = await NostrAPI.fetchEventFromRelays(
+        decoded.data,
+        searchRelays
+      )
+      if (event) {
+        handleEventFound(event)
+      } else {
+        setIsLoading(false)
+        setNotFound(true)
+        toast.error(t('nostrIdentity.account.eventNotFound'))
+      }
+    } catch {
+      setIsLoading(false)
+      setNotFound(true)
+      toast.error(t('nostrIdentity.account.eventNotFound'))
+    }
+  }
 
   useEffect(() => {
     if (zapResult === 'success' && pendingZap) {
@@ -214,20 +305,6 @@ export default function NostrNotePage() {
       setZapResult(null)
     }
   }, [zapResult]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadZapReceipts = useCallback(
-    async (eventIdHex: string) => {
-      try {
-        const receipts = await fetchZapReceipts(eventIdHex, effectiveRelays)
-        setZapReceipts(receipts)
-        await enrichZapReceipts(receipts, effectiveRelays)
-        setZapReceipts([...receipts])
-      } catch {
-        // non-critical
-      }
-    },
-    [effectiveRelays]
-  )
 
   const pubpayTags = useMemo(
     () => extractPubpayTags(fetched?.tags ?? []),
@@ -811,14 +888,46 @@ export default function NostrNotePage() {
               </SSText>
             )}
 
-            {!fetched && !isLoading && (
+            {notFound && !fetched && (
               <SSVStack itemsCenter gap="md" style={styles.notFoundCard}>
                 <SSText color="muted">
-                  {t('nostrIdentity.account.eventNotFound')}
+                  {t('nostrIdentity.note.notFoundOnYourRelays')}
                 </SSText>
                 <SSText size="xs" type="mono" color="muted">
                   {truncateNpub(decoded.raw, 16)}
                 </SSText>
+
+                {relayHints && relayHints.length > 0 && !triedHints && (
+                  <SSVStack gap="xs" style={styles.retrySection}>
+                    <SSText size="xs" color="muted" center>
+                      {t('nostrIdentity.note.hintedRelaysAvailable')}
+                    </SSText>
+                    {relayHints.map((url) => (
+                      <SSText key={url} size="xxs" type="mono" color="muted" center>
+                        {url}
+                      </SSText>
+                    ))}
+                    <SSButton
+                      label={t('nostrIdentity.note.tryHintedRelays')}
+                      variant="outline"
+                      onPress={handleTryHintedRelays}
+                    />
+                  </SSVStack>
+                )}
+
+                {!triedBroadSearch && (
+                  <SSButton
+                    label={t('nostrIdentity.note.searchMoreRelays')}
+                    variant="ghost"
+                    onPress={handleBroadSearch}
+                  />
+                )}
+
+                {triedBroadSearch && (
+                  <SSText size="xs" color="muted" center>
+                    {t('nostrIdentity.note.exhaustedRelays')}
+                  </SSText>
+                )}
               </SSVStack>
             )}
           </SSVStack>
@@ -925,6 +1034,9 @@ const styles = StyleSheet.create({
   },
   receiptAmountCol: {
     alignItems: 'flex-end'
+  },
+  retrySection: {
+    width: '100%'
   },
   receiptAvatar: {
     borderRadius: 16,

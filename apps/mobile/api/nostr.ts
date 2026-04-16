@@ -364,9 +364,17 @@ export class NostrAPI {
     ])
   }
 
+  static readonly INDEXING_RELAYS = [
+    'wss://relay.nostr.band',
+    'wss://relay.primal.net',
+    'wss://nos.lol',
+    'wss://relay.damus.io',
+    'wss://relay.snort.social',
+    'wss://purplepag.es'
+  ]
+
   async fetchEvent(
-    eventIdHex: string,
-    relayHints?: string[]
+    eventIdHex: string
   ): Promise<{
     content: string
     pubkey: string
@@ -378,27 +386,38 @@ export class NostrAPI {
     if (!this.ndk) return null
 
     const filter = { ids: [eventIdHex], limit: 1 }
+    const poolEvent = await NostrAPI.fetchWithTimeout(this.ndk, filter, 15000)
+    return poolEvent ? NostrAPI.formatNdkEvent(poolEvent) : null
+  }
 
-    // Phase 1: try relay hints (short timeout)
-    if (relayHints?.length) {
-      const hintEvent = await NostrAPI.fetchWithTimeout(
-        this.ndk,
-        filter,
-        8000,
-        relayHints
-      )
-      if (hintEvent) {
-        return NostrAPI.formatNdkEvent(hintEvent)
+  static async fetchEventFromRelays(
+    eventIdHex: string,
+    relayUrls: string[]
+  ): Promise<{
+    content: string
+    pubkey: string
+    kind: number
+    tags: string[][]
+    created_at: number
+  } | null> {
+    if (relayUrls.length === 0) return null
+
+    const tempNdk = createMobileNdk(relayUrls)
+    try {
+      await tempNdk.connect(8000)
+      const filter = { ids: [eventIdHex], limit: 1 }
+      const event = await NostrAPI.fetchWithTimeout(tempNdk, filter, 15000)
+      return event ? NostrAPI.formatNdkEvent(event) : null
+    } finally {
+      try {
+        tempNdk.pool?.removeAllListeners?.()
+        for (const relay of tempNdk.pool?.relays.values() ?? []) {
+          relay.disconnect()
+        }
+      } catch {
+        // cleanup best-effort
       }
     }
-
-    // Phase 2: try all pool relays (identity-selected relays only)
-    const poolEvent = await NostrAPI.fetchWithTimeout(this.ndk, filter, 15000)
-    if (poolEvent) {
-      return NostrAPI.formatNdkEvent(poolEvent)
-    }
-
-    return null
   }
 
   static async generateNostrKeys(): Promise<NostrKeys> {

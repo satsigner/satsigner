@@ -1,43 +1,26 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import {
+  Stack,
+  useLocalSearchParams,
+  useRouter,
+  type Href
+} from 'expo-router'
 import { useState } from 'react'
-import { Alert, Image, ScrollView, StyleSheet, View } from 'react-native'
+import { Image, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
-import SSCheckbox from '@/components/SSCheckbox'
+import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { NOSTR_RELAYS, RELAY_PROTOCOL_PREFIX } from '@/constants/nostr'
-import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
-import { type NostrRelay } from '@/types/models/Nostr'
+import { nostrAccountHref } from '@/utils/nostrNavigation'
 
 type SettingsParams = {
   npub: string
-}
-
-type RelayRowProps = {
-  relay: NostrRelay
-  selected: boolean
-  onPress: () => void
-}
-
-function RelayRow({ relay, selected, onPress }: RelayRowProps) {
-  return (
-    <SSHStack gap="sm">
-      <SSCheckbox selected={selected} onPress={onPress} />
-      <SSVStack gap="none">
-        <SSText>{relay.name}</SSText>
-        <SSText size="xs" color="muted">
-          {relay.url}
-        </SSText>
-      </SSVStack>
-    </SSHStack>
-  )
 }
 
 export default function NostrIdentitySettings() {
@@ -47,69 +30,37 @@ export default function NostrIdentitySettings() {
   const identity = useNostrIdentityStore((state) =>
     state.identities.find((i) => i.npub === npub)
   )
-  const globalRelays = useNostrIdentityStore((state) => state.relays)
-  const updateIdentity = useNostrIdentityStore(
-    (state) => state.updateIdentity
-  )
-  const removeIdentity = useNostrIdentityStore(
-    (state) => state.removeIdentity
-  )
+  const updateIdentity = useNostrIdentityStore((state) => state.updateIdentity)
+  const removeIdentity = useNostrIdentityStore((state) => state.removeIdentity)
 
-  const [displayName, setDisplayName] = useState(
-    identity?.displayName ?? ''
-  )
+  const [displayName, setDisplayName] = useState(identity?.displayName ?? '')
   const [pictureUrl, setPictureUrl] = useState(identity?.picture ?? '')
-  const [selectedRelays, setSelectedRelays] = useState<string[]>(
-    identity?.relays ?? globalRelays
-  )
-  const [customRelayUrl, setCustomRelayUrl] = useState('')
-
-  function handleRelayToggle(relayUrl: string) {
-    setSelectedRelays((prev) =>
-      prev.includes(relayUrl)
-        ? prev.filter((url) => url !== relayUrl)
-        : [...prev, relayUrl]
-    )
-  }
-
-  function handleAddCustomRelay() {
-    if (!customRelayUrl) return
-    const relayUrl = RELAY_PROTOCOL_PREFIX + customRelayUrl
-    if (!selectedRelays.includes(relayUrl)) {
-      setSelectedRelays((prev) => [...prev, relayUrl])
-    }
-    setCustomRelayUrl('')
-  }
+  const [nip05, setNip05] = useState(identity?.nip05 ?? '')
+  const [lud16, setLud16] = useState(identity?.lud16 ?? '')
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false)
 
   function handleSave() {
     if (!npub) return
 
     updateIdentity(npub, {
       displayName: displayName || undefined,
-      picture: pictureUrl || undefined,
-      relays: selectedRelays.length > 0 ? selectedRelays : undefined
+      lud16: lud16 || undefined,
+      nip05: nip05 || undefined,
+      picture: pictureUrl || undefined
     })
 
     toast.success(t('nostrIdentity.settings.saved'))
     router.back()
   }
 
-  function handleDelete() {
-    Alert.alert(
-      t('nostrIdentity.settings.deleteIdentity'),
-      t('nostrIdentity.settings.deleteConfirm'),
-      [
-        { style: 'cancel', text: t('common.cancel') },
-        {
-          style: 'destructive',
-          text: t('common.delete'),
-          onPress: () => {
-            removeIdentity(npub)
-            router.navigate('/signer/nostr')
-          }
-        }
-      ]
-    )
+  function handleDeletePress() {
+    setDeleteModalVisible(true)
+  }
+
+  function handleConfirmDelete() {
+    setDeleteModalVisible(false)
+    removeIdentity(npub)
+    router.navigate('/signer/nostr' as Href)
   }
 
   if (!identity) {
@@ -127,9 +78,7 @@ export default function NostrIdentitySettings() {
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>
-              {t('nostrIdentity.settings.title')}
-            </SSText>
+            <SSText uppercase>{t('nostrIdentity.settings.title')}</SSText>
           )
         }}
       />
@@ -141,10 +90,7 @@ export default function NostrIdentitySettings() {
           <SSVStack itemsCenter gap="sm">
             <View style={styles.avatarContainer}>
               {pictureUrl ? (
-                <Image
-                  source={{ uri: pictureUrl }}
-                  style={styles.avatar}
-                />
+                <Image source={{ uri: pictureUrl }} style={styles.avatar} />
               ) : (
                 <View style={[styles.avatar, styles.avatarPlaceholder]}>
                   <SSText size="3xl" weight="bold">
@@ -184,71 +130,45 @@ export default function NostrIdentitySettings() {
             </SSText>
           </SSVStack>
 
+          <SSVStack gap="xs">
+            <SSText size="sm" color="muted" uppercase>
+              {t('nostrIdentity.profile.nip05')}
+            </SSText>
+            <SSTextInput
+              placeholder={t('nostrIdentity.profile.nip05Placeholder')}
+              value={nip05}
+              onChangeText={setNip05}
+              align="left"
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+          </SSVStack>
+
+          <SSVStack gap="xs">
+            <SSText size="sm" color="muted" uppercase>
+              {t('nostrIdentity.profile.lud16')}
+            </SSText>
+            <SSTextInput
+              placeholder={t('nostrIdentity.profile.lud16Placeholder')}
+              value={lud16}
+              onChangeText={setLud16}
+              align="left"
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+          </SSVStack>
+
           <SSButton
             label={t('nostrIdentity.settings.manageKeys')}
             variant="outline"
-            onPress={() =>
-              router.navigate({
-                pathname: '/signer/nostr/account/[npub]/keys',
-                params: { npub }
-              })
-            }
+            onPress={() => router.navigate(nostrAccountHref(npub, 'keys'))}
           />
 
-          <SSVStack gap="sm">
-            <SSText size="sm" color="muted" uppercase>
-              {t('nostrIdentity.settings.identityRelays')}
-            </SSText>
-            <SSText size="xs" color="muted">
-              {t('nostrIdentity.settings.identityRelaysHint')}
-            </SSText>
-            {NOSTR_RELAYS.map((relay) => (
-              <RelayRow
-                key={relay.url}
-                relay={relay}
-                selected={selectedRelays.includes(relay.url)}
-                onPress={() => handleRelayToggle(relay.url)}
-              />
-            ))}
-          </SSVStack>
-
-          <SSVStack gap="sm">
-            <SSText size="sm" color="muted" uppercase>
-              {t('nostrIdentity.relays.custom')}
-            </SSText>
-            {selectedRelays
-              .filter((url) => !NOSTR_RELAYS.some((r) => r.url === url))
-              .map((url) => (
-                <RelayRow
-                  key={url}
-                  selected
-                  relay={{
-                    name: url.replace(RELAY_PROTOCOL_PREFIX, ''),
-                    url
-                  }}
-                  onPress={() => handleRelayToggle(url)}
-                />
-              ))}
-            <SSHStack gap="xs">
-              <SSText color="muted" size="lg" style={styles.relayInputAddOn}>
-                {RELAY_PROTOCOL_PREFIX}
-              </SSText>
-              <View style={styles.relayInputContainer}>
-                <SSTextInput
-                  placeholder={t('nostrIdentity.relays.inputPlaceholder')}
-                  value={customRelayUrl}
-                  align="left"
-                  onChangeText={setCustomRelayUrl}
-                />
-              </View>
-            </SSHStack>
-            <SSButton
-              label={t('nostrIdentity.relays.addCustom')}
-              variant="outline"
-              onPress={handleAddCustomRelay}
-              disabled={!customRelayUrl.match(/^[a-z0-9]+\.[a-z0-9]+/i)}
-            />
-          </SSVStack>
+          <SSButton
+            label={t('nostrIdentity.settings.identityRelays')}
+            variant="outline"
+            onPress={() => router.navigate(nostrAccountHref(npub, 'relays'))}
+          />
 
           <SSButton
             label={t('nostrIdentity.settings.save')}
@@ -259,10 +179,35 @@ export default function NostrIdentitySettings() {
           <SSButton
             label={t('nostrIdentity.settings.deleteIdentity')}
             variant="danger"
-            onPress={handleDelete}
+            onPress={handleDeletePress}
           />
         </SSVStack>
       </ScrollView>
+
+      <SSModal
+        visible={deleteModalVisible}
+        fullOpacity
+        label={t('common.cancel')}
+        onClose={() => setDeleteModalVisible(false)}
+      >
+        <View style={styles.deleteSheet}>
+          <SSVStack gap="md" itemsCenter widthFull>
+            <SSVStack gap="sm" itemsCenter widthFull>
+              <SSText center size="sm" color="muted" uppercase>
+                {t('nostrIdentity.settings.deleteModalTitle')}
+              </SSText>
+              <SSText center color="muted" size="sm">
+                {t('nostrIdentity.settings.deleteConfirm')}
+              </SSText>
+            </SSVStack>
+            <SSButton
+              label={t('common.delete')}
+              variant="danger"
+              onPress={handleConfirmDelete}
+            />
+          </SSVStack>
+        </View>
+      </SSModal>
     </SSMainLayout>
   )
 }
@@ -285,16 +230,13 @@ const styles = StyleSheet.create({
   content: {
     paddingBottom: 40
   },
+  deleteSheet: {
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 0,
+    width: '100%'
+  },
   emptyContainer: {
     paddingVertical: 60
-  },
-  relayInputAddOn: {
-    backgroundColor: Colors.barGray,
-    borderRadius: 2,
-    paddingHorizontal: 7,
-    paddingVertical: 14
-  },
-  relayInputContainer: {
-    flexGrow: 1
   }
 })
