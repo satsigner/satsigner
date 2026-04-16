@@ -204,8 +204,11 @@ function SSSignatureDropdown({
         disabled={!transactionId}
         style={[styles.header, !transactionId && styles.headerDisabled]}
       >
-        <SSHStack justifyBetween>
-          <SSHStack style={{ alignItems: "center" }} gap="sm">
+        <SSHStack justifyBetween style={{ width: "100%" }}>
+          <SSHStack
+            gap="sm"
+            style={{ alignItems: "center", flex: 1, minWidth: 0 }}
+          >
             {isSignatureCompleted ? (
               validationResult === true ? (
                 <SSIconGreen width={24} height={24} />
@@ -220,17 +223,36 @@ function SSSignatureDropdown({
             <SSText color="muted" size="lg" style={{ paddingHorizontal: 10 }}>
               {t("common.key")} {index + 1}
             </SSText>
-            <SSVStack gap="none">
-              <SSText color="muted">{sourceLabel}</SSText>
-              <SSText color={keyDetails?.name ? "white" : "muted"}>
+            <SSVStack gap="none" style={{ flex: 1, minWidth: 0 }}>
+              <SSText color="muted" ellipsizeMode="tail" numberOfLines={1}>
+                {sourceLabel}
+              </SSText>
+              <SSText
+                color={keyDetails?.name ? "white" : "muted"}
+                ellipsizeMode="tail"
+                numberOfLines={1}
+              >
                 {keyDetails?.name ?? t("account.seed.noLabel")}
               </SSText>
             </SSVStack>
           </SSHStack>
-          <SSVStack gap="none" style={{ alignItems: "flex-end" }}>
+          <SSVStack
+            gap="none"
+            style={{
+              alignItems: "flex-end",
+              flexGrow: 0,
+              flexShrink: 1,
+              marginLeft: 8,
+              maxWidth: "52%",
+              minWidth: 0,
+            }}
+          >
             <SSText
               type="mono"
               color={getInnerFingerprint() ? "white" : "muted"}
+              ellipsizeMode="tail"
+              numberOfLines={1}
+              style={{ textAlign: "right", width: "100%" }}
             >
               {getInnerFingerprint() || t("account.fingerprint")}
             </SSText>
@@ -240,6 +262,7 @@ function SSSignatureDropdown({
               selectable
               numberOfLines={1}
               ellipsizeMode="middle"
+              style={{ textAlign: "right", width: "100%" }}
             >
               {formattedPubKey || t("account.seed.publicKey")}
             </SSText>
@@ -429,6 +452,7 @@ const styles = {
   },
   header: {
     paddingVertical: 8,
+    width: "100%",
   },
   headerDisabled: {
     opacity: 0.5,
