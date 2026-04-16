@@ -1,10 +1,10 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 
-import { NostrAPI } from '@/api/nostr'
-import { SSIconNostr } from '@/components/icons'
+import { NostrAPI, testNostrRelaysReachable } from '@/api/nostr'
+import { SSIconChatBubble, SSIconNostr } from '@/components/icons'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSIconButton from '@/components/SSIconButton'
@@ -14,10 +14,13 @@ import SSNostrHeroCard from '@/components/SSNostrHeroCard'
 import SSPaste from '@/components/SSPaste'
 import SSText from '@/components/SSText'
 import { useContentHandler } from '@/hooks/useContentHandler'
+import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
+import { type NostrRelayReachability } from '@/types/models/NostrIdentity'
+import { Colors } from '@/styles'
 import { nostrAccountHref, nostrNoteHref } from '@/utils/nostrNavigation'
 
 type AccountParams = {
@@ -34,11 +37,50 @@ export default function NostrAccountLanding() {
   const relays = useNostrIdentityStore((state) => state.relays)
   const updateIdentity = useNostrIdentityStore((state) => state.updateIdentity)
   const fetchedRef = useRef(false)
+  const [relayReachability, setRelayReachability] =
+    useState<NostrRelayReachability>('checking')
+
+  const effectiveRelays = useMemo(() => {
+    if (!identity) {
+      return []
+    }
+    return identity.relays?.length ? identity.relays : relays
+  }, [identity, relays])
+
+  useEffect(() => {
+    if (!identity) {
+      return
+    }
+    if (!identity.relayConnected) {
+      setRelayReachability('disconnected')
+      return
+    }
+    let cancelled = false
+    if (effectiveRelays.length === 0) {
+      setRelayReachability('disconnected')
+      return
+    }
+    setRelayReachability('checking')
+    void testNostrRelaysReachable(effectiveRelays).then((ok) => {
+      if (cancelled) return
+      setRelayReachability(ok ? 'connected' : 'disconnected')
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [identity, effectiveRelays])
+
+  useEffect(() => {
+    if (!identity?.relayConnected) {
+      fetchedRef.current = false
+    }
+  }, [identity?.relayConnected, identity?.npub])
 
   useEffect(() => {
     const effectiveRelays = identity?.relays ?? relays
     if (
       !identity ||
+      identity.relayConnected !== true ||
       !npub ||
       fetchedRef.current ||
       effectiveRelays.length === 0
@@ -76,8 +118,16 @@ export default function NostrAccountLanding() {
     router.navigate(nostrAccountHref(npub, 'send'))
   }
 
-  function handleNotePress(noteId: string) {
-    const nevent = nip19.neventEncode({ id: noteId })
+  function handleNotePress(payload: {
+    id: string
+    kind: number
+    pubkey: string
+  }) {
+    const nevent = nip19.neventEncode({
+      id: payload.id,
+      author: payload.pubkey,
+      kind: payload.kind
+    })
     router.navigate(nostrNoteHref(npub, nevent))
   }
 
@@ -106,26 +156,44 @@ export default function NostrAccountLanding() {
     <SSMainLayout>
       <Stack.Screen
         options={{
+          headerTitle: '',
           headerRight: () => (
-            <SSIconButton
-              onPress={() =>
-                router.navigate(nostrAccountHref(npub, 'settings'))
-              }
-              style={{ marginRight: 8 }}
-            >
-              <SSIconNostr height={16} width={16} />
-            </SSIconButton>
-          ),
-          headerTitle: () => (
-            <SSText uppercase>
-              {identity.displayName || t('nostrIdentity.title')}
-            </SSText>
+            <SSHStack gap="md" style={{ marginRight: 8 }}>
+              <SSIconButton
+                accessibilityLabel={t('nostrIdentity.chat.title')}
+                onPress={() =>
+                  router.navigate(nostrAccountHref(npub, 'chat'))
+                }
+              >
+                <SSIconChatBubble
+                  color={Colors.gray[200]}
+                  height={16}
+                  width={16}
+                />
+              </SSIconButton>
+              <SSIconButton
+                accessibilityLabel={t('nostrIdentity.settings.title')}
+                onPress={() =>
+                  router.navigate(nostrAccountHref(npub, 'settings'))
+                }
+              >
+                <SSIconNostr
+                  color={Colors.gray[200]}
+                  height={16}
+                  width={16}
+                />
+              </SSIconButton>
+            </SSHStack>
           )
         }}
       />
       <ScrollView showsVerticalScrollIndicator={false}>
-        <SSVStack gap="md">
-          <SSNostrHeroCard identity={identity} />
+        <SSVStack gap="sm">
+          <SSNostrHeroCard
+            identity={identity}
+            relayReachability={relayReachability}
+            style={styles.heroProfile}
+          />
 
           <SSButtonActionsGroup
             context="nostr"
@@ -139,6 +207,7 @@ export default function NostrAccountLanding() {
 
           <SSNostrFeedTabs
             npub={npub}
+            relayConnected={identity.relayConnected === true}
             relays={identity.relays ?? relays}
             onNotePress={handleNotePress}
           />
@@ -171,5 +240,9 @@ export default function NostrAccountLanding() {
 const styles = StyleSheet.create({
   emptyContainer: {
     paddingVertical: 60
+  },
+  heroProfile: {
+    paddingBottom: 10,
+    paddingTop: 4
   }
 })

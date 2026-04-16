@@ -23,6 +23,10 @@ export const PROCESSING_INTERVAL_MS = 350
 export const RELAY_PROTOCOL_PREFIX = 'wss://'
 /** Fallback color when npub is missing, invalid, or member has no color (e.g. device/member list UI). */
 export const NOSTR_FALLBACK_NPUB_COLOR = '#404040'
+/** Short NDK connect when probing whether at least one relay is reachable. */
+export const NOSTR_RELAY_REACHABILITY_TEST_MS = 5000
+/** Shown when settings privacy mode hides Nostr amounts and identifiers. */
+export const NOSTR_PRIVACY_MASK = '••••'
 
 export const NOSTR_RELAYS: NostrRelay[] = [
   { name: 'Angani', url: 'wss://nostr-1.nbo.angani.co' },
@@ -53,3 +57,6 @@ export const NOSTR_RELAYS: NostrRelay[] = [
   { name: 'Vulpem', url: 'wss://nostr.vulpem.com' },
   { name: 'YakiHonne', url: 'wss://nostr-01.yakihonne.com' }
 ]
+
+/** Compact signed-event JSON longer than this is not shown as QR (QR version limits). */
+export const NOSTR_SIGNED_EVENT_QR_MAX_CHARS = 2400

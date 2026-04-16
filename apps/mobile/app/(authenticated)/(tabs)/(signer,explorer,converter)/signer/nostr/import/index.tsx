@@ -303,19 +303,22 @@ export default function ImportNostrIdentity() {
         {ROUTES.map((route, i) => (
           <SSActionButton
             key={route.key}
-            style={{ width: tabWidth }}
+            style={[styles.tabButton, { width: tabWidth }]}
             onPress={() => setTabIndex(i)}
           >
-            <SSVStack gap="none" itemsCenter>
-              <SSText
-                size="sm"
-                uppercase
-                color={tabIndex === i ? 'white' : 'muted'}
-              >
-                {route.title}
-              </SSText>
-              {tabIndex === i && <View style={styles.tabIndicator} />}
-            </SSVStack>
+            <View style={styles.tabButtonWrap}>
+              <SSVStack gap="none" itemsCenter style={styles.tabButtonInner}>
+                <SSText
+                  size="sm"
+                  uppercase
+                  center
+                  color={tabIndex === i ? 'white' : 'muted'}
+                >
+                  {route.title}
+                </SSText>
+              </SSVStack>
+              {tabIndex === i ? <View style={styles.tabIndicator} /> : null}
+            </View>
           </SSActionButton>
         ))}
       </SSHStack>
@@ -352,16 +355,32 @@ const styles = StyleSheet.create({
   tabBar: {
     borderBottomColor: Colors.gray[800],
     borderBottomWidth: 1,
-    paddingVertical: 4
+    paddingVertical: 0
+  },
+  tabButton: {
+    height: 48
+  },
+  tabButtonWrap: {
+    flex: 1,
+    height: '100%',
+    position: 'relative',
+    width: '100%'
+  },
+  tabButtonInner: {
+    flex: 1,
+    justifyContent: 'center',
+    width: '100%'
   },
   tabContent: {
     paddingTop: 20
   },
   tabIndicator: {
-    alignSelf: 'center',
     backgroundColor: Colors.white,
+    bottom: -1,
     height: 2,
-    marginTop: 4,
-    width: '60%'
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    zIndex: 1
   }
 })

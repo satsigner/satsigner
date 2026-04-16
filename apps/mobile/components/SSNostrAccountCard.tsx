@@ -1,42 +1,146 @@
+import { LinearGradient } from 'expo-linear-gradient'
+import { useMemo } from 'react'
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native'
 
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
+import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
+import { t } from '@/locales'
+import { useNostrIdentityStore } from '@/store/nostrIdentity'
+import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
-import { type NostrIdentity } from '@/types/models/NostrIdentity'
+import {
+  type NostrIdentity,
+  type NostrRelayReachability
+} from '@/types/models/NostrIdentity'
 import { truncateNpub } from '@/utils/nostrIdentity'
 
 import { SSIconChevronRight } from './icons'
+
+const ACTIVE_CARD_GRADIENT_BOTTOM = Colors.gray[925]
+const ACTIVE_CARD_GRADIENT_TOP = Colors.gray[875]
+/** Horizontal span (0–1) for unit vertical run so gradient is ~5° from vertical. */
+const ACTIVE_GRADIENT_TAN_5_DEG = Math.tan((5 * Math.PI) / 180)
 
 type SSNostrAccountCardProps = {
   identity: NostrIdentity
   onPress: () => void
   isActive?: boolean
+  relayReachability?: NostrRelayReachability
 }
 
 function SSNostrAccountCard({
   identity,
   onPress,
-  isActive
+  isActive,
+  relayReachability
 }: SSNostrAccountCardProps) {
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const storeRelays = useNostrIdentityStore((state) => state.relays)
+  const relayCount = useMemo(() => {
+    const urls = identity.relays?.length ? identity.relays : storeRelays
+    return urls.length
+  }, [identity.relays, storeRelays])
+
+  const nip05Value = identity.nip05?.trim()
+  const lud16Value = identity.lud16?.trim()
+
   return (
     <TouchableOpacity
-      activeOpacity={0.5}
+      activeOpacity={1}
       onPress={onPress}
-      style={[styles.container, isActive && styles.activeContainer]}
+      style={[styles.container, isActive && styles.containerActive]}
     >
+      {isActive ? (
+        <LinearGradient
+          colors={[ACTIVE_CARD_GRADIENT_TOP, ACTIVE_CARD_GRADIENT_BOTTOM]}
+          end={{
+            x: 0.5 + ACTIVE_GRADIENT_TAN_5_DEG / 2,
+            y: 1
+          }}
+          pointerEvents="none"
+          start={{
+            x: 0.5 - ACTIVE_GRADIENT_TAN_5_DEG / 2,
+            y: 0
+          }}
+          style={[StyleSheet.absoluteFillObject, styles.activeGradientFill]}
+        />
+      ) : null}
+      {isActive ? (
+        <LinearGradient
+          colors={[
+            'rgba(255, 255, 255, 0.03)',
+            'rgba(255, 255, 255, 0)',
+            'rgba(255, 255, 255, 0.012)'
+          ]}
+          end={{ x: 0.8, y: 0.4 }}
+          locations={[0, 0.55, 1]}
+          pointerEvents="none"
+          start={{ x: 0.14, y: 0 }}
+          style={[StyleSheet.absoluteFillObject, styles.activeGlassSheen]}
+        />
+      ) : null}
+      {isActive ? (
+        <View pointerEvents="none" style={styles.activeGlassInnerStroke} />
+      ) : null}
+      {isActive ? (
+        <View pointerEvents="none" style={styles.activeHeaderBadges}>
+          <View style={styles.activeHeaderBadgesRow}>
+            {relayReachability ? (
+              <SSText
+                color="muted"
+                numberOfLines={1}
+                size="xxs"
+                style={
+                  relayReachability === 'connected'
+                    ? styles.relayBesideActiveConnected
+                    : relayReachability === 'checking'
+                      ? styles.relayBesideActiveChecking
+                      : styles.relayBesideActiveDisconnected
+                }
+                weight="medium"
+              >
+                {relayReachability === 'checking'
+                  ? t('nostrIdentity.account.relayChecking')
+                  : relayReachability === 'connected'
+                    ? t('nostrIdentity.account.relayConnected')
+                    : t('nostrIdentity.account.relayDisconnected')}
+              </SSText>
+            ) : null}
+            <View style={styles.activeBadge}>
+              <SSText color="muted" size="xxs" uppercase weight="medium">
+                {t('nostrIdentity.account.activeTag')}
+              </SSText>
+            </View>
+          </View>
+        </View>
+      ) : null}
       <SSHStack justifyBetween style={styles.headerRow}>
-        <SSHStack gap="sm" style={styles.contentRow}>
+        <SSHStack gap="md" style={styles.contentRow}>
           <View style={styles.avatarContainer}>
-            {identity.picture ? (
+            {privacyMode ? (
+              <View
+                style={[
+                  styles.avatar,
+                  styles.avatarPlaceholder,
+                  isActive && styles.avatarActiveRing
+                ]}
+              />
+            ) : identity.picture ? (
               <Image
                 source={{ uri: identity.picture }}
-                style={styles.avatar}
+                style={[styles.avatar, isActive && styles.avatarActiveRing]}
               />
             ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <SSText size="md" weight="bold">
+              <View
+                style={[
+                  styles.avatar,
+                  styles.avatarPlaceholder,
+                  isActive && styles.avatarActiveRing
+                ]}
+              >
+                <SSText color="white" size="md" weight="bold">
                   {(identity.displayName ?? identity.npub)?.[0]?.toUpperCase() ??
                     'N'}
                 </SSText>
@@ -44,26 +148,61 @@ function SSNostrAccountCard({
             )}
           </View>
           <SSVStack gap="xxs" style={styles.infoContainer}>
-            <SSText size="md" weight="medium" numberOfLines={1}>
-              {identity.displayName || 'Unnamed'}
+            <SSText color="white" size="md" weight="medium" numberOfLines={1}>
+              {privacyMode ? NOSTR_PRIVACY_MASK : identity.displayName || 'Unnamed'}
             </SSText>
             <SSText size="xs" type="mono" color="muted" numberOfLines={1}>
               {truncateNpub(identity.npub)}
             </SSText>
             <View style={styles.reservedMetaRow}>
-              {identity.nip05 ? (
-                <SSText size="xs" color="muted" numberOfLines={1}>
-                  {identity.nip05}
-                </SSText>
-              ) : null}
+              <SSText
+                size="xs"
+                color={
+                  privacyMode ? 'muted' : lud16Value ? 'white' : 'muted'
+                }
+                numberOfLines={1}
+                style={
+                  !privacyMode && !lud16Value ? styles.metaPlaceholder : undefined
+                }
+              >
+                {privacyMode
+                  ? NOSTR_PRIVACY_MASK
+                  : lud16Value || t('nostrIdentity.account.lud16NotSet')}
+              </SSText>
             </View>
-            <View style={styles.reservedMetaRow}>
-              {identity.lud16 ? (
-                <SSText size="xs" numberOfLines={1} style={styles.lud16Text}>
-                  {identity.lud16}
+            <SSHStack justifyBetween gap="sm" style={styles.nip05Row}>
+              <View style={styles.nip05TextWrap}>
+                <SSText
+                  size="xs"
+                  color="muted"
+                  numberOfLines={1}
+                  style={
+                    !privacyMode && !nip05Value ? styles.metaPlaceholder : undefined
+                  }
+                >
+                  {privacyMode
+                    ? NOSTR_PRIVACY_MASK
+                    : nip05Value || t('nostrIdentity.account.nip05NotSet')}
                 </SSText>
-              ) : null}
-            </View>
+              </View>
+              <View style={styles.relayTotalWrap}>
+                <SSText
+                  accessibilityLabel={t('nostrIdentity.account.relayTotalA11y', {
+                    count: relayCount
+                  })}
+                  accessibilityRole="text"
+                  color="muted"
+                  numberOfLines={1}
+                  size="xxs"
+                  style={[
+                    styles.relayTotalInline,
+                    isActive && styles.relayTotalInlineActiveCard
+                  ]}
+                >
+                  {t('nostrIdentity.account.relayTotal', { count: relayCount })}
+                </SSText>
+              </View>
+            </SSHStack>
             <View style={styles.reservedMetaRow}>
               {identity.isWatchOnly ? (
                 <SSText size="xs" color="muted" uppercase>
@@ -84,9 +223,49 @@ function SSNostrAccountCard({
 }
 
 const styles = StyleSheet.create({
-  activeContainer: {
-    borderColor: Colors.mainGreen,
-    borderWidth: 1
+  activeBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderColor: 'rgba(255, 255, 255, 0.07)',
+    borderRadius: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 6,
+    paddingVertical: 3
+  },
+  activeHeaderBadges: {
+    left: 14,
+    position: 'absolute',
+    right: 14,
+    top: 10,
+    zIndex: 4
+  },
+  activeHeaderBadgesRow: {
+    alignItems: 'center',
+    columnGap: 8,
+    flexDirection: 'row',
+    justifyContent: 'flex-end'
+  },
+  activeGlassInnerStroke: {
+    borderColor: 'rgba(255, 255, 255, 0.045)',
+    borderRadius: Sizes.button.borderRadius - 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    bottom: 1,
+    left: 1,
+    pointerEvents: 'none',
+    position: 'absolute',
+    right: 1,
+    top: 1,
+    zIndex: 2
+  },
+  activeGlassSheen: {
+    borderRadius: Sizes.button.borderRadius,
+    zIndex: 1
+  },
+  activeGradientFill: {
+    borderRadius: Sizes.button.borderRadius
+  },
+  avatarActiveRing: {
+    borderColor: 'rgba(255, 255, 255, 0.09)',
+    borderWidth: StyleSheet.hairlineWidth
   },
   chevronOptical: {
     transform: [{ translateY: -5 }]
@@ -95,7 +274,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   headerRow: {
-    alignItems: 'stretch'
+    alignItems: 'stretch',
+    position: 'relative',
+    zIndex: 3
   },
   avatar: {
     borderRadius: 18,
@@ -116,9 +297,20 @@ const styles = StyleSheet.create({
     borderColor: Colors.gray[800],
     borderRadius: Sizes.button.borderRadius,
     borderTopWidth: 1,
+    overflow: 'hidden',
     paddingBottom: 0,
-    paddingHorizontal: 10,
-    paddingTop: 12
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    position: 'relative'
+  },
+  containerActive: {
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+    borderWidth: 1,
+    borderTopWidth: 1,
+    shadowColor: '#FFFFFF',
+    shadowOffset: { height: 0, width: 0 },
+    shadowOpacity: 0.05,
+    shadowRadius: 14
   },
   contentRow: {
     alignItems: 'flex-start',
@@ -127,8 +319,35 @@ const styles = StyleSheet.create({
   infoContainer: {
     flex: 1
   },
-  lud16Text: {
+  metaPlaceholder: {
+    opacity: 0.55
+  },
+  relayBesideActiveChecking: {
+    opacity: 0.72
+  },
+  relayBesideActiveConnected: {
     color: Colors.mainGreen
+  },
+  relayBesideActiveDisconnected: {
+    opacity: 0.55
+  },
+  nip05Row: {
+    alignItems: 'center',
+    marginEnd: -16,
+    minHeight: 14
+  },
+  nip05TextWrap: {
+    flex: 1,
+    minWidth: 0
+  },
+  relayTotalInline: {
+    opacity: 0.52
+  },
+  relayTotalWrap: {
+    flexShrink: 0
+  },
+  relayTotalInlineActiveCard: {
+    opacity: 0.36
   },
   reservedMetaRow: {
     justifyContent: 'center',

@@ -11,7 +11,8 @@ import {
 } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useMemo, useState } from 'react'
-import { Platform, View } from 'react-native'
+import { Platform, type ViewStyle, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -28,7 +29,8 @@ import {
   HEADER_CHROME_EDGE_NUDGE,
   HEADER_CHROME_EYE_TUCK,
   HEADER_CHROME_HIT_BOX,
-  HEADER_CHROME_ICON_SIZE
+  HEADER_CHROME_ICON_SIZE,
+  HEADER_HEIGHT_TRIM_PX
 } from '@/constants/headerChrome'
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
@@ -132,6 +134,23 @@ export default function StackLayout(params: { segment?: string }) {
   const currentPath = usePathname()
   const segments = useSegments()
   const [isShowNav, setShowNav] = useState(false)
+  const insets = useSafeAreaInsets()
+
+  const compactHeaderHeight = useMemo(() => {
+    const toolbar =
+      Platform.OS === 'ios'
+        ? insets.top + 44
+        : insets.top + 56
+    return toolbar - HEADER_HEIGHT_TRIM_PX
+  }, [insets.top])
+
+  const stackHeaderStyle = useMemo<ViewStyle>(
+    () => ({
+      backgroundColor: Colors.gray[950],
+      height: compactHeaderHeight
+    }),
+    [compactHeaderHeight]
+  )
 
   useEffect(() => {
     setShowNav(showNavigation(currentPath, segments.length))
@@ -194,6 +213,8 @@ export default function StackLayout(params: { segment?: string }) {
             backgroundColor: Colors.gray[950]
           },
           headerBackVisible: false,
+          // Native stack accepts height; Expo’s Stack typings only allow backgroundColor.
+          headerStyle: stackHeaderStyle as { backgroundColor?: string },
           headerBackground: () => (
             <View
               style={{

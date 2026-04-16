@@ -15,8 +15,10 @@ import { useEcash } from '@/hooks/useEcash'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
+import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
 import { type NostrIdentity } from '@/types/models/NostrIdentity'
@@ -46,6 +48,7 @@ export default function NostrContactProfile() {
   const [payAmount, setPayAmount] = useState(0)
 
   const lightningConfig = useLightningStore((state) => state.config)
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
   const { mints } = useEcash()
 
   const pendingInvoice = useState<{
@@ -82,6 +85,16 @@ export default function NostrContactProfile() {
       return
     }
 
+    if (owner?.relayConnected !== true) {
+      setTargetIdentity({
+        createdAt: Date.now(),
+        isWatchOnly: true,
+        npub: targetNpub
+      })
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     try {
       const api = new NostrAPI(effectiveRelays)
@@ -104,7 +117,7 @@ export default function NostrContactProfile() {
     } finally {
       setLoading(false)
     }
-  }, [effectiveRelays, targetNpub])
+  }, [effectiveRelays, owner?.relayConnected, targetNpub])
 
   useEffect(() => {
     void loadProfile()
@@ -180,8 +193,16 @@ export default function NostrContactProfile() {
     }
   }
 
-  function handleNotePress(noteId: string) {
-    const nevent = nip19.neventEncode({ id: noteId })
+  function handleNotePress(payload: {
+    id: string
+    kind: number
+    pubkey: string
+  }) {
+    const nevent = nip19.neventEncode({
+      id: payload.id,
+      author: payload.pubkey,
+      kind: payload.kind
+    })
     router.navigate({
       pathname: '/signer/nostr/account/[npub]/note',
       params: { npub, nostrUri: nevent }
@@ -224,7 +245,7 @@ export default function NostrContactProfile() {
                   label={
                     zapLoading
                       ? t('nostrIdentity.note.zapSending')
-                      : `${t('nostrIdentity.note.zap')} 21 sats`
+                      : `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : 21} sats`
                   }
                   variant="gradient"
                   gradientType="special"
@@ -248,6 +269,7 @@ export default function NostrContactProfile() {
 
             <SSNostrFeedTabs
               npub={targetNpub}
+              relayConnected={owner?.relayConnected === true}
               relays={effectiveRelays}
               onNotePress={handleNotePress}
             />

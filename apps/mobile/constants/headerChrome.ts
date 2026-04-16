@@ -19,3 +19,10 @@ export const HEADER_CHROME_EDGE_NUDGE = 6
 
 /** Negative margin pulls the privacy eye toward the back / hamburger (tighter pair). */
 export const HEADER_CHROME_EYE_TUCK = 18
+
+/**
+ * Pixels trimmed from the default native stack header height.
+ * Keep `Layout.mainContainer.paddingTop` in sync (add this value there) so body
+ * content stays below the header without overlap.
+ */
+export const HEADER_HEIGHT_TRIM_PX = 6

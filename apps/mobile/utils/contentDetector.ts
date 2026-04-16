@@ -332,18 +332,27 @@ function detectNostrContent(data: string): DetectedContent | null {
 
   try {
     const parsed = JSON.parse(trimmed) as Record<string, unknown>
+    const kind = typeof parsed.kind === 'number' ? parsed.kind : 1
+    if (kind !== 1 || typeof parsed.content !== 'string') {
+      return null
+    }
     if (
-      typeof parsed.kind === 'number' &&
-      typeof parsed.content === 'string' &&
-      Array.isArray(parsed.tags)
+      parsed.tags !== undefined &&
+      (!Array.isArray(parsed.tags) ||
+        !parsed.tags.every(
+          (tag) =>
+            Array.isArray(tag) &&
+            (tag as unknown[]).every((x) => typeof x === 'string')
+        ))
     ) {
-      return {
-        cleaned: trimmed,
-        isValid: true,
-        metadata: parsed,
-        raw: data,
-        type: 'nostr_json'
-      }
+      return null
+    }
+    return {
+      cleaned: trimmed,
+      isValid: true,
+      metadata: parsed,
+      raw: data,
+      type: 'nostr_json'
     }
   } catch {
     /* not JSON */

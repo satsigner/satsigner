@@ -1,9 +1,14 @@
 import { type DimensionValue } from 'react-native'
 
+import { HEADER_HEIGHT_TRIM_PX } from '@/constants/headerChrome'
+
+const MAIN_CONTAINER_PADDING_TOP_BASE = 12
+
 export const mainContainer = {
   paddingBottom: 32,
   paddingHorizontal: '6%' as DimensionValue,
-  paddingTop: 12
+  /** Paired with `HEADER_HEIGHT_TRIM_PX` on the stack header. */
+  paddingTop: MAIN_CONTAINER_PADDING_TOP_BASE + HEADER_HEIGHT_TRIM_PX
 }
 
 export const vStack = {

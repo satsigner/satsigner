@@ -17,7 +17,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
-import { Colors } from '@/styles'
+import { Colors, Sizes } from '@/styles'
 import { generateColorFromNpub } from '@/utils/nostr'
 import { truncateNpub } from '@/utils/nostrIdentity'
 
@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.gray[925],
     borderColor: Colors.gray[800],
-    borderRadius: 6,
+    borderRadius: Sizes.wordInput.borderRadius,
     borderWidth: 1,
     flex: 1,
     flexDirection: 'row',

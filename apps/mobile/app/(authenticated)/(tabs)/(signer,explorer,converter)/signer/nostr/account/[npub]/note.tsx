@@ -14,6 +14,8 @@ import { toast } from 'sonner-native'
 
 import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
+import SSNoteInlineImages from '@/components/SSNoteInlineImages'
+import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSPaymentMethodPicker, {
   type PaymentMethod
@@ -26,6 +28,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
+import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
 import {
@@ -35,6 +38,8 @@ import {
   extractPubpayTags,
   truncateNpub
 } from '@/utils/nostrIdentity'
+import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
+import { noteLooksLikeReply } from '@/utils/nostrNoteThread'
 import {
   type ZapReceiptInfo,
   enrichZapReceipts,
@@ -80,6 +85,7 @@ export default function NostrNotePage() {
   const zapResult = useZapFlowStore((state) => state.zapResult)
   const clearPendingZap = useZapFlowStore((state) => state.clearPendingZap)
   const setZapResult = useZapFlowStore((state) => state.setZapResult)
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
 
   const decoded = useMemo(() => {
     if (!nostrUri) return null
@@ -195,6 +201,10 @@ export default function NostrNotePage() {
 
     fetchedRef.current = true
 
+    console.log('[NotePage] decoded:', decoded.kind, 'data:', decoded.data, 'metadata:', decoded.metadata)
+    console.log('[NotePage] effectiveRelays:', effectiveRelays)
+    console.log('[NotePage] relayHints:', relayHints)
+
     if (decoded.kind === 'json_note' && decoded.metadata) {
       setFetched({
         content:
@@ -217,9 +227,11 @@ export default function NostrNotePage() {
     }
 
     const api = new NostrAPI(effectiveRelays)
+    console.log('[NotePage] calling fetchEvent with id:', decoded.data)
     api
       .fetchEvent(decoded.data)
       .then((event) => {
+        console.log('[NotePage] fetchEvent returned:', event ? 'FOUND' : 'NOT FOUND')
         if (!event) {
           setIsLoading(false)
           setProfileLoading(false)
@@ -228,7 +240,8 @@ export default function NostrNotePage() {
         }
         handleEventFound(event)
       })
-      .catch(() => {
+      .catch((err) => {
+        console.log('[NotePage] fetchEvent ERROR:', err)
         setIsLoading(false)
         setProfileLoading(false)
         setNotFound(true)
@@ -293,7 +306,9 @@ export default function NostrNotePage() {
   useEffect(() => {
     if (zapResult === 'success' && pendingZap) {
       toast.success(
-        `${t('nostrIdentity.note.zapSuccess')} (${pendingZap.amountSats} sats)`
+        `${t('nostrIdentity.note.zapSuccess')} (${
+          privacyMode ? NOSTR_PRIVACY_MASK : pendingZap.amountSats
+        } sats)`
       )
       if (decoded?.data) {
         loadZapReceipts(decoded.data)
@@ -304,7 +319,7 @@ export default function NostrNotePage() {
       clearPendingZap()
       setZapResult(null)
     }
-  }, [zapResult]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [zapResult, privacyMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const pubpayTags = useMemo(
     () => extractPubpayTags(fetched?.tags ?? []),
@@ -335,6 +350,11 @@ export default function NostrNotePage() {
     () => zapReceipts.reduce((sum, r) => sum + r.amountSats, 0),
     [zapReceipts]
   )
+
+  const noteImageUrls = useMemo(() => {
+    if (!fetched || privacyMode) return []
+    return extractImageUrlsFromNote(fetched.content, fetched.tags)
+  }, [fetched, privacyMode])
 
   const goalProgress =
     enhancedZap.zapGoal && enhancedZap.zapGoal > 0
@@ -499,7 +519,14 @@ export default function NostrNotePage() {
           <SSVStack gap="lg" style={styles.content}>
             {fetched?.pubkey && (
               <SSHStack gap="md" style={styles.authorRow}>
-                {fetched.authorPicture ? (
+                {privacyMode ? (
+                  <View
+                    style={[
+                      styles.authorAvatar,
+                      styles.authorAvatarPlaceholder
+                    ]}
+                  />
+                ) : fetched.authorPicture ? (
                   <Image
                     source={{ uri: fetched.authorPicture }}
                     style={styles.authorAvatar}
@@ -517,9 +544,14 @@ export default function NostrNotePage() {
                   </View>
                 )}
                 <SSVStack gap="none" style={{ flex: 1 }}>
-                  {fetched.authorName && (
+                  {fetched.authorName && !privacyMode && (
                     <SSText size="md" weight="medium">
                       {fetched.authorName}
+                    </SSText>
+                  )}
+                  {privacyMode && (
+                    <SSText size="md" weight="medium">
+                      {NOSTR_PRIVACY_MASK}
                     </SSText>
                   )}
                   <SSText size="xs" color="muted" type="mono">
@@ -545,13 +577,47 @@ export default function NostrNotePage() {
               )}
             </SSHStack>
 
-            {fetched && fetched.content.length > 0 && (
-              <View style={styles.noteCard}>
-                <SSText style={styles.noteText}>
-                  {fetched.content}
-                </SSText>
-              </View>
-            )}
+            {fetched &&
+              (fetched.content.length > 0 || noteImageUrls.length > 0) && (
+                <View style={styles.noteCard}>
+                  {!privacyMode && noteLooksLikeReply(fetched.tags) ? (
+                    <View style={styles.noteReplyTag} pointerEvents="none">
+                      <SSText
+                        size="xxs"
+                        color="white"
+                        uppercase
+                        style={styles.noteReplyTagText}
+                      >
+                        {t('nostrIdentity.feed.replyTag')}
+                      </SSText>
+                    </View>
+                  ) : null}
+                  {fetched.content.length > 0 ? (
+                    <SSText
+                      style={[
+                        styles.noteText,
+                        !privacyMode &&
+                          noteLooksLikeReply(fetched.tags) &&
+                          styles.noteTextWithReplyTag
+                      ]}
+                    >
+                      {privacyMode
+                        ? t('nostrIdentity.feed.hiddenInPrivacyMode')
+                        : fetched.content}
+                    </SSText>
+                  ) : null}
+                  {noteImageUrls.length > 0 ? (
+                    <SSNoteInlineImages
+                      uris={noteImageUrls}
+                      style={
+                        fetched.content.length > 0
+                          ? styles.noteImagesBelowText
+                          : styles.noteImagesNoText
+                      }
+                    />
+                  ) : null}
+                </View>
+              )}
 
             <SSVStack gap="xs">
               <SSText size="xs" color="muted" uppercase>
@@ -593,14 +659,20 @@ export default function NostrNotePage() {
                             {t('nostrIdentity.note.goal')}
                           </SSText>
                           <SSText size="xs" weight="medium">
-                            {totalZapped.toLocaleString()} / {enhancedZap.zapGoal.toLocaleString()} sats
+                            {privacyMode
+                              ? `${NOSTR_PRIVACY_MASK} / ${NOSTR_PRIVACY_MASK} sats`
+                              : `${totalZapped.toLocaleString()} / ${enhancedZap.zapGoal.toLocaleString()} sats`}
                           </SSText>
                         </SSHStack>
                         <View style={styles.progressTrack}>
                           <View
                             style={[
                               styles.progressFill,
-                              { width: `${(goalProgress ?? 0) * 100}%` }
+                              {
+                                width: privacyMode
+                                  ? '0%'
+                                  : `${(goalProgress ?? 0) * 100}%`
+                              }
                             ]}
                           />
                         </View>
@@ -613,7 +685,9 @@ export default function NostrNotePage() {
                           {t('nostrIdentity.note.uses')}
                         </SSText>
                         <SSText size="xs" weight="medium">
-                          {zapReceipts.length} / {enhancedZap.zapUses}
+                          {privacyMode
+                            ? `${NOSTR_PRIVACY_MASK} / ${NOSTR_PRIVACY_MASK}`
+                            : `${zapReceipts.length} / ${enhancedZap.zapUses}`}
                         </SSText>
                       </SSHStack>
                     )}
@@ -624,14 +698,16 @@ export default function NostrNotePage() {
                           {t('nostrIdentity.note.payTo')}
                         </SSText>
                         <SSText size="xs" type="mono">
-                          {enhancedZap.zapLnurl}
+                          {privacyMode
+                            ? NOSTR_PRIVACY_MASK
+                            : enhancedZap.zapLnurl}
                         </SSText>
                       </SSHStack>
                     )}
 
                     {isFixedAmount && !isRequestComplete && (
                       <SSButton
-                        label={`${t('nostrIdentity.note.zap')} ${enhancedZap.zapMin} sats`}
+                        label={`${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : enhancedZap.zapMin} sats`}
                         variant="gradient"
                         gradientType="special"
                         disabled={zapLoading || !effectiveLud16}
@@ -644,10 +720,15 @@ export default function NostrNotePage() {
                     {isRangeAmount && !isRequestComplete && (
                       <SSVStack gap="sm">
                         <SSText size="xs" color="muted">
-                          {t('nostrIdentity.note.rangeHint', {
-                            min: enhancedZap.zapMin!.toLocaleString(),
-                            max: enhancedZap.zapMax!.toLocaleString()
-                          })}
+                          {privacyMode
+                            ? t('nostrIdentity.note.rangeHint', {
+                                min: NOSTR_PRIVACY_MASK,
+                                max: NOSTR_PRIVACY_MASK
+                              })
+                            : t('nostrIdentity.note.rangeHint', {
+                                min: enhancedZap.zapMin!.toLocaleString(),
+                                max: enhancedZap.zapMax!.toLocaleString()
+                              })}
                         </SSText>
                         <SSHStack gap="sm" style={styles.presetRow}>
                           {[
@@ -665,7 +746,7 @@ export default function NostrNotePage() {
                               activeOpacity={0.6}
                             >
                               <SSText size="sm" weight="medium" center>
-                                {sats.toLocaleString()}
+                                {privacyMode ? NOSTR_PRIVACY_MASK : sats.toLocaleString()}
                               </SSText>
                             </TouchableOpacity>
                           ))}
@@ -673,7 +754,11 @@ export default function NostrNotePage() {
                         <TextInput
                           style={styles.customInput}
                           placeholderTextColor={Colors.gray[500]}
-                          placeholder={`${enhancedZap.zapMin} – ${enhancedZap.zapMax} sats`}
+                          placeholder={
+                            privacyMode
+                              ? `${NOSTR_PRIVACY_MASK} – ${NOSTR_PRIVACY_MASK} sats`
+                              : `${enhancedZap.zapMin} – ${enhancedZap.zapMax} sats`
+                          }
                           keyboardType="number-pad"
                           value={customAmount}
                           onChangeText={setCustomAmount}
@@ -684,7 +769,7 @@ export default function NostrNotePage() {
                         <SSButton
                           label={
                             customAmount && parseInt(customAmount, 10) > 0
-                              ? `${t('nostrIdentity.note.zap')} ${customAmount} sats`
+                              ? `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : customAmount} sats`
                               : t('nostrIdentity.note.zap')
                           }
                           variant="gradient"
@@ -710,7 +795,9 @@ export default function NostrNotePage() {
                           <SSHStack key={index} gap="sm" style={styles.zapRow}>
                             <SSVStack gap="none" style={{ flex: 1 }}>
                               <SSText size="lg" weight="medium">
-                                {tag.amount} {tag.currency}
+                                {privacyMode
+                                  ? `${NOSTR_PRIVACY_MASK} ${tag.currency}`
+                                  : `${tag.amount} ${tag.currency}`}
                               </SSText>
                               {tag.relay && (
                                 <SSText size="xs" color="muted">
@@ -760,7 +847,7 @@ export default function NostrNotePage() {
                                 activeOpacity={0.6}
                               >
                                 <SSText size="sm" weight="medium" center>
-                                  {sats}
+                                  {privacyMode ? NOSTR_PRIVACY_MASK : sats}
                                 </SSText>
                               </TouchableOpacity>
                             ))}
@@ -786,7 +873,7 @@ export default function NostrNotePage() {
                               label={
                                 customAmount &&
                                 parseInt(customAmount, 10) > 0
-                                  ? `${t('nostrIdentity.note.zap')} ${customAmount} sats`
+                                  ? `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : customAmount} sats`
                                   : t('nostrIdentity.note.zap')
                               }
                               variant="gradient"
@@ -834,9 +921,16 @@ export default function NostrNotePage() {
                 <SSText size="xs" color="muted" uppercase>
                   {t('nostrIdentity.note.zapReceipts')} ({zapReceipts.length})
                 </SSText>
-                {zapReceipts.map((receipt, idx) => (
-                  <SSHStack key={idx} gap="sm" style={styles.receiptRow}>
-                    {receipt.senderPicture ? (
+                {zapReceipts.map((receipt) => (
+                  <SSHStack key={receipt.id} gap="sm" style={styles.receiptRow}>
+                    {privacyMode ? (
+                      <View
+                        style={[
+                          styles.receiptAvatar,
+                          styles.receiptAvatarPlaceholder
+                        ]}
+                      />
+                    ) : receipt.senderPicture ? (
                       <Image
                         source={{ uri: receipt.senderPicture }}
                         style={styles.receiptAvatar}
@@ -855,13 +949,15 @@ export default function NostrNotePage() {
                     )}
                     <SSVStack gap="none" style={{ flex: 1 }}>
                       <SSText size="sm" weight="medium">
-                        {receipt.senderName ||
-                          truncateNpub(
-                            nip19.npubEncode(receipt.senderPubkey),
-                            8
-                          )}
+                        {privacyMode
+                          ? NOSTR_PRIVACY_MASK
+                          : receipt.senderName ||
+                            truncateNpub(
+                              nip19.npubEncode(receipt.senderPubkey),
+                              8
+                            )}
                       </SSText>
-                      {receipt.comment ? (
+                      {!privacyMode && receipt.comment ? (
                         <SSText size="xs" color="muted">
                           {receipt.comment}
                         </SSText>
@@ -869,7 +965,9 @@ export default function NostrNotePage() {
                     </SSVStack>
                     <SSVStack gap="none" style={styles.receiptAmountCol}>
                       <SSText size="sm" weight="bold" color="white">
-                        {receipt.amountSats} sats
+                        {privacyMode
+                          ? `${NOSTR_PRIVACY_MASK} sats`
+                          : `${receipt.amountSats} sats`}
                       </SSText>
                       {receipt.createdAt > 0 && (
                         <SSText size="xxs" color="muted">
@@ -995,12 +1093,37 @@ const styles = StyleSheet.create({
     borderColor: Colors.gray[800],
     borderRadius: 5,
     borderWidth: 1,
-    padding: 16
+    padding: 16,
+    position: 'relative'
+  },
+  noteReplyTag: {
+    backgroundColor: Colors.gray[800],
+    borderColor: Colors.gray[700],
+    borderRadius: 3,
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    position: 'absolute',
+    right: 12,
+    top: 12,
+    zIndex: 1
+  },
+  noteReplyTagText: {
+    letterSpacing: 0.5
+  },
+  noteImagesBelowText: {
+    marginTop: 12
+  },
+  noteImagesNoText: {
+    marginTop: 0
   },
   noteText: {
     color: Colors.white,
     fontSize: 15,
     lineHeight: 22
+  },
+  noteTextWithReplyTag: {
+    paddingRight: 44
   },
   notFoundCard: {
     backgroundColor: Colors.gray[925],

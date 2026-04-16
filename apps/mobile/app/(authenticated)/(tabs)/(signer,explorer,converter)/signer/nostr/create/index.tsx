@@ -12,7 +12,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Colors } from '@/styles'
+import { Colors, Sizes } from '@/styles'
 import { generateMnemonic } from '@/utils/bip39'
 import { deriveNostrKeysFromMnemonic } from '@/utils/nostrIdentity'
 
@@ -79,7 +79,7 @@ export default function CreateNostrIdentity() {
             <SSText center size="sm" color="muted" uppercase>
               {t('nostrIdentity.create.seedWords')}
             </SSText>
-            <View style={styles.keyContainer}>
+            <View style={styles.keyGroup}>
               <View style={styles.wordsGrid}>
                 {chunkSeedWords(words, 3).map((row, rowIndex) => (
                   <SSHStack key={rowIndex} gap="sm" style={styles.wordRow}>
@@ -121,8 +121,9 @@ export default function CreateNostrIdentity() {
             <SSText center size="sm" color="muted" uppercase>
               {t('nostrIdentity.create.nsec')}
             </SSText>
-            <View style={styles.keyContainer}>
+            <View style={styles.keyGroup}>
               <SSText
+                center
                 size="xs"
                 type="mono"
                 style={styles.keyText}
@@ -158,8 +159,9 @@ export default function CreateNostrIdentity() {
             <SSText center size="sm" color="muted" uppercase>
               {t('nostrIdentity.create.npub')}
             </SSText>
-            <View style={styles.keyContainer}>
+            <View style={styles.keyGroup}>
               <SSText
+                center
                 size="xs"
                 type="mono"
                 style={styles.keyText}
@@ -241,12 +243,9 @@ const styles = StyleSheet.create({
     marginTop: 12,
     width: '100%'
   },
-  keyContainer: {
-    backgroundColor: Colors.gray[925],
-    borderColor: Colors.gray[800],
-    borderRadius: 8,
-    borderWidth: 1,
-    padding: 12
+  keyGroup: {
+    alignSelf: 'stretch',
+    width: '100%'
   },
   keyText: {
     lineHeight: 18,
@@ -267,7 +266,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.gray[925],
     borderColor: Colors.gray[800],
-    borderRadius: 6,
+    borderRadius: Sizes.wordInput.borderRadius,
     borderWidth: 1,
     flex: 1,
     flexDirection: 'row',

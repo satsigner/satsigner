@@ -16,6 +16,7 @@ type NostrIdentityActions = {
   updateIdentity: (npub: string, updates: Partial<NostrIdentity>) => void
   setActiveIdentity: (npub: string | null) => void
   getActiveIdentity: () => NostrIdentity | undefined
+  setAllRelayConnected: (connected: boolean) => void
   setRelays: (relays: string[]) => void
   addRelay: (url: string) => void
   removeRelay: (url: string) => void
@@ -38,7 +39,11 @@ const useNostrIdentityStore = create<
           if (state.identities.some((i) => i.npub === identity.npub)) {
             return state
           }
-          return { identities: [...state.identities, identity] }
+          const next: NostrIdentity = {
+            ...identity,
+            relayConnected: identity.relayConnected ?? false
+          }
+          return { identities: [...state.identities, next] }
         })
       },
 
@@ -62,6 +67,15 @@ const useNostrIdentityStore = create<
 
       setActiveIdentity: (npub) => {
         set({ activeIdentityNpub: npub })
+      },
+
+      setAllRelayConnected: (connected) => {
+        set((state) => ({
+          identities: state.identities.map((i) => ({
+            ...i,
+            relayConnected: connected
+          }))
+        }))
       },
 
       getActiveIdentity: () => {

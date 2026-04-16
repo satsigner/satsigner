@@ -33,8 +33,8 @@ class NDKEvent {
     }
   }
 
-  sign() {
-    this.sig = 'mock-signature'
+  async sign() {
+    this.sig = 'a'.repeat(128)
   }
 }
 

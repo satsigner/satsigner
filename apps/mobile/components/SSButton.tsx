@@ -58,7 +58,7 @@ function getButtonVariantStyle(
     return styles.buttonDanger
   }
   if (variant === 'elevated') {
-    return [styles.buttonDefault, styles.buttonElevated]
+    return styles.buttonDefault
   }
   if (variant === 'default' && withSelect) {
     return styles.buttonWithSelect
@@ -204,6 +204,44 @@ function SSButton({
           />
         </>
       )}
+      {variant === 'outline' && (
+        <>
+          <LinearGradient
+            style={[styles.glassBorder, styles.glassBorderTop]}
+            colors={[
+              'rgba(255,255,255,0.16)',
+              'rgba(255,255,255,0.30)',
+              'rgba(255,255,255,0.18)'
+            ]}
+            locations={[0, 0.45, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          />
+          <LinearGradient
+            style={[styles.glassBorder, styles.glassBorderBottom]}
+            colors={[
+              'rgba(255,255,255,0.06)',
+              'rgba(255,255,255,0.20)',
+              'rgba(255,255,255,0.06)'
+            ]}
+            locations={[0, 0.5, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          />
+          <LinearGradient
+            style={[styles.glassBorder, styles.glassBorderLeft]}
+            colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.14)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+          />
+          <LinearGradient
+            style={[styles.glassBorder, styles.glassBorderRight]}
+            colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.13)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+          />
+        </>
+      )}
       {showDefaultGradient && (
         <SSBackgroundGradient style={styles.buttonGradient} />
       )}
@@ -248,6 +286,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     height: Sizes.button.height,
     justifyContent: 'center',
+    overflow: 'hidden',
     width: '100%'
   },
   buttonDanger: {
@@ -256,15 +295,12 @@ const styles = StyleSheet.create({
   buttonDefault: {
     backgroundColor: Colors.gray[600]
   },
-  buttonElevated: {
-    borderRadius: Sizes.button.borderRadius,
-    overflow: 'hidden'
-  },
   buttonGhost: {
     backgroundColor: Colors.transparent
   },
   buttonGradient: {
     alignItems: 'center',
+    borderRadius: Sizes.button.borderRadius,
     height: '100%',
     justifyContent: 'center',
     position: 'absolute',
@@ -272,8 +308,7 @@ const styles = StyleSheet.create({
   },
   buttonOutline: {
     backgroundColor: Colors.transparent,
-    borderColor: Colors.white,
-    borderWidth: 1
+    borderWidth: 0
   },
   buttonSecondary: {
     backgroundColor: Colors.white
