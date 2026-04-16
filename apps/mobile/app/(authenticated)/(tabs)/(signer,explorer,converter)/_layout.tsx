@@ -1,62 +1,63 @@
 import {
   type DrawerNavigationProp,
-  useDrawerStatus
-} from '@react-navigation/drawer'
+  useDrawerStatus,
+} from "@react-navigation/drawer";
 import {
   Stack,
   useNavigation,
   usePathname,
   useRouter,
-  useSegments
-} from 'expo-router'
-import { StatusBar } from 'expo-status-bar'
-import { useEffect, useMemo, useState } from 'react'
-import { Platform, type ViewStyle, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useShallow } from 'zustand/react/shallow'
+  useSegments,
+} from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useEffect, useMemo, useState } from "react";
+import { Platform, type ViewStyle, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useShallow } from "zustand/react/shallow";
 
 import {
   SSIconCloseThin,
   SSIconEyeOff,
   SSIconEyeOn,
   SSIconHamburger,
-  SSIconSettings
-} from '@/components/icons'
-import SSIconBackArrow from '@/components/icons/SSIconBackArrow'
-import SSIconButton from '@/components/SSIconButton'
-import SSText from '@/components/SSText'
+  SSIconSettings,
+} from "@/components/icons";
+import SSIconBackArrow from "@/components/icons/SSIconBackArrow";
+import SSIconButton from "@/components/SSIconButton";
+import SSText from "@/components/SSText";
 import {
   HEADER_CHROME_EDGE_NUDGE,
   HEADER_CHROME_EYE_TUCK,
   HEADER_CHROME_HIT_BOX,
   HEADER_CHROME_ICON_SIZE,
-  HEADER_HEIGHT_TRIM_PX
-} from '@/constants/headerChrome'
-import SSHStack from '@/layouts/SSHStack'
-import { t } from '@/locales'
-import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
-import { showNavigation } from '@/utils/navigation'
+  HEADER_CHROME_SETTINGS_ICON_SIZE,
+  HEADER_HEIGHT_TRIM_PX,
+} from "@/constants/headerChrome";
+import SSHStack from "@/layouts/SSHStack";
+import { t } from "@/locales";
+import { useSettingsStore } from "@/store/settings";
+import { Colors } from "@/styles";
+import { showNavigation } from "@/utils/navigation";
 
-const HEADER_ICON_STROKE = '#828282'
-const HEADER_CLOSE_COLOR = 'rgba(255,255,255,0.6)'
+const HEADER_ICON_STROKE = "#828282";
+const HEADER_CLOSE_COLOR = "rgba(255,255,255,0.6)";
 
 function HeaderLeft({ isShowNav }: { isShowNav: boolean }) {
-  const router = useRouter()
-  const nav = useNavigation<DrawerNavigationProp<Record<string, undefined>>>()
-  const isDrawerOpen = useDrawerStatus() === 'open'
+  const router = useRouter();
+  const nav = useNavigation<DrawerNavigationProp<Record<string, undefined>>>();
+  const isDrawerOpen = useDrawerStatus() === "open";
   const [privacyMode, togglePrivacyMode] = useSettingsStore(
     useShallow((state) => [state.privacyMode, state.togglePrivacyMode])
-  )
+  );
 
-  const iconSize = HEADER_CHROME_ICON_SIZE
+  const iconSize = HEADER_CHROME_ICON_SIZE;
 
   return (
     <SSHStack
       gap="none"
       style={{
-        alignItems: 'center',
-        marginLeft: -HEADER_CHROME_EDGE_NUDGE
+        alignItems: "center",
+        marginLeft: -HEADER_CHROME_EDGE_NUDGE,
       }}
     >
       {isShowNav ? (
@@ -105,109 +106,109 @@ function HeaderLeft({ isShowNav }: { isShowNav: boolean }) {
         )}
       </SSIconButton>
     </SSHStack>
-  )
+  );
 }
 
 function HeaderRight() {
-  const router = useRouter()
-  const iconSize = HEADER_CHROME_ICON_SIZE
+  const router = useRouter();
+  const settingsIconSize = HEADER_CHROME_SETTINGS_ICON_SIZE;
   return (
     <SSIconButton
       style={
-        Platform.OS === 'android' && [
+        Platform.OS === "android" && [
           HEADER_CHROME_HIT_BOX,
-          { marginRight: -HEADER_CHROME_EDGE_NUDGE }
+          { marginRight: -HEADER_CHROME_EDGE_NUDGE },
         ]
       }
-      onPress={() => router.navigate('/settings')}
+      onPress={() => router.navigate("/settings")}
     >
       <SSIconSettings
-        height={iconSize}
+        height={settingsIconSize}
         stroke={HEADER_ICON_STROKE}
-        width={iconSize}
+        width={settingsIconSize}
       />
     </SSIconButton>
-  )
+  );
 }
 
 export default function StackLayout(params: { segment?: string }) {
-  const currentPath = usePathname()
-  const segments = useSegments()
-  const [isShowNav, setShowNav] = useState(false)
-  const insets = useSafeAreaInsets()
+  const currentPath = usePathname();
+  const segments = useSegments();
+  const [isShowNav, setShowNav] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const compactHeaderHeight = useMemo(() => {
-    const toolbar = Platform.OS === 'ios' ? insets.top + 44 : insets.top + 56
-    return toolbar - HEADER_HEIGHT_TRIM_PX
-  }, [insets.top])
+    const toolbar = Platform.OS === "ios" ? insets.top + 44 : insets.top + 56;
+    return toolbar - HEADER_HEIGHT_TRIM_PX;
+  }, [insets.top]);
 
   const stackHeaderStyle = useMemo<ViewStyle>(
     () => ({
       backgroundColor: Colors.gray[950],
-      height: compactHeaderHeight
+      height: compactHeaderHeight,
     }),
     [compactHeaderHeight]
-  )
+  );
 
   useEffect(() => {
-    setShowNav(showNavigation(currentPath, segments.length))
-  }, [currentPath, segments])
+    setShowNav(showNavigation(currentPath, segments.length));
+  }, [currentPath, segments]);
 
   const homeScreen = useMemo(() => {
     switch (params?.segment) {
-      case '(signer)':
+      case "(signer)":
         return (
           <Stack.Screen
             name="index"
             initialParams={{
               segment: params?.segment,
-              tab: t('navigation.label.signer')
+              tab: t("navigation.label.signer"),
             }}
-            options={{ title: 'Signer' }}
+            options={{ title: "Signer" }}
           />
-        )
-      case '(explorer)':
+        );
+      case "(explorer)":
         return (
           <Stack.Screen
             name="index"
             initialParams={{
               segment: params?.segment,
-              tab: t('navigation.label.explorer')
+              tab: t("navigation.label.explorer"),
             }}
-            options={{ title: 'Explore' }}
+            options={{ title: "Explore" }}
           />
-        )
-      case '(converter)':
+        );
+      case "(converter)":
         return (
           <Stack.Screen
             name="index"
             initialParams={{
               segment: params?.segment,
-              tab: t('navigation.label.converter')
+              tab: t("navigation.label.converter"),
             }}
-            options={{ title: 'Converter' }}
+            options={{ title: "Converter" }}
           />
-        )
+        );
       default:
         return (
           <Stack.Screen
             name="index"
             initialParams={{
               segment: params?.segment,
-              tab: t('navigation.label.signer')
+              tab: t("navigation.label.signer"),
             }}
-            options={{ title: 'Signer' }}
+            options={{ title: "Signer" }}
           />
-        )
+        );
     }
-  }, [params])
+  }, [params]);
 
   return (
     <>
       <Stack
         screenOptions={{
           contentStyle: {
-            backgroundColor: Colors.gray[950]
+            backgroundColor: Colors.gray[950],
           },
           headerBackVisible: false,
           // Native stack accepts height; Expo’s Stack typings only allow backgroundColor.
@@ -215,10 +216,10 @@ export default function StackLayout(params: { segment?: string }) {
           headerBackground: () => (
             <View
               style={{
-                alignItems: 'center',
+                alignItems: "center",
                 backgroundColor: Colors.gray[950],
-                height: '100%',
-                justifyContent: 'center'
+                height: "100%",
+                justifyContent: "center",
               }}
             />
           ),
@@ -227,15 +228,15 @@ export default function StackLayout(params: { segment?: string }) {
           headerTintColor: Colors.gray[200],
           headerTitle: () => (
             <SSText uppercase style={{ letterSpacing: 1 }}>
-              {t('app.name')}
+              {t("app.name")}
             </SSText>
           ),
-          headerTitleAlign: 'center'
+          headerTitleAlign: "center",
         }}
       >
         {homeScreen}
       </Stack>
       <StatusBar style="light" />
     </>
-  )
+  );
 }

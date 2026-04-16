@@ -1,55 +1,55 @@
-import { setStringAsync } from 'expo-clipboard'
-import { useRouter } from 'expo-router'
-import { useCallback, useState } from 'react'
-import { ScrollView, TouchableOpacity, View } from 'react-native'
-import { type PsbtLike } from 'react-native-bdk-sdk'
-import { toast } from 'sonner-native'
+import { setStringAsync } from "expo-clipboard";
+import { useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import { ScrollView, TouchableOpacity, View } from "react-native";
+import { type PsbtLike } from "react-native-bdk-sdk";
+import { toast } from "sonner-native";
 
-import { SSIconCircleX, SSIconGreen } from '@/components/icons'
-import SSButton from '@/components/SSButton'
-import SSText from '@/components/SSText'
-import { useKeySourceLabel } from '@/hooks/useKeySourceLabel'
-import { useSignatureDropdownValidation } from '@/hooks/useKeyValidation'
-import SSHStack from '@/layouts/SSHStack'
-import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
-import { useBlockchainStore } from '@/store/blockchain'
-import { useNostrStore } from '@/store/nostr'
-import { Colors, Typography } from '@/styles'
-import { type Account, type Key } from '@/types/models/Account'
-import { extractPublicKeyFromKey, isSeedDropped } from '@/utils/key'
+import { SSIconCircleX, SSIconGreen } from "@/components/icons";
+import SSButton from "@/components/SSButton";
+import SSText from "@/components/SSText";
+import { useKeySourceLabel } from "@/hooks/useKeySourceLabel";
+import { useSignatureDropdownValidation } from "@/hooks/useKeyValidation";
+import SSHStack from "@/layouts/SSHStack";
+import SSVStack from "@/layouts/SSVStack";
+import { t } from "@/locales";
+import { useBlockchainStore } from "@/store/blockchain";
+import { useNostrStore } from "@/store/nostr";
+import { Colors, Sizes, Typography } from "@/styles";
+import { type Account, type Key } from "@/types/models/Account";
+import { extractPublicKeyFromKey, isSeedDropped } from "@/utils/key";
 import {
   combinePsbts,
   type TransactionData,
-  validateNormalizedPsbt
-} from '@/utils/psbt'
+  validateNormalizedPsbt,
+} from "@/utils/psbt";
 
 type SSSignatureDropdownProps = {
-  index: number
-  totalKeys: number
-  keyDetails: Key
-  transactionId: string
-  txBuilderResult: PsbtLike
-  serializedPsbt: string
-  signedPsbt: string
-  setSignedPsbt: (psbt: string) => void
-  isAvailable: boolean
-  isEmitting: boolean
-  isReading: boolean
-  decryptedKey?: Key
-  account: Account
-  accountId: string
-  signedPsbts: Map<number, string>
-  onShowQR: () => void
-  onNFCExport: () => void
-  onPasteFromClipboard: (index: number, psbt: string) => void
-  onCameraScan: (index: number) => void
-  onNFCScan: (index: number) => void
-  onSignWithLocalKey: () => void
-  onSignWithSeedQR: () => void
-  onSignWithSeedWords: () => void
-  validationResult?: boolean
-}
+  index: number;
+  totalKeys: number;
+  keyDetails: Key;
+  transactionId: string;
+  txBuilderResult: PsbtLike;
+  serializedPsbt: string;
+  signedPsbt: string;
+  setSignedPsbt: (psbt: string) => void;
+  isAvailable: boolean;
+  isEmitting: boolean;
+  isReading: boolean;
+  decryptedKey?: Key;
+  account: Account;
+  accountId: string;
+  signedPsbts: Map<number, string>;
+  onShowQR: () => void;
+  onNFCExport: () => void;
+  onPasteFromClipboard: (index: number, psbt: string) => void;
+  onCameraScan: (index: number) => void;
+  onNFCScan: (index: number) => void;
+  onSignWithLocalKey: () => void;
+  onSignWithSeedQR: () => void;
+  onSignWithSeedWords: () => void;
+  validationResult?: boolean;
+};
 
 function SSSignatureDropdown({
   index,
@@ -74,71 +74,72 @@ function SSSignatureDropdown({
   onSignWithLocalKey,
   onSignWithSeedQR,
   onSignWithSeedWords,
-  validationResult
+  validationResult,
 }: SSSignatureDropdownProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  const router = useRouter()
+  const router = useRouter();
   const setTransactionToShare = useNostrStore(
     (state) => state.setTransactionToShare
-  )
+  );
 
-  const network = useBlockchainStore((state) => state.selectedNetwork)
-  const scriptVersion = keyDetails?.scriptVersion || 'P2WSH'
+  const network = useBlockchainStore((state) => state.selectedNetwork);
+  const scriptVersion = keyDetails?.scriptVersion || "P2WSH";
 
-  const seedDropped = isSeedDropped(keyDetails, decryptedKey)
+  const seedDropped = isSeedDropped(keyDetails, decryptedKey);
 
   const { hasLocalSeed, isSignatureCompleted } = useSignatureDropdownValidation(
     {
       decryptedKey,
       keyDetails,
       seedDropped,
-      signedPsbt
+      signedPsbt,
     }
-  )
+  );
 
   const handleSendTransactionToGroup = useCallback(() => {
     if (!account?.nostr?.autoSync) {
-      toast.error(t('account.nostrSync.autoSyncMustBeEnabled'))
-      return
+      toast.error(t("account.nostrSync.autoSyncMustBeEnabled"));
+      return;
     }
 
     if (!transactionId || !txBuilderResult?.toBase64()) {
-      toast.error(t('account.nostrSync.transactionDataNotAvailable'))
-      return
+      toast.error(t("account.nostrSync.transactionDataNotAvailable"));
+      return;
     }
 
     try {
       const collectedSignedPsbts = Array.from(signedPsbts.entries())
         .filter(([, psbt]) => psbt && psbt.trim().length > 0)
         .reduce<Record<number, string>>((acc, [cosignerIndex, psbt]) => {
-          acc[cosignerIndex] = psbt
-          return acc
-        }, {})
+          acc[cosignerIndex] = psbt;
+          return acc;
+        }, {});
 
       const psbtsToCombine = [
         txBuilderResult.toBase64(),
-        ...Object.values(collectedSignedPsbts)
-      ]
-      const combinedPsbt = combinePsbts(psbtsToCombine)
+        ...Object.values(collectedSignedPsbts),
+      ];
+      const combinedPsbt = combinePsbts(psbtsToCombine);
 
       const transactionData: TransactionData = {
-        combinedPsbt
-      }
+        combinedPsbt,
+      };
 
-      const transaction = combinedPsbt
+      const transaction = combinedPsbt;
 
       setTransactionToShare({
         transaction,
-        transactionData
-      })
+        transactionData,
+      });
 
       router.push({
         params: { id: accountId },
-        pathname: '/signer/bitcoin/account/[id]/settings/nostr/devicesGroupChat'
-      })
+        pathname:
+          "/signer/bitcoin/account/[id]/settings/nostr/devicesGroupChat",
+      });
     } catch {
-      toast.error(t('account.nostrSync.failedToSendTransactionData'))
+      toast.error(t("account.nostrSync.failedToSendTransactionData"));
     }
   }, [
     account,
@@ -147,44 +148,44 @@ function SSSignatureDropdown({
     signedPsbts,
     router,
     accountId,
-    setTransactionToShare
-  ])
+    setTransactionToShare,
+  ]);
 
   const { sourceLabel } = useKeySourceLabel({
     decryptedKey,
     keyDetails,
     network,
     scriptVersion,
-    seedDropped
-  })
+    seedDropped,
+  });
 
-  const extractedPublicKey = extractPublicKeyFromKey(keyDetails, decryptedKey)
+  const extractedPublicKey = extractPublicKeyFromKey(keyDetails, decryptedKey);
 
   function getInnerFingerprint(): string | undefined {
-    if (decryptedKey && typeof decryptedKey.secret === 'object') {
-      return decryptedKey.secret.fingerprint
+    if (decryptedKey && typeof decryptedKey.secret === "object") {
+      return decryptedKey.secret.fingerprint;
     }
-    if (typeof keyDetails?.secret === 'object') {
-      return keyDetails.secret.fingerprint
+    if (typeof keyDetails?.secret === "object") {
+      return keyDetails.secret.fingerprint;
     }
 
-    return undefined
+    return undefined;
   }
 
   const extendedPublicKey =
     extractedPublicKey ||
     (decryptedKey &&
-      typeof decryptedKey.secret === 'object' &&
+      typeof decryptedKey.secret === "object" &&
       decryptedKey.secret.extendedPublicKey) ||
-    (typeof keyDetails?.secret === 'object' &&
+    (typeof keyDetails?.secret === "object" &&
       keyDetails.secret.extendedPublicKey) ||
-    ''
-  let formattedPubKey = extendedPublicKey
+    "";
+  let formattedPubKey = extendedPublicKey;
   if (extendedPublicKey && extendedPublicKey.length > 12) {
     formattedPubKey = `${extendedPublicKey.slice(
       0,
       7
-    )}...${extendedPublicKey.slice(-4)}`
+    )}...${extendedPublicKey.slice(-4)}`;
   }
 
   const isPsbtValid = validateNormalizedPsbt(
@@ -192,7 +193,7 @@ function SSSignatureDropdown({
     account,
     index,
     decryptedKey
-  )
+  );
 
   return (
     <View
@@ -204,7 +205,7 @@ function SSSignatureDropdown({
         style={[styles.header, !transactionId && styles.headerDisabled]}
       >
         <SSHStack justifyBetween>
-          <SSHStack style={{ alignItems: 'center' }} gap="sm">
+          <SSHStack style={{ alignItems: "center" }} gap="sm">
             {isSignatureCompleted ? (
               validationResult === true ? (
                 <SSIconGreen width={24} height={24} />
@@ -217,42 +218,42 @@ function SSSignatureDropdown({
               <View style={styles.signatureIcon} />
             )}
             <SSText color="muted" size="lg" style={{ paddingHorizontal: 10 }}>
-              {t('common.key')} {index + 1}
+              {t("common.key")} {index + 1}
             </SSText>
             <SSVStack gap="none">
               <SSText color="muted">{sourceLabel}</SSText>
-              <SSText color={keyDetails?.name ? 'white' : 'muted'}>
-                {keyDetails?.name ?? t('account.seed.noLabel')}
+              <SSText color={keyDetails?.name ? "white" : "muted"}>
+                {keyDetails?.name ?? t("account.seed.noLabel")}
               </SSText>
             </SSVStack>
           </SSHStack>
-          <SSVStack gap="none" style={{ alignItems: 'flex-end' }}>
+          <SSVStack gap="none" style={{ alignItems: "flex-end" }}>
             <SSText
               type="mono"
-              color={getInnerFingerprint() ? 'white' : 'muted'}
+              color={getInnerFingerprint() ? "white" : "muted"}
             >
-              {getInnerFingerprint() || t('account.fingerprint')}
+              {getInnerFingerprint() || t("account.fingerprint")}
             </SSText>
             <SSText
               type="mono"
-              color={extendedPublicKey ? 'white' : 'muted'}
+              color={extendedPublicKey ? "white" : "muted"}
               selectable
               numberOfLines={1}
               ellipsizeMode="middle"
             >
-              {formattedPubKey || t('account.seed.publicKey')}
+              {formattedPubKey || t("account.seed.publicKey")}
             </SSText>
           </SSVStack>
         </SSHStack>
       </TouchableOpacity>
 
       {isExpanded && (
-        <SSVStack style={{ paddingBottom: 8, paddingHorizontal: 8 }} gap="sm">
+        <SSVStack style={{ paddingBottom: 28, paddingHorizontal: 0 }} gap="sm">
           {hasLocalSeed ? (
             <SSButton
-              label={t('transaction.preview.signWithLocalKey')}
+              label={t("transaction.preview.signWithLocalKey")}
               onPress={() => {
-                onSignWithLocalKey()
+                onSignWithLocalKey();
               }}
               variant="secondary"
               style={{ marginTop: 16 }}
@@ -260,16 +261,16 @@ function SSSignatureDropdown({
           ) : (
             <SSVStack gap="sm" style={{ marginTop: 16 }}>
               <SSButton
-                label={t('transaction.preview.SignWithSeedQR')}
+                label={t("transaction.preview.SignWithSeedQR")}
                 onPress={() => {
-                  onSignWithSeedQR()
+                  onSignWithSeedQR();
                 }}
                 variant="secondary"
               />
               <SSButton
-                label={t('transaction.preview.signWithSeedWords')}
+                label={t("transaction.preview.signWithSeedWords")}
                 onPress={() => {
-                  onSignWithSeedWords()
+                  onSignWithSeedWords();
                 }}
                 variant="secondary"
               />
@@ -282,54 +283,54 @@ function SSSignatureDropdown({
             uppercase
             style={{ marginTop: 16 }}
           >
-            {t('transaction.preview.exportUnsigned')}
+            {t("transaction.preview.exportUnsigned")}
           </SSText>
           <SSHStack gap="xxs" justifyBetween>
             <SSButton
               variant="outline"
               disabled={!transactionId}
-              label={t('common.copy')}
-              style={{ width: '48%' }}
+              label={t("common.copy")}
+              style={{ width: "48%" }}
               onPress={() => {
                 if (txBuilderResult?.toBase64()) {
-                  setStringAsync(txBuilderResult.toBase64())
-                  toast(t('common.copiedToClipboard'))
+                  setStringAsync(txBuilderResult.toBase64());
+                  toast(t("common.copiedToClipboard"));
                 }
               }}
             />
             <SSButton
               variant="outline"
               disabled={!transactionId}
-              label={t('common.showQR')}
-              style={{ width: '48%' }}
+              label={t("common.showQR")}
+              style={{ width: "48%" }}
               onPress={() => {
-                onShowQR()
+                onShowQR();
               }}
             />
           </SSHStack>
           <SSHStack gap="xxs" justifyBetween>
             <SSButton
-              label={t('common.usb')}
-              style={{ width: '48%' }}
+              label={t("common.usb")}
+              style={{ width: "48%" }}
               variant="outline"
               disabled
             />
             <SSButton
               label={
                 isEmitting
-                  ? t('watchonly.read.scanning')
-                  : t('transaction.preview.exportNFC')
+                  ? t("watchonly.read.scanning")
+                  : t("transaction.preview.exportNFC")
               }
-              style={{ width: '48%' }}
+              style={{ width: "48%" }}
               variant="outline"
               disabled={!isAvailable || !serializedPsbt}
               onPress={() => {
-                onNFCExport()
+                onNFCExport();
               }}
             />
           </SSHStack>
           <SSButton
-            label={t('transaction.preview.nip17group')}
+            label={t("transaction.preview.nip17group")}
             variant="outline"
             disabled={!transactionId || !account?.nostr?.autoSync}
             onPress={handleSendTransactionToGroup}
@@ -341,7 +342,7 @@ function SSSignatureDropdown({
             uppercase
             style={{ marginTop: 16 }}
           >
-            {t('transaction.preview.importSigned')}
+            {t("transaction.preview.importSigned")}
           </SSText>
           <View
             style={[
@@ -351,8 +352,8 @@ function SSSignatureDropdown({
                   ? isPsbtValid
                     ? Colors.mainGreen
                     : Colors.mainRed
-                  : Colors.gray[700]
-              }
+                  : Colors.gray[700],
+              },
             ]}
           >
             <ScrollView
@@ -361,98 +362,98 @@ function SSSignatureDropdown({
               nestedScrollEnabled
             >
               <SSText style={styles.psbtText}>
-                {signedPsbt || t('transaction.preview.signedPsbt')}
+                {signedPsbt || t("transaction.preview.signedPsbt")}
               </SSText>
             </ScrollView>
           </View>
 
           <SSHStack gap="xxs" justifyBetween>
             <SSButton
-              label={t('common.paste')}
-              style={{ width: '48%' }}
+              label={t("common.paste")}
+              style={{ width: "48%" }}
               variant="outline"
               onPress={() => {
-                onPasteFromClipboard(index, '')
+                onPasteFromClipboard(index, "");
               }}
             />
             <SSButton
-              label={t('common.scanQR')}
-              style={{ width: '48%' }}
+              label={t("common.scanQR")}
+              style={{ width: "48%" }}
               variant="outline"
               onPress={() => {
-                onCameraScan(index)
+                onCameraScan(index);
               }}
             />
           </SSHStack>
           <SSHStack gap="xxs" justifyBetween>
             <SSButton
-              label={t('common.usb')}
-              style={{ width: '48%' }}
+              label={t("common.usb")}
+              style={{ width: "48%" }}
               variant="outline"
               disabled
             />
             <SSButton
               label={
                 isReading
-                  ? t('watchonly.read.scanning')
-                  : t('watchonly.read.nfc')
+                  ? t("watchonly.read.scanning")
+                  : t("watchonly.read.nfc")
               }
-              style={{ width: '48%' }}
+              style={{ width: "48%" }}
               variant="outline"
               disabled={!isAvailable}
               onPress={() => {
-                onNFCScan(index)
+                onNFCScan(index);
               }}
             />
           </SSHStack>
 
           <SSButton
-            label={t('transaction.preview.fetchFromNip17group')}
+            label={t("transaction.preview.fetchFromNip17group")}
             variant="outline"
             onPress={() => {
-              toast.info(t('transaction.preview.nip17groupComingSoon'))
+              toast.info(t("transaction.preview.nip17groupComingSoon"));
             }}
           />
         </SSVStack>
       )}
     </View>
-  )
+  );
 }
-export default SSSignatureDropdown
+export default SSSignatureDropdown;
 
 const styles = {
   container: {
     borderColor: Colors.gray[700],
     borderTopWidth: 1,
-    paddingVertical: 16
+    paddingVertical: 16,
   },
   header: {
-    paddingVertical: 8
+    paddingVertical: 8,
   },
   headerDisabled: {
-    opacity: 0.5
+    opacity: 0.5,
   },
   lastItem: {
-    borderBottomWidth: 1
+    borderBottomWidth: 1,
   },
   psbtDisplay: {
     backgroundColor: Colors.gray[900],
-    borderRadius: 8,
+    borderRadius: Sizes.textInput.borderRadius,
     borderWidth: 1,
     maxHeight: 600,
     minHeight: 200,
-    padding: 12
+    padding: 12,
   },
   psbtText: {
     color: Colors.white,
     fontFamily: Typography.sfProMono,
     fontSize: 12,
-    lineHeight: 18
+    lineHeight: 18,
   },
   signatureIcon: {
     backgroundColor: Colors.gray[800],
     borderRadius: 12,
     height: 24,
-    width: 24
-  }
-}
+    width: 24,
+  },
+};

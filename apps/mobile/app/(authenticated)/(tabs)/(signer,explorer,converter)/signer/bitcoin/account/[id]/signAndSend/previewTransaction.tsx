@@ -3,7 +3,13 @@ import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View
+} from 'react-native'
 import Animated, {
   cancelAnimation,
   interpolateColor,
@@ -42,7 +48,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useNostrStore } from '@/store/nostr'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { Colors, Typography } from '@/styles'
+import { Colors, Sizes, Typography } from '@/styles'
 import {
   type Key,
   type MnemonicWordCount,
@@ -93,6 +99,35 @@ enum QRDisplayMode {
   RAW = 'RAW',
   UR = 'UR',
   BBQR = 'BBQR'
+}
+
+type QrFormatModeTabProps = {
+  label: string
+  onPress: () => void
+  selected: boolean
+}
+
+function QrFormatModeTab({ label, onPress, selected }: QrFormatModeTabProps) {
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        alignItems: 'center',
+        backgroundColor: selected ? Colors.white : 'transparent',
+        borderRadius: Sizes.button.borderRadius,
+        flex: 1,
+        height: Sizes.button.height - 6,
+        justifyContent: 'center',
+        opacity: pressed ? 0.88 : 1
+      })}
+    >
+      <SSText center color={selected ? 'black' : 'white'} size="sm" uppercase>
+        {label}
+      </SSText>
+    </Pressable>
+  )
 }
 
 function hasEnoughSignatures(input: PsbtInputWithSignatures) {
@@ -2317,51 +2352,37 @@ function PreviewTransaction() {
                     size={qrSize}
                   />
                 </View>
-                <SSHStack
-                  gap="xs"
-                  style={{ marginBottom: 10, width: screenWidth * 0.92 }}
+                <View
+                  style={[
+                    styles.qrFormatSegmentTrack,
+                    { width: screenWidth * 0.92 }
+                  ]}
                 >
-                  <SSButton
-                    variant={
-                      displayMode === QRDisplayMode.RAW
-                        ? 'secondary'
-                        : 'outline'
-                    }
+                  <QrFormatModeTab
                     label="RAW"
                     onPress={() => {
                       setDisplayMode(QRDisplayMode.RAW)
-                      // Reset chunk index when switching modes
                       setCurrentRawChunk(0)
                     }}
-                    style={{ flex: 1 }}
+                    selected={displayMode === QRDisplayMode.RAW}
                   />
-                  <SSButton
-                    variant={
-                      displayMode === QRDisplayMode.UR ? 'secondary' : 'outline'
-                    }
+                  <QrFormatModeTab
                     label="UR"
                     onPress={() => {
                       setDisplayMode(QRDisplayMode.UR)
-                      // Reset chunk index when switching modes
                       setCurrentUrChunk(0)
                     }}
-                    style={{ flex: 1 }}
+                    selected={displayMode === QRDisplayMode.UR}
                   />
-                  <SSButton
-                    variant={
-                      displayMode === QRDisplayMode.BBQR
-                        ? 'secondary'
-                        : 'outline'
-                    }
+                  <QrFormatModeTab
                     label="BBQR"
                     onPress={() => {
                       setDisplayMode(QRDisplayMode.BBQR)
-                      // Reset chunk index when switching modes
                       setCurrentChunk(0)
                     }}
-                    style={{ flex: 1 }}
+                    selected={displayMode === QRDisplayMode.BBQR}
                   />
-                </SSHStack>
+                </View>
                 <SSText
                   center
                   color="white"
@@ -2766,6 +2787,15 @@ function PreviewTransaction() {
 const styles = StyleSheet.create({
   mainLayout: { paddingBottom: 20, paddingTop: 0 },
   modalStack: { marginVertical: 32, paddingHorizontal: 32, width: '100%' },
+  qrFormatSegmentTrack: {
+    alignSelf: 'center',
+    backgroundColor: Colors.gray[850],
+    borderRadius: Sizes.button.borderRadius,
+    flexDirection: 'row',
+    gap: 3,
+    marginBottom: 10,
+    padding: 3
+  },
   seedWordsModalBody: {
     flex: 1,
     maxWidth: 400,

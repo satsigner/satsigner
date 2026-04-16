@@ -14,7 +14,7 @@ import { Colors, Sizes } from '@/styles'
 
 import { SSIconChevronDown } from './icons'
 import SSBackgroundGradient from './SSBackgroundGradient'
-import SSText from './SSText'
+import SSText, { type SSTextProps } from './SSText'
 
 export type SSButtonProps = {
   label?: string
@@ -78,6 +78,16 @@ function getTextVariantStyle(variant: SSButtonProps['variant']) {
     return styles.textSubtle
   }
   return styles.textDefault
+}
+
+function getLabelColor(variant: SSButtonProps['variant']): SSTextProps['color'] {
+  if (variant === 'secondary') {
+    return 'black'
+  }
+  if (variant === 'ghost') {
+    return 'muted'
+  }
+  return 'white'
 }
 
 function SSButton({
@@ -264,7 +274,12 @@ function SSButton({
           </View>
         ) : (
           <View pointerEvents="none" style={styles.labelLayer}>
-            <SSText uppercase={uppercase} center style={textStyles}>
+            <SSText
+              color={getLabelColor(variant)}
+              uppercase={uppercase}
+              center
+              style={textStyles}
+            >
               {label}
             </SSText>
           </View>
