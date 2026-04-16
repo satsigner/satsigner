@@ -20,7 +20,7 @@ function subscribeAndCollect(
     const sub = ndk.subscribe(filter as never, { closeOnEose: false })
 
     const finish = () => {
-      if (settled) return
+      if (settled) {return}
       settled = true
       sub.stop()
       resolve(collected)
@@ -69,6 +69,8 @@ export type ZapReceiptInfo = {
   amountSats: number
   comment?: string
   createdAt: number
+  /** First `e` tag on the receipt: zapped note or other referenced event. */
+  zappedEventId?: string
   /** Full kind-9735 event JSON (when fetched from relays in this session). */
   rawEventJson?: string
 }
@@ -95,13 +97,13 @@ export function zapReceiptEventToRawJson(event: NDKEvent): string {
   )
   return JSON.stringify(
     {
-      id: event.id,
-      pubkey: event.pubkey,
-      kind: event.kind ?? 9735,
       content: event.content,
       created_at: event.created_at ?? 0,
-      tags,
-      sig: event.sig
+      id: event.id,
+      kind: event.kind ?? 9735,
+      pubkey: event.pubkey,
+      sig: event.sig,
+      tags
     },
     null,
     2
@@ -118,7 +120,7 @@ export function parseZapReceiptFromTags(
   profileHex: string | null
 ): ZapReceiptInfo | null {
   const descTag = tags.find((tag) => tag[0] === 'description')
-  if (!descTag?.[1]) return null
+  if (!descTag?.[1]) {return null}
 
   const bolt11Tag = tags.find((tag) => tag[0] === 'bolt11')
   let amountSats = 0
@@ -134,19 +136,20 @@ export function parseZapReceiptFromTags(
       tags?: string[][]
     }
 
-    if (!zapRequest.pubkey) return null
+    if (!zapRequest.pubkey) {return null}
 
     if (amountSats === 0) {
       const amountTag = zapRequest.tags?.find((tag) => tag[0] === 'amount')
       if (amountTag?.[1]) {
-        amountSats = Math.floor(
-          parseInt(amountTag[1], 10) / MILLISATS_PER_SAT
-        )
+        amountSats = Math.floor(parseInt(amountTag[1], 10) / MILLISATS_PER_SAT)
       }
     }
 
     const zapper = zapRequest.pubkey
     const pPubkeys = getPPubkeysFromTags(tags)
+    const eTag = tags.find((tag) => tag[0] === 'e' && tag[1])
+    const zappedEventId =
+      typeof eTag?.[1] === 'string' && eTag[1].length > 0 ? eTag[1] : undefined
     let direction: ZapReceiptDirection = 'incoming'
     let recipientPubkey: string | undefined
 
@@ -161,13 +164,14 @@ export function parseZapReceiptFromTags(
     }
 
     return {
-      id,
-      senderPubkey: zapper,
       amountSats,
       comment: zapRequest.content || undefined,
       createdAt,
       direction,
-      recipientPubkey
+      id,
+      recipientPubkey,
+      senderPubkey: zapper,
+      zappedEventId
     }
   } catch {
     return null
@@ -206,7 +210,8 @@ export function mergeZapReceiptsById(
       map.set(r.id, {
         ...prev,
         ...r,
-        rawEventJson: r.rawEventJson ?? prev.rawEventJson
+        rawEventJson: r.rawEventJson ?? prev.rawEventJson,
+        zappedEventId: r.zappedEventId ?? prev.zappedEventId
       })
     }
   }
@@ -252,6 +257,8 @@ export function buildZapRequest(params: {
 
   const zapRequestTemplate = params.eventIdHex
     ? nip57.makeZapRequest({
+        amount: amountMsats,
+        comment: params.comment,
         event: {
           id: params.eventIdHex,
           pubkey: params.recipientPubkeyHex,
@@ -261,14 +268,12 @@ export function buildZapRequest(params: {
           created_at: 0,
           sig: ''
         } as NostrEvent,
-        amount: amountMsats,
-        comment: params.comment,
         relays: params.relays
       })
     : nip57.makeZapRequest({
-        pubkey: params.recipientPubkeyHex,
         amount: amountMsats,
         comment: params.comment,
+        pubkey: params.recipientPubkeyHex,
         relays: params.relays
       })
 
@@ -389,14 +394,14 @@ export async function initiateZap(
   }
 
   const zapRequestJson = buildZapRequest({
-    senderNsec: params.senderNsec,
-    recipientPubkeyHex: params.recipientPubkeyHex,
     amountSats: params.amountSats,
+    comment: params.comment,
     eventIdHex: params.eventIdHex,
     eventKind: params.eventKind,
     eventTags: params.eventTags,
-    comment: params.comment,
-    relays: params.relays
+    recipientPubkeyHex: params.recipientPubkeyHex,
+    relays: params.relays,
+    senderNsec: params.senderNsec
   })
 
   const invoice = await requestZapInvoice(
@@ -526,7 +531,7 @@ export async function enrichZapReceipts(
   receipts: ZapReceiptInfo[],
   relays: string[]
 ): Promise<void> {
-  if (receipts.length === 0) return
+  if (receipts.length === 0) {return}
 
   const ndk = new NDK({
     autoConnectUserRelays: false,
@@ -557,10 +562,7 @@ export async function enrichZapReceipts(
       10000
     )
 
-    const profileMap = new Map<
-      string,
-      { name?: string; picture?: string }
-    >()
+    const profileMap = new Map<string, { name?: string; picture?: string }>()
 
     for (const event of events) {
       try {
@@ -595,6 +597,57 @@ export async function enrichZapReceipts(
         }
       }
     }
+  } finally {
+    for (const relay of ndk.pool.relays.values()) {
+      try {
+        relay.disconnect()
+      } catch {
+        // relay may already be disconnected
+      }
+    }
+  }
+}
+
+/**
+ * Loads a single kind-9735 zap receipt by id from relays.
+ */
+export async function fetchZapReceiptById(
+  zapReceiptId: string,
+  profileHex: string | null,
+  relays: string[]
+): Promise<ZapReceiptInfo | null> {
+  if (relays.length === 0) {return null}
+
+  const ndk = new NDK({
+    autoConnectUserRelays: false,
+    enableOutboxModel: false,
+    explicitRelayUrls: relays
+  })
+
+  try {
+    await ndk.connect(10000)
+
+    const events = await subscribeAndCollect(
+      ndk,
+      {
+        ids: [zapReceiptId],
+        kinds: [9735 as never],
+        limit: 1
+      },
+      15000
+    )
+
+    for (const event of events) {
+      if (event.id !== zapReceiptId) {continue}
+      const parsed = parseZapReceiptFromEvent(event, profileHex)
+      if (!parsed) {return null}
+      return {
+        ...parsed,
+        rawEventJson: zapReceiptEventToRawJson(event)
+      }
+    }
+
+    return null
   } finally {
     for (const relay of ndk.pool.relays.values()) {
       try {

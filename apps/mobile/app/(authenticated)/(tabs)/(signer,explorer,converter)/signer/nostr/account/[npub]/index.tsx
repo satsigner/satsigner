@@ -21,7 +21,11 @@ import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { type NostrRelayReachability } from '@/types/models/NostrIdentity'
 import { Colors } from '@/styles'
-import { nostrAccountHref, nostrNoteHref } from '@/utils/nostrNavigation'
+import {
+  nostrAccountHref,
+  nostrNoteHref,
+  nostrZapDetailHref
+} from '@/utils/nostrNavigation'
 
 type AccountParams = {
   npub: string
@@ -210,6 +214,9 @@ export default function NostrAccountLanding() {
             relayConnected={identity.relayConnected === true}
             relays={identity.relays ?? relays}
             onNotePress={handleNotePress}
+            onZapPress={(receipt) =>
+              router.navigate(nostrZapDetailHref(npub, receipt.id))
+            }
           />
         </SSVStack>
       </ScrollView>

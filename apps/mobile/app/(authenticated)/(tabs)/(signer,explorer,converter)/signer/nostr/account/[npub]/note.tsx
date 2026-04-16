@@ -14,6 +14,11 @@ import { toast } from 'sonner-native'
 
 import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
+import {
+  SSNostrFeedAuthorRow,
+  SSNostrFeedNoteRow,
+  type NostrFeedNoteLike
+} from '@/components/SSNostrFeedNoteRow'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -31,6 +36,7 @@ import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
+import { formatNostrCardDate } from '@/utils/format'
 import {
   type FetchedNoteData,
   decodeNostrContent,
@@ -178,7 +184,8 @@ export default function NostrNotePage() {
               ...prev,
               authorName: profile.displayName,
               authorPicture: profile.picture,
-              authorLud16: profile.lud16
+              authorLud16: profile.lud16,
+              authorNip05: profile.nip05
             }
           })
           setProfileLoading(false)
@@ -356,6 +363,29 @@ export default function NostrNotePage() {
     return extractImageUrlsFromNote(fetched.content, fetched.tags)
   }, [fetched, privacyMode])
 
+  const noteItemForFeed = useMemo((): NostrFeedNoteLike | null => {
+    if (!fetched || !decoded) return null
+    if (decoded.kind !== 'note' && decoded.kind !== 'nevent') return null
+    if (typeof decoded.data !== 'string' || !decoded.data) return null
+    return {
+      id: decoded.data,
+      content: fetched.content,
+      pubkey: fetched.pubkey,
+      kind: fetched.kind,
+      tags: fetched.tags,
+      created_at: fetched.created_at
+    }
+  }, [fetched, decoded])
+
+  const isOwnNote = useMemo(() => {
+    if (!fetched?.pubkey || !npub) return false
+    try {
+      return nip19.npubEncode(fetched.pubkey) === npub
+    } catch {
+      return false
+    }
+  }, [fetched, npub])
+
   const goalProgress =
     enhancedZap.zapGoal && enhancedZap.zapGoal > 0
       ? Math.min(totalZapped / enhancedZap.zapGoal, 1)
@@ -468,11 +498,6 @@ export default function NostrNotePage() {
     handleZap(sats)
   }
 
-  function formatTimestamp(ts: number): string {
-    if (!ts) return ''
-    return new Date(ts * 1000).toLocaleString()
-  }
-
   if (!decoded || decoded.kind === 'unknown') {
     return (
       <SSMainLayout>
@@ -517,7 +542,7 @@ export default function NostrNotePage() {
       ) : (
         <ScrollView showsVerticalScrollIndicator={false}>
           <SSVStack gap="lg" style={styles.content}>
-            {fetched?.pubkey && (
+            {!noteItemForFeed && fetched?.pubkey ? (
               <SSHStack gap="md" style={styles.authorRow}>
                 {privacyMode ? (
                   <View
@@ -562,23 +587,42 @@ export default function NostrNotePage() {
                   </SSText>
                 </SSVStack>
               </SSHStack>
-            )}
+            ) : null}
 
-            <SSHStack gap="sm">
-              {fetched && (
+            {fetched ? (
+              <SSHStack gap="sm">
                 <View style={styles.kindBadge}>
                   <SSText size="xs">Kind {fetched.kind}</SSText>
                 </View>
-              )}
-              {fetched && fetched.created_at > 0 && (
-                <SSText size="xs" color="muted">
-                  {formatTimestamp(fetched.created_at)}
-                </SSText>
-              )}
-            </SSHStack>
+              </SSHStack>
+            ) : null}
 
-            {fetched &&
-              (fetched.content.length > 0 || noteImageUrls.length > 0) && (
+            {noteItemForFeed &&
+            fetched &&
+            (fetched.content.length > 0 || noteImageUrls.length > 0) ? (
+              <SSNostrFeedNoteRow
+                note={noteItemForFeed}
+                privacyMode={privacyMode}
+                showAuthor={!isOwnNote}
+                showNoteNipIds={isOwnNote}
+                expandContent
+                authorPreview={
+                  !isOwnNote && !privacyMode && fetched.pubkey ? (
+                    <SSNostrFeedAuthorRow
+                      loading={profileLoading}
+                      npubBech={nip19.npubEncode(fetched.pubkey)}
+                      displayName={fetched.authorName?.trim() ?? ''}
+                      nip05={fetched.authorNip05?.trim() ?? ''}
+                      pictureUri={fetched.authorPicture?.trim()}
+                    />
+                  ) : undefined
+                }
+              />
+            ) : null}
+
+            {!noteItemForFeed &&
+              fetched &&
+              (fetched.content.length > 0 || noteImageUrls.length > 0) ? (
                 <View style={styles.noteCard}>
                   {!privacyMode && noteLooksLikeReply(fetched.tags) ? (
                     <View style={styles.noteReplyTag} pointerEvents="none">
@@ -617,7 +661,7 @@ export default function NostrNotePage() {
                     />
                   ) : null}
                 </View>
-              )}
+              ) : null}
 
             <SSVStack gap="xs">
               <SSText size="xs" color="muted" uppercase>
@@ -971,7 +1015,7 @@ export default function NostrNotePage() {
                       </SSText>
                       {receipt.createdAt > 0 && (
                         <SSText size="xxs" color="muted">
-                          {formatTimestamp(receipt.createdAt)}
+                          {formatNostrCardDate(receipt.createdAt)}
                         </SSText>
                       )}
                     </SSVStack>
@@ -1177,8 +1221,9 @@ const styles = StyleSheet.create({
     borderColor: Colors.gray[800],
     borderRadius: 3,
     borderWidth: 1,
+    paddingBottom: 16,
     paddingHorizontal: 12,
-    paddingVertical: 10
+    paddingTop: 8
   },
   zapButton: {
     minWidth: 90
@@ -1194,6 +1239,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.gray[800],
     borderRadius: 3,
     borderWidth: 1,
-    padding: 14
+    paddingBottom: 16,
+    paddingHorizontal: 14,
+    paddingTop: 8
   }
 })

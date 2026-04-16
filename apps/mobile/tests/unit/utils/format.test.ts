@@ -1,6 +1,7 @@
 import {
   formatAddress,
   formatDate,
+  formatNostrCardDate,
   formatNumber,
   formatTime,
   formatTxId
@@ -33,6 +34,18 @@ describe('format utils', () => {
   describe('formatTime', () => {
     it('should return the correct formatted time', () => {
       expect(formatTime(new Date(1231006505000))).toBe('6:15pm')
+    })
+  })
+
+  describe('formatNostrCardDate', () => {
+    it('should return DD MMM,YY for a Nostr unix timestamp', () => {
+      const localNoon = new Date(2026, 3, 15, 12, 0, 0)
+      const unix = Math.floor(localNoon.getTime() / 1000)
+      expect(formatNostrCardDate(unix)).toBe('Apr 15,26')
+    })
+
+    it('should return empty string for zero', () => {
+      expect(formatNostrCardDate(0)).toBe('')
     })
   })
 

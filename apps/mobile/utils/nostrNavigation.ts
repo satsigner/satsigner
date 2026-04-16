@@ -21,3 +21,7 @@ export function nostrAccountHref(
 ): Href {
   return `/signer/nostr/account/${npub}/${segment}` as Href
 }
+
+export function nostrZapDetailHref(npub: string, zapId: string): Href {
+  return `/signer/nostr/account/${npub}/zap/${zapId}` as Href
+}

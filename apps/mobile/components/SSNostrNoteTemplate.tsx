@@ -6,6 +6,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
+import { formatNostrCardDate } from '@/utils/format'
 import {
   type DecodedNostrContent,
   extractPubpayTags,
@@ -83,12 +84,6 @@ function AuthorRow({
   )
 }
 
-function formatTimestamp(ts: number): string {
-  if (!ts) return ''
-  const date = new Date(ts * 1000)
-  return date.toLocaleString()
-}
-
 function SSNostrNoteTemplate({ content, onPay }: SSNostrNoteTemplateProps) {
   const tags =
     content.metadata && Array.isArray(content.metadata.tags)
@@ -133,7 +128,7 @@ function SSNostrNoteTemplate({ content, onPay }: SSNostrNoteTemplateProps) {
             </View>
             {fetched.created_at > 0 && (
               <SSText size="xs" color="muted">
-                {formatTimestamp(fetched.created_at)}
+                {formatNostrCardDate(fetched.created_at)}
               </SSText>
             )}
           </SSHStack>

@@ -44,6 +44,7 @@ export type FetchedNoteData = {
   authorName?: string
   authorPicture?: string
   authorLud16?: string
+  authorNip05?: string
 }
 
 export type DecodedNostrContent = {

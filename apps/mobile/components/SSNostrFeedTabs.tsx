@@ -1,5 +1,12 @@
 import { nip19 } from 'nostr-tools'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import {
   ActivityIndicator,
   Image,
@@ -11,10 +18,13 @@ import {
 } from 'react-native'
 
 import { NostrAPI } from '@/api/nostr'
-import { type NostrKind0Profile } from '@/types/models/Nostr'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
-import SSNoteInlineImages from '@/components/SSNoteInlineImages'
+import {
+  SSNostrFeedAuthorRow,
+  SSNostrFeedNoteRow,
+  type NostrFeedNoteLike
+} from '@/components/SSNostrFeedNoteRow'
 import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
@@ -23,9 +33,9 @@ import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type TextFontSize, type TextFontWeight } from '@/styles/sizes'
+import { type NostrKind0Profile } from '@/types/models/Nostr'
+import { formatNostrCardDate } from '@/utils/format'
 import { truncateNpub } from '@/utils/nostrIdentity'
-import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
-import { noteLooksLikeReply } from '@/utils/nostrNoteThread'
 import {
   type ZapReceiptInfo,
   enrichZapReceipts,
@@ -34,24 +44,12 @@ import {
   mergeZapReceiptsById
 } from '@/utils/zap'
 
-type NoteItem = {
-  id: string
-  content: string
-  pubkey: string
-  kind: number
-  tags: string[][]
-  created_at: number
-}
-
 type SSNostrFeedTabsProps = {
   npub: string
   relayConnected: boolean
   relays: string[]
-  onNotePress?: (payload: {
-    id: string
-    kind: number
-    pubkey: string
-  }) => void
+  onNotePress?: (payload: { id: string; kind: number; pubkey: string }) => void
+  onZapPress?: (receipt: ZapReceiptInfo) => void
 }
 
 const PAGE_SIZE = 10
@@ -136,41 +134,8 @@ type FeedAuthorKind0State =
   | { status: 'loading' }
   | { status: 'ready'; profile: NostrKind0Profile | null }
 
-function getDTagFromTags(tags: string[][]): string | undefined {
-  const row = tags.find((tag) => tag[0] === 'd')
-  return typeof row?.[1] === 'string' ? row[1] : undefined
-}
-
-function encodeNotePrimaryNip19(note: NoteItem): string {
-  try {
-    const d = getDTagFromTags(note.tags)
-    if (
-      d &&
-      note.pubkey &&
-      (note.kind === 1063 ||
-        (note.kind >= 30000 && note.kind < 40000))
-    ) {
-      return nip19.naddrEncode({
-        identifier: d,
-        kind: note.kind,
-        pubkey: note.pubkey
-      })
-    }
-    if (note.kind !== 1 && note.pubkey) {
-      return nip19.neventEncode({
-        id: note.id,
-        author: note.pubkey,
-        kind: note.kind
-      })
-    }
-    return nip19.noteEncode(note.id)
-  } catch {
-    return note.id
-  }
-}
-
 function trimDropdownLabel(text: string): string {
-  if (text.length <= DROPDOWN_LABEL_MAX_CHARS) return text
+  if (text.length <= DROPDOWN_LABEL_MAX_CHARS) {return text}
   return `${text.slice(0, DROPDOWN_LABEL_MAX_CHARS - 1)}…`
 }
 
@@ -249,12 +214,13 @@ function SSNostrFeedTabs({
   npub,
   relayConnected,
   relays,
-  onNotePress
+  onNotePress,
+  onZapPress
 }: SSNostrFeedTabsProps) {
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const [activeTab, setActiveTab] = useState<FeedTab>('zaps')
 
-  const [notes, setNotes] = useState<NoteItem[]>([])
+  const [notes, setNotes] = useState<NostrFeedNoteLike[]>([])
   const [notesLoading, setNotesLoading] = useState(false)
   const [notesHasMore, setNotesHasMore] = useState(true)
   const notesFetchedRef = useRef(false)
@@ -263,7 +229,7 @@ function SSNostrFeedTabs({
   )
   const [notesKindSheetOpen, setNotesKindSheetOpen] = useState(false)
 
-  const [feedNotes, setFeedNotes] = useState<NoteItem[]>([])
+  const [feedNotes, setFeedNotes] = useState<NostrFeedNoteLike[]>([])
   const [feedKindFilterId, setFeedKindFilterId] = useState(
     DEFAULT_KIND_FILTER_ID
   )
@@ -296,13 +262,13 @@ function SSNostrFeedTabs({
 
   const loadNotes = useCallback(
     async (loadMore = false) => {
-      if (notesLoading || !apiRef.current) return
+      if (notesLoading || !apiRef.current) {return}
 
       setNotesLoading(true)
       try {
-        const until = loadMore && notes.length > 0
-          ? notes[notes.length - 1].created_at
-          : undefined
+        const lastNote = notes.at(-1)
+        const until =
+          loadMore && lastNote ? lastNote.created_at : undefined
 
         const fetched = await apiRef.current.fetchNotes(
           npub,
@@ -335,7 +301,7 @@ function SSNostrFeedTabs({
 
   const loadFeed = useCallback(
     async (loadMore = false) => {
-      if (feedLoading || !apiRef.current) return
+      if (feedLoading || !apiRef.current) {return}
 
       setFeedLoading(true)
       try {
@@ -351,10 +317,9 @@ function SSNostrFeedTabs({
           }
         }
 
+        const lastFeed = feedNotes.at(-1)
         const until =
-          loadMore && feedNotes.length > 0
-            ? feedNotes[feedNotes.length - 1].created_at
-            : undefined
+          loadMore && lastFeed ? lastFeed.created_at : undefined
 
         const fetched = await apiRef.current.fetchFollowingTimelineNotes(
           npub,
@@ -387,14 +352,14 @@ function SSNostrFeedTabs({
 
   const loadZaps = useCallback(
     async (loadMore = false) => {
-      if (zapsLoading || !relays.length) return
+      if (zapsLoading || !relays.length) {return}
 
       setZapsLoading(true)
       try {
         const hexPubkey = nip19.decode(npub).data as string
-        const until = loadMore && zaps.length > 0
-          ? zaps[zaps.length - 1].createdAt
-          : undefined
+        const lastZap = zaps.at(-1)
+        const until =
+          loadMore && lastZap ? lastZap.createdAt : undefined
 
         const [incomingBatch, sentBatch] = await Promise.all([
           fetchZapsByPubkey(hexPubkey, relays, PAGE_SIZE, until),
@@ -529,198 +494,36 @@ function SSNostrFeedTabs({
         .then((profile) => {
           setFeedAuthorKind0((prev) => ({
             ...prev,
-            [pk]: { status: 'ready', profile }
+            [pk]: { profile, status: 'ready' }
           }))
         })
         .catch(() => {
           setFeedAuthorKind0((prev) => ({
             ...prev,
-            [pk]: { status: 'ready', profile: null }
+            [pk]: { profile: null, status: 'ready' }
           }))
         })
     }
   }, [feedNotes, relayConnected, privacyMode])
 
-  function formatTimestamp(ts: number): string {
-    if (!ts) return ''
-    const now = Date.now() / 1000
-    const diff = now - ts
-    if (diff < 60) return 'now'
-    if (diff < 3600) return `${Math.floor(diff / 60)}m`
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h`
-    if (diff < 604800) return `${Math.floor(diff / 86400)}d`
-    return new Date(ts * 1000).toLocaleDateString()
-  }
-
-  function renderFeedAuthorKind0Row(note: NoteItem) {
+  function renderFeedAuthorKind0Row(note: NostrFeedNoteLike) {
     const pk = note.pubkey.toLowerCase()
     const npubBech = nip19.npubEncode(note.pubkey)
     const row = feedAuthorKind0[pk]
-
-    if (!row || row.status === 'loading') {
-      return (
-        <SSHStack gap="md" style={styles.feedAuthorRow}>
-          <View
-            style={[styles.feedAuthorAvatar, styles.feedAuthorAvatarSkeleton]}
-          />
-          <SSVStack gap="xxs" style={styles.feedAuthorTextCol}>
-            <View style={styles.skeletonLineLg} />
-            <SSText
-              size="xxs"
-              color="muted"
-              type="mono"
-              numberOfLines={1}
-              ellipsizeMode="middle"
-            >
-              {truncateNpub(npubBech, 14)}
-            </SSText>
-            <View style={styles.skeletonLineMd} />
-          </SSVStack>
-        </SSHStack>
-      )
-    }
-
-    const p = row.profile
-    const name = p?.displayName?.trim() ?? ''
+    const loading = !row || row.status === 'loading'
+    const p = row?.status === 'ready' ? row.profile : undefined
+    const displayName = p?.displayName?.trim() ?? ''
     const nip05 = p?.nip05?.trim() ?? ''
     const pictureUri = p?.picture?.trim()
 
     return (
-      <SSHStack gap="md" style={styles.feedAuthorRow}>
-        {pictureUri ? (
-          <Image
-            source={{ uri: pictureUri }}
-            style={styles.feedAuthorAvatar}
-          />
-        ) : (
-          <View
-            style={[
-              styles.feedAuthorAvatar,
-              styles.feedAuthorAvatarPlaceholder
-            ]}
-          >
-            <SSText size="sm" weight="bold">
-              {name
-                ? name[0]?.toUpperCase()
-                : npubBech.slice(5, 6)?.toUpperCase() || '?'}
-            </SSText>
-          </View>
-        )}
-        <SSVStack gap="xxs" style={styles.feedAuthorTextCol}>
-          <SSText
-            size="sm"
-            weight="medium"
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
-            {name || '—'}
-          </SSText>
-          <SSText
-            size="xxs"
-            color="muted"
-            type="mono"
-            numberOfLines={1}
-            ellipsizeMode="middle"
-          >
-            {truncateNpub(npubBech, 14)}
-          </SSText>
-          <SSText
-            size="xxs"
-            color="muted"
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
-            {nip05 || '—'}
-          </SSText>
-        </SSVStack>
-      </SSHStack>
-    )
-  }
-
-  function renderNoteRow(
-    note: NoteItem,
-    showAuthor: boolean,
-    showNoteNipIds = false
-  ) {
-    const imageUrls = privacyMode
-      ? []
-      : extractImageUrlsFromNote(note.content, note.tags).slice(0, 6)
-
-    const eventNip19 = !privacyMode ? encodeNotePrimaryNip19(note) : ''
-    const authorNpub = !privacyMode ? nip19.npubEncode(note.pubkey) : ''
-    const showReplyTag = !privacyMode && noteLooksLikeReply(note.tags)
-    const hasMetaAbove = !privacyMode && (showAuthor || showNoteNipIds)
-
-    return (
-      <TouchableOpacity
-        key={note.id}
-        style={styles.noteRow}
-        activeOpacity={0.6}
-        onPress={() =>
-          onNotePress?.({
-            id: note.id,
-            kind: note.kind,
-            pubkey: note.pubkey
-          })
-        }
-      >
-        {showReplyTag ? (
-          <View style={styles.noteReplyTag} pointerEvents="none">
-            <SSText size="xxs" color="white" uppercase style={styles.noteReplyTagText}>
-              {t('nostrIdentity.feed.replyTag')}
-            </SSText>
-          </View>
-        ) : null}
-        <SSVStack
-          gap="xs"
-          style={showReplyTag ? styles.noteRowBodyWithReply : undefined}
-        >
-          {showNoteNipIds && !privacyMode ? (
-            <SSVStack gap="xxs" style={styles.noteMetaAboveContent}>
-              <SSText
-                size="xxs"
-                color="muted"
-                type="mono"
-                numberOfLines={1}
-                ellipsizeMode="middle"
-              >
-                {truncateNpub(eventNip19, 16)}
-              </SSText>
-              <SSText
-                size="xxs"
-                color="muted"
-                type="mono"
-                numberOfLines={1}
-                ellipsizeMode="middle"
-              >
-                {truncateNpub(authorNpub, 14)}
-              </SSText>
-            </SSVStack>
-          ) : null}
-          {showAuthor && !privacyMode ? renderFeedAuthorKind0Row(note) : null}
-          <SSText
-            size="sm"
-            style={[
-              styles.noteContent,
-              hasMetaAbove && styles.noteContentAfterMeta
-            ]}
-            numberOfLines={4}
-          >
-            {privacyMode
-              ? t('nostrIdentity.feed.hiddenInPrivacyMode')
-              : note.content}
-          </SSText>
-          {imageUrls.length > 0 ? (
-            <SSNoteInlineImages
-              uris={imageUrls}
-              style={styles.noteInlineImages}
-            />
-          ) : null}
-          <SSText size="xxs" color="muted">
-            {formatTimestamp(note.created_at)}
-          </SSText>
-        </SSVStack>
-      </TouchableOpacity>
+      <SSNostrFeedAuthorRow
+        loading={loading}
+        npubBech={npubBech}
+        displayName={displayName}
+        nip05={nip05}
+        pictureUri={pictureUri}
+      />
     )
   }
 
@@ -752,9 +555,7 @@ function SSNostrFeedTabs({
                 {t('nostrIdentity.feed.zaps')}
               </SSText>
             </SSVStack>
-            {activeTab === 'zaps' ? (
-              <View style={styles.tabIndicator} />
-            ) : null}
+            {activeTab === 'zaps' ? <View style={styles.tabIndicator} /> : null}
           </View>
         </SSActionButton>
         <SSActionButton
@@ -792,9 +593,7 @@ function SSNostrFeedTabs({
                 {t('nostrIdentity.feed.feed')}
               </SSText>
             </SSVStack>
-            {activeTab === 'feed' ? (
-              <View style={styles.tabIndicator} />
-            ) : null}
+            {activeTab === 'feed' ? <View style={styles.tabIndicator} /> : null}
           </View>
         </SSActionButton>
       </SSHStack>
@@ -817,7 +616,22 @@ function SSNostrFeedTabs({
               </SSHStack>
             </TouchableOpacity>
 
-            {notes.map((note) => renderNoteRow(note, false, true))}
+            {notes.map((note) => (
+              <SSNostrFeedNoteRow
+                key={note.id}
+                note={note}
+                privacyMode={privacyMode}
+                showAuthor={false}
+                showNoteNipIds
+                onPress={() =>
+                  onNotePress?.({
+                    id: note.id,
+                    kind: note.kind,
+                    pubkey: note.pubkey
+                  })
+                }
+              />
+            ))}
 
             {notesLoading && (
               <ActivityIndicator
@@ -860,7 +674,22 @@ function SSNostrFeedTabs({
               </SSHStack>
             </TouchableOpacity>
 
-            {feedNotes.map((note) => renderNoteRow(note, true))}
+            {feedNotes.map((note) => (
+              <SSNostrFeedNoteRow
+                key={note.id}
+                note={note}
+                privacyMode={privacyMode}
+                showAuthor
+                authorPreview={renderFeedAuthorKind0Row(note)}
+                onPress={() =>
+                  onNotePress?.({
+                    id: note.id,
+                    kind: note.kind,
+                    pubkey: note.pubkey
+                  })
+                }
+              />
+            ))}
 
             {feedLoading && (
               <ActivityIndicator
@@ -876,13 +705,11 @@ function SSNostrFeedTabs({
               </SSText>
             )}
 
-            {!feedLoading &&
-              !feedFollowingEmpty &&
-              feedNotes.length === 0 && (
-                <SSText size="xs" color="muted" center style={styles.emptyText}>
-                  {t('nostrIdentity.feed.noFeed')}
-                </SSText>
-              )}
+            {!feedLoading && !feedFollowingEmpty && feedNotes.length === 0 && (
+              <SSText size="xs" color="muted" center style={styles.emptyText}>
+                {t('nostrIdentity.feed.noFeed')}
+              </SSText>
+            )}
 
             {!feedLoading &&
               !feedFollowingEmpty &&
@@ -907,63 +734,82 @@ function SSNostrFeedTabs({
               const displayName = isOutgoing
                 ? receipt.recipientPubkey
                   ? receipt.recipientName ||
-                    truncateNpub(
-                      nip19.npubEncode(receipt.recipientPubkey),
-                      8
-                    )
+                    truncateNpub(nip19.npubEncode(receipt.recipientPubkey), 8)
                   : '?'
                 : receipt.senderName ||
-                  truncateNpub(
-                    nip19.npubEncode(receipt.senderPubkey),
-                    8
-                  )
+                  truncateNpub(nip19.npubEncode(receipt.senderPubkey), 8)
               const placeholderLetter = isOutgoing
                 ? receipt.recipientName?.[0]?.toUpperCase() ||
                   receipt.recipientPubkey?.slice(2, 3)?.toUpperCase()
                 : receipt.senderName?.[0]?.toUpperCase() || '?'
 
-              return (
-              <SSHStack key={receipt.id} gap="sm" style={styles.zapRow}>
-                {privacyMode ? (
-                  <View style={[styles.zapAvatar, styles.zapAvatarPlaceholder]} />
-                ) : avatarUri ? (
-                  <Image
-                    source={{ uri: avatarUri }}
-                    style={styles.zapAvatar}
-                  />
-                ) : (
-                  <View style={[styles.zapAvatar, styles.zapAvatarPlaceholder]}>
-                    <SSText size="xs" weight="bold">
-                      {placeholderLetter || '?'}
+              const row = (
+                <SSHStack gap="sm" style={styles.zapRow}>
+                  {privacyMode ? (
+                    <View
+                      style={[styles.zapAvatar, styles.zapAvatarPlaceholder]}
+                    />
+                  ) : avatarUri ? (
+                    <Image
+                      source={{ uri: avatarUri }}
+                      style={styles.zapAvatar}
+                    />
+                  ) : (
+                    <View
+                      style={[styles.zapAvatar, styles.zapAvatarPlaceholder]}
+                    >
+                      <SSText size="xs" weight="bold">
+                        {placeholderLetter || '?'}
+                      </SSText>
+                    </View>
+                  )}
+                  <SSVStack gap="xxs" style={styles.zapInfo}>
+                    {isOutgoing ? (
+                      <SSText size="xxs" color="muted" uppercase>
+                        {t('nostrIdentity.feed.outgoingZap')}
+                      </SSText>
+                    ) : null}
+                    <SSText size="sm" weight="medium">
+                      {privacyMode ? NOSTR_PRIVACY_MASK : displayName}
                     </SSText>
-                  </View>
-                )}
-                <SSVStack gap="xxs" style={styles.zapInfo}>
-                  <SSText size="xxs" color="muted" uppercase>
-                    {isOutgoing
-                      ? t('nostrIdentity.feed.outgoingZap')
-                      : t('nostrIdentity.feed.incomingZap')}
-                  </SSText>
-                  <SSText size="sm" weight="medium">
-                    {privacyMode ? NOSTR_PRIVACY_MASK : displayName}
-                  </SSText>
-                  {!privacyMode && receipt.comment ? (
-                    <SSText size="xs" color="muted" numberOfLines={2}>
-                      {receipt.comment}
+                    {!privacyMode && receipt.comment ? (
+                      <SSText size="xs" color="muted" numberOfLines={2}>
+                        {receipt.comment}
+                      </SSText>
+                    ) : null}
+                  </SSVStack>
+                  <SSVStack gap="none" style={styles.zapAmountCol}>
+                    <SSText
+                      size="sm"
+                      weight="bold"
+                      style={
+                        !isOutgoing && !privacyMode
+                          ? styles.zapAmountIncoming
+                          : undefined
+                      }
+                    >
+                      {privacyMode
+                        ? `${NOSTR_PRIVACY_MASK} sats`
+                        : `${receipt.amountSats} sats`}
                     </SSText>
-                  ) : null}
-                </SSVStack>
-                <SSVStack gap="none" style={styles.zapAmountCol}>
-                  <SSText size="sm" weight="bold">
-                    {privacyMode
-                      ? `${NOSTR_PRIVACY_MASK} sats`
-                      : `${receipt.amountSats} sats`}
-                  </SSText>
-                  <SSText size="xxs" color="muted">
-                    {formatTimestamp(receipt.createdAt)}
-                  </SSText>
-                </SSVStack>
-              </SSHStack>
+                    <SSText size="xxs" color="muted">
+                      {formatNostrCardDate(receipt.createdAt)}
+                    </SSText>
+                  </SSVStack>
+                </SSHStack>
+              )
+
+              return onZapPress ? (
+                <TouchableOpacity
+                  key={receipt.id}
+                  accessibilityRole="button"
+                  activeOpacity={0.7}
+                  onPress={() => onZapPress(receipt)}
+                >
+                  {row}
+                </TouchableOpacity>
+              ) : (
+                <Fragment key={receipt.id}>{row}</Fragment>
               )
             })}
 
@@ -1095,80 +941,35 @@ const styles = StyleSheet.create({
   emptyText: {
     paddingVertical: 24
   },
-  loader: {
-    paddingVertical: 16
-  },
-  noteContent: {
-    color: Colors.white,
-    fontSize: 14,
-    lineHeight: 20
-  },
-  noteContentAfterMeta: {
-    marginTop: 16
-  },
-  noteInlineImages: {
-    marginTop: 4
-  },
-  noteRow: {
-    borderBottomColor: Colors.gray[800],
-    borderBottomWidth: 1,
-    paddingVertical: 12,
-    position: 'relative'
-  },
-  noteReplyTag: {
-    backgroundColor: Colors.gray[800],
-    borderColor: Colors.gray[700],
+  kindOptionRow: {
+    backgroundColor: Colors.gray[925],
+    borderColor: Colors.gray[800],
     borderRadius: 3,
     borderWidth: 1,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    zIndex: 1
+    paddingHorizontal: 16,
+    paddingVertical: 14
   },
-  noteReplyTagText: {
-    letterSpacing: 0.5
+  kindSheet: {
+    backgroundColor: Colors.gray[950],
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingBottom: 40,
+    paddingHorizontal: 20,
+    paddingTop: 20
   },
-  noteRowBodyWithReply: {
-    paddingRight: 52
+  kindSheetBackdrop: {
+    flex: 1
   },
-  feedAuthorRow: {
-    alignItems: 'center'
-  },
-  feedAuthorAvatar: {
-    borderRadius: 20,
-    height: 40,
-    width: 40
-  },
-  feedAuthorAvatarPlaceholder: {
-    alignItems: 'center',
-    backgroundColor: Colors.gray[800],
-    justifyContent: 'center'
-  },
-  feedAuthorAvatarSkeleton: {
-    backgroundColor: 'rgba(255,255,255,0.05)'
-  },
-  feedAuthorTextCol: {
+  kindSheetOverlay: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     flex: 1,
-    minWidth: 0
+    justifyContent: 'flex-end'
   },
-  noteMetaAboveContent: {
-    marginBottom: 4
+  kindSheetScroll: {
+    maxHeight: 380
   },
-  skeletonLineLg: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.055)',
-    borderRadius: 2,
-    height: 9,
-    width: '58%'
-  },
-  skeletonLineMd: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.045)',
-    borderRadius: 2,
-    height: 8,
-    width: '38%'
+  loader: {
+    paddingVertical: 16
   },
   notesKindTrigger: {
     borderColor: Colors.gray[800],
@@ -1186,33 +987,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0
   },
-  kindSheetOverlay: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    flex: 1,
-    justifyContent: 'flex-end'
-  },
-  kindSheetBackdrop: {
-    flex: 1
-  },
-  kindSheet: {
-    backgroundColor: Colors.gray[950],
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingBottom: 40,
-    paddingHorizontal: 20,
-    paddingTop: 20
-  },
-  kindOptionRow: {
-    backgroundColor: Colors.gray[925],
-    borderColor: Colors.gray[800],
-    borderRadius: 3,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 14
-  },
-  kindSheetScroll: {
-    maxHeight: 380
-  },
   tabBar: {
     borderBottomColor: Colors.gray[800],
     borderBottomWidth: 1,
@@ -1223,15 +997,15 @@ const styles = StyleSheet.create({
     height: 48,
     minWidth: 0
   },
+  tabButtonInner: {
+    flex: 1,
+    justifyContent: 'center',
+    width: '100%'
+  },
   tabButtonWrap: {
     flex: 1,
     height: '100%',
     position: 'relative',
-    width: '100%'
-  },
-  tabButtonInner: {
-    flex: 1,
-    justifyContent: 'center',
     width: '100%'
   },
   tabContent: {
@@ -1248,6 +1022,9 @@ const styles = StyleSheet.create({
   },
   zapAmountCol: {
     alignItems: 'flex-end'
+  },
+  zapAmountIncoming: {
+    color: Colors.success
   },
   zapAvatar: {
     borderRadius: 16,
@@ -1266,7 +1043,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomColor: Colors.gray[800],
     borderBottomWidth: 1,
-    paddingVertical: 12
+    paddingBottom: 16,
+    paddingTop: 8
   }
 })
 
