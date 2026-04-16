@@ -53,7 +53,11 @@ import {
   getReplyParentEventIdHex,
   noteLooksLikeReply
 } from '@/utils/nostrNoteThread'
-import { nostrNoteHref } from '@/utils/nostrNavigation'
+import {
+  nostrAccountProfileHref,
+  nostrContactProfileHref,
+  nostrNoteHref
+} from '@/utils/nostrNavigation'
 import {
   type ZapReceiptInfo,
   enrichZapReceipts,
@@ -71,6 +75,20 @@ const ZAP_PRESETS = [21, 100, 500, 1000]
 export default function NostrNotePage() {
   const router = useRouter()
   const { npub, nostrUri } = useLocalSearchParams<NoteParams>()
+
+  const navigateToNostrProfile = useCallback(
+    (authorNpubBech: string) => {
+      if (!npub) {
+        return
+      }
+      if (authorNpubBech === npub) {
+        router.navigate(nostrAccountProfileHref(npub))
+      } else {
+        router.navigate(nostrContactProfileHref(npub, authorNpubBech))
+      }
+    },
+    [npub, router]
+  )
 
   const identity = useNostrIdentityStore((state) =>
     state.identities.find((i) => i.npub === npub)
@@ -728,50 +746,58 @@ export default function NostrNotePage() {
         <ScrollView showsVerticalScrollIndicator={false}>
           <SSVStack gap="lg" style={styles.content}>
             {!noteItemForFeed && fetched?.pubkey ? (
-              <SSHStack gap="md" style={styles.authorRow}>
-                {privacyMode ? (
-                  <View
-                    style={[
-                      styles.authorAvatar,
-                      styles.authorAvatarPlaceholder
-                    ]}
-                  />
-                ) : fetched.authorPicture ? (
-                  <Image
-                    source={{ uri: fetched.authorPicture }}
-                    style={styles.authorAvatar}
-                  />
-                ) : (
-                  <View
-                    style={[
-                      styles.authorAvatar,
-                      styles.authorAvatarPlaceholder
-                    ]}
-                  >
-                    <SSText size="lg" weight="bold">
-                      {fetched.authorName?.[0]?.toUpperCase() || '?'}
-                    </SSText>
-                  </View>
-                )}
-                <SSVStack gap="none" style={{ flex: 1 }}>
-                  {fetched.authorName && !privacyMode && (
-                    <SSText size="md" weight="medium">
-                      {fetched.authorName}
-                    </SSText>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                disabled={!npub}
+                onPress={() =>
+                  navigateToNostrProfile(nip19.npubEncode(fetched.pubkey))
+                }
+              >
+                <SSHStack gap="md" style={styles.authorRow}>
+                  {privacyMode ? (
+                    <View
+                      style={[
+                        styles.authorAvatar,
+                        styles.authorAvatarPlaceholder
+                      ]}
+                    />
+                  ) : fetched.authorPicture ? (
+                    <Image
+                      source={{ uri: fetched.authorPicture }}
+                      style={styles.authorAvatar}
+                    />
+                  ) : (
+                    <View
+                      style={[
+                        styles.authorAvatar,
+                        styles.authorAvatarPlaceholder
+                      ]}
+                    >
+                      <SSText size="lg" weight="bold">
+                        {fetched.authorName?.[0]?.toUpperCase() || '?'}
+                      </SSText>
+                    </View>
                   )}
-                  {privacyMode && (
-                    <SSText size="md" weight="medium">
-                      {NOSTR_PRIVACY_MASK}
-                    </SSText>
-                  )}
-                  <SSText size="xs" color="muted" type="mono">
-                    {truncateNpub(
-                      nip19.npubEncode(fetched.pubkey),
-                      12
+                  <SSVStack gap="none" style={{ flex: 1 }}>
+                    {fetched.authorName && !privacyMode && (
+                      <SSText size="md" weight="medium">
+                        {fetched.authorName}
+                      </SSText>
                     )}
-                  </SSText>
-                </SSVStack>
-              </SSHStack>
+                    {privacyMode && (
+                      <SSText size="md" weight="medium">
+                        {NOSTR_PRIVACY_MASK}
+                      </SSText>
+                    )}
+                    <SSText size="xs" color="muted" type="mono">
+                      {truncateNpub(
+                        nip19.npubEncode(fetched.pubkey),
+                        12
+                      )}
+                    </SSText>
+                  </SSVStack>
+                </SSHStack>
+              </TouchableOpacity>
             ) : null}
 
             {fetched ? (
@@ -795,6 +821,7 @@ export default function NostrNotePage() {
                 authorPreview={
                   noteAuthorFeedProps ? (
                     <SSNostrFeedAuthorRow
+                      contextNpub={npub || undefined}
                       loading={noteAuthorFeedProps.loading}
                       npubBech={noteAuthorFeedProps.authorNpubBech}
                       displayName={noteAuthorFeedProps.displayName}
@@ -1165,46 +1192,59 @@ export default function NostrNotePage() {
                 </SSText>
                 {zapReceipts.map((receipt) => (
                   <SSHStack key={receipt.id} gap="sm" style={styles.receiptRow}>
-                    {privacyMode ? (
-                      <View
-                        style={[
-                          styles.receiptAvatar,
-                          styles.receiptAvatarPlaceholder
-                        ]}
-                      />
-                    ) : receipt.senderPicture ? (
-                      <Image
-                        source={{ uri: receipt.senderPicture }}
-                        style={styles.receiptAvatar}
-                      />
-                    ) : (
-                      <View
-                        style={[
-                          styles.receiptAvatar,
-                          styles.receiptAvatarPlaceholder
-                        ]}
-                      >
-                        <SSText size="xs" weight="bold">
-                          {receipt.senderName?.[0]?.toUpperCase() || '?'}
-                        </SSText>
-                      </View>
-                    )}
-                    <SSVStack gap="none" style={{ flex: 1 }}>
-                      <SSText size="sm" weight="medium">
-                        {privacyMode
-                          ? NOSTR_PRIVACY_MASK
-                          : receipt.senderName ||
-                            truncateNpub(
-                              nip19.npubEncode(receipt.senderPubkey),
-                              8
-                            )}
-                      </SSText>
-                      {!privacyMode && receipt.comment ? (
-                        <SSText size="xs" color="muted">
-                          {receipt.comment}
-                        </SSText>
-                      ) : null}
-                    </SSVStack>
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      disabled={!npub}
+                      onPress={() =>
+                        navigateToNostrProfile(
+                          nip19.npubEncode(receipt.senderPubkey)
+                        )
+                      }
+                      style={styles.receiptSenderHit}
+                    >
+                      <SSHStack gap="sm" style={styles.receiptSenderInner}>
+                        {privacyMode ? (
+                          <View
+                            style={[
+                              styles.receiptAvatar,
+                              styles.receiptAvatarPlaceholder
+                            ]}
+                          />
+                        ) : receipt.senderPicture ? (
+                          <Image
+                            source={{ uri: receipt.senderPicture }}
+                            style={styles.receiptAvatar}
+                          />
+                        ) : (
+                          <View
+                            style={[
+                              styles.receiptAvatar,
+                              styles.receiptAvatarPlaceholder
+                            ]}
+                          >
+                            <SSText size="xs" weight="bold">
+                              {receipt.senderName?.[0]?.toUpperCase() || '?'}
+                            </SSText>
+                          </View>
+                        )}
+                        <SSVStack gap="none" style={{ flex: 1, minWidth: 0 }}>
+                          <SSText size="sm" weight="medium">
+                            {privacyMode
+                              ? NOSTR_PRIVACY_MASK
+                              : receipt.senderName ||
+                                truncateNpub(
+                                  nip19.npubEncode(receipt.senderPubkey),
+                                  8
+                                )}
+                          </SSText>
+                          {!privacyMode && receipt.comment ? (
+                            <SSText size="xs" color="muted">
+                              {receipt.comment}
+                            </SSText>
+                          ) : null}
+                        </SSVStack>
+                      </SSHStack>
+                    </TouchableOpacity>
                     <SSVStack gap="xxs" style={styles.receiptAmountCol}>
                       {receipt.createdAt > 0 && (
                         <SSText size="xxs" color="muted">
@@ -1254,6 +1294,7 @@ export default function NostrNotePage() {
                     expandContent
                     authorPreview={
                       <SSNostrFeedAuthorRow
+                        contextNpub={npub || undefined}
                         loading={replyParentAuthorFeedProps.loading}
                         npubBech={replyParentAuthorFeedProps.authorNpubBech}
                         displayName={replyParentAuthorFeedProps.displayName}
@@ -1487,6 +1528,15 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     paddingHorizontal: 12,
     paddingTop: 8
+  },
+  receiptSenderHit: {
+    flex: 1,
+    minWidth: 0
+  },
+  receiptSenderInner: {
+    alignItems: 'center',
+    flex: 1,
+    minWidth: 0
   },
   zapButton: {
     minWidth: 90

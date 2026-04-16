@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { type ReactNode } from 'react'
 import {
@@ -16,6 +17,10 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { formatNostrCardDate } from '@/utils/format'
 import { truncateNpub } from '@/utils/nostrIdentity'
+import {
+  nostrAccountProfileHref,
+  nostrContactProfileHref
+} from '@/utils/nostrNavigation'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
 import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
 import { noteLooksLikeReply } from '@/utils/nostrNoteThread'
@@ -62,6 +67,8 @@ function encodeNotePrimaryNip19(note: NostrFeedNoteLike): string {
 }
 
 type SSNostrFeedAuthorRowProps = {
+  /** Identity whose account screen we are on (enables profile links). */
+  contextNpub?: string
   loading: boolean
   npubBech: string
   displayName: string
@@ -70,12 +77,15 @@ type SSNostrFeedAuthorRowProps = {
 }
 
 function SSNostrFeedAuthorRow({
+  contextNpub,
   loading,
   npubBech,
   displayName,
   nip05,
   pictureUri
 }: SSNostrFeedAuthorRowProps) {
+  const router = useRouter()
+
   if (loading) {
     return (
       <SSHStack gap="md" style={styles.feedAuthorRow}>
@@ -99,7 +109,7 @@ function SSNostrFeedAuthorRow({
     )
   }
 
-  return (
+  const row = (
     <SSHStack gap="md" style={styles.feedAuthorRow}>
       {pictureUri ? (
         <Image source={{ uri: pictureUri }} style={styles.feedAuthorAvatar} />
@@ -146,6 +156,25 @@ function SSNostrFeedAuthorRow({
       </SSVStack>
     </SSHStack>
   )
+
+  if (!contextNpub) {
+    return row
+  }
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={() => {
+        if (npubBech === contextNpub) {
+          router.navigate(nostrAccountProfileHref(npubBech))
+        } else {
+          router.navigate(nostrContactProfileHref(contextNpub, npubBech))
+        }
+      }}
+    >
+      {row}
+    </TouchableOpacity>
+  )
 }
 
 type SSNostrFeedNoteRowProps = {
@@ -181,62 +210,62 @@ function SSNostrFeedNoteRow({
   const eventNip19 = !privacyMode ? encodeNotePrimaryNip19(note) : ''
   const authorNpub = !privacyMode ? nip19.npubEncode(note.pubkey) : ''
   const showReplyTag = !privacyMode && noteLooksLikeReply(note.tags)
-  const hasMetaAbove = !privacyMode && (showAuthor || showNoteNipIds)
 
   const inner = (
-    <>
-      <SSHStack gap="xs" pointerEvents="none" style={styles.noteRowTopBar}>
-        {showReplyTag ? (
-          <View style={styles.noteReplyTag}>
-            <SSText
-              size="xxs"
-              color="white"
-              uppercase
-              style={styles.noteReplyTagText}
-            >
-              {t('nostrIdentity.feed.replyTag')}
-            </SSText>
-          </View>
-        ) : null}
-        <SSText
-          size="xxs"
-          color="muted"
-          numberOfLines={1}
-          style={styles.noteRowDateText}
-        >
-          {formatNostrCardDate(note.created_at)}
-        </SSText>
+    <SSVStack gap="sm" style={styles.noteRowInner}>
+      <SSHStack gap="md" style={styles.noteHeaderRow}>
+        <SSVStack gap="xs" style={styles.noteHeaderLeft}>
+          {showNoteNipIds && !privacyMode ? (
+            <SSVStack gap="xxs" style={styles.noteMetaAboveContent}>
+              <SSText
+                size="xxs"
+                color="muted"
+                type="mono"
+                numberOfLines={1}
+                ellipsizeMode="middle"
+              >
+                {truncateNpub(eventNip19, 16)}
+              </SSText>
+              <SSText
+                size="xxs"
+                color="muted"
+                type="mono"
+                numberOfLines={1}
+                ellipsizeMode="middle"
+              >
+                {truncateNpub(authorNpub, 14)}
+              </SSText>
+            </SSVStack>
+          ) : null}
+          {showAuthor && !privacyMode && authorPreview ? authorPreview : null}
+        </SSVStack>
+        <SSHStack gap="xs" style={styles.noteHeaderRight}>
+          {showReplyTag ? (
+            <View style={styles.noteReplyTag}>
+              <SSText
+                size="xxs"
+                color="white"
+                uppercase
+                style={styles.noteReplyTagText}
+              >
+                {t('nostrIdentity.feed.replyTag')}
+              </SSText>
+            </View>
+          ) : null}
+          <SSText
+            size="xxs"
+            color="muted"
+            numberOfLines={1}
+            style={styles.noteRowDateText}
+          >
+            {formatNostrCardDate(note.created_at)}
+          </SSText>
+        </SSHStack>
       </SSHStack>
       <SSVStack gap="xs" style={styles.noteRowBody}>
-        {showNoteNipIds && !privacyMode ? (
-          <SSVStack gap="xxs" style={styles.noteMetaAboveContent}>
-            <SSText
-              size="xxs"
-              color="muted"
-              type="mono"
-              numberOfLines={1}
-              ellipsizeMode="middle"
-            >
-              {truncateNpub(eventNip19, 16)}
-            </SSText>
-            <SSText
-              size="xxs"
-              color="muted"
-              type="mono"
-              numberOfLines={1}
-              ellipsizeMode="middle"
-            >
-              {truncateNpub(authorNpub, 14)}
-            </SSText>
-          </SSVStack>
-        ) : null}
-        {showAuthor && !privacyMode && authorPreview ? authorPreview : null}
         <SSText
           size="sm"
-          style={[
-            styles.noteContent,
-            hasMetaAbove && styles.noteContentAfterMeta
-          ]}
+          style={styles.noteContent}
           {...(expandContent
             ? {}
             : { numberOfLines: contentNumberOfLines })}
@@ -262,7 +291,7 @@ function SSNostrFeedNoteRow({
           />
         ) : null}
       </SSVStack>
-    </>
+    </SSVStack>
   )
 
   if (onPress) {
@@ -295,7 +324,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.06)'
   },
   feedAuthorRow: {
-    alignItems: 'center'
+    alignItems: 'flex-start'
   },
   feedAuthorTextCol: {
     flex: 1,
@@ -305,9 +334,6 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 14,
     lineHeight: 20
-  },
-  noteContentAfterMeta: {
-    marginTop: 16
   },
   noteInlineImages: {
     marginTop: 4
@@ -329,28 +355,34 @@ const styles = StyleSheet.create({
   noteReplyTagText: {
     letterSpacing: 0.5
   },
+  noteHeaderLeft: {
+    flex: 1,
+    minWidth: 0
+  },
+  noteHeaderRight: {
+    alignItems: 'flex-start',
+    flexShrink: 0
+  },
+  noteHeaderRow: {
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    width: '100%'
+  },
   noteRowBody: {
-    paddingTop: 22
+    width: '100%'
   },
   noteRowDateText: {
-    flexShrink: 1,
+    flexShrink: 0,
     textAlign: 'right'
   },
   noteRow: {
     borderBottomColor: Colors.gray[800],
     borderBottomWidth: 1,
     paddingBottom: 16,
-    paddingTop: 8,
-    position: 'relative'
+    paddingTop: 8
   },
-  noteRowTopBar: {
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    zIndex: 2
+  noteRowInner: {
+    width: '100%'
   },
   skeletonLineLg: {
     alignSelf: 'flex-start',

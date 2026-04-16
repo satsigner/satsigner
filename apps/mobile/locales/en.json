@@ -1255,6 +1255,8 @@
     "zapDetail.eventId": "Receipt id",
     "zapDetail.loadError": "Could not load this zap. Check relays and try again.",
     "zapDetail.notePreview": "Note preview",
+    "zapDetail.profileIncoming": "Zapper",
+    "zapDetail.profileOutgoing": "Recipient",
     "zapDetail.receiptJson": "Receipt (JSON)",
     "zapDetail.referenceNote": "Referenced note",
     "zapDetail.time": "Time",

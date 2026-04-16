@@ -4,6 +4,14 @@ export function nostrAccountProfileHref(npub: string): Href {
   return `/signer/nostr/account/${npub}` as Href
 }
 
+/** View `targetNpub`'s profile in the context of identity `ownerNpub`. */
+export function nostrContactProfileHref(
+  ownerNpub: string,
+  targetNpub: string
+): Href {
+  return `/signer/nostr/account/${ownerNpub}/contact/${targetNpub}` as Href
+}
+
 export function nostrAddIdentityHref(): Href {
   return '/signer/nostr/add' as Href
 }

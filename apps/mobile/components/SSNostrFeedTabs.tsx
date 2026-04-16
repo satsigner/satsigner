@@ -48,10 +48,12 @@ import {
 
 type SSNostrFeedTabsProps = {
   npub: string
-  relayConnected: boolean
-  relays: string[]
   onNotePress?: (payload: { id: string; kind: number; pubkey: string }) => void
   onZapPress?: (receipt: ZapReceiptInfo) => void
+  /** When viewing another profile, pass the signed-in identity npub so author taps open `/account/{this}/contact/{author}`. */
+  profileLinkContextNpub?: string
+  relayConnected: boolean
+  relays: string[]
 }
 
 const PAGE_SIZE = 10
@@ -214,10 +216,11 @@ function KindFilterLabelText({
 
 function SSNostrFeedTabs({
   npub,
-  relayConnected,
-  relays,
   onNotePress,
-  onZapPress
+  onZapPress,
+  profileLinkContextNpub,
+  relayConnected,
+  relays
 }: SSNostrFeedTabsProps) {
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const identity = useNostrIdentityStore((state) =>
@@ -256,6 +259,7 @@ function SSNostrFeedTabs({
   const hexPubkey = getPubKeyHexFromNpub(npub) ?? ''
   const ownPubkeyLower = hexPubkey.toLowerCase()
   const ownPubkeys = hexPubkey ? [hexPubkey] : []
+  const authorNavNpub = profileLinkContextNpub ?? npub
 
   const apiRef = useRef<NostrAPI | null>(null)
   const relaysKey = JSON.stringify(relays)
@@ -566,6 +570,7 @@ function SSNostrFeedTabs({
 
     return (
       <SSNostrFeedAuthorRow
+        contextNpub={authorNavNpub}
         loading={loading}
         npubBech={npubBech}
         displayName={displayName}

@@ -2,13 +2,21 @@ import { NostrAPI } from '@/api/nostr'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
+import {
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StyleSheet,
+  View
+} from 'react-native'
 
 import SSButton from '@/components/SSButton'
+import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
 import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
+import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -16,6 +24,7 @@ import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { formatNostrCardDate } from '@/utils/format'
+import { truncateNpub } from '@/utils/nostrIdentity'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
 import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
@@ -170,6 +179,42 @@ export default function NostrZapDetail() {
     ? []
     : allPreviewVideoEmbeds.slice(0, 4)
 
+  const counterpartyProfile = useMemo(() => {
+    if (!receipt) {
+      return null
+    }
+    if (receipt.direction === 'incoming') {
+      return {
+        lud16: receipt.senderLud16,
+        name: receipt.senderName,
+        nip05: receipt.senderNip05,
+        picture: receipt.senderPicture,
+        pubkeyHex: receipt.senderPubkey
+      }
+    }
+    if (!receipt.recipientPubkey) {
+      return null
+    }
+    return {
+      lud16: receipt.recipientLud16,
+      name: receipt.recipientName,
+      nip05: receipt.recipientNip05,
+      picture: receipt.recipientPicture,
+      pubkeyHex: receipt.recipientPubkey
+    }
+  }, [receipt])
+
+  const counterpartyNpub = useMemo(() => {
+    if (!counterpartyProfile?.pubkeyHex) {
+      return ''
+    }
+    try {
+      return nip19.npubEncode(counterpartyProfile.pubkeyHex)
+    } catch {
+      return ''
+    }
+  }, [counterpartyProfile?.pubkeyHex])
+
   if (!identity) {
     return (
       <SSMainLayout>
@@ -201,6 +246,107 @@ export default function NostrZapDetail() {
         ) : null}
         {loadState === 'ready' && receipt ? (
           <SSVStack gap="md">
+            {counterpartyProfile && counterpartyNpub ? (
+              <SSVStack gap="sm" style={styles.profileCard}>
+                <SSText size="xxs" color="muted" uppercase>
+                  {receipt.direction === 'incoming'
+                    ? t('nostrIdentity.zapDetail.profileIncoming')
+                    : t('nostrIdentity.zapDetail.profileOutgoing')}
+                </SSText>
+                <SSHStack gap="md" style={styles.profileRow}>
+                  {privacyMode ? (
+                    <View
+                      style={[
+                        styles.profileAvatar,
+                        styles.profileAvatarPlaceholder
+                      ]}
+                    />
+                  ) : counterpartyProfile.picture ? (
+                    <Image
+                      source={{ uri: counterpartyProfile.picture }}
+                      style={styles.profileAvatar}
+                    />
+                  ) : (
+                    <View
+                      style={[
+                        styles.profileAvatar,
+                        styles.profileAvatarPlaceholder
+                      ]}
+                    >
+                      <SSText size="lg" weight="bold">
+                        {(counterpartyProfile.name?.[0] ||
+                          counterpartyNpub[5] ||
+                          '?').toUpperCase()}
+                      </SSText>
+                    </View>
+                  )}
+                  <SSVStack gap="xs" style={styles.profileMeta}>
+                    <SSText size="md" weight="medium">
+                      {privacyMode
+                        ? NOSTR_PRIVACY_MASK
+                        : counterpartyProfile.name?.trim() || '—'}
+                    </SSText>
+                    <SSVStack gap="xxs">
+                      <SSText size="xxs" color="muted" uppercase>
+                        {t('nostrIdentity.keys.npub')}
+                      </SSText>
+                      {privacyMode ? (
+                        <SSText size="xs" type="mono" color="muted">
+                          {NOSTR_PRIVACY_MASK}
+                        </SSText>
+                      ) : (
+                        <SSClipboardCopy text={counterpartyNpub}>
+                          <SSText size="xs" type="mono" color="muted">
+                            {truncateNpub(counterpartyNpub, 14)}
+                          </SSText>
+                        </SSClipboardCopy>
+                      )}
+                    </SSVStack>
+                    <SSVStack gap="xxs">
+                      <SSText size="xxs" color="muted" uppercase>
+                        {t('nostrIdentity.profile.nip05')}
+                      </SSText>
+                      {privacyMode ? (
+                        <SSText size="sm" color="muted">
+                          {NOSTR_PRIVACY_MASK}
+                        </SSText>
+                      ) : counterpartyProfile.nip05?.trim() ? (
+                        <SSClipboardCopy text={counterpartyProfile.nip05.trim()}>
+                          <SSText size="sm" color="muted">
+                            {counterpartyProfile.nip05.trim()}
+                          </SSText>
+                        </SSClipboardCopy>
+                      ) : (
+                        <SSText size="sm" color="muted">
+                          {t('nostrIdentity.account.nip05NotSet')}
+                        </SSText>
+                      )}
+                    </SSVStack>
+                    <SSVStack gap="xxs">
+                      <SSText size="xxs" color="muted" uppercase>
+                        {t('nostrIdentity.profile.lud16')}
+                      </SSText>
+                      {privacyMode ? (
+                        <SSText size="sm" color="muted">
+                          {NOSTR_PRIVACY_MASK}
+                        </SSText>
+                      ) : counterpartyProfile.lud16?.trim() ? (
+                        <SSClipboardCopy text={counterpartyProfile.lud16.trim()}>
+                          <SSText size="sm" color="white">
+                            {counterpartyProfile.lud16.trim()}
+                          </SSText>
+                        </SSClipboardCopy>
+                      ) : (
+                        <SSText size="sm" color="muted">
+                          {t('nostrIdentity.account.lud16NotSet')}
+                        </SSText>
+                      )}
+                    </SSVStack>
+                  </SSVStack>
+                </SSHStack>
+              </SSVStack>
+            ) : null}
+
             <SSVStack gap="xs">
               <SSText size="xxs" color="muted" uppercase>
                 {t('nostrIdentity.zapDetail.amount')}
@@ -336,6 +482,30 @@ export default function NostrZapDetail() {
 const styles = StyleSheet.create({
   amountIncoming: {
     color: Colors.success
+  },
+  profileAvatar: {
+    borderRadius: 24,
+    height: 48,
+    width: 48
+  },
+  profileAvatarPlaceholder: {
+    alignItems: 'center',
+    backgroundColor: Colors.gray[800],
+    justifyContent: 'center'
+  },
+  profileCard: {
+    backgroundColor: Colors.gray[925],
+    borderColor: Colors.gray[800],
+    borderRadius: 5,
+    borderWidth: 1,
+    padding: 16
+  },
+  profileMeta: {
+    flex: 1,
+    minWidth: 0
+  },
+  profileRow: {
+    alignItems: 'flex-start'
   },
   empty: {
     paddingVertical: 60

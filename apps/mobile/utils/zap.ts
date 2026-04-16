@@ -69,10 +69,14 @@ export type ZapReceiptDirection = 'incoming' | 'outgoing'
 export type ZapReceiptInfo = {
   id: string
   senderPubkey: string
+  senderLud16?: string
   senderName?: string
+  senderNip05?: string
   senderPicture?: string
+  recipientLud16?: string
   recipientPubkey?: string
   recipientName?: string
+  recipientNip05?: string
   recipientPicture?: string
   direction: ZapReceiptDirection
   amountSats: number
@@ -615,7 +619,10 @@ export async function enrichZapReceipts(
   if (receipts.length === 0) {return}
 
   const now = Math.floor(Date.now() / 1000)
-  const profileMap = new Map<string, { name?: string; picture?: string }>()
+  const profileMap = new Map<
+    string,
+    { lud16?: string; name?: string; nip05?: string; picture?: string }
+  >()
 
   const uniquePubkeys = [
     ...new Set(
@@ -631,12 +638,12 @@ export async function enrichZapReceipts(
   for (const pk of uniquePubkeys) {
     const cached = getCachedProfile(pk)
     if (cached && now - cached.cached_at < PROFILE_CACHE_TTL_SECS) {
-      if (cached.displayName || cached.picture) {
-        profileMap.set(pk, {
-          name: cached.displayName,
-          picture: cached.picture
-        })
-      }
+      profileMap.set(pk, {
+        lud16: cached.lud16,
+        name: cached.displayName,
+        nip05: cached.nip05,
+        picture: cached.picture
+      })
     } else {
       stalePubkeys.push(pk)
     }
@@ -677,9 +684,7 @@ export async function enrichZapReceipts(
             typeof content.nip05 === 'string' ? content.nip05 : undefined
           const lud16 =
             typeof content.lud16 === 'string' ? content.lud16 : undefined
-          if (name || picture) {
-            profileMap.set(event.pubkey, { name, picture })
-          }
+          profileMap.set(event.pubkey, { lud16, name, nip05, picture })
           cacheProfile(
             event.pubkey,
             { displayName: name, lud16, nip05, picture },
@@ -704,13 +709,17 @@ export async function enrichZapReceipts(
   for (const receipt of receipts) {
     const senderProfile = profileMap.get(receipt.senderPubkey)
     if (senderProfile) {
+      receipt.senderLud16 = senderProfile.lud16
       receipt.senderName = senderProfile.name
+      receipt.senderNip05 = senderProfile.nip05
       receipt.senderPicture = senderProfile.picture
     }
     if (receipt.recipientPubkey) {
       const recipientProfile = profileMap.get(receipt.recipientPubkey)
       if (recipientProfile) {
+        receipt.recipientLud16 = recipientProfile.lud16
         receipt.recipientName = recipientProfile.name
+        receipt.recipientNip05 = recipientProfile.nip05
         receipt.recipientPicture = recipientProfile.picture
       }
     }
