@@ -32,6 +32,7 @@ import SSSignatureDropdown from "@/components/SSSignatureDropdown";
 import SSSignatureRequiredDisplay from "@/components/SSSignatureRequiredDisplay";
 import SSText from "@/components/SSText";
 import SSTransactionChart from "@/components/SSTransactionChart";
+import SSTransactionIdFormatted from "@/components/SSTransactionIdFormatted";
 import SSTransactionDecoded from "@/components/SSTransactionDecoded";
 import { PIN_KEY } from "@/config/auth";
 import { useClipboardPaste } from "@/hooks/useClipboardPaste";
@@ -2035,15 +2036,18 @@ function PreviewTransaction() {
                 <SSText color="muted" size="sm" uppercase>
                   {t("transaction.id")}
                 </SSText>
-                <SSText size="lg" type="mono">
-                  {isLoadingPSBT
-                    ? t("common.loading")
-                    : psbtBuildStatus === "building"
-                    ? t("transaction.preview.buildingTransaction")
-                    : psbtBuildStatus === "error"
-                    ? "—"
-                    : transactionId || "—"}
-                </SSText>
+                <SSTransactionIdFormatted
+                  size="lg"
+                  value={
+                    isLoadingPSBT
+                      ? t("common.loading")
+                      : psbtBuildStatus === "building"
+                        ? t("transaction.preview.buildingTransaction")
+                        : psbtBuildStatus === "error"
+                          ? "—"
+                          : transactionId || "—"
+                  }
+                />
                 {isLoadingPSBT && (
                   <SSText color="muted" size="sm" style={{ marginTop: 8 }}>
                     {t("transaction.preview.processingPsbt")}

@@ -396,7 +396,7 @@ function NodeText({
         .addText(ioData?.text ?? "") // Add nullish coalescing
         .pushStyle({
           ...baseTextStyle,
-          color: Skia.Color("white"),
+          color: Skia.Color(isChange || isSelfSend ? "white" : mainRed),
           fontSize: BASE_FONT_SIZE,
         })
         .addText(`\n${ioData?.value?.toLocaleString()} `) // Add nullish coalescing
@@ -421,7 +421,7 @@ function NodeText({
         .addText(ioData?.address ? `${ioData?.address}\n` : "")
         .pushStyle({
           ...baseTextStyle,
-          color: Skia.Color(isChange || isSelfSend ? mainGreen : gray[300]),
+          color: Skia.Color(isChange || isSelfSend ? mainGreen : mainRed),
           fontSize: XS_FONT_SIZE,
           fontStyle: {
             weight: 800,

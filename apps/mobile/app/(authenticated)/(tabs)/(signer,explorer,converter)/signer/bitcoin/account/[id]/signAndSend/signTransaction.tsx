@@ -1,5 +1,6 @@
+import * as Clipboard from 'expo-clipboard'
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { Psbt } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
@@ -13,6 +14,7 @@ import SSButton from '@/components/SSButton'
 import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
+import SSTransactionIdFormatted from '@/components/SSTransactionIdFormatted'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -29,6 +31,8 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { legacyEstimateTransactionSize } from '@/utils/transaction'
 
 const tn = _tn('transaction.build.sign')
+
+const BROADCAST_LOG_PREFIX = '[SignTransaction broadcast]'
 
 export default function SignTransaction() {
   const router = useRouter()
@@ -74,6 +78,33 @@ export default function SignTransaction() {
   const [broadcasting, setBroadcasting] = useState(false)
   const [rawTx, setRawTx] = useState('')
 
+  const canCopySignedTx = useMemo(() => {
+    if (!signed || !rawTx) {
+      return false
+    }
+    const hex = rawTx.trim()
+    if (hex.length < 20 || !/^[0-9a-fA-F]+$/.test(hex)) {
+      return false
+    }
+    if (hex.toLowerCase().startsWith('70736274')) {
+      return false
+    }
+    return true
+  }, [rawTx, signed])
+
+  const handleCopySignedTx = useCallback(async () => {
+    if (!canCopySignedTx) {
+      toast.error(tn('copySignedTxUnavailable'))
+      return
+    }
+    try {
+      await Clipboard.setStringAsync(rawTx.trim())
+      toast.success(t('common.copiedToClipboard'))
+    } catch {
+      toast.error(tn('copySignedTxUnavailable'))
+    }
+  }, [canCopySignedTx, rawTx, t, tn])
+
   const transaction = useMemo(() => {
     if (!psbt) {
       return null
@@ -106,7 +137,17 @@ export default function SignTransaction() {
   }, [inputs, outputs, psbt])
 
   function handleBroadcastSingleSig() {
+    console.log(BROADCAST_LOG_PREFIX, 'handleBroadcastSingleSig start', {
+      hasPsbt: Boolean(psbt),
+      hasWallet: Boolean(wallet),
+      backend: currentConfig?.server?.backend,
+      url: currentConfig?.server?.url
+    })
     if (!psbt || !wallet) {
+      console.error(BROADCAST_LOG_PREFIX, 'handleBroadcastSingleSig abort', {
+        hasPsbt: Boolean(psbt),
+        hasWallet: Boolean(wallet)
+      })
       throw new Error('Empty PSBT or wallet')
     }
     return broadcastTransaction(
@@ -118,48 +159,81 @@ export default function SignTransaction() {
   }
 
   async function handleBroadcastMultiSig() {
+    console.log(BROADCAST_LOG_PREFIX, 'handleBroadcastMultiSig start', {
+      signedTxLength: signedTx?.length,
+      signedTxPrefix: typeof signedTx === 'string' ? signedTx.slice(0, 32) : null,
+      backend: currentConfig?.server?.backend,
+      url: currentConfig?.server?.url
+    })
     if (!signedTx) {
+      console.error(BROADCAST_LOG_PREFIX, 'multisig: missing signedTx')
       throw new Error('Empty signed transaction')
     }
 
     if (typeof signedTx !== 'string' || signedTx.length === 0) {
+      console.error(BROADCAST_LOG_PREFIX, 'multisig: signedTx not non-empty string')
       throw new Error('Invalid signedTx: empty or invalid format')
     }
 
     if (!/^[a-fA-F0-9]+$/.test(signedTx)) {
+      console.error(BROADCAST_LOG_PREFIX, 'multisig: signedTx failed hex regex')
       throw new Error('Invalid signedTx: not a valid hex string')
     }
 
     if (signedTx.length < 100) {
+      console.error(BROADCAST_LOG_PREFIX, 'multisig: signedTx too short', {
+        length: signedTx.length
+      })
       throw new Error('Invalid signedTx: too short to be a valid transaction')
     }
 
     if (currentConfig.server.backend === 'electrum') {
+      console.log(BROADCAST_LOG_PREFIX, 'multisig: broadcasting via electrum')
       const electrumClient = await ElectrumClient.initClientFromUrl(
         currentConfig.server.url,
         selectedNetwork
       )
-      await electrumClient.broadcastTransactionHex(signedTx)
+      const txid = await electrumClient.broadcastTransactionHex(signedTx)
+      console.log(BROADCAST_LOG_PREFIX, 'multisig: electrum broadcast ok', {
+        txid
+      })
       electrumClient.close()
       return true
     }
 
     if (currentConfig.server.backend === 'esplora') {
+      console.log(BROADCAST_LOG_PREFIX, 'multisig: broadcasting via esplora')
       const esploraClient = new Esplora(currentConfig.server.url)
-      await esploraClient.broadcastTransaction(signedTx)
+      const txid = await esploraClient.broadcastTransaction(signedTx)
+      console.log(BROADCAST_LOG_PREFIX, 'multisig: esplora broadcast ok', {
+        txid
+      })
       return true
     }
 
+    console.error(BROADCAST_LOG_PREFIX, 'multisig: unsupported backend', {
+      backend: currentConfig.server.backend
+    })
     throw new Error(`Unsupported backend: ${currentConfig.server.backend}`)
   }
 
   async function handleBroadcastTransaction() {
+    console.log(BROADCAST_LOG_PREFIX, 'tap: handleBroadcastTransaction', {
+      broadcasting,
+      broadcasted,
+      hasSignedTx: Boolean(signedTx),
+      hasPsbt: Boolean(psbt),
+      signed,
+      accountId: id
+    })
     if (broadcasting) {
+      console.log(BROADCAST_LOG_PREFIX, 'ignored: already broadcasting')
       toast.info('Please wait while the transaction is being broadcast.')
       return
     }
 
     if (broadcasted) {
+      console.log(BROADCAST_LOG_PREFIX, 'ignored: already broadcasted')
       toast.error(
         'This transaction has already been broadcasted to the network'
       )
@@ -170,27 +244,42 @@ export default function SignTransaction() {
 
     try {
       if (signedTx) {
+        console.log(BROADCAST_LOG_PREFIX, 'path: multisig (signedTx)')
         await handleBroadcastMultiSig()
       } else if (psbt) {
-        const success = await handleBroadcastSingleSig()
-        if (!success) {
+        console.log(BROADCAST_LOG_PREFIX, 'path: singlesig (psbt → BDK)')
+        const broadcastResult = await handleBroadcastSingleSig()
+        console.log(BROADCAST_LOG_PREFIX, 'singlesig broadcast returned', {
+          type: typeof broadcastResult,
+          value: broadcastResult,
+          truthy: Boolean(broadcastResult)
+        })
+        if (!broadcastResult) {
+          console.error(
+            BROADCAST_LOG_PREFIX,
+            'singlesig: falsy result from broadcastTransaction — treating as failure'
+          )
           throw new Error('Broadcast failed')
         }
       } else {
+        console.error(BROADCAST_LOG_PREFIX, 'no signedTx and no psbt')
         throw new Error('No transaction to broadcast')
       }
 
+      console.log(BROADCAST_LOG_PREFIX, 'success, navigating to confirmation')
       setBroadcasted(true)
       router.navigate(
         `/signer/bitcoin/account/${id}/signAndSend/transactionConfirmation`
       )
     } catch (error) {
+      console.error(BROADCAST_LOG_PREFIX, 'catch', error)
       const errorMessage =
         error instanceof Error
           ? error.message
           : 'Failed to broadcast transaction'
       toast.error(errorMessage)
     } finally {
+      console.log(BROADCAST_LOG_PREFIX, 'finally: setBroadcasting(false)')
       setBroadcasting(false)
     }
   }
@@ -252,7 +341,7 @@ export default function SignTransaction() {
         <ScrollView>
           <SSVStack justifyBetween style={{ minHeight: '100%' }}>
             <SSVStack itemsCenter>
-              <SSText size="lg" weight="bold">
+              <SSText size="md" uppercase weight="light">
                 {broadcasted
                   ? t('sent.broadcasted')
                   : account?.policyType === 'multisig' && signedTx
@@ -274,7 +363,7 @@ export default function SignTransaction() {
                 <SSText color="muted" size="sm" uppercase>
                   {t('transaction.id')}
                 </SSText>
-                <SSText size="lg">{psbt.txid()}</SSText>
+                <SSTransactionIdFormatted size="lg" value={psbt.txid()} />
               </SSVStack>
 
               <SSVStack gap="xxs">
@@ -357,6 +446,14 @@ export default function SignTransaction() {
                 handleBroadcastTransaction()
               }}
             />
+            {signed && (
+              <SSButton
+                variant="ghost"
+                disabled={!canCopySignedTx || broadcasting}
+                label={tn('copySignedTx')}
+                onPress={handleCopySignedTx}
+              />
+            )}
             {signed &&
               account?.nostr?.autoSync &&
               (psbt?.toBase64() ?? signedTx) && (

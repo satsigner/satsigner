@@ -240,7 +240,7 @@ export default function TransactionConfirmation() {
       <SSMainLayout style={{ paddingBottom: 32 }}>
         <SSVStack justifyBetween>
           <SSVStack itemsCenter>
-            <SSText weight="bold" size="lg">
+            <SSText size="md" uppercase weight="light">
               {t('sent.broadcasted')}
             </SSText>
             <SSVStack gap="none" itemsCenter>
