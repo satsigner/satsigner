@@ -392,6 +392,27 @@ export default function IOPreview() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Once: if builder fee is still the default (<=1), match useNetworkInfo nextBlockFee.
+  const hasHydratedRecommendedFeeRate = useRef(false)
+  useEffect(() => {
+    hasHydratedRecommendedFeeRate.current = false
+  }, [id])
+
+  useEffect(() => {
+    if (hasHydratedRecommendedFeeRate.current) {
+      return
+    }
+    if (nextBlockFee === null || nextBlockFee < 1) {
+      return
+    }
+    if (feeRate > 1) {
+      hasHydratedRecommendedFeeRate.current = true
+      return
+    }
+    setFeeRate(nextBlockFee)
+    hasHydratedRecommendedFeeRate.current = true
+  }, [feeRate, nextBlockFee, setFeeRate])
+
   useEffect(() => {
     setFee(Math.round(localFeeRate * transactionSize.vsize))
   }, [localFeeRate, transactionSize, setFee])
@@ -440,6 +461,11 @@ export default function IOPreview() {
   }
 
   function handleAddOutput() {
+    if (outputAmount > 0 && outputAmount < DUST_LIMIT) {
+      toast.error(t('transaction.error.dustOutputBelowLimit'))
+      return
+    }
+
     const outputIndex = outputs.findIndex(
       (output) => output.localId === currentOutputLocalId
     )
@@ -585,6 +611,18 @@ export default function IOPreview() {
 
     if (totalRequired > utxosSelectedValue) {
       toast.error(t('transaction.error.insufficientInputs'))
+      return
+    }
+
+    for (const output of outputs) {
+      if (output.amount > 0 && output.amount < DUST_LIMIT) {
+        toast.error(t('transaction.error.dustOutputBelowLimit'))
+        return
+      }
+    }
+
+    if (remainingBalance > 0 && remainingBalance < DUST_LIMIT) {
+      toast.error(t('transaction.error.dustChangeBelowLimit'))
       return
     }
 

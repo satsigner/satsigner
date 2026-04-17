@@ -31,6 +31,7 @@ import { estimateTransactionSize } from '@/utils/transaction'
 import { withPerformanceWarning } from './SSPerformanceWarning'
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
+import SSText from './SSText'
 
 interface Node extends SankeyNodeMinimal<object, object> {
   id: string
@@ -111,23 +112,32 @@ function SSCurrentTransactionChart({
     return Math.round(feeRateProp * safeTxVsize)
   }, [feeRateProp, safeTxVsize])
 
-  const { width: w, height: h, center, onCanvasLayout } = useLayout()
+  const {
+    width: layoutW,
+    height: layoutH,
+    center,
+    onCanvasLayout
+  } = useLayout()
+  const safeLayoutW = Math.max(1, layoutW)
+  const safeLayoutH = Math.max(1, layoutH)
 
   const { animatedStyle, gestures, transform } = useGestures({
     center,
-    height: h,
+    height: safeLayoutH,
     isDoubleTapEnabled: true,
     maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
     maxScale: 20,
     minPanPointers: 1,
     minScale: 0.2,
     shouldResetOnInteractionEnd: false,
-    width: w
+    width: safeLayoutW
   })
 
-  const { width, height } = useWindowDimensions()
-  const GRAPH_HEIGHT = height * 0.7
-  const GRAPH_WIDTH = width
+  const { width: winW, height: winH } = useWindowDimensions()
+  const safeWinW = Math.max(1, winW)
+  const safeWinH = Math.max(1, winH)
+  const GRAPH_HEIGHT = safeWinH * 0.7
+  const GRAPH_WIDTH = safeWinW
   const SANKEY_TOP_MARGIN = 200
 
   const sankeyGenerator = useMemo(
@@ -138,15 +148,15 @@ function SSCurrentTransactionChart({
         .extent([
           [0, SANKEY_TOP_MARGIN],
           [
-            width,
-            height *
+            safeWinW,
+            safeWinH *
               0.7 *
               // (Math.max(inputMap.size, outputArray.length + 1) * 0.237) // + 1 for the miner output
               (Math.max(inputMap.size, outputArray.length + 1) * 0.23)
           ]
         ])
         .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id),
-    [inputMap, outputArray, width, height]
+    [inputMap, outputArray, safeWinH, safeWinW]
   )
 
   sankeyGenerator.nodeAlign((node: SankeyNodeMinimal<object, object>) => {
@@ -349,11 +359,7 @@ function SSCurrentTransactionChart({
     return null
   }
 
-  if (!nodes?.length || !transformedLinks?.length) {
-    return null
-  }
-
-  // Additional safety check: ensure all nodes have valid positions
+  const graphEmpty = !nodes?.length || !transformedLinks?.length
   const hasInvalidNodes = nodes.some(
     (node) =>
       Number.isNaN(node.x0) ||
@@ -362,8 +368,21 @@ function SSCurrentTransactionChart({
       Number.isNaN(node.y1)
   )
 
-  if (hasInvalidNodes) {
-    return null
+  if (graphEmpty || hasInvalidNodes) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          paddingHorizontal: 24,
+          paddingTop: SANKEY_TOP_MARGIN
+        }}
+      >
+        <SSText center color="muted" size="sm">
+          {t('transaction.chart.unavailableHint')}
+        </SSText>
+      </View>
+    )
   }
 
   return (
@@ -373,7 +392,10 @@ function SSCurrentTransactionChart({
           style={{ height: GRAPH_HEIGHT, width: GRAPH_WIDTH }}
           pointerEvents="box-none"
         >
-          <Group origin={{ x: w / 2, y: h / 2 }} transform={transform}>
+          <Group
+            origin={{ x: safeLayoutW / 2, y: safeLayoutH / 2 }}
+            transform={transform}
+          >
             <SSSankeyLinks
               links={transformedLinks}
               nodes={nodes as Node[]}

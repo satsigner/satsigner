@@ -65,6 +65,7 @@ import SSCameraModal from "@/components/SSCameraModal";
 import SSHistoryChart from "@/components/SSHistoryChart";
 import SSIconButton from "@/components/SSIconButton";
 import SSLoader from "@/components/SSLoader";
+import SSModal from "@/components/SSModal";
 import SSNFCModal from "@/components/SSNFCModal";
 import SSPaste from "@/components/SSPaste";
 import SSSeparator from "@/components/SSSeparator";
@@ -1153,9 +1154,16 @@ export default function AccountView() {
     blockHeightSource,
   } = useNetworkInfo();
 
+  const closePasteModalRef = useRef<() => void>(() => {
+    // set after useContentHandler; avoids circular hook order
+  });
+
   const bitcoinContentHandler = useBitcoinContentHandler({
     account: account!,
     accountId: id!,
+    closePasteModal: () => {
+      closePasteModalRef.current();
+    },
   });
 
   const contentHandler = useContentHandler({
@@ -1166,6 +1174,8 @@ export default function AccountView() {
   });
 
   const { closeCameraModal, closeNFCModal, closePasteModal } = contentHandler;
+
+  closePasteModalRef.current = closePasteModal;
   useFocusEffect(
     useCallback(
       () => () => {
@@ -1711,6 +1721,51 @@ export default function AccountView() {
         onContentPasted={contentHandler.handleContentPasted}
         context="bitcoin"
       />
+      <SSModal
+        visible={bitcoinContentHandler.uriExceedsBalanceModal !== null}
+        showLabel={false}
+        onClose={() =>
+          bitcoinContentHandler.resolveUriExceedsBalancePrompt("cancel")
+        }
+      >
+        <SSVStack gap="md" style={{ maxWidth: 340 }}>
+          <SSText size="lg" weight="medium">
+            {t("transaction.bitcoin.uri.exceedsBalance.title")}
+          </SSText>
+          <SSText color="muted" size="sm">
+            {t("transaction.bitcoin.uri.exceedsBalance.message", {
+              available:
+                bitcoinContentHandler.uriExceedsBalanceModal
+                  ?.availableBalanceSats ?? 0,
+              requested:
+                bitcoinContentHandler.uriExceedsBalanceModal
+                  ?.requestedAmountSats ?? 0,
+            })}
+          </SSText>
+          <SSHStack gap="sm" justifyBetween>
+            <SSButton
+              label={t("transaction.bitcoin.uri.exceedsBalance.cancel")}
+              style={{ flex: 1 }}
+              variant="outline"
+              onPress={() =>
+                bitcoinContentHandler.resolveUriExceedsBalancePrompt("cancel")
+              }
+            />
+            <SSButton
+              label={t(
+                "transaction.bitcoin.uri.exceedsBalance.sendWithoutAmount"
+              )}
+              style={{ flex: 1 }}
+              variant="secondary"
+              onPress={() =>
+                bitcoinContentHandler.resolveUriExceedsBalancePrompt(
+                  "without_amount"
+                )
+              }
+            />
+          </SSHStack>
+        </SSVStack>
+      </SSModal>
     </>
   );
 }
