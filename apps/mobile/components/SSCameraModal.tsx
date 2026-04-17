@@ -95,7 +95,8 @@ function detectQRType(data: string) {
 
 async function assembleMultiPartQR(
   type: 'raw' | 'ur' | 'bbqr',
-  chunks: Map<number, string>
+  chunks: Map<number, string>,
+  context: SSCameraModalProps['context']
 ): Promise<string | null> {
   try {
     switch (type) {
@@ -104,6 +105,12 @@ async function assembleMultiPartQR(
           .toSorted(([a], [b]) => a - b)
           .map(([, content]) => content)
         const assembled = sortedChunks.join('')
+
+        // p1ofN-style payloads for ecash/lightning/nostr are plain text joins
+        // (e.g. Cashu token, BOLT11). Base64→hex is for bitcoin PSBT splits only.
+        if (context !== 'bitcoin') {
+          return assembled
+        }
 
         try {
           const hexResult = Buffer.from(assembled, 'base64').toString('hex')
@@ -323,7 +330,11 @@ function SSCameraModal({
           newScanned.size >= assemblyTarget || newScanned.size >= fallbackTarget
 
         if (shouldTryAssembly) {
-          const assembledData = await assembleMultiPartQR(type, newChunks)
+          const assembledData = await assembleMultiPartQR(
+            type,
+            newChunks,
+            context
+          )
 
           if (assembledData) {
             const detectedContent = await detectContentByContext(
@@ -358,7 +369,11 @@ function SSCameraModal({
           }
         }
       } else if (newScanned.size === total) {
-        const assembledData = await assembleMultiPartQR(type, newChunks)
+        const assembledData = await assembleMultiPartQR(
+          type,
+          newChunks,
+          context
+        )
 
         if (assembledData) {
           const detectedContent = await detectContentByContext(
