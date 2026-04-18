@@ -19,6 +19,9 @@ import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { decryptKeySecret } from '@/utils/account'
 import { emptyPin } from '@/utils/pin'
+import { PIN_KEY, SALT_KEY } from '@/config/auth'
+import { getItem } from '@/storage/encrypted'
+import { pbkdf2Encrypt } from '@/utils/crypto'
 
 export default function SeedWordsPage() {
   const { id: accountId, keyIndex } = useLocalSearchParams<
@@ -56,8 +59,22 @@ export default function SeedWordsPage() {
     }
   }, [account, key])
 
-  async function handlePinEntry() {
-    await decryptMnemonic()
+  async function handlePinEntry(pinString: string) {
+    const salt = await getItem(SALT_KEY)
+    const storedEncryptedPin = await getItem(PIN_KEY)
+    if (!salt || !storedEncryptedPin) {
+      toast.error('Unable to decrypt PIN')
+      return
+    }
+
+    const encryptedPin = await pbkdf2Encrypt(pinString, salt)
+    const isPinValid = encryptedPin === storedEncryptedPin
+
+    if (isPinValid) {
+      await decryptMnemonic()
+      setShowPinEntry(false)
+    }
+    setPin(emptyPin())
   }
 
   useEffect(() => {
