@@ -99,12 +99,20 @@ export default function AccountSettings() {
   }
 
   function handleOnViewMnemonic() {
-    setPin(emptyPin())
     setShowPinEntry(true)
+    setPin(emptyPin())
 
     // This will auto-focus the pin input after a little delay.
     // The delay is needed because the modal has to have become visible first.
-    setTimeout(() => setPinEntryFocus(true), 200)
+    setTimeout(() => {
+      setPinEntryFocus(true)
+    }, 300)
+  }
+
+  function handleCloseMnemonicModal() {
+    setShowPinEntry(false)
+    setPin(emptyPin())
+    setPinEntryFocus(false)
   }
 
   async function handlePinEntry(pinString: string) {
@@ -120,6 +128,9 @@ export default function AccountSettings() {
     if (isPinValid) {
       setShowPinEntry(false)
       setMnemonicModalVisible(true)
+      setTimeout(() => setPin(emptyPin()), 500)
+    } else {
+      setPin(emptyPin())
     }
   }
 
@@ -587,7 +598,10 @@ export default function AccountSettings() {
           setMnemonicModalVisible(true)
         }}
       />
-      <SSModal visible={showPinEntry} onClose={() => setShowPinEntry(false)}>
+      <SSModal
+        visible={showPinEntry}
+        onClose={handleCloseMnemonicModal}
+      >
         <SSPinEntry
           title={t('account.enter.pin')}
           pin={pin}
