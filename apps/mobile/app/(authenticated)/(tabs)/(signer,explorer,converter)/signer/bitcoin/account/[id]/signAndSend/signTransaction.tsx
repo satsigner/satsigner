@@ -32,8 +32,6 @@ import { legacyEstimateTransactionSize } from '@/utils/transaction'
 
 const tn = _tn('transaction.build.sign')
 
-const BROADCAST_LOG_PREFIX = '[SignTransaction broadcast]'
-
 export default function SignTransaction() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
@@ -137,17 +135,7 @@ export default function SignTransaction() {
   }, [inputs, outputs, psbt])
 
   function handleBroadcastSingleSig() {
-    console.log(BROADCAST_LOG_PREFIX, 'handleBroadcastSingleSig start', {
-      hasPsbt: Boolean(psbt),
-      hasWallet: Boolean(wallet),
-      backend: currentConfig?.server?.backend,
-      url: currentConfig?.server?.url
-    })
     if (!psbt || !wallet) {
-      console.error(BROADCAST_LOG_PREFIX, 'handleBroadcastSingleSig abort', {
-        hasPsbt: Boolean(psbt),
-        hasWallet: Boolean(wallet)
-      })
       throw new Error('Empty PSBT or wallet')
     }
     return broadcastTransaction(
@@ -159,81 +147,48 @@ export default function SignTransaction() {
   }
 
   async function handleBroadcastMultiSig() {
-    console.log(BROADCAST_LOG_PREFIX, 'handleBroadcastMultiSig start', {
-      signedTxLength: signedTx?.length,
-      signedTxPrefix: typeof signedTx === 'string' ? signedTx.slice(0, 32) : null,
-      backend: currentConfig?.server?.backend,
-      url: currentConfig?.server?.url
-    })
     if (!signedTx) {
-      console.error(BROADCAST_LOG_PREFIX, 'multisig: missing signedTx')
       throw new Error('Empty signed transaction')
     }
 
     if (typeof signedTx !== 'string' || signedTx.length === 0) {
-      console.error(BROADCAST_LOG_PREFIX, 'multisig: signedTx not non-empty string')
       throw new Error('Invalid signedTx: empty or invalid format')
     }
 
     if (!/^[a-fA-F0-9]+$/.test(signedTx)) {
-      console.error(BROADCAST_LOG_PREFIX, 'multisig: signedTx failed hex regex')
       throw new Error('Invalid signedTx: not a valid hex string')
     }
 
     if (signedTx.length < 100) {
-      console.error(BROADCAST_LOG_PREFIX, 'multisig: signedTx too short', {
-        length: signedTx.length
-      })
       throw new Error('Invalid signedTx: too short to be a valid transaction')
     }
 
     if (currentConfig.server.backend === 'electrum') {
-      console.log(BROADCAST_LOG_PREFIX, 'multisig: broadcasting via electrum')
       const electrumClient = await ElectrumClient.initClientFromUrl(
         currentConfig.server.url,
         selectedNetwork
       )
-      const txid = await electrumClient.broadcastTransactionHex(signedTx)
-      console.log(BROADCAST_LOG_PREFIX, 'multisig: electrum broadcast ok', {
-        txid
-      })
+      await electrumClient.broadcastTransactionHex(signedTx)
       electrumClient.close()
       return true
     }
 
     if (currentConfig.server.backend === 'esplora') {
-      console.log(BROADCAST_LOG_PREFIX, 'multisig: broadcasting via esplora')
       const esploraClient = new Esplora(currentConfig.server.url)
-      const txid = await esploraClient.broadcastTransaction(signedTx)
-      console.log(BROADCAST_LOG_PREFIX, 'multisig: esplora broadcast ok', {
-        txid
-      })
+      await esploraClient.broadcastTransaction(signedTx)
       return true
     }
 
-    console.error(BROADCAST_LOG_PREFIX, 'multisig: unsupported backend', {
-      backend: currentConfig.server.backend
-    })
     throw new Error(`Unsupported backend: ${currentConfig.server.backend}`)
   }
 
   async function handleBroadcastTransaction() {
-    console.log(BROADCAST_LOG_PREFIX, 'tap: handleBroadcastTransaction', {
-      broadcasting,
-      broadcasted,
-      hasSignedTx: Boolean(signedTx),
-      hasPsbt: Boolean(psbt),
-      signed,
-      accountId: id
-    })
     if (broadcasting) {
-      console.log(BROADCAST_LOG_PREFIX, 'ignored: already broadcasting')
       toast.info('Please wait while the transaction is being broadcast.')
       return
     }
 
     if (broadcasted) {
-      console.log(BROADCAST_LOG_PREFIX, 'ignored: already broadcasted')
       toast.error(
         'This transaction has already been broadcasted to the network'
       )
@@ -244,42 +199,27 @@ export default function SignTransaction() {
 
     try {
       if (signedTx) {
-        console.log(BROADCAST_LOG_PREFIX, 'path: multisig (signedTx)')
         await handleBroadcastMultiSig()
       } else if (psbt) {
-        console.log(BROADCAST_LOG_PREFIX, 'path: singlesig (psbt → BDK)')
         const broadcastResult = await handleBroadcastSingleSig()
-        console.log(BROADCAST_LOG_PREFIX, 'singlesig broadcast returned', {
-          type: typeof broadcastResult,
-          value: broadcastResult,
-          truthy: Boolean(broadcastResult)
-        })
         if (!broadcastResult) {
-          console.error(
-            BROADCAST_LOG_PREFIX,
-            'singlesig: falsy result from broadcastTransaction — treating as failure'
-          )
           throw new Error('Broadcast failed')
         }
       } else {
-        console.error(BROADCAST_LOG_PREFIX, 'no signedTx and no psbt')
         throw new Error('No transaction to broadcast')
       }
 
-      console.log(BROADCAST_LOG_PREFIX, 'success, navigating to confirmation')
       setBroadcasted(true)
       router.navigate(
         `/signer/bitcoin/account/${id}/signAndSend/transactionConfirmation`
       )
     } catch (error) {
-      console.error(BROADCAST_LOG_PREFIX, 'catch', error)
       const errorMessage =
         error instanceof Error
           ? error.message
           : 'Failed to broadcast transaction'
       toast.error(errorMessage)
     } finally {
-      console.log(BROADCAST_LOG_PREFIX, 'finally: setBroadcasting(false)')
       setBroadcasting(false)
     }
   }

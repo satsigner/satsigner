@@ -918,30 +918,10 @@ function broadcastTransaction(
   backend: Backend,
   url: string
 ): Promise<string> {
-  const logPrefix = '[bdk broadcastTransaction]'
-  console.log(logPrefix, 'start', { backend, url })
   if (backend === 'electrum') {
-    return wallet.broadcastWithElectrum(url, psbt).then(
-      (txid) => {
-        console.log(logPrefix, 'electrum done', { txid, txidTruthy: Boolean(txid) })
-        return txid
-      },
-      (err) => {
-        console.error(logPrefix, 'electrum rejected', err)
-        throw err
-      }
-    )
+    return wallet.broadcastWithElectrum(url, psbt)
   }
-  return wallet.broadcastWithEsplora(url, psbt).then(
-    (txid) => {
-      console.log(logPrefix, 'esplora done', { txid, txidTruthy: Boolean(txid) })
-      return txid
-    },
-    (err) => {
-      console.error(logPrefix, 'esplora rejected', err)
-      throw err
-    }
-  )
+  return wallet.broadcastWithEsplora(url, psbt)
 }
 
 export {
