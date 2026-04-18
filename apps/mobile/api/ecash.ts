@@ -1,12 +1,16 @@
 import {
+  CheckStateEnum,
   getDecodedToken,
+  getEncodedTokenV3,
   getEncodedTokenV4,
   Mint,
   type MintQuoteState,
+  type Proof,
   Wallet
 } from '@cashu/cashu-ts'
 
 import type {
+  CounterReservedEvent,
   EcashMeltResult,
   EcashMint,
   EcashMintResult,
@@ -14,11 +18,9 @@ import type {
   EcashReceiveResult,
   EcashSendResult,
   MeltQuote,
-  MintQuote
+  MintQuote,
+  WalletOptions
 } from '@/types/models/Ecash'
-
-// Cache for wallet instances
-const walletCache = new Map<string, Wallet>()
 
 type KeysetResponse = {
   id: string
@@ -26,45 +28,69 @@ type KeysetResponse = {
   active?: boolean
 }
 
+type WalletInternals = {
+  mint?: {
+    getKeySets?: () => Promise<{ keysets?: KeysetResponse[] }>
+    _mintUrl?: string
+    url?: string
+  }
+  _keyChain?: {
+    keysets?: Record<string, { id: string; unit?: string; active?: boolean }>
+  }
+}
+
+const walletCache = new Map<string, Wallet>()
+
+function walletCacheKey(accountId: string, mintUrl: string): string {
+  return `${accountId}:${mintUrl}`
+}
+
 async function getKeysetsFromWallet(
   wallet: Wallet
-): Promise<{ id: string; unit: 'sat'; active: boolean }[]> {
-  const walletAny = wallet as {
-    getKeysets?: () => Promise<KeysetResponse[]>
-    mint?: { url?: string }
-  }
+): Promise<{ id: string; unit: string; active: boolean }[]> {
+  const walletInternals = wallet as unknown as WalletInternals
 
-  // v3.0.0: Try getKeysets() method first
-  if (typeof walletAny.getKeysets === 'function') {
-    const result = await walletAny.getKeysets()
-    if (Array.isArray(result)) {
-      return result
-        .filter(
-          (ks): ks is KeysetResponse =>
-            ks && typeof ks === 'object' && typeof ks.id === 'string'
-        )
-        .map((ks) => ({
-          active: ks.active !== false,
-          id: ks.id,
-          unit: 'sat' as const
-        }))
+  // Method 1: Use mint.getKeySets() (the actual cashu-ts v3 API)
+  if (typeof walletInternals.mint?.getKeySets === 'function') {
+    try {
+      const result = await walletInternals.mint.getKeySets()
+      if (result.keysets && Array.isArray(result.keysets)) {
+        return result.keysets
+          .filter(
+            (ks): ks is KeysetResponse =>
+              ks && typeof ks === 'object' && typeof ks.id === 'string'
+          )
+          .map((ks) => ({
+            active: ks.active !== false,
+            id: ks.id,
+            unit: ks.unit ?? 'sat'
+          }))
+      }
+    } catch {
+      // Fall through to next method
     }
   }
 
-  // Fallback: Fetch from mint API
-  try {
-    const mintUrl = walletAny.mint?.url
-    if (mintUrl) {
-      const response = await fetch(`${mintUrl}/keysets`)
+  // Method 2: Read from _keyChain.keysets (in-memory after loadMint)
+  if (walletInternals._keyChain?.keysets) {
+    const keysets = Object.values(walletInternals._keyChain.keysets)
+    if (keysets.length > 0) {
+      return keysets.map((ks) => ({
+        active: ks.active !== false,
+        id: ks.id,
+        unit: ks.unit ?? 'sat'
+      }))
+    }
+  }
+
+  // Method 3: Direct HTTP fallback
+  const mintUrl = walletInternals.mint?._mintUrl ?? walletInternals.mint?.url
+  if (mintUrl) {
+    try {
+      const response = await fetch(`${mintUrl}/v1/keysets`)
       if (response.ok) {
-        const keysetsData = (await response.json()) as
-          | KeysetResponse[]
-          | { keysets?: KeysetResponse[] }
-        const keysets = Array.isArray(keysetsData)
-          ? keysetsData
-          : Array.isArray(keysetsData.keysets)
-            ? keysetsData.keysets
-            : []
+        const data = (await response.json()) as { keysets?: KeysetResponse[] }
+        const keysets = data.keysets ?? []
         return keysets
           .filter(
             (ks): ks is KeysetResponse =>
@@ -73,39 +99,71 @@ async function getKeysetsFromWallet(
           .map((ks) => ({
             active: ks.active !== false,
             id: ks.id,
-            unit: 'sat' as const
+            unit: ks.unit ?? 'sat'
           }))
       }
+    } catch {
+      // Fall through
     }
-  } catch {
-    // Fallback failed, return empty array
   }
+
   return []
 }
 
-function getWallet(mintUrl: string): Wallet {
-  if (!walletCache.has(mintUrl)) {
+function getWallet(
+  accountId: string,
+  mintUrl: string,
+  options?: WalletOptions
+): Wallet {
+  const cacheKey = walletCacheKey(accountId, mintUrl)
+
+  if (!walletCache.has(cacheKey)) {
     const mint = new Mint(mintUrl)
-    const wallet = new Wallet(mint)
-    walletCache.set(mintUrl, wallet)
+    const walletOpts: Record<string, unknown> = { unit: 'sat' }
+
+    if (options?.bip39seed) {
+      walletOpts.bip39seed = options.bip39seed
+      walletOpts.secretsPolicy = 'deterministic'
+    }
+
+    if (options?.counterInit) {
+      walletOpts.counterInit = options.counterInit
+    }
+
+    const wallet = new Wallet(mint, walletOpts)
+
+    if (options?.bip39seed && options.onCounterReserved) {
+      const walletWithEvents = wallet as unknown as {
+        on?: {
+          countersReserved?: (
+            cb: (event: CounterReservedEvent) => void
+          ) => () => void
+        }
+      }
+      walletWithEvents.on?.countersReserved?.(options.onCounterReserved)
+    }
+
+    walletCache.set(cacheKey, wallet)
   }
-  return walletCache.get(mintUrl)!
+  return walletCache.get(cacheKey)!
 }
 
 export async function connectToMint(mintUrl: string): Promise<EcashMint> {
-  clearWalletCache(mintUrl)
-  const wallet = getWallet(mintUrl)
-  await wallet.loadMint()
-  const mintInfo = wallet.getMintInfo()
-  const keysets = await getKeysetsFromWallet(wallet)
+  const tempMint = new Mint(mintUrl)
+  const tempWallet = new Wallet(tempMint)
+  await tempWallet.loadMint()
+  const mintInfo = tempWallet.getMintInfo()
+  const keysets = await getKeysetsFromWallet(tempWallet)
   return {
-    balance: 0, // Will be calculated from proofs
+    balance: 0,
     isConnected: true,
-    keysets: keysets.map((ks) => ({
-      active: ks.active,
-      id: ks.id,
-      unit: ks.unit
-    })),
+    keysets: keysets
+      .filter((ks) => ks.unit === 'sat')
+      .map((ks) => ({
+        active: ks.active,
+        id: ks.id,
+        unit: 'sat' as const
+      })),
     lastSync: new Date().toISOString(),
     name: mintInfo.name || `Mint ${mintUrl}`,
     url: mintUrl
@@ -113,14 +171,17 @@ export async function connectToMint(mintUrl: string): Promise<EcashMint> {
 }
 
 export async function createMintQuote(
+  accountId: string,
   mintUrl: string,
-  amount: number
+  amount: number,
+  options?: WalletOptions
 ): Promise<MintQuote> {
-  const wallet = getWallet(mintUrl)
+  const wallet = getWallet(accountId, mintUrl, options)
   await wallet.loadMint()
   const quote = await wallet.createMintQuote(amount)
   return {
     expiry: quote.expiry,
+    mintUrl,
     paid: false,
     quote: quote.quote,
     request: quote.request
@@ -128,79 +189,85 @@ export async function createMintQuote(
 }
 
 export async function checkMintQuote(
+  accountId: string,
   mintUrl: string,
-  quoteId: string
+  quoteId: string,
+  options?: WalletOptions
 ): Promise<MintQuoteState> {
-  const wallet = getWallet(mintUrl)
+  const wallet = getWallet(accountId, mintUrl, options)
   await wallet.loadMint()
   const quoteStatus = await wallet.checkMintQuote(quoteId)
   return quoteStatus.state
 }
 
 export async function mintProofs(
+  accountId: string,
   mintUrl: string,
   amount: number,
-  quoteId: string
+  quoteId: string,
+  options?: WalletOptions
 ): Promise<EcashMintResult> {
-  const wallet = getWallet(mintUrl)
+  const wallet = getWallet(accountId, mintUrl, options)
   await wallet.loadMint()
   const proofs = await wallet.mintProofs(amount, quoteId)
   return {
-    proofs,
+    proofs: proofs.map((p) => ({ ...p, mintUrl })),
     totalAmount: amount
   }
 }
 
 export async function createMeltQuote(
+  accountId: string,
   mintUrl: string,
-  invoice: string
+  invoice: string,
+  options?: WalletOptions
 ): Promise<MeltQuote> {
-  const wallet = getWallet(mintUrl)
+  const wallet = getWallet(accountId, mintUrl, options)
   const quote = await wallet.createMeltQuote(invoice)
   return {
     amount: quote.amount,
     expiry: quote.expiry,
     fee_reserve: quote.fee_reserve,
+    mintUrl,
     paid: false,
     quote: quote.quote
   }
 }
 
 export async function meltProofs(
+  accountId: string,
   mintUrl: string,
   quote: MeltQuote,
   proofs: EcashProof[],
   _description?: string,
-  originalInvoice?: string
+  originalInvoice?: string,
+  options?: WalletOptions
 ): Promise<EcashMeltResult> {
-  const wallet = getWallet(mintUrl)
+  const wallet = getWallet(accountId, mintUrl, options)
   await wallet.loadMint()
-  // v3.0.0: Need to recreate the quote object from the wallet
-  // The new API expects the quote object returned by createMeltQuote
-  // IMPORTANT: We need to use the original bolt11 invoice, not the quote ID
   const invoiceToUse = originalInvoice || quote.quote
   const meltQuote = await wallet.createMeltQuote(invoiceToUse)
   const result = await wallet.meltProofs(meltQuote, proofs)
 
-  type MeltResult = {
+  const meltResult = result as unknown as {
     preimage?: string
     payment_preimage?: string
-    change?: EcashProof[]
   }
-  const meltResult = result as MeltResult
 
   return {
-    change: result.change,
-    paid: true, // If we get here without error, it was successful
+    change: result.change?.map((p) => ({ ...p, mintUrl })),
+    paid: true,
     preimage: meltResult.preimage || meltResult.payment_preimage || undefined
   }
 }
 
 async function validateProofs(
+  accountId: string,
   mintUrl: string,
-  proofs: EcashProof[]
+  proofs: EcashProof[],
+  options?: WalletOptions
 ): Promise<{ validProofs: EcashProof[]; spentProofs: EcashProof[] }> {
-  const wallet = getWallet(mintUrl)
+  const wallet = getWallet(accountId, mintUrl, options)
   await wallet.loadMint()
 
   const proofStates = await wallet.checkProofsStates(proofs)
@@ -220,17 +287,23 @@ async function validateProofs(
 }
 
 export async function sendEcash(
+  accountId: string,
   mintUrl: string,
   amount: number,
   proofs: EcashProof[],
-  memo?: string
+  memo?: string,
+  options?: WalletOptions
 ): Promise<EcashSendResult> {
   if (!proofs || proofs.length === 0) {
     throw new Error('No proofs available to send')
   }
 
-  // Validate proofs before attempting to send
-  const { validProofs, spentProofs } = await validateProofs(mintUrl, proofs)
+  const { validProofs, spentProofs } = await validateProofs(
+    accountId,
+    mintUrl,
+    proofs,
+    options
+  )
 
   if (spentProofs.length > 0) {
     throw new Error(
@@ -253,36 +326,46 @@ export async function sendEcash(
     )
   }
 
-  const wallet = getWallet(mintUrl)
-  // Ensure wallet is loaded with mint keys
+  const wallet = getWallet(accountId, mintUrl, options)
   await wallet.loadMint()
 
   const { keep, send } = await wallet.send(amount, validProofs, {
     includeFees: true
   })
 
-  const token = getEncodedTokenV4({
-    memo,
-    mint: mintUrl,
-    proofs: send,
-    unit: 'sat'
-  })
+  const tokenPayload = { memo, mint: mintUrl, proofs: send, unit: 'sat' }
+  const token = getEncodedTokenV4(tokenPayload)
+  const tokenV3 = getEncodedTokenV3(tokenPayload)
 
   return {
-    keep,
-    send,
-    token
+    keep: keep.map((p) => ({ ...p, mintUrl })),
+    send: send.map((p) => ({ ...p, mintUrl })),
+    token,
+    tokenV3
   }
 }
 
-export async function receiveEcash(
+export function encodeProofsAsToken(
   mintUrl: string,
-  token: string
+  proofs: EcashProof[],
+  memo?: string,
+  tokenVersion: 'v3' | 'v4' = 'v4'
+): string {
+  const tokenPayload = { memo, mint: mintUrl, proofs, unit: 'sat' }
+  return tokenVersion === 'v3'
+    ? getEncodedTokenV3(tokenPayload)
+    : getEncodedTokenV4(tokenPayload)
+}
+
+export async function receiveEcash(
+  accountId: string,
+  mintUrl: string,
+  token: string,
+  options?: WalletOptions
 ): Promise<EcashReceiveResult> {
-  const wallet = getWallet(mintUrl)
+  const wallet = getWallet(accountId, mintUrl, options)
   await wallet.loadMint()
 
-  // Decode token to get mint URL and validate
   const decodedToken = getDecodedToken(token)
   if (decodedToken.mint !== mintUrl) {
     throw new Error('Token mint URL does not match current mint')
@@ -293,7 +376,7 @@ export async function receiveEcash(
 
   return {
     memo: decodedToken.memo,
-    proofs,
+    proofs: proofs.map((p) => ({ ...p, mintUrl })),
     totalAmount
   }
 }
@@ -304,12 +387,14 @@ export function getMintBalance(_mintUrl: string, proofs: EcashProof[]): number {
 
 export async function validateEcashToken(
   token: string,
-  mintUrl: string
+  accountId: string,
+  mintUrl: string,
+  options?: WalletOptions
 ): Promise<{ isValid: boolean; isSpent?: boolean; details?: string }> {
   try {
     const decodedToken = getDecodedToken(token)
 
-    const wallet = getWallet(mintUrl)
+    const wallet = getWallet(accountId, mintUrl, options)
     if (!wallet) {
       return { details: 'Wallet not found for mint', isValid: false }
     }
@@ -355,15 +440,141 @@ export async function validateEcashToken(
     }
   } catch {
     return {
-      details: `Failed to check proof states,.`,
+      details: 'Failed to check proof states.',
       isValid: false
     }
   }
 }
 
-export function clearWalletCache(mintUrl?: string): void {
-  if (mintUrl) {
-    walletCache.delete(mintUrl)
+const RESTORE_BATCH_SIZE = 25
+const RESTORE_TIMEOUT_MS = 15000
+const MAX_EMPTY_BATCHES = 2
+
+export async function restoreProofsFromSeed(
+  accountId: string,
+  mintUrl: string,
+  seed: Uint8Array,
+  counterInit?: Record<string, number>
+): Promise<{
+  proofs: EcashProof[]
+  lastCounter?: number
+}> {
+  clearWalletCache(accountId, mintUrl)
+
+  const wallet = getWallet(accountId, mintUrl, {
+    bip39seed: seed,
+    counterInit
+  })
+
+  await wallet.loadMint()
+
+  const mintKeysets = await getKeysetsFromWallet(wallet)
+
+  const satKeysets = mintKeysets.filter((ks) => ks.unit === 'sat')
+  const sortedKeysets = [
+    ...satKeysets.filter((ks) => ks.active),
+    ...satKeysets.filter((ks) => !ks.active)
+  ]
+
+  const allProofs: Proof[] = []
+  let lastCounter: number | undefined
+
+  for (const keyset of sortedKeysets) {
+    try {
+      await loadKeysForKeyset(wallet, keyset.id)
+
+      const result = await withTimeout(
+        wallet.restore(0, RESTORE_BATCH_SIZE, { keysetId: keyset.id }),
+        RESTORE_TIMEOUT_MS
+      )
+
+      if (result.proofs.length > 0) {
+        allProofs.push(...result.proofs)
+        if (
+          result.lastCounterWithSignature !== undefined &&
+          (lastCounter === undefined ||
+            result.lastCounterWithSignature > lastCounter)
+        ) {
+          lastCounter = result.lastCounterWithSignature
+        }
+
+        let nextCounter = RESTORE_BATCH_SIZE
+        let emptyBatches = 0
+        while (emptyBatches < MAX_EMPTY_BATCHES) {
+          const contResult = await withTimeout(
+            wallet.restore(nextCounter, RESTORE_BATCH_SIZE, {
+              keysetId: keyset.id
+            }),
+            RESTORE_TIMEOUT_MS
+          )
+          if (contResult.proofs.length > 0) {
+            allProofs.push(...contResult.proofs)
+            emptyBatches = 0
+            if (
+              contResult.lastCounterWithSignature !== undefined &&
+              (lastCounter === undefined ||
+                contResult.lastCounterWithSignature > lastCounter)
+            ) {
+              lastCounter = contResult.lastCounterWithSignature
+            }
+          } else {
+            emptyBatches += 1
+          }
+          nextCounter += RESTORE_BATCH_SIZE
+        }
+      }
+    } catch {
+      // Continue to next keyset on failure
+    }
+  }
+
+  if (allProofs.length === 0) {
+    return { proofs: [] }
+  }
+
+  const proofStates = await wallet.checkProofsStates(allProofs)
+
+  const unspentProofs: EcashProof[] = allProofs
+    .filter((_, idx) => proofStates[idx]?.state === CheckStateEnum.UNSPENT)
+    .map((p) => ({ ...p, mintUrl }))
+
+  return {
+    lastCounter,
+    proofs: unspentProofs
+  }
+}
+
+async function loadKeysForKeyset(
+  wallet: Wallet,
+  keysetId: string
+): Promise<void> {
+  const walletWithKeys = wallet as unknown as {
+    getKeys?: (keysetId: string) => Promise<unknown>
+  }
+  if (typeof walletWithKeys.getKeys === 'function') {
+    await walletWithKeys.getKeys(keysetId)
+  }
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_resolve, reject) => {
+      setTimeout(() => reject(new Error('Operation timed out')), ms)
+    })
+  ])
+}
+
+export function clearWalletCache(accountId?: string, mintUrl?: string): void {
+  if (accountId && mintUrl) {
+    walletCache.delete(walletCacheKey(accountId, mintUrl))
+  } else if (accountId) {
+    const prefix = `${accountId}:`
+    for (const key of walletCache.keys()) {
+      if (key.startsWith(prefix)) {
+        walletCache.delete(key)
+      }
+    }
   } else {
     walletCache.clear()
   }

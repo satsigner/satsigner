@@ -5,7 +5,6 @@ import { ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { validateEcashToken } from '@/api/ecash'
 import {
   SSIconIncoming,
   SSIconIncomingLightning,
@@ -42,7 +41,8 @@ export default function EcashTransactionDetailPage() {
     receiveEcash,
     mintQuotes,
     checkMintQuote,
-    mintProofs
+    mintProofs,
+    validateToken
   } = useEcash()
   const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
     useShallow((state) => [
@@ -132,19 +132,14 @@ export default function EcashTransactionDetailPage() {
     setIsCheckingStatus(true)
 
     try {
-      const result = await validateEcashToken(
+      const isValid = await validateToken(
         transaction.token,
         transaction.mintUrl
       )
-      let tokenStatus: EcashTransaction['tokenStatus']
+      const tokenStatus: EcashTransaction['tokenStatus'] = isValid
+        ? 'unspent'
+        : 'invalid'
 
-      if (result.isValid) {
-        tokenStatus = result.isSpent ? 'spent' : 'unspent'
-      } else {
-        tokenStatus = 'invalid'
-      }
-
-      // Save token status to store
       updateTransaction(transaction.id, { tokenStatus })
     } catch {
       updateTransaction(transaction.id, { tokenStatus: 'invalid' })
@@ -495,9 +490,7 @@ export default function EcashTransactionDetailPage() {
             <SSText uppercase>{t('ecash.transactionDetail.details')}</SSText>
             <SSVStack gap="sm">
               <SSHStack justifyBetween>
-                <SSText color="muted">
-                  {t('ecash.transactionDetail.id')}:
-                </SSText>
+                <SSText color="muted">{t('ecash.transactionDetail.id')}</SSText>
                 <SSText
                   size="sm"
                   numberOfLines={1}
@@ -508,7 +501,7 @@ export default function EcashTransactionDetailPage() {
               </SSHStack>
               <SSHStack justifyBetween>
                 <SSText color="muted">
-                  {t('ecash.transactionDetail.mint')}:
+                  {t('ecash.transactionDetail.mint')}
                 </SSText>
                 <SSText
                   size="sm"

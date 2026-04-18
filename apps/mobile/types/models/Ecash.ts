@@ -1,4 +1,31 @@
 // Ecash types based on @cashu/cashu-ts library
+
+export type CounterReservedEvent = {
+  keysetId: string
+  start: number
+  count: number
+}
+
+export type OnCounterReserved = (event: CounterReservedEvent) => void
+
+export type WalletOptions = {
+  bip39seed?: Uint8Array
+  counterInit?: Record<string, number>
+  onCounterReserved?: OnCounterReserved
+}
+
+export type EcashAccount = {
+  id: string
+  name: string
+  createdAt: string
+  hasSeed: boolean
+}
+
+export type EcashKeysetCounter = {
+  keysetId: string
+  counter: number
+}
+
 export type EcashMint = {
   url: string
   name?: string
@@ -19,6 +46,7 @@ export type EcashProof = {
   amount: number
   secret: string
   C: string
+  mintUrl: string
 }
 
 export type EcashToken = {
@@ -33,6 +61,7 @@ export type MintQuote = {
   request: string
   expiry: number
   paid: boolean
+  mintUrl: string
 }
 
 export type MeltQuote = {
@@ -41,6 +70,7 @@ export type MeltQuote = {
   fee_reserve: number
   paid: boolean
   expiry: number
+  mintUrl: string
 }
 
 export type MintQuoteState =
@@ -59,6 +89,7 @@ export type EcashConnectionStatus = {
 
 export type EcashSendResult = {
   token: string
+  tokenV3: string
   keep: EcashProof[]
   send: EcashProof[]
 }

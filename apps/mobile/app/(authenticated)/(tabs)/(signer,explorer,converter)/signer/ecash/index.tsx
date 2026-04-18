@@ -1,38 +1,38 @@
+import { FlashList } from '@shopify/flash-list'
 import { Stack, useRouter } from 'expo-router'
-import { useEffect } from 'react'
-import { Animated, ScrollView, StyleSheet } from 'react-native'
+import { StyleSheet, View } from 'react-native'
+import { TouchableOpacity } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
-import {
-  SSIconBlackIndicator,
-  SSIconECash,
-  SSIconGreenIndicator
-} from '@/components/icons'
+import { SSIconECash } from '@/components/icons'
 import SSButton from '@/components/SSButton'
-import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
-import SSCameraModal from '@/components/SSCameraModal'
-import SSEcashTransactionCard from '@/components/SSEcashTransactionCard'
-import SSIconButton from '@/components/SSIconButton'
-import SSNFCModal from '@/components/SSNFCModal'
-import SSPaste from '@/components/SSPaste'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
-import { useContentHandler } from '@/hooks/useContentHandler'
-import { useEcash } from '@/hooks/useEcash'
-import { useEcashContentHandler } from '@/hooks/useEcashContentHandler'
-import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useBlockchainStore } from '@/store/blockchain'
+import { useEcashStore } from '@/store/ecash'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
+import type { EcashAccount } from '@/types/models/Ecash'
 import { formatFiatPrice } from '@/utils/format'
 
-export default function EcashLanding() {
-  const router = useRouter()
-  const { mints, activeMint, proofs, transactions } = useEcash()
+const ACCOUNT_CARD_HEIGHT = 100
+
+function EcashAccountCard({
+  account,
+  balance,
+  mintCount,
+  mintName,
+  onPress
+}: {
+  account: EcashAccount
+  balance: number
+  mintCount: number
+  mintName?: string
+  onPress: () => void
+}) {
   const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
     useShallow((state) => [
       state.currencyUnit,
@@ -40,225 +40,219 @@ export default function EcashLanding() {
       state.useZeroPadding
     ])
   )
-  const [fiatCurrency, btcPrice, fetchPrices] = usePriceStore(
+  const [btcPrice, fiatCurrency] = usePriceStore(
+    useShallow((state) => [state.btcPrice, state.fiatCurrency])
+  )
+
+  const mintLabel =
+    mintCount === 1 && mintName
+      ? `1 ${t('ecash.mint.singular')} · ${mintName}`
+      : `${mintCount} ${mintCount === 1 ? t('ecash.mint.singular') : t('ecash.mint.plural')}`
+
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+      <View style={styles.accountCard}>
+        <View style={styles.accountCardHeader}>
+          <View style={styles.accountCardHeaderLeft}>
+            <SSText weight="medium" size="md">
+              {account.name}
+            </SSText>
+            {!account.hasSeed && (
+              <View style={styles.legacyBadge}>
+                <SSText size="xxs" style={{ color: Colors.warning }}>
+                  {t('ecash.account.noSeed')}
+                </SSText>
+              </View>
+            )}
+          </View>
+          <SSText color="muted" size="xs">
+            {mintLabel}
+          </SSText>
+        </View>
+        <View style={styles.accountCardBody}>
+          <View style={styles.amountRow}>
+            {privacyMode ? (
+              <SSText
+                size="lg"
+                weight="ultralight"
+                style={{ lineHeight: Sizes.text.fontSize.lg }}
+              >
+                ••••
+              </SSText>
+            ) : (
+              <SSStyledSatText
+                amount={balance}
+                decimals={0}
+                useZeroPadding={useZeroPadding}
+                currency={currencyUnit}
+                textSize="lg"
+                weight="ultralight"
+                letterSpacing={-1}
+              />
+            )}
+            <SSText
+              color="muted"
+              size="xs"
+              style={{ opacity: privacyMode ? 0 : 1 }}
+            >
+              {currencyUnit === 'btc' ? 'BTC' : 'sats'}
+            </SSText>
+          </View>
+          {btcPrice > 0 && (
+            <SSText
+              color="muted"
+              size="sm"
+              style={{ opacity: privacyMode ? 0 : 1 }}
+            >
+              {formatFiatPrice(balance, btcPrice)}{' '}
+              <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                {fiatCurrency}
+              </SSText>
+            </SSText>
+          )}
+        </View>
+      </View>
+    </TouchableOpacity>
+  )
+}
+
+export default function EcashAccountListPage() {
+  const router = useRouter()
+  const [accounts, allMints, allProofs, setActiveAccountId] = useEcashStore(
     useShallow((state) => [
-      state.fiatCurrency,
-      state.btcPrice,
-      state.fetchPrices
+      state.accounts,
+      state.mints,
+      state.proofs,
+      state.setActiveAccountId
     ])
   )
-  const mempoolUrl = useBlockchainStore(
-    (state) => state.configsMempool['bitcoin']
-  )
 
-  useEffect(() => {
-    fetchPrices(mempoolUrl)
-  }, [fetchPrices, fiatCurrency, mempoolUrl])
+  function getAccountBalance(accountId: string): number {
+    const accountProofs = allProofs[accountId] ?? []
+    return accountProofs.reduce((sum, proof) => sum + proof.amount, 0)
+  }
 
-  const handleSettingsPress = () => router.navigate('/signer/ecash/settings')
-  const handleConnectMintPress = () =>
-    router.navigate('/signer/ecash/settings/mint')
+  function getAccountMintCount(accountId: string): number {
+    return (allMints[accountId] ?? []).length
+  }
 
-  const ecashContentHandler = useEcashContentHandler()
+  function getFirstMintName(accountId: string): string | undefined {
+    return (allMints[accountId] ?? [])[0]?.name
+  }
 
-  const contentHandler = useContentHandler({
-    context: 'ecash',
-    onContentScanned: ecashContentHandler.handleContentScanned,
-    onReceive: ecashContentHandler.handleReceive,
-    onSend: ecashContentHandler.handleSend
-  })
+  function handleAccountPress(account: EcashAccount) {
+    setActiveAccountId(account.id)
+    router.navigate(`/signer/ecash/account/${account.id}`)
+  }
 
-  const totalBalance = proofs.reduce((sum, proof) => sum + proof.amount, 0)
+  function handleAddAccount() {
+    router.navigate('/signer/ecash/account/add')
+  }
 
   return (
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerRight: () => (
-            <SSIconButton
-              onPress={handleSettingsPress}
-              style={{ marginRight: 8 }}
-            >
-              <SSIconECash height={16} width={16} />
-            </SSIconButton>
-          ),
           headerTitle: () => (
             <SSText uppercase>{t('navigation.item.ecash')}</SSText>
           )
         }}
       />
-      <Animated.View>
-        {mints.length === 0 ? (
-          <SSVStack itemsCenter gap="lg" style={styles.noMintContainer}>
-            <SSVStack itemsCenter gap="sm">
-              <SSText size="lg" weight="medium">
-                {t('ecash.mint.noMintSelected')}
-              </SSText>
-              <SSText color="muted" center>
-                {t('ecash.mint.noMintSelectedDescription')}
-              </SSText>
-            </SSVStack>
-            <SSButton
-              label={t('ecash.mint.connect')}
-              onPress={handleConnectMintPress}
-              variant="gradient"
-              gradientType="special"
-              style={styles.connectButton}
-            />
+      {accounts.length === 0 ? (
+        <SSVStack itemsCenter gap="lg" style={styles.emptyState}>
+          <SSIconECash height={48} width={48} />
+          <SSVStack itemsCenter gap="sm">
+            <SSText size="lg" weight="medium">
+              {t('ecash.account.noAccounts')}
+            </SSText>
+            <SSText color="muted" center>
+              {t('ecash.account.noAccountsDescription')}
+            </SSText>
           </SSVStack>
-        ) : (
-          <SSVStack itemsCenter gap="none" style={{ paddingBottom: '4%' }}>
-            <SSVStack style={styles.balanceContainer} gap="xs">
-              <SSText color="muted" size="xs" uppercase>
-                {t('ecash.mint.balance')}
-              </SSText>
-              <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                {privacyMode ? (
-                  <SSText
-                    color="white"
-                    size={totalBalance > 1_000_000_000 ? '4xl' : '6xl'}
-                    weight="ultralight"
-                    style={{
-                      letterSpacing: -1,
-                      lineHeight:
-                        Sizes.text.fontSize[
-                          totalBalance > 1_000_000_000 ? '4xl' : '6xl'
-                        ]
-                    }}
-                  >
-                    ••••
-                  </SSText>
-                ) : (
-                  <SSStyledSatText
-                    amount={totalBalance}
-                    decimals={0}
-                    useZeroPadding={useZeroPadding}
-                    currency={currencyUnit}
-                    textSize={totalBalance > 1_000_000_000 ? '4xl' : '6xl'}
-                    weight="ultralight"
-                    letterSpacing={-1}
-                  />
-                )}
-                <SSText size="xl" color="muted">
-                  {currencyUnit === 'btc'
-                    ? t('bitcoin.btc')
-                    : t('bitcoin.sats')}
-                </SSText>
-              </SSHStack>
-              {btcPrice > 0 && (
-                <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                  <SSText color="muted">
-                    {privacyMode
-                      ? '••••'
-                      : formatFiatPrice(totalBalance, btcPrice)}
-                  </SSText>
-                  <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                    {fiatCurrency}
-                  </SSText>
-                </SSHStack>
-              )}
-              {activeMint && (
-                <SSVStack style={styles.statusContainer} gap="xs">
-                  <SSHStack gap="xs" style={{ alignItems: 'center' }}>
-                    {activeMint.isConnected ? (
-                      <SSIconGreenIndicator height={12} width={12} />
-                    ) : (
-                      <SSIconBlackIndicator height={12} width={12} />
-                    )}
-                    <SSText color="muted" size="sm">
-                      {activeMint.name || activeMint.url}
-                    </SSText>
-                  </SSHStack>
-                  {!activeMint.isConnected && (
-                    <SSText
-                      size="xs"
-                      style={[styles.errorText, { color: Colors.error }]}
-                    >
-                      Not connected
-                    </SSText>
-                  )}
-                </SSVStack>
-              )}
-            </SSVStack>
-            <SSButtonActionsGroup
-              context="ecash"
-              nfcAvailable={contentHandler.nfcAvailable}
-              onSend={contentHandler.handleSend}
-              onPaste={contentHandler.handlePaste}
-              onCamera={contentHandler.handleCamera}
-              onNFC={contentHandler.handleNFC}
-              onReceive={contentHandler.handleReceive}
-            />
-          </SSVStack>
-        )}
-      </Animated.View>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <SSVStack style={{ paddingBottom: 60 }}>
-          {transactions.length > 0 && (
-            <SSVStack gap="sm">
-              {transactions.slice(0, 50).map((transaction) => (
-                <SSEcashTransactionCard
-                  key={transaction.id}
-                  transaction={transaction}
-                />
-              ))}
-              {transactions.length > 50 && (
-                <SSText color="muted" size="sm" style={styles.moreTransactions}>
-                  {t('ecash.moreTransactions', {
-                    count: transactions.length - 50
-                  })}
-                </SSText>
-              )}
-            </SSVStack>
-          )}
+          <SSButton
+            label={t('ecash.account.addAccount')}
+            onPress={handleAddAccount}
+            variant="gradient"
+            gradientType="special"
+            style={styles.addButton}
+          />
         </SSVStack>
-      </ScrollView>
-      <SSCameraModal
-        visible={contentHandler.cameraModalVisible}
-        onClose={contentHandler.closeCameraModal}
-        onContentScanned={contentHandler.handleContentScanned}
-        context="ecash"
-        title={t('ecash.scan.title')}
-      />
-      <SSNFCModal
-        visible={contentHandler.nfcModalVisible}
-        onClose={contentHandler.closeNFCModal}
-        onContentRead={contentHandler.handleNFCContentRead}
-        mode="read"
-      />
-      <SSPaste
-        visible={contentHandler.pasteModalVisible}
-        onClose={contentHandler.closePasteModal}
-        onContentPasted={contentHandler.handleContentPasted}
-        context="ecash"
-      />
+      ) : (
+        <SSVStack gap="md" style={styles.listContainer}>
+          <FlashList
+            data={accounts}
+            estimatedItemSize={ACCOUNT_CARD_HEIGHT}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <EcashAccountCard
+                account={item}
+                balance={getAccountBalance(item.id)}
+                mintCount={getAccountMintCount(item.id)}
+                mintName={getFirstMintName(item.id)}
+                onPress={() => handleAccountPress(item)}
+              />
+            )}
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+          />
+          <SSButton
+            label={t('ecash.account.addAccount')}
+            onPress={handleAddAccount}
+            variant="outline"
+          />
+        </SSVStack>
+      )}
     </SSMainLayout>
   )
 }
 
 const styles = StyleSheet.create({
-  balanceContainer: {
-    alignItems: 'center',
-    paddingBottom: 12
+  accountCard: {
+    backgroundColor: Colors.gray[900],
+    borderColor: Colors.gray[800],
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 16
   },
-  connectButton: {
+  accountCardBody: {
+    alignItems: 'baseline',
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 4
+  },
+  accountCardHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between'
+  },
+  accountCardHeaderLeft: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8
+  },
+  addButton: {
     maxWidth: 280,
     width: '100%'
   },
-  errorText: {
-    paddingTop: 4,
-    textAlign: 'center'
+  amountRow: {
+    alignItems: 'baseline',
+    flexDirection: 'row',
+    gap: 3
   },
-  moreTransactions: {
-    paddingVertical: 8,
-    textAlign: 'center'
-  },
-  noMintContainer: {
+  emptyState: {
     paddingHorizontal: 20,
     paddingVertical: 60
   },
-  statusContainer: {
-    alignItems: 'center',
+  legacyBadge: {
+    backgroundColor: Colors.gray[800],
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2
+  },
+  listContainer: {
+    flex: 1,
     paddingBottom: 20
+  },
+  separator: {
+    height: 8
   }
 })

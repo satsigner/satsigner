@@ -809,38 +809,32 @@ export default function NodeDetailPage() {
     return (
       <SSHStack
         gap="none"
-        style={{ paddingHorizontal: '5%', paddingVertical: 4 }}
+        style={{
+          borderBottomColor: Colors.gray[800],
+          borderBottomWidth: 1,
+          paddingHorizontal: '5%',
+          paddingTop: 8
+        }}
       >
         <SSActionButton
           style={{ width: tabWidth }}
           onPress={() => handleTabChange(0)}
         >
-          <SSVStack gap="none">
+          <View style={styles.tabItem}>
             <SSText center size="lg">
               {privacyMode ? PRIVACY_MASK : transactions.length}
             </SSText>
             <SSText center color="muted" style={{ lineHeight: 12 }}>
               {t('lightning.node.transactionsTab')}
             </SSText>
-            {tabIndex === 0 ? (
-              <View
-                style={{
-                  alignSelf: 'center',
-                  backgroundColor: Colors.white,
-                  bottom: -8,
-                  height: 2,
-                  position: 'absolute',
-                  width: '100%'
-                }}
-              />
-            ) : null}
-          </SSVStack>
+            {tabIndex === 0 && <View style={styles.tabIndicator} />}
+          </View>
         </SSActionButton>
         <SSActionButton
           style={{ width: tabWidth }}
           onPress={() => handleTabChange(1)}
         >
-          <SSVStack gap="none">
+          <View style={styles.tabItem}>
             <SSText center size="lg">
               {privacyMode
                 ? PRIVACY_MASK
@@ -849,44 +843,22 @@ export default function NodeDetailPage() {
             <SSText center color="muted" style={{ lineHeight: 12 }}>
               {t('lightning.node.channelsTab')}
             </SSText>
-            {tabIndex === 1 ? (
-              <View
-                style={{
-                  alignSelf: 'center',
-                  backgroundColor: Colors.white,
-                  bottom: -8,
-                  height: 2,
-                  position: 'absolute',
-                  width: '100%'
-                }}
-              />
-            ) : null}
-          </SSVStack>
+            {tabIndex === 1 && <View style={styles.tabIndicator} />}
+          </View>
         </SSActionButton>
         <SSActionButton
           style={{ width: tabWidth }}
           onPress={() => handleTabChange(2)}
         >
-          <SSVStack gap="none">
+          <View style={styles.tabItem}>
             <SSText center size="lg">
               {privacyMode ? PRIVACY_MASK : onchainTxCount}
             </SSText>
             <SSText center color="muted" style={{ lineHeight: 12 }}>
               {t('lightning.node.onchainTab')}
             </SSText>
-            {tabIndex === 2 ? (
-              <View
-                style={{
-                  alignSelf: 'center',
-                  backgroundColor: Colors.white,
-                  bottom: -8,
-                  height: 2,
-                  position: 'absolute',
-                  width: '100%'
-                }}
-              />
-            ) : null}
-          </SSVStack>
+            {tabIndex === 2 && <View style={styles.tabIndicator} />}
+          </View>
         </SSActionButton>
       </SSHStack>
     )
@@ -1144,6 +1116,20 @@ export default function NodeDetailPage() {
 }
 
 const styles = StyleSheet.create({
+  tabIndicator: {
+    backgroundColor: Colors.white,
+    bottom: 0,
+    height: 2,
+    left: 0,
+    position: 'absolute',
+    right: 0
+  },
+  tabItem: {
+    alignItems: 'center',
+    height: '100%',
+    justifyContent: 'center',
+    paddingBottom: 8
+  },
   actions: {
     gap: 8,
     marginTop: 16

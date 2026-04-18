@@ -65,6 +65,39 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
         ? `•••• ${fiatCurrency}`
         : ''
 
+  function getStatusColor(status: EcashTransaction['status']) {
+    switch (status) {
+      case 'pending':
+        return Colors.warning
+      case 'completed':
+        return Colors.softBarGreen
+      case 'failed':
+      case 'expired':
+        return Colors.error
+      case 'settled':
+        return Colors.softBarRed
+      default:
+        return Colors.gray[700]
+    }
+  }
+
+  function getStatusLabel(status: EcashTransaction['status']) {
+    switch (status) {
+      case 'pending':
+        return t('ecash.quote.pending')
+      case 'completed':
+        return t('ecash.quote.completed')
+      case 'failed':
+        return t('ecash.quote.failed')
+      case 'expired':
+        return t('ecash.quote.expired')
+      case 'settled':
+        return t('ecash.quote.settled')
+      default:
+        return String(status).toUpperCase()
+    }
+  }
+
   function getTransactionIcon(type: EcashTransaction['type']) {
     switch (type) {
       case 'send':
@@ -106,49 +139,18 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
       activeOpacity={0.7}
     >
       <SSVStack style={styles.container} gap="none">
-        <SSHStack justifyBetween>
-          <SSText color="muted" size="xs">
-            {transaction.id.slice(0, 30)}...
-          </SSText>
-          <SSHStack gap="xs">
+        <SSHStack justifyBetween style={{ alignItems: 'center' }}>
+          <SSTimeAgoText date={new Date(transaction.timestamp)} size="xs" />
+          <SSHStack gap="xs" style={{ alignItems: 'center' }}>
             {transaction.status && (
               <SSText
                 uppercase
                 size="xs"
                 style={{
-                  color: (() => {
-                    switch (transaction.status) {
-                      case 'pending':
-                        return Colors.warning
-                      case 'completed':
-                        return Colors.softBarGreen
-                      case 'failed':
-                      case 'expired':
-                        return Colors.error
-                      case 'settled':
-                        return Colors.softBarRed
-                      default:
-                        return Colors.gray[700]
-                    }
-                  })()
+                  color: getStatusColor(transaction.status)
                 }}
               >
-                {(() => {
-                  switch (transaction.status) {
-                    case 'pending':
-                      return t('ecash.quote.pending')
-                    case 'completed':
-                      return t('ecash.quote.completed')
-                    case 'failed':
-                      return t('ecash.quote.failed')
-                    case 'expired':
-                      return t('ecash.quote.expired')
-                    case 'settled':
-                      return t('ecash.quote.settled')
-                    default:
-                      return String(transaction.status).toUpperCase()
-                  }
-                })()}
+                {getStatusLabel(transaction.status)}
               </SSText>
             )}
             {transaction.type === 'send' && (
@@ -180,8 +182,6 @@ function SSEcashTransactionCard({ transaction }: SSEcashTransactionCardProps) {
             )}
           </SSHStack>
         </SSHStack>
-
-        <SSTimeAgoText date={new Date(transaction.timestamp)} size="xs" />
 
         <SSVStack gap="none" style={{ marginTop: 5 }}>
           <SSHStack
